@@ -410,7 +410,8 @@ class TestRSSGeneratorDescriptionHandling:
                 desc_text = strip_html(desc_text)[:200]
 
         assert desc_text == "Plain text meta description"
-        assert "<" not in desc_text and ">" not in desc_text
+        assert "<" not in desc_text
+        assert ">" not in desc_text
 
     def test_strips_html_from_excerpt_fallback(self) -> None:
         """When using excerpt fallback, HTML is stripped for XML safety."""
@@ -429,7 +430,8 @@ class TestRSSGeneratorDescriptionHandling:
             if desc_text:
                 desc_text = strip_html(desc_text)[:200]
 
-        assert "<" not in desc_text and ">" not in desc_text
+        assert "<" not in desc_text
+        assert ">" not in desc_text
         assert "Excerpt with HTML" in desc_text
 
 

@@ -25,7 +25,6 @@ import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from bengal.config.defaults import get_default
 from bengal.config.utils import resolve_excerpt_length
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix

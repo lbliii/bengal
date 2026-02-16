@@ -18,7 +18,6 @@ import pytest
 from bengal.config.snapshot import (
     BuildSection,
     ConfigSnapshot,
-    ContentSection,
     DevSection,
     SiteSection,
     ThemeSection,

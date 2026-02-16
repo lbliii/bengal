@@ -27,10 +27,10 @@ Usage:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-
-from bengal.config.defaults import get_default
 from types import MappingProxyType
 from typing import Any, Literal
+
+from bengal.config.defaults import get_default
 
 
 @dataclass(frozen=True, slots=True)

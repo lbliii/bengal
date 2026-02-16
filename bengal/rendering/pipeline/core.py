@@ -38,7 +38,6 @@ if TYPE_CHECKING:
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
     from bengal.protocols import PageLike
-from bengal.config.defaults import get_default
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer

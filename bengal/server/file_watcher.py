@@ -72,9 +72,9 @@ def _should_use_polling(force_polling: bool | None) -> bool:
         return True
     # Env var (watchfiles convention)
     env_val = (os.environ.get("WATCHFILES_FORCE_POLLING", "") or "").strip().lower()
-    if env_val and env_val not in ("0", "false", "no", "disable", "disabled"):
-        return True
-    return False
+    return bool(
+        env_val and env_val not in ("0", "false", "no", "disable", "disabled")
+    )
 
 
 class FileWatcher(Protocol):

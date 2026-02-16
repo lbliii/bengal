@@ -21,7 +21,6 @@ from bengal.snapshots.persistence import (
 )
 from bengal.snapshots.utils import compute_content_hash
 
-
 # =============================================================================
 # CachedPageData load from dirty JSON
 # =============================================================================
@@ -131,7 +130,7 @@ class TestApplyCachedParsingTypeSafety:
         )
 
         cache = {"content/post.md": cached}
-        pages_to_parse, pages_from_cache, hits = apply_cached_parsing([page], cache)
+        _pages_to_parse, pages_from_cache, hits = apply_cached_parsing([page], cache)
 
         assert hits == 1
         assert page in pages_from_cache

@@ -7,6 +7,7 @@ error handling and YAML syntax recovery.
 
 from __future__ import annotations
 
+import contextlib
 from typing import Any
 
 from bengal.utils.observability.logger import get_logger
@@ -34,10 +35,8 @@ def _normalize_metadata(raw: dict[str, Any]) -> dict[str, Any]:
     """
     for key in _NUMERIC_FIELDS:
         if key in raw and raw[key] is not None:
-            try:
+            with contextlib.suppress(ValueError, TypeError):
                 raw[key] = float(raw[key])
-            except (ValueError, TypeError):
-                pass  # Leave as-is; sort utilities have their own fallback
     return raw
 
 

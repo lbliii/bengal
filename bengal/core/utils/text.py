@@ -198,10 +198,7 @@ def truncate_at_word(text: str, length: int = 200, suffix: str = "...") -> str:
 
     # Find last space
     last_space = truncated.rfind(" ")
-    if last_space > 0:
-        result = truncated[:last_space].strip()
-    else:
-        result = truncated.strip()
+    result = truncated[:last_space].strip() if last_space > 0 else truncated.strip()
 
     # Avoid ending with orphaned markdown (**, *, _, etc.)
     result = _strip_trailing_orphan_markdown(result)

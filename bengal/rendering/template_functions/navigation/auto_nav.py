@@ -117,10 +117,7 @@ def _is_root_level_page(page: Any, content_dir: Path) -> bool:
             rel = src.relative_to(content_dir)
         else:
             rel_str = to_posix(str(src))
-            if rel_str.startswith("content/"):
-                rel = Path(rel_str[8:])  # Strip "content/"
-            else:
-                rel = Path(rel_str)
+            rel = Path(rel_str[8:]) if rel_str.startswith("content/") else Path(rel_str)
         parts = to_posix(str(rel)).split("/")
         return len(parts) == 1 and parts[0] not in ("index.md", "_index.md")
     except (ValueError, AttributeError):
@@ -137,9 +134,8 @@ def _build_root_page_menu_item(page: Any) -> dict[str, Any] | None:
         isinstance(menu_setting, dict) and menu_setting.get("main") is False
     ):
         return None
-    if hasattr(page, "visibility") and page.visibility:
-        if not page.visibility.get("menu", True):
-            return None
+    if hasattr(page, "visibility") and page.visibility and not page.visibility.get("menu", True):
+        return None
     page_url = getattr(page, "_path", None) or "/"
     page_title = get_nav_title(page, getattr(page, "title", "Untitled"))
     page_weight = metadata.get("weight", 999)
