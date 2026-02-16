@@ -134,14 +134,14 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 
 /* ============================================================================
    EXPANDABLE NAVIGATION GROUPS - CSS-Only Accessible Toggle
-   
+
    Uses <details>/<summary> for native toggle + CSS :has() to control visibility.
    The <a> link is a SIBLING to details (not inside summary), avoiding nested
    interactive elements. CSS Grid arranges the layout:
-   
+
    [icon] [link] [toggle]  <- Caret on the right for modern look
    [items spanning full width]
-   
+
    Browser support: Chrome 105+, Firefox 121+, Safari 15.4+ (all support :has())
    ============================================================================ */
 
@@ -376,7 +376,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 
 /* ============================================================================
    ITEMS VISIBILITY - CSS :has() powered toggle
-   
+
    Items are hidden by default, shown when details[open] is present.
    This is the core of the CSS-only accessible toggle pattern.
    ============================================================================ */

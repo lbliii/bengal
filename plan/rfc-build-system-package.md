@@ -155,7 +155,7 @@ Components live in wrong packages:
 # bengal/cache/coordinator.py:106-119
 class CacheCoordinator:
     """Coordinates cache invalidation across page-level cache layers."""
-    
+
     def __init__(
         self,
         cache: BuildCache,
@@ -374,9 +374,9 @@ CacheKey = NewType("CacheKey", str)
 def content_key(path: Path, site_root: Path) -> CacheKey:
     """
     Canonical key for content files (pages, sections).
-    
+
     Always relative to site root, forward slashes, no leading dot.
-    
+
     Examples:
         content_key(Path("/site/content/about.md"), Path("/site"))
         → "content/about.md"
@@ -392,9 +392,9 @@ def content_key(path: Path, site_root: Path) -> CacheKey:
 def data_key(path: Path, site_root: Path) -> CacheKey:
     """
     Canonical key for data files.
-    
+
     Prefixed with "data:" to distinguish from content.
-    
+
     Examples:
         data_key(Path("/site/data/team.yaml"), Path("/site"))
         → "data:data/team.yaml"
@@ -424,7 +424,7 @@ def asset_key(path: Path, assets_dir: Path) -> CacheKey:
 def parse_key(key: CacheKey) -> tuple[str, str]:
     """
     Parse a cache key into (prefix, path).
-    
+
     Examples:
         parse_key("data:data/team.yaml") → ("data", "data/team.yaml")
         parse_key("content/about.md") → ("", "content/about.md")
@@ -458,7 +458,7 @@ if TYPE_CHECKING:
 
 class RebuildReasonCode(Enum):
     """Why a page needs rebuilding."""
-    
+
     CONTENT_CHANGED = auto()
     DATA_FILE_CHANGED = auto()
     TEMPLATE_CHANGED = auto()
@@ -475,10 +475,10 @@ class RebuildReasonCode(Enum):
 @dataclass(frozen=True, slots=True)
 class RebuildReason:
     """Detailed reason for page rebuild."""
-    
+
     code: RebuildReasonCode
     trigger: str = ""  # What triggered it (e.g., "data/team.yaml")
-    
+
     def __str__(self) -> str:
         if self.trigger:
             return f"{self.code.name}: {self.trigger}"
@@ -489,55 +489,55 @@ class RebuildReason:
 class ChangeDetectionResult:
     """
     Immutable result of change detection.
-    
+
     Produced by each detector, merged to accumulate changes.
-    
+
     Thread Safety:
         Frozen dataclass - inherently thread-safe.
         Can be safely passed between threads without copying.
-    
+
     Example:
         >>> content_result = content_detector.detect(ctx)
         >>> data_result = data_detector.detect(ctx)
         >>> combined = content_result.merge(data_result)
     """
-    
+
     # Pages that need rebuilding (canonical keys)
     pages_to_rebuild: frozenset[CacheKey] = field(default_factory=frozenset)
-    
+
     # Why each page needs rebuilding (for logging/debugging)
     rebuild_reasons: Mapping[CacheKey, RebuildReason] = field(default_factory=dict)
-    
+
     # Assets that need processing
     assets_to_process: frozenset[CacheKey] = field(default_factory=frozenset)
-    
+
     # What changed (for downstream detectors)
     content_files_changed: frozenset[CacheKey] = field(default_factory=frozenset)
     data_files_changed: frozenset[CacheKey] = field(default_factory=frozenset)
     templates_changed: frozenset[CacheKey] = field(default_factory=frozenset)
-    
+
     # Affected taxonomies (for taxonomy detector)
     affected_tags: frozenset[str] = field(default_factory=frozenset)
     affected_sections: frozenset[CacheKey] = field(default_factory=frozenset)
-    
+
     # Global flags
     config_changed: bool = False
     force_full_rebuild: bool = False
-    
+
     @classmethod
     def empty(cls) -> ChangeDetectionResult:
         """Create empty result."""
         return cls()
-    
+
     @classmethod
     def full_rebuild(cls, reason: str = "forced") -> ChangeDetectionResult:
         """Create result indicating full rebuild needed."""
         return cls(force_full_rebuild=True)
-    
+
     def merge(self, other: ChangeDetectionResult) -> ChangeDetectionResult:
         """
         Merge two results (immutable - returns new instance).
-        
+
         Used to compose results from multiple detectors.
         """
         return ChangeDetectionResult(
@@ -552,7 +552,7 @@ class ChangeDetectionResult:
             config_changed=self.config_changed or other.config_changed,
             force_full_rebuild=self.force_full_rebuild or other.force_full_rebuild,
         )
-    
+
     def with_pages(
         self,
         pages: frozenset[CacheKey],
@@ -575,12 +575,12 @@ class ChangeDetectionResult:
             config_changed=self.config_changed,
             force_full_rebuild=self.force_full_rebuild,
         )
-    
+
     @property
     def needs_rebuild(self) -> bool:
         """Check if any pages need rebuilding."""
         return bool(self.pages_to_rebuild) or self.force_full_rebuild
-    
+
     def summary(self) -> str:
         """Human-readable summary."""
         parts = []
@@ -626,28 +626,28 @@ if TYPE_CHECKING:
 class DetectionContext:
     """
     Immutable context passed to detectors.
-    
+
     Contains everything a detector needs to detect changes.
     Accumulated results from previous detectors are available
     for cascade detection (e.g., template changes affect pages).
     """
-    
+
     # Core dependencies
     cache: BuildCache
     site: Site
-    
+
     # Accumulated results from previous detectors
     previous: ChangeDetectionResult = field(default_factory=ChangeDetectionResult.empty)
-    
+
     # Configuration
     verbose: bool = False
-    
+
     # Forced changes (from file watcher)
     forced_changed: frozenset[CacheKey] = field(default_factory=frozenset)
-    
+
     # Nav-affecting changes (structural)
     nav_changed: frozenset[CacheKey] = field(default_factory=frozenset)
-    
+
     def with_previous(self, result: ChangeDetectionResult) -> DetectionContext:
         """Create new context with updated previous results."""
         return DetectionContext(
@@ -664,12 +664,12 @@ class DetectionContext:
 class ChangeDetector(Protocol):
     """
     Protocol for change detection components.
-    
+
     Each detector:
     1. Receives context with cache, site, and previous results
     2. Returns immutable ChangeDetectionResult
     3. Does NOT mutate shared state
-    
+
     Example Implementation:
         class DataChangeDetector:
             def detect(self, ctx: DetectionContext) -> ChangeDetectionResult:
@@ -679,19 +679,19 @@ class ChangeDetector(Protocol):
                     pages_to_rebuild=affected_pages,
                     data_files_changed=changed_data,
                 )
-    
+
     Thread Safety:
         Must be thread-safe. Do not mutate ctx or shared state.
         Return new ChangeDetectionResult instances.
     """
-    
+
     def detect(self, ctx: DetectionContext) -> ChangeDetectionResult:
         """
         Detect changes and return result.
-        
+
         Args:
             ctx: Detection context with cache, site, and accumulated results
-            
+
         Returns:
             ChangeDetectionResult with detected changes
         """
@@ -727,10 +727,10 @@ logger = get_logger(__name__)
 class DetectionPipeline:
     """
     Ordered sequence of change detectors.
-    
+
     Detectors run in sequence, each receiving accumulated
     results from previous detectors.
-    
+
     Example:
         pipeline = DetectionPipeline([
             ConfigChangeDetector(),      # Must run first
@@ -739,35 +739,35 @@ class DetectionPipeline:
             TemplateChangeDetector(),    # Detect changed templates
             TaxonomyCascadeDetector(),   # Cascade from content changes
         ])
-        
+
         result = pipeline.run(ctx)
     """
-    
+
     detectors: Sequence[ChangeDetector]
-    
+
     def run(self, ctx: DetectionContext) -> ChangeDetectionResult:
         """
         Run all detectors in sequence.
-        
+
         Each detector receives context with accumulated results
         from previous detectors.
-        
+
         Returns:
             Combined ChangeDetectionResult from all detectors
         """
         current_ctx = ctx
-        
+
         for detector in self.detectors:
             detector_name = type(detector).__name__
-            
+
             logger.debug(
                 "detector_start",
                 detector=detector_name,
                 previous_pages=len(current_ctx.previous.pages_to_rebuild),
             )
-            
+
             result = detector.detect(current_ctx)
-            
+
             logger.debug(
                 "detector_complete",
                 detector=detector_name,
@@ -775,10 +775,10 @@ class DetectionPipeline:
                 data_files=len(result.data_files_changed),
                 templates=len(result.templates_changed),
             )
-            
+
             # Update context with this detector's results
             current_ctx = current_ctx.with_previous(result)
-            
+
             # Short-circuit if full rebuild triggered
             if result.force_full_rebuild:
                 logger.info(
@@ -786,7 +786,7 @@ class DetectionPipeline:
                     detector=detector_name,
                 )
                 break
-        
+
         return current_ctx.previous
 
 
@@ -795,7 +795,7 @@ class DetectionPipeline:
 def create_early_pipeline() -> DetectionPipeline:
     """
     Pipeline for early (pre-taxonomy) detection.
-    
+
     Runs before taxonomies are generated.
     """
     from bengal.build.detectors import (
@@ -804,7 +804,7 @@ def create_early_pipeline() -> DetectionPipeline:
         DataChangeDetector,
         TemplateChangeDetector,
     )
-    
+
     return DetectionPipeline([
         ConfigChangeDetector(),
         ContentChangeDetector(),
@@ -816,7 +816,7 @@ def create_early_pipeline() -> DetectionPipeline:
 def create_full_pipeline() -> DetectionPipeline:
     """
     Pipeline for full (post-taxonomy) detection.
-    
+
     Runs after taxonomies are generated to handle cascades.
     """
     from bengal.build.detectors import (
@@ -824,7 +824,7 @@ def create_full_pipeline() -> DetectionPipeline:
         AutodocChangeDetector,
         VersionChangeDetector,
     )
-    
+
     return DetectionPipeline([
         TaxonomyCascadeDetector(),
         AutodocChangeDetector(),
@@ -1017,10 +1017,10 @@ def test_pipeline_accumulates_results():
     """Each detector receives previous results."""
     detector1 = MockDetector(pages={"page1.md"})
     detector2 = MockDetector(pages={"page2.md"})
-    
+
     pipeline = DetectionPipeline([detector1, detector2])
     result = pipeline.run(ctx)
-    
+
     assert len(result.pages_to_rebuild) == 2
     assert "page1.md" in result.pages_to_rebuild
     assert "page2.md" in result.pages_to_rebuild
@@ -1029,10 +1029,10 @@ def test_pipeline_short_circuits_on_full_rebuild():
     """Full rebuild trigger stops pipeline early."""
     detector1 = MockDetector(force_full=True)
     detector2 = MockDetector(pages={"page.md"})
-    
+
     pipeline = DetectionPipeline([detector1, detector2])
     result = pipeline.run(ctx)
-    
+
     assert result.force_full_rebuild
     assert not detector2.was_called
 
@@ -1040,10 +1040,10 @@ def test_detector_receives_previous_results():
     """Detector context includes previous detector results."""
     detector1 = MockDetector(data_files={"data/team.yaml"})
     detector2 = CapturingDetector()
-    
+
     pipeline = DetectionPipeline([detector1, detector2])
     pipeline.run(ctx)
-    
+
     assert "data/team.yaml" in detector2.received_ctx.previous.data_files_changed
 ```
 
@@ -1056,13 +1056,13 @@ def test_data_file_change_triggers_dependent_pages():
     """Changing data file rebuilds pages that use it."""
     # Build site
     build_site(site)
-    
+
     # Modify data file
     modify_file(site.root_path / "data" / "team.yaml")
-    
+
     # Rebuild incrementally
     result = build_site(site, incremental=True)
-    
+
     # Pages using team data should be rebuilt
     assert "content/about.md" in result.pages_rebuilt
     assert "content/docs/index.md" not in result.pages_rebuilt  # Doesn't use team
@@ -1072,7 +1072,7 @@ def test_template_change_triggers_all_users():
     build_site(site)
     modify_file(site.root_path / "layouts" / "single.html")
     result = build_site(site, incremental=True)
-    
+
     # All pages using single.html should be rebuilt
     for page in result.pages_rebuilt:
         assert get_page_template(page) == "single.html"

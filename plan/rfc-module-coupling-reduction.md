@@ -74,7 +74,7 @@ def analyze_imports(package_dir):
 
 ```
 # Within analysis/ (resolved by rfc-package-separation-of-concerns)
-bengal.analysis.graph.knowledge_graph ↔ page_rank, path_analysis, community_detection, 
+bengal.analysis.graph.knowledge_graph ↔ page_rank, path_analysis, community_detection,
                                         link_suggestions, analyzer, reporter
 
 # Within rendering/
@@ -242,7 +242,7 @@ from bengal.utils import hash_str                          # still works (re-exp
 
 ### 2. Extract Shared Types to Foundation Layer
 
-**Current State**: 
+**Current State**:
 - `orchestration/` imports 19 packages—more than any other module
 - `orchestration/types.py` contains 15 TypedDicts/Protocols used across modules
 - `BuildPhase` enum already exists in `errors/context.py:96` (9 phases)
@@ -282,7 +282,7 @@ from typing import Literal, Protocol, TypedDict, runtime_checkable
 class BuildPhase(Enum):
     """
     Build phase where an error occurred.
-    
+
     Migrated from: bengal/errors/context.py:96
     Phases follow the Bengal build pipeline order.
     """
@@ -382,7 +382,7 @@ analysis/
 ```python
 # blocks.py receives render function, doesn't import html.py
 class BlockRenderer:
-    def render(self, node: Node, sb: StringBuilder, 
+    def render(self, node: Node, sb: StringBuilder,
                render_children: Callable[[Node, StringBuilder], None]) -> None:
         ...
 ```
@@ -678,18 +678,18 @@ uv run python scripts/check_dependencies.py
 <summary>Outgoing Dependencies by Module</summary>
 
 ```
-orchestration: imports 19 packages → ['analysis', 'assets', 'autodoc', 'cache', 'cli', 
-    'collections', 'config', 'content_types', 'core', 'discovery', 'errors', 'fonts', 
+orchestration: imports 19 packages → ['analysis', 'assets', 'autodoc', 'cache', 'cli',
+    'collections', 'config', 'content_types', 'core', 'discovery', 'errors', 'fonts',
     'health', 'output', 'postprocess', 'protocols', 'rendering', 'themes', 'utils']
-cli: imports 18 packages → ['analysis', 'assets', 'cache', 'collections', 'config', 
-    'content_layer', 'core', 'debug', 'discovery', 'errors', 'health', 'orchestration', 
+cli: imports 18 packages → ['analysis', 'assets', 'cache', 'collections', 'config',
+    'content_layer', 'core', 'debug', 'discovery', 'errors', 'health', 'orchestration',
     'output', 'rendering', 'server', 'services', 'themes', 'utils']
-core: imports 14 packages → ['assets', 'cache', 'collections', 'config', 'discovery', 
-    'errors', 'health', 'icons', 'orchestration', 'protocols', 'rendering', 'server', 
+core: imports 14 packages → ['assets', 'cache', 'collections', 'config', 'discovery',
+    'errors', 'health', 'icons', 'orchestration', 'protocols', 'rendering', 'server',
     'themes', 'utils']
-rendering: imports 13 packages → ['assets', 'autodoc', 'cache', 'config', 'content_types', 
+rendering: imports 13 packages → ['assets', 'autodoc', 'cache', 'config', 'content_types',
     'core', 'directives', 'errors', 'icons', 'orchestration', 'postprocess', 'protocols', 'utils']
-utils: imports 11 packages → ['analysis', 'cache', 'cli', 'config', 'core', 'errors', 
+utils: imports 11 packages → ['analysis', 'cache', 'cli', 'config', 'core', 'errors',
     'orchestration', 'output', 'protocols', 'rendering', 'server']
 ```
 
@@ -699,18 +699,18 @@ utils: imports 11 packages → ['analysis', 'cache', 'cli', 'config', 'core', 'e
 <summary>Incoming Dependencies by Module</summary>
 
 ```
-utils: used by 23 packages ← ['analysis', 'assets', 'autodoc', 'cache', 'cli', 
-    'collections', 'config', 'content_layer', 'content_types', 'core', 'debug', 
-    'directives', 'discovery', 'errors', 'fonts', 'health', 'icons', 'orchestration', 
+utils: used by 23 packages ← ['analysis', 'assets', 'autodoc', 'cache', 'cli',
+    'collections', 'config', 'content_layer', 'content_types', 'core', 'debug',
+    'directives', 'discovery', 'errors', 'fonts', 'health', 'icons', 'orchestration',
     'output', 'postprocess', 'protocols', 'rendering', 'server', 'themes']
-errors: used by 20 packages ← ['analysis', 'assets', 'autodoc', 'cache', 'cli', 
-    'collections', 'config', 'content_layer', 'core', 'debug', 'directives', 'discovery', 
+errors: used by 20 packages ← ['analysis', 'assets', 'autodoc', 'cache', 'cli',
+    'collections', 'config', 'content_layer', 'core', 'debug', 'directives', 'discovery',
     'fonts', 'health', 'orchestration', 'output', 'postprocess', 'rendering', 'server', 'themes']
-core: used by 17 packages ← ['analysis', 'assets', 'autodoc', 'cache', 'cli', 
-    'content_types', 'debug', 'directives', 'discovery', 'health', 'icons', 
+core: used by 17 packages ← ['analysis', 'assets', 'autodoc', 'cache', 'cli',
+    'content_types', 'debug', 'directives', 'discovery', 'health', 'icons',
     'orchestration', 'postprocess', 'protocols', 'rendering', 'server', 'utils']
-rendering: used by 14 packages ← ['autodoc', 'cli', 'content_types', 'core', 'debug', 
-    'directives', 'errors', 'health', 'orchestration', 'postprocess', 'protocols', 
+rendering: used by 14 packages ← ['autodoc', 'cli', 'content_types', 'core', 'debug',
+    'directives', 'errors', 'health', 'orchestration', 'postprocess', 'protocols',
     'server', 'services', 'utils']
 ```
 

@@ -135,7 +135,7 @@ def test_finalizes_sections(self, tmp_path):
    def test_taxonomy_generation(self, tmp_path):
        site = create_site(tmp_path, taxonomy={"categories": ["news"]})
        site.build()
-       assert_page_rendered(site.output_dir, "categories/news/index.html", 
+       assert_page_rendered(site.output_dir, "categories/news/index.html",
                             contains=["<h1>News</h1>"])  # FAIL: Caught the bug!
    ```
 
@@ -210,7 +210,7 @@ Current property tests (`@given`):
 def test_unchanged_file_never_rebuilt(self, warm_site):
     """INVARIANT: Unchanged files must never be rebuilt."""
     stats = warm_site.build(incremental=True)
-    
+
     decision = getattr(stats, "incremental_decision", None)
     if decision is not None:
         pages_rebuilt = len(decision.pages_to_build)
@@ -239,9 +239,9 @@ def test_unchanged_file_never_rebuilt(self, warm_site):
 def test_builds_menus(self, tmp_path):
     orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
     orchestrator.site.menu = []
-    
+
     phase_menus(orchestrator, incremental=False, changed_page_paths=set())
-    
+
     orchestrator.menu.build.assert_called_once()  # Only verifies call
 ```
 
@@ -251,7 +251,7 @@ def test_builds_menus(self, tmp_path):
     """Menu build produces navigable menu structure."""
     site = create_minimal_site(tmp_path, pages=["docs/index.md", "about.md"])
     site.build()
-    
+
     # Verify OUTCOME, not implementation
     assert len(site.menu) >= 2, "Menu should contain entries for pages"
     assert any(m.title == "Docs" for m in site.menu), "Docs section in menu"
@@ -265,13 +265,13 @@ Add to `tests/_testing/assertions.py`:
 ```python
 """Behavioral assertion helpers for Bengal tests."""
 
-def assert_page_rendered(output_dir: Path, page_path: str, *, 
+def assert_page_rendered(output_dir: Path, page_path: str, *,
                          contains: list[str] | None = None,
                          not_contains: list[str] | None = None) -> None:
     """Assert a page was rendered with expected content."""
     html_path = output_dir / page_path
     assert html_path.exists(), f"Expected {page_path} to be rendered"
-    
+
     content = html_path.read_text()
     for expected in (contains or []):
         assert expected in content, f"Expected '{expected}' in {page_path}"
@@ -284,7 +284,7 @@ def assert_build_idempotent(site: Site) -> None:
     first_hashes = _hash_output_dir(site.output_dir)
     site.build()
     second_hashes = _hash_output_dir(site.output_dir)
-    
+
     assert first_hashes == second_hashes, (
         "Build is not idempotent - second build changed output"
     )
@@ -296,12 +296,12 @@ def assert_incremental_equivalent(site_path: Path) -> None:
     site1 = Site.from_config(site_path)
     site1.build(incremental=False)
     full_hashes = _hash_output_dir(site1.output_dir)
-    
+
     # Incremental build (from warm cache)
     site2 = Site.from_config(site_path)
     site2.build(incremental=True)
     incr_hashes = _hash_output_dir(site2.output_dir)
-    
+
     assert full_hashes == incr_hashes, (
         "Incremental build differs from full build"
     )
@@ -413,20 +413,20 @@ def test_golden_output(scenario: str, tmp_path: Path) -> None:
     golden_dir = Path(__file__).parent.parent / "golden" / scenario
     input_dir = golden_dir / "input"
     expected_dir = golden_dir / "expected"
-    
+
     # Copy input to tmp and build
     shutil.copytree(input_dir, tmp_path / "site")
     site = Site.from_config(tmp_path / "site")
     site.build()
-    
+
     # Compare output to expected
     for expected_file in expected_dir.rglob("*"):
         if expected_file.is_file():
             rel_path = expected_file.relative_to(expected_dir)
             actual_file = site.output_dir / rel_path
-            
+
             assert actual_file.exists(), f"Missing: {rel_path}"
-            
+
             # Normalize and compare (ignore timestamps, etc.)
             expected = _normalize_html(expected_file.read_text())
             actual = _normalize_html(actual_file.read_text())
@@ -436,14 +436,14 @@ def test_golden_output(scenario: str, tmp_path: Path) -> None:
 def _normalize_html(html: str) -> str:
     """Normalize HTML for comparison, stripping volatile content."""
     import re
-    
+
     # Remove build timestamps
     html = re.sub(r'data-build-time="[^"]*"', 'data-build-time=""', html)
     # Remove content hashes
     html = re.sub(r'\.[a-f0-9]{8}\.(css|js)', '.HASH.\\1', html)
     # Normalize whitespace
     html = re.sub(r'\s+', ' ', html).strip()
-    
+
     return html
 ```
 
@@ -473,13 +473,13 @@ from hypothesis import given, strategies as st, settings
 def test_build_idempotent(page_titles: list[str], tmp_path: Path) -> None:
     """PROPERTY: Building twice produces identical output."""
     site = create_site_with_pages(tmp_path, page_titles)
-    
+
     site.build()
     first_output = snapshot_output(site.output_dir)
-    
+
     site.build()
     second_output = snapshot_output(site.output_dir)
-    
+
     assert first_output == second_output
 
 
@@ -488,7 +488,7 @@ def test_all_pages_have_unique_urls(page_titles: list[str], tmp_path: Path) -> N
     """PROPERTY: Every page gets a unique URL."""
     site = create_site_with_pages(tmp_path, page_titles)
     site.build()
-    
+
     urls = [p.href for p in site.pages]
     assert len(urls) == len(set(urls)), f"Duplicate URLs: {urls}"
 
@@ -498,11 +498,11 @@ def test_tag_pages_list_all_tagged_content(tags: list[str], tmp_path: Path) -> N
     """PROPERTY: Tag page lists exactly the pages with that tag."""
     site = create_site_with_tagged_pages(tmp_path, tags)
     site.build()
-    
+
     for tag in set(tags):
         tag_page = site.get_taxonomy_page("tags", tag)
         tagged_content = [p for p in site.regular_pages if tag in p.tags]
-        
+
         assert set(tag_page.members) == set(tagged_content), (
             f"Tag '{tag}' page has wrong members"
         )
@@ -519,18 +519,18 @@ def test_incremental_matches_full(pages_to_modify: list[int], warm_site: Path) -
     # Modify some pages
     for i in pages_to_modify:
         modify_page(warm_site, f"page_{i % 10}.md")
-    
+
     # Full build
     site_full = Site.from_config(warm_site)
     site_full.build(incremental=False)
     full_output = snapshot_output(site_full.output_dir)
-    
+
     # Clean and incremental build
     shutil.rmtree(site_full.output_dir)
     site_incr = Site.from_config(warm_site)
     site_incr.build(incremental=True)
     incr_output = snapshot_output(site_incr.output_dir)
-    
+
     assert full_output == incr_output
 
 
@@ -539,13 +539,13 @@ def test_content_change_detected(new_content: str, warm_site: Path) -> None:
     """PROPERTY: Any content change is detected and rebuilt."""
     page_path = warm_site / "content" / "page_0.md"
     original = page_path.read_text()
-    
+
     # Modify content
     page_path.write_text(original + f"\n{new_content}")
-    
+
     site = Site.from_config(warm_site)
     stats = site.build(incremental=True)
-    
+
     decision = stats.incremental_decision
     assert any("page_0" in str(p) for p in decision.pages_to_build), (
         f"Modified page not detected. Content added: {new_content[:50]}"
@@ -653,12 +653,12 @@ def test_no_bare_assert_true():
     """No tests should use 'assert True'."""
     test_files = Path("tests/").rglob("test_*.py")
     violations = []
-    
+
     for f in test_files:
         content = f.read_text()
         if "assert True" in content:
             violations.append(f)
-    
+
     assert not violations, f"Found 'assert True' in: {violations}"
 
 

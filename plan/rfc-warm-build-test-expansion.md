@@ -220,7 +220,7 @@ tests/integration/
 def warm_build_site(tmp_path: Path) -> WarmBuildTestSite:
     """
     Creates a test site with all features enabled.
-    
+
     Returns a helper class with methods for:
     - full_build() / incremental_build()
     - modify_file() / delete_file() / create_file()
@@ -255,7 +255,7 @@ class TestWarmBuildNavigation:
     def test_menu_config_change_rebuilds_pages_with_nav(self, site_with_nav):
         """
         When menu.yaml changes, pages displaying nav should rebuild.
-        
+
         Scenario:
         1. Build site with nav (header menu with 3 items)
         2. Add new section to menu config
@@ -266,7 +266,7 @@ class TestWarmBuildNavigation:
     def test_nav_weight_change_updates_ordering(self, site_with_nav):
         """
         When page nav weight changes, nav ordering updates.
-        
+
         Scenario:
         1. Build with pages A (weight=1), B (weight=2), C (weight=3)
         2. Change A weight to 10
@@ -277,7 +277,7 @@ class TestWarmBuildNavigation:
     def test_new_section_appears_in_nav(self, site_with_nav):
         """
         When new section is created, it appears in nav if configured.
-        
+
         Scenario:
         1. Build with blog/ and docs/ sections
         2. Create guides/ section with menu weight
@@ -288,7 +288,7 @@ class TestWarmBuildNavigation:
     def test_deleted_section_removed_from_nav(self, site_with_nav):
         """
         When section is deleted, nav should not reference it.
-        
+
         Scenario:
         1. Build with blog/, docs/, guides/
         2. Delete guides/
@@ -299,7 +299,7 @@ class TestWarmBuildNavigation:
     def test_nested_menu_changes_cascade(self, site_with_nav):
         """
         Nested menu changes should cascade to all affected pages.
-        
+
         Scenario:
         1. Build with nested menu (docs/ → guides/ → tutorials/)
         2. Change guides/ title in _index.md
@@ -310,7 +310,7 @@ class TestWarmBuildNavigation:
     def test_breadcrumb_updates_on_parent_change(self, site_with_nav):
         """
         Breadcrumb navigation updates when parent changes.
-        
+
         Scenario:
         1. Build with docs/guides/intro.md
         2. Change docs/_index.md title
@@ -333,27 +333,27 @@ class TestWarmBuildNavigation:
 ```python
 class TestWarmBuildTaxonomyHtml:
     """End-to-end HTML verification for taxonomy warm builds.
-    
+
     Extends existing TaxonomyIndex tests with actual HTML output checks.
     """
 
     def test_new_tag_renders_in_taxonomy_page_html(self, site_with_taxonomy):
         """
         Adding tag to page should render in taxonomy list page HTML.
-        
+
         Scenario:
         1. Build with post1 (tags: [python])
         2. Add tag "tutorial" to post1
         3. Incremental build
         4. Assert: /tags/tutorial/index.html exists and lists post1
-        
+
         Note: Complements existing TaxonomyIndex unit tests with HTML verification.
         """
 
     def test_tag_last_page_deletes_taxonomy_page_output(self, site_with_taxonomy):
         """
         When last page with tag is deleted, taxonomy HTML should be removed.
-        
+
         Scenario:
         1. Build with only post1 having tag "unique"
         2. Delete post1
@@ -364,7 +364,7 @@ class TestWarmBuildTaxonomyHtml:
     def test_category_change_updates_both_category_pages(self, site_with_taxonomy):
         """
         Changing page category updates both old and new category HTML.
-        
+
         Scenario:
         1. Build with post1 (category: tutorials)
         2. Change post1 category to guides
@@ -376,7 +376,7 @@ class TestWarmBuildTaxonomyHtml:
     def test_taxonomy_term_page_content_change(self, site_with_taxonomy):
         """
         Changing content in _index.md for taxonomy term renders correctly.
-        
+
         Scenario:
         1. Build with /tags/python/_index.md containing "Original description"
         2. Edit _index.md to "Updated description"
@@ -394,7 +394,7 @@ class TestWarmBuildDataFiles:
     def test_data_file_change_rebuilds_dependent_pages(self, warm_build_site):
         """
         When data file changes, pages using that data rebuild.
-        
+
         Scenario:
         1. Build with data/team.yaml and about.md using {{ site.data.team }}
         2. Modify data/team.yaml
@@ -405,7 +405,7 @@ class TestWarmBuildDataFiles:
     def test_new_data_file_available_on_warm_build(self, warm_build_site):
         """
         New data file available to templates on warm build.
-        
+
         Scenario:
         1. Build without data/pricing.yaml
         2. Create data/pricing.yaml
@@ -417,7 +417,7 @@ class TestWarmBuildDataFiles:
     def test_deleted_data_file_handled_gracefully(self, warm_build_site):
         """
         Deleted data file doesn't crash build.
-        
+
         Scenario:
         1. Build with data/config.yaml used in template
         2. Delete data/config.yaml
@@ -428,7 +428,7 @@ class TestWarmBuildDataFiles:
     def test_nested_data_structure_change(self, warm_build_site):
         """
         Deep changes in nested data structures detected.
-        
+
         Scenario:
         1. Build with data/menu.yaml (deeply nested)
         2. Change nested property
@@ -446,7 +446,7 @@ class TestWarmBuildTemplateChain:
     def test_base_template_change_rebuilds_all_descendants(self, warm_build_site):
         """
         base.html change should rebuild all pages.
-        
+
         Scenario:
         1. Build with base.html → single.html → pages
         2. Modify base.html (add footer)
@@ -457,7 +457,7 @@ class TestWarmBuildTemplateChain:
     def test_partial_change_rebuilds_users(self, warm_build_site):
         """
         Partial template change rebuilds pages that include it.
-        
+
         Scenario:
         1. Build with partials/sidebar.html included in docs/*
         2. Modify sidebar.html
@@ -468,7 +468,7 @@ class TestWarmBuildTemplateChain:
     def test_theme_override_precedence(self, warm_build_site):
         """
         Theme override takes precedence on warm build.
-        
+
         Scenario:
         1. Build using theme's base.html
         2. Create local templates/base.html override
@@ -479,9 +479,9 @@ class TestWarmBuildTemplateChain:
     def test_deep_template_inheritance(self, warm_build_site):
         """
         4-level inheritance chain correctly invalidates.
-        
+
         Chain: base.html → layout.html → docs.html → page
-        
+
         Scenario:
         1. Build with 4-level inheritance
         2. Modify layout.html (middle of chain)
@@ -492,7 +492,7 @@ class TestWarmBuildTemplateChain:
     def test_shortcode_definition_change(self, warm_build_site):
         """
         Shortcode template change rebuilds pages using shortcode.
-        
+
         Scenario:
         1. Build with shortcodes/note.html
         2. Modify note.html template
@@ -514,14 +514,14 @@ class TestWarmBuildTemplateChain:
 ```python
 class TestWarmBuildAdditionalOutputFormats:
     """Test RSS, sitemap, and LLM output formats during warm builds.
-    
+
     Extends existing index.json tests with other output format coverage.
     """
 
     def test_rss_feed_updated_on_blog_change(self, warm_build_site):
         """
         RSS feed updated when blog post changes.
-        
+
         Scenario:
         1. Build with blog section having RSS enabled
         2. Modify blog post title and content
@@ -532,7 +532,7 @@ class TestWarmBuildAdditionalOutputFormats:
     def test_rss_feed_new_post_appears(self, warm_build_site):
         """
         New blog post appears in RSS feed on warm build.
-        
+
         Scenario:
         1. Build with blog section (3 posts)
         2. Add new blog post
@@ -543,7 +543,7 @@ class TestWarmBuildAdditionalOutputFormats:
     def test_sitemap_updated_on_page_add(self, warm_build_site):
         """
         Sitemap includes new page on warm build.
-        
+
         Scenario:
         1. Build with sitemap.xml
         2. Add new page
@@ -554,7 +554,7 @@ class TestWarmBuildAdditionalOutputFormats:
     def test_sitemap_removes_deleted_page(self, warm_build_site):
         """
         Deleted page removed from sitemap on warm build.
-        
+
         Scenario:
         1. Build with sitemap.xml (5 URLs)
         2. Delete one page
@@ -565,7 +565,7 @@ class TestWarmBuildAdditionalOutputFormats:
     def test_llm_txt_regenerated_on_content_change(self, warm_build_site):
         """
         llm-full.txt regenerated on content change.
-        
+
         Scenario:
         1. Build with llm-full.txt enabled
         2. Modify page content
@@ -576,7 +576,7 @@ class TestWarmBuildAdditionalOutputFormats:
     def test_llm_txt_includes_new_page(self, warm_build_site):
         """
         New page content appears in llm-full.txt.
-        
+
         Scenario:
         1. Build with llm-full.txt enabled
         2. Add new page with unique content
@@ -587,7 +587,7 @@ class TestWarmBuildAdditionalOutputFormats:
     def test_asset_manifest_updated_on_css_change(self, warm_build_site):
         """
         asset-manifest.json updated when CSS changes.
-        
+
         Scenario:
         1. Build with CSS assets
         2. Modify CSS content
@@ -605,7 +605,7 @@ class TestWarmBuildEdgeCases:
     def test_empty_site_after_all_content_deleted(self, warm_build_site):
         """
         Warm build handles empty site gracefully.
-        
+
         Scenario:
         1. Build with 5 pages
         2. Delete all content
@@ -616,7 +616,7 @@ class TestWarmBuildEdgeCases:
     def test_batch_changes_100_files(self, warm_build_site):
         """
         Warm build handles 100+ simultaneous file changes.
-        
+
         Scenario:
         1. Build with 100 pages
         2. Modify all 100 pages
@@ -627,7 +627,7 @@ class TestWarmBuildEdgeCases:
     def test_deep_nesting_10_levels(self, warm_build_site):
         """
         Deep directory nesting handled correctly.
-        
+
         Scenario:
         1. Build with a/b/c/d/e/f/g/h/i/j/page.md (10 levels)
         2. Modify intermediate _index.md
@@ -638,7 +638,7 @@ class TestWarmBuildEdgeCases:
     def test_same_second_modifications(self, warm_build_site):
         """
         Multiple modifications in same second detected.
-        
+
         Scenario:
         1. Build with page
         2. Modify page twice in <1 second
@@ -649,7 +649,7 @@ class TestWarmBuildEdgeCases:
     def test_unicode_filenames(self, warm_build_site):
         """
         Unicode filenames in warm builds.
-        
+
         Scenario:
         1. Build with 日本語.md, émojis-🎉.md
         2. Modify unicode files
@@ -660,7 +660,7 @@ class TestWarmBuildEdgeCases:
     def test_symlinked_content(self, warm_build_site):
         """
         Symlinked content directories handled.
-        
+
         Scenario:
         1. Build with symlinked content/shared/
         2. Modify file through symlink
@@ -671,7 +671,7 @@ class TestWarmBuildEdgeCases:
     def test_case_sensitivity(self, warm_build_site):
         """
         Case sensitivity handled correctly.
-        
+
         Scenario:
         1. Build with Page.md
         2. Rename to page.md (case change only)
@@ -682,7 +682,7 @@ class TestWarmBuildEdgeCases:
     def test_content_and_output_same_mtime(self, warm_build_site):
         """
         Handles case where source and output have identical mtime.
-        
+
         Scenario:
         1. Build page
         2. Touch source to match output mtime exactly
@@ -701,7 +701,7 @@ class TestWarmBuildCrossFeatures:
     def test_autodoc_pages_in_navigation(self, warm_build_site):
         """
         Virtual autodoc pages appear correctly in nav.
-        
+
         Scenario:
         1. Build with autodoc enabled, api/ in nav
         2. Add new Python module
@@ -712,7 +712,7 @@ class TestWarmBuildCrossFeatures:
     def test_i18n_translation_change(self, warm_build_site):
         """
         Translation file change triggers correct rebuilds.
-        
+
         Scenario:
         1. Build with i18n (en, es)
         2. Modify i18n/es.yaml
@@ -723,7 +723,7 @@ class TestWarmBuildCrossFeatures:
     def test_versioned_docs_incremental(self, warm_build_site):
         """
         Version-specific changes handled correctly.
-        
+
         Scenario:
         1. Build with versions: [1.0, 2.0]
         2. Modify only 2.0 content
@@ -734,7 +734,7 @@ class TestWarmBuildCrossFeatures:
     def test_collection_with_taxonomy(self, warm_build_site):
         """
         Collection items with taxonomy updates.
-        
+
         Scenario:
         1. Build with products collection having tags
         2. Add tag to product
@@ -745,7 +745,7 @@ class TestWarmBuildCrossFeatures:
     def test_related_pages_on_tag_change(self, warm_build_site):
         """
         Related pages section updates when tags change.
-        
+
         Scenario:
         1. Build with related: tags
         2. Add shared tag between two posts
@@ -756,7 +756,7 @@ class TestWarmBuildCrossFeatures:
     def test_cascade_plus_taxonomy(self, warm_build_site):
         """
         Section cascade + taxonomy interaction.
-        
+
         Scenario:
         1. Build with section cascade setting default tags
         2. Modify cascade tags

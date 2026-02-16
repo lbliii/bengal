@@ -125,7 +125,7 @@ Each detector has a different signature:
 
 ```python
 # FileChangeDetector.check_pages
-def check_pages(self, *, pages_to_check, changed_sections, all_changed, 
+def check_pages(self, *, pages_to_check, changed_sections, all_changed,
                 pages_to_rebuild, change_summary, verbose) -> None
 
 # DataFileDetector.check_data_files
@@ -167,13 +167,13 @@ CacheKey = NewType("CacheKey", str)
 def content_key(path: Path, site_root: Path) -> CacheKey:
     """
     Canonical key for content files (pages, sections).
-    
+
     Always relative to site root, forward slashes, no leading dot.
-    
+
     Examples:
         content_key(Path("/site/content/about.md"), Path("/site"))
         → "content/about.md"
-        
+
         content_key(Path("./content/about.md"), Path("."))
         → "content/about.md"
     """
@@ -188,9 +188,9 @@ def content_key(path: Path, site_root: Path) -> CacheKey:
 def data_key(path: Path, site_root: Path) -> CacheKey:
     """
     Canonical key for data files.
-    
+
     Prefixed with "data:" to distinguish from content.
-    
+
     Examples:
         data_key(Path("/site/data/team.yaml"), Path("/site"))
         → "data:data/team.yaml"
@@ -202,9 +202,9 @@ def data_key(path: Path, site_root: Path) -> CacheKey:
 def template_key(path: Path, templates_dir: Path) -> CacheKey:
     """
     Canonical key for template files.
-    
+
     Relative to templates directory.
-    
+
     Examples:
         template_key(Path("/site/templates/base.html"), Path("/site/templates"))
         → "base.html"
@@ -219,7 +219,7 @@ def template_key(path: Path, templates_dir: Path) -> CacheKey:
 def asset_key(path: Path, assets_dir: Path) -> CacheKey:
     """
     Canonical key for asset files.
-    
+
     Relative to assets directory.
     """
     try:
@@ -232,7 +232,7 @@ def asset_key(path: Path, assets_dir: Path) -> CacheKey:
 def parse_key(key: CacheKey) -> tuple[str, str]:
     """
     Parse a cache key into (prefix, path).
-    
+
     Examples:
         parse_key("data:data/team.yaml") → ("data", "data/team.yaml")
         parse_key("content/about.md") → ("", "content/about.md")
@@ -270,7 +270,7 @@ if TYPE_CHECKING:
 
 class RebuildReasonCode(Enum):
     """Why a page needs rebuilding."""
-    
+
     CONTENT_CHANGED = auto()
     DATA_FILE_CHANGED = auto()
     TEMPLATE_CHANGED = auto()
@@ -284,10 +284,10 @@ class RebuildReasonCode(Enum):
 @dataclass(frozen=True, slots=True)
 class RebuildReason:
     """Detailed reason for page rebuild."""
-    
+
     code: RebuildReasonCode
     trigger: str = ""  # What triggered it (e.g., "data/team.yaml")
-    
+
     def __str__(self) -> str:
         if self.trigger:
             return f"{self.code.name}: {self.trigger}"
@@ -298,55 +298,55 @@ class RebuildReason:
 class ChangeDetectionResult:
     """
     Immutable result of change detection.
-    
+
     Produced by each detector, merged to accumulate changes.
-    
+
     Thread Safety:
         Frozen dataclass - inherently thread-safe.
         Can be safely passed between threads without copying.
-    
+
     Example:
         >>> file_result = file_detector.detect(ctx)
         >>> data_result = data_detector.detect(ctx)
         >>> combined = file_result.merge(data_result)
     """
-    
+
     # Pages that need rebuilding
     pages_to_rebuild: frozenset[CacheKey] = field(default_factory=frozenset)
-    
+
     # Why each page needs rebuilding (for logging/debugging)
     rebuild_reasons: Mapping[CacheKey, RebuildReason] = field(default_factory=dict)
-    
+
     # Assets that need processing
     assets_to_process: frozenset[CacheKey] = field(default_factory=frozenset)
-    
+
     # What changed (for downstream detectors)
     content_files_changed: frozenset[CacheKey] = field(default_factory=frozenset)
     data_files_changed: frozenset[CacheKey] = field(default_factory=frozenset)
     templates_changed: frozenset[CacheKey] = field(default_factory=frozenset)
-    
+
     # Affected taxonomies (for taxonomy detector)
     affected_tags: frozenset[str] = field(default_factory=frozenset)
     affected_sections: frozenset[CacheKey] = field(default_factory=frozenset)
-    
+
     # Global flags
     config_changed: bool = False
     force_full_rebuild: bool = False
-    
+
     @classmethod
     def empty(cls) -> ChangeDetectionResult:
         """Create empty result."""
         return cls()
-    
+
     @classmethod
     def full_rebuild(cls, reason: str = "forced") -> ChangeDetectionResult:
         """Create result indicating full rebuild needed."""
         return cls(force_full_rebuild=True)
-    
+
     def merge(self, other: ChangeDetectionResult) -> ChangeDetectionResult:
         """
         Merge two results (immutable - returns new instance).
-        
+
         Used to compose results from multiple detectors.
         """
         return ChangeDetectionResult(
@@ -361,7 +361,7 @@ class ChangeDetectionResult:
             config_changed=self.config_changed or other.config_changed,
             force_full_rebuild=self.force_full_rebuild or other.force_full_rebuild,
         )
-    
+
     def with_pages(
         self,
         pages: frozenset[CacheKey],
@@ -384,12 +384,12 @@ class ChangeDetectionResult:
             config_changed=self.config_changed,
             force_full_rebuild=self.force_full_rebuild,
         )
-    
+
     @property
     def needs_rebuild(self) -> bool:
         """Check if any pages need rebuilding."""
         return bool(self.pages_to_rebuild) or self.force_full_rebuild
-    
+
     def summary(self) -> str:
         """Human-readable summary."""
         parts = []
@@ -435,12 +435,12 @@ if TYPE_CHECKING:
 class ChangeDetector(Protocol):
     """
     Protocol for change detection components.
-    
+
     Each detector:
     1. Receives context with cache, site, and previous results
     2. Returns immutable ChangeDetectionResult
     3. Does NOT mutate shared state
-    
+
     Example Implementation:
         class DataFileDetector:
             def detect(self, ctx: DetectionContext) -> ChangeDetectionResult:
@@ -451,17 +451,17 @@ class ChangeDetector(Protocol):
                     data_files_changed=changed_data,
                 )
     """
-    
+
     def detect(self, ctx: DetectionContext) -> ChangeDetectionResult:
         """
         Detect changes and return result.
-        
+
         Args:
             ctx: Detection context with cache, site, and accumulated results
-            
+
         Returns:
             ChangeDetectionResult with detected changes
-            
+
         Thread Safety:
             Must be thread-safe. Do not mutate ctx or shared state.
             Return new ChangeDetectionResult instances.
@@ -473,25 +473,25 @@ class ChangeDetector(Protocol):
 class DetectionContext:
     """
     Immutable context passed to detectors.
-    
+
     Contains everything a detector needs to detect changes.
     Accumulated results from previous detectors are available
     for cascade detection (e.g., template changes affect pages).
     """
-    
+
     # Core dependencies
     cache: BuildCache
     site: Site
-    
+
     # Accumulated results from previous detectors
     previous: ChangeDetectionResult = field(default_factory=ChangeDetectionResult.empty)
-    
+
     # Configuration
     verbose: bool = False
-    
+
     # Forced changes (from file watcher)
     forced_changed: frozenset[CacheKey] = field(default_factory=frozenset)
-    
+
     def with_previous(self, result: ChangeDetectionResult) -> DetectionContext:
         """Create new context with updated previous results."""
         return DetectionContext(
@@ -534,10 +534,10 @@ logger = get_logger(__name__)
 class DetectionPipeline:
     """
     Ordered sequence of change detectors.
-    
+
     Detectors run in sequence, each receiving accumulated
     results from previous detectors.
-    
+
     Example:
         pipeline = DetectionPipeline([
             ConfigChangeDetector(),      # Must run first
@@ -546,35 +546,35 @@ class DetectionPipeline:
             TemplateDetector(),          # Detect changed templates
             TaxonomyCascadeDetector(),   # Cascade from content changes
         ])
-        
+
         result = pipeline.run(ctx)
     """
-    
+
     detectors: Sequence[ChangeDetector]
-    
+
     def run(self, ctx: DetectionContext) -> ChangeDetectionResult:
         """
         Run all detectors in sequence.
-        
+
         Each detector receives context with accumulated results
         from previous detectors.
-        
+
         Returns:
             Combined ChangeDetectionResult from all detectors
         """
         current_ctx = ctx
-        
+
         for detector in self.detectors:
             detector_name = type(detector).__name__
-            
+
             logger.debug(
                 "detector_start",
                 detector=detector_name,
                 previous_pages=len(current_ctx.previous.pages_to_rebuild),
             )
-            
+
             result = detector.detect(current_ctx)
-            
+
             logger.debug(
                 "detector_complete",
                 detector=detector_name,
@@ -582,10 +582,10 @@ class DetectionPipeline:
                 data_files=len(result.data_files_changed),
                 templates=len(result.templates_changed),
             )
-            
+
             # Update context with this detector's results
             current_ctx = current_ctx.with_previous(result)
-            
+
             # Short-circuit if full rebuild triggered
             if result.force_full_rebuild:
                 logger.info(
@@ -593,26 +593,26 @@ class DetectionPipeline:
                     detector=detector_name,
                 )
                 break
-        
+
         return current_ctx.previous
-    
+
     def run_parallel(self, ctx: DetectionContext) -> ChangeDetectionResult:
         """
         Run independent detectors in parallel.
-        
+
         Only safe for detectors that don't depend on each other's results.
         Use run() for detectors with cascade dependencies.
         """
         from concurrent.futures import ThreadPoolExecutor, as_completed
-        
+
         results: list[ChangeDetectionResult] = []
-        
+
         with ThreadPoolExecutor() as executor:
             futures = {
                 executor.submit(d.detect, ctx): type(d).__name__
                 for d in self.detectors
             }
-            
+
             for future in as_completed(futures):
                 detector_name = futures[future]
                 try:
@@ -625,12 +625,12 @@ class DetectionPipeline:
                         error=str(e),
                     )
                     raise
-        
+
         # Merge all results
         combined = ChangeDetectionResult.empty()
         for result in results:
             combined = combined.merge(result)
-        
+
         return combined
 
 
@@ -643,7 +643,7 @@ def create_early_pipeline() -> DetectionPipeline:
         DataFileDetector,
         TemplateDetector,
     )
-    
+
     return DetectionPipeline([
         ConfigChangeDetector(),
         ContentFileDetector(),
@@ -658,7 +658,7 @@ def create_full_pipeline() -> DetectionPipeline:
         TaxonomyCascadeDetector,
         AutodocDetector,
     )
-    
+
     return DetectionPipeline([
         TaxonomyCascadeDetector(),
         AutodocDetector(),
@@ -694,7 +694,7 @@ T = TypeVar("T")
 
 class BuildPhase(Enum):
     """Build phases in order."""
-    
+
     INIT = auto()
     DISCOVERY = auto()
     EARLY_DETECTION = auto()
@@ -709,15 +709,15 @@ class BuildPhase(Enum):
 class PhaseState(Generic[T]):
     """
     Type-safe phase state.
-    
+
     The generic parameter T represents the data available
     at this phase. Transitions produce new states with
     updated data.
     """
-    
+
     phase: BuildPhase
     data: T
-    
+
     def __post_init__(self) -> None:
         """Validate phase transitions."""
         # Could add validation here
@@ -857,20 +857,20 @@ def test_pipeline_accumulates_results():
     """Each detector receives previous results."""
     detector1 = MockDetector(pages={"page1.md"})
     detector2 = MockDetector(pages={"page2.md"})
-    
+
     pipeline = DetectionPipeline([detector1, detector2])
     result = pipeline.run(ctx)
-    
+
     assert result.pages_to_rebuild == {"page1.md", "page2.md"}
 
 def test_pipeline_short_circuits_on_full_rebuild():
     """Full rebuild trigger stops pipeline early."""
     detector1 = MockDetector(force_full=True)
     detector2 = MockDetector(pages={"page.md"})  # Should not run
-    
+
     pipeline = DetectionPipeline([detector1, detector2])
     result = pipeline.run(ctx)
-    
+
     assert result.force_full_rebuild
     assert not detector2.was_called
 ```
@@ -910,8 +910,8 @@ CACHE_VERSION = "2.0"  # Bump on contract migration
 def load_cache(cache_path: Path) -> BuildCache:
     meta = load_cache_metadata(cache_path)
     if meta.get("version") != CACHE_VERSION:
-        logger.info("cache_version_mismatch", 
-                    expected=CACHE_VERSION, 
+        logger.info("cache_version_mismatch",
+                    expected=CACHE_VERSION,
                     found=meta.get("version"),
                     action="full_rebuild_recommended")
     ...
@@ -929,10 +929,10 @@ def test_old_cache_format_triggers_rebuild():
     """Old cache keys should cause cache miss (safe), not incorrect hit."""
     # Simulate old format: absolute path as key
     old_key = str(Path("/abs/path/content/about.md"))
-    
+
     # New format: relative, normalized
     new_key = content_key(Path("/abs/path/content/about.md"), Path("/abs/path"))
-    
+
     assert new_key == "content/about.md"
     assert old_key != new_key  # Mismatch → cache miss → rebuild (safe)
 ```
@@ -969,14 +969,14 @@ def test_old_cache_format_triggers_rebuild():
 class CachePath:
     """Path wrapper that normalizes on construction."""
     _normalized: str
-    
+
     def __init__(self, path: Path | str, root: Path):
         normalized = str(Path(path).resolve().relative_to(root.resolve()))
         object.__setattr__(self, "_normalized", normalized.replace("\\", "/"))
-    
+
     def __str__(self) -> str:
         return self._normalized
-    
+
     def __hash__(self) -> int:
         return hash(self._normalized)
 ```
@@ -1004,7 +1004,7 @@ class CachePath:
 
 **Approach**: Always use `path.resolve()` for all keys.
 
-**Rejected because**: 
+**Rejected because**:
 - Cache portability (CI artifacts built on different machines)
 - Verbose keys make debugging harder
 - Doesn't solve the interface problem (mutable sets, different signatures)

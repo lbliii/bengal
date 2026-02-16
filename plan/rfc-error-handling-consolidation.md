@@ -351,11 +351,11 @@ def test_autodoc_cache_corruption_raises_bengal_error(tmp_path):
     cache_path = tmp_path / ".bengal" / "cache" / "autodoc.json"
     cache_path.parent.mkdir(parents=True)
     cache_path.write_text('["not", "a", "dict"]')  # Invalid format
-    
+
     with pytest.raises(BengalCacheError) as exc_info:
         # Trigger cache load
         ...
-    
+
     assert exc_info.value.code == ErrorCode.A001
     assert "cache" in exc_info.value.suggestion.lower()
 ```

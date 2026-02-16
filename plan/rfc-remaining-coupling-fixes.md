@@ -127,7 +127,7 @@ class ImageResourceProtocol(Protocol):
     path: Path
     width: int | None
     height: int | None
-    
+
     def get_dimensions(self) -> tuple[int, int] | None: ...
 
 @runtime_checkable  
@@ -153,13 +153,13 @@ if TYPE_CHECKING:
 
 class KnowledgeGraphProtocol(Protocol):
     """Protocol for knowledge graph access."""
-    
+
     @property
     def incoming_refs(self) -> dict[Page, float]: ...
-    
+
     @property  
     def outgoing_refs(self) -> dict[Page, set[Page]]: ...
-    
+
     def get_hubs(self, threshold: int = 10) -> list[Page]: ...
     def get_orphans(self) -> list[Page]: ...
 ```
@@ -344,7 +344,7 @@ ALLOWED_VIOLATIONS = {
       entry: python scripts/check_cycles.py
       language: system
       pass_filenames: false
-      
+
     - id: check-deps
       name: Check dependency layers
       entry: python scripts/check_dependencies.py

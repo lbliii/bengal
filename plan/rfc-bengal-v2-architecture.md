@@ -185,21 +185,21 @@ def register_functions(env: TemplateEnvironment, site: SiteLike) -> None:
 # bengal/protocols/core.py additions
 class PageLike(Protocol):
     # Existing properties...
-    
+
     # Add missing for full compatibility:
     @property
     def section(self) -> SectionLike | None: ...
-    
+
     @property
     def output_path(self) -> Path: ...
 
 class SectionLike(Protocol):
     # Existing properties...
-    
+
     # Add missing:
     @property
     def subsections(self) -> list[SectionLike]: ...
-    
+
     def get_pages(self, *, recursive: bool = False) -> list[PageLike]: ...
 ```
 
@@ -241,32 +241,32 @@ class Site:
     config: SiteConfig
     content: ContentRegistry      # Pages, sections, assets
     root_path: Path
-    
+
     # No mixins, no methods beyond property access
 
 # Services do the work
 class ThemeService:
     """Resolves themes - extracted from ThemeIntegrationMixin."""
-    
+
     def __init__(self, site: SiteLike) -> None:
         self._site = site
         self._theme_obj: Theme | None = None  # Lazy-loaded
-    
+
     def resolve(self) -> Theme:
         if self._theme_obj is None:
             self._theme_obj = self._load_theme()
         return self._theme_obj
-    
+
     def _load_theme(self) -> Theme:
         theme_name = self._site.config.theme.name
         # Resolution logic extracted from mixin...
 
 class ContentDiscoveryService:
     """Content discovery - extracted from ContentDiscoveryMixin."""
-    
+
     def __init__(self, site: SiteLike) -> None:
         self._site = site
-    
+
     def discover(self) -> ContentRegistry:
         """Discover all pages, sections, assets."""
         pages = self._discover_pages()
@@ -276,15 +276,15 @@ class ContentDiscoveryService:
 
 class QueryService:
     """Page/section queries - extracted from SectionRegistryMixin."""
-    
+
     def __init__(self, registry: ContentRegistry) -> None:
         self._registry = registry
         self._path_index: dict[str, Page] = {}
         self._section_index: dict[str, Section] = {}
-    
+
     def page_by_href(self, href: str) -> Page | None:
         return self._path_index.get(href)
-    
+
     def section_by_path(self, path: str) -> Section | None:
         return self._section_index.get(path)
 
@@ -385,13 +385,13 @@ class BuildSection:
 class Config:
     """
     Typed configuration with IDE autocomplete.
-    
+
     Access pattern (canonical):
         >>> cfg.site.title
         'My Site'
         >>> cfg.build.parallel
         True
-    
+
     Dict access for dynamic keys:
         >>> cfg["theme"]["custom_option"]
         'value'
@@ -401,11 +401,11 @@ class Config:
     dev: DevSection
     theme: ThemeSection
     _raw: dict[str, Any] = field(repr=False)
-    
+
     def __getitem__(self, key: str) -> Any:
         """Dict-style access for dynamic/custom sections."""
         return self._raw[key]
-    
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Config:
         """Create Config from loaded dict, applying defaults."""
@@ -422,10 +422,10 @@ class Config:
 class UnifiedConfigLoader:
     """
     Single config loader for both single-file and directory configs.
-    
+
     No flattening - preserves nested structure exactly.
     """
-    
+
     def load(self, root_path: Path) -> Config:
         """Load config from bengal.toml or config/ directory."""
         if (root_path / "bengal.toml").exists():
@@ -434,12 +434,12 @@ class UnifiedConfigLoader:
             data = self._load_directory(root_path / "config")
         else:
             data = {}
-        
+
         return Config.from_dict(data)
-    
+
     def _load_single_file(self, path: Path) -> dict[str, Any]:
         return tomllib.loads(path.read_text())
-    
+
     def _load_directory(self, config_dir: Path) -> dict[str, Any]:
         """Load all YAML files from config/ and merge."""
         result: dict[str, Any] = {}
@@ -456,7 +456,7 @@ class UnifiedConfigLoader:
 # Deprecation shim for flat access
 class ConfigCompat:
     """Temporary compatibility layer (remove in v1.0)."""
-    
+
     def __getitem__(self, key: str) -> Any:
         # Flat keys redirect with warning
         if key in ("title", "baseurl", "author", "language"):
@@ -505,7 +505,7 @@ from typing import FrozenSet
 class Effect:
     """
     Declarative effect of a build operation.
-    
+
     Attributes:
         outputs: Files this operation produces
         depends_on: Files/keys this operation reads
@@ -514,7 +514,7 @@ class Effect:
     outputs: frozenset[Path]
     depends_on: frozenset[Path | str]
     invalidates: frozenset[str]
-    
+
     @classmethod
     def for_page(cls, page: PageLike, ctx: RenderContext) -> Effect:
         """Standard effect for rendering a page."""
@@ -536,20 +536,20 @@ class Effect:
 class EffectTracer:
     """
     Unified dependency tracking replacing 13 detector classes.
-    
+
     Records effects during build, enables precise incremental rebuilds.
-    
+
     Thread Safety:
         Uses lock for effect recording during parallel builds.
     """
-    
+
     def __init__(self) -> None:
         self._effects: list[Effect] = []
         self._lock = Lock()
         # Indexes for fast lookup
         self._by_output: dict[Path, Effect] = {}
         self._by_dependency: dict[Path | str, list[Effect]] = {}
-    
+
     def record(self, effect: Effect) -> None:
         """Record an effect (thread-safe)."""
         with self._lock:
@@ -558,14 +558,14 @@ class EffectTracer:
                 self._by_output[output] = effect
             for dep in effect.depends_on:
                 self._by_dependency.setdefault(dep, []).append(effect)
-    
+
     def invalidated_by(self, changed: set[Path | str]) -> set[str]:
         """
         What cache keys are invalidated by these changes?
-        
+
         Args:
             changed: Set of changed file paths or config keys
-            
+
         Returns:
             Set of invalidated cache keys
         """
@@ -574,30 +574,30 @@ class EffectTracer:
             for effect in self._by_dependency.get(path, []):
                 result |= effect.invalidates
         return result
-    
+
     def outputs_needing_rebuild(self, changed: set[Path]) -> set[Path]:
         """
         Which outputs need rebuilding given changed inputs?
-        
+
         Transitive: If A depends on B and B changed, A needs rebuild.
         """
         needs_rebuild: set[Path] = set()
         queue = list(changed)
         visited: set[Path | str] = set()
-        
+
         while queue:
             item = queue.pop()
             if item in visited:
                 continue
             visited.add(item)
-            
+
             for effect in self._by_dependency.get(item, []):
                 needs_rebuild |= effect.outputs
                 # Transitive: outputs that depend on our outputs
                 queue.extend(effect.outputs)
-        
+
         return needs_rebuild
-    
+
     def save(self, path: Path) -> None:
         """Persist effects for cross-build analysis."""
         data = [
@@ -609,7 +609,7 @@ class EffectTracer:
             for e in self._effects
         ]
         path.write_text(json.dumps(data, indent=2))
-    
+
     @classmethod
     def load(cls, path: Path) -> EffectTracer:
         """Load effects from previous build."""
@@ -633,7 +633,7 @@ class EffectTracer:
 def track_effects(tracer: EffectTracer):
     """
     Context manager that captures effects from render operations.
-    
+
     Usage:
         with track_effects(tracer) as ctx:
             html = render_page(page, ctx)
@@ -653,22 +653,22 @@ def render_page_with_effects(
     """Render page and record its effect."""
     # Collect dependencies during render
     deps: set[Path | str] = {page.source_path}
-    
+
     # Template dependencies
     layout = resolve_layout(page, site)
     deps.add(layout.path)
     deps.update(layout.includes)
-    
+
     # Render
     html = render_template(layout, page=page, site=site)
-    
+
     # Record effect
     tracer.record(Effect(
         outputs=frozenset({output_path(page, site)}),
         depends_on=frozenset(deps),
         invalidates=frozenset({f"page:{page.href}"}),
     ))
-    
+
     return html
 ```
 
