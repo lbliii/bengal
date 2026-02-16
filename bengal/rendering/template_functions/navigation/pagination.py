@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from bengal.config.utils import coerce_int
+
 
 def get_pagination_items(
     current_page: int, total_pages: int, base_url: str, window: int = 2
@@ -87,15 +89,9 @@ def get_pagination_items(
 
     """
     # Coerce to int - template context may pass str from YAML/config (e.g. per_page)
-    try:
-        current_page = int(current_page) if current_page is not None else 1
-    except (ValueError, TypeError):
-        current_page = 1
-    try:
-        total_pages = int(total_pages) if total_pages is not None else 1
-    except (ValueError, TypeError):
-        total_pages = 1
-    window = int(window) if window is not None else 2
+    current_page = coerce_int(current_page, 1)
+    total_pages = coerce_int(total_pages, 1)
+    window = coerce_int(window, 2)
 
     if total_pages <= 0:
         total_pages = 1

@@ -13,6 +13,7 @@ import base64
 import re
 from typing import TYPE_CHECKING, Any
 
+from bengal.config.utils import coerce_int
 from bengal.errors import ErrorCode
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives import text as text_utils
@@ -105,6 +106,7 @@ def truncatewords(text: str, count: int, suffix: str = "...") -> str:
         {{ post.content | truncatewords(30, " [Read more]") }}
 
     """
+    count = coerce_int(count, 30)
     return text_utils.truncate_words(text, count, suffix)
 
 
@@ -132,10 +134,7 @@ def truncatewords_html(html: str, count: int, suffix: str = "...") -> str:
     """
     if not html:
         return ""
-    try:
-        count = int(count)
-    except (TypeError, ValueError):
-        count = 30
+    count = coerce_int(count, 30)
 
     # Quick check - if plain text word count is under limit, return as-is
     text_only = strip_html(html)
@@ -452,6 +451,7 @@ def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
         {{ post.excerpt | truncate_chars(200) }}
 
     """
+    length = coerce_int(length, 120)
     return text_utils.truncate_chars(text, length, suffix)
 
 
@@ -744,10 +744,7 @@ def card_excerpt_html(
     """
     if not content:
         return ""
-    try:
-        words = int(words)
-    except (TypeError, ValueError):
-        words = 30
+    words = coerce_int(words, 30)
     # Same duplicate stripping as excerpt_for_card
     prepped = _prepare_html_for_excerpt(content) if "<" in content else content
     original_plain = text_utils.normalize_whitespace(strip_html(prepped), collapse=True).strip()

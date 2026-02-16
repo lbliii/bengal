@@ -4,6 +4,7 @@ from bengal.rendering.template_functions.strings import (
     base64_decode,
     base64_encode,
     card_excerpt,
+    card_excerpt_html,
     excerpt,
     excerpt_for_card,
     filesize,
@@ -108,6 +109,48 @@ class TestTruncatewordsHtml:
         result = truncatewords_html(html, 2)
         # Self-closing br should not cause issues
         assert "</br>" not in result
+
+
+class TestFilterTypeCoercion:
+    """Filters must accept non-int numeric params (str, None, float) from YAML/config."""
+
+    def test_truncatewords_html_accepts_string_count(self):
+        html = "<p>One two three four five</p>"
+        result = truncatewords_html(html, "3")
+        assert "..." in result
+        assert "One two three" in result
+
+    def test_truncatewords_html_accepts_none_count(self):
+        html = "<p>Short</p>"
+        result = truncatewords_html(html, None)
+        assert result == html
+
+    def test_truncatewords_html_accepts_float_count(self):
+        html = "<p>One two three four five</p>"
+        result = truncatewords_html(html, 3.0)
+        assert "..." in result
+
+    def test_card_excerpt_html_accepts_string_words(self):
+        content = "<p>One two three four five six seven</p>"
+        result = card_excerpt_html(content, "3", "", "")
+        assert "..." in result
+        assert "One two three" in result
+
+    def test_card_excerpt_html_accepts_none_words(self):
+        content = "<p>Short</p>"
+        result = card_excerpt_html(content, None, "", "")
+        assert result == content
+
+    def test_truncatewords_accepts_string_count(self):
+        text = "This is a long piece of text"
+        result = truncatewords(text, "3")
+        assert result == "This is a..."
+
+    def test_truncate_chars_accepts_string_length(self):
+        text = "This is a long text"
+        result = truncate_chars(text, "10")
+        assert result == "This is..."
+        assert len(result) == 10
 
 
 class TestSlugify:

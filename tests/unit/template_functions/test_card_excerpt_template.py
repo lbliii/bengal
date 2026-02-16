@@ -68,3 +68,23 @@ def test_excerpt_for_card_html_headers_get_spacing(tmp_path: Path) -> None:
     assert "Key Features" in result
     assert "Fast Builds" in result
     assert "Key Features Fast Builds" in result or "Key Features" in result
+
+
+def test_card_excerpt_html_with_string_excerpt_words_dirty_config(tmp_path: Path) -> None:
+    """Simulate excerpt_words as string from config - must not raise TypeError."""
+    site = Site(root_path=tmp_path, config={"title": "Test"})
+    engine = TemplateEngine(site)
+
+    # excerpt_words as string (e.g. from YAML) - filter must coerce at entry
+    html = engine.render_string(
+        "{{ excerpt | card_excerpt_html(excerpt_words, title, desc) | safe }}",
+        {
+            "excerpt": "My Post. This is the actual content to show in the card.",
+            "excerpt_words": "5",
+            "title": "My Post",
+            "desc": "",
+        },
+    )
+    assert "This is the actual" in html
+    assert "My Post" not in html
+    assert html.strip().endswith("...")

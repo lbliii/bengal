@@ -35,6 +35,8 @@ from __future__ import annotations
 from math import ceil
 from typing import Any
 
+from bengal.config.utils import coerce_int
+
 
 class Paginator[T]:
     """
@@ -80,10 +82,7 @@ class Paginator[T]:
             >>> paginator = Paginator([], per_page=10)  # Creates 1 empty page
         """
         self.items = items
-        try:
-            self.per_page = max(1, int(per_page))
-        except (ValueError, TypeError):
-            self.per_page = 10
+        self.per_page = max(1, coerce_int(per_page, 10))
         self.num_pages = ceil(len(items) / self.per_page) if items else 1
 
     def page(self, number: int) -> list[T]:

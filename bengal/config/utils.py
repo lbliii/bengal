@@ -98,6 +98,38 @@ def coerce_bool(value: Any, default: bool | None = None) -> bool | None:
     return default
 
 
+def coerce_int(value: Any, default: int = 0) -> int:
+    """
+    Coerce a value to int; return default on failure.
+
+    Handles values from YAML, config, and cache that may arrive as str, float,
+    or None. Prevents TypeError when comparing int with str in filters.
+
+    Args:
+        value: Value to coerce (int, str, float, or None).
+        default: Value to return for None or invalid input.
+
+    Returns:
+        Coerced int, or default if conversion not possible.
+
+    Example:
+        >>> coerce_int(42)
+        42
+        >>> coerce_int("150")
+        150
+        >>> coerce_int(None, default=10)
+        10
+        >>> coerce_int("bad", default=30)
+        30
+    """
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 # =============================================================================
 # Config Object Unwrapping
 # =============================================================================
@@ -329,6 +361,7 @@ __all__ = [
     "FALSY_STRINGS",
     "TRUTHY_STRINGS",
     "coerce_bool",
+    "coerce_int",
     "get_config_value",
     "get_default_config",
     "resolve_excerpt_length",
