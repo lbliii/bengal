@@ -13,7 +13,7 @@ Usage:
 
 {% def related_post_card(post) %}
 {% let post_title = post?.title ?? 'Untitled' %}
-{% let post_href = post?.href ?? post?._path ?? post?.path ?? '#' %}
+{% let post_href = post?._path ?? post?.path ?? post?.href ?? '#' %}
 {% let post_date = post?.date %}
 {% let post_excerpt = post?.excerpt ?? post?.description ?? '' %}
 {% let post_content = post?.content ?? '' %}

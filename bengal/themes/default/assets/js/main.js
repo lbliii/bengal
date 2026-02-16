@@ -76,8 +76,12 @@
           // Update URL without jumping
           history.pushState(null, null, href);
 
-          // Skip focus() - headings are not natively focusable and focusing them
-          // can trigger scroll anchoring that locks page scroll in some browsers
+          // Focus target for accessibility (keyboard/screen-reader users)
+          // Make heading focusable, then focus without scroll (avoids scroll-lock)
+          if (!target.hasAttribute('tabindex')) {
+            target.setAttribute('tabindex', '-1');
+          }
+          target.focus({ preventScroll: true });
         }
       });
     });

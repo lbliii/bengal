@@ -32,7 +32,7 @@ Set `type: blog` in frontmatter or use cascade from section
 ================================================================================
 #}
 
-{% from 'partials/navigation-components.html' import page_navigation, toc %}
+{% from 'partials/navigation-components.html' import page_navigation, toc as toc_macro %}
 {% from 'partials/components/tags.html' import tag_list %}
 {% from 'partials/components/post-card.html' import post_card %}
 {% from 'partials/components/author-bio.html' import author_bio %}
@@ -79,7 +79,7 @@ MAIN TEMPLATE
 {# Two-column layout like docs/single: content | TOC. Content gets 1fr, TOC fixed. #}
 {# Use div not main - base.html already provides main#main-content (nested main is invalid) #}
 {% let toc_items_list = toc_items ?? [] %}
-{% let show_toc = toc and (toc_items_list | length >= 3) %}
+{% let show_toc = page.toc and (toc_items_list | length >= 3) %}
 <div class="blog-post-layout{{ ' blog-with-toc' if show_toc else '' }}">
     <div class="blog-post-main">
         <article class="blog-post prose {{ css_class }}">
@@ -137,7 +137,7 @@ MAIN TEMPLATE
     {# Uses same enhanced TOC as docs: scroll highlighting, count badges, collapsible groups (no TOC progress bar - page has global reading-progress) #}
     {% if show_toc %}
     <aside class="blog-toc" role="complementary" aria-label="Table of contents">
-            {{ toc(toc_items=toc_items, toc=toc, page=page) }}
+            {{ toc_macro(toc_items=toc_items, toc=page.toc, page=page) }}
 
             {# Newsletter CTA (Optional) #}
             {% if show_newsletter %}

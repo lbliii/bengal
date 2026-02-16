@@ -65,9 +65,7 @@ def test_excerpt_for_card_html_headers_get_spacing(tmp_path: Path) -> None:
         {"content": html_content},
     )
     # Should have space between "Key Features" and "Fast Builds" (not "Key FeaturesFast Builds")
-    assert "Key Features" in result
-    assert "Fast Builds" in result
-    assert "Key Features Fast Builds" in result or "Key Features" in result
+    assert "Key Features Fast Builds" in result
 
 
 def test_card_excerpt_html_with_string_excerpt_words_dirty_config(tmp_path: Path) -> None:
