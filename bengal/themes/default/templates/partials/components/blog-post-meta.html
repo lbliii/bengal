@@ -1,0 +1,61 @@
+{#
+================================================================================
+Blog Post Meta Component
+================================================================================
+
+Post metadata (date, reading time, updated, views) + mini author card.
+Used in blog post hero. Order: metadata row first, then mini author card.
+
+Usage:
+  {{ blog_post_meta(author, avatar, title, date, reading_time, views, show_author, show_reading_time, updated=none) }}
+================================================================================
+#}
+
+{% def blog_post_meta(author, avatar='', title='', date=none, reading_time=0, views=none, show_author=true, show_reading_time=true, updated=none) %}
+<div class="blog-post-meta">
+    {# Metadata row: date, reading time, last updated, views #}
+    <div class="blog-post-details">
+        {% if date %}
+        <time datetime="{{ date | date_iso }}"
+            title="{{ date | dateformat('%B %d, %Y at %I:%M %p') }}">
+            {{ date | dateformat('%B %d, %Y') }}
+        </time>
+        {% end %}
+
+        {% if show_reading_time and reading_time and reading_time > 0 %}
+        <span class="reading-time">
+            {{ icon('clock', size=14) }}
+            {{ reading_time }} min read
+        </span>
+        {% end %}
+
+        {% if updated and updated != date %}
+        <span class="blog-updated-inline">
+            Updated {{ updated | dateformat('%B %d, %Y') }}
+        </span>
+        {% end %}
+
+        {% if views %}
+        <span class="view-count">
+            {{ icon('eye', size=14) }}
+            {{ views }} views
+        </span>
+        {% end %}
+    </div>
+
+    {# Mini author card #}
+    {% if show_author and author %}
+    <div class="author-mini-card">
+        {% if avatar %}
+        <img src="{{ avatar | avatar_url }}" alt="{{ author }}" class="author-avatar">
+        {% end %}
+        <div class="author-info">
+            <strong>{{ author }}</strong>
+            {% if title %}
+            <span class="author-title">{{ title }}</span>
+            {% end %}
+        </div>
+    </div>
+    {% end %}
+</div>
+{% end %}

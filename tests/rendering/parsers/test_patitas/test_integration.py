@@ -49,20 +49,27 @@ class TestPatitasParserWrapper:
         assert html == ""
 
     def test_parse_with_toc(self, patitas_parser):
-        """Parse with TOC extraction."""
-        html, toc = patitas_parser.parse_with_toc("## Section 1\n\n## Section 2", {})
+        """Parse with TOC extraction and excerpt."""
+        result = patitas_parser.parse_with_toc("## Section 1\n\n## Section 2", {})
+        html, toc = result[0], result[1]
         assert "<h2" in html
         assert "Section 1" in toc
         assert "Section 2" in toc
+        if len(result) > 2:
+            assert isinstance(result[2], str)  # excerpt
+        if len(result) > 3:
+            assert isinstance(result[3], str)  # meta_description
 
     def test_toc_has_links(self, patitas_parser):
         """TOC contains anchor links."""
-        _, toc = patitas_parser.parse_with_toc("## Section", {})
+        result = patitas_parser.parse_with_toc("## Section", {})
+        _, toc = result[0], result[1]
         assert '<a href="#' in toc
 
     def test_heading_ids_injected(self, patitas_parser):
         """Heading IDs are injected."""
-        html, _ = patitas_parser.parse_with_toc("## My Section", {})
+        result = patitas_parser.parse_with_toc("## My Section", {})
+        html = result[0]
         assert 'id="' in html
 
     def test_supports_ast_property(self, patitas_parser):
@@ -213,26 +220,30 @@ class TestTOCGeneration:
     def test_toc_nested_headings(self, patitas_parser):
         """TOC handles nested heading levels."""
         content = "# H1\n\n## H2\n\n### H3"
-        _html, toc = patitas_parser.parse_with_toc(content, {})
+        result = patitas_parser.parse_with_toc(content, {})
+        _html, toc = result[0], result[1]
         assert "H1" in toc
         assert "H2" in toc
         assert "H3" in toc
 
     def test_toc_empty_document(self, patitas_parser):
         """TOC for document without headings."""
-        _, toc = patitas_parser.parse_with_toc("No headings here", {})
+        result = patitas_parser.parse_with_toc("No headings here", {})
+        _, toc = result[0], result[1]
         # TOC should be empty or minimal
         assert "href" not in toc or toc.strip() == ""
 
     def test_toc_special_characters(self, patitas_parser):
         """TOC handles special characters in headings."""
-        _, toc = patitas_parser.parse_with_toc("## Special <chars> & stuff", {})
+        result = patitas_parser.parse_with_toc("## Special <chars> & stuff", {})
+        _, toc = result[0], result[1]
         # Should be HTML escaped
         assert toc is not None
 
     def test_toc_unicode_headings(self, patitas_parser):
         """TOC handles unicode headings."""
-        _, toc = patitas_parser.parse_with_toc("## 日本語", {})
+        result = patitas_parser.parse_with_toc("## 日本語", {})
+        _, toc = result[0], result[1]
         assert "日本語" in toc
 
 
@@ -241,12 +252,14 @@ class TestSlugGeneration:
 
     def test_simple_slug(self, patitas_parser):
         """Simple heading slug."""
-        html, _ = patitas_parser.parse_with_toc("## Hello World", {})
+        result = patitas_parser.parse_with_toc("## Hello World", {})
+        html = result[0]
         assert 'id="hello-world"' in html
 
     def test_slug_removes_special_chars(self, patitas_parser):
         """Slug removes special characters."""
-        html, _ = patitas_parser.parse_with_toc("## Hello! World?", {})
+        result = patitas_parser.parse_with_toc("## Hello! World?", {})
+        html = result[0]
         # Should have clean slug
         assert 'id="' in html
 

@@ -459,44 +459,76 @@ class RenderingPipeline:
     def _parse_with_context_aware_parser(self, page: PageLike, need_toc: bool) -> None:
         """Parse content using a context-aware parser (Mistune, Patitas)."""
         if page.metadata.get("preprocess") is False:
-            # Inject source_path into metadata for cross-version dependency tracking
+            # Inject source_path and excerpt_length for cross-version dependency tracking
             # (non-context parse methods don't have access to page object)
-            metadata_with_source = dict(page.metadata)
+            from bengal.config.utils import resolve_excerpt_length
+
+            meta = page.metadata
+            metadata_with_source = dict(meta or {})
             metadata_with_source["_source_path"] = page.source_path
+            content_cfg = self.site.config.get("content", {}) or {}
+            metadata_with_source["_excerpt_length"] = resolve_excerpt_length(
+                page, content_cfg
+            )
 
             if need_toc:
-                parsed_content, toc = self.parser.parse_with_toc(page._source, metadata_with_source)
+                result = self.parser.parse_with_toc(page._source, metadata_with_source)
+                parsed_content, toc = result[0], result[1]
+                if len(result) > 2:
+                    page._excerpt = result[2]
+                if len(result) > 3:
+                    page._meta_description = result[3]
                 parsed_content = escape_template_syntax_in_html(parsed_content)
             else:
                 parsed_content = self.parser.parse(page._source, metadata_with_source)
                 parsed_content = escape_template_syntax_in_html(parsed_content)
                 toc = ""
         else:
+            from bengal.config.utils import resolve_excerpt_length
+
             context = self._build_variable_context(page)
             md_cfg = self.site.config.get("markdown", {}) or {}
             ast_cache_cfg = md_cfg.get("ast_cache", {}) or {}
             persist_tokens = bool(ast_cache_cfg.get("persist_tokens", False))
+
+            # Build mutable metadata for parser (CascadeView is immutable)
+            meta = page.metadata
+            metadata_for_parser = dict(meta or {})
+            metadata_for_parser["_source_path"] = page.source_path
+            content_cfg = self.site.config.get("content", {}) or {}
+            metadata_for_parser["_excerpt_length"] = resolve_excerpt_length(
+                page, content_cfg
+            )
 
             # Type narrowing: check if parser supports context methods (PatitasParser)
             if hasattr(self.parser, "parse_with_toc_and_context") and hasattr(
                 self.parser, "parse_with_context"
             ):
                 if need_toc:
-                    parsed_content, toc = self.parser.parse_with_toc_and_context(  # type: ignore[union-attr]
-                        page._source, page.metadata, context
+                    result = self.parser.parse_with_toc_and_context(  # type: ignore[union-attr]
+                        page._source, metadata_for_parser, context
                     )
+                    parsed_content, toc = result[0], result[1]
+                    if len(result) > 2:
+                        page._excerpt = result[2]
+                    if len(result) > 3:
+                        page._meta_description = result[3]
                 else:
                     parsed_content = self.parser.parse_with_context(  # type: ignore[union-attr]
-                        page._source, page.metadata, context
+                        page._source, metadata_for_parser, context
                     )
                     toc = ""
             else:
                 # Fallback for parsers without context support (e.g., PythonMarkdownParser)
                 if need_toc:
-                    parsed_content, toc = self.parser.parse_with_toc(page._source, page.metadata)
+                    parsed_content, toc = self.parser.parse_with_toc(
+                        page._source, metadata_for_parser
+                    )
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                 else:
-                    parsed_content = self.parser.parse(page._source, page.metadata)
+                    parsed_content = self.parser.parse(
+                        page._source, metadata_for_parser
+                    )
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                     toc = ""
 
@@ -506,10 +538,14 @@ class RenderingPipeline:
                     if hasattr(self.parser, "parse_to_document"):
                         import patitas
 
-                        doc = self.parser.parse_to_document(page._source, page.metadata)
+                        doc = self.parser.parse_to_document(
+                            page._source, metadata_for_parser
+                        )
                         page._ast_cache = patitas.to_dict(doc)  # type: ignore[assignment]
                     elif hasattr(self.parser, "parse_to_ast"):
-                        ast_tokens = self.parser.parse_to_ast(page._source, page.metadata)
+                        ast_tokens = self.parser.parse_to_ast(
+                            page._source, metadata_for_parser
+                        )
                         page._ast_cache = ast_tokens  # type: ignore[assignment]
                 except Exception as e:
                     logger.debug(

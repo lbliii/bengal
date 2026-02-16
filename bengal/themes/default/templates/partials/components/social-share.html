@@ -1,0 +1,38 @@
+{#
+================================================================================
+Social Share Component
+================================================================================
+
+Share buttons for blog posts and other content.
+Requires share_url() and icon() to be available.
+
+Usage:
+  {{ social_share(page, page_href) }}
+================================================================================
+#}
+
+{% def social_share(page, page_href) %}
+{% let platforms = [
+    {'id': 'twitter', 'label': 'Twitter', 'icon': 'twitter-logo'},
+    {'id': 'linkedin', 'label': 'LinkedIn', 'icon': 'linkedin-logo'},
+    {'id': 'facebook', 'label': 'Facebook', 'icon': 'facebook-logo'},
+    {'id': 'reddit', 'label': 'Reddit', 'icon': 'reddit-logo'},
+    {'id': 'email', 'label': 'Email', 'icon': 'envelope-simple'}
+] %}
+<div class="blog-social-share">
+    <h4>{{ t('blog.share_post', default='Share this post') }}</h4>
+    <div class="share-buttons">
+        {% for platform in platforms %}
+        <a href="{{ share_url(platform.id, page) }}" target="_blank" rel="noopener noreferrer"
+            class="share-button share-{{ platform.id }}" aria-label="Share on {{ platform.label }}">
+            {{ icon(platform.icon, size=20) }} {{ platform.label }}
+        </a>
+        {% end %}
+        <button class="share-button share-copy"
+            onclick="navigator.clipboard.writeText('{{ page_href }}'); this.innerHTML = '✓ Copied!'"
+            aria-label="Copy link">
+            {{ icon('link', size=20) }} Copy Link
+        </button>
+    </div>
+</div>
+{% end %}

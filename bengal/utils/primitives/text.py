@@ -206,6 +206,36 @@ def strip_html(text: str, decode_entities: bool = True) -> str:
     return text
 
 
+_ORPHAN_MD_ENDINGS = ("**", "*", "__", "_", "``", "`", "[", "![")
+
+
+def _strip_trailing_orphan_markdown(text: str) -> str:
+    """Remove trailing orphaned markdown so excerpt doesn't end mid-token."""
+    if not text:
+        return text
+    stripped = text.rstrip()
+    while stripped:
+        orphan_len = 0
+        for s in _ORPHAN_MD_ENDINGS:
+            if stripped.endswith(s):
+                orphan_len = len(s)
+                break
+        if orphan_len and orphan_len < len(stripped):
+            # Only strip if orphan is preceded by space (keeps "**word**")
+            char_before = stripped[-(orphan_len + 1)]
+            if char_before.isspace():
+                last_space = stripped.rfind(" ")
+                if last_space > 0:
+                    stripped = stripped[:last_space].rstrip()
+                else:
+                    break
+            else:
+                break
+        else:
+            break
+    return stripped
+
+
 def truncate_words(text: str, word_count: int, suffix: str = "...") -> str:
     """
     Truncate text to specified word count.
@@ -238,7 +268,13 @@ def truncate_words(text: str, word_count: int, suffix: str = "...") -> str:
     if len(words) <= word_count:
         return text
 
-    return " ".join(words[:word_count]) + suffix
+    result = " ".join(words[:word_count]) + suffix
+    # Avoid ending with orphaned markdown (**, *, etc.)
+    before_suffix = " ".join(words[:word_count])
+    cleaned = _strip_trailing_orphan_markdown(before_suffix)
+    if cleaned != before_suffix:
+        result = cleaned + suffix
+    return result
 
 
 def truncate_chars(text: str, length: int, suffix: str = "...") -> str:

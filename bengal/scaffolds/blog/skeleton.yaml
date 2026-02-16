@@ -1,5 +1,5 @@
 name: blog
-description: A blog with posts, tags, and categories
+description: A blog with posts and tags
 version: "1.0"
 
 structure:
@@ -15,14 +15,23 @@ structure:
 
       This is your new Bengal blog! I write about technology, life, and everything in between.
 
-      ## Recent Posts
+      Check out my latest posts below or browse by [tags](/tags).
 
-      Check out my latest posts below or browse by [tags](/tags) and [categories](/categories).
+  - path: posts/_index.md
+    type: blog
+    props:
+      title: Posts
+      description: All blog posts
+    content: |
+      # Posts
+
+      Browse all blog posts below.
 
   - path: about.md
     props:
       title: About
       description: Learn more about me
+      template: blog/about.html
     content: |
       # About Me
 
@@ -34,9 +43,37 @@ structure:
       - Personal development
       - Life lessons and reflections
 
+      ## What I'm Listening To
+
+      :::{spotify} 37i9dQZF1DXcBWIGoYBM5M
+      :title: My Favorites
+      :type: playlist
+      :::
+
       ## Get in Touch
 
       Feel free to reach out via email or social media.
+
+  - path: contact.md
+    props:
+      title: Contact
+      description: Get in touch
+      template: blog/contact.html
+    content: |
+      # Get in Touch
+
+      I'd love to hear from you—whether you have a question about a post, want to collaborate, or just want to say hi.
+
+      ## How to Reach Me
+
+      - **Email**: [hello@example.com](mailto:hello@example.com) — Best for longer messages or collaboration
+      - **GitHub**: [github.com/yourusername](https://github.com/yourusername) — For code and open source
+      - **Twitter/X**: [@yourusername](https://twitter.com/yourusername) — Quick questions and updates
+      - **LinkedIn**: [linkedin.com/in/yourprofile](https://linkedin.com/in/yourprofile) — Professional inquiries
+
+      ## What to Expect
+
+      I typically respond within 1–2 business days. For speaking or consulting inquiries, please include a brief description of your project or event.
 
   - path: posts/first-post.md
     type: blog
@@ -47,7 +84,9 @@ structure:
         - welcome
         - introduction
       category: meta
-      description: Welcome to my new blog built with Bengal SSG
+      description: Welcome to your new blog built with Bengal
+      params:
+        author: kida
     content: |
       # My First Blog Post
 
@@ -68,14 +107,16 @@ structure:
   - path: posts/second-post.md
     type: blog
     props:
-      title: Getting Started with Bengal SSG
+      title: Getting Started with Bengal
       date: "{{date}}"
       tags:
         - bengal
         - tutorial
         - ssg
       category: technology
-      description: Learn how to build fast static sites with Bengal
+      description: Learn how to add posts and customize your blog
+      params:
+        author: kida
     content: |
       # Getting Started with Bengal SSG
 
@@ -99,5 +140,5 @@ structure:
       Then build and serve your site:
 
       ```bash
-      bengal site serve
+      bengal serve
       ```

@@ -215,6 +215,11 @@ class Page(
     # Private cache for lazy toc_items property
     _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
 
+    # AST-extracted excerpt (set by pipeline when Patitas parses; bypasses compute_excerpt)
+    _excerpt: str | None = field(default=None, repr=False, init=False)
+    # AST-extracted meta description (set by pipeline; bypasses compute_meta_description)
+    _meta_description: str | None = field(default=None, repr=False, init=False)
+
     # Private cache for lazy frontmatter property
     _frontmatter: Frontmatter | None = field(default=None, init=False, repr=False)
 
@@ -315,6 +320,7 @@ class Page(
         """
         # Separate standard fields from custom props (Component Model)
         from bengal.core.page.utils import separate_standard_and_custom_fields
+        from bengal.utils.primitives.dates import parse_date
 
         standard_fields, custom_props = separate_standard_and_custom_fields(self._raw_metadata)
 
@@ -327,7 +333,7 @@ class Page(
         self.core = PageCore(
             source_path=str(self.source_path),  # May be absolute initially
             title=standard_fields.get("title", ""),
-            date=standard_fields.get("date"),
+            date=parse_date(standard_fields.get("date")),
             tags=self.tags or [],
             slug=self.slug,  # Use computed slug (includes filename fallback)
             weight=standard_fields.get("weight"),
@@ -818,6 +824,9 @@ class Page(
     @cached_property
     def meta_description(self) -> str:
         """SEO-friendly meta description (max 160 chars)."""
+        # Prefer AST-extracted meta description set by pipeline (Patitas parse-once path)
+        if getattr(self, "_meta_description", None) is not None:
+            return self._meta_description
         from bengal.core.page.computed import compute_meta_description
 
         return compute_meta_description(self.metadata, self._raw_content)
@@ -831,7 +840,10 @@ class Page(
 
     @cached_property
     def excerpt(self) -> str:
-        """Content excerpt for listings (max 200 chars)."""
+        """Content excerpt for listings (max 250 chars)."""
+        # Prefer AST-extracted excerpt set by pipeline (Patitas parse-once path)
+        if getattr(self, "_excerpt", None) is not None:
+            return self._excerpt
         from bengal.core.page.computed import compute_excerpt
 
         return compute_excerpt(self._raw_content)

@@ -72,7 +72,7 @@ def _hint_wsl_watchfiles(
         return None
     return Hint(
         id="wsl_watchfiles",
-        message="On WSL. If live reload is unreliable, try WATCHFILES_FORCE_POLLING=1",
+        message="On WSL. If live reload is unreliable, try WATCHFILES_FORCE_POLLING=1 or dev_server.watch.force_polling: true",
         priority=20,
         context=frozenset({"serve"}),
     )

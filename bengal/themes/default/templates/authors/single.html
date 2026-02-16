@@ -26,48 +26,7 @@ Context variables:
 
 {% from 'partials/navigation-components.html' import breadcrumbs %}
 {% from 'partials/components/tags.html' import tag_list %}
-
-{# =============================================================================
-POST CARD COMPONENT - uses PostView for normalized access
-============================================================================= #}
-{% def post_card(post) %}
-{% let p = post | post_view %}
-{% let post_section = post?._section %}
-
-<article class="author-post-card">
-  <div class="post-card-content">
-    <h3 class="post-title">
-      <a href="{{ p.href }}">{{ p.title }}</a>
-    </h3>
-
-    {% if p.description %}
-    <p class="post-excerpt">{{ p.description }}</p>
-    {% end %}
-
-    <div class="post-meta">
-      {% if p.date %}
-      <time datetime="{{ p.date | date_iso }}">
-        {{ p.date | dateformat('%B %d, %Y') }}
-      </time>
-      {% end %}
-
-      {% if post_section %}
-      <span class="post-section">{{ post_section.name | title }}</span>
-      {% end %}
-
-      {% if p.reading_time > 0 %}
-      <span class="reading-time">{{ p.reading_time }} min read</span>
-      {% end %}
-    </div>
-
-    {% if p.tags | length > 0 %}
-    <div class="post-tags">
-      {{ tag_list(p.tags[:4]) }}
-    </div>
-    {% end %}
-  </div>
-</article>
-{% end %}
+{% from 'partials/components/post-card.html' import post_card %}
 
 {# =============================================================================
 MAIN TEMPLATE
@@ -127,31 +86,31 @@ MAIN TEMPLATE
       <div class="author-social">
         {% if author.twitter %}
         <a href="https://twitter.com/{{ author.twitter }}" class="social-link" aria-label="Twitter">
-          🐦 Twitter
+          Twitter
         </a>
         {% end %}
 
         {% if author.github %}
         <a href="https://github.com/{{ author.github }}" class="social-link" aria-label="GitHub">
-          💻 GitHub
+          GitHub
         </a>
         {% end %}
 
         {% if author.linkedin %}
         <a href="https://linkedin.com/in/{{ author.linkedin }}" class="social-link" aria-label="LinkedIn">
-          💼 LinkedIn
+          LinkedIn
         </a>
         {% end %}
 
         {% if author.website %}
         <a href="{{ author.website }}" class="social-link" aria-label="Website">
-          🌐 Website
+          Website
         </a>
         {% end %}
 
         {% if author.email %}
         <a href="mailto:{{ author.email }}" class="social-link" aria-label="Email">
-          ✉️ Email
+          Email
         </a>
         {% end %}
       </div>
@@ -212,7 +171,7 @@ MAIN TEMPLATE
     <div class="posts-view" data-view-content="all">
       <div class="post-list">
         {% for post in author_posts | sort(attribute='date', reverse=true) %}
-        {{ post_card(post) }}
+        {{ post_card(post, variant='compact') }}
         {% end %}
       </div>
     </div>
@@ -226,7 +185,7 @@ MAIN TEMPLATE
         <ul class="post-list-compact">
           {% for post in year_posts | sort(attribute='date', reverse=true) %}
           <li>
-            <a href="{{ post?.href ?? '#' }}">{{ post?.title ?? 'Untitled' }}</a>
+            <a href="{{ post?._path ?? post?.href ?? '#' }}">{{ post?.title ?? 'Untitled' }}</a>
             {% if post?.date %}
             <time>{{ post.date | dateformat('%b %d') }}</time>
             {% end %}
@@ -253,7 +212,7 @@ MAIN TEMPLATE
         <ul class="post-list-compact">
           {% for post in tag_posts | sort(attribute='date', reverse=true) %}
           <li>
-            <a href="{{ post?.href ?? '#' }}">{{ post?.title ?? 'Untitled' }}</a>
+            <a href="{{ post?._path ?? post?.href ?? '#' }}">{{ post?.title ?? 'Untitled' }}</a>
             {% if post?.date %}
             <time>{{ post.date | dateformat('%b %d, %Y') }}</time>
             {% end %}

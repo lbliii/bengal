@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.protocols import PageLike, SiteLike
 
+from bengal.config.utils import coerce_int
 from bengal.snapshots.types import (
     MenuItemSnapshot,
     PageSnapshot,
@@ -237,9 +238,9 @@ def _compute_attention_score(page: PageLike) -> float:
 
 def _estimate_render_time(page: PageLike) -> float:
     """Estimate render time in milliseconds."""
-    # Simple heuristic: base time + word count factor
+    # Simple heuristic: base time + word count factor (coerce in case from cache as str)
     base_ms = 10.0
-    word_count = getattr(page, "word_count", 0) or 0
+    word_count = coerce_int(getattr(page, "word_count", 0), 0)
     return base_ms + (word_count / 100.0)
 
 

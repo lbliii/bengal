@@ -255,7 +255,9 @@ class XRefIndexGenerator:
         if description:
             entry["summary"] = description[:200]
         elif hasattr(page, "excerpt") and page.excerpt:
-            entry["summary"] = page.excerpt[:200]
+            from bengal.core.utils.text import strip_html
+
+            entry["summary"] = strip_html(page.excerpt)[:200]
 
         entries[entry_key] = entry
 

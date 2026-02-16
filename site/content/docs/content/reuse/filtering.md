@@ -36,7 +36,8 @@ Kida (and Jinja2) allows us to treat lists of pages as mathematical sets.
 
 Imagine a documentation site where you want to find "API Guides" for "v2.0".
 
-### 1. Accessing the Data
+:::{steps}
+:::{step} Access the data
 
 Bengal exposes `site.taxonomies` which gives us lists of pages for each tag.
 
@@ -45,7 +46,8 @@ Bengal exposes `site.taxonomies` which gives us lists of pages for each tag.
 {% let v2_pages = site.taxonomies.tags["v2"].pages %}
 ```
 
-### 2. Finding the Intersection
+:::{/step}
+:::{step} Find the intersection
 
 Use the `|> intersect()` filter to find pages in both lists:
 
@@ -59,6 +61,9 @@ Use the `|> intersect()` filter to find pages in both lists:
   {% end %}
 </ul>
 ```
+
+:::{/step}
+:::{/steps}
 
 :::{tip}
 For more complex filtering, use `|> where()` with operators:

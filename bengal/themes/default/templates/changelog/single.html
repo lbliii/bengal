@@ -107,13 +107,13 @@ KIDA FEATURES USED:
 
   <div class="release-content">
     {# Change Categories #}
-    {{ change_category('Added', '✨', changes_added) }}
-    {{ change_category('Changed', '🔄', changes_changed) }}
-    {{ change_category('Fixed', '🐛', changes_fixed) }}
-    {{ change_category('Deprecated', '⚠️', changes_deprecated) }}
-    {{ change_category('Removed', '🗑️', changes_removed) }}
-    {{ change_category('Security', '🔒', changes_security) }}
-    {{ change_category('Breaking Changes', '⚡', changes_breaking, is_breaking=true) }}
+    {{ change_category('Added', '', changes_added) }}
+    {{ change_category('Changed', '', changes_changed) }}
+    {{ change_category('Fixed', '', changes_fixed) }}
+    {{ change_category('Deprecated', '', changes_deprecated) }}
+    {{ change_category('Removed', '', changes_removed) }}
+    {{ change_category('Security', '', changes_security) }}
+    {{ change_category('Breaking Changes', '', changes_breaking, is_breaking=true) }}
 
     {# Main content (detailed release notes) #}
     {% if content and content.strip() %}

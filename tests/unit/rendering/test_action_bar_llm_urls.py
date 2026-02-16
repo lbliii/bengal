@@ -209,9 +209,10 @@ baseurl = "https://example.com"
 """
         (site_dir / "bengal.toml").write_text(config)
 
-        # Create a page
+        # Create a page with type: doc so it uses doc/single.html (includes action-bar)
         page_content = """---
 title: "Test Page"
+type: doc
 ---
 
 # Test Page

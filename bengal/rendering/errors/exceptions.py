@@ -165,6 +165,11 @@ class TemplateRenderError(BengalRenderingError):
         ):
             return "callable"
 
+        # Check for mixed-type comparison errors (e.g. int vs str during sort)
+        # This happens when metadata fields have inconsistent types across pages
+        if isinstance(error, TypeError) and "not supported between instances of" in error_str:
+            return "type_comparison"
+
         # Check for "NoneType is not iterable/subscriptable" errors
         # This happens when using 'in' operator or iteration on None
         if isinstance(error, TypeError) and (
@@ -357,6 +362,9 @@ class TemplateRenderError(BengalRenderingError):
     ) -> str | None:
         """Generate helpful suggestion based on error."""
         error_str = str(error).lower()
+
+        if error_type == "type_comparison":
+            return TemplateRenderError._suggest_type_comparison(error)
 
         if error_type == "callable":
             # Try to identify what was None from the traceback and template
@@ -573,6 +581,38 @@ class TemplateRenderError(BengalRenderingError):
                 suspects.append(f"filter '{filter_name}'")
 
         return suspects
+
+    @staticmethod
+    def _suggest_type_comparison(error: Exception) -> str:
+        """Build a detailed suggestion for mixed-type comparison errors.
+
+        Parses the TypeError message to extract the two types being compared
+        and produces an actionable hint pointing at YAML frontmatter as the
+        most likely source of the inconsistency.
+        """
+        import re
+
+        error_str = str(error)
+        # Extract the two types from "'<op>' not supported between instances of '<A>' and '<B>'"
+        match = re.search(
+            r"not supported between instances of '(\w+)' and '(\w+)'",
+            error_str,
+        )
+        if match:
+            type_a, type_b = match.group(1), match.group(2)
+            return (
+                f"A comparison failed because one value is {type_a} and another "
+                f"is {type_b}. This usually happens when a metadata field like "
+                f"'weight' is numeric in one YAML file (weight: 10) but quoted "
+                f"in another (weight: '10'). Check your frontmatter and section "
+                f"_index.md files for inconsistent types. Sorting and template "
+                f"comparisons require all values to share the same type."
+            )
+        return (
+            "A comparison or sort failed due to mixed types (e.g. int vs str). "
+            "Check that metadata fields like 'weight' use consistent types "
+            "across all YAML frontmatter and _index.md files."
+        )
 
     @staticmethod
     def _find_alternatives(error: Exception, error_type: str, template_engine: Any) -> list[str]:

@@ -278,7 +278,7 @@ def _show_post_creation_hints(
     # Show next steps
     cli.subheader("Next steps:", icon="📚")
     cli.info(f"   ├─ cd {site_dir_name}")
-    cli.info("   └─ bengal site serve")
+    cli.info("   └─ bengal serve")
     cli.blank()
     cli.tip("💡 Config uses environment-aware directory structure!")
     cli.tip(f"   • Base URL: {baseurl}")

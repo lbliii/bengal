@@ -89,10 +89,10 @@ Your browser opens automatically at `http://localhost:5173/`. The server rebuild
 ## Create Your First Post
 
 ```bash
-bengal new page my-first-post --section blog
+bengal new page my-first-post --section posts
 ```
 
-This creates `content/blog/my-first-post.md`. Edit it:
+This creates `content/posts/my-first-post.md`. Edit it:
 
 ```markdown
 ---

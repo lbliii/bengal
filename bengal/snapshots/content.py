@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SectionLike, SiteLike
 
+from bengal.config.utils import coerce_int
 from bengal.snapshots.scheduling import (
     _compute_attention_score,
     _estimate_render_time,
@@ -31,6 +32,21 @@ from bengal.snapshots.utils import (
     resolve_template_name,
     update_frozen,
 )
+
+
+def _safe_weight(value: object) -> float:
+    """Coerce a weight value to float for safe sorting.
+
+    Weight may arrive as int, str, float, or None from YAML/cascade.
+    Comparing mixed types (e.g. int <= str) raises TypeError in Python,
+    so we normalise to float before any sort key uses the value.
+    """
+    if value is None:
+        return float("inf")
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return float("inf")
 
 
 def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:
@@ -70,12 +86,13 @@ def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:
     # Get TOC items
     toc_items = tuple(getattr(page, "toc_items", []) or [])
 
-    # Get excerpt
+    # Get excerpt and meta_description
     excerpt = getattr(page, "excerpt", "") or ""
+    meta_description = getattr(page, "meta_description", "") or ""
 
-    # Get reading_time and word_count
-    reading_time = getattr(page, "reading_time", 0) or 0
-    word_count = getattr(page, "word_count", 0) or 0
+    # Get reading_time and word_count (coerce in case from cache/YAML as str)
+    reading_time = coerce_int(getattr(page, "reading_time", 0), 0)
+    word_count = coerce_int(getattr(page, "word_count", 0), 0)
 
     # Compute content hash
     content_hash = compute_page_hash(page)
@@ -97,6 +114,7 @@ def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:
         toc=toc,
         toc_items=toc_items,
         excerpt=excerpt,
+        meta_description=meta_description,
         metadata=MappingProxyType(metadata),
         tags=tuple(metadata.get("tags", []) or []),
         categories=tuple(metadata.get("categories", []) or []),
@@ -130,7 +148,7 @@ def _snapshot_section_recursive(
         sorted(
             pages,
             key=lambda p: (
-                p.metadata.get("weight", float("inf")),
+                _safe_weight(p.metadata.get("weight")),
                 p.title.lower(),
             ),
         )
@@ -149,14 +167,7 @@ def _snapshot_section_recursive(
     icon = metadata.get("icon")
 
     # Get weight
-    weight = metadata.get("weight", float("inf"))
-    if weight is not None:
-        try:
-            weight = float(weight)
-        except (ValueError, TypeError):
-            weight = float("inf")
-    else:
-        weight = float("inf")
+    weight = _safe_weight(metadata.get("weight"))
 
     # Compute hierarchy
     hierarchy = tuple([*parent.hierarchy, section.name] if parent else [section.name])

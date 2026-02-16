@@ -127,7 +127,7 @@ site.build(options)
 
 **Option B: Internal API Access (Advanced)**
 
-::: {warning}
+:::{caution}
 This approach uses internal APIs (`site._template_engine`) that may change. Use with caution and test after Bengal updates.
 :::
 
@@ -362,9 +362,23 @@ def test_truncate_words():
 
 If your filter isn't available in templates:
 
-1. **Check registration timing**: Ensure `register_filters()` is called before templates are rendered
-2. **Verify template engine**: Confirm `site._template_engine` exists and has `_env` attribute
-3. **Check filter name**: Filter names are case-sensitive and must match exactly
+:::{dropdown} Check registration timing
+:icon: clock
+
+Ensure `register_filters()` is called before templates are rendered.
+:::
+
+:::{dropdown} Verify template engine
+:icon: gear
+
+Confirm `site._template_engine` exists and has `_env` attribute.
+:::
+
+:::{dropdown} Check filter name
+:icon: tag
+
+Filter names are case-sensitive and must match exactly.
+:::
 
 ### Template Engine Not Available
 
@@ -378,11 +392,25 @@ If `site._template_engine` is `None`:
 
 Kida doesn't automatically inject context into filters. If you need template context:
 
-1. Accept `context=None` as a parameter in your filter function
-2. Access context variables through the context parameter when provided
-3. Note that context passing behavior may vary depending on how the filter is called
+:::{dropdown} Accept context parameter
+:icon: plug
 
-::: {warning}
+Accept `context=None` as a parameter in your filter function.
+:::
+
+:::{dropdown} Access context variables
+:icon: database
+
+Access context variables through the context parameter when provided.
+:::
+
+:::{dropdown} Note context behavior
+:icon: info
+
+Context passing behavior may vary depending on how the filter is called.
+:::
+
+:::{caution}
 **Internal API Usage**: Accessing `site._template_engine._env` uses internal APIs that may change in future versions. A stable plugin API for filter registration is planned for v0.4.0. Test your filter registration after Bengal updates.
 :::
 

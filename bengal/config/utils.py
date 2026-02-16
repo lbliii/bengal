@@ -98,6 +98,38 @@ def coerce_bool(value: Any, default: bool | None = None) -> bool | None:
     return default
 
 
+def coerce_int(value: Any, default: int = 0) -> int:
+    """
+    Coerce a value to int; return default on failure.
+
+    Handles values from YAML, config, and cache that may arrive as str, float,
+    or None. Prevents TypeError when comparing int with str in filters.
+
+    Args:
+        value: Value to coerce (int, str, float, or None).
+        default: Value to return for None or invalid input.
+
+    Returns:
+        Coerced int, or default if conversion not possible.
+
+    Example:
+        >>> coerce_int(42)
+        42
+        >>> coerce_int("150")
+        150
+        >>> coerce_int(None, default=10)
+        10
+        >>> coerce_int("bad", default=30)
+        30
+    """
+    if value is None:
+        return default
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 # =============================================================================
 # Config Object Unwrapping
 # =============================================================================
@@ -238,11 +270,101 @@ def get_default_config() -> dict[str, Any]:
     return deep_merge({}, DEFAULTS)
 
 
+# =============================================================================
+# Excerpt Resolution (Per-Article Override)
+# =============================================================================
+
+
+def resolve_excerpt_length(page: Any, content_cfg: dict[str, Any]) -> int:
+    """
+    Resolve excerpt_length with per-article override from frontmatter.
+
+    Priority: page.metadata.excerpt_length > page.params.excerpt_length >
+    content_cfg.excerpt_length > default (750).
+
+    Per-article override: Add to frontmatter:
+        excerpt_length: 1000   # This article gets longer excerpt
+    Or under params:
+        params:
+          excerpt_length: 500   # This article gets shorter excerpt
+
+    Args:
+        page: Page object with metadata and params
+        content_cfg: Merged content config dict
+
+    Returns:
+        Resolved excerpt length in characters
+    """
+    from bengal.config.defaults import get_default
+
+    meta = getattr(page, "metadata", None) or {}
+    params = getattr(page, "params", None) or {}
+    meta = meta if hasattr(meta, "get") else {}
+    params = params if hasattr(params, "get") else {}
+    nested_params = meta.get("params") or {}
+
+    raw = (
+        meta.get("excerpt_length")
+        or params.get("excerpt_length")
+        or nested_params.get("excerpt_length")
+        or content_cfg.get("excerpt_length", get_default("content", "excerpt_length"))
+    )
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return int(get_default("content", "excerpt_length") or 750)
+
+
+def resolve_excerpt_words(page: Any, content_cfg: dict[str, Any]) -> int:
+    """
+    Resolve excerpt_words with per-article override from frontmatter.
+
+    Priority: page.metadata.excerpt_words > page.params.excerpt_words >
+    content_cfg.excerpt_words > default (150).
+
+    Per-article override: Add to frontmatter:
+        excerpt_words: 200   # Show more words in card preview
+    Or under params:
+        params:
+          excerpt_words: 80   # Shorter preview for this article
+
+    Args:
+        page: Page object with metadata and params
+        content_cfg: Merged content config dict
+
+    Returns:
+        Resolved excerpt word count
+    """
+    from bengal.config.defaults import get_default
+
+    meta = getattr(page, "metadata", None) or {}
+    params = getattr(page, "params", None) or {}
+    meta = meta if hasattr(meta, "get") else {}
+    params = params if hasattr(params, "get") else {}
+    nested_params = meta.get("params") or {}
+
+    raw = (
+        meta.get("excerpt_words")
+        or params.get("excerpt_words")
+        or nested_params.get("excerpt_words")
+        or content_cfg.get("excerpt_words", get_default("content", "excerpt_words"))
+    )
+    if raw is None:
+        return int(get_default("content", "excerpt_words") or 150)
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        return 150
+
+
 __all__ = [
     "FALSY_STRINGS",
     "TRUTHY_STRINGS",
     "coerce_bool",
+    "coerce_int",
     "get_config_value",
     "get_default_config",
+    "resolve_excerpt_length",
+    "resolve_excerpt_words",
     "unwrap_config",
 ]

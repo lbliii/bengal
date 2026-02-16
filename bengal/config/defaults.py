@@ -33,7 +33,7 @@ Key Functions:
 Example:
     >>> from bengal.config.defaults import get_default, get_max_workers
     >>> get_default("content", "excerpt_length")
-200
+750
     >>> get_max_workers(None)  # Auto-detect based on CPU cores
 11
 
@@ -210,7 +210,8 @@ DEFAULTS: dict[str, Any] = {
     # -------------------------------------------------------------------------
     "content": {
         "default_type": "doc",
-        "excerpt_length": 200,
+        "excerpt_length": 750,
+        "excerpt_words": 150,
         "summary_length": 160,
         "reading_speed": 200,  # words per minute
         "related_count": 5,
@@ -489,7 +490,7 @@ def get_default(key: str, nested_key: str | None = None) -> Any:
             >>> get_default("max_workers")
         None  # Means auto-detect
             >>> get_default("content", "excerpt_length")
-        200
+        750
             >>> get_default("search", "lunr.prebuilt")
         True
             >>> get_default("theme", "name")

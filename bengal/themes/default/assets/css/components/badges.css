@@ -172,11 +172,6 @@
   color: var(--color-text-inverse);
 }
 
-.badge-tutorial {
-  background: linear-gradient(135deg, var(--color-accent) 0%, var(--color-primary) 100%);
-  color: var(--color-text-inverse);
-}
-
 .badge-new {
   background: linear-gradient(135deg, var(--color-info) 0%, var(--color-primary) 100%);
   color: var(--color-text-inverse);

@@ -100,6 +100,8 @@ class TestRSSGeneratorWithPages:
         slug: str = "test-page",
         output_path: Path | None = None,
         metadata: dict[str, Any] | None = None,
+        description: str = "",
+        excerpt: str = "",
     ) -> MagicMock:
         """Create a mock page for testing."""
         page = MagicMock()
@@ -111,6 +113,8 @@ class TestRSSGeneratorWithPages:
         page.output_path = output_path
         page.metadata = metadata or {}
         page.lang = None
+        page.description = description or content  # RSS uses description/excerpt when no metadata
+        page.excerpt = excerpt or content
         return page
 
     def _create_mock_site(
@@ -388,33 +392,47 @@ class TestRSSGeneratorDescriptionHandling:
 
         assert desc_text == "Custom description"
 
-    def test_uses_truncated_content_if_no_description(self) -> None:
-        """Test that truncated content is used if no description."""
+    def test_uses_description_or_excerpt_plain_text_if_no_metadata(self) -> None:
+        """RSS uses page.description or page.excerpt (plain text), not raw HTML content."""
         page = MagicMock()
         page.metadata = {}
-        page.content = "A" * 250
+        page.description = "Plain text meta description"
+        page.excerpt = "Plain text excerpt"
+        page.content = "<p>HTML content</p>"
+
+        from bengal.core.utils.text import strip_html
 
         if "description" in page.metadata:
             desc_text = page.metadata["description"]
         else:
-            content = page.content[:200] + "..." if len(page.content) > 200 else page.content
-            desc_text = content
+            desc_text = (page.description or page.excerpt or "").strip()
+            if desc_text:
+                desc_text = strip_html(desc_text)[:200]
 
-        assert desc_text == "A" * 200 + "..."
+        assert desc_text == "Plain text meta description"
+        assert "<" not in desc_text
+        assert ">" not in desc_text
 
-    def test_uses_full_content_if_under_200_chars(self) -> None:
-        """Test that full content is used if under 200 characters."""
+    def test_strips_html_from_excerpt_fallback(self) -> None:
+        """When using excerpt fallback, HTML is stripped for XML safety."""
         page = MagicMock()
         page.metadata = {}
-        page.content = "Short content"
+        page.description = ""
+        page.excerpt = "<p>Excerpt with <strong>HTML</strong></p>"
+        page.content = "<p>Content</p>"
+
+        from bengal.core.utils.text import strip_html
 
         if "description" in page.metadata:
             desc_text = page.metadata["description"]
         else:
-            content = page.content[:200] + "..." if len(page.content) > 200 else page.content
-            desc_text = content
+            desc_text = (page.description or page.excerpt or "").strip()
+            if desc_text:
+                desc_text = strip_html(desc_text)[:200]
 
-        assert desc_text == "Short content"
+        assert "<" not in desc_text
+        assert ">" not in desc_text
+        assert "Excerpt with HTML" in desc_text
 
 
 class TestRSSGeneratorIndentation:

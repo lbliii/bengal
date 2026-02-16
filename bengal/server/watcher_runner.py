@@ -74,24 +74,27 @@ class WatcherRunner:
         debounce_ms: int = 300,
         *,
         on_file_change: Callable[[Path, str], None] | None = None,
+        force_polling: bool | None = None,
     ) -> None:
         """
         Initialize watcher runner.
 
         Args:
-            paths: Directories to watch recursively
+            paths: Directories to watch recursively (resolved to absolute)
             ignore_filter: Filter for paths to ignore
             on_changes: Callback when changes detected (paths, event_types) - debounced
             debounce_ms: Debounce delay in milliseconds
             on_file_change: Optional callback for immediate file change events (path, event_type).
                             Called before debouncing for real-time dashboard updates.
                             (RFC: rfc-dashboard-api-integration)
+            force_polling: Use polling mode for reliable detection (None=auto for macOS)
         """
         self.paths = paths
         self.ignore_filter = ignore_filter
         self.on_changes = on_changes
         self.debounce_ms = debounce_ms
         self.on_file_change = on_file_change
+        self._force_polling = force_polling
 
         self._thread: threading.Thread | None = None
         self._stop_event = threading.Event()
@@ -184,6 +187,7 @@ class WatcherRunner:
             paths=self.paths,
             ignore_filter=self.ignore_filter,
             stop_event=self._async_stop_event,
+            force_polling=self._force_polling,
         )
 
         logger.debug("watcher_runner_watching", backend=type(watcher).__name__)
@@ -294,6 +298,7 @@ def create_watcher_runner(
     debounce_ms: int = 300,
     *,
     on_file_change: Callable[[Path, str], None] | None = None,
+    force_polling: bool | None = None,
 ) -> WatcherRunner:
     """
     Create a WatcherRunner configured for a site.
@@ -303,12 +308,13 @@ def create_watcher_runner(
 
     Args:
         site: Site instance with config
-        watch_dirs: Directories to watch
+        watch_dirs: Directories to watch (resolved to absolute)
         on_changes: Callback for changes (paths, event_types) - debounced
         debounce_ms: Debounce delay in milliseconds
         on_file_change: Optional callback for immediate file change events (path, event_type).
                         Called before debouncing for real-time dashboard updates.
                         (RFC: rfc-dashboard-api-integration)
+        force_polling: Use polling mode (None=auto for macOS)
 
     Returns:
         Configured WatcherRunner instance
@@ -327,4 +333,5 @@ def create_watcher_runner(
         on_changes=on_changes,
         debounce_ms=debounce_ms,
         on_file_change=on_file_change,
+        force_polling=force_polling,
     )

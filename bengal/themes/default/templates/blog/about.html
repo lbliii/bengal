@@ -1,0 +1,46 @@
+{% extends "blog/shell.html" %}
+{% from 'partials/components/author-bio.html' import author_bio %}
+
+{#
+================================================================================
+Blog About Page Template
+================================================================================
+
+Simple, reading-focused layout for about pages. No related posts, no TOC
+unless content is long. Optional author bio block if params.author is set.
+
+USAGE:
+  Add `template: blog/about.html` to about.md frontmatter
+================================================================================
+#}
+
+{% block blog_content %}
+{% let page_title = page?.title ?? 'About' %}
+{% let page_desc = params?.description ?? '' %}
+{% let css_class = params?.css_class ?? '' %}
+{% let theme_features = theme?.features ?? [] %}
+{% let about_author = params?.author ?? '' %}
+{% let about_author_avatar = params?.author_avatar ?? '' %}
+{% let about_author_title = params?.author_title ?? '' %}
+{% let about_author_bio = params?.author_bio ?? '' %}
+{% let about_author_links = params?.author_links ?? [] %}
+
+<article class="blog-about prose {{ css_class }}">
+  <header class="blog-about-header">
+    <h1>{{ page_title }}</h1>
+    {% if page_desc %}
+    <p class="lead">{{ page_desc }}</p>
+    {% end %}
+  </header>
+
+  <div class="blog-about-content">
+    {{ content | safe }}
+  </div>
+
+  {% if about_author and 'content.author' in theme_features %}
+  <footer class="blog-about-footer">
+    {{ author_bio(about_author, about_author_avatar, about_author_title, about_author_bio, about_author_links) }}
+  </footer>
+  {% end %}
+</article>
+{% end %}

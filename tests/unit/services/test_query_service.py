@@ -58,6 +58,7 @@ def make_page_snapshot(
         toc="",
         toc_items=(),
         excerpt="Test excerpt",
+        meta_description="",
         metadata=MappingProxyType({}),
         tags=tags,
         categories=(),

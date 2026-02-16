@@ -45,6 +45,7 @@ class PageSnapshot:
     toc: str
     toc_items: tuple[dict[str, Any], ...]
     excerpt: str
+    meta_description: str
 
     # Metadata (immutable view)
     metadata: MappingProxyType[str, Any]

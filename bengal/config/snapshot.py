@@ -30,6 +30,8 @@ from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Any, Literal
 
+from bengal.config.defaults import get_default
+
 
 @dataclass(frozen=True, slots=True)
 class SiteSection:
@@ -171,7 +173,8 @@ class ContentSection:
     """
 
     default_type: str = "doc"
-    excerpt_length: int = 200
+    excerpt_length: int = 750
+    excerpt_words: int = 150
     summary_length: int = 160
     reading_speed: int = 200
     related_count: int = 5
@@ -288,7 +291,7 @@ class ConfigSnapshot:
             Frozen ConfigSnapshot with typed sections
         """
         from bengal.config.merge import deep_merge
-        from bengal.config.utils import get_default_config
+        from bengal.config.utils import coerce_int, get_default_config
 
         # Merge with defaults (use shared utility for consistent copy)
         merged = get_default_config()
@@ -331,7 +334,7 @@ class ConfigSnapshot:
                 fast_writes=bool(build_data.get("fast_writes", False)),
                 fast_mode=bool(build_data.get("fast_mode", False)),
                 stable_section_references=bool(build_data.get("stable_section_references", True)),
-                min_page_size=int(build_data.get("min_page_size", 1000)),
+                min_page_size=coerce_int(build_data.get("min_page_size", 1000), 1000),
             )
         else:
             build = BuildSection()
@@ -343,7 +346,7 @@ class ConfigSnapshot:
                 cache_templates=bool(dev_data.get("cache_templates", True)),
                 watch_backend=bool(dev_data.get("watch_backend", True)),
                 live_reload=bool(dev_data.get("live_reload", True)),
-                port=int(dev_data.get("port", 8000)),
+                port=coerce_int(dev_data.get("port", 8000), 8000),
             )
         else:
             dev = DevSection()
@@ -368,8 +371,8 @@ class ConfigSnapshot:
                 show_prev_next=bool(theme_data.get("show_prev_next", True)),
                 show_children_default=bool(theme_data.get("show_children_default", True)),
                 show_excerpts_default=bool(theme_data.get("show_excerpts_default", True)),
-                max_tags_display=int(theme_data.get("max_tags_display", 10)),
-                popular_tags_count=int(theme_data.get("popular_tags_count", 20)),
+                max_tags_display=coerce_int(theme_data.get("max_tags_display", 10), 10),
+                popular_tags_count=coerce_int(theme_data.get("popular_tags_count", 20), 20),
             )
         else:
             theme = ThemeSection()
@@ -391,13 +394,26 @@ class ConfigSnapshot:
 
             content = ContentSection(
                 default_type=str(content_data.get("default_type", "doc")),
-                excerpt_length=int(content_data.get("excerpt_length", 200)),
-                summary_length=int(content_data.get("summary_length", 160)),
-                reading_speed=int(content_data.get("reading_speed", 200)),
-                related_count=int(content_data.get("related_count", 5)),
+                excerpt_length=coerce_int(
+                    content_data.get(
+                        "excerpt_length",
+                        get_default("content", "excerpt_length"),
+                    ),
+                    750,
+                ),
+                excerpt_words=coerce_int(
+                    content_data.get(
+                        "excerpt_words",
+                        get_default("content", "excerpt_words"),
+                    ),
+                    150,
+                ),
+                summary_length=coerce_int(content_data.get("summary_length", 160), 160),
+                reading_speed=coerce_int(content_data.get("reading_speed", 200), 200),
+                related_count=coerce_int(content_data.get("related_count", 5), 5),
                 related_threshold=float(content_data.get("related_threshold", 0.25)),
-                toc_depth=int(content_data.get("toc_depth", 4)),
-                toc_min_headings=int(content_data.get("toc_min_headings", 2)),
+                toc_depth=coerce_int(content_data.get("toc_depth", 4), 4),
+                toc_min_headings=coerce_int(content_data.get("toc_min_headings", 2), 2),
                 toc_style=toc_style,
                 sort_pages_by=sort_by,
                 sort_order=sort_order,

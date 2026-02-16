@@ -35,11 +35,30 @@ Kida is Bengal's default engine and can parse Jinja2 syntax. Your existing Jinja
 
 ### Phase 2: Gradual Migration
 
-Migrate templates incrementally, starting with:
-1. New templates (use Kida syntax)
-2. Frequently-used templates (biggest performance gain)
-3. Simple templates (easiest to migrate)
-4. Complex templates (last)
+Migrate templates incrementally:
+
+:::{steps}
+:::{step} New templates
+
+Use Kida syntax for all new templates.
+
+:::{/step}
+:::{step} Frequently-used templates
+
+Biggest performance gain — migrate these next.
+
+:::{/step}
+:::{step} Simple templates
+
+Easiest to migrate — good for building confidence.
+
+:::{/step}
+:::{step} Complex templates
+
+Migrate last — they may use more Jinja-specific features.
+
+:::{/step}
+:::{/steps}
 
 ## Syntax Changes
 

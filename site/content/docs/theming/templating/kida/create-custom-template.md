@@ -51,12 +51,26 @@ touch templates/blog/single.html
 
 Bengal searches templates in this order:
 
-1. `templates/` (your project's custom templates)
-2. Theme templates (for each theme in the theme chain):
-   - Site-level themes (`themes/{theme}/templates`)
-   - Installed themes (via package entry points)
-   - Bundled themes (`bengal/themes/{theme}/templates`)
-3. Default theme templates (ultimate fallback)
+:::{dropdown} Project templates (highest priority)
+:icon: folder
+
+`templates/` — your project's custom templates.
+:::
+
+:::{dropdown} Theme templates (theme chain)
+:icon: palette
+
+For each theme in the theme chain:
+- Site-level themes (`themes/{theme}/templates`)
+- Installed themes (via package entry points)
+- Bundled themes (`bengal/themes/{theme}/templates`)
+:::
+
+:::{dropdown} Default theme (fallback)
+:icon: book
+
+Default theme templates — ultimate fallback.
+:::
 
 :::{/step}
 :::{step} Extend Base Layout
