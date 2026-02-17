@@ -20,9 +20,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from typing import Any, TypeVar
-
-V = TypeVar("V")
+from typing import Any
 
 
 def compute_validity_stats[V](

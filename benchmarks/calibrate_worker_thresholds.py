@@ -32,9 +32,6 @@ from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import TypeVar
-
-T = TypeVar("T")
 
 
 @dataclass

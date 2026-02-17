@@ -15,9 +15,6 @@ Example:
 """
 
 from collections import deque
-from typing import TypeVar
-
-T = TypeVar("T")
 
 
 def bfs_distances[T](

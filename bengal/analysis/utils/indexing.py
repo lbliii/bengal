@@ -20,13 +20,10 @@ Example:
 
 """
 
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-
-T = TypeVar("T")
-V = TypeVar("V")
 
 
 def build_inverted_index[T, V](
