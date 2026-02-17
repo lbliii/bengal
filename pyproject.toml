@@ -190,7 +190,7 @@ dev = [
     "hypothesis>=6.92.0",
     # Linting & Type Checking
     "ty>=0.0.11",   # Astral type checker (Rust-based)
-    "ruff>=0.14.0", # 0.14+ required for Python 3.14 support
+    "ruff>=0.15.1", # 0.15.1+ fixes except-parenthesis bug (PEP 758 + as clause)
     # Test Utilities
     "beautifulsoup4>=4.12.0", # HTML validation in integration tests
     "markdown>=3.5.0",        # Optional python-markdown parser for tests

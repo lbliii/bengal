@@ -263,7 +263,7 @@ dev = [
     { name = "pytest-timeout", specifier = ">=2.2.0" },
     { name = "pytest-xdist", specifier = ">=3.3.0" },
     { name = "radon", specifier = ">=6.0.1" },
-    { name = "ruff", specifier = ">=0.14.0" },
+    { name = "ruff", specifier = ">=0.15.1" },
     { name = "tomli-w", specifier = ">=1.0.0" },
     { name = "ty", specifier = ">=0.0.11" },
     { name = "types-jinja2", specifier = ">=2.11.0" },
