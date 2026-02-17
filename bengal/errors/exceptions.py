@@ -233,7 +233,7 @@ class BengalError(Exception):
                     attr = msg.split("'")[-2]
                     commands.append(f"# Search for attribute '{attr}'")
                     commands.append(f"grep -rn '\\.{attr}' bengal/")
-                except IndexError, ValueError:
+                except (IndexError, ValueError):
                     pass
 
         # Template error specific suggestions

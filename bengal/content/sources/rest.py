@@ -248,7 +248,7 @@ class RESTSource(ContentSource):
             elif isinstance(obj, list):
                 try:
                     obj = obj[int(key)]
-                except ValueError, IndexError:
+                except (ValueError, IndexError):
                     return None
             else:
                 return None

@@ -97,7 +97,7 @@ def jsonify(data: Any, indent: int | None = None) -> str:
     """
     try:
         return json.dumps(data, indent=indent, ensure_ascii=False)
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return "{}"
 
 
@@ -214,7 +214,7 @@ def keys_filter(data: dict[str, Any]) -> list[str]:
 
         if isinstance(data, DotDict):
             return list(data.keys())
-    except ImportError, TypeError:
+    except (ImportError, TypeError):
         # DotDict not available or data type incompatible; fall through to regular dict handling.
         pass
 
@@ -226,7 +226,7 @@ def keys_filter(data: dict[str, Any]) -> list[str]:
     if hasattr(data, "keys"):
         try:
             return list(data.keys())
-        except AttributeError, TypeError:
+        except (AttributeError, TypeError):
             pass
 
     return []
@@ -254,7 +254,7 @@ def values_filter(data: dict[str, Any]) -> list[Any]:
 
         if isinstance(data, DotDict):
             return list(data.values())
-    except ImportError, TypeError:
+    except (ImportError, TypeError):
         # DotDict not available or data type incompatible; fall through to regular dict handling.
         pass
 
@@ -266,7 +266,7 @@ def values_filter(data: dict[str, Any]) -> list[Any]:
     if hasattr(data, "values"):
         try:
             return list(data.values())
-        except AttributeError, TypeError:
+        except (AttributeError, TypeError):
             pass
 
     return []
@@ -295,7 +295,7 @@ def items_filter(data: dict[str, Any]) -> list[tuple[str, Any]]:
 
         if isinstance(data, DotDict):
             return list(data.items())
-    except ImportError, TypeError:
+    except (ImportError, TypeError):
         # DotDict not available or data type incompatible; fall through to regular dict handling.
         pass
 
@@ -307,7 +307,7 @@ def items_filter(data: dict[str, Any]) -> list[tuple[str, Any]]:
     if hasattr(data, "items"):
         try:
             return list(data.items())
-        except AttributeError, TypeError:
+        except (AttributeError, TypeError):
             pass
 
     return []

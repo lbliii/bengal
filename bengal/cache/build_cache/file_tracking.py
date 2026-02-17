@@ -101,7 +101,7 @@ class FileTrackingMixin:
                 for changed in changed_sources:
                     if changed.resolve() == resolved_source:
                         return True
-            except OSError, ValueError:
+            except (OSError, ValueError):
                 # Fall back to direct comparison if resolution fails
                 if source_path in changed_sources:
                     return True

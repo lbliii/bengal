@@ -264,7 +264,7 @@ class Section(
         if w is not None:
             try:
                 return float(w)
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 pass
         return float("inf")
 

@@ -40,7 +40,7 @@ class BuildWarning:
         # Try CWD first
         try:
             return str(Path(self.file_path).relative_to(Path.cwd()))
-        except ValueError, OSError:
+        except (ValueError, OSError):
             # Use centralized fallback formatting
             return format_path_for_display(self.file_path) or self.file_path
 

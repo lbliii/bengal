@@ -501,7 +501,7 @@ class KidaTemplateEngine:
         try:
             self._env.get_template(name)
             return True
-        except KidaTemplateNotFoundError, OSError:
+        except (KidaTemplateNotFoundError, OSError):
             return False
 
     def get_template_path(self, name: str) -> Path | None:

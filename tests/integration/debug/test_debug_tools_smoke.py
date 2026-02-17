@@ -24,7 +24,7 @@ try:
     from bengal.debug import ShortcodeSandbox
 
     _has_shortcode_sandbox = True
-except ImportError, AttributeError:
+except (ImportError, AttributeError):
     _has_shortcode_sandbox = False
 
 

@@ -37,7 +37,7 @@ def extract_imports(file_path: Path) -> Iterator[tuple[str, str, bool]]:
     try:
         content = file_path.read_text(encoding="utf-8")
         tree = ast.parse(content)
-    except SyntaxError, UnicodeDecodeError:
+    except (SyntaxError, UnicodeDecodeError):
         return
 
     # Get the module path from file path

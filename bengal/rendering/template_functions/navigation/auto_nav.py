@@ -120,7 +120,7 @@ def _is_root_level_page(page: Any, content_dir: Path) -> bool:
             rel = Path(rel_str[8:]) if rel_str.startswith("content/") else Path(rel_str)
         parts = to_posix(str(rel)).split("/")
         return len(parts) == 1 and parts[0] not in ("index.md", "_index.md")
-    except ValueError, AttributeError:
+    except (ValueError, AttributeError):
         return False
 
 

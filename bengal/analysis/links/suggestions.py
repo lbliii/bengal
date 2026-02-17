@@ -188,7 +188,7 @@ class LinkSuggestionEngine:
         try:
             if hasattr(self.graph, "_pagerank_results") and self.graph._pagerank_results:
                 pagerank_scores = self.graph._pagerank_results.scores
-        except AttributeError, TypeError:
+        except (AttributeError, TypeError):
             pass
 
         # Get centrality scores (if available)
@@ -196,7 +196,7 @@ class LinkSuggestionEngine:
         try:
             if hasattr(self.graph, "_path_results") and self.graph._path_results:
                 betweenness_scores = self.graph._path_results.betweenness_centrality
-        except AttributeError, TypeError:
+        except (AttributeError, TypeError):
             pass
 
         # Generate suggestions

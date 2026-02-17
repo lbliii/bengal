@@ -1243,7 +1243,7 @@ class RenderOrchestrator:
         for p in changed_sources:
             try:
                 resolved_changed.add(p.resolve())
-            except OSError, ValueError:
+            except (OSError, ValueError):
                 resolved_changed.add(p)
 
         for page in pages:
@@ -1262,7 +1262,7 @@ class RenderOrchestrator:
                     and page.source_path.resolve() in resolved_changed
                 ):
                     is_priority = True
-            except OSError, ValueError:
+            except (OSError, ValueError):
                 if page.source_path in changed_sources:
                     is_priority = True
 

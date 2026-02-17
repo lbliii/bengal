@@ -369,7 +369,7 @@ class ContentDiscovery:
                         is_explicitly_changed = any(
                             s.resolve() == resolved_file for s in changed_sources
                         )
-                    except OSError, ValueError:
+                    except (OSError, ValueError):
                         is_explicitly_changed = file_path in changed_sources
 
                 if not is_explicitly_changed:
@@ -396,7 +396,7 @@ class ContentDiscovery:
                         proxy._section = section
                     proxy._site = self.site
                     return proxy
-            except OSError, PermissionError:
+            except (OSError, PermissionError):
                 pass  # Fall through to return None (cache miss)
 
         # CACHE MISS or CHANGE: Return None to signal caller should parse

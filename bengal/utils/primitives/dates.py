@@ -63,7 +63,7 @@ def parse_date(
         try:
             # Handle 'Z' timezone suffix
             return datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except ValueError, AttributeError:
+        except (ValueError, AttributeError):
             pass
 
         # Try custom formats if provided

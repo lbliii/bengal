@@ -194,7 +194,7 @@ def main():
                 if response not in ("yes", "y"):
                     print("❌ Cleanup cancelled.")
                     return
-            except EOFError, KeyboardInterrupt:
+            except (EOFError, KeyboardInterrupt):
                 print("\n❌ Cleanup cancelled.")
                 return
 

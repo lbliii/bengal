@@ -300,7 +300,7 @@ async def _handle_sse(send: Any, *, keepalive_interval: float | None = None) -> 
     def run_sse_thread() -> None:
         try:
             run_sse_loop(write_fn, keepalive_interval=keepalive_interval)
-        except BrokenPipeError, ConnectionResetError:
+        except (BrokenPipeError, ConnectionResetError):
             pass
         finally:
             q.put(None)  # Sentinel: run_sse_loop finished

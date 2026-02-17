@@ -222,7 +222,7 @@ class PageProxy:
         if self.core.weight is not None:
             try:
                 return float(self.core.weight)
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 pass
         return float("inf")
 
@@ -235,7 +235,7 @@ class PageProxy:
         if isinstance(self.core.date, str):
             try:
                 return datetime.fromisoformat(self.core.date)
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 return None
         # If it's already a datetime object, return it
         return self.core.date
@@ -382,7 +382,7 @@ class PageProxy:
             try:
                 content_dir = self._site.root_path / "content"
                 section_path = str(self._section_path.relative_to(content_dir))
-            except ValueError, AttributeError:
+            except (ValueError, AttributeError):
                 section_path = str(self._section_path)
 
         # Check cache validity (cascade id + section path)

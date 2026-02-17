@@ -498,7 +498,7 @@ class LiveReloadMixin:
             self.wfile.write(modified_content)
             return True
 
-        except FileNotFoundError, IsADirectoryError:
+        except (FileNotFoundError, IsADirectoryError):
             self.send_error(404, "File not found")
             return True
         except Exception as e:

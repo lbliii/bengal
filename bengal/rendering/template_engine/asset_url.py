@@ -90,7 +90,7 @@ def compute_relative_asset_path(
             return f"{relative_prefix}/{asset_path}"
         else:
             return f"./{asset_path}"
-    except ValueError, AttributeError:
+    except (ValueError, AttributeError):
         return None
 
 

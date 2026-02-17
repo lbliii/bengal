@@ -204,7 +204,7 @@ class RenderedOutputCacheMixin:
                         current_mtime=current_mtime,
                     )
                     return MISSING
-            except FileNotFoundError, OSError:
+            except (FileNotFoundError, OSError):
                 # Manifest doesn't exist - invalidate to be safe
                 return MISSING
 
