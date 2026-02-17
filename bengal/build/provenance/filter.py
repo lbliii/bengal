@@ -490,7 +490,7 @@ class ProvenanceFilter:
                     CacheKey(f"cascade:{rel_cascade}"),
                     cascade_hash,
                 )
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 # Fall back to full computation if cascade source can't be hashed
                 return None
 
@@ -625,7 +625,7 @@ class ProvenanceFilter:
                     CacheKey(f"cascade:{rel_cascade}"),
                     cascade_hash,
                 )
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 pass  # Skip if cascade source can't be hashed
 
         # 3. Site config (affects all pages)
@@ -662,7 +662,7 @@ class ProvenanceFilter:
                 try:
                     p.resolve().relative_to(asset_dir)
                     return True  # p is under asset's directory (e.g. layouts/notebook.css)
-                except (ValueError, OSError):
+                except ValueError, OSError:
                     continue
         except OSError:
             pass

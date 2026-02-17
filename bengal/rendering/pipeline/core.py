@@ -740,7 +740,7 @@ class RenderingPipeline:
                     import markdown
 
                     base_version = f"markdown-{markdown.__version__}"
-                except (ImportError, AttributeError):
+                except ImportError, AttributeError:
                     base_version = "markdown-unknown"
             case "PatitasParser":
                 import patitas

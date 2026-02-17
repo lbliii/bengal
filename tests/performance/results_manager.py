@@ -216,7 +216,7 @@ class BenchmarkResults:
                         "value": value,
                     }
                 )
-            except (KeyError, TypeError):
+            except KeyError, TypeError:
                 pass
 
         return trend_data

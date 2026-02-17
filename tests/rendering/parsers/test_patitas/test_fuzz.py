@@ -37,7 +37,7 @@ class TestFuzzNoCrashes:
             result = parse(markdown)
             # Parser should always return a string (even if empty)
             assert isinstance(result, str)
-        except (ValueError, SyntaxError):
+        except ValueError, SyntaxError:
             # Syntax errors are acceptable - parser can reject invalid syntax
             pass
         except Exception as e:

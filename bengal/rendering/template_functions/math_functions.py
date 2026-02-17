@@ -74,7 +74,7 @@ def times(value: Number, multiplier: Number) -> Number:
     """
     try:
         return float(value) * float(multiplier)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0
 
 
@@ -99,7 +99,7 @@ def divided_by(value: Number, divisor: Number) -> Number:
 
     try:
         return float(value) / float(divisor)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0
 
 
@@ -120,7 +120,7 @@ def ceil_filter(value: Number) -> int:
     """
     try:
         return math.ceil(float(value))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0
 
 
@@ -141,7 +141,7 @@ def floor_filter(value: Number) -> int:
     """
     try:
         return math.floor(float(value))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0
 
 
@@ -164,5 +164,5 @@ def round_filter(value: Number, decimals: int = 0) -> Number:
     """
     try:
         return round(float(value), decimals)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 0

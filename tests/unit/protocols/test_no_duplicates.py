@@ -119,7 +119,7 @@ class TestNoDuplicateProtocols:
             try:
                 source = filepath.read_text(encoding="utf-8")
                 tree = ast.parse(source)
-            except (SyntaxError, UnicodeDecodeError):
+            except SyntaxError, UnicodeDecodeError:
                 continue
 
             for node in ast.walk(tree):

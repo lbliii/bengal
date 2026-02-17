@@ -282,7 +282,7 @@ def limit_memory(max_bytes: int) -> Iterator[None]:
 
         yield
 
-    except (ValueError, OSError):
+    except ValueError, OSError:
         # Limit setting failed, proceed anyway
         yield
     finally:

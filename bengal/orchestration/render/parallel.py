@@ -38,7 +38,7 @@ def is_free_threaded() -> bool:
     if hasattr(sys, "_is_gil_enabled"):
         try:
             return not sys._is_gil_enabled()
-        except (AttributeError, TypeError):
+        except AttributeError, TypeError:
             pass
 
     # Fallback: check sysconfig for Py_GIL_DISABLED
@@ -46,7 +46,7 @@ def is_free_threaded() -> bool:
         import sysconfig
 
         return sysconfig.get_config_var("Py_GIL_DISABLED") == 1
-    except (ImportError, AttributeError):
+    except ImportError, AttributeError:
         pass
 
     return False

@@ -616,7 +616,7 @@ class Renderer:
             if key in safe_pagination and safe_pagination[key] is not None:
                 try:
                     safe_pagination[key] = int(safe_pagination[key])
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     safe_pagination[key] = 1
 
         context.update(
@@ -746,7 +746,7 @@ class Renderer:
             if key in safe_pagination and safe_pagination[key] is not None:
                 try:
                     safe_pagination[key] = int(safe_pagination[key])
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     safe_pagination[key] = 1
 
         context.update(
