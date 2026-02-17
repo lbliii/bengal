@@ -128,8 +128,14 @@ class PostView:
         if author_slug and _site_ref:
             try:
                 data = getattr(_site_ref, "data", None) or {}
-                authors_registry = data.get("authors") if hasattr(data, "get") else {}
-                author_data = authors_registry.get(author_slug, {}) if author_slug else {}
+                if not isinstance(data, dict):
+                    data = {}
+                authors_registry = data.get("authors", {})
+                if not isinstance(authors_registry, dict):
+                    authors_registry = {}
+                candidate = authors_registry.get(author_slug, {})
+                if isinstance(candidate, dict):
+                    author_data = candidate
             except AttributeError, TypeError, KeyError:
                 pass
         author = author_data.get("name") or meta.get("author") or params.get("author") or ""
