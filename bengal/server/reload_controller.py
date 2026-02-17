@@ -533,7 +533,7 @@ class ReloadController:
                 fp = Path(root) / name
                 try:
                     st = fp.stat()
-                except (FileNotFoundError, PermissionError):
+                except FileNotFoundError, PermissionError:
                     continue
                 rel = str(fp.relative_to(base)).replace(os.sep, "/")
                 files[rel] = SnapshotEntry(size=st.st_size, mtime=st.st_mtime)

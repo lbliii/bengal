@@ -311,7 +311,7 @@ def phase_template_validation(
 
             return errors
 
-        except (RuntimeError, BengalRenderingError):
+        except RuntimeError, BengalRenderingError:
             # Re-raise strict mode failures
             raise
         except Exception as e:

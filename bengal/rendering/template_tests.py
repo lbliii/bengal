@@ -141,7 +141,7 @@ def test_outdated(page: object, days: int = 90) -> bool:
             return False
         age = (datetime.now() - page_date).days
         return bool(age > days)
-    except (TypeError, AttributeError):
+    except TypeError, AttributeError:
         return False
 
 

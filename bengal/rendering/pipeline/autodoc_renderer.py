@@ -445,7 +445,7 @@ class AutodocRenderer:
                 children = getattr(obj, "children", None)
                 if children is None or not isinstance(children, list):
                     obj.children = []
-            except (AttributeError, TypeError):
+            except AttributeError, TypeError:
                 # Object doesn't support attribute assignment - set in __dict__ if possible
                 with suppress(AttributeError, TypeError):
                     obj.__dict__["children"] = []
@@ -502,7 +502,7 @@ class AutodocRenderer:
             # Mark as normalized to avoid redundant processing on subsequent renders
             try:
                 obj._normalized = True
-            except (AttributeError, TypeError):
+            except AttributeError, TypeError:
                 # Object doesn't support attribute assignment - best effort
                 with suppress(AttributeError, TypeError):
                     obj.__dict__["_normalized"] = True

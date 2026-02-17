@@ -208,7 +208,7 @@ def extract_classes_from_templates(template_dir: Path) -> dict[str, list[ClassUs
     for template_file in template_dir.rglob("*.html"):
         try:
             content = template_file.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        except OSError, UnicodeDecodeError:
             continue
 
         for line_num, line in enumerate(content.splitlines(), start=1):
@@ -259,7 +259,7 @@ def extract_classes_from_css(css_dir: Path) -> dict[str, list[ClassDefinition]]:
     for css_file in css_dir.rglob("*.css"):
         try:
             content = css_file.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
+        except OSError, UnicodeDecodeError:
             continue
 
         # Track if we're inside a multi-line comment

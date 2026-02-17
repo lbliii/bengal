@@ -611,9 +611,9 @@ class ServeScreen(BengalScreen):
         # Give the screen time to mount, then trigger rebuild
         self.set_timer(
             0.1,
-            lambda: self.app.screen.action_rebuild()
-            if has_action_rebuild(self.app.screen)
-            else None,
+            lambda: (
+                self.app.screen.action_rebuild() if has_action_rebuild(self.app.screen) else None
+            ),
         )
 
 

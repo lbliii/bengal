@@ -130,14 +130,9 @@ class PostView:
                 data = getattr(_site_ref, "data", None) or {}
                 authors_registry = data.get("authors") if hasattr(data, "get") else {}
                 author_data = authors_registry.get(author_slug, {}) if author_slug else {}
-            except (AttributeError, TypeError, KeyError):
+            except AttributeError, TypeError, KeyError:
                 pass
-        author = (
-            author_data.get("name")
-            or meta.get("author")
-            or params.get("author")
-            or ""
-        )
+        author = author_data.get("name") or meta.get("author") or params.get("author") or ""
         author_avatar = (
             author_data.get("avatar")
             or meta.get("author_avatar")
@@ -157,11 +152,11 @@ class PostView:
         wc = getattr(page, "word_count", None) or 0
         try:
             reading_time = int(rt)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             reading_time = 0
         try:
             word_count = int(wc)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             word_count = 0
 
         # Tags
@@ -180,7 +175,7 @@ class PostView:
         if ew is not None:
             try:
                 excerpt_words = int(ew)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 excerpt_words = None
         else:
             excerpt_words = None

@@ -200,22 +200,16 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
                 # Parse without variable substitution
                 metadata_with_excerpt = dict(page.metadata)
                 content_cfg = site.config.get("content", {}) or {}
-                metadata_with_excerpt["_excerpt_length"] = resolve_excerpt_length(
-                    page, content_cfg
-                )
+                metadata_with_excerpt["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
                 if need_toc:
-                    result = parser.parse_with_toc(
-                        page._source, metadata_with_excerpt
-                    )
+                    result = parser.parse_with_toc(page._source, metadata_with_excerpt)
                     parsed_content, toc = result[0], result[1]
                     if len(result) > 2:
                         page._excerpt = result[2]
                     if len(result) > 3:
                         page._meta_description = result[3]
                 else:
-                    parsed_content = parser.parse(
-                        page._source, metadata_with_excerpt
-                    )
+                    parsed_content = parser.parse(page._source, metadata_with_excerpt)
                     toc = ""
                 # Escape template syntax
                 escape_method = getattr(parser, "_escape_template_syntax_in_html", None)
@@ -226,9 +220,7 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
                 metadata_for_parser = dict(page.metadata) if page.metadata else {}
                 metadata_for_parser["_source_path"] = getattr(page, "source_path", "")
                 content_cfg = site.config.get("content", {}) or {}
-                metadata_for_parser["_excerpt_length"] = resolve_excerpt_length(
-                    page, content_cfg
-                )
+                metadata_for_parser["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
                 if need_toc:
                     parse_method = getattr(parser, "parse_with_toc_and_context", None)
                     if callable(parse_method):
@@ -244,9 +236,7 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
                 else:
                     parse_method = getattr(parser, "parse_with_context", None)
                     if callable(parse_method):
-                        parsed_content = parse_method(
-                            page._source, metadata_for_parser, context
-                        )
+                        parsed_content = parse_method(page._source, metadata_for_parser, context)
                     else:
                         parsed_content = page._source
                     toc = ""
@@ -254,22 +244,16 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
             # Fallback parser
             metadata_with_excerpt = dict(page.metadata)
             content_cfg = site.config.get("content", {}) or {}
-            metadata_with_excerpt["_excerpt_length"] = resolve_excerpt_length(
-                page, content_cfg
-            )
+            metadata_with_excerpt["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
             if need_toc:
-                result = parser.parse_with_toc(
-                    page._source, metadata_with_excerpt
-                )
+                result = parser.parse_with_toc(page._source, metadata_with_excerpt)
                 parsed_content, toc = result[0], result[1]
                 if len(result) > 2:
                     page._excerpt = result[2]
                 if len(result) > 3:
                     page._meta_description = result[3]
             else:
-                parsed_content = parser.parse(
-                    page._source, metadata_with_excerpt
-                )
+                parsed_content = parser.parse(page._source, metadata_with_excerpt)
                 toc = ""
         else:
             # Basic parser (CascadeView is immutable - pass mutable copy)

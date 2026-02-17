@@ -85,7 +85,7 @@ class ProvenanceCache:
         try:
             data = json_load(index_path)
             self._index = {CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()}
-        except (FileNotFoundError, JSONDecodeError, KeyError):
+        except FileNotFoundError, JSONDecodeError, KeyError:
             self._index = {}
 
     def _load_subvenance(self) -> None:
@@ -94,7 +94,7 @@ class ProvenanceCache:
         try:
             data = json_load(subvenance_path)
             self._subvenance = {ContentHash(k): set(v) for k, v in data.items()}
-        except (FileNotFoundError, JSONDecodeError, KeyError):
+        except FileNotFoundError, JSONDecodeError, KeyError:
             self._subvenance = {}
 
     def _get_record(self, combined_hash: ContentHash) -> ProvenanceRecord | None:
@@ -110,7 +110,7 @@ class ProvenanceCache:
             record = ProvenanceRecord.from_dict(data)
             self._records[combined_hash] = record
             return record
-        except (FileNotFoundError, JSONDecodeError, KeyError):
+        except FileNotFoundError, JSONDecodeError, KeyError:
             return None
 
     def get(self, page_path: CacheKey) -> ProvenanceRecord | None:
