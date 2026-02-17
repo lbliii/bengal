@@ -472,10 +472,11 @@ class RenderingPipeline:
             if need_toc:
                 result = self.parser.parse_with_toc(page._source, metadata_with_source)
                 parsed_content, toc = result[0], result[1]
-                if len(result) > 2:
-                    page._excerpt = result[2]
-                if len(result) > 3:
-                    page._meta_description = result[3]
+                result_ext = cast(tuple[str, ...], result)
+                if len(result_ext) > 2:
+                    page._excerpt = result_ext[2]
+                if len(result_ext) > 3:
+                    page._meta_description = result_ext[3]
                 parsed_content = escape_template_syntax_in_html(parsed_content)
             else:
                 parsed_content = self.parser.parse(page._source, metadata_with_source)
@@ -505,10 +506,11 @@ class RenderingPipeline:
                         page._source, metadata_for_parser, context
                     )
                     parsed_content, toc = result[0], result[1]
-                    if len(result) > 2:
-                        page._excerpt = result[2]
-                    if len(result) > 3:
-                        page._meta_description = result[3]
+                    result_ext = cast(tuple[str, ...], result)
+                    if len(result_ext) > 2:
+                        page._excerpt = result_ext[2]
+                    if len(result_ext) > 3:
+                        page._meta_description = result_ext[3]
                 else:
                     parsed_content = self.parser.parse_with_context(  # type: ignore[union-attr]
                         page._source, metadata_for_parser, context

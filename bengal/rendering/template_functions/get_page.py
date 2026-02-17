@@ -204,10 +204,11 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
                 if need_toc:
                     result = parser.parse_with_toc(page._source, metadata_with_excerpt)
                     parsed_content, toc = result[0], result[1]
-                    if len(result) > 2:
-                        page._excerpt = result[2]
-                    if len(result) > 3:
-                        page._meta_description = result[3]
+                    result_ext = cast(tuple[str, ...], result)
+                    if len(result_ext) > 2:
+                        page._excerpt = result_ext[2]
+                    if len(result_ext) > 3:
+                        page._meta_description = result_ext[3]
                 else:
                     parsed_content = parser.parse(page._source, metadata_with_excerpt)
                     toc = ""
@@ -226,10 +227,11 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
                     if callable(parse_method):
                         result = parse_method(page._source, metadata_for_parser, context)
                         parsed_content, toc = result[0], result[1]
-                        if len(result) > 2:
-                            page._excerpt = result[2]
-                        if len(result) > 3:
-                            page._meta_description = result[3]
+                        result_ext = cast(tuple[str, ...], result)
+                        if len(result_ext) > 2:
+                            page._excerpt = result_ext[2]
+                        if len(result_ext) > 3:
+                            page._meta_description = result_ext[3]
                     else:
                         parsed_content = page._source
                         toc = ""
@@ -248,10 +250,11 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
             if need_toc:
                 result = parser.parse_with_toc(page._source, metadata_with_excerpt)
                 parsed_content, toc = result[0], result[1]
-                if len(result) > 2:
-                    page._excerpt = result[2]
-                if len(result) > 3:
-                    page._meta_description = result[3]
+                result_ext = cast(tuple[str, ...], result)
+                if len(result_ext) > 2:
+                    page._excerpt = result_ext[2]
+                if len(result_ext) > 3:
+                    page._meta_description = result_ext[3]
             else:
                 parsed_content = parser.parse(page._source, metadata_with_excerpt)
                 toc = ""
