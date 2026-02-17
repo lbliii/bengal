@@ -95,7 +95,7 @@ def get_status_category(status: str) -> str:
         if 2 <= category <= 5:
             return f"{category}xx"
         return "default"
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return "default"
 
 

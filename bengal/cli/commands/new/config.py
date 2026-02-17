@@ -257,7 +257,9 @@ def _create_menu_config(template: str) -> dict[str, Any]:
 
 def _create_search_config(template: str) -> dict[str, Any]:
     """Create search configuration."""
-    placeholder = "Search documentation..." if template in ["docs", "documentation"] else "Search..."
+    placeholder = (
+        "Search documentation..." if template in ["docs", "documentation"] else "Search..."
+    )
     return {
         "search": {
             "enabled": True,

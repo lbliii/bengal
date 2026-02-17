@@ -428,7 +428,7 @@ class BuildHistory:
             try:
                 data = json.loads(self.storage_path.read_text())
                 self.snapshots = [BuildSnapshot.from_dict(s) for s in data.get("snapshots", [])]
-            except (json.JSONDecodeError, KeyError):
+            except json.JSONDecodeError, KeyError:
                 self.snapshots = []
 
     def _save(self) -> None:

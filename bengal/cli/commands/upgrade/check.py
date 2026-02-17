@@ -122,7 +122,7 @@ def load_cache() -> dict | None:
             checked_at = checked_at.replace(tzinfo=UTC)
         if datetime.now(UTC) - checked_at < CACHE_TTL:
             return data
-    except (json.JSONDecodeError, KeyError, ValueError, OSError):
+    except json.JSONDecodeError, KeyError, ValueError, OSError:
         pass
 
     return None

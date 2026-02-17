@@ -399,7 +399,7 @@ class PageJSONGenerator:
 
         # Sort by connectivity and limit
         connected_nodes.sort(
-            key=lambda n: (n.get("incoming_refs", 0) + n.get("outgoing_refs", 0)),
+            key=lambda n: n.get("incoming_refs", 0) + n.get("outgoing_refs", 0),
             reverse=True,
         )
         # IMPORTANT: Copy nodes to avoid mutating shared graph_data

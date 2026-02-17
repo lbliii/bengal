@@ -364,7 +364,7 @@ class PageExplainer:
                 content = template_path.read_text()
                 info.extends = self._extract_extends(content)
                 info.includes = self._extract_includes(content)
-            except (OSError, UnicodeDecodeError):
+            except OSError, UnicodeDecodeError:
                 pass
 
         chain.append(info)

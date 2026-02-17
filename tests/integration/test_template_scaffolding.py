@@ -224,10 +224,10 @@ def test_template_dev_server_starts(tmp_path) -> None:
 
             os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
             proc.wait(timeout=5)
-        except (ProcessLookupError, subprocess.TimeoutExpired, PermissionError, OSError):
+        except ProcessLookupError, subprocess.TimeoutExpired, PermissionError, OSError:
             # Fall back to killing just the process if group kill fails
             try:
                 proc.kill()
                 proc.wait(timeout=2)
-            except (ProcessLookupError, subprocess.TimeoutExpired, PermissionError, OSError):
+            except ProcessLookupError, subprocess.TimeoutExpired, PermissionError, OSError:
                 pass

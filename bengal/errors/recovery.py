@@ -87,7 +87,7 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 
-def with_error_recovery(
+def with_error_recovery[T](
     operation: Callable[[], T],
     *,
     on_error: Callable[[Exception], T] | None = None,

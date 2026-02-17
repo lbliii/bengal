@@ -64,7 +64,7 @@ class CalibrationResult:
     measurements: dict = field(default_factory=dict)
 
 
-def measure_parallel_execution(
+def measure_parallel_execution[T](
     tasks: list[T],
     processor: Callable[[T], None],
     worker_counts: list[int],
@@ -104,7 +104,7 @@ def measure_parallel_execution(
     return {w: statistics.median(times) for w, times in results.items()}
 
 
-def find_break_even_threshold(
+def find_break_even_threshold[T](
     task_generator: Callable[[int], list[T]],
     processor: Callable[[T], None],
     task_counts: list[int] | None = None,
@@ -137,7 +137,7 @@ def find_break_even_threshold(
     return task_counts[-1]  # Parallel never faster at tested sizes
 
 
-def find_optimal_workers(
+def find_optimal_workers[T](
     tasks: list[T],
     processor: Callable[[T], None],
     worker_counts: list[int] | None = None,
@@ -171,7 +171,7 @@ def find_optimal_workers(
     return best_workers, speedup
 
 
-def find_contention_point(
+def find_contention_point[T](
     tasks: list[T],
     processor: Callable[[T], None],
     worker_counts: list[int] | None = None,

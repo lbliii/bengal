@@ -467,9 +467,7 @@ class RenderingPipeline:
             metadata_with_source = dict(meta or {})
             metadata_with_source["_source_path"] = page.source_path
             content_cfg = self.site.config.get("content", {}) or {}
-            metadata_with_source["_excerpt_length"] = resolve_excerpt_length(
-                page, content_cfg
-            )
+            metadata_with_source["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
 
             if need_toc:
                 result = self.parser.parse_with_toc(page._source, metadata_with_source)
@@ -496,9 +494,7 @@ class RenderingPipeline:
             metadata_for_parser = dict(meta or {})
             metadata_for_parser["_source_path"] = page.source_path
             content_cfg = self.site.config.get("content", {}) or {}
-            metadata_for_parser["_excerpt_length"] = resolve_excerpt_length(
-                page, content_cfg
-            )
+            metadata_for_parser["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
 
             # Type narrowing: check if parser supports context methods (PatitasParser)
             if hasattr(self.parser, "parse_with_toc_and_context") and hasattr(
@@ -526,9 +522,7 @@ class RenderingPipeline:
                     )
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                 else:
-                    parsed_content = self.parser.parse(
-                        page._source, metadata_for_parser
-                    )
+                    parsed_content = self.parser.parse(page._source, metadata_for_parser)
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                     toc = ""
 
@@ -538,14 +532,10 @@ class RenderingPipeline:
                     if hasattr(self.parser, "parse_to_document"):
                         import patitas
 
-                        doc = self.parser.parse_to_document(
-                            page._source, metadata_for_parser
-                        )
+                        doc = self.parser.parse_to_document(page._source, metadata_for_parser)
                         page._ast_cache = patitas.to_dict(doc)  # type: ignore[assignment]
                     elif hasattr(self.parser, "parse_to_ast"):
-                        ast_tokens = self.parser.parse_to_ast(
-                            page._source, metadata_for_parser
-                        )
+                        ast_tokens = self.parser.parse_to_ast(page._source, metadata_for_parser)
                         page._ast_cache = ast_tokens  # type: ignore[assignment]
                 except Exception as e:
                     logger.debug(
@@ -748,7 +738,7 @@ class RenderingPipeline:
                     import markdown
 
                     base_version = f"markdown-{markdown.__version__}"
-                except (ImportError, AttributeError):
+                except ImportError, AttributeError:
                     base_version = "markdown-unknown"
             case "PatitasParser":
                 import patitas

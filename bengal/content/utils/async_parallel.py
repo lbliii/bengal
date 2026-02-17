@@ -23,7 +23,7 @@ T = TypeVar("T")
 R = TypeVar("R")
 
 
-async def fetch_parallel(
+async def fetch_parallel[T, R](
     items: list[T],
     fetch_fn: Callable[[T], Awaitable[R | None]],
     *,

@@ -29,7 +29,7 @@ T = TypeVar("T")
 V = TypeVar("V")
 
 
-def build_inverted_index(
+def build_inverted_index[T, V](
     items: list[T],
     get_values: Callable[[T], set[V]],
 ) -> dict[V, set[T]]:

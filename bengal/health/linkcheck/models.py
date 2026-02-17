@@ -17,11 +17,11 @@ reporting and CI integration.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 
-class LinkKind(str, Enum):
+class LinkKind(StrEnum):
     """
     Classification of link type.
 
@@ -35,7 +35,7 @@ class LinkKind(str, Enum):
     EXTERNAL = "external"
 
 
-class LinkStatus(str, Enum):
+class LinkStatus(StrEnum):
     """
     Result status from checking a link.
 

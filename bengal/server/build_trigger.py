@@ -859,7 +859,7 @@ class BuildTrigger:
         """Check if path is within any template directory."""
         try:
             resolved_path = path.resolve()
-        except (OSError, ValueError):
+        except OSError, ValueError:
             resolved_path = path
 
         for template_dir in template_dirs:
@@ -867,7 +867,7 @@ class BuildTrigger:
                 resolved_dir = template_dir.resolve()
                 resolved_path.relative_to(resolved_dir)
                 return True
-            except (ValueError, OSError):
+            except ValueError, OSError:
                 continue
         return False
 
@@ -982,7 +982,7 @@ class BuildTrigger:
                     output_type = OutputType(type_val)
                     if phase in ("render", "asset", "postprocess"):
                         records.append(OutputRecord(Path(path_str), output_type, phase))  # type: ignore[arg-type]
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     # Invalid type value, skip
                     logger.debug("invalid_output_type", path=path_str, type_val=type_val)
 
