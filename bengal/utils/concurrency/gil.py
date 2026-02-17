@@ -43,7 +43,7 @@ def is_gil_disabled() -> bool:
     if hasattr(sys, "_is_gil_enabled"):
         try:
             return not sys._is_gil_enabled()
-        except AttributeError, TypeError:
+        except (AttributeError, TypeError):
             pass
 
     # Fallback: check sysconfig for Py_GIL_DISABLED
@@ -51,7 +51,7 @@ def is_gil_disabled() -> bool:
         import sysconfig
 
         return sysconfig.get_config_var("Py_GIL_DISABLED") == 1
-    except ImportError, AttributeError:
+    except (ImportError, AttributeError):
         pass
 
     return False
@@ -77,7 +77,7 @@ def has_free_threading_support() -> bool:
         import sysconfig
 
         return sysconfig.get_config_var("Py_GIL_DISABLED") is not None
-    except ImportError, AttributeError:
+    except (ImportError, AttributeError):
         pass
 
     return False

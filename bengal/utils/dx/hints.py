@@ -108,7 +108,7 @@ def _hint_gil(
     result = get_gil_status_message()
     if result is None:
         return None
-    _, tip = result
+    _status, tip = result
     return Hint(
         id="gil",
         message=tip,

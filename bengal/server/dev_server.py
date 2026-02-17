@@ -475,13 +475,13 @@ class DevServer:
         """Initialize reload controller with configuration."""
         try:
             from bengal.server.reload_controller import controller
-            from bengal.server.utils import get_dev_config
+            from bengal.server.utils import get_dev_config, safe_int
 
             cfg = getattr(self.site, "config", {}) or {}
 
             try:
                 min_interval = get_dev_config(cfg, "reload", "min_notify_interval_ms", default=300)
-                controller.set_min_notify_interval_ms(int(min_interval))
+                controller.set_min_notify_interval_ms(safe_int(min_interval, 300))
             except Exception as e:
                 logger.warning("reload_config_min_interval_failed", error=str(e))
 
@@ -495,7 +495,8 @@ class DevServer:
                 ignore_paths = get_dev_config(
                     cfg, "reload", "ignore_paths", default=default_ignores
                 )
-                controller.set_ignored_globs(list(ignore_paths) if ignore_paths else None)
+                globs: list[str] | None = [str(p) for p in ignore_paths] if ignore_paths else None
+                controller.set_ignored_globs(globs)
             except Exception as e:
                 logger.warning("reload_config_ignores_failed", error=str(e))
 
@@ -510,12 +511,8 @@ class DevServer:
                     hash_on_suspect=bool(
                         get_dev_config(cfg, "reload", "hash_on_suspect", default=True)
                     ),
-                    suspect_hash_limit=int(suspect_hash_limit)
-                    if suspect_hash_limit is not None
-                    else None,
-                    suspect_size_limit_bytes=int(suspect_size_limit)
-                    if suspect_size_limit is not None
-                    else None,
+                    suspect_hash_limit=safe_int(suspect_hash_limit, 200),
+                    suspect_size_limit_bytes=safe_int(suspect_size_limit, 2_000_000),
                 )
             except Exception as e:
                 logger.warning("reload_config_hashing_failed", error=str(e))
