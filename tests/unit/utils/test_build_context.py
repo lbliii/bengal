@@ -13,7 +13,11 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from bengal.orchestration.build_context import BuildContext
+
+pytestmark = pytest.mark.parallel_unsafe
 
 
 class TestBuildContextInitialization:

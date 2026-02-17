@@ -21,6 +21,8 @@ from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 
+pytestmark = pytest.mark.parallel_unsafe
+
 
 class TestNavNode:
     """Test NavNode dataclass functionality."""

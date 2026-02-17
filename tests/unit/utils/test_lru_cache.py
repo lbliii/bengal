@@ -9,6 +9,8 @@ import pytest
 
 from bengal.utils.primitives.lru_cache import LRUCache
 
+pytestmark = pytest.mark.parallel_unsafe
+
 
 class TestLRUEviction:
     """Test LRU eviction behavior (not FIFO)."""

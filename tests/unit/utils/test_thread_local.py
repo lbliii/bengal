@@ -11,7 +11,11 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+import pytest
+
 from bengal.utils.concurrency.thread_local import ThreadLocalCache, ThreadSafeSet
+
+pytestmark = pytest.mark.parallel_unsafe
 
 
 class TestThreadLocalCache:
