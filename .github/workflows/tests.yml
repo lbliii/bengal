@@ -46,7 +46,7 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running fast test suite (unit tests only, excluding slow)..."
-        uv run pytest -n auto -q --tb=short --dist worksteal --max-worker-restart=3 tests/unit tests/core tests/test_thread_safety.py -m "not slow"
+        uv run pytest -n auto -q --tb=short --dist worksteal --max-worker-restart=3 -o timeout_method=signal tests/unit tests/core tests/test_thread_safety.py -m "not slow"
 
   # Baseurl spot-checks + Coverage (single-process)
   full-suite:
@@ -86,7 +86,7 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running with BENGAL_BASEURL='${BENGAL_BASEURL}'"
-        uv run pytest -q --tb=short -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
+        uv run pytest -q --tb=short -n auto -o timeout_method=signal tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
 
     - name: Integration tests (parallel)
       if: matrix.baseurl == ''
@@ -97,7 +97,7 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running integration tests..."
-        uv run pytest -n auto -q --tb=short --dist worksteal tests/integration -m "not slow and not performance and not stateful"
+        uv run pytest -n auto -q --tb=short --dist worksteal -o timeout_method=signal tests/integration -m "not slow and not performance and not stateful"
 
     - name: Coverage (unit tests, single-process)
       if: matrix.baseurl == ''
@@ -106,7 +106,7 @@ jobs:
         BENGAL_CI_FAST: "1"
         PYTHON_GIL: "0"
       run: |
-        uv run pytest -n 0 -q --tb=short --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
+        uv run pytest -n 0 -q --tb=short --cov=bengal --cov-report=xml -o timeout_method=signal tests/unit tests/core tests/test_thread_safety.py -m "not slow"
 
   # Slow tests (memory profiling, bytecode cache, etc.)
   slow-tests:
