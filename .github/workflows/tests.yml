@@ -91,7 +91,7 @@ jobs:
         uv run pytest -q --tb=short -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
 
     - name: Integration tests (parallel)
-      timeout-minutes: 20
+      timeout-minutes: 30
       if: matrix.baseurl == ''
       env:
         CI: true
@@ -100,7 +100,9 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running integration tests..."
-        uv run pytest -n auto -q --tb=short --dist worksteal --max-worker-restart=3 tests/integration -m "not slow and not performance and not stateful"
+        # Use loadgroup (not worksteal): worksteal ignores xdist_group, so serial/parallel_unsafe
+        # tests (e.g. test_concurrent_builds) can run on different workers and cause races.
+        uv run pytest -n auto -q --tb=short --dist loadgroup --max-worker-restart=3 tests/integration -m "not slow and not performance and not stateful"
 
     - name: Coverage (unit tests, single-process)
       timeout-minutes: 15

@@ -174,6 +174,7 @@ def test_docs_template_generates_search_index(tmp_path) -> None:
 
 @pytest.mark.integration
 @pytest.mark.slow
+@pytest.mark.parallel_unsafe  # Fixed port 8765; avoid parallel runs
 def test_template_dev_server_starts(tmp_path) -> None:
     """Verify dev server can start for default template.
 
