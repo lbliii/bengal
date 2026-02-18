@@ -3,6 +3,7 @@ Integration tests for autodoc HTML page generation.
 
 Verifies that all autodoc types (Python API, CLI, OpenAPI) generate
 HTML pages at every navigation level with correct page types.
+Requires pre-built site (bengal build). Excluded from PR integration.
 
 These tests ensure:
 1. Every autodoc section directory has an index.html file
@@ -16,6 +17,8 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+
+pytestmark = pytest.mark.autodoc
 
 
 @pytest.fixture
