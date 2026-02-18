@@ -1,0 +1,7 @@
+site:
+  baseurl: ''
+build:
+  parallel: false
+assets:
+  minify: false
+  fingerprint: false

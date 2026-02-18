@@ -1,0 +1,11 @@
+search:
+  enabled: true
+  lunr:
+    prebuilt: true
+    min_query_length: 2
+    max_results: 50
+    preload: smart
+  ui:
+    modal: true
+    recent_searches: 5
+    placeholder: Search documentation...
