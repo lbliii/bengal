@@ -317,6 +317,7 @@ print(f"saved:{{len(cache.file_fingerprints)}}")
             capture_output=True,
             text=True,
             cwd=str(tmp_path),
+            timeout=30,
         )
         assert "saved:1" in result.stdout, f"Save failed: {result.stderr}"
 

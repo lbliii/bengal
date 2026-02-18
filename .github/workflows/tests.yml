@@ -39,6 +39,7 @@ jobs:
       run: uv sync --group dev
 
     - name: Fast test suite (unit tests only)
+      timeout-minutes: 15
       env:
         CI: true
         BENGAL_CI_FAST: "1"
@@ -46,7 +47,7 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running fast test suite (unit tests only, excluding slow)..."
-        uv run pytest -n auto -q --tb=short --dist worksteal --max-worker-restart=3 -o timeout_method=signal tests/unit tests/core tests/test_thread_safety.py -m "not slow"
+        uv run pytest -n auto -q --tb=short --dist worksteal --max-worker-restart=3 tests/unit tests/core tests/test_thread_safety.py -m "not slow"
 
   # Baseurl spot-checks + Coverage (single-process)
   full-suite:
@@ -78,6 +79,7 @@ jobs:
       run: uv sync --group dev
 
     - name: Run targeted baseurl portability tests
+      timeout-minutes: 10
       env:
         BENGAL_BASEURL: ${{ matrix.baseurl }}
         CI: true
@@ -86,9 +88,10 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running with BENGAL_BASEURL='${BENGAL_BASEURL}'"
-        uv run pytest -q --tb=short -n auto -o timeout_method=signal tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
+        uv run pytest -q --tb=short -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
 
     - name: Integration tests (parallel)
+      timeout-minutes: 20
       if: matrix.baseurl == ''
       env:
         CI: true
@@ -97,16 +100,17 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running integration tests..."
-        uv run pytest -n auto -q --tb=short --dist worksteal -o timeout_method=signal tests/integration -m "not slow and not performance and not stateful"
+        uv run pytest -n auto -q --tb=short --dist worksteal --max-worker-restart=3 tests/integration -m "not slow and not performance and not stateful"
 
     - name: Coverage (unit tests, single-process)
+      timeout-minutes: 15
       if: matrix.baseurl == ''
       env:
         CI: true
         BENGAL_CI_FAST: "1"
         PYTHON_GIL: "0"
       run: |
-        uv run pytest -n 0 -q --tb=short --cov=bengal --cov-report=xml -o timeout_method=signal tests/unit tests/core tests/test_thread_safety.py -m "not slow"
+        uv run pytest -n 0 -q --tb=short --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
 
   # Slow tests (memory profiling, bytecode cache, etc.)
   slow-tests:
@@ -132,13 +136,12 @@ jobs:
       run: uv sync --group dev
 
     - name: Run slow tests
+      timeout-minutes: 30
       env:
         CI: true
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
       run: |
-        # Use loadgroup to respect @pytest.mark.parallel_unsafe (via xdist_group)
-        # This prevents worker crashes from property tests running full builds
         uv run pytest -n auto -q --tb=short -m "slow and not stateful and not performance" --dist loadgroup --max-worker-restart=3
 
   # Stateful workflows (weekly/manual)
@@ -165,12 +168,13 @@ jobs:
       run: uv sync --group dev
 
     - name: Run stateful tests (xdist hardened)
+      timeout-minutes: 30
       env:
         CI: true
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
       run: |
-        uv run pytest -n auto -q --tb=short -m stateful --dist worksteal --max-worker-restart=2 -o timeout_method=signal -p pytest_forked --forked
+        uv run pytest -n auto -q --tb=short -m stateful --dist worksteal --max-worker-restart=2 -p pytest_forked --forked
 
   # Performance suite (weekly/manual)
   performance:
@@ -196,12 +200,13 @@ jobs:
       run: uv sync --group dev
 
     - name: Run performance tests
+      timeout-minutes: 30
       env:
         CI: true
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
       run: |
-        uv run pytest -n auto -q --tb=short -m performance --dist worksteal --max-worker-restart=2 -o timeout_method=signal
+        uv run pytest -n auto -q --tb=short -m performance --dist worksteal --max-worker-restart=2
 
     - name: Upload coverage
       if: matrix.baseurl == ''

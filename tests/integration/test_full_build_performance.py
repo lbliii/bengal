@@ -13,6 +13,8 @@ import pytest
 
 from bengal.core.site import Site
 
+pytestmark = pytest.mark.performance
+
 
 @pytest.fixture
 def test_site_dir(tmp_path):
