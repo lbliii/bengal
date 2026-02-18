@@ -6,6 +6,8 @@ Validates the end-to-end user workflow: scaffold → build → validate output.
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from tests._testing.cli import run_cli
@@ -20,9 +22,17 @@ AVAILABLE_TEMPLATES = [
     "changelog",
 ]
 
+# In CI fast mode, test only 3 templates to keep PR runs under 30 min
+PR_TEMPLATES = ["default", "docs", "blog"]
+
+
+def _templates_for_parametrize():
+    """Templates to test: subset in CI, full set otherwise."""
+    return PR_TEMPLATES if os.environ.get("BENGAL_CI_FAST") == "1" else AVAILABLE_TEMPLATES
+
 
 @pytest.mark.integration
-@pytest.mark.parametrize("template", AVAILABLE_TEMPLATES)
+@pytest.mark.parametrize("template", _templates_for_parametrize())
 def test_template_scaffolds_and_builds(template: str, tmp_path) -> None:
     """Each template should scaffold and build without errors.
 
@@ -68,7 +78,7 @@ def test_template_scaffolds_and_builds(template: str, tmp_path) -> None:
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("template", AVAILABLE_TEMPLATES)
+@pytest.mark.parametrize("template", _templates_for_parametrize())
 def test_template_has_valid_structure(template: str, tmp_path) -> None:
     """Each template should scaffold with expected directory structure.
 
