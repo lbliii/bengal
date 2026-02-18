@@ -21,6 +21,8 @@ import pytest
 from bengal.postprocess.output_formats.json_generator import PageJSONGenerator
 from bengal.postprocess.output_formats.txt_generator import PageTxtGenerator
 
+pytestmark = pytest.mark.parallel_unsafe
+
 
 class TestParallelWriteErrorHandling:
     """Test error handling during parallel file writes."""

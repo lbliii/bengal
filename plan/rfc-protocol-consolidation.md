@@ -90,7 +90,7 @@ Both ABCs and Protocols work, but the inconsistency complicates documentation an
 class TemplateEngineProtocol(Protocol):
     site: Site
     template_dirs: list[Path]
-    
+
     def render_template(self, name: str, context: dict) -> str: ...
     def render_string(self, template: str, context: dict) -> str: ...
     def template_exists(self, name: str) -> bool: ...
@@ -172,7 +172,7 @@ from bengal.protocols.infrastructure import (
 __all__ = [
     # Core
     "PageLike",
-    "SectionLike", 
+    "SectionLike",
     "SiteLike",
     "NavigableSection",
     "QueryableSection",
@@ -235,32 +235,32 @@ Bridge between Bengal and any highlighting backend:
 class HighlightService(Protocol):
     """
     Unified interface for syntax highlighting.
-    
+
     This protocol bridges Bengal with highlighting backends (Rosettes,
     Pygments, tree-sitter, etc.). Implementations handle the translation
     from this interface to backend-specific APIs.
-    
+
     Thread Safety:
         Implementations must be thread-safe. The highlight() method
         may be called concurrently from multiple render threads.
-    
+
     Example (Rosettes adapter):
         >>> class RosettesHighlightService:
         ...     def __init__(self):
         ...         self._formatter = HtmlFormatter()
-        ...     
+        ...  
         ...     @property
         ...     def name(self) -> str:
         ...         return "rosettes"
-        ...     
+        ...  
         ...     def highlight(self, code, language, hl_lines=None, linenos=False):
         ...         lexer = get_lexer(language)
         ...         config = FormatConfig(hl_lines=hl_lines, linenos=linenos)
         ...         return self._formatter.format_string(lexer.tokenize(code), config)
-        ...     
+        ...  
         ...     def supports_language(self, language):
         ...         return has_lexer(language)
-    
+
     """
 
     @property
@@ -324,24 +324,24 @@ Create a Protocol version alongside the existing ABC for duck-typing flexibility
 class ContentSourceProtocol(Protocol):
     """
     Protocol interface for content sources.
-    
+
     This is the Protocol version of ContentSource ABC for cases
     where duck typing is preferred over inheritance.
-    
+
     Enables loading content from different backends:
     - Filesystem (default)
     - Git repositories (for versioned docs)
     - Remote APIs (headless CMS)
     - In-memory (testing)
-    
+
     Note:
         The existing ContentSource ABC remains for implementations
         that prefer inheritance. Both satisfy this protocol.
-    
+
     Thread Safety:
         Implementations MUST be thread-safe. fetch_all() and fetch_one()
         may be called concurrently during parallel builds.
-    
+
     """
 
     @property
@@ -372,18 +372,18 @@ Abstract output writing:
 class OutputTarget(Protocol):
     """
     Abstract interface for build output.
-    
+
     Enables writing to different backends:
     - Filesystem (default)
     - In-memory (testing, preview)
     - S3/Cloud storage (deployment)
     - ZIP archive (distribution)
-    
+
     Thread Safety:
         Implementations MUST be thread-safe. The write() and copy()
         methods will be called concurrently by multiple render threads
         when Bengal is configured with parallel=true.
-    
+
     """
 
     @property
@@ -422,7 +422,7 @@ Break `TemplateEngineProtocol` into composable pieces:
 @runtime_checkable
 class TemplateRenderer(Protocol):
     """Core rendering capability - the minimum viable engine."""
-    
+
     site: Site
     template_dirs: list[Path]
 
@@ -464,7 +464,7 @@ class TemplateValidator(Protocol):
 # Full engine is composition of all three
 class TemplateEngine(TemplateRenderer, TemplateIntrospector, TemplateValidator, Protocol):
     """Full template engine with all capabilities."""
-    
+
     @property
     def capabilities(self) -> EngineCapability:
         """Engine capability flags."""
@@ -500,7 +500,7 @@ Update Patitas's `Highlighter` protocol to match Bengal's expectations:
 class Highlighter(Protocol):
     """
     Protocol for syntax highlighters.
-    
+
     Aligned with Bengal's HighlightService for seamless integration.
     """
 
@@ -530,11 +530,11 @@ Rosettes keeps its composable `Lexer`/`Formatter` design but Bengal provides an 
 class RosettesHighlightService:
     """
     Adapter implementing Bengal's HighlightService using Rosettes.
-    
+
     This bridges Rosettes' composable lexer/formatter architecture
     with Bengal's monolithic highlight interface.
     """
-    
+
     def __init__(
         self,
         formatter: Formatter | None = None,
@@ -546,11 +546,11 @@ class RosettesHighlightService:
             css_class=css_class,
             line_class=line_class,
         )
-    
+
     @property
     def name(self) -> str:
         return "rosettes"
-    
+
     def highlight(
         self,
         code: str,
@@ -564,13 +564,13 @@ class RosettesHighlightService:
         except LexerNotFoundError:
             # Fall back to plain text
             lexer = get_lexer("text")
-        
+
         config = FormatConfig(
             hl_lines=hl_lines or [],
             linenos=show_linenos,
         )
         return self._formatter.format_string(lexer.tokenize(code), config)
-    
+
     def supports_language(self, language: str) -> bool:
         return has_lexer(language)
 ```
@@ -625,17 +625,17 @@ def test_section_like_compatibility():
     """Both Section implementations satisfy SectionLike protocol."""
     from bengal.protocols import SectionLike
     from bengal.core import Section
-    
+
     assert isinstance(Section(...), SectionLike)
 
 def test_highlight_service_adapter():
     """RosettesHighlightService satisfies HighlightService protocol."""
     from bengal.protocols import HighlightService
     from bengal.rendering.highlighting.rosettes import RosettesHighlightService
-    
+
     adapter = RosettesHighlightService()
     assert isinstance(adapter, HighlightService)
-    
+
 def test_deprecation_warning():
     """Old import paths emit deprecation warnings."""
     import warnings

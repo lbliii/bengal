@@ -293,7 +293,7 @@ class Page(
             try:
                 content_dir = self._site.root_path / "content"
                 section_path = str(self._section_path.relative_to(content_dir))
-            except (ValueError, AttributeError):
+            except ValueError, AttributeError:
                 section_path = str(self._section_path)
 
         # Check cache validity (site id + section path)
@@ -379,7 +379,7 @@ class Page(
             try:
                 rel_path = Path(source_path_str).relative_to(self._site.root_path)
                 updates["source_path"] = str(rel_path)
-            except (ValueError, AttributeError):
+            except ValueError, AttributeError:
                 pass  # Keep absolute if not under root
 
         # Update section from _section_path (may have been set after core creation)
@@ -389,7 +389,7 @@ class Page(
                 content_dir = self._site.root_path / "content"
                 rel_section = str(self._section_path.relative_to(content_dir))
                 updates["section"] = rel_section
-            except (ValueError, AttributeError):
+            except ValueError, AttributeError:
                 # Fallback: use string representation
                 updates["section"] = str(self._section_path)
 

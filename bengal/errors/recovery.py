@@ -79,15 +79,13 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from contextlib import contextmanager
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.utils.observability.logger import BengalLogger
 
-T = TypeVar("T")
 
-
-def with_error_recovery(
+def with_error_recovery[T](
     operation: Callable[[], T],
     *,
     on_error: Callable[[Exception], T] | None = None,

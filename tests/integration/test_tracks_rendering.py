@@ -386,7 +386,7 @@ title: Parent
 ---
 # Parent
 
-:::{cards}
+::::{cards}
 :::{card} Go to Child
 :link: ./child
 

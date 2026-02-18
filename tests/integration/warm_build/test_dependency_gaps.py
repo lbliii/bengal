@@ -74,6 +74,7 @@ title: Home - Updated
         )
 
 
+@pytest.mark.known_gap
 @pytest.mark.xfail(
     reason="RFC: rfc-incremental-build-dependency-gaps Gap 1 - data file dependency tracking",
     strict=False,
@@ -146,6 +147,7 @@ members:
         )
 
 
+@pytest.mark.known_gap
 @pytest.mark.xfail(
     reason="RFC: rfc-incremental-build-dependency-gaps Gap 2 - taxonomy metadata propagation",
     strict=False,
@@ -371,6 +373,7 @@ This page will be deleted.
         )
 
 
+@pytest.mark.known_gap
 @pytest.mark.xfail(
     reason="RFC: rfc-incremental-build-dependency-gaps Gap 4 - cascade propagation to child pages",
     strict=False,

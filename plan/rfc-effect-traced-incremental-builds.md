@@ -181,13 +181,13 @@ class EffectKind(Enum):
 @dataclass(frozen=True, slots=True)
 class Effect:
     """Immutable effect record."""
-    
+
     kind: EffectKind
     key: str  # Unique identifier (path, config key, computation name)
     input_hash: EffectHash  # Hash of inputs (for cache lookup)
     output_hash: EffectHash | None = None  # Hash of result (for validation)
     metadata: dict[str, Any] = field(default_factory=dict)
-    
+
     def __hash__(self) -> int:
         return hash((self.kind, self.key, self.input_hash))
 
@@ -195,12 +195,12 @@ class Effect:
 @dataclass
 class EffectSet:
     """Collection of effects from a computation."""
-    
+
     reads: set[Effect] = field(default_factory=set)
     computes: set[Effect] = field(default_factory=set)
     writes: set[Effect] = field(default_factory=set)
     externals: set[Effect] = field(default_factory=set)
-    
+
     def merge(self, other: EffectSet) -> EffectSet:
         """Merge two effect sets."""
         return EffectSet(
@@ -209,7 +209,7 @@ class EffectSet:
             writes=self.writes | other.writes,
             externals=self.externals | other.externals,
         )
-    
+
     def all_input_hashes(self) -> set[EffectHash]:
         """Get all input hashes for cache invalidation."""
         return {e.input_hash for e in self.reads | self.computes | self.externals}
@@ -258,19 +258,19 @@ def is_tracing() -> bool:
 def trace_effects() -> Generator[EffectSet, None, None]:
     """
     Context manager for effect tracing.
-    
+
     Captures all effectful operations within the context:
     - File reads (content, templates, data, config)
     - Computations (parsing, rendering)
     - External calls (autodoc extraction)
-    
+
     Example:
         with trace_effects() as effects:
             render_page(page)
-        
+
         # effects.reads contains all files accessed
         # effects.computes contains all computation hashes
-    
+
     Thread-Safety:
         Uses contextvars for thread isolation. Safe for parallel rendering
         on free-threaded Python 3.14+.
@@ -288,7 +288,7 @@ def record_read(path: Path, content_hash: str) -> None:
     effects = _current_effects.get()
     if effects is None:
         return
-    
+
     effects.reads.add(Effect(
         kind=EffectKind.READ_FILE,
         key=str(path),
@@ -301,7 +301,7 @@ def record_config_read(key: str, value_hash: str) -> None:
     effects = _current_effects.get()
     if effects is None:
         return
-    
+
     effects.reads.add(Effect(
         kind=EffectKind.READ_CONFIG,
         key=key,
@@ -319,7 +319,7 @@ def record_compute(
     effects = _current_effects.get()
     if effects is None:
         return
-    
+
     effects.computes.add(Effect(
         kind=EffectKind.COMPUTE,
         key=name,
@@ -334,16 +334,16 @@ def traced(
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Decorator to automatically trace a function's effects.
-    
+
     Captures input hash (from args) and output hash (from return).
-    
+
     Example:
         @traced("parse_markdown")
         def parse_markdown(source: str) -> ParsedContent:
             ...
-        
+
         # Automatically records:
-        # Effect(kind=COMPUTE, key="parse_markdown", 
+        # Effect(kind=COMPUTE, key="parse_markdown",
         #        input_hash=hash(source), output_hash=hash(result))
     """
     def decorator(fn: Callable[P, R]) -> Callable[P, R]:
@@ -352,18 +352,18 @@ def traced(
             # Compute input hash from arguments
             input_repr = repr((args, sorted(kwargs.items())))
             input_hash = hash_str(input_repr, truncate=16)
-            
+
             # Execute function
             result = fn(*args, **kwargs)
-            
+
             # Compute output hash from result
             output_hash = hash_str(repr(result), truncate=16)
-            
+
             # Record effect
             record_compute(effect_name, input_hash, output_hash)
-            
+
             return result
-        
+
         _instrumented[effect_name] = wrapper
         return wrapper
     return decorator
@@ -396,16 +396,16 @@ T = TypeVar("T")
 class CacheNode:
     """
     A node in the Merkle DAG.
-    
+
     Each node is identified by the hash of its content.
     Nodes reference other nodes by hash, enabling structural sharing.
     """
-    
+
     content_hash: EffectHash
     node_type: str  # "page", "template", "computation", "effect_set"
     data: dict[str, Any]  # Serialized content
     dependencies: set[EffectHash] = field(default_factory=set)  # Hashes of dependent nodes
-    
+
     def to_bytes(self) -> bytes:
         """Serialize to bytes for storage."""
         return json.dumps({
@@ -413,7 +413,7 @@ class CacheNode:
             "data": self.data,
             "deps": sorted(self.dependencies),
         }, separators=(",", ":")).encode("utf-8")
-    
+
     @classmethod
     def from_bytes(cls, content_hash: EffectHash, raw: bytes) -> CacheNode:
         """Deserialize from bytes."""
@@ -429,13 +429,13 @@ class CacheNode:
 class MerkleDAGCache:
     """
     Content-addressable cache using Merkle DAG structure.
-    
+
     Key Benefits:
     - **Structural Sharing**: Identical content is stored once
     - **Fine-Grained Invalidation**: Only affected subgraphs rebuilt
     - **Integrity Verification**: Hash-based corruption detection
     - **Efficient Sync**: Only transfer missing nodes
-    
+
     Storage Format:
         .bengal/merkle/
         ├── nodes/           # Individual nodes by hash
@@ -443,101 +443,101 @@ class MerkleDAGCache:
         │   └── ...
         ├── roots.json.zst   # Page → root hash mapping
         └── metadata.json    # Cache metadata
-    
+
     Thread-Safety:
         Read operations are lock-free (immutable nodes).
         Write operations use per-node file locking.
     """
-    
+
     VERSION = 1
-    
+
     def __init__(self, cache_dir: Path):
         self.cache_dir = cache_dir
         self.nodes_dir = cache_dir / "nodes"
         self.roots_path = cache_dir / "roots.json.zst"
-        
+
         # In-memory index (populated lazily)
         self._roots: dict[str, EffectHash] = {}
         self._loaded = False
-    
+
     def _ensure_loaded(self) -> None:
         """Load roots index if not already loaded."""
         if self._loaded:
             return
-        
+
         if self.roots_path.exists():
             raw = zstd.decompress(self.roots_path.read_bytes())
             data = json.loads(raw.decode("utf-8"))
             if data.get("version") == self.VERSION:
                 self._roots = data.get("roots", {})
-        
+
         self._loaded = True
-    
+
     def get_node(self, content_hash: EffectHash) -> CacheNode | None:
         """
         Retrieve a node by its content hash.
-        
+
         Returns None if node doesn't exist or is corrupted.
         """
         node_path = self.nodes_dir / f"{content_hash}.zst"
         if not node_path.exists():
             return None
-        
+
         try:
             raw = zstd.decompress(node_path.read_bytes())
             node = CacheNode.from_bytes(content_hash, raw)
-            
+
             # Verify integrity
             actual_hash = hash_bytes(raw, truncate=16)
             if actual_hash != content_hash:
                 # Corrupted node, remove and return None
                 node_path.unlink(missing_ok=True)
                 return None
-            
+
             return node
         except Exception:
             return None
-    
+
     def put_node(self, node: CacheNode) -> EffectHash:
         """
         Store a node, returning its content hash.
-        
+
         If an identical node already exists, returns existing hash
         (structural sharing).
         """
         raw = node.to_bytes()
         content_hash = hash_bytes(raw, truncate=16)
-        
+
         node_path = self.nodes_dir / f"{content_hash}.zst"
         if node_path.exists():
             # Already exists (structural sharing)
             return content_hash
-        
+
         # Write new node
         self.nodes_dir.mkdir(parents=True, exist_ok=True)
         compressed = zstd.compress(raw, level=3)
-        
+
         # Atomic write via temp file
         temp_path = node_path.with_suffix(".tmp")
         temp_path.write_bytes(compressed)
         temp_path.rename(node_path)
-        
+
         return content_hash
-    
+
     def get_root(self, page_path: str) -> EffectHash | None:
         """Get the root node hash for a page."""
         self._ensure_loaded()
         return self._roots.get(page_path)
-    
+
     def set_root(self, page_path: str, root_hash: EffectHash) -> None:
         """Set the root node hash for a page."""
         self._ensure_loaded()
         self._roots[page_path] = root_hash
-    
+
     def save_roots(self) -> None:
         """Persist roots index to disk."""
         self.cache_dir.mkdir(parents=True, exist_ok=True)
-        
+
         data = {
             "version": self.VERSION,
             "roots": self._roots,
@@ -545,7 +545,7 @@ class MerkleDAGCache:
         raw = json.dumps(data, separators=(",", ":")).encode("utf-8")
         compressed = zstd.compress(raw, level=3)
         self.roots_path.write_bytes(compressed)
-    
+
     def store_effect_set(
         self,
         page_path: str,
@@ -554,17 +554,17 @@ class MerkleDAGCache:
     ) -> EffectHash:
         """
         Store a page's effects and output as a DAG.
-        
+
         Creates nodes for:
         1. Each read effect (leaf nodes)
         2. Each compute effect (intermediate nodes)
         3. The page output (root node)
-        
+
         Returns the root hash.
         """
         # Create nodes for all effects
         dependency_hashes: set[EffectHash] = set()
-        
+
         for effect in effects.reads:
             node = CacheNode(
                 content_hash="",  # Will be computed
@@ -574,7 +574,7 @@ class MerkleDAGCache:
             )
             h = self.put_node(node)
             dependency_hashes.add(h)
-        
+
         for effect in effects.computes:
             node = CacheNode(
                 content_hash="",
@@ -589,7 +589,7 @@ class MerkleDAGCache:
             )
             h = self.put_node(node)
             dependency_hashes.add(h)
-        
+
         # Create root node for the page
         root_node = CacheNode(
             content_hash="",
@@ -598,67 +598,67 @@ class MerkleDAGCache:
             dependencies=dependency_hashes,
         )
         root_hash = self.put_node(root_node)
-        
+
         # Update root mapping
         self.set_root(page_path, root_hash)
-        
+
         return root_hash
-    
+
     def is_valid(self, page_path: str, current_effects: EffectSet) -> bool:
         """
         Check if cached page is still valid.
-        
+
         A page is valid if all its effect dependencies are unchanged.
         This is O(e) where e = number of effects, not O(p) where p = all pages.
         """
         root_hash = self.get_root(page_path)
         if root_hash is None:
             return False
-        
+
         root = self.get_node(root_hash)
         if root is None:
             return False
-        
+
         # Get stored effect hashes
         stored_hashes = self._collect_effect_hashes(root)
-        
+
         # Compare with current effect hashes
         current_hashes = current_effects.all_input_hashes()
-        
+
         return stored_hashes == current_hashes
-    
+
     def _collect_effect_hashes(self, root: CacheNode) -> set[EffectHash]:
         """Collect all effect input hashes from a DAG."""
         hashes: set[EffectHash] = set()
-        
+
         for dep_hash in root.dependencies:
             node = self.get_node(dep_hash)
             if node is None:
                 continue
-            
+
             if "input_hash" in node.data:
                 hashes.add(node.data["input_hash"])
-            
+
             # Recurse into nested dependencies
             hashes |= self._collect_effect_hashes(node)
-        
+
         return hashes
-    
+
     def gc(self, keep_roots: set[str]) -> int:
         """
         Garbage collect unreferenced nodes.
-        
+
         Keeps nodes reachable from the specified roots.
         Returns number of nodes removed.
         """
         # Mark phase: collect all reachable hashes
         reachable: set[EffectHash] = set()
-        
+
         for page_path in keep_roots:
             root_hash = self.get_root(page_path)
             if root_hash:
                 self._mark_reachable(root_hash, reachable)
-        
+
         # Sweep phase: remove unreachable nodes
         removed = 0
         if self.nodes_dir.exists():
@@ -667,16 +667,16 @@ class MerkleDAGCache:
                 if node_hash not in reachable:
                     node_file.unlink()
                     removed += 1
-        
+
         return removed
-    
+
     def _mark_reachable(self, node_hash: EffectHash, reachable: set[EffectHash]) -> None:
         """Mark a node and all its dependencies as reachable."""
         if node_hash in reachable:
             return
-        
+
         reachable.add(node_hash)
-        
+
         node = self.get_node(node_hash)
         if node:
             for dep_hash in node.dependencies:
@@ -706,19 +706,19 @@ from bengal.utils.primitives.hashing import hash_file, hash_str
 def instrument_file_read(original_read_text: callable) -> callable:
     """
     Instrument Path.read_text to record file reads.
-    
+
     Used during effect tracing to capture all file dependencies.
     """
     @wraps(original_read_text)
     def traced_read_text(self: Path, *args, **kwargs) -> str:
         content = original_read_text(self, *args, **kwargs)
-        
+
         if is_tracing():
             content_hash = hash_str(content, truncate=16)
             record_read(self, content_hash)
-        
+
         return content
-    
+
     return traced_read_text
 
 
@@ -729,13 +729,13 @@ def instrument_config_access(original_getattr: callable) -> callable:
     @wraps(original_getattr)
     def traced_getattr(self, name: str) -> Any:
         value = original_getattr(self, name)
-        
+
         if is_tracing():
             value_hash = hash_str(repr(value), truncate=16)
             record_config_read(f"config.{name}", value_hash)
-        
+
         return value
-    
+
     return traced_getattr
 ```
 
@@ -765,7 +765,7 @@ if TYPE_CHECKING:
 @dataclass
 class EffectBuildResult:
     """Result of effect-traced build."""
-    
+
     pages_rendered: int
     pages_cached: int
     cache_hits: int
@@ -776,31 +776,31 @@ class EffectBuildResult:
 class EffectTracedBuilder:
     """
     Incremental builder using effect tracing.
-    
+
     Key Differences from Current System:
     1. No explicit track_*() calls needed
     2. Fine-grained caching (content-level, not file-level)
     3. Structural sharing via Merkle DAG
     4. Automatic dependency discovery
-    
+
     Build Flow:
     1. For each page, compute current effect fingerprint
     2. Check if cached result is valid (all effects unchanged)
     3. If valid, skip rendering (cache hit)
     4. If invalid, render with tracing enabled
     5. Store effects and output in Merkle cache
-    
+
     Thread-Safety:
         Safe for parallel rendering. Uses contextvars for effect isolation.
         Leverages free-threaded Python 3.14 for true parallelism.
     """
-    
+
     def __init__(self, site: Site, cache_dir: Path | None = None):
         self.site = site
         self.cache = MerkleDAGCache(
             cache_dir or site.root_path / ".bengal" / "merkle"
         )
-    
+
     def build(
         self,
         pages: list[Page],
@@ -810,13 +810,13 @@ class EffectTracedBuilder:
     ) -> EffectBuildResult:
         """
         Build pages with effect tracing.
-        
+
         Args:
             pages: Pages to build
             pipeline: Rendering pipeline instance
             parallel: Use parallel rendering (default: True)
             max_workers: Thread pool size for parallel rendering
-            
+
         Returns:
             EffectBuildResult with statistics
         """
@@ -827,17 +827,17 @@ class EffectTracedBuilder:
             cache_misses=0,
             effects_captured=0,
         )
-        
+
         if parallel and len(pages) > 1:
             result = self._build_parallel(pages, pipeline, max_workers)
         else:
             result = self._build_sequential(pages, pipeline)
-        
+
         # Persist cache
         self.cache.save_roots()
-        
+
         return result
-    
+
     def _build_sequential(
         self,
         pages: list[Page],
@@ -849,33 +849,33 @@ class EffectTracedBuilder:
         hits = 0
         misses = 0
         effects_count = 0
-        
+
         for page in pages:
             # Quick probe: compute effect fingerprint without full trace
             probe_effects = self._probe_effects(page)
-            
+
             if self.cache.is_valid(str(page.source_path), probe_effects):
                 # Cache hit - skip rendering
                 hits += 1
                 cached += 1
                 continue
-            
+
             # Cache miss - render with full tracing
             misses += 1
-            
+
             with trace_effects() as effects:
                 output = pipeline.render(page)
-            
+
             # Store in Merkle cache
             self.cache.store_effect_set(
                 str(page.source_path),
                 effects,
                 {"html": output.html, "metadata": output.metadata},
             )
-            
+
             rendered += 1
             effects_count += len(effects.reads) + len(effects.computes)
-        
+
         return EffectBuildResult(
             pages_rendered=rendered,
             pages_cached=cached,
@@ -883,7 +883,7 @@ class EffectTracedBuilder:
             cache_misses=misses,
             effects_captured=effects_count,
         )
-    
+
     def _build_parallel(
         self,
         pages: list[Page],
@@ -892,24 +892,24 @@ class EffectTracedBuilder:
     ) -> EffectBuildResult:
         """Parallel build with effect tracing (free-threaded Python)."""
         from bengal.orchestration.render.parallel import is_free_threaded
-        
+
         # Adjust workers for free-threaded mode
         if is_free_threaded():
             # True parallelism - use more workers
             max_workers = min(max_workers * 2, 16)
-        
+
         rendered = 0
         cached = 0
         hits = 0
         misses = 0
         effects_count = 0
-        
+
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
                 executor.submit(self._build_page, page, pipeline): page
                 for page in pages
             }
-            
+
             for future in as_completed(futures):
                 page = futures[future]
                 try:
@@ -924,7 +924,7 @@ class EffectTracedBuilder:
                 except Exception as e:
                     # Log error but continue
                     misses += 1
-        
+
         return EffectBuildResult(
             pages_rendered=rendered,
             pages_cached=cached,
@@ -932,7 +932,7 @@ class EffectTracedBuilder:
             cache_misses=misses,
             effects_captured=effects_count,
         )
-    
+
     def _build_page(
         self,
         page: Page,
@@ -941,33 +941,33 @@ class EffectTracedBuilder:
         """Build a single page (called from thread pool)."""
         # Probe for cache validity
         probe_effects = self._probe_effects(page)
-        
+
         if self.cache.is_valid(str(page.source_path), probe_effects):
             return _PageBuildResult(cached=True, effects_count=0)
-        
+
         # Render with tracing
         with trace_effects() as effects:
             output = pipeline.render(page)
-        
+
         # Store result
         self.cache.store_effect_set(
             str(page.source_path),
             effects,
             {"html": output.html, "metadata": output.metadata},
         )
-        
+
         return _PageBuildResult(
             cached=False,
             effects_count=len(effects.reads) + len(effects.computes),
         )
-    
+
     def _probe_effects(self, page: Page) -> EffectSet:
         """
         Quick probe to compute effect fingerprint.
-        
+
         This is a lightweight check that doesn't do full tracing.
         Uses file hashes directly for common effects.
-        
+
         Note:
             This probe captures known dependencies without full tracing.
             The full trace during rendering may capture additional effects
@@ -975,9 +975,9 @@ class EffectTracedBuilder:
         """
         from bengal.effects.types import Effect, EffectKind, EffectSet
         from bengal.utils.primitives.hashing import hash_file, hash_str
-        
+
         effects = EffectSet()
-        
+
         # Content file effect
         if page.source_path.exists():
             content_hash = hash_file(page.source_path, truncate=16)
@@ -986,7 +986,7 @@ class EffectTracedBuilder:
                 key=str(page.source_path),
                 input_hash=content_hash,
             ))
-        
+
         # Template effect (if explicitly assigned via frontmatter)
         # Uses Page.assigned_template property from bengal/core/page/metadata.py
         if page.assigned_template:
@@ -997,7 +997,7 @@ class EffectTracedBuilder:
                 key=f"template:{page.assigned_template}",
                 input_hash=hash_str(page.assigned_template, truncate=16),
             ))
-        
+
         # Frontmatter hash (enables fine-grained invalidation)
         # Changing title shouldn't rebuild if only title changed
         if hasattr(page, 'frontmatter') and page.frontmatter:
@@ -1007,7 +1007,7 @@ class EffectTracedBuilder:
                 key=f"frontmatter:{page.source_path}",
                 input_hash=fm_hash,
             ))
-        
+
         return effects
 
 
@@ -1076,12 +1076,12 @@ match effect:
         # File read - check mtime first
         if not path_changed(path):
             return CacheHit()
-    
+
     case Effect(kind=EffectKind.COMPUTE, input_hash=h):
         # Computation - check input hash
         if cached_result := cache.get_compute(h):
             return cached_result
-    
+
     case Effect(kind=EffectKind.EXTERNAL):
         # External call - always re-execute
         return CacheMiss()
@@ -1189,7 +1189,7 @@ Add effect system alongside existing `DependencyTracker`:
 
 1. Create `bengal/effects/` package
 2. Implement `EffectTracer` with contextvars
-3. Implement `MerkleDAGCache` 
+3. Implement `MerkleDAGCache`
 4. Add basic instrumentation points
 
 **No breaking changes** - existing incremental build continues working.
@@ -1364,9 +1364,9 @@ import warnings
 class DependencyTracker:
     def track_template(self, template_path: Path) -> None:
         """Record that the current page depends on a template.
-        
+
         .. deprecated:: 0.2.0
-            Use effect-traced builds instead. Enable with 
+            Use effect-traced builds instead. Enable with
             `bengal.build.effect_traced: true` in config.
             This method will be removed in version 0.3.0.
         """

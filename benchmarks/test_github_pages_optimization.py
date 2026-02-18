@@ -250,7 +250,7 @@ def limit_cpu_cores(cores: int) -> Iterator[None]:
 
         yield
 
-    except (AttributeError, psutil.AccessDenied, OSError):
+    except AttributeError, psutil.AccessDenied, OSError:
         # CPU affinity not supported or permission denied
         # This is OK, we'll proceed without limiting
         yield
@@ -282,7 +282,7 @@ def limit_memory(max_bytes: int) -> Iterator[None]:
 
         yield
 
-    except (ValueError, OSError):
+    except ValueError, OSError:
         # Limit setting failed, proceed anyway
         yield
     finally:

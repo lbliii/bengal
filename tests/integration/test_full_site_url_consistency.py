@@ -9,8 +9,6 @@ This is the ultimate regression test - if this passes, URLs work everywhere.
 
 import pytest
 
-from bengal.orchestration.build.options import BuildOptions
-
 
 @pytest.mark.slow
 class TestFullSiteUrlConsistency:
@@ -38,12 +36,6 @@ class TestFullSiteUrlConsistency:
         """
         site = shared_site_class
 
-        # Discover and build if not already (fixture handles)
-        if not site.pages:
-            site.discover_content()
-            site.discover_assets()
-            site.build(BuildOptions(force_sequential=True))
-
         # Find the page
         test_page = None
         for page in site.pages:
@@ -65,11 +57,6 @@ class TestFullSiteUrlConsistency:
     def test_no_url_collisions(self, shared_site_class):
         """No two pages should have the same URL."""
         site = shared_site_class
-        if not site.pages:
-            site.discover_content()
-            site.discover_assets()
-            site.build(BuildOptions(force_sequential=True))
-
         urls = [p.href for p in site.pages]
         url_counts = {}
         for url in urls:
@@ -81,11 +68,6 @@ class TestFullSiteUrlConsistency:
     def test_all_output_paths_set(self, shared_site_class):
         """Every page should have output_path set after discovery."""
         site = shared_site_class
-        if not site.pages:
-            site.discover_content()
-            site.discover_assets()
-            site.build(BuildOptions(force_sequential=True))
-
         missing_output_path = [
             str(page.source_path) for page in site.pages if page.output_path is None
         ]

@@ -12,18 +12,14 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
-from typing import TypeVar
 
 from bengal.errors import BengalContentError, ErrorCode, record_error
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
-T = TypeVar("T")
-R = TypeVar("R")
 
-
-async def fetch_parallel(
+async def fetch_parallel[T, R](
     items: list[T],
     fetch_fn: Callable[[T], Awaitable[R | None]],
     *,

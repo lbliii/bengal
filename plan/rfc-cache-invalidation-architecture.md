@@ -105,7 +105,7 @@ if TYPE_CHECKING:
 class PageInvalidationReason(Enum):
     """
     Why a page's caches were invalidated.
-    
+
     Alignment:
         This enum is aligned with RebuildReasonCode in results.py.
         While RebuildReasonCode tracks why a page was chosen for build,
@@ -138,29 +138,29 @@ _MAX_EVENTS = 10_000
 class CacheCoordinator:
     """
     Coordinates cache invalidation across page-level cache layers.
-    
+
     Ensures that when any dependency changes, ALL affected caches
     are properly invalidated in the correct order.
-    
+
     Scope:
         - Manages: BuildCache.parsed_content, rendered_output, file_fingerprints
         - Does NOT manage: Global caches (use cache_registry.py instead)
-    
+
     Thread Safety:
         All public methods are thread-safe. Uses Lock for event logging
         since rendering may happen in parallel.
-    
+
     Related:
         - cache_registry.py: Global cache coordination (complementary)
         - DependencyTracker: Tracks dependencies; this class acts on them
     """
-    
+
     def __init__(self, cache: "BuildCache", site: "Site"):
         self.cache = cache
         self.site = site
         self._events: list[InvalidationEvent] = []
         self._lock = Lock()
-    
+
     def invalidate_page(
         self,
         page_path: Path,
@@ -169,10 +169,10 @@ class CacheCoordinator:
     ) -> InvalidationEvent:
         """
         Invalidate all caches for a single page.
-        
+
         This is the ONLY way caches should be invalidated for pages.
         Ensures all layers are cleared consistently.
-        
+
         Returns:
             InvalidationEvent with list of caches that were actually cleared.
         """
@@ -181,37 +181,37 @@ class CacheCoordinator:
             reason=reason,
             trigger=trigger,
         )
-        
+
         # Layer 1: Rendered output (final HTML)
         if self.cache.invalidate_rendered_output(page_path):
             event.caches_cleared.append("rendered_output")
-        
+
         # Layer 2: Parsed content (markdown AST + metadata)
         if self.cache.invalidate_parsed_content(page_path):
             event.caches_cleared.append("parsed_content")
-        
+
         # Layer 3: File fingerprint
         if self.cache.invalidate_fingerprint(page_path):
             event.caches_cleared.append("fingerprint")
-        
+
         # Thread-safe event logging with bounds
         with self._lock:
             self._events.append(event)
             # Trim to prevent unbounded growth on large sites
             if len(self._events) > _MAX_EVENTS:
                 self._events = self._events[-_MAX_EVENTS:]
-        
+
         return event
-    
+
     def invalidate_for_data_file(self, data_file: Path) -> list[InvalidationEvent]:
         """
         Invalidate all pages that depend on a data file.
-        
+
         Called when data/*.yaml or data/*.json changes.
         """
         events = []
         affected_pages = self.cache.tracker.get_pages_using_data_file(data_file)
-        
+
         for page_path in affected_pages:
             event = self.invalidate_page(
                 page_path,
@@ -219,18 +219,18 @@ class CacheCoordinator:
                 trigger=str(data_file),
             )
             events.append(event)
-        
+
         return events
-    
+
     def invalidate_for_template(self, template_path: Path) -> list[InvalidationEvent]:
         """
         Invalidate all pages that use a template.
-        
+
         Called when templates/*.html changes.
         """
         events = []
         affected_pages = self.cache.tracker.get_pages_using_template(template_path)
-        
+
         for page_path in affected_pages:
             event = self.invalidate_page(
                 page_path,
@@ -238,9 +238,9 @@ class CacheCoordinator:
                 trigger=str(template_path),
             )
             events.append(event)
-        
+
         return events
-    
+
     def invalidate_taxonomy_cascade(
         self,
         member_page: Path,
@@ -248,12 +248,12 @@ class CacheCoordinator:
     ) -> list[InvalidationEvent]:
         """
         Invalidate taxonomy term pages when a member's metadata changes.
-        
+
         Called when a post's title/date/summary changes and the
         taxonomy listing pages need to reflect the new values.
         """
         events = []
-        
+
         for term_page in term_pages:
             event = self.invalidate_page(
                 term_page,
@@ -261,16 +261,16 @@ class CacheCoordinator:
                 trigger=str(member_page),
             )
             events.append(event)
-        
+
         return events
-    
+
     def invalidate_all(
         self,
         reason: PageInvalidationReason = PageInvalidationReason.FULL_BUILD,
     ) -> int:
         """
         Invalidate all caches (full rebuild).
-        
+
         Returns count of pages invalidated.
         """
         count = 0
@@ -278,13 +278,13 @@ class CacheCoordinator:
             self.invalidate_page(page.source_path, reason, trigger="full_build")
             count += 1
         return count
-    
+
     @property
     def events(self) -> list[InvalidationEvent]:
         """Thread-safe access to events (returns copy)."""
         with self._lock:
             return list(self._events)
-    
+
     def get_invalidation_summary(self) -> dict:
         """
         Get summary of all invalidations for logging/debugging.
@@ -301,7 +301,7 @@ class CacheCoordinator:
                     "caches": event.caches_cleared,
                 })
         return by_reason
-    
+
     def clear_events(self) -> None:
         """Clear event log (call at start of each build)."""
         with self._lock:
@@ -326,34 +326,34 @@ if TYPE_CHECKING:
 class PathRegistry:
     """
     Canonical path representation for all page types.
-    
+
     Eliminates confusion between:
     - Source paths (content/about.md)
     - Virtual paths (.bengal/generated/tags/python/index.md)
     - Output paths (public/about/index.html)
     - Internal keys (_generated/tags/tag:python)
-    
+
     Cache Key Convention:
         All caches should use canonical_source() as the key for page lookups.
         This ensures consistent addressing regardless of page type.
     """
-    
+
     def __init__(self, site: "Site"):
         self.site = site
         self._content_dir = site.paths.content_dir
         self._generated_dir = site.paths.generated_dir
         self._output_dir = site.paths.output_dir
-    
+
     def canonical_source(self, page: "Page") -> Path:
         """
         Get the canonical source path for any page.
-        
+
         This is the path used as the key in all caches.
-        
+
         - Content pages: Relative to content dir (e.g., "about.md")
         - Generated pages: Relative to generated dir with virtual prefix (e.g., "generated/tags/python/index.md")
         - Autodoc pages: Relative to source root with virtual prefix (e.g., "autodoc/mypackage/core/site.py")
-        
+
         Returns:
             Canonical path for use as cache key.
         """
@@ -369,58 +369,58 @@ class PathRegistry:
                     return Path("autodoc") / page.source_path.relative_to(self.site.root_path)
                 except ValueError:
                     return page.source_path
-        
+
         # Content page - use relative path from content dir
         try:
             return page.source_path.relative_to(self._content_dir)
         except ValueError:
             # Fallback: path not under content dir (shouldn't happen)
             return page.source_path
-    
+
     def cache_key(self, page: "Page") -> str:
         """
         Get the string cache key for a page.
-        
+
         Convenience method that converts canonical_source to string.
         """
         return str(self.canonical_source(page))
-    
+
     def is_generated(self, path: Path) -> bool:
         """Check if a path represents a generated page."""
         path_str = str(path)
         generated_str = str(self._generated_dir)
         return path_str.startswith(generated_str) or path_str.startswith(".bengal/generated")
-    
+
     def virtual_path_for_taxonomy(self, taxonomy: str, term: str) -> Path:
         """
         Get the virtual source path for a taxonomy term page.
-        
+
         Example:
             virtual_path_for_taxonomy("tags", "python")
             → .bengal/generated/tags/python/index.md
         """
         return self._generated_dir / taxonomy / term / "index.md"
-    
+
     def output_path(self, page: "Page") -> Path:
         """Get the output path for a page."""
         url_path = page.url.lstrip("/")
         if url_path.endswith("/"):
             return self._output_dir / url_path / "index.html"
         return self._output_dir / f"{url_path}/index.html"
-    
+
     def normalize(self, path: Path | str) -> Path:
         """
         Normalize a path to its canonical form.
-        
+
         Handles both string and Path inputs, resolves relative paths.
         """
         if isinstance(path, str):
             path = Path(path)
-        
+
         # Remove any leading ./ or resolve relative paths
         if not path.is_absolute():
             path = self.site.root / path
-        
+
         return path.resolve()
 ```
 
@@ -451,19 +451,19 @@ class RebuildEntry:
 class RebuildManifest:
     """
     Complete record of what was rebuilt during a build.
-    
+
     Used for:
     - Debugging stale content issues
     - Build observability (--explain flag)
     - Performance analysis
     """
-    
+
     build_id: str
     incremental: bool
     entries: list[RebuildEntry] = field(default_factory=list)
     skipped: list[str] = field(default_factory=list)
     invalidation_summary: dict = field(default_factory=dict)
-    
+
     def add_rebuild(
         self,
         page_path: Path,
@@ -478,11 +478,11 @@ class RebuildManifest:
             trigger=trigger,
             duration_ms=duration_ms,
         ))
-    
+
     def add_skipped(self, page_path: Path) -> None:
         """Record that a page was skipped (cache hit)."""
         self.skipped.append(str(page_path))
-    
+
     def to_json(self) -> str:
         """Export manifest as JSON for debugging."""
         return json.dumps({
@@ -501,13 +501,13 @@ class RebuildManifest:
             ],
             "invalidation_summary": self.invalidation_summary,
         }, indent=2)
-    
+
     def summary(self) -> dict[str, Any]:
         """Get summary statistics."""
         by_reason = {}
         for entry in self.entries:
             by_reason[entry.reason] = by_reason.get(entry.reason, 0) + 1
-        
+
         return {
             "total_rebuilt": len(self.entries),
             "total_skipped": len(self.skipped),
@@ -539,14 +539,14 @@ The following methods must be added to `BuildCache` to support the coordinator:
 
 class ParsedContentCacheMixin:
     # ... existing methods ...
-    
+
     def invalidate_parsed_content(self, file_path: Path) -> bool:
         """
         Remove cached parsed content for a file.
-        
+
         Args:
             file_path: Path to source file
-            
+
         Returns:
             True if cache entry was removed, False if not present
         """
@@ -561,16 +561,16 @@ class ParsedContentCacheMixin:
 
 class FileTrackingMixin:
     # ... existing methods ...
-    
+
     def invalidate_fingerprint(self, file_path: Path) -> bool:
         """
         Remove cached fingerprint for a file.
-        
+
         This forces re-computation of hash on next access.
-        
+
         Args:
             file_path: Path to file
-            
+
         Returns:
             True if fingerprint was removed, False if not present
         """
@@ -585,14 +585,14 @@ class FileTrackingMixin:
 
 class RenderedOutputCacheMixin:
     # ... existing methods ...
-    
+
     def invalidate_rendered_output(self, file_path: Path) -> bool:
         """
         Remove cached rendered output for a file.
 
         Args:
             file_path: Path to file
-            
+
         Returns:
             True if cache entry was removed, False if not present
         """
@@ -618,29 +618,29 @@ class BuildOrchestrator:
     def __init__(self, site: Site, ...):
         self.site = site
         self.cache = BuildCache(site)
-        
+
         # NEW: Unified cache coordination
         self.cache_coordinator = CacheCoordinator(self.cache, site)
         self.path_registry = PathRegistry(site)
         self.rebuild_manifest = None
-    
+
     def build(self, options: BuildOptions) -> BuildStats:
         # Clear previous events
         self.cache_coordinator.clear_events()
-        
+
         # Create manifest for this build
         self.rebuild_manifest = RebuildManifest(
             build_id=generate_build_id(),
             incremental=options.incremental,
         )
-        
+
         # ... existing build logic ...
-        
+
         # At end of build, record invalidation summary
         self.rebuild_manifest.invalidation_summary = (
             self.cache_coordinator.get_invalidation_summary()
         )
-        
+
         # Export manifest if --explain-json
         if options.explain_json:
             print(self.rebuild_manifest.to_json())
@@ -659,22 +659,22 @@ class ChangeDetector:
         self.site = site
         self.cache = cache
         self.coordinator = coordinator  # NEW
-    
+
     def detect_changes(self) -> ChangeResult:
         pages_to_rebuild = set()
-        
+
         # Data file changes
         for data_file in self._find_changed_data_files():
             events = self.coordinator.invalidate_for_data_file(data_file)
             for event in events:
                 pages_to_rebuild.add(event.page_path)
-        
+
         # Template changes
         for template in self._find_changed_templates():
             events = self.coordinator.invalidate_for_template(template)
             for event in events:
                 pages_to_rebuild.add(event.page_path)
-        
+
         # Content changes (source files)
         for page_path in self._find_changed_content():
             self.coordinator.invalidate_page(
@@ -683,7 +683,7 @@ class ChangeDetector:
                 trigger=str(page_path),
             )
             pages_to_rebuild.add(page_path)
-        
+
         return ChangeResult(pages_to_rebuild=pages_to_rebuild)
 ```
 
@@ -780,46 +780,46 @@ class TestCacheCoordinator:
     def test_invalidate_page_clears_all_layers(self):
         """Invalidating a page clears rendered_output, parsed_content, fingerprint."""
         coordinator = CacheCoordinator(cache, site)
-        
+
         # Pre-populate caches
         cache.set_rendered_output(page_path, "<html>...")
         cache.set_parsed_content(page_path, {...})
-        
+
         # Invalidate
         event = coordinator.invalidate_page(
             page_path,
             PageInvalidationReason.CONTENT_CHANGED,
             trigger="test",
         )
-        
+
         # Verify all cleared
         assert not cache.has_rendered_output(page_path)
         assert not cache.has_parsed_content(page_path)
         assert "rendered_output" in event.caches_cleared
         assert "parsed_content" in event.caches_cleared
-    
+
     def test_invalidate_for_data_file_cascades(self):
         """Data file invalidation cascades to dependent pages."""
         # Setup: page depends on data file
         tracker.track_data_file(page_path, data_file_path)
         cache.set_rendered_output(page_path, "<html>...")
-        
+
         # Invalidate data file
         events = coordinator.invalidate_for_data_file(data_file_path)
-        
+
         # Verify cascade
         assert len(events) == 1
         assert events[0].page_path == page_path
         assert events[0].reason == PageInvalidationReason.DATA_FILE_CHANGED
         assert not cache.has_rendered_output(page_path)
-    
+
     def test_thread_safety_with_concurrent_invalidation(self):
         """Events are logged safely under concurrent invalidation."""
         import threading
-        
+
         coordinator = CacheCoordinator(cache, site)
         errors = []
-        
+
         def invalidate_pages(start_idx: int):
             try:
                 for i in range(100):
@@ -830,13 +830,13 @@ class TestCacheCoordinator:
                     )
             except Exception as e:
                 errors.append(e)
-        
+
         threads = [threading.Thread(target=invalidate_pages, args=(i,)) for i in range(4)]
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-        
+
         assert not errors, f"Thread safety violation: {errors}"
         assert len(coordinator.events) == 400
 ```
@@ -851,7 +851,7 @@ class TestCacheInvalidationIntegration:
         """End-to-end: data file change → coordinator → page rebuilt with new data."""
         # Similar to test_dependency_gaps.py but verifies coordinator path
         pass
-    
+
     def test_rebuild_manifest_captures_all_rebuilds(self):
         """Rebuild manifest accurately captures rebuild reasons."""
         # Build, check manifest has correct entries
@@ -892,13 +892,13 @@ class TestCacheInvalidationIntegration:
 ```
 DataFileDetector.check_data_files()
   └─ cache.invalidate_rendered_output(page)  # Manual call
-  
+
 TaxonomyChangeDetector.check_metadata_cascades()
   └─ cache.invalidate_rendered_output(term_page)  # Manual call
 
 phase_update_pages_list()
   └─ cache.invalidate_rendered_output(term_page)  # Another manual call
-  
+
 ChangeDetector._find_changed_files()
   └─ (no invalidation, relies on rebuild marking)
 ```

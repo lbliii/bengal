@@ -14,16 +14,21 @@ import pytest
 from bengal.parsing.backends.patitas import parse
 
 try:
-    from hypothesis import given
+    from hypothesis import given, settings
     from hypothesis import strategies as st
 except ImportError:
     pytest.skip("hypothesis not installed", allow_module_level=True)
 
+# Deadline catches ReDoS/slow examples; max_examples comes from CI profile or default.
+FUZZ_SETTINGS = settings(deadline=2000)
 
+
+@pytest.mark.timeout(90)
 class TestFuzzNoCrashes:
     """Fuzz tests to ensure parser never crashes."""
 
     @given(st.text(min_size=1, max_size=1000))
+    @settings(FUZZ_SETTINGS)
     def test_no_crashes(self, markdown: str) -> None:
         """Parser never crashes on any input.
 
@@ -37,7 +42,7 @@ class TestFuzzNoCrashes:
             result = parse(markdown)
             # Parser should always return a string (even if empty)
             assert isinstance(result, str)
-        except (ValueError, SyntaxError):
+        except ValueError, SyntaxError:
             # Syntax errors are acceptable - parser can reject invalid syntax
             pass
         except Exception as e:
@@ -45,6 +50,7 @@ class TestFuzzNoCrashes:
             pytest.fail(f"Parser crashed on input {markdown!r}: {e}")
 
     @given(st.text(min_size=0, max_size=100))
+    @settings(FUZZ_SETTINGS)
     def test_empty_and_short_inputs(self, markdown: str) -> None:
         """Parser handles empty and very short inputs."""
         try:
@@ -54,6 +60,7 @@ class TestFuzzNoCrashes:
             pytest.fail(f"Parser failed on short input {markdown!r}: {e}")
 
     @given(st.text(min_size=100, max_size=5000))
+    @settings(FUZZ_SETTINGS)
     def test_long_inputs(self, markdown: str) -> None:
         """Parser handles longer inputs without performance issues."""
         try:
@@ -63,6 +70,7 @@ class TestFuzzNoCrashes:
             pytest.fail(f"Parser failed on long input: {e}")
 
     @given(st.text(min_size=1, max_size=500).filter(lambda s: "\0" not in s))
+    @settings(FUZZ_SETTINGS)
     def test_unicode_inputs(self, markdown: str) -> None:
         """Parser handles Unicode characters correctly."""
         try:
@@ -78,6 +86,7 @@ class TestFuzzNoCrashes:
             max_size=50,
         )
     )
+    @settings(FUZZ_SETTINGS)
     def test_multiline_inputs(self, lines: list[str]) -> None:
         """Parser handles multi-line inputs."""
         markdown = "\n".join(lines)

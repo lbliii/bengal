@@ -52,8 +52,8 @@ Discourse has a built-in embedding system. When enabled:
     discourseEmbedUrl: 'https://docs.example.com/guides/getting-started/'
   };
   (function() {
-    var d = document.createElement('script'); 
-    d.type = 'text/javascript'; 
+    var d = document.createElement('script');
+    d.type = 'text/javascript';
     d.async = true;
     d.src = DiscourseEmbed.discourseUrl + 'javascripts/embed.js';
     document.getElementsByTagName('head')[0].appendChild(d);
@@ -70,7 +70,7 @@ Discourse has a built-in embedding system. When enabled:
 discourse:
   enabled: true
   url: "https://forum.example.com"
-  
+
   # Embedding settings
   embed:
     enabled: true
@@ -84,7 +84,7 @@ discourse:
     exclude:
       - docs/api/  # API reference doesn't need comments
       - blog/archive/
-    
+
   # Category mapping (optional - for "discuss this" links)
   categories:
     docs/: "documentation"
@@ -168,18 +168,18 @@ For pages without embedded comments, provide a link to discuss on the forum.
 ```python
 def get_discourse_topic_url(page: PageLike, config: DiscourseConfig) -> str:
     """Generate URL to discuss this page on Discourse.
-    
+
     If topic_id is set in frontmatter, link directly.
     Otherwise, generate a new topic URL with pre-filled title.
     """
     if page.discourse_topic_id:
         return f"{config.url}/t/{page.discourse_topic_id}"
-    
+
     # Pre-fill new topic
     category = config.get_category_for_path(page.path)
     title = f"Discussion: {page.title}"
     body = f"Discussing [{page.title}]({page.canonical_url})"
-    
+
     return (
         f"{config.url}/new-topic?"
         f"category={category}&"
@@ -194,9 +194,9 @@ def get_discourse_topic_url(page: PageLike, config: DiscourseConfig) -> str:
 {# In page template #}
 {% if discourse.enabled and not page.discourse_embed_enabled %}
 <aside class="discuss-link">
-  <a href="{{ page | discourse_topic_url }}" 
+  <a href="{{ page | discourse_topic_url }}"
      class="discuss-link__button"
-     target="_blank" 
+     target="_blank"
      rel="noopener">
     {{ icon("message-circle") }}
     Discuss this page

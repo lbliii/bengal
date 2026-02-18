@@ -21,6 +21,8 @@ from bengal.content.discovery.content_discovery import ContentDiscovery
 from bengal.core.page import Page, PageProxy
 from bengal.core.page.page_core import PageCore
 
+pytestmark = pytest.mark.parallel_unsafe
+
 
 def make_page_core(source_path: str | Path, title: str, *, weight: int | None = None) -> PageCore:
     """Helper to create a PageCore for testing."""

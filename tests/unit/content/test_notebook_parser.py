@@ -25,3 +25,29 @@ def test_parse_file_ipynb_branches_to_patitas(tmp_path: Path) -> None:
     assert "# Test" in content
     assert metadata.get("type") == "notebook"
     assert "notebook" in metadata
+
+
+def test_parse_file_ipynb_falls_back_to_patitas_notebook_module(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Notebook parsing works when patitas root module lacks parse_notebook."""
+    import patitas
+
+    nb_content = """{
+  "cells": [{"cell_type": "markdown", "metadata": {}, "source": ["# Fallback"]}],
+  "metadata": {},
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
+"""
+    nb_path = tmp_path / "fallback.ipynb"
+    nb_path.write_text(nb_content, encoding="utf-8")
+
+    monkeypatch.delattr(patitas, "parse_notebook", raising=False)
+
+    parser = ContentParser(tmp_path)
+    content, metadata = parser.parse_file(nb_path)
+
+    assert content == "# Fallback"
+    assert metadata["notebook"] == "fallback"
+    assert metadata["type"] == "notebook"

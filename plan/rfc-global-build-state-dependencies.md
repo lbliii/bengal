@@ -10,7 +10,7 @@
 
 **Problem**: Incremental builds didn't rebuild pages when CSS/JS assets changed, causing stale fingerprinted URLs (e.g., `style.abc123.css` in HTML when actual file is `style.xyz789.css`).
 
-**Solution**: 
+**Solution**:
 - **Phase 1** ✅: Force page rebuild when CSS/JS assets change (shipped v0.1.10)
 - **Phase 2**: ContextVar pattern for thread-safe manifest access (free-threading hardening)
 - **Phase 3**: `BuildStateHash` abstraction (unified global state tracking)
@@ -86,7 +86,7 @@ def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
             return None
         manifest_cache = dict(manifest.entries)
         setattr(site, cache_attr, manifest_cache)     # Race: multiple threads write
-    
+
     entry = manifest_cache.get(logical_path)
     # ...
 ```
@@ -119,7 +119,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True, slots=True)
 class AssetManifestContext:
     """Immutable asset manifest context - set once per build, read many.
-    
+
     Thread Safety:
         ContextVars are thread-local by design (PEP 567).
         Each thread has independent storage - no locks needed.
@@ -260,7 +260,7 @@ class BuildStateHash:
     config_hash: str
     asset_manifest_hash: str  # Hash of asset-manifest.json content
     theme_version: str        # Hash of theme config/assets
-    
+
     def compute(self) -> str:
         """Combined hash for cache validation."""
         return hash_str(f"{self.config_hash}:{self.asset_manifest_hash}:{self.theme_version}")
@@ -446,37 +446,37 @@ def test_rendered_cache_invalidated_on_asset_manifest_change(tmp_path):
     site_dir = tmp_path / "site"
     content_dir = site_dir / "content"
     content_dir.mkdir(parents=True)
-    
+
     # Create minimal site with CSS reference
     (content_dir / "_index.md").write_text("# Home\n")
     (site_dir / "assets" / "css").mkdir(parents=True)
     css_file = site_dir / "assets" / "css" / "style.css"
     css_file.write_text("body { color: black; }")
-    
+
     # Build 1: Generate with fingerprint A
     site = Site.from_directory(site_dir)
     build(site)
-    
+
     # Capture fingerprint from manifest
     manifest_path = site.output_dir / "asset-manifest.json"
     manifest_v1 = json.loads(manifest_path.read_text())
     fingerprint_v1 = manifest_v1["css/style.css"]["output_path"]
-    
+
     # Verify HTML contains fingerprint A
     home_html = (site.output_dir / "index.html").read_text()
     assert fingerprint_v1 in home_html
-    
+
     # Modify CSS → new fingerprint
     css_file.write_text("body { color: red; }")
-    
+
     # Build 2 (incremental): Should detect manifest change
     build(site, incremental=True)
-    
+
     # Verify new fingerprint in manifest
     manifest_v2 = json.loads(manifest_path.read_text())
     fingerprint_v2 = manifest_v2["css/style.css"]["output_path"]
     assert fingerprint_v1 != fingerprint_v2, "CSS change should produce new fingerprint"
-    
+
     # Verify HTML updated with fingerprint B
     home_html_v2 = (site.output_dir / "index.html").read_text()
     assert fingerprint_v2 in home_html_v2, "Rendered cache should have been invalidated"
@@ -497,9 +497,9 @@ def test_asset_manifest_contextvar_thread_isolation():
         asset_manifest_context,
         get_asset_manifest,
     )
-    
+
     results = {}
-    
+
     def worker(thread_id: int, entries: dict[str, str]):
         ctx = AssetManifestContext(entries=entries, mtime=None)
         with asset_manifest_context(ctx):
@@ -508,17 +508,17 @@ def test_asset_manifest_contextvar_thread_isolation():
             # Each thread should see its own entries
             manifest = get_asset_manifest()
             results[thread_id] = manifest.entries.get("test.css")
-    
+
     threads = [
         threading.Thread(target=worker, args=(1, {"test.css": "test.abc.css"})),
         threading.Thread(target=worker, args=(2, {"test.css": "test.xyz.css"})),
     ]
-    
+
     for t in threads:
         t.start()
     for t in threads:
         t.join()
-    
+
     # Each thread should have seen its own value
     assert results[1] == "test.abc.css"
     assert results[2] == "test.xyz.css"
@@ -591,7 +591,7 @@ def phase_render(site: Site, ...):
         entries={k: v.output_path for k, v in manifest.entries.items()},
         mtime=manifest_path.stat().st_mtime if manifest_path.exists() else None,
     )
-    
+
     # All parallel rendering happens inside context
     with asset_manifest_context(ctx):
         _render_parallel(pages, ...)  # Each thread reads from ContextVar
@@ -609,7 +609,7 @@ def phase_render(site: Site, ...):
 1. **TemplateEngine consolidation timing**: Should we consolidate `TemplateEngine._asset_manifest_cache` in Phase 2 or defer to later?
    - **Current recommendation**: Defer (no breaking changes, already thread-safe)
 
-2. **Hash vs mtime for manifest validation**: Phase 1 uses mtime; Phase 3 (BuildStateHash) would use content hash. 
+2. **Hash vs mtime for manifest validation**: Phase 1 uses mtime; Phase 3 (BuildStateHash) would use content hash.
    - **Trade-off**: Hash is more robust (survives CI cache restore with different mtimes) but adds compute cost
    - **Recommendation**: Keep mtime for Phase 2, add hash in Phase 3
 

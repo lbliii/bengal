@@ -20,12 +20,10 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
-from typing import Any, TypeVar
-
-V = TypeVar("V")
+from typing import Any
 
 
-def compute_validity_stats(
+def compute_validity_stats[V](
     entries: dict[str, V],
     is_valid: Callable[[V], bool],
     serialize: Callable[[V], dict[str, Any]] | None = None,
@@ -59,7 +57,7 @@ def compute_validity_stats(
         try:
             size = len(json.dumps([serialize(e) for e in entries.values()]))
             stats["cache_size_bytes"] = size
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             stats["cache_size_bytes"] = 0
 
     return stats
@@ -149,7 +147,7 @@ def compute_taxonomy_stats(
         try:
             size = len(json.dumps([serialize(e) for e in tags.values()]))
             stats["cache_size_bytes"] = size
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             stats["cache_size_bytes"] = 0
 
     return stats

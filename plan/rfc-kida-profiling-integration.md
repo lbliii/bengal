@@ -74,41 +74,41 @@ if TYPE_CHECKING:
 @dataclass
 class BuildMetrics:
     """Accumulated metrics across all page renders."""
-    
+
     # Per-template timings
     template_times: dict[str, list[float]] = field(default_factory=dict)
-    
+
     # Block timings (aggregated across templates)
     block_times: dict[str, list[float]] = field(default_factory=dict)
-    
+
     # Include counts
     include_counts: dict[str, int] = field(default_factory=dict)
-    
+
     # Cache stats
     cache_hits: int = 0
     cache_misses: int = 0
-    
+
     def record_page(self, page: Page, metrics: dict) -> None:
         """Record metrics from a single page render."""
         template_name = page.template or "default"
-        
+
         # Track template time
         if template_name not in self.template_times:
             self.template_times[template_name] = []
         self.template_times[template_name].append(metrics["total_ms"])
-        
+
         # Track block times
         for block_name, block_data in metrics.get("blocks", {}).items():
             if block_name not in self.block_times:
                 self.block_times[block_name] = []
             self.block_times[block_name].append(block_data["ms"])
-        
+
         # Track includes
         for include_name, count in metrics.get("includes", {}).items():
             self.include_counts[include_name] = (
                 self.include_counts.get(include_name, 0) + count
             )
-    
+
     def summary(self) -> dict:
         """Generate build performance summary."""
         def stats(times: list[float]) -> dict:
@@ -120,10 +120,10 @@ class BuildMetrics:
                 "total_ms": round(sum(times), 2),
                 "max_ms": round(max(times), 2),
             }
-        
+
         return {
             "templates": {
-                name: stats(times) 
+                name: stats(times)
                 for name, times in sorted(
                     self.template_times.items(),
                     key=lambda x: sum(x[1]),
@@ -173,47 +173,47 @@ def render_pages(
     profile: bool = False,
 ) -> list[RenderedPage]:
     """Render all pages, optionally collecting metrics."""
-    
+
     build_metrics = BuildMetrics() if profile else None
     results = []
-    
+
     for page in pages:
         template = env.get_template(page.template or "default.html")
-        
+
         if profile:
             with profiled_render() as metrics:
                 html = template.render(page=page, site=site)
             build_metrics.record_page(page, metrics.summary())
         else:
             html = template.render(page=page, site=site)
-        
+
         results.append(RenderedPage(page, html))
-    
+
     if profile:
         _report_build_metrics(build_metrics)
-    
+
     return results
 
 
 def _report_build_metrics(metrics: BuildMetrics) -> None:
     """Print build performance summary."""
     summary = metrics.summary()
-    
+
     print("\n📊 Build Performance Report")
     print("=" * 50)
-    
+
     print("\n🐢 Slowest Templates:")
     for name, stats in list(summary["templates"].items())[:5]:
         print(f"  {name}: {stats['avg_ms']:.1f}ms avg × {stats['count']} = {stats['total_ms']:.1f}ms")
-    
+
     print("\n🧱 Slowest Blocks:")
     for name, stats in list(summary["blocks"].items())[:5]:
         print(f"  {name}: {stats['avg_ms']:.1f}ms avg × {stats['count']} = {stats['total_ms']:.1f}ms")
-    
+
     print("\n📦 Most Included:")
     for name, count in list(summary["includes"].items())[:5]:
         print(f"  {name}: {count} times")
-    
+
     cache = summary["cache"]
     print(f"\n💾 Block Cache: {cache['hit_rate']}% hit rate ({cache['hits']} hits, {cache['misses']} misses)")
 ```
@@ -280,17 +280,17 @@ def render_with_overlay(template, context: dict, dev_mode: bool) -> str:
     """Render template, injecting dev overlay if enabled."""
     if not dev_mode:
         return template.render(**context)
-    
+
     with profiled_render() as metrics:
         html = template.render(**context)
-    
+
     summary = metrics.summary()
     overlay = _build_overlay_html(summary)
-    
+
     # Inject before </body>
     if "</body>" in html:
         html = html.replace("</body>", f"{overlay}</body>")
-    
+
     return html
 
 
@@ -299,17 +299,17 @@ def _build_overlay_html(summary: dict) -> str:
     total = summary["total_ms"]
     blocks = summary.get("blocks", {})
     includes = summary.get("includes", {})
-    
+
     block_rows = "".join(
         f'<div class="bengal-metric"><span>{name}</span><span>{data["ms"]:.1f}ms</span></div>'
         for name, data in list(blocks.items())[:5]
     )
-    
+
     include_rows = "".join(
         f'<div class="bengal-metric"><span>{name}</span><span>×{count}</span></div>'
         for name, count in list(includes.items())[:3]
     )
-    
+
     return f'''
 <div id="bengal-devtools" style="
     position: fixed; bottom: 10px; right: 10px;
@@ -341,11 +341,11 @@ class DevServer:
     def __init__(self, site: Site, *, show_overlay: bool = True):
         self.site = site
         self.show_overlay = show_overlay
-    
+
     def render_page(self, path: str) -> str:
         page = self.site.get_page(path)
         template = self.site.env.get_template(page.template)
-        
+
         return render_with_overlay(
             template,
             {"page": page, "site": self.site.context},
@@ -374,16 +374,16 @@ def render_with_cache_tracking(
     cached_blocks: dict[str, str],
 ) -> tuple[str, dict[str, int]]:
     """Render with block cache and return cache stats."""
-    
+
     cache_stats = {"hits": 0, "misses": 0}
-    
+
     html = template.render(
         page=page,
         site=site,
         _cached_blocks=cached_blocks,
         _cached_stats=cache_stats,  # Kida tracks hits/misses
     )
-    
+
     return html, cache_stats
 ```
 
@@ -397,7 +397,7 @@ total_misses = sum(page_stats["misses"] for page_stats in all_stats)
 if total_hits + total_misses > 0:
     hit_rate = total_hits / (total_hits + total_misses) * 100
     print(f"Block cache: {hit_rate:.1f}% hit rate ({total_hits:,} hits)")
-    
+
     if hit_rate < 80:
         print("⚠️  Low cache hit rate. Consider caching more site-scoped blocks.")
 ```
@@ -454,7 +454,7 @@ def test_build_metrics_records_page():
         "blocks": {"content": {"ms": 8.0}},
         "includes": {"partials/nav.html": 2},
     })
-    
+
     summary = metrics.summary()
     assert "layouts/default.html" in summary["templates"]
     assert summary["templates"]["layouts/default.html"]["avg_ms"] == 10.5
@@ -463,13 +463,13 @@ def test_build_metrics_records_page():
 def test_profiled_render_integration():
     """Verify Kida profiled_render works in Bengal context."""
     from kida.render_accumulator import profiled_render
-    
+
     env = create_test_env()
     template = env.get_template("test.html")
-    
+
     with profiled_render() as metrics:
         html = template.render(page=test_page)
-    
+
     summary = metrics.summary()
     assert "total_ms" in summary
     assert summary["total_ms"] >= 0
@@ -481,7 +481,7 @@ def test_profiled_render_integration():
 def test_build_with_profile_flag(tmp_site):
     """Build with --profile produces performance report."""
     result = runner.invoke(build, ["--profile"])
-    
+
     assert result.exit_code == 0
     assert "Build Performance Report" in result.output
     assert "Slowest Templates" in result.output

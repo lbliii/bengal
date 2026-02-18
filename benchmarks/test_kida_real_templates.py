@@ -131,9 +131,9 @@ def create_mock_context() -> dict[str, Any]:
         ],
         "get_auto_nav": list,
         "canonical_url": lambda url: f"https://lbliii.github.io/bengal{url}",
-        "og_image": lambda path, page=None: f"https://lbliii.github.io/bengal{path}"
-        if path
-        else "",
+        "og_image": lambda path, page=None: (
+            f"https://lbliii.github.io/bengal{path}" if path else ""
+        ),
         "asset_url": lambda path: f"/assets/{path}",
         "icon": lambda name, **kwargs: f'<svg class="icon icon-{name}"></svg>',
     }

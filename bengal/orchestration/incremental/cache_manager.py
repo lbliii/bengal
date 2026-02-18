@@ -127,7 +127,7 @@ class CacheManager:
             cache_exists = cache_path.exists()
             try:
                 file_count = len(self.cache.file_fingerprints)
-            except (AttributeError, TypeError):
+            except AttributeError, TypeError:
                 file_count = 0
             logger.info(
                 "cache_initialized",

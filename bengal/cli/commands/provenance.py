@@ -163,7 +163,7 @@ def affected(file_path: str | None, by_hash: str | None, by_path: str | None, so
                 for inp in data.get("inputs", []):
                     if by_path.lower() in inp.get("path", "").lower():
                         matching_pages.add(data["page_path"])
-            except (json.JSONDecodeError, KeyError):
+            except json.JSONDecodeError, KeyError:
                 continue
 
         cli.info(f"Pages with inputs matching '{by_path}'")

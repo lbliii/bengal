@@ -35,12 +35,12 @@ Extend existing protocols to cover missing attributes before migration.
 @runtime_checkable
 class PageLike(Protocol):
     # ... existing properties ...
-    
+
     @property
     def metadata(self) -> dict[str, Any]:
         """Raw frontmatter/metadata dict for template access."""
         ...
-    
+
     @property
     def tags(self) -> list[str] | None:
         """Tags for taxonomy filtering."""
@@ -70,12 +70,12 @@ git add -A && git commit -m "core: extend PageLike protocol with metadata and ta
 @runtime_checkable
 class SiteLike(Protocol):
     # ... existing properties ...
-    
+
     @property
     def output_dir(self) -> Path:
         """Build output directory."""
         ...
-    
+
     @property
     def dev_mode(self) -> bool:
         """Whether site is in development mode."""
@@ -105,15 +105,15 @@ git add -A && git commit -m "core: extend SiteLike protocol with output_dir and 
 @runtime_checkable
 class ConfigLike(Protocol):
     """Protocol for dict-like config access."""
-    
+
     def get(self, key: str, default: Any = None) -> Any:
         """Get config value with optional default."""
         ...
-    
+
     def __getitem__(self, key: str) -> Any:
         """Get config value by key."""
         ...
-    
+
     def __contains__(self, key: object) -> bool:
         """Check if key exists."""
         ...
@@ -567,19 +567,19 @@ graph TD
     1.1 --> 2.3[2.3 renderer.py]
     1.1 --> 2.7[2.7 explainer.py]
     1.1 --> 2.8[2.8 knowledge_graph.py]
-    
+
     1.2[1.2 Extend SiteLike] --> 2.1[2.1 template_functions]
     1.2 --> 2.4[2.4 orchestration]
     1.2 --> 2.5[2.5 health validators]
-    
+
     1.1 --> 2.6[2.6 postprocess]
     1.2 --> 2.6
-    
+
     1.3[1.3 ConfigLike] --> 2.4
-    
+
     2.1 --> 3.1[3.1 Remove ignores]
     2.2 --> 3.1
-    
+
     6.1[6.1 TypeGuard protocols] --> 6.2[6.2 template.py]
     6.1 --> 6.3[6.3 dashboard]
 ```

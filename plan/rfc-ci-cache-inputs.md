@@ -15,7 +15,7 @@ key: bengal-${{ hashFiles('uv.lock', 'site/content/**', 'site/config/**') }}
 
 Bengal **already knows** all its inputs from configuration:
 - `autodoc.python.source_dirs`
-- `autodoc.cli.app_module` 
+- `autodoc.cli.app_module`
 - `autodoc.openapi.spec_file`
 - `external_refs.indexes[*].url` (local paths)
 - Theme paths
@@ -108,50 +108,50 @@ if TYPE_CHECKING:
 def get_input_globs(config: SiteConfig, site_root: Path) -> list[tuple[str, str]]:
     """
     Return list of (glob_pattern, source_description) tuples.
-    
+
     Patterns are relative to site_root or use ../ for external paths.
     """
     inputs: list[tuple[str, str]] = []
-    
+
     # Always include content and config
     inputs.append(("content/**", "built-in"))
     inputs.append(("config/**", "built-in"))
-    
+
     # Templates (if custom templates directory exists)
     templates_dir = site_root / "templates"
     if templates_dir.exists():
         inputs.append(("templates/**", "custom templates"))
-    
+
     # Static assets
     static_dir = site_root / "static"
     if static_dir.exists():
         inputs.append(("static/**", "static assets"))
-    
+
     # Autodoc Python sources
     if config.autodoc.python.enabled:
         for source_dir in config.autodoc.python.source_dirs:
             inputs.append((f"{source_dir}/**/*.py", "autodoc.python.source_dirs"))
-    
+
     # Autodoc CLI (derive package from app_module)
     if config.autodoc.cli.enabled:
         app_module = config.autodoc.cli.app_module  # e.g., "bengal.cli:main"
         package = app_module.split(":")[0].split(".")[0]
         inputs.append((f"../{package}/**/*.py", "autodoc.cli.app_module"))
-    
+
     # Autodoc OpenAPI
     if config.autodoc.openapi.enabled:
         inputs.append((config.autodoc.openapi.spec_file, "autodoc.openapi.spec_file"))
-    
+
     # External refs (local index paths only)
     if config.external_refs.enabled:
         for idx in config.external_refs.indexes:
             if not idx.url.startswith(("http://", "https://")):
                 inputs.append((idx.url, "external_refs.indexes"))
-    
+
     # Theme (if external path)
     if config.theme.path:
         inputs.append((f"{config.theme.path}/**", "theme.path"))
-    
+
     return inputs
 
 
@@ -167,10 +167,10 @@ def cache_cli() -> None:
 def inputs(output_format: str, verbose: bool) -> None:
     """
     List all input paths/globs that affect the build.
-    
+
     Use this to construct CI cache keys that properly invalidate
     when any build input changes.
-    
+
     Examples:
         bengal cache inputs
         bengal cache inputs --verbose
@@ -178,7 +178,7 @@ def inputs(output_format: str, verbose: bool) -> None:
     """
     site = load_site_from_cli(...)
     input_globs = get_input_globs(site.config, site.root_path)
-    
+
     if output_format == "json":
         if verbose:
             click.echo(json.dumps([{"pattern": p, "source": s} for p, s in input_globs], indent=2))
@@ -200,38 +200,38 @@ Computes a single deterministic hash from all input files:
 import bengal
 
 @cache_cli.command("hash")
-@click.option("--include-version/--no-include-version", default=True, 
+@click.option("--include-version/--no-include-version", default=True,
               help="Include Bengal version in hash (recommended)")
 def cache_hash(include_version: bool) -> None:
     """
     Compute deterministic hash of all build inputs.
-    
+
     Use this as a CI cache key for accurate invalidation.
     The hash includes:
     - All input file contents
     - Relative file paths (for determinism)
     - Bengal version (by default)
-    
+
     Examples:
         bengal cache hash
         bengal cache hash --no-include-version
     """
     site = load_site_from_cli(...)
     input_globs = get_input_globs(site.config, site.root_path)
-    
+
     hasher = hashlib.sha256()
-    
+
     # Include Bengal version for cache invalidation on upgrades
     if include_version:
         hasher.update(f"bengal:{bengal.__version__}".encode())
-    
+
     # Resolve and hash all matching files
     for glob_pattern, source in input_globs:
         # Validate pattern - reject deeply nested parent paths
         if glob_pattern.count("../") > 1:
             click.echo(f"Warning: Skipping unsupported pattern '{glob_pattern}' (nested ../ not supported)", err=True)
             continue
-        
+
         # Handle ../ patterns by resolving from site root
         if glob_pattern.startswith("../"):
             base_path = site.root_path.parent
@@ -239,16 +239,16 @@ def cache_hash(include_version: bool) -> None:
         else:
             base_path = site.root_path
             resolved_pattern = glob_pattern
-        
+
         matched_files = sorted(base_path.glob(resolved_pattern))
-        
+
         for file_path in matched_files:
             if not file_path.is_file():
                 continue
-            
+
             # Resolve symlinks for consistent hashing
             file_path = file_path.resolve()
-            
+
             # Hash relative path for determinism across machines
             try:
                 rel_path = file_path.relative_to(site.root_path.resolve())
@@ -259,13 +259,13 @@ def cache_hash(include_version: bool) -> None:
                 except ValueError:
                     # Fallback: use absolute path (rare edge case)
                     rel_path = file_path
-            
+
             try:
                 hasher.update(rel_path.as_posix().encode())
             hasher.update(file_path.read_bytes())
             except (OSError, IOError) as e:
                 raise click.ClickException(f"Cannot read file '{file_path}': {e}")
-    
+
     click.echo(hasher.hexdigest()[:16])
 ```
 
@@ -314,18 +314,18 @@ if TYPE_CHECKING:
 
 class AutodocTrackingMixin:
     """Track autodoc source file to page dependencies WITH hash validation."""
-    
+
     # Existing: source_file → set of autodoc page paths
     autodoc_dependencies: dict[str, set[str]] = field(default_factory=dict)
-    
+
     # NEW: source_file → (content_hash, mtime) for self-validation
     # Using tuple allows mtime-first optimization (skip hash if mtime unchanged)
     autodoc_source_metadata: dict[str, tuple[str, float]] = field(default_factory=dict)
-    
+
     def _normalize_source_path(self, source_file: Path | str, site_root: Path) -> str:
         """
         Normalize source path for consistent cache keys.
-        
+
         Converts absolute paths to relative (from site parent) when possible.
         This ensures cache hits across different checkout locations.
         """
@@ -337,10 +337,10 @@ class AutodocTrackingMixin:
                 # External path outside repo - keep absolute
                 return str(path)
         return str(path)
-    
+
     def add_autodoc_dependency(
-        self, 
-        source_file: Path | str, 
+        self,
+        source_file: Path | str,
         autodoc_page: Path | str,
         site_root: Path,
         source_hash: str | None = None,
@@ -348,7 +348,7 @@ class AutodocTrackingMixin:
     ) -> None:
         """
         Register that source_file produces autodoc_page.
-        
+
         Args:
             source_file: Path to the Python/OpenAPI source file
             autodoc_page: Path to the generated autodoc page
@@ -358,42 +358,42 @@ class AutodocTrackingMixin:
         """
         source_key = self._normalize_source_path(source_file, site_root)
         page_key = str(autodoc_page)
-        
+
         if source_key not in self.autodoc_dependencies:
             self.autodoc_dependencies[source_key] = set()
         self.autodoc_dependencies[source_key].add(page_key)
-        
+
         # Store metadata for self-validation
         if source_hash is not None and source_mtime is not None:
             self.autodoc_source_metadata[source_key] = (source_hash, source_mtime)
-    
+
     def get_affected_autodoc_pages(self, source_file: str) -> set[str]:
         """
         Get all autodoc pages generated from a source file.
-        
+
         Args:
             source_file: Normalized source file path
-            
+
         Returns:
             Set of autodoc page paths that depend on this source
         """
         return self.autodoc_dependencies.get(source_file, set())
-    
+
     def get_stale_autodoc_sources(self, site_root: Path) -> set[str]:
         """
         Validate autodoc sources and return paths that have changed.
-        
+
         Uses mtime-first optimization: only computes hash if mtime changed.
         This enables cache self-validation independent of CI cache keys.
-        
+
         Args:
             site_root: Site root path for resolving relative paths
-            
+
         Returns:
             Set of source file paths whose content has changed since caching
         """
         from bengal.utils.hashing import hash_file
-        
+
         # Handle cache migration: old caches have dependencies but no metadata
         if not self.autodoc_source_metadata and self.autodoc_dependencies:
             logger.info(
@@ -402,31 +402,31 @@ class AutodocTrackingMixin:
                 source_count=len(self.autodoc_dependencies),
             )
             return set(self.autodoc_dependencies.keys())
-        
+
         stale_sources: set[str] = set()
-        
+
         for source_key, (stored_hash, stored_mtime) in self.autodoc_source_metadata.items():
             # Resolve path relative to site parent (where ../ paths live)
             if source_key.startswith("../") or not Path(source_key).is_absolute():
                 source = site_root.parent / source_key
             else:
                 source = Path(source_key)
-            
+
             if not source.exists():
                 # Source deleted - mark as stale for cleanup
                 stale_sources.add(source_key)
                 continue
-            
+
             # mtime-first optimization: skip hash if mtime unchanged
             current_mtime = source.stat().st_mtime
             if current_mtime == stored_mtime:
                 continue  # Fast path: file unchanged
-            
+
             # mtime changed - verify with hash (handles touch without content change)
             current_hash = hash_file(source)
             if current_hash != stored_hash:
                 stale_sources.add(source_key)
-        
+
         return stale_sources
 ```
 
@@ -437,9 +437,9 @@ class AutodocTrackingMixin:
 
 def detect_changes(self) -> ChangeSet:
     """Detect what needs rebuilding, including autodoc self-validation."""
-    
+
     # ... existing change detection ...
-    
+
     # NEW: Self-validate autodoc sources
     stale_autodoc = self.cache.get_stale_autodoc_sources(self.site.root_path)
     if stale_autodoc:
@@ -448,12 +448,12 @@ def detect_changes(self) -> ChangeSet:
             count=len(stale_autodoc),
             sources=list(stale_autodoc)[:5],  # First 5 for brevity
         )
-        
+
         # Get all pages affected by stale sources
         for source in stale_autodoc:
             affected_pages = self.cache.get_affected_autodoc_pages(source)
             changes.invalidated_pages.update(affected_pages)
-    
+
     return changes
 ```
 
@@ -465,10 +465,10 @@ def detect_changes(self) -> ChangeSet:
 def extract_module(self, module_path: Path) -> AutodocPage:
     """Extract documentation from a Python module."""
     page = self._do_extraction(module_path)
-    
+
     # Register dependency with hash for self-validation
     from bengal.utils.hashing import hash_file
-    
+
     self.cache.add_autodoc_dependency(
         source_file=module_path,
         autodoc_page=page.output_path,
@@ -476,7 +476,7 @@ def extract_module(self, module_path: Path) -> AutodocPage:
         source_hash=hash_file(module_path),
         source_mtime=module_path.stat().st_mtime,
     )
-    
+
     return page
 ```
 
@@ -499,7 +499,7 @@ from pathlib import Path
 def hash_file(path: Path) -> str:
     """
     Compute SHA-256 hash of file contents.
-    
+
     Returns truncated 16-char hex string for compact storage.
     Used by both `bengal cache hash` and autodoc self-validation.
     """
@@ -541,32 +541,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Install uv
         uses: astral-sh/setup-uv@v4
         with:
           python-version: "3.14"
-      
+
       - name: Install bengal
         run: uv sync
-      
+
       # Key step: Get inputs hash for accurate cache invalidation
       - name: Get cache hash
         id: cache
         working-directory: site
         run: echo "hash=$(uv run bengal cache hash)" >> $GITHUB_OUTPUT
-      
+
       - name: Cache Bengal build state
         uses: actions/cache@v4
         with:
           path: site/.bengal
           key: bengal-${{ runner.os }}-${{ steps.cache.outputs.hash }}
           # No restore-keys - we want exact match for correctness
-      
+
       - name: Build site
         working-directory: site
         run: uv run bengal site build --environment production
-      
+
       # ... deploy steps
 ```
 
@@ -760,37 +760,37 @@ def test_cache_hash_changes_on_file_change(site_factory, tmp_path):
     """Hash changes when any input file changes."""
     site = site_factory()
     result1 = runner.invoke(cache_cli, ["hash"], obj=site)
-    
+
     # Modify a content file
     (site.root_path / "content" / "index.md").write_text("changed")
     result2 = runner.invoke(cache_cli, ["hash"], obj=site)
-    
+
     assert result1.output != result2.output
 
 
 def test_cache_hash_includes_version(site_factory, monkeypatch):
     """Hash includes Bengal version by default."""
     site = site_factory()
-    
+
     monkeypatch.setattr("bengal.__version__", "0.1.0")
     result1 = runner.invoke(cache_cli, ["hash"], obj=site)
-    
+
     monkeypatch.setattr("bengal.__version__", "0.2.0")
     result2 = runner.invoke(cache_cli, ["hash"], obj=site)
-    
+
     assert result1.output != result2.output
 
 
 def test_cache_hash_no_version_flag(site_factory, monkeypatch):
     """--no-include-version excludes version from hash."""
     site = site_factory()
-    
+
     monkeypatch.setattr("bengal.__version__", "0.1.0")
     result1 = runner.invoke(cache_cli, ["hash", "--no-include-version"], obj=site)
-    
+
     monkeypatch.setattr("bengal.__version__", "0.2.0")
     result2 = runner.invoke(cache_cli, ["hash", "--no-include-version"], obj=site)
-    
+
     assert result1.output == result2.output
 
 
@@ -810,7 +810,7 @@ def test_autodoc_source_metadata_stored(cache_factory, tmp_path):
     source_file = tmp_path / "src" / "module.py"
     source_file.parent.mkdir()
     source_file.write_text("def foo(): pass")
-    
+
     cache = cache_factory()
     cache.add_autodoc_dependency(
         source_file,
@@ -819,7 +819,7 @@ def test_autodoc_source_metadata_stored(cache_factory, tmp_path):
         source_hash=hash_file(source_file),
         source_mtime=source_file.stat().st_mtime,
     )
-    
+
     # Path normalized relative to site parent
     normalized_key = str(source_file.relative_to(tmp_path))
     assert normalized_key in cache.autodoc_source_metadata
@@ -832,7 +832,7 @@ def test_stale_autodoc_detected(cache_factory, tmp_path):
     source_file = tmp_path / "src" / "module.py"
     source_file.parent.mkdir()
     source_file.write_text("def foo(): pass")
-    
+
     cache = cache_factory()
     cache.add_autodoc_dependency(
         source_file,
@@ -841,12 +841,12 @@ def test_stale_autodoc_detected(cache_factory, tmp_path):
         source_hash=hash_file(source_file),
         source_mtime=source_file.stat().st_mtime,
     )
-    
+
     # Modify source (changes both content and mtime)
     import time
     time.sleep(0.01)  # Ensure mtime changes
     source_file.write_text("def foo(): return 42")
-    
+
     stale = cache.get_stale_autodoc_sources(site_root)
     normalized_key = str(source_file.relative_to(tmp_path))
     assert normalized_key in stale
@@ -859,7 +859,7 @@ def test_unchanged_autodoc_not_stale(cache_factory, tmp_path):
     source_file = tmp_path / "src" / "module.py"
     source_file.parent.mkdir()
     source_file.write_text("def foo(): pass")
-    
+
     cache = cache_factory()
     cache.add_autodoc_dependency(
         source_file,
@@ -868,7 +868,7 @@ def test_unchanged_autodoc_not_stale(cache_factory, tmp_path):
         source_hash=hash_file(source_file),
         source_mtime=source_file.stat().st_mtime,
     )
-    
+
     stale = cache.get_stale_autodoc_sources(site_root)
     normalized_key = str(source_file.relative_to(tmp_path))
     assert normalized_key not in stale
@@ -881,7 +881,7 @@ def test_deleted_autodoc_source_detected(cache_factory, tmp_path):
     source_file = tmp_path / "src" / "module.py"
     source_file.parent.mkdir()
     source_file.write_text("def foo(): pass")
-    
+
     cache = cache_factory()
     normalized_key = str(source_file.relative_to(tmp_path))
     cache.add_autodoc_dependency(
@@ -891,10 +891,10 @@ def test_deleted_autodoc_source_detected(cache_factory, tmp_path):
         source_hash=hash_file(source_file),
         source_mtime=source_file.stat().st_mtime,
     )
-    
+
     # Delete source
     source_file.unlink()
-    
+
     stale = cache.get_stale_autodoc_sources(site_root)
     assert normalized_key in stale
 
@@ -906,14 +906,14 @@ def test_cache_migration_marks_all_stale(cache_factory, tmp_path):
     source_file = tmp_path / "src" / "module.py"
     source_file.parent.mkdir()
     source_file.write_text("def foo(): pass")
-    
+
     cache = cache_factory()
     normalized_key = str(source_file.relative_to(tmp_path))
-    
+
     # Simulate old cache: has dependencies but no metadata (pre-v0.1.8)
     cache.autodoc_dependencies[normalized_key] = {"api/module/index.md"}
     # autodoc_source_metadata is empty
-    
+
     stale = cache.get_stale_autodoc_sources(site_root)
     assert normalized_key in stale  # All marked stale for safety
 
@@ -925,7 +925,7 @@ def test_mtime_unchanged_skips_hash(cache_factory, tmp_path, mocker):
     source_file = tmp_path / "src" / "module.py"
     source_file.parent.mkdir()
     source_file.write_text("def foo(): pass")
-    
+
     cache = cache_factory()
     cache.add_autodoc_dependency(
         source_file,
@@ -934,12 +934,12 @@ def test_mtime_unchanged_skips_hash(cache_factory, tmp_path, mocker):
         source_hash=hash_file(source_file),
         source_mtime=source_file.stat().st_mtime,
     )
-    
+
     # Mock hash_file to track if it's called
     mock_hash = mocker.patch("bengal.utils.hashing.hash_file")
-    
+
     stale = cache.get_stale_autodoc_sources(site_root)
-    
+
     # hash_file should NOT be called - mtime unchanged
     mock_hash.assert_not_called()
     assert len(stale) == 0

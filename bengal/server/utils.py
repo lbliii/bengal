@@ -206,7 +206,7 @@ def safe_int(value: object, default: int = 0) -> int:
         if isinstance(value, int):
             return value
         return int(str(value))
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return default
 
 

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import html as html_module
 import re
+from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import urljoin
 
@@ -390,6 +391,28 @@ def extract_content(html: str) -> str:
 _LINK_ATTR_PATTERN = re.compile(r'(href|src)=(["\'])([^"\']*?)\2')
 
 
+def _embedding_base_url(page: object) -> str:
+    """Compute base URL for resolving relative links from embedded page content.
+
+    Markdown relative links are resolved from the source file directory, while page.href
+    usually points at the rendered output URL (often including the page slug). For
+    non-index pages this means `urljoin(page.href, "./child")` incorrectly becomes
+    `/.../<page>/child` instead of `/.../child`.
+    """
+    href = str(getattr(page, "href", None) or getattr(page, "_path", None) or "/")
+    normalized_href = href if href.endswith("/") else f"{href}/"
+
+    source_path = getattr(page, "source_path", None)
+    if source_path:
+        stem = Path(str(source_path)).stem
+        if stem and stem not in {"index", "_index"}:
+            suffix = f"/{stem}/"
+            if normalized_href.endswith(suffix):
+                return normalized_href[: -len(suffix)] + "/"
+
+    return normalized_href
+
+
 def resolve_links_for_embedding(html: str, page: object | None) -> str:
     """
     Rewrite relative links in HTML to absolute URLs for embedding contexts.
@@ -423,8 +446,7 @@ def resolve_links_for_embedding(html: str, page: object | None) -> str:
     if "href=" not in html and "src=" not in html:
         return html
 
-    base = getattr(page, "href", None) or getattr(page, "_path", None) or "/"
-    base = str(base).rstrip("/") + "/"
+    base = _embedding_base_url(page)
 
     # Skip: #anchor, /absolute, http(s)://, //, mailto:, tel:
     def _is_relative(url: str) -> bool:

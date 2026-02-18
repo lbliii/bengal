@@ -170,12 +170,8 @@ class PatitasParser(BaseMarkdownParser):
         try:
             from patitas import extract_excerpt, extract_meta_description
 
-            max_chars = metadata.get(
-                "_excerpt_length", get_default("content", "excerpt_length")
-            )
-            excerpt = extract_excerpt(
-                ast, content, excerpt_as_html=True, max_chars=max_chars
-            )
+            max_chars = metadata.get("_excerpt_length", get_default("content", "excerpt_length"))
+            excerpt = extract_excerpt(ast, content, excerpt_as_html=True, max_chars=max_chars)
             meta_desc = (
                 extract_meta_description(ast, content)
                 if not metadata.get("description")
@@ -308,13 +304,9 @@ class PatitasParser(BaseMarkdownParser):
                 content_cfg = context.get("config", {}).get("content", {}) or {}
                 max_chars = metadata.get(
                     "_excerpt_length",
-                    content_cfg.get(
-                        "excerpt_length", get_default("content", "excerpt_length")
-                    ),
+                    content_cfg.get("excerpt_length", get_default("content", "excerpt_length")),
                 )
-                excerpt = extract_excerpt(
-                    ast, content, excerpt_as_html=True, max_chars=max_chars
-                )
+                excerpt = extract_excerpt(ast, content, excerpt_as_html=True, max_chars=max_chars)
                 meta_desc = (
                     extract_meta_description(ast, content)
                     if not metadata.get("description")

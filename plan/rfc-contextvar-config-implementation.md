@@ -52,7 +52,7 @@ class Parser:
         "_link_refs",
         "_containers",
         "_allow_setext_headings",
-        
+
         # Configuration (9 slots) - EXTRACT TO ContextVar
         "_text_transformer",
         "_tables_enabled",
@@ -79,7 +79,7 @@ class HtmlRenderer:
         "_page_context",
         "_current_page",
         "_directive_cache",      # Per-site cache, passed in (not config)
-        
+
         # Configuration (7 slots) - EXTRACT TO ContextVar
         "_highlight",
         "_highlight_style",
@@ -120,7 +120,7 @@ if TYPE_CHECKING:
 @dataclass(frozen=True, slots=True)
 class ParseConfig:
     """Immutable parse configuration.
-    
+
     Set once per Markdown instance, read by all parsers in the context.
     Frozen dataclass ensures thread-safety (immutable after creation).
     """
@@ -152,7 +152,7 @@ def get_parse_config() -> ParseConfig:
 
 def set_parse_config(config: ParseConfig) -> Token[ParseConfig]:
     """Set parse configuration for current context.
-    
+
     Returns a token that can be used to restore the previous value.
     """
     return _parse_config.set(config)
@@ -160,7 +160,7 @@ def set_parse_config(config: ParseConfig) -> Token[ParseConfig]:
 
 def reset_parse_config(token: Token[ParseConfig] | None = None) -> None:
     """Reset parse configuration.
-    
+
     If token is provided, restores to the previous value (proper nesting).
     Otherwise, resets to the default configuration.
     """
@@ -173,9 +173,9 @@ def reset_parse_config(token: Token[ParseConfig] | None = None) -> None:
 @contextmanager
 def parse_config_context(config: ParseConfig) -> Iterator[ParseConfig]:
     """Context manager for scoped parse configuration.
-    
+
     Properly restores previous config on exit (supports nesting).
-    
+
     Usage:
         with parse_config_context(ParseConfig(tables_enabled=True)) as cfg:
             parser = Parser(source)
@@ -221,10 +221,10 @@ _ROSETTES_AVAILABLE: bool = _check_rosettes_available()
 @dataclass(frozen=True, slots=True)
 class RenderConfig:
     """Immutable render configuration.
-    
+
     Set once per render context, read by all renderers.
     Frozen dataclass ensures thread-safety.
-    
+
     Note: rosettes_available uses a factory default to capture
     module-level import check result.
     """
@@ -254,7 +254,7 @@ def get_render_config() -> RenderConfig:
 
 def set_render_config(config: RenderConfig) -> Token[RenderConfig]:
     """Set render configuration for current context.
-    
+
     Returns a token that can be used to restore the previous value.
     """
     return _render_config.set(config)
@@ -262,7 +262,7 @@ def set_render_config(config: RenderConfig) -> Token[RenderConfig]:
 
 def reset_render_config(token: Token[RenderConfig] | None = None) -> None:
     """Reset render configuration.
-    
+
     If token is provided, restores to the previous value (proper nesting).
     Otherwise, resets to the default configuration.
     """
@@ -275,9 +275,9 @@ def reset_render_config(token: Token[RenderConfig] | None = None) -> None:
 @contextmanager
 def render_config_context(config: RenderConfig) -> Iterator[RenderConfig]:
     """Context manager for scoped render configuration.
-    
+
     Properly restores previous config on exit (supports nesting).
-    
+
     Usage:
         with render_config_context(RenderConfig(highlight=True)) as cfg:
             renderer = HtmlRenderer(source)
@@ -310,14 +310,14 @@ class Parser:
         "_containers",
         "_allow_setext_headings",
     )
-    
+
     def __init__(
         self,
         source: str,
         source_file: str | None = None,
     ) -> None:
         """Initialize parser with source text only.
-        
+
         Configuration is read from ContextVar, not passed as parameters.
         """
         self._source = source
@@ -329,44 +329,44 @@ class Parser:
         self._link_refs: dict = {}
         self._containers = ContainerStack()
         self._allow_setext_headings = True
-    
+
     # Config access via properties (cached reference pattern)
     @property
     def _config(self) -> ParseConfig:
         return get_parse_config()
-    
+
     @property
     def _tables_enabled(self) -> bool:
         return self._config.tables_enabled
-    
+
     @property
     def _strikethrough_enabled(self) -> bool:
         return self._config.strikethrough_enabled
-    
+
     @property
     def _task_lists_enabled(self) -> bool:
         return self._config.task_lists_enabled
-    
+
     @property
     def _footnotes_enabled(self) -> bool:
         return self._config.footnotes_enabled
-    
+
     @property
     def _math_enabled(self) -> bool:
         return self._config.math_enabled
-    
+
     @property
     def _autolinks_enabled(self) -> bool:
         return self._config.autolinks_enabled
-    
+
     @property
     def _directive_registry(self):
         return self._config.directive_registry
-    
+
     @property
     def _strict_contracts(self) -> bool:
         return self._config.strict_contracts
-    
+
     @property
     def _text_transformer(self):
         return self._config.text_transformer
@@ -390,7 +390,7 @@ class HtmlRenderer:
         "_current_page",
         "_directive_cache",
     )
-    
+
     def __init__(
         self,
         source: str = "",
@@ -400,7 +400,7 @@ class HtmlRenderer:
         directive_cache: DirectiveCache | None = None,
     ) -> None:
         """Initialize renderer with source and per-render state only.
-        
+
         Configuration is read from ContextVar.
         """
         self._source = source
@@ -410,36 +410,36 @@ class HtmlRenderer:
         self._page_context = page_context
         self._current_page = page_context
         self._directive_cache = directive_cache
-    
+
     # Config access via properties (all read from ContextVar)
     @property
     def _config(self) -> RenderConfig:
         return get_render_config()
-    
+
     @property
     def _highlight(self) -> bool:
         return self._config.highlight
-    
+
     @property
     def _highlight_style(self) -> str:
         return self._config.highlight_style
-    
+
     @property
     def _directive_registry(self):
         return self._config.directive_registry
-    
+
     @property
     def _role_registry(self):
         return self._config.role_registry
-    
+
     @property
     def _text_transformer(self):
         return self._config.text_transformer
-    
+
     @property
     def _slugify(self):
         return self._config.slugify
-    
+
     @property
     def _rosettes_available(self) -> bool:
         """Check if rosettes highlighter is available (from config)."""
@@ -460,7 +460,7 @@ from bengal.parsing.backends.patitas.render_config import (
 
 class PatitasParser(BaseMarkdownParser):
     """Parser using Patitas library (modern Markdown parser)."""
-    
+
     def __init__(
         self,
         *,
@@ -473,7 +473,7 @@ class PatitasParser(BaseMarkdownParser):
         slugify: Callable[[str], str] | None = None,
     ) -> None:
         self._plugins = plugins or []
-        
+
         # Build immutable configs once (reused for all parses)
         self._parse_config = ParseConfig(
             tables_enabled="tables" in self._plugins,
@@ -485,7 +485,7 @@ class PatitasParser(BaseMarkdownParser):
             directive_registry=directive_registry,
             text_transformer=text_transformer,
         )
-        
+
         self._render_config = RenderConfig(
             highlight=highlight,
             highlight_style=highlight_style,
@@ -495,21 +495,21 @@ class PatitasParser(BaseMarkdownParser):
             slugify=slugify,
             # rosettes_available uses default (computed at module import)
         )
-    
+
     def parse(self, content: str, source_file: str | None = None) -> str:
         """Parse markdown to HTML.
-        
+
         Uses token-based ContextVar reset for proper nesting support.
         """
         # Set configs for this parse (thread-local), capture tokens
         parse_token = set_parse_config(self._parse_config)
         render_token = set_render_config(self._render_config)
-        
+
         try:
             # Parse to AST
             parser = Parser(content, source_file)
             doc = parser.parse()
-            
+
             # Render to HTML
             renderer = HtmlRenderer(content)
             return renderer.render(doc)
@@ -563,28 +563,28 @@ ContextVars are **thread-local by design**:
 def test_thread_isolation():
     """Verify config isolation across Bengal worker threads."""
     from concurrent.futures import ThreadPoolExecutor
-    
+
     results = {}
-    
+
     def worker(thread_id: int, parse_cfg: ParseConfig, render_cfg: RenderConfig):
         set_parse_config(parse_cfg)
         set_render_config(render_cfg)
-        
+
         parser = Parser("# Test")
         renderer = HtmlRenderer("<p>Test</p>")
-        
+
         results[thread_id] = {
             "tables": parser._tables_enabled,
             "highlight": renderer._highlight,
         }
-    
+
     configs = [
         (ParseConfig(tables_enabled=True), RenderConfig(highlight=True)),
         (ParseConfig(tables_enabled=False), RenderConfig(highlight=True)),
         (ParseConfig(tables_enabled=True), RenderConfig(highlight=False)),
         (ParseConfig(tables_enabled=False), RenderConfig(highlight=False)),
     ]
-    
+
     with ThreadPoolExecutor(max_workers=4) as executor:
         futures = [
             executor.submit(worker, i, pc, rc)
@@ -592,7 +592,7 @@ def test_thread_isolation():
         ]
         for f in futures:
             f.result()
-    
+
     # Verify each thread saw its own config
     assert results[0] == {"tables": True, "highlight": True}
     assert results[1] == {"tables": False, "highlight": True}
@@ -656,7 +656,7 @@ def test_thread_isolation():
   # Before: Manual config copying
   sub_parser._tables_enabled = self._tables_enabled
   # ... 6 more lines
-  
+
   # After: Automatic via ContextVar
   sub_parser = Parser(content, self._source_file)
   ```
@@ -836,7 +836,7 @@ def test_highlighting():
 
 **Problem**: Moving `_check_rosettes()` to module-level means the import check happens at module import time, not lazily.
 
-**Mitigation**: 
+**Mitigation**:
 - Import check is fast (~1µs)
 - Only happens once per Python interpreter
 - Fail-safe: defaults to `False` if import fails

@@ -1,0 +1,5 @@
+site:
+  baseurl: https://example.com
+build:
+  parallel: true
+  strict_mode: true

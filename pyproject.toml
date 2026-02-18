@@ -32,7 +32,7 @@ dependencies = [
 
     "jinja2>=3.1.0",
     "rosettes>=0.2.0",
-    "kida-templates>=0.2.0",                   # Kida template engine (AST-native, free-threading ready)
+    "kida-templates>=0.2.2",                   # Kida template engine (AST-native, free-threading ready)
     "patitas>=0.3.1",                          # Markdown + notebook parser (CommonMark, .ipynb)
     "pyyaml>=6.0",
     "python-frontmatter>=1.0.0",
@@ -190,7 +190,7 @@ dev = [
     "hypothesis>=6.92.0",
     # Linting & Type Checking
     "ty>=0.0.11",   # Astral type checker (Rust-based)
-    "ruff>=0.14.0", # 0.14+ required for Python 3.14 support
+    "ruff>=0.15.1",  # 0.15.1+ fixes except-parenthesis bug (PEP 758 + as clause)
     # Test Utilities
     "beautifulsoup4>=4.12.0", # HTML validation in integration tests
     "markdown>=3.5.0",        # Optional python-markdown parser for tests
@@ -204,7 +204,7 @@ dev = [
     "types-jinja2>=2.11.0",
     "pytest-benchmark>=5.2.3",
     "radon>=6.0.1",
-    "prek>=0.3.0",
+    "prek>=0.3.2",
     "poethepoet>=0.35.0",
     "pytest-randomly>=3.15.0",
 ]

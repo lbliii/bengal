@@ -97,7 +97,7 @@ def _extract_imports(module_name: str, file_path: Path) -> set[str]:
     """
     try:
         tree = ast.parse(file_path.read_text(encoding="utf-8"))
-    except (OSError, SyntaxError):
+    except OSError, SyntaxError:
         return set()
 
     imports: set[str] = set()

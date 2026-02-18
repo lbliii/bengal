@@ -32,7 +32,7 @@ def get_next_page(page: Page, site: Site | None) -> Page | None:
         idx = pages.index(page)
         if idx < len(pages) - 1:
             return pages[idx + 1]
-    except (ValueError, IndexError):
+    except ValueError, IndexError:
         pass
     return None
 
@@ -46,7 +46,7 @@ def get_prev_page(page: Page, site: Site | None) -> Page | None:
         idx = pages.index(page)
         if idx > 0:
             return pages[idx - 1]
-    except (ValueError, IndexError):
+    except ValueError, IndexError:
         pass
     return None
 
@@ -64,7 +64,7 @@ def get_next_in_section(page: Page, section: Section | None) -> Page | None:
             if next_page.source_path.stem not in ("_index", "index"):
                 return next_page
             next_idx += 1
-    except (ValueError, IndexError):
+    except ValueError, IndexError:
         pass
     return None
 
@@ -82,7 +82,7 @@ def get_prev_in_section(page: Page, section: Section | None) -> Page | None:
             if prev_page.source_path.stem not in ("_index", "index"):
                 return prev_page
             prev_idx -= 1
-    except (ValueError, IndexError):
+    except ValueError, IndexError:
         pass
     return None
 

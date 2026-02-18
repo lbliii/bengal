@@ -10,4 +10,3 @@ cascade:
 # Authors
 
 Meet the contributors and maintainers of Bengal.
-
