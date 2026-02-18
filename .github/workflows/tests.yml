@@ -98,11 +98,27 @@ jobs:
         BENGAL_CI_FAST: "1"
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
+        PYTHONUNBUFFERED: "1"
       run: |
         echo "Running integration tests..."
         # Use loadgroup (not worksteal): worksteal ignores xdist_group, so serial/parallel_unsafe
         # tests (e.g. test_concurrent_builds) can run on different workers and cause races.
-        uv run pytest -n auto -q --tb=short --dist loadgroup --max-worker-restart=3 tests/integration -m "not slow and not performance and not stateful"
+        # Keep diagnostics actionable in CI:
+        # - stop on first failure to surface traceback quickly
+        # - emit per-test progress (not quiet mode)
+        # - persist JUnit + full log for post-timeout/failure debugging
+        set -o pipefail
+        uv run pytest -n auto -vv -ra --tb=short --maxfail=1 --durations=40 --dist loadgroup --max-worker-restart=3 tests/integration -m "not slow and not performance and not stateful" --junitxml=integration-results.xml 2>&1 | tee integration-tests.log
+
+    - name: Upload integration diagnostics
+      if: always() && matrix.baseurl == ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-diagnostics-${{ matrix.python-version }}
+        path: |
+          integration-tests.log
+          integration-results.xml
+        if-no-files-found: warn
 
     - name: Coverage (unit tests, single-process)
       timeout-minutes: 15
