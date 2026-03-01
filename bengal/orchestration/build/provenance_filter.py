@@ -428,6 +428,25 @@ def phase_incremental_filter_provenance(
             orchestrator._provenance_filter = provenance_filter
             orchestrator.stats.cache_hits = 0
             orchestrator.stats.cache_misses = len(result.pages_to_build)
+
+            # RFC: rfc-incremental-build-observability - populate incremental_decision
+            # for --explain/--dry-run even on cold builds (output missing)
+            explain = getattr(orchestrator.options, "explain", False)
+            dry_run = getattr(orchestrator.options, "dry_run", False)
+            if explain or dry_run:
+                decision = IncrementalDecision(
+                    pages_to_build=result.pages_to_build,
+                    pages_skipped_count=0,
+                )
+                for page in result.pages_to_build:
+                    page_key = str(page.source_path)
+                    decision.add_rebuild_reason(
+                        page_key,
+                        RebuildReasonCode.FULL_REBUILD,
+                        {"cold_build": True, "output_missing": True},
+                    )
+                orchestrator.stats.incremental_decision = decision
+
             cli.info(
                 f"  Provenance build: {len(result.pages_to_build)} pages, "
                 f"{len(result.assets_to_process)} assets (skipped 0 cached)"
