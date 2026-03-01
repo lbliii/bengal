@@ -151,6 +151,59 @@ class TestBuildTrigger:
         result = trigger._can_use_reactive_path({md_file}, {"modified"})
         assert result is True
 
+    def test_seed_content_hash_cache_section_page(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that seed_content_hash_cache works for section _index.md."""
+        index_file = tmp_path / "content" / "docs" / "_index.md"
+        index_file.parent.mkdir(parents=True)
+        index_file.write_text("---\ntitle: Docs\n---\nSection intro.")
+
+        page = MagicMock()
+        page.source_path = index_file
+        mock_site.pages = [page]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page])
+
+        assert index_file in trigger._content_hash_cache
+        index_file.write_text("---\ntitle: Docs\n---\nUpdated intro.")
+        assert trigger._can_use_reactive_path({index_file}, {"modified"}) is True
+
+    def test_seed_content_hash_cache_skips_non_md(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that seed_content_hash_cache skips non-.md pages."""
+        txt_file = tmp_path / "content" / "readme.txt"
+        txt_file.parent.mkdir(parents=True)
+        txt_file.write_text("No frontmatter")
+
+        page = MagicMock()
+        page.source_path = txt_file
+        mock_site.pages = [page]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page])
+
+        assert txt_file not in trigger._content_hash_cache
+
+    def test_seed_content_hash_cache_skips_no_frontmatter(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that seed_content_hash_cache skips files without frontmatter."""
+        md_file = tmp_path / "content" / "page.md"
+        md_file.parent.mkdir(parents=True)
+        md_file.write_text("No frontmatter here, just body.")
+
+        page = MagicMock()
+        page.source_path = md_file
+        mock_site.pages = [page]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page])
+
+        assert md_file not in trigger._content_hash_cache
+
     def test_needs_full_rebuild_for_structural_changes(
         self, mock_site: MagicMock, mock_executor: MagicMock
     ) -> None:

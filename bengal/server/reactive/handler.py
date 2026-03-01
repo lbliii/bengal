@@ -92,13 +92,13 @@ class ReactiveContentHandler:
         """Find page in site.pages matching the given source path."""
         try:
             resolved = path.resolve()
-        except OSError, ValueError:
+        except (OSError, ValueError):
             resolved = path
 
         for page in self.site.pages:
             try:
                 page_src = Path(page.source_path).resolve()
-            except OSError, ValueError, TypeError:
+            except (OSError, ValueError, TypeError):
                 continue
             if page_src == resolved:
                 return page
