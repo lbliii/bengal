@@ -55,6 +55,12 @@ Keep `_path` for **internal logic only** (not user-facing links):
 
 ---
 
+## Audit (2025-03)
+
+One-time grep of `bengal/themes/**/*.html`: All link hrefs use `href ?? _path` (href first). No footgun patterns (`_path ?? href`) found. Cache keys correctly use `_path`.
+
+---
+
 ## Summary
 
 - **Links**: `href ?? _path ?? path` (href first)

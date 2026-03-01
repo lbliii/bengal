@@ -69,8 +69,7 @@ def _detect_changed_data_files(
     # Scan data directory for YAML/JSON files
     for ext in ("*.yaml", "*.yml", "*.json", "*.toml"):
         for data_file in data_dir.glob(f"**/{ext}"):
-            file_key = str(data_file)
-            stored = cache.file_fingerprints.get(file_key)
+            stored = cache.get_file_fingerprint(data_file)
 
             if stored is None:
                 # New data file - treat as changed
@@ -130,8 +129,7 @@ def _detect_changed_templates(
     # Scan all template directories
     for tpl_dir in [templates_dir, *theme_templates_dirs]:
         for tpl_file in tpl_dir.glob("**/*.html"):
-            file_key = str(tpl_file)
-            stored = cache.file_fingerprints.get(file_key)
+            stored = cache.get_file_fingerprint(tpl_file)
 
             try:
                 current_hash = hash_file(tpl_file)
@@ -147,11 +145,14 @@ def _detect_changed_templates(
             # the next incremental build (store-after-compare pattern).
             try:
                 stat = tpl_file.stat()
-                cache.file_fingerprints[file_key] = {
-                    "mtime": stat.st_mtime,
-                    "size": stat.st_size,
-                    "hash": current_hash,
-                }
+                cache.set_file_fingerprint(
+                    tpl_file,
+                    {
+                        "mtime": stat.st_mtime,
+                        "size": stat.st_size,
+                        "hash": current_hash,
+                    },
+                )
             except OSError:
                 pass
 
@@ -245,7 +246,7 @@ def _get_taxonomy_term_pages_for_member(
         Set of taxonomy term page paths to rebuild
     """
     term_pages: set[Path] = set()
-    member_key = str(member_path)
+    member_key = cache._cache_key(member_path)
 
     # Get tags for this member page from cache
     tags = cache.taxonomy_index.page_tags.get(member_key, set())

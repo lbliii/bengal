@@ -63,3 +63,17 @@ def format_date(value: str, fmt: str = "%Y-%m-%d") -> str:
 `ConfigSnapshot.from_dict` uses `coerce_int` for all numeric content fields
 (excerpt_length, excerpt_words, reading_speed, etc.) so invalid YAML does not
 raise at load time.
+
+## Audit (2025-03)
+
+Verified coerce_int at entry for numeric params:
+
+| Function | Params | Status |
+|----------|--------|--------|
+| truncatewords | count | coerce_int(count, 30) |
+| truncatewords_html | count | coerce_int(count, 30) |
+| truncate_chars | length | coerce_int(length, 120) |
+| card_excerpt | words | via truncatewords |
+| card_excerpt_html | words | coerce_int(words, 30) |
+| get_pagination_items | current_page, total_pages, window | coerce_int each |
+| Paginator | per_page | coerce_int(per_page, 10) |
