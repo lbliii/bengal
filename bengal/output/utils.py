@@ -19,6 +19,16 @@ Related:
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True, slots=True)
+class ColorEntry:
+    """Rich style name and ANSI escape code for terminal colorization."""
+
+    rich_style: str
+    ansi_code: str
+
 
 class ANSI:
     """
@@ -43,23 +53,22 @@ class ANSI:
     WHITE = "\033[37m"
 
 
-# Unified color mapping: (rich_style, ansi_code)
 # Single source of truth for HTTP status code colorization
-STATUS_COLORS: dict[str, tuple[str, str]] = {
-    "2xx": ("green", ANSI.GREEN),
-    "304": ("dim", ANSI.DIM),
-    "3xx": ("cyan", ANSI.CYAN),
-    "4xx": ("yellow", ANSI.YELLOW),
-    "5xx": ("red", ANSI.RED),
+STATUS_COLORS: dict[str, ColorEntry] = {
+    "2xx": ColorEntry("green", ANSI.GREEN),
+    "304": ColorEntry("dim", ANSI.DIM),
+    "3xx": ColorEntry("cyan", ANSI.CYAN),
+    "4xx": ColorEntry("yellow", ANSI.YELLOW),
+    "5xx": ColorEntry("red", ANSI.RED),
 }
 
 # Unified color mapping for HTTP methods
-METHOD_COLORS: dict[str, tuple[str, str]] = {
-    "GET": ("cyan", ANSI.CYAN),
-    "POST": ("yellow", ANSI.YELLOW),
-    "PUT": ("magenta", ANSI.MAGENTA),
-    "DELETE": ("red", ANSI.RED),
-    "PATCH": ("magenta", ANSI.MAGENTA),
+METHOD_COLORS: dict[str, ColorEntry] = {
+    "GET": ColorEntry("cyan", ANSI.CYAN),
+    "POST": ColorEntry("yellow", ANSI.YELLOW),
+    "PUT": ColorEntry("magenta", ANSI.MAGENTA),
+    "DELETE": ColorEntry("red", ANSI.RED),
+    "PATCH": ColorEntry("magenta", ANSI.MAGENTA),
 }
 
 # Default colors when lookup fails
@@ -115,7 +124,8 @@ def get_status_style(status: str) -> str:
 
     """
     category = get_status_category(status)
-    return STATUS_COLORS.get(category, (DEFAULT_STYLE, ""))[0]
+    entry = STATUS_COLORS.get(category, ColorEntry(DEFAULT_STYLE, ""))
+    return entry.rich_style
 
 
 def get_status_ansi(status: str) -> str:
@@ -134,7 +144,8 @@ def get_status_ansi(status: str) -> str:
 
     """
     category = get_status_category(status)
-    return STATUS_COLORS.get(category, ("", ""))[1]
+    entry = STATUS_COLORS.get(category, ColorEntry("", ""))
+    return entry.ansi_code
 
 
 def get_method_style(method: str) -> str:
@@ -152,7 +163,8 @@ def get_method_style(method: str) -> str:
         'yellow'
 
     """
-    return METHOD_COLORS.get(method, (DEFAULT_STYLE, ""))[0]
+    entry = METHOD_COLORS.get(method, ColorEntry(DEFAULT_STYLE, ""))
+    return entry.rich_style
 
 
 def get_method_ansi(method: str) -> str:
@@ -170,4 +182,5 @@ def get_method_ansi(method: str) -> str:
         >>> print(f"{code}GET{ANSI.RESET}")  # Cyan "GET"
 
     """
-    return METHOD_COLORS.get(method, ("", DEFAULT_ANSI))[1]
+    entry = METHOD_COLORS.get(method, ColorEntry("", DEFAULT_ANSI))
+    return entry.ansi_code

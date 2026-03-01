@@ -445,6 +445,13 @@ class BuildTrigger:
             self._clear_html_cache()
 
         except Exception as e:
+            print(
+                f"[Bengal DEBUG] _execute_build exception swallowed: {type(e).__name__}: {e}",
+                flush=True,
+            )
+            import traceback
+
+            traceback.print_exc()
             # Create dev server error context for rich debugging
             # Use next(iter(...)) instead of pop() to avoid mutating the set
             context = create_dev_error(
@@ -1011,6 +1018,12 @@ class BuildTrigger:
         Args:
             info: BuildReloadInfo from build (changed_files, changed_outputs, reload_hint)
         """
+        print(
+            f"[Bengal DEBUG] _handle_reload called: "
+            f"files={len(info.changed_files)} outputs={len(info.changed_outputs)} "
+            f"hint={info.reload_hint}",
+            flush=True,
+        )
         changed_files = list(info.changed_files)
         changed_outputs = info.changed_outputs
         reload_hint = info.reload_hint

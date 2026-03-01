@@ -31,7 +31,7 @@ Example:
 """
 
 from .base import SiteTemplate, TemplateFile
-from .registry import get_template, list_templates, register_template
+from .registry import get_template, list_templates, register_template, reset_for_testing
 
 __all__ = [
     "SiteTemplate",
@@ -39,4 +39,5 @@ __all__ = [
     "get_template",
     "list_templates",
     "register_template",
+    "reset_for_testing",
 ]

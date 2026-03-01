@@ -24,6 +24,16 @@ if TYPE_CHECKING:
     from .exceptions import TemplateRenderError
 
 
+@dataclass(frozen=True, slots=True)
+class ErrorDedupKey:
+    """Key for error deduplication: (template, line, error_type, message_prefix)."""
+
+    file_path: str
+    line: int | None
+    message: str
+    category: str
+
+
 @dataclass
 class ErrorDeduplicator:
     """
@@ -41,21 +51,21 @@ class ErrorDeduplicator:
 
     """
 
-    # Key: (template_name, line_number, error_type, message_prefix)
+    # Key: ErrorDedupKey (template, line, error_type, message_prefix)
     # Value: list of page sources that had this error
-    seen_errors: dict[tuple[str, int | None, str, str], list[str]] = field(default_factory=dict)
+    seen_errors: dict[ErrorDedupKey, list[str]] = field(default_factory=dict)
     # Maximum errors to show per unique error signature
     max_display_per_error: int = 2
 
-    def _get_error_key(self, error: TemplateRenderError) -> tuple[str, int | None, str, str]:
+    def _get_error_key(self, error: TemplateRenderError) -> ErrorDedupKey:
         """Generate a key for error deduplication."""
         # Use first 50 chars of message to group similar errors
         msg_prefix = str(error.message)[:50] if error.message else ""
-        return (
-            error.template_context.template_name,
-            error.template_context.line_number,
-            error.error_type,
-            msg_prefix,
+        return ErrorDedupKey(
+            file_path=error.template_context.template_name,
+            line=error.template_context.line_number,
+            message=msg_prefix,
+            category=error.error_type,
         )
 
     def should_display(self, error: TemplateRenderError) -> bool:
@@ -103,7 +113,7 @@ class ErrorDeduplicator:
                 # Show summary of each unique error
                 for key, pages in self.seen_errors.items():
                     if len(pages) > self.max_display_per_error:
-                        template, line, error_type, _msg = key
+                        template, line, error_type = key.file_path, key.line, key.category
                         extra = len(pages) - self.max_display_per_error
                         console.print(
                             f"   • [dim]{template}:{line}[/dim] ({error_type}): "
@@ -121,7 +131,7 @@ class ErrorDeduplicator:
         click.secho(f"⚠️  {suppressed} similar error(s) suppressed", fg="yellow", bold=True)
         for key, pages in self.seen_errors.items():
             if len(pages) > self.max_display_per_error:
-                template, line, error_type, _msg = key
+                template, line, error_type = key.file_path, key.line, key.category
                 extra = len(pages) - self.max_display_per_error
                 click.echo(f"   • {template}:{line} ({error_type}): +{extra} more page(s)")
         click.echo()

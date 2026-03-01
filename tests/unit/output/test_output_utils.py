@@ -18,6 +18,7 @@ from bengal.output.utils import (
     DEFAULT_STYLE,
     METHOD_COLORS,
     STATUS_COLORS,
+    ColorEntry,
     get_method_ansi,
     get_method_style,
     get_status_ansi,
@@ -78,44 +79,42 @@ class TestStatusColors:
         expected = {"2xx", "304", "3xx", "4xx", "5xx"}
         assert set(STATUS_COLORS.keys()) == expected
 
-    def test_status_colors_are_tuples(self):
-        """Each STATUS_COLORS entry should be (rich_style, ansi_code) tuple."""
-        for category, value in STATUS_COLORS.items():
-            assert isinstance(value, tuple), f"{category} should be tuple"
-            assert len(value) == 2, f"{category} should have 2 elements"
-            rich_style, ansi_code = value
-            assert isinstance(rich_style, str), f"{category} rich_style should be str"
-            assert isinstance(ansi_code, str), f"{category} ansi_code should be str"
+    def test_status_colors_are_color_entries(self):
+        """Each STATUS_COLORS entry should be a ColorEntry."""
+        for category, entry in STATUS_COLORS.items():
+            assert isinstance(entry, ColorEntry), f"{category} should be ColorEntry"
+            assert isinstance(entry.rich_style, str), f"{category} rich_style should be str"
+            assert isinstance(entry.ansi_code, str), f"{category} ansi_code should be str"
 
     def test_2xx_is_green(self):
         """2xx status codes should map to green."""
-        style, ansi = STATUS_COLORS["2xx"]
-        assert style == "green"
-        assert ansi == ANSI.GREEN
+        entry = STATUS_COLORS["2xx"]
+        assert entry.rich_style == "green"
+        assert entry.ansi_code == ANSI.GREEN
 
     def test_304_is_dim(self):
         """304 Not Modified should map to dim."""
-        style, ansi = STATUS_COLORS["304"]
-        assert style == "dim"
-        assert ansi == ANSI.DIM
+        entry = STATUS_COLORS["304"]
+        assert entry.rich_style == "dim"
+        assert entry.ansi_code == ANSI.DIM
 
     def test_3xx_is_cyan(self):
         """3xx redirect codes should map to cyan."""
-        style, ansi = STATUS_COLORS["3xx"]
-        assert style == "cyan"
-        assert ansi == ANSI.CYAN
+        entry = STATUS_COLORS["3xx"]
+        assert entry.rich_style == "cyan"
+        assert entry.ansi_code == ANSI.CYAN
 
     def test_4xx_is_yellow(self):
         """4xx client error codes should map to yellow."""
-        style, ansi = STATUS_COLORS["4xx"]
-        assert style == "yellow"
-        assert ansi == ANSI.YELLOW
+        entry = STATUS_COLORS["4xx"]
+        assert entry.rich_style == "yellow"
+        assert entry.ansi_code == ANSI.YELLOW
 
     def test_5xx_is_red(self):
         """5xx server error codes should map to red."""
-        style, ansi = STATUS_COLORS["5xx"]
-        assert style == "red"
-        assert ansi == ANSI.RED
+        entry = STATUS_COLORS["5xx"]
+        assert entry.rich_style == "red"
+        assert entry.ansi_code == ANSI.RED
 
 
 class TestMethodColors:
@@ -128,33 +127,33 @@ class TestMethodColors:
 
     def test_get_is_cyan(self):
         """GET method should map to cyan."""
-        style, ansi = METHOD_COLORS["GET"]
-        assert style == "cyan"
-        assert ansi == ANSI.CYAN
+        entry = METHOD_COLORS["GET"]
+        assert entry.rich_style == "cyan"
+        assert entry.ansi_code == ANSI.CYAN
 
     def test_post_is_yellow(self):
         """POST method should map to yellow."""
-        style, ansi = METHOD_COLORS["POST"]
-        assert style == "yellow"
-        assert ansi == ANSI.YELLOW
+        entry = METHOD_COLORS["POST"]
+        assert entry.rich_style == "yellow"
+        assert entry.ansi_code == ANSI.YELLOW
 
     def test_put_is_magenta(self):
         """PUT method should map to magenta."""
-        style, ansi = METHOD_COLORS["PUT"]
-        assert style == "magenta"
-        assert ansi == ANSI.MAGENTA
+        entry = METHOD_COLORS["PUT"]
+        assert entry.rich_style == "magenta"
+        assert entry.ansi_code == ANSI.MAGENTA
 
     def test_patch_is_magenta(self):
         """PATCH method should map to magenta (same as PUT)."""
-        style, ansi = METHOD_COLORS["PATCH"]
-        assert style == "magenta"
-        assert ansi == ANSI.MAGENTA
+        entry = METHOD_COLORS["PATCH"]
+        assert entry.rich_style == "magenta"
+        assert entry.ansi_code == ANSI.MAGENTA
 
     def test_delete_is_red(self):
         """DELETE method should map to red."""
-        style, ansi = METHOD_COLORS["DELETE"]
-        assert style == "red"
-        assert ansi == ANSI.RED
+        entry = METHOD_COLORS["DELETE"]
+        assert entry.rich_style == "red"
+        assert entry.ansi_code == ANSI.RED
 
 
 class TestGetStatusCategory:

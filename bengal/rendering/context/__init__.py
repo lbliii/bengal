@@ -76,27 +76,20 @@ __all__ = [
     "NO_SECTION",
     "CascadingParamsContext",
     "ConfigContext",
-    # Lazy evaluation
     "LazyPageContext",
     "LazyValue",
-    # Menu wrapper
     "MenusContext",
     "ParamsContext",
-    # Section types (from snapshots - no wrapper needed)
     "SectionSnapshot",
-    # Site wrappers
     "SiteContext",
-    # Data wrappers
     "SmartDict",
     "ThemeContext",
-    # Context builders
     "build_page_context",
     "build_special_page_context",
     "clear_global_context_cache",
-    # Engine globals
     "get_engine_globals",
-    # Lazy helper
     "make_lazy",
+    "reset_for_testing",
 ]
 
 
@@ -224,6 +217,15 @@ def clear_global_context_cache() -> None:
 
     Thread-safe: Clears under lock.
 
+    """
+    _clear_global_context_cache()
+
+
+def reset_for_testing() -> None:
+    """
+    Clear the global context cache for test isolation.
+
+    Alias for clear_global_context_cache() for consistency with other modules.
     """
     _clear_global_context_cache()
 
