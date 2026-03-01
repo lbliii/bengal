@@ -59,8 +59,8 @@ class TestDevServerContentHashCacheSeeding:
             mock_rm_class.return_value.__exit__ = MagicMock(return_value=False)
 
             server = DevServer(site, watch=True, auto_port=False)
-            with pytest.raises(KeyboardInterrupt):
-                server.start()
+            # DevServer catches KeyboardInterrupt and exits gracefully, so start() returns normally
+            server.start()
 
             mock_build_trigger.seed_content_hash_cache.assert_called_once()
             call_args = mock_build_trigger.seed_content_hash_cache.call_args[0][0]

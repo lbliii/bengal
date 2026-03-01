@@ -289,13 +289,13 @@ def test_decide_from_outputs_other_hints_do_not_override_typed_outputs():
     """Other reload_hint values (css-only, full) do not override typed output classification."""
     ctl = ReloadController(min_notify_interval_ms=0)
 
-    # HTML outputs should trigger full reload regardless of hint
+    # Single HTML output triggers reload-page (RFC Phase 6), not full reload
     html_outputs = [
         OutputRecord(Path("index.html"), OutputType.HTML, "render"),
     ]
-    d_full = ctl.decide_from_outputs(html_outputs, reload_hint="css-only")
-    assert d_full.action == "reload"
-    assert d_full.reason == "content-changed"
+    d_page = ctl.decide_from_outputs(html_outputs, reload_hint="css-only")
+    assert d_page.action == "reload-page"
+    assert d_page.reason == "single-page-content"
 
     # CSS-only outputs with css-only hint still get reload-css
     css_outputs = [

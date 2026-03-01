@@ -410,9 +410,12 @@ class TaxonomyOrchestrator:
             page_paths = cache.taxonomy_index.get_pages_for_tag(tag_slug)
 
             # Map paths to current Page objects
+            # Resolve relative paths (content_key format) against site_root for lookup
             current_pages = []
             for path_str in page_paths:
                 path = Path(path_str)
+                if not path.is_absolute() and cache.site_root is not None:
+                    path = cache.site_root / path_str
                 if path in current_page_map:
                     current_pages.append(current_page_map[path])
 

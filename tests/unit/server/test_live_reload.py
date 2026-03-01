@@ -855,11 +855,13 @@ class TestAssetCacheBuildAwareServing:
 
     def test_serve_asset_from_cache_during_build(self, tmp_path, mock_handler):
         """Test that missing assets are served from cache during builds."""
-        # Pre-populate cache with CSS content
+        # Pre-populate cache with CSS content (use AssetCacheEntry)
+        from bengal.server.live_reload.mixin import AssetCacheEntry
+
         cached_content = b".cached { display: block; }"
-        LiveReloadMixin._asset_cache["assets/css/cached.css"] = (
-            cached_content,
-            "text/css; charset=utf-8",
+        LiveReloadMixin._asset_cache["assets/css/cached.css"] = AssetCacheEntry(
+            content=cached_content,
+            content_type="text/css; charset=utf-8",
         )
 
         # Create handler for non-existent file (simulating mid-build state)
