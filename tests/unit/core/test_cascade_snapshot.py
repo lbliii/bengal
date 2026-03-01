@@ -8,6 +8,8 @@ from bengal.core.cascade_snapshot import CascadeSnapshot
 from bengal.core.page import Page
 from bengal.core.section import Section
 
+pytestmark = pytest.mark.parallel_unsafe
+
 
 class TestCascadeSnapshotBasics:
     """Test basic CascadeSnapshot functionality."""

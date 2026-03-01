@@ -14,7 +14,11 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
+import pytest
+
 from bengal.rendering.block_cache import BlockCache
+
+pytestmark = pytest.mark.parallel_unsafe
 
 if TYPE_CHECKING:
     pass

@@ -23,7 +23,9 @@ RFC: rfc-bengal-snapshot-engine (Snapshot Persistence section)
 from __future__ import annotations
 
 import json
+import threading
 import time
+from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -169,9 +171,11 @@ class SnapshotCache:
                     "meta_description": page.meta_description,
                 }
 
-            # Atomic write: write to temp file, then rename
-            meta_tmp = self._meta_path.with_suffix(".tmp")
-            pages_tmp = self._pages_path.with_suffix(".tmp")
+            # Atomic write: write to per-thread temp files, then replace.
+            # Shared temp names are racy under concurrent builds in the same root.
+            tmp_suffix = f".{threading.get_ident()}.{time.time_ns()}.tmp"
+            meta_tmp = self._meta_path.with_name(self._meta_path.name + tmp_suffix)
+            pages_tmp = self._pages_path.with_name(self._pages_path.name + tmp_suffix)
 
             with open(meta_tmp, "w") as f:
                 json.dump(meta, f)
@@ -179,9 +183,9 @@ class SnapshotCache:
             with open(pages_tmp, "w") as f:
                 json.dump(pages_data, f)
 
-            # Atomic rename
-            meta_tmp.rename(self._meta_path)
-            pages_tmp.rename(self._pages_path)
+            # Atomic replace
+            meta_tmp.replace(self._meta_path)
+            pages_tmp.replace(self._pages_path)
 
             logger.debug(
                 "snapshot_cache_saved",
@@ -196,10 +200,11 @@ class SnapshotCache:
                 error=str(e),
                 error_type=type(e).__name__,
             )
-            # Clean up temp files on error
-            for tmp in [self._meta_path.with_suffix(".tmp"), self._pages_path.with_suffix(".tmp")]:
-                if tmp.exists():
-                    tmp.unlink()
+            # Best-effort cleanup for this save attempt only.
+            for tmp in (locals().get("meta_tmp"), locals().get("pages_tmp")):
+                if isinstance(tmp, Path):
+                    with suppress(Exception):
+                        tmp.unlink(missing_ok=True)
 
     def clear(self) -> None:
         """Clear the snapshot cache."""

@@ -23,8 +23,8 @@ def test_site_assets_include_installed_theme(tmp_path, monkeypatch):
     mock_pkg.distribution = "bengal-theme-acme"
     mock_pkg.version = "1.0.0"
     mock_pkg.assets_exists.return_value = True
-    mock_pkg.resolve_resource_path = (
-        lambda resource: theme_root / resource if (theme_root / resource).exists() else None
+    mock_pkg.resolve_resource_path = lambda resource: (
+        theme_root / resource if (theme_root / resource).exists() else None
     )
 
     def mock_get_theme_package(slug: str):

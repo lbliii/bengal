@@ -123,7 +123,7 @@ class CodeIndex:
                 module_path = ".".join(rel_path.with_suffix("").parts)
                 index.modules.add(module_path)
 
-            except (SyntaxError, UnicodeDecodeError):
+            except SyntaxError, UnicodeDecodeError:
                 # Skip files that can't be parsed
                 continue
 

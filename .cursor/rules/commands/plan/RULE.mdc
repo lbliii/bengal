@@ -268,5 +268,3 @@ Status: Ready
 - `commands/rfc-eval` - RFC evaluation
 - `commands/implement` - Execute tasks
 - `modules/types-as-contracts` - Type-first philosophy
-
-

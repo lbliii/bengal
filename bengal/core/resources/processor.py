@@ -228,7 +228,7 @@ class ImageProcessor:
                 format=meta["format"],
                 file_size=image_path.stat().st_size,
             )
-        except (json.JSONDecodeError, KeyError, OSError):
+        except json.JSONDecodeError, KeyError, OSError:
             # Invalid cache entry, will reprocess
             return None
 

@@ -78,7 +78,7 @@ def weight_sort_key(
     else:
         try:
             weight = float(weight)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             weight = DEFAULT_WEIGHT
 
     # Get title
@@ -94,7 +94,7 @@ def weight_sort_key(
     return (weight, title.lower())
 
 
-def sorted_by_weight(
+def sorted_by_weight[T](
     items: Iterable[T],
     weight_getter: Callable[[T], float | int | None] | None = None,
     title_getter: Callable[[T], str] | None = None,

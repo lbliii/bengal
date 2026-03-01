@@ -14,7 +14,7 @@ class TestConcurrentBuilds:
         site_root = Path(tmp_path)
         (site_root / "content").mkdir(parents=True)
         (site_root / "content" / "index.md").write_text("---\ntitle: Home\n---\n# Home\n")
-        (site_root / "bengal.toml").write_text("title='t'")
+        (site_root / "bengal.toml").write_text('[site]\ntitle = "t"')
 
         def build_once(_):
             site = Site.from_config(site_root)

@@ -186,7 +186,7 @@ def _resolve_fingerprinted(logical_path: str, site: Site) -> str | None:
 
     # Fallback path: Disk I/O
     stats.cache_misses += 1
-    
+
     dev_mode = getattr(site, "dev_mode", False)
     if not dev_mode:
         stats.items_skipped["unexpected_fallback"] = (
@@ -249,18 +249,18 @@ def test_contextvar_always_set_during_full_build(tmp_project: Path) -> None:
     """Verify ContextVar is set during phase_render, not using fallback."""
     from bengal.rendering.assets import get_resolution_stats, clear_manifest_cache
     from tests.helpers import build_site
-    
+
     # Clear any previous state
     clear_manifest_cache()
-    
+
     # Build site
     result = build_site(tmp_project)
     assert result.success
-    
+
     # Verify stats
     stats = get_resolution_stats()
     assert stats is not None, "Resolution stats should be tracked during build"
-    
+
     unexpected = stats.items_skipped.get("unexpected_fallback", 0)
     assert unexpected == 0, (
         f"Asset resolution used disk fallback {unexpected} times during build.\n"
@@ -273,12 +273,12 @@ def test_dev_server_uses_expected_fallback(tmp_project: Path) -> None:
     """Dev server should use disk fallback (no manifest context needed)."""
     from bengal.rendering.assets import get_resolution_stats, clear_manifest_cache
     from tests.helpers import build_site_dev_mode
-    
+
     clear_manifest_cache()
-    
+
     result = build_site_dev_mode(tmp_project)
     assert result.success
-    
+
     stats = get_resolution_stats()
     if stats:
         # Dev mode fallbacks are expected, not errors
@@ -293,14 +293,14 @@ def test_stats_reset_between_builds(tmp_project: Path) -> None:
         clear_manifest_cache,
         _ensure_resolution_stats,
     )
-    
+
     # Create some stats
     stats = _ensure_resolution_stats()
     stats.cache_hits = 100
-    
+
     # Clear should reset
     clear_manifest_cache()
-    
+
     assert get_resolution_stats() is None
 ```
 
@@ -325,7 +325,7 @@ def test_stats_reset_between_builds(tmp_project: Path) -> None:
 | 2 | Phase 2 - Stats | 🟢 High | ~35 | None |
 | 3 | Phase 3 - Tests | 🟢 High | ~50 | None |
 
-**Rationale**: 
+**Rationale**:
 - Phase 1 provides immediate observability
 - Phase 2 enables quantitative assertions in Phase 3
 - Phase 3 tests are cleaner when they can use Phase 2 stats (no patching required)
@@ -374,7 +374,7 @@ if ctx is None and not dev_mode:
 ```
 
 **Pros**: Fail-fast behavior  
-**Cons**: 
+**Cons**:
 - Breaks backward compatibility with custom build scripts
 - Too aggressive for a fallback that technically works
 - Makes incremental adoption harder
@@ -418,13 +418,13 @@ _resolution_stats: ComponentStats | None = None  # Module-level global
 def test_warning_logged_on_unexpected_fallback(caplog, mock_site):
     """Warning should be logged when fallback used outside dev mode."""
     from bengal.rendering.assets import _resolve_fingerprinted, clear_manifest_cache
-    
+
     clear_manifest_cache()
     mock_site.dev_mode = False
-    
+
     with caplog.at_level("WARNING"):
         _resolve_fingerprinted("css/style.css", mock_site)
-    
+
     assert "asset_manifest_disk_fallback" in caplog.text
     assert "css/style.css" in caplog.text
 
@@ -437,42 +437,42 @@ def test_no_warning_when_contextvar_set(caplog, mock_site):
         AssetManifestContext,
         clear_manifest_cache,
     )
-    
+
     clear_manifest_cache()
     ctx = AssetManifestContext(entries={"css/style.css": "assets/css/style.abc123.css"})
-    
+
     with caplog.at_level("WARNING"):
         with asset_manifest_context(ctx):
             _resolve_fingerprinted("css/style.css", mock_site)
-    
+
     assert "asset_manifest_disk_fallback" not in caplog.text
 
 
 def test_debug_log_in_dev_mode(caplog, mock_site):
     """Debug log in dev mode (expected fallback)."""
     from bengal.rendering.assets import _resolve_fingerprinted, clear_manifest_cache
-    
+
     clear_manifest_cache()
     mock_site.dev_mode = True
-    
+
     with caplog.at_level("DEBUG"):
         _resolve_fingerprinted("css/style.css", mock_site)
-    
+
     assert "asset_manifest_dev_mode_fallback" in caplog.text
 
 
 def test_warning_deduplicated(caplog, mock_site):
     """Same path should only warn once."""
     from bengal.rendering.assets import _resolve_fingerprinted, clear_manifest_cache
-    
+
     clear_manifest_cache()
     mock_site.dev_mode = False
-    
+
     with caplog.at_level("WARNING"):
         _resolve_fingerprinted("css/style.css", mock_site)
         _resolve_fingerprinted("css/style.css", mock_site)
         _resolve_fingerprinted("css/style.css", mock_site)
-    
+
     assert caplog.text.count("asset_manifest_disk_fallback") == 1
 ```
 

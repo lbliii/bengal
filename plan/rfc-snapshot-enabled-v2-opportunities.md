@@ -110,7 +110,7 @@ With snapshots, every render operation becomes a pure function that can declare 
 class Effect:
     """
     Declarative effect of a build operation.
-    
+
     Replaces 13 detector classes with one unified model.
     """
     outputs: frozenset[Path]           # Files this operation produces
@@ -121,18 +121,18 @@ class Effect:
 class EffectTracer:
     """
     Unified dependency tracking.
-    
+
     Thread-safe because it only reads frozen SiteSnapshot.
     """
-    
+
     def record(self, effect: Effect) -> None:
         """Record an effect during rendering."""
         ...
-    
+
     def invalidated_by(self, changed: set[Path]) -> set[str]:
         """What cache keys are invalidated by these changes?"""
         ...
-    
+
     def outputs_needing_rebuild(self, changed: set[Path]) -> set[Path]:
         """Which outputs need rebuilding? (transitive)"""
         ...
@@ -151,17 +151,17 @@ def render_page_with_effects(
         Path(page.template_name),
         *get_template_includes(page.template_name),
     }
-    
+
     # Render (pure function)
     html = render_template(page.template_name, page=page, site=snapshot)
-    
+
     # Record effect
     tracer.record(Effect(
         outputs=frozenset({page.output_path}),
         depends_on=frozenset(deps),
         invalidates=frozenset({f"page:{page.href}"}),
     ))
-    
+
     return html
 ```
 
@@ -278,13 +278,13 @@ def update_snapshot(
 ) -> SiteSnapshot:
     """
     Incrementally update snapshot for changed files.
-    
+
     O(changed) instead of O(all).
-    
+
     Args:
         old: Previous build's snapshot
         changed_paths: Files that changed since last build
-        
+
     Returns:
         New snapshot with structural sharing for unchanged data
     """
@@ -293,26 +293,26 @@ def update_snapshot(
         page for page in old.pages
         if page.source_path in changed_paths
     }
-    
+
     # Identify affected sections (pages' parents)
     affected_sections = {
         page.section for page in affected_pages
         if page.section is not None
     }
-    
+
     # Reuse unchanged pages (same tuple reference)
     new_pages = tuple(
         _re_snapshot_page(page) if page in affected_pages else page
         for page in old.pages
     )
-    
+
     # Reuse unchanged sections
     new_sections = _update_section_tree(
         old.root_section,
         affected_sections,
         {p.source_path: p for p in new_pages},
     )
-    
+
     return SiteSnapshot(
         pages=new_pages,
         sections=new_sections,
@@ -381,7 +381,7 @@ async def speculative_hmr(
 ) -> None:
     """
     Start rendering speculatively while computing exact rebuild set.
-    
+
     Uses content_hash to validate speculation after the fact.
     """
     # ... implementation logic ...
@@ -398,23 +398,23 @@ To avoid wasting CPU on poor predictions, we will first implement a **Shadow Mod
 def predict_affected(file_path: Path, snapshot: SiteSnapshot) -> set[PageSnapshot]:
     """
     Fast heuristic prediction of affected pages.
-    
+
     Accuracy: ~90% (based on file type and location)
     Speed: <1ms (vs ~30ms for exact computation)
     """
     if file_path.suffix == ".md":
         # Content file → likely just this page
         return {p for p in snapshot.pages if p.source_path == file_path}
-    
+
     elif file_path.suffix in (".html", ".jinja"):
         # Template → all pages using this template
         template_name = file_path.name
         return set(snapshot.template_groups.get(template_name, ()))
-    
+
     elif file_path.suffix in (".css", ".js"):
         # Asset → all pages (fingerprints change)
         return set(snapshot.pages)
-    
+
     else:
         # Unknown → conservative (all pages)
         return set(snapshot.pages)
@@ -483,7 +483,7 @@ class ThemeService:
         self._site = site
         self._theme_obj: Theme | None = None  # Mutable cache
         self._lock = Lock()  # Thread safety
-    
+
     def resolve(self) -> Theme:
         with self._lock:  # Required for thread safety
             if self._theme_obj is None:
@@ -495,11 +495,11 @@ class ThemeService:
 class ThemeService:
     def __init__(self, snapshot: SiteSnapshot) -> None:
         self._snapshot = snapshot  # Frozen, thread-safe
-    
+
     def resolve(self) -> Theme:
         # Theme resolved at snapshot time, just return it
         return self._snapshot.theme
-    
+
     # Or for lazy resolution:
     @cached_property  # Safe because snapshot is frozen
     def theme(self) -> Theme:
@@ -568,7 +568,7 @@ class Site:
     def __init__(self, ...) -> None:
         self._theme_service = ThemeService()
         self._query_service = QueryService()
-    
+
     @property
     def theme(self) -> Theme:
         return self._theme_service.resolve(self._snapshot)
@@ -606,26 +606,26 @@ When a template changes, we need to know which pages use it. Currently computed 
 class TemplateSnapshot:
     """
     Pre-analyzed template with dependency graph.
-    
+
     Created during snapshot phase via static template analysis.
     """
     path: Path
     name: str
-    
+
     # Template relationships (pre-resolved)
     extends: TemplateSnapshot | None       # {% extends "base.html" %}
     includes: tuple[TemplateSnapshot, ...] # {% include "partial.html" %}
-    
+
     # Block definitions
     blocks: tuple[str, ...]                # {% block content %}
-    
+
     # Macros
     macros_defined: tuple[str, ...]        # {% macro name() %}
     macros_used: tuple[str, ...]           # {{ macros.name() }}
-    
+
     # Incremental build support
     content_hash: str
-    
+
     # Reverse index (pages using this template)
     dependents: tuple[PageSnapshot, ...]
 
@@ -633,7 +633,7 @@ class TemplateSnapshot:
 @dataclass(frozen=True, slots=True)
 class SiteSnapshot:
     # ... existing fields ...
-    
+
     # Template snapshots with dependency graph
     templates: MappingProxyType[str, TemplateSnapshot]
     template_dependency_graph: MappingProxyType[str, frozenset[str]]
@@ -648,22 +648,22 @@ def pages_affected_by_template_change(
 ) -> set[PageSnapshot]:
     """
     Instantly determine which pages need rebuild.
-    
+
     O(1) lookup instead of O(pages) scan.
     """
     template = snapshot.templates.get(template_path.name)
     if template is None:
         return set()
-    
+
     # Direct dependents
     affected = set(template.dependents)
-    
+
     # Transitive: templates that extend/include this one
     for other_name in snapshot.template_dependency_graph.get(template.name, ()):
         other = snapshot.templates.get(other_name)
         if other:
             affected.update(other.dependents)
-    
+
     return affected
 ```
 
@@ -721,7 +721,7 @@ class BuildSection:
 class ConfigSnapshot:
     """
     Frozen, typed configuration.
-    
+
     Created once at load time, used throughout build.
     Same pattern as SiteSnapshot.
     """
@@ -729,14 +729,14 @@ class ConfigSnapshot:
     build: BuildSection
     theme: ThemeSection
     dev: DevSection
-    
+
     # Raw access for custom/dynamic keys
     _raw: MappingProxyType[str, Any]
-    
+
     def __getitem__(self, key: str) -> Any:
         """Dict-style access for custom sections."""
         return self._raw[key]
-    
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> ConfigSnapshot:
         """Create frozen config from loaded dict."""
@@ -757,7 +757,7 @@ class ConfigSnapshot:
 class SiteSnapshot:
     # Config is now frozen ConfigSnapshot
     config: ConfigSnapshot
-    
+
     # Shortcut for common access
     @property
     def params(self) -> MappingProxyType[str, Any]:
@@ -888,14 +888,14 @@ def benchmark_snapshot_creation(site_path: Path, iterations: int = 5) -> None:
     """Measure snapshot creation time."""
     site = Site.from_config(site_path)
     site.discover_content()
-    
+
     times = []
     for _ in range(iterations):
         start = time.perf_counter()
         snapshot = create_site_snapshot(site)
         elapsed = (time.perf_counter() - start) * 1000
         times.append(elapsed)
-    
+
     print(f"Snapshot creation: {sum(times)/len(times):.1f}ms avg ({len(snapshot.pages)} pages)")
 
 if __name__ == "__main__":

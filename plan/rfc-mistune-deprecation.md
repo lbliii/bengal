@@ -124,7 +124,7 @@ markdown:
    ```python
    def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
        engine = (engine or "patitas").lower()
-       
+
        if engine == "mistune":
            raise BengalConfigError(
                "MistuneParser has been removed in Bengal 3.0. "
@@ -152,7 +152,7 @@ markdown:
 
 1. **Delete Mistune parser**:
    - Remove `bengal/rendering/parsers/mistune/` (1,537 LOC)
-   
+
 2. **Delete Mistune directive layer**:
    - Remove `bengal/directives/` entirely (~15,264 LOC)
    - Keep only shared utilities that Patitas uses
@@ -171,7 +171,7 @@ markdown:
    ```python
    def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
        engine = (engine or "patitas").lower()
-       
+
        if engine == "patitas":
            return PatitasParser()
        elif engine in ("python-markdown", "markdown"):

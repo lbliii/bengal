@@ -1,0 +1,8 @@
+content:
+  default_type: doc
+  excerpt_length: 750
+  reading_speed: 200
+  toc_depth: 4
+  toc_min_headings: 2
+  sort_pages_by: weight
+  sort_order: asc

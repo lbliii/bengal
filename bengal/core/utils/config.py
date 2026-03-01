@@ -104,7 +104,7 @@ def get_config_section(config: Any, section: str) -> dict[str, Any]:
         # Try to convert via dict()
         try:
             return dict(section_attr)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             pass
 
     # Try dict access

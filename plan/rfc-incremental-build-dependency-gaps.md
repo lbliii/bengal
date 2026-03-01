@@ -129,21 +129,21 @@ tags: [python]
 ```
 phase_discovery()
     └─► Discover all content files
-    
+
 phase_incremental_filter()
     └─► find_work_early()
         └─► Check mtime/hash of .md files
         └─► pages_to_build = changed content files
-        
+
 phase_assets()
     └─► Process changed CSS/JS/images
     └─► Update asset-manifest.json
     └─► (Gap: doesn't check data file mtimes)
-    
+
 phase_rendering()
     └─► Render only pages_to_build
     └─► (Gap: taxonomy pages not in pages_to_build)
-    
+
 phase_post_processing()
     └─► Generate sitemap, RSS, llm-full.txt
     └─► (Gap: not always triggered on incremental)
@@ -188,14 +188,14 @@ class DependencyTracker:
     # Existing infrastructure (reuse these)
     # self.dependencies: dict[Path, set[Path]] = {}
     # self.reverse_dependencies: dict[Path, set[Path]] = {}
-    
+
     def track_data_file(self, page_path: Path, data_file: Path) -> None:
         """Record that a page depends on a data file."""
         # Use existing dependency infrastructure with data: prefix
         dep_key = Path(f"data:{data_file}")
         self.cache.add_dependency(page_path, dep_key)
         self._update_dependency_file_once(data_file)
-    
+
     def get_pages_using_data_file(self, data_file: Path) -> set[Path]:
         """Find all pages that depend on a data file."""
         dep_key = f"data:{data_file}"
@@ -213,11 +213,11 @@ def get_data(path: str, root_path: Any, tracker: DependencyTracker | None = None
              current_page: Path | None = None) -> Any:
     """Load data from JSON or YAML file, tracking dependency."""
     file_path = Path(root_path) / path
-    
+
     # Track dependency if tracker available
     if tracker and current_page:
         tracker.track_data_file(current_page, file_path)
-    
+
     return load_data_file(file_path, on_error="return_empty", caller="template")
 ```
 
@@ -227,12 +227,12 @@ def get_data(path: str, root_path: Any, tracker: DependencyTracker | None = None
 # bengal/orchestration/incremental/orchestrator.py
 def find_work_early(self, ...) -> tuple[list[Page], list[Asset], ChangeSummary]:
     pages_to_build = []
-    
+
     # Existing: content changes
     for page in self._site.pages:
         if self._change_detector.content_changed(page):
             pages_to_build.append(page)
-    
+
     # NEW: data file changes
     data_dir = self._site.root_path / "data"
     if data_dir.exists():
@@ -246,7 +246,7 @@ def find_work_early(self, ...) -> tuple[list[Page], list[Asset], ChangeSummary]:
                         if page and page not in pages_to_build:
                             pages_to_build.append(page)
                             self._change_summary.data_file_triggered.append(page_path)
-    
+
     return pages_to_build, assets_to_process, self._change_summary
 ```
 
@@ -276,14 +276,14 @@ class DependencyTracker:
             if tag is None:
                 continue
             tag_key = f"tag:{str(tag).lower().replace(' ', '-')}"
-            
+
             # Existing: forward mapping (tag → pages that have this tag)
             self.cache.add_taxonomy_dependency(tag_key, page_path)
-            
+
             # NEW: reverse mapping (page → term pages that list it)
             term_page_path = f"_generated/tags/{tag_key}/index.html"
             self._record_reverse_taxonomy(page_path, term_page_path)
-    
+
     def _record_reverse_taxonomy(self, member_path: Path, term_path: str) -> None:
         """Record that a term page depends on a member page's metadata."""
         # When member changes, term page needs rebuild
@@ -291,7 +291,7 @@ class DependencyTracker:
             if term_path not in self.reverse_dependencies:
                 self.reverse_dependencies[term_path] = set()
             self.reverse_dependencies[term_path].add(str(member_path))
-    
+
     def get_term_pages_for_member(self, member_path: Path) -> set[str]:
         """Find all taxonomy term pages that list this member page."""
         return {
@@ -306,11 +306,11 @@ class DependencyTracker:
 # bengal/orchestration/incremental/orchestrator.py
 def find_work_early(self, ...) -> tuple[list[Page], list[Asset], ChangeSummary]:
     pages_to_build = []
-    
+
     # Existing: content changes
     changed_pages = [p for p in self._site.pages if self._change_detector.content_changed(p)]
     pages_to_build.extend(changed_pages)
-    
+
     # NEW: cascade to taxonomy term pages
     for page in changed_pages:
         affected_terms = self.tracker.get_term_pages_for_member(page.source_path)
@@ -319,7 +319,7 @@ def find_work_early(self, ...) -> tuple[list[Page], list[Asset], ChangeSummary]:
             if term_page and term_page not in pages_to_build:
                 pages_to_build.append(term_page)
                 self._change_summary.taxonomy_cascade.append(term_path)
-    
+
     return pages_to_build, assets_to_process, self._change_summary
 ```
 
@@ -332,7 +332,7 @@ def metadata_changed(self, page: Page) -> bool:
     prev_hash = self.cache.get_metadata_hash(page.source_path)
     if prev_hash is None:
         return True  # New page
-    
+
     curr_hash = self._hash_frontmatter(page.metadata)
     return prev_hash != curr_hash
 
@@ -367,16 +367,16 @@ def phase_post_processing(
 ) -> None:
     """Run post-processing tasks."""
     site = orchestrator.site
-    
+
     # Sitemap: always regenerate for correctness (fast: ~10ms for 1K pages)
     if site.config.build.generate_sitemap:
         SitemapGenerator(site).generate()
-    
+
     # RSS: regenerate if any pages changed or new pages added
     if site.config.build.generate_rss:
         if not incremental or orchestrator.has_content_changes():
             RSSGenerator(site).generate()
-    
+
     # llm-full.txt: regenerate if any content changed
     if site.config.build.generate_llm_txt:
         if not incremental or orchestrator.has_content_changes():
@@ -481,7 +481,7 @@ def phase_post_processing(
 **Approach**: Wrap `site.data` in a proxy that records attribute access during rendering.
 
 **Pros**: Fine-grained tracking at key level (e.g., `site.data.team.members[0].name`)
-**Cons**: 
+**Cons**:
 - Proxy overhead on every access
 - Thread-local state for `_current_page`
 - Complex implementation for marginal benefit

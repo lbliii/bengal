@@ -126,7 +126,7 @@ def coerce_int(value: Any, default: int = 0) -> int:
         return default
     try:
         return int(value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return default
 
 
@@ -311,7 +311,7 @@ def resolve_excerpt_length(page: Any, content_cfg: dict[str, Any]) -> int:
     )
     try:
         return int(raw)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return int(get_default("content", "excerpt_length") or 750)
 
 
@@ -353,7 +353,7 @@ def resolve_excerpt_words(page: Any, content_cfg: dict[str, Any]) -> int:
         return int(get_default("content", "excerpt_words") or 150)
     try:
         return int(raw)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return 150
 
 

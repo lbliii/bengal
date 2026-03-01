@@ -136,7 +136,7 @@ class TemplateRenderError(BengalRenderingError):
                 dirs = template_engine.template_dirs
                 if dirs and hasattr(dirs, "__iter__"):
                     search_paths = list(dirs)
-            except (TypeError, AttributeError):
+            except TypeError, AttributeError:
                 # Handle mock objects or other non-iterable cases
                 pass
 
@@ -266,7 +266,7 @@ class TemplateRenderError(BengalRenderingError):
                     end = min(len(lines), line_number + 3)
 
                     surrounding_lines.extend((i + 1, lines[i].rstrip()) for i in range(start, end))
-            except (OSError, IndexError):
+            except OSError, IndexError:
                 pass
 
         return TemplateErrorContext(

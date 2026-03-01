@@ -132,9 +132,9 @@ MAIN TEMPLATE
 
     {# Render section cards if we found any #}
     {% if doc_sections | length > 0 %}
-    {# Sort by weight, then take top 6 #}
+    {# Sort by weight, then take top 6 (sections must have metadata.weight) #}
     {% let sorted_sections = doc_sections
-    |> sort(attribute='metadata.weight', default=999999)
+    |> sort(attribute='metadata.weight')
     |> take(6) %}
 
     <section class="docs-home-sections">

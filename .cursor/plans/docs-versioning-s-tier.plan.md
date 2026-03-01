@@ -217,4 +217,3 @@ Emit to `public/versions.json` (or `public/<deploy_prefix>/versions.json` if dep
 - `bengal/orchestration/incremental/orchestrator.py` — invalidation
 - `bengal/rendering/template_functions/version_url.py` — target URL fallbacks
 - Mike: [https://github.com/jimporter/mike](https://github.com/jimporter/mike)
-

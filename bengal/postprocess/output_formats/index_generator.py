@@ -609,7 +609,7 @@ class SiteIndexGenerator:
         try:
             json.dumps(value)
             return True
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return False
 
     def _safe_get_metadata_value(self, metadata: dict[str, Any], key: str) -> Any | None:

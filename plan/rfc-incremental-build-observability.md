@@ -136,7 +136,7 @@ Rather than creating a parallel `IncrementalDecisionTrace`, extend the existing 
 @dataclass
 class FilterDecisionLog:
     """Decision log with full layer-by-layer trace."""
-    
+
     # Existing fields (unchanged)
     incremental_enabled: bool = False
     decision_type: FilterDecisionType = FilterDecisionType.INCREMENTAL
@@ -144,29 +144,29 @@ class FilterDecisionLog:
     pages_with_changes: int = 0
     assets_with_changes: int = 0
     # ... other existing fields ...
-    
+
     # NEW: Layer 1 - Data files
     data_files_checked: int = 0
     data_files_changed: int = 0
     data_file_fingerprints_available: bool = True
     data_file_fallback_used: bool = False
-    
+
     # NEW: Layer 2 - autodoc
     autodoc_metadata_available: bool = True
     autodoc_fingerprint_fallback_used: bool = False
     autodoc_sources_total: int = 0
     autodoc_sources_stale: int = 0
     autodoc_stale_method: str = ""  # "metadata" | "fingerprint" | "all_stale"
-    
+
     # NEW: Layer 3 - Section optimization
     sections_total: int = 0
     sections_marked_changed: list[str] = field(default_factory=list)
     section_change_reasons: dict[str, str] = field(default_factory=dict)
-    
+
     # NEW: Layer 4 - Page filtering
     pages_in_changed_sections: int = 0
     pages_filtered_by_section: int = 0
-    
+
     def to_trace_output(self) -> str:
         """Generate human-readable layer trace for --explain."""
         lines = [
@@ -177,10 +177,10 @@ class FilterDecisionLog:
             "",
             f"Decision: {self.decision_type.name}",
         ]
-        
+
         if self.full_rebuild_trigger:
             lines.append(f"  Trigger: {self.full_rebuild_trigger.value}")
-        
+
         lines.extend([
             "",
             "───────────────────────────────────────────────────────────────",
@@ -192,7 +192,7 @@ class FilterDecisionLog:
         ])
         if self.data_file_fallback_used:
             lines.append("  ⚠ Fallback used (fingerprints unavailable)")
-        
+
         lines.extend([
             "",
             "───────────────────────────────────────────────────────────────",
@@ -206,7 +206,7 @@ class FilterDecisionLog:
             lines.append("  ⚠ Using fingerprint fallback (metadata unavailable)")
         if self.autodoc_stale_method:
             lines.append(f"  Detection method: {self.autodoc_stale_method}")
-        
+
         lines.extend([
             "",
             "───────────────────────────────────────────────────────────────",
@@ -221,7 +221,7 @@ class FilterDecisionLog:
                 lines.append(f"    • {section} ({reason})")
             if len(self.sections_marked_changed) > 5:
                 lines.append(f"    ... and {len(self.sections_marked_changed) - 5} more")
-        
+
         lines.extend([
             "",
             "───────────────────────────────────────────────────────────────",
@@ -232,7 +232,7 @@ class FilterDecisionLog:
             "",
             "═══════════════════════════════════════════════════════════════",
         ])
-        
+
         return "\n".join(lines)
 ```
 
@@ -248,10 +248,10 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
     decision = stats.incremental_decision
     if decision is None:
         return
-    
+
     # Existing output (rebuild reasons, page lists, etc.)
     # ...
-    
+
     # NEW: Add layer trace if available
     filter_log = getattr(stats, 'filter_decision_log', None)
     if filter_log is not None:
@@ -267,7 +267,7 @@ Building site...
 ✓ Built 3 pages (1060 skipped)
 
 ═══════════════════════════════════════════════════════════════
-                    DECISION TRACE                              
+                    DECISION TRACE  
 ═══════════════════════════════════════════════════════════════
 
 Decision: INCREMENTAL
@@ -326,19 +326,19 @@ from bengal.orchestration.build.options import BuildOptions
 @dataclass
 class WarmBuildTestSite:
     """Test site with pre-warmed cache for incremental testing."""
-    
+
     root: Path
     content: Path
     cache_path: Path
     _site: "Site | None" = None
-    
+
     @property
     def site(self) -> "Site":
         """Load or return cached site instance."""
         if self._site is None:
             self._site = load_site_from_cli(source=str(self.root))
         return self._site
-    
+
     def build(self, *, incremental: bool = True, explain: bool = True):
         """Build the site and return stats."""
         # Reload site to pick up file changes
@@ -349,7 +349,7 @@ class WarmBuildTestSite:
             explain=explain,
         )
         return self._site.build(options=options)
-    
+
     def reload(self) -> None:
         """Force site reload (picks up file changes)."""
         self._site = None
@@ -361,7 +361,7 @@ def warm_site(tmp_path: Path) -> Generator[WarmBuildTestSite, None, None]:
     # Create site structure
     root = tmp_path / "site"
     root.mkdir()
-    
+
     config = root / "bengal.toml"
     config.write_text('''
 [site]
@@ -371,22 +371,22 @@ baseURL = "http://localhost"
 [build]
 output_dir = "public"
 ''')
-    
+
     content = root / "content"
     content.mkdir()
     (content / "_index.md").write_text("---\ntitle: Home\n---\n# Home")
     (content / "page1.md").write_text("---\ntitle: Page 1\n---\n# Page 1")
     (content / "page2.md").write_text("---\ntitle: Page 2\n---\n# Page 2")
-    
+
     site = WarmBuildTestSite(
         root=root,
         content=content,
         cache_path=root / ".bengal" / "cache.json",
     )
-    
+
     # Warm the cache with initial build
     site.build(incremental=False)
-    
+
     yield site
 
 
@@ -395,7 +395,7 @@ def warm_site_with_sections(tmp_path: Path) -> Generator[WarmBuildTestSite, None
     """Create a site with nested sections and warm its cache."""
     root = tmp_path / "site"
     root.mkdir()
-    
+
     config = root / "bengal.toml"
     config.write_text('''
 [site]
@@ -405,30 +405,30 @@ baseURL = "http://localhost"
 [build]
 output_dir = "public"
 ''')
-    
+
     content = root / "content"
     content.mkdir()
     (content / "_index.md").write_text("---\ntitle: Home\n---\n# Home")
-    
+
     # Create nested section: docs/about/
     docs = content / "docs"
     docs.mkdir()
     (docs / "_index.md").write_text("---\ntitle: Docs\n---\n# Docs")
-    
+
     about = docs / "about"
     about.mkdir()
     (about / "_index.md").write_text("---\ntitle: About\n---\n# About")
     (about / "glossary.md").write_text("---\ntitle: Glossary\n---\n# Glossary")
-    
+
     site = WarmBuildTestSite(
         root=root,
         content=content,
         cache_path=root / ".bengal" / "cache.json",
     )
-    
+
     # Warm the cache
     site.build(incremental=False)
-    
+
     yield site
 ```
 
@@ -454,19 +454,19 @@ from bengal.cache.build_cache import BuildCache
 
 class TestIncrementalInvariants:
     """Tests that verify incremental build correctness invariants."""
-    
+
     def test_unchanged_file_never_rebuilt(self, warm_site):
         """INVARIANT: Unchanged files must never be rebuilt."""
         # First incremental build (should rebuild nothing)
         stats = warm_site.build(incremental=True)
-        
+
         # INVARIANT: No pages should be rebuilt
         pages_rebuilt = len(stats.incremental_decision.pages_to_build)
         assert pages_rebuilt == 0, (
             f"Unchanged files were rebuilt: {pages_rebuilt} pages. "
             f"Expected 0 rebuilds on warm cache with no changes."
         )
-    
+
     def test_changed_file_always_rebuilt(self, warm_site):
         """INVARIANT: Changed files must always be rebuilt."""
         # Modify a file
@@ -474,9 +474,9 @@ class TestIncrementalInvariants:
         original = test_file.read_text()
         time.sleep(0.01)  # Ensure mtime changes
         test_file.write_text(original + "\n<!-- modified -->")
-        
+
         stats = warm_site.build(incremental=True)
-        
+
         # INVARIANT: Modified file must be in rebuild list
         rebuilt_paths = {
             str(p.source_path) for p in stats.incremental_decision.pages_to_build
@@ -485,7 +485,7 @@ class TestIncrementalInvariants:
             f"Changed file page1.md was not rebuilt. "
             f"Rebuilt: {rebuilt_paths}"
         )
-    
+
     def test_subsection_change_marks_parent_section(self, warm_site_with_sections):
         """INVARIANT: Subsection changes must mark parent section as changed."""
         # Modify file in subsection
@@ -493,9 +493,9 @@ class TestIncrementalInvariants:
         original = glossary.read_text()
         time.sleep(0.01)
         glossary.write_text(original + "\n<!-- modified -->")
-        
+
         stats = warm_site_with_sections.build(incremental=True)
-        
+
         # INVARIANT: glossary.md must be rebuilt
         rebuilt_paths = {
             str(p.source_path) for p in stats.incremental_decision.pages_to_build
@@ -504,13 +504,13 @@ class TestIncrementalInvariants:
             f"Changed file glossary.md was not rebuilt. "
             f"Rebuilt: {rebuilt_paths}"
         )
-    
+
     def test_cross_process_cache_consistency(self, tmp_path: Path):
         """INVARIANT: Cache saved in process A must load correctly in process B."""
         cache_path = tmp_path / "cache.json"
         test_file = tmp_path / "test.md"
         test_file.write_text("# Test")
-        
+
         # Save cache in subprocess
         save_script = f'''
 import sys
@@ -530,21 +530,21 @@ print(f"saved:{{len(cache.file_fingerprints)}}")
             cwd=str(tmp_path),
         )
         assert "saved:1" in result.stdout, f"Save failed: {result.stderr}"
-        
+
         # Load in current process
         loaded = BuildCache.load(cache_path, use_lock=False)
-        
+
         # INVARIANT: Fingerprints must survive cross-process round-trip
         assert len(loaded.file_fingerprints) == 1, (
             f"Fingerprint lost in cross-process round-trip. "
             f"Expected 1, got {len(loaded.file_fingerprints)}"
         )
-    
+
     def test_second_build_without_changes_is_skip(self, warm_site):
         """INVARIANT: Consecutive builds without changes should skip or rebuild 0."""
         stats1 = warm_site.build(incremental=True)
         stats2 = warm_site.build(incremental=True)
-        
+
         # INVARIANT: Second build should have 0 pages to rebuild
         pages_rebuilt = len(stats2.incremental_decision.pages_to_build)
         assert pages_rebuilt == 0, (
@@ -593,7 +593,7 @@ from bengal.config.environment import get_strict_incremental_mode, StrictIncreme
 
 if not self.autodoc_source_metadata and self.autodoc_dependencies:
     mode = get_strict_incremental_mode()
-    
+
     if mode == StrictIncrementalMode.ERROR:
         raise IncrementalCacheError(
             "autodoc source metadata empty but dependencies present.\n"
@@ -607,7 +607,7 @@ if not self.autodoc_source_metadata and self.autodoc_dependencies:
             msg="Using fingerprint fallback (metadata unavailable)",
             source_count=len(self.autodoc_dependencies),
         )
-    
+
     # Continue with fallback logic...
 ```
 

@@ -45,7 +45,7 @@ def _safe_weight(value: object) -> float:
         return float("inf")
     try:
         return float(value)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return float("inf")
 
 

@@ -313,11 +313,11 @@ Add to `bengal/protocols/core.py`:
 ```python
 class ConfigLike(Protocol):
     """Protocol for objects that provide dict-like config access."""
-    
+
     def get(self, key: str, default: Any = None) -> Any: ...
     def __getitem__(self, key: str) -> Any: ...
     def __contains__(self, key: str) -> bool: ...
-    
+
     @property
     def raw(self) -> dict[str, Any]:
         """Return underlying dict for functions requiring raw dict."""

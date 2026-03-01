@@ -19,6 +19,8 @@ import pytest
 
 from bengal.core.output import BuildOutputCollector, OutputRecord, OutputType
 
+pytestmark = pytest.mark.parallel_unsafe
+
 
 class TestOutputRecord:
     """Tests for OutputRecord dataclass."""

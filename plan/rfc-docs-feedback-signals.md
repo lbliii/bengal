@@ -106,30 +106,30 @@ Modern docs platforms (Mintlify, Fern, GitBook) provide inline feedback mechanis
 # Feedback configuration
 feedback:
   enabled: true
-  
+
   # Backend: where feedback goes
   backend:
     type: github  # github | slack | webhook
-    
+
     # GitHub backend
     github:
       repo: "org/docs-repo"
       type: discussions  # issues | discussions
       category: "Feedback"  # For discussions: category name
       labels: ["docs-feedback", "triage"]  # For issues: auto-labels
-    
+
     # Slack backend (alternative)
     slack:
       webhook_url: "${SLACK_WEBHOOK_URL}"  # From env var
       channel: "#docs-feedback"  # Optional override
-    
+
     # Custom webhook (alternative)
     webhook:
       url: "https://api.example.com/docs-feedback"
       method: POST
       headers:
         Authorization: "Bearer ${FEEDBACK_API_KEY}"
-  
+
   # UI Configuration
   ui:
     # Code block feedback
@@ -137,15 +137,15 @@ feedback:
       enabled: true
       button_label: "Report issue"  # Tooltip text
       icon: "warning"  # Icon name from theme
-    
+
     # Page-level feedback
     page:
       enabled: true
       position: action-bar  # action-bar | footer | floating
-      
+
       # Quick feedback (thumbs up/down)
       quick_feedback: true
-      
+
       # Detailed feedback form
       form:
         types:
@@ -164,18 +164,18 @@ feedback:
           - id: other
             label: "Other feedback"
             icon: "message"
-        
+
         # Optional message field
         message:
           enabled: true
           placeholder: "Tell us more (optional)..."
           max_length: 1000
-        
+
         # Optional email field
         email:
           enabled: false
           placeholder: "your@email.com (optional)"
-  
+
   # Privacy & spam protection
   privacy:
     # Collect page URL and timestamp (always on)
@@ -221,7 +221,7 @@ features:
 {% if 'feedback.code_blocks' in theme.features %}
 <div class="code-block__actions">
   {% if config.feedback.ui.code_blocks.enabled %}
-  <button 
+  <button
     type="button"
     class="code-block__action code-block__action--feedback"
     data-action="feedback-code"
@@ -232,8 +232,8 @@ features:
     {{ icon(config.feedback.ui.code_blocks.icon ?? 'warning', size=16) }}
   </button>
   {% end %}
-  
-  <button 
+
+  <button
     type="button"
     class="code-block__action code-block__action--copy"
     data-action="copy-code"
@@ -254,10 +254,10 @@ Add next to the existing share button:
 <div class="action-bar-actions">
   {# Existing share button #}
   <div class="action-bar-share">...</div>
-  
+
   {# New feedback button #}
   {% if 'feedback.page' in theme.features %}
-  <button 
+  <button
     class="action-bar-feedback"
     popovertarget="feedback-popover"
     aria-label="{{ t('feedback.button_label', default='Give feedback') }}">
@@ -277,7 +277,7 @@ Common pattern from AWS, Azure, Stripe docs:
 <div class="feedback-footer" data-bengal="feedback-footer">
   <span class="feedback-footer__prompt">Was this page helpful?</span>
   <div class="feedback-footer__buttons">
-    <button 
+    <button
       class="feedback-footer__btn feedback-footer__btn--positive"
       data-action="feedback-quick"
       data-feedback-type="helpful"
@@ -285,7 +285,7 @@ Common pattern from AWS, Azure, Stripe docs:
       {{ icon('thumbs-up', size=20) }}
       <span>Yes</span>
     </button>
-    <button 
+    <button
       class="feedback-footer__btn feedback-footer__btn--negative"
       data-action="feedback-quick"
       data-feedback-type="not-helpful"
@@ -315,14 +315,14 @@ Common pattern from AWS, Azure, Stripe docs:
         {{ icon('x', size=20) }}
       </button>
     </header>
-    
+
     <div class="feedback-modal__body">
       {# Context display #}
       <div class="feedback-modal__context">
         <span class="feedback-modal__context-label">About:</span>
         <span class="feedback-modal__context-value" data-feedback-context></span>
       </div>
-      
+
       {# Issue type selection #}
       <fieldset class="feedback-modal__types">
         <legend>What kind of issue?</legend>
@@ -334,12 +334,12 @@ Common pattern from AWS, Azure, Stripe docs:
         </label>
         {% end %}
       </fieldset>
-      
+
       {# Message textarea #}
       {% if config.feedback.ui.form.message.enabled %}
       <label class="feedback-modal__message">
         <span class="sr-only">Additional details</span>
-        <textarea 
+        <textarea
           name="feedback-message"
           placeholder="{{ config.feedback.ui.form.message.placeholder }}"
           maxlength="{{ config.feedback.ui.form.message.max_length }}"
@@ -347,7 +347,7 @@ Common pattern from AWS, Azure, Stripe docs:
       </label>
       {% end %}
     </div>
-    
+
     <footer class="feedback-modal__footer">
       <button type="submit" value="close" class="feedback-modal__cancel">Cancel</button>
       <button type="submit" value="submit" class="feedback-modal__submit" data-action="feedback-submit">
@@ -363,7 +363,7 @@ Common pattern from AWS, Azure, Stripe docs:
 ```javascript
 /**
  * Feedback Enhancement
- * 
+ *
  * PATTERN: DIALOG (see COMPONENT-PATTERNS.md)
  * - Modal uses native <dialog> API
  * - Browser handles: focus trap, escape key, backdrop
@@ -372,20 +372,20 @@ Common pattern from AWS, Azure, Stripe docs:
 
 (function() {
   'use strict';
-  
+
   const { log, ready } = window.BengalUtils;
-  
+
   // Configuration from inline script (set by template)
   const config = window.BENGAL_FEEDBACK_CONFIG || {};
-  
+
   ready(init);
-  
+
   function init() {
     initCodeBlockFeedback();
     initQuickFeedback();
     initDetailedFeedback();
   }
-  
+
   /**
    * Code block "Report issue" buttons
    */
@@ -393,11 +393,11 @@ Common pattern from AWS, Azure, Stripe docs:
     document.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-action="feedback-code"]');
       if (!btn) return;
-      
+
       const codeBlock = btn.closest('.code-block, pre');
       const code = codeBlock?.querySelector('code')?.textContent || '';
       const lang = btn.dataset.codeLang || '';
-      
+
       openFeedbackModal({
         type: 'code',
         context: `Code sample (${lang})`,
@@ -409,7 +409,7 @@ Common pattern from AWS, Azure, Stripe docs:
       });
     });
   }
-  
+
   /**
    * Quick thumbs up/down feedback
    */
@@ -417,9 +417,9 @@ Common pattern from AWS, Azure, Stripe docs:
     document.addEventListener('click', async (e) => {
       const btn = e.target.closest('[data-action="feedback-quick"]');
       if (!btn) return;
-      
+
       const feedbackType = btn.dataset.feedbackType;
-      
+
       // Visual feedback immediately
       const container = btn.closest('.feedback-footer');
       if (container) {
@@ -429,7 +429,7 @@ Common pattern from AWS, Azure, Stripe docs:
           </span>
         `;
       }
-      
+
       // Submit in background
       await submitFeedback({
         type: feedbackType,
@@ -438,33 +438,33 @@ Common pattern from AWS, Azure, Stripe docs:
       });
     });
   }
-  
+
   /**
    * Detailed feedback modal
    */
   function initDetailedFeedback() {
     const modal = document.getElementById('feedback-modal');
     if (!modal) return;
-    
+
     // Handle "More options" link
     document.addEventListener('click', (e) => {
       const link = e.target.closest('[data-action="feedback-detailed"]');
       if (!link) return;
       e.preventDefault();
-      
+
       openFeedbackModal({
         type: 'page',
         context: document.title,
       });
     });
-    
+
     // Handle form submission
     const form = modal.querySelector('[data-bengal="feedback-form"]');
     form?.addEventListener('submit', async (e) => {
       if (e.submitter?.value !== 'submit') return;
-      
+
       e.preventDefault();
-      
+
       const formData = new FormData(form);
       await submitFeedback({
         type: formData.get('feedback-type'),
@@ -473,35 +473,35 @@ Common pattern from AWS, Azure, Stripe docs:
         page_title: document.title,
         ...modal.feedbackMetadata,
       });
-      
+
       // Close modal and show confirmation
       modal.close();
       showConfirmation();
     });
   }
-  
+
   /**
    * Open feedback modal with context
    */
   function openFeedbackModal({ type, context, metadata = {} }) {
     const modal = document.getElementById('feedback-modal');
     if (!modal) return;
-    
+
     // Set context display
     const contextEl = modal.querySelector('[data-feedback-context]');
     if (contextEl) {
       contextEl.textContent = context;
     }
-    
+
     // Store metadata for submission
     modal.feedbackMetadata = {
       feedback_source: type,
       ...metadata,
     };
-    
+
     modal.showModal();
   }
-  
+
   /**
    * Submit feedback to configured backend
    */
@@ -511,7 +511,7 @@ Common pattern from AWS, Azure, Stripe docs:
       timestamp: new Date().toISOString(),
       user_agent: config.collectUserAgent ? navigator.userAgent : undefined,
     };
-    
+
     try {
       switch (config.backend?.type) {
         case 'github':
@@ -531,17 +531,17 @@ Common pattern from AWS, Azure, Stripe docs:
       // Don't throw - fail silently to not disrupt user
     }
   }
-  
+
   /**
    * GitHub Issues/Discussions backend
    */
   async function submitToGitHub(data) {
     const { repo, type } = config.backend.github;
-    
+
     // Build issue/discussion URL with pre-filled content
     const title = encodeURIComponent(`[Docs Feedback] ${data.page_title}`);
     const body = encodeURIComponent(buildGitHubBody(data));
-    
+
     if (type === 'issues') {
       const labels = config.backend.github.labels?.join(',') || '';
       window.open(
@@ -559,7 +559,7 @@ Common pattern from AWS, Azure, Stripe docs:
       );
     }
   }
-  
+
   /**
    * Build GitHub issue/discussion body
    */
@@ -567,20 +567,20 @@ Common pattern from AWS, Azure, Stripe docs:
     let body = `## Feedback\n\n`;
     body += `**Page**: [${data.page_title}](${data.page_url})\n`;
     body += `**Type**: ${data.type}\n`;
-    
+
     if (data.message) {
       body += `\n### Details\n\n${data.message}\n`;
     }
-    
+
     if (data.code_snippet) {
       body += `\n### Code Sample\n\n\`\`\`${data.language}\n${data.code_snippet}\n\`\`\`\n`;
     }
-    
+
     body += `\n---\n*Submitted via docs feedback on ${data.timestamp}*`;
-    
+
     return body;
   }
-  
+
   /**
    * Slack webhook backend
    */
@@ -610,13 +610,13 @@ Common pattern from AWS, Azure, Stripe docs:
       })
     });
   }
-  
+
   /**
    * Custom webhook backend
    */
   async function submitToWebhook(data) {
     const { url, method, headers } = config.backend.webhook;
-    
+
     await fetch(url, {
       method: method || 'POST',
       headers: {
@@ -626,7 +626,7 @@ Common pattern from AWS, Azure, Stripe docs:
       body: JSON.stringify(data),
     });
   }
-  
+
   /**
    * Show confirmation after submission
    */
@@ -634,7 +634,7 @@ Common pattern from AWS, Azure, Stripe docs:
     // Could use toast notification or inline message
     log('Feedback submitted successfully');
   }
-  
+
 })();
 ```
 
@@ -647,10 +647,10 @@ Direct webhook URLs expose credentials. Provide example serverless functions:
 ```javascript
 /**
  * Cloudflare Worker: Docs Feedback → Slack
- * 
+ *
  * Validates requests and forwards to Slack webhook.
  * Deploy: wrangler deploy
- * 
+ *
  * Environment variables:
  *   SLACK_WEBHOOK_URL - Slack incoming webhook URL
  *   ALLOWED_ORIGINS - Comma-separated allowed origins
@@ -664,33 +664,33 @@ export default {
         headers: corsHeaders(env.ALLOWED_ORIGINS),
       });
     }
-    
+
     if (request.method !== 'POST') {
       return new Response('Method not allowed', { status: 405 });
     }
-    
+
     // Origin check
     const origin = request.headers.get('Origin');
     if (!isAllowedOrigin(origin, env.ALLOWED_ORIGINS)) {
       return new Response('Forbidden', { status: 403 });
     }
-    
+
     try {
       const data = await request.json();
-      
+
       // Rate limiting would go here (use KV or Durable Objects)
-      
+
       // Forward to Slack
       const slackResponse = await fetch(env.SLACK_WEBHOOK_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(buildSlackPayload(data)),
       });
-      
+
       if (!slackResponse.ok) {
         throw new Error(`Slack error: ${slackResponse.status}`);
       }
-      
+
       return new Response(JSON.stringify({ success: true }), {
         headers: {
           'Content-Type': 'application/json',

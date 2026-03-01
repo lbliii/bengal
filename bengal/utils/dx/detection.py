@@ -31,7 +31,7 @@ def is_docker() -> bool:
         try:
             content = cgroup.read_text()
             return "/docker" in content or "docker" in content
-        except (OSError, UnicodeDecodeError):
+        except OSError, UnicodeDecodeError:
             pass
 
     return False
@@ -61,7 +61,7 @@ def is_wsl() -> bool:
     try:
         release = platform.uname().release
         return "microsoft-standard" in release.lower()
-    except (AttributeError, OSError):
+    except AttributeError, OSError:
         return False
 
 

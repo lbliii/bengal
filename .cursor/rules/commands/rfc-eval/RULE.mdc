@@ -76,12 +76,12 @@ path_a_source:
   location: "file:line"
   finding: "[What was found]"
   status: ✅/❌
-  
+
 path_b_tests:
   location: "file:line"
   finding: "[What tests show]"
   status: ✅/❌
-  
+
 path_c_config:
   location: "file:line or N/A"
   finding: "[Config/schema status]"
@@ -257,4 +257,3 @@ Status: Evaluated
 - `commands/rfc` - RFC drafting
 - `commands/plan` - Convert to tasks after approval
 - `commands/validate` - General validation patterns
-

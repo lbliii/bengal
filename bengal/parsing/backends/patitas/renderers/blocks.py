@@ -414,5 +414,5 @@ class BlockRendererMixin:
                 end=end,
                 hl_lines=frozenset(hl_lines) if hl_lines else None,
             )
-        except (LookupError, ValueError):
+        except LookupError, ValueError:
             return None

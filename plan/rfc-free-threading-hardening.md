@@ -315,7 +315,7 @@ Fix only the identified issues with targeted changes.
 | Use `ThreadSafeSet` for warnings | Low | None |
 | Add lock to directive cache config | Low | None |
 
-**Pros**: 
+**Pros**:
 - Minimal code churn
 - Uses existing Bengal primitives
 - Easy to review
@@ -545,36 +545,36 @@ import threading
 def test_lru_cache_replacement_thread_safety():
     """Verify @lru_cache replacements are thread-safe."""
     from bengal.rendering.template_functions.icons import _render_icon_cached
-    
+
     errors = []
-    
+
     def worker():
         for i in range(100):
             try:
                 _render_icon_cached(f"icon_{i % 10}", 20, "", "")
             except Exception as e:
                 errors.append(e)
-    
+
     threads = [threading.Thread(target=worker) for _ in range(10)]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
-    
+
     assert not errors, f"Thread safety errors: {errors}"
 
 
 def test_scaffold_registry_singleton_thread_safety():
     """Verify scaffold registry singleton is thread-safe."""
     from bengal.scaffolds import registry
-    
+
     # Reset to test initialization race
     registry._registry = None
-    
+
     instances = []
     errors = []
     lock = threading.Lock()
-    
+
     def worker():
         try:
             instance = registry._get_registry()
@@ -583,13 +583,13 @@ def test_scaffold_registry_singleton_thread_safety():
         except Exception as e:
             with lock:
                 errors.append(e)
-    
+
     threads = [threading.Thread(target=worker) for _ in range(20)]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
-    
+
     assert not errors, f"Thread safety errors: {errors}"
     # All threads should get the same singleton instance
     assert len(set(instances)) == 1, f"Multiple instances created: {set(instances)}"
@@ -598,10 +598,10 @@ def test_scaffold_registry_singleton_thread_safety():
 def test_logger_registry_thread_safety():
     """Verify logger registry handles concurrent get_logger calls."""
     from bengal.utils.observability.logger import get_logger, reset_loggers
-    
+
     reset_loggers()
     errors = []
-    
+
     def worker(thread_id: int):
         try:
             for i in range(50):
@@ -610,13 +610,13 @@ def test_logger_registry_thread_safety():
                 logger.debug("test", thread_id=thread_id)
         except Exception as e:
             errors.append(e)
-    
+
     threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
-    
+
     assert not errors, f"Thread safety errors: {errors}"
 ```
 

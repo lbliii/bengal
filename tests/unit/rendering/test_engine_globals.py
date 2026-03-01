@@ -22,6 +22,8 @@ from bengal.rendering.context import (
     get_engine_globals,
 )
 
+pytestmark = pytest.mark.parallel_unsafe
+
 
 @pytest.fixture
 def mock_site():

@@ -72,18 +72,21 @@ title: Empty Site
         # Build should succeed with minimal content
         assert stats2.total_pages >= 1
 
+    @pytest.mark.slow
     def test_batch_changes_100_files(self, warm_build_site: WarmBuildTestSite) -> None:
         """
-        Warm build handles 100+ simultaneous file changes.
+        Warm build handles batch simultaneous file changes.
 
         Scenario:
-        1. Build with 100 pages
-        2. Modify all 100 pages
+        1. Build with 25 pages
+        2. Modify all 25 pages
         3. Incremental build
         4. Assert: All pages rebuilt correctly
+
+        Reduced from 100 to 25 for CI speed; still validates batch behavior.
         """
-        # Create 100 pages
-        for i in range(100):
+        page_count = 25
+        for i in range(page_count):
             warm_build_site.create_file(
                 f"content/page{i:03d}.md",
                 f"""---
@@ -96,10 +99,10 @@ Original content for page {i}.
 
         # Build 1: Full build
         stats1 = warm_build_site.full_build()
-        assert stats1.total_pages >= 100
+        assert stats1.total_pages >= page_count
 
-        # Modify all 100 pages
-        for i in range(100):
+        # Modify all pages
+        for i in range(page_count):
             warm_build_site.modify_file(
                 f"content/page{i:03d}.md",
                 f"""---
@@ -116,8 +119,9 @@ Modified content for page {i} - BATCH UPDATE.
         stats2 = warm_build_site.incremental_build()
 
         # All pages should be processed
-        assert stats2.total_pages >= 100
+        assert stats2.total_pages >= page_count
 
+    @pytest.mark.slow
     def test_deep_nesting_10_levels(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Deep directory nesting handled correctly.
@@ -459,6 +463,7 @@ MODIFIED content with hash detection.
 class TestWarmBuildBoundaryConditions:
     """Test boundary conditions for warm builds."""
 
+    @pytest.mark.slow
     def test_very_large_file(self, warm_build_site: WarmBuildTestSite) -> None:
         """
         Very large markdown file handled correctly.

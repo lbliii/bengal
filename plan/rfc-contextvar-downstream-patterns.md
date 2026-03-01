@@ -83,45 +83,45 @@ _DEFAULT_POOL_SIZE = 8
 
 class ParserPool:
     """Thread-local parser instance pool.
-    
+
     Reuses Parser instances to avoid allocation overhead.
     Thread-safe via thread-local storage.
-    
+
     Pool Size:
         Default: 8 per thread (covers typical parallel template includes)
         Override: Set BENGAL_PARSER_POOL_SIZE environment variable
-        
+
     Memory: ~1KB per pooled Parser instance
     """
-    
+
     _local = local()
     _max_pool_size: int = int(os.environ.get("BENGAL_PARSER_POOL_SIZE", _DEFAULT_POOL_SIZE))
-    
+
     @classmethod
     def _get_pool(cls) -> deque[Parser]:
         if not hasattr(cls._local, 'pool'):
             cls._local.pool = deque(maxlen=cls._max_pool_size)
         return cls._local.pool
-    
+
     @classmethod
     @contextmanager
     def acquire(cls, source: str, source_file: str | None = None) -> Iterator[Parser]:
         """Acquire a parser from pool or create new one.
-        
+
         Usage:
             with ParserPool.acquire(content) as parser:
                 ast = parser.parse()
         """
         from bengal.parsing.backends.patitas.parser import Parser
-        
+
         pool = cls._get_pool()
-        
+
         if pool:
             parser = pool.pop()
             parser._reinit(source, source_file)
         else:
             parser = Parser(source, source_file)
-        
+
         try:
             yield parser
         finally:
@@ -132,37 +132,37 @@ class ParserPool:
 
 class RendererPool:
     """Thread-local renderer instance pool.
-    
+
     Pool Size:
         Default: 8 per thread
         Override: Set BENGAL_RENDERER_POOL_SIZE environment variable
-        
+
     Memory: ~0.5KB per pooled Renderer instance
     """
-    
+
     _local = local()
     _max_pool_size: int = int(os.environ.get("BENGAL_RENDERER_POOL_SIZE", _DEFAULT_POOL_SIZE))
-    
+
     @classmethod
     def _get_pool(cls) -> deque[HtmlRenderer]:
         if not hasattr(cls._local, 'pool'):
             cls._local.pool = deque(maxlen=cls._max_pool_size)
         return cls._local.pool
-    
+
     @classmethod
     @contextmanager
     def acquire(cls, source: str = "") -> Iterator[HtmlRenderer]:
         """Acquire a renderer from pool or create new one."""
         from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
-        
+
         pool = cls._get_pool()
-        
+
         if pool:
             renderer = pool.pop()
             renderer._reset(source)
         else:
             renderer = HtmlRenderer(source)
-        
+
         try:
             yield renderer
         finally:
@@ -179,22 +179,22 @@ class RendererPool:
 class Parser:
     def _reinit(self, source: str, source_file: str | None = None) -> None:
         """Reset parser for reuse with new source.
-        
+
         Avoids full __init__ overhead by reusing existing object.
         Lexer is re-created (lightweight) to tokenize new source.
         """
         from bengal.parsing.backends.patitas.lexer import Lexer
         from bengal.parsing.backends.patitas.parsing.containers import ContainerStack
-        
+
         self._source = source
         self._source_file = source_file
-        
+
         # Re-tokenize with new source (Lexer is lightweight)
         lexer = Lexer(source)
         self._tokens = list(lexer.tokenize())
         self._pos = 0
         self._current = self._tokens[0] if self._tokens else None
-        
+
         # Reset per-parse state
         self._link_refs = {}
         self._containers = ContainerStack()
@@ -209,7 +209,7 @@ class Parser:
 class HtmlRenderer:
     def _reset(self, source: str = "") -> None:
         """Reset renderer state for reuse.
-        
+
         Clears per-render state while preserving object identity.
         """
         self._source = source
@@ -230,10 +230,10 @@ from bengal.parsing.backends.patitas.pool import ParserPool, RendererPool
 def render_page(page: Page) -> str:
     with ParserPool.acquire(page.content, page.source_path) as parser:
         ast = parser.parse()
-    
+
     with RendererPool.acquire(page.content) as renderer:
         html = renderer.render(ast)
-    
+
     return html
 ```
 
@@ -288,7 +288,7 @@ from typing import Iterator
 @dataclass
 class RenderMetadata:
     """Extended metadata accumulated during rendering.
-    
+
     Complements existing HtmlRenderer._headings for TOC.
     Collected during single render pass—no post-processing needed.
     """
@@ -297,20 +297,20 @@ class RenderMetadata:
     has_code_blocks: bool = False
     has_mermaid: bool = False
     has_tables: bool = False
-    
+
     # Statistics
     word_count: int = 0
     code_languages: set[str] = field(default_factory=set)
-    
+
     # Cross-references (for dependency tracking)
     internal_links: list[str] = field(default_factory=list)
     external_links: list[str] = field(default_factory=list)
     image_refs: list[str] = field(default_factory=list)
-    
+
     def add_words(self, text: str) -> None:
         """Accumulate word count from text content."""
         self.word_count += len(text.split())
-    
+
     def add_code_block(self, language: str | None) -> None:
         """Record a code block."""
         self.has_code_blocks = True
@@ -322,7 +322,7 @@ class RenderMetadata:
 
 # Module-level ContextVar
 _metadata: ContextVar[RenderMetadata | None] = ContextVar(
-    'render_metadata', 
+    'render_metadata',
     default=None
 )
 
@@ -335,7 +335,7 @@ def get_metadata() -> RenderMetadata | None:
 @contextmanager
 def metadata_context() -> Iterator[RenderMetadata]:
     """Context manager for metadata accumulation.
-    
+
     Usage:
         with metadata_context() as meta:
             html = renderer.render(ast)
@@ -362,30 +362,30 @@ class HtmlRenderer:
         meta = get_metadata()
         if meta:
             meta.add_words(node.content)
-        
+
         return html_escape(node.content)
-    
+
     def _render_fenced_code(self, node: FencedCode) -> str:
         meta = get_metadata()
         if meta:
             meta.add_code_block(node.language)
-        
+
         # ... existing render logic
-    
+
     def _render_math(self, node: Math) -> str:
         meta = get_metadata()
         if meta:
             meta.has_math = True
-        
+
         # ... existing render logic
-    
+
     def _render_table(self, node: Table) -> str:
         meta = get_metadata()
         if meta:
             meta.has_tables = True
-        
+
         # ... existing render logic
-    
+
     def _render_link(self, node: Link) -> str:
         meta = get_metadata()
         if meta:
@@ -393,7 +393,7 @@ class HtmlRenderer:
                 meta.external_links.append(node.url)
             else:
                 meta.internal_links.append(node.url)
-        
+
         # ... existing render logic
 ```
 
@@ -406,11 +406,11 @@ from bengal.parsing.backends.patitas.accumulator import metadata_context
 def render_page_with_metadata(page: Page) -> tuple[str, dict]:
     """Render page and extract all metadata in single pass."""
     ast = parser.parse()
-    
+
     with metadata_context() as meta:
         # TOC still collected via _headings (existing pattern)
         html, toc, toc_items = md.render_ast_with_toc(ast, page.content)
-        
+
         # Extended metadata available immediately
         page_metadata = {
             'toc_items': toc_items,
@@ -421,7 +421,7 @@ def render_page_with_metadata(page: Page) -> tuple[str, dict]:
             'code_languages': list(meta.code_languages),
             'internal_links': meta.internal_links,
         }
-    
+
     return html, page_metadata
 ```
 
@@ -490,10 +490,10 @@ class RequestContextError(RuntimeError):
 @dataclass(frozen=True, slots=True)
 class RequestContext:
     """Per-request context for parsing and rendering.
-    
+
     Provides access to build-wide and page-specific state
     without parameter drilling.
-    
+
     Thread Safety:
         ContextVar provides automatic thread/async isolation.
         Each thread/task gets its own context stack.
@@ -501,27 +501,27 @@ class RequestContext:
     # Source information
     source_file: Path | None = None
     source_content: str = ""
-    
+
     # Page context (for rendering)
     page: Page | None = None
     site: Site | None = None
-    
+
     # Error handling
     error_handler: Callable[[Exception, str], None] | None = None
     strict_mode: bool = False
-    
+
     # Link resolution
     link_resolver: Callable[[str], str | None] | None = None
-    
+
     # Debug/profiling
     trace_enabled: bool = False
-    
+
     def resolve_link(self, target: str) -> str | None:
         """Resolve a link target to URL."""
         if self.link_resolver:
             return self.link_resolver(target)
         return None
-    
+
     def report_error(self, error: Exception, context: str) -> None:
         """Report an error with context."""
         if self.error_handler:
@@ -539,7 +539,7 @@ _request_context: ContextVar[RequestContext | None] = ContextVar(
 
 def get_request_context() -> RequestContext:
     """Get current request context.
-    
+
     Raises:
         RequestContextError: If no context is set (fail-fast)
     """
@@ -554,7 +554,7 @@ def get_request_context() -> RequestContext:
 
 def try_get_request_context() -> RequestContext | None:
     """Get current request context, or None if not set.
-    
+
     Use this for optional context access where fallback behavior is acceptable.
     """
     return _request_context.get()
@@ -582,12 +582,12 @@ def request_context(
     trace_enabled: bool = False,
 ) -> Iterator[RequestContext]:
     """Context manager for request-scoped state.
-    
+
     Usage:
         with request_context(source_file=path, page=page, site=site):
             html = render(page.content)
             # All nested code can access context via get_request_context()
-    
+
     Nesting:
         Context managers can be nested. Inner context shadows outer.
         Token-based reset restores previous context on exit.
@@ -624,7 +624,7 @@ class Parser:
         else:
             # Fallback: log warning
             logger.warning("parse_error", error=str(error), context=context)
-    
+
     @property
     def source_file(self) -> Path | None:
         """Get source file from request context or instance."""
@@ -648,7 +648,7 @@ class HtmlRenderer:
             resolved = req.resolve_link(target)
             if resolved:
                 return resolved
-        
+
         # Fallback: return as-is
         return target
 ```
@@ -661,11 +661,11 @@ from bengal.parsing.backends.patitas.request_context import request_context
 
 def render_page(page: Page, site: Site) -> str:
     """Render page with full context."""
-    
+
     def resolve_link(target: str) -> str | None:
         # Resolve {doc}`path` and {ref}`anchor` links
         return site.resolve_internal_link(target, page)
-    
+
     with request_context(
         source_file=page.source_path,
         source_content=page.raw_content,
@@ -676,7 +676,7 @@ def render_page(page: Page, site: Site) -> str:
     ):
         # All nested code can access context
         html = patitas_render(page.content)
-    
+
     return html
 ```
 
@@ -696,24 +696,24 @@ from bengal.parsing.backends.patitas.pool import ParserPool, RendererPool
 
 def render_page_full(page: Page, site: Site) -> tuple[str, dict]:
     """Full render with all optimizations."""
-    
+
     # Layer 1: Configuration (per-site, set once)
     with parse_config_context(ParseConfig(tables_enabled=True)):
         with render_config_context(RenderConfig(highlight=True)):
-            
+
             # Layer 2: Request context (per-page)
             with request_context(page=page, site=site):
-                
+
                 # Layer 3: Metadata accumulation (per-render)
                 with metadata_context() as meta:
-                    
+
                     # Layer 4: Pooled instances (per-render)
                     with ParserPool.acquire(page.content) as parser:
                         ast = parser.parse()
-                    
+
                     with RendererPool.acquire(page.content) as renderer:
                         html = renderer.render(ast)
-                    
+
                     return html, {
                         'has_math': meta.has_math,
                         'word_count': meta.word_count,

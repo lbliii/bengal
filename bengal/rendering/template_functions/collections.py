@@ -144,7 +144,7 @@ def where(
             try:
                 if compare(item_value, value):
                     result.append(item)
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 # Skip items where comparison fails (e.g., comparing incompatible types)
                 continue
 

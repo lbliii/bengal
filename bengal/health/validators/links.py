@@ -417,7 +417,7 @@ class LinkValidator:
         # Normalize the path
         try:
             target_path = target_path.resolve()
-        except (OSError, ValueError):
+        except OSError, ValueError:
             # Path resolution failed
             return False
 

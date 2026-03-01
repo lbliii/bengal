@@ -5,6 +5,8 @@ import pytest
 
 from bengal.rendering.engines.kida import KidaTemplateEngine
 
+pytestmark = pytest.mark.parallel_unsafe
+
 
 def test_kida_thread_safety_parallel_contexts():
     """Verify Kida engine handles parallel renders with different contexts safely."""

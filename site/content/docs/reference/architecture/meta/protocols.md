@@ -36,7 +36,7 @@ graph TB
             NavigableSection["NavigableSection<br/>Navigation methods"]
             QueryableSection["QueryableSection<br/>Content queries"]
         end
-        
+
         subgraph "Rendering Protocols"
             TemplateEngine["TemplateEngine<br/>Full engine contract"]
             TemplateRenderer["TemplateRenderer<br/>Render methods only"]
@@ -44,7 +44,7 @@ graph TB
             HighlightService["HighlightService<br/>Syntax highlighting"]
             TemplateEnvironment["TemplateEnvironment<br/>Filter/global registration"]
         end
-        
+
         subgraph "Infrastructure Protocols"
             ProgressReporter["ProgressReporter<br/>Build progress"]
             Cacheable["Cacheable<br/>Cache serialization"]
@@ -53,13 +53,13 @@ graph TB
             OutputCollector["OutputCollector<br/>CSS collection"]
         end
     end
-    
+
     subgraph "External Packages"
         Rosettes["rosettes<br/>Syntax highlighter"]
         Kida["kida<br/>Template engine"]
         Patitas["patitas<br/>Markdown parser"]
     end
-    
+
     Rosettes -->|"implements"| HighlightService
     Kida -->|"implements"| TemplateEngine
     Patitas -->|"uses"| HighlightService
@@ -77,11 +77,11 @@ from bengal.protocols import (
     # Core
     PageLike, SectionLike, SiteLike,
     NavigableSection, QueryableSection,
-    
+
     # Rendering
     TemplateEngine, TemplateRenderer, HighlightService,
     TemplateEnvironment, EngineCapability,
-    
+
     # Infrastructure
     ProgressReporter, Cacheable, OutputTarget,
     ContentSourceProtocol, OutputCollector,
@@ -179,7 +179,7 @@ Full template engine contract. Composed of smaller protocols for flexibility.
 class TemplateEngine(TemplateRenderer, TemplateIntrospector, TemplateValidator, Protocol):
     @property
     def capabilities(self) -> EngineCapability: ...
-    
+
     def has_capability(self, cap: EngineCapability) -> bool: ...
 ```
 
@@ -200,7 +200,7 @@ Syntax highlighting contract. Thread-safe.
 class HighlightService(Protocol):
     @property
     def name(self) -> str: ...
-    
+
     def highlight(
         self,
         code: str,
@@ -210,7 +210,7 @@ class HighlightService(Protocol):
         show_linenos: bool = False,
         **options: Any,
     ) -> str: ...
-    
+
     def supports_language(self, language: str) -> bool: ...
 ```
 
@@ -226,7 +226,7 @@ Objects that can be serialized to/from the build cache.
 @runtime_checkable
 class Cacheable(Protocol):
     def to_cache_dict(self) -> dict[str, Any]: ...
-    
+
     @classmethod
     def from_cache_dict(cls: type[T], data: dict[str, Any]) -> T: ...
 ```
@@ -259,7 +259,7 @@ File output abstraction. Thread-safe.
 class OutputTarget(Protocol):
     @property
     def name(self) -> str: ...
-    
+
     def write(self, path: str, content: str) -> None: ...
     def write_bytes(self, path: str, content: bytes) -> None: ...
     def copy(self, src: str, dest: str) -> None: ...

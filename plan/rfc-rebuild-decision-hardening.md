@@ -110,40 +110,40 @@ def phase_incremental_filter(...) -> FilterResult | None:
     # 1. Initialize (lines 571-581)
     pages_to_build = orchestrator.site.pages
     decision = IncrementalDecision(...)
-    
+
     if incremental:
         # 2. Find changes (lines 585-598)
         pages_to_build, assets_to_process, change_summary = ...
-        
+
         # 3. Fingerprint cascade (lines 600-631)
         if fingerprint_assets_changed:
             pages_to_build = list(orchestrator.site.pages)
-        
+
         # 4. Track affected sections/tags (lines 634-651)
         for page in pages_to_build:
             ...
-        
+
         # 5. Cache statistics (lines 653-676)
         orchestrator.stats.cache_hits = ...
-        
+
         # 6. Check taxonomy regen needed (line 679)
         needs_taxonomy_regen = bool(cache.get_all_tags())
-        
+
         # 7. Output presence check (lines 681-732)
         if output_html_missing or output_assets_missing or autodoc_output_missing:
             pages_to_build = list(orchestrator.site.pages)
-        
+
         # 8. Skip check (lines 733-746)
         elif not pages_to_build and not assets_to_process:
             return None
-        
+
         # 9. Special pages check (lines 747-753)
         elif special_pages_missing:
             ...
-        
+
         # 10. Update decision tracker (lines 755-...)
         ...
-    
+
     return FilterResult(...)
 ```
 
@@ -256,7 +256,7 @@ To ensure no loss of signal in `--explain`, `FilterDecision` will include a brid
 def to_legacy_decision(self) -> IncrementalDecision:
     """Bridge to existing IncrementalDecision for backward compatibility."""
     from bengal.orchestration.build.results import IncrementalDecision, RebuildReasonCode
-    
+
     decision = IncrementalDecision(
         pages_to_build=self.pages_to_build,
         pages_skipped_count=self.decision_log.pages_skipped,
@@ -270,7 +270,7 @@ def to_legacy_decision(self) -> IncrementalDecision:
         }
         for page in self.pages_to_build:
             decision.add_rebuild_reason(
-                str(page.source_path), 
+                str(page.source_path),
                 reason_map.get(self.decision_log.full_rebuild_trigger, RebuildReasonCode.FULL_REBUILD)
             )
     return decision
@@ -306,7 +306,7 @@ if TYPE_CHECKING:
 
 class FullRebuildTrigger(Enum):
     """Why a full rebuild was triggered.
-    
+
     Each trigger is a distinct code path that can force full rebuild.
     Enables exhaustive testing and clear diagnostics.
     """
@@ -330,11 +330,11 @@ class OutputPresenceResult:
     is_present: bool
     reason: str | None = None
     checked_paths: list[Path] = field(default_factory=list)
-    
+
     @classmethod
     def present(cls) -> Self:
         return cls(is_present=True)
-    
+
     @classmethod
     def missing(cls, reason: str, checked: list[Path]) -> Self:
         return cls(is_present=False, reason=reason, checked_paths=checked)
@@ -348,27 +348,27 @@ class OutputChecker(Protocol):
 
 class DefaultOutputChecker:
     """Default implementation - checks for non-empty output dir and assets.
-    
+
     Note: Does NOT check for root index.html specifically.
     """
-    
+
     MIN_ASSET_FILES = 3
-    
+
     def check(self, output_dir: Path) -> OutputPresenceResult:
         checked_paths = [output_dir]
-        
+
         if not output_dir.exists():
             return OutputPresenceResult.missing("output_dir_not_exists", checked_paths)
-        
+
         if not any(output_dir.iterdir()):
             return OutputPresenceResult.missing("output_dir_empty", checked_paths)
-        
+
         assets_dir = output_dir / "assets"
         checked_paths.append(assets_dir)
-        
+
         if not assets_dir.exists():
             return OutputPresenceResult.missing("assets_dir_not_exists", checked_paths)
-        
+
         # Generator for memory efficiency in large directories
         asset_count = sum(1 for _ in assets_dir.iterdir())
         if asset_count < self.MIN_ASSET_FILES:
@@ -376,7 +376,7 @@ class DefaultOutputChecker:
                 f"assets_insufficient ({asset_count}/{self.MIN_ASSET_FILES})",
                 checked_paths,
             )
-        
+
         return OutputPresenceResult.present()
 
 
@@ -387,21 +387,21 @@ class FilterDecisionLog:
     output_present: bool = True
     output_assets_count: int = 0
     config_changed: bool = False
-    
+
     pages_with_changes: int = 0
     assets_with_changes: int = 0
     pages_skipped: int = 0
-    
+
     fingerprint_cascade_triggered: bool = False
     fingerprint_assets_changed: list[str] = field(default_factory=list)
-    
+
     autodoc_output_missing: bool = False
     special_pages_missing: bool = False
     taxonomy_regen_needed: bool = False
-    
+
     decision_type: FilterDecisionType = FilterDecisionType.INCREMENTAL
     full_rebuild_trigger: FullRebuildTrigger | None = None
-    
+
     def to_dict(self) -> dict:
         return {
             "incremental_enabled": self.incremental_enabled,
@@ -422,19 +422,19 @@ class FilterDecision:
     affected_sections: set[str]
     changed_page_paths: set[Path]
     decision_log: FilterDecisionLog
-    
+
     @property
     def decision_type(self) -> FilterDecisionType:
         return self.decision_log.decision_type
-    
+
     @property
     def is_full_rebuild(self) -> bool:
         return self.decision_log.decision_type == FilterDecisionType.FULL
-    
+
     @property
     def is_skip(self) -> bool:
         return self.decision_log.decision_type == FilterDecisionType.SKIP
-    
+
     @property
     def full_rebuild_reason(self) -> str | None:
         if self.decision_log.full_rebuild_trigger:
@@ -444,12 +444,12 @@ class FilterDecision:
     def to_legacy_decision(self) -> IncrementalDecision:
         """Convert to legacy format for Phase 2 compatibility."""
         from bengal.orchestration.build.results import IncrementalDecision, RebuildReasonCode, RebuildReason
-        
+
         decision = IncrementalDecision(
             pages_to_build=self.pages_to_build,
             pages_skipped_count=self.decision_log.pages_skipped,
         )
-        
+
         # Reconstruct reasons for --explain
         if self.is_full_rebuild:
             trigger_map = {
@@ -461,19 +461,19 @@ class FilterDecision:
             reason_code = trigger_map.get(self.decision_log.full_rebuild_trigger, RebuildReasonCode.FULL_REBUILD)
             for page in self.pages_to_build:
                 decision.add_rebuild_reason(str(page.source_path), reason_code)
-        
+
         return decision
 
 
 class IncrementalFilterEngine:
     """
     Single source of truth for incremental filter decisions.
-    
+
     Consolidates all filter logic from phase_incremental_filter() into
     one testable class with explicit ordering and observability.
-    
+
     Note: This is distinct from RebuildDecisionEngine (block-level).
-    
+
     Example:
         engine = IncrementalFilterEngine(
             cache=cache,
@@ -485,14 +485,14 @@ class IncrementalFilterEngine:
             assets=site.assets,
             incremental=True,
         )
-        
+
         if decision.is_skip:
             return None  # Early exit
-        
+
         if decision.is_full_rebuild:
             logger.info("full_rebuild", reason=decision.full_rebuild_reason)
     """
-    
+
     def __init__(
         self,
         cache: BuildCache,
@@ -504,7 +504,7 @@ class IncrementalFilterEngine:
         self.output_dir = output_dir
         self.change_detector = change_detector
         self.output_checker = output_checker or DefaultOutputChecker()
-    
+
     def decide(
         self,
         pages: list[Page],
@@ -515,7 +515,7 @@ class IncrementalFilterEngine:
     ) -> FilterDecision:
         """
         Determine what needs to be built.
-        
+
         Decision pipeline (explicit ordering):
         1. If not incremental → full rebuild
         2. Detect changes → baseline incremental list
@@ -523,37 +523,37 @@ class IncrementalFilterEngine:
         4. Check output presence → may force full
         5. Check autodoc output → may force full
         6. Check skip condition → may return skip
-        
+
         All checks are logged to decision_log for observability.
-        
+
         Args:
             pages: All pages in the site
             assets: All assets in the site  
             incremental: Whether incremental mode is enabled
             forced_changed_sources: Paths to treat as changed (file watcher)
             nav_changed_sources: Paths with navigation-affecting changes
-            
+
         Returns:
             FilterDecision with pages/assets to build and decision_log
         """
         log = FilterDecisionLog()
         all_pages = list(pages)
         all_assets = list(assets)
-        
+
         # Step 1: Check incremental mode
         log.incremental_enabled = incremental
         if not incremental:
             log.decision_type = FilterDecisionType.FULL
             log.full_rebuild_trigger = FullRebuildTrigger.INCREMENTAL_DISABLED
             return self._full_rebuild(all_pages, all_assets, log)
-        
+
         # Step 2: Detect changes
         pages_to_build, assets_to_process, affected_tags, affected_sections, changed_paths = (
             self._detect_changes(all_pages, all_assets, forced_changed_sources, nav_changed_sources)
         )
         log.pages_with_changes = len(pages_to_build)
         log.assets_with_changes = len(assets_to_process)
-        
+
         # Step 3: Fingerprint cascade
         cascade_assets = [a for a in assets_to_process if a.source_path.suffix.lower() in {".css", ".js"}]
         if cascade_assets:
@@ -561,7 +561,7 @@ class IncrementalFilterEngine:
             log.fingerprint_assets_changed = [a.source_path.name for a in cascade_assets]
             if not pages_to_build:
                 pages_to_build = all_pages
-        
+
         # Step 4: Check output presence
         log.output_presence_checked = True
         output_result = self.output_checker.check(self.output_dir)
@@ -570,12 +570,12 @@ class IncrementalFilterEngine:
             assets_dir = self.output_dir / "assets"
             if assets_dir.exists():
                 log.output_assets_count = len(list(assets_dir.iterdir()))
-        
+
         if not output_result.is_present:
             log.decision_type = FilterDecisionType.FULL
             log.full_rebuild_trigger = FullRebuildTrigger.OUTPUT_DIR_EMPTY
             return self._full_rebuild(all_pages, all_assets, log)
-        
+
         # Step 5: Check skip condition
         if not pages_to_build and not assets_to_process:
             log.decision_type = FilterDecisionType.SKIP
@@ -587,7 +587,7 @@ class IncrementalFilterEngine:
                 changed_page_paths=set(),
                 decision_log=log,
             )
-        
+
         # Incremental build
         log.decision_type = FilterDecisionType.INCREMENTAL
         return FilterDecision(
@@ -598,7 +598,7 @@ class IncrementalFilterEngine:
             changed_page_paths=changed_paths,
             decision_log=log,
         )
-    
+
     def _detect_changes(
         self,
         all_pages: list[Page],
@@ -621,14 +621,14 @@ class IncrementalFilterEngine:
                 change_set.affected_sections or set(),
                 {p.source_path for p in change_set.pages_to_build},
             )
-        
+
         # Fallback: simple cache-based detection
         pages_to_build = []
         assets_to_process = []
         affected_tags: set[str] = set()
         affected_sections: set[str] = set()
         changed_paths: set[Path] = set()
-        
+
         for page in all_pages:
             if (forced_changed and page.source_path in forced_changed) or \
                self.cache.is_changed(page.source_path):
@@ -636,14 +636,14 @@ class IncrementalFilterEngine:
                 changed_paths.add(page.source_path)
                 if page.tags:
                     affected_tags.update(str(t).lower().replace(" ", "-") for t in page.tags if t)
-        
+
         for asset in all_assets:
             if (forced_changed and asset.source_path in forced_changed) or \
                self.cache.is_changed(asset.source_path):
                 assets_to_process.append(asset)
-        
+
         return pages_to_build, assets_to_process, affected_tags, affected_sections, changed_paths
-    
+
     def _full_rebuild(
         self,
         all_pages: list[Page],

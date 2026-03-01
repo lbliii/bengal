@@ -15,12 +15,9 @@ Example:
 """
 
 from collections import deque
-from typing import TypeVar
-
-T = TypeVar("T")
 
 
-def bfs_distances(
+def bfs_distances[T](
     outgoing_refs: dict[T, set[T]],
     source: T,
     targets: set[T] | list[T] | None = None,
@@ -89,7 +86,7 @@ def bfs_distances(
     return distances
 
 
-def bfs_path(
+def bfs_path[T](
     outgoing_refs: dict[T, set[T]],
     source: T,
     target: T,
@@ -143,7 +140,7 @@ def bfs_path(
     return None  # No path found
 
 
-def bfs_predecessors(
+def bfs_predecessors[T](
     outgoing_refs: dict[T, set[T]],
     source: T,
     targets: set[T] | list[T],

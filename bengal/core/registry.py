@@ -289,7 +289,7 @@ class ContentRegistry:
         # Resolve symlinks to canonical path
         try:
             resolved = path.resolve()
-        except (OSError, ValueError):
+        except OSError, ValueError:
             # Path doesn't exist or is invalid, use as-is
             resolved = path
 

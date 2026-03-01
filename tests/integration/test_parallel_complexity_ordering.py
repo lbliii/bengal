@@ -107,23 +107,16 @@ class TestComplexityOrderingIntegration:
         assert stats.total_pages >= 100
 
     def test_uniform_site_builds_correctly(self, uniform_site: Path) -> None:
-        """Uniform sites should build correctly with ordering enabled.
-
-        Note: Performance comparison removed due to CI timing variability.
-        The ordering overhead is ~15ms for 1000 pages, which is negligible
-        but hard to measure reliably in integration tests due to setup variance.
-        """
+        """Uniform sites should build correctly with ordering enabled."""
         from bengal.core.site import Site
         from bengal.orchestration import BuildOrchestrator
 
         site = Site(uniform_site)
-        site.config["max_workers"] = 4
         site.config["build"] = {"complexity_ordering": True}
 
         orchestrator = BuildOrchestrator(site)
         stats = orchestrator.build(BuildOptions())
 
-        # Build should complete and produce output
         assert stats.total_pages >= 50
         assert (site.output_dir / "page-0" / "index.html").exists()
 

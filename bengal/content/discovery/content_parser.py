@@ -136,11 +136,49 @@ class ContentParser:
         if self._build_context is not None and file_content is not None:
             self._build_context.cache_content(file_path, file_content)
 
-        content, metadata = patitas.parse_notebook(file_content, file_path)
+        parse_notebook = getattr(patitas, "parse_notebook", None)
+        if parse_notebook is None:
+            content, metadata = self._parse_notebook_with_stdlib(file_content, file_path)
+        else:
+            content, metadata = parse_notebook(file_content, file_path)
 
         if "type" not in metadata:
             metadata["type"] = "notebook"
 
+        return content, metadata
+
+    def _parse_notebook_with_stdlib(
+        self, file_content: str, source_path: Path
+    ) -> tuple[str, dict[str, Any]]:
+        """Parse .ipynb without patitas notebook API (compatibility fallback)."""
+        import json
+
+        payload = json.loads(file_content)
+        raw_cells = payload.get("cells", [])
+
+        blocks: list[str] = []
+        for cell in raw_cells:
+            if not isinstance(cell, dict):
+                continue
+
+            source = cell.get("source", "")
+            if isinstance(source, list):
+                text = "".join(str(part) for part in source)
+            else:
+                text = str(source)
+
+            text = text.strip()
+            if not text:
+                continue
+
+            cell_type = str(cell.get("cell_type", "")).lower()
+            if cell_type == "code":
+                blocks.append(f"```python\n{text}\n```")
+            else:
+                blocks.append(text)
+
+        content = "\n\n".join(blocks)
+        metadata = {"notebook": source_path.stem}
         return content, metadata
 
     def _handle_yaml_error(

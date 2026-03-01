@@ -43,6 +43,8 @@ from bengal.parsing.backends.patitas import (
 )
 from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
+pytestmark = pytest.mark.parallel_unsafe
+
 
 class TestParseConfig:
     """Tests for ParseConfig and parse_config_context.

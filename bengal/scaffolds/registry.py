@@ -98,7 +98,7 @@ class TemplateRegistry:
                 if hasattr(module, "TEMPLATE"):
                     template = module.TEMPLATE
                     self._templates[template.id] = template
-            except (ImportError, AttributeError):
+            except ImportError, AttributeError:
                 # Skip directories that don't contain templates
                 continue
 

@@ -627,9 +627,7 @@ def _prepare_html_for_excerpt(html: str) -> str:
     return re.sub(r"</(h[1-6]|p|li|div|ul|ol)>", " ", html, flags=re.I)
 
 
-def excerpt_for_card(
-    content: str, title: str = "", description: str = ""
-) -> str:
+def excerpt_for_card(content: str, title: str = "", description: str = "") -> str:
     """
     Strip leading content that duplicates title or description.
 

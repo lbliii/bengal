@@ -90,14 +90,14 @@ After building `CascadeSnapshot`, immediately merge resolved cascade values into
 def apply_to_page(self, page: Page, content_dir: Path) -> set[str]:
     """
     Merge resolved cascade values into page's metadata.
-    
+
     Args:
         page: Page to apply cascade to
         content_dir: Content directory root (for section path calculation)
-    
+
     Returns:
         Set of keys that were added from cascade (not overwritten).
-    
+
     Behavior:
         - Frontmatter values take precedence over cascade
         - Only keys defined in ancestor cascade blocks are considered
@@ -105,7 +105,7 @@ def apply_to_page(self, page: Page, content_dir: Path) -> set[str]:
     """
     section_path = self._get_section_path(page, content_dir)
     applied_keys: set[str] = set()
-    
+
     # Get all keys that could be cascaded to this section
     for key in self.get_cascade_keys(section_path):
         if key not in page.metadata:  # Frontmatter wins
@@ -113,11 +113,11 @@ def apply_to_page(self, page: Page, content_dir: Path) -> set[str]:
             if value is not None:
                 page.metadata[key] = value
                 applied_keys.add(key)
-    
+
     # Track origin for debugging and provenance
     existing_cascade_keys = page.metadata.get("_cascade_keys", [])
     page.metadata["_cascade_keys"] = list(set(existing_cascade_keys) | applied_keys)
-    
+
     return applied_keys
 ```
 
@@ -127,12 +127,12 @@ def apply_to_page(self, page: Page, content_dir: Path) -> set[str]:
 def get_cascade_keys(self, section_path: str) -> set[str]:
     """
     Get all keys that could be cascaded to a section path.
-    
+
     Walks up the section hierarchy collecting all cascade keys.
     """
     keys: set[str] = set()
     current = section_path
-    
+
     while current:
         if current in self._data:
             keys.update(self._data[current].keys())
@@ -143,11 +143,11 @@ def get_cascade_keys(self, section_path: str) -> set[str]:
             current = ""
         else:
             break
-    
+
     # Also check root
     if "" in self._data:
         keys.update(self._data[""].keys())
-    
+
     return keys
 ```
 
@@ -158,16 +158,16 @@ def apply_cascades(self, site: Site) -> None:
     """Build cascade snapshot and apply to all pages."""
     # Build immutable snapshot (existing)
     site.build_cascade_snapshot()
-    
+
     # NEW: Apply cascade values to all pages
     content_dir = site.root_path / "content"
     applied_count = 0
-    
+
     for page in site.pages.values():
         keys = site.cascade.apply_to_page(page, content_dir)
         if keys:
             applied_count += 1
-    
+
     logger.info(
         "cascade_applied",
         total_pages=len(site.pages),
@@ -187,7 +187,7 @@ def type(self) -> str | None:
         cascade_keys = self.metadata.get("_cascade_keys", [])
         if "type" not in cascade_keys:
             return self.metadata.get("type")
-    
+
     if self._site and self._section:
         try:
             content_dir = self._site.root_path / "content"
@@ -197,10 +197,10 @@ def type(self) -> str | None:
                 return cascade_value
         except (ValueError, AttributeError):
             pass
-    
+
     if self.core is not None and self.core.type:
         return self.core.type
-    
+
     return self.metadata.get("type")
 
 # After (simple lookup)
@@ -220,16 +220,16 @@ class PageProxy:
         self._core = core
         self._site = site
         self._metadata: dict[str, Any] | None = None
-        
+
         # Apply cascade immediately if snapshot available
         if site.cascade:
             self._apply_cascade()
-    
+
     def _apply_cascade(self) -> None:
         """Merge cascade values into proxy metadata."""
         if self._metadata is None:
             self._metadata = dict(self._core.metadata or {})
-        
+
         content_dir = self._site.root_path / "content"
         self._site.cascade.apply_to_page(self, content_dir)
 ```
@@ -295,9 +295,9 @@ def test_apply_to_page_merges_cascade():
     """Cascade values are merged into page metadata."""
     snapshot = CascadeSnapshot({"docs": {"type": "doc"}})
     page = create_test_page(section="docs", metadata={})
-    
+
     snapshot.apply_to_page(page, content_dir)
-    
+
     assert page.metadata.get("type") == "doc"
     assert "_cascade_keys" in page.metadata
     assert "type" in page.metadata["_cascade_keys"]
@@ -306,9 +306,9 @@ def test_frontmatter_wins_over_cascade():
     """Explicit frontmatter values override cascade."""
     snapshot = CascadeSnapshot({"docs": {"type": "doc"}})
     page = create_test_page(section="docs", metadata={"type": "custom"})
-    
+
     snapshot.apply_to_page(page, content_dir)
-    
+
     assert page.metadata.get("type") == "custom"
     assert "type" not in page.metadata.get("_cascade_keys", [])
 
@@ -316,9 +316,9 @@ def test_metadata_get_and_property_return_same():
     """Both access patterns return the same value after merge."""
     snapshot = CascadeSnapshot({"docs": {"type": "doc"}})
     page = create_test_page(section="docs", metadata={})
-    
+
     snapshot.apply_to_page(page, content_dir)
-    
+
     assert page.metadata.get("type") == page.type
 ```
 
@@ -334,15 +334,15 @@ def test_template_selection_uses_cascaded_type():
             "docs/about/_index.md": "---\ntitle: About\n---",
         }
     )
-    
+
     # Build
     site.discover_content()
     site.apply_cascades()
-    
+
     # Verify template selection
     about_page = site.get_page("docs/about/_index.md")
     template = renderer._get_template_name(about_page)
-    
+
     assert "doc" in template  # Should use doc template
 
 def test_incremental_build_cascade_change():
@@ -350,13 +350,13 @@ def test_incremental_build_cascade_change():
     # Full build
     site = create_test_site(...)
     build(site)
-    
+
     # Modify cascade
     modify_file("docs/_index.md", cascade={"type": "tutorial"})
-    
+
     # Incremental build
     pages_rebuilt = incremental_build(site)
-    
+
     # Verify affected pages were rebuilt
     assert "docs/about/_index.md" in pages_rebuilt
     assert site.get_page("docs/about/_index.md").type == "tutorial"

@@ -36,7 +36,7 @@ The build cache (`.bengal/cache.json.zst`) tracks the state of your project to d
 flowchart TD
     Start[Start Build] --> Load[Load Cache]
     Load --> Coordinator[CacheCoordinator]
-    
+
     Coordinator --> Detect[Detect Changes]
 
     Detect --> Config{Config Changed?}

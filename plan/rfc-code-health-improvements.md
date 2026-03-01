@@ -111,7 +111,7 @@ class HtmlRenderer:
         self._blocks = BlockRenderer()
         self._inline = InlineRenderer()
         self._directives = DirectiveRenderer()
-    
+
     def render_node(self, node: Node, sb: StringBuilder) -> None:
         match node:
             case Paragraph() | List() | Quote():
@@ -256,7 +256,7 @@ These are pure organizational changes with re-exports maintaining backward compa
 
 **Pre-requisite**: Benchmark baseline captured in Phase 0.
 
-**Gate Criteria**: 
+**Gate Criteria**:
 - `benchmark_render.py` shows < 5% regression
 - 1000-page build shows < 3% regression
 
@@ -351,7 +351,7 @@ def test_parallel_render_no_shared_state():
     """Verify worker threads don't share mutable state."""
     results = []
     errors = []
-    
+
     def worker(page_id: int):
         try:
             # Each worker should have isolated state
@@ -359,13 +359,13 @@ def test_parallel_render_no_shared_state():
             results.append((page_id, result))
         except Exception as e:
             errors.append((page_id, e))
-    
+
     threads = [threading.Thread(target=worker, args=(i,)) for i in range(10)]
     for t in threads:
         t.start()
     for t in threads:
         t.join()
-    
+
     assert not errors, f"Thread errors: {errors}"
     assert len(results) == 10
 

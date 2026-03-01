@@ -560,12 +560,10 @@ def _add_eager_section_content(
         )
     elif resolved_section:
         # regular_pages excludes index by default (Section and SectionSnapshot)
-        default_pages = getattr(resolved_section, "regular_pages", getattr(resolved_section, "pages", []))
-        context["posts"] = (
-            posts
-            if posts is not None
-            else metadata.get("_posts", default_pages)
+        default_pages = getattr(
+            resolved_section, "regular_pages", getattr(resolved_section, "pages", [])
         )
+        context["posts"] = posts if posts is not None else metadata.get("_posts", default_pages)
         context["pages"] = context["posts"]
         raw_subsections = (
             subsections

@@ -119,19 +119,19 @@ from enum import Enum, auto
 
 class OutputType(Enum):
     """Classification of output files for caching strategy."""
-    
+
     # Content pages - can be fully cached
     CONTENT_PAGE = auto()      # HTML from .md source files
     GENERATED_PAGE = auto()    # Tag pages, section archives, API docs
-    
+
     # Aggregate outputs - always regenerated, but content-hashable
     AGGREGATE_INDEX = auto()   # index.json, search index
     AGGREGATE_FEED = auto()    # rss.xml, atom.xml, sitemap.xml
     AGGREGATE_TEXT = auto()    # llm-full.txt, index.txt
-    
+
     # Static assets - fingerprinted separately
     ASSET = auto()             # CSS, JS, images
-    
+
     # Passthrough - copied verbatim
     STATIC = auto()            # favicon, robots.txt
 
@@ -146,7 +146,7 @@ OUTPUT_PATTERNS: dict[str, OutputType] = {
     "index.json.hash": OutputType.AGGREGATE_INDEX,
     "llm-full.txt": OutputType.AGGREGATE_TEXT,
     "index.txt": OutputType.AGGREGATE_TEXT,
-    
+
     # Static assets
     "asset-manifest.json": OutputType.ASSET,
 }
@@ -155,35 +155,35 @@ OUTPUT_PATTERNS: dict[str, OutputType] = {
 def classify_output(path: Path, metadata: dict | None = None) -> OutputType:
     """Classify an output file by type."""
     name = path.name
-    
+
     # Check explicit patterns first
     if name in OUTPUT_PATTERNS:
         return OUTPUT_PATTERNS[name]
-    
+
     # Check metadata for generated pages
     if metadata and metadata.get("_generated"):
         return OutputType.GENERATED_PAGE
-    
+
     # HTML files are content pages by default
     if path.suffix == ".html":
         return OutputType.CONTENT_PAGE
-    
+
     # Assets in /assets/ directory
     if "assets" in path.parts:
         return OutputType.ASSET
-    
+
     return OutputType.STATIC
 ```
 
 #### 2. Content Hash Embedding
 
-Embed content hashes in HTML output for validation. **Key insight**: Compute hash 
+Embed content hashes in HTML output for validation. **Key insight**: Compute hash
 on *rendered content* before final formatting, then embed during `format_html()`.
 
 ##### Timestamp Exclusion Strategy
 
 Bengal pages may display dates in templates (e.g., "Last updated: Jan 14, 2026"),
-but these come from frontmatter metadata (`date`, `lastmod`) - not dynamically 
+but these come from frontmatter metadata (`date`, `lastmod`) - not dynamically
 injected at render time. The hash is computed on:
 
 1. **Rendered HTML content** (after template rendering)
@@ -207,7 +207,7 @@ class ContentHash(NamedTuple):
 
 def compute_content_hash(content: str, truncate: int = 16) -> str:
     """Compute deterministic hash of content.
-    
+
     Uses existing hash_str utility from bengal.utils.primitives.hashing.
     """
     return hash_str(content, truncate=truncate)
@@ -215,7 +215,7 @@ def compute_content_hash(content: str, truncate: int = 16) -> str:
 
 ##### Integration Point: format_html()
 
-Instead of fragile string manipulation, integrate hash embedding into the 
+Instead of fragile string manipulation, integrate hash embedding into the
 existing `format_html()` pipeline in `bengal/rendering/pipeline/output.py`:
 
 ```python
@@ -223,7 +223,7 @@ existing `format_html()` pipeline in `bengal/rendering/pipeline/output.py`:
 
 def format_html(html: str, page: Page, site: Site) -> str:
     """Format HTML output (minify/pretty) with content hash embedding.
-    
+
     Hash is computed BEFORE formatting to ensure deterministic results.
     This is the correct integration point because:
     1. All template rendering is complete
@@ -231,15 +231,15 @@ def format_html(html: str, page: Page, site: Site) -> str:
     3. We have access to Page metadata for output type classification
     """
     from bengal.utils.primitives.hashing import hash_str
-    
+
     # Compute content hash BEFORE any formatting
     # This ensures identical content always produces identical hash
     content_hash = hash_str(html, truncate=16)
-    
+
     # Embed hash in HTML (template-layer approach)
     if site.config.get("build", {}).get("content_hash_in_html", True):
         html = _embed_content_hash_safe(html, content_hash)
-    
+
     # Continue with existing formatting logic...
     try:
         from bengal.postprocess.html_output import format_html_output
@@ -248,16 +248,16 @@ def format_html(html: str, page: Page, site: Site) -> str:
 
 def _embed_content_hash_safe(html: str, content_hash: str) -> str:
     """Embed content hash using safe template-aware insertion.
-    
+
     Handles edge cases:
     - Missing <head> tag → skip embedding (don't break output)
     - Uppercase/whitespace variants → normalize matching
     - Already has hash → update existing
     """
     import re
-    
+
     meta_tag = f'<meta name="bengal:content-hash" content="{content_hash}">'
-    
+
     # Remove existing hash if present (for rebuilds)
     html = re.sub(
         r'<meta\s+name="bengal:content-hash"\s+content="[a-f0-9]+"[^>]*>\s*',
@@ -265,13 +265,13 @@ def _embed_content_hash_safe(html: str, content_hash: str) -> str:
         html,
         flags=re.IGNORECASE
     )
-    
+
     # Find <head> tag (case-insensitive, handle attributes)
     head_match = re.search(r'<head[^>]*>', html, re.IGNORECASE)
     if head_match:
         insert_pos = head_match.end()
         return html[:insert_pos] + f"\n    {meta_tag}" + html[insert_pos:]
-    
+
     # No <head> tag found - log warning and return unchanged
     # (This shouldn't happen for valid HTML, but don't break output)
     from bengal.utils.observability.logger import get_logger
@@ -282,7 +282,7 @@ def _embed_content_hash_safe(html: str, content_hash: str) -> str:
 
 def extract_content_hash(html: str) -> str | None:
     """Extract content hash from HTML meta tag.
-    
+
     Returns None if no hash found (old/external content).
     Handles case-insensitive matching and attribute order variations.
     """
@@ -311,28 +311,28 @@ from typing import Any
 @dataclass
 class GeneratedPageCacheEntry:
     """Cache entry for a generated page."""
-    
+
     # Identity
     page_type: str              # "tag", "section-archive", "api-doc"
     page_id: str                # "python", "docs/reference", "Site.build"
-    
+
     # Content hash (computed from combined member hashes)
     content_hash: str
-    
+
     # Template hash - invalidates cache if template changes
     # Computed from the template file(s) used to render this page
     template_hash: str = ""
-    
+
     # Dependencies (pages that affect this generated page's content)
     # For tag page: all pages with this tag
     # For section archive: all pages in section
     member_hashes: dict[str, str] = field(default_factory=dict)  # source_path → content_hash
-    
+
     # Cached output (optional, for fast regeneration)
     # Only stored for pages under 100KB to limit memory usage
     # Compressed using zstandard (bengal.cache.compression)
     cached_html: bytes | None = None
-    
+
     # Metadata
     last_generated: str = ""    # ISO timestamp
     generation_time_ms: int = 0
@@ -341,27 +341,27 @@ class GeneratedPageCacheEntry:
 
 class GeneratedPageCache:
     """Cache for generated page output.
-    
+
     Generated pages (tag pages, section archives, API docs) are expensive
     to render but their content is deterministic based on member pages.
-    
+
     UNIFICATION: This replaces the legacy `TaxonomyIndex` by tracking
     both membership AND content hashes.
-    
+
     Cache Strategy:
     1. Compute hash of all member page content hashes
     2. If combined hash matches cached entry, skip regeneration
     3. Otherwise, regenerate and update cache
-    
+
     This converts O(n) rendering to O(1) hash comparison for unchanged content.
     """
-    
+
     def __init__(self, cache_path: Path):
         self.cache_path = cache_path
         self.entries: dict[str, GeneratedPageCacheEntry] = {}
         self._lock = threading.Lock()
         self._load()
-    
+
     def _load(self) -> None:
         """Load cache from disk using load_auto (supports zst)."""
         from bengal.cache.compression import load_auto
@@ -370,27 +370,27 @@ class GeneratedPageCache:
         # Implementation: Load from compressed JSON
         data = load_auto(self.cache_path)
         # ... deserialization ...
-    
+
     def _save(self) -> None:
         """Persist cache to disk using save_compressed."""
         from bengal.cache.compression import save_compressed
         # Implementation: Save to .json.zst
-    
+
     def get_cache_key(self, page_type: str, page_id: str) -> str:
         """Generate cache key for generated page."""
         return f"{page_type}:{page_id}"
-    
+
     def compute_member_hash(
         self,
         member_pages: list[Any],  # List of Page objects
         content_cache: dict[str, str],  # source_path → content_hash
     ) -> str:
         """Compute combined hash of all member page content.
-        
+
         This is the key optimization: instead of rendering the generated
         page to check if it changed, we compare the combined hash of
         member content hashes.
-        
+
         If member content is unchanged, generated output is unchanged.
         """
         # Sort for deterministic ordering
@@ -400,7 +400,7 @@ class GeneratedPageCache:
         )
         combined = "|".join(member_hashes)
         return compute_content_hash(combined)
-    
+
     def should_regenerate(
         self,
         page_type: str,
@@ -410,13 +410,13 @@ class GeneratedPageCache:
         template_hash: str = "",
     ) -> bool:
         """Check if generated page needs regeneration.
-        
+
         Returns True if:
         - No cache entry exists
         - Member content has changed
         - Template has changed (Risk 6 mitigation)
         - Cache entry is corrupted
-        
+
         Args:
             page_type: Type of generated page ("tag", "section-archive", etc.)
             page_id: Unique identifier for this page
@@ -426,17 +426,17 @@ class GeneratedPageCache:
         """
         key = self.get_cache_key(page_type, page_id)
         entry = self.entries.get(key)
-        
+
         if entry is None:
             return True
-        
+
         # Check template hash first (fast path for template changes)
         if template_hash and entry.template_hash and template_hash != entry.template_hash:
             return True
-        
+
         current_hash = self.compute_member_hash(member_pages, content_cache)
         return current_hash != entry.content_hash
-    
+
     def update(
         self,
         page_type: str,
@@ -448,7 +448,7 @@ class GeneratedPageCache:
         template_hash: str = "",
     ) -> None:
         """Update cache after regeneration.
-        
+
         Args:
             page_type: Type of generated page
             page_id: Unique identifier
@@ -459,10 +459,10 @@ class GeneratedPageCache:
             template_hash: Hash of template(s) used for rendering
         """
         from datetime import datetime
-        
+
         key = self.get_cache_key(page_type, page_id)
         member_hash = self.compute_member_hash(member_pages, content_cache)
-        
+
         self.entries[key] = GeneratedPageCacheEntry(
             page_type=page_type,
             page_id=page_id,
@@ -476,7 +476,7 @@ class GeneratedPageCache:
             last_generated=datetime.now().isoformat(),
             generation_time_ms=generation_time_ms,
         )
-    
+
     def get_cached_html(self, page_type: str, page_id: str) -> str | None:
         """Get cached HTML if available and valid."""
         key = self.get_cache_key(page_type, page_id)
@@ -486,8 +486,8 @@ class GeneratedPageCache:
 
 #### 4. Enhanced ReloadController
 
-Extend the existing `ReloadController` in `bengal/server/reload_controller.py` 
-rather than replacing it. This preserves existing throttling, ignore patterns, 
+Extend the existing `ReloadController` in `bengal/server/reload_controller.py`
+rather than replacing it. This preserves existing throttling, ignore patterns,
 and the `hash_on_suspect` feature while adding content-hash awareness.
 
 ##### Design: Extend, Don't Replace
@@ -510,18 +510,18 @@ from typing import Literal
 @dataclass
 class EnhancedReloadDecision:
     """Extended reload decision with output type breakdown.
-    
+
     Extends existing ReloadDecision to categorize changes by type.
     """
     action: Literal["none", "reload", "reload-css"]
     reason: str
     changed_paths: list[str] = field(default_factory=list)
-    
+
     # NEW: Detailed change breakdown by output type
     content_changes: list[str] = field(default_factory=list)
     aggregate_changes: list[str] = field(default_factory=list)
     asset_changes: list[str] = field(default_factory=list)
-    
+
     @property
     def meaningful_change_count(self) -> int:
         """Count of changes that affect user-visible content."""
@@ -530,21 +530,21 @@ class EnhancedReloadDecision:
 
 class ReloadController:
     """Intelligent reload decision engine (enhanced with content hashing).
-    
+
     ENHANCEMENT: Now supports content-hash based change detection in addition
     to mtime-based detection. Content hashes provide accurate change detection
     that ignores regeneration noise.
-    
+
     New Features (RFC: Output Cache Architecture):
     - Extract content hashes from bengal:content-hash meta tags
     - Categorize changes by output type (content vs aggregate)
     - Skip reload for aggregate-only changes (sitemap, feeds)
-    
+
     Thread Safety:
         IMPORTANT: capture_baseline() must complete BEFORE build starts.
         Call sequence: capture_baseline() → build() → analyze_with_hashes()
     """
-    
+
     def __init__(
         self,
         min_notify_interval_ms: int = 300,
@@ -559,84 +559,84 @@ class ReloadController:
         self._use_content_hashes = use_content_hashes
         self._baseline_content_hashes: dict[str, str] = {}
         self._output_types: dict[str, OutputType] = {}
-    
+
     def capture_content_hash_baseline(self, output_dir: Path) -> None:
         """Capture content hashes before build for comparison.
-        
+
         IMPORTANT: Must be called BEFORE build starts to establish baseline.
         Build writes may overlap with this scan if called during build.
-        
+
         Args:
             output_dir: Path to output directory (e.g., public/)
         """
         self._baseline_content_hashes.clear()
         self._output_types.clear()
-        
+
         for html_file in output_dir.rglob("*.html"):
             rel_path = str(html_file.relative_to(output_dir))
             try:
                 content = html_file.read_text(errors="ignore")
-                
+
                 # Extract embedded hash (O(1) regex) or compute (O(n) hash)
                 hash_val = extract_content_hash(content)
                 if hash_val is None:
                     hash_val = compute_content_hash(content)
-                
+
                 self._baseline_content_hashes[rel_path] = hash_val
                 self._output_types[rel_path] = classify_output(html_file)
             except OSError:
                 # File may have been deleted during scan - skip
                 continue
-    
+
     def decide_with_content_hashes(self, output_dir: Path) -> EnhancedReloadDecision:
         """Analyze changes using content hashes for accurate detection.
-        
+
         Compares content hashes instead of mtimes for accurate detection.
         Categorizes changes by output type for clear reporting.
-        
+
         Returns:
             EnhancedReloadDecision with action and categorized changes.
         """
         content_changes: list[str] = []
         aggregate_changes: list[str] = []
         asset_changes: list[str] = []
-        
+
         for html_file in output_dir.rglob("*.html"):
             rel_path = str(html_file.relative_to(output_dir))
             try:
                 content = html_file.read_text(errors="ignore")
             except OSError:
                 continue
-            
+
             current_hash = extract_content_hash(content)
             if current_hash is None:
                 current_hash = compute_content_hash(content)
-            
+
             baseline_hash = self._baseline_content_hashes.get(rel_path)
-            
+
             # New file or changed content
             if baseline_hash is None or current_hash != baseline_hash:
                 output_type = self._output_types.get(
-                    rel_path, 
+                    rel_path,
                     classify_output(html_file)
                 )
-                
+
                 if output_type in (OutputType.CONTENT_PAGE, OutputType.GENERATED_PAGE):
                     content_changes.append(rel_path)
                 elif output_type in (OutputType.AGGREGATE_INDEX, OutputType.AGGREGATE_FEED, OutputType.AGGREGATE_TEXT):
                     aggregate_changes.append(rel_path)
                 elif output_type == OutputType.ASSET:
                     asset_changes.append(rel_path)
-        
+
         # Apply throttling (reuse existing mechanism)
         now = self._now_ms()
         if now - self._last_notify_time_ms < self._min_interval_ms:
             return EnhancedReloadDecision(
-                action="none", 
+                action="none",
                 reason="throttled",
                 changed_paths=[],
             )
-        
+
         # CSS-only reload
         css_changes = self._check_css_changes_hashed(output_dir)
         if not content_changes and not aggregate_changes and css_changes:
@@ -647,7 +647,7 @@ class ReloadController:
                 changed_paths=css_changes[:MAX_CHANGED_PATHS_TO_SEND],
                 asset_changes=css_changes,
             )
-        
+
         # Content changed - full reload
         if content_changes:
             self._last_notify_time_ms = now
@@ -660,7 +660,7 @@ class ReloadController:
                 aggregate_changes=aggregate_changes,
                 asset_changes=asset_changes,
             )
-        
+
         # Aggregate-only changes - no reload needed
         if aggregate_changes and not content_changes:
             return EnhancedReloadDecision(
@@ -669,13 +669,13 @@ class ReloadController:
                 changed_paths=[],
                 aggregate_changes=aggregate_changes,
             )
-        
+
         return EnhancedReloadDecision(
             action="none",
             reason="no-changes",
             changed_paths=[],
         )
-    
+
     def _check_css_changes_hashed(self, output_dir: Path) -> list[str]:
         """Check CSS files for content changes."""
         changed = []
@@ -710,37 +710,37 @@ REGISTRY_FORMAT_VERSION = 1
 @dataclass
 class ContentHashRegistry:
     """Central registry mapping outputs to their content hashes.
-    
+
     Provides O(1) lookup for:
     - Validating if output changed
     - Finding dependencies of generated pages
     - Computing aggregate hashes for cache keys
-    
+
     Persisted to .bengal/content_hashes.json for cross-build validation.
-    
+
     THREAD SAFETY:
         Internal mappings are protected by an RLock for safe concurrent access
         during parallel rendering updates.
     """
-    
+
     # Format version for compatibility checking
     version: int = REGISTRY_FORMAT_VERSION
-    
+
     # Source file → content hash (for content pages)
     source_hashes: dict[str, str] = field(default_factory=dict)
-    
+
     # Output file → content hash (for all outputs)
     output_hashes: dict[str, str] = field(default_factory=dict)
-    
+
     # ... other fields ...
-    
+
     _lock: threading.RLock = field(default_factory=threading.RLock, repr=False)
 
     def update_source(self, source_path: Path, content_hash: str) -> None:
         """Update hash for a source file."""
         with self._lock:
             self.source_hashes[str(source_path)] = content_hash
-    
+
     def update_output(
         self,
         output_path: Path,
@@ -751,7 +751,7 @@ class ContentHashRegistry:
         key = str(output_path)
         self.output_hashes[key] = content_hash
         self.output_types[key] = output_type.name
-    
+
     def update_generated_deps(
         self,
         generated_path: Path,
@@ -761,7 +761,7 @@ class ContentHashRegistry:
         self.generated_dependencies[str(generated_path)] = [
             str(p) for p in member_sources
         ]
-    
+
     def get_member_hashes(self, generated_path: Path) -> dict[str, str]:
         """Get content hashes for all members of generated page."""
         deps = self.generated_dependencies.get(str(generated_path), [])
@@ -769,13 +769,13 @@ class ContentHashRegistry:
             dep: self.source_hashes.get(dep, "")
             for dep in deps
         }
-    
+
     def compute_generated_hash(self, generated_path: Path) -> str:
         """Compute combined hash for generated page validation."""
         member_hashes = self.get_member_hashes(generated_path)
         combined = "|".join(sorted(member_hashes.values()))
         return compute_content_hash(combined)
-    
+
     def save(self, path: Path) -> None:
         """Persist registry to disk with version metadata."""
         data = {
@@ -787,11 +787,11 @@ class ContentHashRegistry:
         }
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(data, indent=2))
-    
+
     @classmethod
     def load(cls, path: Path) -> "ContentHashRegistry":
         """Load registry from disk with version check and corruption recovery.
-        
+
         Recovery Behavior:
         - Missing file: Return empty registry (normal for first build)
         - Corrupted JSON: Log warning, return empty registry
@@ -800,10 +800,10 @@ class ContentHashRegistry:
         """
         if not path.exists():
             return cls()
-        
+
         try:
             data = json.loads(path.read_text())
-            
+
             # Check format version
             file_version = data.get("version", 0)
             if file_version < REGISTRY_FORMAT_VERSION:
@@ -814,7 +814,7 @@ class ContentHashRegistry:
                     action="rebuilding_registry",
                 )
                 return cls()
-            
+
             return cls(
                 version=file_version,
                 source_hashes=data.get("source_hashes", {}),
@@ -822,7 +822,7 @@ class ContentHashRegistry:
                 output_types=data.get("output_types", {}),
                 generated_dependencies=data.get("generated_dependencies", {}),
             )
-            
+
         except json.JSONDecodeError as e:
             logger.warning(
                 "content_hash_registry_corrupted",
@@ -831,7 +831,7 @@ class ContentHashRegistry:
                 action="starting_fresh",
             )
             return cls()
-            
+
         except Exception as e:
             logger.warning(
                 "content_hash_registry_load_failed",
@@ -841,41 +841,41 @@ class ContentHashRegistry:
                 action="starting_fresh",
             )
             return cls()
-    
+
     @classmethod
     def validate(cls, path: Path) -> tuple[bool, str]:
         """Validate registry file integrity.
-        
+
         Use with `bengal cache validate` for explicit verification.
-        
+
         Returns:
             Tuple of (is_valid, message)
         """
         if not path.exists():
             return True, "No registry file (will be created on build)"
-        
+
         try:
             data = json.loads(path.read_text())
-            
+
             # Check version
             version = data.get("version", 0)
             if version != REGISTRY_FORMAT_VERSION:
                 return False, f"Version mismatch: {version} != {REGISTRY_FORMAT_VERSION}"
-            
+
             # Check required fields
             required = ["source_hashes", "output_hashes"]
             missing = [f for f in required if f not in data]
             if missing:
                 return False, f"Missing fields: {missing}"
-            
+
             # Check data types
             if not isinstance(data.get("source_hashes"), dict):
                 return False, "source_hashes is not a dict"
             if not isinstance(data.get("output_hashes"), dict):
                 return False, "output_hashes is not a dict"
-            
+
             return True, f"Valid (version {version}, {len(data['source_hashes'])} sources)"
-            
+
         except json.JSONDecodeError as e:
             return False, f"JSON parse error: {e}"
         except Exception as e:
@@ -912,7 +912,7 @@ def format_html(html: str, page: Page, site: Site) -> str:
     if site.config.get("build", {}).get("content_hash_in_html", True):
         content_hash = hash_str(html, truncate=16)
         html = _embed_content_hash_safe(html, content_hash)
-    
+
     # ... existing formatting logic ...
 ```
 
@@ -994,7 +994,7 @@ bengal build --verbose
 **Approach**: Extend existing `ReloadController` class (don't replace).
 The current implementation in `bengal/server/reload_controller.py` already has:
 - Throttling (`min_notify_interval_ms`)
-- Ignore patterns (`ignored_globs`) 
+- Ignore patterns (`ignored_globs`)
 - Suspect hash verification (`hash_on_suspect`)
 - Thread-safe configuration
 
@@ -1019,7 +1019,7 @@ class ReloadController:
         # ... existing init ...
         self._use_content_hashes = use_content_hashes
         self._baseline_content_hashes: dict[str, str] = {}
-    
+
     # NEW methods (don't modify existing decide_and_update)
     def capture_content_hash_baseline(self, output_dir: Path) -> None: ...
     def decide_with_content_hashes(self, output_dir: Path) -> EnhancedReloadDecision: ...
@@ -1200,7 +1200,7 @@ build:
   cache_generated_pages: true    # Cache tag/section/API pages
   cache_aggregates: false        # Aggregates always regenerate
   content_hash_in_html: true     # Embed hash in meta tag
-  
+
   # Validation settings
   hash_based_reload: true        # Use content hashes for reload
   ignore_aggregate_changes: true # Don't report sitemap/feed changes
@@ -1221,7 +1221,7 @@ build:
 1. **Phase 1-2**: Deploy with `content_hash_in_html: true`
    - All new builds include hash
    - Old cached pages work normally
-   
+
 2. **Phase 3**: Enable generated page cache
    - First build populates cache
    - Subsequent builds benefit immediately
@@ -1263,10 +1263,10 @@ def test_generated_page_cache_skips_unchanged():
     cache = GeneratedPageCache(tmp_path / "cache.json")
     members = [mock_page("a.md"), mock_page("b.md")]
     hashes = {"a.md": "hash1", "b.md": "hash2"}
-    
+
     # First time: needs regeneration
     assert cache.should_regenerate("tag", "python", members, hashes)
-    
+
     # After update: no regeneration needed
     cache.update("tag", "python", members, hashes, "<html>...</html>", 100)
     assert not cache.should_regenerate("tag", "python", members, hashes)
@@ -1275,10 +1275,10 @@ def test_reload_controller_ignores_aggregate_changes():
     """ReloadController doesn't trigger reload for aggregate-only changes."""
     controller = ReloadController(use_content_hashes=True)
     controller.capture_content_hash_baseline(output_dir)
-    
+
     # Only modify sitemap.xml
     (output_dir / "sitemap.xml").write_text("<sitemap>new</sitemap>")
-    
+
     decision = controller.decide_with_content_hashes(output_dir)
     assert decision.action == "none"
     assert decision.reason == "aggregate-only-changes"
@@ -1288,13 +1288,13 @@ def test_generated_page_cache_invalidates_on_template_change():
     cache = GeneratedPageCache(tmp_path / "cache.json")
     members = [mock_page("a.md"), mock_page("b.md")]
     hashes = {"a.md": "hash1", "b.md": "hash2"}
-    
+
     # Initial cache with template v1
     cache.update("tag", "python", members, hashes, "<html>v1</html>", 100, "template_v1")
-    
+
     # Same member hashes, same template → no regeneration
     assert not cache.should_regenerate("tag", "python", members, hashes, "template_v1")
-    
+
     # Same member hashes, different template → regenerate
     assert cache.should_regenerate("tag", "python", members, hashes, "template_v2")
 
@@ -1304,7 +1304,7 @@ def test_registry_version_migration():
     old_data = {"version": 0, "source_hashes": {"a.md": "hash1"}}
     registry_path = tmp_path / "registry.json"
     registry_path.write_text(json.dumps(old_data))
-    
+
     # Load should return empty (version mismatch)
     registry = ContentHashRegistry.load(registry_path)
     assert registry.source_hashes == {}  # Fresh start
@@ -1313,7 +1313,7 @@ def test_registry_corruption_recovery():
     """Registry recovers gracefully from corruption."""
     registry_path = tmp_path / "registry.json"
     registry_path.write_text("{ invalid json }")
-    
+
     # Should not raise, returns empty registry
     registry = ContentHashRegistry.load(registry_path)
     assert registry.source_hashes == {}
@@ -1327,25 +1327,25 @@ def test_serve_first_with_content_hash_validation():
     # Build site
     site = create_test_site()
     site.build()
-    
+
     # Start dev server in serve-first mode
     server = DevServer(site)
-    
+
     # Validation should complete quickly with hash comparison
     start = time.time()
     server._run_validation_build()
     duration = time.time() - start
-    
+
     assert duration < 2.0  # Target: <2s for unchanged content
 
 def test_generated_page_cache_integration():
     """Generated pages are cached across builds."""
     site = create_test_site_with_tags()
-    
+
     # First build: generates all tag pages
     stats1 = site.build()
     assert stats1.generated_pages_rendered == 100
-    
+
     # Second build: all cached (no content changes)
     stats2 = site.build()
     assert stats2.generated_pages_cached == 100
@@ -1366,7 +1366,7 @@ def test_generated_page_cache_integration():
 
 **Risk**: Generated page cache becomes stale due to missed dependencies.
 
-**Mitigation**: 
+**Mitigation**:
 - Track all member pages explicitly in cache entry
 - Invalidate on ANY member change (conservative)
 - Provide `bengal cache clear-generated` for manual invalidation
@@ -1466,7 +1466,7 @@ Content Hash Registry:
   Source hashes: 225
   Output hashes: 1063
   Generated deps: 526
-  
+
 Generated Page Cache:
   Entries: 526
   Cached HTML: 480 (91%)
@@ -1500,7 +1500,7 @@ this is correct behavior (reload script shouldn't affect content hash).
 - All inherited templates (base.html, etc.)?
 - Included partials?
 
-**Proposed Resolution**: Leverage the existing `DependencyTracker` in `BuildContext`. 
+**Proposed Resolution**: Leverage the existing `DependencyTracker` in `BuildContext`.
 When rendering a generated page, the tracker records all template dependencies.
 The hash should be computed from the combined content of all tracked template files.
 This ensures perfect invalidation even when a deeply nested partial changes.
@@ -1517,7 +1517,7 @@ This ensures perfect invalidation even when a deeply nested partial changes.
 
 ### Q4: Hash Collision Probability
 
-**Question**: Is 16-character truncated SHA-256 sufficient? 
+**Question**: Is 16-character truncated SHA-256 sufficient?
 
 **Analysis**: 16 hex chars = 64 bits. Birthday paradox: collision at ~2^32 items.
 A 65,000-page site has ~0.0002% collision chance per build.

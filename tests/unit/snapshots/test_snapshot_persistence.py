@@ -228,8 +228,7 @@ class TestPostCardRenderWithPageFromCache:
 
         # Template uses p.reading_time > 0 - PostView.from_page must coerce
         html = engine.render_string(
-            "{% set p = post | post_view %}"
-            "{% if p %}reading: {{ p.reading_time }} min{% end %}",
+            "{% set p = post | post_view %}{% if p %}reading: {{ p.reading_time }} min{% end %}",
             {"post": page},
         )
         assert "reading: 3 min" in html

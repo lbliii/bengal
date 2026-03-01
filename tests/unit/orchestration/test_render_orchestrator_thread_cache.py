@@ -23,6 +23,8 @@ from bengal.orchestration.render import (
     get_current_generation,
 )
 
+pytestmark = pytest.mark.parallel_unsafe
+
 
 class TestBuildGenerationCounter:
     """Test the build generation counter mechanism."""

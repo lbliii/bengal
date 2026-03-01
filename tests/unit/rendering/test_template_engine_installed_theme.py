@@ -29,8 +29,8 @@ def test_engine_resolves_installed_theme_templates(tmp_path, monkeypatch):
     mock_pkg.version = "1.0.0"
     mock_pkg.templates_exists.return_value = True
     mock_pkg.assets_exists.return_value = True
-    mock_pkg.resolve_resource_path = (
-        lambda resource: theme_root / resource if (theme_root / resource).exists() else None
+    mock_pkg.resolve_resource_path = lambda resource: (
+        theme_root / resource if (theme_root / resource).exists() else None
     )
 
     # Mock get_theme_package
@@ -75,8 +75,8 @@ def test_extends_read_from_installed_theme(tmp_path, monkeypatch):
     mock_pkg.distribution = "bengal-theme-acme"
     mock_pkg.version = "1.0.0"
     mock_pkg.manifest_exists.return_value = True
-    mock_pkg.resolve_resource_path = (
-        lambda resource: theme_root / resource if (theme_root / resource).exists() else None
+    mock_pkg.resolve_resource_path = lambda resource: (
+        theme_root / resource if (theme_root / resource).exists() else None
     )
 
     def mock_get_theme_package(slug: str):

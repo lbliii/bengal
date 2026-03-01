@@ -172,7 +172,7 @@ class KidaTemplateEngine:
                     if resolved and resolved.exists():
                         dirs.append(resolved)
                         continue
-            except (ImportError, AttributeError, OSError):
+            except ImportError, AttributeError, OSError:
                 pass
 
             # Bundled theme directory
@@ -501,7 +501,7 @@ class KidaTemplateEngine:
         try:
             self._env.get_template(name)
             return True
-        except (KidaTemplateNotFoundError, OSError):
+        except KidaTemplateNotFoundError, OSError:
             return False
 
     def get_template_path(self, name: str) -> Path | None:
@@ -565,7 +565,7 @@ class KidaTemplateEngine:
                     # Queue for recursive processing (catches nested includes)
                     to_process.append(ref_name)
 
-            except (AttributeError, TypeError, KeyError, OSError):
+            except AttributeError, TypeError, KeyError, OSError:
                 # Template analysis is optional - don't fail the build
                 continue
 

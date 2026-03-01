@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 class TestASTPipelineIntegration:
     """Integration tests for AST pipeline."""
 
+    @pytest.mark.known_gap
     @pytest.mark.xfail(reason="render_ast is a stub (TODO in PatitasParser.render_ast)")
     def test_ast_pipeline_produces_html(self, tmp_path: Path) -> None:
         """Verify AST pipeline produces valid HTML."""
@@ -59,6 +60,7 @@ def hello():
         assert "<ul>" in html or "<li>" in html
         assert "<pre>" in html or "<code>" in html
 
+    @pytest.mark.known_gap
     @pytest.mark.xfail(reason="render_ast is a stub (TODO in PatitasParser.render_ast)")
     def test_ast_pipeline_matches_direct_parse(self, tmp_path: Path) -> None:
         """Verify AST-based rendering matches direct markdown parsing."""
@@ -175,6 +177,7 @@ def test():
         assert "italic" in text
         assert "inline code" in text
 
+    @pytest.mark.known_gap
     @pytest.mark.xfail(reason="render_ast is a stub (TODO in PatitasParser.render_ast)")
     def test_ast_transforms_preserve_structure(self, tmp_path: Path) -> None:
         """Verify AST transforms don't break rendering."""

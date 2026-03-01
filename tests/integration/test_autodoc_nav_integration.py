@@ -3,11 +3,14 @@ Integration tests for autodoc page navigation rendering.
 
 Verifies that all autodoc page types (module, section index, root index)
 render with proper navigation menus just like regular pages.
+Requires pre-built site. Excluded from PR integration.
 """
 
 from pathlib import Path
 
 import pytest
+
+pytestmark = pytest.mark.autodoc
 
 
 @pytest.fixture

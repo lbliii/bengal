@@ -16,7 +16,9 @@ Thread-safe because it only reads frozen SiteSnapshot.
 
 import json
 import threading
+import time
 from collections import defaultdict
+from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -300,16 +302,26 @@ class EffectTracer:
         """Save tracer state to a JSON file."""
         data = self.to_dict()
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w") as f:
-            json.dump(data, f, separators=(",", ":"))
+        tmp_path = path.with_name(f"{path.name}.{threading.get_ident()}.{time.time_ns()}.tmp")
+        try:
+            with open(tmp_path, "w") as f:
+                json.dump(data, f, separators=(",", ":"))
+            tmp_path.replace(path)
+        finally:
+            with suppress(Exception):
+                tmp_path.unlink(missing_ok=True)
 
     @classmethod
     def load(cls, path: Path) -> EffectTracer:
         """Load tracer state from a JSON file."""
         if not path.exists():
             return cls()
-        with open(path) as f:
-            data = json.load(f)
+        try:
+            with open(path) as f:
+                data = json.load(f)
+        except json.JSONDecodeError:
+            # Concurrent writers may leave a transient partial file view.
+            return cls()
         return cls.from_dict(data)
 
     def clear(self) -> None:

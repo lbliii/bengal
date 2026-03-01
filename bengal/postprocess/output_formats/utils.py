@@ -292,7 +292,7 @@ def get_i18n_output_path(site: SiteLike, filename: str) -> Path:
     return site.output_dir / filename
 
 
-def parallel_write_files(
+def parallel_write_files[T](
     items: list[tuple[Path, T]],
     write_fn: Callable[[Path, T], None],
     max_workers: int = 8,

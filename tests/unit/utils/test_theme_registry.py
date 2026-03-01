@@ -46,8 +46,8 @@ def test_get_installed_themes_discovers_entry_point(monkeypatch, tmp_path):
         mock_pkg.templates_exists.return_value = (theme_root / "templates").is_dir()
         mock_pkg.assets_exists.return_value = (theme_root / "assets").is_dir()
         mock_pkg.manifest_exists.return_value = (theme_root / "theme.toml").is_file()
-        mock_pkg.resolve_resource_path = (
-            lambda resource: theme_root / resource if (theme_root / resource).exists() else None
+        mock_pkg.resolve_resource_path = lambda resource: (
+            theme_root / resource if (theme_root / resource).exists() else None
         )
         return mock_pkg
 

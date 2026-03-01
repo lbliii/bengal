@@ -292,12 +292,12 @@ def _get_site_enrichment() -> tuple[dict[str, Any] | None, dict[str, list[Any]] 
     try:
         data = getattr(_site_ref, "data", None) or {}
         site_data = data.get("authors") if hasattr(data, "get") else None
-    except (AttributeError, TypeError, KeyError):
+    except AttributeError, TypeError, KeyError:
         pass
     try:
         indexes = getattr(_site_ref, "indexes", None) or {}
         author_index = indexes.get("author") if hasattr(indexes, "get") else None
-    except (AttributeError, TypeError, KeyError):
+    except AttributeError, TypeError, KeyError:
         pass
     return site_data, author_index
 
@@ -325,7 +325,7 @@ def author_view_filter(page: Any) -> AuthorView | None:
     try:
         site_data, author_index = _get_site_enrichment()
         return AuthorView.from_page(page, site_data, author_index)
-    except (AttributeError, TypeError, KeyError, ValueError):
+    except AttributeError, TypeError, KeyError, ValueError:
         return None
 
 
@@ -354,7 +354,7 @@ def authors_filter(pages: Any) -> list[AuthorView]:
     for page in pages:
         try:
             result.append(AuthorView.from_page(page, site_data, author_index))
-        except (AttributeError, TypeError, KeyError, ValueError):
+        except AttributeError, TypeError, KeyError, ValueError:
             continue
 
     return result

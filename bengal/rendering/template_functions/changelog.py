@@ -137,7 +137,7 @@ def _normalize_date(value: Any) -> datetime | None:
     if isinstance(value, str):
         try:
             return datetime.fromisoformat(value)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             # Try common formats
             for fmt in ("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%B %d, %Y"):
                 try:
@@ -380,7 +380,7 @@ def _to_tuple(value: Any) -> tuple[str, ...]:
         return (value,)
     try:
         return tuple(str(item) for item in value)
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return ()
 
 

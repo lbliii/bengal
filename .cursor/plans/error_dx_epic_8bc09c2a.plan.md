@@ -270,7 +270,7 @@ sequenceDiagram
     Note over Chirp: catch Exception
     Note over Chirp: logger.exception() with request context
     Note over Chirp: Console shows full traceback
-    
+
     alt debug=True
         Chirp->>Pounce: Response(500, rich debug page)
         Pounce->>Browser: Rich error page with source, locals, request info
@@ -278,7 +278,7 @@ sequenceDiagram
         Chirp->>Pounce: Response(500, "Internal Server Error")
         Pounce->>Browser: Generic error
     end
-    
+
     Note over Pounce: Access log: WARNING for 5xx
 ```
 

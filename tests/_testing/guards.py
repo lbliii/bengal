@@ -43,7 +43,7 @@ def process_guard(request):
     try:
         process = psutil.Process()
         children_before = set(process.children(recursive=True))
-    except (psutil.NoSuchProcess, Exception):
+    except psutil.NoSuchProcess, Exception:
         yield
         return
 
@@ -59,7 +59,7 @@ def process_guard(request):
             try:
                 children_after = set(process.children(recursive=True))
                 leaked = children_after - children_before
-            except (psutil.NoSuchProcess, psutil.AccessDenied, OSError):
+            except psutil.NoSuchProcess, psutil.AccessDenied, OSError:
                 pass
 
             if leaked:
@@ -75,9 +75,9 @@ def process_guard(request):
                     try:
                         if child.is_running():
                             child.kill()
-                    except (psutil.NoSuchProcess, psutil.AccessDenied):
+                    except psutil.NoSuchProcess, psutil.AccessDenied:
                         pass
-    except (psutil.NoSuchProcess, Exception):
+    except psutil.NoSuchProcess, Exception:
         pass
 
 
@@ -108,7 +108,7 @@ def memory_guard(request):
                 if mem > peak_memory[0]:
                     peak_memory[0] = mem
                 time.sleep(0.2)
-            except (psutil.NoSuchProcess, Exception):
+            except psutil.NoSuchProcess, Exception:
                 break
 
     monitor_thread = threading.Thread(target=monitor, daemon=True)

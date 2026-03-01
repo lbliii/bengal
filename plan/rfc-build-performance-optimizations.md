@@ -272,15 +272,15 @@ from pathlib import Path
 def batch_format_html(output_dir: Path, mode: str = "pretty", workers: int = 8) -> int:
     """Format all HTML files in parallel. Returns count processed."""
     html_files = list(output_dir.rglob("*.html"))
-    
+
     def format_one(path: Path) -> None:
         content = path.read_text()
         formatted = format_html_output(content, mode=mode)
         path.write_text(formatted)
-    
+
     with ThreadPoolExecutor(max_workers=workers) as pool:
         pool.map(format_one, html_files)
-    
+
     return len(html_files)
 ```
 
@@ -317,23 +317,23 @@ _current_tracker: ContextVar[AssetTracker | None] = ContextVar("asset_tracker", 
 
 class AssetTracker:
     """Track assets during template rendering (no HTML parsing)."""
-    
+
     __slots__ = ("_assets",)
-    
+
     def __init__(self) -> None:
         self._assets: set[str] = set()
-    
+
     def track(self, path: str) -> None:
         """Track an asset reference."""
         self._assets.add(path)
-    
+
     def get_assets(self) -> set[str]:
         return self._assets.copy()
-    
+
     def __enter__(self) -> AssetTracker:
         _current_tracker.set(self)
         return self
-    
+
     def __exit__(self, *_: object) -> None:
         _current_tracker.set(None)
 
@@ -374,16 +374,16 @@ class CachedModuleInfo:
 
 class AutodocContentCacheMixin:
     """Cache parsed autodoc content between builds."""
-    
+
     autodoc_content_cache: dict[str, CachedModuleInfo] = field(default_factory=dict)
-    
+
     def get_cached_module(self, source_path: str, source_hash: str) -> CachedModuleInfo | None:
         """Return cached module info if hash matches."""
         cached = self.autodoc_content_cache.get(source_path)
         if cached and cached.source_hash == source_hash:
             return cached
         return None
-    
+
     def cache_module(self, source_path: str, info: CachedModuleInfo) -> None:
         """Cache parsed module info."""
         self.autodoc_content_cache[source_path] = info
@@ -555,7 +555,7 @@ git add -A && git commit -m "autodoc: integrate content cache for AST reuse"
 
 - **Profile data**: 2026-01-16, cProfile (requires re-validation with py-spy)
 - **Site**: Bengal docs site (1277 pages, 737 autodoc)
-- **Benchmarks**: 
+- **Benchmarks**:
   - `benchmarks/profile_build_overhead.py` - Phase timing and overhead analysis
   - `tests/performance/benchmark_full_build.py` - Full build benchmarks
   - `tests/performance/benchmark_incremental.py` - Incremental build benchmarks

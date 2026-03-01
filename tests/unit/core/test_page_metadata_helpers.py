@@ -37,8 +37,8 @@ class TestMetadataHelpers:
         page.get_user_metadata = lambda key, default=None: PageMetadataMixin.get_user_metadata(
             page, key, default
         )
-        page.get_internal_metadata = (
-            lambda key, default=None: PageMetadataMixin.get_internal_metadata(page, key, default)
+        page.get_internal_metadata = lambda key, default=None: (
+            PageMetadataMixin.get_internal_metadata(page, key, default)
         )
         return page
 

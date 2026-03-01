@@ -11,7 +11,11 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 
+import pytest
+
 from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
+
+pytestmark = pytest.mark.parallel_unsafe
 
 
 class TestPerKeyLockManager:

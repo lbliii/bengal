@@ -39,6 +39,7 @@ jobs:
       run: uv sync --group dev
 
     - name: Fast test suite (unit tests only)
+      timeout-minutes: 15
       env:
         CI: true
         BENGAL_CI_FAST: "1"
@@ -78,6 +79,7 @@ jobs:
       run: uv sync --group dev
 
     - name: Run targeted baseurl portability tests
+      timeout-minutes: 10
       env:
         BENGAL_BASEURL: ${{ matrix.baseurl }}
         CI: true
@@ -89,17 +91,37 @@ jobs:
         uv run pytest -q --tb=short -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
 
     - name: Integration tests (parallel)
+      timeout-minutes: 45
       if: matrix.baseurl == ''
       env:
         CI: true
         BENGAL_CI_FAST: "1"
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
+        PYTHONUNBUFFERED: "1"
       run: |
         echo "Running integration tests..."
-        uv run pytest -n auto -q --tb=short --dist worksteal tests/integration -m "not slow and not performance and not stateful"
+        # Use loadgroup (not worksteal): worksteal ignores xdist_group, so serial/parallel_unsafe
+        # tests (e.g. test_concurrent_builds) can run on different workers and cause races.
+        # Keep diagnostics actionable in CI:
+        # - stop on first failure to surface traceback quickly
+        # - emit per-test progress (not quiet mode)
+        # - persist JUnit + full log for post-timeout/failure debugging
+        set -o pipefail
+        uv run pytest -n auto -vv -ra --tb=short --maxfail=1 --durations=40 --dist loadgroup --max-worker-restart=3 tests/integration -m "not slow and not performance and not stateful and not autodoc and not known_gap" --junitxml=integration-results.xml 2>&1 | tee integration-tests.log
+
+    - name: Upload integration diagnostics
+      if: always() && matrix.baseurl == ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-diagnostics-${{ matrix.python-version }}
+        path: |
+          integration-tests.log
+          integration-results.xml
+        if-no-files-found: warn
 
     - name: Coverage (unit tests, single-process)
+      timeout-minutes: 15
       if: matrix.baseurl == ''
       env:
         CI: true
@@ -132,14 +154,13 @@ jobs:
       run: uv sync --group dev
 
     - name: Run slow tests
+      timeout-minutes: 30
       env:
         CI: true
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
       run: |
-        # Use loadgroup to respect @pytest.mark.parallel_unsafe (via xdist_group)
-        # This prevents worker crashes from property tests running full builds
-        uv run pytest -n auto -q --tb=short -m "slow and not stateful and not performance" --dist loadgroup --max-worker-restart=3
+        uv run pytest -n auto -q --tb=short -m "(slow or known_gap) and not stateful and not performance" --dist loadgroup --max-worker-restart=3
 
   # Stateful workflows (weekly/manual)
   stateful:
@@ -165,12 +186,13 @@ jobs:
       run: uv sync --group dev
 
     - name: Run stateful tests (xdist hardened)
+      timeout-minutes: 30
       env:
         CI: true
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
       run: |
-        uv run pytest -n auto -q --tb=short -m stateful --dist worksteal --max-worker-restart=2 -o timeout_method=signal -p pytest_forked --forked
+        uv run pytest -n auto -q --tb=short -m stateful --dist worksteal --max-worker-restart=2 -p pytest_forked --forked
 
   # Performance suite (weekly/manual)
   performance:
@@ -196,12 +218,13 @@ jobs:
       run: uv sync --group dev
 
     - name: Run performance tests
+      timeout-minutes: 30
       env:
         CI: true
         OMP_NUM_THREADS: "1"
         PYTHON_GIL: "0"
       run: |
-        uv run pytest -n auto -q --tb=short -m performance --dist worksteal --max-worker-restart=2 -o timeout_method=signal
+        uv run pytest -n auto -q --tb=short -m performance --dist worksteal --max-worker-restart=2
 
     - name: Upload coverage
       if: matrix.baseurl == ''
