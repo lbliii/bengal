@@ -63,6 +63,27 @@ LIVE_RELOAD_SCRIPT = r"""
                 const url = new URL(location.href);
                 url.searchParams.set('_bengal', Date.now().toString());
                 location.replace(url.toString());
+            } else if (action === 'fragment') {
+                const selector = payload.selector || '#main-content';
+                const html = payload.html;
+                const permalink = payload.permalink || '';
+                const norm = function(s) {
+                    return s === '/' ? '/' : (s.replace(/\/$/, '') || '/');
+                };
+                const match = !permalink || norm(location.pathname) === norm(permalink);
+                if (html && match) {
+                    const target = document.querySelector(selector);
+                    if (target) {
+                        target.innerHTML = html;
+                        console.log('📄 Bengal: Content updated');
+                    } else {
+                        sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
+                        sessionStorage.setItem('bengal_scroll_y', window.scrollY.toString());
+                        const url = new URL(location.href);
+                        url.searchParams.set('_bengal', Date.now().toString());
+                        location.replace(url.toString());
+                    }
+                }
             }
         };
 

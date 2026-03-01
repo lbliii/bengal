@@ -94,3 +94,66 @@ def set_reload_action(action: str) -> None:
     with _state.condition:
         _state.last_action = action
     logger.debug("reload_action_set", action=action)
+
+
+def send_fragment_payload(
+    selector: str,
+    html: str,
+    permalink: str,
+    *,
+    reason: str = "single-page-content",
+) -> None:
+    """Send a fragment event for instant DOM swap instead of full reload.
+
+    Clients on the matching page will swap innerHTML of the selector;
+    others ignore or fall back to full reload.
+
+    Args:
+        selector: CSS selector for the target element (e.g. #main-content)
+        html: Inner HTML to inject
+        permalink: URL path of the page (e.g. /docs/foo/) for client matching
+        reason: Optional reason string for logging
+    """
+    if _reload_events_disabled():
+        logger.info(
+            "reload_notification_suppressed",
+            reason="env_BENGAL_DISABLE_RELOAD_EVENTS",
+            action="fragment",
+        )
+        return
+    try:
+        payload = json.dumps(
+            {
+                "action": "fragment",
+                "selector": selector,
+                "html": html,
+                "permalink": permalink,
+                "reason": reason,
+            }
+        )
+    except Exception as e:
+        logger.warning(
+            "fragment_payload_serialization_failed",
+            error_code=ErrorCode.S003.name,
+            error=str(e),
+        )
+        return
+
+    with _state.condition:
+        _state.last_action = payload
+        _state.generation += 1
+        _state.sent_count += 1
+        _state.condition.notify_all()
+
+    logger.info(
+        "fragment_notification_sent",
+        selector=selector,
+        permalink=permalink,
+        html_len=len(html),
+        generation=_state.generation,
+    )
+    if os.environ.get("BENGAL_DEBUG_RELOAD"):
+        print(
+            f"[Bengal] Fragment sent: selector={selector!r} permalink={permalink!r}",
+            flush=True,
+        )

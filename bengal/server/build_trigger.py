@@ -312,10 +312,7 @@ class BuildTrigger:
                 path = next(iter(changed_paths))
                 from bengal.core.output import OutputType
                 from bengal.server.reactive import ReactiveContentHandler
-                from bengal.server.reload_types import (
-                    BuildReloadInfo,
-                    SerializedOutputRecord,
-                )
+                from bengal.server.reload_types import SerializedOutputRecord
 
                 handler = ReactiveContentHandler(self.site, self.site.output_dir)
                 try:
@@ -333,13 +330,41 @@ class BuildTrigger:
                                 phase="render",
                             ),
                         )
-                        self._handle_reload(
-                            BuildReloadInfo(
-                                changed_files=tuple(changed_files),
-                                changed_outputs=changed_outputs,
-                                reload_hint=None,
-                            )
+
+                        # Fragment path: extract #main-content, send DOM swap
+                        full_path = (
+                            output_path
+                            if output_path.is_absolute()
+                            else self.site.output_dir / output_path
                         )
+                        dev_config = config_dict.get("dev", {}) or {}
+                        content_selector = dev_config.get("content_selector", "#main-content")
+                        try:
+                            html = full_path.read_text(encoding="utf-8")
+                            from bengal.server.live_reload.fragment import extract_main_content
+                            from bengal.server.live_reload.notification import send_fragment_payload
+                            from bengal.utils.paths.url_strategy import URLStrategy
+
+                            fragment = extract_main_content(html, content_selector)
+                            if fragment:
+                                permalink = URLStrategy.url_from_output_path(output_path, self.site)
+                                send_fragment_payload(content_selector, fragment, permalink)
+                            else:
+                                self._handle_reload(
+                                    BuildReloadInfo(
+                                        changed_files=tuple(changed_files),
+                                        changed_outputs=changed_outputs,
+                                        reload_hint=None,
+                                    )
+                                )
+                        except OSError, UnicodeDecodeError:
+                            self._handle_reload(
+                                BuildReloadInfo(
+                                    changed_files=tuple(changed_files),
+                                    changed_outputs=changed_outputs,
+                                    reload_hint=None,
+                                )
+                            )
                         self._clear_html_cache()
                         return
                 except Exception as e:
@@ -1113,7 +1138,7 @@ class BuildTrigger:
                         records.append(
                             OutputRecord(Path(rec.path), output_type, rec.phase)  # type: ignore[arg-type]
                         )
-                except (ValueError, TypeError):
+                except ValueError, TypeError:
                     logger.debug("invalid_output_type", path=rec.path, type_val=rec.type_value)
 
             if records:

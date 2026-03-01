@@ -9,6 +9,65 @@ import pytest
 from bengal.server.live_reload import LIVE_RELOAD_SCRIPT, LiveReloadMixin
 
 
+class TestExtractMainContent:
+    """Tests for fragment extraction (extract_main_content)."""
+
+    def test_extracts_main_content_default_selector(self):
+        """Extract inner HTML of #main-content."""
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = """<!DOCTYPE html>
+<html><head></head><body>
+<main id="main-content" role="main">
+  <h1>Title</h1>
+  <p>Content here</p>
+</main>
+</body></html>"""
+        result = extract_main_content(html)
+        assert "<h1>Title</h1>" in result
+        assert "<p>Content here</p>" in result
+        assert "main-content" not in result
+
+    def test_extracts_with_custom_selector(self):
+        """Extract inner HTML of custom id selector."""
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = """<div id="article-body"><span>Custom content</span></div>"""
+        result = extract_main_content(html, selector="#article-body")
+        assert "<span>Custom content</span>" in result
+
+    def test_returns_empty_when_selector_not_found(self):
+        """Return empty string when selector has no match."""
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = "<html><body><div>No main-content here</div></body></html>"
+        result = extract_main_content(html)
+        assert result == ""
+
+    def test_returns_empty_for_empty_html(self):
+        """Return empty string for empty or whitespace HTML."""
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        assert extract_main_content("") == ""
+        assert extract_main_content("   ") == ""
+
+    def test_handles_attributes_in_different_order(self):
+        """Match id attribute regardless of position in tag."""
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = '<main role="main" class="foo" id="main-content">Inner</main>'
+        result = extract_main_content(html)
+        assert result == "Inner"
+
+    def test_handles_single_quotes(self):
+        """Match id with single-quoted value."""
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = "<main id='main-content'>Single quoted</main>"
+        result = extract_main_content(html)
+        assert result == "Single quoted"
+
+
 class TestLiveReloadScriptInjection:
     """Test HTML injection for live reload."""
 
@@ -457,6 +516,13 @@ class TestClientScriptPayloadContract:
         from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
 
         assert "action === 'reload-css'" in LIVE_RELOAD_SCRIPT
+
+    def test_script_checks_action_fragment(self):
+        """Client script must handle action === 'fragment' for DOM swap."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        assert "action === 'fragment'" in LIVE_RELOAD_SCRIPT
+        assert "innerHTML" in LIVE_RELOAD_SCRIPT
 
     def test_script_uses_changed_paths_from_payload(self):
         """Client script must read changedPaths from payload for CSS targeting."""
