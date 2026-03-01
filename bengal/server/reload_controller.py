@@ -813,6 +813,16 @@ class ReloadController:
                 reason="css-only",
                 changed_paths=tuple(filtered_paths[:MAX_CHANGED_PATHS_TO_SEND]),
             )
+
+        # RFC: Reactive Dev Sequel Phase 6 - Single HTML change → reload-page
+        # Semantically clearer than "reload" when exactly one content page changed
+        html_outputs = [o for o in filtered_outputs if o.output_type == OutputType.HTML]
+        if len(html_outputs) == 1:
+            return ReloadDecision(
+                action="reload-page",
+                reason="single-page-content",
+                changed_paths=tuple(filtered_paths[:MAX_CHANGED_PATHS_TO_SEND]),
+            )
         return ReloadDecision(
             action="reload",
             reason="content-changed",

@@ -152,8 +152,22 @@ def test_decide_from_outputs_mixed_types_triggers_full_reload():
     assert "index.html" in decision.changed_paths
 
 
+def test_decide_from_outputs_single_html_triggers_reload_page():
+    """Single HTML output triggers reload-page (RFC: Reactive Dev Sequel Phase 6)."""
+    ctl = ReloadController(min_notify_interval_ms=0)
+
+    outputs = [
+        OutputRecord(Path("blog/post/index.html"), OutputType.HTML, "render"),
+    ]
+    decision = ctl.decide_from_outputs(outputs)
+
+    assert decision.action == "reload-page"
+    assert decision.reason == "single-page-content"
+    assert decision.changed_paths == ("blog/post/index.html",)
+
+
 def test_decide_from_outputs_html_only_triggers_full_reload():
-    """HTML outputs trigger full reload."""
+    """Multiple HTML outputs trigger full reload."""
     ctl = ReloadController(min_notify_interval_ms=0)
 
     outputs = [

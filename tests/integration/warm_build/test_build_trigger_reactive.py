@@ -1,9 +1,11 @@
 """Integration tests for BuildTrigger reactive path and ReactiveContentHandler.
 
-RFC: Reactive Dev Sequel (Phase 3 + 5)
+RFC: Reactive Dev Sequel (Phases 3, 5, 6, 7)
 - First trigger_build: full build, seeds content hash cache
 - Second trigger_build (content-only edit): uses reactive path, skips site.build()
 - handle_content_change: writes updated HTML to disk
+- reload-page for single-page content edits
+- Edge cases: dependent pages not updated
 """
 
 from __future__ import annotations
@@ -127,9 +129,7 @@ title: Home
         )
 
         # Call handler (no RenderingPipeline mock)
-        handler = ReactiveContentHandler(
-            warm_build_site.site, warm_build_site.output_dir
-        )
+        handler = ReactiveContentHandler(warm_build_site.site, warm_build_site.output_dir)
         content_path = warm_build_site.site_dir / "content" / "_index.md"
         result = handler.handle_content_change(content_path)
 
@@ -138,3 +138,59 @@ title: Home
 
         # Updated HTML written to disk
         warm_build_site.assert_output_contains("index.html", updated_body)
+
+    def test_reactive_path_does_not_update_dependent_pages(
+        self, site_with_nav: WarmBuildTestSite
+    ) -> None:
+        """Reactive path updates only the edited page; section index stays stale.
+
+        Edge case (RFC Phase 7): When editing blog/post1.md, handle_content_change
+        re-renders only post1. The blog section index (blog/index.html) lists
+        post1 but is NOT re-rendered; it remains stale until full build.
+        """
+        site_dir = site_with_nav.site_dir
+        output_dir = site_with_nav.output_dir
+
+        # Full build
+        site_with_nav.full_build()
+        site_with_nav.assert_output_exists("blog/post1/index.html")
+        site_with_nav.assert_output_exists("blog/index.html")
+
+        # Capture section index content before edit (before post1 body change)
+        post1_output = output_dir / "blog" / "post1" / "index.html"
+        section_index_output = output_dir / "blog" / "index.html"
+        section_index_mtime_before = section_index_output.stat().st_mtime
+
+        # Edit post1 body only (content that affects post1 page)
+        unique_content = "REACTIVE_EDGE_CASE_UNIQUE_STRING"
+        post1_path = site_dir / "content" / "blog" / "post1.md"
+        post1_path.write_text(f"""---
+title: First Post
+date: 2026-01-01
+---
+
+{unique_content}
+""")
+
+        # Reactive path: only processes post1
+        handler = ReactiveContentHandler(site_with_nav.site, output_dir)
+        result = handler.handle_content_change(post1_path)
+
+        assert result is not None
+        # Result may be relative or absolute; resolve for comparison
+        assert result.resolve() == post1_output.resolve()
+
+        # Post1 output updated with new content
+        site_with_nav.assert_output_contains("blog/post1/index.html", unique_content)
+
+        # Section index unchanged (mtime unchanged, content not updated)
+        section_index_mtime_after = section_index_output.stat().st_mtime
+        assert section_index_mtime_before == section_index_mtime_after, (
+            "Section index should not be touched by reactive path"
+        )
+        # Section index does not contain the new post1 body (excerpt would be stale)
+        section_html = section_index_output.read_text()
+        assert unique_content not in section_html, (
+            "Section index should not include post1 body; reactive path doesn't "
+            "re-render dependent pages"
+        )
