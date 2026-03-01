@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+### Path Key Alignment
+- **cache**: align path key formats across orchestration, cache, and validation
+  - Provenance filter uses `get_file_fingerprint`/`set_file_fingerprint` for data/template lookups
+  - Tracks validator uses `content_key` for page lookup (handles absolute vs relative)
+  - File tracking `should_bypass` fallback uses normalized keys when `resolve()` raises
+  - BuildCache: `file_fingerprints`, `parsed_content`, `rendered_output` typed as `dict[CacheKey, ...]`; `_cache_key` returns `CacheKey`
+  - New `get_file_fingerprint(path)` and `set_file_fingerprint(path, data)` API
+  - Path-variant tests, Phase 4 regression test (mixed path formats), `.cursor/rules/modules/path-keys` convention
+
 ### Cleanup
 - **orchestration**: remove unused _phase_render (dead code; main build calls rendering.phase_render directly)
 

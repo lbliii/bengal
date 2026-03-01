@@ -271,6 +271,21 @@ class TestTrackValidatorGetPage:
         assert page is None
 
 
+class TestTrackValidatorPathKeyAlignment:
+    """Tests for path key alignment (absolute vs relative lookup)."""
+
+    def test_resolves_page_when_source_path_absolute_lookup_relative(
+        self, validator, mock_site
+    ) -> None:
+        """_get_page finds page when page has absolute source_path, lookup uses relative."""
+        mock_site._page_lookup_maps = None
+        # page1 has source_path = content_dir / "intro.md" (absolute)
+        # Track items use "intro.md" (relative) - Strategy 1 or 4 should resolve
+        page = validator._get_page(mock_site, "intro.md")
+        assert page is not None
+        assert page.relative_path == "intro.md"
+
+
 class TestTrackValidatorRecommendations:
     """Tests for recommendation messages."""
 

@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.build.contracts.keys import content_key
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 from bengal.utils.paths.normalize import to_posix
@@ -151,11 +153,18 @@ class TrackValidator(BaseValidator):
         if site._page_lookup_maps is None:
             by_full_path = {}
             by_content_relative = {}
+            by_content_key = {}
 
             content_root = site.root_path / "content"
 
             for p in site.pages:
+                full = (
+                    site.root_path / p.source_path
+                    if not Path(p.source_path).is_absolute()
+                    else Path(p.source_path)
+                )
                 by_full_path[str(p.source_path)] = p
+                by_content_key[content_key(full, site.root_path)] = p
 
                 try:
                     rel = p.source_path.relative_to(content_root)
@@ -165,12 +174,16 @@ class TrackValidator(BaseValidator):
                     # Page is not under content root; skip adding to relative map.
                     pass
 
-            site._page_lookup_maps = {"full": by_full_path, "relative": by_content_relative}
+            site._page_lookup_maps = {
+                "full": by_full_path,
+                "relative": by_content_relative,
+                "content_key": by_content_key,
+            }
 
         maps = site._page_lookup_maps
         normalized_path = to_posix(path)
 
-        # Strategy 1: Direct lookup
+        # Strategy 1: Direct lookup (content-relative)
         if normalized_path in maps["relative"]:
             return maps["relative"][normalized_path]
 
@@ -181,8 +194,14 @@ class TrackValidator(BaseValidator):
         if path_with_ext in maps["relative"]:
             return maps["relative"][path_with_ext]
 
-        # Strategy 3: Try full path
+        # Strategy 3: Try full path (str(source_path) match)
         if path in maps["full"]:
             return maps["full"][path]
+
+        # Strategy 4: Try content_key (handles absolute/relative path format mismatch)
+        for candidate in (normalized_path, path_with_ext):
+            key = content_key(site.root_path / "content" / candidate, site.root_path)
+            if key in maps["content_key"]:
+                return maps["content_key"][key]
 
         return None

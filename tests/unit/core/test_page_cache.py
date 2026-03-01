@@ -64,3 +64,24 @@ class TestGetPagePathMapPathKeys:
         # Both lookup styles should work (str(Path) == path string)
         assert path_map.get("content/about.md") is page
         assert path_map.get(str(Path("content/about.md"))) is page
+
+    def test_mixed_path_formats_miss_regression_guard(self, tmp_path: Path) -> None:
+        """Documents: map uses str(source_path); absolute vs relative = different keys.
+
+        When taxonomy stores member with absolute path and map has relative (or vice
+        versa), lookup fails. This test guards against regressions if we add
+        content_key normalization to get_page_path_map.
+        """
+        # Map built from discovery (relative paths)
+        rel_path = Path("content/docs/guide.md")
+        page = _make_mock_page(rel_path)
+        cache = PageCacheManager(pages_fn=lambda: [page])
+        path_map = cache.get_page_path_map()
+
+        # Simulate taxonomy member with absolute path (e.g. from cached/watcher data)
+        abs_path = tmp_path / "content" / "docs" / "guide.md"
+        tax_member = _make_mock_page(abs_path)
+
+        # Lookup with absolute path string - misses (map key is relative)
+        resolved = path_map.get(str(tax_member.source_path))
+        assert resolved is None  # Current behavior: format mismatch = miss

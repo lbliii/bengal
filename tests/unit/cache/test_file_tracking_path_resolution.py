@@ -4,11 +4,13 @@ Ensures that should_bypass correctly handles path variations
 (symlinks, ./ components, different representations of same file).
 
 RFC: Theme hot reload path resolution fix
+Path Key Alignment: fallback uses normalized keys when resolve() raises.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -149,6 +151,24 @@ class TestShouldBypassPathResolution:
         changed_sources = {test_file}
 
         result = tracker.should_bypass(path_with_parent, changed_sources)
+
+        assert result is True
+
+    def test_fallback_uses_normalized_keys_when_resolve_raises(self, tmp_path: Path) -> None:
+        """When resolve() raises, fallback uses _cache_key for comparison."""
+
+        # Use a tracker whose _cache_key does NOT call resolve (so fallback works)
+        class FallbackTracker(MockFileTracking):
+            def _cache_key(self, path: Path) -> str:
+                return str(path)
+
+        tracker = FallbackTracker()
+        test_file = tmp_path / "style.css"
+        test_file.write_text("/* css */")
+        changed_sources = {test_file}
+
+        with patch.object(Path, "resolve", side_effect=OSError("resolve failed")):
+            result = tracker.should_bypass(test_file, changed_sources)
 
         assert result is True
 

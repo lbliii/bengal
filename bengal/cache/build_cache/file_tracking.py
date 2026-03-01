@@ -47,11 +47,29 @@ class FileTrackingMixin:
     """
 
     # Type hints for mixin attributes (provided by host class)
-    file_fingerprints: dict[str, dict[str, Any]]
+    file_fingerprints: dict[str, dict[str, Any]]  # Keys are CacheKey at runtime
     dependencies: dict[str, set[str]]
     output_sources: dict[str, str]
     # Reverse dependency graph: dependency → set of source pages that depend on it
     reverse_dependencies: dict[str, set[str]]
+
+    def get_file_fingerprint(self, path: Path) -> dict[str, Any] | None:
+        """
+        Get fingerprint for a file (path-based lookup with normalized key).
+
+        Use this instead of direct file_fingerprints access to ensure
+        correct key normalization (content_key) across path formats.
+        """
+        return self.file_fingerprints.get(self._cache_key(path))
+
+    def set_file_fingerprint(self, path: Path, data: dict[str, Any]) -> None:
+        """
+        Set fingerprint for a file (path-based storage with normalized key).
+
+        Use this instead of direct file_fingerprints access to ensure
+        correct key normalization (content_key) across path formats.
+        """
+        self.file_fingerprints[self._cache_key(path)] = data
 
     def hash_file(self, file_path: Path) -> str:
         """
@@ -103,8 +121,9 @@ class FileTrackingMixin:
                     if changed.resolve() == resolved_source:
                         return True
             except OSError, ValueError:
-                # Fall back to direct comparison if resolution fails
-                if source_path in changed_sources:
+                # Fall back to normalized key comparison if resolution fails
+                changed_keys = {self._cache_key(p) for p in changed_sources}
+                if self._cache_key(source_path) in changed_keys:
                     return True
 
         # Fall back to hash-based change detection

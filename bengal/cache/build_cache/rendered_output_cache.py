@@ -46,7 +46,7 @@ class RenderedOutputCacheMixin:
     """
 
     # Type hints for mixin attributes (provided by host class)
-    rendered_output: dict[str, dict[str, Any]]
+    rendered_output: dict[str, dict[str, Any]]  # Keys are CacheKey at runtime
 
     def is_changed(self, file_path: Path) -> bool:
         """Check if file changed (provided by FileTrackingMixin)."""

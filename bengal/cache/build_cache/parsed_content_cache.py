@@ -47,7 +47,7 @@ class ParsedContentCacheMixin:
     """
 
     # Type hints for mixin attributes (provided by host class)
-    parsed_content: dict[str, dict[str, Any]]
+    parsed_content: dict[str, dict[str, Any]]  # Keys are CacheKey at runtime
     dependencies: dict[str, set[str]]
 
     def is_changed(self, file_path: Path) -> bool:

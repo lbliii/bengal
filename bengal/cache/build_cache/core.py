@@ -35,7 +35,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.build.contracts.keys import content_key
+from bengal.build.contracts.keys import CacheKey, content_key
 from bengal.cache.build_cache.autodoc_content_cache import AutodocContentCacheMixin
 from bengal.cache.build_cache.autodoc_tracking import AutodocTracker
 from bengal.cache.build_cache.file_tracking import FileTrackingMixin
@@ -44,6 +44,7 @@ from bengal.cache.build_cache.rendered_output_cache import RenderedOutputCacheMi
 from bengal.cache.build_cache.taxonomy_index_mixin import BuildTaxonomyIndex
 from bengal.cache.build_cache.validation_cache import ValidationCacheMixin
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     pass
@@ -105,8 +106,9 @@ class BuildCache(
     site_root: Path | None = field(default=None, repr=False)
 
     # file_fingerprints for fast mtime+size change detection
-    # Structure: {path: {mtime: float, size: int, hash: str | None}}
-    file_fingerprints: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # Structure: {CacheKey(path): {mtime: float, size: int, hash: str | None}}
+    # Use get_file_fingerprint/set_file_fingerprint or _cache_key for lookups
+    file_fingerprints: dict[CacheKey, dict[str, Any]] = field(default_factory=dict)
     dependencies: dict[str, set[str]] = field(default_factory=dict)
     output_sources: dict[str, str] = field(default_factory=dict)
     # Reverse dependency graph: dependency → sources (RFC: Cache Algorithm Optimization)
@@ -115,12 +117,12 @@ class BuildCache(
     # Composed taxonomy index (replaces TaxonomyIndexMixin)
     taxonomy_index: BuildTaxonomyIndex = field(default_factory=BuildTaxonomyIndex)
 
-    parsed_content: dict[str, dict[str, Any]] = field(default_factory=dict)
+    # Parsed content cache (Optimization #2); keys are CacheKey(path)
+    parsed_content: dict[CacheKey, dict[str, Any]] = field(default_factory=dict)
 
-    # Rendered output cache: fully rendered HTML (after template rendering)
+    # Rendered output cache (Optimization #3); keys are CacheKey(path)
     # Allows skipping both parsing AND template rendering for unchanged pages
-    # Key: source_path, Value: {html, content_hash, template_hash, metadata_hash, timestamp}
-    rendered_output: dict[str, dict[str, Any]] = field(default_factory=dict)
+    rendered_output: dict[CacheKey, dict[str, Any]] = field(default_factory=dict)
 
     # Synthetic page cache (for autodoc, etc.)
     synthetic_pages: dict[str, dict[str, Any]] = field(default_factory=dict)
@@ -152,7 +154,7 @@ class BuildCache(
 
     last_build: str | None = None
 
-    def _cache_key(self, path: Path) -> str:
+    def _cache_key(self, path: Path) -> CacheKey:
         """
         Canonical cache key for a path (content_key when site_root set).
 
@@ -160,8 +162,8 @@ class BuildCache(
         cache entries. Falls back to resolved absolute when site_root is None.
         """
         if self.site_root is not None:
-            return str(content_key(path, self.site_root))
-        return str(path.resolve())
+            return content_key(path, self.site_root)
+        return CacheKey(to_posix(path.resolve()))
 
     def __post_init__(self) -> None:
         """Convert sets from lists after JSON deserialization."""
@@ -305,6 +307,10 @@ class BuildCache(
             # File fingerprints (new in VERSION 5, tolerate missing)
             if "file_fingerprints" not in data:
                 data["file_fingerprints"] = {}
+            else:
+                data["file_fingerprints"] = {
+                    CacheKey(k): v for k, v in data["file_fingerprints"].items()
+                }
 
             # --- Reconstruct AutodocTracker from flat fields ---
             autodoc_deps: dict[str, set[str]] = {}
@@ -338,9 +344,19 @@ class BuildCache(
                 autodoc_source_metadata=autodoc_meta,
             )
 
+            # Parsed content (convert keys to CacheKey)
+            if "parsed_content" not in data or not isinstance(data["parsed_content"], dict):
+                data["parsed_content"] = {}
+            else:
+                data["parsed_content"] = {CacheKey(k): v for k, v in data["parsed_content"].items()}
+
             # Rendered output cache (tolerate missing - Optimization #3)
             if "rendered_output" not in data or not isinstance(data["rendered_output"], dict):
                 data["rendered_output"] = {}
+            else:
+                data["rendered_output"] = {
+                    CacheKey(k): v for k, v in data["rendered_output"].items()
+                }
 
             # Synthetic pages cache (tolerate missing)
             if "synthetic_pages" not in data or not isinstance(data["synthetic_pages"], dict):
