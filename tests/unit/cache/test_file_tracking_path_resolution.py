@@ -20,6 +20,13 @@ class MockFileTracking(FileTrackingMixin):
 
     def __init__(self) -> None:
         self.file_fingerprints: dict[str, dict] = {}
+        self.dependencies: dict[str, set[str]] = {}
+        self.output_sources: dict[str, str] = {}
+        self.reverse_dependencies: dict[str, set[str]] = {}
+
+    def _cache_key(self, path: Path) -> str:
+        """Canonical key for tests (no site_root)."""
+        return str(path.resolve())
 
 
 class TestShouldBypassPathResolution:
@@ -106,8 +113,8 @@ class TestShouldBypassPathResolution:
         file2 = tmp_path / "file2.css"
         file2.write_text("/* file2 */")
 
-        # Pre-cache file2 so is_changed returns False
-        tracker.file_fingerprints[str(file2)] = {
+        # Pre-cache file2 so is_changed returns False (use resolved key)
+        tracker.file_fingerprints[str(file2.resolve())] = {
             "mtime": file2.stat().st_mtime,
             "size": file2.stat().st_size,
             "hash": "dummy",
