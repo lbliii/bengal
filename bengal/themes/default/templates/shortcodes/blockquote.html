@@ -1,8 +1,6 @@
 {# Styled blockquote with optional attribution. Usage: {{< blockquote author="Jane" >}}Quote{{< /blockquote >}} #}
 <blockquote class="blockquote">
-  {{ shortcode.Inner }}
+  {{- shortcode.Inner -}}
   {% set author = shortcode.Get("author") %}
-  {% if author %}
-    <footer>— {{ author }}</footer>
-  {% end %}
+  {% if author %}<footer>— {{ author }}</footer>{% end %}
 </blockquote>

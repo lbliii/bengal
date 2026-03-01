@@ -134,5 +134,15 @@ class PageOperationsMixin:
         # Extract HTML links <a href="url">
         html_links = re.findall(r'<a\s+[^>]*href=["\']([^"\']+)["\']', content_without_code)
 
-        self.links = [url for _, url in markdown_links] + html_links
+        # Extract wikilinks [[path|label]] or [[path]] (internal only; skip ext:)
+        wikilink_matches = re.findall(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]", content_without_code)
+        wikilink_urls = []
+        for path in wikilink_matches:
+            path = path.strip()
+            if path.startswith("ext:"):
+                continue
+            url = f"/{path}" if not path.startswith("/") else path
+            wikilink_urls.append(url)
+
+        self.links = [url for _, url in markdown_links] + html_links + wikilink_urls
         return self.links

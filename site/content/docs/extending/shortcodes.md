@@ -68,9 +68,7 @@ For shortcodes without inner content:
 ```html
 {# templates/shortcodes/audio.html #}
 {% set src = shortcode.Get("src") %}
-{% if src %}
-  <audio controls preload="auto" src="{{ src }}"></audio>
-{% end %}
+{% if src %}<audio controls preload="auto" src="{{ src }}"></audio>{% end %}
 ```
 
 In content:
@@ -86,11 +84,9 @@ For shortcodes with inner content:
 ```html
 {# templates/shortcodes/blockquote.html #}
 <blockquote class="blockquote">
-  {{ shortcode.Inner }}
+  {{- shortcode.Inner -}}
   {% set author = shortcode.Get("author") %}
-  {% if author %}
-    <footer>— {{ author }}</footer>
-  {% end %}
+  {% if author %}<footer>— {{ author }}</footer>{% end %}
 </blockquote>
 ```
 

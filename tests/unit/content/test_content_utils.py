@@ -93,13 +93,12 @@ class TestParseFrontmatter:
         assert meta == {"meta": {"og_title": "Test", "og_image": "/img.png"}}
 
     def test_invalid_yaml_returns_empty(self) -> None:
-        """Invalid YAML returns empty dict (graceful degradation)."""
+        """Invalid YAML returns empty dict and body with frontmatter stripped."""
         content = "---\ntitle: [unclosed bracket\n---\nBody"
         meta, body = parse_frontmatter(content)
 
-        # Should gracefully degrade
         assert meta == {}
-        assert body == content
+        assert body == "Body"
 
     def test_unclosed_frontmatter(self) -> None:
         """Unclosed frontmatter (no closing ---) returns content as-is."""

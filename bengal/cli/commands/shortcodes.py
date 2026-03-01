@@ -50,9 +50,7 @@ def list_shortcodes(source: str) -> None:
     theme_names: set[str] = set()
     theme = getattr(site, "theme", None)
     if theme:
-        theme_templates = getattr(theme, "templates_path", None) or getattr(
-            theme, "path", None
-        )
+        theme_templates = getattr(theme, "templates_path", None) or getattr(theme, "path", None)
         if theme_templates:
             theme_sc = Path(theme_templates) / "shortcodes"
             theme_names = _shortcode_names_from_dir(theme_sc)

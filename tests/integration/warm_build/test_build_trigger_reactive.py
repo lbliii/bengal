@@ -4,7 +4,7 @@ RFC: Reactive Dev Sequel (Phases 3, 5, 6, 7)
 - First trigger_build: full build, seeds content hash cache
 - Second trigger_build (content-only edit): uses reactive path, skips site.build()
 - handle_content_change: writes updated HTML to disk
-- reload-page for single-page content edits
+- fragment payload for instant DOM swap (content-only edits)
 - Edge cases: dependent pages not updated
 """
 
@@ -98,6 +98,67 @@ This is the home page with updated body.
                 event_types={"modified"},
             )
             assert len(build_calls) == 1, "Reactive path should skip site.build()"
+
+    @patch("bengal.server.build_trigger.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.show_building_indicator")
+    @patch("bengal.server.build_trigger.CLIOutput")
+    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_fragment_payload")
+    def test_reactive_path_sends_fragment_payload(
+        self,
+        mock_send_fragment: MagicMock,
+        mock_controller: MagicMock,
+        mock_display: MagicMock,
+        mock_cli: MagicMock,
+        mock_building: MagicMock,
+        mock_post_hooks: MagicMock,
+        mock_pre_hooks: MagicMock,
+        warm_build_site: WarmBuildTestSite,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Reactive path sends fragment payload for instant DOM swap (mock SSE)."""
+        mock_pre_hooks.return_value = True
+        mock_post_hooks.return_value = True
+
+        site = warm_build_site.site
+        content_path = warm_build_site.site_dir / "content" / "_index.md"
+        assert content_path.exists()
+
+        with patch.object(site, "build", wraps=site.build):
+            trigger = BuildTrigger(site=site, executor=mock_executor)
+
+            # First trigger: full build
+            trigger.trigger_build(
+                changed_paths={content_path},
+                event_types={"modified"},
+            )
+
+            # Content-only edit
+            warm_build_site.modify_file(
+                "content/_index.md",
+                """---
+title: Home
+---
+
+# Welcome
+
+Updated body for fragment test.
+""",
+            )
+
+            # Second trigger: reactive path should call send_fragment_payload
+            trigger.trigger_build(
+                changed_paths={content_path},
+                event_types={"modified"},
+            )
+
+        mock_send_fragment.assert_called_once()
+        call_kwargs = mock_send_fragment.call_args
+        assert call_kwargs[0][0] == "#main-content"  # selector
+        assert "Updated body for fragment test" in call_kwargs[0][1]  # html
+        assert call_kwargs[0][2] == "/"  # permalink for _index.md
 
 
 class TestReactiveContentHandlerIntegration:

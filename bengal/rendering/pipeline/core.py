@@ -60,6 +60,7 @@ from bengal.rendering.pipeline.unified_transform import (
 )
 from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 from bengal.rendering.renderer import Renderer
+from bengal.rendering.shortcodes import expand_shortcodes
 from bengal.utils.observability.logger import get_logger, truncate_error
 
 logger = get_logger(__name__)
@@ -217,12 +218,21 @@ class RenderingPipeline:
             getattr(build_context, "output_collector", None) if build_context else None
         )
 
-        # Debug: Warn if output collector is missing (hot reload won't track outputs)
+        # Warn only when hot reload matters (dev_mode); debug otherwise
         if build_context and not self._output_collector:
-            logger.warning(
-                "output_collector_missing_in_pipeline",
-                has_build_context=bool(build_context),
-            )
+            site = getattr(build_context, "site", None)
+            dev_mode = getattr(site, "dev_mode", False) if site else False
+            if dev_mode:
+                logger.warning(
+                    "output_collector_missing_in_pipeline",
+                    has_build_context=True,
+                    hint="Hot reload will fall back to full reload",
+                )
+            else:
+                logger.debug(
+                    "output_collector_missing_in_pipeline",
+                    has_build_context=True,
+                )
 
         # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
         # Use explicit parameter, or get from BuildContext if available
@@ -458,6 +468,17 @@ class RenderingPipeline:
 
     def _parse_with_context_aware_parser(self, page: PageLike, need_toc: bool) -> None:
         """Parse content using a context-aware parser (Mistune, Patitas)."""
+
+        def parse_markdown(s: str) -> str:
+            return self.parser.parse(s, {})
+
+        source = expand_shortcodes(
+            page._source,
+            self.template_engine,
+            page,
+            self.site,
+            parse_markdown=parse_markdown,
+        )
         if page.metadata.get("preprocess") is False:
             # Inject source_path and excerpt_length for cross-version dependency tracking
             # (non-context parse methods don't have access to page object)
@@ -470,7 +491,7 @@ class RenderingPipeline:
             metadata_with_source["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
 
             if need_toc:
-                result = self.parser.parse_with_toc(page._source, metadata_with_source)
+                result = self.parser.parse_with_toc(source, metadata_with_source)
                 parsed_content, toc = result[0], result[1]
                 result_ext = cast(tuple[str, ...], result)
                 if len(result_ext) > 2:
@@ -479,7 +500,7 @@ class RenderingPipeline:
                     page._meta_description = result_ext[3]
                 parsed_content = escape_template_syntax_in_html(parsed_content)
             else:
-                parsed_content = self.parser.parse(page._source, metadata_with_source)
+                parsed_content = self.parser.parse(source, metadata_with_source)
                 parsed_content = escape_template_syntax_in_html(parsed_content)
                 toc = ""
         else:
@@ -503,7 +524,7 @@ class RenderingPipeline:
             ):
                 if need_toc:
                     result = self.parser.parse_with_toc_and_context(  # type: ignore[union-attr]
-                        page._source, metadata_for_parser, context
+                        source, metadata_for_parser, context
                     )
                     parsed_content, toc = result[0], result[1]
                     result_ext = cast(tuple[str, ...], result)
@@ -513,18 +534,16 @@ class RenderingPipeline:
                         page._meta_description = result_ext[3]
                 else:
                     parsed_content = self.parser.parse_with_context(  # type: ignore[union-attr]
-                        page._source, metadata_for_parser, context
+                        source, metadata_for_parser, context
                     )
                     toc = ""
             else:
                 # Fallback for parsers without context support (e.g., PythonMarkdownParser)
                 if need_toc:
-                    parsed_content, toc = self.parser.parse_with_toc(
-                        page._source, metadata_for_parser
-                    )
+                    parsed_content, toc = self.parser.parse_with_toc(source, metadata_for_parser)
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                 else:
-                    parsed_content = self.parser.parse(page._source, metadata_for_parser)
+                    parsed_content = self.parser.parse(source, metadata_for_parser)
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                     toc = ""
 
@@ -534,10 +553,10 @@ class RenderingPipeline:
                     if hasattr(self.parser, "parse_to_document"):
                         import patitas
 
-                        doc = self.parser.parse_to_document(page._source, metadata_for_parser)
+                        doc = self.parser.parse_to_document(source, metadata_for_parser)
                         page._ast_cache = patitas.to_dict(doc)  # type: ignore[assignment]
                     elif hasattr(self.parser, "parse_to_ast"):
-                        ast_tokens = self.parser.parse_to_ast(page._source, metadata_for_parser)
+                        ast_tokens = self.parser.parse_to_ast(source, metadata_for_parser)
                         page._ast_cache = ast_tokens  # type: ignore[assignment]
                 except Exception as e:
                     logger.debug(
@@ -762,8 +781,19 @@ class RenderingPipeline:
 
     def _preprocess_content(self, page: PageLike) -> str:
         """Pre-process page content through configured template engine (legacy parser only)."""
+
+        def parse_markdown(s: str) -> str:
+            return self.parser.parse(s, {})
+
+        source = expand_shortcodes(
+            page._source,
+            self.template_engine,
+            page,
+            self.site,
+            parse_markdown=parse_markdown,
+        )
         if page.metadata.get("preprocess") is False:
-            return page._source
+            return source
 
         try:
             # Use the configured template engine for preprocessing
@@ -771,7 +801,7 @@ class RenderingPipeline:
             # If preprocessing fails (e.g. undefined variables in doc examples),
             # the exception handler below falls back to raw source
             return self.template_engine.render_string(
-                page._source,
+                source,
                 {"page": page, "site": self.site, "config": self.site.config},
                 strict=False,  # type: ignore[call-arg]
             )
@@ -790,4 +820,4 @@ class RenderingPipeline:
                     error_code=ErrorCode.R003.value,
                     suggestion="Check page content for template syntax errors",
                 )
-            return page._source
+            return source

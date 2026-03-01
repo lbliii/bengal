@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Frontmatter (Patitas)
+- **content**: migrate frontmatter parsing from Bengal/python-frontmatter to Patitas
+  - ContentParser and ReactiveContentHandler now use `patitas.parse_frontmatter` and `patitas.extract_body`
+  - Remove `python-frontmatter` dependency; require `patitas>=0.3.3`
+  - Remove `bengal.content.utils.frontmatter`; `bengal.content.utils` imports directly from patitas
+
 ### Notebook parsing (Patitas)
 - **content**: migrate notebook parsing from Bengal to Patitas
   - Remove `bengal/content/notebook/` and `nbformat` dependency

@@ -10,6 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from patitas import parse_frontmatter
+
 from bengal.core.output import BuildOutputCollector
 from bengal.protocols import SiteLike
 from bengal.rendering.pipeline.core import RenderingPipeline
@@ -52,13 +54,16 @@ class ReactiveContentHandler:
             return None
 
         try:
-            new_content = path.read_text(encoding="utf-8")
+            raw_file = path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as e:
             logger.warning("reactive_read_failed", path=str(path), error=str(e))
             return None
 
-        # Update page with new content and force re-parse
-        page._raw_content = new_content
+        # _raw_content must be body-only (frontmatter stripped); discovery uses
+        # ContentParser.parse_file which returns (body, metadata). Passing the
+        # full file would render YAML as markdown.
+        _, body_content = parse_frontmatter(raw_file)
+        page._raw_content = body_content
         page.html_content = None
 
         # Invalidate content-derived caches so pipeline recomputes
@@ -92,13 +97,13 @@ class ReactiveContentHandler:
         """Find page in site.pages matching the given source path."""
         try:
             resolved = path.resolve()
-        except (OSError, ValueError):
+        except OSError, ValueError:
             resolved = path
 
         for page in self.site.pages:
             try:
                 page_src = Path(page.source_path).resolve()
-            except (OSError, ValueError, TypeError):
+            except OSError, ValueError, TypeError:
                 continue
             if page_src == resolved:
                 return page

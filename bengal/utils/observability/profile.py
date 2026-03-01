@@ -152,8 +152,8 @@ class BuildProfile(Enum):
                 "enable_debug_output": False,
                 "collect_metrics": False,
                 "health_checks": {
-                    # Writers care about markdown/content errors
-                    "enabled": ["config", "output", "links", "directives"],
+                    # Writers care about markdown/content errors and learning tracks
+                    "enabled": ["config", "output", "links", "directives", "tracks"],
                     "disabled": [
                         "performance",
                         "cache",

@@ -10,10 +10,10 @@ zero-to-deployed:
   items:
     - docs/get-started/installation
     - docs/get-started/quickstart-writer
-    - docs/tutorials/scaffold-your-site
-    - docs/tutorials/build-a-blog
+    - docs/get-started/scaffold-your-site
+    - docs/tutorials/sites/build-a-blog
     - docs/building/deployment/_index
-    - docs/tutorials/automate-with-github-actions
+    - docs/tutorials/operations/automate-with-github-actions
 
 content-mastery:
   title: "Content Author Mastery"
@@ -40,14 +40,14 @@ theme-developer:
   items:
     - docs/get-started/quickstart-themer
     - docs/theming/themes/customize
-    - docs/tutorials/swizzle-default-theme
+    - docs/tutorials/theming/swizzle-default-theme
     - docs/theming/assets/_index
     - docs/theming/recipes/_index
     - docs/theming/recipes/reading-time
     - docs/theming/recipes/list-recent-posts
     - docs/theming/templating/_index
     - docs/theming/templating/functions
-    - docs/theming/variables
+    - docs/reference/theme-variables
 
 team-lead:
   title: "Documentation Team Lead"
@@ -71,10 +71,10 @@ migration-express:
   audience: "Hugo, Sphinx, Docusaurus users"
   items:
     - docs/about/comparison
-    - docs/tutorials/onboarding/_index
-    - docs/tutorials/onboarding/from-hugo
-    - docs/tutorials/onboarding/from-sphinx
-    - docs/tutorials/onboarding/from-docusaurus
+    - docs/tutorials/migration/_index
+    - docs/tutorials/migration/from-hugo
+    - docs/tutorials/migration/from-sphinx
+    - docs/tutorials/migration/from-docusaurus
     - docs/content/organization/_index
     - docs/content/organization/frontmatter
     - docs/building/configuration/_index

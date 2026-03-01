@@ -215,6 +215,43 @@ class TestReloadPayload:
         assert "css-only" in live_reload._last_action
         assert "assets/style.css" in live_reload._last_action
 
+    def test_send_fragment_payload_stores_action(self):
+        """Test that send_fragment_payload stores the fragment as JSON."""
+        from bengal.server.live_reload.notification import send_fragment_payload
+
+        send_fragment_payload(
+            selector="#main-content",
+            html="<p>Updated content</p>",
+            permalink="/docs/foo/",
+        )
+
+        from bengal.server import live_reload
+
+        assert "fragment" in live_reload._last_action
+        assert "#main-content" in live_reload._last_action
+        assert "<p>Updated content</p>" in live_reload._last_action
+        assert "/docs/foo/" in live_reload._last_action
+
+    def test_fragment_payload_keys_match_client_script(self):
+        """Fragment payload keys must match what the client script expects."""
+        import json
+
+        from bengal.server.live_reload.notification import send_fragment_payload
+
+        send_fragment_payload(
+            selector="#main-content",
+            html="<div>test</div>",
+            permalink="/",
+        )
+        from bengal.server import live_reload
+
+        payload = json.loads(live_reload._last_action)
+        assert payload["action"] == "fragment"
+        assert "selector" in payload
+        assert "html" in payload
+        assert "permalink" in payload
+        assert "reason" in payload
+
 
 class TestSSELoopRoundTrip:
     """Tests that send_reload_payload reaches the SSE loop write_fn."""

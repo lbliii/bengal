@@ -442,13 +442,17 @@ class RenderOrchestrator(
             config_override=self._get_max_workers(),
         )
 
-        # Create wave scheduler
+        # Create wave scheduler (pass output_collector explicitly for hot reload)
+        output_collector = (
+            getattr(build_context, "output_collector", None) if build_context else None
+        )
         scheduler = WaveScheduler(
             snapshot=snapshot,
             site=self.site,
             quiet=quiet,
             stats=stats,
             build_context=build_context,
+            output_collector=output_collector,
             max_workers=max_workers,
         )
 
@@ -507,11 +511,15 @@ class RenderOrchestrator(
                 or getattr(_thread_local, "pipeline_generation", -1) != current_gen
             )
             if needs_new_pipeline:
+                output_collector = (
+                    getattr(build_context, "output_collector", None) if build_context else None
+                )
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     quiet=quiet,
                     build_stats=stats,
                     build_context=build_context,
+                    output_collector=output_collector,
                     changed_sources=changed_sources,
                     block_cache=self._block_cache,
                     highlight_cache=self._highlight_cache,
@@ -609,11 +617,15 @@ class RenderOrchestrator(
                 # When using progress manager, always suppress individual page output
                 # (quiet=True) because progress_manager handles display. The `quiet`
                 # parameter from the caller is intentionally ignored here.
+                output_collector = (
+                    getattr(build_context, "output_collector", None) if build_context else None
+                )
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     quiet=True,  # Always True when progress_manager is active
                     build_stats=stats,
                     build_context=build_context,
+                    output_collector=output_collector,
                     changed_sources=changed_sources,
                     block_cache=self._block_cache,
                     highlight_cache=self._highlight_cache,
