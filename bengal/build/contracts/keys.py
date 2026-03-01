@@ -76,6 +76,20 @@ def asset_key(path: Path, assets_dir: Path) -> CacheKey:
     return _relative_key(path, assets_dir)
 
 
+def watcher_key(path: Path) -> str:
+    """
+    Canonical key for watcher paths (absolute, POSIX).
+
+    Use when paths come from watchfiles (already absolute). Ensures
+    consistent lookup regardless of symlinks or path components.
+
+    Examples:
+        watcher_key(Path("/Users/.../site/content/about.md"))
+        → "/Users/.../site/content/about.md" (POSIX style)
+    """
+    return to_posix(path.resolve())
+
+
 def parse_key(key: CacheKey) -> tuple[str, str]:
     """
     Parse a cache key into (prefix, path).

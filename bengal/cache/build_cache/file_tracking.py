@@ -38,6 +38,7 @@ class FileTrackingMixin:
         - file_fingerprints: dict[str, dict[str, Any]]
         - dependencies: dict[str, set[str]]
         - output_sources: dict[str, str]
+        - _cache_key: Callable[[Path], str]  # Canonical path key (content_key)
 
     Performance Optimization:
     - Added reverse_dependencies for O(1) affected pages lookup
@@ -128,7 +129,7 @@ class FileTrackingMixin:
         Returns:
             True if file is new or has changed, False if unchanged
         """
-        file_key = str(file_path)
+        file_key = self._cache_key(file_path)
 
         if not file_path.exists():
             # File was deleted
@@ -204,7 +205,7 @@ class FileTrackingMixin:
         Args:
             file_path: Path to file
         """
-        file_key = str(file_path)
+        file_key = self._cache_key(file_path)
 
         try:
             stat = file_path.stat()
@@ -249,7 +250,7 @@ class FileTrackingMixin:
         # Store as relative path from output_dir for portability
         try:
             rel_output = str(output_path.relative_to(output_dir))
-            self.output_sources[rel_output] = str(source_path)
+            self.output_sources[rel_output] = self._cache_key(source_path)
         except ValueError:
             # output_path not relative to output_dir, skip
             logger.debug("output_not_relative", output=str(output_path), output_dir=str(output_dir))
@@ -264,8 +265,8 @@ class FileTrackingMixin:
             source: Source file (e.g., content page)
             dependency: Dependency file (e.g., template, partial, config)
         """
-        source_key = str(source)
-        dep_key = str(dependency)
+        source_key = self._cache_key(source)
+        dep_key = self._cache_key(dependency)
 
         # Forward graph: source → dependencies
         if source_key not in self.dependencies:
@@ -289,7 +290,7 @@ class FileTrackingMixin:
         Returns:
             Set of page paths that need to be rebuilt
         """
-        changed_key = str(changed_file)
+        changed_key = self._cache_key(changed_file)
         affected = set()
 
         # O(1) lookup via reverse dependency graph
@@ -313,7 +314,7 @@ class FileTrackingMixin:
         Returns:
             True if fingerprint was removed, False if not present
         """
-        key = str(file_path)
+        key = self._cache_key(file_path)
         if key in self.file_fingerprints:
             del self.file_fingerprints[key]
             return True
@@ -332,7 +333,7 @@ class FileTrackingMixin:
         Args:
             file_path: Path to file
         """
-        file_key = str(file_path)
+        file_key = self._cache_key(file_path)
         self.file_fingerprints.pop(file_key, None)
 
         # Remove from forward graph and update reverse graph

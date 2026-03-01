@@ -42,6 +42,7 @@ class ParsedContentCacheMixin:
         - parsed_content: dict[str, dict[str, Any]]
         - dependencies: dict[str, set[str]]
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
+        - _cache_key: Callable[[Path], str]  # Canonical path key
 
     """
 
@@ -112,7 +113,8 @@ class ParsedContentCacheMixin:
             size_bytes += len(ast_str.encode("utf-8"))
 
         # Store as dict (will be serialized to JSON)
-        self.parsed_content[str(file_path)] = {
+        key = self._cache_key(file_path)
+        self.parsed_content[key] = {
             "html": html,
             "toc": toc,
             "toc_items": toc_items,
@@ -154,7 +156,7 @@ class ParsedContentCacheMixin:
         Returns:
             Cached data dict if valid, MISSING if invalid or not found
         """
-        key = str(file_path)
+        key = self._cache_key(file_path)
 
         # Check if cached
         cached = self.parsed_content.get(key, MISSING)
@@ -241,7 +243,7 @@ class ParsedContentCacheMixin:
         Returns:
             True if cache entry was removed, False if not present
         """
-        key = str(file_path)
+        key = self._cache_key(file_path)
         if key in self.parsed_content:
             del self.parsed_content[key]
             return True

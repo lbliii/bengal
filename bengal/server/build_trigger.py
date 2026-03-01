@@ -761,9 +761,10 @@ class BuildTrigger:
         try:
             stat = path.stat()
             mtime = stat.st_mtime
+            resolved = path.resolve()
 
-            # Check cache (keyed by path, validated by mtime)
-            cached = self._frontmatter_cache.get(path)
+            # Check cache (keyed by resolved path for watcher/discovery consistency)
+            cached = self._frontmatter_cache.get(resolved)
             if cached is not None and cached.mtime == mtime:
                 return cached.has_nav_keys
 
@@ -788,11 +789,13 @@ class BuildTrigger:
                 except yaml.YAMLError:
                     result = False
 
-            # Update cache with LRU eviction
+            # Update cache with LRU eviction (resolved path for watcher consistency)
             if len(self._frontmatter_cache) >= self._frontmatter_cache_max:
                 first_key = next(iter(self._frontmatter_cache))
                 del self._frontmatter_cache[first_key]
-            self._frontmatter_cache[path] = FrontmatterCacheEntry(mtime=mtime, has_nav_keys=result)
+            self._frontmatter_cache[resolved] = FrontmatterCacheEntry(
+                mtime=mtime, has_nav_keys=result
+            )
 
             return result
 
@@ -851,7 +854,8 @@ class BuildTrigger:
         if entry is None:
             return False
 
-        cached = self._content_hash_cache.get(path)
+        resolved = path.resolve()
+        cached = self._content_hash_cache.get(resolved)
         if (
             cached is not None
             and cached.frontmatter_hash == entry.frontmatter_hash
@@ -862,14 +866,14 @@ class BuildTrigger:
                 file=str(path),
                 hint="frontmatter_unchanged",
             )
-            self._content_hash_cache[path] = entry
+            self._content_hash_cache[resolved] = entry
             return True
 
-        # Update cache with LRU eviction
+        # Update cache with LRU eviction (resolved path for watcher consistency)
         if len(self._content_hash_cache) >= self._content_hash_cache_max:
             first_key = next(iter(self._content_hash_cache))
             del self._content_hash_cache[first_key]
-        self._content_hash_cache[path] = entry
+        self._content_hash_cache[resolved] = entry
         return False
 
     def seed_content_hash_cache(self, pages: list[Any]) -> None:
@@ -980,6 +984,7 @@ class BuildTrigger:
                 cache_path = self.site.paths.build_cache
                 if cache_path.exists():
                     cache = BuildCache.load(cache_path)
+                    cache.site_root = getattr(self.site, "root_path", None)
             except Exception:
                 cache = None
 

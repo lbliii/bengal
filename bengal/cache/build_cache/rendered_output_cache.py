@@ -41,6 +41,7 @@ class RenderedOutputCacheMixin:
     Requires these attributes on the host class:
         - rendered_output: dict[str, dict[str, Any]]
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
+        - _cache_key: Callable[[Path], str]  # Canonical path key
 
     """
 
@@ -119,7 +120,8 @@ class RenderedOutputCacheMixin:
                 asset_manifest_mtime = manifest_path.stat().st_mtime
 
         # Store as dict (will be serialized to JSON)
-        self.rendered_output[str(file_path)] = {
+        key = self._cache_key(file_path)
+        self.rendered_output[key] = {
             "html": html,
             "template": template,
             "metadata_hash": metadata_hash,
@@ -156,7 +158,7 @@ class RenderedOutputCacheMixin:
         Returns:
             Cached HTML string if valid, MISSING if invalid or not found
         """
-        key = str(file_path)
+        key = self._cache_key(file_path)
 
         # Check if cached
         cached = self.rendered_output.get(key, MISSING)
@@ -220,7 +222,7 @@ class RenderedOutputCacheMixin:
         Returns:
             True if cache entry was removed, False if not present
         """
-        key = str(file_path)
+        key = self._cache_key(file_path)
         if key in self.rendered_output:
             del self.rendered_output[key]
             return True

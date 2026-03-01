@@ -49,42 +49,45 @@ class BuildTaxonomyIndex:
         self.tag_to_pages = tag_to_pages if tag_to_pages is not None else {}
         self.known_tags = known_tags if known_tags is not None else set()
 
-    def add_taxonomy_dependency(self, taxonomy_term: str, page: Path) -> None:
+    def add_taxonomy_dependency(self, taxonomy_term: str, page: Path | str) -> None:
         """
         Record that a taxonomy term affects a page.
 
         Args:
             taxonomy_term: Taxonomy term (e.g., "tag:python")
-            page: Page that uses this taxonomy term
+            page: Page path or canonical cache key (use cache._cache_key for normalization)
         """
         if taxonomy_term not in self.taxonomy_deps:
             self.taxonomy_deps[taxonomy_term] = set()
 
-        self.taxonomy_deps[taxonomy_term].add(str(page))
+        page_key = str(page) if isinstance(page, Path) else page
+        self.taxonomy_deps[taxonomy_term].add(page_key)
 
-    def get_previous_tags(self, page_path: Path) -> set[str]:
+    def get_previous_tags(self, page_path: Path | str) -> set[str]:
         """
         Get tags from previous build for a page.
 
         Args:
-            page_path: Path to page
+            page_path: Path or canonical cache key (use cache._cache_key for normalization)
 
         Returns:
             Set of tags from previous build (empty set if new page)
         """
-        return self.page_tags.get(str(page_path), set())
+        page_key = str(page_path) if isinstance(page_path, Path) else page_path
+        return self.page_tags.get(page_key, set())
 
-    def update_tags(self, page_path: Path, tags: set[str]) -> None:
+    def update_tags(self, page_path: Path | str, tags: set[str]) -> None:
         """
         Store current tags for a page (for next build's comparison).
 
         Args:
-            page_path: Path to page
+            page_path: Path or canonical cache key (use cache._cache_key for normalization)
             tags: Current set of tags for the page
         """
-        self.page_tags[str(page_path)] = tags
+        page_key = str(page_path) if isinstance(page_path, Path) else page_path
+        self.page_tags[page_key] = tags
 
-    def update_page_tags(self, page_path: Path, tags: set[str]) -> set[str]:
+    def update_page_tags(self, page_path: Path | str, tags: set[str]) -> set[str]:
         """
         Update tag index when a page's tags change.
 
@@ -95,13 +98,13 @@ class BuildTaxonomyIndex:
         This is the key method that enables O(1) taxonomy reconstruction.
 
         Args:
-            page_path: Path to page source file
+            page_path: Path or canonical cache key (use cache._cache_key for normalization)
             tags: Current set of tags for this page (original case, e.g., "Python", "Web Dev")
 
         Returns:
             Set of affected tag slugs (tags added, removed, or modified)
         """
-        page_path_str = str(page_path)
+        page_path_str = str(page_path) if isinstance(page_path, Path) else page_path
         affected_tags = set()
 
         # Get old tags for this page

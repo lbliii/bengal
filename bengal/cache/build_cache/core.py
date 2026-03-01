@@ -35,6 +35,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.build.contracts.keys import content_key
 from bengal.cache.build_cache.autodoc_content_cache import AutodocContentCacheMixin
 from bengal.cache.build_cache.autodoc_tracking import AutodocTracker
 from bengal.cache.build_cache.file_tracking import FileTrackingMixin
@@ -94,11 +95,14 @@ class BuildCache(
     """
 
     # Serialized schema version (persisted in cache JSON). Tolerant loader accepts missing/older.
-    # Bumped to 7 for CacheCoordinator RFC (canonical path keys)
-    VERSION: int = 7
+    # Bumped to 8 for cache path key alignment (content_key normalization)
+    VERSION: int = 8
 
     # Instance persisted version; defaults to current VERSION
     version: int = VERSION
+
+    # Site root for canonical path key normalization (not serialized, set by CacheManager)
+    site_root: Path | None = field(default=None, repr=False)
 
     # file_fingerprints for fast mtime+size change detection
     # Structure: {path: {mtime: float, size: int, hash: str | None}}
@@ -147,6 +151,17 @@ class BuildCache(
     config_hash: str | None = None
 
     last_build: str | None = None
+
+    def _cache_key(self, path: Path) -> str:
+        """
+        Canonical cache key for a path (content_key when site_root set).
+
+        Ensures watcher (absolute) and discovery (relative) paths hit the same
+        cache entries. Falls back to resolved absolute when site_root is None.
+        """
+        if self.site_root is not None:
+            return str(content_key(path, self.site_root))
+        return str(path.resolve())
 
     def __post_init__(self) -> None:
         """Convert sets from lists after JSON deserialization."""
@@ -231,16 +246,16 @@ class BuildCache(
             # Tolerant versioning: accept missing version (pre-versioned files)
             from bengal.errors import ErrorCode
 
-            found_version = data.get("version")
-            if found_version is not None and found_version != cls.VERSION:
-                logger.warning(
-                    "cache_version_mismatch",
-                    expected=cls.VERSION,
-                    found=found_version,
-                    action="loading_with_best_effort",
-                    error_code=ErrorCode.A002.value,  # cache_version_mismatch
+            found_version = data.get("version", 0)
+            if found_version < 8:
+                # V8: cache path key alignment - old keys are unreliable, clean migration
+                logger.info(
+                    "cache_version_migration",
+                    from_version=found_version,
+                    to_version=8,
+                    action="clearing_cache_for_key_normalization",
                 )
-                # Keep loading with best effort; fields below normalized
+                return cls()
 
             # Convert lists back to sets in dependencies
             if "dependencies" in data:
@@ -648,7 +663,7 @@ class BuildCache(
         Args:
             file_path: Path to file
         """
-        file_key = str(file_path)
+        file_key = self._cache_key(file_path)
 
         # Call parent mixin for basic file tracking cleanup
         FileTrackingMixin.invalidate_file(self, file_path)
