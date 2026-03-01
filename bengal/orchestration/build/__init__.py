@@ -675,7 +675,7 @@ class BuildOrchestrator:
         if hasattr(self, "_provenance_filter") and pages_to_build:
             from bengal.orchestration.build.provenance_filter import record_all_page_builds
 
-            record_all_page_builds(self, pages_to_build)
+            record_all_page_builds(self, pages_to_build, parallel=not force_sequential)
 
         rendering_duration_ms = (time.time() - rendering_start) * 1000
         notify_phase_complete(
