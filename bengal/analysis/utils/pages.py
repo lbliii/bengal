@@ -19,15 +19,19 @@ Example:
 
 """
 
-from typing import TYPE_CHECKING
+from typing import Protocol
 
-if TYPE_CHECKING:
-    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-    from bengal.protocols import PageLike
+from bengal.protocols import PageLike
+
+
+class _GraphLike(Protocol):
+    """Protocol for graph-like objects with get_analysis_pages (breaks kg->pages cycle)."""
+
+    def get_analysis_pages(self) -> list[PageLike]: ...
 
 
 def get_content_pages(
-    graph: KnowledgeGraph,
+    graph: _GraphLike,
     *,
     exclude_generated: bool = True,
 ) -> list[PageLike]:
@@ -39,7 +43,7 @@ def get_content_pages(
     taxonomy index pages.
 
     Args:
-        graph: KnowledgeGraph instance (must be built or have site access)
+        graph: Graph-like instance with get_analysis_pages() (e.g. KnowledgeGraph)
         exclude_generated: If True, exclude pages with _generated metadata.
                           Default True. Generated pages include taxonomy
                           pages (tag pages, category pages) that are
