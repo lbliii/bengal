@@ -48,10 +48,10 @@ Related:
 
 from __future__ import annotations
 
-import contextlib
 import re
 import threading
 import time
+from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -307,6 +307,48 @@ class BuildTrigger:
                 logger.error("rebuild_skipped", reason="pre_build_hook_failed")
                 return
 
+            # Reactive path: content-only edit skips full build
+            if not needs_full_rebuild and self._can_use_reactive_path(changed_paths, event_types):
+                path = next(iter(changed_paths))
+                from bengal.core.output import OutputType
+                from bengal.server.reactive import ReactiveContentHandler
+                from bengal.server.reload_types import (
+                    BuildReloadInfo,
+                    SerializedOutputRecord,
+                )
+
+                handler = ReactiveContentHandler(self.site, self.site.output_dir)
+                try:
+                    output_path = handler.handle_content_change(path)
+                    if output_path is not None:
+                        # Use path relative to output_dir (matches full build)
+                        rel_path = output_path
+                        if output_path.is_absolute() and self.site.output_dir:
+                            with suppress(ValueError):
+                                rel_path = output_path.relative_to(self.site.output_dir)
+                        changed_outputs = (
+                            SerializedOutputRecord(
+                                path=str(rel_path),
+                                type_value=OutputType.HTML.value,
+                                phase="render",
+                            ),
+                        )
+                        self._handle_reload(
+                            BuildReloadInfo(
+                                changed_files=tuple(changed_files),
+                                changed_outputs=changed_outputs,
+                                reload_hint=None,
+                            )
+                        )
+                        self._clear_html_cache()
+                        return
+                except Exception as e:
+                    logger.warning(
+                        "reactive_path_failed",
+                        error=str(e),
+                        fallback="full_build",
+                    )
+
             # Create build options for warm build
             use_incremental = not needs_full_rebuild
 
@@ -367,6 +409,9 @@ class BuildTrigger:
                         self._stats = stats
 
                 result = WarmBuildResult(stats, build_duration)
+
+                # Seed content hash cache so first edit can use reactive path
+                self.seed_content_hash_cache(list(self.site.pages))
 
             except Exception as e:
                 # Build crashed - log error and reinitialize site for next build
@@ -534,6 +579,20 @@ class BuildTrigger:
             return True
 
         return False
+
+    def _can_use_reactive_path(self, changed_paths: set[Path], event_types: set[str]) -> bool:
+        """Check if content-only reactive path can be used (skips full build).
+
+        Content-only = frontmatter unchanged, body changed. Safe for leaf AND
+        section pages. Cascade, nav, and structure keys are in frontmatter;
+        if unchanged, no downstream impact.
+        """
+        if len(changed_paths) != 1 or event_types != {"modified"}:
+            return False
+        path = next(iter(changed_paths))
+        if path.suffix.lower() not in {".md", ".markdown"}:
+            return False
+        return self._is_content_only_change(path)
 
     def _is_shared_content_change(self, changed_paths: set[Path]) -> bool:
         """
@@ -720,6 +779,38 @@ class BuildTrigger:
             logger.debug("frontmatter_check_failed", file=str(path), error=str(e))
             return False
 
+    def _compute_content_hashes(self, path: Path) -> ContentHashCacheEntry | None:
+        """
+        Read a markdown file and compute frontmatter/content hashes.
+
+        Returns None if the file has no frontmatter or cannot be read.
+        Used by _is_content_only_change and seed_content_hash_cache.
+        """
+        import hashlib
+
+        if path.suffix.lower() not in {".md", ".markdown"}:
+            return None
+
+        try:
+            mtime = path.stat().st_mtime
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+
+            match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", text, flags=re.DOTALL)
+            if not match:
+                return None
+
+            fm_hash = hashlib.sha256(match.group(1).encode()).hexdigest()[:16]
+            content_hash = hashlib.sha256(match.group(2).encode()).hexdigest()[:16]
+            return ContentHashCacheEntry(
+                mtime=mtime,
+                frontmatter_hash=fm_hash,
+                content_hash=content_hash,
+            )
+        except (FileNotFoundError, PermissionError, OSError) as e:
+            logger.debug("content_hash_check_failed", file=str(path), error=str(e))
+            return None
+
     def _is_content_only_change(self, path: Path) -> bool:
         """
         Check if a markdown file change is content-only (frontmatter unchanged).
@@ -735,65 +826,52 @@ class BuildTrigger:
 
         RFC: content-only-hot-reload
         """
-        import hashlib
-
-        if path.suffix.lower() != ".md":
+        entry = self._compute_content_hashes(path)
+        if entry is None:
             return False
 
-        try:
-            mtime = path.stat().st_mtime
+        cached = self._content_hash_cache.get(path)
+        if (
+            cached is not None
+            and cached.frontmatter_hash == entry.frontmatter_hash
+            and cached.content_hash != entry.content_hash
+        ):
+            logger.debug(
+                "content_only_change_detected",
+                file=str(path),
+                hint="frontmatter_unchanged",
+            )
+            self._content_hash_cache[path] = entry
+            return True
 
-            # Read file and split frontmatter/content
-            with open(path, encoding="utf-8") as f:
-                text = f.read()
+        # Update cache with LRU eviction
+        if len(self._content_hash_cache) >= self._content_hash_cache_max:
+            first_key = next(iter(self._content_hash_cache))
+            del self._content_hash_cache[first_key]
+        self._content_hash_cache[path] = entry
+        return False
 
-            # Extract frontmatter
-            match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", text, flags=re.DOTALL)
-            if not match:
-                return False  # No frontmatter = can't detect
+    def seed_content_hash_cache(self, pages: list[Any]) -> None:
+        """
+        Populate content hash cache for content pages after a successful build.
 
-            fm_text = match.group(1)
-            content_text = match.group(2)
-
-            # Hash both parts
-            fm_hash = hashlib.sha256(fm_text.encode()).hexdigest()[:16]
-            content_hash = hashlib.sha256(content_text.encode()).hexdigest()[:16]
-
-            # Check against cache
-            cached = self._content_hash_cache.get(path)
-            if (
-                cached is not None
-                and cached.frontmatter_hash == fm_hash
-                and cached.content_hash != content_hash
-            ):
-                logger.debug(
-                    "content_only_change_detected",
-                    file=str(path),
-                    hint="frontmatter_unchanged",
-                )
-                # Update cache with new hashes
-                self._content_hash_cache[path] = ContentHashCacheEntry(
-                    mtime=mtime,
-                    frontmatter_hash=fm_hash,
-                    content_hash=content_hash,
-                )
-                return True
-
-            # Update cache with LRU eviction
+        Enables the first content-only edit after startup to use the reactive path
+        instead of falling back to full build (RFC: content-only-hot-reload).
+        """
+        for page in pages:
+            src = getattr(page, "source_path", None)
+            if src is None:
+                continue
+            path = Path(src) if not isinstance(src, Path) else src
+            if path.suffix.lower() not in {".md", ".markdown"}:
+                continue
+            entry = self._compute_content_hashes(path)
+            if entry is None:
+                continue
             if len(self._content_hash_cache) >= self._content_hash_cache_max:
                 first_key = next(iter(self._content_hash_cache))
                 del self._content_hash_cache[first_key]
-            self._content_hash_cache[path] = ContentHashCacheEntry(
-                mtime=mtime,
-                frontmatter_hash=fm_hash,
-                content_hash=content_hash,
-            )
-
-            return False
-
-        except (FileNotFoundError, PermissionError, OSError) as e:
-            logger.debug("content_hash_check_failed", file=str(path), error=str(e))
-            return False
+            self._content_hash_cache[path] = entry
 
     def _get_template_dirs(self) -> list[Path]:
         """
@@ -877,7 +955,7 @@ class BuildTrigger:
             # Check if template has any dependents
             affected: set[str] = set()
             if cache is not None:
-                with contextlib.suppress(Exception):
+                with suppress(Exception):
                     affected = cache.get_affected_pages(path)
 
             if not affected:

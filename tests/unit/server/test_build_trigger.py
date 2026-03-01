@@ -61,6 +61,96 @@ class TestBuildTrigger:
 
         mock_executor.shutdown.assert_called_once_with(wait=True)
 
+    def test_can_use_reactive_path_single_md_modified(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _can_use_reactive_path returns True for content-only .md edit."""
+        md_file = tmp_path / "content" / "page.md"
+        md_file.parent.mkdir(parents=True)
+        md_file.write_text("---\ntitle: Test\n---\nOriginal body")
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # First call: no cache, populates cache and returns False
+        result = trigger._can_use_reactive_path({md_file}, {"modified"})
+        assert result is False
+
+        # Change body only (frontmatter unchanged)
+        md_file.write_text("---\ntitle: Test\n---\nNew body")
+        result = trigger._can_use_reactive_path({md_file}, {"modified"})
+        assert result is True
+
+    def test_can_use_reactive_path_rejects_multiple_files(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _can_use_reactive_path returns False for multiple files."""
+        a = tmp_path / "a.md"
+        b = tmp_path / "b.md"
+        a.write_text("---\ntitle: A\n---\nA")
+        b.write_text("---\ntitle: B\n---\nB")
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._can_use_reactive_path({a, b}, {"modified"}) is False
+
+    def test_can_use_reactive_path_rejects_created_event(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _can_use_reactive_path returns False for created event."""
+        md_file = tmp_path / "page.md"
+        md_file.write_text("---\ntitle: Test\n---\nBody")
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._can_use_reactive_path({md_file}, {"created"}) is False
+
+    def test_can_use_reactive_path_rejects_non_md(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _can_use_reactive_path returns False for non-.md files."""
+        txt_file = tmp_path / "file.txt"
+        txt_file.write_text("content")
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._can_use_reactive_path({txt_file}, {"modified"}) is False
+
+    def test_seed_content_hash_cache_populates_cache(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that seed_content_hash_cache populates cache for content pages."""
+        md_file = tmp_path / "content" / "page.md"
+        md_file.parent.mkdir(parents=True)
+        md_file.write_text("---\ntitle: Test\n---\nOriginal body")
+
+        page = MagicMock()
+        page.source_path = md_file
+        mock_site.pages = [page]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page])
+
+        assert md_file in trigger._content_hash_cache
+        entry = trigger._content_hash_cache[md_file]
+        assert entry.frontmatter_hash
+        assert entry.content_hash
+
+    def test_first_edit_uses_reactive_path_after_seed(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that first content-only edit uses reactive path after seed."""
+        md_file = tmp_path / "content" / "page.md"
+        md_file.parent.mkdir(parents=True)
+        md_file.write_text("---\ntitle: Test\n---\nOriginal body")
+
+        page = MagicMock()
+        page.source_path = md_file
+        mock_site.pages = [page]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page])
+
+        # Simulate user editing body only
+        md_file.write_text("---\ntitle: Test\n---\nEdited body")
+        result = trigger._can_use_reactive_path({md_file}, {"modified"})
+        assert result is True
+
     def test_needs_full_rebuild_for_structural_changes(
         self, mock_site: MagicMock, mock_executor: MagicMock
     ) -> None:
