@@ -1028,8 +1028,11 @@ class BuildTrigger:
 
         # RFC: Output Cache Architecture - Use content-hash detection to filter aggregate-only changes
         # Only reload if there are meaningful content/asset changes (not just sitemap/feeds)
+        # SKIP when decision_source is "fallback-source-change": we know user edited content
+        # (output_collector was empty) - never suppress reload in that case.
         if (
             decision.action == "reload"
+            and decision_source != "fallback-source-change"
             and controller._use_content_hashes
             and hasattr(controller, "_baseline_content_hashes")
             and controller._baseline_content_hashes
