@@ -1113,7 +1113,7 @@ class BuildTrigger:
                         records.append(
                             OutputRecord(Path(rec.path), output_type, rec.phase)  # type: ignore[arg-type]
                         )
-                except ValueError, TypeError:
+                except (ValueError, TypeError):
                     logger.debug("invalid_output_type", path=rec.path, type_val=rec.type_value)
 
             if records:
