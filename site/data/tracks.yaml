@@ -62,7 +62,7 @@ team-lead:
     - docs/content/analysis/_index
     - docs/building/configuration/_index
     - docs/building/deployment/_index
-    - docs/tutorials/automate-with-github-actions
+    - docs/tutorials/operations/automate-with-github-actions
 
 migration-express:
   title: "Migration Express"

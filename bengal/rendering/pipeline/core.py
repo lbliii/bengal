@@ -142,6 +142,8 @@ class RenderingPipeline:
             quiet: If True, suppress per-page output
             build_stats: Optional BuildStats object to collect warnings
             build_context: Optional BuildContext for dependency injection
+            output_collector: Explicit collector for hot reload. When build_context is
+                also provided, this overrides build_context.output_collector.
             write_behind: Optional WriteBehindCollector for async I/O (RFC: rfc-path-to-200-pgs)
             build_cache: Optional BuildCache for direct cache access.
         """
@@ -218,21 +220,8 @@ class RenderingPipeline:
             getattr(build_context, "output_collector", None) if build_context else None
         )
 
-        # Warn only when hot reload matters (dev_mode); debug otherwise
-        if build_context and not self._output_collector:
-            site = getattr(build_context, "site", None)
-            dev_mode = getattr(site, "dev_mode", False) if site else False
-            if dev_mode:
-                logger.warning(
-                    "output_collector_missing_in_pipeline",
-                    has_build_context=True,
-                    hint="Hot reload will fall back to full reload",
-                )
-            else:
-                logger.debug(
-                    "output_collector_missing_in_pipeline",
-                    has_build_context=True,
-                )
+        # Warning emitted once at orchestrator level (RenderOrchestrator._render_parallel)
+        # when output_collector is missing; no per-pipeline warning to avoid N duplicates
 
         # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
         # Use explicit parameter, or get from BuildContext if available
@@ -378,11 +367,13 @@ class RenderingPipeline:
         # Skip parsing if already done (e.g., by parsing phase before snapshot)
         # This avoids redundant parsing when using WaveScheduler with pre-parsed content
         if not page.html_content:
+            self._set_links_collector_for_parse()
             self._parse_content(page)
         self._enhance_api_docs(page)
-        # Extract links once (regex-heavy); cache can reuse these on template-only rebuilds.
+        # Extract links: use plugin-collected wikilinks when available, merge with markdown/HTML
         try:
-            page.extract_links()
+            plugin_links = self._get_plugin_collected_links()
+            page.extract_links(plugin_links=plugin_links)
         except Exception as e:
             # Log at warning level so users are aware of extraction issues
             # In strict mode, this could indicate malformed content that needs attention
@@ -402,6 +393,17 @@ class RenderingPipeline:
                 )
         self._cache_checker.cache_parsed_content(page, template, parser_version)
         self._render_and_write(page, template)
+
+    def _set_links_collector_for_parse(self) -> None:
+        """Set links collector on xref plugin before parse (Patitas only)."""
+        if hasattr(self.parser, "_xref_plugin") and self.parser._xref_plugin:
+            self.parser._xref_plugin.set_links_collector([])
+
+    def _get_plugin_collected_links(self) -> list[str]:
+        """Get and clear links collected by xref plugin during parse (Patitas only)."""
+        if hasattr(self.parser, "_xref_plugin") and self.parser._xref_plugin:
+            return self.parser._xref_plugin.get_collected_links()
+        return []
 
     def _parse_content(self, page: PageLike) -> None:
         """Parse page content through markdown parser.

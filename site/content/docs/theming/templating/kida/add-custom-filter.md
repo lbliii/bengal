@@ -369,7 +369,7 @@ Ensure `register_filters()` is called before templates are rendered.
 :::
 
 :::{dropdown} Verify template engine
-:icon: gear
+:icon: settings
 
 Confirm `site._template_engine` exists and has `_env` attribute.
 :::
@@ -393,7 +393,7 @@ If `site._template_engine` is `None`:
 Kida doesn't automatically inject context into filters. If you need template context:
 
 :::{dropdown} Accept context parameter
-:icon: plug
+:icon: puzzle-piece
 
 Accept `context=None` as a parameter in your filter function.
 :::

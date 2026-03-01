@@ -48,7 +48,9 @@ class TrackValidator(BaseValidator):
 
         # Validate track structure
         for track_id, track in tracks.items():
-            if not isinstance(track, dict):
+            # DotDict wraps nested dicts from YAML; unwrap for isinstance check
+            raw = getattr(track, "_data", track)
+            if not isinstance(raw, dict):
                 results.append(
                     CheckResult.error(
                         f"Invalid track structure: {track_id}",

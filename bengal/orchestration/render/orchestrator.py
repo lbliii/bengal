@@ -49,6 +49,7 @@ from bengal.utils.paths.url_strategy import URLStrategy
 
 from .block_cache import BlockCacheMixin
 from .ordering import OrderingMixin
+from .output_collector_diagnostics import diagnose_missing_output_collector
 from .parallel import (
     is_free_threaded,
 )
@@ -371,6 +372,28 @@ class RenderOrchestrator(
             If you're profiling and see N parser/pipeline instances created,
             where N = max_workers, this is OPTIMAL behavior.
         """
+        # Single aggregated warning when output_collector missing (affects all worker threads)
+        output_collector = (
+            getattr(build_context, "output_collector", None) if build_context else None
+        )
+        if output_collector is None:
+            dev_mode = getattr(self.site, "dev_mode", False)
+            if dev_mode:
+                max_workers = get_optimal_workers(
+                    len(pages),
+                    workload_type=WorkloadType.MIXED,
+                    config_override=self._get_max_workers(),
+                )
+                diagnostic = diagnose_missing_output_collector(
+                    build_context=build_context,
+                    caller="_render_parallel",
+                    worker_threads=max_workers,
+                )
+                logger.warning(
+                    "output_collector_missing_in_pipeline",
+                    **diagnostic.to_log_context(),
+                )
+
         # Check if snapshot is available (RFC: rfc-bengal-snapshot-engine)
         if build_context and hasattr(build_context, "snapshot") and build_context.snapshot:
             # Use WaveScheduler for topological wave-based rendering
@@ -756,11 +779,15 @@ class RenderOrchestrator(
                 or getattr(_thread_local, "pipeline_generation", -1) != current_gen
             )
             if needs_new_pipeline:
+                output_collector = (
+                    getattr(build_context, "output_collector", None) if build_context else None
+                )
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     quiet=quiet,
                     build_stats=stats,
                     build_context=build_context,
+                    output_collector=output_collector,
                     changed_sources=changed_sources,
                     block_cache=self._block_cache,
                     highlight_cache=self._highlight_cache,

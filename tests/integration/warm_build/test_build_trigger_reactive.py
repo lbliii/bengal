@@ -255,3 +255,74 @@ date: 2026-01-01
             "Section index should not include post1 body; reactive path doesn't "
             "re-render dependent pages"
         )
+
+
+class TestDevServerStyleFirstEdit:
+    """First edit after DevServer-style init uses reactive path (bug fix).
+
+    RFC: template-bugs-live-reload-issues
+    DevServer does site.build() directly (not through BuildTrigger), then
+    seeds content hash cache. First user edit must use reactive path.
+    """
+
+    @patch("bengal.server.build_trigger.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.show_building_indicator")
+    @patch("bengal.server.build_trigger.CLIOutput")
+    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_fragment_payload")
+    def test_first_edit_after_dev_server_init_uses_reactive_path(
+        self,
+        mock_send_fragment: MagicMock,
+        mock_controller: MagicMock,
+        mock_display: MagicMock,
+        mock_cli: MagicMock,
+        mock_building: MagicMock,
+        mock_post_hooks: MagicMock,
+        mock_pre_hooks: MagicMock,
+        warm_build_site: WarmBuildTestSite,
+    ) -> None:
+        """First edit uses reactive path when cache was seeded by DevServer.
+
+        Simulates DevServer build-first flow:
+        1. site.build() (not through BuildTrigger)
+        2. build_trigger.seed_content_hash_cache(list(site.pages))
+        3. User edits content (body only)
+        4. trigger_build -> reactive path, send_fragment_payload
+        """
+        mock_pre_hooks.return_value = True
+        mock_post_hooks.return_value = True
+
+        site = warm_build_site.site
+        content_path = warm_build_site.site_dir / "content" / "_index.md"
+        assert content_path.exists()
+
+        # DevServer-style: site.build() directly (not through BuildTrigger)
+        warm_build_site.full_build()
+
+        trigger = BuildTrigger(site=site, executor=MagicMock())
+        # DevServer seeds cache after initial build
+        trigger.seed_content_hash_cache(list(site.pages))
+
+        # First user edit (content-only)
+        warm_build_site.modify_file(
+            "content/_index.md",
+            """---
+title: Home
+---
+
+# Welcome
+
+First edit after server start.
+""",
+        )
+
+        # First trigger_build should use reactive path (cache was seeded)
+        trigger.trigger_build(
+            changed_paths={content_path},
+            event_types={"modified"},
+        )
+
+        mock_send_fragment.assert_called_once()
+        assert "First edit after server start" in mock_send_fragment.call_args[0][1]

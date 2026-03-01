@@ -258,9 +258,9 @@ class ContractViolation:
 # Pre-defined contracts for common patterns
 # =============================================================================
 
-# Steps container must have step children
+# Steps container: step required; tip allowed for hints within steps
 STEPS_CONTRACT = DirectiveContract(
-    allows_children=("step",),
+    allows_children=("step", "tip"),
 )
 
 # Step must be inside steps
@@ -268,9 +268,9 @@ STEP_CONTRACT = DirectiveContract(
     allows_parent=("steps",),
 )
 
-# Tab container must have tab-item children
+# Tab container: tab-item/tab required; seealso allowed for related links
 TAB_SET_CONTRACT = DirectiveContract(
-    allows_children=("tab-item", "tab"),
+    allows_children=("tab-item", "tab", "seealso"),
 )
 
 # Tab item must be inside tab-set

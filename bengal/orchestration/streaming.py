@@ -208,16 +208,25 @@ class StreamingRenderOrchestrator:
             try:
                 from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
             except ImportError:
+                # Fallback: KnowledgeGraph unavailable (e.g. optional dep not installed).
+                # Memory optimization disabled; standard render used. Hot reload preserved
+                # via build_context. See plan/output-collector-long-term-solution.md.
                 logger.warning(
                     "streaming_render_fallback",
                     reason="Knowledge graph not available, using standard rendering",
                 )
-                # Fall back to standard rendering
                 from bengal.orchestration.render import RenderOrchestrator
 
                 orchestrator = RenderOrchestrator(self.site)
                 orchestrator.process(
-                    pages, parallel, quiet, stats, progress_manager=progress_manager
+                    pages,
+                    parallel,
+                    quiet,
+                    stats,
+                    progress_manager=progress_manager,
+                    reporter=reporter,
+                    build_context=build_context,
+                    changed_sources=changed_sources,
                 )
                 return
 

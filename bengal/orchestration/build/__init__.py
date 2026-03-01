@@ -1000,34 +1000,6 @@ class BuildOrchestrator:
         """Phase 13: Process Assets."""
         return rendering.phase_assets(self, cli, incremental, parallel, assets_to_process)
 
-    def _phase_render(
-        self,
-        cli: CLIOutput,
-        incremental: bool,
-        force_sequential: bool,
-        quiet: bool,
-        verbose: bool,
-        memory_optimized: bool,
-        pages_to_build: list[Page],
-        profile: BuildProfile | None,
-        progress_manager: Any | None,
-        reporter: Any | None,
-    ) -> None:
-        """Phase 14: Render Pages."""
-        rendering.phase_render(
-            self,
-            cli,
-            incremental,
-            force_sequential,
-            quiet,
-            verbose,
-            memory_optimized,
-            pages_to_build,
-            profile,
-            progress_manager,
-            reporter,
-        )
-
     def _phase_update_site_pages(self, incremental: bool, pages_to_build: list[Page]) -> None:
         """Phase 15: Update Site Pages."""
         rendering.phase_update_site_pages(self, incremental, pages_to_build)

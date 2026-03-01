@@ -11,7 +11,7 @@ icon: book
 Bengal renders Jupyter notebooks (`.ipynb`) natively. Drop a notebook into your content directory and it builds as a page—no conversion step, no extra tooling.
 
 :::{tip}
-**New to notebooks?** Follow the [[setup|Setup Guide]] for a step-by-step walkthrough—add your first notebook, configure Download/Binder/Colab, and override metadata.
+**New to notebooks?** Follow the [[docs/content/authoring/notebooks/setup|Setup Guide]] for a step-by-step walkthrough—add your first notebook, configure Download/Binder/Colab, and override metadata.
 :::
 
 ## How It Works

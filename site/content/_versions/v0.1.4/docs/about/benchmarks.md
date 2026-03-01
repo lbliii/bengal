@@ -229,6 +229,6 @@ Results may vary based on:
 
 :::{seealso}
 - [[docs/about/comparison|Comparison with Other SSGs]]
-- [[docs/reference/architecture/meta/performance|Performance Optimization Guide]]
+- [[docs/building/performance|Performance Optimization Guide]]
 - [[docs/about/limitations|Limitations]]
 :::

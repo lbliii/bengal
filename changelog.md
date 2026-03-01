@@ -1,5 +1,8 @@
 ## [Unreleased]
 
+### Cleanup
+- **orchestration**: remove unused _phase_render (dead code; main build calls rendering.phase_render directly)
+
 ### Frontmatter (Patitas)
 - **content**: migrate frontmatter parsing from Bengal/python-frontmatter to Patitas
   - ContentParser and ReactiveContentHandler now use `patitas.parse_frontmatter` and `patitas.extract_body`

@@ -111,7 +111,7 @@ Your complete site is in `public/`, ready to deploy!
 Deploy the `public/` directory to any static hosting:
 
 - **Netlify**: Build command: `bengal build`, Publish: `public`
-- **GitHub Pages**: Use the workflow in [[docs/tutorials/automate-with-github-actions|Automate with GitHub Actions]]
+- **GitHub Pages**: Use the workflow in [[docs/tutorials/operations/automate-with-github-actions|Automate with GitHub Actions]]
 - **Vercel**: Build command: `bengal build`, Output: `public`
 
 ## Frontmatter Reference {#frontmatter}
@@ -129,10 +129,10 @@ Common frontmatter fields:
 
 ## Next Steps
 
-- **[[docs/tutorials/build-a-blog|Build a Blog]]** — Full tutorial
+- **[[docs/tutorials/sites/build-a-blog|Build a Blog]]** — Full tutorial
 - **[[docs/content/authoring|Content Authoring]]** — Markdown features
 - **[[docs/content/organization|Content Organization]]** — Structure your content
-- **[[docs/content/component-model#type|Type System]]** — Content types and templates
+- **[[docs/content/organization/component-model#type|Type System]]** — Content types and templates
 - **[[docs/theming|Theming]]** — Customize appearance
 
 Happy writing! 🎉

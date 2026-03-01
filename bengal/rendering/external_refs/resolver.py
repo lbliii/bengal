@@ -128,6 +128,7 @@ class ExternalRefResolver:
         text: str | None = None,
         source_file: Path | None = None,
         line: int | None = None,
+        links_collector: list[str] | None = None,
     ) -> str:
         """
         Resolve an external reference to HTML.
@@ -149,11 +150,15 @@ class ExternalRefResolver:
         """
         # Tier 1: URL template
         if url := self._resolve_template(project, target):
+            if links_collector is not None:
+                links_collector.append(url)
             display_text = text or self._extract_display_name(target)
             return f'<a href="{url}" class="extref">{display_text}</a>'
 
         # Tier 2: Bengal index
         if entry := self._resolve_index(project, target):
+            if links_collector is not None:
+                links_collector.append(entry.path)
             display_text = text or entry.title
             title_attr = f' title="{entry.summary}"' if entry.summary else ""
             return f'<a href="{entry.path}" class="extref"{title_attr}>{display_text}</a>'
