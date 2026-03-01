@@ -62,6 +62,7 @@ class BuildStats:
     total_pages: int = 0
     regular_pages: int = 0
     generated_pages: int = 0
+    autodoc_pages: int = 0
     tag_pages: int = 0
     archive_pages: int = 0
     pagination_pages: int = 0
@@ -280,6 +281,7 @@ class BuildStats:
             "total_pages": self.total_pages,
             "regular_pages": self.regular_pages,
             "generated_pages": self.generated_pages,
+            "autodoc_pages": self.autodoc_pages,
             "total_assets": self.total_assets,
             "total_sections": self.total_sections,
             "taxonomies_count": self.taxonomies_count,
