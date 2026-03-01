@@ -837,44 +837,50 @@ class RenderOrchestrator:
                 _thread_local.pipeline_generation = current_gen
             _thread_local.pipeline.process_page(page)
 
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                batch_size = max(max_workers * 2, 1)
-                aggregator = ErrorAggregator(total_items=len(sorted_pages))
-                threshold = 5
+            batch_size = max(max_workers * 2, 1)
+            aggregator = ErrorAggregator(total_items=len(sorted_pages))
+            threshold = 5
 
-                for i in range(0, len(sorted_pages), batch_size):
-                    batch = sorted_pages[i : i + batch_size]
-                    future_to_page = {
-                        executor.submit(
-                            contextvars.copy_context().run,  # type: ignore[arg-type]
-                            process_page_with_pipeline,  # type: ignore[arg-type]
-                            page,
-                        ): page
-                        for page in batch
-                    }
-                    for future in concurrent.futures.as_completed(future_to_page):
-                        page = future_to_page[future]
-                        try:
-                            future.result()
-                        except Exception as e:
-                            if is_shutdown_error(e):
-                                logger.debug("render_shutdown", page=page.source_path.name)
-                                continue
-                            context = extract_error_context(e, page)
-                            if aggregator.should_log_individual(
-                                e, context, threshold=threshold, max_samples=3
-                            ):
-                                logger.error("page_rendering_error", **context)
-                            aggregator.add_error(e, context=context)
+            for i in range(0, len(sorted_pages), batch_size):
+                batch = sorted_pages[i : i + batch_size]
+                future_to_page = {
+                    executor.submit(
+                        contextvars.copy_context().run,  # type: ignore[arg-type]
+                        process_page_with_pipeline,  # type: ignore[arg-type]
+                        page,
+                    ): page
+                    for page in batch
+                }
+                for future in concurrent.futures.as_completed(future_to_page):
+                    page = future_to_page[future]
+                    try:
+                        future.result()
+                    except Exception as e:
+                        if is_shutdown_error(e):
+                            logger.debug("render_shutdown", page=page.source_path.name)
+                            continue
+                        context = extract_error_context(e, page)
+                        if aggregator.should_log_individual(
+                            e, context, threshold=threshold, max_samples=3
+                        ):
+                            logger.error("page_rendering_error", **context)
+                        aggregator.add_error(e, context=context)
 
-                aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
+            aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
+        except KeyboardInterrupt, SystemExit:
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
         except RuntimeError as e:
-            # Handle graceful shutdown at executor level
             if is_shutdown_error(e):
                 logger.debug("render_executor_shutdown")
+                executor.shutdown(wait=False, cancel_futures=True)
                 return
+            executor.shutdown(wait=True)
             raise
+        else:
+            executor.shutdown(wait=True)
 
     def _render_sequential_with_progress(
         self,
@@ -1029,53 +1035,58 @@ class RenderOrchestrator:
                     threads=max_workers,
                 )
 
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                batch_size = max(max_workers * 2, 1)
-                aggregator = ErrorAggregator(total_items=len(sorted_pages))
-                threshold = 5
+            batch_size = max(max_workers * 2, 1)
+            aggregator = ErrorAggregator(total_items=len(sorted_pages))
+            threshold = 5
 
-                for i in range(0, len(sorted_pages), batch_size):
-                    batch = sorted_pages[i : i + batch_size]
-                    future_to_page = {
-                        executor.submit(
-                            contextvars.copy_context().run,  # type: ignore[arg-type]
-                            process_page_with_pipeline,  # type: ignore[arg-type]
-                            page,
-                        ): page
-                        for page in batch
-                    }
-                    for future in concurrent.futures.as_completed(future_to_page):
-                        page = future_to_page[future]
-                        try:
-                            future.result()
-                        except Exception as e:
-                            if is_shutdown_error(e):
-                                logger.debug("render_shutdown", page=page.source_path.name)
-                                continue
-                            context = extract_error_context(e, page)
-                            if aggregator.should_log_individual(
-                                e, context, threshold=threshold, max_samples=3
-                            ):
-                                logger.error("page_rendering_error", **context)
-                            aggregator.add_error(e, context=context)
+            for i in range(0, len(sorted_pages), batch_size):
+                batch = sorted_pages[i : i + batch_size]
+                future_to_page = {
+                    executor.submit(
+                        contextvars.copy_context().run,  # type: ignore[arg-type]
+                        process_page_with_pipeline,  # type: ignore[arg-type]
+                        page,
+                    ): page
+                    for page in batch
+                }
+                for future in concurrent.futures.as_completed(future_to_page):
+                    page = future_to_page[future]
+                    try:
+                        future.result()
+                    except Exception as e:
+                        if is_shutdown_error(e):
+                            logger.debug("render_shutdown", page=page.source_path.name)
+                            continue
+                        context = extract_error_context(e, page)
+                        if aggregator.should_log_individual(
+                            e, context, threshold=threshold, max_samples=3
+                        ):
+                            logger.error("page_rendering_error", **context)
+                        aggregator.add_error(e, context=context)
 
-                aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
+            aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
 
-                # Final update to ensure progress shows 100%
-                if progress_manager:
-                    progress_manager.update_phase(
-                        "rendering",
-                        current=len(sorted_pages),
-                        current_item="",
-                        threads=max_workers,
-                    )
+            if progress_manager:
+                progress_manager.update_phase(
+                    "rendering",
+                    current=len(sorted_pages),
+                    current_item="",
+                    threads=max_workers,
+                )
+        except KeyboardInterrupt, SystemExit:
+            executor.shutdown(wait=False, cancel_futures=True)
+            raise
         except RuntimeError as e:
-            # Handle graceful shutdown at executor level
             if is_shutdown_error(e):
                 logger.debug("render_executor_shutdown")
+                executor.shutdown(wait=False, cancel_futures=True)
                 return
+            executor.shutdown(wait=True)
             raise
+        else:
+            executor.shutdown(wait=True)
 
     def _render_parallel_with_progress(
         self,
@@ -1145,45 +1156,51 @@ class RenderOrchestrator:
         ) as progress:
             task = progress.add_task("[cyan]Rendering pages...", total=len(sorted_pages))
 
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
             try:
-                with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                    batch_size = max(max_workers * 2, 1)
-                    aggregator = ErrorAggregator(total_items=len(sorted_pages))
-                    threshold = 5
+                batch_size = max(max_workers * 2, 1)
+                aggregator = ErrorAggregator(total_items=len(sorted_pages))
+                threshold = 5
 
-                    for i in range(0, len(sorted_pages), batch_size):
-                        batch = sorted_pages[i : i + batch_size]
-                        future_to_page = {
-                            executor.submit(
-                                contextvars.copy_context().run,  # type: ignore[arg-type]
-                                process_page_with_pipeline,  # type: ignore[arg-type]
-                                page,
-                            ): page
-                            for page in batch
-                        }
-                        for future in concurrent.futures.as_completed(future_to_page):
-                            page = future_to_page[future]
-                            try:
-                                future.result()
-                            except Exception as e:
-                                if is_shutdown_error(e):
-                                    logger.debug("render_shutdown")
-                                    continue
-                                context = extract_error_context(e, page)
-                                if aggregator.should_log_individual(
-                                    e, context, threshold=threshold, max_samples=3
-                                ):
-                                    logger.error("page_rendering_error", **context)
-                                aggregator.add_error(e, context=context)
-                            progress.update(task, advance=1)
+                for i in range(0, len(sorted_pages), batch_size):
+                    batch = sorted_pages[i : i + batch_size]
+                    future_to_page = {
+                        executor.submit(
+                            contextvars.copy_context().run,  # type: ignore[arg-type]
+                            process_page_with_pipeline,  # type: ignore[arg-type]
+                            page,
+                        ): page
+                        for page in batch
+                    }
+                    for future in concurrent.futures.as_completed(future_to_page):
+                        page = future_to_page[future]
+                        try:
+                            future.result()
+                        except Exception as e:
+                            if is_shutdown_error(e):
+                                logger.debug("render_shutdown")
+                                continue
+                            context = extract_error_context(e, page)
+                            if aggregator.should_log_individual(
+                                e, context, threshold=threshold, max_samples=3
+                            ):
+                                logger.error("page_rendering_error", **context)
+                            aggregator.add_error(e, context=context)
+                        progress.update(task, advance=1)
 
-                    aggregator.log_summary(logger, threshold=5, error_type="rendering")
+                aggregator.log_summary(logger, threshold=5, error_type="rendering")
+            except KeyboardInterrupt, SystemExit:
+                executor.shutdown(wait=False, cancel_futures=True)
+                raise
             except RuntimeError as e:
-                # Handle graceful shutdown at executor level
                 if is_shutdown_error(e):
                     logger.debug("render_executor_shutdown")
+                    executor.shutdown(wait=False, cancel_futures=True)
                     return
+                executor.shutdown(wait=True)
                 raise
+            else:
+                executor.shutdown(wait=True)
 
     def _set_output_paths_for_pages(self, pages: list[Page]) -> None:
         """
