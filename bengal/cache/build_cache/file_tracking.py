@@ -113,17 +113,12 @@ class FileTrackingMixin:
             True if cache should be bypassed, False if cache can be used
         """
         # Check explicit change set first (fast path)
-        # Resolve paths to handle symlinks, ./ components, and case differences
+        # Use _cache_key (content_key format) to handle absolute/relative path mismatch
+        # between source_path (from discovery) and changed_sources (from watcher)
         if changed_sources:
-            try:
-                resolved_source = source_path.resolve()
-                for changed in changed_sources:
-                    if changed.resolve() == resolved_source:
-                        return True
-            except OSError, ValueError:
-                # Fall back to normalized key comparison if resolution fails
-                changed_keys = {self._cache_key(p) for p in changed_sources}
-                if self._cache_key(source_path) in changed_keys:
+            source_key = self._cache_key(source_path)
+            for changed in changed_sources:
+                if self._cache_key(changed) == source_key:
                     return True
 
         # Fall back to hash-based change detection

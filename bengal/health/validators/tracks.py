@@ -163,8 +163,9 @@ class TrackValidator(BaseValidator):
                     if not Path(p.source_path).is_absolute()
                     else Path(p.source_path)
                 )
-                by_full_path[str(p.source_path)] = p
-                by_content_key[content_key(full, site.root_path)] = p
+                key = content_key(full, site.root_path)
+                by_full_path[key] = p
+                by_content_key[key] = p
 
                 try:
                     rel = p.source_path.relative_to(content_root)
@@ -194,11 +195,11 @@ class TrackValidator(BaseValidator):
         if path_with_ext in maps["relative"]:
             return maps["relative"][path_with_ext]
 
-        # Strategy 3: Try full path (str(source_path) match)
+        # Strategy 3: Try content_key format (by_full_path now uses content_key keys)
         if path in maps["full"]:
             return maps["full"][path]
 
-        # Strategy 4: Try content_key (handles absolute/relative path format mismatch)
+        # Strategy 4: Try content_key (handles path format mismatch)
         for candidate in (normalized_path, path_with_ext):
             key = content_key(site.root_path / "content" / candidate, site.root_path)
             if key in maps["content_key"]:

@@ -10,7 +10,6 @@ Path Key Alignment: fallback uses normalized keys when resolve() raises.
 from __future__ import annotations
 
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -154,23 +153,32 @@ class TestShouldBypassPathResolution:
 
         assert result is True
 
-    def test_fallback_uses_normalized_keys_when_resolve_raises(self, tmp_path: Path) -> None:
-        """When resolve() raises, fallback uses _cache_key for comparison."""
+    def test_absolute_vs_relative_path_match(self, tmp_path: Path) -> None:
+        """should_bypass matches when source_path is relative and changed_sources has absolute."""
+        import os
 
-        # Use a tracker whose _cache_key does NOT call resolve (so fallback works)
-        class FallbackTracker(MockFileTracking):
+        from bengal.build.contracts.keys import content_key
+
+        class ContentKeyTracker(MockFileTracking):
             def _cache_key(self, path: Path) -> str:
-                return str(path)
+                return str(content_key(path, tmp_path))
 
-        tracker = FallbackTracker()
-        test_file = tmp_path / "style.css"
-        test_file.write_text("/* css */")
+        tracker = ContentKeyTracker()
+        content_dir = tmp_path / "content"
+        content_dir.mkdir()
+        test_file = content_dir / "about.md"
+        test_file.write_text("# About")
+
         changed_sources = {test_file}
-
-        with patch.object(Path, "resolve", side_effect=OSError("resolve failed")):
-            result = tracker.should_bypass(test_file, changed_sources)
-
-        assert result is True
+        # With cwd=tmp_path, Path("content/about.md") resolves to same file
+        orig_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            relative_source = Path("content/about.md")
+            result = tracker.should_bypass(relative_source, changed_sources)
+            assert result is True
+        finally:
+            os.chdir(orig_cwd)
 
 
 class TestIsInTemplateDirPathResolution:

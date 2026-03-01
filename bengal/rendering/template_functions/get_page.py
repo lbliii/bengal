@@ -25,6 +25,7 @@ import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.build.contracts.keys import content_key
 from bengal.config.utils import resolve_excerpt_length
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
@@ -307,38 +308,44 @@ def _build_lookup_maps_impl(site: SiteLike) -> dict[str, dict[str, Any]]:
     """
     Build page lookup maps (internal implementation).
 
-    Creates two maps for O(1) page lookups:
-    - 'full': Full source path (str) -> Page
+    Creates three maps for O(1) page lookups:
+    - 'full': content_key format (handles absolute/relative path mismatch)
     - 'relative': Content-relative path (str) -> Page
+    - 'content_key': Same as full (content_key format for path-variant lookups)
 
     Args:
         site: Site instance to build maps from
 
     Returns:
-        Dict with 'full' and 'relative' lookup maps
+        Dict with 'full', 'relative', and 'content_key' lookup maps
     """
     from bengal.protocols import PageLike
 
     by_full_path: dict[str, PageLike] = {}
     by_content_relative: dict[str, PageLike] = {}
+    by_content_key: dict[str, PageLike] = {}
 
     content_root = site.root_path / "content"
 
     for p in site.pages:
-        # Full path
-        by_full_path[str(p.source_path)] = p
+        full = (
+            site.root_path / p.source_path
+            if not Path(p.source_path).is_absolute()
+            else Path(p.source_path)
+        )
+        key = str(content_key(full, site.root_path))
+        by_full_path[key] = p
+        by_content_key[key] = p
 
         # Content relative
         try:
             rel = p.source_path.relative_to(content_root)
-            # Normalize path separators to forward slashes for consistent lookup
             rel_str = to_posix(rel)
             by_content_relative[rel_str] = p
         except ValueError:
-            # Path not relative to content root (maybe outside?), skip
             pass
 
-    return {"full": by_full_path, "relative": by_content_relative}
+    return {"full": by_full_path, "relative": by_content_relative, "content_key": by_content_key}
 
 
 def _build_lookup_maps(site: SiteLike) -> None:
@@ -499,11 +506,22 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             if path_with_ext in maps["relative"]:
                 page = maps["relative"][path_with_ext]
 
-        # Strategy 3: Try full path (rarely used in templates but possible)
+        # Strategy 3: Try full path (content_key format)
         if not page and path in maps["full"]:
             page = maps["full"][path]
 
-        # Strategy 4: Try stripping leading "content/" prefix if present
+        # Strategy 4: Try content_key (handles path format mismatch)
+        if not page:
+            path_with_ext = (
+                f"{normalized_path}.md" if not normalized_path.endswith(".md") else normalized_path
+            )
+            for candidate in (normalized_path, path_with_ext):
+                key = str(content_key(site.root_path / "content" / candidate, site.root_path))
+                if key in maps["content_key"]:
+                    page = maps["content_key"][key]
+                    break
+
+        # Strategy 6: Try stripping leading "content/" prefix if present
         if not page and normalized_path.startswith("content/"):
             stripped = normalized_path[8:]  # len("content/") = 8
             if stripped in maps["relative"]:

@@ -215,7 +215,13 @@ When KnowledgeGraph import fails, the code falls back to standard rendering and 
 
 ---
 
-## 10. References
+## 10. Known Limitations
+
+- **Streaming fallback**: If KnowledgeGraph cannot be imported (e.g. optional dep not installed), StreamingRenderOrchestrator falls back to RenderOrchestrator.process() with full context. Memory optimization is not used for that build. Hot reload is preserved by passing build_context. See `bengal/orchestration/streaming.py` lines 208–231.
+
+---
+
+## 11. References
 
 - `plan/output-collector-long-term-solution.md` — Root cause analysis, diagnostic schema
 - `bengal/orchestration/render/output_collector_diagnostics.py` — Diagnostic implementation

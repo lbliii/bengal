@@ -6,6 +6,7 @@ Tests health/validators/tracks.py:
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -184,6 +185,32 @@ class TestTrackValidatorMissingPages:
 
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
         assert any("missing" in r.message.lower() for r in warning_results)
+
+    def test_resolves_track_item_with_relative_source_path(self, validator, tmp_path):
+        """Track item resolution works when page has relative source_path (content_key alignment)."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site._page_lookup_maps = None
+        site.data = MagicMock()
+        site.data.tracks = {
+            "learn": {"title": "Learn", "items": ["guide.md"]},
+        }
+
+        content_dir = tmp_path / "content"
+        content_dir.mkdir(parents=True)
+        (content_dir / "guide.md").write_text("# Guide")
+
+        page = MagicMock()
+        page.source_path = Path("content/guide.md")  # relative (as from discovery)
+        page.relative_path = "guide.md"
+        page.metadata = {}
+        site.pages = [page]
+
+        results = validator.validate(site)
+
+        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
+        assert len(success_results) >= 1
+        assert any("1" in r.message and "item" in r.message.lower() for r in success_results)
 
     def test_warning_shows_missing_count(self, validator, mock_site):
         """Warning shows count of missing pages."""

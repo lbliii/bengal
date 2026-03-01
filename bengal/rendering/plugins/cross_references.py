@@ -4,6 +4,14 @@ Cross-reference plugin for Mistune.
 Provides [[link]] syntax for internal page references with O(1) lookup
 performance using pre-built xref_index.
 
+xref_index Key Formats (canonical, see bengal/build/contracts/keys.py):
+    by_path: xref_path_key format - content-relative, no .md extension
+             e.g. "docs/guide" for content/docs/guide.md
+    by_slug: Page slug (may have multiple pages)
+    by_id: Custom ID from frontmatter
+    by_anchor: Lowercase anchor ID for [[#anchor]] resolution
+    by_heading: Lowercase heading text for anchor links
+
 Extended to support:
     [[v2:path]]              -> Link to path in version v2
     [[latest:path]]          -> Link to path in latest version
