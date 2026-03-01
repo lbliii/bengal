@@ -23,6 +23,35 @@
 - **patitas**: unify MathRole output with plugin (raw LaTeX for KaTeX compatibility)
 - **docs**: add Math and LaTeX authoring guide; document `content.math` in theme reference
 
+## 0.2.3 - 2026-03-01
+
+### Default Theme Blog Improvements
+- **themes(blog)**: major blog template refresh (PR #153)
+  - New post cards, related posts, author bio, social share dropdown
+  - Contact and about pages for blog scaffold
+  - Newsletter CTA and comments section placeholders
+  - Blog-comments theming recipe
+- **scaffolds(blog)**: updated authors.yml, skeleton, and sample posts
+
+### Excerpt Filters for Card Previews
+- **rendering**: add `excerpt_for_card` and `card_excerpt` filters for preview deduplication
+  - Avoids repeating title/description in card excerpts
+  - Documented in reference and cheatsheet
+
+### Tooling & Config
+- **tooling**: migrate pre-commit config from `.pre-commit-config.yaml` to `prek.toml`
+- **config**: upgrade ruff to 0.15.1, apply format
+- **rules**: add filter-type-coercion module for YAML numeric param handling
+
+### Fixes & Cleanup
+- **fix**: correct Python 3 except syntax for multi-exception handling
+- **cache**: remove unused TypeVar after PEP 695 migration
+- **cli(help)**: troubleshooting cleanup
+
+### Tests
+- **tests**: add `parallel_unsafe` marker to ThreadPoolExecutor tests
+- **tests**: mark stress tests slow, reduce scaffolding for faster CI
+
 ## 0.2.0 - 2026-02-14
 
 ### ⚡ Rosettes Epic & Highlight Caching
