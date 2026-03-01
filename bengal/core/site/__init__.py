@@ -13,10 +13,13 @@ Site.for_testing(): Minimal instance for unit tests
 Site(root_path, config): Direct instantiation (advanced)
 
 Package Structure:
+accessors.py: SiteAccessorsMixin (config property delegates)
+cascade.py: SiteCascadeMixin (cascade snapshot access)
 config_normalized.py: SiteNormalizedConfigMixin (normalized config)
-versioning.py: VersionService (version support, composed)
 discovery.py: SiteDiscoveryMixin (content/asset discovery)
 factory.py: Factory functions (from_config, for_testing)
+lifecycle.py: SiteLifecycleMixin (build, serve, clean, state reset)
+versioning.py: VersionService (version support, composed)
 
 Key Features:
 Build Coordination: site.build() orchestrates full build pipeline
@@ -60,10 +63,12 @@ from bengal.icons import resolver as icon_resolver
 from bengal.protocols.core import SiteLike
 from bengal.services.config import ConfigService
 
-# Import mixins
+from .accessors import SiteAccessorsMixin
+from .cascade import SiteCascadeMixin
 from .config_normalized import SiteNormalizedConfigMixin
 from .discovery import SiteDiscoveryMixin
 from .factory import for_testing, from_config
+from .lifecycle import SiteLifecycleMixin
 from .versioning import VersionService
 
 if TYPE_CHECKING:
@@ -73,10 +78,7 @@ if TYPE_CHECKING:
     from bengal.config.accessor import Config
     from bengal.core.cascade_snapshot import CascadeSnapshot
     from bengal.core.page_cache import PageCacheManager
-    from bengal.orchestration.build.inputs import BuildInput
-    from bengal.orchestration.build.options import BuildOptions
     from bengal.orchestration.build_state import BuildState
-    from bengal.orchestration.stats.models import BuildStats
     from bengal.parsing.base import BaseMarkdownParser
     from bengal.utils.primitives.dotdict import DotDict
 
@@ -87,6 +89,9 @@ _print_lock = Lock()
 
 @dataclass
 class Site(
+    SiteAccessorsMixin,
+    SiteCascadeMixin,
+    SiteLifecycleMixin,
     SiteNormalizedConfigMixin,
     SiteDiscoveryMixin,
 ):
@@ -369,77 +374,6 @@ class Site(
             self._config_service = ConfigService.from_config(self.config, self.root_path)
         return self._config_service
 
-    # ------------------------------------------------------------------
-    # Config delegation properties (formerly SitePropertiesMixin)
-    # ------------------------------------------------------------------
-
-    @property
-    def paths(self) -> BengalPaths:
-        """Access to .bengal directory paths."""
-        return self.config_service.paths
-
-    @property
-    def title(self) -> str | None:
-        """Get site title from configuration."""
-        return self.config_service.title
-
-    @property
-    def description(self) -> str | None:
-        """Get site description, respecting runtime overrides."""
-        if self._description_override is not None:
-            return self._description_override
-        return self.config_service.description
-
-    @description.setter
-    def description(self, value: str | None) -> None:
-        """Allow runtime override of site description for generated outputs."""
-        self._description_override = value
-
-    @property
-    def baseurl(self) -> str | None:
-        """Get site baseurl from configuration."""
-        return self.config_service.baseurl
-
-    @property
-    def content_dir(self) -> Path:
-        """Get path to the content directory."""
-        return self.config_service.content_dir
-
-    @property
-    def author(self) -> str | None:
-        """Get site author from configuration."""
-        return self.config_service.author
-
-    @property
-    def favicon(self) -> str | None:
-        """Get favicon path from site config."""
-        return self.config_service.favicon
-
-    @property
-    def logo_image(self) -> str | None:
-        """Get logo image path from site config."""
-        return self.config_service.logo_image
-
-    @property
-    def logo_text(self) -> str | None:
-        """Get logo text from site config."""
-        return self.config_service.logo_text
-
-    @property
-    def params(self) -> dict[str, Any]:
-        """Site-level custom parameters from [params] config section."""
-        return self.config_service.params
-
-    @property
-    def logo(self) -> str:
-        """Logo URL from config (checks multiple locations)."""
-        return self.config_service.logo
-
-    @property
-    def config_hash(self) -> str:
-        """Get deterministic hash of the resolved configuration."""
-        return self.config_service.config_hash
-
     def _compute_config_hash(self) -> None:
         """Compute and cache the configuration hash (backward compat)."""
         from bengal.config.hash import compute_config_hash
@@ -453,13 +387,6 @@ class Site(
         )
 
     @property
-    def theme_config(self) -> Theme:
-        """Get theme configuration object."""
-        if self._theme_obj is not None:
-            return self._theme_obj
-        return self.config_service.theme_config
-
-    @property
     def indexes(self) -> QueryIndexRegistry:
         """Access to query indexes for O(1) page lookups."""
         if self._query_registry is None:
@@ -467,36 +394,6 @@ class Site(
 
             self._query_registry = QueryIndexRegistry(cast(SiteLike, self), self.paths.indexes_dir)
         return self._query_registry
-
-    @property
-    def assets_config(self) -> dict[str, Any]:
-        """Get the assets configuration section."""
-        return self.config_service.assets_config
-
-    @property
-    def build_config(self) -> dict[str, Any]:
-        """Get the build configuration section."""
-        return self.config_service.build_config
-
-    @property
-    def i18n_config(self) -> dict[str, Any]:
-        """Get the internationalization configuration section."""
-        return self.config_service.i18n_config
-
-    @property
-    def menu_config(self) -> dict[str, Any]:
-        """Get the menu configuration section."""
-        return self.config_service.menu_config
-
-    @property
-    def content_config(self) -> dict[str, Any]:
-        """Get the content configuration section."""
-        return self.config_service.content_config
-
-    @property
-    def output_config(self) -> dict[str, Any]:
-        """Get the output configuration section."""
-        return self.config_service.output_config
 
     @property
     def registry(self) -> ContentRegistry:
@@ -890,64 +787,6 @@ class Site(
         )
 
     # =========================================================================
-    # CASCADE (inlined from SiteCascadeMixin)
-    # =========================================================================
-
-    @property
-    def cascade(self) -> CascadeSnapshot:
-        """
-        Get the immutable cascade snapshot for this build.
-
-        Resolution order:
-            1. BuildState.cascade_snapshot (during builds — structurally fresh)
-            2. Local _cascade_snapshot (outside builds — tests, CLI)
-            3. Empty snapshot (graceful fallback)
-
-        The cascade snapshot provides thread-safe access to cascade metadata
-        without locks. It is computed once at build start and can be safely
-        accessed from multiple render threads in free-threaded Python.
-
-        Returns:
-            CascadeSnapshot instance (empty if not yet built)
-
-        Example:
-            >>> page_type = site.cascade.resolve("docs/guide", "type")
-            >>> all_cascade = site.cascade.resolve_all("docs/guide")
-        """
-        # During builds: delegate to BuildState (structurally fresh each build)
-        if self._current_build_state is not None:
-            snapshot = self._current_build_state.cascade_snapshot
-            if snapshot is not None:
-                return snapshot
-
-        # Outside builds (tests, CLI): use local fallback
-        if self._cascade_snapshot is not None:
-            return self._cascade_snapshot
-
-        # Return empty snapshot for graceful fallback
-        from bengal.core.cascade_snapshot import CascadeSnapshot
-
-        return CascadeSnapshot.empty()
-
-    def build_cascade_snapshot(self) -> None:
-        """
-        Build the immutable cascade snapshot from all sections.
-
-        Delegates to bengal.core.cascade_snapshot.build_cascade_from_content()
-        and stores the result on BuildState (primary) and _cascade_snapshot (fallback).
-        """
-        from bengal.core.cascade_snapshot import build_cascade_from_content
-
-        snapshot = build_cascade_from_content(self.root_path, self.sections, self.pages)
-
-        # Store on BuildState if available (primary path during builds)
-        if self._current_build_state is not None:
-            self._current_build_state.cascade_snapshot = snapshot
-
-        # Always store locally for non-build access (tests, CLI)
-        self._cascade_snapshot = snapshot
-
-    # =========================================================================
     # PAGE CACHES (delegated to PageCacheManager)
     # =========================================================================
 
@@ -982,316 +821,6 @@ class Site(
     def invalidate_regular_pages_cache(self) -> None:
         """Clear only the regular_pages cache."""
         self._page_cache.invalidate_regular()
-
-    # =========================================================================
-    # LIFECYCLE (inlined from SiteLifecycleMixin)
-    # =========================================================================
-
-    def prepare_for_rebuild(self) -> None:
-        """
-        Reset content and derived-content state for a warm rebuild.
-
-        Called by BuildTrigger before each warm build to ensure clean state
-        while preserving config, theme, paths, and other immutable state that
-        is expensive to recompute.
-
-        What IS reset here (content and derived structures):
-            - pages, sections, assets (rediscovered every build)
-            - taxonomies, menus, xref_index (rebuilt from content)
-            - page caches (regular_pages, generated_pages, etc.)
-            - content registry and URL registry
-            - _cascade_snapshot fallback (primary is on BuildState)
-            - _page_lookup_maps (legacy fallback field)
-
-        What is handled by BuildState (structurally fresh each build):
-            - cascade_snapshot (primary — site.cascade delegates to BuildState)
-            - features_detected, discovery_timing_ms
-            - template caches (theme_chain, template_dirs, template_metadata)
-            - asset_manifest_previous, asset_manifest_fallbacks
-            - current_language, current_version (render context)
-
-        What is NOT reset (immutable/persistent across builds):
-            - root_path, config, theme, output_dir (configuration)
-            - _theme_obj, _paths, _config_hash (derived config)
-            - version_config (versioning setup)
-            - data (data/ directory — reloaded during discovery if changed)
-            - dev_mode (runtime flag)
-            - build_time (overwritten at build start)
-
-        Example:
-            # Dev server warm rebuild:
-            site.prepare_for_rebuild()
-            site.build(options)
-
-        See Also:
-            bengal/server/build_trigger.py: Where this is called
-            bengal/orchestration/build_state.py: Per-build ephemeral state
-            bengal/core/site/cascade.py: Cascade bridge to BuildState
-        """
-        # =================================================================
-        # Content (rediscovered every build)
-        # =================================================================
-        self.pages = []
-        self.sections = []
-        self.assets = []
-
-        # =================================================================
-        # Derived content (rebuilt from content every build)
-        # =================================================================
-        self.taxonomies = {}
-        self.menu = {}
-        self.menu_builders = {}
-        self.menu_localized = {}
-        self.menu_builders_localized = {}
-        self.xref_index = {}
-
-        # =================================================================
-        # Cascade snapshot — local fallback
-        #
-        # The primary cascade path now goes through BuildState (structurally
-        # fresh each build). This reset is a safety net for the local
-        # fallback path used by tests and CLI health checks.
-        # =================================================================
-        self._cascade_snapshot = None
-
-        # =================================================================
-        # Page caches (must be invalidated when pages change)
-        # =================================================================
-        if hasattr(self, "invalidate_page_caches"):
-            self.invalidate_page_caches()
-        if hasattr(self, "invalidate_regular_pages_cache"):
-            self.invalidate_regular_pages_cache()
-
-        # =================================================================
-        # Content registry (unfreezes and clears for re-discovery)
-        # =================================================================
-        if hasattr(self, "registry"):
-            self.registry.clear()
-
-        # URL registry (fresh registry for new build)
-        from bengal.core.url_ownership import URLRegistry
-
-        self.url_registry = URLRegistry()
-        if hasattr(self, "registry"):
-            self.registry.url_ownership = self.url_registry
-
-        # =================================================================
-        # Legacy per-build fields (primary path is now BuildState)
-        #
-        # These are kept as safety nets for code paths that haven't
-        # been migrated to use BuildState yet.
-        # =================================================================
-        self._page_lookup_maps = None
-
-    # =========================================================================
-    # OPERATIONS (inlined from SiteOperationsMixin)
-    # =========================================================================
-
-    def build(
-        self,
-        options: BuildOptions | BuildInput,
-    ) -> BuildStats:
-        """
-        Build the entire site.
-
-        Delegates to BuildOrchestrator for actual build process.
-
-        Args:
-            options: BuildOptions or BuildInput with all build configuration.
-
-        Returns:
-            BuildStats object with build statistics
-
-        Example:
-            >>> from bengal.orchestration.build.options import BuildOptions
-            >>> options = BuildOptions(strict=True)
-            >>> stats = site.build(options)
-        """
-        from bengal.orchestration import BuildOrchestrator
-
-        orchestrator = BuildOrchestrator(self)
-        return orchestrator.build(options)
-
-    def serve(
-        self,
-        host: str = "localhost",
-        port: int = 5173,
-        watch: bool = True,
-        auto_port: bool = True,
-        open_browser: bool = False,
-        version_scope: str | None = None,
-    ) -> None:
-        """
-        Start a development server.
-
-        Args:
-            host: Server host
-            port: Server port
-            watch: Whether to watch for file changes and rebuild
-            auto_port: Whether to automatically find an available port if the specified one is
-                       in use
-            open_browser: Whether to automatically open the browser
-            version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
-                If None, all versions are rebuilt on changes.
-        """
-        from bengal.server.dev_server import DevServer
-
-        server = DevServer(
-            self,
-            host=host,
-            port=port,
-            watch=watch,
-            auto_port=auto_port,
-            open_browser=open_browser,
-            version_scope=version_scope,
-        )
-        server.start()
-
-    def clean(self) -> None:
-        """
-        Clean the output directory by removing all generated files.
-
-        Useful for starting fresh or troubleshooting build issues.
-
-        Example:
-            >>> site = Site.from_config(Path('/path/to/site'))
-            >>> site.clean()  # Remove all files in public/
-            >>> site.build()  # Rebuild from scratch
-        """
-        if self.output_dir.exists():
-            # Use debug level to avoid noise in clean command output
-            emit_diagnostic(self, "debug", "cleaning_output_dir", path=str(self.output_dir))
-            self._rmtree_robust(self.output_dir)
-            emit_diagnostic(self, "debug", "output_dir_cleaned", path=str(self.output_dir))
-        else:
-            emit_diagnostic(self, "debug", "output_dir_does_not_exist", path=str(self.output_dir))
-
-    @staticmethod
-    def _rmtree_robust(path: Path, max_retries: int = 3) -> None:
-        """
-        Remove directory tree with retry logic for transient filesystem errors.
-
-        Delegates to bengal.utils.file_io.rmtree_robust for the actual
-        implementation.
-
-        Args:
-            path: Directory to remove
-            max_retries: Number of retry attempts (default 3)
-
-        Raises:
-            OSError: If deletion fails after all retries
-        """
-        from bengal.utils.io.file_io import rmtree_robust
-
-        rmtree_robust(path, max_retries=max_retries, caller="site")
-
-    def reset_ephemeral_state(self) -> None:
-        """
-        Clear ephemeral/derived state that should not persist between builds.
-
-        This method is intended for long-lived Site instances (e.g., dev server)
-        to avoid stale object references across rebuilds.
-
-        Most per-build state (cascade, template caches, features_detected,
-        discovery timing) now lives on BuildState which is structurally fresh
-        each build. This method only needs to reset content, derived structures,
-        registries, and legacy fields.
-
-        Persistence contract:
-        - Persist: root_path, config, theme, output_dir, build_time, dev_mode
-        - Clear: pages, sections, assets (content)
-        - Clear derived: taxonomies, menu, xref_index
-        - Clear caches: page caches
-        - Clear registries: content registry, URL registry
-        - Handled by BuildState: cascade, template caches, features, discovery timing
-        """
-        emit_diagnostic(self, "debug", "site_reset_ephemeral_state", site_root=str(self.root_path))
-
-        # Content to be rediscovered
-        self.pages = []
-        self.sections = []
-        self.assets = []
-
-        # Derived structures (contain object references)
-        self.taxonomies = {}
-        self.menu = {}
-        self.menu_builders = {}
-        self.menu_localized = {}
-        self.menu_builders_localized = {}
-
-        # Indices (rebuilt from pages)
-        self.xref_index = {}
-
-        # Cached properties
-        self.invalidate_page_caches()
-
-        # Clear content registry (includes section registries and URL ownership)
-        self.registry.clear()
-
-        # Reset URL registry and reconnect with content registry
-        from bengal.core.url_ownership import URLRegistry
-
-        self.url_registry = URLRegistry()
-        self.registry.url_ownership = self.url_registry
-
-        # Reset query registry (clear cached_property)
-        self.__dict__.pop("indexes", None)
-
-        # Reset theme if needed (will be reloaded on first access)
-        self._theme_obj = None
-
-        # Legacy per-build fields (primary path is now BuildState).
-        # These may not exist as dataclass fields, so guard with hasattr.
-        self._page_lookup_maps = None
-        self._bengal_theme_chain_cache = None
-        self._bengal_template_dirs_cache = None
-        self._bengal_template_metadata_cache = None
-        self._discovery_breakdown_ms = None
-        if hasattr(self, "_asset_manifest_fallbacks_global"):
-            self._asset_manifest_fallbacks_global.clear()
-        if hasattr(self, "features_detected"):
-            self.features_detected.clear()
-
-        # Clear Kida adapter's asset manifest cache (used for fingerprint resolution)
-        if hasattr(self, "_kida_asset_manifest_cache"):
-            delattr(self, "_kida_asset_manifest_cache")
-
-        # Clear thread-local rendering caches
-        from bengal.rendering.pipeline.thread_local import get_created_dirs
-
-        get_created_dirs().clear()
-
-        # Clear thread-local asset manifest context
-        from bengal.rendering.assets import reset_asset_manifest
-
-        reset_asset_manifest()
-
-    @property
-    def build_state(self) -> BuildState | None:
-        """
-        Current build state (None outside build context).
-
-        Returns:
-            BuildState during build execution, None otherwise
-
-        Example:
-            if site.build_state:
-                lock = site.build_state.get_lock("asset_write")
-        """
-        return self._current_build_state
-
-    def set_build_state(self, state: BuildState | None) -> None:
-        """
-        Set current build state (called by BuildOrchestrator).
-
-        Args:
-            state: BuildState to set, or None to clear
-
-        Note:
-            This is called internally by BuildOrchestrator at build start/end.
-            Do not call directly unless implementing custom build coordination.
-        """
-        self._current_build_state = state
 
 
 __all__ = [
