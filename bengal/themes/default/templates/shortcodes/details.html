@@ -1,0 +1,9 @@
+{# Collapsible details. Usage: {{% details summary="Click to expand" %}}Content here{{% /details %}} #}
+{% set summary = shortcode.Get("summary") %}
+{% set open = shortcode.GetBool("open", False) %}
+<details{% if open %} open{% end %}>
+  <summary>{{ summary or "Details" }}</summary>
+  <div class="details-content">
+    {{ shortcode.Inner }}
+  </div>
+</details>

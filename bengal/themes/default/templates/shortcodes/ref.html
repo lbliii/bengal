@@ -1,0 +1,5 @@
+{# Internal page link. Usage: {{< ref "docs/guide/intro" >}} or {{< ref path:docs/guide/intro >}} #}
+{% set path = shortcode.Get(0) or shortcode.Get("path") %}
+{% if path %}
+  <a href="{{ shortcode.Ref(path) }}">{{ shortcode.Get("text") or path }}</a>
+{% end %}

@@ -1,0 +1,5 @@
+{# Simple audio player shortcode. Usage: {{< audio src=/audio/test.mp3 >}} #}
+{% set src = shortcode.Get("src") %}
+{% if src %}
+  <audio controls preload="auto" src="{{ src }}"></audio>
+{% end %}

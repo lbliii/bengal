@@ -147,6 +147,9 @@ assets_cli = _create_lazy_group(
     "bengal.cli.commands.assets:assets", "assets", "Asset pipeline management"
 )
 theme_cli = _create_lazy_group("bengal.cli.commands.theme:theme", "theme", "Theme utilities")
+shortcodes_cli = _create_lazy_group(
+    "bengal.cli.commands.shortcodes:shortcodes_cli", "shortcodes", "Shortcode utilities"
+)
 sources_group = _create_lazy_group(
     "bengal.cli.commands.sources:sources_group", "sources", "Content source management"
 )
@@ -338,6 +341,9 @@ main.add_command(assets_cli)
 
 # Theme utilities
 main.add_command(theme_cli)
+
+# Shortcode utilities
+main.add_command(shortcodes_cli)
 
 # Content sources
 main.add_command(sources_group)

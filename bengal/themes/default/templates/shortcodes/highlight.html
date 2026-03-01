@@ -1,0 +1,3 @@
+{# Code block with language class. Usage: {{< highlight lang=python >}}def foo(): pass{{< /highlight >}} #}
+{% set lang = shortcode.Get("lang") or shortcode.Get(0) %}
+<pre><code{% if lang %} class="language-{{ lang }}"{% end %}>{{ shortcode.Inner }}</code></pre>

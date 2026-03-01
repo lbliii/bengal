@@ -347,6 +347,12 @@ class PageProxy:
     content = _lazy_property("content", default="", doc="Rendered HTML content (lazy-loaded).")
     _source = _lazy_property("_source", default="", doc="Raw markdown source (lazy-loaded).")
 
+    def HasShortcode(self, name: str) -> bool:
+        """Return True if page content uses the given shortcode."""
+        from bengal.rendering.shortcodes import has_shortcode
+
+        return has_shortcode(self, name)
+
     @property
     def metadata(self) -> Mapping[str, Any]:
         """

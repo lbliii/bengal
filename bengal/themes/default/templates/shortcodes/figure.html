@@ -1,0 +1,19 @@
+{# Figure with optional caption and link. Usage: {{< figure src=/images/cat.jpg alt="A cat" caption="Photo by Jane" >}} #}
+{% set src = shortcode.Get("src") %}
+{% set alt = shortcode.Get("alt") %}
+{% set caption = shortcode.Get("caption") %}
+{% set link = shortcode.Get("link") %}
+{% if src %}
+  <figure class="figure">
+    {% if link %}
+      <a href="{{ link }}">
+    {% end %}
+    <img src="{{ src }}" alt="{{ alt }}" loading="lazy">
+    {% if link %}
+      </a>
+    {% end %}
+    {% if caption %}
+      <figcaption>{{ caption }}</figcaption>
+    {% end %}
+  </figure>
+{% end %}

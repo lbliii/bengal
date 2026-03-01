@@ -1,0 +1,3 @@
+{# Image. Usage: {{< img src=path alt="..." >}} or nested in gallery. #}
+{% set cls = shortcode.Parent.Get("class") if shortcode.Parent else shortcode.Get("class") %}
+<img src="{{ shortcode.Get('src') }}" alt="{{ shortcode.Get('alt') }}"{% if cls %} class="{{ cls }}"{% end %}>
