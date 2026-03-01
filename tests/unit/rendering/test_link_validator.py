@@ -205,6 +205,49 @@ class TestPageUrlIndex:
         assert "/blog/post/" in index
         assert "/custom-url/" in index
 
+    def test_index_includes_llm_txt_urls_when_enabled(self):
+        """Test that index.txt URLs are valid when output_formats.llm_txt is enabled."""
+        site = MagicMock()
+        site.config = {"output_formats": {"enabled": True, "per_page": ["json", "llm_txt"]}}
+        page = MagicMock()
+        page.href = "/api/bengal/experimental/"
+        page.permalink = None
+        site.pages = [page]
+
+        validator = LinkValidator()
+        index = validator._build_page_url_index(site)
+
+        assert "/api/bengal/experimental/index.txt" in index
+
+    def test_index_excludes_llm_txt_urls_when_disabled(self):
+        """Test that index.txt URLs are not added when llm_txt is disabled."""
+        site = MagicMock()
+        site.config = {"output_formats": {"enabled": True, "per_page": ["json"]}}
+        page = MagicMock()
+        page.href = "/api/bengal/experimental/"
+        page.permalink = None
+        site.pages = [page]
+
+        validator = LinkValidator()
+        index = validator._build_page_url_index(site)
+
+        assert "/api/bengal/experimental/index.txt" not in index
+
+    def test_index_txt_link_valid_when_llm_txt_enabled(self):
+        """Test that action-bar index.txt links validate when llm_txt is enabled."""
+        site = MagicMock()
+        site.config = {"output_formats": {"enabled": True, "per_page": ["llm_txt"]}}
+        page = MagicMock()
+        page.href = "/api/bengal/experimental/"
+        page.source_path = Path("content/api/bengal/experimental.md")
+        page.links = ["/api/bengal/experimental/index.txt"]
+        site.pages = [page]
+
+        validator = LinkValidator()
+        broken = validator.validate_site(site)
+
+        assert len(broken) == 0
+
 
 class TestValidateSite:
     """Test full site validation."""

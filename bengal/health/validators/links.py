@@ -6,9 +6,10 @@ It validates internal links in pages against the site's page URLs to catch
 broken links during build time.
 
 Key features:
-- Validates internal links resolve to existing pages
+- Validates internal links resolve to existing pages or auxiliary outputs
 - Handles relative paths and fragments
 - Supports trailing slash variations
+- Includes output_formats URLs (e.g. index.txt) when llm_txt is enabled
 - Caches validation results for performance
 - Integrates with health check system for observability
 
@@ -72,18 +73,52 @@ class LinkValidator:
         self._source_paths: set[str] | None = None
         self._site: SiteLike | None = site
 
+    def _llm_txt_enabled(self, site: Any) -> bool:
+        """Check if output_formats.llm_txt is enabled (index.txt generated per page)."""
+        of = getattr(site, "config", {}) or {}
+        of = of.get("output_formats", {}) or {}
+        if not of.get("enabled", True):
+            return False
+        per_page = of.get("per_page", [])
+        return "llm_txt" in per_page
+
+    def _build_auxiliary_url_index(self, site: Any) -> set[str]:
+        """
+        Build index of auxiliary output URLs (e.g. index.txt) when enabled.
+
+        The action bar links to index.txt for LLM/AI discovery. These are valid
+        when output_formats.per_page includes "llm_txt". Uses same URL convention
+        as action-bar.html: page_url + "index.txt".
+
+        Args:
+            site: Site instance with pages and config
+
+        Returns:
+            Set of valid auxiliary URLs
+        """
+        if not self._llm_txt_enabled(site):
+            return set()
+        urls: set[str] = set()
+        for page in site.pages:
+            url = getattr(page, "href", None)
+            if url:
+                base = url.rstrip("/") + "/"
+                urls.add(base + "index.txt")
+        return urls
+
     def _build_page_url_index(self, site: Any) -> set[str]:
         """
-        Build an index of all page URLs for fast lookup.
+        Build an index of all valid internal link targets for fast lookup.
 
-        Creates normalized URL variants (with/without trailing slashes)
-        for flexible matching.
+        Includes page URLs and auxiliary outputs (index.txt) when output_formats
+        are enabled. Creates normalized URL variants (with/without trailing
+        slashes) for flexible matching.
 
         Args:
             site: Site instance containing pages
 
         Returns:
-            Set of all valid page URLs
+            Set of all valid internal link targets
         """
         urls: set[str] = set()
         for page in site.pages:
@@ -101,6 +136,7 @@ class LinkValidator:
                     urls.add(permalink.rstrip("/"))
                     urls.add(permalink.rstrip("/") + "/")
 
+        urls.update(self._build_auxiliary_url_index(site))
         return urls
 
     def _build_source_path_index(self, site: Any) -> set[str]:
