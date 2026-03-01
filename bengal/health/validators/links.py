@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, override
 from urllib.parse import urlparse
 
+from bengal.build.contracts.keys import content_key
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, ValidatorStats
 from bengal.health.utils import relative_path
@@ -149,27 +150,26 @@ class LinkValidator:
         Build an index of all source paths for resolving relative links.
 
         Used to validate relative links like ./sibling.md against actual source files.
+        Uses content_key for consistent path format (discovery vs resolved target).
 
         Args:
             site: Site instance containing pages
 
         Returns:
-            Set of all source paths (normalized, relative to content dir)
+            Set of content keys (normalized, relative to site root)
         """
         paths: set[str] = set()
-        content_root = getattr(site, "content_dir", None) or (site.root_path / "content")
+        root = site.root_path
 
         for page in site.pages:
             source_path = getattr(page, "source_path", None)
             if source_path:
-                # Add the full path
-                paths.add(str(source_path))
-                # Try to add path relative to content root
-                try:
-                    rel_path = Path(source_path).relative_to(content_root)
-                    paths.add(str(rel_path))
-                except ValueError:
-                    pass
+                full = (
+                    (root / source_path)
+                    if not Path(source_path).is_absolute()
+                    else Path(source_path)
+                )
+                paths.add(content_key(full, root))
 
         return paths
 
@@ -395,9 +395,13 @@ class LinkValidator:
             # Path resolution failed
             return False
 
-        # Check if this target exists in our source paths
-        target_str = str(target_path)
-        is_valid = target_str in self._source_paths if self._source_paths else False
+        # Check if this target exists in our source paths (content_key for alignment)
+        site = getattr(self, "_site", None)
+        if site and self._source_paths:
+            target_key = content_key(target_path, site.root_path)
+            is_valid = target_key in self._source_paths
+        else:
+            is_valid = False
 
         # Also try checking if the file actually exists on disk
         if not is_valid and target_path.exists():

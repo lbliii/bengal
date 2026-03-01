@@ -17,9 +17,10 @@ from bengal.health.validators.links import LinkValidator
 
 
 @pytest.fixture
-def mock_site():
+def mock_site(tmp_path):
     """Create a mock site with sample pages."""
     site = MagicMock()
+    site.root_path = tmp_path
 
     # Create mock pages with URLs
     page1 = MagicMock()

@@ -177,6 +177,9 @@ class ProvenanceFilter:
             )
 
         forced = forced_changed or set()
+        # Normalize forced paths to content_key for consistent comparison.
+        # Watcher uses absolute Paths; discovery uses relative. Both must match.
+        forced_keys: set[str] = {content_key(p.resolve(), self.site.root_path) for p in forced}
 
         pages_to_build: list[Page] = []
         pages_skipped: list[Page] = []
@@ -188,7 +191,7 @@ class ProvenanceFilter:
             page_path = self._get_page_key(page)
 
             # Check if forced changed (fast path - skip cache check)
-            if page.source_path in forced:
+            if page_path in forced_keys:
                 pages_to_build.append(page)
                 changed_page_paths.add(page.source_path)
                 self._collect_affected(page, affected_tags, affected_sections)
@@ -261,7 +264,7 @@ class ProvenanceFilter:
         assets_to_process: list[Asset] = [
             asset
             for asset in assets
-            if asset.source_path in forced
+            if content_key(asset.source_path, self.site.root_path) in forced_keys
             or self._is_forced_by_dependency(asset, forced)
             or self._is_asset_changed(asset)
         ]
@@ -652,7 +655,9 @@ class ProvenanceFilter:
         """
         if not forced:
             return False
-        if asset.source_path in forced:
+        asset_key = content_key(asset.source_path, self.site.root_path)
+        forced_keys = {content_key(p.resolve(), self.site.root_path) for p in forced}
+        if asset_key in forced_keys:
             return True  # Direct match
         if not asset.is_css_entry_point():
             return False
