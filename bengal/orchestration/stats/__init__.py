@@ -61,13 +61,14 @@ from bengal.orchestration.stats.helpers import (
     show_error,
     show_welcome,
 )
-from bengal.orchestration.stats.models import BuildStats, BuildWarning
+from bengal.orchestration.stats.models import BuildStats, BuildWarning, ReloadHint
 from bengal.orchestration.stats.warnings import display_warnings
 
 __all__ = [
     # Models
     "BuildStats",
     "BuildWarning",
+    "ReloadHint",
     # Display
     "display_build_stats",
     "display_simple_build_stats",

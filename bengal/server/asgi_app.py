@@ -9,14 +9,17 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-import queue
-import threading
 import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from bengal.server.live_reload import LIVE_RELOAD_SCRIPT, run_sse_loop
+from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+from bengal.server.live_reload.sse import (
+    _get_keepalive_interval,
+    get_current_generation,
+    wait_for_sse_event,
+)
 from bengal.server.responses import get_rebuilding_badge_script
 from bengal.server.utils import find_html_injection_point, get_content_type
 
@@ -288,25 +291,13 @@ async def _send_404(
 
 
 async def _handle_sse(send: Any, *, keepalive_interval: float | None = None) -> None:
-    """Handle GET /__bengal_reload__ with SSE stream via thread/queue bridge."""
-    q: queue.Queue[bytes | None] = queue.Queue()
-    client_disconnected = threading.Event()
+    """Handle GET /__bengal_reload__ as a pure-async SSE stream.
 
-    def write_fn(chunk: bytes) -> None:
-        if client_disconnected.is_set():
-            raise ConnectionResetError("Client disconnected")
-        q.put(chunk)
-
-    def run_sse_thread() -> None:
-        try:
-            run_sse_loop(write_fn, keepalive_interval=keepalive_interval)
-        except BrokenPipeError, ConnectionResetError:
-            pass
-        finally:
-            q.put(None)  # Sentinel: run_sse_loop finished
-
-    thread = threading.Thread(target=run_sse_thread, daemon=True)
-    thread.start()
+    Uses asyncio.to_thread for the blocking Condition.wait inside
+    wait_for_sse_event, keeping the async task cancellable by Pounce's
+    disconnect monitor. No threads or queues are managed here.
+    """
+    interval = keepalive_interval if keepalive_interval is not None else _get_keepalive_interval()
 
     await send(
         {
@@ -325,26 +316,23 @@ async def _handle_sse(send: Any, *, keepalive_interval: float | None = None) -> 
         }
     )
 
+    async def _send_chunk(data: bytes, *, more: bool = True) -> None:
+        await send({"type": "http.response.body", "body": data, "more_body": more})
+
+    await _send_chunk(b"retry: 2000\n\n")
+    await _send_chunk(b": connected\n\n")
+
+    last_gen = get_current_generation()
+
     try:
         while True:
-            chunk = await asyncio.to_thread(q.get)
-            if chunk is None:
+            result = await asyncio.to_thread(wait_for_sse_event, last_gen, interval)
+            if result is None:
                 break
-            await send(
-                {
-                    "type": "http.response.body",
-                    "body": chunk,
-                    "more_body": True,
-                }
-            )
-    except ConnectionResetError, BrokenPipeError, OSError:
-        client_disconnected.set()
-    finally:
-        with contextlib.suppress(ConnectionResetError, BrokenPipeError, OSError):
-            await send(
-                {
-                    "type": "http.response.body",
-                    "body": b"",
-                    "more_body": False,
-                }
-            )
+            chunk, last_gen = result
+            await _send_chunk(chunk)
+    except asyncio.CancelledError, ConnectionError, OSError:
+        pass
+
+    with contextlib.suppress(ConnectionError, OSError):
+        await _send_chunk(b"", more=False)

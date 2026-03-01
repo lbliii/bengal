@@ -8,10 +8,12 @@ Modules:
     contextvar: Generic ContextVarManager[T] for thread-safe context management
     url: URL manipulation and baseurl handling
     safe_access: Safe attribute/dict access with Jinja2 Undefined handling
+    template_safe: Decorator for template functions that may receive invalid types
 """
 
 from bengal.rendering.utils.contextvar import ContextVarManager
 from bengal.rendering.utils.safe_access import safe_get, safe_get_nested
+from bengal.rendering.utils.template_safe import template_safe
 from bengal.rendering.utils.url import apply_baseurl, normalize_url_path
 
 __all__ = [
@@ -23,4 +25,6 @@ __all__ = [
     # Safe access utilities
     "safe_get",
     "safe_get_nested",
+    # Template safety
+    "template_safe",
 ]

@@ -9,6 +9,8 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING
 
+from bengal.rendering.utils.template_safe import template_safe
+
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike, TemplateEnvironment
 
@@ -29,6 +31,10 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     )
 
 
+@template_safe(
+    default="0%",
+    exceptions=(TypeError, ValueError, ZeroDivisionError),
+)
 def percentage(part: Number, total: Number, decimals: int = 0) -> str:
     """
     Calculate percentage.
@@ -48,14 +54,11 @@ def percentage(part: Number, total: Number, decimals: int = 0) -> str:
     """
     if total == 0:
         return "0%"
-
-    try:
-        pct = (float(part) / float(total)) * 100
-        return f"{pct:.{decimals}f}%"
-    except TypeError, ValueError, ZeroDivisionError:
-        return "0%"
+    pct = (float(part) / float(total)) * 100
+    return f"{pct:.{decimals}f}%"
 
 
+@template_safe(default=0)
 def times(value: Number, multiplier: Number) -> Number:
     """
     Multiply value by multiplier.
@@ -72,12 +75,10 @@ def times(value: Number, multiplier: Number) -> Number:
         {{ count | times(5) }}     # Multiply by 5
 
     """
-    try:
-        return float(value) * float(multiplier)
-    except TypeError, ValueError:
-        return 0
+    return float(value) * float(multiplier)
 
 
+@template_safe(default=0)
 def divided_by(value: Number, divisor: Number) -> Number:
     """
     Divide value by divisor.
@@ -96,13 +97,10 @@ def divided_by(value: Number, divisor: Number) -> Number:
     """
     if divisor == 0:
         return 0
-
-    try:
-        return float(value) / float(divisor)
-    except TypeError, ValueError:
-        return 0
+    return float(value) / float(divisor)
 
 
+@template_safe(default=0)
 def ceil_filter(value: Number) -> int:
     """
     Round up to nearest integer.
@@ -118,12 +116,10 @@ def ceil_filter(value: Number) -> int:
         {{ 4.9 | ceil }}   # 5
 
     """
-    try:
-        return math.ceil(float(value))
-    except TypeError, ValueError:
-        return 0
+    return math.ceil(float(value))
 
 
+@template_safe(default=0)
 def floor_filter(value: Number) -> int:
     """
     Round down to nearest integer.
@@ -139,12 +135,10 @@ def floor_filter(value: Number) -> int:
         {{ 4.9 | floor }}  # 4
 
     """
-    try:
-        return math.floor(float(value))
-    except TypeError, ValueError:
-        return 0
+    return math.floor(float(value))
 
 
+@template_safe(default=0)
 def round_filter(value: Number, decimals: int = 0) -> Number:
     """
     Round to specified decimal places.
@@ -162,7 +156,4 @@ def round_filter(value: Number, decimals: int = 0) -> Number:
         {{ 4.567 | round(1) }}  # 4.6
 
     """
-    try:
-        return round(float(value), decimals)
-    except TypeError, ValueError:
-        return 0
+    return round(float(value), decimals)

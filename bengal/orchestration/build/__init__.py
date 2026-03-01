@@ -61,7 +61,7 @@ from bengal.orchestration.menu import MenuOrchestrator
 from bengal.orchestration.postprocess import PostprocessOrchestrator
 from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.section import SectionOrchestrator
-from bengal.orchestration.stats import BuildStats
+from bengal.orchestration.stats import BuildStats, ReloadHint
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 from bengal.protocols.capabilities import HasErrors
 from bengal.utils.observability.logger import get_logger
@@ -774,16 +774,21 @@ class BuildOrchestrator:
         # Populate changed_outputs from collector for hot reload decisions
         self.stats.changed_outputs = output_collector.get_outputs()
 
-        # Compute reload_hint for smarter dev server decisions
+        # Compute reload_hint for smarter dev server decisions.
+        # Only set "none" when we have outputs and can confidently say no reload.
+        # When outputs is empty (e.g. output_collector missing from pipeline),
+        # leave reload_hint=None so the trigger uses changed_files fallback.
         outputs = self.stats.changed_outputs
-        if self.stats.dry_run or not outputs:
-            self.stats.reload_hint = "none"
+        if self.stats.dry_run:
+            self.stats.reload_hint = ReloadHint.NONE
+        elif not outputs:
+            self.stats.reload_hint = None
         elif any(o.output_type.value == "html" for o in outputs):
-            self.stats.reload_hint = "full"
+            self.stats.reload_hint = ReloadHint.FULL
         elif all(o.output_type.value == "css" for o in outputs):
-            self.stats.reload_hint = "css-only"
+            self.stats.reload_hint = ReloadHint.CSS_ONLY
         else:
-            self.stats.reload_hint = "full"
+            self.stats.reload_hint = ReloadHint.FULL
 
         # Debug: Log output collection for hot reload diagnostics
         if self.stats.changed_outputs:

@@ -2,6 +2,8 @@
 Tests for live reload functionality.
 """
 
+import contextlib
+
 import pytest
 
 from bengal.server.live_reload import LIVE_RELOAD_SCRIPT, LiveReloadMixin
@@ -44,7 +46,8 @@ class TestLiveReloadScriptInjection:
         """Test that the live reload script has expected content."""
         assert "EventSource" in LIVE_RELOAD_SCRIPT
         assert "__bengal_reload__" in LIVE_RELOAD_SCRIPT
-        assert "location.reload()" in LIVE_RELOAD_SCRIPT
+        assert "location.replace" in LIVE_RELOAD_SCRIPT
+        assert "_bengal" in LIVE_RELOAD_SCRIPT
         assert "<script>" in LIVE_RELOAD_SCRIPT
         assert "</script>" in LIVE_RELOAD_SCRIPT
 
@@ -152,6 +155,332 @@ class TestReloadPayload:
         assert "reload-css" in live_reload._last_action
         assert "css-only" in live_reload._last_action
         assert "assets/style.css" in live_reload._last_action
+
+
+class TestSSELoopRoundTrip:
+    """Tests that send_reload_payload reaches the SSE loop write_fn."""
+
+    def test_send_reload_payload_reaches_write_fn(self):
+        """When send_reload_payload is called, run_sse_loop's write_fn receives the data."""
+        import threading
+        import time
+
+        from bengal.server.live_reload import (
+            reset_sse_shutdown,
+            run_sse_loop,
+            send_reload_payload,
+            shutdown_sse_clients,
+        )
+
+        reset_sse_shutdown()
+        chunks: list[bytes] = []
+        chunk_received = threading.Event()
+
+        def capture_write(data: bytes) -> None:
+            chunks.append(data)
+            if data.startswith(b"data:"):
+                chunk_received.set()
+
+        def run_loop() -> None:
+            run_sse_loop(capture_write, keepalive_interval=0.05)
+
+        thread = threading.Thread(target=run_loop)
+        thread.start()
+
+        try:
+            send_reload_payload("reload", "test-reason", ["index.html"])
+            chunk_received.wait(timeout=2.0)
+            time.sleep(0.05)
+        finally:
+            shutdown_sse_clients()
+            thread.join(timeout=2.0)
+
+        data_chunks = [c for c in chunks if c.startswith(b"data:")]
+        assert len(data_chunks) >= 1
+        payload = data_chunks[-1].decode()
+        assert "data:" in payload
+        assert '"action"' in payload or "'action'" in payload
+        assert "reload" in payload
+        assert "test-reason" in payload
+
+    def test_no_stale_replay_on_connect(self):
+        """New SSE connections must NOT replay the last reload event."""
+        import threading
+
+        from bengal.server.live_reload import (
+            reset_sse_shutdown,
+            run_sse_loop,
+            send_reload_payload,
+            shutdown_sse_clients,
+        )
+
+        reset_sse_shutdown()
+
+        # Fire a reload so generation > 0
+        send_reload_payload("reload", "setup", [])
+
+        chunks: list[bytes] = []
+
+        def capture_write(data: bytes) -> None:
+            chunks.append(data)
+
+        def run_loop() -> None:
+            run_sse_loop(capture_write, keepalive_interval=0.05)
+
+        thread = threading.Thread(target=run_loop)
+        thread.start()
+
+        try:
+            # Give the loop one keepalive cycle to settle
+            import time
+
+            time.sleep(0.15)
+        finally:
+            shutdown_sse_clients()
+            thread.join(timeout=2.0)
+
+        # Opening frames should be retry + connected — no data: replay
+        opening = chunks[:2]
+        assert opening == [b"retry: 2000\n\n", b": connected\n\n"]
+
+        # Any subsequent data: chunks came from the loop body, not replay
+        data_in_opening = [c for c in chunks[:3] if c.startswith(b"data:")]
+        assert len(data_in_opening) == 0, f"Stale replay detected: {data_in_opening}"
+
+
+class TestWaitForSSEEvent:
+    """Tests for the async-friendly wait_for_sse_event helper."""
+
+    def test_returns_keepalive_on_timeout(self):
+        """When no event fires within the timeout, a keepalive is returned."""
+        from bengal.server.live_reload import (
+            get_current_generation,
+            reset_sse_shutdown,
+            wait_for_sse_event,
+        )
+
+        reset_sse_shutdown()
+        gen = get_current_generation()
+        result = wait_for_sse_event(gen, timeout=0.05)
+
+        assert result is not None
+        chunk, new_gen = result
+        assert chunk == b": keepalive\n\n"
+        assert new_gen == gen
+
+    def test_returns_event_on_notify(self):
+        """When a reload fires during the wait, the event data is returned."""
+        import threading
+
+        from bengal.server.live_reload import (
+            get_current_generation,
+            reset_sse_shutdown,
+            send_reload_payload,
+            wait_for_sse_event,
+        )
+
+        reset_sse_shutdown()
+        gen = get_current_generation()
+
+        def fire_reload() -> None:
+            import time
+
+            time.sleep(0.05)
+            send_reload_payload("reload-css", "test", ["style.css"])
+
+        t = threading.Thread(target=fire_reload)
+        t.start()
+
+        result = wait_for_sse_event(gen, timeout=2.0)
+        t.join(timeout=2.0)
+
+        assert result is not None
+        chunk, new_gen = result
+        assert chunk.startswith(b"data:")
+        assert new_gen > gen
+        assert b"reload-css" in chunk
+
+    def test_returns_none_on_shutdown(self):
+        """Returns None when shutdown is requested."""
+        from bengal.server.live_reload import (
+            get_current_generation,
+            reset_sse_shutdown,
+            shutdown_sse_clients,
+            wait_for_sse_event,
+        )
+
+        reset_sse_shutdown()
+        gen = get_current_generation()
+
+        import threading
+
+        def trigger_shutdown() -> None:
+            import time
+
+            time.sleep(0.05)
+            shutdown_sse_clients()
+
+        t = threading.Thread(target=trigger_shutdown)
+        t.start()
+
+        result = wait_for_sse_event(gen, timeout=2.0)
+        t.join(timeout=2.0)
+
+        assert result is None
+
+        reset_sse_shutdown()
+
+
+class TestAsyncSSEHandler:
+    """Tests for the pure-async _handle_sse ASGI handler."""
+
+    @pytest.fixture
+    def _reset_sse(self):
+        """Ensure SSE state is clean before and after each test."""
+        from bengal.server.live_reload import reset_sse_shutdown
+
+        reset_sse_shutdown()
+        yield
+        from bengal.server.live_reload import shutdown_sse_clients
+
+        shutdown_sse_clients()
+        reset_sse_shutdown()
+
+    @pytest.mark.asyncio
+    @pytest.mark.usefixtures("_reset_sse")
+    async def test_sends_headers_and_opening_frames(self):
+        """Handler sends SSE headers, retry, and connected frames."""
+        import asyncio
+
+        from bengal.server.live_reload import shutdown_sse_clients
+
+        messages: list[dict] = []
+
+        async def mock_send(msg: dict) -> None:
+            messages.append(msg)
+
+        async def run_handler() -> None:
+            from bengal.server.asgi_app import _handle_sse
+
+            await _handle_sse(mock_send, keepalive_interval=0.05)
+
+        task = asyncio.create_task(run_handler())
+        await asyncio.sleep(0.15)
+        shutdown_sse_clients()
+        await asyncio.wait_for(task, timeout=2.0)
+
+        assert messages[0]["type"] == "http.response.start"
+        assert messages[0]["status"] == 200
+        headers = dict(messages[0]["headers"])
+        assert headers[b"content-type"] == b"text/event-stream"
+
+        assert messages[1]["body"] == b"retry: 2000\n\n"
+        assert messages[2]["body"] == b": connected\n\n"
+
+    @pytest.mark.asyncio
+    @pytest.mark.usefixtures("_reset_sse")
+    async def test_delivers_reload_event(self):
+        """A reload fired during streaming reaches the client."""
+        import asyncio
+
+        from bengal.server.live_reload import send_reload_payload, shutdown_sse_clients
+
+        messages: list[dict] = []
+        got_data = asyncio.Event()
+
+        async def mock_send(msg: dict) -> None:
+            messages.append(msg)
+            if msg.get("type") == "http.response.body" and msg.get("body", b"").startswith(
+                b"data:"
+            ):
+                got_data.set()
+
+        async def run_handler() -> None:
+            from bengal.server.asgi_app import _handle_sse
+
+            await _handle_sse(mock_send, keepalive_interval=60)
+
+        task = asyncio.create_task(run_handler())
+        await asyncio.sleep(0.1)
+        send_reload_payload("reload", "test", ["index.html"])
+        await asyncio.wait_for(got_data.wait(), timeout=2.0)
+        shutdown_sse_clients()
+        await asyncio.wait_for(task, timeout=2.0)
+
+        data_msgs = [m for m in messages if m.get("body", b"").startswith(b"data:")]
+        assert len(data_msgs) >= 1
+        assert b"reload" in data_msgs[0]["body"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.usefixtures("_reset_sse")
+    async def test_cancellation_exits_cleanly(self):
+        """Handler exits cleanly when the task is cancelled (Pounce disconnect)."""
+        import asyncio
+
+        messages: list[dict] = []
+
+        async def mock_send(msg: dict) -> None:
+            messages.append(msg)
+
+        async def run_handler() -> None:
+            from bengal.server.asgi_app import _handle_sse
+
+            await _handle_sse(mock_send, keepalive_interval=60)
+
+        task = asyncio.create_task(run_handler())
+        await asyncio.sleep(0.1)
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
+        assert messages[0]["type"] == "http.response.start"
+
+
+class TestClientScriptPayloadContract:
+    """Tests that LIVE_RELOAD_SCRIPT matches server payload format."""
+
+    def test_script_parses_json_payload(self):
+        """Client script must parse event.data as JSON."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        assert "JSON.parse(event.data)" in LIVE_RELOAD_SCRIPT
+        assert "payload" in LIVE_RELOAD_SCRIPT
+
+    def test_script_checks_action_reload(self):
+        """Client script must handle action === 'reload' for full page reload."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        assert "action === 'reload'" in LIVE_RELOAD_SCRIPT
+
+    def test_script_checks_action_reload_css(self):
+        """Client script must handle action === 'reload-css' for CSS hot reload."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        assert "action === 'reload-css'" in LIVE_RELOAD_SCRIPT
+
+    def test_script_uses_changed_paths_from_payload(self):
+        """Client script must read changedPaths from payload for CSS targeting."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        assert "changedPaths" in LIVE_RELOAD_SCRIPT
+        assert "payload" in LIVE_RELOAD_SCRIPT
+
+    def test_script_payload_keys_match_send_reload_payload(self):
+        """Payload keys used by client must match send_reload_payload output."""
+        import json
+
+        from bengal.server.live_reload import send_reload_payload
+
+        send_reload_payload("reload", "test", ["a.css", "b.css"])
+        from bengal.server import live_reload
+
+        payload = json.loads(live_reload._last_action)
+        assert "action" in payload
+        assert "reason" in payload
+        assert "changedPaths" in payload
+        assert payload["action"] == "reload"
+        assert payload["reason"] == "test"
+        assert payload["changedPaths"] == ["a.css", "b.css"]
 
 
 class TestSetReloadAction:

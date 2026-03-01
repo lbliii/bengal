@@ -85,11 +85,14 @@ def create_pounce_backend(
         active_palette=active_palette,
         request_callback=request_callback,
     )
+    # Disable compression for dev server: SSE live reload must stream immediately.
+    # Compression can buffer chunks and delay EventSource delivery; Pounce skips
+    # text/event-stream but we avoid it entirely for dev to ensure reliable reload.
     config = ServerConfig(
         host=host,
         port=port,
         access_log=request_callback is None,
-        compression=True,
+        compression=False,
         debug=True,
         shutdown_timeout=5.0,
     )

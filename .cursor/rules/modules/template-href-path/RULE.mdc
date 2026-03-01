@@ -1,0 +1,61 @@
+---
+description: href vs path/_path in templates - avoid baseurl footgun
+alwaysApply: false
+globs: ["**/*.html", "**/bengal/themes/**/*"]
+---
+
+# Template href vs path: Baseurl Footgun
+
+**Common footgun**: Using `path` or `_path` (site-relative, no baseurl) instead of `href` (includes baseurl) for link URLs. This breaks GitHub Pages project sites where the site lives under a subpath (e.g. `/lbliii/`).
+
+**Works with**: `implementation/add-directive`, `implementation/add-filter`
+
+---
+
+## Rule of Thumb
+
+| Use case | Prefer | Avoid |
+|----------|--------|-------|
+| `href` attributes, `<a href="...">` | `href` | `path`, `_path` |
+| Pagination base URLs | `href` | `path`, `_path` |
+| Any URL used in links | `href` | `path`, `_path` |
+| Current-page checks | `_path` | `href` |
+| Cache keys, deduplication | `_path` | `href` |
+
+---
+
+## Correct
+
+```html
+{# Link URLs - always include baseurl #}
+<a href="{{ page.href ?? page._path }}">...</a>
+<a href="{{ section.href ?? section._path }}">...</a>
+
+{# Pagination base URL #}
+{% let base_url = base_url ?? section?.href ?? section?._path ?? '/blog/' %}
+```
+
+## Wrong
+
+```html
+{# ❌ Breaks on GitHub Pages project sites #}
+<a href="{{ page._path ?? page.href }}">...</a>
+<a href="{{ section._path ?? section.href }}">...</a>
+```
+
+---
+
+## When to Use _path
+
+Keep `_path` for **internal logic only** (not user-facing links):
+
+- `rejectattr` / `is_current` comparisons (skip current page)
+- Cache keys: `{% cache 'toc-' ~ (page?._path ?? 'unknown') %}`
+- Deduplication: `rel_path in children_urls` when comparing same-page references
+
+---
+
+## Summary
+
+- **Links**: `href ?? _path ?? path` (href first)
+- **Internal logic**: `_path` is fine

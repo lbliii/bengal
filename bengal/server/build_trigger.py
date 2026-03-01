@@ -59,13 +59,27 @@ from typing import Any, ClassVar
 import yaml
 
 from bengal.errors import ErrorCode, create_dev_error, get_dev_server_state
-from bengal.orchestration.stats import display_build_stats, show_building_indicator, show_error
+from bengal.orchestration.stats import (
+    ReloadHint,
+    display_build_stats,
+    show_building_indicator,
+    show_error,
+)
 from bengal.output import CLIOutput
 from bengal.protocols import SiteLike
 from bengal.server.build_executor import BuildExecutor, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.build_state import build_state
-from bengal.server.reload_controller import ReloadDecision, controller
+from bengal.server.live_reload import LiveReloadNotifier
+from bengal.server.reload_controller import (
+    ReloadController,
+    ReloadDecision,
+)
+from bengal.server.reload_controller import (
+    controller as default_reload_controller,
+)
+from bengal.server.reload_protocols import ReloadNotifier
+from bengal.server.reload_types import BuildReloadInfo
 from bengal.server.utils import get_timestamp
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
@@ -120,6 +134,8 @@ class BuildTrigger:
         host: str = "localhost",
         port: int = 5173,
         executor: BuildExecutor | None = None,
+        controller: ReloadController | None = None,
+        notifier: ReloadNotifier | None = None,
         version_scope: str | None = None,
     ) -> None:
         """
@@ -130,6 +146,8 @@ class BuildTrigger:
             host: Server host for URL display
             port: Server port for URL display
             executor: BuildExecutor instance (created if not provided)
+            controller: ReloadController for reload decisions (uses default if None)
+            notifier: ReloadNotifier for client notification (uses live reload if None)
             version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
         """
@@ -138,6 +156,8 @@ class BuildTrigger:
         self.port = port
         self.version_scope = version_scope
         self._executor = executor or BuildExecutor(max_workers=1)
+        self._reload_controller = controller or default_reload_controller
+        self._reload_notifier = notifier or LiveReloadNotifier()
         self._building = False
         self._build_lock = threading.Lock()
         # Queue for changes that arrive during a build (prevents lost changes)
@@ -258,8 +278,8 @@ class BuildTrigger:
 
             # RFC: Output Cache Architecture - Capture content hash baseline BEFORE build
             # This enables accurate change detection vs regeneration noise
-            if controller._use_content_hashes:
-                controller.capture_content_hash_baseline(self.site.output_dir)
+            if self._reload_controller._use_content_hashes:
+                self._reload_controller.capture_content_hash_baseline(self.site.output_dir)
 
             # Run pre-build hooks
             config = getattr(self.site, "config", {}) or {}
@@ -307,13 +327,21 @@ class BuildTrigger:
                 # Build succeeded - convert stats to result-like object for display
                 class WarmBuildResult:
                     def __init__(self, stats: Any, build_time: float) -> None:
+                        from bengal.server.reload_types import (
+                            SerializedOutputRecord,
+                        )
+
                         self.success = True
                         self.pages_built = stats.total_pages
                         self.build_time_ms = build_time * 1000
                         self.error_message = None
                         self.changed_outputs = (
                             tuple(
-                                (str(r.path), r.output_type.value, r.phase)
+                                SerializedOutputRecord(
+                                    path=str(r.path),
+                                    type_value=r.output_type.value,
+                                    phase=r.phase,
+                                )
                                 for r in stats.changed_outputs
                             )
                             if hasattr(stats, "changed_outputs")
@@ -390,9 +418,11 @@ class BuildTrigger:
 
             # Handle reload decision
             self._handle_reload(
-                changed_files,
-                result.changed_outputs,
-                reload_hint=result.reload_hint,
+                BuildReloadInfo(
+                    changed_files=tuple(changed_files),
+                    changed_outputs=result.changed_outputs,
+                    reload_hint=result.reload_hint,
+                )
             )
 
             # Clear HTML cache
@@ -945,49 +975,49 @@ class BuildTrigger:
         stats = MinimalStats.from_build_result(result, incremental=incremental)
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
-    def _handle_reload(
-        self,
-        changed_files: list[str],
-        changed_outputs: tuple[tuple[str, str, str], ...],
-        reload_hint: str | None = None,
-    ) -> None:
+    def _handle_reload(self, info: BuildReloadInfo) -> None:
         """Handle reload decision and notification.
 
-        Uses typed outputs from the build for accurate reload decisions.
-        reload_hint from BuildStats is advisory (css-only, full, none).
-        1. Primary: Typed outputs from build (CSS-only vs full reload)
-        2. Fallback: Path-based decision (when typed outputs unavailable)
-
-        The typed output approach is more accurate than source-file inspection
-        because it knows exactly what was written, not just what changed.
+        Decision flow:
+        1. reload_hint=NONE + typed outputs → suppress (build knows no reload needed)
+        2. Typed outputs available → use ReloadController for CSS vs full
+        3. No outputs but changed_files → full reload (fallback when output collector empty)
+        4. Neither → suppress
 
         Args:
-            changed_files: List of source file paths that changed (for logging)
-            changed_outputs: Serialized OutputRecords as (path, type, phase) tuples
+            info: BuildReloadInfo from build (changed_files, changed_outputs, reload_hint)
         """
-        if reload_hint == "none":
+        changed_files = list(info.changed_files)
+        changed_outputs = info.changed_outputs
+        reload_hint = info.reload_hint
+
+        # Trust reload_hint=NONE only when we have typed outputs (build can confirm)
+        if reload_hint is ReloadHint.NONE and changed_outputs:
             logger.info("reload_suppressed", reason="reload-hint-none")
             return
 
-        decision = None
+        decision: ReloadDecision | None = None
         decision_source = "none"
 
-        # Primary path: Use typed outputs from build
+        # Primary: typed outputs from build
         if changed_outputs:
             from bengal.core.output import OutputRecord, OutputType
 
             records = []
-            for path_str, type_val, phase in changed_outputs:
+            for rec in changed_outputs:
                 try:
-                    output_type = OutputType(type_val)
-                    if phase in ("render", "asset", "postprocess"):
-                        records.append(OutputRecord(Path(path_str), output_type, phase))  # type: ignore[arg-type]
+                    output_type = OutputType(rec.type_value)
+                    if rec.phase in ("render", "asset", "postprocess"):
+                        records.append(
+                            OutputRecord(Path(rec.path), output_type, rec.phase)  # type: ignore[arg-type]
+                        )
                 except ValueError, TypeError:
-                    # Invalid type value, skip
-                    logger.debug("invalid_output_type", path=path_str, type_val=type_val)
+                    logger.debug("invalid_output_type", path=rec.path, type_val=rec.type_value)
 
             if records:
-                decision = controller.decide_from_outputs(records, reload_hint=reload_hint)
+                decision = self._reload_controller.decide_from_outputs(
+                    records, reload_hint=reload_hint
+                )
                 decision_source = "typed-outputs"
                 logger.debug(
                     "reload_from_typed_outputs",
@@ -996,8 +1026,8 @@ class BuildTrigger:
                 )
             else:
                 # Fallback: Path-based decision (when type reconstruction fails)
-                paths = [path for path, _type, _phase in changed_outputs]
-                decision = controller.decide_from_changed_paths(paths)
+                paths = [rec.path for rec in changed_outputs]
+                decision = self._reload_controller.decide_from_changed_paths(paths)
                 decision_source = "fallback-paths"
                 logger.debug(
                     "reload_decision_fallback",
@@ -1012,7 +1042,7 @@ class BuildTrigger:
             if changed_files:
                 # Sources changed, but no typed outputs - fall back to full reload
                 decision = ReloadDecision(
-                    action="reload", reason="source-change-no-outputs", changed_paths=[]
+                    action="reload", reason="source-change-no-outputs", changed_paths=()
                 )
                 decision_source = "fallback-source-change"
                 logger.debug(
@@ -1022,28 +1052,28 @@ class BuildTrigger:
                 )
             else:
                 # No sources changed and no outputs - suppress reload
-                decision = ReloadDecision(action="none", reason="no-changes", changed_paths=[])
+                decision = ReloadDecision(action="none", reason="no-changes", changed_paths=())
                 decision_source = "no-changes"
                 logger.debug("reload_suppressed_no_changes")
 
-        # RFC: Output Cache Architecture - Use content-hash detection to filter aggregate-only changes
-        # Only reload if there are meaningful content/asset changes (not just sitemap/feeds)
-        # SKIP when decision_source is "fallback-source-change": we know user edited content
-        # (output_collector was empty) - never suppress reload in that case.
+        # Content-hash filter: aggregate-only (sitemap, feeds) → no reload.
+        # Skip when: (1) fallback-source-change, or (2) user edited source files.
+        # If changed_files is non-empty, user triggered a build—don't suppress reload.
         if (
             decision.action == "reload"
             and decision_source != "fallback-source-change"
-            and controller._use_content_hashes
-            and hasattr(controller, "_baseline_content_hashes")
-            and controller._baseline_content_hashes
+            and not changed_files
+            and self._reload_controller._use_content_hashes
+            and hasattr(self._reload_controller, "_baseline_content_hashes")
+            and self._reload_controller._baseline_content_hashes
         ):
-            enhanced = controller.decide_with_content_hashes(self.site.output_dir)
+            enhanced = self._reload_controller.decide_with_content_hashes(self.site.output_dir)
             if enhanced.meaningful_change_count == 0:
                 # All changes are aggregate-only (sitemap, feeds, search index)
                 decision = ReloadDecision(
                     action="none",
                     reason="aggregate-only",
-                    changed_paths=[],
+                    changed_paths=(),
                 )
                 decision_source = "content-hash-filtered"
                 logger.info(
@@ -1071,16 +1101,23 @@ class BuildTrigger:
         # Send reload notification
         if decision.action == "none":
             logger.info("reload_suppressed", reason=decision.reason)
+            # Safety: user changed files but decision is none (e.g. throttled).
+            # Send reload unless we trust aggregate-only (sitemap/feeds only).
+            if changed_files and decision.reason != "aggregate-only":
+                logger.info(
+                    "reload_bypass_source_changes",
+                    reason="changed_files_nonempty_decision_none",
+                    changed_count=len(changed_files),
+                )
+                self._reload_notifier.send("reload", "source-changes-bypass", ())
         else:
-            from bengal.server.live_reload import send_reload_payload
-
             logger.info(
                 "reload_decision",
                 action=decision.action,
                 reason=decision.reason,
                 source=decision_source,
             )
-            send_reload_payload(decision.action, decision.reason, decision.changed_paths)
+            self._reload_notifier.send(decision.action, decision.reason, decision.changed_paths)
 
     def _set_build_in_progress(self, building: bool) -> None:
         """Signal build state to shared registry (handler and ASGI app read from it)."""
