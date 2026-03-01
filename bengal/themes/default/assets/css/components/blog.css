@@ -445,6 +445,36 @@ html:not([data-devtools-open]) .blog-post-list > * {
     padding-block: var(--space-1);
 }
 
+/* Raw h1-h6 from excerpt HTML: scale to card context (override prose sizes) */
+.blog-card-excerpt h1,
+.blog-card-excerpt h2,
+.blog-card-excerpt h3,
+.blog-card-excerpt h4,
+.blog-card-excerpt h5,
+.blog-card-excerpt h6 {
+    font-size: 1.125em;
+    font-weight: var(--weight-semibold);
+    color: var(--color-text-primary);
+    margin: 0;
+    padding-block: var(--space-1);
+    line-height: var(--leading-tight);
+}
+
+.blog-card-excerpt h1 + *,
+.blog-card-excerpt h2 + *,
+.blog-card-excerpt h3 + *,
+.blog-card-excerpt h4 + *,
+.blog-card-excerpt h5 + *,
+.blog-card-excerpt h6 + * {
+    margin-top: var(--space-2, 0.5rem);
+}
+
+/* Minimize anchor links in card excerpts (preview context) */
+.blog-card-excerpt .heading-anchor .copy-link {
+    font-size: 0.75em;
+    opacity: 0.6;
+}
+
 .blog-card-excerpt strong {
     font-weight: var(--weight-semibold);
     font-size: 1em;
