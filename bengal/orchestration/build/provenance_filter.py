@@ -406,6 +406,44 @@ def phase_incremental_filter_provenance(
         pages_list = list(site.pages)
         assets_list = list(site.assets)
 
+        # COLD BUILD: If output is missing, skip provenance verification entirely.
+        # We know the answer (build everything). Provenance will be computed during
+        # record_build after rendering - no need for the 20+ second filter pass.
+        output_dir = site.output_dir
+        output_assets_dir = output_dir / "assets"
+        output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
+        css_dir = output_assets_dir / "css"
+        output_assets_missing = (
+            not output_assets_dir.exists()
+            or not css_dir.exists()
+            or not any(css_dir.glob("style*.css"))
+        )
+        if (output_html_missing or output_assets_missing) and pages_list:
+            result = provenance_filter.filter(
+                pages=pages_list,
+                assets=assets_list,
+                incremental=False,
+            )
+            filter_time_ms = (time.time() - filter_start) * 1000
+            orchestrator._provenance_filter = provenance_filter
+            orchestrator.stats.cache_hits = 0
+            orchestrator.stats.cache_misses = len(result.pages_to_build)
+            cli.info(
+                f"  Provenance build: {len(result.pages_to_build)} pages, "
+                f"{len(result.assets_to_process)} assets (skipped 0 cached)"
+            )
+            cli.detail(
+                f"Filter time: {filter_time_ms:.1f}ms (cold build, skipped verification)",
+                indent=1,
+            )
+            return FilterResult(
+                pages_to_build=result.pages_to_build,
+                assets_to_process=result.assets_to_process,
+                affected_tags=result.affected_tags,
+                changed_page_paths=result.changed_page_paths,
+                affected_sections=result.affected_sections,
+            )
+
         # CRITICAL: If no pages were discovered, attempt recovery
         # This should never happen in a normal build - discovery should always find pages
         # But we can recover by re-running discovery with full discovery (bypasses cache issues)
