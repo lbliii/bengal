@@ -878,7 +878,12 @@ class BuildTrigger:
 
         Enables the first content-only edit after startup to use the reactive path
         instead of falling back to full build (RFC: content-only-hot-reload).
+
+        Keys are resolved to absolute paths to match the watcher's path format
+        (watchfiles yields absolute paths). Without this, the first edit after
+        startup misses the cache and falls through to a full warm build.
         """
+        root = getattr(self.site, "root_path", None)
         for page in pages:
             src = getattr(page, "source_path", None)
             if src is None:
@@ -886,13 +891,22 @@ class BuildTrigger:
             path = Path(src) if not isinstance(src, Path) else src
             if path.suffix.lower() not in {".md", ".markdown"}:
                 continue
-            entry = self._compute_content_hashes(path)
+            try:
+                if path.is_absolute():
+                    abs_path = path
+                elif root is not None:
+                    abs_path = (root / path).resolve()
+                else:
+                    abs_path = path.resolve()
+            except OSError, ValueError:
+                continue
+            entry = self._compute_content_hashes(abs_path)
             if entry is None:
                 continue
             if len(self._content_hash_cache) >= self._content_hash_cache_max:
                 first_key = next(iter(self._content_hash_cache))
                 del self._content_hash_cache[first_key]
-            self._content_hash_cache[path] = entry
+            self._content_hash_cache[abs_path] = entry
 
     def _get_template_dirs(self) -> list[Path]:
         """
