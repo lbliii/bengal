@@ -271,12 +271,14 @@ class TestSSELoopRoundTrip:
         import time
 
         from bengal.server.live_reload import (
+            reset_for_testing,
             reset_sse_shutdown,
             run_sse_loop,
             send_reload_payload,
             shutdown_sse_clients,
         )
 
+        reset_for_testing()
         reset_sse_shutdown()
         chunks: list[bytes] = []
         chunk_received = threading.Event()
@@ -291,6 +293,7 @@ class TestSSELoopRoundTrip:
 
         thread = threading.Thread(target=run_loop)
         thread.start()
+        time.sleep(0.1)  # Let loop enter wait() before we send
 
         try:
             send_reload_payload("reload", "test-reason", ["index.html"])

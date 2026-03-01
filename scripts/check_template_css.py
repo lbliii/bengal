@@ -78,6 +78,8 @@ ALLOWLIST = frozenset(
         "prose-sm",
         # Icon placeholder (generic)
         "icon",
+        # Content markers (conditional classes)
+        "featured-content",
     }
 )
 
@@ -158,6 +160,7 @@ DYNAMIC_CLASS_PATTERNS = [
     r"^api-schema-viewer--depth-",
     r"^api-playground-bar--",
     r"^hero__button--",
+    r"^card--",
     r"^page-kind-",
     r"^share-",
     r"^status-",
@@ -199,8 +202,8 @@ def extract_classes_from_templates(template_dir: Path) -> dict[str, list[ClassUs
     classes: dict[str, list[ClassUsage]] = defaultdict(list)
 
     # Pattern to match class attributes in HTML
-    # Handles: class="foo bar", class='foo bar', :class="..." (Vue-style)
-    class_pattern = re.compile(r'class\s*=\s*["\']([^"\']+)["\']', re.IGNORECASE)
+    # Uses backreference \1 to handle nested quotes (e.g. class="foo {{ x.Get('y') }}")
+    class_pattern = re.compile(r"""class\s*=\s*(["'])(.*?)\1""", re.IGNORECASE | re.DOTALL)
 
     # Pattern to match individual class names (word characters and hyphens)
     class_name_pattern = re.compile(r"[a-zA-Z_][a-zA-Z0-9_-]*")
@@ -217,7 +220,7 @@ def extract_classes_from_templates(template_dir: Path) -> dict[str, list[ClassUs
                 continue
 
             for match in class_pattern.finditer(line):
-                class_attr_value = match.group(1)
+                class_attr_value = match.group(2)
 
                 # Skip template expressions that generate classes dynamically
                 if "{{" in class_attr_value or "{%" in class_attr_value:

@@ -300,6 +300,124 @@
 }
 
 /* ============================================
+   SHORTCODE CALLOUTS (warning, danger, tip)
+   Used by shortcodes/warning.html, danger.html, tip.html
+   Mirrors admonition styling for consistency
+   ============================================ */
+
+.callout {
+  --admonition-color: var(--color-border-strong);
+  position: relative;
+  margin-block: 1.5rem;
+  padding: 1rem 1.25rem;
+  border-inline-start: 2px solid color-mix(in srgb, var(--admonition-color) 60%, transparent);
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  background-color: var(--color-bg-secondary);
+  animation: admonition-edge-glow 8s ease-in-out infinite;
+  transition: border-color var(--transition-base);
+  overflow: hidden;
+}
+
+.callout::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -15%;
+  width: 180%;
+  height: 180%;
+  background: radial-gradient(circle at 35% 35%,
+      color-mix(in srgb, var(--blob-color-1) 7%, transparent) 0%,
+      color-mix(in srgb, var(--blob-color-2) 5%, transparent) 30%,
+      color-mix(in srgb, var(--blob-color-3) 3%, transparent) 55%,
+      transparent 70%);
+  border-radius: 50%;
+  animation: blob-morph var(--blob-duration-medium) ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+.callout > * {
+  position: relative;
+  z-index: 1;
+}
+
+.callout-title {
+  margin: 0 0 0.5rem 0;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.callout-content {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--color-text-secondary);
+}
+
+.callout-content :first-child {
+  margin-top: 0;
+}
+
+.callout-content :last-child {
+  margin-bottom: 0;
+}
+
+.callout-warning {
+  --admonition-color: var(--color-warning);
+  border-inline-start-color: color-mix(in srgb, var(--color-warning) 60%, transparent);
+  background-color: var(--color-warning-bg);
+}
+
+.callout-warning .callout-title {
+  color: var(--color-warning-text);
+}
+
+.callout-danger {
+  --admonition-color: var(--color-error);
+  border-inline-start-color: color-mix(in srgb, var(--color-error) 60%, transparent);
+  background-color: var(--color-error-bg);
+}
+
+.callout-danger .callout-title {
+  color: var(--color-error-text);
+}
+
+.callout-tip {
+  --admonition-color: var(--color-success);
+  border-inline-start-color: color-mix(in srgb, var(--color-success) 60%, transparent);
+  background-color: var(--color-success-bg);
+}
+
+.callout-tip .callout-title {
+  color: var(--color-success-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .callout {
+    animation: none !important;
+  }
+}
+
+/* Details shortcode - collapsible content */
+.details-content {
+  margin-top: var(--space-3);
+  padding: var(--space-3) 0;
+  color: var(--color-text-secondary);
+}
+
+.details-content > *:first-child {
+  margin-top: 0;
+}
+
+.details-content > *:last-child {
+  margin-bottom: 0;
+}
+
+/* ============================================
    ADMONITION TYPES
    Each type sets --admonition-color for the luminescent glow
    ============================================ */
