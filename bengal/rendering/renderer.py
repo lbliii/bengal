@@ -461,7 +461,13 @@ class Renderer:
             result = self.template_engine.render(template_name, context)
             return str(result) if result else ""
         except Exception as e:
+            # Always print template errors in dev so they're visible (belt-and-suspenders)
+            import os
+
             from bengal.rendering.errors import TemplateRenderError, display_template_error
+
+            if os.environ.get("BENGAL_DEV_SERVER") == "1":
+                print(f"[Bengal] Template error: {e}", flush=True)
 
             # Create rich error object
             rich_error = TemplateRenderError.from_jinja2_error(
@@ -492,9 +498,7 @@ class Renderer:
             # actively developing and the traceback pinpoints the real
             # comparison / sort that failed, which the template line alone
             # cannot convey.
-            import os
-
-            show_traceback = debug_mode or os.environ.get("BENGAL_DEV_SERVER") == "1"
+            show_traceback = debug_mode or (os.environ.get("BENGAL_DEV_SERVER") == "1")
 
             if strict_mode:
                 display_template_error(rich_error)

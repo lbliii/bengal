@@ -639,6 +639,8 @@ class BuildOrchestrator:
 
         # Phase 14: Render Pages (with cached content from discovery)
         # Pass force_sequential - phase will compute parallel based on should_parallelize() and page count
+        # Ensure early_ctx has output_collector so pipeline gets it (fixes output_collector_missing)
+        early_ctx.output_collector = output_collector
         try:
             ctx = rendering.phase_render(
                 self,
