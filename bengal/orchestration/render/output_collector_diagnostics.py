@@ -106,7 +106,7 @@ def diagnose_missing_output_collector(
             hint=SOURCE_HINTS[OutputCollectorSource.BUILD_CONTEXT_NONE],
         )
 
-    if getattr(build_context, "output_collector", None) is None:
+    if build_context.output_collector is None:
         return OutputCollectorDiagnostic(
             source=OutputCollectorSource.COLLECTOR_NOT_PROPAGATED,
             caller=caller,

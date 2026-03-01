@@ -67,6 +67,15 @@ class TestExtractMainContent:
         result = extract_main_content(html)
         assert result == "Single quoted"
 
+    def test_handles_nested_same_tag(self):
+        """Depth-tracking correctly extracts content with nested same-tag elements."""
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = '<div id="main-content"><div class="inner">nested</div></div>'
+        result = extract_main_content(html)
+        assert '<div class="inner">nested</div>' in result
+        assert "nested" in result
+
 
 class TestLiveReloadScriptInjection:
     """Test HTML injection for live reload."""

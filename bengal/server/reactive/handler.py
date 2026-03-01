@@ -94,17 +94,20 @@ class ReactiveContentHandler:
         return page.output_path if page.output_path else None
 
     def _find_page(self, path: Path) -> PageLike | None:
-        """Find page in site.pages matching the given source path."""
-        try:
-            resolved = path.resolve()
-        except OSError, ValueError:
-            resolved = path
+        """Find page in site.pages matching the given source path.
 
-        for page in self.site.pages:
-            try:
-                page_src = Path(page.source_path).resolve()
-            except OSError, ValueError, TypeError:
-                continue
-            if page_src == resolved:
-                return page
-        return None
+        Uses a lazily-built index for O(1) lookup. Index is invalidated
+        automatically since ReactiveContentHandler is instantiated fresh
+        per trigger.
+        """
+        if not hasattr(self, "_page_index"):
+            self._page_index: dict[Path, PageLike] = {}
+            for page in self.site.pages:
+                try:
+                    self._page_index[Path(page.source_path).resolve()] = page
+                except OSError, ValueError, TypeError:
+                    continue
+        try:
+            return self._page_index.get(path.resolve())
+        except OSError, ValueError:
+            return None

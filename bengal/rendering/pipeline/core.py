@@ -217,7 +217,7 @@ class RenderingPipeline:
 
         # Extract output collector: explicit param > build_context (hot reload tracking)
         self._output_collector = output_collector or (
-            getattr(build_context, "output_collector", None) if build_context else None
+            build_context.output_collector if build_context else None
         )
 
         # Warning emitted once at orchestrator level (RenderOrchestrator._render_parallel)

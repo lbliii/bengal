@@ -12,8 +12,9 @@ import re
 def extract_main_content(html: str, selector: str = "#main-content") -> str:
     """Extract inner HTML of the first element matching the selector.
 
-    Uses regex to find the opening tag and extract content up to the closing
-    tag. Handles id selectors (#main-content) and common tag+id patterns.
+    Uses depth-tracking to handle nested same-tag elements correctly
+    (e.g. <div id="main-content"><div>inner</div></div>). Handles id
+    selectors (#main-content) and common tag+id patterns.
 
     Args:
         html: Full HTML document string
@@ -27,15 +28,11 @@ def extract_main_content(html: str, selector: str = "#main-content") -> str:
     if not html or not selector.strip():
         return ""
 
-    # Extract id from selector (#main-content -> main-content)
     id_match = re.search(r"#([a-zA-Z][\w-]*)", selector)
     if not id_match:
         return ""
 
     elem_id = id_match.group(1)
-
-    # Match <tag id="main-content" ...> or <tag id='main-content' ...>
-    # Use non-greedy .*? and allow attributes in any order
     attr_pattern = rf'\bid\s*=\s*["\']({re.escape(elem_id)})["\']'
     open_tag = re.compile(
         rf"<(\w+)[^>]*{attr_pattern}[^>]*>",
@@ -45,12 +42,31 @@ def extract_main_content(html: str, selector: str = "#main-content") -> str:
     if not match:
         return ""
 
-    tag_name = match.group(1).lower()
+    tag_name = match.group(1)
     start = match.end()
 
-    # Find closing </tagname> - use first occurrence (nested same-tag is rare)
-    close_tag = re.compile(rf"</{re.escape(tag_name)}\s*>", re.IGNORECASE)
-    next_close = close_tag.search(html, start)
-    if not next_close:
-        return ""
-    return html[start : next_close.start()].strip()
+    # Depth-tracking: scan for <tagname and </tagname> to handle nesting
+    depth = 1
+    i = start
+    open_pat = re.compile(rf"<\s*{re.escape(tag_name)}\b", re.IGNORECASE)
+    close_pat = re.compile(rf"<\s*/\s*{re.escape(tag_name)}\s*>", re.IGNORECASE)
+
+    while i < len(html) and depth > 0:
+        next_lt = html.find("<", i)
+        if next_lt == -1:
+            break
+        rest = html[next_lt:]
+        close_m = close_pat.match(rest)
+        open_m = open_pat.match(rest)
+        if close_m:
+            depth -= 1
+            if depth == 0:
+                return html[start:next_lt].strip()
+            i = next_lt + 1
+        elif open_m:
+            depth += 1
+            i = next_lt + 1
+        else:
+            i = next_lt + 1
+
+    return ""

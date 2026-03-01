@@ -75,7 +75,7 @@ class WaveScheduler:
         self.stats = stats
         self.build_context = build_context
         self._output_collector = output_collector or (
-            getattr(build_context, "output_collector", None) if build_context else None
+            build_context.output_collector if build_context else None
         )
         self.max_workers = max_workers
         self._write_behind = write_behind

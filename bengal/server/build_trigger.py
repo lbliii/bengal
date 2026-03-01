@@ -55,7 +55,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any
 
 import yaml
 
@@ -133,16 +133,9 @@ class BuildTrigger:
 
     """
 
-    # Class-level caches (shared across instances for efficiency)
-    _frontmatter_cache: ClassVar[dict[Path, FrontmatterCacheEntry]] = {}
+    # Cache size limits (instance-level caches in __init__)
     _frontmatter_cache_max = 500
-
-    # Content hash cache for content-only change detection (RFC: content-only-hot-reload)
-    _content_hash_cache: ClassVar[dict[Path, ContentHashCacheEntry]] = {}
     _content_hash_cache_max = 500
-
-    # Template directories cache (per-instance, set to None to invalidate)
-    _template_dirs: list[Path] | None = None
 
     def __init__(
         self,
@@ -180,7 +173,10 @@ class BuildTrigger:
         self._pending_changes: set[Path] = set()
         self._pending_event_types: set[str] = set()
         # Reset template dirs cache for this instance (theme may differ)
-        self._template_dirs = None
+        self._template_dirs: list[Path] | None = None
+        # Instance-level caches (3.14t: avoid ClassVar mutable state)
+        self._frontmatter_cache: dict[Path, FrontmatterCacheEntry] = {}
+        self._content_hash_cache: dict[Path, ContentHashCacheEntry] = {}
         # Track last successful build for error context
         self._last_successful_build: datetime | None = None
 

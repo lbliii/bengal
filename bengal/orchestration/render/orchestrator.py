@@ -373,9 +373,7 @@ class RenderOrchestrator(
             where N = max_workers, this is OPTIMAL behavior.
         """
         # Single aggregated warning when output_collector missing (affects all worker threads)
-        output_collector = (
-            getattr(build_context, "output_collector", None) if build_context else None
-        )
+        output_collector = build_context.output_collector if build_context else None
         if output_collector is None:
             dev_mode = getattr(self.site, "dev_mode", False)
             if dev_mode:
@@ -466,9 +464,7 @@ class RenderOrchestrator(
         )
 
         # Create wave scheduler (pass output_collector explicitly for hot reload)
-        output_collector = (
-            getattr(build_context, "output_collector", None) if build_context else None
-        )
+        output_collector = build_context.output_collector if build_context else None
         scheduler = WaveScheduler(
             snapshot=snapshot,
             site=self.site,
@@ -534,9 +530,7 @@ class RenderOrchestrator(
                 or getattr(_thread_local, "pipeline_generation", -1) != current_gen
             )
             if needs_new_pipeline:
-                output_collector = (
-                    getattr(build_context, "output_collector", None) if build_context else None
-                )
+                output_collector = build_context.output_collector if build_context else None
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     quiet=quiet,
@@ -640,9 +634,7 @@ class RenderOrchestrator(
                 # When using progress manager, always suppress individual page output
                 # (quiet=True) because progress_manager handles display. The `quiet`
                 # parameter from the caller is intentionally ignored here.
-                output_collector = (
-                    getattr(build_context, "output_collector", None) if build_context else None
-                )
+                output_collector = build_context.output_collector if build_context else None
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     quiet=True,  # Always True when progress_manager is active
@@ -779,9 +771,7 @@ class RenderOrchestrator(
                 or getattr(_thread_local, "pipeline_generation", -1) != current_gen
             )
             if needs_new_pipeline:
-                output_collector = (
-                    getattr(build_context, "output_collector", None) if build_context else None
-                )
+                output_collector = build_context.output_collector if build_context else None
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     quiet=quiet,

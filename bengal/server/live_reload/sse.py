@@ -3,6 +3,10 @@ SSE event loop and reload state for live reload.
 
 Provides run_sse_loop (sync, for LiveReloadMixin), wait_for_sse_event (for
 async ASGI handler), ReloadState, and shutdown/reset helpers.
+
+Module-level singleton: _state is an intentional singleton shared by
+send_reload_payload, wait_for_sse_event, and run_sse_loop. threading.Condition
+provides thread safety. Use reset_for_testing() to reset in tests.
 """
 
 from __future__ import annotations
