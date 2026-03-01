@@ -276,9 +276,9 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
 
         # Post-process: API doc enhancement (if applicable)
         try:
-            from bengal.rendering.api_doc_enhancer import get_enhancer
+            from bengal.rendering.api_doc_enhancer import get_enhancer, get_enhancer_for_render
 
-            enhancer = get_enhancer()
+            enhancer = get_enhancer_for_render() or get_enhancer()
             page_type = page.metadata.get("type")
             if enhancer and page.html_content and enhancer.should_enhance(page_type):
                 page.html_content = enhancer.enhance(page.html_content, page_type)

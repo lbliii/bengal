@@ -24,14 +24,39 @@ enhanced_html = enhancer.enhance(html, page_type='python-module')
 from __future__ import annotations
 
 import re
-from typing import ClassVar
+from contextvars import ContextVar
+from typing import ClassVar, Protocol
 
 from bengal.utils.observability.logger import get_logger
+
+
+class APIDocEnhancerProtocol(Protocol):
+    """Protocol for API doc enhancement (testability)."""
+
+    def should_enhance(self, page_type: str | None) -> bool: ...
+    def enhance(self, html: str, page_type: str | None = None) -> str: ...
+
+
+# ContextVar for per-render enhancer injection (set by pipeline, read by get_page)
+_current_enhancer: ContextVar[APIDocEnhancerProtocol | None] = ContextVar(
+    "api_doc_enhancer", default=None
+)
+
+
+def set_enhancer_for_render(enhancer: APIDocEnhancerProtocol | None) -> None:
+    """Set the enhancer for the current render context (tests/pipeline)."""
+    _current_enhancer.set(enhancer)
+
+
+def get_enhancer_for_render() -> APIDocEnhancerProtocol | None:
+    """Get the enhancer for the current render context."""
+    return _current_enhancer.get()
+
 
 logger = get_logger(__name__)
 
 
-class APIDocEnhancer:
+class APIDocEnhancer(APIDocEnhancerProtocol):
     """
     Post-processes API documentation HTML to inject badges and visual enhancements.
 

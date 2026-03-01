@@ -5,6 +5,7 @@ LiveReloadMixin: SSE handling and HTML injection for HTTP request handlers.
 from __future__ import annotations
 
 import threading
+from dataclasses import dataclass
 from io import BufferedIOBase
 from pathlib import Path
 from typing import ClassVar, Protocol
@@ -19,12 +20,28 @@ from .sse import _get_keepalive_interval, run_sse_loop
 logger = get_logger(__name__)
 
 
+@dataclass(frozen=True, slots=True)
+class HtmlCacheKey:
+    """Cache key for HTML injection (path + mtime)."""
+
+    path: str
+    mtime: float
+
+
+@dataclass(frozen=True, slots=True)
+class AssetCacheEntry:
+    """Cached asset (content + content type)."""
+
+    content: bytes
+    content_type: str
+
+
 class HTTPHandlerProtocol(Protocol):
     """Protocol for HTTP request handler methods used by LiveReloadMixin."""
 
     path: str
     wfile: BufferedIOBase
-    _html_cache: dict[tuple[str, float], bytes]
+    _html_cache: dict[HtmlCacheKey, bytes]
     _html_cache_max_size: int
     _html_cache_lock: threading.Lock
 
@@ -50,11 +67,11 @@ class LiveReloadMixin:
     client_address: tuple[str, int]
     wfile: BufferedIOBase
 
-    _html_cache: ClassVar[dict[tuple[str, float], bytes]] = {}
+    _html_cache: ClassVar[dict[HtmlCacheKey, bytes]] = {}
     _html_cache_max_size = 50
     _html_cache_lock = threading.Lock()
 
-    _asset_cache: ClassVar[dict[str, tuple[bytes, str]]] = {}
+    _asset_cache: ClassVar[dict[str, AssetCacheEntry]] = {}
     _asset_cache_max_size = 30
     _asset_cache_lock = threading.Lock()
 
@@ -126,7 +143,7 @@ class LiveReloadMixin:
 
         try:
             mtime = Path(path).stat().st_mtime
-            cache_key = (path, mtime)
+            cache_key = HtmlCacheKey(path=path, mtime=mtime)
             cls = type(self)
 
             with cls._html_cache_lock:
@@ -227,7 +244,9 @@ class LiveReloadMixin:
 
         if content is not None:
             with cls._asset_cache_lock:
-                cls._asset_cache[cache_key] = (content, content_type)
+                cls._asset_cache[cache_key] = AssetCacheEntry(
+                    content=content, content_type=content_type
+                )
                 if len(cls._asset_cache) > cls._asset_cache_max_size:
                     first_key = next(iter(cls._asset_cache))
                     del cls._asset_cache[first_key]
@@ -245,7 +264,7 @@ class LiveReloadMixin:
                 cached = cls._asset_cache.get(cache_key)
 
             if cached is not None:
-                cached_content, cached_type = cached
+                cached_content, cached_type = cached.content, cached.content_type
                 logger.info(
                     "asset_served_from_cache_during_build",
                     path=self.path,

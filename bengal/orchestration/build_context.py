@@ -202,6 +202,9 @@ class BuildContext:
     # Output collector for hot reload tracking
     output_collector: OutputCollector | None = None
 
+    # API doc enhancer (injectable for tests)
+    api_doc_enhancer: Any = None  # APIDocEnhancerProtocol | None
+
     # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
     # Created by BuildOrchestrator when build.write_behind=True
     write_behind: Any = None  # WriteBehindCollector (lazy import to avoid circular)

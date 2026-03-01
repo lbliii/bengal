@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.protocols import SiteLike
+from bengal.rendering.api_doc_enhancer import set_enhancer_for_render
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache
@@ -119,6 +120,7 @@ class RenderingPipeline:
         highlight_cache: Any | None = None,
         write_behind: WriteBehindCollector | None = None,
         build_cache: BuildCache | None = None,
+        api_doc_enhancer: Any | None = None,
     ) -> None:
         """
         Initialize the rendering pipeline.
@@ -260,20 +262,14 @@ class RenderingPipeline:
         self._content_hash_in_html = build_cfg.get("content_hash_in_html", True)
 
         # Cache per-pipeline helpers (one pipeline per worker thread).
-        # These are safe to reuse and avoid per-page import/initialization overhead.
-        self._api_doc_enhancer: Any | None = None
-
-        # Prefer injected enhancer (tests/experiments), fall back to singleton enhancer.
+        # Prefer: constructor param > build_context.api_doc_enhancer > get_enhancer()
         try:
-            injected_enhancer = (
+            from bengal.rendering.api_doc_enhancer import get_enhancer
+
+            injected = api_doc_enhancer or (
                 getattr(build_context, "api_doc_enhancer", None) if build_context else None
             )
-            if injected_enhancer:
-                self._api_doc_enhancer = injected_enhancer
-            else:
-                from bengal.rendering.api_doc_enhancer import get_enhancer
-
-                self._api_doc_enhancer = get_enhancer()
+            self._api_doc_enhancer: Any | None = injected or get_enhancer()
         except Exception as e:
             logger.debug("api_doc_enhancer_init_failed", error=str(e))
             self._api_doc_enhancer = None
@@ -299,13 +295,16 @@ class RenderingPipeline:
             page: Page object to process. Must have source_path set.
         """
         # Clear per-render get_page() cache at start of each page render.
-        # This ensures each page render starts with a fresh cache, avoiding
-        # stale results from previous page renders in the same thread.
         from bengal.rendering.template_functions.get_page import clear_get_page_cache
 
         clear_get_page_cache()
 
-        self._process_page_impl(page)
+        # Set enhancer in context so get_page() can use it during template rendering
+        set_enhancer_for_render(self._api_doc_enhancer)
+        try:
+            self._process_page_impl(page)
+        finally:
+            set_enhancer_for_render(None)
 
     def _process_page_impl(self, page: PageLike) -> None:
         """Implementation of page processing (called within tracker context)."""

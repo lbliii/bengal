@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 
 from bengal.core.output import OutputRecord, OutputType
+from bengal.orchestration.stats import ReloadHint
 from bengal.server.reload_controller import ReloadController
 
 
@@ -117,7 +118,7 @@ def test_decide_from_outputs_empty():
 
     assert decision.action == "none"
     assert decision.reason == "no-outputs"
-    assert decision.changed_paths == []
+    assert decision.changed_paths == ()
 
 
 def test_decide_from_outputs_css_only():
@@ -189,7 +190,7 @@ def test_decide_from_outputs_partial_ignore():
     decision = ctl.decide_from_outputs(outputs)
 
     assert decision.action == "reload-css"
-    assert decision.changed_paths == ["assets/style.css"]
+    assert decision.changed_paths == ("assets/style.css",)
 
 
 def test_decide_from_outputs_throttling():
@@ -256,18 +257,18 @@ def test_decide_from_outputs_xml_sitemap():
 
 
 def test_decide_from_outputs_reload_hint_none_returns_none():
-    """reload_hint='none' short-circuits to action='none' even with non-empty outputs."""
+    """reload_hint=NONE short-circuits to action='none' even with non-empty outputs."""
     ctl = ReloadController(min_notify_interval_ms=0)
 
     outputs = [
         OutputRecord(Path("index.html"), OutputType.HTML, "render"),
         OutputRecord(Path("assets/style.css"), OutputType.CSS, "asset"),
     ]
-    decision = ctl.decide_from_outputs(outputs, reload_hint="none")
+    decision = ctl.decide_from_outputs(outputs, reload_hint=ReloadHint.NONE)
 
     assert decision.action == "none"
     assert decision.reason == "reload-hint-none"
-    assert decision.changed_paths == []
+    assert decision.changed_paths == ()
 
 
 def test_decide_from_outputs_other_hints_do_not_override_typed_outputs():

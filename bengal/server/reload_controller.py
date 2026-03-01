@@ -15,6 +15,7 @@ Features:
 
 Classes:
 ReloadController: Main decision engine with snapshot diffing
+HashEntry: Hash cache entry (size, digest)
 SnapshotEntry: Immutable file metadata (size, mtime)
 OutputSnapshot: Directory state at a point in time
 ReloadDecision: Action recommendation with reason and changed paths
@@ -69,6 +70,20 @@ from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputRecord
+
+
+@dataclass(frozen=True, slots=True)
+class HashEntry:
+    """
+    Hash cache entry for suspect verification (size + digest).
+
+    Attributes:
+        size: File size in bytes
+        digest: Content hash (e.g., MD5 hex digest)
+    """
+
+    size: int
+    digest: str
 
 
 @dataclass(frozen=True)
@@ -163,7 +178,7 @@ class ReloadController:
         _min_interval_ms: Minimum interval between notifications (throttling)
         _ignored_globs: Glob patterns for paths to ignore
         _hash_on_suspect: Enable content hashing for suspected false positives
-        _hash_cache: LRU cache of path → (size, digest) for hash verification
+        _hash_cache: LRU cache of path → HashEntry (size, digest) for hash verification
 
     Thread Safety:
         Configuration setters are protected by _config_lock for runtime updates.
@@ -208,8 +223,8 @@ class ReloadController:
         self._hash_on_suspect: bool = hash_on_suspect
         self._suspect_hash_limit: int = suspect_hash_limit
         self._suspect_size_limit_bytes: int = suspect_size_limit_bytes
-        # Cache: path -> (size, hex_digest)
-        self._hash_cache: dict[str, tuple[int, str]] = {}
+        # Cache: path -> HashEntry (size, digest)
+        self._hash_cache: dict[str, HashEntry] = {}
         # Config lock for thread-safe updates during dev server runtime
         self._config_lock = threading.RLock()
 
@@ -627,7 +642,7 @@ class ReloadController:
                         suspects_hashed += 1
 
                         cached = self._hash_cache.get(path)
-                        if cached and cached[0] == centry.size and cached[1] == digest:
+                        if cached and cached.size == centry.size and cached.digest == digest:
                             # Content unchanged → suppress this change
                             suppressed_due_to_hash = True
                             logger.info(
@@ -636,7 +651,7 @@ class ReloadController:
                                 size=centry.size,
                             )
                         # Update cache with latest known digest
-                        self._hash_cache[path] = (centry.size, digest)
+                        self._hash_cache[path] = HashEntry(size=centry.size, digest=digest)
                     except FileNotFoundError:
                         # File disappeared between snapshot and hashing; treat as changed
                         pass
