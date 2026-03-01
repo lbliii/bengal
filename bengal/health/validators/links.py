@@ -30,12 +30,17 @@ from __future__ import annotations
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, override
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, ValidatorStats
 from bengal.health.utils import relative_path
+from bengal.health.validators.link_skip_rules import should_skip_link
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.link_resolution import (
+    resolve_internal_link,
+    resolved_path_url_variants,
+)
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteLike
@@ -266,43 +271,7 @@ class LinkValidator:
         Returns:
             True if link is valid, False otherwise
         """
-        # Skip external links (http/https) - validated separately by async link checker
-        if link.startswith(("http://", "https://", "mailto:", "tel:")):
-            logger.debug(
-                "skipping_external_link",
-                link=link[:100],
-                type="external" if link.startswith("http") else "special",
-            )
-            self.validated_urls.add(link)
-            return True
-
-        # Skip data URLs
-        if link.startswith("data:"):
-            self.validated_urls.add(link)
-            return True
-
-        # Skip template syntax (Jinja2, JavaScript template literals, etc.)
-        # These appear in documentation code examples and are not real links
-        if "{{" in link or "}}" in link or "${" in link:
-            logger.debug(
-                "skipping_template_syntax",
-                link=link[:100],
-                reason="template_syntax_in_code_example",
-            )
-            self.validated_urls.add(link)
-            return True
-
-        # Skip source file references (common in autodoc-generated content)
-        # These are "View Source" links that point to Python files, not doc pages
-        # Patterns: bengal/module.py#L1, ../module.py, path/to/file.py
-        if ".py" in link and (
-            link.endswith(".py") or ".py#" in link  # Python file with fragment (line number)
-        ):
-            logger.debug(
-                "skipping_source_file_reference",
-                link=link[:100],
-                reason="source_file_reference_in_autodoc",
-            )
+        if should_skip_link(link):
             self.validated_urls.add(link)
             return True
 
@@ -340,7 +309,6 @@ class LinkValidator:
         # Get page's URL for resolving other relative links
         page_url = getattr(page, "href", None)
         if not page_url:
-            # Can't resolve without page URL
             logger.debug(
                 "link_validation_skipped",
                 link=link,
@@ -348,39 +316,9 @@ class LinkValidator:
             )
             return True
 
-        # Ensure page_url is a string (not Path)
         page_url = str(page_url)
-
-        # Resolve relative link against page URL
-        # Ensure page_url has trailing slash for proper resolution
-        base_url = page_url if page_url.endswith("/") else page_url + "/"
-        resolved = urljoin(base_url, str(parsed.path))
-
-        # Strip fragment for URL matching
-        resolved_path = resolved.split("#")[0] if "#" in resolved else resolved
-
-        # Normalize .md extensions - users commonly link to .md files which
-        # resolve to clean URLs without extensions
-        if resolved_path.endswith(".md"):
-            # Handle _index.md -> parent directory URL
-            if resolved_path.endswith("/_index.md"):
-                resolved_path = resolved_path[:-10]  # Strip /_index.md
-                if not resolved_path:
-                    resolved_path = "/"
-            elif resolved_path.endswith("/index.md"):
-                resolved_path = resolved_path[:-9]  # Strip /index.md
-                if not resolved_path:
-                    resolved_path = "/"
-            else:
-                # Regular .md file -> strip extension
-                resolved_path = resolved_path[:-3]
-
-        # Check all normalized variants
-        variants = [
-            resolved_path,
-            resolved_path.rstrip("/"),
-            resolved_path.rstrip("/") + "/",
-        ]
+        resolved_path = resolve_internal_link(page_url, str(parsed.path))
+        variants = resolved_path_url_variants(resolved_path)
 
         # Check if any variant matches a known page URL
         is_valid = any(v in self._page_urls for v in variants)
