@@ -18,6 +18,7 @@ from .script import LIVE_RELOAD_SCRIPT
 from .sse import (
     ReloadState,
     get_current_generation,
+    reset_for_testing,
     reset_sse_shutdown,
     run_sse_loop,
     shutdown_sse_clients,
@@ -33,6 +34,7 @@ __all__ = [
     "get_current_generation",
     "inject_live_reload_into_response",
     "notify_clients_reload",
+    "reset_for_testing",
     "reset_sse_shutdown",
     "run_sse_loop",
     "send_reload_payload",

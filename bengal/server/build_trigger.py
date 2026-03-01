@@ -52,6 +52,7 @@ import contextlib
 import re
 import threading
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from typing import Any, ClassVar
@@ -88,6 +89,23 @@ from bengal.utils.stats_minimal import MinimalStats
 logger = get_logger(__name__)
 
 
+@dataclass(frozen=True, slots=True)
+class FrontmatterCacheEntry:
+    """Cache entry for frontmatter nav-key detection (mtime, has_nav_keys)."""
+
+    mtime: float
+    has_nav_keys: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ContentHashCacheEntry:
+    """Cache entry for content-only change detection (mtime, fm_hash, content_hash)."""
+
+    mtime: float
+    frontmatter_hash: str
+    content_hash: str
+
+
 class BuildTrigger:
     """
     Triggers builds when file changes are detected.
@@ -116,13 +134,11 @@ class BuildTrigger:
     """
 
     # Class-level caches (shared across instances for efficiency)
-    # Frontmatter cache: path -> (mtime, has_nav_keys)
-    _frontmatter_cache: ClassVar[dict[Path, tuple[float, bool]]] = {}
+    _frontmatter_cache: ClassVar[dict[Path, FrontmatterCacheEntry]] = {}
     _frontmatter_cache_max = 500
 
-    # Content hash cache: path -> (mtime, frontmatter_hash, content_hash)
-    # Used for content-only change detection (RFC: content-only-hot-reload)
-    _content_hash_cache: ClassVar[dict[Path, tuple[float, str, str]]] = {}
+    # Content hash cache for content-only change detection (RFC: content-only-hot-reload)
+    _content_hash_cache: ClassVar[dict[Path, ContentHashCacheEntry]] = {}
     _content_hash_cache_max = 500
 
     # Template directories cache (per-instance, set to None to invalidate)
@@ -668,8 +684,8 @@ class BuildTrigger:
 
             # Check cache (keyed by path, validated by mtime)
             cached = self._frontmatter_cache.get(path)
-            if cached is not None and cached[0] == mtime:
-                return cached[1]
+            if cached is not None and cached.mtime == mtime:
+                return cached.has_nav_keys
 
             # Read only first 4KB (frontmatter is at start)
             # Most frontmatter is < 500 bytes, but YAML-heavy files may be larger
@@ -696,7 +712,7 @@ class BuildTrigger:
             if len(self._frontmatter_cache) >= self._frontmatter_cache_max:
                 first_key = next(iter(self._frontmatter_cache))
                 del self._frontmatter_cache[first_key]
-            self._frontmatter_cache[path] = (mtime, result)
+            self._frontmatter_cache[path] = FrontmatterCacheEntry(mtime=mtime, has_nav_keys=result)
 
             return result
 
@@ -745,25 +761,33 @@ class BuildTrigger:
 
             # Check against cache
             cached = self._content_hash_cache.get(path)
-            if cached is not None:
-                _cached_mtime, cached_fm_hash, cached_content_hash = cached
-
-                # Content-only if frontmatter same but content different
-                if cached_fm_hash == fm_hash and cached_content_hash != content_hash:
-                    logger.debug(
-                        "content_only_change_detected",
-                        file=str(path),
-                        hint="frontmatter_unchanged",
-                    )
-                    # Update cache with new hashes
-                    self._content_hash_cache[path] = (mtime, fm_hash, content_hash)
-                    return True
+            if (
+                cached is not None
+                and cached.frontmatter_hash == fm_hash
+                and cached.content_hash != content_hash
+            ):
+                logger.debug(
+                    "content_only_change_detected",
+                    file=str(path),
+                    hint="frontmatter_unchanged",
+                )
+                # Update cache with new hashes
+                self._content_hash_cache[path] = ContentHashCacheEntry(
+                    mtime=mtime,
+                    frontmatter_hash=fm_hash,
+                    content_hash=content_hash,
+                )
+                return True
 
             # Update cache with LRU eviction
             if len(self._content_hash_cache) >= self._content_hash_cache_max:
                 first_key = next(iter(self._content_hash_cache))
                 del self._content_hash_cache[first_key]
-            self._content_hash_cache[path] = (mtime, fm_hash, content_hash)
+            self._content_hash_cache[path] = ContentHashCacheEntry(
+                mtime=mtime,
+                frontmatter_hash=fm_hash,
+                content_hash=content_hash,
+            )
 
             return False
 

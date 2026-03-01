@@ -138,3 +138,18 @@ def reset_sse_shutdown() -> None:
     with _state.condition:
         _state.shutdown_requested = False
     logger.debug("sse_shutdown_reset")
+
+
+def reset_for_testing() -> None:
+    """
+    Reset SSE state for isolated tests.
+
+    Call between tests that need a clean state. Resets generation, action,
+    sent_count, and shutdown flag. Use only in test fixtures.
+    """
+    with _state.condition:
+        _state.generation = 0
+        _state.last_action = "reload"
+        _state.sent_count = 0
+        _state.shutdown_requested = False
+        _state.condition.notify_all()
