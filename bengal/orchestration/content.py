@@ -44,8 +44,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.build.contracts.keys import xref_path_key
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.autodoc.orchestration.result import AutodocRunResult
@@ -766,16 +766,13 @@ class ContentOrchestrator:
         for page in self.site.pages:
             # Index by relative path (without extension)
             try:
-                rel_path = page.source_path.relative_to(content_dir)
-                # Remove extension and normalize path separators
-                path_key = to_posix(rel_path.with_suffix(""))
-                # Also handle _index.md -> directory path
-                if path_key.endswith("/_index"):
-                    path_key = path_key[:-7]  # Remove '/_index'
-                self.site.xref_index["by_path"][path_key] = page
+                page.source_path.relative_to(content_dir)
             except ValueError:
                 # Page is not relative to content_dir (e.g., generated page)
                 pass
+            else:
+                path_key = xref_path_key(page.source_path, self.site.root_path)
+                self.site.xref_index["by_path"][path_key] = page
 
             # Index by slug (multiple pages can have same slug)
             if hasattr(page, "slug") and page.slug:

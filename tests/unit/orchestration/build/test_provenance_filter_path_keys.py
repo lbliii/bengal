@@ -16,6 +16,8 @@ from bengal.build.contracts.keys import content_key
 from bengal.orchestration.build.provenance_filter import (
     _detect_changed_data_files,
     _detect_changed_templates,
+    _get_pages_for_data_file,
+    _get_pages_for_template,
     _get_taxonomy_term_pages_for_member,
 )
 from bengal.utils.primitives.hashing import hash_file
@@ -175,3 +177,48 @@ class TestGetTaxonomyTermPagesForMemberPathKeys:
         assert terms_absolute == terms_relative
         assert len(terms_absolute) == 1
         assert any("devops" in str(p) for p in terms_absolute)
+
+
+class TestGetPagesForDataFilePathKeys:
+    """Tests for _get_pages_for_data_file path key alignment."""
+
+    def test_uses_cache_key_for_dependency_lookup(
+        self, mock_cache: MagicMock, tmp_path: Path
+    ) -> None:
+        """Data file dependency lookup uses cache._cache_key, not f'data:{path}'."""
+        data_file = tmp_path / "data" / "team.yaml"
+        data_file.parent.mkdir(parents=True)
+        data_file.write_text("name: test")
+
+        dep_key = mock_cache._cache_key(data_file)
+        mock_cache.dependencies = {
+            "content/blog/post.md": {dep_key},
+        }
+
+        pages = _get_pages_for_data_file(mock_cache, data_file)
+
+        assert len(pages) == 1
+        assert Path("content/blog/post.md") in pages
+
+
+class TestGetPagesForTemplatePathKeys:
+    """Tests for _get_pages_for_template path key alignment."""
+
+    def test_uses_cache_key_for_reverse_dependency_lookup(
+        self, mock_cache: MagicMock, tmp_path: Path
+    ) -> None:
+        """Template reverse dependency lookup uses cache._cache_key, not str(path)."""
+        template_file = tmp_path / "templates" / "base.html"
+        template_file.parent.mkdir(parents=True)
+        template_file.write_text("<html></html>")
+
+        template_key = mock_cache._cache_key(template_file)
+        mock_cache.reverse_dependencies = {
+            template_key: {"content/about.md"},
+        }
+        mock_cache.dependencies = {}
+
+        pages = _get_pages_for_template(mock_cache, template_file)
+
+        assert len(pages) == 1
+        assert Path("content/about.md") in pages

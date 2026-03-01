@@ -76,6 +76,27 @@ def asset_key(path: Path, assets_dir: Path) -> CacheKey:
     return _relative_key(path, assets_dir)
 
 
+def xref_path_key(path: Path, site_root: Path) -> str:
+    """
+    Canonical key for xref by_path index.
+
+    Content-relative, no extension, _index -> directory.
+
+    Examples:
+        content/docs/guide.md -> docs/guide
+        content/docs/_index.md -> docs
+        content/about.md -> about
+    """
+    ck = content_key(path, site_root)
+    if ck.startswith("content/"):
+        ck = ck[len("content/") :]
+    if ck.endswith(".md"):
+        ck = ck[:-3]
+    if ck.endswith("/_index"):
+        ck = ck[:-7]
+    return to_posix(ck)
+
+
 def watcher_key(path: Path) -> str:
     """
     Canonical key for watcher paths (absolute, POSIX).

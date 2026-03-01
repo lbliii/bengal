@@ -22,6 +22,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.build.contracts.keys import content_key
 from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
 from bengal.build.provenance.filter import ProvenanceFilterResult
 from bengal.orchestration.build.results import (
@@ -183,7 +184,7 @@ def _get_pages_for_data_file(
     Returns:
         Set of page source paths that depend on this data file
     """
-    dep_key = f"data:{data_file}"
+    dep_key = cache._cache_key(data_file)
     pages: set[Path] = set()
 
     for page_str, deps in cache.dependencies.items():
@@ -211,7 +212,7 @@ def _get_pages_for_template(
         Set of page source paths that use this template
     """
     pages: set[Path] = set()
-    template_key = str(template_path)
+    template_key = cache._cache_key(template_path)
 
     # Check reverse dependencies
     dependents = cache.reverse_dependencies.get(template_key, set())
@@ -702,7 +703,9 @@ def phase_incremental_filter_provenance(
 
         # If specific outputs are missing, rebuild those pages even if provenance is fresh.
         if incremental and result.pages_skipped and cache and hasattr(cache, "output_sources"):
-            skipped_by_source = {str(page.source_path): page for page in result.pages_skipped}
+            skipped_by_source = {
+                content_key(page.source_path, site.root_path): page for page in result.pages_skipped
+            }
             missing_pages: list = []
 
             for rel_output, source_str in (cache.output_sources or {}).items():
