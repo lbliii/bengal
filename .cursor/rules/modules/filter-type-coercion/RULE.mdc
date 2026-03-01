@@ -15,7 +15,7 @@ accept numeric params must coerce at entry.
 - `Paginator(items, per_page=...)`
 - Any filter receiving `config.content.excerpt_words`, `config.content.excerpt_length`, etc.
 
-## Convention
+## Convention: coerce_int for Numeric Params
 
 Use `coerce_int` from `bengal.config.utils` at the start of any filter that accepts
 a numeric param used in comparisons or arithmetic:
@@ -27,6 +27,36 @@ def my_filter(text: str, count: int = 30) -> str:
     count = coerce_int(count, 30)
     # ... use count in comparisons
 ```
+
+## Convention: @template_safe for Error-Prone Functions
+
+When **editing** a template function that may receive invalid types from YAML/config
+(e.g. `int` vs `str`), add `@template_safe(default=...)` if the function can raise
+`TypeError`, `ValueError`, `AttributeError`, or `KeyError`.
+
+```python
+from bengal.rendering.utils.template_safe import template_safe
+
+@template_safe(default="")
+def format_date(value: str, fmt: str = "%Y-%m-%d") -> str:
+    return datetime.strptime(value, fmt).strftime(fmt)
+```
+
+### When to Apply
+
+- **Opportunistic only** — add when you are already editing a template function
+- **No bulk migration** — do not proactively convert all ~80 template functions
+- Functions that do numeric/attribute/key access on user input from YAML or config
+- Functions where a crash would break the entire page render
+
+### When NOT to Apply
+
+- Functions with well-typed internal callers (not exposed to YAML/config values)
+- Functions where silent fallback would hide real bugs
+
+### Already Using @template_safe
+
+- 6 functions in `bengal/rendering/template_functions/math_functions.py`
 
 ## ConfigSnapshot
 

@@ -579,6 +579,7 @@ def phase_render(
                         quiet=quiet_mode,
                         stats=orchestrator.stats,
                         build_context=ctx,
+                        output_collector=collector,
                         max_workers=max_workers,
                         write_behind=write_behind,
                         progress_manager=progress_manager,

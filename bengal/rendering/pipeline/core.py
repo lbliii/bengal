@@ -115,6 +115,7 @@ class RenderingPipeline:
         quiet: bool = False,
         build_stats: BuildStats | None = None,
         build_context: BuildContext | None = None,
+        output_collector: Any | None = None,
         changed_sources: set[Path] | None = None,
         block_cache: Any | None = None,
         highlight_cache: Any | None = None,
@@ -211,8 +212,8 @@ class RenderingPipeline:
         self.changed_sources = {Path(p) for p in (changed_sources or set())}
         self._highlight_cache = highlight_cache
 
-        # Extract output collector from build context for hot reload tracking
-        self._output_collector = (
+        # Extract output collector: explicit param > build_context (hot reload tracking)
+        self._output_collector = output_collector or (
             getattr(build_context, "output_collector", None) if build_context else None
         )
 
