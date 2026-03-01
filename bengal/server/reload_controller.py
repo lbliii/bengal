@@ -815,9 +815,9 @@ class ReloadController:
             )
 
         # RFC: Reactive Dev Sequel Phase 6 - Single HTML change → reload-page
-        # Semantically clearer than "reload" when exactly one content page changed
-        html_outputs = [o for o in filtered_outputs if o.output_type == OutputType.HTML]
-        if len(html_outputs) == 1:
+        # Require exactly one total filtered output (and it is HTML) to avoid
+        # downgrading mixed changes (e.g. CSS+HTML) to reload-page
+        if len(filtered_outputs) == 1 and filtered_outputs[0].output_type == OutputType.HTML:
             return ReloadDecision(
                 action="reload-page",
                 reason="single-page-content",

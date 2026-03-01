@@ -38,13 +38,16 @@ def send_reload_payload(action: str, reason: str, changed_paths: Sequence[str]) 
             action=action,
         )
         return
+    with _state.condition:
+        _state.generation += 1
+        next_gen = _state.generation
     try:
         payload = json.dumps(
             {
                 "action": action,
                 "reason": reason,
                 "changedPaths": changed_paths,
-                "generation": _state.generation + 1,
+                "generation": next_gen,
             }
         )
     except Exception as e:
@@ -59,7 +62,6 @@ def send_reload_payload(action: str, reason: str, changed_paths: Sequence[str]) 
 
     with _state.condition:
         _state.last_action = payload
-        _state.generation += 1
         _state.sent_count += 1
         _state.condition.notify_all()
 
@@ -82,6 +84,7 @@ def notify_clients_reload() -> None:
         logger.info("reload_notification_suppressed", reason="env_BENGAL_DISABLE_RELOAD_EVENTS")
         return
     with _state.condition:
+        _state.last_action = "reload"
         _state.generation += 1
         _state.condition.notify_all()
     logger.info("reload_notification_sent", generation=_state.generation)

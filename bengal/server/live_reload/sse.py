@@ -74,11 +74,15 @@ def wait_for_sse_event(
     with _state.condition:
         if _state.shutdown_requested:
             return None
-        _state.condition.wait(timeout=timeout)
-        if _state.shutdown_requested:
-            return None
         current_gen = _state.generation
-        action = _state.last_action if current_gen != last_seen_generation else None
+        if current_gen != last_seen_generation:
+            action = _state.last_action
+        else:
+            _state.condition.wait(timeout=timeout)
+            if _state.shutdown_requested:
+                return None
+            current_gen = _state.generation
+            action = _state.last_action if current_gen != last_seen_generation else None
 
     if action is not None:
         return (f"data: {action}\n\n".encode(), current_gen)
@@ -110,13 +114,17 @@ def run_sse_loop(
         with _state.condition:
             if _state.shutdown_requested:
                 break
-            _state.condition.wait(timeout=interval)
-            if _state.shutdown_requested:
-                break
             current_generation = _state.generation
-            pending_action = (
-                _state.last_action if current_generation != last_seen_generation else None
-            )
+            if current_generation != last_seen_generation:
+                pending_action = _state.last_action
+            else:
+                _state.condition.wait(timeout=interval)
+                if _state.shutdown_requested:
+                    break
+                current_generation = _state.generation
+                pending_action = (
+                    _state.last_action if current_generation != last_seen_generation else None
+                )
 
         if pending_action is not None:
             write_fn(f"data: {pending_action}\n\n".encode())

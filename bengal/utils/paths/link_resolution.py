@@ -35,8 +35,9 @@ def parent_url_from_page_url(page_url: str) -> str:
         'single/'
     """
     parts = split_url_path(page_url)
+    prefix = "/" if page_url.startswith("/") else ""
     if len(parts) > 1:
-        return "/".join(parts[:-1]) + "/"
+        return prefix + "/".join(parts[:-1]) + "/"
     return page_url if page_url.endswith("/") else page_url + "/"
 
 

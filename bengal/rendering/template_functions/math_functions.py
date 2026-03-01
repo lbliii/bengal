@@ -78,7 +78,7 @@ def times(value: Number, multiplier: Number) -> Number:
     return float(value) * float(multiplier)
 
 
-@template_safe(default=0)
+@template_safe(default=0, exceptions=(TypeError, ValueError, ZeroDivisionError))
 def divided_by(value: Number, divisor: Number) -> Number:
     """
     Divide value by divisor.
@@ -95,9 +95,10 @@ def divided_by(value: Number, divisor: Number) -> Number:
         {{ seconds | divided_by(60) }}        # Convert to minutes
 
     """
-    if divisor == 0:
+    divisor_f = float(divisor)
+    if divisor_f == 0:
         return 0
-    return float(value) / float(divisor)
+    return float(value) / divisor_f
 
 
 @template_safe(default=0)
