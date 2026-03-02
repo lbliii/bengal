@@ -361,11 +361,26 @@ class DevServer:
         """
         Check if the output directory has cached content that can be served.
 
+        Requires BOTH output HTML files AND a valid build cache. This prevents
+        serve-first mode when ``bengal clean --cache`` removed the cache but
+        the output directory survived (macOS filesystem race / Spotlight).
+
         Returns:
-            True if output directory exists and contains HTML files
+            True if output directory has HTML files backed by a build cache
         """
         output_dir = self.site.output_dir
         if not output_dir.exists():
+            return False
+
+        # Build cache must exist — stale output without a cache is not servable
+        build_cache = self.site.paths.build_cache
+        has_build_cache = build_cache.exists() or build_cache.with_suffix(".json.zst").exists()
+        if not has_build_cache:
+            logger.debug(
+                "cached_output_rejected",
+                reason="no_build_cache",
+                output_dir=str(output_dir),
+            )
             return False
 
         # Check for index.html as a proxy for "has content"
