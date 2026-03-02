@@ -16,6 +16,7 @@ Example:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -207,7 +208,7 @@ class PostView:
         )
 
 
-def posts_filter(pages: Any) -> list[PostView]:
+def posts_filter(pages: Iterable[Any]) -> list[PostView]:
     """
     Convert a list of pages to normalized PostView objects.
 
@@ -261,7 +262,7 @@ def post_view_filter(page: Any) -> PostView | None:
         return None
 
 
-def featured_posts_filter(pages: Any, limit: int = 3) -> list[PostView]:
+def featured_posts_filter(pages: Iterable[Any], limit: int = 3) -> list[PostView]:
     """
     Get featured posts from a list of pages.
 

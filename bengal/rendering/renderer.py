@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import re
 import threading
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from bengal.protocols import SiteLike
@@ -211,7 +212,7 @@ class Renderer:
                 result.append(snap)
         return result
 
-    def _get_resolved_tag_pages(self, tag_slug: str) -> list[PageLike]:
+    def _get_resolved_tag_pages(self, tag_slug: str) -> Sequence[PageLike]:
         """
         Get resolved and filtered pages for a tag (cached).
 
