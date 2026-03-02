@@ -123,7 +123,7 @@ class CodeIndex:
                 module_path = ".".join(rel_path.with_suffix("").parts)
                 index.modules.add(module_path)
 
-            except (SyntaxError, UnicodeDecodeError):
+            except SyntaxError, UnicodeDecodeError:
                 # Skip files that can't be parsed
                 continue
 
@@ -224,10 +224,10 @@ class CrossReferenceValidator(BaseValidator):
         """Validate references in a single page."""
         results: list[CheckResult] = []
         content = getattr(page, "content", "") or ""
-        page_path = str(getattr(page, "source_path", "unknown"))
+        file_path = getattr(page, "source_path", None) or Path("unknown")
 
         # Extract references
-        refs = self._extract_references(content, page_path)
+        refs = self._extract_references(content, file_path)
 
         # Validate each reference
         for ref in refs:
@@ -237,7 +237,7 @@ class CrossReferenceValidator(BaseValidator):
 
         # Validate version references
         if self.deprecated_versions:
-            version_results = self._validate_versions(content, page_path)
+            version_results = self._validate_versions(content, file_path)
             results.extend(version_results)
 
         # Validate anchor links
@@ -246,7 +246,7 @@ class CrossReferenceValidator(BaseValidator):
 
         return results
 
-    def _extract_references(self, content: str, file_path: str) -> list[CodeReference]:
+    def _extract_references(self, content: str, file_path: Path) -> list[CodeReference]:
         """
         Extract code references from content.
 
@@ -264,6 +264,7 @@ class CrossReferenceValidator(BaseValidator):
             List of CodeReference objects
         """
         refs: list[CodeReference] = []
+        file_path_str = str(file_path)
 
         # Function calls: `function_name()`
         for match in re.finditer(r"`([a-z_][a-z0-9_]*)\(\)`", content):
@@ -274,7 +275,7 @@ class CrossReferenceValidator(BaseValidator):
                     name=match.group(1),
                     raw=match.group(0),
                     line=line,
-                    file_path=file_path,
+                    file_path=file_path_str,
                 )
             )
 
@@ -290,7 +291,7 @@ class CrossReferenceValidator(BaseValidator):
                         name=name,
                         raw=match.group(0),
                         line=line,
-                        file_path=file_path,
+                        file_path=file_path_str,
                     )
                 )
 
@@ -306,7 +307,7 @@ class CrossReferenceValidator(BaseValidator):
                         name=name,
                         raw=match.group(0),
                         line=line,
-                        file_path=file_path,
+                        file_path=file_path_str,
                     )
                 )
 
@@ -319,7 +320,7 @@ class CrossReferenceValidator(BaseValidator):
                     name=match.group(1),
                     raw=match.group(0),
                     line=line,
-                    file_path=file_path,
+                    file_path=file_path_str,
                 )
             )
 
@@ -341,23 +342,23 @@ class CrossReferenceValidator(BaseValidator):
         # Check if reference exists
         if not self.code_index.contains(ref):
             # Determine severity based on reference type
-            if ref.ref_type == "function":
-                severity = CheckStatus.ERROR
-                message = f"Function '{ref.name}()' not found in source code"
-                suggestion = "Verify function name or check if it was renamed/removed"
-            elif ref.ref_type == "class":
-                severity = CheckStatus.ERROR
-                message = f"Class '{ref.name}' not found in source code"
-                suggestion = "Verify class name or check if it was renamed/removed"
-            elif ref.ref_type == "config":
-                # Config references are warnings (might be external)
-                severity = CheckStatus.WARNING
-                message = f"Config option '{ref.name}' not found in known options"
-                suggestion = "Verify option name or add to known config options"
-            else:
-                severity = CheckStatus.INFO
-                message = f"Reference '{ref.name}' could not be validated"
-                suggestion = None
+            match ref.ref_type:
+                case "function":
+                    severity = CheckStatus.ERROR
+                    message = f"Function '{ref.name}()' not found in source code"
+                    suggestion = "Verify function name or check if it was renamed/removed"
+                case "class":
+                    severity = CheckStatus.ERROR
+                    message = f"Class '{ref.name}' not found in source code"
+                    suggestion = "Verify class name or check if it was renamed/removed"
+                case "config":
+                    severity = CheckStatus.WARNING
+                    message = f"Config option '{ref.name}' not found in known options"
+                    suggestion = "Verify option name or add to known config options"
+                case _:
+                    severity = CheckStatus.INFO
+                    message = f"Reference '{ref.name}' could not be validated"
+                    suggestion = None
 
             return CheckResult(
                 status=severity,
@@ -374,7 +375,7 @@ class CrossReferenceValidator(BaseValidator):
 
         return None
 
-    def _validate_versions(self, content: str, file_path: str) -> list[CheckResult]:
+    def _validate_versions(self, content: str, file_path: Path) -> list[CheckResult]:
         """
         Validate version references in content.
 
@@ -386,6 +387,7 @@ class CrossReferenceValidator(BaseValidator):
             List of CheckResults for deprecated versions
         """
         results: list[CheckResult] = []
+        file_path_str = str(file_path)
 
         # Match version patterns: v1.0, 1.0.0, etc.
         version_pattern = re.compile(r"\bv?(\d+\.\d+(?:\.\d+)?)\b")
@@ -402,8 +404,12 @@ class CrossReferenceValidator(BaseValidator):
                         recommendation=f"Update to current version '{self.current_version}'"
                         if self.current_version
                         else "Update to current version",
-                        details=[f"{file_path}:{line}"],
-                        metadata={"found_version": version, "file_path": file_path, "line": line},
+                        details=[f"{file_path_str}:{line}"],
+                        metadata={
+                            "found_version": version,
+                            "file_path": file_path_str,
+                            "line": line,
+                        },
                     )
                 )
 
