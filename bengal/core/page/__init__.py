@@ -229,7 +229,8 @@ class Page(
 
     # Private caches for AST-based content (Phase 3 of RFC)
     # See: plan/active/rfc-content-ast-architecture.md
-    _ast_cache: list[ASTNode] | None = field(default=None, repr=False, init=False)
+    # Patitas: dict (Document with "children"); legacy: list[ASTNode]
+    _ast_cache: list[ASTNode] | dict[str, Any] | None = field(default=None, repr=False, init=False)
     _html_cache: str | None = field(default=None, repr=False, init=False)
     _plain_text_cache: str | None = field(default=None, repr=False, init=False)
 
@@ -250,6 +251,11 @@ class Page(
 
     # Template override for virtual pages (uses custom template)
     _template_name: str | None = field(default=None, repr=False)
+
+    # Complexity cache for parallel render ordering (set by orchestration)
+    _complexity_score: int | None = field(default=None, repr=False, init=False)
+    # Cascade invalidation flag (set by provenance filter when provenance changes)
+    _cascade_invalidated: bool = field(default=False, repr=False, init=False)
 
     def __post_init__(self) -> None:
         """Initialize computed fields and PageCore."""

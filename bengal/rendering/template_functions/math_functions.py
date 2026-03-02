@@ -9,6 +9,7 @@ from __future__ import annotations
 import math
 from typing import TYPE_CHECKING
 
+from bengal.config.utils import coerce_int
 from bengal.rendering.utils.template_safe import template_safe
 
 if TYPE_CHECKING:
@@ -27,8 +28,19 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "ceil": ceil_filter,
             "floor": floor_filter,
             "round": round_filter,
+            "coerce_int": coerce_int_filter,
         }
     )
+
+
+def coerce_int_filter(value: object, default: int = 0) -> int:
+    """
+    Coerce value to int for template expressions (YAML/config may pass strings).
+
+    Example:
+        {{ (excerpt_words | coerce_int(150)) // 2 }}
+    """
+    return coerce_int(value, default)
 
 
 @template_safe(

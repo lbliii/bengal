@@ -16,6 +16,7 @@ Example:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
@@ -176,15 +177,15 @@ class PostView:
         # Updated date
         updated = meta.get("updated") or params.get("updated")
 
-        # Excerpt words: per-article override (None = use config in template)
-        ew = meta.get("excerpt_words") or params.get("excerpt_words")
-        if ew is not None:
-            try:
-                excerpt_words = int(ew)
-            except TypeError, ValueError:
-                excerpt_words = None
-        else:
-            excerpt_words = None
+        # Excerpt words: prefer coerced value from PageSnapshot, else meta/params
+        excerpt_words = getattr(page, "excerpt_words", None)
+        if excerpt_words is None:
+            ew = meta.get("excerpt_words") or params.get("excerpt_words")
+            if ew is not None:
+                try:
+                    excerpt_words = int(ew)
+                except TypeError, ValueError:
+                    excerpt_words = None
 
         return cls(
             title=title,
@@ -207,7 +208,7 @@ class PostView:
         )
 
 
-def posts_filter(pages: Any) -> list[PostView]:
+def posts_filter(pages: Iterable[Any]) -> list[PostView]:
     """
     Convert a list of pages to normalized PostView objects.
 
@@ -261,7 +262,7 @@ def post_view_filter(page: Any) -> PostView | None:
         return None
 
 
-def featured_posts_filter(pages: Any, limit: int = 3) -> list[PostView]:
+def featured_posts_filter(pages: Iterable[Any], limit: int = 3) -> list[PostView]:
     """
     Get featured posts from a list of pages.
 

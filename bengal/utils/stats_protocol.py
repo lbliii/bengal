@@ -22,7 +22,10 @@ See Also:
 
 from __future__ import annotations
 
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from bengal.orchestration.stats import ReloadHint
 
 
 @runtime_checkable
@@ -96,6 +99,10 @@ class DisplayableStats(CoreStats, Protocol):
     # Build flags
     parallel: bool
     skipped: bool
+
+    # Dev server / reload
+    reload_hint: ReloadHint | None
+    pages_rebuilt: int
 
     # Warnings
     warnings: list[Any]

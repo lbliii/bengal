@@ -493,7 +493,7 @@ class IncrementalOrchestrator:
             # Get cached nav metadata hash
             cached_hash = None
             if self.cache and hasattr(self.cache, "parsed_content"):
-                cached_data = self.cache.parsed_content.get(str(path), {})
+                cached_data = self.cache.parsed_content.get(str(path)) or {}
                 cached_hash = cached_data.get("nav_metadata_hash")
 
             # If nav metadata changed, rebuild all section pages

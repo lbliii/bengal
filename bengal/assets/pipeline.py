@@ -541,9 +541,10 @@ def from_site(site: SiteLike) -> NodePipeline:
     )
     # Use session ID from build state for thread-safe temporary directories
     session_id = None
-    if site.build_state:
+    build_state = getattr(site, "build_state", None)
+    if build_state:
         # Use ISO format without colons for filename safety
-        session_id = site.build_state.build_time.strftime("%Y%m%dT%H%M%S")
+        session_id = build_state.build_time.strftime("%Y%m%dT%H%M%S")
 
     pc = PipelineConfig(
         root_path=site.root_path,

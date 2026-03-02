@@ -55,6 +55,7 @@ class PageSnapshot:
     # Pre-computed values (no @cached_property needed)
     reading_time: int
     word_count: int
+    excerpt_words: int  # Max words for excerpt (coerced from YAML)
     content_hash: str  # For incremental builds
 
     # Navigation (pre-resolved, circular refs handled)

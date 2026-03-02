@@ -459,6 +459,8 @@ class GoogleFontsDownloader:
         # }
 
         font_urls = {}
+        if not isinstance(css_content, str):
+            return font_urls
 
         # Find all @font-face blocks
         font_face_pattern = r"@font-face\s*{([^}]+)}"

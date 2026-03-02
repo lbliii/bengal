@@ -40,10 +40,14 @@ class OrderingMixin:
 
     Expects from host class:
         site: Site instance
-        _get_max_workers() -> int | None
+        _get_max_workers() -> int | None (RenderOrchestrator provides this)
     """
 
     site: Site
+
+    def _get_max_workers(self) -> int | None:
+        """Expected from host. RenderOrchestrator overrides with config lookup."""
+        return None
 
     def _should_use_complexity_ordering(self) -> bool:
         """Check if complexity-based ordering is enabled."""
@@ -72,7 +76,11 @@ class OrderingMixin:
         if len(pages) <= max_workers:
             return pages
 
-        from bengal.orchestration.complexity import get_complexity_stats, sort_by_complexity
+        from bengal.orchestration.complexity import (
+            ComplexityStats,
+            get_complexity_stats,
+            sort_by_complexity,
+        )
 
         track_item_paths = None
         if self._should_use_track_dependency_ordering():
@@ -97,9 +105,9 @@ class OrderingMixin:
         else:
             sorted_pages = sort_by_complexity(pages, descending=True)
 
-        complexity_stats = get_complexity_stats(sorted_pages)
-        mean_score = float(complexity_stats["mean"])  # type: ignore[arg-type]
-        variance_ratio = float(complexity_stats["variance_ratio"])  # type: ignore[arg-type]
+        complexity_stats: ComplexityStats = get_complexity_stats(sorted_pages)
+        mean_score = complexity_stats["mean"]
+        variance_ratio = complexity_stats["variance_ratio"]
         logger.debug(
             "complexity_distribution",
             page_count=complexity_stats["count"],
@@ -305,7 +313,7 @@ class OrderingMixin:
             priority_count=len(priority_pages),
             normal_count=len(normal_pages),
         )
-        max_workers = self._get_max_workers() or 4  # type: ignore[attr-defined]
+        max_workers = self._get_max_workers() or 4
         priority_pages = self._maybe_sort_by_complexity(priority_pages, max_workers)
         normal_pages = self._maybe_sort_by_complexity(normal_pages, max_workers)
 

@@ -83,6 +83,7 @@ class BuildStats:
     discovery_time_ms: float = 0
     taxonomy_time_ms: float = 0
     rendering_time_ms: float = 0
+    pages_rendered: int = 0  # Set by RenderOrchestrator from WaveScheduler
     assets_time_ms: float = 0
     postprocess_time_ms: float = 0
     health_check_time_ms: float = 0
@@ -227,6 +228,11 @@ class BuildStats:
     def pages_built(self) -> int:
         """Alias for total_pages for backwards compatibility."""
         return self.total_pages
+
+    @property
+    def pages_rebuilt(self) -> int:
+        """Count of pages actually rendered (DisplayableStats contract)."""
+        return self.pages_rendered
 
     @property
     def has_errors(self) -> bool:

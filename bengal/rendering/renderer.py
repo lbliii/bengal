@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import re
 import threading
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from bengal.protocols import SiteLike
@@ -211,7 +212,7 @@ class Renderer:
                 result.append(snap)
         return result
 
-    def _get_resolved_tag_pages(self, tag_slug: str) -> list[PageLike]:
+    def _get_resolved_tag_pages(self, tag_slug: str) -> Sequence[PageLike]:
         """
         Get resolved and filtered pages for a tag (cached).
 
@@ -461,21 +462,14 @@ class Renderer:
             result = self.template_engine.render(template_name, context)
             return str(result) if result else ""
         except Exception as e:
-            # Always print template errors in dev so they're visible (belt-and-suspenders)
             import os
 
-            from bengal.rendering.errors import TemplateRenderError, display_template_error
+            from bengal.rendering.errors import TemplateRenderError
 
-            if os.environ.get("BENGAL_DEV_SERVER") == "1":
-                print(f"[Bengal] Template error: {e}", flush=True)
-
-            # Create rich error object
             rich_error = TemplateRenderError.from_jinja2_error(
                 e, template_name, page.source_path, self.template_engine
             )
 
-            # In strict mode, display and fail immediately
-            # Access from build section (supports both Config and dict)
             config = self.site.config
             if hasattr(config, "build"):
                 strict_mode = config.build.strict_mode
@@ -493,51 +487,19 @@ class Renderer:
                     else config.get("debug", False)
                 )
 
-            # Show Python traceback in dev-server mode (BENGAL_DEV_SERVER=1)
-            # or when debug is explicitly enabled.  Dev-server users are
-            # actively developing and the traceback pinpoints the real
-            # comparison / sort that failed, which the template line alone
-            # cannot convey.
             show_traceback = debug_mode or (os.environ.get("BENGAL_DEV_SERVER") == "1")
+            rich_error._show_traceback = show_traceback
+            rich_error._original_exception = e
 
-            if strict_mode:
-                display_template_error(rich_error)
-                if show_traceback:
-                    # Use configured traceback renderer for consistency
-                    try:
-                        from bengal.errors.traceback import TracebackConfig
-
-                        TracebackConfig.from_environment().get_renderer().display_exception(e)
-                    except Exception as traceback_error:
-                        logger.debug(
-                            "traceback_renderer_failed",
-                            error=str(traceback_error),
-                            error_type=type(traceback_error).__name__,
-                        )
-                # Raise TemplateRenderError directly (now extends Exception)
-                raise rich_error from e
-
-            # In production mode, collect error for deferred display
-            # (prevents interleaved output during parallel rendering)
+            # Always collect into build_stats for deferred display after rendering.
+            # This prevents interleaved output when parallel threads hit the same error.
             if self.build_stats:
-                # Use deduplicator to avoid collecting duplicate errors
                 dedup = self.build_stats.get_error_deduplicator()
                 if dedup.should_display(rich_error):
                     self.build_stats.add_template_error(rich_error)
-            # Note: If no build_stats, error is silently dropped (fallback HTML is still generated)
 
-            if show_traceback:
-                # Show exception using the configured renderer
-                try:
-                    from bengal.errors.traceback import TracebackConfig
-
-                    TracebackConfig.from_environment().get_renderer().display_exception(e)
-                except Exception as traceback_error:
-                    logger.debug(
-                        "traceback_renderer_failed",
-                        error=str(traceback_error),
-                        error_type=type(traceback_error).__name__,
-                    )
+            if strict_mode:
+                raise rich_error from e
 
             # Fallback to simple HTML
             return self._render_fallback(page, content)

@@ -694,7 +694,7 @@ def configure_logging(
                     logger._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
 
 
-def get_logger(name: str) -> BengalLogger:
+def get_logger(name: str) -> LazyLogger:
     """
     Get a logger proxy for the given name.
 
@@ -720,12 +720,12 @@ def get_logger(name: str) -> BengalLogger:
     # Use .get() to avoid KeyError if reset_loggers() clears dict concurrently
     cached = _lazy_loggers.get(name)
     if cached is not None:
-        return cached  # type: ignore[return-value]
+        return cached
     # Slow path: acquire lock and double-check
     with _logger_lock:
         if name not in _lazy_loggers:
             _lazy_loggers[name] = LazyLogger(name)
-        return _lazy_loggers[name]  # type: ignore[return-value]
+        return _lazy_loggers[name]
 
 
 def set_console_quiet(quiet: bool = True) -> None:

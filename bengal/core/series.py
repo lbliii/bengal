@@ -59,11 +59,13 @@ class Series:
     The class is frozen (immutable) for hashability and cache safety.
 
     Attributes:
-        name: Series name/title (required)
+        name: Series display name (required)
         part: Current part number (1-indexed)
         total: Total number of parts (optional, 0 if unknown)
         description: Series description (optional)
-        slug: URL-safe identifier (auto-generated from name if not provided)
+        slug: URL-safe identifier (auto-generated from id or name if not provided)
+        id: Programmatic identifier for index lookup (optional; when present, used
+            for site.indexes.series.get() instead of name)
 
     Example:
             >>> series = Series(
@@ -84,14 +86,15 @@ class Series:
     total: int = 0
     description: str = ""
     slug: str = ""
+    id: str = ""
 
     def __post_init__(self) -> None:
         """Generate slug from name if not provided."""
-        if not self.slug and self.name:
+        if not self.slug and (self.id or self.name):
             # Generate slug - since frozen, use object.__setattr__
             from bengal.utils.primitives.text import slugify
 
-            object.__setattr__(self, "slug", slugify(self.name))
+            object.__setattr__(self, "slug", slugify(self.id or self.name))
 
     @property
     def is_first(self) -> bool:
@@ -133,6 +136,7 @@ class Series:
         """
         return {
             "name": self.name,
+            "id": self.id,
             "part": self.part,
             "total": self.total,
             "description": self.description,
@@ -175,20 +179,22 @@ class Series:
         if not isinstance(data, dict):
             return None
 
+        series_id = data.get("id", "")
         name = data.get("name", "")
         if not name:
-            # Try alternative keys
             name = data.get("title", "") or data.get("series_name", "")
-
-        if not name:
+        if not name and not series_id:
             return None
+        # Display name: prefer name, fall back to id
+        display_name = str(name) if name else str(series_id)
 
         return cls(
-            name=str(name),
+            name=display_name,
             part=int(data.get("part", 1)),
             total=int(data.get("total", 0)),
             description=str(data.get("description", "")),
             slug=str(data.get("slug", "")),
+            id=str(series_id),
         )
 
     def __str__(self) -> str:

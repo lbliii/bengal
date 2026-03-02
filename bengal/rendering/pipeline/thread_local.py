@@ -46,8 +46,11 @@ import threading
 from bengal.parsing import BaseMarkdownParser, create_markdown_parser
 from bengal.utils.concurrency.thread_local import ThreadLocalCache, ThreadSafeSet
 
-# Thread-local storage for pipeline instances (used by WaveScheduler)
-# Each worker thread gets its own pipeline to avoid contention
+# Thread-local storage for pipeline instances (used by WaveScheduler).
+# Each worker thread gets its own pipeline to avoid contention.
+# Note: threading.local() is correct here (not ContextVar) — we need
+# per-thread state for ThreadPoolExecutor workers; ContextVar is for
+# async/task context propagation.
 thread_local = threading.local()
 
 # Thread-local cache for parser instances (reuse parsers per thread)

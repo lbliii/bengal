@@ -324,6 +324,9 @@ def validate_collections(collection: str | None, config: str | None, source: str
     errors_by_file: dict[str, list[str]] = {}
 
     for name, coll_config in loaded.items():
+        if coll_config.directory is None:
+            cli.warning(f"Collection '{name}' has no directory configured - skipping")
+            continue
         collection_dir = content_dir / coll_config.directory
 
         if not collection_dir.exists():

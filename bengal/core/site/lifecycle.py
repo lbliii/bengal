@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.menu import MenuBuilder, MenuItem
     from bengal.core.page import Page
+    from bengal.core.registry import ContentRegistry
     from bengal.core.section import Section
     from bengal.core.url_ownership import URLRegistry
     from bengal.orchestration.build.inputs import BuildInput
@@ -66,6 +67,19 @@ class SiteLifecycleMixin:
     _current_build_state: BuildState | None
     _cascade_snapshot: Any
     _page_lookup_maps: Any
+
+    # Host-provided (from SiteDiscoveryMixin, Site, etc.)
+    registry: ContentRegistry
+    _theme_obj: Any
+    _bengal_theme_chain_cache: Any
+    _bengal_template_dirs_cache: Any
+    _bengal_template_metadata_cache: Any
+    _discovery_breakdown_ms: Any
+    features_detected: set[str]
+    _asset_manifest_fallbacks_global: set[str]
+
+    def invalidate_page_caches(self) -> None: ...
+    def invalidate_regular_pages_cache(self) -> None: ...
 
     def prepare_for_rebuild(self) -> None:
         """
@@ -121,19 +135,14 @@ class SiteLifecycleMixin:
 
         self._cascade_snapshot = None
 
-        if hasattr(self, "invalidate_page_caches"):
-            self.invalidate_page_caches()  # type: ignore[attr-defined]
-        if hasattr(self, "invalidate_regular_pages_cache"):
-            self.invalidate_regular_pages_cache()  # type: ignore[attr-defined]
-
-        if hasattr(self, "registry"):
-            self.registry.clear()  # type: ignore[attr-defined]
+        self.invalidate_page_caches()
+        self.invalidate_regular_pages_cache()
+        self.registry.clear()
 
         from bengal.core.url_ownership import URLRegistry
 
         self.url_registry = URLRegistry()
-        if hasattr(self, "registry"):
-            self.registry.url_ownership = self.url_registry  # type: ignore[attr-defined]
+        self.registry.url_ownership = self.url_registry
 
         self._page_lookup_maps = None
 
@@ -260,28 +269,24 @@ class SiteLifecycleMixin:
 
         self.xref_index = {}
 
-        self.invalidate_page_caches()  # type: ignore[attr-defined]
-
-        self.registry.clear()  # type: ignore[attr-defined]
+        self.invalidate_page_caches()
+        self.registry.clear()
 
         from bengal.core.url_ownership import URLRegistry
 
         self.url_registry = URLRegistry()
-        self.registry.url_ownership = self.url_registry  # type: ignore[attr-defined]
+        self.registry.url_ownership = self.url_registry
 
         self.__dict__.pop("indexes", None)
 
-        self._theme_obj = None  # type: ignore[attr-defined]
-
+        self._theme_obj = None
         self._page_lookup_maps = None
-        self._bengal_theme_chain_cache = None  # type: ignore[attr-defined]
-        self._bengal_template_dirs_cache = None  # type: ignore[attr-defined]
-        self._bengal_template_metadata_cache = None  # type: ignore[attr-defined]
-        self._discovery_breakdown_ms = None  # type: ignore[attr-defined]
-        if hasattr(self, "_asset_manifest_fallbacks_global"):
-            self._asset_manifest_fallbacks_global.clear()  # type: ignore[attr-defined]
-        if hasattr(self, "features_detected"):
-            self.features_detected.clear()  # type: ignore[attr-defined]
+        self._bengal_theme_chain_cache = None
+        self._bengal_template_dirs_cache = None
+        self._bengal_template_metadata_cache = None
+        self._discovery_breakdown_ms = None
+        self._asset_manifest_fallbacks_global.clear()
+        self.features_detected.clear()
 
         if hasattr(self, "_kida_asset_manifest_cache"):
             delattr(self, "_kida_asset_manifest_cache")

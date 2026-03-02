@@ -2,7 +2,7 @@
 
 ## 0.2.4 - 2026-03-02
 
-### Type Hardening (Fifth Round)
+### Type Hardening 
 - **orchestration**: type BuildContext fields (api_doc_enhancer, write_behind, snapshot, query_service, data_service) via TYPE_CHECKING imports
 - **rendering**: replace shortcode getattr with direct protocol access for SiteLike/PageLike (xref_index, href, source_path)
 

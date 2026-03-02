@@ -73,8 +73,12 @@ class Gradient:
         c2 = self.colors[idx2]
 
         # Get RGB triplets
-        r1, g1, b1 = c1.triplet
-        r2, g2, b2 = c2.triplet
+        t1 = c1.triplet
+        t2 = c2.triplet
+        if t1 is None or t2 is None:
+            return self.colors[0]
+        r1, g1, b1 = t1
+        r2, g2, b2 = t2
 
         # Interpolate
         r = int(r1 + (r2 - r1) * blend)

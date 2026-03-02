@@ -54,7 +54,7 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
             lang: Override language (falls back to site default)
             default: Default value if key not found
         """
-        return base_translate(key, params=params, lang=lang, default=default)
+        return base_translate(key, params, lang, default)
 
     def current_lang() -> str | None:
         """Get current language from site default.

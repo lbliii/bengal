@@ -59,6 +59,7 @@ class TestPredictAffected:
                 categories=(),
                 reading_time=1,
                 word_count=100,
+                excerpt_words=150,
                 content_hash=f"hash{i}",  # Unique hash for each page
                 section=NO_SECTION,
             )
@@ -239,6 +240,7 @@ class TestSpeculativeRenderer:
             categories=(),
             reading_time=1,
             word_count=100,
+            excerpt_words=150,
             content_hash="abc",
             section=NO_SECTION,
         )
@@ -280,6 +282,7 @@ class TestShadowModeValidator:
             categories=(),
             reading_time=1,
             word_count=100,
+            excerpt_words=150,
             content_hash="abc",
             section=NO_SECTION,
         )

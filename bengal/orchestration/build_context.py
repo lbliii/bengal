@@ -43,6 +43,11 @@ if TYPE_CHECKING:
     from bengal.orchestration.stats import BuildStats
     from bengal.output import CLIOutput
     from bengal.protocols import ProgressReporter
+    from bengal.rendering.api_doc_enhancer import APIDocEnhancerProtocol
+    from bengal.rendering.pipeline.write_behind import WriteBehindCollector
+    from bengal.services.data import DataService
+    from bengal.services.query import QueryService
+    from bengal.snapshots.types import SiteSnapshot
     from bengal.utils.observability.cli_progress import LiveProgressManager
     from bengal.utils.observability.profile import BuildProfile
 
@@ -106,7 +111,8 @@ class AccumulatedPageData:
     # Contains: type, layout, author, authors, category, categories, weight,
     #           draft, featured, search_keywords, search_exclude, cli_name,
     #           api_module, difficulty, level, related, lastmod, source_file,
-    #           version, isAutodoc
+    #           version
+    is_autodoc: bool = False  # For search result grouping (Documentation vs API Reference)
 
     # =========================================================================
     # Extended Data for PageJSONGenerator
@@ -203,19 +209,19 @@ class BuildContext:
     output_collector: OutputCollector | None = None
 
     # API doc enhancer (injectable for tests)
-    api_doc_enhancer: Any = None  # APIDocEnhancerProtocol | None
+    api_doc_enhancer: APIDocEnhancerProtocol | None = None
 
     # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
     # Created by BuildOrchestrator when build.write_behind=True
-    write_behind: Any = None  # WriteBehindCollector (lazy import to avoid circular)
+    write_behind: WriteBehindCollector | None = None
 
     # Snapshot for lock-free parallel rendering (RFC: rfc-bengal-snapshot-engine)
-    snapshot: Any = None  # SiteSnapshot (lazy import to avoid circular)
+    snapshot: SiteSnapshot | None = None
 
     # Services — instantiated from snapshot after creation (RFC: bengal-v2-architecture)
     # These provide O(1) lookups on immutable data for thread-safe rendering.
-    query_service: Any = None  # QueryService (lazy import to avoid circular)
-    data_service: Any = None  # DataService (lazy import to avoid circular)
+    query_service: QueryService | None = None
+    data_service: DataService | None = None
 
     # Timing (build start time for duration calculation)
     build_start: float = 0.0

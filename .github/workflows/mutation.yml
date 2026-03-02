@@ -59,7 +59,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        uv sync --group dev
+        uv sync --no-sources --group dev
         uv pip install mutmut
 
     - name: Configure mutation targets
