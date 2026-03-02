@@ -118,7 +118,7 @@ def _display_template_error_rich(error: TemplateRenderError) -> None:
     console.print()
     console.print(f"[red bold]Error:[/red bold] {error.message}")
 
-    # Generate enhanced suggestions
+    # Generate enhanced suggestions (handles both TemplateRenderError and engine TemplateError)
     suggestions = _generate_enhanced_suggestions(error)
 
     if suggestions:
@@ -129,29 +129,33 @@ def _display_template_error_rich(error: TemplateRenderError) -> None:
             console.print(f"   [yellow]{i}.[/yellow] {suggestion}")
 
     # Alternatives (for filter/variable errors)
-    if error.available_alternatives:
+    available_alternatives = getattr(error, "available_alternatives", None) or []
+    if available_alternatives:
         console.print()
         console.print("[yellow bold]Did you mean:[/yellow bold]")
-        for alt in error.available_alternatives:
+        for alt in available_alternatives:
             console.print(f"   • [cyan]{alt}[/cyan]")
 
     # Inclusion chain
-    if error.inclusion_chain:
+    inclusion_chain = getattr(error, "inclusion_chain", None)
+    if inclusion_chain:
         console.print()
         console.print("[cyan bold]Template Chain:[/cyan bold]")
-        for line in str(error.inclusion_chain).split("\n"):
+        for line in str(inclusion_chain).split("\n"):
             console.print(f"  {line}")
 
     # Page source
-    if error.page_source:
+    page_source = getattr(error, "page_source", None)
+    if page_source:
         console.print()
-        console.print(f"[cyan]Used by page:[/cyan] {error.page_source}")
+        console.print(f"[cyan]Used by page:[/cyan] {page_source}")
 
     # Template search paths (helpful for debugging template not found errors)
-    if error.search_paths:
+    search_paths = getattr(error, "search_paths", None) or []
+    if search_paths:
         console.print()
         console.print("[cyan bold]🔍 Template Search Paths:[/cyan bold]")
-        for i, search_path in enumerate(error.search_paths, 1):
+        for i, search_path in enumerate(search_paths, 1):
             # Mark the path where template was found (if found)
             found_marker = ""
             if ctx.template_path and ctx.template_path.is_relative_to(search_path):
@@ -178,9 +182,10 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
     """Generate context-aware suggestions for template errors."""
     suggestions = []
 
-    # Start with existing suggestion
-    if error.suggestion:
-        suggestions.append(error.suggestion)
+    # Start with existing suggestion (TemplateRenderError has it; engine TemplateError does not)
+    suggestion = getattr(error, "suggestion", None)
+    if suggestion:
+        suggestions.append(suggestion)
 
     error_str = str(error.message).lower()
 
@@ -437,30 +442,35 @@ def _display_template_error_click(error: TemplateRenderError, use_color: bool = 
     click.echo(click.style("\n  Error: ", fg="red", bold=True) + error.message)
 
     # Suggestion
-    if error.suggestion:
-        click.echo(click.style("\n  Suggestion: ", fg="yellow", bold=True) + error.suggestion)
+    suggestion = getattr(error, "suggestion", None)
+    if suggestion:
+        click.echo(click.style("\n  Suggestion: ", fg="yellow", bold=True) + suggestion)
 
     # Alternatives
-    if error.available_alternatives:
+    available_alternatives = getattr(error, "available_alternatives", None) or []
+    if available_alternatives:
         click.echo(
             click.style("\n  Did you mean: ", fg="yellow", bold=True)
-            + ", ".join(f"'{alt}'" for alt in error.available_alternatives)
+            + ", ".join(f"'{alt}'" for alt in available_alternatives)
         )
 
     # Inclusion chain
-    if error.inclusion_chain:
+    inclusion_chain = getattr(error, "inclusion_chain", None)
+    if inclusion_chain:
         click.echo(click.style("\n  Template Chain:", fg="cyan"))
-        for line in str(error.inclusion_chain).split("\n"):
+        for line in str(inclusion_chain).split("\n"):
             click.echo(f"  {line}")
 
     # Page source
-    if error.page_source:
-        click.echo(click.style("\n  Used by page: ", fg="cyan") + str(error.page_source))
+    page_source = getattr(error, "page_source", None)
+    if page_source:
+        click.echo(click.style("\n  Used by page: ", fg="cyan") + str(page_source))
 
     # Template search paths
-    if error.search_paths:
+    search_paths = getattr(error, "search_paths", None) or []
+    if search_paths:
         click.echo(click.style("\n  🔍 Template Search Paths:", fg="cyan", bold=True))
-        for i, search_path in enumerate(error.search_paths, 1):
+        for i, search_path in enumerate(search_paths, 1):
             found_marker = ""
             if ctx.template_path and ctx.template_path.is_relative_to(search_path):
                 found_marker = click.style(" ← found here", fg="green")
