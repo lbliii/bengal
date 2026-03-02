@@ -133,7 +133,7 @@ def _cleanup_deleted_autodoc_sources(site: Site, cache: BuildCache) -> None:
 
     try:
         source_files = list(cache.autodoc_tracker.get_autodoc_source_files())
-    except TypeError, AttributeError:
+    except (TypeError, AttributeError):
         return
 
     deleted_sources: list[str] = []

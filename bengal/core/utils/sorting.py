@@ -78,7 +78,7 @@ def weight_sort_key(
     else:
         try:
             weight = float(weight)
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             weight = DEFAULT_WEIGHT
 
     # Get title

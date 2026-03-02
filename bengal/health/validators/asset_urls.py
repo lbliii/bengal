@@ -253,5 +253,5 @@ class AssetURLValidator(BaseValidator):
                         return str(Path(*tail_canonical))
 
             return None
-        except OSError, ValueError:
+        except (OSError, ValueError):
             return None

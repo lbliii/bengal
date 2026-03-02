@@ -560,7 +560,7 @@ class RenderOrchestrator(
                         aggregator.add_error(e, context=context)
 
             aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
-        except KeyboardInterrupt, SystemExit:
+        except (KeyboardInterrupt, SystemExit):
             executor.shutdown(wait=False, cancel_futures=True)
             raise
         except RuntimeError as e:
@@ -685,7 +685,7 @@ class RenderOrchestrator(
                     current_item="",
                     threads=max_workers,
                 )
-        except KeyboardInterrupt, SystemExit:
+        except (KeyboardInterrupt, SystemExit):
             executor.shutdown(wait=False, cancel_futures=True)
             raise
         except RuntimeError as e:
@@ -789,7 +789,7 @@ class RenderOrchestrator(
                         progress.update(task, advance=1)
 
                 aggregator.log_summary(logger, threshold=5, error_type="rendering")
-            except KeyboardInterrupt, SystemExit:
+            except (KeyboardInterrupt, SystemExit):
                 executor.shutdown(wait=False, cancel_futures=True)
                 raise
             except RuntimeError as e:

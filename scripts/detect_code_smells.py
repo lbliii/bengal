@@ -154,7 +154,7 @@ def analyze_file(filepath: Path) -> FileAnalysis | None:
     try:
         source = filepath.read_text(encoding="utf-8")
         tree = ast.parse(source, filename=str(filepath))
-    except SyntaxError, UnicodeDecodeError:
+    except (SyntaxError, UnicodeDecodeError):
         return None
 
     lines = source.splitlines()

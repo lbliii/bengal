@@ -90,5 +90,5 @@ def tags_to_list(tags: Any) -> list[str]:
     # Try to convert other iterables (set, generator, etc.)
     try:
         return [str(tag) for tag in tags]
-    except TypeError, ValueError:
+    except (TypeError, ValueError):
         return []

@@ -589,7 +589,7 @@ class SchemaValidator:
             # Attempt coercion for scalar types
             try:
                 return expected(value), []
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 return value, [
                     ValidationError(
                         field=name,

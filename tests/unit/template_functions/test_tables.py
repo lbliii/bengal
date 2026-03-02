@@ -410,6 +410,6 @@ class TestEdgeCases:
             result = data_table(mock_env, None)
             html = str(result)
             assert "error" in html.lower()
-        except TypeError, AttributeError:
+        except (TypeError, AttributeError):
             # Also acceptable to raise an error
             pass

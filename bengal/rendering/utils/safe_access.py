@@ -160,7 +160,7 @@ def _attr_exists(obj: Any, attr: str) -> bool:
     try:
         if hasattr(type(obj), attr):
             return True
-    except AttributeError, TypeError:
+    except (AttributeError, TypeError):
         pass
 
     return False
@@ -217,7 +217,7 @@ def safe_get_nested(obj: Any, *attrs: str, default: Any = None) -> Any:
             if is_undefined(current):
                 return default
 
-        except AttributeError, TypeError:
+        except (AttributeError, TypeError):
             return default
 
     return current if current is not None else default

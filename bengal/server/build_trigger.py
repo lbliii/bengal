@@ -353,7 +353,7 @@ class BuildTrigger:
                                         reload_hint=None,
                                     )
                                 )
-                        except OSError, UnicodeDecodeError:
+                        except (OSError, UnicodeDecodeError):
                             self._handle_reload(
                                 BuildReloadInfo(
                                     changed_files=tuple(changed_files),
@@ -902,7 +902,7 @@ class BuildTrigger:
                     abs_path = (root / path).resolve()
                 else:
                     abs_path = path.resolve()
-            except OSError, ValueError:
+            except (OSError, ValueError):
                 continue
             entry = self._compute_content_hashes(abs_path)
             if entry is None:
@@ -1031,7 +1031,7 @@ class BuildTrigger:
         """Check if path is within any template directory."""
         try:
             resolved_path = path.resolve()
-        except OSError, ValueError:
+        except (OSError, ValueError):
             resolved_path = path
 
         for template_dir in template_dirs:
@@ -1039,7 +1039,7 @@ class BuildTrigger:
                 resolved_dir = template_dir.resolve()
                 resolved_path.relative_to(resolved_dir)
                 return True
-            except ValueError, OSError:
+            except (ValueError, OSError):
                 continue
         return False
 
@@ -1150,7 +1150,7 @@ class BuildTrigger:
                 try:
                     if rec.phase in ("render", "asset", "postprocess"):
                         records.append(rec.to_output_record())
-                except ValueError, TypeError:
+                except (ValueError, TypeError):
                     logger.debug("invalid_output_type", path=rec.path, type_val=rec.type_value)
 
             if records:

@@ -192,7 +192,7 @@ class GraphVisualizer:
             reading_time_raw = getattr(page, "reading_time", 1)
             try:
                 reading_time = int(reading_time_raw) if reading_time_raw else 1
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 reading_time = 1
 
             # Calculate visual size based on BOTH connectivity AND content depth
@@ -261,7 +261,7 @@ class GraphVisualizer:
                             baseurl = (self.site.baseurl or "").rstrip("/")
                             if baseurl:
                                 page_url = f"{baseurl}{page_url}"
-                        except ValueError, AttributeError:
+                        except (ValueError, AttributeError):
                             # Final fallback: use slug-based URL with baseurl
                             baseurl = (self.site.baseurl or "").rstrip("/")
                             page_url = f"{baseurl}/{getattr(page, 'slug', page.source_path.stem)}/"

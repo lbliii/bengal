@@ -80,7 +80,7 @@ class SeriesIndex(QueryIndex):
             try:
                 part = int(series_data.get("part", 1))
                 total = int(series_data.get("total", 0))
-            except TypeError, ValueError:
+            except (TypeError, ValueError):
                 # Invalid part/total values in frontmatter - use defaults
                 part = 1
                 total = 0

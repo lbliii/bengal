@@ -139,7 +139,7 @@ def test_get_section_by_path_symlinks(temp_site, tmp_path):
         assert section_via_symlink == blog
         assert section_via_real == blog
 
-    except OSError, NotImplementedError:
+    except (OSError, NotImplementedError):
         pytest.skip("Symlinks not supported on this platform")
 
 

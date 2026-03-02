@@ -153,14 +153,14 @@ class PageMetadataMixin:
         if self.core is not None and self.core.weight is not None:
             try:
                 return float(self.core.weight)
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 pass
         # Check metadata (fallback)
         w = self.metadata.get("weight")
         if w is not None:
             try:
                 return float(w)
-            except ValueError, TypeError:
+            except (ValueError, TypeError):
                 pass
         return float("inf")
 

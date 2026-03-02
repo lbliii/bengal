@@ -175,7 +175,7 @@ def notebook_colab_url(page, site: SiteLike) -> str:
                 path_rel = str(src.relative_to(root)).replace("\\", "/")
             else:
                 path_rel = raw_path
-        except ValueError, TypeError:
+        except (ValueError, TypeError):
             path_rel = raw_path
     else:
         path_rel = raw_path

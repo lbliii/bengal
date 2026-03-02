@@ -206,7 +206,7 @@ class CLIExtractor(Extractor):
             try:
                 source_file = Path(inspect.getfile(group.callback))
                 line_number = inspect.getsourcelines(group.callback)[1]
-            except TypeError, OSError:
+            except (TypeError, OSError):
                 pass
 
         # Build children (subcommands)
@@ -297,7 +297,7 @@ class CLIExtractor(Extractor):
             try:
                 source_file = Path(inspect.getfile(cmd.callback))
                 line_number = inspect.getsourcelines(cmd.callback)[1]
-            except TypeError, OSError:
+            except (TypeError, OSError):
                 pass
 
         # Extract options and arguments
