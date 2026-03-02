@@ -54,8 +54,9 @@ def _get_keepalive_interval() -> float:
 
 
 def get_current_generation() -> int:
-    """Return the current reload generation (thread-safe snapshot)."""
-    return _state.generation
+    """Return the current reload generation (best-effort snapshot; may be stale under concurrency)."""
+    with _state.condition:
+        return _state.generation
 
 
 def wait_for_sse_event(

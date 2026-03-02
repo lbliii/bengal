@@ -41,26 +41,24 @@ def send_reload_payload(action: str, reason: str, changed_paths: Sequence[str]) 
     with _state.condition:
         _state.generation += 1
         next_gen = _state.generation
-    try:
-        payload = json.dumps(
-            {
-                "action": action,
-                "reason": reason,
-                "changedPaths": changed_paths,
-                "generation": next_gen,
-            }
-        )
-    except Exception as e:
-        logger.warning(
-            "reload_payload_serialization_failed",
-            error_code=ErrorCode.S003.name,
-            action=action,
-            reason=reason,
-            error=str(e),
-        )
-        payload = action
-
-    with _state.condition:
+        try:
+            payload = json.dumps(
+                {
+                    "action": action,
+                    "reason": reason,
+                    "changedPaths": changed_paths,
+                    "generation": next_gen,
+                }
+            )
+        except Exception as e:
+            logger.warning(
+                "reload_payload_serialization_failed",
+                error_code=ErrorCode.S003.name,
+                action=action,
+                reason=reason,
+                error=str(e),
+            )
+            payload = action
         _state.last_action = payload
         _state.sent_count += 1
         _state.condition.notify_all()
