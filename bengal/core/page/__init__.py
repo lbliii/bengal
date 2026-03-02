@@ -252,6 +252,9 @@ class Page(
     # Template override for virtual pages (uses custom template)
     _template_name: str | None = field(default=None, repr=False)
 
+    # Complexity cache for parallel render ordering (set by orchestration)
+    _complexity_score: int | None = field(default=None, repr=False, init=False)
+
     def __post_init__(self) -> None:
         """Initialize computed fields and PageCore."""
         if self._raw_metadata:

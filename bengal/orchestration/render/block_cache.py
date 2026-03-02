@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -25,11 +25,11 @@ class BlockCacheMixin:
     Mixin providing block cache management for RenderOrchestrator.
 
     Expects from host class:
-        site: Site instance
+        site: SiteLike instance
         _block_cache: BlockCache | None (initialized in __init__)
     """
 
-    site: Site
+    site: SiteLike
     _block_cache: Any
 
     def _warm_block_cache(self) -> None:
@@ -54,14 +54,14 @@ class BlockCacheMixin:
 
             self._block_cache = BlockCache(enabled=True)
 
-            site_context = get_engine_globals(self.site)  # type: ignore[arg-type]
+            site_context = get_engine_globals(self.site)
 
             templates_to_warm = ["base.html", "page.html", "single.html", "list.html"]
             total_cached = 0
 
             for template_name in templates_to_warm:
                 try:
-                    cached = self._block_cache.warm_site_blocks(engine, template_name, site_context)  # type: ignore[arg-type]
+                    cached = self._block_cache.warm_site_blocks(engine, template_name, site_context)
                     total_cached += cached
                 except Exception:
                     pass

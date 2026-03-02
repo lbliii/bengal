@@ -808,7 +808,7 @@ class RenderingPipeline:
             return self.template_engine.render_string(
                 source,
                 {"page": page, "site": self.site, "config": self.site.config},
-                strict=False,  # type: ignore[call-arg]
+                strict=False,
             )
         except Exception as e:
             if self.build_stats:

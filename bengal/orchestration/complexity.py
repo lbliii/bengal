@@ -27,7 +27,6 @@ Example:
 
 from __future__ import annotations
 
-import contextlib
 import re
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypedDict
@@ -184,9 +183,7 @@ def get_cached_score(page: PageLike) -> int:
     score = estimate_complexity(content).score
 
     # Cache on page (safe - pages are mutable objects)
-    # Use contextlib.suppress for cleaner handling of frozen dataclass or immutable objects
-    with contextlib.suppress(AttributeError, TypeError):
-        page._complexity_score = score  # type: ignore[attr-defined]
+    page._complexity_score = score
 
     return score
 

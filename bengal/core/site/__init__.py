@@ -51,6 +51,7 @@ from threading import Lock
 from typing import TYPE_CHECKING, Any, Self, cast
 
 from bengal.core.asset import Asset
+from bengal.core.diagnostics import DiagnosticsSink
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
@@ -195,6 +196,8 @@ class Site(
     _config_service: ConfigService | None = field(default=None, repr=False, init=False)
 
     # Dynamic runtime attributes (set by various orchestrators)
+    # Diagnostics sink for core-model events (set by BuildOrchestrator)
+    diagnostics: DiagnosticsSink | None = field(default=None, repr=False, init=False)
     # Menu metadata for dev server menu items (set by MenuOrchestrator)
     _dev_menu_metadata: dict[str, Any] | None = field(default=None, repr=False, init=False)
     # Page lookup maps for efficient page resolution (set by template functions)
