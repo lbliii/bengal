@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from bengal.orchestration.stats import ReloadHint
     from bengal.server.build_executor import BuildResult
 
 
@@ -74,6 +75,10 @@ class MinimalStats:
     # Flags
     parallel: bool = True
     skipped: bool = False
+
+    # Dev server / reload
+    reload_hint: ReloadHint | None = None
+    pages_rebuilt: int = 0
 
     # Warnings
     warnings: list[Any] = field(default_factory=list)
@@ -145,4 +150,6 @@ class MinimalStats:
             regular_pages=result.pages_built,  # Assume all regular for subprocess
             build_time_ms=result.build_time_ms,
             incremental=incremental,
+            reload_hint=result.reload_hint,
+            pages_rebuilt=result.pages_built,
         )

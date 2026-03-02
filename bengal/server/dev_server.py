@@ -414,7 +414,7 @@ class DevServer:
         logger.debug(
             "validation_build_complete",
             pages_built=stats.total_pages,
-            pages_rebuilt=getattr(stats, "pages_rebuilt", 0),
+            pages_rebuilt=stats.pages_rebuilt,
             duration_ms=stats.build_time_ms,
         )
 
@@ -484,7 +484,7 @@ class DevServer:
             from bengal.server.reload_controller import controller
             from bengal.server.utils import get_dev_config
 
-            cfg = getattr(self.site, "config", {}) or {}
+            cfg = self.site.config or {}
 
             try:
                 min_interval = get_dev_config(cfg, "reload", "min_notify_interval_ms", default=300)
@@ -691,7 +691,7 @@ class DevServer:
         )
 
         # Create ignore filter from config using class method
-        config = getattr(self.site, "config", {}) or {}
+        config = self.site.config or {}
         # Handle ConfigSection objects that need .raw for dict access
         config_dict = config.raw if hasattr(config, "raw") else config
         ignore_filter = IgnoreFilter.from_config(config_dict, output_dir=self.site.output_dir)

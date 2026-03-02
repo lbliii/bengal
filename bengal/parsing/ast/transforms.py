@@ -27,7 +27,6 @@ See Also:
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 from bengal.parsing.ast.types import ASTNode
 
@@ -76,7 +75,7 @@ def transform_links_in_ast(
             if url:
                 new_url = transformer(url)
                 # Create new node with transformed URL
-                new_node: dict[str, Any] = dict(node)
+                new_node = dict(node.items())
                 if "url" in node:
                     new_node["url"] = new_url
                 else:
@@ -97,14 +96,14 @@ def transform_links_in_ast(
             src = node.get("src")
             if src:
                 new_src = transformer(src)
-                new_node = dict(node)
+                new_node = dict(node.items())
                 new_node["src"] = new_src
                 return new_node  # type: ignore[return-value]
 
         # Recurse into children for other node types
         children = node.get("children")
         if children and isinstance(children, list):
-            new_node = dict(node)
+            new_node = dict(node.items())
             new_node["children"] = [transform_node(c) for c in children]
             return new_node  # type: ignore[return-value]
 

@@ -164,7 +164,8 @@ def extract_toc_from_ast(ast: list[ASTNode]) -> list[dict[str, Any]]:
 
             # Level mapping: H2 -> level 1, H3 -> level 2, etc.
             # (H1 is typically page title, excluded from TOC)
-            toc_level = max(1, level - 1)
+            level_val = int(level) if isinstance(level, (int, str)) else 1
+            toc_level = max(1, level_val - 1)
 
             toc_items.append(
                 {

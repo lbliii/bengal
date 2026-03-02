@@ -263,8 +263,9 @@ class SiteIndexGenerator:
 
         if use_accumulated_only:
             # FAST PATH: All pages have accumulated data
+            assert accumulated_data is not None  # Guaranteed by use_accumulated_only
             logger.debug("index_generator_mode", mode="accumulated_only")
-            for data in accumulated_data:  # type: ignore[union-attr]
+            for data in accumulated_data:
                 page_summary = self._accumulated_to_summary(data)
                 self._add_to_site_data(site_data, page_summary)
         elif use_hybrid:
@@ -426,7 +427,8 @@ class SiteIndexGenerator:
 
         if use_accumulated_only:
             # FAST PATH: All pages have accumulated data
-            for data in accumulated_data:  # type: ignore[union-attr]
+            assert accumulated_data is not None  # Guaranteed by use_accumulated_only
+            for data in accumulated_data:
                 page_summary = self._accumulated_to_summary(data)
                 self._add_to_site_data(site_data, page_summary)
         elif use_hybrid:

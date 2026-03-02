@@ -232,7 +232,7 @@ def highlight(
 
     """
     highlighter = get_highlighter(backend)
-    return highlighter.highlight(code, language, hl_lines, show_linenos)
+    return highlighter.highlight(code, language, hl_lines=hl_lines, show_linenos=show_linenos)
 
 
 def highlight_many(

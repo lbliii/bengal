@@ -230,6 +230,11 @@ class BuildStats:
         return self.total_pages
 
     @property
+    def pages_rebuilt(self) -> int:
+        """Count of pages actually rendered (DisplayableStats contract)."""
+        return self.pages_rendered
+
+    @property
     def has_errors(self) -> bool:
         """Check if build has any errors."""
         # Check categorized errors

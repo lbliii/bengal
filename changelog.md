@@ -1,5 +1,9 @@
 ## [Unreleased]
 
+### Type Hardening (Fifth Round)
+- **orchestration**: type BuildContext fields (api_doc_enhancer, write_behind, snapshot, query_service, data_service) via TYPE_CHECKING imports
+- **rendering**: replace shortcode getattr with direct protocol access for SiteLike/PageLike (xref_index, href, source_path)
+
 ### Path Key Alignment
 - **cache**: align path key formats across orchestration, cache, and validation
   - Provenance filter uses `get_file_fingerprint`/`set_file_fingerprint` for data/template lookups

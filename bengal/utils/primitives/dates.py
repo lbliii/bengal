@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from datetime import date as date_type
+from typing import cast
 
 # Type alias for date-like values
 type DateLike = datetime | date_type | str | None
@@ -99,7 +100,7 @@ def parse_date(
             "Use ISO 8601 format (YYYY-MM-DD) or common date formats."
         )
     elif on_error == "return_original":
-        return value  # type: ignore
+        return cast(datetime | date_type | None, value)
     else:  # 'return_none'
         return None
 
@@ -305,7 +306,11 @@ def date_range_overlap(start1: DateLike, end1: DateLike, start2: DateLike, end2:
     if not all([dt_start1, dt_end1, dt_start2, dt_end2]):
         return False
 
-    return dt_start1 <= dt_end2 and dt_start2 <= dt_end1  # type: ignore
+    assert dt_start1 is not None
+    assert dt_end1 is not None
+    assert dt_start2 is not None
+    assert dt_end2 is not None
+    return dt_start1 <= dt_end2 and dt_start2 <= dt_end1
 
 
 def utc_now() -> datetime:

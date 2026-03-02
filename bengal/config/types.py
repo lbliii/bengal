@@ -509,6 +509,11 @@ class SiteConfig(TypedDict, total=False):
     document_application: DocumentApplicationConfig
     external_refs: ExternalRefsConfig | bool
 
+    # -------------------------------------------------------------------------
+    # Internal (runtime-injected, not from config files)
+    # -------------------------------------------------------------------------
+    _version_scope: str | None
+
 
 # =============================================================================
 # Type Aliases for Common Patterns

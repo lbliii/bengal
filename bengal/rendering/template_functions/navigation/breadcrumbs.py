@@ -110,7 +110,8 @@ def get_breadcrumbs(page: PageLike) -> list[dict[str, Any]]:
         return items
 
     # Get ancestors in reverse order (root to current)
-    reversed_ancestors = list(reversed(page.ancestors))
+    ancestors_list = list(page.ancestors)
+    reversed_ancestors = list(reversed(ancestors_list))
 
     # Limit to last 2 ancestors (skip Home and deep nesting)
     # This prevents breadcrumbs from wrapping to 2 lines

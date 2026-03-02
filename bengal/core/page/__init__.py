@@ -254,6 +254,8 @@ class Page(
 
     # Complexity cache for parallel render ordering (set by orchestration)
     _complexity_score: int | None = field(default=None, repr=False, init=False)
+    # Cascade invalidation flag (set by provenance filter when provenance changes)
+    _cascade_invalidated: bool = field(default=False, repr=False, init=False)
 
     def __post_init__(self) -> None:
         """Initialize computed fields and PageCore."""

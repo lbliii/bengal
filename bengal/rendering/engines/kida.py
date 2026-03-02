@@ -230,9 +230,7 @@ class KidaTemplateEngine:
             # breadcrumbs
             from bengal.rendering.template_functions.navigation import breadcrumbs
 
-            self._env.globals["breadcrumbs"] = lambda page: breadcrumbs.get_breadcrumbs(
-                page, self.site
-            )
+            self._env.globals["breadcrumbs"] = lambda page: breadcrumbs.get_breadcrumbs(page)
         except ImportError:
             pass
 

@@ -186,7 +186,7 @@ def _execute_build(request: BuildRequest) -> BuildResult:
             pages_built=stats.total_pages,
             build_time_ms=build_time_ms,
             changed_outputs=changed_outputs,
-            reload_hint=getattr(stats, "reload_hint", None),
+            reload_hint=stats.reload_hint,
         )
 
     except Exception as e:
