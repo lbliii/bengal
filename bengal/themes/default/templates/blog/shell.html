@@ -9,7 +9,8 @@ Shared layout for all blog pages. Extends base.html and provides a consistent
 blog-shell container. No action bar, no breadcrumbs.
 
 Child templates extend this and override blog_content (and optionally
-blog_hero, blog_sidebar, blog_after_content).
+blog_hero, blog_sidebar). blog_after_content is invoked from within
+blog_content by templates that need it (e.g. single).
 
 USAGE:
   {% extends "blog/shell.html" %}
@@ -22,7 +23,6 @@ USAGE:
   {% block blog_hero %}{% end %}
   <div class="blog-single-wrapper">
     {% block blog_content %}{% end %}
-    {% block blog_after_content %}{% end %}
   </div>
 </div>
 {% end %}

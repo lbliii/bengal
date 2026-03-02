@@ -133,6 +133,8 @@ MAIN TEMPLATE
         </article>
     </div>
 
+    {% block blog_after_content %}{% end %}
+
     {# Right Sidebar: TOC - only show when 3+ headings (avoids clutter on short posts) #}
     {# Uses same enhanced TOC as docs: scroll highlighting, count badges, collapsible groups (no TOC progress bar - page has global reading-progress) #}
     {% if show_toc %}
