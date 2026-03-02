@@ -409,7 +409,8 @@ def expand_shortcodes(
 
         if kind == "self":
             # Self-closing: {{< name args >}} or {{< name args />}}
-            end = self_m.end()  # type: ignore[name-defined]
+            assert self_m is not None
+            end = self_m.end()
             fallback = content[start:end]
             html = _render_shortcode(
                 template_engine,
@@ -429,8 +430,10 @@ def expand_shortcodes(
             continue
 
         # Paired: we have inner_result from above
-        open_end = open_m.end()  # type: ignore[name-defined]
-        inner, close_end = inner_result  # type: ignore[assignment]
+        assert open_m is not None
+        assert inner_result is not None
+        open_end = open_m.end()
+        inner, close_end = inner_result
         fallback = content[start:close_end]
         inner = _deindent(inner)
         # Recursive expansion: shortcodes in inner get this shortcode as parent

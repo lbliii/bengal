@@ -5,7 +5,10 @@ Reload-related data contracts for build → trigger handoff.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Literal, cast
 
+from bengal.core.output import OutputRecord, OutputType
 from bengal.orchestration.stats import ReloadHint
 
 
@@ -20,6 +23,12 @@ class SerializedOutputRecord:
     def to_tuple(self) -> tuple[str, str, str]:
         """Return (path, type_value, phase) for backward compatibility."""
         return (self.path, self.type_value, self.phase)
+
+    def to_output_record(self) -> OutputRecord:
+        """Convert to OutputRecord for reload decision logic."""
+        output_type = OutputType(self.type_value)
+        phase = cast(Literal["render", "asset", "postprocess"], self.phase)
+        return OutputRecord(Path(self.path), output_type, phase)
 
     @classmethod
     def from_tuple(cls, t: tuple[str, str, str]) -> SerializedOutputRecord:

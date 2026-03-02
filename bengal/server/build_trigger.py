@@ -1143,16 +1143,13 @@ class BuildTrigger:
 
         # Primary: typed outputs from build
         if changed_outputs:
-            from bengal.core.output import OutputRecord, OutputType
+            from bengal.core.output import OutputType
 
             records = []
             for rec in changed_outputs:
                 try:
-                    output_type = OutputType(rec.type_value)
                     if rec.phase in ("render", "asset", "postprocess"):
-                        records.append(
-                            OutputRecord(Path(rec.path), output_type, rec.phase)  # type: ignore[arg-type]
-                        )
+                        records.append(rec.to_output_record())
                 except ValueError, TypeError:
                     logger.debug("invalid_output_type", path=rec.path, type_val=rec.type_value)
 
