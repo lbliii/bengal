@@ -37,6 +37,7 @@ import concurrent.futures
 import contextvars
 import sys
 import threading
+from itertools import batched
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -538,8 +539,7 @@ class RenderOrchestrator(
             threshold = 5
             ctx = contextvars.copy_context()
 
-            for i in range(0, len(sorted_pages), batch_size):
-                batch = sorted_pages[i : i + batch_size]
+            for batch in batched(sorted_pages, batch_size, strict=False):
                 future_to_page = {
                     executor.submit(ctx.run, process_page_with_pipeline, page): page
                     for page in batch
@@ -655,8 +655,7 @@ class RenderOrchestrator(
             threshold = 5
             ctx = contextvars.copy_context()
 
-            for i in range(0, len(sorted_pages), batch_size):
-                batch = sorted_pages[i : i + batch_size]
+            for batch in batched(sorted_pages, batch_size, strict=False):
                 future_to_page = {
                     executor.submit(ctx.run, process_page_with_pipeline, page): page
                     for page in batch
@@ -766,8 +765,7 @@ class RenderOrchestrator(
                 threshold = 5
                 ctx = contextvars.copy_context()
 
-                for i in range(0, len(sorted_pages), batch_size):
-                    batch = sorted_pages[i : i + batch_size]
+                for batch in batched(sorted_pages, batch_size, strict=False):
                     future_to_page = {
                         executor.submit(ctx.run, process_page_with_pipeline, page): page
                         for page in batch
