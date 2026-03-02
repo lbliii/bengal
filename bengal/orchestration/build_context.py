@@ -111,7 +111,8 @@ class AccumulatedPageData:
     # Contains: type, layout, author, authors, category, categories, weight,
     #           draft, featured, search_keywords, search_exclude, cli_name,
     #           api_module, difficulty, level, related, lastmod, source_file,
-    #           version, isAutodoc
+    #           version
+    is_autodoc: bool = False  # For search result grouping (Documentation vs API Reference)
 
     # =========================================================================
     # Extended Data for PageJSONGenerator

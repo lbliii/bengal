@@ -45,13 +45,16 @@ def _safe_weight(value: object) -> float:
         return float("inf")
     try:
         return float(value)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return float("inf")
 
 
 def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:
     """Create initial page snapshot (section resolved later)."""
     metadata = dict(page.metadata) if page.metadata else {}
+    params = getattr(page, "params", None) or {}
+    if not hasattr(params, "get"):
+        params = {}
 
     # Get href (includes baseurl for public URLs)
     # Note: page.href applies baseurl; _path is site-relative without baseurl
@@ -94,6 +97,15 @@ def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:
     reading_time = coerce_int(getattr(page, "reading_time", 0), 0)
     word_count = coerce_int(getattr(page, "word_count", 0), 0)
 
+    # Get excerpt_words (coerce from metadata/params - YAML may pass str)
+    nested_params = metadata.get("params") or {}
+    excerpt_words = coerce_int(
+        metadata.get("excerpt_words")
+        or params.get("excerpt_words")
+        or (nested_params.get("excerpt_words") if isinstance(nested_params, dict) else None),
+        150,
+    )
+
     # Compute content hash
     content_hash = compute_page_hash(page)
 
@@ -120,6 +132,7 @@ def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:
         categories=tuple(metadata.get("categories", []) or []),
         reading_time=reading_time,
         word_count=word_count,
+        excerpt_words=excerpt_words,
         content_hash=content_hash,
         attention_score=attention_score,
         estimated_render_ms=estimated_render_ms,

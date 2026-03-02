@@ -297,17 +297,21 @@ def get_series_neighbor(
     if not series_data:
         return None
 
-    # Extract series name and current part
+    # Extract index key (id or name) and current part
     if isinstance(series_data, str):
-        series_name = series_data
+        series_key = series_data
         current_part = 1
     elif isinstance(series_data, dict):
+        series_id = series_data.get("id", "")
         series_name = series_data.get("name", "")
+        if not series_name:
+            series_name = series_data.get("title", "") or series_data.get("series_name", "")
+        series_key = str(series_id) if series_id else str(series_name)
         current_part = int(series_data.get("part", 1))
     else:
         return None
 
-    if not series_name:
+    if not series_key:
         return None
 
     target_part = current_part + offset
@@ -328,7 +332,7 @@ def get_series_neighbor(
         return None
 
     # Get all page paths in this series
-    page_paths = series_index.get(series_name)
+    page_paths = series_index.get(series_key)
     if not page_paths:
         return None
 

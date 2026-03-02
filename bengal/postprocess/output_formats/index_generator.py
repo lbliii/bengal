@@ -384,17 +384,8 @@ class SiteIndexGenerator:
             summary["kind"] = result_type
 
         # Autodoc flag for search result grouping
-        # Explicitly set here; enhanced_metadata may have it from json_accumulator,
-        # but derive from type/source_file if missing (e.g. cache-restore edge cases)
-        if not summary.get("isAutodoc"):
-            page_type = data.enhanced_metadata.get("type", "")
-            if (
-                page_type.startswith(("python-", "cli-", "openapi-"))
-                or page_type in ("autodoc-python", "autodoc-cli", "autodoc-rest", "autodoc-hub")
-                or "source_file" in data.enhanced_metadata
-                or "source_file" in data.raw_metadata
-            ):
-                summary["isAutodoc"] = True
+        if data.is_autodoc:
+            summary["isAutodoc"] = True
 
         return summary
 
@@ -624,7 +615,7 @@ class SiteIndexGenerator:
         try:
             json.dumps(value)
             return True
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             return False
 
     def _safe_get_metadata_value(self, metadata: dict[str, Any], key: str) -> Any | None:

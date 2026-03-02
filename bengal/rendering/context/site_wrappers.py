@@ -18,6 +18,16 @@ if TYPE_CHECKING:
     from bengal.core.theme import Theme
     from bengal.protocols import SiteLike
 
+_CONFIG_SNAPSHOT_SECTIONS = (
+    "site",
+    "build",
+    "dev",
+    "theme",
+    "content",
+    "features",
+    "assets",
+)
+
 
 class SiteContext:
     """
@@ -322,10 +332,14 @@ class ConfigContext:
     """
     Smart wrapper for site configuration with safe access.
 
+    Accepts ConfigSnapshot (typed, coerced) or dict. Prefers ConfigSnapshot
+    so config.content.excerpt_words and other numeric fields are always int.
+
     Allows both dot notation and get() access to config values.
     Never raises KeyError or returns None for string values.
 
     Example:
+        {{ config.content.excerpt_words }}
         {{ config.title }}
         {{ config.get('baseurl', '/') }}
         {{ config.params.repo_url }}
@@ -334,15 +348,24 @@ class ConfigContext:
 
     __slots__ = ("_config", "_nested_cache")
 
-    def __init__(self, config: dict[str, Any]):
-        self._config = config or {}
+    def __init__(self, config: dict[str, Any] | Any):
+        from bengal.config.snapshot import ConfigSnapshot
+
+        self._config: dict[str, Any] | ConfigSnapshot = config or {}
         self._nested_cache: dict[str, SmartDict] = {}
 
     def __getattr__(self, name: str) -> Any:
         if name.startswith("_"):
             return object.__getattribute__(self, name)
 
-        value = self._config.get(name)
+        config = self._config
+        # ConfigSnapshot: use typed sections for coerced values (e.g. content.excerpt_words)
+        if name in _CONFIG_SNAPSHOT_SECTIONS and hasattr(config, name):
+            value = getattr(config, name)
+            return value if value is not None else ""
+
+        # Dict-like access (dict or ConfigSnapshot.get for custom keys)
+        value = config.get(name) if hasattr(config, "get") else (config or {}).get(name, "")
 
         # Wrap nested dicts in SmartDict for chained access (with caching)
         if isinstance(value, dict):
@@ -357,15 +380,22 @@ class ConfigContext:
 
     def get(self, key: str, default: Any = "") -> Any:
         """Get with explicit default."""
-        value = self._config.get(key)
+        config = self._config
+        if key in _CONFIG_SNAPSHOT_SECTIONS and hasattr(config, key):
+            value = getattr(config, key)
+            return value if value is not None else default
+
+        value = config.get(key) if hasattr(config, "get") else (config or {}).get(key, default)
         if value is None:
             return default
         if isinstance(value, dict):
-            # Use same cache as __getattr__ for consistency
             if key not in self._nested_cache:
                 self._nested_cache[key] = SmartDict(value)
             return self._nested_cache[key]
         return value
 
     def __contains__(self, key: str) -> bool:
-        return key in self._config
+        config = self._config
+        if hasattr(config, "__contains__"):
+            return key in config
+        return key in (config or {})

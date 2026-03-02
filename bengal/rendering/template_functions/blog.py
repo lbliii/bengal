@@ -136,7 +136,7 @@ class PostView:
                 candidate = authors_registry.get(author_slug, {})
                 if isinstance(candidate, dict):
                     author_data = candidate
-            except (AttributeError, TypeError, KeyError):
+            except AttributeError, TypeError, KeyError:
                 pass
         author = author_data.get("name") or meta.get("author") or params.get("author") or ""
         author_avatar = (
@@ -158,11 +158,11 @@ class PostView:
         wc = getattr(page, "word_count", None) or 0
         try:
             reading_time = int(rt)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             reading_time = 0
         try:
             word_count = int(wc)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             word_count = 0
 
         # Tags
@@ -176,15 +176,15 @@ class PostView:
         # Updated date
         updated = meta.get("updated") or params.get("updated")
 
-        # Excerpt words: per-article override (None = use config in template)
-        ew = meta.get("excerpt_words") or params.get("excerpt_words")
-        if ew is not None:
-            try:
-                excerpt_words = int(ew)
-            except (TypeError, ValueError):
-                excerpt_words = None
-        else:
-            excerpt_words = None
+        # Excerpt words: prefer coerced value from PageSnapshot, else meta/params
+        excerpt_words = getattr(page, "excerpt_words", None)
+        if excerpt_words is None:
+            ew = meta.get("excerpt_words") or params.get("excerpt_words")
+            if ew is not None:
+                try:
+                    excerpt_words = int(ew)
+                except TypeError, ValueError:
+                    excerpt_words = None
 
         return cls(
             title=title,

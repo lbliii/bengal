@@ -175,6 +175,12 @@ not-iterable = "error"                 # Enforce iterable before iteration
 too-many-positional-arguments = "error" # Enforce correct argument counts
 no-matching-overload = "error"          # Enforce matching overloads
 
+[tool.uv.sources]
+kida-templates = { workspace = true }
+patitas = { workspace = true }
+bengal-pounce = { workspace = true }
+rosettes = { workspace = true }
+
 [dependency-groups]
 dev = [
     # Testing
