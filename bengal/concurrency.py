@@ -267,7 +267,10 @@ Design Principles
 - **RLock for reentrant paths**: TaxonomyIndex, QueryIndex, ContentHashRegistry,
   and LRUCache use RLock because their public methods may call each other.
 - **ContextVar over locks**: Where possible, use ``contextvars.ContextVar``
-  for per-task state instead of shared mutable state + locks.
+  for per-task state instead of shared mutable state + locks. Note: For
+  ThreadPoolExecutor workers, ``threading.local()`` is appropriate for
+  per-thread pipeline caching; ContextVar is for async/task context
+  propagation (e.g., logging, request ID).
 - **Immutable by default**: Frozen dataclasses and tuples eliminate the
   need for locks on read-heavy data (Page, Section, Theme, etc.).
 

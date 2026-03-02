@@ -53,9 +53,7 @@ from .output_collector_diagnostics import diagnose_missing_output_collector
 from .parallel import (
     is_free_threaded,
 )
-from .parallel import (
-    thread_local as _thread_local,
-)
+from .pipeline_runner import process_page_with_pipeline as _process_page_with_pipeline
 from .sequential import SequentialRenderMixin
 from .tracking import (
     clear_thread_local_pipelines,
@@ -507,8 +505,6 @@ class RenderOrchestrator(
         changed_sources: set[Path] | None = None,
     ) -> None:
         """Parallel rendering without progress (traditional)."""
-        from bengal.rendering.pipeline import RenderingPipeline
-
         max_workers = get_optimal_workers(
             len(pages),
             workload_type=WorkloadType.MIXED,
@@ -522,28 +518,18 @@ class RenderOrchestrator(
         current_gen = _get_current_generation()
 
         def process_page_with_pipeline(page: Page) -> None:
-            """Process a page with a thread-local pipeline instance (thread-safe)."""
-            # Check if pipeline exists AND is from current build generation.
-            # If generation has changed (new build), recreate the pipeline
-            # to get a fresh TemplateEngine with updated templates.
-            needs_new_pipeline = (
-                not hasattr(_thread_local, "pipeline")
-                or getattr(_thread_local, "pipeline_generation", -1) != current_gen
+            _process_page_with_pipeline(
+                page,
+                site=self.site,
+                quiet=quiet,
+                stats=stats,
+                build_context=build_context,
+                changed_sources=changed_sources,
+                block_cache=self._block_cache,
+                highlight_cache=self._highlight_cache,
+                output_collector=build_context.output_collector if build_context else None,
+                current_generation=current_gen,
             )
-            if needs_new_pipeline:
-                output_collector = build_context.output_collector if build_context else None
-                _thread_local.pipeline = RenderingPipeline(
-                    self.site,
-                    quiet=quiet,
-                    build_stats=stats,
-                    build_context=build_context,
-                    output_collector=output_collector,
-                    changed_sources=changed_sources,
-                    block_cache=self._block_cache,
-                    highlight_cache=self._highlight_cache,
-                )
-                _thread_local.pipeline_generation = current_gen
-            _thread_local.pipeline.process_page(page)
 
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
         try:
@@ -599,8 +585,6 @@ class RenderOrchestrator(
         """Render pages in parallel with live progress manager."""
         import time
 
-        from bengal.rendering.pipeline import RenderingPipeline
-
         max_workers = get_optimal_workers(
             len(pages),
             workload_type=WorkloadType.MIXED,
@@ -623,28 +607,18 @@ class RenderOrchestrator(
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             nonlocal completed_count, last_update_time
 
-            # Check if pipeline exists AND is from current build generation.
-            needs_new_pipeline = (
-                not hasattr(_thread_local, "pipeline")
-                or getattr(_thread_local, "pipeline_generation", -1) != current_gen
+            _process_page_with_pipeline(
+                page,
+                site=self.site,
+                quiet=True,  # Always True when progress_manager is active
+                stats=stats,
+                build_context=build_context,
+                changed_sources=changed_sources,
+                block_cache=self._block_cache,
+                highlight_cache=self._highlight_cache,
+                output_collector=build_context.output_collector if build_context else None,
+                current_generation=current_gen,
             )
-            if needs_new_pipeline:
-                # When using progress manager, always suppress individual page output
-                # (quiet=True) because progress_manager handles display. The `quiet`
-                # parameter from the caller is intentionally ignored here.
-                output_collector = build_context.output_collector if build_context else None
-                _thread_local.pipeline = RenderingPipeline(
-                    self.site,
-                    quiet=True,  # Always True when progress_manager is active
-                    build_stats=stats,
-                    build_context=build_context,
-                    output_collector=output_collector,
-                    changed_sources=changed_sources,
-                    block_cache=self._block_cache,
-                    highlight_cache=self._highlight_cache,
-                )
-                _thread_local.pipeline_generation = current_gen
-            _thread_local.pipeline.process_page(page)
 
             # Pre-compute current_item outside lock (PERFORMANCE OPTIMIZATION)
             if page.output_path:
@@ -742,7 +716,6 @@ class RenderOrchestrator(
             TimeElapsedColumn,
         )
 
-        from bengal.rendering.pipeline import RenderingPipeline
         from bengal.utils.observability.rich_console import get_console
 
         console = get_console()
@@ -759,26 +732,18 @@ class RenderOrchestrator(
         current_gen = _get_current_generation()
 
         def process_page_with_pipeline(page: Page) -> None:
-            """Process a page with a thread-local pipeline instance (thread-safe)."""
-            # Check if pipeline exists AND is from current build generation.
-            needs_new_pipeline = (
-                not hasattr(_thread_local, "pipeline")
-                or getattr(_thread_local, "pipeline_generation", -1) != current_gen
+            _process_page_with_pipeline(
+                page,
+                site=self.site,
+                quiet=quiet,
+                stats=stats,
+                build_context=build_context,
+                changed_sources=changed_sources,
+                block_cache=self._block_cache,
+                highlight_cache=self._highlight_cache,
+                output_collector=build_context.output_collector if build_context else None,
+                current_generation=current_gen,
             )
-            if needs_new_pipeline:
-                output_collector = build_context.output_collector if build_context else None
-                _thread_local.pipeline = RenderingPipeline(
-                    self.site,
-                    quiet=quiet,
-                    build_stats=stats,
-                    build_context=build_context,
-                    output_collector=output_collector,
-                    changed_sources=changed_sources,
-                    block_cache=self._block_cache,
-                    highlight_cache=self._highlight_cache,
-                )
-                _thread_local.pipeline_generation = current_gen
-            _thread_local.pipeline.process_page(page)
 
         with Progress(
             SpinnerColumn(),
