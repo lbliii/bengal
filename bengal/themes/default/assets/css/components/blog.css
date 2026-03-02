@@ -869,6 +869,31 @@ html:not([data-devtools-open]) .blog-post-list > * {
     /* Match resume pattern */
 }
 
+/* Series nav: shows series name and part when page.series exists */
+.series-nav {
+    margin-bottom: var(--space-6);
+}
+
+.series-nav__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+}
+
+.series-nav__label {
+    color: var(--color-text-primary-muted);
+}
+
+.series-nav__name {
+    font-weight: 600;
+}
+
+.series-nav__part {
+    color: var(--color-text-primary-muted);
+}
+
 /* Author Bio: (avatar | about | title) | bio - left column stacked, bio flows right */
 .author-bio {
     display: flex;

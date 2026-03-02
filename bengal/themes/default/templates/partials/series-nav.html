@@ -1,0 +1,25 @@
+{#
+================================================================================
+Series Navigation Component
+================================================================================
+
+Shows series name and part X of Y when page.series exists. Links to other
+articles in the series come from page_navigation (prev_in_series / next_in_series).
+
+Usage:
+{% from 'partials/series-nav.html' import series_nav %}
+{{ series_nav(page) }}
+================================================================================
+#}
+{% def series_nav(page) %}
+{% if page?.series %}
+{% let s = page.series %}
+<nav class="series-nav" aria-label="Series navigation">
+  <div class="series-nav__header">
+    <span class="series-nav__label">Series:</span>
+    <strong class="series-nav__name">{{ s.name }}</strong>
+    <span class="series-nav__part">Part {{ s.part }}{% if s.total %} of {{ s.total }}{% end %}</span>
+  </div>
+</nav>
+{% end %}
+{% enddef %}
