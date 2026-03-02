@@ -2,99 +2,63 @@
 
 ## 0.2.4 - 2026-03-02
 
-### Type Hardening 
-- **orchestration**: type BuildContext fields (api_doc_enhancer, write_behind, snapshot, query_service, data_service) via TYPE_CHECKING imports
-- **rendering**: replace shortcode getattr with direct protocol access for SiteLike/PageLike (xref_index, href, source_path)
+### Versioning for MkDocs Migration
+- **versions.json**: Emit Mike-compatible `versions.json` when versioning enabled (config: `versioning.emit_versions_json`, default true)
+- **Root redirect**: Configurable redirect from site root to default version (`versioning.default_redirect`, `versioning.default_redirect_target`)
+- **Docs**: Versioning guide updated with format details and MkDocs migration comparison
 
-### Path Key Alignment
-- **cache**: align path key formats across orchestration, cache, and validation
-  - Provenance filter uses `get_file_fingerprint`/`set_file_fingerprint` for data/template lookups
-  - Tracks validator uses `content_key` for page lookup (handles absolute vs relative)
-  - File tracking `should_bypass` fallback uses normalized keys when `resolve()` raises
-  - BuildCache: `file_fingerprints`, `parsed_content`, `rendered_output` typed as `dict[CacheKey, ...]`; `_cache_key` returns `CacheKey`
-  - New `get_file_fingerprint(path)` and `set_file_fingerprint(path, data)` API
-  - Path-variant tests, Phase 4 regression test (mixed path formats), `.cursor/rules/modules/path-keys` convention
+### Math and LaTeX Rendering
+- **content.math**: New theme feature for KaTeX client-side math (opt-in via `theme.features`)
+- **Elements**: Renders `.math` (inline) and `.math-block` (display) elements
+- **Docs**: Math and LaTeX authoring guide; theme reference updated
 
-### Cleanup
-- **orchestration**: remove unused _phase_render (dead code; main build calls rendering.phase_render directly)
+### Patitas Consolidation
+- **Frontmatter**: Migrate from python-frontmatter to Patitas; require `patitas>=0.3.3`
+- **Notebooks**: Migrate from nbformat to Patitas; `.ipynb` parsed via `patitas.parse_notebook()`
+- **Result**: Fewer dependencies, unified content pipeline
 
-### Frontmatter (Patitas)
-- **content**: migrate frontmatter parsing from Bengal/python-frontmatter to Patitas
-  - ContentParser and ReactiveContentHandler now use `patitas.parse_frontmatter` and `patitas.extract_body`
-  - Remove `python-frontmatter` dependency; require `patitas>=0.3.3`
-  - Remove `bengal.content.utils.frontmatter`; `bengal.content.utils` imports directly from patitas
+### Dev Server and Live Reload
+- **Live reload**: Pure async SSE for more reliable hot reload
+- **DOM fragments**: Instant partial updates when editing content (no full page refresh)
+- **Serve-first**: Requires build cache when starting with empty output
 
-### Notebook parsing (Patitas)
-- **content**: migrate notebook parsing from Bengal to Patitas
-  - Remove `bengal/content/notebook/` and `nbformat` dependency
-  - ContentParser now calls `patitas.parse_notebook()` for .ipynb files
-  - Require `patitas>=0.3.0` (adds zero-dependency `parse_notebook`)
+### Blog Theme
+- **Series navigation**: New `series-nav` component for default blog theme
+- **Layout**: `blog-after-content` moved inside `blog-post-layout`
 
-### Versioning (S-Tier Docs)
-- **versioning**: emit Mike-compatible `versions.json` when versioning enabled
-  - Lists versions with title, aliases, url_prefix for themes and external tools
-  - Config: `versioning.emit_versions_json` (default true)
-- **versioning**: add root redirect for docs-only sites
-  - Config: `versioning.default_redirect`, `versioning.default_redirect_target`
-  - Writes `index.html` with meta-refresh + JS redirect to default version
-- **docs**: document versions.json format and root redirect in versioning guide
-- **docs**: add Mike comparison to MkDocs migration guide
-
-### Math / LaTeX Rendering
-- **themes**: add `content.math` feature for KaTeX client-side math rendering
-  - Opt-in via `theme.features`; loads KaTeX CSS/JS when enabled
-  - New `math.js` enhancement renders `.math` and `.math-block` elements
-- **patitas**: unify MathRole output with plugin (raw LaTeX for KaTeX compatibility)
-- **docs**: add Math and LaTeX authoring guide; document `content.math` in theme reference
+### Other
+- **Shortcodes**: Ref/RelRef, HasShortcode, nesting, strict mode, CLI support
+- **Build**: Parallel provenance filter for large sites; skip verification on cold builds
+- **Health**: Refactored link validator with configurable resolution and skip rules
+- **Rendering**: Improved error display when template engine raises errors
 
 ## 0.2.3 - 2026-03-01
 
 ### Default Theme Blog Improvements
-- **themes(blog)**: major blog template refresh (PR #153)
-  - New post cards, related posts, author bio, social share dropdown
-  - Contact and about pages for blog scaffold
-  - Newsletter CTA and comments section placeholders
-  - Blog-comments theming recipe
-- **scaffolds(blog)**: updated authors.yml, skeleton, and sample posts
+- **Post cards**: New layout with related posts, author bio, social share dropdown
+- **Contact & About**: Dedicated pages for blog scaffold
+- **Newsletter CTA**: Placeholder for newsletter signup
+- **Comments**: Placeholder and theming recipe for comments integration
+- **Scaffolds**: Updated authors.yml, skeleton, and sample posts
 
 ### Excerpt Filters for Card Previews
-- **rendering**: add `excerpt_for_card` and `card_excerpt` filters for preview deduplication
-  - Avoids repeating title/description in card excerpts
-  - Documented in reference and cheatsheet
-
-### Tooling & Config
-- **tooling**: migrate pre-commit config from `.pre-commit-config.yaml` to `prek.toml`
-- **config**: upgrade ruff to 0.15.1, apply format
-- **rules**: add filter-type-coercion module for YAML numeric param handling
-
-### Fixes & Cleanup
-- **fix**: correct Python 3 except syntax for multi-exception handling
-- **cache**: remove unused TypeVar after PEP 695 migration
-- **cli(help)**: troubleshooting cleanup
-
-### Tests
-- **tests**: add `parallel_unsafe` marker to ThreadPoolExecutor tests
-- **tests**: mark stress tests slow, reduce scaffolding for faster CI
+- **excerpt_for_card**, **card_excerpt**: New filters to avoid repeating title/description in card excerpts
+- Documented in reference and cheatsheet
 
 ## 0.2.0 - 2026-02-14
 
-### ⚡ Rosettes Epic & Highlight Caching
-- **rendering(highlight)**: add block-level code block caching via `HighlightCache`
-  - Cache keyed on `rosettes.content_hash(code, language)`; extended key for `hl_lines`/`show_linenos`
-  - Avoids re-highlighting identical blocks across pages
-  - Integrated into `CodeBlockCollector.flush()` with batch uncached → merge flow
-- **deps**: require `rosettes>=0.2.0` (content_hash, HighlightItem, unified highlight_many)
+### Rosettes Highlight Caching
+- **Code blocks**: Block-level caching to avoid re-highlighting identical blocks across pages
+- **Deps**: `rosettes>=0.2.0`
 
-### 🚀 Dev Server: Pounce ASGI Backend
-- **server**: replace ThreadingTCPServer with Pounce ASGI backend (`bengal-pounce>=0.2.0`)
-  - Static serving and HTML injection in ASGI app
-  - SSE live reload, fragment-based partial page updates
-  - Delightful request logging
+### Dev Server: Pounce ASGI Backend
+- **Pounce**: Replace ThreadingTCPServer with Pounce ASGI (`bengal-pounce>=0.2.0`)
+- **Live reload**: SSE-based, fragment-based partial page updates
+- **Static serving**: HTML injection in ASGI app
 
-### 📦 Kida & Patitas 0.2.0
-- **deps**: require `kida-templates>=0.2.0`, `patitas>=0.2.0`
-- **rendering**: consume Kida structured error attributes instead of string parsing
-- **rendering**: Kida AST-based block recompilation, fragment fast path, partial evaluation
+### Kida & Patitas 0.2.0
+- **Deps**: `kida-templates>=0.2.0`, `patitas>=0.2.0`
+- **Rendering**: Kida structured errors, AST-based block recompilation, fragment fast path
 
 ## 0.1.9 - 2026-02-08
 
