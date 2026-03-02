@@ -152,8 +152,9 @@ class WaveScheduler:
 
         Performance: ~20-30% faster than random order on template-heavy sites.
         """
-        from bengal.rendering.pipeline import RenderingPipeline
-        from bengal.rendering.pipeline.thread_local import thread_local
+        from bengal.orchestration.render.pipeline_runner import (
+            process_page_with_pipeline as run_page,
+        )
         from bengal.utils.paths.url_strategy import URLStrategy
 
         stats = RenderStats()
@@ -262,18 +263,19 @@ class WaveScheduler:
                         scout._worker_wave = template_idx + 1
 
                     def process_page(page: Page) -> Page:
-                        """Process page with thread-local pipeline."""
-                        if not hasattr(thread_local, "pipeline"):
-                            thread_local.pipeline = RenderingPipeline(
-                                self.site,
-                                quiet=self.quiet,
-                                build_stats=self.stats,
-                                build_context=self.build_context,
-                                output_collector=self._output_collector,
-                                block_cache=None,
-                                write_behind=self._write_behind,
-                            )
-                        thread_local.pipeline.process_page(page)
+                        run_page(
+                            page,
+                            site=self.site,
+                            quiet=self.quiet,
+                            stats=self.stats,
+                            build_context=self.build_context,
+                            changed_sources=None,
+                            block_cache=None,
+                            highlight_cache=None,
+                            output_collector=self._output_collector,
+                            write_behind=self._write_behind,
+                            current_generation=None,
+                        )
                         return page
 
                     # Submit all pages in this template batch
@@ -313,8 +315,9 @@ class WaveScheduler:
         This strategy groups pages by section for content-based locality,
         useful when sections have interdependencies.
         """
-        from bengal.rendering.pipeline import RenderingPipeline
-        from bengal.rendering.pipeline.thread_local import thread_local
+        from bengal.orchestration.render.pipeline_runner import (
+            process_page_with_pipeline as run_page,
+        )
         from bengal.utils.paths.url_strategy import URLStrategy
 
         stats = RenderStats()
@@ -387,17 +390,19 @@ class WaveScheduler:
                         scout._worker_wave = wave_num
 
                     def process_page_with_pipeline(page: Page) -> Page:
-                        if not hasattr(thread_local, "pipeline"):
-                            thread_local.pipeline = RenderingPipeline(
-                                self.site,
-                                quiet=self.quiet,
-                                build_stats=self.stats,
-                                build_context=self.build_context,
-                                output_collector=self._output_collector,
-                                block_cache=None,
-                                write_behind=self._write_behind,
-                            )
-                        thread_local.pipeline.process_page(page)
+                        run_page(
+                            page,
+                            site=self.site,
+                            quiet=self.quiet,
+                            stats=self.stats,
+                            build_context=self.build_context,
+                            changed_sources=None,
+                            block_cache=None,
+                            highlight_cache=None,
+                            output_collector=self._output_collector,
+                            write_behind=self._write_behind,
+                            current_generation=None,
+                        )
                         return page
 
                     futures = {

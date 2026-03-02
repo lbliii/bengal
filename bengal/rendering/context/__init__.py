@@ -144,6 +144,9 @@ def _create_global_contexts(site: SiteLike) -> dict[str, Any]:
     Helper function that creates the actual context wrapper objects.
     Used by both _get_global_contexts (global cache) and build-scoped caching.
 
+    Config is always ConfigSnapshot so config.content.excerpt_words and other
+    numeric fields are coerced at source (YAML type safety).
+
     Args:
         site: Site instance to wrap
 
@@ -151,10 +154,14 @@ def _create_global_contexts(site: SiteLike) -> dict[str, Any]:
         Dict with context wrappers: site, config, theme, menus
 
     """
+    from bengal.config.snapshot import ConfigSnapshot
+    from bengal.config.utils import unwrap_config
+
     theme_obj = site.theme_config if hasattr(site, "theme_config") else None
+    config_snapshot = ConfigSnapshot.from_dict(unwrap_config(site.config))
     return {
         "site": SiteContext(site),
-        "config": ConfigContext(site.config),
+        "config": ConfigContext(config_snapshot),
         "theme": ThemeContext(theme_obj) if theme_obj is not None else ThemeContext._empty(),
         "menus": MenusContext(site),
     }

@@ -56,7 +56,7 @@ def filter_highlight(code: str, language: str = "text") -> str:
         return ""
 
     try:
-        import rosettes  # type: ignore[import-not-found]
+        import rosettes
 
         return rosettes.highlight(code, language)
     except Exception:

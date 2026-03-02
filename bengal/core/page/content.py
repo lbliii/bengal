@@ -21,7 +21,7 @@ See: plan/active/rfc-content-ast-architecture.md
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.utils.text import strip_html_and_normalize
@@ -55,7 +55,8 @@ class PageContentMixin:
     links: list[str]
 
     # Private caches (set by Page dataclass __post_init__)
-    _ast_cache: list[ASTNode] | None
+    # Patitas: dict (Document); legacy: list[ASTNode]
+    _ast_cache: list[ASTNode] | dict[str, Any] | None
     _html_cache: str | None
     _plain_text_cache: str | None
 
@@ -161,7 +162,12 @@ class PageContentMixin:
         if hasattr(self, "_ast_cache") and self._ast_cache:
             from bengal.parsing.ast.utils import extract_plain_text
 
-            text = extract_plain_text(self._ast_cache)
+            ast_list = (
+                self._ast_cache["children"]
+                if isinstance(self._ast_cache, dict) and "children" in self._ast_cache
+                else self._ast_cache
+            )
+            text = extract_plain_text(ast_list) if isinstance(ast_list, list) else ""
             if hasattr(self, "_plain_text_cache"):
                 self._plain_text_cache = text
             return text
@@ -206,6 +212,7 @@ class PageContentMixin:
         Extract plain text from AST tokens.
 
         Delegates to ast_utils.extract_plain_text for consistency.
+        Handles both list[ASTNode] and Patitas Document dict format.
 
         Returns:
             Plain text string
@@ -215,13 +222,19 @@ class PageContentMixin:
 
         from bengal.parsing.ast.utils import extract_plain_text
 
-        return extract_plain_text(self._ast_cache)
+        ast_list = (
+            self._ast_cache["children"]
+            if isinstance(self._ast_cache, dict) and "children" in self._ast_cache
+            else self._ast_cache
+        )
+        return extract_plain_text(ast_list) if isinstance(ast_list, list) else ""
 
     def _extract_links_from_ast(self) -> list[str]:
         """
         Extract links from AST tokens.
 
         Delegates to ast_utils.extract_links_from_ast for consistency.
+        Handles both list[ASTNode] and Patitas Document dict format.
 
         Returns:
             List of link URLs
@@ -231,7 +244,12 @@ class PageContentMixin:
 
         from bengal.parsing.ast.utils import extract_links_from_ast
 
-        return extract_links_from_ast(self._ast_cache)
+        ast_list = (
+            self._ast_cache["children"]
+            if isinstance(self._ast_cache, dict) and "children" in self._ast_cache
+            else self._ast_cache
+        )
+        return extract_links_from_ast(ast_list) if isinstance(ast_list, list) else []
 
     def _strip_html_to_text(self, html: str) -> str:
         """

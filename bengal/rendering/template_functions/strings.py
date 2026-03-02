@@ -720,6 +720,7 @@ def card_excerpt_html(
     title: str = "",
     description: str = "",
     suffix: str = "...",
+    halve_words: bool = False,
 ) -> str:
     """
     Excerpt for card previews with HTML: strip duplicates, truncate preserving tags.
@@ -733,16 +734,20 @@ def card_excerpt_html(
         title: Title to strip from start
         description: Description to strip from start
         suffix: Truncation suffix (default: "...")
+        halve_words: If True, use half of words (for compact card variants)
 
     Returns:
         HTML excerpt, truncated at word boundary with tags preserved
 
     Example:
         {{ p.excerpt | card_excerpt_html(35, p.title, p.description) | safe }}
+        {{ p.excerpt | card_excerpt_html(words, p.title, p.description, halve_words=true) | safe }}
     """
     if not content:
         return ""
     words = coerce_int(words, 30)
+    if halve_words:
+        words = words // 2
     # Same duplicate stripping as excerpt_for_card
     prepped = _prepare_html_for_excerpt(content) if "<" in content else content
     original_plain = text_utils.normalize_whitespace(strip_html(prepped), collapse=True).strip()

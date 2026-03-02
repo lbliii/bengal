@@ -30,7 +30,7 @@ jobs:
             uv-${{ runner.os }}-
 
       - name: Install dependencies
-        run: uv sync --group dev
+        run: uv sync --no-sources --group dev
 
       - name: Run ruff (lint)
         run: uv run ruff check .

@@ -39,7 +39,7 @@ from __future__ import annotations
 from dataclasses import MISSING, dataclass, fields, is_dataclass
 from datetime import date, datetime
 from pathlib import Path
-from typing import Any, get_args, get_origin, get_type_hints
+from typing import Any, Protocol, cast, get_args, get_origin, get_type_hints
 
 from bengal.collections.errors import ValidationError
 from bengal.protocols.capabilities import HasErrors
@@ -53,6 +53,12 @@ from bengal.utils.primitives.types import (
 )
 
 logger = get_logger(__name__)
+
+
+class _HasModelValidate(Protocol):
+    """Protocol for Pydantic models with model_validate (v2 API)."""
+
+    def model_validate(self, data: Any) -> Any: ...
 
 
 @dataclass
@@ -280,8 +286,7 @@ class SchemaValidator:
             # Use getattr to avoid type checker error - we've already checked _is_pydantic
             if not self._is_pydantic:
                 raise TypeError("Schema is not a Pydantic model")
-            # Type ignore: type checker doesn't know that schema has model_validate when _is_pydantic is True
-            instance = self.schema.model_validate(data)  # type: ignore[attr-defined]
+            instance = cast(_HasModelValidate, self.schema).model_validate(data)
             return ValidationResult(
                 valid=True,
                 data=instance,

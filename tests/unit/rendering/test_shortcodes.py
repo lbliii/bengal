@@ -96,6 +96,7 @@ class TestExpandShortcodes:
         page.source_path = "test.md"
         site = MagicMock()
         site.config = {}
+        site.xref_index = {}
         content = "Plain markdown **bold** text."
         result = expand_shortcodes(content, engine, page, site)
         assert result == content
@@ -109,6 +110,7 @@ class TestExpandShortcodes:
         page.source_path = "test.md"
         site = MagicMock()
         site.config = {}
+        site.xref_index = {}
         content = "Before {{< unknown-xyz >}} after"
         result = expand_shortcodes(content, engine, page, site)
         assert result == content
@@ -123,6 +125,7 @@ class TestExpandShortcodes:
         page.source_path = "test.md"
         site = MagicMock()
         site.config = {}
+        site.xref_index = {}
         content = "Listen: {{< audio src=/audio/test.mp3 >}}"
         result = expand_shortcodes(content, engine, page, site)
         assert "Listen: " in result
@@ -145,6 +148,7 @@ class TestExpandShortcodes:
         page.source_path = "test.md"
         site = MagicMock()
         site.config = {}
+        site.xref_index = {}
         content = "{{< blockquote author=Jane >}}Quote text{{< /blockquote >}}"
         result = expand_shortcodes(content, engine, page, site)
         assert "<blockquote>Quote text</blockquote>" in result
@@ -162,6 +166,7 @@ class TestExpandShortcodes:
         page.source_path = "test.md"
         site = MagicMock()
         site.config = {}
+        site.xref_index = {}
         content = "{{% blockquote author=Jane %}}**Bold** text{{% /blockquote %}}"
 
         def parse_markdown(s: str) -> str:
@@ -181,6 +186,7 @@ class TestExpandShortcodes:
         page.source_path = "test.md"
         site = MagicMock()
         site.config = {}
+        site.xref_index = {}
         content = "{{< blockquote >}}**Bold** raw{{< /blockquote >}}"
 
         def parse_markdown(s: str) -> str:
@@ -211,6 +217,7 @@ class TestExpandShortcodes:
         page.source_path = "test.md"
         site = MagicMock()
         site.config = {}
+        site.xref_index = {}
         content = "{{< gallery class=thumbnails >}}{{< img src=cat.jpg >}}{{< /gallery >}}"
         result = expand_shortcodes(content, engine, page, site)
         assert '<img src="cat.jpg" class="thumbnails">' in result

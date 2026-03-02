@@ -33,6 +33,7 @@ Set `type: blog` in frontmatter or use cascade from section
 #}
 
 {% from 'partials/navigation-components.html' import page_navigation, toc as toc_macro %}
+{% from 'partials/series-nav.html' import series_nav %}
 {% from 'partials/components/tags.html' import tag_list %}
 {% from 'partials/components/post-card.html' import post_card %}
 {% from 'partials/components/author-bio.html' import author_bio %}
@@ -127,11 +128,16 @@ MAIN TEMPLATE
                 {{ author_bio(post_author, post_author_avatar, post_author_title, post_author_bio, post_author_links) }}
                 {% end %}
 
+                {# Series nav: show series name and part when in a series #}
+                {{ series_nav(page) }}
+
                 {# Prev/Next - inside content column so it aligns with prose when TOC is present #}
                 {{ page_navigation(page) }}
             </footer>
         </article>
     </div>
+
+    {% block blog_after_content %}{% end %}
 
     {# Right Sidebar: TOC - only show when 3+ headings (avoids clutter on short posts) #}
     {# Uses same enhanced TOC as docs: scroll highlighting, count badges, collapsible groups (no TOC progress bar - page has global reading-progress) #}

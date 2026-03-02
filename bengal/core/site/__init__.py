@@ -50,7 +50,9 @@ from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Self, cast
 
+from bengal.config.utils import unwrap_config
 from bengal.core.asset import Asset
+from bengal.core.diagnostics import DiagnosticsSink
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.page import Page
@@ -195,6 +197,8 @@ class Site(
     _config_service: ConfigService | None = field(default=None, repr=False, init=False)
 
     # Dynamic runtime attributes (set by various orchestrators)
+    # Diagnostics sink for core-model events (set by BuildOrchestrator)
+    diagnostics: DiagnosticsSink | None = field(default=None, repr=False, init=False)
     # Menu metadata for dev server menu items (set by MenuOrchestrator)
     _dev_menu_metadata: dict[str, Any] | None = field(default=None, repr=False, init=False)
     # Page lookup maps for efficient page resolution (set by template functions)
@@ -279,15 +283,8 @@ class Site(
             else:
                 self.theme = "default"
 
-        # Theme.from_config expects a dict; use .raw if available (Config object)
-        # else use directly (plain dict)
-        config_dict: dict[str, Any]
-        if hasattr(self.config, "raw"):
-            config_dict = self.config.raw  # type: ignore[union-attr]
-        elif isinstance(self.config, dict):
-            config_dict = self.config
-        else:
-            config_dict = {}
+        # Theme.from_config expects a dict; unwrap_config handles Config, dict, etc.
+        config_dict = unwrap_config(self.config)
         self._theme_obj = Theme.from_config(
             config_dict,
             root_path=self.root_path,
@@ -544,7 +541,7 @@ class Site(
             get_version_target_url as _get_version_target_url,
         )
 
-        return _get_version_target_url(page, target_version, self)  # type: ignore[arg-type]
+        return _get_version_target_url(page, target_version, cast(SiteLike, self))
 
     def __repr__(self) -> str:
         pages = len(self.pages)

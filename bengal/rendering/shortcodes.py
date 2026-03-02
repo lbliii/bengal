@@ -125,19 +125,19 @@ class ShortcodeContext:
 
     def Ref(self, path: str) -> str:
         """Resolve path to absolute URL (Hugo ref)."""
-        xref = getattr(self._site, "xref_index", None) or {}
+        xref = self._site.xref_index or {}
         current = _page_dir(self._page)
         url, _ = resolve_link_to_url_and_page(xref, path, current)
         return url or path
 
     def RelRef(self, path: str) -> str:
         """Resolve path to relative URL from current page (Hugo relref)."""
-        xref = getattr(self._site, "xref_index", None) or {}
+        xref = self._site.xref_index or {}
         current = _page_dir(self._page)
         url, target_page = resolve_link_to_url_and_page(xref, path, current)
         if target_page:
-            from_href = getattr(self._page, "href", "/") or "/"
-            to_href = getattr(target_page, "href", "") or ""
+            from_href = self._page.href or "/"
+            to_href = target_page.href or ""
             return _relative_url(from_href, to_href)
         return url or path
 
@@ -233,7 +233,7 @@ def _parse_args(args_str: str) -> ShortcodeParams:
 
 def _page_dir(page: PageLike) -> str | None:
     """Content-relative directory for current page (for Ref/RelRef)."""
-    sp = getattr(page, "source_path", None)
+    sp = page.source_path
     if sp is None:
         return None
     path_str = str(sp).replace("\\", "/")
@@ -264,6 +264,7 @@ def _shortcodes_used_in_content(content: str) -> frozenset[str]:
 
 def has_shortcode(page: PageLike, name: str) -> bool:
     """Return True if page content uses the given shortcode."""
+    # Page/PageProxy use _source or _raw_content; protocol has no raw_content
     source = getattr(page, "_source", None) or getattr(page, "_raw_content", "")
     return name in _shortcodes_used_in_content(str(source or ""))
 
@@ -361,7 +362,7 @@ def expand_shortcodes(
         logger.warning(
             "shortcode_max_depth_exceeded",
             depth=_depth,
-            source=str(getattr(page, "source_path", "?")),
+            source=str(page.source_path),
         )
         return content
 
@@ -409,7 +410,8 @@ def expand_shortcodes(
 
         if kind == "self":
             # Self-closing: {{< name args >}} or {{< name args />}}
-            end = self_m.end()  # type: ignore[name-defined]
+            assert self_m is not None
+            end = self_m.end()
             fallback = content[start:end]
             html = _render_shortcode(
                 template_engine,
@@ -421,7 +423,7 @@ def expand_shortcodes(
                 fallback,
                 parent_ctx,
                 strict=strict,
-                source_path=getattr(page, "source_path", None),
+                source_path=page.source_path,
                 line_number=_line_at(start),
             )
             result_parts.append(html)
@@ -429,8 +431,10 @@ def expand_shortcodes(
             continue
 
         # Paired: we have inner_result from above
-        open_end = open_m.end()  # type: ignore[name-defined]
-        inner, close_end = inner_result  # type: ignore[assignment]
+        assert open_m is not None
+        assert inner_result is not None
+        open_end = open_m.end()
+        inner, close_end = inner_result
         fallback = content[start:close_end]
         inner = _deindent(inner)
         # Recursive expansion: shortcodes in inner get this shortcode as parent
@@ -457,7 +461,7 @@ def expand_shortcodes(
             fallback,
             parent_ctx,
             strict=strict,
-            source_path=getattr(page, "source_path", None),
+            source_path=page.source_path,
             line_number=_line_at(start),
         )
         result_parts.append(html)
@@ -482,7 +486,7 @@ def _render_shortcode(
 ) -> str:
     """Render a shortcode template or return fallback when not found."""
     template_name = f"shortcodes/{name}.html"
-    path_str = str(source_path or getattr(page, "source_path", "?"))
+    path_str = str(source_path or page.source_path)
     if not template_engine.template_exists(template_name):
         if strict:
             loc = f" at {path_str}:{line_number}" if line_number else f" at {path_str}"

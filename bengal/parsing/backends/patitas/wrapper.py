@@ -429,15 +429,20 @@ class PatitasParser(BaseMarkdownParser):
     def render_ast(self, ast: list[dict[str, Any]]) -> str:
         """Render AST tokens to HTML.
 
+        Delegates to render_ast_from_dict by wrapping the list in a Document dict.
+        Expects ast items in Patitas dict format (e.g. from to_dict).
+
         Args:
-            ast: List of AST token dictionaries
+            ast: List of AST token dictionaries (Patitas block dicts)
 
         Returns:
             Rendered HTML string
         """
-        # Convert back to typed nodes and render
-        # For now, just re-parse (TODO: proper dict->node conversion)
-        return ""
+        if not ast:
+            return ""
+        doc_dict: dict[str, Any] = {"_type": "Document", "children": ast}
+        result = self.render_ast_from_dict(doc_dict, "", page=None, site=None)
+        return result[0] if result else ""
 
     def render_ast_from_dict(
         self,

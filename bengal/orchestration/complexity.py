@@ -27,10 +27,9 @@ Example:
 
 from __future__ import annotations
 
-import contextlib
 import re
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -38,6 +37,7 @@ if TYPE_CHECKING:
 
 __all__ = [
     "ComplexityScore",
+    "ComplexityStats",
     "estimate_complexity",
     "get_cached_score",
     "get_complexity_stats",
@@ -183,9 +183,7 @@ def get_cached_score(page: PageLike) -> int:
     score = estimate_complexity(content).score
 
     # Cache on page (safe - pages are mutable objects)
-    # Use contextlib.suppress for cleaner handling of frozen dataclass or immutable objects
-    with contextlib.suppress(AttributeError, TypeError):
-        page._complexity_score = score  # type: ignore[attr-defined]
+    page._complexity_score = score
 
     return score
 
@@ -237,7 +235,20 @@ def sort_by_complexity(
     return [page for _, _, page in decorated]
 
 
-def get_complexity_stats(pages: list[Page]) -> dict[str, int | float | list[int]]:
+class ComplexityStats(TypedDict):
+    """Distribution stats from get_complexity_stats."""
+
+    count: int
+    min: int
+    max: int
+    mean: float
+    median: int
+    variance_ratio: float
+    top_5_scores: list[int]
+    bottom_5_scores: list[int]
+
+
+def get_complexity_stats(pages: list[Page]) -> ComplexityStats:
     """Get complexity distribution statistics for logging.
 
     Useful for understanding build characteristics and validating

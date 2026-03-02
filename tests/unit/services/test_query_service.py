@@ -64,6 +64,7 @@ def make_page_snapshot(
         categories=(),
         reading_time=1,
         word_count=100,
+        excerpt_words=150,
         content_hash="abc123",
         section=section,
         next_page=None,

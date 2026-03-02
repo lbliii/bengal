@@ -136,9 +136,8 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
             markdown_engine = markdown_config.get("parser", "patitas")
 
         template_parser = create_markdown_parser(markdown_engine)
-        # Type narrowing: set attribute if site supports it
         if hasattr(site, "_template_parser"):
-            site._template_parser = template_parser  # type: ignore[attr-defined]
+            site._template_parser = template_parser
 
         # Enable cross-references if available
         if hasattr(site, "xref_index") and hasattr(
@@ -384,7 +383,7 @@ def _build_lookup_maps(site: SiteLike) -> None:
 
     # Cache on site object for subsequent lookups within this render
     if hasattr(site, "_page_lookup_maps"):
-        site._page_lookup_maps = maps  # type: ignore[attr-defined]
+        site._page_lookup_maps = maps
 
 
 def page_exists(path: str, site: SiteLike) -> bool:

@@ -66,6 +66,7 @@ import threading
 import time
 from pathlib import Path
 from typing import Any
+from urllib.request import Request, urlopen
 
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
@@ -245,11 +246,6 @@ class DevServer:
                     rm.register_watcher_runner(self._watcher_runner)
                     rm.register_build_trigger(self._build_trigger)
 
-                # Open browser immediately (instant first paint!)
-                if self.open_browser:
-                    self._open_browser_delayed(actual_port)
-                    logger.debug("browser_opening", url=f"http://{self.host}:{actual_port}/")
-
                 # Print startup message
                 self._print_startup_message(actual_port, serve_first=True)
 
@@ -259,6 +255,10 @@ class DevServer:
 
                 # Run validation build in foreground (shows progress)
                 self._run_validation_build(BuildProfile.WRITER, actual_port)
+
+                # Open browser only after validation completes - site is ready
+                if self.open_browser:
+                    self._open_browser_when_ready(actual_port)
 
                 # Now wait for server to be interrupted
                 logger.info(
@@ -333,11 +333,6 @@ class DevServer:
                     watcher_runner.start()
                     logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
 
-                # Open browser
-                if self.open_browser:
-                    self._open_browser_delayed(actual_port)
-                    logger.debug("browser_opening", url=f"http://{self.host}:{actual_port}/")
-
                 # Print startup message
                 self._print_startup_message(actual_port)
 
@@ -349,6 +344,10 @@ class DevServer:
                     watch_enabled=self.watch,
                     mode="build_first",
                 )
+
+                # Open browser when server is ready (runs in background thread)
+                if self.open_browser:
+                    self._open_browser_when_ready(actual_port)
 
                 # Run until interrupted
                 try:
@@ -362,11 +361,26 @@ class DevServer:
         """
         Check if the output directory has cached content that can be served.
 
+        Requires BOTH output HTML files AND a valid build cache. This prevents
+        serve-first mode when ``bengal clean --cache`` removed the cache but
+        the output directory survived (macOS filesystem race / Spotlight).
+
         Returns:
-            True if output directory exists and contains HTML files
+            True if output directory has HTML files backed by a build cache
         """
         output_dir = self.site.output_dir
         if not output_dir.exists():
+            return False
+
+        # Build cache must exist — stale output without a cache is not servable
+        build_cache = self.site.paths.build_cache
+        has_build_cache = build_cache.exists() or build_cache.with_suffix(".json.zst").exists()
+        if not has_build_cache:
+            logger.debug(
+                "cached_output_rejected",
+                reason="no_build_cache",
+                output_dir=str(output_dir),
+            )
             return False
 
         # Check for index.html as a proxy for "has content"
@@ -414,7 +428,7 @@ class DevServer:
         logger.debug(
             "validation_build_complete",
             pages_built=stats.total_pages,
-            pages_rebuilt=getattr(stats, "pages_rebuilt", 0),
+            pages_rebuilt=stats.pages_rebuilt,
             duration_ms=stats.build_time_ms,
         )
 
@@ -484,7 +498,7 @@ class DevServer:
             from bengal.server.reload_controller import controller
             from bengal.server.utils import get_dev_config
 
-            cfg = getattr(self.site, "config", {}) or {}
+            cfg = self.site.config or {}
 
             try:
                 min_interval = get_dev_config(cfg, "reload", "min_notify_interval_ms", default=300)
@@ -691,7 +705,7 @@ class DevServer:
         )
 
         # Create ignore filter from config using class method
-        config = getattr(self.site, "config", {}) or {}
+        config = self.site.config or {}
         # Handle ConfigSection objects that need .raw for dict access
         config_dict = config.raw if hasattr(config, "raw") else config
         ignore_filter = IgnoreFilter.from_config(config_dict, output_dir=self.site.output_dir)
@@ -1036,11 +1050,37 @@ class DevServer:
 
         cli.request_log_header()
 
-    def _open_browser_delayed(self, port: int) -> None:
+    def _wait_for_server_ready(self, port: int, timeout_sec: float = 10.0) -> bool:
         """
-        Open browser after a short delay (in background thread).
+        Poll until the server responds with 200 or timeout.
 
-        Uses a background thread to avoid blocking server startup.
+        Ensures we don't open the browser before the site is ready to serve.
+
+        Args:
+            port: Server port
+            timeout_sec: Max seconds to wait
+
+        Returns:
+            True if server responded with 200, False on timeout
+        """
+        url = f"http://{self.host}:{port}/"
+        deadline = time.monotonic() + timeout_sec
+        while time.monotonic() < deadline:
+            try:
+                with urlopen(Request(url), timeout=2) as resp:
+                    if resp.status in (200, 304):
+                        return True
+            except OSError:
+                pass
+            time.sleep(0.15)
+        return False
+
+    def _open_browser_when_ready(self, port: int) -> None:
+        """
+        Open browser only after server is ready to serve.
+
+        Waits for server to respond with 200 before opening, preventing
+        the unstyled flash (FOUC) when the browser loads before assets exist.
 
         Args:
             port: Port number to include in the URL
@@ -1048,7 +1088,14 @@ class DevServer:
         import webbrowser
 
         def open_browser() -> None:
-            time.sleep(0.5)  # Give server time to start
-            webbrowser.open(f"http://{self.host}:{port}/")
+            if self._wait_for_server_ready(port):
+                webbrowser.open(f"http://{self.host}:{port}/")
+                logger.debug("browser_opened", url=f"http://{self.host}:{port}/")
+            else:
+                logger.warning(
+                    "browser_open_skipped",
+                    reason="server_not_ready",
+                    url=f"http://{self.host}:{port}/",
+                )
 
         threading.Thread(target=open_browser, daemon=True).start()
