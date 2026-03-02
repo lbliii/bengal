@@ -269,7 +269,7 @@ class RenderingPipeline:
             from bengal.rendering.api_doc_enhancer import get_enhancer
 
             injected = api_doc_enhancer or (
-                getattr(build_context, "api_doc_enhancer", None) if build_context else None
+                build_context.api_doc_enhancer if build_context else None
             )
             self._api_doc_enhancer: Any | None = injected or get_enhancer()
         except Exception as e:

@@ -394,7 +394,7 @@ class RenderOrchestrator(
                 )
 
         # Check if snapshot is available (RFC: rfc-bengal-snapshot-engine)
-        if build_context and hasattr(build_context, "snapshot") and build_context.snapshot:
+        if build_context and build_context.snapshot:
             # Use WaveScheduler for topological wave-based rendering
             self._render_with_snapshot(
                 build_context.snapshot,
