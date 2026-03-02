@@ -95,6 +95,31 @@ def build(self, incremental: bool = False) -> None:
         self.render_all_pages()
 ```
 
+### Step 2b: When Fixing Bugs (Bug-to-Test Rule)
+
+**For bug fixes, add a regression test that would have caught the bug**:
+
+```yaml
+1. Identify the conditions that triggered the bug:
+   - Parallel vs sequential? (e.g. K-RUN-007 only on parallel render)
+   - Page count threshold? (e.g. 5+ pages enables parallel)
+   - Environment? (production vs local)
+   - Specific template/layout? (e.g. blog/single.html)
+
+2. Add a test that exercises those conditions:
+   - Use a test root that matches (e.g. test-blog-paginated for blog + 28 pages)
+   - Call build_site(parallel=True) if the bug was parallel-only
+   - Assert build completes without errors
+   - Assert output exists and is valid
+
+3. Verify the test fails without the fix (optional but recommended):
+   - Temporarily revert the fix
+   - Run the test — it should fail
+   - Restore the fix
+```
+
+**Reference**: `tests/integration/test_parallel_rendering.py` for K-RUN-007 pattern.
+
 ### Step 3: Test Updates
 
 **For each code change**:
