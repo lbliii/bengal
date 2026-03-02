@@ -16,6 +16,7 @@ Bengal supports several extension mechanisms:
 | [Build Hooks](build-hooks/) | Run external tools (Tailwind, esbuild) before/after builds | Easy |
 | [Theme Customization](theme-customization/) | Override templates and CSS | Easy |
 | [Content Collections](collections/) | Type-safe frontmatter with schema validation | Moderate |
+| [Template Shortcodes](shortcodes/) | Add template-only embeds without Python | Easy |
 | [Custom Directives](custom-directives/) | Create new MyST directive blocks | Advanced |
 | [Custom Content Sources](custom-sources/) | Fetch content from APIs, databases, or remote services | Advanced |
 

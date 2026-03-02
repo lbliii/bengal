@@ -1027,7 +1027,7 @@ class TestAutodocContentCacheSaveLoad:
 
         # Create a cache file with malformed autodoc_content_cache entries
         cache_data = {
-            "version": 7,
+            "version": 8,
             "file_fingerprints": {},
             "dependencies": {},
             "output_sources": {},

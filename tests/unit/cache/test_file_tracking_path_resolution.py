@@ -4,6 +4,7 @@ Ensures that should_bypass correctly handles path variations
 (symlinks, ./ components, different representations of same file).
 
 RFC: Theme hot reload path resolution fix
+Path Key Alignment: fallback uses normalized keys when resolve() raises.
 """
 
 from __future__ import annotations
@@ -20,6 +21,13 @@ class MockFileTracking(FileTrackingMixin):
 
     def __init__(self) -> None:
         self.file_fingerprints: dict[str, dict] = {}
+        self.dependencies: dict[str, set[str]] = {}
+        self.output_sources: dict[str, str] = {}
+        self.reverse_dependencies: dict[str, set[str]] = {}
+
+    def _cache_key(self, path: Path) -> str:
+        """Canonical key for tests (no site_root)."""
+        return str(path.resolve())
 
 
 class TestShouldBypassPathResolution:
@@ -106,8 +114,8 @@ class TestShouldBypassPathResolution:
         file2 = tmp_path / "file2.css"
         file2.write_text("/* file2 */")
 
-        # Pre-cache file2 so is_changed returns False
-        tracker.file_fingerprints[str(file2)] = {
+        # Pre-cache file2 so is_changed returns False (use resolved key)
+        tracker.file_fingerprints[str(file2.resolve())] = {
             "mtime": file2.stat().st_mtime,
             "size": file2.stat().st_size,
             "hash": "dummy",
@@ -144,6 +152,33 @@ class TestShouldBypassPathResolution:
         result = tracker.should_bypass(path_with_parent, changed_sources)
 
         assert result is True
+
+    def test_absolute_vs_relative_path_match(self, tmp_path: Path) -> None:
+        """should_bypass matches when source_path is relative and changed_sources has absolute."""
+        import os
+
+        from bengal.build.contracts.keys import content_key
+
+        class ContentKeyTracker(MockFileTracking):
+            def _cache_key(self, path: Path) -> str:
+                return str(content_key(path, tmp_path))
+
+        tracker = ContentKeyTracker()
+        content_dir = tmp_path / "content"
+        content_dir.mkdir()
+        test_file = content_dir / "about.md"
+        test_file.write_text("# About")
+
+        changed_sources = {test_file}
+        # With cwd=tmp_path, Path("content/about.md") resolves to same file
+        orig_cwd = os.getcwd()
+        try:
+            os.chdir(tmp_path)
+            relative_source = Path("content/about.md")
+            result = tracker.should_bypass(relative_source, changed_sources)
+            assert result is True
+        finally:
+            os.chdir(orig_cwd)
 
 
 class TestIsInTemplateDirPathResolution:

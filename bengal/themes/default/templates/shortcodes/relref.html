@@ -1,0 +1,5 @@
+{# Internal page link (relative URL). Usage: {{< relref "docs/guide/intro" >}} or {{< relref path:docs/guide/intro >}} #}
+{% set path = shortcode.Get(0) or shortcode.Get("path") %}
+{% if path %}
+  <a href="{{ shortcode.RelRef(path) }}">{{ shortcode.Get("text") or path }}</a>
+{% end %}

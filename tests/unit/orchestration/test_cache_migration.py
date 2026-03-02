@@ -36,11 +36,12 @@ class TestCacheMigration:
         incremental = IncrementalOrchestrator(site)
         cache = incremental.initialize(enabled=True)
 
-        # Verify migration occurred
+        # Verify migration occurred (file copied to new location)
+        # V8: old-format caches are cleared on load (key normalization)
         new_cache_path = tmp_path / ".bengal" / "cache.json"
         assert new_cache_path.exists(), "New cache should be created"
-        assert len(cache.file_fingerprints) == 1, "Cache data should be migrated"
-        assert cache.file_fingerprints["content/index.md"].get("hash") == "abc123"
+        # Old format has no version → cleared on load; incremental falls back to full build
+        assert len(cache.file_fingerprints) == 0
 
     def test_migration_preserves_cache_data(self, tmp_path):
         """Test that all cache fields are preserved during migration."""
@@ -74,12 +75,10 @@ class TestCacheMigration:
         incremental = IncrementalOrchestrator(site)
         cache = incremental.initialize(enabled=True)
 
-        # Verify all fields preserved
-        assert len(cache.file_fingerprints) == 2
-        assert "content/index.md" in cache.dependencies
-        assert cache.taxonomy_index.page_tags["content/index.md"] == {"tag1", "tag2"}
-        assert "tag1" in cache.taxonomy_index.known_tags
-        assert "content/index.md" in cache.parsed_content
+        # V8: old-format caches (no version) are cleared on load
+        assert len(cache.file_fingerprints) == 0
+        assert len(cache.dependencies) == 0
+        assert len(cache.parsed_content) == 0
 
     def test_new_cache_not_overwritten_by_old(self, tmp_path):
         """Test that existing new cache is not overwritten by old cache."""
@@ -100,14 +99,32 @@ class TestCacheMigration:
             )
         )
 
-        # New cache (current data)
+        # New cache (current data, V8 format)
         new_cache_dir = tmp_path / ".bengal"
         new_cache_dir.mkdir()
         new_cache = new_cache_dir / "cache.json"
         new_cache.write_text(
             json.dumps(
                 {
+                    "version": 8,
                     "file_fingerprints": {"new": {"hash": "data", "mtime": 0, "size": 0}},
+                    "dependencies": {},
+                    "reverse_dependencies": {},
+                    "output_sources": {},
+                    "taxonomy_deps": {},
+                    "page_tags": {},
+                    "tag_to_pages": {},
+                    "known_tags": [],
+                    "parsed_content": {},
+                    "rendered_output": {},
+                    "validation_results": {},
+                    "autodoc_dependencies": {},
+                    "autodoc_source_metadata": {},
+                    "autodoc_content_cache": {},
+                    "synthetic_pages": {},
+                    "url_claims": {},
+                    "discovered_assets": {},
+                    "config_hash": None,
                     "last_build": "2025-10-13T10:00:00",
                 }
             )
@@ -158,7 +175,30 @@ class TestCacheMigration:
         cache_dir.mkdir()
         cache_file = cache_dir / "cache.json"
         cache_file.write_text(
-            json.dumps({"file_fingerprints": {"test": {"hash": "data", "mtime": 0, "size": 0}}})
+            json.dumps(
+                {
+                    "version": 8,
+                    "file_fingerprints": {"test": {"hash": "data", "mtime": 0, "size": 0}},
+                    "dependencies": {},
+                    "reverse_dependencies": {},
+                    "output_sources": {},
+                    "taxonomy_deps": {},
+                    "page_tags": {},
+                    "tag_to_pages": {},
+                    "known_tags": [],
+                    "parsed_content": {},
+                    "rendered_output": {},
+                    "validation_results": {},
+                    "autodoc_dependencies": {},
+                    "autodoc_source_metadata": {},
+                    "autodoc_content_cache": {},
+                    "synthetic_pages": {},
+                    "url_claims": {},
+                    "discovered_assets": {},
+                    "config_hash": None,
+                    "last_build": None,
+                }
+            )
         )
 
         # Create site and clean
@@ -212,9 +252,8 @@ class TestCacheMigration:
         incremental = IncrementalOrchestrator(site)
         cache = incremental.initialize(enabled=True)
 
-        # Verify new cache was created with migrated data
+        # Verify new cache was created
+        # V8: old-format caches are cleared on load
         new_cache_path = tmp_path / ".bengal" / "cache.json"
         assert new_cache_path.exists(), "New cache should exist after migration"
-        assert cache.file_fingerprints["test"].get("hash") == "abc123", (
-            "Cache data should be migrated"
-        )
+        assert len(cache.file_fingerprints) == 0, "Old format cleared on load"

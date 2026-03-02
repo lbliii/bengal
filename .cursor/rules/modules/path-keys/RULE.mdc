@@ -1,0 +1,59 @@
+---
+description: Path keys in caches and cross-subsystem lookups MUST use canonical key functions
+---
+
+# Path Key Convention
+
+Path keys in caches and cross-subsystem lookups MUST use `content_key`, `cache._cache_key`, `watcher_key`, or `xref_path_key`. Never use `str(path)` for cache keys or set membership across boundaries (watcher, discovery, cache, validation).
+
+## Why
+
+Paths arrive in different representations:
+- **Watcher**: absolute Paths
+- **Discovery**: relative Paths
+- **glob()**: absolute Paths
+
+Using `str(path)` causes silent cache misses, incorrect rebuild decisions, and lookup failures when formats differ.
+
+## Canonical Key Functions
+
+| Function | Use When | Example |
+|----------|----------|---------|
+| `content_key(path, site_root)` | Content files, data, templates | `content_key(Path("/site/content/about.md"), site_root)` → `"content/about.md"` |
+| `cache._cache_key(path)` | BuildCache lookups (file_fingerprints, dependencies) | Use `get_file_fingerprint(path)` / `set_file_fingerprint(path, data)` |
+| `watcher_key(path)` | Watcher paths (already absolute) | `watcher_key(Path("/Users/.../site/content/about.md"))` |
+| `xref_path_key(path, site_root)` | xref by_path index (content-relative, no ext) | `xref_path_key(Path("/site/content/docs/guide.md"), site_root)` → `"docs/guide"` |
+
+## Prefer Encapsulated API
+
+For BuildCache file fingerprints, use the path-based accessors instead of raw dict access:
+
+```python
+# ✅ Correct
+fp = cache.get_file_fingerprint(data_file)
+cache.set_file_fingerprint(tpl_file, {"mtime": m, "size": s, "hash": h})
+
+# ❌ Avoid - requires manual key normalization
+fp = cache.file_fingerprints.get(cache._cache_key(path))
+```
+
+## Never Do
+
+```python
+# ❌ Raw str(path) for cache keys
+cache.file_fingerprints.get(str(path))
+path in changed_sources  # when path formats may differ
+
+# ❌ Direct dict key with unnormalized path
+by_full_path[str(p.source_path)] = p  # use content_key for lookup alignment
+
+# ❌ Wrong key format for dependency lookups (provenance filter)
+dep_key = f"data:{data_file}"  # dependencies use _cache_key
+template_key = str(template_path)  # reverse_dependencies use _cache_key
+```
+
+## Related
+
+- `bengal/build/contracts/keys.py`: `content_key`, `CacheKey`, `watcher_key`, `xref_path_key`
+- `bengal/cache/build_cache/file_tracking.py`: `get_file_fingerprint`, `set_file_fingerprint`
+- `plan/rfc-incremental-build-contracts.md`: canonical path keys design

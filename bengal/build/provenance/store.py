@@ -67,35 +67,42 @@ class ProvenanceCache:
         self._lock = threading.Lock()
 
     def _ensure_loaded(self) -> None:
-        """Load indexes from disk if not already loaded (thread-safe)."""
-        # Double-checked locking pattern for thread safety
+        """Load indexes from disk if not already loaded (thread-safe).
+
+        File I/O is done outside the lock to avoid blocking other threads.
+        Pattern: load into locals → acquire lock → assign if not yet loaded.
+        """
         if self._loaded:
             return
+
+        # Load index and subvenance outside lock (I/O can block)
+        index_data = self._load_index_data()
+        subvenance_data = self._load_subvenance_data()
 
         with self._lock:
             if self._loaded:
                 return
-            self._load_index()
-            self._load_subvenance()
+            self._index = index_data
+            self._subvenance = subvenance_data
             self._loaded = True
 
-    def _load_index(self) -> None:
-        """Load page → hash index."""
+    def _load_index_data(self) -> dict[CacheKey, ContentHash]:
+        """Load page → hash index from disk (no lock)."""
         index_path = self.cache_dir / "index.json"
         try:
             data = json_load(index_path)
-            self._index = {CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()}
+            return {CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()}
         except FileNotFoundError, JSONDecodeError, KeyError:
-            self._index = {}
+            return {}
 
-    def _load_subvenance(self) -> None:
-        """Load reverse index (input → pages)."""
+    def _load_subvenance_data(self) -> dict[ContentHash, set[CacheKey]]:
+        """Load reverse index (input → pages) from disk (no lock)."""
         subvenance_path = self.cache_dir / "subvenance.json"
         try:
             data = json_load(subvenance_path)
-            self._subvenance = {ContentHash(k): set(v) for k, v in data.items()}
+            return {ContentHash(k): set(v) for k, v in data.items()}
         except FileNotFoundError, JSONDecodeError, KeyError:
-            self._subvenance = {}
+            return {}
 
     def _get_record(self, combined_hash: ContentHash) -> ProvenanceRecord | None:
         """Load a provenance record by hash."""

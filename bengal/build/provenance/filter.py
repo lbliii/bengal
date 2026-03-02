@@ -4,16 +4,17 @@ Provenance-based incremental filter.
 Replaces IncrementalFilterEngine with content-addressed provenance checking.
 
 Thread Safety:
-    The ProvenanceFilter is designed for single-threaded use within a build,
-    but uses thread-safe backing stores (ProvenanceCache). Session caches
-    (_file_hashes, _computed_provenance) are per-filter instance and should
-    not be shared between threads without synchronization.
+    The ProvenanceFilter uses thread-safe session caches (_file_hashes,
+    _computed_provenance) protected by _session_lock. ProvenanceCache is
+    thread-safe. Parallel provenance computation is supported for large sites.
 """
 
 from __future__ import annotations
 
 import contextlib
+import os
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -152,20 +153,10 @@ class ProvenanceFilter:
             for asset in assets:
                 self._record_asset_hash(asset)
 
-            # Pre-compute provenance for all pages so record_build() uses consistent values
-            # This ensures the same cascade source hashes are used during both
-            # filter (here) and record (after render) phases
-            for page in pages:
-                page_path = self._get_page_key(page)
-                if page_path not in self._computed_provenance:
-                    try:
-                        self._compute_provenance(page)  # Caches internally
-                    except Exception as e:
-                        logger.debug(
-                            "provenance_precompute_failed",
-                            page_path=str(page_path),
-                            error=str(e),
-                        )
+            # OPTIMIZATION: Skip provenance pre-computation. We already know the answer
+            # (build everything). Provenance will be computed on-demand in record_build()
+            # after each page renders, avoiding a 20+ second block before parsing/assets.
+            # Total work is unchanged; it's distributed to the record phase instead.
 
             return ProvenanceFilterResult(
                 pages_to_build=list(pages),
@@ -177,6 +168,9 @@ class ProvenanceFilter:
             )
 
         forced = forced_changed or set()
+        # Normalize forced paths to content_key for consistent comparison.
+        # Watcher uses absolute Paths; discovery uses relative. Both must match.
+        forced_keys: set[str] = {content_key(p.resolve(), self.site.root_path) for p in forced}
 
         pages_to_build: list[Page] = []
         pages_skipped: list[Page] = []
@@ -184,84 +178,61 @@ class ProvenanceFilter:
         affected_sections: set[str] = set()
         changed_page_paths: set[Path] = set()
 
+        # Phase 1: Quick classification - collect pages needing provenance check
+        pages_to_verify: list[tuple[Page, ContentHash]] = []
         for page in pages:
             page_path = self._get_page_key(page)
 
-            # Check if forced changed (fast path - skip cache check)
-            if page.source_path in forced:
+            if page_path in forced_keys:
                 pages_to_build.append(page)
                 changed_page_paths.add(page.source_path)
                 self._collect_affected(page, affected_tags, affected_sections)
                 continue
 
-            # CRITICAL OPTIMIZATION: Check cache FIRST before computing provenance
-            # This avoids expensive file hashing for cache hits
             stored_hash = self.cache.get_stored_hash(page_path)
             if stored_hash is None:
-                # No cache entry - definitely need to build
                 pages_to_build.append(page)
                 changed_page_paths.add(page.source_path)
                 self._collect_affected(page, affected_tags, affected_sections)
                 continue
 
-            # Cache entry exists - check if it's still valid
-            # For simple content pages, use fast-path (content + config only)
-            is_virtual = getattr(page, "_virtual", False)
-            if not is_virtual and page.source_path.exists():
-                provenance_fast = self._compute_provenance_fast(page)
-                if provenance_fast is not None and provenance_fast.combined_hash == stored_hash:
-                    # Cache hit via fast path - skip full computation
-                    pages_skipped.append(page)
-                    continue
-                # Hash mismatch - mark page for rebuild
-                # Also set _cascade_invalidated if cascade sources changed
-                # This tells the rendering pipeline to bypass its own cache
-                if provenance_fast is not None:
-                    page._cascade_invalidated = True  # type: ignore[attr-defined]
+            pages_to_verify.append((page, stored_hash))
 
-            # Fast path didn't match or page is virtual - compute full provenance
-            try:
-                provenance = self._compute_provenance(page)
-            except Exception as e:
-                # If provenance computation fails, treat as cache miss (rebuild)
-                logger.debug(
-                    "provenance_computation_failed",
-                    page_path=str(page_path),
-                    error=str(e),
-                    is_virtual=is_virtual,
-                )
-                pages_to_build.append(page)
-                changed_page_paths.add(page.source_path)
-                self._collect_affected(page, affected_tags, affected_sections)
-                continue
-
-            # Ensure provenance has at least config input (sanity check)
-            if provenance.input_count == 0:
-                logger.warning(
-                    "empty_provenance_computed",
-                    page_path=str(page_path),
-                    is_virtual=is_virtual,
-                    suggestion="Page may have no valid source - treating as cache miss",
-                )
-                pages_to_build.append(page)
-                changed_page_paths.add(page.source_path)
-                self._collect_affected(page, affected_tags, affected_sections)
-                continue
-
-            # Check if provenance matches stored hash
-            if provenance.combined_hash == stored_hash:
-                pages_skipped.append(page)
-            else:
-                pages_to_build.append(page)
-                changed_page_paths.add(page.source_path)
-                self._collect_affected(page, affected_tags, affected_sections)
+        # Phase 2: Verify cache validity - parallel when many pages
+        parallel_threshold = 100
+        if len(pages_to_verify) >= parallel_threshold:
+            max_workers = min(32, (os.cpu_count() or 1) + 4)
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [
+                    executor.submit(self._verify_page_provenance, page, stored_hash)
+                    for page, stored_hash in pages_to_verify
+                ]
+                for future in as_completed(futures):
+                    build, skip, tags, sections, paths = future.result()
+                    if build is not None:
+                        pages_to_build.append(build)
+                        affected_tags.update(tags)
+                        affected_sections.update(sections)
+                        changed_page_paths.update(paths)
+                    if skip is not None:
+                        pages_skipped.append(skip)
+        else:
+            for page, stored_hash in pages_to_verify:
+                build, skip, tags, sections, paths = self._verify_page_provenance(page, stored_hash)
+                if build is not None:
+                    pages_to_build.append(build)
+                    affected_tags.update(tags)
+                    affected_sections.update(sections)
+                    changed_page_paths.update(paths)
+                if skip is not None:
+                    pages_skipped.append(skip)
 
         # For assets, check file modification or forced change
         # Include assets when: direct path match, dependency changed (e.g. @import'd CSS), or hash changed
         assets_to_process: list[Asset] = [
             asset
             for asset in assets
-            if asset.source_path in forced
+            if content_key(asset.source_path, self.site.root_path) in forced_keys
             or self._is_forced_by_dependency(asset, forced)
             or self._is_asset_changed(asset)
         ]
@@ -277,6 +248,61 @@ class ProvenanceFilter:
             affected_sections=affected_sections,
             changed_page_paths=changed_page_paths,
         )
+
+    def _verify_page_provenance(
+        self,
+        page: Page,
+        stored_hash: ContentHash,
+    ) -> tuple[Page | None, Page | None, set[str], set[str], set[Path]]:
+        """
+        Verify if cached provenance still matches. Thread-safe.
+
+        Returns:
+            (page_to_build, page_to_skip, affected_tags, affected_sections, changed_paths)
+            Exactly one of page_to_build or page_to_skip is non-None.
+        """
+        tags: set[str] = set()
+        sections: set[str] = set()
+        paths: set[Path] = set()
+        page_path = self._get_page_key(page)
+        is_virtual = getattr(page, "_virtual", False)
+
+        if not is_virtual and page.source_path.exists():
+            provenance_fast = self._compute_provenance_fast(page)
+            if provenance_fast is not None and provenance_fast.combined_hash == stored_hash:
+                return (None, page, tags, sections, paths)
+            if provenance_fast is not None:
+                page._cascade_invalidated = True  # type: ignore[attr-defined]
+
+        try:
+            provenance = self._compute_provenance(page)
+        except Exception as e:
+            logger.debug(
+                "provenance_computation_failed",
+                page_path=str(page_path),
+                error=str(e),
+                is_virtual=is_virtual,
+            )
+            self._collect_affected(page, tags, sections)
+            paths.add(page.source_path)
+            return (page, None, tags, sections, paths)
+
+        if provenance.input_count == 0:
+            logger.warning(
+                "empty_provenance_computed",
+                page_path=str(page_path),
+                is_virtual=is_virtual,
+                suggestion="Page may have no valid source - treating as cache miss",
+            )
+            self._collect_affected(page, tags, sections)
+            paths.add(page.source_path)
+            return (page, None, tags, sections, paths)
+
+        if provenance.combined_hash == stored_hash:
+            return (None, page, tags, sections, paths)
+        self._collect_affected(page, tags, sections)
+        paths.add(page.source_path)
+        return (page, None, tags, sections, paths)
 
     def record_build(self, page: Page, output_hash: ContentHash | None = None) -> None:
         """
@@ -652,7 +678,9 @@ class ProvenanceFilter:
         """
         if not forced:
             return False
-        if asset.source_path in forced:
+        asset_key = content_key(asset.source_path, self.site.root_path)
+        forced_keys = {content_key(p.resolve(), self.site.root_path) for p in forced}
+        if asset_key in forced_keys:
             return True  # Direct match
         if not asset.is_css_entry_point():
             return False

@@ -6,7 +6,6 @@ Phases 17-21: Post-processing, cache save, collect stats, health check, finalize
 
 from __future__ import annotations
 
-import json
 import time
 from typing import TYPE_CHECKING, Any
 
@@ -106,9 +105,13 @@ def phase_collect_stats(
 
     """
     start = time.perf_counter()
-    orchestrator.stats.total_pages = len(orchestrator.site.pages)
-    orchestrator.stats.regular_pages = len(orchestrator.site.regular_pages)
-    orchestrator.stats.generated_pages = len(orchestrator.site.generated_pages)
+    site = orchestrator.site
+    orchestrator.stats.total_pages = len(site.pages)
+    orchestrator.stats.regular_pages = len(site.regular_pages)
+    orchestrator.stats.generated_pages = len(site.generated_pages)
+    from bengal.utils.autodoc import is_autodoc_page
+
+    orchestrator.stats.autodoc_pages = sum(1 for p in site.pages if is_autodoc_page(p))
     orchestrator.stats.total_assets = len(orchestrator.site.assets)
     orchestrator.stats.total_sections = len(orchestrator.site.sections)
     orchestrator.stats.taxonomies_count = sum(
@@ -121,6 +124,7 @@ def phase_collect_stats(
         "build_time_ms": orchestrator.stats.build_time_ms,
         "rendering_time_ms": orchestrator.stats.rendering_time_ms,
         "total_pages": orchestrator.stats.total_pages,
+        "autodoc_pages": orchestrator.stats.autodoc_pages,
         "total_assets": orchestrator.stats.total_assets,
         "parallel": orchestrator.stats.parallel,
         "incremental": orchestrator.stats.incremental,
@@ -134,259 +138,16 @@ def phase_collect_stats(
         "block_cache_time_saved_ms": orchestrator.stats.block_cache_time_saved_ms,
     }
 
-    _write_build_time_artifacts(orchestrator.site, orchestrator.site._last_build_stats)
-    _write_versioning_artifacts(orchestrator.site)
+    from bengal.orchestration.build.artifacts import (
+        write_build_time_artifacts,
+        write_versioning_artifacts,
+    )
+
+    write_build_time_artifacts(orchestrator.site, orchestrator.site._last_build_stats)
+    write_versioning_artifacts(orchestrator.site)
     duration_ms = (time.perf_counter() - start) * 1000
     if cli is not None:
         cli.phase("Stats", duration_ms=duration_ms)
-
-
-def _write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> None:
-    """
-    Write build-time artifacts into the output directory (opt-in).
-
-    Why this exists:
-        `BuildStats.build_time_ms` is only finalized after templates render (Phase 19).
-        Writing a small SVG/JSON artifact here allows templates to display build time
-        accurately by referencing a static path like `/bengal/build.svg`.
-
-    """
-    config = getattr(site, "config", {}) or {}
-    build_badge_cfg = _normalize_build_badge_config(config.get("build_badge"))
-    if not build_badge_cfg["enabled"]:
-        return
-
-    output_dir = getattr(site, "output_dir", None)
-    if not output_dir:
-        return
-
-    import os
-    from pathlib import Path
-
-    from bengal.orchestration.badge import build_shields_like_badge_svg, format_duration_ms_compact
-    from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
-    from bengal.utils.io.atomic_write import AtomicFile
-
-    duration_ms = float(last_build_stats.get("build_time_ms") or 0)
-    duration_text = format_duration_ms_compact(duration_ms)
-
-    # Get CPU/worker stats for context
-    cpu_count = os.cpu_count() or 0
-    # Report optimal workers for a typical mixed workload
-    max_workers = get_optimal_workers(
-        100,
-        workload_type=WorkloadType.MIXED,
-        config_override=config.get("max_workers"),
-    )
-    parallel = last_build_stats.get("parallel", True)
-    incremental = last_build_stats.get("incremental", False)
-    skipped = last_build_stats.get("skipped", False)
-    cache_hits = int(last_build_stats.get("cache_hits") or 0)
-
-    # Determine build mode (cold/warm)
-    # Cold: full rebuild (not incremental) OR incremental but no cache hits
-    # Warm: incremental with cache hits
-    build_mode = "full"
-    if skipped:
-        build_mode = "skipped"
-    elif incremental:
-        build_mode = "warm" if cache_hits > 0 else "cold"
-
-    payload = {
-        "build_time_ms": duration_ms,
-        "build_time_human": duration_text,
-        "total_pages": int(last_build_stats.get("total_pages") or 0),
-        "total_assets": int(last_build_stats.get("total_assets") or 0),
-        "rendering_time_ms": float(last_build_stats.get("rendering_time_ms") or 0),
-        "timestamp": _safe_isoformat(getattr(site, "build_time", None)),
-        "parallel": parallel,
-        "incremental": incremental,
-        "build_mode": build_mode,
-        "cpu_count": cpu_count,
-        "worker_count": max_workers if parallel else 1,
-    }
-
-    # Add block cache stats if available (RFC: kida-template-introspection)
-    block_cache_hits = int(last_build_stats.get("block_cache_hits") or 0)
-    block_cache_site_blocks = int(last_build_stats.get("block_cache_site_blocks") or 0)
-    if block_cache_site_blocks > 0 or block_cache_hits > 0:
-        payload["block_cache"] = {
-            "site_blocks_cached": block_cache_site_blocks,
-            "hits": block_cache_hits,
-            "misses": int(last_build_stats.get("block_cache_misses") or 0),
-            "time_saved_ms": float(last_build_stats.get("block_cache_time_saved_ms") or 0.0),
-        }
-
-    svg = build_shields_like_badge_svg(
-        label=build_badge_cfg["label"],
-        message=duration_text,
-        label_color=build_badge_cfg["label_color"],
-        message_color=build_badge_cfg["message_color"],
-    )
-    json_text = json.dumps(payload, indent=2, ensure_ascii=False, sort_keys=True) + "\n"
-
-    for root in _iter_output_roots(site):
-        target_dir = Path(root) / build_badge_cfg["dir_name"]
-        target_dir.mkdir(parents=True, exist_ok=True)
-
-        _write_if_changed_atomic(target_dir / "build.svg", svg, AtomicFile)
-        _write_if_changed_atomic(target_dir / "build.json", json_text, AtomicFile)
-
-
-def _write_versioning_artifacts(site: Any) -> None:
-    """
-    Write versioning artifacts when versioning is enabled.
-
-    Emits versions.json (Mike-compatible) and optional root redirect.
-    """
-    output_dir = getattr(site, "output_dir", None)
-    if not output_dir:
-        return
-
-    from pathlib import Path
-
-    from bengal.content.versioning.artifacts import write_root_redirect, write_versions_json
-
-    write_versions_json(site, Path(output_dir))
-    write_root_redirect(site, Path(output_dir))
-
-
-def _write_if_changed_atomic(path: Any, content: str, atomic_file_cls: Any) -> None:
-    """
-    Write file atomically, but only if content differs.
-
-    This prevents unnecessary touching of outputs across builds.
-
-    """
-    try:
-        if path.exists():
-            existing = path.read_text(encoding="utf-8")
-            if existing == content:
-                return
-    except Exception:
-        # Best-effort; if read fails, proceed to write.
-        pass
-
-    with atomic_file_cls(path, "w", encoding="utf-8") as f:
-        f.write(content)
-
-
-def _normalize_build_badge_config(value: Any) -> dict[str, Any]:
-    """
-    Normalize `build_badge` config.
-
-    Supported:
-      - False / None: disabled
-      - True: enabled with defaults
-      - {enabled: bool, ...}: enabled with overrides
-
-    """
-    if value is None or value is False:
-        return {
-            "enabled": False,
-            "dir_name": "bengal",
-            "label": "built in",
-            "label_color": "#555",
-            "message_color": "#4c1d95",
-        }
-
-    if value is True:
-        return {
-            "enabled": True,
-            "dir_name": "bengal",
-            "label": "built in",
-            "label_color": "#555",
-            "message_color": "#4c1d95",
-        }
-
-    if isinstance(value, dict):
-        enabled = bool(value.get("enabled", True))
-        return {
-            "enabled": enabled,
-            "dir_name": str(value.get("dir_name", "bengal")),
-            "label": str(value.get("label", "built in")),
-            "label_color": str(value.get("label_color", "#555")),
-            "message_color": str(value.get("message_color", "#4c1d95")),
-        }
-
-    # Unknown type: treat as disabled rather than guessing.
-    return {
-        "enabled": False,
-        "dir_name": "bengal",
-        "label": "built in",
-        "label_color": "#555",
-        "message_color": "#4c1d95",
-    }
-
-
-def _iter_output_roots(site: Any) -> list[Any]:
-    """
-    Determine which output roots should receive build artifacts.
-
-    For i18n prefix strategy, some sites render into language subdirectories.
-    We mirror the behavior of site-wide outputs by also writing into those
-    subdirectories so that `/en/bengal/build.svg` resolves when the site is
-    deployed under a language prefix.
-
-    """
-    output_dir = getattr(site, "output_dir", None)
-    if not output_dir:
-        return []
-
-    roots: list[Any] = [output_dir]
-
-    config = getattr(site, "config", {}) or {}
-    i18n = config.get("i18n", {}) or {}
-    if i18n.get("strategy") != "prefix":
-        return roots
-
-    default_lang = str(i18n.get("default_language", "en"))
-    default_in_subdir = bool(i18n.get("default_in_subdir", False))
-
-    lang_codes: list[str] = []
-    for entry in i18n.get("languages", []) or []:
-        if isinstance(entry, str):
-            lang_codes.append(entry)
-        elif isinstance(entry, dict):
-            code = entry.get("code") or entry.get("lang") or entry.get("language")
-            if isinstance(code, str) and code:
-                lang_codes.append(code)
-
-    for code in sorted(set(lang_codes)):
-        if code == default_lang and not default_in_subdir:
-            continue
-        roots.append(_join(output_dir, code))
-
-    if default_in_subdir:
-        roots.append(_join(output_dir, default_lang))
-
-    # Deduplicate while preserving order
-    seen: set[str] = set()
-    deduped: list[Any] = []
-    for r in roots:
-        key = str(r)
-        if key in seen:
-            continue
-        seen.add(key)
-        deduped.append(r)
-    return deduped
-
-
-def _join(root: Any, child: str) -> Any:
-    from pathlib import Path
-
-    return Path(root) / child
-
-
-def _safe_isoformat(value: Any) -> str | None:
-    try:
-        from datetime import datetime
-
-        if isinstance(value, datetime):
-            return value.isoformat()
-        return None
-    except Exception:
-        return None
 
 
 def run_health_check(

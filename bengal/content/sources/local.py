@@ -21,7 +21,7 @@ from typing import Any
 
 from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.source import ContentSource
-from bengal.content.utils.frontmatter import parse_frontmatter as _parse_frontmatter
+from bengal.content.utils import parse_frontmatter as _parse_frontmatter
 from bengal.content.utils.slugify import path_to_slug
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str

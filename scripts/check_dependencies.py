@@ -62,6 +62,7 @@ LAYER_ORDER = {
 
 # Acceptable cross-layer imports (documented exceptions)
 # Format: (importer_prefix, imported_prefix) - if import matches, it's allowed
+# See plan/rfc-remaining-coupling-fixes.md for rationale
 ALLOWED_VIOLATIONS: set[tuple[str, str]] = {
     # Logging is a cross-cutting concern - error modules need logging
     ("bengal.errors", "bengal.utils.observability.logger"),
@@ -75,6 +76,44 @@ ALLOWED_VIOLATIONS: set[tuple[str, str]] = {
     ("bengal.core", "bengal.utils.lru_cache"),
     ("bengal.core", "bengal.utils.concurrency"),
     ("bengal.core", "bengal.utils.observability.logger"),
+    # Stats models - error reporting needs build stats (cross-cutting)
+    ("bengal.errors", "bengal.orchestration.stats"),
+    # Discovery needs BuildContext for incremental builds
+    ("bengal.content.discovery", "bengal.orchestration.build_context"),
+    # Rendering pipeline needs BuildContext for output collection
+    ("bengal.rendering", "bengal.orchestration.build_context"),
+    ("bengal.rendering.pipeline", "bengal.orchestration.build_context"),
+    # Postprocess needs BuildContext
+    ("bengal.postprocess", "bengal.orchestration.build_context"),
+    # Cache needs orchestration constants for taxonomy
+    ("bengal.cache", "bengal.orchestration.constants"),
+    # Health report needs cache validation
+    ("bengal.cache", "bengal.health.report"),
+    # Themes need rendering engines for swizzle
+    ("bengal.themes", "bengal.rendering.engines"),
+    # Utils needs server for build executor (cross-cutting)
+    ("bengal.utils", "bengal.server"),
+    # Build inputs needs server for executor
+    ("bengal.orchestration.build.inputs", "bengal.server.build_executor"),
+    # Core needs utils for paths, io, autodoc (cross-cutting)
+    ("bengal.core", "bengal.utils.paths"),
+    ("bengal.core", "bengal.utils.autodoc"),
+    ("bengal.core", "bengal.utils.io"),
+    # Core needs rendering for page ops, shortcodes, pipeline (tight coupling)
+    ("bengal.core", "bengal.rendering"),
+    # Core needs assets for manifest, css (asset resolution)
+    ("bengal.core", "bengal.assets"),
+    # Core needs themes for config, resolution
+    ("bengal.core", "bengal.themes"),
+    # Core site discovery needs content discovery, orchestration
+    ("bengal.core", "bengal.content.discovery"),
+    ("bengal.core", "bengal.orchestration"),
+    ("bengal.core", "bengal.orchestration.feature_detector"),
+    # Core site needs cache, server for lifecycle
+    ("bengal.core", "bengal.cache"),
+    ("bengal.core", "bengal.server"),
+    # Rendering page_operations needs health for link validation
+    ("bengal.rendering", "bengal.health"),
 }
 
 

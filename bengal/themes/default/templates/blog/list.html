@@ -38,7 +38,7 @@ Set `type: blog` in section _index.md
 {# Category/subsection card #}
 {% def category_card(subsection) %}
 {% let sub_title = subsection?.title ?? 'Category' %}
-{% let sub_href = subsection?._path ?? subsection?.href ?? '#' %}
+{% let sub_href = subsection?.href ?? subsection?._path ?? '#' %}
 {% let sub_desc = subsection?.metadata?.description ?? '' %}
 {% let sub_pages = subsection?.regular_pages ?? [] %}
 {% let index_page = subsection?.index_page %}
@@ -70,7 +70,7 @@ MAIN TEMPLATE
 {% let total_pages = (total_pages ?? 1) | int %}
 {% let current_page = (current_page ?? 1) | int %}
 {% let total_posts = (total_posts ?? (posts | length if posts else 0)) | int %}
-{% let base_url = base_url ?? section?._path ?? section?.href ?? '/blog/' %}
+{% let base_url = base_url ?? section?.href ?? section?._path ?? '/blog/' %}
 
 {% block blog_content %}
         {# Header - matches blog/about.html and blog/contact.html for consistent layout #}

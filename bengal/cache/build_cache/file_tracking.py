@@ -38,6 +38,7 @@ class FileTrackingMixin:
         - file_fingerprints: dict[str, dict[str, Any]]
         - dependencies: dict[str, set[str]]
         - output_sources: dict[str, str]
+        - _cache_key: Callable[[Path], str]  # Canonical path key (content_key)
 
     Performance Optimization:
     - Added reverse_dependencies for O(1) affected pages lookup
@@ -46,11 +47,29 @@ class FileTrackingMixin:
     """
 
     # Type hints for mixin attributes (provided by host class)
-    file_fingerprints: dict[str, dict[str, Any]]
+    file_fingerprints: dict[str, dict[str, Any]]  # Keys are CacheKey at runtime
     dependencies: dict[str, set[str]]
     output_sources: dict[str, str]
     # Reverse dependency graph: dependency → set of source pages that depend on it
     reverse_dependencies: dict[str, set[str]]
+
+    def get_file_fingerprint(self, path: Path) -> dict[str, Any] | None:
+        """
+        Get fingerprint for a file (path-based lookup with normalized key).
+
+        Use this instead of direct file_fingerprints access to ensure
+        correct key normalization (content_key) across path formats.
+        """
+        return self.file_fingerprints.get(self._cache_key(path))
+
+    def set_file_fingerprint(self, path: Path, data: dict[str, Any]) -> None:
+        """
+        Set fingerprint for a file (path-based storage with normalized key).
+
+        Use this instead of direct file_fingerprints access to ensure
+        correct key normalization (content_key) across path formats.
+        """
+        self.file_fingerprints[self._cache_key(path)] = data
 
     def hash_file(self, file_path: Path) -> str:
         """
@@ -94,16 +113,12 @@ class FileTrackingMixin:
             True if cache should be bypassed, False if cache can be used
         """
         # Check explicit change set first (fast path)
-        # Resolve paths to handle symlinks, ./ components, and case differences
+        # Use _cache_key (content_key format) to handle absolute/relative path mismatch
+        # between source_path (from discovery) and changed_sources (from watcher)
         if changed_sources:
-            try:
-                resolved_source = source_path.resolve()
-                for changed in changed_sources:
-                    if changed.resolve() == resolved_source:
-                        return True
-            except OSError, ValueError:
-                # Fall back to direct comparison if resolution fails
-                if source_path in changed_sources:
+            source_key = self._cache_key(source_path)
+            for changed in changed_sources:
+                if self._cache_key(changed) == source_key:
                     return True
 
         # Fall back to hash-based change detection
@@ -128,7 +143,7 @@ class FileTrackingMixin:
         Returns:
             True if file is new or has changed, False if unchanged
         """
-        file_key = str(file_path)
+        file_key = self._cache_key(file_path)
 
         if not file_path.exists():
             # File was deleted
@@ -204,7 +219,7 @@ class FileTrackingMixin:
         Args:
             file_path: Path to file
         """
-        file_key = str(file_path)
+        file_key = self._cache_key(file_path)
 
         try:
             stat = file_path.stat()
@@ -249,7 +264,7 @@ class FileTrackingMixin:
         # Store as relative path from output_dir for portability
         try:
             rel_output = str(output_path.relative_to(output_dir))
-            self.output_sources[rel_output] = str(source_path)
+            self.output_sources[rel_output] = self._cache_key(source_path)
         except ValueError:
             # output_path not relative to output_dir, skip
             logger.debug("output_not_relative", output=str(output_path), output_dir=str(output_dir))
@@ -264,8 +279,8 @@ class FileTrackingMixin:
             source: Source file (e.g., content page)
             dependency: Dependency file (e.g., template, partial, config)
         """
-        source_key = str(source)
-        dep_key = str(dependency)
+        source_key = self._cache_key(source)
+        dep_key = self._cache_key(dependency)
 
         # Forward graph: source → dependencies
         if source_key not in self.dependencies:
@@ -289,7 +304,7 @@ class FileTrackingMixin:
         Returns:
             Set of page paths that need to be rebuilt
         """
-        changed_key = str(changed_file)
+        changed_key = self._cache_key(changed_file)
         affected = set()
 
         # O(1) lookup via reverse dependency graph
@@ -313,7 +328,7 @@ class FileTrackingMixin:
         Returns:
             True if fingerprint was removed, False if not present
         """
-        key = str(file_path)
+        key = self._cache_key(file_path)
         if key in self.file_fingerprints:
             del self.file_fingerprints[key]
             return True
@@ -332,7 +347,7 @@ class FileTrackingMixin:
         Args:
             file_path: Path to file
         """
-        file_key = str(file_path)
+        file_key = self._cache_key(file_path)
         self.file_fingerprints.pop(file_key, None)
 
         # Remove from forward graph and update reverse graph

@@ -7,7 +7,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from bengal.orchestration.stats import ReloadHint
 from bengal.server.build_trigger import BuildTrigger
+from bengal.server.reload_types import BuildReloadInfo, SerializedOutputRecord
 
 
 class TestBuildTrigger:
@@ -58,6 +60,149 @@ class TestBuildTrigger:
         trigger.shutdown()
 
         mock_executor.shutdown.assert_called_once_with(wait=True)
+
+    def test_can_use_reactive_path_single_md_modified(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _can_use_reactive_path returns True for content-only .md edit."""
+        md_file = tmp_path / "content" / "page.md"
+        md_file.parent.mkdir(parents=True)
+        md_file.write_text("---\ntitle: Test\n---\nOriginal body")
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # First call: no cache, populates cache and returns False
+        result = trigger._can_use_reactive_path({md_file}, {"modified"})
+        assert result is False
+
+        # Change body only (frontmatter unchanged)
+        md_file.write_text("---\ntitle: Test\n---\nNew body")
+        result = trigger._can_use_reactive_path({md_file}, {"modified"})
+        assert result is True
+
+    def test_can_use_reactive_path_rejects_multiple_files(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _can_use_reactive_path returns False for multiple files."""
+        a = tmp_path / "a.md"
+        b = tmp_path / "b.md"
+        a.write_text("---\ntitle: A\n---\nA")
+        b.write_text("---\ntitle: B\n---\nB")
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._can_use_reactive_path({a, b}, {"modified"}) is False
+
+    def test_can_use_reactive_path_rejects_created_event(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _can_use_reactive_path returns False for created event."""
+        md_file = tmp_path / "page.md"
+        md_file.write_text("---\ntitle: Test\n---\nBody")
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._can_use_reactive_path({md_file}, {"created"}) is False
+
+    def test_can_use_reactive_path_rejects_non_md(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _can_use_reactive_path returns False for non-.md files."""
+        txt_file = tmp_path / "file.txt"
+        txt_file.write_text("content")
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._can_use_reactive_path({txt_file}, {"modified"}) is False
+
+    def test_seed_content_hash_cache_populates_cache(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that seed_content_hash_cache populates cache for content pages."""
+        md_file = tmp_path / "content" / "page.md"
+        md_file.parent.mkdir(parents=True)
+        md_file.write_text("---\ntitle: Test\n---\nOriginal body")
+
+        page = MagicMock()
+        page.source_path = md_file
+        mock_site.pages = [page]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page])
+
+        assert md_file in trigger._content_hash_cache
+        entry = trigger._content_hash_cache[md_file]
+        assert entry.frontmatter_hash
+        assert entry.content_hash
+
+    def test_first_edit_uses_reactive_path_after_seed(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that first content-only edit uses reactive path after seed."""
+        md_file = tmp_path / "content" / "page.md"
+        md_file.parent.mkdir(parents=True)
+        md_file.write_text("---\ntitle: Test\n---\nOriginal body")
+
+        page = MagicMock()
+        page.source_path = md_file
+        mock_site.pages = [page]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page])
+
+        # Simulate user editing body only
+        md_file.write_text("---\ntitle: Test\n---\nEdited body")
+        result = trigger._can_use_reactive_path({md_file}, {"modified"})
+        assert result is True
+
+    def test_seed_content_hash_cache_section_page(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that seed_content_hash_cache works for section _index.md."""
+        index_file = tmp_path / "content" / "docs" / "_index.md"
+        index_file.parent.mkdir(parents=True)
+        index_file.write_text("---\ntitle: Docs\n---\nSection intro.")
+
+        page = MagicMock()
+        page.source_path = index_file
+        mock_site.pages = [page]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page])
+
+        assert index_file in trigger._content_hash_cache
+        index_file.write_text("---\ntitle: Docs\n---\nUpdated intro.")
+        assert trigger._can_use_reactive_path({index_file}, {"modified"}) is True
+
+    def test_seed_content_hash_cache_skips_non_md(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that seed_content_hash_cache skips non-.md pages."""
+        txt_file = tmp_path / "content" / "readme.txt"
+        txt_file.parent.mkdir(parents=True)
+        txt_file.write_text("No frontmatter")
+
+        page = MagicMock()
+        page.source_path = txt_file
+        mock_site.pages = [page]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page])
+
+        assert txt_file not in trigger._content_hash_cache
+
+    def test_seed_content_hash_cache_skips_no_frontmatter(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that seed_content_hash_cache skips files without frontmatter."""
+        md_file = tmp_path / "content" / "page.md"
+        md_file.parent.mkdir(parents=True)
+        md_file.write_text("No frontmatter here, just body.")
+
+        page = MagicMock()
+        page.source_path = md_file
+        mock_site.pages = [page]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page])
+
+        assert md_file not in trigger._content_hash_cache
 
     def test_needs_full_rebuild_for_structural_changes(
         self, mock_site: MagicMock, mock_executor: MagicMock
@@ -218,8 +363,8 @@ class TestVersionScopedBuilds:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_version_scope_passed_to_build_request(
         self,
         mock_send_reload: MagicMock,
@@ -263,8 +408,8 @@ class TestVersionScopedBuilds:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_no_version_scope_in_build_request(
         self,
         mock_send_reload: MagicMock,
@@ -331,8 +476,8 @@ class TestBuildTriggerIntegration:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_trigger_build_calls_site_build(
         self,
         mock_send_reload: MagicMock,
@@ -578,7 +723,7 @@ class TestBuildTriggerErrorHandling:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.show_error")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.build_trigger.default_reload_controller")
     @patch("bengal.server.build_trigger.create_dev_error")
     @patch("bengal.server.build_trigger.get_dev_server_state")
     def test_changed_paths_not_mutated_on_error(
@@ -628,7 +773,7 @@ class TestBuildTriggerErrorHandling:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.show_error")
-    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.build_trigger.default_reload_controller")
     @patch("bengal.server.build_trigger.create_dev_error")
     @patch("bengal.server.build_trigger.get_dev_server_state")
     def test_trigger_file_extracted_without_mutation(
@@ -715,8 +860,8 @@ class TestBuildTriggerQueuing:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_changes_queued_when_build_in_progress(
         self,
         mock_send_reload: MagicMock,
@@ -777,8 +922,8 @@ class TestBuildTriggerQueuing:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_queued_changes_trigger_another_build(
         self,
         mock_send_reload: MagicMock,
@@ -842,8 +987,8 @@ class TestBuildTriggerQueuing:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_multiple_queued_changes_batched(
         self,
         mock_send_reload: MagicMock,
@@ -911,8 +1056,8 @@ class TestBuildTriggerQueuing:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_stabilization_delay_before_queued_build(
         self,
         mock_send_reload: MagicMock,
@@ -1008,8 +1153,8 @@ class TestReloadDecisionFlow:
         executor = MagicMock()
         return executor
 
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_typed_outputs_css_only_reload(
         self,
         mock_send_reload: MagicMock,
@@ -1021,7 +1166,7 @@ class TestReloadDecisionFlow:
         from bengal.server.reload_controller import ReloadDecision
 
         mock_controller.decide_from_outputs.return_value = ReloadDecision(
-            action="reload-css", reason="css-only", changed_paths=["style.css"]
+            action="reload-css", reason="css-only", changed_paths=("style.css",)
         )
         mock_controller._use_content_hashes = False
 
@@ -1029,17 +1174,23 @@ class TestReloadDecisionFlow:
 
         # CSS-only outputs
         changed_outputs = (
-            ("style.css", "css", "asset"),
-            ("theme.css", "css", "asset"),
+            SerializedOutputRecord("style.css", "css", "asset"),
+            SerializedOutputRecord("theme.css", "css", "asset"),
         )
-        trigger._handle_reload(["assets/style.css"], changed_outputs)
+        trigger._handle_reload(
+            BuildReloadInfo(
+                changed_files=("assets/style.css",),
+                changed_outputs=changed_outputs,
+                reload_hint=None,
+            )
+        )
 
         # Should use decide_from_outputs
         mock_controller.decide_from_outputs.assert_called_once()
-        mock_send_reload.assert_called_once_with("reload-css", "css-only", ["style.css"])
+        mock_send_reload.assert_called_once_with("reload-css", "css-only", ("style.css",))
 
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_typed_outputs_full_reload(
         self,
         mock_send_reload: MagicMock,
@@ -1051,7 +1202,7 @@ class TestReloadDecisionFlow:
         from bengal.server.reload_controller import ReloadDecision
 
         mock_controller.decide_from_outputs.return_value = ReloadDecision(
-            action="reload", reason="content-changed", changed_paths=["index.html"]
+            action="reload", reason="content-changed", changed_paths=("index.html",)
         )
         mock_controller._use_content_hashes = False
 
@@ -1059,16 +1210,22 @@ class TestReloadDecisionFlow:
 
         # HTML outputs
         changed_outputs = (
-            ("index.html", "html", "render"),
-            ("about.html", "html", "render"),
+            SerializedOutputRecord("index.html", "html", "render"),
+            SerializedOutputRecord("about.html", "html", "render"),
         )
-        trigger._handle_reload(["content/index.md"], changed_outputs)
+        trigger._handle_reload(
+            BuildReloadInfo(
+                changed_files=("content/index.md",),
+                changed_outputs=changed_outputs,
+                reload_hint=None,
+            )
+        )
 
         mock_controller.decide_from_outputs.assert_called_once()
-        mock_send_reload.assert_called_once_with("reload", "content-changed", ["index.html"])
+        mock_send_reload.assert_called_once_with("reload", "content-changed", ("index.html",))
 
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_no_outputs_but_sources_changed_triggers_reload(
         self,
         mock_send_reload: MagicMock,
@@ -1082,12 +1239,18 @@ class TestReloadDecisionFlow:
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
         # Sources changed but empty outputs (fallback case)
-        trigger._handle_reload(["content/draft.md"], ())
+        trigger._handle_reload(
+            BuildReloadInfo(
+                changed_files=("content/draft.md",),
+                changed_outputs=(),
+                reload_hint=None,
+            )
+        )
 
         # Should trigger full reload via fallback
-        mock_send_reload.assert_called_once_with("reload", "source-change-no-outputs", [])
+        mock_send_reload.assert_called_once_with("reload", "source-change-no-outputs", ())
 
-    @patch("bengal.server.build_trigger.controller")
+    @patch("bengal.server.build_trigger.default_reload_controller")
     def test_no_outputs_no_sources_suppresses_reload(
         self,
         mock_controller: MagicMock,
@@ -1098,14 +1261,47 @@ class TestReloadDecisionFlow:
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
         # No sources, no outputs
-        trigger._handle_reload([], ())
+        trigger._handle_reload(
+            BuildReloadInfo(changed_files=(), changed_outputs=(), reload_hint=None)
+        )
 
         # Should NOT call decide_from_outputs or send reload
         mock_controller.decide_from_outputs.assert_not_called()
         mock_controller.decide_from_changed_paths.assert_not_called()
 
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
+    def test_reload_hint_none_with_empty_outputs_still_triggers_fallback_reload(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """When outputs empty, reload_hint must not suppress fallback reload.
+
+        Build now sets reload_hint=None when outputs empty. This test validates
+        backward compatibility: if reload_hint='none' is passed with empty outputs
+        (legacy path), we still run the fallback so changed_files triggers reload.
+        """
+        mock_controller._use_content_hashes = False
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # reload_hint=NONE (from empty outputs) but sources changed
+        trigger._handle_reload(
+            BuildReloadInfo(
+                changed_files=("content/contact.md",),
+                changed_outputs=(),
+                reload_hint=ReloadHint.NONE,
+            )
+        )
+
+        # Fallback should trigger reload despite reload_hint
+        mock_send_reload.assert_called_once_with("reload", "source-change-no-outputs", ())
+
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_fallback_to_path_based_decision(
         self,
         mock_send_reload: MagicMock,
@@ -1117,19 +1313,146 @@ class TestReloadDecisionFlow:
         from bengal.server.reload_controller import ReloadDecision
 
         mock_controller.decide_from_changed_paths.return_value = ReloadDecision(
-            action="reload", reason="content-changed", changed_paths=["index.html"]
+            action="reload", reason="content-changed", changed_paths=("index.html",)
         )
         mock_controller._use_content_hashes = False
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
         # Invalid output type that can't be reconstructed
-        changed_outputs = (("index.html", "invalid_type", "render"),)
-        trigger._handle_reload(["content/index.md"], changed_outputs)
+        changed_outputs = (SerializedOutputRecord("index.html", "invalid_type", "render"),)
+        trigger._handle_reload(
+            BuildReloadInfo(
+                changed_files=("content/index.md",),
+                changed_outputs=changed_outputs,
+                reload_hint=None,
+            )
+        )
 
         # Should fall back to decide_from_changed_paths
         mock_controller.decide_from_outputs.assert_not_called()
         mock_controller.decide_from_changed_paths.assert_called_once()
+
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
+    def test_reload_hint_none_with_outputs_returns_early(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """When reload_hint='none' and we have typed outputs, suppress reload."""
+        from bengal.orchestration.stats import ReloadHint
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        trigger._handle_reload(
+            BuildReloadInfo(
+                changed_files=("content/index.md",),
+                changed_outputs=(SerializedOutputRecord("index.html", "html", "render"),),
+                reload_hint=ReloadHint.NONE,
+            )
+        )
+
+        mock_send_reload.assert_not_called()
+
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
+    def test_content_hash_aggregate_only_suppresses_reload(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """When content-hash says aggregate-only and no source files changed, suppress reload."""
+        from bengal.server.reload_controller import EnhancedReloadDecision, ReloadDecision
+
+        mock_controller.decide_from_outputs.return_value = ReloadDecision(
+            action="reload", reason="content-changed", changed_paths=("sitemap.xml",)
+        )
+        mock_controller._use_content_hashes = True
+        mock_controller._baseline_content_hashes = {"sitemap.xml": "abc"}
+        mock_controller.decide_with_content_hashes.return_value = EnhancedReloadDecision(
+            action="reload",
+            reason="aggregate-only",
+            changed_paths=("sitemap.xml",),
+            content_changes=(),
+            aggregate_changes=("sitemap.xml",),
+            asset_changes=(),
+        )
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Empty changed_files: build was triggered by something other than user edit
+        # (e.g. timer, cache validation). Content-hash says aggregate-only → suppress.
+        trigger._handle_reload(
+            BuildReloadInfo(
+                changed_files=(),
+                changed_outputs=(SerializedOutputRecord("sitemap.xml", "html", "postprocess"),),
+                reload_hint=None,
+            )
+        )
+
+        mock_send_reload.assert_not_called()
+
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
+    def test_reload_bypass_when_decision_none_but_sources_changed(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """When decision is 'none' (not aggregate-only) but changed_files non-empty, bypass."""
+        from bengal.server.reload_controller import ReloadDecision
+
+        mock_controller.decide_from_outputs.return_value = ReloadDecision(
+            action="none", reason="throttled", changed_paths=()
+        )
+        mock_controller._use_content_hashes = False
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        trigger._handle_reload(
+            BuildReloadInfo(
+                changed_files=("content/contact.md",),
+                changed_outputs=(SerializedOutputRecord("index.html", "html", "render"),),
+                reload_hint=None,
+            )
+        )
+
+        mock_send_reload.assert_called_once_with("reload", "source-changes-bypass", ())
+
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
+    def test_fallback_source_change_skips_content_hash_filtering(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Fallback-source-change must not run content-hash filtering (always reload)."""
+        mock_controller._use_content_hashes = True
+        mock_controller._baseline_content_hashes = {"x": "y"}
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        # Empty outputs, sources changed → fallback-source-change
+        trigger._handle_reload(
+            BuildReloadInfo(
+                changed_files=("content/contact.md",),
+                changed_outputs=(),
+                reload_hint=None,
+            )
+        )
+
+        # Should trigger reload despite content-hash being enabled
+        mock_send_reload.assert_called_once_with("reload", "source-change-no-outputs", ())
+        mock_controller.decide_with_content_hashes.assert_not_called()
 
 
 class TestBuildStabilizationTiming:
@@ -1164,8 +1487,8 @@ class TestBuildStabilizationTiming:
     @patch("bengal.server.build_trigger.show_building_indicator")
     @patch("bengal.server.build_trigger.CLIOutput")
     @patch("bengal.server.build_trigger.display_build_stats")
-    @patch("bengal.server.build_trigger.controller")
-    @patch("bengal.server.live_reload.send_reload_payload")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
     def test_no_delay_for_first_build(
         self,
         mock_send_reload: MagicMock,
@@ -1187,7 +1510,7 @@ class TestBuildStabilizationTiming:
         mock_pre_hooks.return_value = True
         mock_post_hooks.return_value = True
         mock_controller.decide_from_changed_paths.return_value = MagicMock(
-            action="reload", reason="test", changed_paths=[]
+            action="reload", reason="test", changed_paths=()
         )
 
         sleep_calls = []

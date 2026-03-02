@@ -223,6 +223,10 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
 
     _prerendered_html: str | None  # Pre-rendered HTML (autodoc, etc.), set before render
 
+    def HasShortcode(self, name: str) -> bool:
+        """Return True if page content uses the given shortcode."""
+        ...
+
 
 # =============================================================================
 # Section Protocol

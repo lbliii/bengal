@@ -814,6 +814,12 @@ class Page(
         """Raw markdown source content."""
         return self._raw_content
 
+    def HasShortcode(self, name: str) -> bool:
+        """Return True if page content uses the given shortcode."""
+        from bengal.rendering.shortcodes import has_shortcode
+
+        return has_shortcode(self, name)
+
     @cached_property
     def word_count(self) -> int:
         """Word count from source markdown."""

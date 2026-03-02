@@ -6,6 +6,7 @@ Tests health/validators/tracks.py:
 
 from __future__ import annotations
 
+from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
@@ -185,6 +186,32 @@ class TestTrackValidatorMissingPages:
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
         assert any("missing" in r.message.lower() for r in warning_results)
 
+    def test_resolves_track_item_with_relative_source_path(self, validator, tmp_path):
+        """Track item resolution works when page has relative source_path (content_key alignment)."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site._page_lookup_maps = None
+        site.data = MagicMock()
+        site.data.tracks = {
+            "learn": {"title": "Learn", "items": ["guide.md"]},
+        }
+
+        content_dir = tmp_path / "content"
+        content_dir.mkdir(parents=True)
+        (content_dir / "guide.md").write_text("# Guide")
+
+        page = MagicMock()
+        page.source_path = Path("content/guide.md")  # relative (as from discovery)
+        page.relative_path = "guide.md"
+        page.metadata = {}
+        site.pages = [page]
+
+        results = validator.validate(site)
+
+        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
+        assert len(success_results) >= 1
+        assert any("1" in r.message and "item" in r.message.lower() for r in success_results)
+
     def test_warning_shows_missing_count(self, validator, mock_site):
         """Warning shows count of missing pages."""
         mock_site.data.tracks = {
@@ -269,6 +296,21 @@ class TestTrackValidatorGetPage:
         """_get_page returns None for empty path."""
         page = validator._get_page(mock_site, "")
         assert page is None
+
+
+class TestTrackValidatorPathKeyAlignment:
+    """Tests for path key alignment (absolute vs relative lookup)."""
+
+    def test_resolves_page_when_source_path_absolute_lookup_relative(
+        self, validator, mock_site
+    ) -> None:
+        """_get_page finds page when page has absolute source_path, lookup uses relative."""
+        mock_site._page_lookup_maps = None
+        # page1 has source_path = content_dir / "intro.md" (absolute)
+        # Track items use "intro.md" (relative) - Strategy 1 or 4 should resolve
+        page = validator._get_page(mock_site, "intro.md")
+        assert page is not None
+        assert page.relative_path == "intro.md"
 
 
 class TestTrackValidatorRecommendations:

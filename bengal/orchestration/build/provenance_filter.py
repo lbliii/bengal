@@ -18,10 +18,13 @@ Dependency Gap Fixes (RFC: rfc-incremental-build-dependency-gaps):
 
 from __future__ import annotations
 
+import os
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.build.contracts.keys import content_key
 from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
 from bengal.build.provenance.filter import ProvenanceFilterResult
 from bengal.orchestration.build.results import (
@@ -69,8 +72,7 @@ def _detect_changed_data_files(
     # Scan data directory for YAML/JSON files
     for ext in ("*.yaml", "*.yml", "*.json", "*.toml"):
         for data_file in data_dir.glob(f"**/{ext}"):
-            file_key = str(data_file)
-            stored = cache.file_fingerprints.get(file_key)
+            stored = cache.get_file_fingerprint(data_file)
 
             if stored is None:
                 # New data file - treat as changed
@@ -130,8 +132,7 @@ def _detect_changed_templates(
     # Scan all template directories
     for tpl_dir in [templates_dir, *theme_templates_dirs]:
         for tpl_file in tpl_dir.glob("**/*.html"):
-            file_key = str(tpl_file)
-            stored = cache.file_fingerprints.get(file_key)
+            stored = cache.get_file_fingerprint(tpl_file)
 
             try:
                 current_hash = hash_file(tpl_file)
@@ -147,11 +148,14 @@ def _detect_changed_templates(
             # the next incremental build (store-after-compare pattern).
             try:
                 stat = tpl_file.stat()
-                cache.file_fingerprints[file_key] = {
-                    "mtime": stat.st_mtime,
-                    "size": stat.st_size,
-                    "hash": current_hash,
-                }
+                cache.set_file_fingerprint(
+                    tpl_file,
+                    {
+                        "mtime": stat.st_mtime,
+                        "size": stat.st_size,
+                        "hash": current_hash,
+                    },
+                )
             except OSError:
                 pass
 
@@ -182,7 +186,7 @@ def _get_pages_for_data_file(
     Returns:
         Set of page source paths that depend on this data file
     """
-    dep_key = f"data:{data_file}"
+    dep_key = cache._cache_key(data_file)
     pages: set[Path] = set()
 
     for page_str, deps in cache.dependencies.items():
@@ -210,7 +214,7 @@ def _get_pages_for_template(
         Set of page source paths that use this template
     """
     pages: set[Path] = set()
-    template_key = str(template_path)
+    template_key = cache._cache_key(template_path)
 
     # Check reverse dependencies
     dependents = cache.reverse_dependencies.get(template_key, set())
@@ -245,7 +249,7 @@ def _get_taxonomy_term_pages_for_member(
         Set of taxonomy term page paths to rebuild
     """
     term_pages: set[Path] = set()
-    member_key = str(member_path)
+    member_key = cache._cache_key(member_path)
 
     # Get tags for this member page from cache
     tags = cache.taxonomy_index.page_tags.get(member_key, set())
@@ -401,6 +405,63 @@ def phase_incremental_filter_provenance(
         filter_start = time.time()
         pages_list = list(site.pages)
         assets_list = list(site.assets)
+
+        # COLD BUILD: If output is missing, skip provenance verification entirely.
+        # We know the answer (build everything). Provenance will be computed during
+        # record_build after rendering - no need for the 20+ second filter pass.
+        output_dir = site.output_dir
+        output_assets_dir = output_dir / "assets"
+        output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
+        css_dir = output_assets_dir / "css"
+        output_assets_missing = (
+            not output_assets_dir.exists()
+            or not css_dir.exists()
+            or not any(css_dir.glob("style*.css"))
+        )
+        if (output_html_missing or output_assets_missing) and pages_list:
+            result = provenance_filter.filter(
+                pages=pages_list,
+                assets=assets_list,
+                incremental=False,
+            )
+            filter_time_ms = (time.time() - filter_start) * 1000
+            orchestrator._provenance_filter = provenance_filter
+            orchestrator.stats.cache_hits = 0
+            orchestrator.stats.cache_misses = len(result.pages_to_build)
+
+            # RFC: rfc-incremental-build-observability - populate incremental_decision
+            # for --explain/--dry-run even on cold builds (output missing)
+            explain = getattr(orchestrator.options, "explain", False)
+            dry_run = getattr(orchestrator.options, "dry_run", False)
+            if explain or dry_run:
+                decision = IncrementalDecision(
+                    pages_to_build=result.pages_to_build,
+                    pages_skipped_count=0,
+                )
+                for page in result.pages_to_build:
+                    page_key = str(page.source_path)
+                    decision.add_rebuild_reason(
+                        page_key,
+                        RebuildReasonCode.FULL_REBUILD,
+                        {"cold_build": True, "output_missing": True},
+                    )
+                orchestrator.stats.incremental_decision = decision
+
+            cli.info(
+                f"  Provenance build: {len(result.pages_to_build)} pages, "
+                f"{len(result.assets_to_process)} assets (skipped 0 cached)"
+            )
+            cli.detail(
+                f"Filter time: {filter_time_ms:.1f}ms (cold build, skipped verification)",
+                indent=1,
+            )
+            return FilterResult(
+                pages_to_build=result.pages_to_build,
+                assets_to_process=result.assets_to_process,
+                affected_tags=result.affected_tags,
+                changed_page_paths=result.changed_page_paths,
+                affected_sections=result.affected_sections,
+            )
 
         # CRITICAL: If no pages were discovered, attempt recovery
         # This should never happen in a normal build - discovery should always find pages
@@ -701,7 +762,9 @@ def phase_incremental_filter_provenance(
 
         # If specific outputs are missing, rebuild those pages even if provenance is fresh.
         if incremental and result.pages_skipped and cache and hasattr(cache, "output_sources"):
-            skipped_by_source = {str(page.source_path): page for page in result.pages_skipped}
+            skipped_by_source = {
+                content_key(page.source_path, site.root_path): page for page in result.pages_skipped
+            }
             missing_pages: list = []
 
             for rel_output, source_str in (cache.output_sources or {}).items():
@@ -820,14 +883,31 @@ def record_page_build(orchestrator: BuildOrchestrator, page) -> None:
         orchestrator._provenance_filter.record_build(page)
 
 
-def record_all_page_builds(orchestrator: BuildOrchestrator, pages) -> None:
+def record_all_page_builds(
+    orchestrator: BuildOrchestrator,
+    pages,
+    *,
+    parallel: bool = True,
+) -> None:
     """
     Record provenance for all built pages.
 
     Call this after all pages have been rendered to update the provenance cache.
+    Uses parallel workers when page count is large and parallel=True.
     """
-    if hasattr(orchestrator, "_provenance_filter"):
-        pf = orchestrator._provenance_filter
+    if not hasattr(orchestrator, "_provenance_filter"):
+        return
+    pf = orchestrator._provenance_filter
+
+    # Parallelize when many pages (full rebuild) - provenance computation is I/O bound
+    use_parallel = parallel and len(pages) > 50
+    if use_parallel:
+        max_workers = min(32, (os.cpu_count() or 1) + 4)
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {executor.submit(pf.record_build, page): page for page in pages}
+            for future in as_completed(futures):
+                future.result()  # Raise any exception
+    else:
         for page in pages:
             pf.record_build(page)
 

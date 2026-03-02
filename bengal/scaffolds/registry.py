@@ -348,3 +348,15 @@ def register_template(template: SiteTemplate) -> None:
     # Then protect the modification with the lock
     with _registry_lock:
         registry._templates[template.id] = template
+
+
+def reset_for_testing() -> None:
+    """
+    Clear the global registry for test isolation.
+
+    Call this in test teardown to ensure each test gets a fresh registry.
+    Thread-safe.
+    """
+    global _registry
+    with _registry_lock:
+        _registry = None

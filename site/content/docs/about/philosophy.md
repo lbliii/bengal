@@ -139,6 +139,6 @@ Bengal is not for everyone—and that's intentional. By being explicit about tra
 
 :::{seealso}
 - [[docs/about/faq|FAQ]] — Common questions about compatibility and upgrades
-- [[changelog|Changelog]] — Version history with migration guides
+- [[releases|Changelog]] — Version history with migration guides
 - [[docs/about/limitations|Limitations]] — Known constraints and workarounds
 :::

@@ -22,7 +22,7 @@ keywords:
 Bengal provides multiple ways to create links between pages, headings, and external resources. Choose the method that best fits your use case.
 
 :::{tip}
-**Try it out**: This guide includes a [[!test-target|test target anchor]] that demonstrates arbitrary reference targets. Scroll down to see it in action!
+**Try it out**: This guide includes a [[docs/content/authoring/linking#test-target|test target anchor]] that demonstrates arbitrary reference targets. Scroll down to see it in action!
 :::
 
 ## Quick Reference

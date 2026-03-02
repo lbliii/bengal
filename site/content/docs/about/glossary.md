@@ -59,7 +59,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 ## D
 
 **Directive**
-: A MyST Markdown extension that adds special functionality. Written as `:::{directive-name}` blocks. Examples: `note`, `warning`, `tab-set`, `dropdown`.
+: A MyST Markdown extension that adds special functionality. Written as `:::{directive-name}` blocks. Examples: `note`, `warning`, `tab-set`, `dropdown`. For simple template-only embeds, use [shortcodes](#shortcode) instead.
 
 **Draft**
 : A page with `draft: true` in front matter. Excluded from production builds by default. Drafts are visible in development mode (`bengal serve`).
@@ -175,7 +175,7 @@ Quick reference for terms used in Bengal documentation. Terms are listed alphabe
 : A content folder with an `_index.md` file. Represents a group of related pages (e.g., `content/blog/`, `content/docs/`). Has its own landing page and can contain child pages or nested sections.
 
 **Shortcode**
-: A reusable content component invoked within Markdown. Bengal uses MyST directive syntax (`:::{shortcode}`) for shortcodes.
+: A template-only content component invoked within Markdown. Use `{{< name args >}}` syntax (Hugo-compatible). Place templates in `templates/shortcodes/`. For validation, nesting, or complex logic, use [directives](#directive) instead.
 
 **Site**
 : The top-level container representing your entire Bengal project. Provides access to all pages, sections, menus, and configuration in templates via the `site` variable.

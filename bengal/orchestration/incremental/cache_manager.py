@@ -124,6 +124,7 @@ class CacheManager:
                         "cache_migration_failed", error=str(e), action="using_fresh_cache"
                     )
             self.cache = BuildCache.load(cache_path)
+            self.cache.site_root = self.site.root_path
             cache_exists = cache_path.exists()
             try:
                 file_count = len(self.cache.file_fingerprints)
@@ -138,6 +139,7 @@ class CacheManager:
             )
         else:
             self.cache = BuildCache()
+            self.cache.site_root = self.site.root_path
             logger.debug("cache_initialized", enabled=False)
 
         # Initialize CacheCoordinator for unified page-level invalidation
@@ -255,10 +257,11 @@ class CacheManager:
                 continue
             self.cache.update_file(page.source_path)
             # Store tags for next build's comparison
+            page_key = self.cache._cache_key(page.source_path)
             if page.tags:
-                self.cache.taxonomy_index.update_tags(page.source_path, set(page.tags))
+                self.cache.taxonomy_index.update_tags(page_key, set(page.tags))
             else:
-                self.cache.taxonomy_index.update_tags(page.source_path, set())
+                self.cache.taxonomy_index.update_tags(page_key, set())
 
         # Update all asset hashes
         for asset in assets_processed:

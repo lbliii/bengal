@@ -39,7 +39,14 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
     if not stats.has_errors:
         build_time_s = stats.build_time_ms / 1000
         cli.blank()
-        cli.success(f"Built {stats.total_pages} pages in {build_time_s:.1f}s")
+        total = stats.total_pages
+        if getattr(stats, "autodoc_pages", 0) > 0:
+            cli.success(
+                f"Built {total} pages ({stats.regular_pages}+{stats.generated_pages}+"
+                f"{stats.autodoc_pages} autodoc) in {build_time_s:.1f}s"
+            )
+        else:
+            cli.success(f"Built {total} pages in {build_time_s:.1f}s")
     else:
         cli.blank()
         cli.warning(
@@ -196,16 +203,19 @@ def display_build_stats(
                 f"{cli.icons.warning} ᓚᘏᗢ  Built {stats.total_pages} pages in {total_time_str} ({mode_text}) with warnings"
             )
     else:
+        breakdown = f"{stats.regular_pages}+{stats.generated_pages}"
+        if getattr(stats, "autodoc_pages", 0) > 0:
+            breakdown += f"+{stats.autodoc_pages} autodoc"
         if cli.use_rich:
             cli.console.print(
                 f"[success]{cli.icons.success}[/success] [bengal]ᓚᘏᗢ[/bengal]  "
                 f"[success]Built {stats.total_pages} pages[/success] "
-                f"({stats.regular_pages}+{stats.generated_pages}) in [highlight]{total_time_str}[/highlight] "
+                f"({breakdown}) in [highlight]{total_time_str}[/highlight] "
                 f"({mode_text}) | [highlight]{pages_per_sec:.1f}[/highlight] pages/sec"
             )
         else:
             cli.success(
-                f"ᓚᘏᗢ  Built {stats.total_pages} pages ({stats.regular_pages}+{stats.generated_pages}) "
+                f"ᓚᘏᗢ  Built {stats.total_pages} pages ({breakdown}) "
                 f"in {total_time_str} ({mode_text}) | {pages_per_sec:.1f} pages/sec"
             )
 

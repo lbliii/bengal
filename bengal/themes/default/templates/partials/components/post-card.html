@@ -4,8 +4,8 @@ Post Card Component (Shared)
 ================================================================================
 
 Single shared component for blog post cards with variants: featured, default,
-compact. Uses PostView for normalized access. All links use p.path for
-static-build portability.
+compact. Uses PostView for normalized access. All links use p.href (includes
+baseurl for GitHub Pages / subpath deployment).
 
 Usage:
   {{ post_card(post, variant='default', show_image=true, show_excerpt=true) }}
@@ -29,7 +29,7 @@ Variants:
 <article class="article-card article-card--featured gradient-border-strong fluid-bg">
   {% if show_image and p.image %}
   <div class="blog-card-image">
-    <a href="{{ p.path }}">
+    <a href="{{ p.href }}">
       <img src="{{ p.image }}" alt="{{ p.title }}" loading="lazy">
     </a>
   </div>
@@ -56,7 +56,7 @@ Variants:
     </div>
     {% end %}
     <h3 class="blog-card-title">
-      <a href="{{ p.path }}">{{ p.title }}</a>
+      <a href="{{ p.href }}">{{ p.title }}</a>
     </h3>
     {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
     <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html(p.excerpt_words ?? config.content.excerpt_words ?? 150, p.title, p.description) | safe }}</div>
@@ -73,7 +73,7 @@ Variants:
 <article class="article-card article-card--compact gradient-border fluid-combined">
   {% if show_image and p.image %}
   <div class="blog-card-image">
-    <a href="{{ p.path }}">
+    <a href="{{ p.href }}">
       <img src="{{ p.image }}" alt="{{ p.title }}" loading="lazy">
     </a>
   </div>
@@ -95,7 +95,7 @@ Variants:
     </div>
     {% end %}
     <h3 class="blog-card-title">
-      <a href="{{ p.path }}">{{ p.title }}</a>
+      <a href="{{ p.href }}">{{ p.title }}</a>
     </h3>
     {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
     <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html((p.excerpt_words ?? config.content.excerpt_words ?? 150) // 2, p.title, p.description) | safe }}</div>
@@ -107,7 +107,7 @@ Variants:
 <article class="article-card gradient-border fluid-combined">
   {% if show_image and p.image %}
   <div class="blog-card-image">
-    <a href="{{ p.path }}">
+    <a href="{{ p.href }}">
       <img src="{{ p.image }}" alt="{{ p.title }}" loading="lazy">
     </a>
   </div>
@@ -132,7 +132,7 @@ Variants:
     </div>
     {% end %}
     <h3 class="blog-card-title">
-      <a href="{{ p.path }}">{{ p.title }}</a>
+      <a href="{{ p.href }}">{{ p.title }}</a>
     </h3>
     {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
     <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html(p.excerpt_words ?? config.content.excerpt_words ?? 150, p.title, p.description) | safe }}</div>
@@ -144,7 +144,7 @@ Variants:
       </div>
       {% end %}
       {% let has_excerpt = show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
-      <a href="{{ p.path }}" class="blog-read-more">{{ t('blog.read_more', default='Read more') if has_excerpt else t('blog.read', default='Read') }} →</a>
+      <a href="{{ p.href }}" class="blog-read-more">{{ t('blog.read_more', default='Read more') if has_excerpt else t('blog.read', default='Read') }} →</a>
     </div>
   </div>
 </article>

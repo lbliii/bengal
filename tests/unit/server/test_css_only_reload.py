@@ -64,8 +64,8 @@ def mock_site(tmp_path: Path) -> MagicMock:
 @patch("bengal.server.build_trigger.show_building_indicator")
 @patch("bengal.server.build_trigger.CLIOutput")
 @patch("bengal.server.build_trigger.display_build_stats")
-@patch("bengal.server.build_trigger.controller")
-@patch("bengal.server.live_reload.send_reload_payload")
+@patch("bengal.server.build_trigger.default_reload_controller")
+@patch("bengal.server.live_reload.notification.send_reload_payload")
 def test_css_only_change_triggers_reload_css(
     mock_send_reload: MagicMock,
     mock_controller: MagicMock,
@@ -117,8 +117,8 @@ def test_css_only_change_triggers_reload_css(
 @patch("bengal.server.build_trigger.show_building_indicator")
 @patch("bengal.server.build_trigger.CLIOutput")
 @patch("bengal.server.build_trigger.display_build_stats")
-@patch("bengal.server.build_trigger.controller")
-@patch("bengal.server.live_reload.send_reload_payload")
+@patch("bengal.server.build_trigger.default_reload_controller")
+@patch("bengal.server.live_reload.notification.send_reload_payload")
 def test_mixed_change_triggers_full_reload(
     mock_send_reload: MagicMock,
     mock_controller: MagicMock,

@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bengal.build.contracts.keys import CacheKey, content_key, data_key, parse_key
+from bengal.build.contracts.keys import (
+    CacheKey,
+    content_key,
+    data_key,
+    parse_key,
+    xref_path_key,
+)
 
 
 def test_content_key_relative() -> None:
@@ -36,3 +42,21 @@ def test_parse_key_without_prefix() -> None:
     prefix, path = parse_key(CacheKey("content/about.md"))
     assert prefix == ""
     assert path == "content/about.md"
+
+
+def test_xref_path_key_content_page() -> None:
+    """xref_path_key strips content/ prefix and .md extension."""
+    key = xref_path_key(Path("/site/content/docs/guide.md"), Path("/site"))
+    assert key == "docs/guide"
+
+
+def test_xref_path_key_index_page() -> None:
+    """xref_path_key maps _index.md to directory path."""
+    key = xref_path_key(Path("/site/content/docs/_index.md"), Path("/site"))
+    assert key == "docs"
+
+
+def test_xref_path_key_root_index() -> None:
+    """xref_path_key handles root _index.md."""
+    key = xref_path_key(Path("/site/content/_index.md"), Path("/site"))
+    assert key == "_index"

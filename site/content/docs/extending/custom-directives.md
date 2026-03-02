@@ -6,6 +6,18 @@ weight: 40
 
 Directives are block-level content elements that extend Markdown with custom rendering. Bengal uses MyST-style syntax (`:::{name}`) and provides a base class for creating your own directives.
 
+## Shortcodes vs Directives
+
+| Use | Shortcode | Directive |
+|-----|-----------|-----------|
+| **When** | Simple HTML, no validation | Validation, nesting, complex logic |
+| **How** | Template file in `templates/shortcodes/` | Python class |
+| **Syntax** | `{{< name args >}}` | `:::{name}` |
+
+Use a **shortcode** when output is simple HTML from args and you want template authors to add or customize without code. Use a **directive** when you need validation (e.g., YouTube 11-char ID), parent-child nesting, or structured errors.
+
+See [Template Shortcodes](../shortcodes/) for the template-only path.
+
 ## Directive Basics
 
 Directives in Bengal:

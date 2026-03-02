@@ -415,7 +415,8 @@ ol ol ul {
    BLOCKQUOTES
    ============================================ */
 
-blockquote {
+blockquote,
+.blockquote {
   margin: var(--space-6) 0;
   padding: var(--space-3) var(--space-4);
   border-inline-start: 2px solid var(--color-border-light);

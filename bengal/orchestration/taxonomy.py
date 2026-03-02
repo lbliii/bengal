@@ -56,6 +56,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.build.contracts.keys import content_key
 from bengal.orchestration.utils.errors import is_shutdown_error
 from bengal.orchestration.utils.i18n import (
     filter_pages_by_language,
@@ -137,6 +138,10 @@ class TaxonomyOrchestrator:
         source_str = str(page.source_path)
         return "content/api" not in source_str and "content/cli" not in source_str
 
+    def _page_path_key(self, path: Path) -> str:
+        """Normalize page path for TaxonomyIndex lookups (content_key format)."""
+        return str(content_key(Path(path), self.site.root_path))
+
     def collect_and_generate(self, parallel: bool = True) -> None:
         """
         Collect taxonomies and generate dynamic pages.
@@ -159,7 +164,7 @@ class TaxonomyOrchestrator:
 
             # Populate index from collected taxonomies
             for tag_slug, tag_data in self.site.taxonomies.get("tags", {}).items():
-                page_paths = [str(p.source_path) for p in tag_data.get("pages", [])]
+                page_paths = [self._page_path_key(p.source_path) for p in tag_data.get("pages", [])]
                 logger.debug(
                     "taxonomy_index_update_tag",
                     tag_slug=tag_slug,
@@ -224,7 +229,8 @@ class TaxonomyOrchestrator:
 
             # Update cache and get affected tags
             new_tags = set(actual_tags) if actual_tags else set()
-            page_affected = cache.taxonomy_index.update_page_tags(page.source_path, new_tags)
+            page_key = cache._cache_key(page.source_path)
+            page_affected = cache.taxonomy_index.update_page_tags(page_key, new_tags)
             affected_tags.update(page_affected)
 
         # STEP 2: Rebuild taxonomy structure from current Page objects
@@ -278,7 +284,9 @@ class TaxonomyOrchestrator:
         if taxonomy_index:
             try:
                 for tag_slug, tag_data in self.site.taxonomies.get("tags", {}).items():
-                    page_paths = [str(p.source_path) for p in tag_data.get("pages", [])]
+                    page_paths = [
+                        self._page_path_key(p.source_path) for p in tag_data.get("pages", [])
+                    ]
                     taxonomy_index.update_tag(tag_slug, tag_data.get("name", tag_slug), page_paths)
 
                 taxonomy_index.save_to_disk()
@@ -402,9 +410,12 @@ class TaxonomyOrchestrator:
             page_paths = cache.taxonomy_index.get_pages_for_tag(tag_slug)
 
             # Map paths to current Page objects
+            # Resolve relative paths (content_key format) against site_root for lookup
             current_pages = []
             for path_str in page_paths:
                 path = Path(path_str)
+                if not path.is_absolute() and cache.site_root is not None:
+                    path = cache.site_root / path_str
                 if path in current_page_map:
                     current_pages.append(current_page_map[path])
 
@@ -514,7 +525,9 @@ class TaxonomyOrchestrator:
 
                         # PHASE 2C.2 OPTIMIZATION: Skip regenerating tags with unchanged pages
                         if taxonomy_index:
-                            page_paths = [str(p.source_path) for p in tag_data["pages"]]
+                            page_paths = [
+                                self._page_path_key(p.source_path) for p in tag_data["pages"]
+                            ]
                             if not taxonomy_index.pages_changed(tag_slug, page_paths):
                                 logger.debug(
                                     "tag_page_generation_skipped",

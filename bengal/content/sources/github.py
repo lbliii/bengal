@@ -30,7 +30,7 @@ except ImportError as e:
 
 from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.source import ContentSource
-from bengal.content.utils.frontmatter import parse_frontmatter
+from bengal.content.utils import parse_frontmatter
 from bengal.content.utils.http_errors import raise_http_error
 from bengal.content.utils.slugify import path_to_slug
 from bengal.utils.observability.logger import get_logger

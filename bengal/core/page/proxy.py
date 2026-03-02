@@ -347,6 +347,12 @@ class PageProxy:
     content = _lazy_property("content", default="", doc="Rendered HTML content (lazy-loaded).")
     _source = _lazy_property("_source", default="", doc="Raw markdown source (lazy-loaded).")
 
+    def HasShortcode(self, name: str) -> bool:
+        """Return True if page content uses the given shortcode."""
+        from bengal.rendering.shortcodes import has_shortcode
+
+        return has_shortcode(self, name)
+
     @property
     def metadata(self) -> Mapping[str, Any]:
         """
@@ -775,11 +781,12 @@ class PageProxy:
     # Methods - Delegate to full page
     # ============================================================================
 
-    def extract_links(self) -> None:
+    def extract_links(self, plugin_links: list[str] | None = None) -> list[str] | None:
         """Extract links from content."""
         self._ensure_loaded()
         if self._full_page:
-            self._full_page.extract_links()
+            return self._full_page.extract_links(plugin_links=plugin_links)
+        return None
 
     # ============================================================================
     # Section Property - Path-based lookup

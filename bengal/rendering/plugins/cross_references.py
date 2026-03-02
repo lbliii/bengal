@@ -4,6 +4,14 @@ Cross-reference plugin for Mistune.
 Provides [[link]] syntax for internal page references with O(1) lookup
 performance using pre-built xref_index.
 
+xref_index Key Formats (canonical, see bengal/build/contracts/keys.py):
+    by_path: xref_path_key format - content-relative, no .md extension
+             e.g. "docs/guide" for content/docs/guide.md
+    by_slug: Page slug (may have multiple pages)
+    by_id: Custom ID from frontmatter
+    by_anchor: Lowercase anchor ID for [[#anchor]] resolution
+    by_heading: Lowercase heading text for anchor links
+
 Extended to support:
     [[v2:path]]              -> Link to path in version v2
     [[latest:path]]          -> Link to path in latest version
@@ -101,9 +109,26 @@ class CrossReferencePlugin:
         )
         self._cross_version_tracker = cross_version_tracker
         self._external_ref_resolver = external_ref_resolver
+        # Links collector for validation (set by pipeline before parse, read after)
+        self._links_collector: list[str] | None = None
         # Compile regex once (reused for all pages)
         # Matches: [[path]] or [[path|text]]
         self.pattern = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
+
+    def set_links_collector(self, collector: list[str] | None) -> None:
+        """Set the list to collect resolved/broken link URLs for validation."""
+        self._links_collector = collector
+
+    def get_collected_links(self) -> list[str]:
+        """Return collected links and clear the collector."""
+        links = self._links_collector or []
+        self._links_collector = None
+        return links
+
+    def _collect_link(self, url: str) -> None:
+        """Append URL to collector if set (for link validation)."""
+        if self._links_collector is not None:
+            self._links_collector.append(url)
 
     def __call__(self, md: Any) -> None:
         """
@@ -217,6 +242,7 @@ class CrossReferencePlugin:
                 clean_path=clean_path,
                 available_paths=len(self.xref_index.get("by_path", {})),
             )
+            self._collect_link(f"/{clean_path}")
             return (
                 f'<span class="broken-ref" data-ref="{path}" '
                 f'title="Page not found: {path}">[{text or path}]</span>'
@@ -224,6 +250,7 @@ class CrossReferencePlugin:
 
         url = page.href
         full_url = f"{url}{anchor_fragment}"
+        self._collect_link(full_url)
 
         logger.debug(
             "xref_resolved",
@@ -251,6 +278,7 @@ class CrossReferencePlugin:
                 type="id",
                 available_ids=len(self.xref_index.get("by_id", {})),
             )
+            self._collect_link(f"id:{ref_id}")
             return (
                 f'<span class="broken-ref" data-ref="id:{ref_id}" '
                 f'title="ID not found: {ref_id}">[{text or ref_id}]</span>'
@@ -260,6 +288,7 @@ class CrossReferencePlugin:
 
         link_text = text or page.title
         url = page.href
+        self._collect_link(url)
         return f'<a href="{url}">{link_text}</a>'
 
     def _resolve_target(self, anchor_id: str, text: str | None = None) -> str:
@@ -286,6 +315,7 @@ class CrossReferencePlugin:
                 anchor_key=anchor_key,
                 available_anchors=len(self.xref_index.get("by_anchor", {})),
             )
+            self._collect_link(f"!{anchor_id}")
             return (
                 f'<span class="broken-ref" data-ref="!{anchor_id}" '
                 f'title="Target directive not found: {anchor_id}">[{text or anchor_id}]</span>'
@@ -300,6 +330,7 @@ class CrossReferencePlugin:
                 ref=f"!{anchor_id}",
                 entry_length=len(anchor_entries[0]) if anchor_entries else 0,
             )
+            self._collect_link(f"!{anchor_id}")
             return (
                 f'<span class="broken-ref" data-ref="!{anchor_id}" '
                 f'title="Malformed anchor entry">[{text or anchor_id}]</span>'
@@ -319,6 +350,7 @@ class CrossReferencePlugin:
         )
         link_text = text or anchor_id.replace("-", " ").title()
         url = page.href
+        self._collect_link(f"{url}#{anchor_id_resolved}")
         return f'<a href="{url}#{anchor_id_resolved}">{link_text}</a>'
 
     def _resolve_anchor_entry(
@@ -391,6 +423,7 @@ class CrossReferencePlugin:
                 )
                 link_text = text or anchor_key.replace("-", " ").title()
                 url = page.href
+                self._collect_link(f"{url}#{anchor_id}")
                 return f'<a href="{url}#{anchor_id}">{link_text}</a>'
             # Malformed entry - fall through to heading lookup
 
@@ -406,6 +439,7 @@ class CrossReferencePlugin:
                 available_headings=len(self.xref_index.get("by_heading", {})),
                 available_anchors=len(self.xref_index.get("by_anchor", {})),
             )
+            self._collect_link(anchor_key)
             return (
                 f'<span class="broken-ref" data-anchor="{anchor}" '
                 f'title="Heading not found: {anchor}">[{text or anchor}]</span>'
@@ -424,6 +458,7 @@ class CrossReferencePlugin:
 
         link_text = text or anchor.lstrip("#").replace("-", " ").title()
         url = page.href
+        self._collect_link(f"{url}#{anchor_id}")
         return f'<a href="{url}#{anchor_id}">{link_text}</a>'
 
     def _resolve_version_link(self, ref: str, text: str | None = None) -> str:
@@ -463,6 +498,7 @@ class CrossReferencePlugin:
                 type="version",
                 reason="versioning_disabled",
             )
+            self._collect_link(ref)
             return (
                 f'<span class="broken-ref" data-ref="{ref}" '
                 f'title="Versioning not enabled">[{text or path}]</span>'
@@ -479,6 +515,7 @@ class CrossReferencePlugin:
                 version_id=version_id,
                 reason="version_not_found",
             )
+            self._collect_link(ref)
             return (
                 f'<span class="broken-ref" data-ref="{ref}" '
                 f'title="Version not found: {version_id}">[{text or path}]</span>'
@@ -537,6 +574,7 @@ class CrossReferencePlugin:
             url=full_url,
         )
 
+        self._collect_link(full_url)
         return f'<a href="{full_url}">{link_text}</a>'
 
     def _resolve_external(self, ref: str, text: str | None = None) -> str:
@@ -596,4 +634,5 @@ class CrossReferencePlugin:
             text=text,
             source_file=self.current_source_page,
             line=None,  # Line info not available in this context
+            links_collector=self._links_collector,
         )

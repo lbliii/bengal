@@ -1,0 +1,9 @@
+{# Insert config/frontmatter value. Usage: {{< param "key" >}} or {{< param key >}} #}
+{% set key = shortcode.Get(0) or shortcode.Get("key") %}
+{% if key %}
+  {% set val = config.get(key) %}
+  {% if val is none %}
+    {% set val = page.metadata.get(key) %}
+  {% end %}
+  {{ val or "" }}
+{% end %}

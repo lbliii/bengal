@@ -123,10 +123,42 @@ class DirectiveCache:
         return f"<DirectiveCache: {size}/{max_size} items, {hit_rate:.1%} hit rate>"
 
 
-# Global cache instance (shared across all threads)
-# Thread-safe: Uses LRUCache with internal RLock
-_directive_cache = DirectiveCache(max_size=1000)
-_config_lock = threading.Lock()  # Protects _directive_cache replacement in configure_cache
+class DirectiveCacheHolder:
+    """
+    Holder for the global directive cache (encapsulates module-level state).
+
+    Enables reset_for_testing() for tests and documents the singleton pattern.
+    """
+
+    def __init__(self) -> None:
+        self._cache = DirectiveCache(max_size=1000)
+        self._lock = threading.Lock()
+
+    def get_cache(self) -> DirectiveCache:
+        """Get the current cache instance."""
+        return self._cache
+
+    def configure(self, max_size: int | None = None, enabled: bool | None = None) -> None:
+        """Configure the cache (thread-safe)."""
+        with self._lock:
+            if max_size is not None:
+                was_enabled = self._cache._cache.enabled
+                self._cache = DirectiveCache(max_size=max_size)
+                if not was_enabled:
+                    self._cache.disable()
+            if enabled is not None:
+                if enabled:
+                    self._cache.enable()
+                else:
+                    self._cache.disable()
+
+    def reset_for_testing(self) -> None:
+        """Reset cache for tests (clears entries, use between isolated tests)."""
+        with self._lock:
+            self._cache.clear()
+
+
+_holder = DirectiveCacheHolder()
 
 
 def get_cache() -> DirectiveCache:
@@ -137,7 +169,7 @@ def get_cache() -> DirectiveCache:
         Global DirectiveCache instance
 
     """
-    return _directive_cache
+    return _holder.get_cache()
 
 
 def configure_cache(max_size: int | None = None, enabled: bool | None = None) -> None:
@@ -155,26 +187,17 @@ def configure_cache(max_size: int | None = None, enabled: bool | None = None) ->
         max_size changes require recreating the cache. This clears existing entries.
 
     """
-    global _directive_cache
-
-    with _config_lock:
-        if max_size is not None:
-            # Recreate cache with new size
-            was_enabled = _directive_cache._cache.enabled
-            _directive_cache = DirectiveCache(max_size=max_size)
-            if not was_enabled:
-                _directive_cache.disable()
-
-        if enabled is not None:
-            if enabled:
-                _directive_cache.enable()
-            else:
-                _directive_cache.disable()
+    _holder.configure(max_size=max_size, enabled=enabled)
 
 
 def clear_cache() -> None:
     """Clear the global directive cache."""
-    _directive_cache.clear()
+    _holder.get_cache().clear()
+
+
+def reset_for_testing() -> None:
+    """Reset cache for isolated tests. Call between tests that need clean state."""
+    _holder.reset_for_testing()
 
 
 def get_cache_stats() -> dict[str, Any]:
@@ -185,7 +208,7 @@ def get_cache_stats() -> dict[str, Any]:
         Cache statistics dictionary
 
     """
-    return _directive_cache.stats()
+    return _holder.get_cache().stats()
 
 
 def configure_for_site(site: Any) -> None:

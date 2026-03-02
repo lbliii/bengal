@@ -15,6 +15,7 @@ Features:
 
 Classes:
 ReloadController: Main decision engine with snapshot diffing
+HashEntry: Hash cache entry (size, digest)
 SnapshotEntry: Immutable file metadata (size, mtime)
 OutputSnapshot: Directory state at a point in time
 ReloadDecision: Action recommendation with reason and changed paths
@@ -63,11 +64,26 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.orchestration.stats import ReloadHint
 from bengal.server.utils import get_icons
 from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputRecord
+
+
+@dataclass(frozen=True, slots=True)
+class HashEntry:
+    """
+    Hash cache entry for suspect verification (size + digest).
+
+    Attributes:
+        size: File size in bytes
+        digest: Content hash (e.g., MD5 hex digest)
+    """
+
+    size: int
+    digest: str
 
 
 @dataclass(frozen=True)
@@ -98,7 +114,7 @@ class OutputSnapshot:
     files: dict[str, SnapshotEntry]
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ReloadDecision:
     """
     Reload action recommendation from the controller.
@@ -106,16 +122,16 @@ class ReloadDecision:
     Attributes:
         action: One of 'none', 'reload-css', or 'reload'
         reason: Machine-readable reason (e.g., 'css-only', 'throttled')
-        changed_paths: List of changed output paths (limited to MAX_CHANGED_PATHS_TO_SEND)
+        changed_paths: Tuple of changed output paths (limited to MAX_CHANGED_PATHS_TO_SEND)
 
     """
 
     action: str  # 'none' | 'reload-css' | 'reload'
     reason: str
-    changed_paths: list[str]
+    changed_paths: tuple[str, ...]
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class EnhancedReloadDecision:
     """
     Extended reload decision with output type breakdown.
@@ -126,7 +142,7 @@ class EnhancedReloadDecision:
     Attributes:
         action: One of 'none', 'reload-css', or 'reload'
         reason: Machine-readable reason
-        changed_paths: List of changed output paths
+        changed_paths: Tuple of changed output paths
         content_changes: Paths to changed content pages
         aggregate_changes: Paths to changed aggregate files (sitemap, feeds)
         asset_changes: Paths to changed assets
@@ -135,10 +151,10 @@ class EnhancedReloadDecision:
 
     action: str  # 'none' | 'reload-css' | 'reload'
     reason: str
-    changed_paths: list[str]
-    content_changes: list[str]
-    aggregate_changes: list[str]
-    asset_changes: list[str]
+    changed_paths: tuple[str, ...]
+    content_changes: tuple[str, ...]
+    aggregate_changes: tuple[str, ...]
+    asset_changes: tuple[str, ...]
 
     @property
     def meaningful_change_count(self) -> int:
@@ -162,7 +178,7 @@ class ReloadController:
         _min_interval_ms: Minimum interval between notifications (throttling)
         _ignored_globs: Glob patterns for paths to ignore
         _hash_on_suspect: Enable content hashing for suspected false positives
-        _hash_cache: LRU cache of path → (size, digest) for hash verification
+        _hash_cache: LRU cache of path → HashEntry (size, digest) for hash verification
 
     Thread Safety:
         Configuration setters are protected by _config_lock for runtime updates.
@@ -207,8 +223,8 @@ class ReloadController:
         self._hash_on_suspect: bool = hash_on_suspect
         self._suspect_hash_limit: int = suspect_hash_limit
         self._suspect_size_limit_bytes: int = suspect_size_limit_bytes
-        # Cache: path -> (size, hex_digest)
-        self._hash_cache: dict[str, tuple[int, str]] = {}
+        # Cache: path -> HashEntry (size, digest)
+        self._hash_cache: dict[str, HashEntry] = {}
         # Config lock for thread-safe updates during dev server runtime
         self._config_lock = threading.RLock()
 
@@ -298,20 +314,20 @@ class ReloadController:
             ReloadDecision with appropriate action.
         """
         if not paths:
-            return ReloadDecision(action="none", reason="no-output-change", changed_paths=[])
+            return ReloadDecision(action="none", reason="no-output-change", changed_paths=())
 
         # CSS-only if all changes are CSS
         if len(paths) == len(css_paths):
             return ReloadDecision(
                 action="reload-css",
                 reason="css-only",
-                changed_paths=css_paths[:MAX_CHANGED_PATHS_TO_SEND],
+                changed_paths=tuple(css_paths[:MAX_CHANGED_PATHS_TO_SEND]),
             )
 
         return ReloadDecision(
             action="reload",
             reason="content-changed",
-            changed_paths=paths[:MAX_CHANGED_PATHS_TO_SEND],
+            changed_paths=tuple(paths[:MAX_CHANGED_PATHS_TO_SEND]),
         )
 
     # --- RFC: Output Cache Architecture - Content hash methods ---
@@ -445,20 +461,20 @@ class ReloadController:
             decision = EnhancedReloadDecision(
                 action="none",
                 reason="throttled",
-                changed_paths=[],
-                content_changes=[],
-                aggregate_changes=[],
-                asset_changes=[],
+                changed_paths=(),
+                content_changes=(),
+                aggregate_changes=(),
+                asset_changes=(),
             )
         elif not content_changes and not aggregate_changes and css_changes:
             self._last_notify_time_ms = now
             decision = EnhancedReloadDecision(
                 action="reload-css",
                 reason="css-only",
-                changed_paths=css_changes[:MAX_CHANGED_PATHS_TO_SEND],
-                content_changes=[],
-                aggregate_changes=[],
-                asset_changes=css_changes,
+                changed_paths=tuple(css_changes[:MAX_CHANGED_PATHS_TO_SEND]),
+                content_changes=(),
+                aggregate_changes=(),
+                asset_changes=tuple(css_changes),
             )
         elif content_changes:
             self._last_notify_time_ms = now
@@ -466,28 +482,28 @@ class ReloadController:
             decision = EnhancedReloadDecision(
                 action="reload",
                 reason="content-changed",
-                changed_paths=all_changes[:MAX_CHANGED_PATHS_TO_SEND],
-                content_changes=content_changes,
-                aggregate_changes=aggregate_changes,
-                asset_changes=asset_changes,
+                changed_paths=tuple(all_changes[:MAX_CHANGED_PATHS_TO_SEND]),
+                content_changes=tuple(content_changes),
+                aggregate_changes=tuple(aggregate_changes),
+                asset_changes=tuple(asset_changes),
             )
         elif aggregate_changes and not content_changes:
             decision = EnhancedReloadDecision(
                 action="none",
                 reason="aggregate-only-changes",
-                changed_paths=[],
-                content_changes=[],
-                aggregate_changes=aggregate_changes,
-                asset_changes=[],
+                changed_paths=(),
+                content_changes=(),
+                aggregate_changes=tuple(aggregate_changes),
+                asset_changes=(),
             )
         else:
             decision = EnhancedReloadDecision(
                 action="none",
                 reason="no-changes",
-                changed_paths=[],
-                content_changes=[],
-                aggregate_changes=[],
-                asset_changes=[],
+                changed_paths=(),
+                content_changes=(),
+                aggregate_changes=(),
+                asset_changes=(),
             )
 
         with self._config_lock:
@@ -586,7 +602,7 @@ class ReloadController:
         if self._previous is None:
             # First run: set baseline, no reload
             self._previous = curr
-            return ReloadDecision(action="none", reason="baseline", changed_paths=[])
+            return ReloadDecision(action="none", reason="baseline", changed_paths=())
 
         changed, css_changed = self._diff(self._previous, curr)
 
@@ -626,7 +642,7 @@ class ReloadController:
                         suspects_hashed += 1
 
                         cached = self._hash_cache.get(path)
-                        if cached and cached[0] == centry.size and cached[1] == digest:
+                        if cached and cached.size == centry.size and cached.digest == digest:
                             # Content unchanged → suppress this change
                             suppressed_due_to_hash = True
                             logger.info(
@@ -635,7 +651,7 @@ class ReloadController:
                                 size=centry.size,
                             )
                         # Update cache with latest known digest
-                        self._hash_cache[path] = (centry.size, digest)
+                        self._hash_cache[path] = HashEntry(size=centry.size, digest=digest)
                     except FileNotFoundError:
                         # File disappeared between snapshot and hashing; treat as changed
                         pass
@@ -693,26 +709,26 @@ class ReloadController:
         self._previous = curr
 
         if not changed:
-            return ReloadDecision(action="none", reason="no-output-change", changed_paths=[])
+            return ReloadDecision(action="none", reason="no-output-change", changed_paths=())
 
         # Throttle identical consecutive notifications if too soon
         now = self._now_ms()
         if now - self._last_notify_time_ms < self._min_interval_ms:
             # Even if changed, suppress to coalesce rapid sequences
-            return ReloadDecision(action="none", reason="throttled", changed_paths=[])
+            return ReloadDecision(action="none", reason="throttled", changed_paths=())
 
         self._last_notify_time_ms = now
 
         # Decide action
         if len(changed) == len(css_changed):
             decision = ReloadDecision(
-                action="reload-css", reason="css-only", changed_paths=css_changed
+                action="reload-css", reason="css-only", changed_paths=tuple(css_changed)
             )
         else:
             decision = ReloadDecision(
                 action="reload",
                 reason="content-changed",
-                changed_paths=changed[:MAX_CHANGED_PATHS_TO_SEND],
+                changed_paths=tuple(changed[:MAX_CHANGED_PATHS_TO_SEND]),
             )
 
         # Log only when we will actually send a reload (post-throttle)
@@ -745,14 +761,14 @@ class ReloadController:
     def decide_from_outputs(
         self,
         outputs: list[OutputRecord],
-        reload_hint: str | None = None,
+        reload_hint: ReloadHint | None = None,
     ) -> ReloadDecision:
         """
         Decide reload action from typed output records.
 
         This is the preferred entry point when builder provides typed output information.
         No snapshot diffing required - uses OutputType classification directly.
-        reload_hint from BuildStats is advisory (css-only, full, none).
+        reload_hint from BuildStats is advisory (ReloadHint.CSS_ONLY, FULL, NONE).
 
         Args:
             outputs: List of OutputRecord from the build
@@ -764,22 +780,22 @@ class ReloadController:
         """
         from bengal.core.output import OutputType
 
-        if reload_hint == "none":
-            return ReloadDecision(action="none", reason="reload-hint-none", changed_paths=[])
+        if reload_hint is ReloadHint.NONE:
+            return ReloadDecision(action="none", reason="reload-hint-none", changed_paths=())
 
         if not outputs:
-            return ReloadDecision(action="none", reason="no-outputs", changed_paths=[])
+            return ReloadDecision(action="none", reason="no-outputs", changed_paths=())
 
         # Throttle check
         if self._is_throttled():
-            return ReloadDecision(action="none", reason="throttled", changed_paths=[])
+            return ReloadDecision(action="none", reason="throttled", changed_paths=())
 
         # Apply ignore globs to filter outputs
         all_paths = [str(o.path) for o in outputs]
         filtered_paths = self._apply_ignore_globs(all_paths)
 
         if not filtered_paths:
-            return ReloadDecision(action="none", reason="all-ignored", changed_paths=[])
+            return ReloadDecision(action="none", reason="all-ignored", changed_paths=())
 
         # Filter outputs to match filtered paths
         filtered_path_set = set(filtered_paths)
@@ -795,12 +811,22 @@ class ReloadController:
             return ReloadDecision(
                 action="reload-css",
                 reason="css-only",
-                changed_paths=filtered_paths[:MAX_CHANGED_PATHS_TO_SEND],
+                changed_paths=tuple(filtered_paths[:MAX_CHANGED_PATHS_TO_SEND]),
+            )
+
+        # RFC: Reactive Dev Sequel Phase 6 - Single HTML change → reload-page
+        # Require exactly one total filtered output (and it is HTML) to avoid
+        # downgrading mixed changes (e.g. CSS+HTML) to reload-page
+        if len(filtered_outputs) == 1 and filtered_outputs[0].output_type == OutputType.HTML:
+            return ReloadDecision(
+                action="reload-page",
+                reason="single-page-content",
+                changed_paths=tuple(filtered_paths[:MAX_CHANGED_PATHS_TO_SEND]),
             )
         return ReloadDecision(
             action="reload",
             reason="content-changed",
-            changed_paths=filtered_paths[:MAX_CHANGED_PATHS_TO_SEND],
+            changed_paths=tuple(filtered_paths[:MAX_CHANGED_PATHS_TO_SEND]),
         )
 
     def decide_from_changed_paths(self, changed_paths: list[str]) -> ReloadDecision:
@@ -822,11 +848,11 @@ class ReloadController:
         paths = self._apply_ignore_globs(list(changed_paths or []))
 
         if not paths:
-            return ReloadDecision(action="none", reason="no-output-change", changed_paths=[])
+            return ReloadDecision(action="none", reason="no-output-change", changed_paths=())
 
         # Throttle check
         if self._is_throttled():
-            return ReloadDecision(action="none", reason="throttled", changed_paths=[])
+            return ReloadDecision(action="none", reason="throttled", changed_paths=())
 
         # Record notification time
         self._record_notification()

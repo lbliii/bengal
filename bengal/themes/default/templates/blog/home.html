@@ -99,7 +99,7 @@ Or set `type: blog` on home page to auto-select
     <div class="blog-home-recent-header">
       <h2 class="blog-home-recent-title">Recent Posts</h2>
       {% if blog_section %}
-      <a href="{{ blog_section?._path ?? blog_section?.href }}" class="blog-home-view-all">View all posts →</a>
+      <a href="{{ blog_section?.href ?? blog_section?._path }}" class="blog-home-view-all">View all posts →</a>
       {% end %}
     </div>
     <div class="blog-home-posts-grid">

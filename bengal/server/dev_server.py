@@ -238,13 +238,12 @@ class DevServer:
                 rm.register_sse_shutdown()
                 actual_port = backend.port
 
-                # Start file watcher if enabled
+                # Create watcher but don't start yet - validation runs first to avoid
+                # race where user edits during validation trigger concurrent builds
                 if self.watch:
-                    watcher_runner, build_trigger = self._create_watcher(actual_port)
-                    rm.register_watcher_runner(watcher_runner)
-                    rm.register_build_trigger(build_trigger)
-                    watcher_runner.start()
-                    logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
+                    self._watcher_runner, self._build_trigger = self._create_watcher(actual_port)
+                    rm.register_watcher_runner(self._watcher_runner)
+                    rm.register_build_trigger(self._build_trigger)
 
                 # Open browser immediately (instant first paint!)
                 if self.open_browser:
@@ -329,6 +328,8 @@ class DevServer:
                     watcher_runner, build_trigger = self._create_watcher(actual_port)
                     rm.register_watcher_runner(watcher_runner)
                     rm.register_build_trigger(build_trigger)
+                    # Seed content hash cache so first edit can use reactive path
+                    build_trigger.seed_content_hash_cache(list(self.site.pages))
                     watcher_runner.start()
                     logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
 
@@ -451,6 +452,12 @@ class DevServer:
         else:
             icons = get_icons()
             print(f"\n  {icons.success} Cache validated - content is fresh")
+
+        # Start watcher after validation to avoid race; seed cache for reactive path
+        if self.watch and hasattr(self, "_watcher_runner") and hasattr(self, "_build_trigger"):
+            self._build_trigger.seed_content_hash_cache(list(self.site.pages))
+            self._watcher_runner.start()
+            logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
 
     def _clear_html_cache_after_build(self) -> None:
         """Clear HTML injection cache after a build to ensure fresh pages."""

@@ -48,30 +48,62 @@ Related:
 
 from __future__ import annotations
 
-import contextlib
 import re
 import threading
 import time
+from contextlib import suppress
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, ClassVar
+from typing import Any
 
 import yaml
 
 from bengal.errors import ErrorCode, create_dev_error, get_dev_server_state
-from bengal.orchestration.stats import display_build_stats, show_building_indicator, show_error
+from bengal.orchestration.stats import (
+    ReloadHint,
+    display_build_stats,
+    show_building_indicator,
+    show_error,
+)
 from bengal.output import CLIOutput
 from bengal.protocols import SiteLike
 from bengal.server.build_executor import BuildExecutor, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.build_state import build_state
-from bengal.server.reload_controller import ReloadDecision, controller
+from bengal.server.live_reload import LiveReloadNotifier
+from bengal.server.reload_controller import (
+    ReloadController,
+    ReloadDecision,
+)
+from bengal.server.reload_controller import (
+    controller as default_reload_controller,
+)
+from bengal.server.reload_protocols import ReloadNotifier
+from bengal.server.reload_types import BuildReloadInfo
 from bengal.server.utils import get_timestamp
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 from bengal.utils.stats_minimal import MinimalStats
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class FrontmatterCacheEntry:
+    """Cache entry for frontmatter nav-key detection (mtime, has_nav_keys)."""
+
+    mtime: float
+    has_nav_keys: bool
+
+
+@dataclass(frozen=True, slots=True)
+class ContentHashCacheEntry:
+    """Cache entry for content-only change detection (mtime, fm_hash, content_hash)."""
+
+    mtime: float
+    frontmatter_hash: str
+    content_hash: str
 
 
 class BuildTrigger:
@@ -101,18 +133,9 @@ class BuildTrigger:
 
     """
 
-    # Class-level caches (shared across instances for efficiency)
-    # Frontmatter cache: path -> (mtime, has_nav_keys)
-    _frontmatter_cache: ClassVar[dict[Path, tuple[float, bool]]] = {}
+    # Cache size limits (instance-level caches in __init__)
     _frontmatter_cache_max = 500
-
-    # Content hash cache: path -> (mtime, frontmatter_hash, content_hash)
-    # Used for content-only change detection (RFC: content-only-hot-reload)
-    _content_hash_cache: ClassVar[dict[Path, tuple[float, str, str]]] = {}
     _content_hash_cache_max = 500
-
-    # Template directories cache (per-instance, set to None to invalidate)
-    _template_dirs: list[Path] | None = None
 
     def __init__(
         self,
@@ -120,6 +143,8 @@ class BuildTrigger:
         host: str = "localhost",
         port: int = 5173,
         executor: BuildExecutor | None = None,
+        controller: ReloadController | None = None,
+        notifier: ReloadNotifier | None = None,
         version_scope: str | None = None,
     ) -> None:
         """
@@ -130,6 +155,8 @@ class BuildTrigger:
             host: Server host for URL display
             port: Server port for URL display
             executor: BuildExecutor instance (created if not provided)
+            controller: ReloadController for reload decisions (uses default if None)
+            notifier: ReloadNotifier for client notification (uses live reload if None)
             version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
         """
@@ -138,13 +165,18 @@ class BuildTrigger:
         self.port = port
         self.version_scope = version_scope
         self._executor = executor or BuildExecutor(max_workers=1)
+        self._reload_controller = controller or default_reload_controller
+        self._reload_notifier = notifier or LiveReloadNotifier()
         self._building = False
         self._build_lock = threading.Lock()
         # Queue for changes that arrive during a build (prevents lost changes)
         self._pending_changes: set[Path] = set()
         self._pending_event_types: set[str] = set()
         # Reset template dirs cache for this instance (theme may differ)
-        self._template_dirs = None
+        self._template_dirs: list[Path] | None = None
+        # Instance-level caches (3.14t: avoid ClassVar mutable state)
+        self._frontmatter_cache: dict[Path, FrontmatterCacheEntry] = {}
+        self._content_hash_cache: dict[Path, ContentHashCacheEntry] = {}
         # Track last successful build for error context
         self._last_successful_build: datetime | None = None
 
@@ -258,8 +290,8 @@ class BuildTrigger:
 
             # RFC: Output Cache Architecture - Capture content hash baseline BEFORE build
             # This enables accurate change detection vs regeneration noise
-            if controller._use_content_hashes:
-                controller.capture_content_hash_baseline(self.site.output_dir)
+            if self._reload_controller._use_content_hashes:
+                self._reload_controller.capture_content_hash_baseline(self.site.output_dir)
 
             # Run pre-build hooks
             config = getattr(self.site, "config", {}) or {}
@@ -270,6 +302,73 @@ class BuildTrigger:
                 cli.request_log_header()
                 logger.error("rebuild_skipped", reason="pre_build_hook_failed")
                 return
+
+            # Reactive path: content-only edit skips full build
+            if not needs_full_rebuild and self._can_use_reactive_path(changed_paths, event_types):
+                path = next(iter(changed_paths))
+                from bengal.core.output import OutputType
+                from bengal.server.reactive import ReactiveContentHandler
+                from bengal.server.reload_types import SerializedOutputRecord
+
+                handler = ReactiveContentHandler(self.site, self.site.output_dir)
+                try:
+                    output_path = handler.handle_content_change(path)
+                    if output_path is not None:
+                        # Use path relative to output_dir (matches full build)
+                        rel_path = output_path
+                        if output_path.is_absolute() and self.site.output_dir:
+                            with suppress(ValueError):
+                                rel_path = output_path.relative_to(self.site.output_dir)
+                        changed_outputs = (
+                            SerializedOutputRecord(
+                                path=str(rel_path),
+                                type_value=OutputType.HTML.value,
+                                phase="render",
+                            ),
+                        )
+
+                        # Fragment path: extract #main-content, send DOM swap
+                        full_path = (
+                            output_path
+                            if output_path.is_absolute()
+                            else self.site.output_dir / output_path
+                        )
+                        dev_config = config_dict.get("dev", {}) or {}
+                        content_selector = dev_config.get("content_selector", "#main-content")
+                        try:
+                            html = full_path.read_text(encoding="utf-8")
+                            from bengal.server.live_reload.fragment import extract_main_content
+                            from bengal.server.live_reload.notification import send_fragment_payload
+                            from bengal.utils.paths.url_strategy import URLStrategy
+
+                            fragment = extract_main_content(html, content_selector)
+                            if fragment:
+                                permalink = URLStrategy.url_from_output_path(output_path, self.site)
+                                send_fragment_payload(content_selector, fragment, permalink)
+                            else:
+                                self._handle_reload(
+                                    BuildReloadInfo(
+                                        changed_files=tuple(changed_files),
+                                        changed_outputs=changed_outputs,
+                                        reload_hint=None,
+                                    )
+                                )
+                        except OSError, UnicodeDecodeError:
+                            self._handle_reload(
+                                BuildReloadInfo(
+                                    changed_files=tuple(changed_files),
+                                    changed_outputs=changed_outputs,
+                                    reload_hint=None,
+                                )
+                            )
+                        self._clear_html_cache()
+                        return
+                except Exception as e:
+                    logger.warning(
+                        "reactive_path_failed",
+                        error=str(e),
+                        fallback="full_build",
+                    )
 
             # Create build options for warm build
             use_incremental = not needs_full_rebuild
@@ -307,13 +406,21 @@ class BuildTrigger:
                 # Build succeeded - convert stats to result-like object for display
                 class WarmBuildResult:
                     def __init__(self, stats: Any, build_time: float) -> None:
+                        from bengal.server.reload_types import (
+                            SerializedOutputRecord,
+                        )
+
                         self.success = True
                         self.pages_built = stats.total_pages
                         self.build_time_ms = build_time * 1000
                         self.error_message = None
                         self.changed_outputs = (
                             tuple(
-                                (str(r.path), r.output_type.value, r.phase)
+                                SerializedOutputRecord(
+                                    path=str(r.path),
+                                    type_value=r.output_type.value,
+                                    phase=r.phase,
+                                )
                                 for r in stats.changed_outputs
                             )
                             if hasattr(stats, "changed_outputs")
@@ -323,6 +430,9 @@ class BuildTrigger:
                         self._stats = stats
 
                 result = WarmBuildResult(stats, build_duration)
+
+                # Seed content hash cache so first edit can use reactive path
+                self.seed_content_hash_cache(list(self.site.pages))
 
             except Exception as e:
                 # Build crashed - log error and reinitialize site for next build
@@ -390,9 +500,11 @@ class BuildTrigger:
 
             # Handle reload decision
             self._handle_reload(
-                changed_files,
-                result.changed_outputs,
-                reload_hint=result.reload_hint,
+                BuildReloadInfo(
+                    changed_files=tuple(changed_files),
+                    changed_outputs=result.changed_outputs,
+                    reload_hint=result.reload_hint,
+                )
             )
 
             # Clear HTML cache
@@ -488,6 +600,20 @@ class BuildTrigger:
             return True
 
         return False
+
+    def _can_use_reactive_path(self, changed_paths: set[Path], event_types: set[str]) -> bool:
+        """Check if content-only reactive path can be used (skips full build).
+
+        Content-only = frontmatter unchanged, body changed. Safe for leaf AND
+        section pages. Cascade, nav, and structure keys are in frontmatter;
+        if unchanged, no downstream impact.
+        """
+        if len(changed_paths) != 1 or event_types != {"modified"}:
+            return False
+        path = next(iter(changed_paths))
+        if path.suffix.lower() not in {".md", ".markdown"}:
+            return False
+        return self._is_content_only_change(path)
 
     def _is_shared_content_change(self, changed_paths: set[Path]) -> bool:
         """
@@ -635,11 +761,12 @@ class BuildTrigger:
         try:
             stat = path.stat()
             mtime = stat.st_mtime
+            resolved = path.resolve()
 
-            # Check cache (keyed by path, validated by mtime)
-            cached = self._frontmatter_cache.get(path)
-            if cached is not None and cached[0] == mtime:
-                return cached[1]
+            # Check cache (keyed by resolved path for watcher/discovery consistency)
+            cached = self._frontmatter_cache.get(resolved)
+            if cached is not None and cached.mtime == mtime:
+                return cached.has_nav_keys
 
             # Read only first 4KB (frontmatter is at start)
             # Most frontmatter is < 500 bytes, but YAML-heavy files may be larger
@@ -662,17 +789,51 @@ class BuildTrigger:
                 except yaml.YAMLError:
                     result = False
 
-            # Update cache with LRU eviction
+            # Update cache with LRU eviction (resolved path for watcher consistency)
             if len(self._frontmatter_cache) >= self._frontmatter_cache_max:
                 first_key = next(iter(self._frontmatter_cache))
                 del self._frontmatter_cache[first_key]
-            self._frontmatter_cache[path] = (mtime, result)
+            self._frontmatter_cache[resolved] = FrontmatterCacheEntry(
+                mtime=mtime, has_nav_keys=result
+            )
 
             return result
 
         except (FileNotFoundError, PermissionError, OSError) as e:
             logger.debug("frontmatter_check_failed", file=str(path), error=str(e))
             return False
+
+    def _compute_content_hashes(self, path: Path) -> ContentHashCacheEntry | None:
+        """
+        Read a markdown file and compute frontmatter/content hashes.
+
+        Returns None if the file has no frontmatter or cannot be read.
+        Used by _is_content_only_change and seed_content_hash_cache.
+        """
+        import hashlib
+
+        if path.suffix.lower() not in {".md", ".markdown"}:
+            return None
+
+        try:
+            mtime = path.stat().st_mtime
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+
+            match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", text, flags=re.DOTALL)
+            if not match:
+                return None
+
+            fm_hash = hashlib.sha256(match.group(1).encode()).hexdigest()[:16]
+            content_hash = hashlib.sha256(match.group(2).encode()).hexdigest()[:16]
+            return ContentHashCacheEntry(
+                mtime=mtime,
+                frontmatter_hash=fm_hash,
+                content_hash=content_hash,
+            )
+        except (FileNotFoundError, PermissionError, OSError) as e:
+            logger.debug("content_hash_check_failed", file=str(path), error=str(e))
+            return None
 
     def _is_content_only_change(self, path: Path) -> bool:
         """
@@ -689,57 +850,67 @@ class BuildTrigger:
 
         RFC: content-only-hot-reload
         """
-        import hashlib
-
-        if path.suffix.lower() != ".md":
+        entry = self._compute_content_hashes(path)
+        if entry is None:
             return False
 
-        try:
-            mtime = path.stat().st_mtime
+        resolved = path.resolve()
+        cached = self._content_hash_cache.get(resolved)
+        if (
+            cached is not None
+            and cached.frontmatter_hash == entry.frontmatter_hash
+            and cached.content_hash != entry.content_hash
+        ):
+            logger.debug(
+                "content_only_change_detected",
+                file=str(path),
+                hint="frontmatter_unchanged",
+            )
+            self._content_hash_cache[resolved] = entry
+            return True
 
-            # Read file and split frontmatter/content
-            with open(path, encoding="utf-8") as f:
-                text = f.read()
+        # Update cache with LRU eviction (resolved path for watcher consistency)
+        if len(self._content_hash_cache) >= self._content_hash_cache_max:
+            first_key = next(iter(self._content_hash_cache))
+            del self._content_hash_cache[first_key]
+        self._content_hash_cache[resolved] = entry
+        return False
 
-            # Extract frontmatter
-            match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", text, flags=re.DOTALL)
-            if not match:
-                return False  # No frontmatter = can't detect
+    def seed_content_hash_cache(self, pages: list[Any]) -> None:
+        """
+        Populate content hash cache for content pages after a successful build.
 
-            fm_text = match.group(1)
-            content_text = match.group(2)
+        Enables the first content-only edit after startup to use the reactive path
+        instead of falling back to full build (RFC: content-only-hot-reload).
 
-            # Hash both parts
-            fm_hash = hashlib.sha256(fm_text.encode()).hexdigest()[:16]
-            content_hash = hashlib.sha256(content_text.encode()).hexdigest()[:16]
-
-            # Check against cache
-            cached = self._content_hash_cache.get(path)
-            if cached is not None:
-                _cached_mtime, cached_fm_hash, cached_content_hash = cached
-
-                # Content-only if frontmatter same but content different
-                if cached_fm_hash == fm_hash and cached_content_hash != content_hash:
-                    logger.debug(
-                        "content_only_change_detected",
-                        file=str(path),
-                        hint="frontmatter_unchanged",
-                    )
-                    # Update cache with new hashes
-                    self._content_hash_cache[path] = (mtime, fm_hash, content_hash)
-                    return True
-
-            # Update cache with LRU eviction
+        Keys are resolved to absolute paths to match the watcher's path format
+        (watchfiles yields absolute paths). Without this, the first edit after
+        startup misses the cache and falls through to a full warm build.
+        """
+        root = getattr(self.site, "root_path", None)
+        for page in pages:
+            src = getattr(page, "source_path", None)
+            if src is None:
+                continue
+            path = Path(src) if not isinstance(src, Path) else src
+            if path.suffix.lower() not in {".md", ".markdown"}:
+                continue
+            try:
+                if path.is_absolute():
+                    abs_path = path
+                elif root is not None:
+                    abs_path = (root / path).resolve()
+                else:
+                    abs_path = path.resolve()
+            except OSError, ValueError:
+                continue
+            entry = self._compute_content_hashes(abs_path)
+            if entry is None:
+                continue
             if len(self._content_hash_cache) >= self._content_hash_cache_max:
                 first_key = next(iter(self._content_hash_cache))
                 del self._content_hash_cache[first_key]
-            self._content_hash_cache[path] = (mtime, fm_hash, content_hash)
-
-            return False
-
-        except (FileNotFoundError, PermissionError, OSError) as e:
-            logger.debug("content_hash_check_failed", file=str(path), error=str(e))
-            return False
+            self._content_hash_cache[abs_path] = entry
 
     def _get_template_dirs(self) -> list[Path]:
         """
@@ -813,6 +984,7 @@ class BuildTrigger:
                 cache_path = self.site.paths.build_cache
                 if cache_path.exists():
                     cache = BuildCache.load(cache_path)
+                    cache.site_root = getattr(self.site, "root_path", None)
             except Exception:
                 cache = None
 
@@ -823,7 +995,7 @@ class BuildTrigger:
             # Check if template has any dependents
             affected: set[str] = set()
             if cache is not None:
-                with contextlib.suppress(Exception):
+                with suppress(Exception):
                     affected = cache.get_affected_pages(path)
 
             if not affected:
@@ -945,49 +1117,49 @@ class BuildTrigger:
         stats = MinimalStats.from_build_result(result, incremental=incremental)
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
-    def _handle_reload(
-        self,
-        changed_files: list[str],
-        changed_outputs: tuple[tuple[str, str, str], ...],
-        reload_hint: str | None = None,
-    ) -> None:
+    def _handle_reload(self, info: BuildReloadInfo) -> None:
         """Handle reload decision and notification.
 
-        Uses typed outputs from the build for accurate reload decisions.
-        reload_hint from BuildStats is advisory (css-only, full, none).
-        1. Primary: Typed outputs from build (CSS-only vs full reload)
-        2. Fallback: Path-based decision (when typed outputs unavailable)
-
-        The typed output approach is more accurate than source-file inspection
-        because it knows exactly what was written, not just what changed.
+        Decision flow:
+        1. reload_hint=NONE + typed outputs → suppress (build knows no reload needed)
+        2. Typed outputs available → use ReloadController for CSS vs full
+        3. No outputs but changed_files → full reload (fallback when output collector empty)
+        4. Neither → suppress
 
         Args:
-            changed_files: List of source file paths that changed (for logging)
-            changed_outputs: Serialized OutputRecords as (path, type, phase) tuples
+            info: BuildReloadInfo from build (changed_files, changed_outputs, reload_hint)
         """
-        if reload_hint == "none":
+        changed_files = list(info.changed_files)
+        changed_outputs = info.changed_outputs
+        reload_hint = info.reload_hint
+
+        # Trust reload_hint=NONE only when we have typed outputs (build can confirm)
+        if reload_hint is ReloadHint.NONE and changed_outputs:
             logger.info("reload_suppressed", reason="reload-hint-none")
             return
 
-        decision = None
+        decision: ReloadDecision | None = None
         decision_source = "none"
 
-        # Primary path: Use typed outputs from build
+        # Primary: typed outputs from build
         if changed_outputs:
             from bengal.core.output import OutputRecord, OutputType
 
             records = []
-            for path_str, type_val, phase in changed_outputs:
+            for rec in changed_outputs:
                 try:
-                    output_type = OutputType(type_val)
-                    if phase in ("render", "asset", "postprocess"):
-                        records.append(OutputRecord(Path(path_str), output_type, phase))  # type: ignore[arg-type]
+                    output_type = OutputType(rec.type_value)
+                    if rec.phase in ("render", "asset", "postprocess"):
+                        records.append(
+                            OutputRecord(Path(rec.path), output_type, rec.phase)  # type: ignore[arg-type]
+                        )
                 except ValueError, TypeError:
-                    # Invalid type value, skip
-                    logger.debug("invalid_output_type", path=path_str, type_val=type_val)
+                    logger.debug("invalid_output_type", path=rec.path, type_val=rec.type_value)
 
             if records:
-                decision = controller.decide_from_outputs(records, reload_hint=reload_hint)
+                decision = self._reload_controller.decide_from_outputs(
+                    records, reload_hint=reload_hint
+                )
                 decision_source = "typed-outputs"
                 logger.debug(
                     "reload_from_typed_outputs",
@@ -996,8 +1168,8 @@ class BuildTrigger:
                 )
             else:
                 # Fallback: Path-based decision (when type reconstruction fails)
-                paths = [path for path, _type, _phase in changed_outputs]
-                decision = controller.decide_from_changed_paths(paths)
+                paths = [rec.path for rec in changed_outputs]
+                decision = self._reload_controller.decide_from_changed_paths(paths)
                 decision_source = "fallback-paths"
                 logger.debug(
                     "reload_decision_fallback",
@@ -1012,7 +1184,7 @@ class BuildTrigger:
             if changed_files:
                 # Sources changed, but no typed outputs - fall back to full reload
                 decision = ReloadDecision(
-                    action="reload", reason="source-change-no-outputs", changed_paths=[]
+                    action="reload", reason="source-change-no-outputs", changed_paths=()
                 )
                 decision_source = "fallback-source-change"
                 logger.debug(
@@ -1022,25 +1194,28 @@ class BuildTrigger:
                 )
             else:
                 # No sources changed and no outputs - suppress reload
-                decision = ReloadDecision(action="none", reason="no-changes", changed_paths=[])
+                decision = ReloadDecision(action="none", reason="no-changes", changed_paths=())
                 decision_source = "no-changes"
                 logger.debug("reload_suppressed_no_changes")
 
-        # RFC: Output Cache Architecture - Use content-hash detection to filter aggregate-only changes
-        # Only reload if there are meaningful content/asset changes (not just sitemap/feeds)
+        # Content-hash filter: aggregate-only (sitemap, feeds) → no reload.
+        # Skip when: (1) fallback-source-change, or (2) user edited source files.
+        # If changed_files is non-empty, user triggered a build—don't suppress reload.
         if (
             decision.action == "reload"
-            and controller._use_content_hashes
-            and hasattr(controller, "_baseline_content_hashes")
-            and controller._baseline_content_hashes
+            and decision_source != "fallback-source-change"
+            and not changed_files
+            and self._reload_controller._use_content_hashes
+            and hasattr(self._reload_controller, "_baseline_content_hashes")
+            and self._reload_controller._baseline_content_hashes
         ):
-            enhanced = controller.decide_with_content_hashes(self.site.output_dir)
+            enhanced = self._reload_controller.decide_with_content_hashes(self.site.output_dir)
             if enhanced.meaningful_change_count == 0:
                 # All changes are aggregate-only (sitemap, feeds, search index)
                 decision = ReloadDecision(
                     action="none",
                     reason="aggregate-only",
-                    changed_paths=[],
+                    changed_paths=(),
                 )
                 decision_source = "content-hash-filtered"
                 logger.info(
@@ -1068,16 +1243,23 @@ class BuildTrigger:
         # Send reload notification
         if decision.action == "none":
             logger.info("reload_suppressed", reason=decision.reason)
+            # Safety: user changed files but decision is none (e.g. throttled).
+            # Send reload unless we trust aggregate-only (sitemap/feeds only).
+            if changed_files and decision.reason != "aggregate-only":
+                logger.info(
+                    "reload_bypass_source_changes",
+                    reason="changed_files_nonempty_decision_none",
+                    changed_count=len(changed_files),
+                )
+                self._reload_notifier.send("reload", "source-changes-bypass", ())
         else:
-            from bengal.server.live_reload import send_reload_payload
-
             logger.info(
                 "reload_decision",
                 action=decision.action,
                 reason=decision.reason,
                 source=decision_source,
             )
-            send_reload_payload(decision.action, decision.reason, decision.changed_paths)
+            self._reload_notifier.send(decision.action, decision.reason, decision.changed_paths)
 
     def _set_build_in_progress(self, building: bool) -> None:
         """Signal build state to shared registry (handler and ASGI app read from it)."""

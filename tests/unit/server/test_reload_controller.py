@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 
 from bengal.core.output import OutputRecord, OutputType
+from bengal.orchestration.stats import ReloadHint
 from bengal.server.reload_controller import ReloadController
 
 
@@ -117,7 +118,7 @@ def test_decide_from_outputs_empty():
 
     assert decision.action == "none"
     assert decision.reason == "no-outputs"
-    assert decision.changed_paths == []
+    assert decision.changed_paths == ()
 
 
 def test_decide_from_outputs_css_only():
@@ -151,8 +152,22 @@ def test_decide_from_outputs_mixed_types_triggers_full_reload():
     assert "index.html" in decision.changed_paths
 
 
+def test_decide_from_outputs_single_html_triggers_reload_page():
+    """Single HTML output triggers reload-page (RFC: Reactive Dev Sequel Phase 6)."""
+    ctl = ReloadController(min_notify_interval_ms=0)
+
+    outputs = [
+        OutputRecord(Path("blog/post/index.html"), OutputType.HTML, "render"),
+    ]
+    decision = ctl.decide_from_outputs(outputs)
+
+    assert decision.action == "reload-page"
+    assert decision.reason == "single-page-content"
+    assert decision.changed_paths == ("blog/post/index.html",)
+
+
 def test_decide_from_outputs_html_only_triggers_full_reload():
-    """HTML outputs trigger full reload."""
+    """Multiple HTML outputs trigger full reload."""
     ctl = ReloadController(min_notify_interval_ms=0)
 
     outputs = [
@@ -189,7 +204,7 @@ def test_decide_from_outputs_partial_ignore():
     decision = ctl.decide_from_outputs(outputs)
 
     assert decision.action == "reload-css"
-    assert decision.changed_paths == ["assets/style.css"]
+    assert decision.changed_paths == ("assets/style.css",)
 
 
 def test_decide_from_outputs_throttling():
@@ -256,31 +271,31 @@ def test_decide_from_outputs_xml_sitemap():
 
 
 def test_decide_from_outputs_reload_hint_none_returns_none():
-    """reload_hint='none' short-circuits to action='none' even with non-empty outputs."""
+    """reload_hint=NONE short-circuits to action='none' even with non-empty outputs."""
     ctl = ReloadController(min_notify_interval_ms=0)
 
     outputs = [
         OutputRecord(Path("index.html"), OutputType.HTML, "render"),
         OutputRecord(Path("assets/style.css"), OutputType.CSS, "asset"),
     ]
-    decision = ctl.decide_from_outputs(outputs, reload_hint="none")
+    decision = ctl.decide_from_outputs(outputs, reload_hint=ReloadHint.NONE)
 
     assert decision.action == "none"
     assert decision.reason == "reload-hint-none"
-    assert decision.changed_paths == []
+    assert decision.changed_paths == ()
 
 
 def test_decide_from_outputs_other_hints_do_not_override_typed_outputs():
     """Other reload_hint values (css-only, full) do not override typed output classification."""
     ctl = ReloadController(min_notify_interval_ms=0)
 
-    # HTML outputs should trigger full reload regardless of hint
+    # Single HTML output triggers reload-page (RFC Phase 6), not full reload
     html_outputs = [
         OutputRecord(Path("index.html"), OutputType.HTML, "render"),
     ]
-    d_full = ctl.decide_from_outputs(html_outputs, reload_hint="css-only")
-    assert d_full.action == "reload"
-    assert d_full.reason == "content-changed"
+    d_page = ctl.decide_from_outputs(html_outputs, reload_hint="css-only")
+    assert d_page.action == "reload-page"
+    assert d_page.reason == "single-page-content"
 
     # CSS-only outputs with css-only hint still get reload-css
     css_outputs = [

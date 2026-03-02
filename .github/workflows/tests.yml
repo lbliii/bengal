@@ -90,36 +90,6 @@ jobs:
         echo "Running with BENGAL_BASEURL='${BENGAL_BASEURL}'"
         uv run pytest -q --tb=short -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
 
-    - name: Integration tests (parallel)
-      timeout-minutes: 45
-      if: matrix.baseurl == ''
-      env:
-        CI: true
-        BENGAL_CI_FAST: "1"
-        OMP_NUM_THREADS: "1"
-        PYTHON_GIL: "0"
-        PYTHONUNBUFFERED: "1"
-      run: |
-        echo "Running integration tests..."
-        # Use loadgroup (not worksteal): worksteal ignores xdist_group, so serial/parallel_unsafe
-        # tests (e.g. test_concurrent_builds) can run on different workers and cause races.
-        # Keep diagnostics actionable in CI:
-        # - stop on first failure to surface traceback quickly
-        # - emit per-test progress (not quiet mode)
-        # - persist JUnit + full log for post-timeout/failure debugging
-        set -o pipefail
-        uv run pytest -n auto -vv -ra --tb=short --maxfail=1 --durations=40 --dist loadgroup --max-worker-restart=3 tests/integration -m "not slow and not performance and not stateful and not autodoc and not known_gap" --junitxml=integration-results.xml 2>&1 | tee integration-tests.log
-
-    - name: Upload integration diagnostics
-      if: always() && matrix.baseurl == ''
-      uses: actions/upload-artifact@v4
-      with:
-        name: integration-diagnostics-${{ matrix.python-version }}
-        path: |
-          integration-tests.log
-          integration-results.xml
-        if-no-files-found: warn
-
     - name: Coverage (unit tests, single-process)
       timeout-minutes: 15
       if: matrix.baseurl == ''
@@ -129,6 +99,67 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         uv run pytest -n 0 -q --tb=short --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
+
+  # Integration tests split into 4 shards to avoid timeout
+  integration:
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    runs-on: ubuntu-latest
+    needs: full-suite
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [1, 2, 3, 4]
+    timeout-minutes: 20
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        python-version: "3.14t"
+
+    - name: Cache uv dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
+    - name: Install dependencies
+      run: uv sync --group dev
+
+    - name: Integration tests (shard ${{ matrix.group }}/4)
+      env:
+        CI: true
+        BENGAL_CI_FAST: "1"
+        OMP_NUM_THREADS: "1"
+        PYTHON_GIL: "0"
+        PYTHONUNBUFFERED: "1"
+      run: |
+        echo "Running integration tests (group ${{ matrix.group }}/4)..."
+        # Split into 4 shards to avoid 45min timeout; each shard ~15-20min.
+        # Use least_duration algo for compatibility with pytest-randomly.
+        set -o pipefail
+        uv run pytest \
+          --splits 4 --group ${{ matrix.group }} \
+          --splitting-algorithm least_duration \
+          -n auto -vv -ra --tb=short --maxfail=1 --durations=40 \
+          --dist loadgroup --max-worker-restart=3 \
+          tests/integration \
+          -m "not slow and not performance and not stateful and not autodoc and not known_gap" \
+          --junitxml=integration-results.xml \
+          2>&1 | tee integration-tests.log
+
+    - name: Upload integration diagnostics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: integration-diagnostics-group${{ matrix.group }}
+        path: |
+          integration-tests.log
+          integration-results.xml
+        if-no-files-found: warn
 
   # Slow tests (memory profiling, bytecode cache, etc.)
   slow-tests:

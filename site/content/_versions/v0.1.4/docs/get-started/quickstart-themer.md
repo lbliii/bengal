@@ -152,6 +152,5 @@ bengal utils theme info default
 ## Next Steps
 
 - **[[docs/theming/themes/customize|Theme Customization]]** — Deep dive into overrides
-- **[[docs/theming/templating/functions|Template Functions]]** — Available filters
-- **[[docs/theming/variables|Variables Reference]]** — All template variables
+- **[[docs/theming/templating/functions|Template Functions]]** — Available filters and variables
 - **[[docs/theming/assets|Assets]]** — CSS, JS, and image handling

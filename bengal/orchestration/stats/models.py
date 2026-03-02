@@ -5,7 +5,17 @@ Build statistics data models.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import TYPE_CHECKING, Any
+
+
+class ReloadHint(Enum):
+    """Advisory hint from build for dev server reload decisions."""
+
+    NONE = "none"
+    CSS_ONLY = "css-only"
+    FULL = "full"
+
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputRecord
@@ -52,6 +62,7 @@ class BuildStats:
     total_pages: int = 0
     regular_pages: int = 0
     generated_pages: int = 0
+    autodoc_pages: int = 0
     tag_pages: int = 0
     archive_pages: int = 0
     pagination_pages: int = 0
@@ -113,10 +124,10 @@ class BuildStats:
     changed_outputs: list[OutputRecord] = field(default_factory=list)
 
     # Advisory reload hint from build for smarter dev server decisions.
-    # "css-only": Prefer CSS hot reload when all changed_outputs are CSS
-    # "full": Any HTML changed
-    # "none": dry_run or no outputs
-    reload_hint: str | None = None  # Literal["css-only", "full", "none"]
+    # ReloadHint.CSS_ONLY: Prefer CSS hot reload when all changed_outputs are CSS
+    # ReloadHint.FULL: Any HTML changed
+    # ReloadHint.NONE: dry_run or no outputs
+    reload_hint: ReloadHint | None = None
 
     # Health check report (set after health checks run)
     health_report: HealthReport | None = None
@@ -270,6 +281,7 @@ class BuildStats:
             "total_pages": self.total_pages,
             "regular_pages": self.regular_pages,
             "generated_pages": self.generated_pages,
+            "autodoc_pages": self.autodoc_pages,
             "total_assets": self.total_assets,
             "total_sections": self.total_sections,
             "taxonomies_count": self.taxonomies_count,

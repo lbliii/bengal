@@ -185,7 +185,7 @@ MAIN TEMPLATE
         <ul class="post-list-compact">
           {% for post in year_posts | sort(attribute='date', reverse=true) %}
           <li>
-            <a href="{{ post?._path ?? post?.href ?? '#' }}">{{ post?.title ?? 'Untitled' }}</a>
+            <a href="{{ post?.href ?? post?._path ?? '#' }}">{{ post?.title ?? 'Untitled' }}</a>
             {% if post?.date %}
             <time>{{ post.date | dateformat('%b %d') }}</time>
             {% end %}
@@ -212,7 +212,7 @@ MAIN TEMPLATE
         <ul class="post-list-compact">
           {% for post in tag_posts | sort(attribute='date', reverse=true) %}
           <li>
-            <a href="{{ post?._path ?? post?.href ?? '#' }}">{{ post?.title ?? 'Untitled' }}</a>
+            <a href="{{ post?.href ?? post?._path ?? '#' }}">{{ post?.title ?? 'Untitled' }}</a>
             {% if post?.date %}
             <time>{{ post.date | dateformat('%b %d, %Y') }}</time>
             {% end %}

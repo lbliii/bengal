@@ -61,7 +61,7 @@ from bengal.orchestration.menu import MenuOrchestrator
 from bengal.orchestration.postprocess import PostprocessOrchestrator
 from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.section import SectionOrchestrator
-from bengal.orchestration.stats import BuildStats
+from bengal.orchestration.stats import BuildStats, ReloadHint
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 from bengal.protocols.capabilities import HasErrors
 from bengal.utils.observability.logger import get_logger
@@ -78,7 +78,6 @@ if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.orchestration.build.results import ConfigCheckResult, FilterResult
     from bengal.orchestration.build_context import BuildContext
     from bengal.output import CLIOutput
     from bengal.utils.observability.performance_collector import PerformanceCollector
@@ -639,6 +638,8 @@ class BuildOrchestrator:
 
         # Phase 14: Render Pages (with cached content from discovery)
         # Pass force_sequential - phase will compute parallel based on should_parallelize() and page count
+        # Ensure early_ctx has output_collector so pipeline gets it (fixes output_collector_missing)
+        early_ctx.output_collector = output_collector
         try:
             ctx = rendering.phase_render(
                 self,
@@ -674,7 +675,7 @@ class BuildOrchestrator:
         if hasattr(self, "_provenance_filter") and pages_to_build:
             from bengal.orchestration.build.provenance_filter import record_all_page_builds
 
-            record_all_page_builds(self, pages_to_build)
+            record_all_page_builds(self, pages_to_build, parallel=not force_sequential)
 
         rendering_duration_ms = (time.time() - rendering_start) * 1000
         notify_phase_complete(
@@ -774,16 +775,21 @@ class BuildOrchestrator:
         # Populate changed_outputs from collector for hot reload decisions
         self.stats.changed_outputs = output_collector.get_outputs()
 
-        # Compute reload_hint for smarter dev server decisions
+        # Compute reload_hint for smarter dev server decisions.
+        # Only set "none" when we have outputs and can confidently say no reload.
+        # When outputs is empty (e.g. output_collector missing from pipeline),
+        # leave reload_hint=None so the trigger uses changed_files fallback.
         outputs = self.stats.changed_outputs
-        if self.stats.dry_run or not outputs:
-            self.stats.reload_hint = "none"
+        if self.stats.dry_run:
+            self.stats.reload_hint = ReloadHint.NONE
+        elif not outputs:
+            self.stats.reload_hint = None
         elif any(o.output_type.value == "html" for o in outputs):
-            self.stats.reload_hint = "full"
+            self.stats.reload_hint = ReloadHint.FULL
         elif all(o.output_type.value == "css" for o in outputs):
-            self.stats.reload_hint = "css-only"
+            self.stats.reload_hint = ReloadHint.CSS_ONLY
         else:
-            self.stats.reload_hint = "full"
+            self.stats.reload_hint = ReloadHint.FULL
 
         # Debug: Log output collection for hot reload diagnostics
         if self.stats.changed_outputs:
@@ -885,185 +891,6 @@ class BuildOrchestrator:
         if pagination_pages:
             cli.detail(f"Pagination:       {pagination_pages}", indent=1, icon="├─")
         cli.detail(f"Total:            {len(self.site.pages)} ✓", indent=1, icon="└─")
-
-    # =========================================================================
-    # Phase Methods - Wrapper methods that delegate to modular phase functions
-    # =========================================================================
-
-    def _phase_fonts(self, cli: CLIOutput) -> None:
-        """Phase 1: Font Processing."""
-        initialization.phase_fonts(self, cli)
-
-    def _phase_discovery(
-        self, cli: CLIOutput, incremental: bool, build_cache: BuildCache | None = None
-    ) -> None:
-        """Phase 2: Content Discovery."""
-        initialization.phase_discovery(self, cli, incremental, build_cache=build_cache)
-
-    def _phase_cache_metadata(self) -> None:
-        """Phase 3: Cache Discovery Metadata."""
-        initialization.phase_cache_metadata(self)
-
-    def _phase_config_check(
-        self, cli: CLIOutput, cache: BuildCache, incremental: bool
-    ) -> ConfigCheckResult:
-        """Phase 4: Config Check and Cleanup."""
-        from bengal.orchestration.build.results import ConfigCheckResult
-
-        return initialization.phase_config_check(self, cli, cache, incremental)
-
-    def _phase_incremental_filter(
-        self,
-        cli: CLIOutput,
-        cache: BuildCache,
-        incremental: bool,
-        verbose: bool,
-        build_start: float,
-    ) -> FilterResult:
-        """Phase 5: Incremental Filtering."""
-        from bengal.orchestration.build.provenance_filter import (
-            phase_incremental_filter_provenance,
-        )
-        from bengal.orchestration.build.results import FilterResult
-
-        return phase_incremental_filter_provenance(
-            self,
-            cli,
-            cache,
-            incremental,
-            verbose,
-            build_start,
-        )
-
-    def _phase_sections(
-        self, cli: CLIOutput, incremental: bool, affected_sections: set[str] | None
-    ) -> None:
-        """Phase 6: Section Finalization."""
-        content.phase_sections(self, cli, incremental, affected_sections)
-
-    def _phase_taxonomies(
-        self,
-        cache: BuildCache,
-        incremental: bool,
-        force_sequential: bool,
-        pages_to_build: list[Page],
-    ) -> set[str]:
-        """Phase 7: Taxonomies & Dynamic Pages."""
-        return content.phase_taxonomies(self, cache, incremental, force_sequential, pages_to_build)
-
-    def _phase_taxonomy_index(self) -> None:
-        """Phase 8: Save Taxonomy Index."""
-        content.phase_taxonomy_index(self)
-
-    def _phase_menus(self, incremental: bool, changed_page_paths: set[Path]) -> None:
-        """Phase 9: Menu Building."""
-        content.phase_menus(self, incremental, {str(p) for p in changed_page_paths})
-
-    def _phase_related_posts(
-        self, incremental: bool, force_sequential: bool, pages_to_build: list[Page]
-    ) -> None:
-        """Phase 10: Related Posts Index."""
-        content.phase_related_posts(self, incremental, force_sequential, pages_to_build)
-
-    def _phase_query_indexes(
-        self, cache: BuildCache, incremental: bool, pages_to_build: list[Page]
-    ) -> None:
-        """Phase 11: Query Indexes."""
-        content.phase_query_indexes(self, cache, incremental, pages_to_build)
-
-    def _phase_update_pages_list(
-        self,
-        cache: BuildCache,
-        incremental: bool,
-        pages_to_build: list[Page],
-        affected_tags: set[str],
-    ) -> list[Page]:
-        """Phase 12: Update Pages List."""
-        return content.phase_update_pages_list(
-            self, cache, incremental, pages_to_build, affected_tags
-        )
-
-    def _phase_assets(
-        self,
-        cli: CLIOutput,
-        incremental: bool,
-        parallel: bool,
-        assets_to_process: list[Any],
-    ) -> list[Any]:
-        """Phase 13: Process Assets."""
-        return rendering.phase_assets(self, cli, incremental, parallel, assets_to_process)
-
-    def _phase_render(
-        self,
-        cli: CLIOutput,
-        incremental: bool,
-        force_sequential: bool,
-        quiet: bool,
-        verbose: bool,
-        memory_optimized: bool,
-        pages_to_build: list[Page],
-        profile: BuildProfile | None,
-        progress_manager: Any | None,
-        reporter: Any | None,
-    ) -> None:
-        """Phase 14: Render Pages."""
-        rendering.phase_render(
-            self,
-            cli,
-            incremental,
-            force_sequential,
-            quiet,
-            verbose,
-            memory_optimized,
-            pages_to_build,
-            profile,
-            progress_manager,
-            reporter,
-        )
-
-    def _phase_update_site_pages(self, incremental: bool, pages_to_build: list[Page]) -> None:
-        """Phase 15: Update Site Pages."""
-        rendering.phase_update_site_pages(self, incremental, pages_to_build)
-
-    def _phase_track_assets(
-        self, pages_to_build: list[Page], build_context: BuildContext | None = None
-    ) -> None:
-        """Phase 16: Track Asset Dependencies."""
-        rendering.phase_track_assets(self, pages_to_build, build_context=build_context)
-
-    def _phase_postprocess(
-        self,
-        cli: CLIOutput,
-        force_sequential: bool,
-        ctx: BuildContext | Any | None,
-        incremental: bool,
-    ) -> None:
-        """Phase 17: Post-processing."""
-        # Enable parallel post-processing for independent tasks
-        finalization.phase_postprocess(self, cli, not force_sequential, ctx, incremental)
-
-    def _phase_cache_save(self, pages_to_build: list[Page], assets_to_process: list[Any]) -> None:
-        """Phase 18: Save Cache."""
-        finalization.phase_cache_save(self, pages_to_build, assets_to_process)
-
-    def _phase_collect_stats(self, build_start: float) -> None:
-        """Phase 19: Collect Final Stats."""
-        finalization.phase_collect_stats(self, build_start)
-
-    def _run_health_check(
-        self,
-        profile: BuildProfile | None = None,
-        incremental: bool = False,
-        build_context: BuildContext | Any | None = None,
-    ) -> None:
-        """Run health check system with profile-based filtering."""
-        finalization.run_health_check(
-            self, profile=profile, incremental=incremental, build_context=build_context
-        )
-
-    def _phase_finalize(self, verbose: bool, collector: PerformanceCollector | None) -> None:
-        """Phase 21: Finalize Build."""
-        finalization.phase_finalize(self, verbose, collector)
 
     def _finalize_error_session(self) -> None:
         """

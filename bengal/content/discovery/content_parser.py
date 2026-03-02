@@ -15,9 +15,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import frontmatter
+import patitas
 
-from bengal.content.utils.frontmatter import extract_content_skip_frontmatter
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -93,8 +92,6 @@ class ContentParser:
         Raises:
             IOError: If file cannot be read
         """
-        import yaml
-
         # Notebook files use a different parser
         if file_path.suffix.lower() == ".ipynb":
             return self._parse_notebook(file_path)
@@ -110,23 +107,12 @@ class ContentParser:
         if self._build_context is not None and file_content is not None:
             self._build_context.cache_content(file_path, file_content)
 
-        # Parse frontmatter
-        try:
-            post = frontmatter.loads(file_content)
-            content = post.content
-            metadata = dict(post.metadata)
-            return content, metadata
-
-        except yaml.YAMLError as e:
-            return self._handle_yaml_error(file_path, file_content or "", e)
-
-        except Exception as e:
-            return self._handle_parse_error(file_path, file_content or "", e)
+        # Parse frontmatter (patitas handles YAML errors gracefully)
+        metadata, content = patitas.parse_frontmatter(file_content)
+        return content, metadata
 
     def _parse_notebook(self, file_path: Path) -> tuple[str, dict[str, Any]]:
         """Parse a Jupyter notebook (.ipynb) file."""
-        import patitas
-
         from bengal.utils.io.file_io import read_text_file
 
         file_content = read_text_file(
@@ -180,96 +166,6 @@ class ContentParser:
         content = "\n\n".join(blocks)
         metadata = {"notebook": source_path.stem}
         return content, metadata
-
-    def _handle_yaml_error(
-        self, file_path: Path, file_content: str, error: Exception
-    ) -> tuple[str, dict[str, Any]]:
-        """Handle YAML syntax error in frontmatter."""
-        from bengal.errors import BengalDiscoveryError, ErrorContext, enrich_error
-
-        context = ErrorContext(
-            file_path=file_path,
-            operation="parsing frontmatter",
-            suggestion="Fix frontmatter YAML syntax",
-            original_error=error,
-        )
-        enrich_error(error, context, BengalDiscoveryError)
-
-        logger.debug(
-            "frontmatter_parse_failed",
-            file_path=str(file_path),
-            error=str(error),
-            error_type="yaml_syntax",
-            action="processing_without_metadata",
-            suggestion="Fix frontmatter YAML syntax",
-        )
-
-        content = extract_content_skip_frontmatter(file_content)
-
-        from bengal.utils.primitives.text import humanize_slug
-
-        metadata = {
-            "_parse_error": str(error),
-            "_parse_error_type": "yaml",
-            "_source_file": str(file_path),
-            "title": humanize_slug(file_path.stem),
-        }
-
-        return content, metadata
-
-    def _handle_parse_error(
-        self, file_path: Path, file_content: str, error: Exception
-    ) -> tuple[str, dict[str, Any]]:
-        """Handle unexpected parse error."""
-        from bengal.errors import BengalDiscoveryError, ErrorContext, enrich_error
-
-        context = ErrorContext(
-            file_path=file_path,
-            operation="parsing content file",
-            suggestion="Check file encoding and format",
-            original_error=error,
-        )
-        enriched_error = enrich_error(error, context, BengalDiscoveryError)
-
-        if self._build_context and hasattr(self._build_context, "build_stats"):
-            build_stats = self._build_context.build_stats
-            if build_stats:
-                build_stats.add_error(enriched_error, category="discovery")
-
-        logger.warning(
-            "content_parse_unexpected_error",
-            file_path=str(file_path),
-            error=str(error),
-            error_type=type(error).__name__,
-            action="using_full_file_as_content",
-        )
-
-        from bengal.utils.primitives.text import humanize_slug
-
-        metadata = {
-            "_parse_error": str(error),
-            "_parse_error_type": "unknown",
-            "_source_file": str(file_path),
-            "title": humanize_slug(file_path.stem),
-        }
-
-        return file_content, metadata
-
-    def _extract_content_skip_frontmatter(self, file_content: str) -> str:
-        """
-        Extract content, skipping broken frontmatter section.
-
-        .. deprecated::
-            Use ``bengal.content.utils.frontmatter.extract_content_skip_frontmatter``
-            directly for new code.
-
-        Args:
-            file_content: Full file content
-
-        Returns:
-            Content without frontmatter section
-        """
-        return extract_content_skip_frontmatter(file_content)
 
     def validate_against_collection(
         self, file_path: Path, metadata: dict[str, Any]

@@ -49,6 +49,8 @@ from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from bengal.orchestration.stats import ReloadHint
+from bengal.server.reload_types import SerializedOutputRecord
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -110,8 +112,7 @@ class BuildResult:
         pages_built: Number of pages rendered
         build_time_ms: Build duration in milliseconds
         error_message: Error message if build failed
-        changed_outputs: Serialized output records as (path, type, phase) tuples
-            for reload decision. Type is the OutputType.value string.
+        changed_outputs: Serialized output records for reload decision.
 
     """
 
@@ -119,10 +120,9 @@ class BuildResult:
     pages_built: int
     build_time_ms: float
     error_message: str | None = None
-    # Serialized OutputRecords as (path_str, type_value, phase) tuples
-    changed_outputs: tuple[tuple[str, str, str], ...] = field(default_factory=tuple)
-    # Advisory reload hint: "css-only", "full", or "none"
-    reload_hint: str | None = None
+    changed_outputs: tuple[SerializedOutputRecord, ...] = field(default_factory=tuple)
+    # Advisory reload hint from build for smarter dev server decisions
+    reload_hint: ReloadHint | None = None
 
 
 def _execute_build(request: BuildRequest) -> BuildResult:
@@ -169,11 +169,15 @@ def _execute_build(request: BuildRequest) -> BuildResult:
 
         build_time_ms = (time.time() - start_time) * 1000
 
-        # Serialize changed outputs to picklable tuples
-        changed_outputs: tuple[tuple[str, str, str], ...] = ()
+        # Serialize changed outputs to picklable records
+        changed_outputs: tuple[SerializedOutputRecord, ...] = ()
         if hasattr(stats, "changed_outputs") and stats.changed_outputs:
             changed_outputs = tuple(
-                (str(record.path), record.output_type.value, record.phase)
+                SerializedOutputRecord(
+                    path=str(record.path),
+                    type_value=record.output_type.value,
+                    phase=record.phase,
+                )
                 for record in stats.changed_outputs
             )
 

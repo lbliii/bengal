@@ -375,3 +375,78 @@ class TestCrossRefCustomText:
 
         assert "Custom Text" in result
         assert 'class="broken-ref"' in result
+
+
+class TestCrossRefLinksCollector:
+    """Test link collection for validation (CrossReferencePlugin emits links during resolution)."""
+
+    def test_collector_appends_resolved_path(self) -> None:
+        """When collector is set, resolved path links are appended."""
+        page = make_mock_page(href="/docs/about/")
+        xref_index: dict[str, Any] = {
+            "by_path": {"docs/about": page},
+            "by_anchor": {},
+            "by_id": {},
+            "by_slug": {},
+            "by_heading": {},
+        }
+        plugin = CrossReferencePlugin(xref_index)
+        collector: list[str] = []
+        plugin.set_links_collector(collector)
+
+        plugin._resolve_path("docs/about")
+
+        assert collector == ["/docs/about/"]
+
+    def test_collector_appends_broken_ref(self) -> None:
+        """When collector is set, broken refs append attempted path for validator."""
+        xref_index: dict[str, Any] = {
+            "by_path": {},
+            "by_anchor": {},
+            "by_id": {},
+            "by_slug": {},
+            "by_heading": {},
+        }
+        plugin = CrossReferencePlugin(xref_index)
+        collector: list[str] = []
+        plugin.set_links_collector(collector)
+
+        plugin._resolve_path("missing-page")
+
+        assert "/missing-page" in collector
+
+    def test_get_collected_links_clears_collector(self) -> None:
+        """get_collected_links returns links and clears the collector."""
+        page = make_mock_page(href="/test/")
+        xref_index: dict[str, Any] = {
+            "by_path": {"test": page},
+            "by_anchor": {},
+            "by_id": {},
+            "by_slug": {},
+            "by_heading": {},
+        }
+        plugin = CrossReferencePlugin(xref_index)
+        plugin.set_links_collector([])
+        plugin._resolve_path("test")
+
+        links = plugin.get_collected_links()
+
+        assert links == ["/test/"]
+        assert plugin.get_collected_links() == []  # Cleared
+
+    def test_collector_none_does_not_append(self) -> None:
+        """When collector is not set, no links are appended."""
+        page = make_mock_page(href="/test/")
+        xref_index: dict[str, Any] = {
+            "by_path": {"test": page},
+            "by_anchor": {},
+            "by_id": {},
+            "by_slug": {},
+            "by_heading": {},
+        }
+        plugin = CrossReferencePlugin(xref_index)
+        # Do not set collector
+
+        plugin._resolve_path("test")
+
+        assert plugin._links_collector is None

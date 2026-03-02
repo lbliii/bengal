@@ -245,6 +245,7 @@ Please provide more details or run `::research` first.
 - `modules/architecture-patterns` - Model/orchestrator split
 - `modules/evidence-handling` - Code reference patterns
 - `modules/output-format` - Consistent formatting
+- `modules/template-href-path` - href vs path in templates (baseurl footgun)
 
 ### Commands
 - `commands/research` - Evidence extraction

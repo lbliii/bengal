@@ -18,6 +18,11 @@ Example:
 
 """
 
+from bengal.utils.paths.link_resolution import (
+    parent_url_from_page_url,
+    resolve_internal_link,
+    resolved_path_url_variants,
+)
 from bengal.utils.paths.normalize import to_posix
 from bengal.utils.paths.path_resolver import PathResolver, resolve_path
 from bengal.utils.paths.paths import BengalPaths, LegacyBengalPaths
@@ -39,8 +44,11 @@ __all__ = [
     "clean_md_path",
     "join_url_paths",
     "normalize_url",
+    "parent_url_from_page_url",
     "path_to_slug",
+    "resolve_internal_link",
     "resolve_path",
+    "resolved_path_url_variants",
     "split_url_path",
     "to_posix",
     "validate_url",

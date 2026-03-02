@@ -63,6 +63,7 @@ class WaveScheduler:
         quiet: bool,
         stats: Any | None,  # BuildStats type
         build_context: Any | None,  # BuildContext type
+        output_collector: Any | None = None,  # OutputCollector for hot reload
         max_workers: int = 4,
         write_behind: Any | None = None,  # WriteBehindCollector type
         strategy: str = "template_first",  # "template_first" or "topological"
@@ -73,6 +74,9 @@ class WaveScheduler:
         self.quiet = quiet
         self.stats = stats
         self.build_context = build_context
+        self._output_collector = output_collector or (
+            build_context.output_collector if build_context else None
+        )
         self.max_workers = max_workers
         self._write_behind = write_behind
         self._strategy = strategy
@@ -265,6 +269,7 @@ class WaveScheduler:
                                 quiet=self.quiet,
                                 build_stats=self.stats,
                                 build_context=self.build_context,
+                                output_collector=self._output_collector,
                                 block_cache=None,
                                 write_behind=self._write_behind,
                             )
@@ -388,6 +393,7 @@ class WaveScheduler:
                                 quiet=self.quiet,
                                 build_stats=self.stats,
                                 build_context=self.build_context,
+                                output_collector=self._output_collector,
                                 block_cache=None,
                                 write_behind=self._write_behind,
                             )

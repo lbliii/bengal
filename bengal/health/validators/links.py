@@ -6,9 +6,10 @@ It validates internal links in pages against the site's page URLs to catch
 broken links during build time.
 
 Key features:
-- Validates internal links resolve to existing pages
+- Validates internal links resolve to existing pages or auxiliary outputs
 - Handles relative paths and fragments
 - Supports trailing slash variations
+- Includes output_formats URLs (e.g. index.txt) when llm_txt is enabled
 - Caches validation results for performance
 - Integrates with health check system for observability
 
@@ -29,12 +30,18 @@ from __future__ import annotations
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, override
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
+from bengal.build.contracts.keys import content_key
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, ValidatorStats
 from bengal.health.utils import relative_path
+from bengal.health.validators.link_skip_rules import should_skip_link
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.link_resolution import (
+    resolve_internal_link,
+    resolved_path_url_variants,
+)
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteLike
@@ -72,18 +79,52 @@ class LinkValidator:
         self._source_paths: set[str] | None = None
         self._site: SiteLike | None = site
 
+    def _llm_txt_enabled(self, site: Any) -> bool:
+        """Check if output_formats.llm_txt is enabled (index.txt generated per page)."""
+        of = getattr(site, "config", {}) or {}
+        of = of.get("output_formats", {}) or {}
+        if not of.get("enabled", True):
+            return False
+        per_page = of.get("per_page", [])
+        return "llm_txt" in per_page
+
+    def _build_auxiliary_url_index(self, site: Any) -> set[str]:
+        """
+        Build index of auxiliary output URLs (e.g. index.txt) when enabled.
+
+        The action bar links to index.txt for LLM/AI discovery. These are valid
+        when output_formats.per_page includes "llm_txt". Uses same URL convention
+        as action-bar.html: page_url + "index.txt".
+
+        Args:
+            site: Site instance with pages and config
+
+        Returns:
+            Set of valid auxiliary URLs
+        """
+        if not self._llm_txt_enabled(site):
+            return set()
+        urls: set[str] = set()
+        for page in site.pages:
+            url = getattr(page, "href", None)
+            if url:
+                base = url.rstrip("/") + "/"
+                urls.add(base + "index.txt")
+        return urls
+
     def _build_page_url_index(self, site: Any) -> set[str]:
         """
-        Build an index of all page URLs for fast lookup.
+        Build an index of all valid internal link targets for fast lookup.
 
-        Creates normalized URL variants (with/without trailing slashes)
-        for flexible matching.
+        Includes page URLs and auxiliary outputs (index.txt) when output_formats
+        are enabled. Creates normalized URL variants (with/without trailing
+        slashes) for flexible matching.
 
         Args:
             site: Site instance containing pages
 
         Returns:
-            Set of all valid page URLs
+            Set of all valid internal link targets
         """
         urls: set[str] = set()
         for page in site.pages:
@@ -101,6 +142,7 @@ class LinkValidator:
                     urls.add(permalink.rstrip("/"))
                     urls.add(permalink.rstrip("/") + "/")
 
+        urls.update(self._build_auxiliary_url_index(site))
         return urls
 
     def _build_source_path_index(self, site: Any) -> set[str]:
@@ -108,27 +150,26 @@ class LinkValidator:
         Build an index of all source paths for resolving relative links.
 
         Used to validate relative links like ./sibling.md against actual source files.
+        Uses content_key for consistent path format (discovery vs resolved target).
 
         Args:
             site: Site instance containing pages
 
         Returns:
-            Set of all source paths (normalized, relative to content dir)
+            Set of content keys (normalized, relative to site root)
         """
         paths: set[str] = set()
-        content_root = getattr(site, "content_dir", None) or (site.root_path / "content")
+        root = site.root_path
 
         for page in site.pages:
             source_path = getattr(page, "source_path", None)
             if source_path:
-                # Add the full path
-                paths.add(str(source_path))
-                # Try to add path relative to content root
-                try:
-                    rel_path = Path(source_path).relative_to(content_root)
-                    paths.add(str(rel_path))
-                except ValueError:
-                    pass
+                full = (
+                    (root / source_path)
+                    if not Path(source_path).is_absolute()
+                    else Path(source_path)
+                )
+                paths.add(content_key(full, root))
 
         return paths
 
@@ -230,43 +271,7 @@ class LinkValidator:
         Returns:
             True if link is valid, False otherwise
         """
-        # Skip external links (http/https) - validated separately by async link checker
-        if link.startswith(("http://", "https://", "mailto:", "tel:")):
-            logger.debug(
-                "skipping_external_link",
-                link=link[:100],
-                type="external" if link.startswith("http") else "special",
-            )
-            self.validated_urls.add(link)
-            return True
-
-        # Skip data URLs
-        if link.startswith("data:"):
-            self.validated_urls.add(link)
-            return True
-
-        # Skip template syntax (Jinja2, JavaScript template literals, etc.)
-        # These appear in documentation code examples and are not real links
-        if "{{" in link or "}}" in link or "${" in link:
-            logger.debug(
-                "skipping_template_syntax",
-                link=link[:100],
-                reason="template_syntax_in_code_example",
-            )
-            self.validated_urls.add(link)
-            return True
-
-        # Skip source file references (common in autodoc-generated content)
-        # These are "View Source" links that point to Python files, not doc pages
-        # Patterns: bengal/module.py#L1, ../module.py, path/to/file.py
-        if ".py" in link and (
-            link.endswith(".py") or ".py#" in link  # Python file with fragment (line number)
-        ):
-            logger.debug(
-                "skipping_source_file_reference",
-                link=link[:100],
-                reason="source_file_reference_in_autodoc",
-            )
+        if should_skip_link(link):
             self.validated_urls.add(link)
             return True
 
@@ -304,7 +309,6 @@ class LinkValidator:
         # Get page's URL for resolving other relative links
         page_url = getattr(page, "href", None)
         if not page_url:
-            # Can't resolve without page URL
             logger.debug(
                 "link_validation_skipped",
                 link=link,
@@ -312,39 +316,9 @@ class LinkValidator:
             )
             return True
 
-        # Ensure page_url is a string (not Path)
         page_url = str(page_url)
-
-        # Resolve relative link against page URL
-        # Ensure page_url has trailing slash for proper resolution
-        base_url = page_url if page_url.endswith("/") else page_url + "/"
-        resolved = urljoin(base_url, str(parsed.path))
-
-        # Strip fragment for URL matching
-        resolved_path = resolved.split("#")[0] if "#" in resolved else resolved
-
-        # Normalize .md extensions - users commonly link to .md files which
-        # resolve to clean URLs without extensions
-        if resolved_path.endswith(".md"):
-            # Handle _index.md -> parent directory URL
-            if resolved_path.endswith("/_index.md"):
-                resolved_path = resolved_path[:-10]  # Strip /_index.md
-                if not resolved_path:
-                    resolved_path = "/"
-            elif resolved_path.endswith("/index.md"):
-                resolved_path = resolved_path[:-9]  # Strip /index.md
-                if not resolved_path:
-                    resolved_path = "/"
-            else:
-                # Regular .md file -> strip extension
-                resolved_path = resolved_path[:-3]
-
-        # Check all normalized variants
-        variants = [
-            resolved_path,
-            resolved_path.rstrip("/"),
-            resolved_path.rstrip("/") + "/",
-        ]
+        resolved_path = resolve_internal_link(page_url, str(parsed.path))
+        variants = resolved_path_url_variants(resolved_path)
 
         # Check if any variant matches a known page URL
         is_valid = any(v in self._page_urls for v in variants)
@@ -421,9 +395,13 @@ class LinkValidator:
             # Path resolution failed
             return False
 
-        # Check if this target exists in our source paths
-        target_str = str(target_path)
-        is_valid = target_str in self._source_paths if self._source_paths else False
+        # Check if this target exists in our source paths (content_key for alignment)
+        site = getattr(self, "_site", None)
+        if site and self._source_paths:
+            target_key = content_key(target_path, site.root_path)
+            is_valid = target_key in self._source_paths
+        else:
+            is_valid = False
 
         # Also try checking if the file actually exists on disk
         if not is_valid and target_path.exists():

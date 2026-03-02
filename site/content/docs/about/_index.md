@@ -24,7 +24,7 @@ Bengal is a high-performance static site generator for Python 3.14+. It transfor
 
 | Benefit | What It Means |
 |---------|---------------|
-| **Fast Builds** | Parallel + incremental builds. See [[docs/about/benchmarks\|Benchmarks]] |
+| **Fast Builds** | Parallel + incremental builds. See [Benchmarks](./benchmarks) |
 | **Python-Native** | Python 3.14+ with free-threading (PEP 703). No Node.js |
 | **Auto API Docs** | AST-based docs from Python, CLI, and OpenAPI sources |
 | **Batteries Included** | Dev server, live reload, sitemap, RSS, Lunr search |

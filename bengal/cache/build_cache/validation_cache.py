@@ -32,6 +32,7 @@ class ValidationCacheMixin:
     Requires these attributes on the host class:
         - validation_results: dict[str, dict[str, list[dict[str, Any]]]]
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
+        - _cache_key: Callable[[Path], str]  # Canonical path key
 
     """
 
@@ -55,7 +56,7 @@ class ValidationCacheMixin:
         Returns:
             List of CheckResult dicts if cached and file unchanged, None otherwise
         """
-        file_key = str(file_path)
+        file_key = self._cache_key(file_path)
 
         # Check if file has changed
         if self.is_changed(file_path):
@@ -79,7 +80,7 @@ class ValidationCacheMixin:
             validator_name: Name of validator
             results: List of CheckResult objects to cache
         """
-        file_key = str(file_path)
+        file_key = self._cache_key(file_path)
 
         # Ensure file entry exists
         if file_key not in self.validation_results:
@@ -115,6 +116,6 @@ class ValidationCacheMixin:
             self.validation_results.clear()
         else:
             # Invalidate specific file
-            file_key = str(file_path)
+            file_key = self._cache_key(file_path)
             if file_key in self.validation_results:
                 del self.validation_results[file_key]

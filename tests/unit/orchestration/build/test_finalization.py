@@ -16,9 +16,11 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from bengal.orchestration.build.artifacts import (
+    normalize_build_badge_config,
+    write_if_changed_atomic,
+)
 from bengal.orchestration.build.finalization import (
-    _normalize_build_badge_config,
-    _write_if_changed_atomic,
     phase_cache_save,
     phase_collect_stats,
     phase_finalize,
@@ -244,17 +246,17 @@ class TestBuildBadgeConfig:
 
     def test_none_config_disables_badge(self):
         """None config disables build badge."""
-        result = _normalize_build_badge_config(None)
+        result = normalize_build_badge_config(None)
         assert result["enabled"] is False
 
     def test_false_config_disables_badge(self):
         """False config disables build badge."""
-        result = _normalize_build_badge_config(False)
+        result = normalize_build_badge_config(False)
         assert result["enabled"] is False
 
     def test_true_config_enables_badge_with_defaults(self):
         """True config enables build badge with defaults."""
-        result = _normalize_build_badge_config(True)
+        result = normalize_build_badge_config(True)
 
         assert result["enabled"] is True
         assert result["dir_name"] == "bengal"
@@ -264,32 +266,32 @@ class TestBuildBadgeConfig:
 
     def test_dict_with_enabled_true(self):
         """Dict with enabled=True enables badge."""
-        result = _normalize_build_badge_config({"enabled": True})
+        result = normalize_build_badge_config({"enabled": True})
         assert result["enabled"] is True
 
     def test_dict_with_enabled_false(self):
         """Dict with enabled=False disables badge."""
-        result = _normalize_build_badge_config({"enabled": False})
+        result = normalize_build_badge_config({"enabled": False})
         assert result["enabled"] is False
 
     def test_dict_without_enabled_defaults_to_true(self):
         """Dict without 'enabled' key defaults to enabled."""
-        result = _normalize_build_badge_config({"dir_name": "custom"})
+        result = normalize_build_badge_config({"dir_name": "custom"})
         assert result["enabled"] is True
 
     def test_custom_dir_name(self):
         """Custom dir_name is respected."""
-        result = _normalize_build_badge_config({"dir_name": "_meta"})
+        result = normalize_build_badge_config({"dir_name": "_meta"})
         assert result["dir_name"] == "_meta"
 
     def test_custom_label(self):
         """Custom label is respected."""
-        result = _normalize_build_badge_config({"label": "generated in"})
+        result = normalize_build_badge_config({"label": "generated in"})
         assert result["label"] == "generated in"
 
     def test_custom_colors(self):
         """Custom colors are respected."""
-        result = _normalize_build_badge_config(
+        result = normalize_build_badge_config(
             {
                 "label_color": "#333",
                 "message_color": "#007bff",
@@ -300,13 +302,13 @@ class TestBuildBadgeConfig:
 
     def test_unknown_type_disables_badge(self):
         """Unknown config type disables badge (fail-safe)."""
-        result = _normalize_build_badge_config("invalid")
+        result = normalize_build_badge_config("invalid")
         assert result["enabled"] is False
 
-        result = _normalize_build_badge_config(123)
+        result = normalize_build_badge_config(123)
         assert result["enabled"] is False
 
-        result = _normalize_build_badge_config(["list"])
+        result = normalize_build_badge_config(["list"])
         assert result["enabled"] is False
 
 
@@ -425,41 +427,41 @@ class TestBuildBadgeIncremental:
         assert second_mtime > first_mtime
 
     def test_write_if_changed_skips_identical_content(self, tmp_path):
-        """_write_if_changed_atomic skips write when content is identical."""
+        """write_if_changed_atomic skips write when content is identical."""
         from bengal.utils.io.atomic_write import AtomicFile
 
         test_file = tmp_path / "test.txt"
         content = "test content"
 
         # First write
-        _write_if_changed_atomic(test_file, content, AtomicFile)
+        write_if_changed_atomic(test_file, content, AtomicFile)
         first_mtime = test_file.stat().st_mtime
 
         # Small delay to ensure mtime could differ
         time.sleep(0.1)
 
         # Second write with identical content
-        _write_if_changed_atomic(test_file, content, AtomicFile)
+        write_if_changed_atomic(test_file, content, AtomicFile)
         second_mtime = test_file.stat().st_mtime
 
         # mtime should NOT change (file not rewritten)
         assert second_mtime == first_mtime
 
     def test_write_if_changed_updates_on_different_content(self, tmp_path):
-        """_write_if_changed_atomic updates when content differs."""
+        """write_if_changed_atomic updates when content differs."""
         from bengal.utils.io.atomic_write import AtomicFile
 
         test_file = tmp_path / "test.txt"
 
         # First write
-        _write_if_changed_atomic(test_file, "content v1", AtomicFile)
+        write_if_changed_atomic(test_file, "content v1", AtomicFile)
         first_mtime = test_file.stat().st_mtime
 
         # Small delay to ensure mtime could differ
         time.sleep(0.1)
 
         # Second write with different content
-        _write_if_changed_atomic(test_file, "content v2", AtomicFile)
+        write_if_changed_atomic(test_file, "content v2", AtomicFile)
         second_mtime = test_file.stat().st_mtime
 
         # mtime should change (file rewritten)

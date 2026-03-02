@@ -31,6 +31,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.protocols import SiteLike
+from bengal.rendering.api_doc_enhancer import set_enhancer_for_render
 
 if TYPE_CHECKING:
     from bengal.cache import BuildCache
@@ -59,6 +60,7 @@ from bengal.rendering.pipeline.unified_transform import (
 )
 from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 from bengal.rendering.renderer import Renderer
+from bengal.rendering.shortcodes import expand_shortcodes
 from bengal.utils.observability.logger import get_logger, truncate_error
 
 logger = get_logger(__name__)
@@ -114,11 +116,13 @@ class RenderingPipeline:
         quiet: bool = False,
         build_stats: BuildStats | None = None,
         build_context: BuildContext | None = None,
+        output_collector: Any | None = None,
         changed_sources: set[Path] | None = None,
         block_cache: Any | None = None,
         highlight_cache: Any | None = None,
         write_behind: WriteBehindCollector | None = None,
         build_cache: BuildCache | None = None,
+        api_doc_enhancer: Any | None = None,
     ) -> None:
         """
         Initialize the rendering pipeline.
@@ -138,6 +142,8 @@ class RenderingPipeline:
             quiet: If True, suppress per-page output
             build_stats: Optional BuildStats object to collect warnings
             build_context: Optional BuildContext for dependency injection
+            output_collector: Explicit collector for hot reload. When build_context is
+                also provided, this overrides build_context.output_collector.
             write_behind: Optional WriteBehindCollector for async I/O (RFC: rfc-path-to-200-pgs)
             build_cache: Optional BuildCache for direct cache access.
         """
@@ -209,17 +215,13 @@ class RenderingPipeline:
         self.changed_sources = {Path(p) for p in (changed_sources or set())}
         self._highlight_cache = highlight_cache
 
-        # Extract output collector from build context for hot reload tracking
-        self._output_collector = (
+        # Extract output collector: explicit param > build_context (hot reload tracking)
+        self._output_collector = output_collector or (
             getattr(build_context, "output_collector", None) if build_context else None
         )
 
-        # Debug: Warn if output collector is missing (hot reload won't track outputs)
-        if build_context and not self._output_collector:
-            logger.warning(
-                "output_collector_missing_in_pipeline",
-                has_build_context=bool(build_context),
-            )
+        # Warning emitted once at orchestrator level (RenderOrchestrator._render_parallel)
+        # when output_collector is missing; no per-pipeline warning to avoid N duplicates
 
         # Write-behind collector for async I/O (RFC: rfc-path-to-200-pgs Phase III)
         # Use explicit parameter, or get from BuildContext if available
@@ -260,20 +262,14 @@ class RenderingPipeline:
         self._content_hash_in_html = build_cfg.get("content_hash_in_html", True)
 
         # Cache per-pipeline helpers (one pipeline per worker thread).
-        # These are safe to reuse and avoid per-page import/initialization overhead.
-        self._api_doc_enhancer: Any | None = None
-
-        # Prefer injected enhancer (tests/experiments), fall back to singleton enhancer.
+        # Prefer: constructor param > build_context.api_doc_enhancer > get_enhancer()
         try:
-            injected_enhancer = (
+            from bengal.rendering.api_doc_enhancer import get_enhancer
+
+            injected = api_doc_enhancer or (
                 getattr(build_context, "api_doc_enhancer", None) if build_context else None
             )
-            if injected_enhancer:
-                self._api_doc_enhancer = injected_enhancer
-            else:
-                from bengal.rendering.api_doc_enhancer import get_enhancer
-
-                self._api_doc_enhancer = get_enhancer()
+            self._api_doc_enhancer: Any | None = injected or get_enhancer()
         except Exception as e:
             logger.debug("api_doc_enhancer_init_failed", error=str(e))
             self._api_doc_enhancer = None
@@ -299,13 +295,16 @@ class RenderingPipeline:
             page: Page object to process. Must have source_path set.
         """
         # Clear per-render get_page() cache at start of each page render.
-        # This ensures each page render starts with a fresh cache, avoiding
-        # stale results from previous page renders in the same thread.
         from bengal.rendering.template_functions.get_page import clear_get_page_cache
 
         clear_get_page_cache()
 
-        self._process_page_impl(page)
+        # Set enhancer in context so get_page() can use it during template rendering
+        set_enhancer_for_render(self._api_doc_enhancer)
+        try:
+            self._process_page_impl(page)
+        finally:
+            set_enhancer_for_render(None)
 
     def _process_page_impl(self, page: PageLike) -> None:
         """Implementation of page processing (called within tracker context)."""
@@ -368,11 +367,13 @@ class RenderingPipeline:
         # Skip parsing if already done (e.g., by parsing phase before snapshot)
         # This avoids redundant parsing when using WaveScheduler with pre-parsed content
         if not page.html_content:
+            self._set_links_collector_for_parse()
             self._parse_content(page)
         self._enhance_api_docs(page)
-        # Extract links once (regex-heavy); cache can reuse these on template-only rebuilds.
+        # Extract links: use plugin-collected wikilinks when available, merge with markdown/HTML
         try:
-            page.extract_links()
+            plugin_links = self._get_plugin_collected_links()
+            page.extract_links(plugin_links=plugin_links)
         except Exception as e:
             # Log at warning level so users are aware of extraction issues
             # In strict mode, this could indicate malformed content that needs attention
@@ -392,6 +393,17 @@ class RenderingPipeline:
                 )
         self._cache_checker.cache_parsed_content(page, template, parser_version)
         self._render_and_write(page, template)
+
+    def _set_links_collector_for_parse(self) -> None:
+        """Set links collector on xref plugin before parse (Patitas only)."""
+        if hasattr(self.parser, "_xref_plugin") and self.parser._xref_plugin:
+            self.parser._xref_plugin.set_links_collector([])
+
+    def _get_plugin_collected_links(self) -> list[str]:
+        """Get and clear links collected by xref plugin during parse (Patitas only)."""
+        if hasattr(self.parser, "_xref_plugin") and self.parser._xref_plugin:
+            return self.parser._xref_plugin.get_collected_links()
+        return []
 
     def _parse_content(self, page: PageLike) -> None:
         """Parse page content through markdown parser.
@@ -458,6 +470,17 @@ class RenderingPipeline:
 
     def _parse_with_context_aware_parser(self, page: PageLike, need_toc: bool) -> None:
         """Parse content using a context-aware parser (Mistune, Patitas)."""
+
+        def parse_markdown(s: str) -> str:
+            return self.parser.parse(s, {})
+
+        source = expand_shortcodes(
+            page._source,
+            self.template_engine,
+            page,
+            self.site,
+            parse_markdown=parse_markdown,
+        )
         if page.metadata.get("preprocess") is False:
             # Inject source_path and excerpt_length for cross-version dependency tracking
             # (non-context parse methods don't have access to page object)
@@ -470,7 +493,7 @@ class RenderingPipeline:
             metadata_with_source["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
 
             if need_toc:
-                result = self.parser.parse_with_toc(page._source, metadata_with_source)
+                result = self.parser.parse_with_toc(source, metadata_with_source)
                 parsed_content, toc = result[0], result[1]
                 result_ext = cast(tuple[str, ...], result)
                 if len(result_ext) > 2:
@@ -479,7 +502,7 @@ class RenderingPipeline:
                     page._meta_description = result_ext[3]
                 parsed_content = escape_template_syntax_in_html(parsed_content)
             else:
-                parsed_content = self.parser.parse(page._source, metadata_with_source)
+                parsed_content = self.parser.parse(source, metadata_with_source)
                 parsed_content = escape_template_syntax_in_html(parsed_content)
                 toc = ""
         else:
@@ -503,7 +526,7 @@ class RenderingPipeline:
             ):
                 if need_toc:
                     result = self.parser.parse_with_toc_and_context(  # type: ignore[union-attr]
-                        page._source, metadata_for_parser, context
+                        source, metadata_for_parser, context
                     )
                     parsed_content, toc = result[0], result[1]
                     result_ext = cast(tuple[str, ...], result)
@@ -513,18 +536,16 @@ class RenderingPipeline:
                         page._meta_description = result_ext[3]
                 else:
                     parsed_content = self.parser.parse_with_context(  # type: ignore[union-attr]
-                        page._source, metadata_for_parser, context
+                        source, metadata_for_parser, context
                     )
                     toc = ""
             else:
                 # Fallback for parsers without context support (e.g., PythonMarkdownParser)
                 if need_toc:
-                    parsed_content, toc = self.parser.parse_with_toc(
-                        page._source, metadata_for_parser
-                    )
+                    parsed_content, toc = self.parser.parse_with_toc(source, metadata_for_parser)
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                 else:
-                    parsed_content = self.parser.parse(page._source, metadata_for_parser)
+                    parsed_content = self.parser.parse(source, metadata_for_parser)
                     parsed_content = escape_template_syntax_in_html(parsed_content)
                     toc = ""
 
@@ -534,10 +555,10 @@ class RenderingPipeline:
                     if hasattr(self.parser, "parse_to_document"):
                         import patitas
 
-                        doc = self.parser.parse_to_document(page._source, metadata_for_parser)
+                        doc = self.parser.parse_to_document(source, metadata_for_parser)
                         page._ast_cache = patitas.to_dict(doc)  # type: ignore[assignment]
                     elif hasattr(self.parser, "parse_to_ast"):
-                        ast_tokens = self.parser.parse_to_ast(page._source, metadata_for_parser)
+                        ast_tokens = self.parser.parse_to_ast(source, metadata_for_parser)
                         page._ast_cache = ast_tokens  # type: ignore[assignment]
                 except Exception as e:
                     logger.debug(
@@ -762,8 +783,19 @@ class RenderingPipeline:
 
     def _preprocess_content(self, page: PageLike) -> str:
         """Pre-process page content through configured template engine (legacy parser only)."""
+
+        def parse_markdown(s: str) -> str:
+            return self.parser.parse(s, {})
+
+        source = expand_shortcodes(
+            page._source,
+            self.template_engine,
+            page,
+            self.site,
+            parse_markdown=parse_markdown,
+        )
         if page.metadata.get("preprocess") is False:
-            return page._source
+            return source
 
         try:
             # Use the configured template engine for preprocessing
@@ -771,7 +803,7 @@ class RenderingPipeline:
             # If preprocessing fails (e.g. undefined variables in doc examples),
             # the exception handler below falls back to raw source
             return self.template_engine.render_string(
-                page._source,
+                source,
                 {"page": page, "site": self.site, "config": self.site.config},
                 strict=False,  # type: ignore[call-arg]
             )
@@ -790,4 +822,4 @@ class RenderingPipeline:
                     error_code=ErrorCode.R003.value,
                     suggestion="Check page content for template syntax errors",
                 )
-            return page._source
+            return source

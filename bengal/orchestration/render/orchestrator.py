@@ -20,6 +20,9 @@ Related Modules:
 - bengal.build.tracking: Dependency graph construction
 - bengal.orchestration.render.parallel: Parallel rendering utilities
 - bengal.orchestration.render.tracking: Active render tracking
+- bengal.orchestration.render.ordering: Page ordering strategies
+- bengal.orchestration.render.block_cache: Block cache management
+- bengal.orchestration.render.sequential: Sequential rendering
 
 See Also:
 - bengal/orchestration/render/orchestrator.py: RenderOrchestrator.process() entry point
@@ -42,15 +45,18 @@ from bengal.orchestration.utils.errors import is_shutdown_error
 from bengal.protocols import ProgressReporter
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.paths.normalize import to_posix
 from bengal.utils.paths.url_strategy import URLStrategy
 
+from .block_cache import BlockCacheMixin
+from .ordering import OrderingMixin
+from .output_collector_diagnostics import diagnose_missing_output_collector
 from .parallel import (
     is_free_threaded,
 )
 from .parallel import (
     thread_local as _thread_local,
 )
+from .sequential import SequentialRenderMixin
 from .tracking import (
     clear_thread_local_pipelines,
 )
@@ -67,16 +73,6 @@ from .tracking import (
 logger = get_logger(__name__)
 
 
-def _normalize_content_path(path: str) -> str:
-    """Normalize path for track item matching (same logic as get_page cache key)."""
-    normalized = to_posix(path)
-    if normalized.startswith("./"):
-        normalized = normalized[2:]
-    if normalized.startswith("content/"):
-        normalized = normalized[8:]
-    return normalized
-
-
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
@@ -86,39 +82,47 @@ if TYPE_CHECKING:
     from bengal.utils.observability.cli_progress import LiveProgressManager
 
 
-class RenderOrchestrator:
+class RenderOrchestrator(
+    OrderingMixin,
+    BlockCacheMixin,
+    SequentialRenderMixin,
+):
     """
-       Orchestrates page rendering in sequential or parallel modes.
+    Orchestrates page rendering in sequential or parallel modes.
 
-       Handles page rendering with support for free-threaded Python for true
-       parallelism. Manages thread-local rendering pipelines and integrates
-       with dependency tracking for incremental builds.
+    Facade that composes ordering, block caching, sequential rendering,
+    and parallel rendering. Handles page rendering with support for
+    free-threaded Python for true parallelism.
 
-       Creation:
-           Direct instantiation: RenderOrchestrator(site)
-               - Created by BuildOrchestrator during build
-               - Requires Site instance with pages populated
+    Mixins:
+        OrderingMixin: Page ordering strategies (priority, complexity, track deps)
+        BlockCacheMixin: Site-wide template block caching (Kida only)
+        SequentialRenderMixin: Sequential rendering with optional progress
 
-       Attributes:
-           site: Site instance containing pages and configuration
-           _free_threaded: Whether running on free-threaded Python (GIL disabled)
-           _block_cache: Cache for site-wide template blocks (Kida only)
+    Creation:
+        Direct instantiation: RenderOrchestrator(site)
+            - Created by BuildOrchestrator during build
+            - Requires Site instance with pages populated
 
-       Relationships:
-           - Uses: RenderingPipeline for individual page rendering
-           - Uses: EffectTracer for dependency tracking
-           - Uses: BuildStats for build statistics collection
-           - Uses: BlockCache for site-wide block caching
-           - Used by: BuildOrchestrator for rendering phase
+    Attributes:
+        site: Site instance containing pages and configuration
+        _free_threaded: Whether running on free-threaded Python (GIL disabled)
+        _block_cache: Cache for site-wide template blocks (Kida only)
 
-       Thread Safety:
-           Thread-safe for parallel rendering. Uses thread-local pipelines
-           to avoid contention. Detects free-threaded Python automatically.
+    Relationships:
+        - Uses: RenderingPipeline for individual page rendering
+        - Uses: EffectTracer for dependency tracking
+        - Uses: BuildStats for build statistics collection
+        - Uses: BlockCache for site-wide block caching
+        - Used by: BuildOrchestrator for rendering phase
 
-       Examples:
-           orchestrator = RenderOrchestrator(site)
-           orchestrator.process(pages, parallel=True,
-    stats=stats)
+    Thread Safety:
+        Thread-safe for parallel rendering. Uses thread-local pipelines
+        to avoid contention. Detects free-threaded Python automatically.
+
+    Examples:
+        orchestrator = RenderOrchestrator(site)
+        orchestrator.process(pages, parallel=True, stats=stats)
 
     """
 
@@ -152,79 +156,6 @@ class RenderOrchestrator:
         if isinstance(build_section, dict):
             return build_section.get("max_workers")
         return config.get("max_workers")
-
-    def _warm_block_cache(self) -> None:
-        """Pre-warm block cache with site-wide blocks (Kida only).
-
-        Identifies blocks that only depend on site context and pre-renders
-        them once. These cached blocks are reused for all pages, avoiding
-        redundant rendering of nav, footer, etc.
-
-        RFC: kida-template-introspection
-        """
-        try:
-            from bengal.protocols import EngineCapability
-            from bengal.rendering.block_cache import BlockCache
-            from bengal.rendering.context import get_engine_globals
-            from bengal.rendering.engines import create_engine
-
-            engine = create_engine(self.site)
-
-            # Check if engine supports block caching via capability detection
-            if not engine.has_capability(EngineCapability.BLOCK_CACHING):
-                return
-
-            # Initialize block cache
-            self._block_cache = BlockCache(enabled=True)
-
-            # Build site context for block rendering
-            site_context = get_engine_globals(self.site)  # type: ignore[arg-type]
-
-            # Warm cache for key templates
-            templates_to_warm = ["base.html", "page.html", "single.html", "list.html"]
-            total_cached = 0
-
-            for template_name in templates_to_warm:
-                try:
-                    cached = self._block_cache.warm_site_blocks(engine, template_name, site_context)  # type: ignore[arg-type]
-                    total_cached += cached
-                except Exception:
-                    pass  # Skip templates that don't exist or fail to warm
-
-            if total_cached > 0:
-                logger.info(
-                    "block_cache_ready",
-                    total_blocks_cached=total_cached,
-                    templates_analyzed=len(templates_to_warm),
-                )
-
-        except Exception as e:
-            # Don't fail build if cache warming fails
-            logger.debug("block_cache_warm_failed", error=str(e))
-
-    def get_cached_block(self, template_name: str, block_name: str) -> str | None:
-        """Get a cached block if available.
-
-        Args:
-            template_name: Template containing the block
-            block_name: Block to retrieve
-
-        Returns:
-            Cached HTML string, or None if not cached
-        """
-        if self._block_cache is None:
-            return None
-        return self._block_cache.get(template_name, block_name)
-
-    def get_block_cache_stats(self) -> dict | None:
-        """Get block cache statistics.
-
-        Returns:
-            Dict with hits, misses, and cached block count, or None if no cache
-        """
-        if self._block_cache is None:
-            return None
-        return self._block_cache.get_stats()
 
     def process(
         self,
@@ -375,91 +306,6 @@ class RenderOrchestrator:
             # Clear build context for memoization (cleanup)
             set_build_context(None)
 
-    def _render_sequential(
-        self,
-        pages: list[Page],
-        quiet: bool,
-        stats: BuildStats | None,
-        progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
-        build_context: BuildContext | None = None,
-        changed_sources: set[Path] | None = None,
-    ) -> None:
-        """
-        Build pages sequentially.
-
-        Args:
-            pages: Pages to render
-            quiet: Whether to suppress verbose output
-            stats: Build statistics tracker
-            progress_manager: Live progress manager (optional)
-        """
-        from bengal.rendering.pipeline import RenderingPipeline
-
-        # If we have a progress manager, use it (and suppress individual page output)
-        if progress_manager:
-            import time
-
-            pipeline = RenderingPipeline(
-                self.site,
-                quiet=True,
-                build_stats=stats,
-                build_context=build_context,
-                changed_sources=changed_sources,
-                block_cache=self._block_cache,
-                highlight_cache=self._highlight_cache,
-            )
-            last_update_time = time.time()
-            update_interval = 0.1  # Update every 100ms (throttled for performance)
-
-            for i, page in enumerate(pages):
-                pipeline.process_page(page)
-                # Throttle progress updates to reduce Rich rendering overhead
-                now = time.time()
-                if (i + 1) % 10 == 0 or (now - last_update_time) >= update_interval:
-                    # Pre-compute current_item once
-                    if page.output_path:
-                        current_item = str(page.output_path.relative_to(self.site.output_dir))
-                    else:
-                        current_item = page.source_path.name
-                    progress_manager.update_phase(
-                        "rendering", current=i + 1, current_item=current_item
-                    )
-                    last_update_time = now
-
-            # Final update to ensure progress shows 100%
-            progress_manager.update_phase("rendering", current=len(pages), current_item="")
-            return
-
-        # Try to use rich progress if available (but not if Live display already active)
-        try:
-            from bengal.utils.observability.rich_console import (
-                is_live_display_active,
-                should_use_rich,
-            )
-
-            # Don't create Progress if there's already a Live display (e.g., LiveProgressManager)
-            use_rich = (
-                should_use_rich() and not quiet and len(pages) > 5 and not is_live_display_active()
-            )
-        except ImportError:
-            use_rich = False
-
-        if use_rich:
-            self._render_sequential_with_progress(pages, quiet, stats, build_context)
-        else:
-            # Traditional rendering without progress
-            pipeline = RenderingPipeline(
-                self.site,
-                quiet=quiet,
-                build_stats=stats,
-                build_context=build_context,
-                changed_sources=changed_sources,
-                block_cache=self._block_cache,
-                highlight_cache=self._highlight_cache,
-            )
-            for page in pages:
-                pipeline.process_page(page)
-
     def _render_parallel(
         self,
         pages: list[Page],
@@ -526,6 +372,26 @@ class RenderOrchestrator:
             If you're profiling and see N parser/pipeline instances created,
             where N = max_workers, this is OPTIMAL behavior.
         """
+        # Single aggregated warning when output_collector missing (affects all worker threads)
+        output_collector = build_context.output_collector if build_context else None
+        if output_collector is None:
+            dev_mode = getattr(self.site, "dev_mode", False)
+            if dev_mode:
+                max_workers = get_optimal_workers(
+                    len(pages),
+                    workload_type=WorkloadType.MIXED,
+                    config_override=self._get_max_workers(),
+                )
+                diagnostic = diagnose_missing_output_collector(
+                    build_context=build_context,
+                    caller="_render_parallel",
+                    worker_threads=max_workers,
+                )
+                logger.warning(
+                    "output_collector_missing_in_pipeline",
+                    **diagnostic.to_log_context(),
+                )
+
         # Check if snapshot is available (RFC: rfc-bengal-snapshot-engine)
         if build_context and hasattr(build_context, "snapshot") and build_context.snapshot:
             # Use WaveScheduler for topological wave-based rendering
@@ -597,13 +463,15 @@ class RenderOrchestrator:
             config_override=self._get_max_workers(),
         )
 
-        # Create wave scheduler
+        # Create wave scheduler (pass output_collector explicitly for hot reload)
+        output_collector = build_context.output_collector if build_context else None
         scheduler = WaveScheduler(
             snapshot=snapshot,
             site=self.site,
             quiet=quiet,
             stats=stats,
             build_context=build_context,
+            output_collector=output_collector,
             max_workers=max_workers,
         )
 
@@ -628,169 +496,6 @@ class RenderOrchestrator:
                 current=render_stats.pages_rendered,
                 current_item="",
             )
-
-    def _should_use_complexity_ordering(self) -> bool:
-        """Check if complexity-based ordering is enabled."""
-        return self.site.config.get("build", {}).get("complexity_ordering", True)
-
-    def _should_use_track_dependency_ordering(self) -> bool:
-        """Check if track dependency ordering is enabled."""
-        return self.site.config.get("build", {}).get("track_dependency_ordering", True)
-
-    def _maybe_sort_by_complexity(self, pages: list[Page], max_workers: int) -> list[Page]:
-        """Sort pages by complexity if enabled and beneficial.
-
-        When track_dependency_ordering is also enabled, preserves partition order
-        (track_items before track_pages before other) and sorts by complexity
-        within each partition. This avoids the complexity sort undoing track order.
-
-        Only sorts if:
-        1. Complexity ordering is enabled in config (default: True)
-        2. We have more pages than workers (otherwise no benefit)
-
-        Heavy pages are sorted first within each partition to minimize stragglers.
-        """
-        if not self._should_use_complexity_ordering():
-            return pages
-
-        if len(pages) <= max_workers:
-            return pages
-
-        from bengal.orchestration.complexity import get_complexity_stats, sort_by_complexity
-
-        # When track dependency ordering is on, partition first then sort each
-        # partition by complexity. Single combined pass avoids redundant work.
-        track_item_paths = None
-        if self._should_use_track_dependency_ordering():
-            track_item_paths = self._get_track_item_paths()
-
-        if track_item_paths:
-            track_items, track_pages, other = self._partition_by_track(pages, track_item_paths)
-            if track_items or track_pages:
-                sorted_pages = (
-                    sort_by_complexity(track_items, descending=True)
-                    + sort_by_complexity(track_pages, descending=True)
-                    + sort_by_complexity(other, descending=True)
-                )
-                logger.debug(
-                    "track_dependency_ordering",
-                    track_items_count=len(track_items),
-                    track_pages_count=len(track_pages),
-                    other_count=len(other),
-                )
-            else:
-                sorted_pages = sort_by_complexity(pages, descending=True)
-        else:
-            sorted_pages = sort_by_complexity(pages, descending=True)
-
-        # Log complexity distribution at debug level
-        complexity_stats = get_complexity_stats(sorted_pages)
-        mean_score = float(complexity_stats["mean"])  # type: ignore[arg-type]
-        variance_ratio = float(complexity_stats["variance_ratio"])  # type: ignore[arg-type]
-        logger.debug(
-            "complexity_distribution",
-            page_count=complexity_stats["count"],
-            min_score=complexity_stats["min"],
-            max_score=complexity_stats["max"],
-            mean_score=round(mean_score, 1),
-            variance_ratio=round(variance_ratio, 1),
-        )
-        if variance_ratio > 10:
-            logger.debug(
-                "complexity_ordering_beneficial",
-                reason="high variance detected",
-                top_5=complexity_stats["top_5_scores"],
-                bottom_5=complexity_stats["bottom_5_scores"],
-            )
-
-        return sorted_pages
-
-    def _get_track_item_paths(self) -> set[str] | None:
-        """Get normalized track item paths from site.data.tracks, or None if no tracks."""
-        tracks_data = getattr(self.site.data, "tracks", None)
-        if not tracks_data or not isinstance(tracks_data, dict):
-            return None
-        paths: set[str] = set()
-        for track_def in tracks_data.values():
-            if not isinstance(track_def, dict):
-                continue
-            items = track_def.get("items")
-            if not isinstance(items, (list, tuple)):
-                continue
-            for item in items:
-                if isinstance(item, str):
-                    paths.add(_normalize_content_path(item))
-        return paths if paths else None
-
-    def _get_track_item_paths_for_pages(self, pages: list[Page]) -> set[str]:
-        """Get track item paths for tracks that have a page in the given list."""
-        tracks_data = getattr(self.site.data, "tracks", None)
-        if not tracks_data or not isinstance(tracks_data, dict):
-            return set()
-        priority_track_ids: set[str] = set()
-        for page in pages:
-            is_track_page = (
-                page.metadata.get("template") == "tracks/single.html"
-                or page.metadata.get("track_id") is not None
-            )
-            if not is_track_page:
-                continue
-            track_id = page.metadata.get("track_id") or (getattr(page, "slug", None) or "")
-            if track_id:
-                priority_track_ids.add(track_id)
-        if not priority_track_ids:
-            return set()
-        result: set[str] = set()
-        for track_id in priority_track_ids:
-            track_def = tracks_data.get(track_id)
-            if not isinstance(track_def, dict):
-                continue
-            items = track_def.get("items")
-            if not isinstance(items, (list, tuple)):
-                continue
-            for item in items:
-                if isinstance(item, str):
-                    norm = _normalize_content_path(item)
-                    result.add(norm)
-                    if norm.endswith(".md"):
-                        result.add(norm[:-3])
-                    else:
-                        result.add(f"{norm}.md")
-        return result
-
-    def _partition_by_track(
-        self, pages: list[Page], track_item_paths: set[str]
-    ) -> tuple[list[Page], list[Page], list[Page]]:
-        """Partition pages into track_items, track_pages, other."""
-        content_root = self.site.root_path / "content"
-        track_items: list[Page] = []
-        track_pages: list[Page] = []
-        other: list[Page] = []
-
-        for page in pages:
-            if not page.source_path:
-                other.append(page)
-                continue
-            try:
-                rel = page.source_path.relative_to(content_root)
-            except ValueError:
-                other.append(page)
-                continue
-            rel_str = to_posix(rel)
-            rel_no_ext = rel_str[:-3] if rel_str.endswith(".md") else rel_str
-            is_track_item = rel_str in track_item_paths or rel_no_ext in track_item_paths
-            is_track_page = (
-                page.metadata.get("template") == "tracks/single.html"
-                or page.metadata.get("track_id") is not None
-            )
-            if is_track_item:
-                track_items.append(page)
-            elif is_track_page:
-                track_pages.append(page)
-            else:
-                other.append(page)
-
-        return track_items, track_pages, other
 
     def _render_parallel_simple(
         self,
@@ -825,11 +530,13 @@ class RenderOrchestrator:
                 or getattr(_thread_local, "pipeline_generation", -1) != current_gen
             )
             if needs_new_pipeline:
+                output_collector = build_context.output_collector if build_context else None
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     quiet=quiet,
                     build_stats=stats,
                     build_context=build_context,
+                    output_collector=output_collector,
                     changed_sources=changed_sources,
                     block_cache=self._block_cache,
                     highlight_cache=self._highlight_cache,
@@ -882,74 +589,6 @@ class RenderOrchestrator:
         else:
             executor.shutdown(wait=True)
 
-    def _render_sequential_with_progress(
-        self,
-        pages: list[Page],
-        quiet: bool,
-        stats: BuildStats | None,
-        build_context: BuildContext | None = None,
-        changed_sources: set[Path] | None = None,
-    ) -> None:
-        """Render pages sequentially with rich progress bar."""
-        from rich.progress import (
-            BarColumn,
-            Progress,
-            SpinnerColumn,
-            TaskProgressColumn,
-            TextColumn,
-            TimeElapsedColumn,
-        )
-
-        from bengal.rendering.pipeline import RenderingPipeline
-        from bengal.utils.observability.rich_console import get_console
-
-        console = get_console()
-        pipeline = RenderingPipeline(
-            self.site,
-            quiet=quiet,
-            build_stats=stats,
-            build_context=build_context,
-            changed_sources=changed_sources,
-            block_cache=self._block_cache,
-            highlight_cache=self._highlight_cache,
-        )
-
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[bold blue]{task.description}"),
-            BarColumn(complete_style="green", finished_style="green"),
-            TaskProgressColumn(),
-            TextColumn("•"),
-            TextColumn("{task.completed}/{task.total} pages"),
-            TextColumn("•"),
-            TimeElapsedColumn(),
-            console=console,
-            transient=False,
-        ) as progress:
-            task = progress.add_task("[cyan]Rendering pages...", total=len(pages))
-
-            # Track errors for aggregation
-            aggregator = ErrorAggregator(total_items=len(pages))
-            threshold = 5
-
-            for page in pages:
-                try:
-                    pipeline.process_page(page)
-                except Exception as e:
-                    context = extract_error_context(e, page)
-
-                    # Only log individual error if below threshold or first samples
-                    if aggregator.should_log_individual(
-                        e, context, threshold=threshold, max_samples=3
-                    ):
-                        logger.error("page_rendering_error", **context)
-
-                    aggregator.add_error(e, context=context)
-                progress.update(task, advance=1)
-
-            # Log aggregated summary if threshold exceeded
-            aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
-
     def _render_parallel_with_live_progress(
         self,
         pages: list[Page],
@@ -995,11 +634,13 @@ class RenderOrchestrator:
                 # When using progress manager, always suppress individual page output
                 # (quiet=True) because progress_manager handles display. The `quiet`
                 # parameter from the caller is intentionally ignored here.
+                output_collector = build_context.output_collector if build_context else None
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     quiet=True,  # Always True when progress_manager is active
                     build_stats=stats,
                     build_context=build_context,
+                    output_collector=output_collector,
                     changed_sources=changed_sources,
                     block_cache=self._block_cache,
                     highlight_cache=self._highlight_cache,
@@ -1130,11 +771,13 @@ class RenderOrchestrator:
                 or getattr(_thread_local, "pipeline_generation", -1) != current_gen
             )
             if needs_new_pipeline:
+                output_collector = build_context.output_collector if build_context else None
                 _thread_local.pipeline = RenderingPipeline(
                     self.site,
                     quiet=quiet,
                     build_stats=stats,
                     build_context=build_context,
+                    output_collector=output_collector,
                     changed_sources=changed_sources,
                     block_cache=self._block_cache,
                     highlight_cache=self._highlight_cache,
@@ -1217,117 +860,3 @@ class RenderOrchestrator:
 
             # Determine output path using centralized strategy (kept in sync with pipeline)
             page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
-
-    def _track_dependency_sort(self, pages: list[Page]) -> list[Page]:
-        """
-        Sort pages so track items are rendered before track pages that embed them.
-
-        Used by tests. The main render flow uses _maybe_sort_by_complexity which
-        integrates partition + complexity in a single pass.
-
-        Returns:
-            Pages reordered: track_items first, then track_pages, then other.
-        """
-        if not self._should_use_track_dependency_ordering():
-            return pages
-        track_item_paths = self._get_track_item_paths()
-        if not track_item_paths:
-            return pages
-        track_items, track_pages, other = self._partition_by_track(pages, track_item_paths)
-        if track_items or track_pages:
-            return track_items + track_pages + other
-        return pages
-
-    def _priority_sort(self, pages: list[Page], changed_sources: set[Path] | None) -> list[Page]:
-        """
-        Sort pages so that explicitly changed files are at the front.
-
-        Args:
-            pages: Pages to sort
-            changed_sources: Set of paths that were explicitly changed
-
-        Returns:
-            Prioritized list of pages
-        """
-        if not changed_sources:
-            return pages
-
-        priority_pages: list[Page] = []
-        normal_pages: list[Page] = []
-
-        # Convert to resolved absolute paths for reliable matching
-        resolved_changed = set()
-        for p in changed_sources:
-            try:
-                resolved_changed.add(p.resolve())
-            except OSError, ValueError:
-                resolved_changed.add(p)
-
-        for page in pages:
-            is_priority = False
-            try:
-                # Regular pages have a source_path
-                if page.source_path and page.source_path.resolve() in resolved_changed:
-                    is_priority = True
-
-                # Autodoc pages might have source_path pointing to the python file
-                # If the python file is in changed_sources, it's a priority
-                if (
-                    not is_priority
-                    and page.metadata.get("is_autodoc")
-                    and page.source_path
-                    and page.source_path.resolve() in resolved_changed
-                ):
-                    is_priority = True
-            except OSError, ValueError:
-                if page.source_path in changed_sources:
-                    is_priority = True
-
-            if is_priority:
-                priority_pages.append(page)
-            else:
-                normal_pages.append(page)
-
-        if not priority_pages:
-            return pages
-
-        # When track dependency ordering is on, pull track items for priority
-        # track pages from normal_pages so they render before their track pages
-        if self._should_use_track_dependency_ordering():
-            track_item_paths = self._get_track_item_paths()
-            if track_item_paths:
-                priority_track_item_paths = self._get_track_item_paths_for_pages(priority_pages)
-                if priority_track_item_paths:
-                    content_root = self.site.root_path / "content"
-                    for page in list(normal_pages):
-                        if not page.source_path:
-                            continue
-                        try:
-                            rel = page.source_path.relative_to(content_root)
-                        except ValueError:
-                            continue
-                        rel_str = to_posix(rel)
-                        rel_no_ext = rel_str[:-3] if rel_str.endswith(".md") else rel_str
-                        if (
-                            rel_str in priority_track_item_paths
-                            or rel_no_ext in priority_track_item_paths
-                        ):
-                            normal_pages.remove(page)
-                            priority_pages.append(page)
-                    # Reorder priority_pages so track items come before track pages
-                    # (_maybe_sort_by_complexity skips when len <= max_workers)
-                    track_items, track_pages, other = self._partition_by_track(
-                        priority_pages, track_item_paths
-                    )
-                    priority_pages = track_items + track_pages + other
-
-        logger.debug(
-            "rendering_prioritization",
-            priority_count=len(priority_pages),
-            normal_count=len(normal_pages),
-        )
-        max_workers = self._get_max_workers() or 4
-        priority_pages = self._maybe_sort_by_complexity(priority_pages, max_workers)
-        normal_pages = self._maybe_sort_by_complexity(normal_pages, max_workers)
-
-        return priority_pages + normal_pages
