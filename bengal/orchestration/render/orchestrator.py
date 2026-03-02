@@ -150,8 +150,9 @@ class RenderOrchestrator(
     def _get_max_workers(self) -> int | None:
         """Get max_workers from config, supporting both Config and dict."""
         config = self.site.config
-        if hasattr(config, "build"):
-            return config.build.max_workers  # type: ignore[union-attr]
+        build_section = getattr(config, "build", None)
+        if build_section is not None:
+            return getattr(build_section, "max_workers", None)
         build_section = config.get("build", {})
         if isinstance(build_section, dict):
             return build_section.get("max_workers")
@@ -480,7 +481,7 @@ class RenderOrchestrator(
 
         # Update build stats
         if stats:
-            stats.pages_rendered = render_stats.pages_rendered  # type: ignore[assignment]
+            stats.pages_rendered = render_stats.pages_rendered
             if render_stats.errors:
                 for page_path, error in render_stats.errors:
                     logger.error(
@@ -554,9 +555,9 @@ class RenderOrchestrator(
                 batch = sorted_pages[i : i + batch_size]
                 future_to_page = {
                     executor.submit(
-                        contextvars.copy_context().run,  # type: ignore[arg-type]
-                        process_page_with_pipeline,  # type: ignore[arg-type]
-                        page,
+                        lambda p=page: contextvars.copy_context().run(
+                            process_page_with_pipeline, p
+                        ),
                     ): page
                     for page in batch
                 }
@@ -686,9 +687,9 @@ class RenderOrchestrator(
                 batch = sorted_pages[i : i + batch_size]
                 future_to_page = {
                     executor.submit(
-                        contextvars.copy_context().run,  # type: ignore[arg-type]
-                        process_page_with_pipeline,  # type: ignore[arg-type]
-                        page,
+                        lambda p=page: contextvars.copy_context().run(
+                            process_page_with_pipeline, p
+                        ),
                     ): page
                     for page in batch
                 }
@@ -809,9 +810,9 @@ class RenderOrchestrator(
                     batch = sorted_pages[i : i + batch_size]
                     future_to_page = {
                         executor.submit(
-                            contextvars.copy_context().run,  # type: ignore[arg-type]
-                            process_page_with_pipeline,  # type: ignore[arg-type]
-                            page,
+                            lambda p=page: contextvars.copy_context().run(
+                                process_page_with_pipeline, p
+                            ),
                         ): page
                         for page in batch
                     }

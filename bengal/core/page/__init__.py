@@ -229,7 +229,8 @@ class Page(
 
     # Private caches for AST-based content (Phase 3 of RFC)
     # See: plan/active/rfc-content-ast-architecture.md
-    _ast_cache: list[ASTNode] | None = field(default=None, repr=False, init=False)
+    # Patitas: dict (Document with "children"); legacy: list[ASTNode]
+    _ast_cache: list[ASTNode] | dict[str, Any] | None = field(default=None, repr=False, init=False)
     _html_cache: str | None = field(default=None, repr=False, init=False)
     _plain_text_cache: str | None = field(default=None, repr=False, init=False)
 

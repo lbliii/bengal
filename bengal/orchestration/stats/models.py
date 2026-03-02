@@ -83,6 +83,7 @@ class BuildStats:
     discovery_time_ms: float = 0
     taxonomy_time_ms: float = 0
     rendering_time_ms: float = 0
+    pages_rendered: int = 0  # Set by RenderOrchestrator from WaveScheduler
     assets_time_ms: float = 0
     postprocess_time_ms: float = 0
     health_check_time_ms: float = 0

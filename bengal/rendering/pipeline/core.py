@@ -559,10 +559,10 @@ class RenderingPipeline:
                         import patitas
 
                         doc = self.parser.parse_to_document(source, metadata_for_parser)
-                        page._ast_cache = patitas.to_dict(doc)  # type: ignore[assignment]
+                        page._ast_cache = patitas.to_dict(doc)
                     elif hasattr(self.parser, "parse_to_ast"):
                         ast_tokens = self.parser.parse_to_ast(source, metadata_for_parser)
-                        page._ast_cache = ast_tokens  # type: ignore[assignment]
+                        page._ast_cache = ast_tokens
                 except Exception as e:
                     logger.debug(
                         "ast_extraction_failed",
@@ -732,7 +732,7 @@ class RenderingPipeline:
                         break
 
         # Get cached global contexts (site/config are stateless wrappers)
-        global_contexts = _get_global_contexts(self.site)  # type: ignore[arg-type]
+        global_contexts = _get_global_contexts(cast(SiteLike, self.site))
 
         context: dict[str, Any] = {
             # Core objects with cached smart wrappers
