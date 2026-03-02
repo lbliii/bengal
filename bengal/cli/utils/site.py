@@ -118,7 +118,7 @@ def _count_markdown_files(directory: Path) -> int:
         return 0
     try:
         return len(list(directory.rglob("*.md")))
-    except (PermissionError, OSError):
+    except PermissionError, OSError:
         return 0
 
 

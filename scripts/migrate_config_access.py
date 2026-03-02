@@ -163,7 +163,7 @@ def find_python_issues(file: Path) -> list[Issue]:
 
     try:
         content = file.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+    except OSError, UnicodeDecodeError:
         return issues
 
     lines = content.split("\n")
@@ -240,7 +240,7 @@ def find_template_issues(file: Path) -> list[Issue]:
 
     try:
         content = file.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+    except OSError, UnicodeDecodeError:
         return issues
 
     lines = content.split("\n")

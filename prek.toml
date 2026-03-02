@@ -35,7 +35,7 @@ priority = 1
 [[repos.hooks]]
 id = "ruff-format"
 name = "ruff format"
-entry = "poe format"
+entry = "uv run poe format"
 language = "system"
 types = ["python"]
 pass_filenames = false

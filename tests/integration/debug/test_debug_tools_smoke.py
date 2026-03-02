@@ -22,7 +22,7 @@ from bengal.debug import (
 
 try:
     from bengal.debug import ShortcodeSandbox
-except (ImportError, AttributeError):
+except ImportError, AttributeError:
     ShortcodeSandbox = None  # type: ignore[misc, assignment]
 
 

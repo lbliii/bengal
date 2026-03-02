@@ -57,7 +57,7 @@ def compute_validity_stats[V](
         try:
             size = len(json.dumps([serialize(e) for e in entries.values()]))
             stats["cache_size_bytes"] = size
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             stats["cache_size_bytes"] = 0
 
     return stats
@@ -147,7 +147,7 @@ def compute_taxonomy_stats(
         try:
             size = len(json.dumps([serialize(e) for e in tags.values()]))
             stats["cache_size_bytes"] = size
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             stats["cache_size_bytes"] = 0
 
     return stats

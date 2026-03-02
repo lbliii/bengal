@@ -99,5 +99,5 @@ def filter_dateformat(date: datetime | str | None, format: str = "%Y-%m-%d") -> 
         if isinstance(date, datetime):
             return str(date.strftime(format))
         return str(date)
-    except (AttributeError, ValueError):
+    except AttributeError, ValueError:
         return str(date)

@@ -391,7 +391,7 @@ def _resolve_file_protocol(asset_path: str, site: AssetSiteLike, page: Any = Non
                 return f"{relative_prefix}/{asset_url_path}"
             else:
                 return f"./{asset_url_path}"
-        except (ValueError, AttributeError):
+        except ValueError, AttributeError:
             pass
 
     # Fallback: assume root-level

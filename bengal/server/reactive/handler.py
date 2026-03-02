@@ -105,9 +105,9 @@ class ReactiveContentHandler:
             for page in self.site.pages:
                 try:
                     self._page_index[Path(page.source_path).resolve()] = page
-                except (OSError, ValueError, TypeError):
+                except OSError, ValueError, TypeError:
                     continue
         try:
             return self._page_index.get(path.resolve())
-        except (OSError, ValueError):
+        except OSError, ValueError:
             return None

@@ -103,7 +103,7 @@ class PIDManager:
             try:
                 os.kill(pid, 0)  # Check if process exists
                 return True
-            except (ProcessLookupError, PermissionError):
+            except ProcessLookupError, PermissionError:
                 return False
         except psutil.NoSuchProcess, psutil.AccessDenied:
             return False
@@ -170,7 +170,7 @@ class PIDManager:
                 pid_file.unlink()
                 return None
 
-        except (ValueError, OSError):
+        except ValueError, OSError:
             # Invalid PID file or read error
             with contextlib.suppress(OSError):
                 pid_file.unlink()

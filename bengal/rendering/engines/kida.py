@@ -172,7 +172,7 @@ class KidaTemplateEngine:
                     if resolved and resolved.exists():
                         dirs.append(resolved)
                         continue
-            except (ImportError, AttributeError, OSError):
+            except ImportError, AttributeError, OSError:
                 pass
 
             # Bundled theme directory
@@ -370,7 +370,7 @@ class KidaTemplateEngine:
                 line_number=getattr(e, "lineno", None),
             ) from e
         except TypeError as e:
-            # Enhanced error message for "NoneType is not callable"
+            # Enhanced error messages for common template callable errors
             error_str = str(e).lower()
             if (
                 "'nonetype' object is not callable" in error_str
@@ -398,6 +398,17 @@ class KidaTemplateEngine:
                     ),
                     original_error=e,
                 ) from e
+            if "_undefined" in error_str and "not callable" in error_str:
+                raise BengalRenderingError(
+                    message=(
+                        f"Template '{name}': A macro from {{% from X import y %}} resolved to "
+                        "Undefined. Check that the imported template defines the macro. "
+                        "If this occurs during parallel builds, try --no-parallel."
+                    ),
+                    original_error=e,
+                    suggestion="Check that the imported template defines the macro. "
+                    "If this occurs during parallel builds, try --no-parallel.",
+                ) from e
             raise BengalRenderingError(
                 message=f"Template render error in '{name}': {e}",
                 original_error=e,
@@ -415,7 +426,7 @@ class KidaTemplateEngine:
                 original_error=e,
                 file_path=getattr(e, "filename", None),
                 line_number=getattr(e, "lineno", None),
-                suggestion=getattr(e, "hint", None),
+                suggestion=getattr(e, "hint", None) or getattr(e, "suggestion", None),
             ) from e
 
     def render_string(
@@ -472,7 +483,7 @@ class KidaTemplateEngine:
                 original_error=e,
                 file_path=getattr(e, "filename", None),
                 line_number=getattr(e, "lineno", None),
-                suggestion=getattr(e, "hint", None),
+                suggestion=getattr(e, "hint", None) or getattr(e, "suggestion", None),
             ) from e
         except Exception as e:
             if hasattr(e, "format_compact"):
@@ -484,7 +495,7 @@ class KidaTemplateEngine:
                 original_error=e,
                 file_path=getattr(e, "filename", None),
                 line_number=getattr(e, "lineno", None),
-                suggestion=getattr(e, "hint", None),
+                suggestion=getattr(e, "hint", None) or getattr(e, "suggestion", None),
             ) from e
 
     def template_exists(self, name: str) -> bool:
@@ -499,7 +510,7 @@ class KidaTemplateEngine:
         try:
             self._env.get_template(name)
             return True
-        except (KidaTemplateNotFoundError, OSError):
+        except KidaTemplateNotFoundError, OSError:
             return False
 
     def get_template_path(self, name: str) -> Path | None:
@@ -563,7 +574,7 @@ class KidaTemplateEngine:
                     # Queue for recursive processing (catches nested includes)
                     to_process.append(ref_name)
 
-            except (AttributeError, TypeError, KeyError, OSError):
+            except AttributeError, TypeError, KeyError, OSError:
                 # Template analysis is optional - don't fail the build
                 continue
 

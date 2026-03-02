@@ -72,7 +72,7 @@ class ShortcodeParams:
             return default
         try:
             return int(float(raw))
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return default
 
     def get_bool(self, key: str | int, default: bool = False) -> bool:

@@ -202,7 +202,7 @@ def humanize_days(days: int) -> str:
     if not isinstance(days, int):
         try:
             days = int(days)
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return ""
 
     if days < 0:
