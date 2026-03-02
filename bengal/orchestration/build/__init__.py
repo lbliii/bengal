@@ -282,9 +282,11 @@ class BuildOrchestrator:
         )
 
         # Attach a diagnostics collector for core-model events (core must not log).
-        from bengal.core.diagnostics import DiagnosticsCollector
+        # Only set when none exists to preserve custom sinks or re-entry diagnostics.
+        if getattr(self.site, "diagnostics", None) is None:
+            from bengal.core.diagnostics import DiagnosticsCollector
 
-        self.site.diagnostics = DiagnosticsCollector()
+            self.site.diagnostics = DiagnosticsCollector()
 
         # Show build header with version
         from bengal import __version__

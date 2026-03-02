@@ -628,7 +628,7 @@ class BuildTrigger:
         Returns:
             True if any changed file is in _shared/
         """
-        if not self.site.versioning_enabled:
+        if not getattr(self.site, "versioning_enabled", False):
             return False
 
         for path in changed_paths:
@@ -657,10 +657,10 @@ class BuildTrigger:
         Returns:
             Set of affected version IDs
         """
-        if not self.site.versioning_enabled:
+        if not getattr(self.site, "versioning_enabled", False):
             return set()
 
-        version_config = self.site.version_config
+        version_config = getattr(self.site, "version_config", None)
         if not version_config or not version_config.enabled:
             return set()
 

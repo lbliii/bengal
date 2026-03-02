@@ -537,11 +537,14 @@ class RenderOrchestrator(
             batch_size = max(max_workers * 2, 1)
             aggregator = ErrorAggregator(total_items=len(sorted_pages))
             threshold = 5
-            ctx = contextvars.copy_context()
 
             for batch in batched(sorted_pages, batch_size, strict=False):
                 future_to_page = {
-                    executor.submit(ctx.run, process_page_with_pipeline, page): page
+                    executor.submit(
+                        contextvars.copy_context().run,
+                        process_page_with_pipeline,
+                        page,
+                    ): page
                     for page in batch
                 }
                 for future in concurrent.futures.as_completed(future_to_page):
@@ -653,11 +656,14 @@ class RenderOrchestrator(
             batch_size = max(max_workers * 2, 1)
             aggregator = ErrorAggregator(total_items=len(sorted_pages))
             threshold = 5
-            ctx = contextvars.copy_context()
 
             for batch in batched(sorted_pages, batch_size, strict=False):
                 future_to_page = {
-                    executor.submit(ctx.run, process_page_with_pipeline, page): page
+                    executor.submit(
+                        contextvars.copy_context().run,
+                        process_page_with_pipeline,
+                        page,
+                    ): page
                     for page in batch
                 }
                 for future in concurrent.futures.as_completed(future_to_page):
@@ -763,11 +769,14 @@ class RenderOrchestrator(
                 batch_size = max(max_workers * 2, 1)
                 aggregator = ErrorAggregator(total_items=len(sorted_pages))
                 threshold = 5
-                ctx = contextvars.copy_context()
 
                 for batch in batched(sorted_pages, batch_size, strict=False):
                     future_to_page = {
-                        executor.submit(ctx.run, process_page_with_pipeline, page): page
+                        executor.submit(
+                            contextvars.copy_context().run,
+                            process_page_with_pipeline,
+                            page,
+                        ): page
                         for page in batch
                     }
                     for future in concurrent.futures.as_completed(future_to_page):

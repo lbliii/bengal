@@ -42,33 +42,6 @@ if TYPE_CHECKING:
     from bengal.utils.observability.profile import BuildProfile
 
 
-def _display_deferred_template_errors(stats: Any) -> None:
-    """
-    Display template errors collected during parallel rendering.
-
-    Errors are collected (not displayed) in worker threads to prevent interleaved
-    output. This function displays them sequentially after rendering completes.
-    """
-    errors = getattr(stats, "template_errors", [])
-    if not errors:
-        return
-
-    from bengal.rendering.errors import display_template_error
-
-    for error in errors:
-        display_template_error(error)
-
-        if getattr(error, "_show_traceback", False):
-            original = getattr(error, "_original_exception", None)
-            if original is not None:
-                try:
-                    from bengal.errors.traceback import TracebackConfig
-
-                    TracebackConfig.from_environment().get_renderer().display_exception(original)
-                except Exception:
-                    pass
-
-
 def _get_top_bottleneck(total_render_ms: float) -> str | None:
     """
     Get the top rendering bottleneck from template profiler.
@@ -687,10 +660,8 @@ def phase_render(
         # Call helper method on orchestrator
         orchestrator._print_rendering_summary()
 
-    # Display collected template errors after rendering (deferred from worker threads
-    # to prevent interleaved output during parallel rendering)
-    if orchestrator.stats is not None:
-        _display_deferred_template_errors(orchestrator.stats)
+    # Template errors are displayed in build command (display_template_errors) to avoid
+    # duplication. Workers collect errors; display happens once after build completes.
 
     # Show summary of suppressed duplicate errors (from build stats)
     if orchestrator.stats is not None:

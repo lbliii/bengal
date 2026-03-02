@@ -6,16 +6,16 @@ by their series membership, enabling efficient series navigation.
 
 Frontmatter Format:
     series:
-  name: "Building a Blog with Bengal"
-  part: 1
-  total: 5
+      name: "Building a Blog with Bengal"
+      part: 1
+      total: 5
 
 Or with id (programmatic lookup) and name (display):
     series:
-  id: nogil
-  name: "Free-Threading in the Bengal Ecosystem"
-  part: 1
-  total: 6
+      id: nogil
+      name: "Free-Threading in the Bengal Ecosystem"
+      part: 1
+      total: 6
 
 Template Usage:
 {# Get all pages in a series (use id when present, else name) #}
