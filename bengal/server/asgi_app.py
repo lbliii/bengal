@@ -179,6 +179,40 @@ def _is_html_path(path: str) -> bool:
     return ext in ("html", "htm")
 
 
+def _resolve_fingerprinted_fallback(output_dir: Path, path: str) -> Path | None:
+    """
+    Resolve non-fingerprinted asset path to fingerprinted file when exact match missing.
+
+    Handles serve-first mismatch: HTML references /assets/css/style.css (dev mode)
+    but disk has style.3575f7ff.css from prior production build. Returns the
+    fingerprinted file if exactly one match exists in the same directory.
+    """
+    import re
+
+    raw = path.split("?")[0].lstrip("/")
+    if not raw.startswith("assets/"):
+        return None
+
+    full = (output_dir / raw).resolve()
+    try:
+        full.relative_to(output_dir.resolve())
+    except ValueError:
+        return None
+
+    parent = full.parent
+    stem = full.stem  # e.g. "style" for style.css
+    suffix = full.suffix  # e.g. ".css"
+
+    # Match style.{8hex}.css or style.{8hex}.js (Bengal fingerprint pattern)
+    pattern = re.compile(re.escape(stem) + r"\.[0-9a-f]{8}\." + re.escape(suffix.lstrip(".")))
+    matches = list(parent.glob(f"{stem}.*{suffix}")) if parent.exists() else []
+    matches = [m for m in matches if pattern.fullmatch(m.name)]
+
+    if len(matches) == 1:
+        return matches[0]
+    return None
+
+
 def _resolve_file_path(output_dir: Path, path: str) -> Path | None:
     """
     Resolve request path to filesystem path under output_dir.
@@ -231,10 +265,16 @@ async def _serve_static(
         else:
             resolved = resolved / "index.html"  # Expected path for 404 case
 
-    # File doesn't exist: always 404 (with badge when build in progress)
+    # File doesn't exist: try fingerprinted fallback for dev server
+    # (serve-first may serve HTML built with fingerprint_assets=False while
+    # assets on disk are fingerprinted from a prior production build)
     if not resolved.is_file():
-        await _send_404(send, output_dir=output_dir, build_in_progress=build_in_progress)
-        return
+        fallback = _resolve_fingerprinted_fallback(output_dir, path)
+        if fallback is not None:
+            resolved = fallback
+        else:
+            await _send_404(send, output_dir=output_dir, build_in_progress=build_in_progress)
+            return
 
     content = await asyncio.to_thread(resolved.read_bytes)
     content_type = get_content_type(str(resolved))

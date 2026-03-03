@@ -58,8 +58,8 @@ Variants:
     <h3 class="blog-card-title">
       <a href="{{ p.href }}">{{ p.title }}</a>
     </h3>
-    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
-    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html((p.excerpt_words ?? config.content.excerpt_words ?? 150) | coerce_int(150), p.title, p.description) | safe }}</div>
+    {% if show_excerpt and (p.excerpt or p.description) and 'content.excerpts' in theme_features %}
+    <div class="blog-card-excerpt">{{ (p.excerpt or p.description) | card_excerpt_html((p.excerpt_words ?? config.content.excerpt_words ?? 150) | coerce_int(150), p.title, p.description) | safe }}</div>
     {% end %}
     {% if p.tags | length > 0 %}
     <div class="blog-card-tags">
@@ -97,8 +97,8 @@ Variants:
     <h3 class="blog-card-title">
       <a href="{{ p.href }}">{{ p.title }}</a>
     </h3>
-    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
-    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html(p.excerpt_words ?? config.content.excerpt_words ?? 150, p.title, p.description, halve_words=true) | safe }}</div>
+    {% if show_excerpt and (p.excerpt or p.description) and 'content.excerpts' in theme_features %}
+    <div class="blog-card-excerpt">{{ (p.excerpt or p.description) | card_excerpt_html(p.excerpt_words ?? config.content.excerpt_words ?? 150, p.title, p.description, halve_words=true) | safe }}</div>
     {% end %}
   </div>
 </article>
@@ -134,8 +134,8 @@ Variants:
     <h3 class="blog-card-title">
       <a href="{{ p.href }}">{{ p.title }}</a>
     </h3>
-    {% if show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
-    <div class="blog-card-excerpt">{{ p.excerpt | card_excerpt_html((p.excerpt_words ?? config.content.excerpt_words ?? 150) | coerce_int(150), p.title, p.description) | safe }}</div>
+    {% if show_excerpt and (p.excerpt or p.description) and 'content.excerpts' in theme_features %}
+    <div class="blog-card-excerpt">{{ (p.excerpt or p.description) | card_excerpt_html((p.excerpt_words ?? config.content.excerpt_words ?? 150) | coerce_int(150), p.title, p.description) | safe }}</div>
     {% end %}
     <div class="blog-card-footer">
       {% if p.tags | length > 0 %}
@@ -143,7 +143,7 @@ Variants:
         {{ tag_list(p.tags[:4]) }}
       </div>
       {% end %}
-      {% let has_excerpt = show_excerpt and p.excerpt and 'content.excerpts' in theme_features %}
+      {% let has_excerpt = show_excerpt and (p.excerpt or p.description) and 'content.excerpts' in theme_features %}
       <a href="{{ p.href }}" class="blog-read-more">{{ t('blog.read_more', default='Read more') if has_excerpt else t('blog.read', default='Read') }} →</a>
     </div>
   </div>

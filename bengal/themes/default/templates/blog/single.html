@@ -145,8 +145,8 @@ MAIN TEMPLATE
     <aside class="blog-toc" role="complementary" aria-label="Table of contents">
             {{ toc_macro(toc_items=toc_items, toc=page.toc, page=page) }}
 
-            {# Newsletter CTA (Optional) - guard against K-RUN-007 (Undefined on parallel render) #}
-            {% if show_newsletter and newsletter_cta is defined and newsletter_cta is callable %}
+            {# Newsletter CTA (Optional) #}
+            {% if show_newsletter %}
             {{ newsletter_cta() }}
             {% end %}
     </aside>
