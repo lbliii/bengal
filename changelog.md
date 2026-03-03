@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## 0.2.5 - 2026-03-03
+
+### Kida 0.2.3
+
+- **config**: add `max_extends_depth` and `max_include_depth` to `kida:` config for sites with deep theme/inheritance chains
+- **deps**: require `kida-templates>=0.2.3`
+
 ## 0.2.4 - 2026-03-02
 
 ### Versioning for MkDocs Migration
@@ -32,12 +39,6 @@
 - **Health**: Refactored link validator with configurable resolution and skip rules
 - **Rendering**: Improved error display when template engine raises errors
 
-## 0.2.5 - 2026-03-03
-
-### Kida 0.2.3
-- **config**: add `max_extends_depth` and `max_include_depth` to `kida:` config for sites with deep theme/inheritance chains
-- **deps**: require `kida-templates>=0.2.3`
-
 ## 0.2.3 - 2026-03-01
 
 ### Default Theme Blog Improvements
@@ -64,11 +65,11 @@
 
 ### Kida & Patitas 0.2.0
 - **Deps**: `kida-templates>=0.2.0`, `patitas>=0.2.0`
-- **Rendering**: Kida structured errors, AST-based block recompilation, fragment fast path
 
 ## 0.1.9 - 2026-02-08
 
 ### 🏗️ Architecture Decomposition ✅
+
 - **core**: split `PageLike` and `SiteLike` into role-based protocols (`SiteConfig`, `SiteContent`, `Summarizable`)
   - Migrate Page → PageLike and Site → SiteLike across 40+ consumer files
   - Narrow protocols to minimal interfaces per consumer (read-only where possible)
@@ -91,6 +92,7 @@
 - **config**: remove deprecated `config/loader.py`, update test imports
 
 ### ⚡ Build Performance Optimizations ✅
+
 - **rendering(output)**: wire `fast_mode` to skip HTML formatting (Phase 1.1)
   - `build.fast_mode=True` now returns raw HTML without pretty-printing or minification
   - Provides ~10-15% speedup for builds with formatting enabled
@@ -106,6 +108,7 @@
 - **core**: pre-compute NavTrees at snapshot time for lock-free lookups
 
 ### 🐍 Python 3.14 Modernization ✅
+
 - **core**: convert to PEP 695 type parameter syntax (`class Foo[T]:` instead of `Generic[T]`)
 - **core**: add `slots=True` to all frozen dataclasses
 - **core**: add exception chaining to raise-in-except blocks
@@ -115,6 +118,7 @@
 - **style**: auto-fix source and test lint violations across codebase
 
 ### 🔒 Thread Safety (Python 3.14t) ✅
+
 - **core(assets)**: ContextVar pattern for thread-safe asset manifest access
   - Fixes TOCTOU race condition in `Site._asset_manifest_cache` for free-threading
   - ~8M ops/sec throughput, zero lock contention
@@ -125,6 +129,7 @@
 - **tests**: add threading integration tests for EffectTracer and BuildTaxonomyIndex
 
 ### 🔧 Cache & Incremental Build Improvements ✅
+
 - **cache**: implement unified CacheCoordinator for coordinated cache invalidation across subsystems
   - Centralized path registry, rebuild manifest, and invalidation coordination
 - **core(cache)**: implement Output Cache Architecture RFC
@@ -141,6 +146,7 @@
 - **server**: enable content-hash change detection; integrate into build_trigger and dev_server
 
 ### 🚀 Developer Experience ✅
+
 - **cli(upgrade)**: add `bengal upgrade` self-update command with PyPI version checking and installer detection (uv/pip)
 - **cli(build)**: add incremental build observability flags (`--explain`, `--dry-run`, `--explain-json`)
 - **cli**: add Python 3.14+ version warning on startup for compatibility awareness
@@ -149,6 +155,7 @@
 - **build**: add `make release`, `make publish`, `make dist` targets with `.env` token support
 
 ### 🎨 Theme Enhancements ✅
+
 - **theme(header)**: add configurable navigation options
   - `nav_position`: left or center alignment
   - `sticky`: fixed header on scroll
@@ -156,12 +163,14 @@
   - CSS variants via `data-nav-position`, `data-sticky`, `data-autohide` attributes
 
 ### 📝 Changelog & Releases Filter ✅
+
 - **core(changelog)**: smart version detection with semantic sorting (semver-aware)
 - **core(changelog)**: simplify releases filter API — always sort by default
 - **core(changelog)**: make releases filter domain-aware; respect content type strategy
 - **templates(changelog)**: trust ChangelogStrategy sorting, fix `sort_by` None handling
 
 ### 🔴 Error System Improvements ✅
+
 - **errors**: consolidate error handling per RFC with 5 new exception classes
   - `BengalParsingError`, `BengalAutodocError`, `BengalValidatorError`, `BengalBuildError`, `BengalTemplateFunctionError`
   - Convert 10 generic exceptions to structured Bengal errors with codes and suggestions
@@ -169,6 +178,7 @@
   - 43 unit+integration tests for error handling
 
 ### 🏗️ Protocol Layer ✅
+
 - **protocols**: add `bengal.protocols` module as central protocol layer
   - Migrate `Cacheable`, `ProgressReporter`, `HighlightService` to shared protocols
   - Documented in architecture docs with protocol layer diagrams
@@ -177,12 +187,14 @@
   - ParserPool, RendererPool, RenderMetadata, RequestContext for framework integration
 
 ### 🔨 Refactoring & Code Health ✅
+
 - **refactor(rendering)**: decompose HtmlRenderer into block/inline/directive modules (Phase 3)
 - **refactor(utils)**: split into domain-aligned sub-packages; extract shared protocols
 - **core**: implement RFC code health improvements (Phase 1-2)
 - **directives**: add Patitas-native glossary directive
 
 ### 📚 Documentation Audit ✅
+
 - **docs**: comprehensive staleness audit across all doc sections
   - Fix stale claims in about, building, content, extending, get-started, reference, and theming sections
   - Align page URL properties to match codebase (`page.href`, `page._path`)
@@ -191,6 +203,7 @@
 - **autodoc**: fix section-index pages blocked by stale URL claims from cache
 
 ### 🔧 CI & Packaging ✅
+
 - **ci**: add `python-publish.yml` GitHub Actions workflow for trusted PyPI publishing
 - **ci**: add `--clean-output` to pages build to fix 404s on `/api/` and `/cli/`
 - **tests**: restore imports stripped by ruff auto-fix in deprecation tests
@@ -198,6 +211,7 @@
 - **tests**: guard bs4 import in integration tests
 
 ### 🐛 Bug Fixes
+
 - **core(taxonomy)**: fix duplicate tag page generation in incremental builds
 - **rendering(link_transformer)**: fix `.md` link normalization to preserve anchor fragments
 - **server(dev)**: fix serve-first not activating when baseurl is `/`
@@ -207,36 +221,43 @@
 - **tests**: fix CI failures from missing module, wrong kwarg, and unimplemented gaps
 
 ### 📦 Dependencies
+
 - Bump `patitas` to >=0.1.1 (adds `_reinit()` for parser pooling)
 - Bump `kida-templates` to >=0.1.2 (RenderContext, profiling support)
 
 ## 0.1.8 - 2026-01-12
 
 ### 🌐 External Linking & Previews ✅
+
 - **external_refs**: add cross-project linking via `[[ext:project:target]]`, template-based resolution, cached index lookups, and `ext()/ext_exists()` helpers; exports `xref.json` during production builds with built-in templates (python stdlib, requests/httpx, pydantic/fastapi/sqlalchemy, numpy/pandas) for consumers
 - **link-previews**: allow cross-site previews for whitelisted hosts with per-host failure thresholds, CORS fetch support, and configurable allowed hosts/schemes
 
 ### ⚙️ Config & Packaging ✅
-- **config(v2)**: migrate to nested config architecture with structured `site.*`/`build.*` accessors, backward-compatible loader alias, and explicit disabled-feature booleans (e.g., `features.rss: false`)
+
+- **config(v2)**: migrate to nested config architecture with structured `site.`*/`build.*` accessors, backward-compatible loader alias, and explicit disabled-feature booleans (e.g., `features.rss: false`)
 - **config**: rename site config `features.yaml` to `outputs.yaml` (compatibility kept) and remove unused `features.syntax_highlighting` toggle
 - **rendering(kida)**: remove bundled Kida engine in favor of external dependency `kida-templates>=0.1.1` (lighter tree; templates still supported)
 
 ### 🧭 CLI & Cache ✅
+
 - **cli(cache)**: add `bengal cache inputs` and `bengal cache hash` commands (JSON/verbose) for deterministic CI cache keys that include the Bengal version
 - **cache/autodoc**: add self-validation of autodoc sources with hash+mtime tracking and stale detection integrated into taxonomy change detection; supports migration from pre-0.1.8 caches
 - **ci/pages**: update GitHub Pages workflow caching logic for accurate invalidation when outputs are missing
 
 ### 📝 Markdown Parser Improvements ✅
+
 - **patitas**: implement container-stack architecture phases 1-4 for lists/blockquote handling, lazy blockquote continuation, and entity parsing fixes; full CommonMark 0.31.2 compliance (652/652 spec examples, no xfails)
 
 ## 0.1.7 - 2026-01-03
 
 ### 🔧 Build & Cache Fixes ✅
+
 - **orchestration**: detect output/cache mismatch and force rebuild when output is missing (fixes CI issues where cache is restored but `public/` is cleaned)
 - **discovery**: fix asset discovery for themes installed in hidden directories (e.g., `.venv`) by checking relative paths for hidden status
 - **core(rendering)**: improve thread safety of global context creation via streamlined locking pattern
 
 ### 🔍 Health Check Improvements ✅
+
 - **health(assets)**: make critical asset checks theme-agnostic (detects missing CSS/JS regardless of theme file names)
 - **health(assets)**: add detection for empty (0-byte) CSS and JavaScript files which cause silent style/interaction failures
 - **health(asset_urls)**: add case-sensitivity validation for asset URLs to prevent "works on macOS, fails on Linux CI" bugs
@@ -245,6 +266,7 @@
 ## 0.1.6 - 2026-01-01
 
 ### 🚀 Kida Template Engine ✅
+
 - **core(kida)**: Pure-Python template engine with Jinja2 compatibility as default
 - **kida**: `{% match %}` pattern matching, pipeline operators `|>`, optional chaining `??`
 - **kida**: `{% while %}` loops, `{% cache %}`, `{% slot %}`, `{% embed %}` components
@@ -256,6 +278,7 @@
 - **engines**: Add `EngineCapability` enum and capabilities protocol for engine-agnostic templates
 
 ### 🚀 Patitas Markdown Parser ✅
+
 - **core(parsers)**: Add Patitas as default markdown parser with typed AST and O(n) lexer
 - **patitas**: Directive and role systems for extensible markup (Phase 2)
 - **patitas(directives)**: Complete Bengal directive migration — 54 handlers with full parity
@@ -263,6 +286,7 @@
 - **patitas(parser)**: Fix list termination when followed by non-indented paragraph
 
 ### 🚀 Rosettes Syntax Highlighter ✅
+
 - **rosettes**: Pure-Python syntax highlighter for Python 3.14t (no GIL re-enablement)
 - **rosettes**: Now available as standalone package: [pypi.org/project/rosettes](https://pypi.org/project/rosettes/)
 - **lexers**: 55 language support including tree, myst, jinja2, configs, diagrams
@@ -271,12 +295,14 @@
 - **syntax-highlighter**: Add Kida template syntax highlighting v1.1.0
 
 ### 🔧 Error System Adoption ✅
+
 - **errors**: Comprehensive error codes across all packages (A/B/C/D/N/O/V/X series)
 - **errors**: Session tracking with `record_error()` for silent failure detection
 - **errors**: Actionable suggestions in all error messages
 - Packages adopted: cache, config, collections, content_layer, autodoc, health, assets, orchestration, postprocess, themes, analysis
 
 ### ⚡ Algorithm Optimizations (Big O) ✅
+
 - **cache**: Reverse dependency graph for O(1) affected pages lookup
 - **cache(taxonomy)**: Reverse index for O(1) page-to-tags lookup
 - **cache(query_index)**: Set-based storage for O(1) page operations
@@ -288,6 +314,7 @@
 - **content_layer**: LocalSource 2.5x faster, GitHubSource 10x faster, NotionSource 3x faster
 
 ### 🔒 Thread Safety (Python 3.14t) ✅
+
 - **core**: Thread-safe locking for free-threading support across critical paths
 - **directives/cache**: Add `DirectiveCache._lock` for concurrent access
 - **icons/resolver**: Add `_icon_lock` for thread-safe icon resolution
@@ -295,11 +322,13 @@
 - **rendering/context**: Double-check locking patterns for template context
 
 ### 🔧 Type System Hardening ✅
+
 - **types**: Replace `Any` across 4 phases (protocols, critical paths, directives, template functions)
 - **types**: Add TypedDict and Protocol definitions for type refinement
 - **directives(options)**: Fix cache inheritance bug in `DirectiveOptions.from_raw()`
 
 ### 📦 Autodoc Improvements ✅
+
 - **autodoc(openapi)**: REST API layouts with three-panel scroll-sync navigation
 - **autodoc**: Migration from Jinja2 to Kida template engine
 - **filters(views)**: Add PostView, ReleaseView, AuthorView, TagView filters
@@ -307,27 +336,32 @@
 - **rendering(openapi)**: Add endpoints/schemas filters for normalized template access
 
 ### ⚡ Performance Improvements ✅
+
 - **health**: Remove redundant validators (saves 312ms/build)
 - **health(directives)**: Remove H207 rendering check (saves 1s/build)
 - **themes(docs-nav)**: Convert recursive include to macro (13x faster rendering)
 - **cache**: All auxiliary caches migrated to compressed `.json.zst` format
-- **perf**: ~40% reduction in `.bengal/` directory size (~2.8M savings)
+- **perf**: ~~40% reduction in `.bengal/` directory size (~~2.8M savings)
 
 ### 🔍 Health Check Improvements ✅
+
 - **health**: Add H-prefix codes to all health check results (H0xx-H9xx schema)
 - **health**: Add `--ignore` CLI option for selective validation
 - **health(autofix)**: O(1) dict lookup for fence fixes
 
 ### 🛠️ Template Functions ✅
+
 - **template_functions**: Add 13 new filters (dates, collections, sharing, archive helpers)
 - **core(page)**: Implement RFC Template Object Model Phase 1 — add `_source`, `word_count` properties
 
 ### 📝 Documentation Fixes ✅
+
 - **docs**: 15+ accuracy fixes across versioning, i18n, authoring, filtering, menus, sources, deployment, benchmarks
 - **docs(kida)**: Add Template Engine Concepts crash course
 - **docs(site)**: Add language designators to 62 code blocks for Rosettes highlighting
 
 ### 🔧 Core Changes ✅
+
 - **server**: Remove component preview feature
 - **core**: Remove module/package shadowing; delete unused backward-compat shims
 - **autodoc**: Remove backward compatibility aliases and legacy code
@@ -335,6 +369,7 @@
 ## 0.1.5-rc1 - 2025-12-10
 
 ### Page Hero Template Separation ✅
+
 - **templates(page-hero)**: refactor monolithic `page-hero-api.html` (250+ lines) into modular components
 - **templates(page-hero)**: add `_share-dropdown.html` - extracted AI share dropdown component (~100 lines)
 - **templates(page-hero)**: add `_wrapper.html` - shared wrapper with breadcrumbs and share dropdown (~40 lines)
@@ -350,6 +385,7 @@
 - **docs**: document new template structure and `hero_context` usage in theming guide
 
 ### Centralized `.bengal/` Cache Directory ✅
+
 - **cache(paths)**: add `BengalPaths` class as single source of truth for all `.bengal/` directory paths
 - **cache(paths)**: add `STATE_DIR_NAME` constant for consistent directory naming
 - **cache(paths)**: add `migrate_template_cache()` helper for backwards-compatible migration
@@ -363,6 +399,7 @@
 - **docs**: document `.bengal/` directory structure in QUICKSTART.md
 
 ### Proactive Template Validation ✅
+
 - **rendering(template_engine)**: add `validate_templates()` method for proactive syntax checking
 - **rendering(template_engine)**: enable Jinja2 `do` extension for template statements (`{% do list.append(x) %}`)
 - **orchestration(build)**: add optional template validation phase (runs before content discovery)
@@ -373,6 +410,7 @@
 - **docs(plan)**: RFC and implementation plan moved to completed
 
 ### Media Embed Directives ✅
+
 - **rendering(directives/video)**: add `YouTubeDirective` with privacy-enhanced mode (youtube-nocookie.com) by default
 - **rendering(directives/video)**: add `VimeoDirective` with Do Not Track mode by default
 - **rendering(directives/video)**: add `SelfHostedVideoDirective` for native HTML5 video playback
@@ -392,6 +430,7 @@
 - **docs(rfc)**: RFC moved to implemented
 
 ### Directive System v2 ✅
+
 - **rendering(directives)**: add named closer syntax `:::{/name}` for closing directives without fence-depth counting
 - **rendering(directives)**: add `BengalDirective` base class for typed directives with standardized parsing and rendering
 - **rendering(directives)**: add `DirectiveToken` dataclass for typed AST tokens replacing ad-hoc dictionaries
@@ -409,6 +448,7 @@
 - **docs**: add comprehensive `README.md` for directive system with named closers and migration guide
 
 ### Template Functions Robustness ✅
+
 - **rendering(strings)**: fix `truncatewords_html` to preserve HTML structure and close tags properly
 - **rendering(strings)**: add `filesize` filter wrapping `humanize_bytes` for human-readable file sizes
 - **rendering(strings)**: add warning log for invalid regex patterns in `replace_regex`
@@ -419,6 +459,7 @@
 - **docs**: RFC moved to completed
 
 ### Autodoc Incremental Build Support ✅
+
 - **server(dev_server)**: watch autodoc source directories (Python `source_dirs`, OpenAPI spec files) for changes
 - **server(build_handler)**: add `_should_regenerate_autodoc()` to detect when autodoc sources change and trigger rebuilds
 - **cache(autodoc_tracking)**: new `AutodocTrackingMixin` for tracking source file → autodoc page dependencies
@@ -430,6 +471,7 @@
 - **docs**: RFC moved to implemented
 
 ### Autodoc Resilience Improvements ✅
+
 - **autodoc(virtual_orchestrator)**: add `AutodocRunResult` summary dataclass tracking extraction/rendering successes and failures
 - **autodoc(virtual_orchestrator)**: update `generate()` to return `(pages, sections, result)` tuple for observability
 - **autodoc(config)**: add `autodoc.strict` config flag (default `false`) for fail-fast mode in CI/CD
@@ -441,6 +483,7 @@
 - **docs(autodoc)**: document strict mode, run summaries, and fallback tagging in README
 
 ### Typed Metadata Access (Phase 6) ✅
+
 - **autodoc(utils)**: add 14 typed metadata access helpers with fallback (`get_python_class_bases`, `get_openapi_tags`, etc.)
 - **autodoc(virtual_orchestrator)**: migrate `.metadata.get()` calls to typed helpers for OpenAPI endpoints
 - **autodoc(extractors/python)**: use typed helpers for property detection and inheritance
@@ -450,6 +493,7 @@
 - **docs**: RFC moved to completed
 
 ### Typed Autodoc Models (Phase 1) ✅
+
 - **autodoc(models)**: create typed metadata dataclasses replacing untyped `metadata: dict[str, Any]`
 - **autodoc(models/common)**: add `SourceLocation` and `QualifiedName` with validation
 - **autodoc(models/python)**: add `PythonModuleMetadata`, `PythonClassMetadata`, `PythonFunctionMetadata`, `PythonAttributeMetadata`, `PythonAliasMetadata`
@@ -461,6 +505,7 @@
 - **docs**: RFC and plan moved to implemented
 
 ### Silent Error Elimination ✅
+
 - **config(env_overrides)**: upgrade exception logging from DEBUG to WARNING for user-impacting failures with helpful hints
 - **utils(theme_registry)**: add structured logging to `assets_exists`, `manifest_exists`, `resolve_resource_path`, and `get_installed_themes` methods
 - **health(rendering)**: add logging to SEO page check failures with page context
@@ -480,6 +525,7 @@
 - **docs**: RFC moved to implemented
 
 ### TemplateEngine Package Decoupling ✅
+
 - **rendering(template_engine)**: decouple 861-line monolithic `template_engine.py` into focused package structure
 - **rendering(template_engine/core)**: create thin facade class composing `MenuHelpersMixin`, `ManifestHelpersMixin`, `AssetURLMixin`
 - **rendering(template_engine/environment)**: extract `create_jinja_environment()`, `resolve_theme_chain()`, `read_theme_extends()`
@@ -491,6 +537,7 @@
 - **docs**: RFC moved to implemented
 
 ### Virtual Section Page Reference Fix ✅
+
 - **core(page)**: fix critical bug where virtual pages had flat navigation instead of hierarchical
 - **core(page)**: add `_section_url` field for URL-based section lookups (virtual sections have `path=None`)
 - **core(page)**: update `_section` setter/getter to use URL for virtual sections, path for regular sections
@@ -501,6 +548,7 @@
 - **docs**: RFC moved to implemented
 
 ### Centralized Path Resolution Architecture ✅
+
 - **utils**: add `PathResolver` utility class for consistent path resolution relative to site root
 - **utils(path_resolver)**: add `resolve()`, `resolve_many()`, `resolve_if_exists()` for flexible resolution
 - **utils(path_resolver)**: add security methods `is_within_base()` and `relative_to_base()` for path traversal protection
@@ -510,6 +558,7 @@
 - **docs**: RFC moved to implemented
 
 ### Documentation Cleanup ✅
+
 - **site(homepage)**: simplify to focus on features and getting started
 - **README**: streamline to essential info only
 - **docs(about)**: remove philosophy/positioning content, keep practical info
@@ -520,10 +569,11 @@
 - **plan**: move marketing-positioning-strategy.md to implemented/
 
 ### Progressive Enhancements Architecture ✅
+
 - **themes(js)**: add `bengal-enhance.js` (~1.5KB) progressive enhancement loader with registry, auto-discovery, and lazy-loading
 - **themes(js)**: add `enhancements/` directory with modular enhancement scripts (`theme-toggle`, `mobile-nav`, `tabs`, `toc`)
 - **themes(js)**: unified `data-bengal` attribute pattern for declaring enhancements (e.g., `<div data-bengal="tabs">`)
-- **themes(js)**: enhancement configuration via additional `data-*` attributes (booleans, numbers, JSON parsed automatically)
+- **themes(js)**: enhancement configuration via additional `data-`* attributes (booleans, numbers, JSON parsed automatically)
 - **themes(js)**: MutationObserver watches for dynamic content and auto-enhances new elements
 - **themes(base.html)**: load enhancement loader before other scripts; add configuration for base URL and debug mode
 - **themes(base.html)**: add `data-bengal` attributes to mobile-nav, back-to-top, and lightbox components
@@ -532,6 +582,7 @@
 - **docs**: add enhancement README with usage examples and custom enhancement guide
 
 ### Systematic Observability Improvements ✅
+
 - **utils**: add `observability.py` module with `ComponentStats` dataclass and `HasStats` protocol for standardized stats collection
 - **utils(observability)**: `ComponentStats` provides uniform interface for counts, cache metrics, sub-timings, and custom metrics
 - **utils(observability)**: `format_summary()` produces compact CLI output with processing/skip/cache/timing stats
@@ -545,6 +596,7 @@
 - **docs**: RFC moved to implemented
 
 ### Build-Integrated Validation ✅
+
 - **health**: add tiered validation with `build`, `full`, and `ci` tiers for configurable health check granularity
 - **health**: add `_is_validator_in_tier()` method for tier-based validator filtering
 - **health(directives)**: use cached content from BuildContext, eliminating redundant disk I/O (4.6s → 64ms)
@@ -555,6 +607,7 @@
 - **docs**: RFC moved to implemented
 
 ### Zstandard Cache Compression (PEP 784) ✅
+
 - **cache**: add `compression.py` module with Zstd utilities using Python 3.14's `compression.zstd` (PEP 784)
 - **cache(CacheStore)**: save cache files as `.json.zst` with 92-93% size reduction (12-14x compression)
 - **cache(CacheStore)**: auto-detect format on load for seamless migration from uncompressed `.json`
@@ -566,6 +619,7 @@
 - **ci**: compressed caches reduce CI/CD transfer size by 16x (1.6MB → 100KB)
 
 ### Parallel Health Check Validators ✅
+
 - **health**: run validators in parallel using `ThreadPoolExecutor` for 50-70% faster health checks
 - **health**: add `_run_validators_parallel()` method with auto-scaling worker count
 - **health**: add `_run_validators_sequential()` method for workloads below threshold
@@ -580,6 +634,7 @@
 - **tests**: add `test_health_check.py` with 21 tests for parallel execution, auto-scaling, and observability
 
 ### Remove Experimental Reactive Dataflow Pipeline ❌
+
 - **pipeline**: remove `bengal/pipeline/` module (15 files) - experimental reactive dataflow system had fundamental architectural gaps
 - **cli(build)**: remove `--pipeline` flag from build command
 - **cli(serve)**: remove `--pipeline` flag from serve command
@@ -590,6 +645,7 @@
 - **Note**: `RenderingPipeline` (page rendering) and `assets.pipeline` (SCSS/PostCSS) are unrelated and retained
 
 ### Directive Registry - Single Source of Truth ✅
+
 - **rendering(directives)**: add `DIRECTIVE_NAMES` class attribute to all 27 directive classes
 - **rendering(directives)**: add `DIRECTIVE_CLASSES` registry and `get_known_directive_names()` function
 - **rendering(directives)**: replace manual `KNOWN_DIRECTIVE_NAMES` with computed version from class attributes
@@ -597,6 +653,7 @@
 - **health**: health check now uses single source of truth from rendering package (no more drift)
 
 ### Page Visibility System ✅
+
 - **core(page)**: add `hidden` frontmatter shorthand for unlisted pages (excludes from nav, listings, sitemap, search, RSS)
 - **core(page)**: add `visibility` object for granular control (menu, listings, sitemap, robots, render, search, rss)
 - **core(page)**: add `in_listings`, `in_sitemap`, `in_search`, `in_rss`, `robots_meta` properties
@@ -610,6 +667,7 @@
 - **themes(default)**: add visual indicator banner for hidden pages in dev server
 
 ### Documentation Information Architecture Overhaul
+
 - **docs(ia)**: reorganize documentation by feature dimensions (content, theming, building, extending) instead of Diataxis types
 - **docs(tutorials)**: create dedicated tutorials section for guided learning journeys
 - **docs(content)**: add content dimension with organization, authoring, collections, sources, and reuse sections
@@ -620,10 +678,10 @@
 - **docs(snippets)**: add `_snippets/` directory for reusable content fragments (install, prerequisites, warnings)
 - **docs(navigation)**: add URL aliases for backward compatibility with previous structure
 - **docs(get-started)**: rename getting-started/ to get-started/ with streamlined quickstarts
-
 - **docs**: update build pipeline concepts with reactive pipeline section
 
 ### Content Layer API (Remote Content Sources)
+
 - **content_layer**: add unified content abstraction for fetching from any source (local, GitHub, REST APIs, Notion)
 - **content_layer(entry)**: add `ContentEntry` dataclass as source-agnostic content representation
 - **content_layer(source)**: add `ContentSource` abstract base class defining the loader protocol
@@ -641,6 +699,7 @@
 - **content_layer(loaders)**: fix incorrect `bengal[github]` references to `bengal[rest]` in rest_loader
 
 ### Cache & Incremental Build Improvements
+
 - **cache**: add global config hashing for automatic cache invalidation when configuration changes
 - **config**: add `compute_config_hash()` utility for deterministic hashing of resolved config state
 - **cache(build_cache)**: add `config_hash` field and `validate_config()` method for config-based invalidation
@@ -648,7 +707,8 @@
 - **core(site)**: compute and expose `config_hash` property capturing effective configuration state
 
 ### Code Quality & Contributor Experience
-- **orchestration(build)**: refactor 894-line `build()` method into 20 focused `_phase_*` methods (~50-100 lines each)
+
+- **orchestration(build)**: refactor 894-line `build()` method into 20 focused `_phase_`* methods (~50-100 lines each)
 - **orchestration(build)**: fix duplicate phase numbers (two "Phase 5.5", two "Phase 9") with sequential renumbering
 - **orchestration(build)**: add comprehensive docstrings to all phase methods documenting purpose and side effects
 - **utils(build_context)**: extend BuildContext dataclass with all fields needed for phase method communication
@@ -659,12 +719,14 @@
 - **postprocess(output_formats)**: consolidate duplicate `strip_html`/`generate_excerpt` to use `bengal.utils.text`
 
 ### CLI UX Improvements
+
 - **cli(site)**: deprecate `bengal site new` in favor of `bengal new site` (hidden from help, shows warning)
 - **cli(new)**: add interactive baseurl prompt during site creation (skipped with `--no-init`)
 - **cli(new)**: enforce `questionary` as core dependency (remove try/except fallback)
 - **cli(health)**: hide 8 advanced linkcheck options from `--help` (still functional when used)
 
 ### Security & Robustness Hardening (Phase 1)
+
 - **rendering(link_validator)**: implement actual internal link validation with URL resolution and page URL index lookup
 - **rendering(include)**: add `MAX_INCLUDE_SIZE` (10MB) file size limit to prevent memory exhaustion from large includes
 - **rendering(include/literalinclude)**: reject symlinks to prevent path traversal attacks
@@ -672,6 +734,7 @@
 - **discovery**: handle permission errors gracefully when walking directories
 
 ### Feature Correctness Hardening (Phase 2)
+
 - **utils**: add `file_lock` module for cross-platform file locking (fcntl on Unix, msvcrt on Windows)
 - **cache**: integrate file locking into `BuildCache.save()`/`load()` for concurrent build safety
 - **cache**: refactor save/load into separate lock acquisition and file I/O methods for clarity
@@ -679,6 +742,7 @@
 - **rendering(template_engine)**: template cycles already handled by Jinja2 native detection + rich error formatting
 
 ### Developer Experience Hardening (Phase 3)
+
 - **rendering(i18n)**: add debug warning for missing translation keys with once-per-key deduplication
 - **rendering(i18n)**: add `reset_translation_warnings()` for build isolation
 - **rendering(template_engine)**: add visible stderr warning when theme not found (in addition to log)
@@ -686,6 +750,7 @@
 - **postprocess(rss)**: skip RSS generation gracefully when no pages have dates
 
 ### Health Check System Enhancements (Phase 1 & 2)
+
 - **health**: add incremental validation with result caching (Phase 1)
 - **health**: extend BuildCache with validation_results field for caching CheckResult objects
 - **health**: add CheckResult serialization (to_cache_dict/from_cache_dict) for caching
@@ -704,6 +769,7 @@
 - **cache**: bump BuildCache.VERSION to 2 for validation_results field
 
 ### Theme Configuration Consolidation ✅
+
 - **themes(config)**: consolidate theme configuration into single `theme.yaml` file
 - **themes(config)**: add `ThemeConfig` dataclass with `load()` method for validated configuration
 - **themes(config)**: add `FeatureFlags`, `AppearanceConfig`, `IconConfig` nested dataclasses
@@ -712,6 +778,7 @@
 - **docs**: RFC-001 moved to implemented
 
 ### Lazy Build Artifacts ✅
+
 - **utils(build_context)**: add lazy `knowledge_graph` property to eliminate 3x redundant graph construction
 - **orchestration(postprocess)**: use `build_context.knowledge_graph` instead of building local graph
 - **orchestration(streaming)**: accept `build_context` and use shared knowledge graph
@@ -720,6 +787,7 @@
 - **docs**: RFC moved to implemented
 
 ### Progressive Enhancements Architecture ✅
+
 - **themes(js)**: formalize `data-bengal` attribute pattern for declaring enhancements
 - **themes(js)**: add central enhancement registry with auto-discovery
 - **themes(js)**: implement conditional script loading for all enhancements
@@ -727,6 +795,7 @@
 - **docs**: RFC moved to implemented
 
 ### Orchestrator Performance Improvements ✅
+
 - **cache(build_cache)**: add `rendered_output` cache for full HTML caching
 - **cache(build_cache)**: add `FileFingerprint` with mtime+size fast path (~200ms saved)
 - **rendering(template_engine)**: leverage Jinja2 `FileSystemBytecodeCache` for template caching
@@ -736,6 +805,7 @@
 - **docs**: RFC Phase 1 & 2 moved to implemented
 
 ### Utility Extraction and Consolidation ✅
+
 - **utils(hashing)**: consolidate SHA256 hashing utilities from 12+ files into single module
 - **utils(retry)**: extract exponential backoff retry logic with sync and async variants
 - **utils(thread_local)**: add `ThreadLocalCache[T]` generic class for thread-safe caching
@@ -745,6 +815,7 @@
 ## 0.1.4 - 2025-11-25
 
 ### Configuration System Overhaul (MAJOR)
+
 - **config**: introduce directory-based configuration system with `config/_default/`, `environments/`, and `profiles/` support
 - **config**: add environment-aware configuration with auto-detection (Netlify, Vercel, GitHub Actions)
 - **config**: add build profiles (`writer`, `theme-dev`, `dev`) for optimized workflows
@@ -754,20 +825,24 @@
 - **cli**: add `--environment/-e` and `--profile` flags to build and serve commands
 
 ### Assets & Build Pipeline
+
 - **core/assets**: add deterministic `asset-manifest.json`, manifest-driven `asset_url` resolution, CLI inspection (`bengal assets status`), stale fingerprint cleanup, and `--clean-output` builds to keep dev/prod CSS in sync
 - **assets**: improve fingerprint handling and cleanup of stale artifacts
 
 ### HTML Output Formatting (NEW!)
+
 - **rendering**: add safe HTML formatter with three modes (raw/pretty/minify)
 - **config**: add `[html_output]` configuration section with per-page `no_format` override
 - **rendering**: integrate HTML formatter before write with comprehensive test coverage
 
 ### Health & Validation
+
 - **health**: add async link checker with comprehensive validation (`bengal health linkcheck`)
 - **health**: auto-build site and purge cache before checking links to eliminate false positives
 - **cli**: add `--traceback` flag for configurable traceback display
 
 ### Core Architecture Improvements
+
 - **core(page)**: refactor PageProxy to wrap PageCore directly for better cache-proxy contract enforcement
 - **core(page)**: add PageCore dataclass with cacheable fields, simplifying cache operations
 - **core(site)**: add path-based section registry with O(1) lookup for stable section references
@@ -776,12 +851,14 @@
 - **orchestration**: simplify cache save operations using PageCore composition
 
 ### Autodoc Enhancements
+
 - **autodoc**: add URL grouping with auto-detection, explicit prefix mapping, and off modes
 - **autodoc**: add alias detection and inherited member synthesis with configurable display
 - **autodoc**: keep auto grouping scoped to top-level packages
 - **autodoc**: update navigation block and template fixes
 
 ### CLI Enhancements
+
 - **cli**: add command metadata system for discovery and documentation
 - **cli**: add progress feedback to long-running operations
 - **cli**: standardize CLIOutput usage across all commands
@@ -790,6 +867,7 @@
 - **cli**: improve help text and command organization
 
 ### Theme & CSS Improvements
+
 - **themes(css)**: complete CSS modernization phases 1-4 with logical properties, nesting, container queries, and modern features
 - **themes(css)**: consolidate typography to single `.prose` system; remove `.has-prose-content`; simplify page-header
 - **themes**: enhance mermaid toolbar with pan/zoom and reliable initialization
@@ -800,12 +878,14 @@
 - **fix(css)**: correct `@supports` syntax to use property-value pairs for W3C validation
 
 ### Rendering & Content
+
 - **rendering(cards)**: add explanation variant with enhanced list/table styling
 - **rendering**: balance header nav padding; reduce bottom padding to match top
 - **server**: fix spurious dev server reloads and enable proper live reload injection
 - **server**: force full rebuild on file create/delete/move events to preserve section relationships
 
 ### Documentation
+
 - **docs(site)**: add concepts section with configuration, assets, and output formats documentation
 - **docs(templates)**: update README to reflect `.prose-only` typography system
 - **docs**: add spacing optimization summary and CSS modernization progress tracking
