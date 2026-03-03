@@ -97,6 +97,23 @@ BuildTrigger queues changes when a build is in progress. Reactive path handles s
 
 ---
 
+## Surgical Tier Extension
+
+The reactive path (Tier 1 BODY_ONLY) is extended by **surgical warm rebuild** tiers:
+
+| Tier | Trigger | Handler | Latency |
+|------|---------|---------|---------|
+| 1 BODY_ONLY | Single .md, frontmatter unchanged | ReactiveContentHandler | ~5ms |
+| 2 FRONTMATTER | Single .md, frontmatter changed (title, weight, etc.) | SurgicalRebuildHandler | ~20ms |
+| 3a CASCADE | Single _index.md, cascade block changed | SurgicalRebuildHandler | ~100ms |
+| 3b FULL | Structural, template, config, multi-file | site.build | 500ms+ |
+
+- **Config**: `dev.surgical_rebuild` (default true) toggles Tier 2/3a; Tier 1 is always used when applicable.
+- **Tags fallback**: Taxonomy changes (tags/categories) fall back to full rebuild.
+- **Plan**: See `plan/rfc-output-directory-isolation.md` and related surgical rebuild RFCs.
+
+---
+
 ## Relationship to Output Cache RFC
 
 - Content hash embedding: `embed_content_hash()`, `extract_content_hash()` in [bengal/rendering/pipeline/output.py](bengal/rendering/pipeline/output.py)

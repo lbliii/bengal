@@ -1047,6 +1047,7 @@ MIGRATION_MAP: dict[str, str] = {
     "watch_backend": "dev.watch_backend",
     "live_reload": "dev.live_reload",
     "port": "dev.port",
+    "surgical_rebuild": "dev.surgical_rebuild",
 }
 
 FLAT_KEYS = frozenset(MIGRATION_MAP.keys())

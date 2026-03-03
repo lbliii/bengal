@@ -31,11 +31,12 @@ Rebuild Flow:
 6. ReloadController decides reload type (CSS-only vs full)
 7. LiveReload notifies connected browsers
 
-Rebuild Decisions:
-- Created/deleted files → Full rebuild (structural change)
-- Modified content files → Incremental rebuild
+Rebuild Decisions (tiered model):
+- Tier 1 BODY_ONLY: Single .md, frontmatter unchanged → reactive path (~5ms)
+- Tier 2 FRONTMATTER: Single .md, frontmatter changed (title, weight, etc.) → patch + re-render (~20ms)
+- Tier 3a CASCADE: Single _index.md, cascade block changed → subtree rebuild (~100ms)
+- Tier 3b FULL: Structural (created/deleted/moved), template/config, multi-file → full prepare_for_rebuild
 - Modified CSS/assets → CSS-only hot reload (if no template changes)
-- Navigation frontmatter changes → Full rebuild (affects menus/breadcrumbs)
 
 Related:
 - bengal/server/watcher_runner.py: Calls BuildTrigger on changes
@@ -177,8 +178,14 @@ class BuildTrigger:
         # Instance-level caches (3.14t: avoid ClassVar mutable state)
         self._frontmatter_cache: dict[Path, FrontmatterCacheEntry] = {}
         self._content_hash_cache: dict[Path, ContentHashCacheEntry] = {}
+        # Page index for surgical rebuild (path -> page)
+        self._page_index: dict[Path, Any] = {}
+        # Cascade block hashes for _index.md (path -> hash)
+        self._cascade_block_hashes: dict[Path, str] = {}
         # Track last successful build for error context
         self._last_successful_build: datetime | None = None
+        # Canonical live output_dir for double-buffer swap (set once, never changes)
+        self._live_output_dir: Path = site.output_dir
 
     def trigger_build(
         self,
@@ -232,13 +239,6 @@ class BuildTrigger:
 
             # Trigger another build if changes were queued during this build
             if queued_changes:
-                # Stabilization delay: Give browsers time to fetch updated assets
-                # before the next build potentially replaces them again.
-                # This prevents CSS disappearing during rapid edit sequences.
-                # 100ms is enough for most browser requests to complete while
-                # keeping the feedback loop fast.
-                time.sleep(0.1)
-
                 logger.info(
                     "build_queued_changes_triggering",
                     queued_count=len(queued_changes),
@@ -269,8 +269,29 @@ class BuildTrigger:
                 first_file = Path(changed_files[0]).name
                 file_name = f"{first_file} (+{file_count - 1} more)"
 
-            # Determine build strategy
-            needs_full_rebuild = self._needs_full_rebuild(changed_paths, event_types)
+            # Classify change for tiered rebuild (surgical warm rebuild)
+            dev_config = (self.site.config or {}).raw if hasattr(self.site.config, "raw") else (self.site.config or {})
+            surgical_enabled = dev_config.get("dev", {}).get("surgical_rebuild", True)
+
+            from bengal.server.change_classifier import (
+                RebuildTier,
+                classify_change,
+            )
+
+            scope = classify_change(
+                changed_paths,
+                event_types,
+                self._content_hash_cache,
+                self._cascade_block_hashes,
+                self.site,
+                is_template_change=self._is_template_change(changed_paths),
+                should_regenerate_autodoc=self._should_regenerate_autodoc(changed_paths),
+                is_shared_content_change=self._is_shared_content_change(changed_paths),
+                is_version_config_change=self._is_version_config_change(changed_paths),
+                is_svg_icon_change=self._is_svg_icon_change(changed_paths),
+            )
+
+            needs_full_rebuild = scope.tier == RebuildTier.FULL
             nav_changed_files = self._detect_nav_changes(changed_paths, needs_full_rebuild)
             structural_changed = bool({"created", "deleted", "moved"} & event_types)
 
@@ -278,7 +299,7 @@ class BuildTrigger:
                 "rebuild_triggered",
                 changed_file_count=file_count,
                 changed_files=changed_files[:10],
-                build_strategy="full" if needs_full_rebuild else "incremental",
+                build_strategy=scope.tier,
                 structural_changed=structural_changed,
             )
 
@@ -289,13 +310,11 @@ class BuildTrigger:
             show_building_indicator("Rebuilding")
 
             # RFC: Output Cache Architecture - Capture content hash baseline BEFORE build
-            # This enables accurate change detection vs regeneration noise
             if self._reload_controller._use_content_hashes:
                 self._reload_controller.capture_content_hash_baseline(self.site.output_dir)
 
             # Run pre-build hooks
             config = self.site.config or {}
-            # run_pre_build_hooks expects a dict, use .raw for serialization
             config_dict = config.raw if hasattr(config, "raw") else config
             if not run_pre_build_hooks(config_dict, self.site.root_path):
                 show_error("Pre-build hook failed - skipping build", show_art=False)
@@ -303,9 +322,9 @@ class BuildTrigger:
                 logger.error("rebuild_skipped", reason="pre_build_hook_failed")
                 return
 
-            # Reactive path: content-only edit skips full build
-            if not needs_full_rebuild and self._can_use_reactive_path(changed_paths, event_types):
-                path = next(iter(changed_paths))
+            # Tier 1: BODY_ONLY - reactive path
+            if scope.tier == RebuildTier.BODY_ONLY and scope.changed_page is not None:
+                path = scope.changed_page
                 from bengal.core.output import OutputType
                 from bengal.server.reactive import ReactiveContentHandler
                 from bengal.server.reload_types import SerializedOutputRecord
@@ -370,12 +389,93 @@ class BuildTrigger:
                         fallback="full_build",
                     )
 
+            # Tier 2/3a: FRONTMATTER or CASCADE - surgical path (when enabled)
+            if (
+                surgical_enabled
+                and scope.changed_page is not None
+                and scope.tier in (RebuildTier.FRONTMATTER, RebuildTier.CASCADE)
+                and not scope.tags_changed
+            ):
+                from bengal.core.output import OutputType
+                from bengal.server.reload_types import SerializedOutputRecord
+                from bengal.server.surgical_handler import (
+                    SurgicalRebuildHandler,
+                    _build_page_index,
+                )
+
+                page_index = self._page_index or _build_page_index(self.site)
+                handler = SurgicalRebuildHandler(self.site, self._live_output_dir)
+                try:
+                    if scope.tier == RebuildTier.FRONTMATTER:
+                        output_paths = handler.handle_frontmatter_change(
+                            scope.changed_page, scope, page_index
+                        )
+                    else:
+                        output_paths = handler.handle_cascade_change(
+                            scope.changed_page, page_index
+                        )
+                    if output_paths:
+                        self._update_content_hash_after_surgical(scope.changed_page)
+                        if scope.tier == RebuildTier.CASCADE:
+                            self._update_cascade_hash(scope.changed_page)
+                        changed_outputs = tuple(
+                            SerializedOutputRecord(
+                                path=str(p),
+                                type_value=OutputType.HTML.value,
+                                phase="render",
+                            )
+                            for p in output_paths
+                        )
+                        self._display_stats(
+                            type(
+                                "SurgicalResult",
+                                (),
+                                {
+                                    "success": True,
+                                    "pages_built": len(output_paths),
+                                    "build_time_ms": 0,
+                                    "error_message": None,
+                                    "changed_outputs": changed_outputs,
+                                    "reload_hint": None,
+                                },
+                            )(),
+                            use_incremental=True,
+                        )
+                        if run_post_build_hooks(config_dict, self.site.root_path) is False:
+                            logger.warning("post_build_hook_failed", action="continuing")
+                        cli.server_url_inline(host=self.host, port=self.port)
+                        cli.request_log_header()
+                        self._last_successful_build = datetime.now()
+                        get_dev_server_state().record_success()
+                        self._handle_reload(
+                            BuildReloadInfo(
+                                changed_files=tuple(changed_files),
+                                changed_outputs=changed_outputs,
+                                reload_hint=None,
+                            )
+                        )
+                        self._clear_html_cache()
+                        return
+                except Exception as e:
+                    logger.warning(
+                        "surgical_path_failed",
+                        error=str(e),
+                        fallback="full_build",
+                    )
+
+            # Tier 3b: FULL - warm build
             # Create build options for warm build
             use_incremental = not needs_full_rebuild
 
             # Warm build: reuse the existing site object instead of creating a new one
             # This eliminates Site.from_config() overhead (~250ms per rebuild)
             from bengal.orchestration.build.options import BuildOptions
+            from bengal.server.output_swap import (
+                SwapConfig,
+                commit_staging,
+                prepare_staging,
+                rollback_staging,
+            )
             from bengal.utils.observability.profile import BuildProfile
 
             # Reset all per-build mutable state in one call.
@@ -397,11 +497,22 @@ class BuildTrigger:
             if self.version_scope:
                 self.site.config["_version_scope"] = self.version_scope
 
+            # Double-buffer: build writes to staging, then atomic swap into live.
+            # The ASGI app always reads from the live path, so requests during
+            # build see the previous complete output — never partial state.
+            swap_config = SwapConfig.from_output_dir(self._live_output_dir)
+            staging = prepare_staging(swap_config)
+            self.site.output_dir = staging
+
             # Execute warm build directly on the existing site
             build_start = time.time()
             try:
                 stats = self.site.build(options=build_opts)
                 build_duration = time.time() - build_start
+
+                # Restore output_dir before swap (commit_staging renames the dirs)
+                self.site.output_dir = self._live_output_dir
+                commit_staging(swap_config)
 
                 # Build succeeded - convert stats to result-like object for display
                 class WarmBuildResult:
@@ -433,9 +544,15 @@ class BuildTrigger:
 
                 # Seed content hash cache so first edit can use reactive path
                 self.seed_content_hash_cache(list(self.site.pages))
+                # Rebuild page index and cascade hashes for surgical path
+                self._rebuild_page_index()
+                self._seed_cascade_block_hashes()
 
             except Exception as e:
-                # Build crashed - log error and reinitialize site for next build
+                # Build crashed — discard staging, live dir is untouched
+                self.site.output_dir = self._live_output_dir
+                rollback_staging(swap_config)
+
                 build_duration = time.time() - build_start
                 error_msg = str(e)
 
@@ -469,6 +586,7 @@ class BuildTrigger:
                     logger.info("warm_build_recovery", action="reinitializing_site")
                     self.site = Site.from_config(self.site.root_path)
                     self.site.dev_mode = True
+                    self._live_output_dir = self.site.output_dir
                 except Exception as reinit_error:
                     logger.error(
                         "warm_build_recovery_failed",
@@ -578,15 +696,8 @@ class BuildTrigger:
             return True
 
         # Check for SVG icon changes (inlined in HTML)
-        for path in changed_paths:
-            path_str = to_posix(path)
-            if (
-                path.suffix.lower() == ".svg"
-                and "/themes/" in path_str
-                and "/assets/icons/" in path_str
-            ):
-                logger.debug("full_rebuild_triggered_by_svg", file=str(path))
-                return True
+        if self._is_svg_icon_change(changed_paths):
+            return True
 
         # RFC: rfc-versioned-docs-pipeline-integration
         # Check for shared content changes (forces full rebuild for versioned sites)
@@ -691,6 +802,19 @@ class BuildTrigger:
                         break
 
         return affected
+
+    def _is_svg_icon_change(self, changed_paths: set[Path]) -> bool:
+        """Check if any changed path is an SVG icon in themes."""
+        for path in changed_paths:
+            path_str = to_posix(path)
+            if (
+                path.suffix.lower() == ".svg"
+                and "/themes/" in path_str
+                and "/assets/icons/" in path_str
+            ):
+                logger.debug("full_rebuild_triggered_by_svg", file=str(path))
+                return True
+        return False
 
     def _is_version_config_change(self, changed_paths: set[Path]) -> bool:
         """
@@ -911,6 +1035,60 @@ class BuildTrigger:
                 first_key = next(iter(self._content_hash_cache))
                 del self._content_hash_cache[first_key]
             self._content_hash_cache[abs_path] = entry
+
+    def _rebuild_page_index(self) -> None:
+        """Rebuild page index for surgical path (path -> page)."""
+        index: dict[Path, Any] = {}
+        for p in self.site.pages:
+            src = getattr(p, "source_path", None)
+            if src is None:
+                continue
+            path = Path(src) if not isinstance(src, Path) else src
+            try:
+                index[path.resolve()] = p
+            except (OSError, ValueError):
+                continue
+        self._page_index = index
+
+    def _seed_cascade_block_hashes(self) -> None:
+        """Hash cascade blocks of all _index.md for change detection."""
+        from bengal.server.change_classifier import _hash_cascade_block, _extract_frontmatter
+
+        for page in self.site.pages:
+            src = getattr(page, "source_path", None)
+            if src is None:
+                continue
+            path = Path(src) if not isinstance(src, Path) else src
+            if path.name != "_index.md":
+                continue
+            try:
+                resolved = path.resolve()
+            except (OSError, ValueError):
+                continue
+            parsed = _extract_frontmatter(resolved)
+            if parsed is None:
+                continue
+            fm, _ = parsed
+            self._cascade_block_hashes[resolved] = _hash_cascade_block(fm)
+
+    def _update_content_hash_after_surgical(self, path: Path) -> None:
+        """Update content hash cache after surgical rebuild."""
+        entry = self._compute_content_hashes(path)
+        if entry is not None:
+            resolved = path.resolve()
+            if len(self._content_hash_cache) >= self._content_hash_cache_max:
+                first_key = next(iter(self._content_hash_cache))
+                del self._content_hash_cache[first_key]
+            self._content_hash_cache[resolved] = entry
+
+    def _update_cascade_hash(self, path: Path) -> None:
+        """Update cascade block hash after cascade surgical rebuild."""
+        from bengal.server.change_classifier import _hash_cascade_block, _extract_frontmatter
+
+        parsed = _extract_frontmatter(path)
+        if parsed is not None:
+            fm, _ = parsed
+            self._cascade_block_hashes[path.resolve()] = _hash_cascade_block(fm)
 
     def _get_template_dirs(self) -> list[Path]:
         """

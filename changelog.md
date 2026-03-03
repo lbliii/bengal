@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+### Surgical Warm Rebuild
+- **Tiered rebuilds**: BODY_ONLY (reactive ~5ms), FRONTMATTER (patch ~20ms), CASCADE (subtree ~100ms), FULL (full build)
+- **Page.patch()**: In-place metadata/content update for frontmatter-only edits
+- **dev.surgical_rebuild**: Config toggle (default true) to enable tiered rebuilds
+- **Tags fallback**: Taxonomy changes (tags/categories) fall back to full rebuild
+
 ## 0.2.4 - 2026-03-02
 
 ### Versioning for MkDocs Migration

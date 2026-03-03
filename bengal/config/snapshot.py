@@ -113,12 +113,14 @@ class DevSection:
         watch_backend: Watch for backend changes in dev server
         live_reload: Enable live reload in dev server
         port: Dev server port number
+        surgical_rebuild: Enable tiered rebuilds (FRONTMATTER/CASCADE) instead of full build
     """
 
     cache_templates: bool = True
     watch_backend: bool = True
     live_reload: bool = True
     port: int = 8000
+    surgical_rebuild: bool = True
 
 
 @dataclass(frozen=True, slots=True)
