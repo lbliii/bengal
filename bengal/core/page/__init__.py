@@ -403,6 +403,61 @@ class Page(
         if updates:
             self.core = replace(self.core, **updates)
 
+    def patch(self, new_metadata: dict[str, Any], new_content: str) -> set[str]:
+        """
+        Surgically update this page's metadata and content.
+
+        Used by surgical rebuild for Tier 2 (frontmatter) edits. Replaces
+        metadata/content, rebuilds core, syncs tags/version/aliases, and
+        invalidates all caches in the correct order.
+
+        Returns:
+            Set of changed frontmatter keys for impact analysis.
+        """
+        old_metadata = dict(self._raw_metadata)
+        changed_keys = {
+            k
+            for k in set(old_metadata) | set(new_metadata)
+            if old_metadata.get(k) != new_metadata.get(k)
+        }
+
+        self._raw_metadata = new_metadata
+        self._raw_content = new_content
+
+        # Sync fields that __post_init__ copies from metadata
+        self.tags = list(new_metadata.get("tags", []))
+        self.version = new_metadata.get("version")
+        self.aliases = list(new_metadata.get("aliases", []))
+
+        # Rebuild core from new metadata
+        self._init_core_from_fields()
+
+        # Invalidate ALL caches
+        self._metadata_view_cache = None
+        self._metadata_view_cache_key = None
+        self._frontmatter = None
+        self._ast_cache = None
+        self._html_cache = None
+        self._plain_text_cache = None
+        self._toc_items_cache = None
+        self._excerpt = None
+        self._meta_description = None
+        self.html_content = None
+        self.toc = None
+
+        # Clear cached_property fields
+        for prop in (
+            "word_count",
+            "reading_time",
+            "excerpt",
+            "meta_description",
+            "bundle_type",
+            "resources",
+        ):
+            self.__dict__.pop(prop, None)
+
+        return changed_keys
+
     @property
     def is_virtual(self) -> bool:
         """

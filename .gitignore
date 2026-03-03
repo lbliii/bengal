@@ -52,6 +52,8 @@ Thumbs.db
 public/
 .bengal/
 .bengal.pid
+.staging/
+.public.old/
 *.log
 site/conent/cli/
 site/content/api/

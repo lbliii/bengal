@@ -757,6 +757,10 @@ def card_excerpt_html(
     if description and plain:
         plain = _strip_leading_duplicate(plain, description)
     plain = plain.strip()
+    # When excerpt equals description (common for frontmatter-only posts),
+    # stripping leaves empty. Fall back to truncated original instead of "".
+    if not plain and original_plain:
+        return truncatewords_html(prepped, words, suffix)
     if not plain:
         return ""
     # Find where stripped content starts in HTML (skip leading duplicate)

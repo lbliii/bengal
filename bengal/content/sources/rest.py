@@ -46,6 +46,11 @@ class RESTSource(ContentSource):
             strategy: str - "link_header" or "cursor"
             cursor_field: str - Field containing next cursor
 
+    Frontmatter types:
+        Values from JSON are passed through; no coercion. Common fields: title (str),
+        date (str/datetime), weight (int/str), tags (list). When templates use
+        page.weight in arithmetic, apply | coerce_int if API returns string.
+
     Example:
             >>> source = RESTSource("blog", {
             ...     "url": "https://api.example.com/posts",

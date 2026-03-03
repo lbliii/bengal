@@ -4,7 +4,10 @@
 # Run `poe --help` to see all available tasks
 # =============================================================================
 # This Makefile is kept for compatibility but poe is the preferred task runner.
-# Wraps uv commands to ensure Python 3.14t is used
+# Wraps uv commands to ensure Python 3.14t is used.
+#
+# Workspace (b-stack): Bengal uses the workspace .venv at b-stack root. Run
+#   uv sync --group dev   from b-stack/ first. No local bengal/.venv.
 
 PYTHON_VERSION ?= 3.14t
 VENV_DIR ?= .venv
@@ -35,10 +38,18 @@ help:
 	@echo "  make shell    - Start a shell with the environment activated"
 
 setup:
+	@if [ -d "../.venv" ] && [ ! -d "$(VENV_DIR)" ]; then \
+		echo "Workspace mode: use 'uv sync --group dev' from b-stack/ (parent)."; \
+		exit 0; \
+	fi
 	@echo "Creating virtual environment with Python $(PYTHON_VERSION)..."
 	uv venv --python $(PYTHON_VERSION) $(VENV_DIR)
 
 install:
+	@if [ -d "../.venv" ] && [ ! -d "$(VENV_DIR)" ]; then \
+		echo "Workspace mode: run 'uv sync --group dev' from b-stack/."; \
+		exit 0; \
+	fi
 	@echo "Installing dependencies..."
 	@if [ ! -d "$(VENV_DIR)" ]; then \
 		echo "Error: $(VENV_DIR) not found. Run 'make setup' first."; \
@@ -119,7 +130,7 @@ gh-release:
 # =============================================================================
 
 clean:
-	rm -rf $(VENV_DIR)
+	@if [ -d "$(VENV_DIR)" ]; then rm -rf $(VENV_DIR); fi
 	rm -rf build/ dist/ *.egg-info site/public
 	find . -type d -name "__pycache__" -exec rm -rf {} +
 	find . -type d -name ".pytest_cache" -exec rm -rf {} +
@@ -127,5 +138,13 @@ clean:
 	find . -type d -name ".ty_cache" -exec rm -rf {} +
 
 shell:
-	@echo "Activating environment with GIL disabled..."
-	@bash -c 'source $(VENV_DIR)/bin/activate && export PYTHON_GIL=0 && echo "✓ venv active, GIL disabled" && exec bash'
+	@ACTIVATE="$(VENV_DIR)/bin/activate"; \
+	if [ ! -f "$$ACTIVATE" ] && [ -f "../.venv/bin/activate" ]; then \
+		ACTIVATE="../.venv/bin/activate"; \
+	fi; \
+	if [ ! -f "$$ACTIVATE" ]; then \
+		echo "Error: no venv. Run 'uv sync --group dev' from b-stack/."; \
+		exit 1; \
+	fi; \
+	echo "Activating environment with GIL disabled..."; \
+	bash -c 'source '"$$ACTIVATE"' && export PYTHON_GIL=0 && echo "✓ venv active, GIL disabled" && exec bash'

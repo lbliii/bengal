@@ -1,0 +1,64 @@
+---
+description: site.data and get_data type expectations; use coerce_int for numeric filters
+---
+
+# Data Contract
+
+Values from `site.data` and `get_data()` have type uncertainty. YAML and JSON can produce strings or numbers for the same logical value. Use typed access when passing to filters.
+
+## Sources
+
+| Source | Location | Behavior |
+|--------|----------|----------|
+| **site.data** | `data/` directory | `scan_data_directory` → `wrap_data` (DotDict). Nested dicts wrapped; lists preserved |
+| **get_data(path)** | Any path under root | `load_data_file` with `on_error="return_empty"`. Returns `{}` on missing/invalid |
+
+## Type Expectations
+
+- **Parsed as-is** — YAML can produce `"5"` (str) or `5` (int) for the same value
+- **JSON preserves types** — `json.loads` returns int, float, str, list, dict as parsed
+- **No coercion at load** — Values pass through from file parsers
+
+## DotDict Behavior
+
+- **Missing keys** return `""` (empty string), not `None`
+- **Nested dicts** auto-wrapped in DotDict for dot notation
+- **Lists** preserved; dicts inside lists also wrapped
+
+## Template Access
+
+When passing `site.data.X` or `get_data(...)` to filters that expect numeric params:
+
+- Use `| coerce_int` or `| coerce_int(default)` before arithmetic
+- Use filters that coerce internally (e.g. `percentage`, `divided_by`)
+
+```kida
+{# If site.data.stats.count may be string from YAML #}
+{{ site.data.stats.count | coerce_int(0) | times(100) }}
+
+{# get_data returns {} on missing file #}
+{% let products = get_data('data/products.json') %}
+{% for p in products %}
+  {{ p.price | coerce_int(0) | times(1.1) }}
+{% end %}
+```
+
+## Error Handling
+
+- **get_data**: Returns `{}` on missing file, invalid JSON/YAML, or unsupported format
+- **scan_data_directory**: Silently skips files that fail to load (no build error)
+- **Supported formats**: `.json`, `.yaml`, `.yml`, `.toml`
+
+## Known Keys
+
+Common `site.data` keys used in themes:
+
+- `site.data.authors` — Author registry (build-a-multi-author-blog, blog/single.html)
+- `site.data.tracks` — Product/course tracks
+- `site.data.products` — Product catalog
+
+## Related
+
+- [Filter Type Coercion](../filter-type-coercion/) — coerce_int pattern for filters
+- [Shortcode Contract](../shortcode-contract/) — site.data in shortcode context
+- [Data Files doc](../../../../site/content/docs/content/data-files.md) — Author-facing guide

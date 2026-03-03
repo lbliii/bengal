@@ -1,0 +1,41 @@
+---
+description: Shortcode templates receive string params; use typed access for numeric/bool
+---
+
+# Shortcode Contract
+
+Shortcode templates receive arguments as **strings** from Markdown. Use typed accessors for numeric and boolean params to avoid TypeError (same pattern as filter-type-coercion).
+
+## Canonical Typed Access
+
+| Method | Use When | Example |
+|--------|----------|---------|
+| `shortcode.Get("key", default)` | String params | `shortcode.Get("src", "")` |
+| `shortcode.GetInt("key", default)` | Numeric params (cols, count, limit) | `shortcode.GetInt("cols", 3)` |
+| `shortcode.GetBool("key", default)` | Boolean params | `shortcode.GetBool("lazy", true)` |
+
+YAML and Markdown pass values as strings. `GetInt` and `GetBool` coerce at access time.
+
+## Context Keys
+
+Shortcode templates receive:
+
+- `page` — Current page
+- `site` — Site instance
+- `config` — Site config
+- `site.data` — Data from `data/` directory (DotDict). Same type uncertainty as shortcode params; use typed access when passing to filters (e.g. `site.data.products | map(attribute='price') | sum` — coerce if price may be string)
+- `shortcode` — ShortcodeContext with Get, GetInt, GetBool, Inner, Params, Parent
+- `Params` — Alias for shortcode.Params (dict or list)
+- `Inner` — Inner content (paired shortcodes)
+- `Get` — Alias for shortcode.Get
+
+## Unknown Shortcodes
+
+- `shortcodes.strict: true` — Build fails when unknown shortcode is used
+- `shortcodes.strict: false` — Unknown shortcodes are skipped (default)
+
+## Related
+
+- [Filter Type Coercion](../filter-type-coercion/) — Same coercion pattern for template filters
+- [Data Contract](../data-contract/) — site.data type expectations
+- [Shortcodes doc](../../../site/content/docs/extending/shortcodes.md) — User-facing guide

@@ -522,6 +522,17 @@ class PageProxy:
         """
         # PageProxy paths are already relative from cache - no normalization needed
 
+    def patch(self, new_metadata: dict[str, Any], new_content: str) -> set[str]:
+        """
+        Surgically update metadata and content (delegates to full page).
+
+        Used by surgical rebuild. Ensures full page is loaded, then patches it.
+        """
+        self._ensure_loaded()
+        if self._full_page and hasattr(self._full_page, "patch"):
+            return self._full_page.patch(new_metadata, new_content)
+        return set()
+
     @property
     def related_posts(self) -> list[Page]:
         """Get related posts (lazy-loaded)."""

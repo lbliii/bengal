@@ -88,3 +88,23 @@ def test_card_excerpt_html_with_string_excerpt_words_dirty_config(tmp_path: Path
     assert "This is the actual" in html
     assert "My Post" not in html
     assert html.strip().endswith("...")
+
+
+def test_card_excerpt_html_excerpt_equals_description_returns_truncated(tmp_path: Path) -> None:
+    """When excerpt equals description, stripping yields empty; fall back to truncated original."""
+    site = Site(root_path=tmp_path, config={"title": "Test"})
+    engine = TemplateEngine(site)
+
+    # excerpt == description (frontmatter-only post, product desc, changelog summary)
+    # Stripping title+desc removes everything -> should NOT return ""
+    html = engine.render_string(
+        "{{ excerpt | card_excerpt_html(5, title, desc) | safe }}",
+        {
+            "excerpt": "A short summary for the card.",
+            "title": "My Post",
+            "desc": "A short summary for the card.",
+        },
+    )
+    assert html.strip() != ""
+    assert "short" in html or "summary" in html
+    assert html.strip().endswith("...")

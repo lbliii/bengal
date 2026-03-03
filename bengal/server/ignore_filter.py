@@ -84,6 +84,9 @@ class IgnoreFilter:
             ".coverage",
             # Bengal cache directory
             ".bengal",
+            # Dev server output swap (double-buffer staging/rollback)
+            ".staging",
+            ".public.old",
         }
     )
 

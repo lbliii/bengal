@@ -211,6 +211,11 @@ class DevServer:
 
             baseurl_was_cleared = self._prepare_dev_config()
 
+            # Clean up leftover swap artifacts from prior crashed runs
+            from bengal.server.output_swap import cleanup_swap_artifacts
+
+            cleanup_swap_artifacts(self.site.output_dir)
+
             # 3. Determine startup strategy: serve-first or build-first
             # Serve-first when: cache exists AND baseurl wasn't cleared
             has_cache = self._has_cached_output()

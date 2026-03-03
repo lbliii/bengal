@@ -146,6 +146,26 @@ class SiteLifecycleMixin:
 
         self._page_lookup_maps = None
 
+    def prepare_for_surgical_rebuild(self) -> None:
+        """
+        Reset only derived state for surgical rebuilds.
+
+        Preserves: pages, sections, cascade_snapshot (the "database")
+        Clears: taxonomies, menus, xref, caches (derived from pages)
+
+        Used when Tier 2/3a handlers need to rebuild taxonomies or menus
+        after patching pages, without re-discovering content.
+        """
+        self.taxonomies = {}
+        self.menu = {}
+        self.menu_builders = {}
+        self.menu_localized = {}
+        self.menu_builders_localized = {}
+        self.xref_index = {}
+        self.invalidate_page_caches()
+        self.invalidate_regular_pages_cache()
+        self._page_lookup_maps = None
+
     def build(
         self,
         options: BuildOptions | BuildInput,

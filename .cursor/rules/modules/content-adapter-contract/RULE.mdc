@@ -1,0 +1,39 @@
+---
+description: ContentSource protocol; ContentEntry frontmatter types; same coercion rules as shortcode params
+---
+
+# Content Adapter Contract
+
+ContentSource implementations (LocalSource, RESTSource, GitHubSource) yield ContentEntry objects. When wired into the build, frontmatter flows to Page metadata and templates. Values from sources have type uncertainty — same coercion rules as shortcode params and site.data.
+
+**Note**: ContentSource is not yet wired into the build pipeline. The build uses filesystem content discovery directly. This rule documents the contract for future integration and for external/plugin use.
+
+## ContentSource Protocol
+
+- **fetch_all()** — AsyncIterator[ContentEntry]
+- **fetch_one(id)** — ContentEntry | None
+- **ContentEntry.to_page_kwargs()** — Converts to Page constructor kwargs when integration exists
+
+## ContentEntry.frontmatter
+
+- **Values from source** — JSON, YAML, or API response; types preserved
+- **No coercion at adapter** — RESTSource passes JSON values through; LocalSource/GitHubSource pass parsed YAML
+- **Template impact** — When wired: frontmatter → Page metadata → templates. Use `| coerce_int` for numeric fields when API returns string
+
+## RESTSource
+
+- **frontmatter_fields** — Mapping of frontmatter keys to JSON paths
+- **No coercion** — Values from `json.loads` passed through
+- **Common fields** — title (str), date (str/datetime), weight (int/str), tags (list). API may return `"5"` for weight; templates should coerce
+
+## Contract for Adapter Authors
+
+- Document expected frontmatter shape in adapter docstring or config
+- Optional: add `coerce_fields: ["weight"]` in RESTSource for proactive coercion (defer unless needed)
+- When templates use `page.weight` in arithmetic or `page.date | dateformat`, ensure types match — add `coerce_int` for weight if API returns string
+
+## Related
+
+- [Filter Type Coercion](../filter-type-coercion/) — coerce_int pattern
+- [Data Contract](../data-contract/) — site.data type expectations
+- [Shortcode Contract](../shortcode-contract/) — Same typed-access pattern

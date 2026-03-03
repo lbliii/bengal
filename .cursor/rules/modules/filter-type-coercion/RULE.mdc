@@ -8,6 +8,10 @@ Values from YAML, config, and cache can arrive as strings. Python 3 does not all
 mixed-type comparisons (`int <= str` raises `TypeError`). Template filters that
 accept numeric params must coerce at entry.
 
+**Data sources**: Values from `site.data`, `get_data`, and ContentEntry frontmatter
+have the same type uncertainty as shortcode params. Filters that receive these
+must coerce.
+
 ## Template Conventions
 
 - **Avoid arithmetic on YAML/config values** — Do not use `//`, `/`, `%` directly
@@ -67,6 +71,31 @@ def format_date(value: str, fmt: str = "%Y-%m-%d") -> str:
 
 - 6 functions in `bengal/rendering/template_functions/math_functions.py`
 
+### Candidates for @template_safe (Opportunistic)
+
+- `card_excerpt_html`, `truncatewords_html`, `excerpt_for_card` — receive YAML/config values, can raise
+- `dateformat`, numeric filters — same
+
+## Semantic Edge Cases (Content-Transform Filters)
+
+Filters that transform user content (excerpt, description, body, product text, changelog summary) must document:
+
+- **Input types and coercion** — Use `coerce_int` for numeric params
+- **Semantic edge cases** — When stripping/derivation yields empty but original exists
+- **Fallback behavior** — Return truncated original, not `""`
+
+### Examples
+
+| Pattern | Example | Fallback |
+|---------|---------|----------|
+| excerpt == description | Frontmatter-only post; excerpt and description identical | `card_excerpt_html` falls back to truncated original |
+| product desc == title | Product card; description duplicates title | Same pattern: truncate original |
+| changelog summary == version | Changelog entry; summary is only version string | `excerpt_for_card` returns `""` (intended: no extra content) |
+
+### Rule
+
+When a content-transform filter strips leading duplicates (title, description) and the result is empty, but the original content exists: **fall back to truncated original** instead of returning `""`. This applies to blog cards, product grids, changelog summaries, dashboard widgets.
+
 ## ConfigSnapshot
 
 `ConfigSnapshot.from_dict` uses `coerce_int` for all numeric content fields
@@ -86,3 +115,9 @@ Verified coerce_int at entry for numeric params:
 | card_excerpt_html | words, halve_words | coerce_int(words, 30); halve_words=true halves internally |
 | get_pagination_items | current_page, total_pages, window | coerce_int each |
 | Paginator | per_page | coerce_int(per_page, 10) |
+
+## Related
+
+- [Data Contract](../data-contract/) — site.data and get_data type expectations
+- [Shortcode Contract](../shortcode-contract/) — Same coercion pattern for shortcode params
+- [Content Adapter Contract](../content-adapter-contract/) — ContentEntry frontmatter types
