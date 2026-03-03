@@ -660,6 +660,9 @@ def phase_render(
         # Call helper method on orchestrator
         orchestrator._print_rendering_summary()
 
+    # Template errors are displayed in build command (display_template_errors) to avoid
+    # duplication. Workers collect errors; display happens once after build completes.
+
     # Show summary of suppressed duplicate errors (from build stats)
     if orchestrator.stats is not None:
         orchestrator.stats.get_error_deduplicator().display_summary()

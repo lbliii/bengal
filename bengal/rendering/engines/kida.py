@@ -243,9 +243,7 @@ class KidaTemplateEngine:
             # breadcrumbs
             from bengal.rendering.template_functions.navigation import breadcrumbs
 
-            self._env.globals["breadcrumbs"] = lambda page: breadcrumbs.get_breadcrumbs(
-                page, self.site
-            )
+            self._env.globals["breadcrumbs"] = lambda page: breadcrumbs.get_breadcrumbs(page)
         except ImportError:
             pass
 
@@ -385,7 +383,7 @@ class KidaTemplateEngine:
                 line_number=getattr(e, "lineno", None),
             ) from e
         except TypeError as e:
-            # Enhanced error message for "NoneType is not callable"
+            # Enhanced error messages for common template callable errors
             error_str = str(e).lower()
             if (
                 "'nonetype' object is not callable" in error_str
@@ -413,6 +411,17 @@ class KidaTemplateEngine:
                     ),
                     original_error=e,
                 ) from e
+            if "_undefined" in error_str and "not callable" in error_str:
+                raise BengalRenderingError(
+                    message=(
+                        f"Template '{name}': A macro from {{% from X import y %}} resolved to "
+                        "Undefined. Check that the imported template defines the macro. "
+                        "If this occurs during parallel builds, try --no-parallel."
+                    ),
+                    original_error=e,
+                    suggestion="Check that the imported template defines the macro. "
+                    "If this occurs during parallel builds, try --no-parallel.",
+                ) from e
             raise BengalRenderingError(
                 message=f"Template render error in '{name}': {e}",
                 original_error=e,
@@ -430,7 +439,7 @@ class KidaTemplateEngine:
                 original_error=e,
                 file_path=getattr(e, "filename", None),
                 line_number=getattr(e, "lineno", None),
-                suggestion=getattr(e, "hint", None),
+                suggestion=getattr(e, "hint", None) or getattr(e, "suggestion", None),
             ) from e
 
     def render_string(
@@ -487,7 +496,7 @@ class KidaTemplateEngine:
                 original_error=e,
                 file_path=getattr(e, "filename", None),
                 line_number=getattr(e, "lineno", None),
-                suggestion=getattr(e, "hint", None),
+                suggestion=getattr(e, "hint", None) or getattr(e, "suggestion", None),
             ) from e
         except Exception as e:
             if hasattr(e, "format_compact"):
@@ -499,7 +508,7 @@ class KidaTemplateEngine:
                 original_error=e,
                 file_path=getattr(e, "filename", None),
                 line_number=getattr(e, "lineno", None),
-                suggestion=getattr(e, "hint", None),
+                suggestion=getattr(e, "hint", None) or getattr(e, "suggestion", None),
             ) from e
 
     def template_exists(self, name: str) -> bool:

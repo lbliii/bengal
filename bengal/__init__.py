@@ -4,9 +4,19 @@ Bengal SSG - A pythonic static site generator.
 
 from __future__ import annotations
 
+from importlib.metadata import PackageNotFoundError, version
 from typing import TYPE_CHECKING, Any
 
-__version__ = "0.2.3"
+
+def _get_version() -> str:
+    """Single source of truth: pyproject.toml via installed package metadata."""
+    try:
+        return version("bengal")
+    except PackageNotFoundError:
+        return "0.0.0"
+
+
+__version__ = _get_version()
 __author__ = "Bengal Contributors"
 
 if TYPE_CHECKING:

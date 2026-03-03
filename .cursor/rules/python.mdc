@@ -40,6 +40,10 @@ class MyClass[T]:   # not class MyClass(Generic[T])
     pass
 ```
 
+### Exception Syntax (PEP 758)
+Ruff format with py314 converts `except (A, B):` → `except A, B:`. Both are valid in 3.14.
+If pre-commit fails with "Files were modified", run `poe format` then `git add -A && git commit` again.
+
 ### Bugbear (B) - Avoid
 ```python
 # B006: No mutable default args

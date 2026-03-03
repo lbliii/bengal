@@ -139,7 +139,7 @@ class BuildTrigger:
 
     def __init__(
         self,
-        site: Any,
+        site: SiteLike,
         host: str = "localhost",
         port: int = 5173,
         executor: BuildExecutor | None = None,
@@ -294,7 +294,7 @@ class BuildTrigger:
                 self._reload_controller.capture_content_hash_baseline(self.site.output_dir)
 
             # Run pre-build hooks
-            config = getattr(self.site, "config", {}) or {}
+            config = self.site.config or {}
             # run_pre_build_hooks expects a dict, use .raw for serialization
             config_dict = config.raw if hasattr(config, "raw") else config
             if not run_pre_build_hooks(config_dict, self.site.root_path):
@@ -426,7 +426,7 @@ class BuildTrigger:
                             if hasattr(stats, "changed_outputs")
                             else ()
                         )
-                        self.reload_hint = getattr(stats, "reload_hint", None)
+                        self.reload_hint = stats.reload_hint
                         self._stats = stats
 
                 result = WarmBuildResult(stats, build_duration)
@@ -887,7 +887,7 @@ class BuildTrigger:
         (watchfiles yields absolute paths). Without this, the first edit after
         startup misses the cache and falls through to a full warm build.
         """
-        root = getattr(self.site, "root_path", None)
+        root = self.site.root_path
         for page in pages:
             src = getattr(page, "source_path", None)
             if src is None:
@@ -929,7 +929,7 @@ class BuildTrigger:
 
         assert bengal.__file__ is not None, "bengal module has no __file__"
         bengal_dir = Path(bengal.__file__).parent
-        root_path = getattr(self.site, "root_path", None)
+        root_path = self.site.root_path
 
         if not root_path:
             self._template_dirs = []
@@ -940,7 +940,7 @@ class BuildTrigger:
             root_path / "themes",
         ]
 
-        theme = getattr(self.site, "theme", None)
+        theme = self.site.theme
         if theme:
             bundled = bengal_dir / "themes" / theme / "templates"
             dirs.append(bundled)
@@ -984,7 +984,7 @@ class BuildTrigger:
                 cache_path = self.site.paths.build_cache
                 if cache_path.exists():
                     cache = BuildCache.load(cache_path)
-                    cache.site_root = getattr(self.site, "root_path", None)
+                    cache.site_root = self.site.root_path
             except Exception:
                 cache = None
 
@@ -1143,16 +1143,13 @@ class BuildTrigger:
 
         # Primary: typed outputs from build
         if changed_outputs:
-            from bengal.core.output import OutputRecord, OutputType
+            from bengal.core.output import OutputType
 
             records = []
             for rec in changed_outputs:
                 try:
-                    output_type = OutputType(rec.type_value)
                     if rec.phase in ("render", "asset", "postprocess"):
-                        records.append(
-                            OutputRecord(Path(rec.path), output_type, rec.phase)  # type: ignore[arg-type]
-                        )
+                        records.append(rec.to_output_record())
                 except ValueError, TypeError:
                     logger.debug("invalid_output_type", path=rec.path, type_val=rec.type_value)
 

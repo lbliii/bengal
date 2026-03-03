@@ -36,7 +36,7 @@ jobs:
           uv-${{ runner.os }}-
 
     - name: Install dependencies
-      run: uv sync --group dev
+      run: uv sync --no-sources --group dev
 
     - name: Fast test suite (unit tests only)
       timeout-minutes: 15
@@ -76,7 +76,7 @@ jobs:
           uv-${{ runner.os }}-
 
     - name: Install dependencies
-      run: uv sync --group dev
+      run: uv sync --no-sources --group dev
 
     - name: Run targeted baseurl portability tests
       timeout-minutes: 10
@@ -127,7 +127,7 @@ jobs:
           uv-${{ runner.os }}-
 
     - name: Install dependencies
-      run: uv sync --group dev
+      run: uv sync --no-sources --group dev
 
     - name: Integration tests (shard ${{ matrix.group }}/4)
       env:
@@ -182,7 +182,7 @@ jobs:
           uv-${{ runner.os }}-
 
     - name: Install dependencies
-      run: uv sync --group dev
+      run: uv sync --no-sources --group dev
 
     - name: Run slow tests
       timeout-minutes: 30
@@ -214,7 +214,7 @@ jobs:
           uv-${{ runner.os }}-
 
     - name: Install dependencies
-      run: uv sync --group dev
+      run: uv sync --no-sources --group dev
 
     - name: Run stateful tests (xdist hardened)
       timeout-minutes: 30
@@ -246,7 +246,7 @@ jobs:
           uv-${{ runner.os }}-
 
     - name: Install dependencies
-      run: uv sync --group dev
+      run: uv sync --no-sources --group dev
 
     - name: Run performance tests
       timeout-minutes: 30

@@ -30,6 +30,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.parsing.protocols import RichMarkdownParser
 from bengal.protocols import SiteLike
 from bengal.rendering.api_doc_enhancer import set_enhancer_for_render
 
@@ -189,7 +190,8 @@ class RenderingPipeline:
                 # Expose resolver for health checks (unresolved external refs)
                 site.external_ref_resolver = external_ref_resolver
 
-            self.parser.enable_cross_references(  # type: ignore[union-attr]
+            rich_parser = cast(RichMarkdownParser, self.parser)
+            rich_parser.enable_cross_references(
                 site.xref_index, version_config, cross_version_tracker, external_ref_resolver
             )
         self.quiet = quiet
@@ -267,7 +269,7 @@ class RenderingPipeline:
             from bengal.rendering.api_doc_enhancer import get_enhancer
 
             injected = api_doc_enhancer or (
-                getattr(build_context, "api_doc_enhancer", None) if build_context else None
+                build_context.api_doc_enhancer if build_context else None
             )
             self._api_doc_enhancer: Any | None = injected or get_enhancer()
         except Exception as e:
@@ -442,12 +444,12 @@ class RenderingPipeline:
             # restore_placeholders() runs, so {{/* */}} escapes appear as
             # BENGALESCAPED*ENDESC in the final highlighted HTML
             # fmt: off
-            if (
-                hasattr(self.parser, "_var_plugin")
-                and self.parser._var_plugin
-                and self.parser._var_plugin.escaped_placeholders  # type: ignore[union-attr]
-            ):
-                page.html_content = self.parser._var_plugin.restore_placeholders(page.html_content)  # type: ignore[union-attr]
+            if hasattr(self.parser, "_var_plugin"):
+                rich_parser = cast(RichMarkdownParser, self.parser)
+                if rich_parser._var_plugin and rich_parser._var_plugin.escaped_placeholders:
+                    page.html_content = rich_parser._var_plugin.restore_placeholders(
+                        page.html_content
+                    )
             # fmt: on
         finally:
             disable_deferred_highlighting()
@@ -524,8 +526,9 @@ class RenderingPipeline:
             if hasattr(self.parser, "parse_with_toc_and_context") and hasattr(
                 self.parser, "parse_with_context"
             ):
+                rich_parser = cast(RichMarkdownParser, self.parser)
                 if need_toc:
-                    result = self.parser.parse_with_toc_and_context(  # type: ignore[union-attr]
+                    result = rich_parser.parse_with_toc_and_context(
                         source, metadata_for_parser, context
                     )
                     parsed_content, toc = result[0], result[1]
@@ -535,7 +538,7 @@ class RenderingPipeline:
                     if len(result_ext) > 3:
                         page._meta_description = result_ext[3]
                 else:
-                    parsed_content = self.parser.parse_with_context(  # type: ignore[union-attr]
+                    parsed_content = rich_parser.parse_with_context(
                         source, metadata_for_parser, context
                     )
                     toc = ""
@@ -556,10 +559,10 @@ class RenderingPipeline:
                         import patitas
 
                         doc = self.parser.parse_to_document(source, metadata_for_parser)
-                        page._ast_cache = patitas.to_dict(doc)  # type: ignore[assignment]
+                        page._ast_cache = patitas.to_dict(doc)
                     elif hasattr(self.parser, "parse_to_ast"):
                         ast_tokens = self.parser.parse_to_ast(source, metadata_for_parser)
-                        page._ast_cache = ast_tokens  # type: ignore[assignment]
+                        page._ast_cache = ast_tokens
                 except Exception as e:
                     logger.debug(
                         "ast_extraction_failed",
@@ -729,7 +732,7 @@ class RenderingPipeline:
                         break
 
         # Get cached global contexts (site/config are stateless wrappers)
-        global_contexts = _get_global_contexts(self.site)  # type: ignore[arg-type]
+        global_contexts = _get_global_contexts(cast(SiteLike, self.site))
 
         context: dict[str, Any] = {
             # Core objects with cached smart wrappers
@@ -805,7 +808,7 @@ class RenderingPipeline:
             return self.template_engine.render_string(
                 source,
                 {"page": page, "site": self.site, "config": self.site.config},
-                strict=False,  # type: ignore[call-arg]
+                strict=False,
             )
         except Exception as e:
             if self.build_stats:

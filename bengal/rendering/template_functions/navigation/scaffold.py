@@ -156,7 +156,7 @@ class NavScaffoldCache:
             # For selective invalidation, we need to check keys
             # Since LRUCache doesn't expose iteration, clear matching keys by checking
             keys_to_remove = []
-            for key in cls._cache:
+            for key in cls._cache.keys():
                 parts = key.split(":", 1)
                 if len(parts) == 2:
                     key_version = None if parts[0] == "__default__" else parts[0]

@@ -137,6 +137,29 @@ class TestSeriesEdgeCases:
         assert series2 is not None
         assert series2.name == "Another Series"
 
+    def test_series_with_id_and_name(self):
+        """Series with id (lookup) and name (display) uses id for slug."""
+        series = Series.from_frontmatter(
+            {
+                "id": "nogil",
+                "name": "Free-Threading in the Bengal Ecosystem",
+                "part": 1,
+                "total": 6,
+            }
+        )
+        assert series is not None
+        assert series.id == "nogil"
+        assert series.name == "Free-Threading in the Bengal Ecosystem"
+        assert series.slug == "nogil"
+
+    def test_series_id_only_uses_id_as_name(self):
+        """Series with id but no name uses id for display."""
+        series = Series.from_frontmatter({"id": "nogil", "part": 1, "total": 6})
+        assert series is not None
+        assert series.id == "nogil"
+        assert series.name == "nogil"
+        assert series.slug == "nogil"
+
     def test_series_non_dict_non_string(self):
         """Non-dict/string value returns None."""
         series = Series.from_frontmatter(123)

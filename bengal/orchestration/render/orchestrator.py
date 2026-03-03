@@ -37,6 +37,7 @@ import concurrent.futures
 import contextvars
 import sys
 import threading
+from itertools import batched
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -53,9 +54,7 @@ from .output_collector_diagnostics import diagnose_missing_output_collector
 from .parallel import (
     is_free_threaded,
 )
-from .parallel import (
-    thread_local as _thread_local,
-)
+from .pipeline_runner import process_page_with_pipeline as _process_page_with_pipeline
 from .sequential import SequentialRenderMixin
 from .tracking import (
     clear_thread_local_pipelines,
@@ -150,8 +149,9 @@ class RenderOrchestrator(
     def _get_max_workers(self) -> int | None:
         """Get max_workers from config, supporting both Config and dict."""
         config = self.site.config
-        if hasattr(config, "build"):
-            return config.build.max_workers  # type: ignore[union-attr]
+        build_section = getattr(config, "build", None)
+        if build_section is not None:
+            return getattr(build_section, "max_workers", None)
         build_section = config.get("build", {})
         if isinstance(build_section, dict):
             return build_section.get("max_workers")
@@ -393,7 +393,7 @@ class RenderOrchestrator(
                 )
 
         # Check if snapshot is available (RFC: rfc-bengal-snapshot-engine)
-        if build_context and hasattr(build_context, "snapshot") and build_context.snapshot:
+        if build_context and build_context.snapshot:
             # Use WaveScheduler for topological wave-based rendering
             self._render_with_snapshot(
                 build_context.snapshot,
@@ -480,7 +480,7 @@ class RenderOrchestrator(
 
         # Update build stats
         if stats:
-            stats.pages_rendered = render_stats.pages_rendered  # type: ignore[assignment]
+            stats.pages_rendered = render_stats.pages_rendered
             if render_stats.errors:
                 for page_path, error in render_stats.errors:
                     logger.error(
@@ -506,8 +506,6 @@ class RenderOrchestrator(
         changed_sources: set[Path] | None = None,
     ) -> None:
         """Parallel rendering without progress (traditional)."""
-        from bengal.rendering.pipeline import RenderingPipeline
-
         max_workers = get_optimal_workers(
             len(pages),
             workload_type=WorkloadType.MIXED,
@@ -521,28 +519,18 @@ class RenderOrchestrator(
         current_gen = _get_current_generation()
 
         def process_page_with_pipeline(page: Page) -> None:
-            """Process a page with a thread-local pipeline instance (thread-safe)."""
-            # Check if pipeline exists AND is from current build generation.
-            # If generation has changed (new build), recreate the pipeline
-            # to get a fresh TemplateEngine with updated templates.
-            needs_new_pipeline = (
-                not hasattr(_thread_local, "pipeline")
-                or getattr(_thread_local, "pipeline_generation", -1) != current_gen
+            _process_page_with_pipeline(
+                page,
+                site=self.site,
+                quiet=quiet,
+                stats=stats,
+                build_context=build_context,
+                changed_sources=changed_sources,
+                block_cache=self._block_cache,
+                highlight_cache=self._highlight_cache,
+                output_collector=build_context.output_collector if build_context else None,
+                current_generation=current_gen,
             )
-            if needs_new_pipeline:
-                output_collector = build_context.output_collector if build_context else None
-                _thread_local.pipeline = RenderingPipeline(
-                    self.site,
-                    quiet=quiet,
-                    build_stats=stats,
-                    build_context=build_context,
-                    output_collector=output_collector,
-                    changed_sources=changed_sources,
-                    block_cache=self._block_cache,
-                    highlight_cache=self._highlight_cache,
-                )
-                _thread_local.pipeline_generation = current_gen
-            _thread_local.pipeline.process_page(page)
 
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
         try:
@@ -550,12 +538,11 @@ class RenderOrchestrator(
             aggregator = ErrorAggregator(total_items=len(sorted_pages))
             threshold = 5
 
-            for i in range(0, len(sorted_pages), batch_size):
-                batch = sorted_pages[i : i + batch_size]
+            for batch in batched(sorted_pages, batch_size, strict=False):
                 future_to_page = {
                     executor.submit(
-                        contextvars.copy_context().run,  # type: ignore[arg-type]
-                        process_page_with_pipeline,  # type: ignore[arg-type]
+                        contextvars.copy_context().run,
+                        process_page_with_pipeline,
                         page,
                     ): page
                     for page in batch
@@ -601,8 +588,6 @@ class RenderOrchestrator(
         """Render pages in parallel with live progress manager."""
         import time
 
-        from bengal.rendering.pipeline import RenderingPipeline
-
         max_workers = get_optimal_workers(
             len(pages),
             workload_type=WorkloadType.MIXED,
@@ -625,28 +610,18 @@ class RenderOrchestrator(
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             nonlocal completed_count, last_update_time
 
-            # Check if pipeline exists AND is from current build generation.
-            needs_new_pipeline = (
-                not hasattr(_thread_local, "pipeline")
-                or getattr(_thread_local, "pipeline_generation", -1) != current_gen
+            _process_page_with_pipeline(
+                page,
+                site=self.site,
+                quiet=True,  # Always True when progress_manager is active
+                stats=stats,
+                build_context=build_context,
+                changed_sources=changed_sources,
+                block_cache=self._block_cache,
+                highlight_cache=self._highlight_cache,
+                output_collector=build_context.output_collector if build_context else None,
+                current_generation=current_gen,
             )
-            if needs_new_pipeline:
-                # When using progress manager, always suppress individual page output
-                # (quiet=True) because progress_manager handles display. The `quiet`
-                # parameter from the caller is intentionally ignored here.
-                output_collector = build_context.output_collector if build_context else None
-                _thread_local.pipeline = RenderingPipeline(
-                    self.site,
-                    quiet=True,  # Always True when progress_manager is active
-                    build_stats=stats,
-                    build_context=build_context,
-                    output_collector=output_collector,
-                    changed_sources=changed_sources,
-                    block_cache=self._block_cache,
-                    highlight_cache=self._highlight_cache,
-                )
-                _thread_local.pipeline_generation = current_gen
-            _thread_local.pipeline.process_page(page)
 
             # Pre-compute current_item outside lock (PERFORMANCE OPTIMIZATION)
             if page.output_path:
@@ -682,12 +657,11 @@ class RenderOrchestrator(
             aggregator = ErrorAggregator(total_items=len(sorted_pages))
             threshold = 5
 
-            for i in range(0, len(sorted_pages), batch_size):
-                batch = sorted_pages[i : i + batch_size]
+            for batch in batched(sorted_pages, batch_size, strict=False):
                 future_to_page = {
                     executor.submit(
-                        contextvars.copy_context().run,  # type: ignore[arg-type]
-                        process_page_with_pipeline,  # type: ignore[arg-type]
+                        contextvars.copy_context().run,
+                        process_page_with_pipeline,
                         page,
                     ): page
                     for page in batch
@@ -747,7 +721,6 @@ class RenderOrchestrator(
             TimeElapsedColumn,
         )
 
-        from bengal.rendering.pipeline import RenderingPipeline
         from bengal.utils.observability.rich_console import get_console
 
         console = get_console()
@@ -764,26 +737,18 @@ class RenderOrchestrator(
         current_gen = _get_current_generation()
 
         def process_page_with_pipeline(page: Page) -> None:
-            """Process a page with a thread-local pipeline instance (thread-safe)."""
-            # Check if pipeline exists AND is from current build generation.
-            needs_new_pipeline = (
-                not hasattr(_thread_local, "pipeline")
-                or getattr(_thread_local, "pipeline_generation", -1) != current_gen
+            _process_page_with_pipeline(
+                page,
+                site=self.site,
+                quiet=quiet,
+                stats=stats,
+                build_context=build_context,
+                changed_sources=changed_sources,
+                block_cache=self._block_cache,
+                highlight_cache=self._highlight_cache,
+                output_collector=build_context.output_collector if build_context else None,
+                current_generation=current_gen,
             )
-            if needs_new_pipeline:
-                output_collector = build_context.output_collector if build_context else None
-                _thread_local.pipeline = RenderingPipeline(
-                    self.site,
-                    quiet=quiet,
-                    build_stats=stats,
-                    build_context=build_context,
-                    output_collector=output_collector,
-                    changed_sources=changed_sources,
-                    block_cache=self._block_cache,
-                    highlight_cache=self._highlight_cache,
-                )
-                _thread_local.pipeline_generation = current_gen
-            _thread_local.pipeline.process_page(page)
 
         with Progress(
             SpinnerColumn(),
@@ -805,12 +770,11 @@ class RenderOrchestrator(
                 aggregator = ErrorAggregator(total_items=len(sorted_pages))
                 threshold = 5
 
-                for i in range(0, len(sorted_pages), batch_size):
-                    batch = sorted_pages[i : i + batch_size]
+                for batch in batched(sorted_pages, batch_size, strict=False):
                     future_to_page = {
                         executor.submit(
-                            contextvars.copy_context().run,  # type: ignore[arg-type]
-                            process_page_with_pipeline,  # type: ignore[arg-type]
+                            contextvars.copy_context().run,
+                            process_page_with_pipeline,
                             page,
                         ): page
                         for page in batch

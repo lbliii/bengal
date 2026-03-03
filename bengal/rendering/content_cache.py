@@ -212,7 +212,8 @@ class ContentCache:
     def invalidate(self, source_path: Path) -> None:
         """Invalidate all cached shells for a source path."""
         # Remove all keys matching this source path
-        keys_to_remove = [k for k in self._cache if k.startswith(str(source_path))]
+        # LRUCache has keys() but no __iter__; use keys() for iteration
+        keys_to_remove = [k for k in self._cache.keys() if k.startswith(str(source_path))]  # noqa: SIM118
         for key in keys_to_remove:
             self._cache.delete(key)
 

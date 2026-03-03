@@ -81,6 +81,7 @@ class JsonAccumulator:
             get_page_relative_url,
             get_page_url,
         )
+        from bengal.utils.autodoc import is_autodoc_page
 
         try:
             # Compute URLs
@@ -126,6 +127,7 @@ class JsonAccumulator:
                 section=page._section.name if getattr(page, "_section", None) else "",
                 tags=list(page.tags) if page.tags else [],
                 dir=dir_path,
+                is_autodoc=is_autodoc_page(page),
                 enhanced_metadata=enhanced,
                 raw_metadata=dict(page.metadata),
             )
@@ -162,8 +164,6 @@ class JsonAccumulator:
         Returns:
             Dict of enhanced metadata fields
         """
-        from bengal.utils.autodoc import is_autodoc_page
-
         metadata = page.metadata
         enhanced: dict[str, Any] = {}
 
@@ -238,10 +238,6 @@ class JsonAccumulator:
         # Version field
         if hasattr(page, "version") and page.version:
             enhanced["version"] = page.version
-
-        # Autodoc flag
-        if is_autodoc_page(page):
-            enhanced["isAutodoc"] = True
 
         return enhanced
 

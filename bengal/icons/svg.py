@@ -230,6 +230,21 @@ ICON_MAP: dict[str, str] = {
     "atomic": "atomic",
     "starburst": "starburst",
     "boomerang": "boomerang",
+    # Lucide-style aliases (Kida docs, etc.)
+    "alert-triangle": "warning",
+    "alert-circle": "warning",
+    "variable": "code",
+    "arrows-angle-contract": "enlarge",
+    "help-circle": "question",
+    "file-plus": "file",
+    "refresh-cw": "arrow-clockwise",
+    "type": "code",
+    "file-x": "error",
+    "spell-check": "pencil",
+    "plug": "puzzle-piece",
+    "activity": "timer",
+    # Fallback for parsing edge cases (e.g. truncate end="...")
+    "...": "filter",
 }
 
 

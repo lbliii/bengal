@@ -272,7 +272,7 @@ class ProvenanceFilter:
             if provenance_fast is not None and provenance_fast.combined_hash == stored_hash:
                 return (None, page, tags, sections, paths)
             if provenance_fast is not None:
-                page._cascade_invalidated = True  # type: ignore[attr-defined]
+                page._cascade_invalidated = True
 
         try:
             provenance = self._compute_provenance(page)

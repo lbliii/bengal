@@ -42,9 +42,11 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from bengal.config.types import SiteConfig as SiteConfigType
+    from bengal.core.page import Page
     from bengal.core.page.frontmatter import Frontmatter
     from bengal.core.theme import Theme
     from bengal.core.version import VersionConfig
+    from bengal.parsing.base import BaseMarkdownParser
 
 
 # =============================================================================
@@ -504,6 +506,10 @@ class SiteLike(SiteConfig, SiteContent, Protocol):
             ...     return len(site.pages)
 
     """
+
+    # Internal caches (set by template functions)
+    _template_parser: BaseMarkdownParser | None
+    _page_lookup_maps: dict[str, dict[str, Page]] | None
 
 
 # =============================================================================

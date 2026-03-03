@@ -164,16 +164,19 @@ invalid-assignment = "warn"      # Allows incremental typing improvements
 invalid-type-arguments = "warn"  # Generics constraints too strict
 not-subscriptable = "warn"       # Protocol objects missing __getitem__
 invalid-method-override = "warn" # Liskov violations - review later
-unused-ignore-comment = "warn"   # Flag stale type: ignore comments for cleanup
+unused-ignore-comment = "error"  # Enforce cleanup of stale type: ignore comments
 
 # Relax remaining rules to unblock CI - fix incrementally
 unresolved-reference = "warn"          # Missing imports - fix these properly
 unknown-argument = "warn"              # Wrong kwargs - needs investigation
-missing-argument = "warn"              # Missing args - needs investigation
-unsupported-operator = "warn"          # Type operations - review later
-not-iterable = "warn"                  # Iteration issues
-too-many-positional-arguments = "warn" # Signature mismatches
-no-matching-overload = "warn"          # Overload issues
+missing-argument = "error"             # Enforce correct call signatures
+unsupported-operator = "error"         # Enforce valid type operations
+not-iterable = "error"                 # Enforce iterable before iteration
+too-many-positional-arguments = "error" # Enforce correct argument counts
+no-matching-overload = "error"          # Enforce matching overloads
+
+# Workspace overrides (kida, patitas, pounce, rosettes) live in b-stack/pyproject.toml.
+# CI and standalone installs use PyPI per dependencies above.
 
 [dependency-groups]
 dev = [

@@ -1,0 +1,30 @@
+{#
+================================================================================
+Series Navigation Component
+================================================================================
+
+Shows series name and part X of Y when page.series exists. Uses series.id or
+series.name for index lookup. Total is inferred from site.indexes.series when
+not set in frontmatter. Links to other articles come from page_navigation
+(prev_in_series / next_in_series).
+
+Usage:
+{% from 'partials/series-nav.html' import series_nav %}
+{{ series_nav(page) }}
+================================================================================
+#}
+{% def series_nav(page) %}
+{% if page?.series %}
+{% let s = page.series %}
+{% let series_key = s.id or s.name %}
+{% let series_pages = site.indexes.series.get(series_key) ?? [] %}
+{% let total = s.total if s.total > 0 else (series_pages | length) %}
+<nav class="series-nav" aria-label="Series navigation">
+  <div class="series-nav__header">
+    <span class="series-nav__label">Series:</span>
+    <strong class="series-nav__name">{{ s.name }}</strong>
+    <span class="series-nav__part">Part {{ s.part }}{% if total %} of {{ total }}{% end %}</span>
+  </div>
+</nav>
+{% end %}
+{% enddef %}

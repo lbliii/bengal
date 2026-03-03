@@ -296,7 +296,7 @@ def update_snapshot(
 
     # Rebuild sections if any pages changed
     # For simplicity in v1, rebuild all sections if anything changed
-    # TODO: Optimize to only rebuild affected sections
+    # RFC: incremental-section-rebuild (optimize to only rebuild affected sections)
     section_cache: dict[int, SectionSnapshot] = {}
 
     root_sections = [s for s in site.sections if s.parent is None]

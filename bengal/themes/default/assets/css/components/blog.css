@@ -656,23 +656,9 @@ html:not([data-devtools-open]) .blog-post-list > * {
     padding-inline: 0;
 }
 
-/* When layout has TOC, after-content uses same grid so it scales to match content column */
-.blog-single-wrapper:has(.blog-post-layout.blog-with-toc) {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 240px;
-    grid-template-areas: "content toc";
-}
-
-.blog-single-wrapper:has(.blog-post-layout.blog-with-toc) .blog-post-layout {
-    grid-column: 1 / -1;
-}
-
-.blog-single-wrapper:has(.blog-post-layout.blog-with-toc) .blog-after-content {
-    grid-area: content;
-}
-
 /* blog-after-content speaks the same language as blog-post-layout: same padding, tokens, max-width */
 .blog-after-content {
+    grid-area: after;
     padding-block: var(--space-5) var(--space-8);
     padding-inline: var(--space-6);
     max-width: var(--container-xl, 1280px);
@@ -683,7 +669,9 @@ html:not([data-devtools-open]) .blog-post-list > * {
 /* Blog post layout: docs-like two-column (content | TOC). Content gets 1fr, TOC fixed. */
 .blog-post-layout {
     display: grid;
-    grid-template-areas: "content";
+    grid-template-areas:
+        "content"
+        "after";
     grid-template-columns: minmax(0, 1fr);
     gap: 0;
     width: 100%;
@@ -693,7 +681,9 @@ html:not([data-devtools-open]) .blog-post-list > * {
 }
 
 .blog-post-layout.blog-with-toc {
-    grid-template-areas: "content toc";
+    grid-template-areas:
+        "content toc"
+        "after .";
     grid-template-columns: minmax(0, 1fr) 240px;
 }
 
@@ -751,13 +741,10 @@ html:not([data-devtools-open]) .blog-post-list > * {
 }
 
 @media (max-width: 1024px) {
-    .blog-single-wrapper:has(.blog-post-layout.blog-with-toc) {
-        grid-template-columns: 1fr;
-        grid-template-areas: "content";
-    }
-
     .blog-post-layout.blog-with-toc {
-        grid-template-areas: "content";
+        grid-template-areas:
+            "content"
+            "after";
         grid-template-columns: 1fr;
     }
 
@@ -880,6 +867,31 @@ html:not([data-devtools-open]) .blog-post-list > * {
     /* Increased from space-6 */
     border-block-start: 2px solid var(--color-border-light);
     /* Match resume pattern */
+}
+
+/* Series nav: shows series name and part when page.series exists */
+.series-nav {
+    margin-bottom: var(--space-6);
+}
+
+.series-nav__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-2);
+    font-size: var(--text-sm);
+}
+
+.series-nav__label {
+    color: var(--color-text-primary-muted);
+}
+
+.series-nav__name {
+    font-weight: 600;
+}
+
+.series-nav__part {
+    color: var(--color-text-primary-muted);
 }
 
 /* Author Bio: (avatar | about | title) | bio - left column stacked, bio flows right */

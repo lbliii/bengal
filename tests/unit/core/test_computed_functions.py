@@ -460,9 +460,36 @@ class TestGetSeriesInfo:
         assert series is not None
         assert series.description == "Deep dive into Bengal internals"
 
-    def test_dict_series_no_name_returns_none(self):
-        """Series dict without name returns None."""
+    def test_dict_series_no_name_or_id_returns_none(self):
+        """Series dict without name or id returns None."""
         assert get_series_info({"series": {"part": 1}}) is None
+
+    def test_dict_series_with_id_and_name(self):
+        """Series with id (lookup) and name (display) uses both."""
+        series = get_series_info(
+            {
+                "series": {
+                    "id": "nogil",
+                    "name": "Free-Threading in the Bengal Ecosystem",
+                    "part": 2,
+                    "total": 6,
+                },
+            }
+        )
+        assert series is not None
+        assert series.id == "nogil"
+        assert series.name == "Free-Threading in the Bengal Ecosystem"
+        assert series.part == 2
+        assert series.total == 6
+
+    def test_dict_series_id_only_falls_back_to_id_for_name(self):
+        """Series with id but no name uses id as display name."""
+        series = get_series_info(
+            {"series": {"id": "nogil", "part": 1, "total": 6}},
+        )
+        assert series is not None
+        assert series.id == "nogil"
+        assert series.name == "nogil"
 
     def test_series_properties(self):
         """Verify Series object properties work correctly."""
@@ -554,6 +581,24 @@ class TestGetSeriesNeighbor:
         )
 
         metadata = {"series": {"name": "Tutorial", "part": 1, "total": 3}}
+        result = get_series_neighbor(metadata, site, 1)
+        assert result is page2
+
+    def test_get_next_uses_id_when_present(self):
+        """Series with id uses id for index lookup, not name."""
+        page2 = _make_mock_page(
+            {"series": {"id": "nogil", "name": "Free-Threading", "part": 2, "total": 6}},
+        )
+        site = _make_mock_site(
+            series_pages={"nogil": ["p1.md", "p2.md"]},
+            page_map={
+                "p1.md": _make_mock_page(
+                    {"series": {"id": "nogil", "name": "Free-Threading", "part": 1, "total": 6}},
+                ),
+                "p2.md": page2,
+            },
+        )
+        metadata = {"series": {"id": "nogil", "name": "Free-Threading", "part": 1, "total": 6}}
         result = get_series_neighbor(metadata, site, 1)
         assert result is page2
 

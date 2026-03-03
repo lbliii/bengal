@@ -159,6 +159,8 @@ class TemplateRenderer(Protocol):
         self,
         template: str,
         context: dict[str, Any],
+        *,
+        strict: bool = True,
     ) -> str:
         """
         Render a template string with the given context.
@@ -166,6 +168,7 @@ class TemplateRenderer(Protocol):
         Args:
             template: Template content as string
             context: Variables available to the template
+            strict: If True, undefined variables raise; if False, render with fallbacks
 
         Returns:
             Rendered HTML string
