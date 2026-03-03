@@ -178,6 +178,11 @@ class PatitasParser(BaseMarkdownParser):
                 else str(metadata.get("description", ""))
             )
         except Exception:
+            logger.warning(
+                "excerpt_extraction_failed",
+                source_path=str(metadata.get("_source_path", "?")),
+                exc_info=True,
+            )
             excerpt = ""
             meta_desc = ""
 
@@ -313,6 +318,11 @@ class PatitasParser(BaseMarkdownParser):
                     else str(metadata.get("description", ""))
                 )
             except Exception:
+                logger.warning(
+                    "excerpt_extraction_failed",
+                    source_path=str(metadata.get("_source_path", "?")),
+                    exc_info=True,
+                )
                 excerpt = ""
                 meta_desc = ""
 

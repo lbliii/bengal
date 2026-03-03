@@ -98,6 +98,16 @@ The only way to do great work is to **love** what you do.
 {{% /blockquote %}}
 ```
 
+## Shortcode Contract
+
+Shortcode templates receive **string params** from Markdown. Use typed accessors for numeric and boolean values:
+
+- `shortcode.Get("key", default)` — strings
+- `shortcode.GetInt("key", default)` — numeric (cols, count, limit)
+- `shortcode.GetBool("key", default)` — boolean
+
+Unknown shortcodes: `shortcodes.strict: true` fails the build; `false` skips (default).
+
 ## Shortcode Context
 
 Templates receive a `shortcode` object with Hugo-compatible methods:

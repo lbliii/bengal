@@ -494,18 +494,16 @@ class RenderingPipeline:
             content_cfg = self.site.config.get("content", {}) or {}
             metadata_with_source["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
 
-            if need_toc:
-                result = self.parser.parse_with_toc(source, metadata_with_source)
-                parsed_content, toc = result[0], result[1]
-                result_ext = cast(tuple[str, ...], result)
-                if len(result_ext) > 2:
-                    page._excerpt = result_ext[2]
-                if len(result_ext) > 3:
-                    page._meta_description = result_ext[3]
-                parsed_content = escape_template_syntax_in_html(parsed_content)
-            else:
-                parsed_content = self.parser.parse(source, metadata_with_source)
-                parsed_content = escape_template_syntax_in_html(parsed_content)
+            # Always use toc-aware parse for excerpt extraction (discard toc when not needed)
+            result = self.parser.parse_with_toc(source, metadata_with_source)
+            parsed_content, toc = result[0], result[1]
+            result_ext = cast(tuple[str, ...], result)
+            if len(result_ext) > 2:
+                page._excerpt = result_ext[2]
+            if len(result_ext) > 3:
+                page._meta_description = result_ext[3]
+            parsed_content = escape_template_syntax_in_html(parsed_content)
+            if not need_toc:
                 toc = ""
         else:
             from bengal.config.utils import resolve_excerpt_length
@@ -527,30 +525,35 @@ class RenderingPipeline:
                 self.parser, "parse_with_context"
             ):
                 rich_parser = cast(RichMarkdownParser, self.parser)
-                if need_toc:
-                    result = rich_parser.parse_with_toc_and_context(
-                        source, metadata_for_parser, context
-                    )
+                # Always use toc-aware parse for excerpt extraction (discard toc when not needed)
+                result = rich_parser.parse_with_toc_and_context(
+                    source, metadata_for_parser, context
+                )
+                parsed_content, toc = result[0], result[1]
+                result_ext = cast(tuple[str, ...], result)
+                if len(result_ext) > 2:
+                    page._excerpt = result_ext[2]
+                if len(result_ext) > 3:
+                    page._meta_description = result_ext[3]
+                if not need_toc:
+                    toc = ""
+            else:
+                # Fallback for parsers without context support (e.g., PythonMarkdownParser)
+                # Always use toc-aware parse when available for excerpt extraction
+                if hasattr(self.parser, "parse_with_toc"):
+                    result = self.parser.parse_with_toc(source, metadata_for_parser)
                     parsed_content, toc = result[0], result[1]
                     result_ext = cast(tuple[str, ...], result)
                     if len(result_ext) > 2:
                         page._excerpt = result_ext[2]
                     if len(result_ext) > 3:
                         page._meta_description = result_ext[3]
-                else:
-                    parsed_content = rich_parser.parse_with_context(
-                        source, metadata_for_parser, context
-                    )
-                    toc = ""
-            else:
-                # Fallback for parsers without context support (e.g., PythonMarkdownParser)
-                if need_toc:
-                    parsed_content, toc = self.parser.parse_with_toc(source, metadata_for_parser)
-                    parsed_content = escape_template_syntax_in_html(parsed_content)
+                    if not need_toc:
+                        toc = ""
                 else:
                     parsed_content = self.parser.parse(source, metadata_for_parser)
-                    parsed_content = escape_template_syntax_in_html(parsed_content)
                     toc = ""
+                parsed_content = escape_template_syntax_in_html(parsed_content)
 
             # Extract AST for caching
             if hasattr(self.parser, "supports_ast") and self.parser.supports_ast and persist_tokens:

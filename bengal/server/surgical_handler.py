@@ -14,14 +14,13 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.utils.observability.logger import get_logger
-
 from patitas import parse_frontmatter
 
 from bengal.core.output import BuildOutputCollector
 from bengal.protocols import SiteLike
 from bengal.rendering.pipeline.core import RenderingPipeline
 from bengal.server.change_classifier import RebuildScope
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike
@@ -39,7 +38,7 @@ def _build_page_index(site: SiteLike) -> dict[Path, PageLike]:
                 continue
             path = Path(src) if not isinstance(src, Path) else src
             index[path.resolve()] = page
-        except (OSError, ValueError, TypeError):
+        except OSError, ValueError, TypeError:
             continue
     return index
 
@@ -117,7 +116,7 @@ class SurgicalRebuildHandler:
         if index_page is not None:
             try:
                 raw_file = path.read_text(encoding="utf-8")
-            except (OSError, UnicodeDecodeError):
+            except OSError, UnicodeDecodeError:
                 pass
             else:
                 metadata, body_content = parse_frontmatter(raw_file)
@@ -163,7 +162,7 @@ class SurgicalRebuildHandler:
                 try:
                     if Path(src).resolve() == path.resolve():
                         return section
-                except (OSError, ValueError):
+                except OSError, ValueError:
                     pass
         for sub in getattr(section, "subsections", []) or []:
             found = self._find_section_with_index(sub, path)

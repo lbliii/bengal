@@ -17,6 +17,7 @@ Built-in Indexes:
 - author: Pages by author (multi-author support)
 - category: Pages by category
 - date_range: Pages by year and year-month
+- series: Pages by series (series.id or series.name)
 
 Usage:
 # Automatic registration via Site
@@ -101,11 +102,13 @@ class QueryIndexRegistry:
             from bengal.cache.indexes.category_index import CategoryIndex
             from bengal.cache.indexes.date_range_index import DateRangeIndex
             from bengal.cache.indexes.section_index import SectionIndex
+            from bengal.cache.indexes.series_index import SeriesIndex
 
             self.register("section", SectionIndex(self.cache_dir / "section_index.json"))
             self.register("author", AuthorIndex(self.cache_dir / "author_index.json"))
             self.register("category", CategoryIndex(self.cache_dir / "category_index.json"))
             self.register("date_range", DateRangeIndex(self.cache_dir / "date_range_index.json"))
+            self.register("series", SeriesIndex(self.cache_dir / "series_index.json"))
 
             logger.debug("builtin_indexes_registered", count=len(self.indexes))
         except Exception as e:

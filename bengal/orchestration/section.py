@@ -439,7 +439,7 @@ class SectionOrchestrator:
             "tutorial",
             "changelog",
         ):
-            # Add section context using explicit attributes (metadata is immutable)
+            # Add section context using explicit attributes
             if index_page._section is None:
                 index_page._section = section
 
@@ -473,6 +473,24 @@ class SectionOrchestrator:
                 )
                 index_page._paginator = paginator
                 index_page._page_num = 1
+
+            # Inject enrichment into _raw_metadata so page.metadata.get("_generated") and
+            # _posts/_subsections work in renderer/context (data-equivalent to auto-generated)
+            raw = getattr(index_page, "_raw_metadata", None)
+            if raw is not None:
+                raw["_generated"] = True
+                raw["_section"] = section
+                raw["_posts"] = index_page._posts
+                raw["_subsections"] = index_page._subsections
+                raw["_content_type"] = page_type
+                if index_page._paginator is not None:
+                    raw["_paginator"] = index_page._paginator
+                    raw["_page_num"] = index_page._page_num or 1
+                # Invalidate CascadeView cache so metadata property picks up new keys
+                if hasattr(index_page, "_metadata_view_cache"):
+                    index_page._metadata_view_cache = None
+                if hasattr(index_page, "_metadata_view_cache_key"):
+                    index_page._metadata_view_cache_key = None
 
             logger.debug(
                 "section_index_enriched",

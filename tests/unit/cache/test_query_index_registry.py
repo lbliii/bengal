@@ -110,6 +110,7 @@ class TestQueryIndexRegistry:
         assert "author" in registry.indexes
         assert "category" in registry.indexes
         assert "date_range" in registry.indexes
+        assert "series" in registry.indexes
 
     def test_attribute_access(self, temp_site, tmp_path):
         """Test attribute-style access to indexes."""
@@ -157,6 +158,49 @@ class TestQueryIndexRegistry:
         guide_pages = registry.category.get("guide")
         assert len(tutorial_pages) == 3
         assert len(guide_pages) == 2
+
+    def test_series_index_string_format(self, temp_site, tmp_path):
+        """Test series index with plain string format."""
+        cache_dir = tmp_path / "indexes"
+        build_cache = BuildCache()
+
+        page = Page(
+            source_path=Path("content/blog/series-post.md"),
+            _raw_content="Post",
+            _raw_metadata={"title": "Post", "series": "Building a Blog"},
+        )
+        page._site = temp_site
+        page._section = Section(name="blog", path=Path("content/blog"))
+
+        registry = QueryIndexRegistry(temp_site, cache_dir)
+        registry.build_all([page], build_cache)
+
+        series_pages = registry.series.get("Building a Blog")
+        assert len(series_pages) == 1
+        assert str(page.source_path) in series_pages
+
+    def test_series_index_dict_format(self, temp_site, tmp_path):
+        """Test series index with dict format {id, name, part, total}."""
+        cache_dir = tmp_path / "indexes"
+        build_cache = BuildCache()
+
+        page = Page(
+            source_path=Path("content/blog/nogil-post.md"),
+            _raw_content="Post",
+            _raw_metadata={
+                "title": "Post",
+                "series": {"id": "nogil", "name": "Free-Threading", "part": 1, "total": 6},
+            },
+        )
+        page._site = temp_site
+        page._section = Section(name="blog", path=Path("content/blog"))
+
+        registry = QueryIndexRegistry(temp_site, cache_dir)
+        registry.build_all([page], build_cache)
+
+        series_pages = registry.series.get("nogil")
+        assert len(series_pages) == 1
+        assert str(page.source_path) in series_pages
 
     def test_incremental_update(self, temp_site, sample_pages, tmp_path):
         """Test incremental index updates."""
@@ -209,6 +253,7 @@ class TestQueryIndexRegistry:
         # Verify files were created
         assert (cache_dir / "section_index.json").exists()
         assert (cache_dir / "author_index.json").exists()
+        assert (cache_dir / "series_index.json").exists()
 
     def test_stats(self, temp_site, sample_pages, tmp_path):
         """Test registry statistics."""
@@ -220,7 +265,7 @@ class TestQueryIndexRegistry:
         registry.build_all(sample_pages, build_cache)
 
         stats = registry.stats()
-        assert stats["total_indexes"] == 4  # section, author, category, date_range
+        assert stats["total_indexes"] == 5  # section, author, category, date_range, series
         assert "section" in stats["indexes"]
         assert stats["indexes"]["section"]["total_keys"] == 2  # blog, docs
 

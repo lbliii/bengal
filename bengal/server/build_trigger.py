@@ -270,7 +270,11 @@ class BuildTrigger:
                 file_name = f"{first_file} (+{file_count - 1} more)"
 
             # Classify change for tiered rebuild (surgical warm rebuild)
-            dev_config = (self.site.config or {}).raw if hasattr(self.site.config, "raw") else (self.site.config or {})
+            dev_config = (
+                (self.site.config or {}).raw
+                if hasattr(self.site.config, "raw")
+                else (self.site.config or {})
+            )
             surgical_enabled = dev_config.get("dev", {}).get("surgical_rebuild", True)
 
             from bengal.server.change_classifier import (
@@ -411,9 +415,7 @@ class BuildTrigger:
                             scope.changed_page, scope, page_index
                         )
                     else:
-                        output_paths = handler.handle_cascade_change(
-                            scope.changed_page, page_index
-                        )
+                        output_paths = handler.handle_cascade_change(scope.changed_page, page_index)
                     if output_paths:
                         self._update_content_hash_after_surgical(scope.changed_page)
                         if scope.tier == RebuildTier.CASCADE:
@@ -439,7 +441,7 @@ class BuildTrigger:
                                     "reload_hint": None,
                                 },
                             )(),
-                            use_incremental=True,
+                            incremental=True,
                         )
                         if run_post_build_hooks(config_dict, self.site.root_path) is False:
                             logger.warning("post_build_hook_failed", action="continuing")
@@ -1046,13 +1048,13 @@ class BuildTrigger:
             path = Path(src) if not isinstance(src, Path) else src
             try:
                 index[path.resolve()] = p
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 continue
         self._page_index = index
 
     def _seed_cascade_block_hashes(self) -> None:
         """Hash cascade blocks of all _index.md for change detection."""
-        from bengal.server.change_classifier import _hash_cascade_block, _extract_frontmatter
+        from bengal.server.change_classifier import _extract_frontmatter, _hash_cascade_block
 
         for page in self.site.pages:
             src = getattr(page, "source_path", None)
@@ -1063,7 +1065,7 @@ class BuildTrigger:
                 continue
             try:
                 resolved = path.resolve()
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 continue
             parsed = _extract_frontmatter(resolved)
             if parsed is None:
@@ -1083,7 +1085,7 @@ class BuildTrigger:
 
     def _update_cascade_hash(self, path: Path) -> None:
         """Update cascade block hash after cascade surgical rebuild."""
-        from bengal.server.change_classifier import _hash_cascade_block, _extract_frontmatter
+        from bengal.server.change_classifier import _extract_frontmatter, _hash_cascade_block
 
         parsed = _extract_frontmatter(path)
         if parsed is not None:

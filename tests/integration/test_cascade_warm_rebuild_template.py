@@ -55,13 +55,16 @@ def _warm_rebuild(site: Site) -> None:
 def _find_page(site: Site, name_fragment: str):
     """Find a page by substring match on source_path."""
     matches = [p for p in site.pages if name_fragment in str(p.source_path)]
-    assert matches, f"No page found matching '{name_fragment}' in {[str(p.source_path) for p in site.pages]}"
+    assert matches, (
+        f"No page found matching '{name_fragment}' in {[str(p.source_path) for p in site.pages]}"
+    )
     return matches[0]
 
 
 # ---------------------------------------------------------------------------
 # 1. Cascade type: survives prepare_for_rebuild on same Site instance
 # ---------------------------------------------------------------------------
+
 
 class TestCascadeSurvivesWarmRebuild:
     """Verify cascaded fields persist when the SAME Site object is reused."""
@@ -71,12 +74,8 @@ class TestCascadeSurvivesWarmRebuild:
         content = temp_site / "content" / "docs"
         content.mkdir(parents=True)
 
-        (content / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
-        (content / "setup.md").write_text(
-            "---\ntitle: Setup Guide\n---\nHow to set up.\n"
-        )
+        (content / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
+        (content / "setup.md").write_text("---\ntitle: Setup Guide\n---\nHow to set up.\n")
 
         site = Site(root_path=temp_site, config={})
         _discover(site)
@@ -95,9 +94,7 @@ class TestCascadeSurvivesWarmRebuild:
         (content / "_index.md").write_text(
             "---\ntitle: Blog\ncascade:\n  type: post\n  layout: blog-layout\n---\n"
         )
-        (content / "hello.md").write_text(
-            "---\ntitle: Hello World\n---\nFirst post.\n"
-        )
+        (content / "hello.md").write_text("---\ntitle: Hello World\n---\nFirst post.\n")
 
         site = Site(root_path=temp_site, config={})
         _discover(site)
@@ -115,18 +112,10 @@ class TestCascadeSurvivesWarmRebuild:
         v2 = api / "v2"
         v2.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
-        (api / "_index.md").write_text(
-            "---\ntitle: API\ncascade:\n  variant: api-sidebar\n---\n"
-        )
-        (v2 / "_index.md").write_text(
-            "---\ntitle: API v2\n---\n"
-        )
-        (v2 / "endpoints.md").write_text(
-            "---\ntitle: Endpoints\n---\nEndpoint docs.\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
+        (api / "_index.md").write_text("---\ntitle: API\ncascade:\n  variant: api-sidebar\n---\n")
+        (v2 / "_index.md").write_text("---\ntitle: API v2\n---\n")
+        (v2 / "endpoints.md").write_text("---\ntitle: Endpoints\n---\nEndpoint docs.\n")
 
         site = Site(root_path=temp_site, config={})
         _discover(site)
@@ -145,6 +134,7 @@ class TestCascadeSurvivesWarmRebuild:
 # ---------------------------------------------------------------------------
 # 2. Cascade changes between warm rebuilds
 # ---------------------------------------------------------------------------
+
 
 class TestCascadeChangesAcrossRebuilds:
     """Verify cascade updates/additions/removals propagate correctly."""
@@ -187,9 +177,7 @@ class TestCascadeChangesAcrossRebuilds:
         assert _find_page(site, "intro").metadata.get("type") is None
 
         # Add cascade
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
 
         _warm_rebuild(site)
         assert _find_page(site, "intro").metadata.get("type") == "doc", (
@@ -201,9 +189,7 @@ class TestCascadeChangesAcrossRebuilds:
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "guide.md").write_text("---\ntitle: Guide\n---\n")
 
         site = Site(root_path=temp_site, config={})
@@ -231,9 +217,7 @@ class TestCascadeChangesAcrossRebuilds:
         # Add new section with cascade
         blog = temp_site / "content" / "blog"
         blog.mkdir(parents=True)
-        (blog / "_index.md").write_text(
-            "---\ntitle: Blog\ncascade:\n  type: post\n---\n"
-        )
+        (blog / "_index.md").write_text("---\ntitle: Blog\ncascade:\n  type: post\n---\n")
         (blog / "first.md").write_text("---\ntitle: First Post\n---\n")
 
         _warm_rebuild(site)
@@ -249,13 +233,9 @@ class TestCascadeChangesAcrossRebuilds:
         docs.mkdir(parents=True)
         blog.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "guide.md").write_text("---\ntitle: Guide\n---\n")
-        (blog / "_index.md").write_text(
-            "---\ntitle: Blog\ncascade:\n  type: post\n---\n"
-        )
+        (blog / "_index.md").write_text("---\ntitle: Blog\ncascade:\n  type: post\n---\n")
         (blog / "hello.md").write_text("---\ntitle: Hello\n---\n")
 
         site = Site(root_path=temp_site, config={})
@@ -277,6 +257,7 @@ class TestCascadeChangesAcrossRebuilds:
 # 3. Frontmatter override of cascade through warm rebuilds
 # ---------------------------------------------------------------------------
 
+
 class TestFrontmatterOverrideCascadeRebuild:
     """Verify frontmatter overrides survive warm rebuilds and don't leak."""
 
@@ -285,13 +266,9 @@ class TestFrontmatterOverrideCascadeRebuild:
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "regular.md").write_text("---\ntitle: Regular\n---\n")
-        (docs / "special.md").write_text(
-            "---\ntitle: Special\ntype: custom-type\n---\n"
-        )
+        (docs / "special.md").write_text("---\ntitle: Special\ntype: custom-type\n---\n")
 
         site = Site(root_path=temp_site, config={})
         _discover(site)
@@ -313,9 +290,7 @@ class TestFrontmatterOverrideCascadeRebuild:
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "page.md").write_text("---\ntitle: Page\n---\n")
 
         site = Site(root_path=temp_site, config={})
@@ -323,9 +298,7 @@ class TestFrontmatterOverrideCascadeRebuild:
         assert _find_page(site, "page").metadata.get("type") == "doc"
 
         # Add frontmatter override
-        (docs / "page.md").write_text(
-            "---\ntitle: Page\ntype: special\n---\n"
-        )
+        (docs / "page.md").write_text("---\ntitle: Page\ntype: special\n---\n")
 
         _warm_rebuild(site)
         assert _find_page(site, "page").metadata.get("type") == "special", (
@@ -337,12 +310,8 @@ class TestFrontmatterOverrideCascadeRebuild:
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
-        (docs / "page.md").write_text(
-            "---\ntitle: Page\ntype: custom\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
+        (docs / "page.md").write_text("---\ntitle: Page\ntype: custom\n---\n")
 
         site = Site(root_path=temp_site, config={})
         _discover(site)
@@ -361,6 +330,7 @@ class TestFrontmatterOverrideCascadeRebuild:
 # 4. page.type property matches page.metadata.get("type") through rebuilds
 # ---------------------------------------------------------------------------
 
+
 class TestTypePropertyDualityRebuild:
     """The page.type property and metadata.get('type') must always agree.
 
@@ -372,9 +342,7 @@ class TestTypePropertyDualityRebuild:
         content = temp_site / "content" / "docs"
         content.mkdir(parents=True)
 
-        (content / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (content / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (content / "page.md").write_text("---\ntitle: Page\n---\n")
 
         site = Site(root_path=temp_site, config={})
@@ -393,12 +361,8 @@ class TestTypePropertyDualityRebuild:
         content = temp_site / "content" / "docs"
         content.mkdir(parents=True)
 
-        (content / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
-        (content / "special.md").write_text(
-            "---\ntitle: Special\ntype: custom\n---\n"
-        )
+        (content / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
+        (content / "special.md").write_text("---\ntitle: Special\ntype: custom\n---\n")
 
         site = Site(root_path=temp_site, config={})
         _discover(site)
@@ -413,6 +377,7 @@ class TestTypePropertyDualityRebuild:
 # 5. Cascade snapshot correctness through warm rebuild
 # ---------------------------------------------------------------------------
 
+
 class TestCascadeSnapshotRebuild:
     """Verify the CascadeSnapshot object is correctly rebuilt."""
 
@@ -421,9 +386,7 @@ class TestCascadeSnapshotRebuild:
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "page.md").write_text("---\ntitle: Page\n---\n")
 
         site = Site(root_path=temp_site, config={})
@@ -470,6 +433,7 @@ class TestCascadeSnapshotRebuild:
 # 6. Content additions/deletions during warm rebuild
 # ---------------------------------------------------------------------------
 
+
 class TestContentChurnWarmRebuild:
     """Simulate rapid content edits that trigger multiple warm rebuilds."""
 
@@ -478,9 +442,7 @@ class TestContentChurnWarmRebuild:
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "existing.md").write_text("---\ntitle: Existing\n---\n")
 
         site = Site(root_path=temp_site, config={})
@@ -491,18 +453,14 @@ class TestContentChurnWarmRebuild:
 
         _warm_rebuild(site)
         new_page = _find_page(site, "new-page")
-        assert new_page.metadata.get("type") == "doc", (
-            "Newly added page did not pick up cascade"
-        )
+        assert new_page.metadata.get("type") == "doc", "Newly added page did not pick up cascade"
 
     def test_delete_page_cascade_still_works_for_siblings(self, temp_site: Path) -> None:
         """Deleting a page must not break cascade for remaining siblings."""
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "keep.md").write_text("---\ntitle: Keep\n---\n")
         (docs / "delete-me.md").write_text("---\ntitle: Delete Me\n---\n")
 
@@ -513,39 +471,32 @@ class TestContentChurnWarmRebuild:
 
         _warm_rebuild(site)
         keep = _find_page(site, "keep")
-        assert keep.metadata.get("type") == "doc", (
-            "Sibling lost cascade after page deletion"
-        )
+        assert keep.metadata.get("type") == "doc", "Sibling lost cascade after page deletion"
 
     def test_rapid_edit_cycle(self, temp_site: Path) -> None:
         """Simulate 10 rapid edits to a page in a cascaded section."""
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "page.md").write_text("---\ntitle: Page v0\n---\nInitial.\n")
 
         site = Site(root_path=temp_site, config={})
         _discover(site)
 
         for i in range(1, 11):
-            (docs / "page.md").write_text(
-                f"---\ntitle: Page v{i}\n---\nEdit {i}.\n"
-            )
+            (docs / "page.md").write_text(f"---\ntitle: Page v{i}\n---\nEdit {i}.\n")
             _warm_rebuild(site)
 
             page = _find_page(site, "page")
-            assert page.metadata.get("type") == "doc", (
-                f"Cascade lost on edit {i}"
-            )
+            assert page.metadata.get("type") == "doc", f"Cascade lost on edit {i}"
             assert page.metadata.get("title") == f"Page v{i}"
 
 
 # ---------------------------------------------------------------------------
 # 7. Cascade + section_path assignment
 # ---------------------------------------------------------------------------
+
 
 class TestSectionPathAssignment:
     """page._section_path is the key for cascade resolution.
@@ -557,9 +508,7 @@ class TestSectionPathAssignment:
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "page.md").write_text("---\ntitle: Page\n---\n")
 
         site = Site(root_path=temp_site, config={})
@@ -599,6 +548,7 @@ class TestSectionPathAssignment:
 # 8. Cascade with mixed page types (index + regular + generated-like)
 # ---------------------------------------------------------------------------
 
+
 class TestMixedPageTypesCascade:
     """Section index pages and regular pages both resolve cascade correctly."""
 
@@ -608,12 +558,8 @@ class TestMixedPageTypesCascade:
         sub = docs / "getting-started"
         sub.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
-        (sub / "_index.md").write_text(
-            "---\ntitle: Getting Started\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
+        (sub / "_index.md").write_text("---\ntitle: Getting Started\n---\n")
         (sub / "install.md").write_text("---\ntitle: Install\n---\n")
 
         site = Site(root_path=temp_site, config={})
@@ -623,9 +569,7 @@ class TestMixedPageTypesCascade:
         sub_index = _find_page(site, "getting-started/_index")
         install = _find_page(site, "install")
 
-        assert sub_index.metadata.get("type") == "doc", (
-            "Section index page did not inherit cascade"
-        )
+        assert sub_index.metadata.get("type") == "doc", "Section index page did not inherit cascade"
         assert install.metadata.get("type") == "doc"
 
     def test_root_index_no_cascade_leak(self, temp_site: Path) -> None:
@@ -636,19 +580,14 @@ class TestMixedPageTypesCascade:
         docs.mkdir(parents=True)
 
         (content / "index.md").write_text("---\ntitle: Home\n---\nWelcome.\n")
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "page.md").write_text("---\ntitle: Page\n---\n")
 
         site = Site(root_path=temp_site, config={})
         _discover(site)
         _warm_rebuild(site)
 
-        home_matches = [
-            p for p in site.pages
-            if str(p.source_path).endswith("content/index.md")
-        ]
+        home_matches = [p for p in site.pages if str(p.source_path).endswith("content/index.md")]
         assert home_matches, "Root index.md not found"
         home = home_matches[0]
         doc_page = _find_page(site, "docs/page")
@@ -662,6 +601,7 @@ class TestMixedPageTypesCascade:
 # ---------------------------------------------------------------------------
 # 9. Template resolution uses cascade-derived type through warm rebuilds
 # ---------------------------------------------------------------------------
+
 
 class TestTemplateResolutionFromCascade:
     """Verify _get_template_name uses cascade-derived page.type correctly.
@@ -679,9 +619,7 @@ class TestTemplateResolutionFromCascade:
         blog = temp_site / "content" / "blog"
         blog.mkdir(parents=True)
 
-        (blog / "_index.md").write_text(
-            "---\ntitle: Blog\ncascade:\n  type: blog\n---\n"
-        )
+        (blog / "_index.md").write_text("---\ntitle: Blog\ncascade:\n  type: blog\n---\n")
         (blog / "post.md").write_text("---\ntitle: My Post\n---\nContent.\n")
 
         site = Site(root_path=temp_site, config={})
@@ -716,9 +654,7 @@ class TestTemplateResolutionFromCascade:
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "setup.md").write_text("---\ntitle: Setup\n---\n")
 
         site = Site(root_path=temp_site, config={})
@@ -769,12 +705,8 @@ class TestTemplateResolutionFromCascade:
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
-        (docs / "special.md").write_text(
-            "---\ntitle: Special\ntemplate: custom-layout.html\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
+        (docs / "special.md").write_text("---\ntitle: Special\ntemplate: custom-layout.html\n---\n")
 
         site = Site(root_path=temp_site, config={})
         _discover(site)
@@ -797,9 +729,7 @@ class TestTemplateResolutionFromCascade:
         blog = temp_site / "content" / "blog"
         blog.mkdir(parents=True)
 
-        (blog / "_index.md").write_text(
-            "---\ntitle: Blog\ncascade:\n  type: blog\n---\n"
-        )
+        (blog / "_index.md").write_text("---\ntitle: Blog\ncascade:\n  type: blog\n---\n")
         (blog / "post1.md").write_text("---\ntitle: Post 1\n---\n")
 
         site = Site(root_path=temp_site, config={})
@@ -823,6 +753,7 @@ class TestTemplateResolutionFromCascade:
 # 10. Cascade key provenance through warm rebuild
 # ---------------------------------------------------------------------------
 
+
 class TestCascadeKeyProvenanceRebuild:
     """Verify cascade_keys() correctly tracks what came from cascade vs frontmatter."""
 
@@ -833,9 +764,7 @@ class TestCascadeKeyProvenanceRebuild:
         (docs / "_index.md").write_text(
             "---\ntitle: Docs\ncascade:\n  type: doc\n  sidebar: true\n---\n"
         )
-        (docs / "page.md").write_text(
-            "---\ntitle: Page\nauthor: Alice\n---\n"
-        )
+        (docs / "page.md").write_text("---\ntitle: Page\nauthor: Alice\n---\n")
 
         site = Site(root_path=temp_site, config={})
         _discover(site)
@@ -855,16 +784,12 @@ class TestCascadeKeyProvenanceRebuild:
             f"cascade_keys() changed after rebuild: {keys_before} → {keys_after}"
         )
 
-    def test_provenance_shifts_when_frontmatter_overrides_cascade(
-        self, temp_site: Path
-    ) -> None:
+    def test_provenance_shifts_when_frontmatter_overrides_cascade(self, temp_site: Path) -> None:
         """When frontmatter adds type: override, it should leave cascade_keys."""
         docs = temp_site / "content" / "docs"
         docs.mkdir(parents=True)
 
-        (docs / "_index.md").write_text(
-            "---\ntitle: Docs\ncascade:\n  type: doc\n---\n"
-        )
+        (docs / "_index.md").write_text("---\ntitle: Docs\ncascade:\n  type: doc\n---\n")
         (docs / "page.md").write_text("---\ntitle: Page\n---\n")
 
         site = Site(root_path=temp_site, config={})
@@ -874,9 +799,7 @@ class TestCascadeKeyProvenanceRebuild:
         assert "type" in page.metadata.cascade_keys()
 
         # Add frontmatter override
-        (docs / "page.md").write_text(
-            "---\ntitle: Page\ntype: custom\n---\n"
-        )
+        (docs / "page.md").write_text("---\ntitle: Page\ntype: custom\n---\n")
 
         _warm_rebuild(site)
         page = _find_page(site, "page")

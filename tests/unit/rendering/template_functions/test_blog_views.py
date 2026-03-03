@@ -113,6 +113,24 @@ class TestPostViewFromPage:
         assert view.description == "First paragraph of the post..."
         assert view.excerpt == "First paragraph of the post..."
 
+    def test_prefers_excerpt_over_description(self) -> None:
+        """When both excerpt and metadata.description exist, excerpt wins (Bug 1 regression guard)."""
+        page = MagicMock()
+        page.title = "Post"
+        page.href = "/post/"
+        page.date = None
+        page.metadata = {"description": "Frontmatter description"}
+        page.params = {}
+        page.excerpt = "<p>AST-extracted excerpt</p>"
+        page.reading_time = 0
+        page.word_count = 0
+        page.tags = []
+        page.draft = False
+
+        view = PostView.from_page(page)
+
+        assert view.excerpt == "<p>AST-extracted excerpt</p>"
+
     def test_extracts_author_info(self) -> None:
         """Should extract author info from metadata."""
         page = MagicMock()

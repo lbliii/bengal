@@ -17,7 +17,7 @@ Usage:
 {% if page?.series %}
 {% let s = page.series %}
 {% let series_key = s.id or s.name %}
-{% let series_pages = site.indexes.series.get(series_key) ?? [] %}
+{% let series_pages = (site?.indexes?.series?.get(series_key)) ?? [] %}
 {% let total = s.total if s.total > 0 else (series_pages | length) %}
 <nav class="series-nav" aria-label="Series navigation">
   <div class="series-nav__header">

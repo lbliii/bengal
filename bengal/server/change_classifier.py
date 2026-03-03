@@ -26,8 +26,6 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from bengal.utils.paths.normalize import to_posix
-
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
 
@@ -74,7 +72,7 @@ def _extract_frontmatter(path: Path) -> tuple[dict[str, Any], str] | None:
     """Extract frontmatter and body from markdown file. Returns (fm, body) or None."""
     try:
         text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+    except OSError, UnicodeDecodeError:
         return None
     match = re.match(r"^---\s*\n(.*?)\n---\s*\n(.*)$", text, flags=re.DOTALL)
     if not match:
@@ -224,9 +222,7 @@ def classify_change(
         )
 
     new_fm, _ = parsed
-    fm_hash = hashlib.sha256(
-        str(sorted(new_fm.items())).encode()
-    ).hexdigest()[:16]
+    fm_hash = hashlib.sha256(str(sorted(new_fm.items())).encode()).hexdigest()[:16]
 
     content_hash_entry = content_hash_cache.get(resolved)
     if content_hash_entry is not None:
@@ -274,10 +270,7 @@ def _scope_for_frontmatter_change(
     old_keys = set(old_fm.keys()) if old_fm else set()
     new_keys = set(new_fm.keys())
     all_keys = old_keys | new_keys
-    changed_keys = {
-        k for k in all_keys
-        if (old_fm or {}).get(k) != (new_fm or {}).get(k)
-    }
+    changed_keys = {k for k in all_keys if (old_fm or {}).get(k) != (new_fm or {}).get(k)}
 
     # FULL_REBUILD_KEYS -> upgrade to FULL (handled by caller when tier is FRONTMATTER)
     if changed_keys & FULL_REBUILD_KEYS:

@@ -83,6 +83,8 @@ Works with HTML (strips to plain text) or plain text. Case-insensitive.
 
 **Use cases:** post cards, related cards, tiles, tutorial cards, autodoc element cards, changelog summaries.
 
+**Edge case:** When excerpt equals description (common for frontmatter-only posts, product pages, changelog entries), `card_excerpt_html` falls back to truncated original instead of empty. See [Excerpt Pipeline](/docs/theming/content/excerpt-pipeline/).
+
 ## card_excerpt
 
 Excerpt for card previews: strip title/description duplicates, then truncate by word count. Combines `excerpt_for_card` and `truncatewords`.

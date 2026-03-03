@@ -72,6 +72,31 @@ class TestSectionOrchestrator:
         assert section.index_page == original_index
         assert len(mock_site.pages) == 0  # No archive pages added
 
+    def test_enriched_index_injects_metadata_for_renderer(self, orchestrator, mock_site, tmp_path):
+        """Enriched index pages get _generated, _posts in _raw_metadata (readable via metadata)."""
+        section = Section(name="blog", path=tmp_path / "content" / "blog")
+        index_page = Page(
+            source_path=tmp_path / "content" / "blog" / "_index.md",
+            _raw_metadata={"type": "blog", "title": "Blog"},
+        )
+        post = Page(
+            source_path=tmp_path / "content" / "blog" / "post1.md",
+            _raw_metadata={"title": "Post 1", "date": "2026-03-01"},
+        )
+        section.add_page(index_page)
+        section.add_page(post)
+
+        mock_site.sections = [section]
+        mock_site.invalidate_page_caches = Mock()
+
+        orchestrator.finalize_sections()
+
+        # Enriched index should have _generated and _posts in metadata (renderer path)
+        assert index_page.metadata.get("_generated") is True
+        assert index_page.metadata.get("_posts") is not None
+        assert len(index_page.metadata.get("_posts", [])) == 1
+        assert index_page.metadata.get("_content_type") == "blog"
+
     def test_finalize_section_without_index(self, orchestrator, mock_site, tmp_path):
         """Test that sections without _index.md get auto-generated archive."""
         # Create section without index page
