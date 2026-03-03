@@ -235,3 +235,21 @@ class TestExpandShortcodes:
         page._source = "Text {{< tip >}}Hint{{< /tip >}} more"
         assert has_shortcode(page, "tip") is True
         assert has_shortcode(page, "audio") is False
+
+    def test_shortcode_context_includes_site_data(self) -> None:
+        """Shortcode template context includes site with site.data."""
+        engine = MagicMock()
+        engine.template_exists.return_value = True
+        engine.render_template.return_value = "<div>ok</div>"
+        page = MagicMock()
+        page.source_path = "test.md"
+        site = MagicMock()
+        site.config = {}
+        site.xref_index = {}
+        site.data = {"authors": {"alice": {"name": "Alice"}}}
+        content = "{{< tip >}}Hint{{< /tip >}}"
+        expand_shortcodes(content, engine, page, site)
+        call_args = engine.render_template.call_args
+        ctx = call_args[0][1]
+        assert "site" in ctx
+        assert ctx["site"].data == {"authors": {"alice": {"name": "Alice"}}}

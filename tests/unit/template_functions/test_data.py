@@ -4,6 +4,8 @@ import json
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from bengal.rendering.template_functions.data import (
     get_data,
     get_nested,
@@ -177,3 +179,27 @@ class TestGetData:
     def test_empty_path(self):
         result = get_data("", Path("/tmp"))
         assert result == {}
+
+    def test_get_data_invalid_json_returns_empty(self) -> None:
+        """Invalid JSON returns {} per data contract."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            (Path(tmpdir) / "bad.json").write_text("{ invalid json }")
+            result = get_data("bad.json", Path(tmpdir))
+            assert result == {}
+
+    def test_get_data_invalid_yaml_returns_empty(self) -> None:
+        """Invalid YAML returns {} per data contract."""
+        pytest.importorskip("yaml")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            (Path(tmpdir) / "bad.yaml").write_text("invalid: [unclosed")
+            result = get_data("bad.yaml", Path(tmpdir))
+            assert result == {}
+
+    def test_get_data_loads_from_data_subdir(self) -> None:
+        """get_data loads from data/ subdir (common pattern)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            data_dir = Path(tmpdir) / "data"
+            data_dir.mkdir()
+            (data_dir / "authors.json").write_text('{"alice": {"name": "Alice"}}')
+            result = get_data("data/authors.json", Path(tmpdir))
+            assert result == {"alice": {"name": "Alice"}}
