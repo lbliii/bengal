@@ -68,6 +68,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
@@ -115,6 +116,7 @@ class PageJSONGenerator:
         graph_data: dict[str, Any] | None = None,
         include_html: bool = False,
         include_text: bool = True,
+        collector: OutputCollector | None = None,
     ) -> None:
         """
         Initialize the JSON generator.
@@ -124,11 +126,13 @@ class PageJSONGenerator:
             graph_data: Optional pre-computed graph data for contextual minimap
             include_html: Whether to include HTML content in JSON (default: False, HTML file already exists)
             include_text: Whether to include plain text content in JSON (default: True)
+            collector: Optional output collector for purge manifest (RFC: stale-output-purge)
         """
         self.site = site
         self.graph_data = graph_data
         self.include_html = include_html
         self.include_text = include_text
+        self.collector = collector
         # Lazily-built indexes for O(1) graph lookups (built on first use)
         self._node_url_index: dict[str, dict[str, Any]] | None = None
         self._edge_index: dict[str, list[dict[str, Any]]] | None = None
@@ -191,6 +195,15 @@ class PageJSONGenerator:
 
         # Use parallel write utility
         count = parallel_write_files(page_items, write_json, operation_name="page_json_write")
+
+        if self.collector:
+            from pathlib import Path
+
+            from bengal.core.output import OutputType
+
+            for path, _ in page_items:
+                p = Path(path) if not isinstance(path, Path) else path
+                self.collector.record(p, OutputType.JSON, phase="postprocess")
 
         logger.info("page_json_generated", count=count)
         return count

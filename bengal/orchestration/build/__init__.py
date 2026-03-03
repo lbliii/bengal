@@ -734,6 +734,9 @@ class BuildOrchestrator:
                 content_hash_count=len(content_hash_lookup),
             )
 
+        # Phase 17.5: Purge stale outputs (RFC: stale-output-purge)
+        finalization.phase_purge_stale(self, output_collector, cli=cli)
+
         # Phase 18: Save Caches (parallel for independent caches)
         # Run cache saves concurrently since they're independent I/O operations.
         # This reduces total cache save time from sum to max of all saves.

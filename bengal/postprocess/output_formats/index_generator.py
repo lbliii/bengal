@@ -90,6 +90,7 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.orchestration.build_context import AccumulatedPageData, BuildContext
     from bengal.protocols import PageLike, SiteLike
 else:
@@ -141,6 +142,7 @@ class SiteIndexGenerator:
         excerpt_length: int = 200,
         json_indent: int | None = None,
         include_full_content: bool = False,
+        collector: OutputCollector | None = None,
     ) -> None:
         """
         Initialize the index generator.
@@ -150,11 +152,13 @@ class SiteIndexGenerator:
             excerpt_length: Length of excerpts in characters
             json_indent: JSON indentation (None for compact)
             include_full_content: Include full content in index (increases size)
+            collector: Optional output collector for purge manifest (RFC: stale-output-purge)
         """
         self.site = site
         self.excerpt_length = excerpt_length
         self.json_indent = json_indent
         self.include_full_content = include_full_content
+        self.collector = collector
 
     def generate(
         self,
@@ -316,6 +320,11 @@ class SiteIndexGenerator:
         )
         self._write_if_changed(index_path, new_json_str)
 
+        if self.collector:
+            from bengal.core.output import OutputType
+
+            self.collector.record(index_path, OutputType.JSON, phase="postprocess")
+
         logger.debug(
             "site_index_json_written",
             path=str(index_path),
@@ -474,6 +483,11 @@ class SiteIndexGenerator:
             site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True
         )
         self._write_if_changed(index_path, new_json_str)
+
+        if self.collector:
+            from bengal.core.output import OutputType
+
+            self.collector.record(index_path, OutputType.JSON, phase="postprocess")
 
         logger.debug(
             "version_index_json_written",

@@ -844,3 +844,7 @@ class AssetOrchestrator:
         manifest_path = self.site.output_dir / "asset-manifest.json"
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest.write(manifest_path)
+        if self._collector:
+            from bengal.core.output import OutputType
+
+            self._collector.record(manifest_path, OutputType.JSON, phase="asset")

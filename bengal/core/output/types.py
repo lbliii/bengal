@@ -55,6 +55,7 @@ class OutputType(Enum):
     JSON = "json"
     MANIFEST = "manifest"
     XML = "xml"
+    OTHER = "other"
 
 
 @dataclass(frozen=True, slots=True)

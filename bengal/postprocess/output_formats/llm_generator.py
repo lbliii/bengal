@@ -76,6 +76,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.protocols import PageLike, SiteConfig
 
 logger = get_logger(__name__)
@@ -123,6 +124,7 @@ class SiteLlmTxtGenerator:
         self,
         site: SiteConfig,
         separator_width: int = 80,
+        collector: OutputCollector | None = None,
     ) -> None:
         """
         Initialize the LLM text generator.
@@ -130,9 +132,11 @@ class SiteLlmTxtGenerator:
         Args:
             site: Site instance
             separator_width: Width of separator lines
+            collector: Optional output collector for purge manifest (RFC: stale-output-purge)
         """
         self.site = site
         self.separator_width = separator_width
+        self.collector = collector
 
     def generate(self, pages: list[PageLike]) -> Path:
         """
@@ -160,6 +164,11 @@ class SiteLlmTxtGenerator:
 
         # Check if content unchanged via hash comparison (O(1) instead of O(n))
         if self._is_unchanged(hash_path, new_hash):
+            if self.collector:
+                from bengal.core.output import OutputType
+
+                self.collector.record(llm_path, OutputType.ASSET, phase="postprocess")
+                self.collector.record(hash_path, OutputType.ASSET, phase="postprocess")
             logger.debug(
                 "site_llm_txt_skipped",
                 reason="content_unchanged",
@@ -219,6 +228,12 @@ class SiteLlmTxtGenerator:
 
         # Save hash for next build
         hash_path.write_text(new_hash, encoding="utf-8")
+
+        if self.collector:
+            from bengal.core.output import OutputType
+
+            self.collector.record(llm_path, OutputType.ASSET, phase="postprocess")
+            self.collector.record(hash_path, OutputType.ASSET, phase="postprocess")
 
         logger.info("site_llm_txt_generated", path=str(llm_path), page_count=len(pages))
         return llm_path

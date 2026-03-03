@@ -61,6 +61,41 @@ def phase_postprocess(
         orchestrator.logger.info("postprocessing_complete")
 
 
+def phase_purge_stale(
+    orchestrator: BuildOrchestrator,
+    collector: OutputCollector,
+    cli: CLIOutput | None = None,
+) -> int:
+    """
+    Phase 17.5: Purge stale outputs (RFC: stale-output-purge).
+
+    Removes files in output_dir not produced by this build. Enables correct
+    deploys without --clean-output when posts are removed or URLs change.
+
+    Skips when _clean_output_this_run (output dir was wiped) or
+    build.purge_stale_outputs is false.
+
+    Args:
+        orchestrator: Build orchestrator instance
+        collector: Output collector with manifest from this build
+        cli: CLI output for user messages (optional)
+
+    Returns:
+        Count of deleted files (0 if purge skipped)
+    """
+    if orchestrator.site.config.get("_clean_output_this_run"):
+        return 0
+    if not orchestrator.site.config.get("build", {}).get("purge_stale_outputs", True):
+        return 0
+
+    from bengal.orchestration.incremental.purge import purge_stale_outputs
+
+    deleted = purge_stale_outputs(orchestrator.site.output_dir, collector.get_manifest_paths())
+    if deleted > 0 and cli is not None:
+        cli.detail(f"Purged {deleted} stale output(s)", indent=1)
+    return deleted
+
+
 def phase_cache_save(
     orchestrator: BuildOrchestrator,
     pages_to_build: list[Any],

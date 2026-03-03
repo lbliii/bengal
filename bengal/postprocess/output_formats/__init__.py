@@ -35,6 +35,7 @@ from bengal.postprocess.utils import get_section_name
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import PageLike, SiteLike
 
@@ -102,6 +103,7 @@ class OutputFormatsGenerator:
         config: dict[str, Any] | None = None,
         graph_data: dict[str, Any] | None = None,
         build_context: BuildContext | Any | None = None,
+        collector: OutputCollector | None = None,
     ) -> None:
         """
         Initialize output formats generator.
@@ -111,11 +113,13 @@ class OutputFormatsGenerator:
             config: Configuration dict from bengal.toml
             graph_data: Optional pre-computed graph data for including in page JSON
             build_context: Optional BuildContext with accumulated JSON data from rendering phase
+            collector: Optional output collector for purge manifest (RFC: stale-output-purge)
         """
         self.site = site
         self.config = self._normalize_config(config or {})
         self.graph_data = graph_data
         self.build_context = build_context
+        self.collector = collector
 
     def _normalize_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
@@ -252,6 +256,7 @@ class OutputFormatsGenerator:
                 graph_data=self.graph_data,
                 include_html=include_html,
                 include_text=include_text,
+                collector=self.collector,
             )
             # OPTIMIZATION: Use accumulated page data if available
             # Extract JSON-specific data from unified accumulator
@@ -269,7 +274,9 @@ class OutputFormatsGenerator:
 
         if "llm_txt" in per_page:
             separator_width = options.get("llm_separator_width", 80)
-            txt_gen = PageTxtGenerator(self.site, separator_width=separator_width)
+            txt_gen = PageTxtGenerator(
+                self.site, separator_width=separator_width, collector=self.collector
+            )
             count = txt_gen.generate(pages)
             generated.append(f"LLM text ({count} files)")
             logger.debug("generated_page_txt", file_count=count)
@@ -284,6 +291,7 @@ class OutputFormatsGenerator:
                 excerpt_length=excerpt_length,
                 json_indent=json_indent,
                 include_full_content=include_full_content,
+                collector=self.collector,
             )
             # OPTIMIZATION: Pass accumulated page data for hybrid mode
             # See: plan/drafted/rfc-unified-page-data-accumulation.md
@@ -311,7 +319,7 @@ class OutputFormatsGenerator:
             prebuilt_enabled = lunr_config.get("prebuilt", True)  # Default: enabled
 
             if prebuilt_enabled:
-                lunr_gen = LunrIndexGenerator(self.site)
+                lunr_gen = LunrIndexGenerator(self.site, collector=self.collector)
                 if lunr_gen.is_available():
                     # Generate Lunr index for each version index
                     for index_path in index_paths:
@@ -327,7 +335,9 @@ class OutputFormatsGenerator:
 
         if "llm_full" in site_wide:
             separator_width = options.get("llm_separator_width", 80)
-            llm_gen = SiteLlmTxtGenerator(self.site, separator_width=separator_width)
+            llm_gen = SiteLlmTxtGenerator(
+                self.site, separator_width=separator_width, collector=self.collector
+            )
             llm_gen.generate(pages)
             generated.append("llm-full.txt")
             logger.debug("generated_site_llm_full")

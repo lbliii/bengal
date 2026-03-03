@@ -147,6 +147,7 @@ DEFAULTS: dict[str, Any] = {
         "stable_section_references": True,
         "min_page_size": 1000,
         "track_dependency_ordering": True,  # Render track items before track pages
+        "purge_stale_outputs": True,  # RFC: stale-output-purge - remove outputs not produced this build
     },
     # -------------------------------------------------------------------------
     # Development (canonical location: dev.*)

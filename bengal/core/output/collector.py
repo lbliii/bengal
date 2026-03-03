@@ -104,6 +104,18 @@ class BuildOutputCollector:
                 return list(self._outputs)
             return [o for o in self._outputs if o.output_type == output_type]
 
+    def get_manifest_paths(self) -> frozenset[str]:
+        """Return posix-normalized relative paths for purge manifest.
+
+        Thread-safe. Used by purge_stale_outputs to determine which files
+        to keep (all others are stale and deleted).
+
+        Returns:
+            Frozenset of relative path strings, normalized for cross-platform
+        """
+        with self._lock:
+            return frozenset(str(o.path).replace("\\", "/") for o in self._outputs)
+
     def get_relative_paths(
         self,
         output_type: OutputType | None = None,

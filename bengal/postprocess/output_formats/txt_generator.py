@@ -72,6 +72,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
@@ -117,6 +118,7 @@ class PageTxtGenerator:
         self,
         site: SiteLike,
         separator_width: int = 80,
+        collector: OutputCollector | None = None,
     ) -> None:
         """
         Initialize the TXT generator.
@@ -124,9 +126,11 @@ class PageTxtGenerator:
         Args:
             site: Site instance
             separator_width: Width of separator lines in output
+            collector: Optional output collector for purge manifest (RFC: stale-output-purge)
         """
         self.site = site
         self.separator_width = separator_width
+        self.collector = collector
 
     def generate(self, pages: list[PageLike]) -> int:
         """
@@ -160,6 +164,12 @@ class PageTxtGenerator:
 
         # Use parallel write utility
         count = parallel_write_files(page_items, write_txt, operation_name="page_txt_write")
+
+        if self.collector:
+            from bengal.core.output import OutputType
+
+            for path, _ in page_items:
+                self.collector.record(path, OutputType.ASSET, phase="postprocess")
 
         logger.info("page_txt_generated", count=count)
         return count

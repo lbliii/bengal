@@ -38,6 +38,7 @@ from bengal.utils.io.atomic_write import atomic_write_text
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.core.output import OutputCollector
     from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
@@ -89,14 +90,16 @@ class LunrIndexGenerator:
         "kind": 1,
     }
 
-    def __init__(self, site: SiteLike) -> None:
+    def __init__(self, site: SiteLike, collector: OutputCollector | None = None) -> None:
         """
         Initialize the Lunr index generator.
 
         Args:
             site: Site instance with rendered pages
+            collector: Optional output collector for purge manifest (RFC: stale-output-purge)
         """
         self.site = site
+        self.collector = collector
 
     def is_available(self) -> bool:
         """
@@ -179,6 +182,11 @@ class LunrIndexGenerator:
                 output_path,
                 json.dumps(serialized, ensure_ascii=False, separators=(",", ":")),
             )
+
+            if self.collector:
+                from bengal.core.output import OutputType
+
+                self.collector.record(output_path, OutputType.JSON, phase="postprocess")
 
             size_kb = output_path.stat().st_size / 1024
             logger.info(

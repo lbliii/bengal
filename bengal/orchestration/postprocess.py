@@ -531,8 +531,13 @@ class PostprocessOrchestrator:
             Exception: If output format generation fails
         """
         config = self.site.config.get("output_formats", {})
+        collector = getattr(self, "_collector", None)
         generator = OutputFormatsGenerator(
-            self.site, config, graph_data=graph_data, build_context=build_context
+            self.site,
+            config,
+            graph_data=graph_data,
+            build_context=build_context,
+            collector=collector,
         )
         generator.generate()
 
