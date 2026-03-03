@@ -86,6 +86,9 @@ benchmarks/scenarios/*/output/
 # other
 .competitor/
 
+# Cursor plan files (ephemeral planning docs)
+*.plan.md
+
 # DORI (local/ephemeral)
 .dori/local/
 .dori/events/

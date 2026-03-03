@@ -76,6 +76,10 @@ class KidaTemplateEngine:
             kida:
               bytecode_cache: true  # (default) Cache compiled templates to disk
               bytecode_cache: false # Disable bytecode caching
+              fragment_cache_size: 2000  # {% cache %} block entries (default)
+              fragment_ttl: 3600.0  # Fragment TTL seconds (default 1h for SSG)
+              max_extends_depth: 50  # (optional) {% extends %} chain limit
+              max_include_depth: 50  # (optional) {% include %}/{% embed %} limit
 
         Note:
             Strict mode (raising UndefinedError for undefined variables) is
@@ -119,6 +123,14 @@ class KidaTemplateEngine:
         fragment_cache_size = kida_config.get("fragment_cache_size", 2000)
         fragment_ttl = kida_config.get("fragment_ttl", 3600.0)  # 1 hour for SSG
 
+        # Resource limits (kida 0.2.3+)
+        # Optional overrides for sites with deep theme/inheritance chains
+        env_kwargs: dict[str, Any] = {}
+        if "max_extends_depth" in kida_config:
+            env_kwargs["max_extends_depth"] = kida_config["max_extends_depth"]
+        if "max_include_depth" in kida_config:
+            env_kwargs["max_include_depth"] = kida_config["max_include_depth"]
+
         # Create Kida environment
         # Note: strict mode (UndefinedError for undefined vars) is always enabled
         self._env = Environment(
@@ -131,6 +143,7 @@ class KidaTemplateEngine:
             # Fragment caching for {% cache "key" %}...{% end %} blocks
             fragment_cache_size=fragment_cache_size,
             fragment_ttl=fragment_ttl,
+            **env_kwargs,
         )
 
         # Register Bengal-specific globals and filters
