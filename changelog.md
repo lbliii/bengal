@@ -41,6 +41,12 @@
 - **patitas**: unify MathRole output with plugin (raw LaTeX for KaTeX compatibility)
 - **docs**: add Math and LaTeX authoring guide; document `content.math` in theme reference
 
+## 0.2.5 - 2026-03-03
+
+### Kida 0.2.3
+- **config**: add `max_extends_depth` and `max_include_depth` to `kida:` config for sites with deep theme/inheritance chains
+- **deps**: require `kida-templates>=0.2.3`
+
 ## 0.2.3 - 2026-03-01
 
 ### Default Theme Blog Improvements
