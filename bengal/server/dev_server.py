@@ -825,6 +825,14 @@ class DevServer:
 
             if is_holding_port:
                 print(f"   This process is holding port {self.port}")
+            print(f"   PID file: {pid_file}")
+            print()
+            print("   To recover:")
+            print(f"      kill {stale_pid}")
+            print("   Or remove stale PID file and kill manually:")
+            print(f"      rm {pid_file}")
+            print(f"      lsof -ti:{self.port} | xargs kill")
+            print()
 
             # Try to import click for confirmation, fall back to input
             try:

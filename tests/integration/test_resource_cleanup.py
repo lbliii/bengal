@@ -73,6 +73,19 @@ class TestPIDManager:
         # and whether it detects this isn't a Bengal process
         # Either behavior is acceptable for this test
 
+    def test_is_bengal_process_returns_false_without_psutil(self):
+        """Without psutil, is_bengal_process returns False to avoid false ownership."""
+        from bengal.server.pid_manager import PIDManager
+
+        # Simulate psutil not installed: remove from sys.modules so import fails
+        old_psutil = sys.modules.pop("psutil", None)
+        try:
+            result = PIDManager.is_bengal_process(os.getpid())
+            assert result is False
+        finally:
+            if old_psutil is not None:
+                sys.modules["psutil"] = old_psutil
+
 
 class TestResourceManager:
     """Test resource manager cleanup."""

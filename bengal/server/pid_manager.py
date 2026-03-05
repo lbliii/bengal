@@ -92,19 +92,17 @@ class PIDManager:
                 print("Process 12345 is a Bengal server")
         """
         try:
-            # Try to use psutil for better process info
+            # Try to use psutil for accurate process name checking
             import psutil
 
             proc = psutil.Process(pid)
             cmdline = " ".join(proc.cmdline()).lower()
             return "bengal" in cmdline and "serve" in cmdline
         except ImportError:
-            # psutil not available, assume valid if process exists
-            try:
-                os.kill(pid, 0)  # Check if process exists
-                return True
-            except ProcessLookupError, PermissionError:
-                return False
+            # psutil not available: do NOT assume ownership. Returning True would
+            # risk killing unrelated processes. Install psutil for reliable
+            # stale-process detection: pip install psutil
+            return False
         except psutil.NoSuchProcess, psutil.AccessDenied:
             return False
 
