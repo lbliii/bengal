@@ -252,8 +252,10 @@ class PIDManager:
         """
         Get the PID of process listening on a port.
 
-        Uses lsof to find which process is listening on a port.
-        This is useful for detecting port conflicts.
+        Prefers the process in LISTEN state (actual server). Falls back to any
+        process with an fd for the port (e.g. client connections) if no listener
+        is found. This avoids wrongly reporting Chrome or other clients when the
+        real server is Python/Bengal.
 
         Args:
             port: Port number to check
@@ -275,11 +277,27 @@ class PIDManager:
         try:
             import subprocess
 
+            # Prefer listener — avoids wrongly blaming Chrome (client) when server is Bengal
             result = subprocess.run(
-                ["lsof", "-ti", f":{port}"], check=False, capture_output=True, text=True, timeout=2
+                ["lsof", "-iTCP", f":{port}", "-sTCP:LISTEN", "-t"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=2,
             )
-            if result.returncode == 0 and result.stdout.strip():
-                return int(result.stdout.strip().split()[0])
+            pids = result.stdout.strip().split() if result.returncode == 0 else []
+            if not pids:
+                # Fallback: any process with port (client or listener)
+                result = subprocess.run(
+                    ["lsof", "-ti", f":{port}"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                )
+                pids = result.stdout.strip().split() if result.returncode == 0 else []
+            if pids:
+                return int(pids[0])
         except subprocess.SubprocessError, ValueError, FileNotFoundError:
             pass
         return None
