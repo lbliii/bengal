@@ -221,7 +221,8 @@ html:not([data-devtools-open]) .blog-post-list > * {
 .blog-featured-grid .article-card,
 .blog-post-list .article-card,
 .blog-post-list .blog-post-card,
-.blog-home-posts-grid .article-card {
+.blog-home-posts-grid .article-card,
+.archive-list--tag .article-card {
     background: var(--color-surface);
     border-radius: var(--radius-xl);
     overflow: hidden;
@@ -238,6 +239,7 @@ html:not([data-devtools-open]) .blog-post-list > * {
 .blog-post-list .article-card.gradient-border,
 .blog-post-list .blog-post-card.gradient-border,
 .blog-home-posts-grid .article-card.gradient-border,
+.archive-list--tag .article-card.gradient-border,
 .blog-featured-grid .article-card.gradient-border-strong {
     border: none;
 }
@@ -246,6 +248,7 @@ html:not([data-devtools-open]) .blog-post-list > * {
 .blog-post-list .article-card.fluid-combined,
 .blog-post-list .blog-post-card.fluid-combined,
 .blog-home-posts-grid .article-card.fluid-combined,
+.archive-list--tag .article-card.fluid-combined,
 .blog-featured-grid .article-card.fluid-bg {
     border: none;
 }
@@ -254,7 +257,8 @@ html:not([data-devtools-open]) .blog-post-list > * {
 .blog-featured-grid .article-card::before,
 .blog-post-list .article-card::before,
 .blog-post-list .blog-post-card::before,
-.blog-home-posts-grid .article-card::before {
+.blog-home-posts-grid .article-card::before,
+.archive-list--tag .article-card::before {
     content: '';
     position: absolute;
     top: -30%;
@@ -276,14 +280,16 @@ html:not([data-devtools-open]) .blog-post-list > * {
 .blog-featured-grid .article-card:hover::before,
 .blog-post-list .article-card:hover::before,
 .blog-post-list .blog-post-card:hover::before,
-.blog-home-posts-grid .article-card:hover::before {
+.blog-home-posts-grid .article-card:hover::before,
+.archive-list--tag .article-card:hover::before {
     opacity: 1;
 }
 
 .blog-featured-grid .article-card>*,
 .blog-post-list .article-card>*,
 .blog-post-list .blog-post-card>*,
-.blog-home-posts-grid .article-card>* {
+.blog-home-posts-grid .article-card>*,
+.archive-list--tag .article-card>* {
     position: relative;
     z-index: 1;
 }
@@ -294,7 +300,8 @@ html:not([data-devtools-open]) .blog-post-list > * {
     .blog-featured-grid .article-card::before,
     .blog-post-list .article-card::before,
     .blog-post-list .blog-post-card::before,
-    .blog-home-posts-grid .article-card::before {
+    .blog-home-posts-grid .article-card::before,
+    .archive-list--tag .article-card::before {
         background: radial-gradient(circle at 40% 40%,
                 rgba(59, 130, 246, 0.06) 0%,
                 rgba(139, 92, 246, 0.04) 25%,
@@ -308,7 +315,8 @@ html:not([data-devtools-open]) .blog-post-list > * {
     .blog-featured-grid .article-card::before,
     .blog-post-list .article-card::before,
     .blog-post-list .blog-post-card::before,
-    .blog-home-posts-grid .article-card::before {
+    .blog-home-posts-grid .article-card::before,
+    .archive-list--tag .article-card::before {
         animation: none !important;
     }
 }
@@ -316,7 +324,8 @@ html:not([data-devtools-open]) .blog-post-list > * {
 .blog-featured-grid .article-card:hover,
 .blog-post-list .article-card:hover,
 .blog-post-list .blog-post-card:hover,
-.blog-home-posts-grid .article-card:hover {
+.blog-home-posts-grid .article-card:hover,
+.archive-list--tag .article-card:hover {
     box-shadow: var(--elevation-high);
     transform: translate3d(0, -2px, 0);
     transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -329,7 +338,8 @@ html:not([data-devtools-open]) .blog-post-list > * {
     .blog-featured-grid .article-card:hover,
     .blog-post-list .article-card:hover,
     .blog-post-list .blog-post-card:hover,
-    .blog-home-posts-grid .article-card:hover {
+    .blog-home-posts-grid .article-card:hover,
+    .archive-list--tag .article-card:hover {
         transform: none;
     }
 }
@@ -337,6 +347,11 @@ html:not([data-devtools-open]) .blog-post-list > * {
 /* Horizontal layout for list items */
 .blog-post-list .article-card {
     flex-direction: row;
+}
+
+/* Tag page: always column (no images) */
+.archive-list--tag .article-card {
+    flex-direction: column;
 }
 
 @media (max-width: 768px) {

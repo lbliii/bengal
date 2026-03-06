@@ -831,7 +831,7 @@ class DevServer:
             print(f"      kill {stale_pid}")
             print("   Or remove stale PID file and kill manually:")
             print(f"      rm {pid_file}")
-            print(f"      lsof -ti:{self.port} | xargs kill")
+            print(f"      lsof -nP -iTCP:{self.port} -sTCP:LISTEN -t | xargs kill")
             print()
 
             # Try to import click for confirmation, fall back to input

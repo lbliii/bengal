@@ -7,7 +7,7 @@ Features:
 - Automatic stale process detection
 - Graceful process termination (SIGTERM then SIGKILL)
 - PID file validation (ensures it's actually a Bengal process)
-- Cross-platform support (psutil optional, falls back to os.kill)
+- Cross-platform support (psutil required for process validation)
 
 Usage:
 
@@ -79,7 +79,9 @@ class PIDManager:
         Check if PID is actually a Bengal serve process.
 
         Uses psutil if available for accurate process name checking.
-        Falls back to simple existence check if psutil is not installed.
+        Returns False when psutil is not installed (avoids claiming ownership
+        of unrelated processes). Install psutil for reliable stale-process
+        detection.
 
         Args:
             pid: Process ID to check
@@ -279,7 +281,7 @@ class PIDManager:
 
             # Prefer listener — avoids wrongly blaming Chrome (client) when server is Bengal
             result = subprocess.run(
-                ["lsof", "-iTCP", f":{port}", "-sTCP:LISTEN", "-t"],
+                ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
                 check=False,
                 capture_output=True,
                 text=True,
@@ -289,7 +291,7 @@ class PIDManager:
             if not pids:
                 # Fallback: any process with port (client or listener)
                 result = subprocess.run(
-                    ["lsof", "-ti", f":{port}"],
+                    ["lsof", "-nP", "-ti", f":{port}"],
                     check=False,
                     capture_output=True,
                     text=True,

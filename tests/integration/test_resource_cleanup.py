@@ -73,18 +73,24 @@ class TestPIDManager:
         # and whether it detects this isn't a Bengal process
         # Either behavior is acceptable for this test
 
-    def test_is_bengal_process_returns_false_without_psutil(self):
+    def test_is_bengal_process_returns_false_without_psutil(self, monkeypatch):
         """Without psutil, is_bengal_process returns False to avoid false ownership."""
+        import builtins
+
+        real_import = builtins.__import__
+
+        def fake_import(name: str, *args: object, **kwargs: object):
+            if name == "psutil":
+                raise ImportError("No module named 'psutil'")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", fake_import)
+        monkeypatch.delitem(sys.modules, "psutil", raising=False)
+
         from bengal.server.pid_manager import PIDManager
 
-        # Simulate psutil not installed: remove from sys.modules so import fails
-        old_psutil = sys.modules.pop("psutil", None)
-        try:
-            result = PIDManager.is_bengal_process(os.getpid())
-            assert result is False
-        finally:
-            if old_psutil is not None:
-                sys.modules["psutil"] = old_psutil
+        result = PIDManager.is_bengal_process(os.getpid())
+        assert result is False
 
 
 class TestResourceManager:

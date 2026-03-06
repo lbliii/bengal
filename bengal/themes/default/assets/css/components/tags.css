@@ -181,6 +181,7 @@
 /* Tags page hero - actions below description */
 .page-hero--tags .page-hero__eyebrow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.375rem;
   font-size: 0.75rem;
@@ -197,11 +198,15 @@
 
 .page-hero--tags .page-hero__actions--tags {
   margin-top: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 /* Single tag page hero */
 .page-hero--tag .page-hero__eyebrow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.375rem;
   font-size: 0.75rem;
@@ -214,6 +219,8 @@
 
 .page-hero--tag .page-hero__breadcrumb-current {
   color: var(--color-text-secondary);
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .page-hero--tag .page-hero__title--tag {
@@ -233,6 +240,9 @@
 
 .page-hero--tag .page-hero__actions--tag {
   margin-top: var(--space-4);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 /* Tag page archive list - match blog spacing */
@@ -382,6 +392,15 @@
 @media (max-width: 768px) {
   .tag-card:hover {
     transform: none;
+  }
+
+  /* Single column on mobile to prevent smooshing */
+  .tag-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tag-card--featured {
+    grid-column: span 1;
   }
 }
 

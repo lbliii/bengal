@@ -199,13 +199,13 @@ def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> Path | None:
                 show_choices=False,
             )
             subdir = candidates[int(choice) - 1][0]
+            subdir_md_count = _count_markdown_files(subdir / "content")
         except click.Abort, EOFError, KeyboardInterrupt:
             raise click.Abort() from None
     else:
         subdir, subdir_md_count = max(candidates, key=lambda c: c[1])
 
     subdir_name = subdir.name
-    subdir_md_count = _count_markdown_files(subdir / "content")
 
     if not current_content.exists():
         cli.warning(f"Using subdirectory '{subdir_name}/' (Bengal site with content).")
