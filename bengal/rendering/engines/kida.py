@@ -123,7 +123,7 @@ class KidaTemplateEngine:
         fragment_cache_size = kida_config.get("fragment_cache_size", 2000)
         fragment_ttl = kida_config.get("fragment_ttl", 3600.0)  # 1 hour for SSG
 
-        # Resource limits (kida 0.2.3+)
+        # Resource limits (kida 0.2.4+)
         # Optional overrides for sites with deep theme/inheritance chains
         env_kwargs: dict[str, Any] = {}
         if "max_extends_depth" in kida_config:
