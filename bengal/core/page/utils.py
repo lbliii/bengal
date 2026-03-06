@@ -27,6 +27,39 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import Any
 
+
+def normalize_tags(raw: Any) -> list[str]:
+    """
+    Normalize tags from frontmatter to list of non-empty strings.
+
+    Handles malformed frontmatter: string instead of list, empty items,
+    whitespace-only items. Defense-in-depth against output bloat.
+
+    Args:
+        raw: Raw tags value from frontmatter (Any)
+
+    Returns:
+        List of non-empty tag strings
+
+    Examples:
+        >>> normalize_tags(None)
+        []
+        >>> normalize_tags("single")
+        ['single']
+        >>> normalize_tags(["", "a", "  ", "b"])
+        ['a', 'b']
+    """
+    if raw is None:
+        return []
+    if isinstance(raw, str):
+        s = raw.strip()
+        return [s] if s else []
+    try:
+        return [str(x).strip() for x in raw if x and str(x).strip()]
+    except TypeError, ValueError:
+        return []
+
+
 # Standard frontmatter fields that are extracted to PageCore fields
 # All other fields go into props
 STANDARD_FIELDS = {

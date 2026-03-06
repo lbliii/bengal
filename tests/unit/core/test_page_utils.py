@@ -1,10 +1,10 @@
 """
-Tests for page utilities (factories).
+Tests for page utilities (factories and helpers).
 """
 
 from __future__ import annotations
 
-from bengal.core.page.utils import create_synthetic_page
+from bengal.core.page.utils import create_synthetic_page, normalize_tags
 
 
 def test_create_synthetic_page_defaults() -> None:
@@ -37,3 +37,42 @@ def test_create_synthetic_page_custom() -> None:
     assert page.variant == "wide"
     assert page.props["foo"] == "bar"
     assert page.metadata["foo"] == "bar"
+
+
+# --- normalize_tags (frontmatter defense-in-depth) ---
+
+
+def test_normalize_tags_none() -> None:
+    """tags: null or missing → []."""
+    assert normalize_tags(None) == []
+
+
+def test_normalize_tags_string() -> None:
+    """tags: 'single' (string) → ['single']."""
+    assert normalize_tags("single") == ["single"]
+
+
+def test_normalize_tags_string_empty() -> None:
+    """tags: '' or whitespace-only string → []."""
+    assert normalize_tags("") == []
+    assert normalize_tags("   ") == []
+
+
+def test_normalize_tags_list_with_empty_items() -> None:
+    """tags: ['', 'a', '  ', 'b'] → ['a', 'b']."""
+    assert normalize_tags(["", "a", "  ", "b"]) == ["a", "b"]
+
+
+def test_normalize_tags_list_valid() -> None:
+    """tags: ['a', 'b'] → ['a', 'b']."""
+    assert normalize_tags(["a", "b"]) == ["a", "b"]
+
+
+def test_normalize_tags_list_empty() -> None:
+    """tags: [] → []."""
+    assert normalize_tags([]) == []
+
+
+def test_normalize_tags_non_iterable() -> None:
+    """Non-iterable (e.g. int) → []."""
+    assert normalize_tags(42) == []

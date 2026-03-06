@@ -98,6 +98,11 @@ class BuildStats:
     cache_misses: int = 0  # Pages/assets rebuilt
     time_saved_ms: float = 0  # Estimated time saved by caching
 
+    # Render pipeline cache (parsed content vs rendered output)
+    parsed_cache_hits: int = 0  # Pages that used cached parsed content (skipped parse)
+    rendered_cache_hits: int = 0  # Pages that used cached rendered HTML (skipped parse+render)
+    parsed_cache_misses: int = 0  # Pages that required full parse
+
     # Cache bypass statistics
     cache_bypass_hits: int = 0  # Pages that bypassed cache (in changed_sources or is_changed)
     cache_bypass_misses: int = 0  # Pages that used cache (not changed)
@@ -308,4 +313,7 @@ class BuildStats:
             "block_cache_misses": self.block_cache_misses,
             "block_cache_site_blocks": self.block_cache_site_blocks,
             "block_cache_time_saved_ms": self.block_cache_time_saved_ms,
+            "parsed_cache_hits": self.parsed_cache_hits,
+            "rendered_cache_hits": self.rendered_cache_hits,
+            "parsed_cache_misses": self.parsed_cache_misses,
         }

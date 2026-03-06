@@ -79,6 +79,7 @@ from .metadata import PageMetadataMixin
 from .page_core import PageCore
 from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
+from .utils import normalize_tags
 
 
 @dataclass
@@ -260,7 +261,7 @@ class Page(
     def __post_init__(self) -> None:
         """Initialize computed fields and PageCore."""
         if self._raw_metadata:
-            self.tags = self._raw_metadata.get("tags", [])
+            self.tags = normalize_tags(self._raw_metadata.get("tags"))
             # Priority: explicit 'version' frontmatter -> auto-detected '_version' metadata
             self.version = self._raw_metadata.get("version") or self._raw_metadata.get("_version")
             self.aliases = self._raw_metadata.get("aliases", [])

@@ -369,6 +369,8 @@ class RenderingPipeline:
         # Skip parsing if already done (e.g., by parsing phase before snapshot)
         # This avoids redundant parsing when using WaveScheduler with pre-parsed content
         if not page.html_content:
+            if self.build_stats:
+                self.build_stats.parsed_cache_misses += 1
             self._set_links_collector_for_parse()
             self._parse_content(page)
         self._enhance_api_docs(page)
