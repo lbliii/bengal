@@ -244,27 +244,77 @@ def main() -> None:
         type=Path,
         help="Save results to JSON file",
     )
+    parser.add_argument(
+        "--profile",
+        action="store_true",
+        help="Run with cProfile and save to .benchmarks/cpu_profile.prof",
+    )
+    parser.add_argument(
+        "--profile-memory",
+        action="store_true",
+        help="Run with tracemalloc and print top allocations",
+    )
 
     args = parser.parse_args()
 
-    if not args.site.exists():
-        print(f"❌ Site directory not found: {args.site}")
+    if args.profile:
+        import cProfile
+
+        prof_dir = Path.cwd() / ".benchmarks"
+        prof_dir.mkdir(parents=True, exist_ok=True)
+        prof_file = prof_dir / "cpu_profile.prof"
+        cProfile.runctx(
+            "_run_main(args)",
+            globals={"args": args, "_run_main": _run_main},
+            locals={},
+            filename=str(prof_file),
+        )
+        print(f"\nProfile saved to {prof_file}")
+        print("View with: python -m pstats", prof_file)
+        return
+
+    if args.profile_memory:
+        import tracemalloc
+
+        tracemalloc.start()
+        try:
+            _run_main(args)
+        finally:
+            snapshot = tracemalloc.take_snapshot()
+            tracemalloc.stop()
+            top = snapshot.statistics("lineno")[:15]
+            print("\nTop 15 memory allocations:")
+            for stat in top:
+                print(f"  {stat}")
+        return
+
+    _run_main(args)
+
+
+def _run_main(args: object) -> None:
+    """Inner main for profiling wrapper."""
+    site = getattr(args, "site", Path.cwd() / "site")
+    iterations = getattr(args, "iterations", 1)
+    output = getattr(args, "output", None)
+
+    if not site.exists():
+        print(f"❌ Site directory not found: {site}")
         return
 
     print("\n🐅 Bengal Cold Build Benchmark")
-    print(f"📁 Site: {args.site}")
-    print(f"🔄 Iterations: {args.iterations}")
+    print(f"📁 Site: {site}")
+    print(f"🔄 Iterations: {iterations}")
     print(f"⏰ Started: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
-    results = run_benchmarks(args.site, args.iterations)
+    results = run_benchmarks(site, iterations)
 
     print_summary(results)
 
-    if args.output:
+    if output:
         output_data = {
             "timestamp": datetime.now().isoformat(),
-            "site": str(args.site),
-            "iterations": args.iterations,
+            "site": str(site),
+            "iterations": iterations,
             "results": [
                 {
                     "name": r.name,
@@ -276,8 +326,8 @@ def main() -> None:
                 for r in results
             ],
         }
-        args.output.write_text(json.dumps(output_data, indent=2))
-        print(f"📁 Results saved to: {args.output}")
+        output.write_text(json.dumps(output_data, indent=2))
+        print(f"📁 Results saved to: {output}")
 
 
 if __name__ == "__main__":

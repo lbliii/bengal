@@ -181,30 +181,31 @@ pip install -r requirements.txt
 # Also install bengal in editable mode from project root
 pip install -e ..
 
-# Run all benchmarks
-pytest -v
+# Run all benchmarks (from project root)
+poe benchmark
+
+# Or with pytest directly
+pytest benchmarks/ tests/performance/ -v --benchmark-only
 
 # Run specific benchmark
-pytest test_build.py -k "incremental" -v
-
-# Run cold build permutations
-pytest test_cold_build_permutations.py -v
+pytest tests/performance/ -k "incremental" -v --benchmark-only
 
 # Save and compare results
-pytest test_build.py --benchmark-save=baseline
-pytest test_build.py --benchmark-compare=baseline
+poe benchmark-save
+poe benchmark-compare
 ```
 
 ### Available Benchmark Suites
 
 | Suite | Purpose |
 |-------|---------|
-| `test_build.py` | Core build performance, incremental builds, fast mode |
-| `test_cold_build_permutations.py` | Compare build modes across site sizes (100-1000 pages) |
-| `test_10k_site.py` | Large site performance (10,000 pages), memory usage |
-| `test_nav_tree_performance.py` | Navigation tree generation |
-| `test_kida_vs_jinja.py` | Template engine concurrent performance comparison |
-| `test_github_pages_optimization.py` | Optimal configuration for GitHub Actions (2-core, 7GB) |
+| `benchmark_full_build.py` | Core build performance, phase breakdown |
+| `benchmark_incremental.py` | Incremental build speedup |
+| `benchmark_ssg_comparison.py` | CSS-Tricks methodology, cross-SSG comparison |
+| `benchmark_content_complexity.py` | Directives, code blocks, taxonomy impact |
+| `benchmark_phase_breakdown.py` | Total build time by site size (phase breakdown in benchmark_full_build) |
+| `benchmark_render.py` | HtmlRenderer performance |
+| `benchmark_github_pages_optimization.py` | Optimal configuration for GitHub Actions (2-core, 7GB) |
 
 ---
 

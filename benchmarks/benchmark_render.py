@@ -483,8 +483,51 @@ def main():
         default=100,
         help="Number of iterations per benchmark",
     )
+    arg_parser.add_argument(
+        "--profile",
+        action="store_true",
+        help="Run with cProfile and save to .benchmarks/cpu_profile.prof",
+    )
+    arg_parser.add_argument(
+        "--profile-memory",
+        action="store_true",
+        help="Run with tracemalloc and print top allocations",
+    )
 
     args = arg_parser.parse_args()
+
+    if args.profile:
+        import cProfile
+
+        prof_dir = Path(__file__).parent / ".benchmarks"
+        prof_dir.mkdir(parents=True, exist_ok=True)
+        prof_file = prof_dir / "cpu_profile.prof"
+        cProfile.runctx(
+            "run_benchmarks(args.output)",
+            globals={"run_benchmarks": run_benchmarks, "args": args},
+            locals={},
+            filename=str(prof_file),
+        )
+        print(f"\nProfile saved to {prof_file}")
+        print("View with: python -m pstats", prof_file)
+        sys.exit(0)
+
+    if args.profile_memory:
+        import tracemalloc
+
+        tracemalloc.start()
+        exit_code = 1
+        try:
+            results = run_benchmarks(args.output)
+            exit_code = 0 if results["gate_passed"] else 1
+        finally:
+            snapshot = tracemalloc.take_snapshot()
+            tracemalloc.stop()
+            top = snapshot.statistics("lineno")[:15]
+            print("\nTop 15 memory allocations:")
+            for stat in top:
+                print(f"  {stat}")
+        sys.exit(exit_code)
 
     try:
         results = run_benchmarks(args.output)

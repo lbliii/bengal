@@ -237,6 +237,12 @@ test-parallel = { cmd = "pytest tests/ -n auto -x -q", help = "Run tests in para
 test-random = { cmd = "pytest tests/ -p randomly --randomly-seed=random -x -q", help = "Run tests in random order" }
 test-verbose = { cmd = "pytest tests/ -v --tb=long", help = "Run tests with verbose output" }
 
+# Benchmarks
+benchmark = { cmd = "pytest benchmarks/ tests/performance/ -v --benchmark-only", help = "Run all benchmarks" }
+benchmark-compare = { cmd = "pytest benchmarks/ tests/performance/ --benchmark-compare=baseline -v", help = "Compare to baseline" }
+benchmark-save = { cmd = "pytest benchmarks/ tests/performance/ --benchmark-save=baseline -v", help = "Save baseline" }
+benchmark-scenarios = { cmd = "python scripts/generate_benchmark_scenarios.py", help = "Generate cached benchmark scenarios" }
+
 # Type Checking
 ty = { cmd = "ty check bengal/", help = "Run ty type checker (fast, Rust-based)" }
 ty-strict = { cmd = "ty check bengal/ --error-on-warning", help = "Strict type checking (warnings as errors)" }

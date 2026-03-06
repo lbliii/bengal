@@ -9,9 +9,10 @@ from pathlib import Path
 import pytest
 
 try:
-    from benchmark_history import BenchmarkHistoryLogger
+    from benchmark_history import BenchmarkHistoryLogger, get_peak_memory_mb
 except ImportError:
     BenchmarkHistoryLogger = None
+    get_peak_memory_mb = None
 
 # Register test guards (optional, only if available in main tests directory)
 # Skip guards plugin for benchmarks - it's not needed and may not be available
@@ -67,16 +68,25 @@ def pytest_sessionfinish(session, exitstatus):
         # Get git info
         commit, branch = get_git_info()
 
+        # Capture peak memory (Unix only)
+        peak_memory_mb = None
+        if get_peak_memory_mb is not None:
+            peak_memory_mb = get_peak_memory_mb()
+
+        metadata: dict = {
+            "benchmark_file": latest_file.name,
+            "exit_status": exitstatus,
+        }
+        if peak_memory_mb is not None:
+            metadata["peak_memory_mb"] = peak_memory_mb
+
         # Log to history
         logger = BenchmarkHistoryLogger()
         logger.log_run(
             results=results,
             git_commit=commit,
             git_branch=branch,
-            metadata={
-                "benchmark_file": latest_file.name,
-                "exit_status": exitstatus,
-            },
+            metadata=metadata,
         )
 
         # Print summary
