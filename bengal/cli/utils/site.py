@@ -20,6 +20,7 @@ The loader performs several helpful checks:
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -122,12 +123,23 @@ def _count_markdown_files(directory: Path) -> int:
         return 0
 
 
+def _is_bengal_site(candidate: Path) -> bool:
+    """True if path has Bengal site markers: config + content."""
+    has_config = (
+        (candidate / "bengal.toml").exists()
+        or (candidate / "bengal.yaml").exists()
+        or (candidate / "config" / "_default").exists()
+    )
+    has_content = (candidate / "content").exists()
+    return bool(has_config and has_content)
+
+
 def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> Path | None:
     """
     Check if a subdirectory contains what looks like the actual site.
 
-    Common case: running from project root when site/ subdirectory
-    contains the actual Bengal site with content.
+    Scans all direct subdirectories for Bengal site markers (config + content)
+    instead of hardcoding directory names. Handles blog/, site/, docs/, etc.
 
     Args:
         root_path: The resolved site root path
@@ -141,74 +153,89 @@ def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> Path | None:
 
     logger = get_logger(__name__)
 
-    # Check common subdirectory names for site content
-    common_site_dirs = ["site", "docs", "website", "web"]
-
     current_content = root_path / "content"
     current_md_count = _count_markdown_files(current_content)
 
-    for subdir_name in common_site_dirs:
-        subdir = root_path / subdir_name
+    try:
+        subdirs = [d for d in root_path.iterdir() if d.is_dir() and not d.name.startswith(".")]
+    except OSError:
+        return None
 
-        if not subdir.exists() or not subdir.is_dir():
+    # Collect all Bengal site candidates
+    candidates: list[tuple[Path, int]] = []
+
+    for subdir in sorted(subdirs):
+        if not _is_bengal_site(subdir):
             continue
 
-        # Check if subdirectory looks like a Bengal site
-        has_config = (
-            (subdir / "bengal.toml").exists()
-            or (subdir / "bengal.yaml").exists()
-            or (subdir / "config" / "_default").exists()
-        )
-        subdir_content = subdir / "content"
-        has_content = subdir_content.exists()
+        subdir_md_count = _count_markdown_files(subdir / "content")
 
-        if has_config and has_content:
-            subdir_md_count = _count_markdown_files(subdir_content)
-
-            # Warn if subdirectory has significantly more content
-            # (at least 2x and at least 50 more files)
+        if not current_content.exists():
+            candidates.append((subdir, subdir_md_count))
+        else:
             significantly_more = (
                 subdir_md_count > current_md_count * 2 and subdir_md_count > current_md_count + 50
             )
+            if significantly_more:
+                candidates.append((subdir, subdir_md_count))
 
-            if not current_content.exists():
-                # Current has no content at all
-                cli.warning(
-                    f"Subdirectory '{subdir_name}/' appears to be a Bengal site with content."
-                )
-                cli.warning(f"   Did you mean to run: cd {subdir_name} && bengal serve", icon="")
-                cli.blank()
+    if not candidates:
+        return None
 
-                logger.warning(
-                    "subdirectory_site_detected",
-                    current=root_path.name,
-                    subdirectory=subdir_name,
-                    hint=f"cd {subdir_name} && bengal serve",
-                )
-                return subdir
-            elif significantly_more:
-                # Subdirectory has way more content
-                cli.warning(
-                    f"Subdirectory '{subdir_name}/' has significantly more content "
-                    f"({subdir_md_count} vs {current_md_count} markdown files)."
-                )
-                cli.warning(
-                    f"   If you meant to build that site: cd {subdir_name} && bengal serve", icon=""
-                )
-                cli.blank()
+    # Pick one: prompt if multiple and interactive, else use largest
+    if len(candidates) > 1 and sys.stdin.isatty():
+        cli.warning("Multiple Bengal sites found in subdirectories:")
+        for i, (subdir, count) in enumerate(candidates, 1):
+            cli.warning(f"  {i}. {subdir.name}/ ({count} markdown files)")
+        cli.blank()
 
-                logger.warning(
-                    "larger_subdirectory_site_detected",
-                    current=root_path.name,
-                    current_md_count=current_md_count,
-                    subdirectory=subdir_name,
-                    subdir_md_count=subdir_md_count,
-                    hint=f"cd {subdir_name} && bengal serve",
-                )
-                return subdir
-            break
+        choices = [str(i) for i in range(1, len(candidates) + 1)]
+        default = str(max(range(len(candidates)), key=lambda j: candidates[j][1]) + 1)
+        try:
+            choice = click.prompt(
+                "Which site to use?",
+                type=click.Choice(choices),
+                default=default,
+                show_choices=False,
+            )
+            subdir = candidates[int(choice) - 1][0]
+        except click.Abort, EOFError, KeyboardInterrupt:
+            raise click.Abort() from None
+    else:
+        subdir, subdir_md_count = max(candidates, key=lambda c: c[1])
 
-    return None
+    subdir_name = subdir.name
+    subdir_md_count = _count_markdown_files(subdir / "content")
+
+    if not current_content.exists():
+        cli.warning(f"Using subdirectory '{subdir_name}/' (Bengal site with content).")
+        cli.warning(f"   To run explicitly: cd {subdir_name} && bengal serve", icon="")
+        cli.blank()
+
+        logger.warning(
+            "subdirectory_site_detected",
+            current=root_path.name,
+            subdirectory=subdir_name,
+            hint=f"cd {subdir_name} && bengal serve",
+        )
+    else:
+        cli.warning(
+            f"Using subdirectory '{subdir_name}/' (has more content: "
+            f"{subdir_md_count} vs {current_md_count} markdown files)."
+        )
+        cli.warning(f"   To run explicitly: cd {subdir_name} && bengal serve", icon="")
+        cli.blank()
+
+        logger.warning(
+            "larger_subdirectory_site_detected",
+            current=root_path.name,
+            current_md_count=current_md_count,
+            subdirectory=subdir_name,
+            subdir_md_count=subdir_md_count,
+            hint=f"cd {subdir_name} && bengal serve",
+        )
+
+    return subdir
 
 
 def load_site_from_cli(
