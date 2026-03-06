@@ -642,7 +642,27 @@ class PageProxy:
     meta_description = _lazy_property(
         "meta_description", default="", doc="Meta description (lazy-loaded)."
     )
-    excerpt = _lazy_property("excerpt", default="", doc="Content excerpt (lazy-loaded).")
+
+    @property
+    def excerpt(self) -> str:
+        """
+        Get excerpt without loading full page when possible.
+
+        Uses parsed_content cache (O(1)) when BuildContext is available,
+        then core.description (frontmatter), then lazy load as fallback.
+        """
+        from bengal.rendering.template_functions.memo import get_build_context
+
+        build_ctx = get_build_context()
+        if build_ctx and build_ctx.cache:
+            cached = build_ctx.cache.get_excerpt_for_path(self.source_path)
+            if cached:
+                return cached
+        if self.core.description:
+            return self.core.description
+        self._ensure_loaded()
+        return self._full_page.excerpt if self._full_page else ""
+
     keywords = _lazy_property("keywords", default=[], doc="Keywords (lazy-loaded).")
 
     @property

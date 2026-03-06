@@ -876,6 +876,55 @@ class TestInvalidationMethods:
         assert result is True
         assert str(test_file) not in cache.parsed_content
 
+    def test_get_excerpt_for_path_returns_excerpt_from_cache(self, tmp_path):
+        """Test get_excerpt_for_path returns excerpt without full validation."""
+        cache = BuildCache(site_root=tmp_path)
+
+        test_file = tmp_path / "content" / "post.md"
+        test_file.parent.mkdir(parents=True, exist_ok=True)
+        test_file.write_text("# Post")
+        cache.update_file(test_file)
+
+        cache.store_parsed_content(
+            test_file,
+            html="<p>First paragraph.</p><p>Second.</p>",
+            toc="",
+            toc_items=[],
+            links=[],
+            metadata={"title": "Post"},
+            template="default.html",
+            parser_version="1.0",
+            excerpt="First paragraph.",
+            meta_description="Meta desc for SEO",
+        )
+
+        assert cache.get_excerpt_for_path(test_file) == "First paragraph."
+        assert cache.get_excerpt_for_path(tmp_path / "content" / "other.md") == ""
+
+    def test_get_excerpt_for_path_falls_back_to_meta_description(self, tmp_path):
+        """When excerpt is empty, get_excerpt_for_path returns meta_description."""
+        cache = BuildCache(site_root=tmp_path)
+
+        test_file = tmp_path / "content" / "post.md"
+        test_file.parent.mkdir(parents=True, exist_ok=True)
+        test_file.write_text("# Post")
+        cache.update_file(test_file)
+
+        cache.store_parsed_content(
+            test_file,
+            html="<p>Content</p>",
+            toc="",
+            toc_items=[],
+            links=[],
+            metadata={"title": "Post"},
+            template="default.html",
+            parser_version="1.0",
+            excerpt="",
+            meta_description="Fallback meta",
+        )
+
+        assert cache.get_excerpt_for_path(test_file) == "Fallback meta"
+
     def test_invalidate_parsed_content_returns_false_if_missing(self, tmp_path):
         """Test invalidate_parsed_content returns False for nonexistent entry."""
         cache = BuildCache()

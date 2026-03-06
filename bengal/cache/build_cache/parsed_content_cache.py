@@ -233,6 +233,22 @@ class ParsedContentCacheMixin:
 
         return cached
 
+    def get_excerpt_for_path(self, file_path: Path) -> str:
+        """
+        Lightweight excerpt lookup (no validation).
+
+        Returns excerpt or meta_description from parsed_content cache.
+        Use for PageProxy.excerpt to avoid full page load on list views.
+
+        Returns:
+            Excerpt string, or '' if not found
+        """
+        key = self._cache_key(file_path)
+        entry = self.parsed_content.get(key)
+        if not entry:
+            return ""
+        return entry.get("excerpt") or entry.get("meta_description") or ""
+
     def invalidate_parsed_content(self, file_path: Path) -> bool:
         """
         Remove cached parsed content for a file.
