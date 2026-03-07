@@ -6,9 +6,31 @@ performance across patches, commits, and releases.
 """
 
 import json
+import resource
 from datetime import datetime
 from pathlib import Path
 from typing import Any
+
+
+def get_peak_memory_mb() -> float | None:
+    """
+    Get peak RSS memory in MB for the current process.
+
+    Uses resource.getrusage on Unix (macOS, Linux). Returns None on Windows
+    or if unavailable.
+
+    Returns:
+        Peak memory in MB, or None if unavailable.
+    """
+    try:
+        usage = resource.getrusage(resource.RUSAGE_SELF)
+        rss = usage.ru_maxrss
+        # macOS: bytes, Linux: kilobytes (per Python docs)
+        if rss > 10_000_000:  # Likely bytes (>10MB)
+            return rss / (1024 * 1024)
+        return rss / 1024  # kilobytes to MB
+    except OSError, AttributeError:
+        return None
 
 
 class BenchmarkHistoryLogger:
@@ -151,6 +173,11 @@ class BenchmarkHistoryLogger:
 
             print(f"\n{i}. {timestamp}")
             print(f"   Branch: {branch} | Commit: {commit} | Version: {version}")
+
+            # Show peak memory if captured
+            metadata = entry.get("metadata", {})
+            if "peak_memory_mb" in metadata:
+                print(f"   Peak memory: {metadata['peak_memory_mb']:.1f} MB")
 
             # Show metrics for each test
             for test_name, test_data in entry.get("results", {}).items():

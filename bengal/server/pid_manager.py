@@ -7,7 +7,7 @@ Features:
 - Automatic stale process detection
 - Graceful process termination (SIGTERM then SIGKILL)
 - PID file validation (ensures it's actually a Bengal process)
-- Cross-platform support (psutil optional, falls back to os.kill)
+- Cross-platform support (psutil required for process validation)
 
 Usage:
 
@@ -79,7 +79,9 @@ class PIDManager:
         Check if PID is actually a Bengal serve process.
 
         Uses psutil if available for accurate process name checking.
-        Falls back to simple existence check if psutil is not installed.
+        Returns False when psutil is not installed (avoids claiming ownership
+        of unrelated processes). Install psutil for reliable stale-process
+        detection.
 
         Args:
             pid: Process ID to check
@@ -92,19 +94,17 @@ class PIDManager:
                 print("Process 12345 is a Bengal server")
         """
         try:
-            # Try to use psutil for better process info
+            # Try to use psutil for accurate process name checking
             import psutil
 
             proc = psutil.Process(pid)
             cmdline = " ".join(proc.cmdline()).lower()
             return "bengal" in cmdline and "serve" in cmdline
         except ImportError:
-            # psutil not available, assume valid if process exists
-            try:
-                os.kill(pid, 0)  # Check if process exists
-                return True
-            except ProcessLookupError, PermissionError:
-                return False
+            # psutil not available: do NOT assume ownership. Returning True would
+            # risk killing unrelated processes. Install psutil for reliable
+            # stale-process detection: pip install psutil
+            return False
         except psutil.NoSuchProcess, psutil.AccessDenied:
             return False
 
@@ -254,8 +254,10 @@ class PIDManager:
         """
         Get the PID of process listening on a port.
 
-        Uses lsof to find which process is listening on a port.
-        This is useful for detecting port conflicts.
+        Prefers the process in LISTEN state (actual server). Falls back to any
+        process with an fd for the port (e.g. client connections) if no listener
+        is found. This avoids wrongly reporting Chrome or other clients when the
+        real server is Python/Bengal.
 
         Args:
             port: Port number to check
@@ -277,11 +279,27 @@ class PIDManager:
         try:
             import subprocess
 
+            # Prefer listener — avoids wrongly blaming Chrome (client) when server is Bengal
             result = subprocess.run(
-                ["lsof", "-ti", f":{port}"], check=False, capture_output=True, text=True, timeout=2
+                ["lsof", "-nP", f"-iTCP:{port}", "-sTCP:LISTEN", "-t"],
+                check=False,
+                capture_output=True,
+                text=True,
+                timeout=2,
             )
-            if result.returncode == 0 and result.stdout.strip():
-                return int(result.stdout.strip().split()[0])
+            pids = result.stdout.strip().split() if result.returncode == 0 else []
+            if not pids:
+                # Fallback: any process with port (client or listener)
+                result = subprocess.run(
+                    ["lsof", "-nP", "-ti", f":{port}"],
+                    check=False,
+                    capture_output=True,
+                    text=True,
+                    timeout=2,
+                )
+                pids = result.stdout.strip().split() if result.returncode == 0 else []
+            if pids:
+                return int(pids[0])
         except subprocess.SubprocessError, ValueError, FileNotFoundError:
             pass
         return None

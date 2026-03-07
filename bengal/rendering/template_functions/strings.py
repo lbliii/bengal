@@ -658,7 +658,10 @@ def excerpt_for_card(content: str, title: str = "", description: str = "") -> st
     if title:
         text = _strip_leading_duplicate(text, title)
     if description and text:
-        text = _strip_leading_duplicate(text, description)
+        stripped = _strip_leading_duplicate(text, description)
+        # Don't strip if it would remove everything (excerpt sourced from description)
+        if stripped:
+            text = stripped
     return text.strip()
 
 
@@ -755,7 +758,10 @@ def card_excerpt_html(
     if title:
         plain = _strip_leading_duplicate(plain, title)
     if description and plain:
-        plain = _strip_leading_duplicate(plain, description)
+        stripped = _strip_leading_duplicate(plain, description)
+        # Don't strip if it would remove everything (excerpt sourced from description)
+        if stripped:
+            plain = stripped
     plain = plain.strip()
     if not plain:
         return ""

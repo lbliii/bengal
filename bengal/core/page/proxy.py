@@ -642,7 +642,9 @@ class PageProxy:
     meta_description = _lazy_property(
         "meta_description", default="", doc="Meta description (lazy-loaded)."
     )
+
     excerpt = _lazy_property("excerpt", default="", doc="Content excerpt (lazy-loaded).")
+
     keywords = _lazy_property("keywords", default=[], doc="Keywords (lazy-loaded).")
 
     @property

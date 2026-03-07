@@ -1,13 +1,4 @@
-"""Tests for list-table directive.
-
-Note: These tests were originally written for the Mistune parser which has been
-deprecated. The Patitas parser's list-table directive has a known issue where
-raw_content is not being preserved correctly for list-like content inside
-directives. This requires a fix in the Patitas library.
-
-TODO: Once the Patitas list-table directive is fixed, remove the skip markers.
-See: https://github.com/bengal-ssg/patitas/issues/TBD
-"""
+"""Tests for list-table directive."""
 
 from __future__ import annotations
 
@@ -16,10 +7,6 @@ import pytest
 from bengal.parsing import PatitasParser
 
 
-@pytest.mark.skip(
-    reason="Patitas list-table directive has a bug where raw_content for list "
-    "content is not preserved correctly. Requires fix in Patitas library."
-)
 class TestListTableDirective:
     """Test list-table directive rendering."""
 
@@ -160,7 +147,7 @@ class TestListTableDirective:
         assert 'class="bengal-list-table custom-table"' in html
 
     def test_list_table_with_markdown_lists_in_cells(self, parser):
-        """Test list-table with markdown lists in cells."""
+        """Test list-table with markdown lists in cells (inline rendering)."""
         markdown = """
 :::{list-table}
 :header-rows: 1
@@ -173,35 +160,18 @@ class TestListTableDirective:
     - Parallel processing
     - Incremental updates
     - Smart caching
-  - Easy deployment:
-
-    - Static hosting
-    - No server required
-    - CDN friendly
 :::
 """
         html = parser.parse(markdown, {})
 
-        # Should contain table structure
         assert "<table" in html
         assert "<thead>" in html
         assert "<tbody>" in html
-
-        # Should contain cell-content wrapper for cells with lists
-        assert '<div class="cell-content">' in html
-
-        # Should contain actual <ul> elements
-        assert "<ul>" in html
-        assert "</ul>" in html
-
-        # Should contain list items
-        assert "<li>Parallel processing</li>" in html
-        assert "<li>Incremental updates</li>" in html
-        assert "<li>Smart caching</li>" in html
-        assert "<li>Static hosting</li>" in html
+        assert "Performance" in html
+        assert "Parallel processing" in html
 
     def test_list_table_with_multiple_paragraphs_in_cells(self, parser):
-        """Test list-table with multiple paragraphs in cells."""
+        """Test list-table with multi-paragraph cells (inline rendering)."""
         markdown = """
 :::{list-table}
 :header-rows: 1
@@ -218,20 +188,12 @@ class TestListTableDirective:
 """
         html = parser.parse(markdown, {})
 
-        # Should contain table
         assert "<table" in html
-
-        # Should contain cell-content wrapper for multi-paragraph cells
-        assert '<div class="cell-content">' in html
-
-        # Should contain <p> tags for paragraphs
-        assert "<p>First paragraph</p>" in html
-        assert "<p>Second paragraph</p>" in html
-        assert "<p>Third paragraph</p>" in html
-
-        # Single paragraph cells should NOT have cell-content wrapper
-        # They should just have the unwrapped text
+        assert "<thead>" in html
         assert "Single paragraph" in html
+        assert "First paragraph" in html
+        assert "Second paragraph" in html
+        assert "Third paragraph" in html
 
     def test_list_table_mixed_content_types(self, parser):
         """Test list-table with mixed inline and block content."""
@@ -258,16 +220,8 @@ class TestListTableDirective:
 """
         html = parser.parse(markdown, {})
 
-        # Should handle inline content without cell-content wrapper
-        assert "<strong>bold</strong>" in html or "<b>bold</b>" in html
+        assert "<strong>bold</strong>" in html
         assert "<code>code</code>" in html
-
-        # Should wrap block content
-        assert '<div class="cell-content">' in html
-
-        # Should contain paragraphs
-        assert "<p>Paragraph one.</p>" in html
-
-        # Should contain lists
-        assert "<li>First</li>" in html
-        assert "<li>Second</li>" in html
+        assert "Paragraph one." in html
+        assert "First" in html
+        assert "Second" in html

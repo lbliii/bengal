@@ -70,6 +70,20 @@ def test_excerpt_for_card_html_headers_get_spacing(tmp_path: Path) -> None:
     assert "Key Features Fast Builds" in result
 
 
+def test_card_excerpt_html_excerpt_sourced_from_description(tmp_path: Path) -> None:
+    """When excerpt equals description (metadata fallback), do not strip to empty."""
+    site = Site(root_path=tmp_path, config={"title": "Test"})
+    engine = TemplateEngine(site)
+
+    desc = "Kida is the only Python template engine that can tell you what a template needs."
+    html = engine.render_string(
+        "{{ excerpt | card_excerpt_html(150, title, desc) | safe }}",
+        {"excerpt": desc, "title": "Static Analysis for Templates", "desc": desc},
+    )
+    assert "Kida is the only" in html
+    assert html.strip().endswith(".")
+
+
 def test_card_excerpt_html_with_string_excerpt_words_dirty_config(tmp_path: Path) -> None:
     """Simulate excerpt_words as string from config - must not raise TypeError."""
     site = Site(root_path=tmp_path, config={"title": "Test"})

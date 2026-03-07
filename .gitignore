@@ -78,8 +78,8 @@ venv-*/
 
 .env
 
-# Benchmark output
-benchmarks/scenarios/*/output/
+# Benchmark scenarios (auto-generated; run scripts/generate_benchmark_scenarios.py)
+benchmarks/scenarios/
 .benchmarks/
 
 

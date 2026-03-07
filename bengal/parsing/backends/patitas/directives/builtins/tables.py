@@ -65,6 +65,11 @@ class ListTableOptions(DirectiveOptions):
 
     """
 
+    _aliases: ClassVar[dict[str, str]] = {
+        "header-rows": "header_rows",
+        "class": "css_class",
+    }
+
     header_rows: int = 0
     widths: str = ""
     css_class: str = ""
@@ -284,8 +289,9 @@ class ListTableDirective:
         # Handle bold
         html = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", html)
 
-        # Handle italic
+        # Handle italic (*text* or _text_)
         html = re.sub(r"\*([^*]+)\*", r"<em>\1</em>", html)
+        html = re.sub(r"(?<!\w)_([^_]+)_(?!\w)", r"<em>\1</em>", html)
 
         # Handle links
         html = re.sub(r"\[([^\]]+)\]\(([^)]+)\)", r'<a href="\2">\1</a>', html)

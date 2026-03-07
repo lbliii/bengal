@@ -113,8 +113,10 @@ class PostView:
             or ""
         )
 
-        # Description: try metadata.description, then page excerpt (strip HTML when using excerpt)
+        # Excerpt: page.excerpt (from content), fallback to metadata.description for list cards
         excerpt = getattr(page, "excerpt", None) or ""
+        if not excerpt:
+            excerpt = meta.get("description") or params.get("description") or ""
         raw_desc = meta.get("description") or params.get("description") or excerpt or ""
         if raw_desc and raw_desc == excerpt:
             from bengal.core.utils.text import strip_html
