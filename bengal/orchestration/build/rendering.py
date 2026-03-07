@@ -493,6 +493,7 @@ def phase_render(
                     ctx.changed_page_paths = set(
                         getattr(early_context, "changed_page_paths", set())
                     )
+                ctx.asset_manifest_ctx = asset_ctx  # For postprocess (special pages)
                 # Compute parallel mode: use should_parallelize() unless force_sequential=True
                 from bengal.utils.concurrency.workers import WorkloadType, should_parallelize
 
@@ -534,6 +535,8 @@ def phase_render(
                 # Transfer snapshot from early context (RFC: rfc-bengal-snapshot-engine)
                 if early_context and hasattr(early_context, "snapshot"):
                     ctx.snapshot = early_context.snapshot
+
+                ctx.asset_manifest_ctx = asset_ctx  # For postprocess (special pages)
 
                 # Compute parallel mode: use should_parallelize() unless force_sequential=True
                 from bengal.utils.concurrency.workers import WorkloadType, should_parallelize

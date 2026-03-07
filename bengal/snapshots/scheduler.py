@@ -26,6 +26,7 @@ from bengal.snapshots.utils import (
     RenderProgressTracker,
     resolve_template_name,
 )
+from bengal.utils.concurrency import submit_with_context
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -278,8 +279,11 @@ class WaveScheduler:
                         )
                         return page
 
-                    # Submit all pages in this template batch
-                    futures = {executor.submit(process_page, page): page for page in batch_pages}
+                    # Submit all pages in this template batch (context propagation for asset_url)
+                    futures = {
+                        submit_with_context(executor, process_page, page): page
+                        for page in batch_pages
+                    }
 
                     # Collect results and update progress
                     for future in as_completed(futures):
@@ -406,7 +410,7 @@ class WaveScheduler:
                         return page
 
                     futures = {
-                        executor.submit(process_page_with_pipeline, page): page
+                        submit_with_context(executor, process_page_with_pipeline, page): page
                         for page in wave_pages
                     }
 

@@ -218,6 +218,10 @@ class BuildContext:
     # Snapshot for lock-free parallel rendering (RFC: rfc-bengal-snapshot-engine)
     snapshot: SiteSnapshot | None = None
 
+    # Asset manifest context for postprocess (404, search templates use asset_url)
+    # Set during phase_render bootstrap, reused in postprocess (Plan: asset-manifest-context-refactor)
+    asset_manifest_ctx: Any = None  # AssetManifestContext | None
+
     # Services — instantiated from snapshot after creation (RFC: bengal-v2-architecture)
     # These provide O(1) lookups on immutable data for thread-safe rendering.
     query_service: QueryService | None = None
