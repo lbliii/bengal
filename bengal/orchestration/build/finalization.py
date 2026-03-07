@@ -55,6 +55,32 @@ def phase_postprocess(
 
         orchestrator.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
 
+        # Phase 3: Drain asset fallback aggregator (render + postprocess complete)
+        from bengal.rendering.assets import drain_asset_fallback_aggregator
+
+        fallback_count, fallback_samples = drain_asset_fallback_aggregator()
+        if orchestrator.stats is not None:
+            orchestrator.stats.asset_manifest_fallback_count = fallback_count
+            orchestrator.stats.asset_manifest_fallback_samples = fallback_samples
+        if fallback_count > 0:
+            strict = getattr(ctx, "strict", False) or getattr(
+                orchestrator.stats, "strict_mode", False
+            )
+            if strict:
+                from bengal.errors import BengalError
+
+                raise BengalError(
+                    f"Build failed: {fallback_count} asset manifest fallback(s) in production mode.",
+                    suggestion="Ensure asset_manifest_context() wraps all template rendering paths. "
+                    f"Sample paths: {fallback_samples[:5]}",
+                )
+            orchestrator.logger.warning(
+                "asset_manifest_fallback_summary",
+                count=fallback_count,
+                samples=fallback_samples[:5],
+                hint="ContextVar not set in some paths - check asset_manifest_context() coverage",
+            )
+
         # Show phase completion
         cli.phase("Post-process", duration_ms=orchestrator.stats.postprocess_time_ms)
 

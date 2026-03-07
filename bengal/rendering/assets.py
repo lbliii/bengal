@@ -28,6 +28,7 @@ RFC: rfc-asset-resolution-observability.md (Observability)
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Protocol
@@ -64,6 +65,43 @@ logger = get_logger(__name__)
 # Track paths that have already warned about fallback (avoid log spam)
 _fallback_warned: ThreadSafeSet = ThreadSafeSet()
 
+# Phase 3: Aggregated fallback diagnostics (summarized at phase end, not per-asset)
+_MAX_FALLBACK_SAMPLES = 5
+
+
+class _FallbackAggregator:
+    """Thread-safe aggregator for unexpected asset manifest fallbacks."""
+
+    def __init__(self) -> None:
+        self._count = 0
+        self._samples: list[str] = []
+        self._lock = threading.Lock()
+        self._first_logged = False
+
+    def record(self, logical_path: str) -> None:
+        with self._lock:
+            self._count += 1
+            if len(self._samples) < _MAX_FALLBACK_SAMPLES and logical_path not in self._samples:
+                self._samples.append(logical_path)
+
+    def drain(self) -> tuple[int, list[str]]:
+        with self._lock:
+            count, samples = self._count, list(self._samples)
+            self._count = 0
+            self._samples.clear()
+            self._first_logged = False
+            return count, samples
+
+    def should_log_first_debug(self) -> bool:
+        with self._lock:
+            if self._first_logged or self._count == 0:
+                return False
+            self._first_logged = True
+            return True
+
+
+_fallback_aggregator = _FallbackAggregator()
+
 
 # =============================================================================
 # Asset Manifest Context (Thread-Safe via ContextVar)
@@ -73,6 +111,7 @@ __all__ = [
     "AssetManifestContext",
     "asset_manifest_context",
     "clear_manifest_cache",
+    "drain_asset_fallback_aggregator",
     "get_asset_manifest",
     # Observability exports (Phase 2)
     "get_resolution_stats",
@@ -211,6 +250,7 @@ def resolve_asset_url(
     asset_path: str,
     site: AssetSiteLike,
     page: Any = None,
+    manifest_ctx: AssetManifestContext | None = None,
 ) -> str:
     """
     Resolve an asset path to its final URL.
@@ -225,6 +265,7 @@ def resolve_asset_url(
         asset_path: Logical asset path (e.g., 'css/style.css')
         site: Site instance
         page: Optional page context (for file:// relative paths)
+        manifest_ctx: Optional explicit manifest (Phase 2: used before ContextVar, then fallback)
 
     Returns:
         Resolved asset URL ready for use in HTML
@@ -253,8 +294,8 @@ def resolve_asset_url(
         elif getattr(site, "dev_mode", False):
             url = apply_baseurl(f"/assets/{clean_path}", site)
         else:
-            # Look up fingerprinted path from manifest
-            fingerprinted_path = _resolve_fingerprinted(clean_path, site)
+            # Look up fingerprinted path from manifest (explicit ctx, then ContextVar, then fallback)
+            fingerprinted_path = _resolve_fingerprinted(clean_path, site, manifest_ctx=manifest_ctx)
             if fingerprinted_path:
                 url = apply_baseurl(f"/{fingerprinted_path}", site)
             else:
@@ -287,7 +328,11 @@ def _get_asset_tracker() -> Any | None:
         return None
 
 
-def _resolve_fingerprinted(logical_path: str, site: AssetSiteLike) -> str | None:
+def _resolve_fingerprinted(
+    logical_path: str,
+    site: AssetSiteLike,
+    manifest_ctx: AssetManifestContext | None = None,
+) -> str | None:
     """
     Resolve a logical asset path to its fingerprinted output path.
 
@@ -308,10 +353,8 @@ def _resolve_fingerprinted(logical_path: str, site: AssetSiteLike) -> str | None
     Returns:
         Fingerprinted output path (e.g., 'assets/css/style.abc123.css') or None
     """
-    global _fallback_warned
-
-    # Primary path: Use ContextVar (thread-safe, no locks, ~8M ops/sec)
-    ctx = get_asset_manifest()
+    # Resolver order: explicit context first, then ContextVar, then disk fallback (Phase 2)
+    ctx = manifest_ctx if manifest_ctx is not None else get_asset_manifest()
     stats = _ensure_resolution_stats()
 
     if ctx is not None:
@@ -324,15 +367,15 @@ def _resolve_fingerprinted(logical_path: str, site: AssetSiteLike) -> str | None
 
     dev_mode = getattr(site, "dev_mode", False)
     if not dev_mode:
-        # Unexpected fallback - warn (suggests missing context setup)
+        # Unexpected fallback - aggregate for summarized diagnostics at phase end (Phase 3)
         stats.items_skipped["unexpected_fallback"] = (
             stats.items_skipped.get("unexpected_fallback", 0) + 1
         )
-        # Warn once per unique path to avoid log spam during render
-        # Thread-safe: add_if_new returns True if item was new (not present before)
-        if _fallback_warned.add_if_new(logical_path):
-            logger.warning(
-                "asset_manifest_disk_fallback",
+        _fallback_aggregator.record(logical_path)
+        # One optional debug event for first fallback (debbuggability)
+        if _fallback_aggregator.should_log_first_debug():
+            logger.debug(
+                "asset_manifest_first_fallback",
                 logical_path=logical_path,
                 output_dir=str(site.output_dir),
                 hint="ContextVar not set - was asset_manifest_context() called?",
@@ -398,6 +441,21 @@ def _resolve_file_protocol(asset_path: str, site: AssetSiteLike, page: Any = Non
     return f"./{asset_url_path}"
 
 
+def drain_asset_fallback_aggregator() -> tuple[int, list[str]]:
+    """
+    Drain fallback aggregator and return (count, sample_paths).
+
+    Call at phase end (after render/postprocess) to get summarized diagnostics.
+    Clears the aggregator for the next build.
+
+    Returns:
+        (unexpected_fallback_count, sample_logical_paths)
+
+    Plan: asset-manifest-context-refactor Phase 3
+    """
+    return _fallback_aggregator.drain()
+
+
 def clear_manifest_cache(site: AssetSiteLike | None = None) -> None:
     """
     Clear the asset manifest cache and reset observability state.
@@ -416,3 +474,4 @@ def clear_manifest_cache(site: AssetSiteLike | None = None) -> None:
     reset_asset_manifest()
     _resolution_stats.reset()
     _fallback_warned.clear()
+    _fallback_aggregator.drain()

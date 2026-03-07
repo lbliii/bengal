@@ -113,6 +113,11 @@ class BuildStats:
     block_cache_site_blocks: int = 0  # Number of site-scoped blocks cached
     block_cache_time_saved_ms: float = 0.0  # Estimated time saved by block caching
 
+    # Asset manifest fallback (Phase 3: summarized diagnostics)
+    # Unexpected fallbacks when ContextVar not set - aggregated at phase end
+    asset_manifest_fallback_count: int = 0
+    asset_manifest_fallback_samples: list[str] = field(default_factory=list)
+
     # Additional phase timings (Phase 2)
     menu_time_ms: float = 0
     related_posts_time_ms: float = 0

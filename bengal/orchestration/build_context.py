@@ -33,6 +33,8 @@ from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any
 
+from bengal.rendering.assets import AssetManifestContext
+
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.cache.build_cache import BuildCache
@@ -220,7 +222,7 @@ class BuildContext:
 
     # Asset manifest context for postprocess (404, search templates use asset_url)
     # Set during phase_render bootstrap, reused in postprocess (Plan: asset-manifest-context-refactor)
-    asset_manifest_ctx: Any = None  # AssetManifestContext | None
+    asset_manifest_ctx: AssetManifestContext | None = None
 
     # Services — instantiated from snapshot after creation (RFC: bengal-v2-architecture)
     # These provide O(1) lookups on immutable data for thread-safe rendering.
