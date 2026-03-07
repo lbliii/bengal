@@ -215,6 +215,18 @@ templates/
 
 ## Debugging Template Errors
 
+### Malformed Frontmatter
+
+Frontmatter collections (`tags`, `params.author_links`, `params.quick_links`) can be malformed: string instead of list, empty items, `null`, or link objects missing `href`/`url`. Iterating without guards causes character-by-character output (for strings) or missing-attribute errors.
+
+**Solution:** Use defense-in-depth patterns (see `SAFE_PATTERNS.md` → "Iterating Over Frontmatter Collections"):
+
+- `tags ?? []` and `{% if tag %}` inside the loop
+- `params?.quick_links ?? []` with `{% if link and (link?.href or link?.url) %}` guard
+- Reference: autodoc template hardening (same pattern)
+
+---
+
 ### Error: `'X' is undefined`
 
 1. **Check if you're importing a file with body code**

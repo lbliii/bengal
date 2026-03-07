@@ -243,7 +243,7 @@ class PageProxy:
 
     @property
     def tags(self) -> list[str]:
-        """Get page tags from cached metadata (normalized for malformed data)."""
+        """Get page tags from cached metadata (normalized for malformed frontmatter)."""
         return normalize_tags(self.core.tags)
 
     @property

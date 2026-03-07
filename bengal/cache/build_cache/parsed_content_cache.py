@@ -25,7 +25,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.primitives.hashing import hash_file, hash_str
+from bengal.utils.primitives.hashing import hash_str
 from bengal.utils.primitives.sentinel import MISSING
 
 if TYPE_CHECKING:
@@ -41,8 +41,10 @@ class ParsedContentCacheMixin:
     Requires these attributes on the host class:
         - parsed_content: dict[str, dict[str, Any]]
         - dependencies: dict[str, set[str]]
+        - file_fingerprints: dict (from FileTrackingMixin, for is_changed)
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
         - _cache_key: Callable[[Path], str]  # Canonical path key
+        - site_root: Path | None  # For resolving dep keys to paths
 
     """
 
@@ -53,6 +55,24 @@ class ParsedContentCacheMixin:
     def is_changed(self, file_path: Path) -> bool:
         """Check if file changed (provided by FileTrackingMixin)."""
         raise NotImplementedError("Must be provided by FileTrackingMixin")
+
+    def _resolve_dep_path(self, dep_key: str) -> Path | None:
+        """
+        Resolve CacheKey to filesystem Path for is_changed().
+
+        dep_key is from dependencies[key] (e.g. templates/base.html or
+        /Users/.../theme/templates/base.html for external themes).
+        """
+        if getattr(self, "site_root", None) is None:
+            return None
+        site_root = self.site_root
+        # Absolute path (external theme)
+        if dep_key.startswith("/") or (len(dep_key) > 1 and dep_key[1] == ":"):
+            p = Path(dep_key)
+            return p if p.exists() else None
+        # Relative to site_root
+        full = site_root / dep_key
+        return full if full.exists() else None
 
     def store_parsed_content(
         self,
@@ -137,15 +157,15 @@ class ParsedContentCacheMixin:
         """
         Get cached parsed content if valid (Optimization #2).
 
-        Uses content hash for dependency validation instead of mtime-first check.
+        Uses is_changed for dependency validation (mtime-first, then hash).
         This prevents false invalidations when files are touched but not modified.
 
         Validates that:
-        1. Content file hasn't changed (via file_fingerprints)
+        1. Content file hasn't changed (via is_changed)
         2. Metadata hasn't changed (via metadata_hash)
         3. Template hasn't changed (via template name)
         4. Parser version matches (avoid incompatibilities)
-        5. Template file content hasn't changed (via content hash comparison)
+        5. Template file content hasn't changed (via is_changed on deps)
 
         Args:
             file_path: Path to source file
@@ -181,53 +201,22 @@ class ParsedContentCacheMixin:
         if cached.get("parser_version") != parser_version:
             return MISSING
 
-        # Validate dependencies using content hash (not mtime).
-        # This prevents false invalidations when files are touched but not modified.
+        # Validate dependencies via is_changed (mtime-first, then hash).
         if key in self.dependencies:
             for dep_path in self.dependencies[key]:
-                dep = Path(dep_path)
-                if not dep.exists():
-                    continue
-
-                # Get cached fingerprint for this dependency
-                cached_fp = self.file_fingerprints.get(dep_path)
-                if not cached_fp:
-                    # Dependency not tracked - treat as changed
+                full_dep = self._resolve_dep_path(dep_path)
+                if full_dep is None:
                     logger.debug(
-                        "dependency_not_tracked",
+                        "dependency_unresolvable",
                         page=key,
                         dependency=dep_path,
                     )
                     return MISSING
-
-                cached_hash = cached_fp.get("hash")
-                if not cached_hash:
-                    # No hash stored - treat as changed
+                if self.is_changed(full_dep):
                     logger.debug(
-                        "dependency_no_hash",
+                        "dependency_changed",
                         page=key,
                         dependency=dep_path,
-                    )
-                    return MISSING
-
-                # Compare content hashes (immune to mtime drift)
-                try:
-                    current_hash = hash_file(dep)
-                    if current_hash != cached_hash:
-                        logger.debug(
-                            "dependency_changed",
-                            page=key,
-                            dependency=dep_path,
-                            cached_hash=cached_hash[:8],
-                            current_hash=current_hash[:8],
-                        )
-                        return MISSING
-                except (OSError, FileNotFoundError) as e:
-                    logger.debug(
-                        "dependency_hash_failed",
-                        page=key,
-                        dependency=dep_path,
-                        error=str(e),
                     )
                     return MISSING
 

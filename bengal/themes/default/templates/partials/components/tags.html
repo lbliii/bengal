@@ -26,16 +26,19 @@ TAG LIST COMPONENT
 Displays tags as styled badges, optionally linkable.
 ============================================================================= #}
 {% def tag_list(tags, small=false, linkable=true) %}
+{% let safe_tags = tags ?? [] %}
 {% let max_display = (theme?.max_tags_display ?? 0) | int %}
-{% let display_tags = tags[:max_display] if max_display > 0 else tags %}
-{% let tag_count = tags | length %}
+{% let display_tags = safe_tags[:max_display] if max_display > 0 else safe_tags %}
+{% let tag_count = safe_tags | length %}
 
 <div class="tags{{ ' tags-small' if small else '' }}">
   {% for tag in display_tags %}
+  {% if tag %}
   {% if linkable %}
   {{ tag_link(tag) }}
   {% else %}
   <span class="tag">{{ tag }}</span>
+  {% end %}
   {% end %}
   {% end %}
   {% if max_display > 0 and tag_count > max_display %}

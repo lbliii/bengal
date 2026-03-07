@@ -226,6 +226,44 @@ Use explicit escaping filters:
 
 ---
 
+## Pattern 6b: Iterating Over Frontmatter Collections (Defense-in-Depth)
+
+### The Problem
+
+Frontmatter fields like `tags`, `params.author_links`, and `params.quick_links` can be malformed: a string instead of a list, empty items, `null`, or link objects missing `href`/`url`. Iterating over these without guards causes output bloat or errors (see autodoc defense-in-depth precedent).
+
+### Safe Patterns for Tags
+
+```jinja2
+✅ SAFE - null coalesce and skip empty items
+{% let safe_tags = tags ?? [] %}
+{% for tag in safe_tags %}
+  {% if tag %}
+  <a href="/tags/{{ tag }}">{{ tag }}</a>
+  {% end %}
+{% endfor %}
+```
+
+### Safe Patterns for Link Collections
+
+For `params.author_links`, `params.quick_links`, or similar list-of-dicts:
+
+```jinja2
+✅ SAFE - null coalesce and structure guard
+{% set link_list = params?.author_links ?? [] %}
+{% for link in link_list %}
+  {% if link and (link?.href or link?.url) %}
+  <a href="{{ link?.href ?? link?.url ?? '#' }}">{{ link?.text ?? link?.name ?? 'Link' }}</a>
+  {% end %}
+{% endfor %}
+```
+
+### Why Defense-in-Depth
+
+Bengal normalizes `tags` at the data layer (Page, PageProxy). Template guards add a second layer of protection when loading from cache or when other frontmatter collections are malformed. This follows the same pattern used for autodoc template hardening.
+
+---
+
 ## Pattern 7: URL Generation
 
 ### The Problem
@@ -319,6 +357,7 @@ Use this checklist when creating new templates:
 - [ ] Use `params.x` instead of `page.metadata.get('x')`
 - [ ] Use `config.x` instead of `site.config.get('x')`
 - [ ] Use `| safe_access` for raw dicts from `site.data`
+- [ ] Iterating over `tags` or link collections: use `?? []` and `{% if item %}` or structure guards
 - [ ] All function imports do NOT use `with context` (Kida has lexical scoping)
 - [ ] All URLs use template functions
 - [ ] All blocks properly named in extends

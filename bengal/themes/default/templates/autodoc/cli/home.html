@@ -84,20 +84,23 @@ Or set `template: autodoc/cli/home.html` in frontmatter
     {% end %}
 
     {# Custom Quick Links from metadata #}
-    {% if params.quick_links %}
+    {% set quick_links = params?.quick_links ?? [] %}
+    {% if quick_links | length > 0 %}
     <section class="docs-home-quick-links">
         <h2 class="docs-home-quick-links-title">Quick Links</h2>
         <div class="docs-home-quick-links-grid">
-            {% for link in params.quick_links %}
-            <a href="{{ link.href or link.url }}" class="docs-home-quick-link-card gradient-border">
+            {% for link in quick_links %}
+            {% if link and (link?.href or link?.url) %}
+            <a href="{{ link?.href ?? link?.url ?? '#' }}" class="docs-home-quick-link-card gradient-border">
                 {% if link.icon %}
                 <div class="docs-home-quick-link-icon">{{ link.icon }}</div>
                 {% end %}
-                <h3>{{ link.title }}</h3>
+                <h3>{{ link?.title ?? 'Link' }}</h3>
                 {% if link.description %}
                 <p>{{ link.description }}</p>
                 {% end %}
             </a>
+            {% end %}
             {% end %}
         </div>
     </section>

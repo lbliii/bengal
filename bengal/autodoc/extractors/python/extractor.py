@@ -817,6 +817,9 @@ class PythonExtractor(Extractor):
         # Combine children
         children = properties + methods + class_vars
 
+        # Filter out members with empty/whitespace-only names (malformed or inherited junk)
+        children = [c for c in children if c.name and c.name.strip()]
+
         # Apply member order
         config_for_order = effective_config if effective_config is not None else self.config
         member_order = config_for_order.get("member_order", "source")
