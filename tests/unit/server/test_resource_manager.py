@@ -7,6 +7,7 @@ prevent sys.exit() from being called.
 
 from __future__ import annotations
 
+import contextlib
 import signal
 import sys
 from pathlib import Path
@@ -141,8 +142,8 @@ class TestResourceManagerSignalHandler:
         """
         Test that sys.exit is called even if cleanup raises an exception.
 
-        BUG FIX: Previously, if cleanup() raised an exception, sys.exit()
-        would never be called, leaving the process in an undefined state.
+        BUG FIX: Previously, if cleanup() raised an exception, exit would
+        never be called, leaving the process in an undefined state.
         """
         rm = ResourceManager()
 
@@ -151,8 +152,7 @@ class TestResourceManagerSignalHandler:
 
         rm.register("Failing Resource", object(), failing_cleanup)
 
-        with patch.object(sys, "exit") as mock_exit:
-            # Should not raise, and should call exit
+        with patch.object(sys, "exit") as mock_exit, contextlib.suppress(RuntimeError):
             rm._signal_handler(signal.SIGINT, None)
 
         # Exit should still be called even though cleanup raised

@@ -72,6 +72,7 @@ from bengal.cache import clear_build_cache, clear_output_directory, clear_templa
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
 from bengal.server.backend import ServerBackend, create_pounce_backend
+from bengal.server.build_executor import BuildExecutor, BuildRequest
 from bengal.server.build_state import build_state
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.constants import DEFAULT_DEV_HOST, DEFAULT_DEV_PORT
@@ -82,6 +83,7 @@ from bengal.server.resource_manager import ResourceManager
 from bengal.server.utils import get_icons
 from bengal.server.watcher_runner import WatcherRunner
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.stats_minimal import MinimalStats
 
 logger = get_logger(__name__)
 
@@ -205,6 +207,9 @@ class DevServer:
         with ResourceManager() as rm:
             # Mark process as dev server for CLI output tuning
             os.environ["BENGAL_DEV_SERVER"] = "1"
+            # Force process executor for dev server builds so Ctrl+C exits cleanly
+            # (no ThreadPoolExecutor in main process → no shutdown traceback)
+            os.environ["BENGAL_BUILD_EXECUTOR"] = "process"
 
             # 2. Prepare dev-specific configuration
             from bengal.utils.observability.profile import BuildProfile
@@ -286,7 +291,7 @@ class DevServer:
                     reason="no_cache" if not self._has_cached_output() else "baseurl_cleared",
                 )
 
-                # Initial build (blocking)
+                # Initial build (process-isolated for clean Ctrl+C shutdown)
                 show_building_indicator("Initial build")
                 from bengal.orchestration.build.options import BuildOptions
 
@@ -294,7 +299,7 @@ class DevServer:
                     profile=BuildProfile.WRITER,
                     incremental=not baseurl_was_cleared,
                 )
-                stats = self.site.build(build_opts)
+                stats = self._run_build_via_executor(build_opts, "Initial build")
                 display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
                 logger.debug(
@@ -422,7 +427,7 @@ class DevServer:
         else:
             controller.decide_and_update(self.site.output_dir)  # Set baseline (legacy)
 
-        stats = self.site.build(build_opts)
+        stats = self._run_build_via_executor(build_opts, "Validation build")
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
         logger.debug(
@@ -472,6 +477,40 @@ class DevServer:
             self._build_trigger.seed_content_hash_cache(list(self.site.pages))
             self._watcher_runner.start()
             logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
+
+    def _run_build_via_executor(self, build_opts: Any, description: str = "Build") -> MinimalStats:
+        """
+        Run build in process-isolated subprocess for clean Ctrl+C shutdown.
+
+        Uses BuildExecutor with ProcessPoolExecutor so the main process has no
+        build ThreadPoolExecutors. When user presses Ctrl+C, normal sys.exit()
+        works without "Exception ignored on threading shutdown" traceback.
+        """
+        from bengal.orchestration.stats import show_error
+        from bengal.utils.observability.profile import BuildProfile
+
+        profile_str = (
+            build_opts.profile.value
+            if isinstance(build_opts.profile, BuildProfile)
+            else str(build_opts.profile)
+        )
+        incremental = build_opts.incremental if build_opts.incremental is not None else True
+        request = BuildRequest(
+            site_root=str(self.site.root_path),
+            incremental=incremental,
+            profile=profile_str,
+            version_scope=self.version_scope,
+        )
+        executor = BuildExecutor(max_workers=1)
+        try:
+            result = executor.submit(request, timeout=600.0)
+            if not result.success:
+                msg = result.error_message or "Build failed"
+                show_error(f"{description} failed: {msg}", show_art=False)
+                raise BengalServerError(msg, code=ErrorCode.S003)
+            return MinimalStats.from_build_result(result, incremental=incremental)
+        finally:
+            executor.shutdown(wait=True)
 
     def _clear_html_cache_after_build(self) -> None:
         """Clear HTML injection cache after a build to ensure fresh pages."""
