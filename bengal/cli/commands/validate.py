@@ -81,6 +81,11 @@ if TYPE_CHECKING:
     help="Validate template syntax (Kida/Jinja2 templates)",
 )
 @click.option(
+    "--templates-context",
+    is_flag=True,
+    help="Validate template context (Kida only: catch missing variables before render)",
+)
+@click.option(
     "--templates-pattern",
     default=None,
     help="Glob pattern for templates (e.g., 'autodoc/**/*.html')",
@@ -102,6 +107,7 @@ def validate(
     ignore: tuple[str, ...],
     traceback: str | None,
     templates: bool,
+    templates_context: bool,
     templates_pattern: str | None,
     fix: bool,
     source: str,
@@ -122,6 +128,7 @@ def validate(
         bengal validate --templates
         bengal validate --templates --fix
         bengal validate --templates --templates-pattern "autodoc/**/*.html"
+        bengal validate --templates-context
 
     See also:
         bengal site build - Build the site
@@ -153,8 +160,8 @@ def validate(
     cli.success(f"Loaded {len(site.pages)} pages")
 
     # Handle template validation mode
-    if templates:
-        _validate_templates(site, templates_pattern, fix, cli)
+    if templates or templates_context:
+        _validate_templates(site, templates_pattern, fix, cli, templates, templates_context)
         return
 
     # Determine context for validation
@@ -366,20 +373,30 @@ def _validate_templates(
     pattern: str | None,
     show_hints: bool,
     cli: CLIOutput,
+    templates: bool = False,
+    validate_context: bool = False,
 ) -> None:
-    """Validate templates using existing engine.validate() method.
+    """Validate templates using engine.validate() and optionally validate_context().
 
     Args:
         site: Site instance with template engine
         pattern: Optional glob pattern to filter templates
         show_hints: Whether to show migration hints for errors
         cli: CLI output instance
+        templates: Whether to run syntax validation (--templates)
+        validate_context: Whether to run Kida's validate_context() for missing vars
 
     Raises:
         click.ClickException: If template validation fails
 
     """
+    from fnmatch import fnmatch
+
     from bengal.rendering.engines import create_engine
+    from bengal.rendering.template_context_validation import (
+        context_errors_to_template_errors,
+        validate_template_contexts,
+    )
 
     cli.blank()
     cli.info("Validating templates...")
@@ -390,8 +407,16 @@ def _validate_templates(
     # Build patterns list if provided
     patterns = [pattern] if pattern else None
 
-    # Validate templates
-    errors = engine.validate(patterns)
+    # Validate template syntax when --templates requested
+    errors = list(engine.validate(patterns)) if templates else []
+
+    # Validate template context (Kida only) when --templates-context requested
+    if validate_context:
+        template_names = engine.list_templates() if hasattr(engine, "list_templates") else []
+        if patterns:
+            template_names = [n for n in template_names if any(fnmatch(n, p) for p in patterns)]
+        context_errors = validate_template_contexts(engine, site, template_names)
+        errors.extend(context_errors_to_template_errors(context_errors))
 
     if not errors:
         cli.blank()

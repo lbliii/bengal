@@ -331,6 +331,44 @@ Always put content in named blocks:
 
 ---
 
+## Pattern 9: Pipeline Operators and Pattern Matching (Kida)
+
+Kida supports pipeline operators (`|>`) and pattern matching (`{% match %}`) for cleaner template logic.
+
+### Pipeline Operator
+
+Chain filters left-to-right for readable transformations:
+
+```kida
+✅ PIPELINE STYLE
+{{ items |> map('upper') |> join(', ') }}
+{{ page.tags |> sort |> join(' | ') }}
+```
+
+Equivalent to nested filter calls: `{{ items | map('upper') | join(', ') }}` — use whichever reads better.
+
+### Pattern Matching
+
+Replace nested `{% if %}` / `{% elif %}` chains with `{% match %}` for multi-branch logic:
+
+```kida
+✅ MATCH/CASE
+{% match page.type %}
+{% case "blog" %}
+  {{ render_blog_post(page) }}
+{% case "doc" %}
+  {{ render_doc_page(page) }}
+{% case "tutorial" %}
+  {{ render_tutorial(page) %}
+{% else %}
+  {{ render_generic(page) }}
+{% end %}
+```
+
+Use when you have 3+ branches on the same variable — clearer than `{% if %}...{% elif %}...{% elif %}`.
+
+---
+
 ## Available Filters
 
 ### `safe_access`

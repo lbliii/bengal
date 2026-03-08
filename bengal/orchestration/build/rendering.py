@@ -550,6 +550,7 @@ def phase_render(
                 # Use WaveScheduler if snapshot is available and parallel rendering is enabled
                 # (RFC: rfc-bengal-snapshot-engine)
                 if use_parallel and ctx.snapshot:
+                    from bengal.orchestration.render.block_cache import create_and_warm_block_cache
                     from bengal.snapshots.scheduler import WaveScheduler
                     from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
@@ -571,6 +572,10 @@ def phase_render(
                         config_override=max_workers_override,
                     )
 
+                    # Create and warm block cache for site-wide block reuse (RFC: kida-template-introspection)
+                    # WaveScheduler path bypasses RenderOrchestrator, so we must warm here
+                    block_cache = create_and_warm_block_cache(orchestrator.site)
+
                     # Create write-behind collector for async I/O (RFC: rfc-path-to-200-pgs)
                     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 
@@ -586,11 +591,27 @@ def phase_render(
                         max_workers=max_workers,
                         write_behind=write_behind,
                         progress_manager=progress_manager,
+                        block_cache=block_cache,
                     )
                     _render_stats = scheduler.render_all(pages_to_build)
                     # RenderStats are for internal tracking only
                     # BuildStats tracks timing via rendering_time_ms (set below)
                     # Errors are handled by RenderingPipeline and tracked in BuildStats.errors_by_category
+
+                    # Collect block cache stats (WaveScheduler path bypasses RenderOrchestrator)
+                    if block_cache is not None:
+                        block_cache_stats = block_cache.get_stats()
+                        if block_cache_stats:
+                            orchestrator.stats.block_cache_hits = block_cache_stats.get("hits", 0)
+                            orchestrator.stats.block_cache_misses = block_cache_stats.get(
+                                "misses", 0
+                            )
+                            orchestrator.stats.block_cache_site_blocks = block_cache_stats.get(
+                                "site_blocks_cached", 0
+                            )
+                            orchestrator.stats.block_cache_time_saved_ms = block_cache_stats.get(
+                                "time_saved_ms", 0.0
+                            )
 
                     # Flush write-behind collector if enabled (same as RenderOrchestrator)
                     if ctx.write_behind:

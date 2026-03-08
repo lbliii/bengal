@@ -69,6 +69,7 @@ class WaveScheduler:
         write_behind: Any | None = None,  # WriteBehindCollector type
         strategy: str = "template_first",  # "template_first" or "topological"
         progress_manager: ProgressManagerProtocol | None = None,
+        block_cache: Any | None = None,  # BlockCache for site-wide block reuse (Kida only)
     ):
         self.snapshot = snapshot
         self.site = site
@@ -82,6 +83,7 @@ class WaveScheduler:
         self._write_behind = write_behind
         self._strategy = strategy
         self._progress_manager = progress_manager
+        self._block_cache = block_cache
 
         # Create mapping from snapshot pages to actual pages
         self._page_map: dict[Path, Page] = {}
@@ -271,7 +273,7 @@ class WaveScheduler:
                             stats=self.stats,
                             build_context=self.build_context,
                             changed_sources=None,
-                            block_cache=None,
+                            block_cache=self._block_cache,
                             highlight_cache=None,
                             output_collector=self._output_collector,
                             write_behind=self._write_behind,
@@ -401,7 +403,7 @@ class WaveScheduler:
                             stats=self.stats,
                             build_context=self.build_context,
                             changed_sources=None,
-                            block_cache=None,
+                            block_cache=self._block_cache,
                             highlight_cache=None,
                             output_collector=self._output_collector,
                             write_behind=self._write_behind,

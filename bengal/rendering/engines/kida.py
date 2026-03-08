@@ -566,12 +566,19 @@ class KidaTemplateEngine:
 
             try:
                 template = self._env.get_template(current_name)
-                ast = getattr(template, "_optimized_ast", None)
-                if ast is None:
-                    continue
 
-                # Find all referenced templates in the AST
-                referenced = self._extract_referenced_templates(ast)
+                # Prefer Kida's dependencies() API when available (cleaner, public API)
+                referenced: set[str] = set()
+                if hasattr(template, "dependencies"):
+                    deps = template.dependencies()
+                    for key in ("extends", "includes", "embeds", "imports"):
+                        referenced.update(deps.get(key, []))
+
+                # Fall back to AST walk if dependencies() returned nothing (e.g. bytecode cache)
+                if not referenced:
+                    ast = getattr(template, "_optimized_ast", None)
+                    if ast is not None:
+                        referenced = self._extract_referenced_templates(ast)
 
                 for ref_name in referenced:
                     if ref_name in seen:
