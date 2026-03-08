@@ -169,6 +169,8 @@ pyenv install 3.14t
 python3.14t -m pip install bengal
 ```
 
+See [[docs/about/free-threading|Free-Threading]] for architecture details and code references.
+
 When running on free-threaded Python:
 - ThreadPoolExecutor gets true parallelism (no GIL contention)
 - ~1.78x faster rendering on multi-core machines
