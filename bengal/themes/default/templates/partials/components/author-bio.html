@@ -32,9 +32,11 @@ Usage:
     {% if link_list | length > 0 %}
     <div class="author-links">
         {% for link in link_list %}
+        {% if link and (link?.href or link?.url) %}
         {% let link_url = link?.href ?? link?.url ?? '#' %}
         {% let link_text = link?.text ?? link?.name ?? 'Link' %}
         <a href="{{ link_url }}" target="_blank" rel="noopener noreferrer">{{ link_text }}</a>
+        {% end %}
         {% end %}
     </div>
     {% end %}

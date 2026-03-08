@@ -112,8 +112,6 @@ class CacheChecker:
         page.rendered_html = rendered_html
 
         if self.build_stats:
-            if not hasattr(self.build_stats, "rendered_cache_hits"):
-                self.build_stats.rendered_cache_hits = 0
             self.build_stats.rendered_cache_hits += 1
 
         # Ensure output_path is set before writing (required by write_output)
@@ -191,8 +189,6 @@ class CacheChecker:
             page._ast_cache = cached["ast"]
 
         if self.build_stats:
-            if not hasattr(self.build_stats, "parsed_cache_hits"):
-                self.build_stats.parsed_cache_hits = 0
             self.build_stats.parsed_cache_hits += 1
 
         parsed_content = page.html_content

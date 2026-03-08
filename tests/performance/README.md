@@ -163,6 +163,37 @@ python tests/performance/benchmark_template_complexity.py
 
 ---
 
+### 8. Render Output Regression Guards (`test_autodoc_render_regression.py`, `test_asset_fallback_cost.py`)
+**Purpose:** Catch output bloat regressions that amplify fallback asset parsing cost.
+
+Tests:
+- `test_autodoc_render_regression.py`: Enforces output shape hash, card counts, and size budgets across synthetic + real template profiles
+- `test_asset_fallback_cost.py`: Verifies tracked-assets fast path avoids fallback parser and keeps fallback parsing near-linear
+
+Run:
+
+```bash
+uv run pytest tests/performance/test_autodoc_render_regression.py tests/performance/test_asset_fallback_cost.py -v
+```
+
+Baseline refresh:
+
+```bash
+uv run python tests/performance/update_autodoc_baseline.py
+```
+
+Baseline file:
+- `tests/performance/fixtures/autodoc_render_baseline.json`
+  - Includes fixture matrix profiles: `public_heavy`, `internal_heavy`, `long_signatures`
+
+These tests run in CI on every push/PR via the `render-output-regression` job.
+
+Metrics artifacts:
+- `.pytest_cache/render_output_metrics.json` (output bytes, empty-member counts by page/profile type)
+- `.pytest_cache/fallback_parser_metrics.json` (fallback invocation counts and parse timing totals)
+
+---
+
 ## Running All Benchmarks
 
 ### Quick Validation Suite (10-15 minutes)

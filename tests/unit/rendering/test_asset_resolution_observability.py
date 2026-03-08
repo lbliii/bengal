@@ -19,6 +19,7 @@ from bengal.rendering.assets import (
     _resolve_fingerprinted,
     asset_manifest_context,
     clear_manifest_cache,
+    drain_asset_fallback_aggregator,
     get_resolution_stats,
 )
 from bengal.utils.observability.logger import reset_loggers
@@ -66,107 +67,100 @@ def _get_event_messages(events: list) -> list[str]:
     return [e.message for e in events]
 
 
-class TestWarningLogging:
-    """Tests for warning logs on unexpected fallback."""
+class TestFallbackAggregation:
+    """Tests for aggregated fallback diagnostics (Phase 3)."""
 
-    def test_warning_logged_on_unexpected_fallback(self, mock_site: MockSite) -> None:
-        """Warning should be logged when fallback used outside dev mode."""
+    def test_fallback_recorded_in_aggregator(self, mock_site: MockSite) -> None:
+        """Unexpected fallback should be recorded in aggregator (no per-asset warning)."""
         mock_site.dev_mode = False
 
         _resolve_fingerprinted("css/style.css", mock_site)
 
-        events = _get_logger_events()
-        messages = _get_event_messages(events)
-        assert "asset_manifest_disk_fallback" in messages
+        count, samples = drain_asset_fallback_aggregator()
+        assert count == 1
+        assert "css/style.css" in samples
 
-    def test_no_warning_when_contextvar_set(self, mock_site: MockSite) -> None:
-        """No warning when ContextVar is properly set."""
+    def test_no_fallback_when_contextvar_set(self, mock_site: MockSite) -> None:
+        """No fallback when ContextVar is properly set."""
         ctx = AssetManifestContext(entries={"css/style.css": "assets/css/style.abc123.css"})
 
         with asset_manifest_context(ctx):
             result = _resolve_fingerprinted("css/style.css", mock_site)
 
-        events = _get_logger_events()
-        messages = _get_event_messages(events)
-        assert "asset_manifest_disk_fallback" not in messages
+        count, _ = drain_asset_fallback_aggregator()
+        assert count == 0
         assert result == "assets/css/style.abc123.css"
 
-    def test_warning_includes_output_dir_context(self, mock_site: MockSite) -> None:
-        """Warning should include output_dir for debugging."""
+    def test_first_fallback_logs_debug(self, mock_site: MockSite) -> None:
+        """First fallback logs debug event for debuggability."""
+        from bengal.utils.observability.logger import LogLevel, configure_logging
+
+        configure_logging(level=LogLevel.DEBUG)
         mock_site.dev_mode = False
 
         _resolve_fingerprinted("css/style.css", mock_site)
 
         events = _get_logger_events()
-        warning_events = [e for e in events if e.message == "asset_manifest_disk_fallback"]
-        assert len(warning_events) == 1
-        assert str(mock_site.output_dir) in str(warning_events[0].context.get("output_dir", ""))
+        messages = _get_event_messages(events)
+        assert "asset_manifest_first_fallback" in messages
 
-    def test_warning_includes_hint(self, mock_site: MockSite) -> None:
-        """Warning should include helpful hint about ContextVar."""
+    def test_explicit_manifest_ctx_used_first(self, mock_site: MockSite) -> None:
+        """Explicit manifest_ctx param takes precedence over ContextVar (Phase 2)."""
+        ctx = AssetManifestContext(entries={"css/style.css": "assets/css/style.abc123.css"})
+
+        # No ContextVar set - explicit param should work
+        result = _resolve_fingerprinted("css/style.css", mock_site, manifest_ctx=ctx)
+        count, _ = drain_asset_fallback_aggregator()
+
+        assert result == "assets/css/style.abc123.css"
+        assert count == 0
+
+
+class TestFallbackAggregationMultiple:
+    """Tests for aggregator with multiple fallbacks."""
+
+    def test_multiple_same_path_aggregated(self, mock_site: MockSite) -> None:
+        """Multiple fallbacks for same path aggregated (count increases, one sample)."""
         mock_site.dev_mode = False
 
         _resolve_fingerprinted("css/style.css", mock_site)
-
-        events = _get_logger_events()
-        warning_events = [e for e in events if e.message == "asset_manifest_disk_fallback"]
-        assert len(warning_events) == 1
-        hint = warning_events[0].context.get("hint", "")
-        assert "ContextVar not set" in hint or "asset_manifest_context" in hint
-
-
-class TestWarningDeduplication:
-    """Tests for warning deduplication to prevent log spam."""
-
-    def test_warning_deduplicated(self, mock_site: MockSite) -> None:
-        """Same path should only warn once."""
-        mock_site.dev_mode = False
-
-        _resolve_fingerprinted("css/style.css", mock_site)
         _resolve_fingerprinted("css/style.css", mock_site)
         _resolve_fingerprinted("css/style.css", mock_site)
 
-        events = _get_logger_events()
-        warning_count = sum(1 for e in events if e.message == "asset_manifest_disk_fallback")
-        assert warning_count == 1
+        count, samples = drain_asset_fallback_aggregator()
+        assert count == 3
+        assert samples == ["css/style.css"]
 
-    def test_different_paths_warn_separately(self, mock_site: MockSite) -> None:
-        """Different paths should each warn once."""
+    def test_different_paths_in_samples(self, mock_site: MockSite) -> None:
+        """Different paths each recorded in aggregator samples."""
         mock_site.dev_mode = False
 
         _resolve_fingerprinted("css/style.css", mock_site)
         _resolve_fingerprinted("js/main.js", mock_site)
         _resolve_fingerprinted("images/logo.png", mock_site)
 
-        events = _get_logger_events()
-        warning_count = sum(1 for e in events if e.message == "asset_manifest_disk_fallback")
-        assert warning_count == 3
+        count, samples = drain_asset_fallback_aggregator()
+        assert count == 3
+        assert set(samples) == {"css/style.css", "js/main.js", "images/logo.png"}
 
-    def test_deduplication_reset_on_clear_cache(self, mock_site: MockSite) -> None:
-        """clear_manifest_cache should reset deduplication state."""
+    def test_drain_resets_aggregator(self, mock_site: MockSite) -> None:
+        """drain_asset_fallback_aggregator clears state for next build."""
         mock_site.dev_mode = False
 
         _resolve_fingerprinted("css/style.css", mock_site)
+        count1, _ = drain_asset_fallback_aggregator()
+        assert count1 == 1
 
-        # Count warnings before reset
-        events_before = _get_logger_events()
-        warning_count_before = sum(
-            1 for e in events_before if e.message == "asset_manifest_disk_fallback"
-        )
-        assert warning_count_before == 1
+        # After drain, aggregator is empty
+        count2, samples2 = drain_asset_fallback_aggregator()
+        assert count2 == 0
+        assert samples2 == []
 
-        # Clear resets both cache and deduplication
-        clear_manifest_cache()
-        reset_loggers()  # Reset to get fresh event tracking
-
-        # Should warn again after cache clear
+        # New fallback after drain
         _resolve_fingerprinted("css/style.css", mock_site)
-
-        events_after = _get_logger_events()
-        warning_count_after = sum(
-            1 for e in events_after if e.message == "asset_manifest_disk_fallback"
-        )
-        assert warning_count_after == 1
+        count3, samples3 = drain_asset_fallback_aggregator()
+        assert count3 == 1
+        assert "css/style.css" in samples3
 
 
 class TestDevModeLogging:

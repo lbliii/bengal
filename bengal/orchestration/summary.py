@@ -269,6 +269,20 @@ def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
     """
     lines = []
 
+    # Render pipeline cache (parsed + rendered)
+    parsed_hits = getattr(stats, "parsed_cache_hits", 0)
+    rendered_hits = getattr(stats, "rendered_cache_hits", 0)
+    parsed_misses = getattr(stats, "parsed_cache_misses", 0)
+    pipeline_total = parsed_hits + rendered_hits + parsed_misses
+    has_pipeline_cache = pipeline_total > 0 and (parsed_hits > 0 or rendered_hits > 0)
+
+    if has_pipeline_cache:
+        lines.append(Text("📄 Parse/Render Cache", style="bold cyan"))
+        lines.append(Text(f"   Rendered (full skip): {rendered_hits:>4}", style="green"))
+        lines.append(Text(f"   Parsed (skip parse):  {parsed_hits:>4}", style="green"))
+        lines.append(Text(f"   Parsed (full parse):   {parsed_misses:>4}", style="yellow"))
+        lines.append(Text())
+
     # Page-level cache stats (incremental builds)
     cache_hits = getattr(stats, "cache_hits", 0)
     cache_misses = getattr(stats, "cache_misses", 0)

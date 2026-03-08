@@ -25,11 +25,12 @@ MemberView properties:
 #}
 
 {# Template configuration with defaults #}
+{# Filter out members with empty/falsy names - prevents bloat from malformed autodoc data #}
 {% let
 section_title = title ?? 'Members',
 section_member_type = member_type ?? 'method',
 auto_open_first = first_open ?? true,
-all_members = members ?? []
+all_members = (members ?? []) | selectattr('name') | list
 %}
 
 {# Separate public and internal members using is_private from MemberView #}
@@ -38,10 +39,12 @@ all_members = members ?? []
 {% let internal_members = [] %}
 {% for el in all_members %}
 {% let m = el | member_view %}
+{% if m.name %}
 {% if m.is_private %}
 {% export internal_members = internal_members + [m] %}
 {% else %}
 {% export public_members = public_members + [m] %}
+{% end %}
 {% end %}
 {% end %}
 

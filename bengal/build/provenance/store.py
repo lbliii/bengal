@@ -14,6 +14,7 @@ Thread Safety:
 from __future__ import annotations
 
 import threading
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -53,6 +54,8 @@ class ProvenanceCache:
 
     # In-memory indexes (loaded lazily)
     _index: dict[CacheKey, ContentHash] = field(default_factory=dict)
+    _input_paths: dict[CacheKey, list[str]] = field(default_factory=dict)
+    _last_build_time: float | None = field(default=None)
     _records: dict[ContentHash, ProvenanceRecord] = field(default_factory=dict)
     _subvenance: dict[ContentHash, set[CacheKey]] = field(default_factory=dict)
     _loaded: bool = False
@@ -76,24 +79,34 @@ class ProvenanceCache:
             return
 
         # Load index and subvenance outside lock (I/O can block)
-        index_data = self._load_index_data()
+        index_data, input_paths_data, last_build = self._load_index_data()
         subvenance_data = self._load_subvenance_data()
 
         with self._lock:
             if self._loaded:
                 return
             self._index = index_data
+            self._input_paths = input_paths_data
+            self._last_build_time = last_build
             self._subvenance = subvenance_data
             self._loaded = True
 
-    def _load_index_data(self) -> dict[CacheKey, ContentHash]:
-        """Load page → hash index from disk (no lock)."""
+    def _load_index_data(
+        self,
+    ) -> tuple[dict[CacheKey, ContentHash], dict[CacheKey, list[str]], float | None]:
+        """Load page index, input_paths, and last_build_time from disk (no lock)."""
         index_path = self.cache_dir / "index.json"
         try:
             data = json_load(index_path)
-            return {CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()}
+            pages = {CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()}
+            input_paths: dict[CacheKey, list[str]] = {}
+            if "input_paths" in data:
+                for k, v in data["input_paths"].items():
+                    input_paths[CacheKey(k)] = list(v) if isinstance(v, list) else []
+            last_build = data.get("last_build_time")
+            return (pages, input_paths, last_build)
         except FileNotFoundError, JSONDecodeError, KeyError:
-            return {}
+            return ({}, {}, None)
 
     def _load_subvenance_data(self) -> dict[ContentHash, set[CacheKey]]:
         """Load reverse index (input → pages) from disk (no lock)."""
@@ -158,13 +171,43 @@ class ProvenanceCache:
         with self._lock:
             return self._index.get(page_path)
 
-    def store(self, record: ProvenanceRecord) -> None:
+    def get_input_paths(self, page_path: CacheKey) -> list[str]:
+        """
+        Get stored input file paths for mtime short-circuit (thread-safe).
+
+        Returns empty list if page has no stored input paths.
+        """
+        self._ensure_loaded()
+
+        with self._lock:
+            return list(self._input_paths.get(page_path, []))
+
+    def get_last_build_time(self) -> float | None:
+        """
+        Get last build timestamp for mtime short-circuit (thread-safe).
+
+        Returns None if never built (version 1 index).
+        """
+        self._ensure_loaded()
+
+        with self._lock:
+            return self._last_build_time
+
+    def store(
+        self,
+        record: ProvenanceRecord,
+        input_paths: list[str] | None = None,
+    ) -> None:
         """Store a provenance record (thread-safe)."""
         self._ensure_loaded()
 
         with self._lock:
             # Update page → hash index
             self._index[record.page_path] = record.provenance.combined_hash
+
+            # Update input_paths for mtime short-circuit
+            if input_paths is not None:
+                self._input_paths[record.page_path] = list(input_paths)
 
             # Store record in memory
             self._records[record.provenance.combined_hash] = record
@@ -188,7 +231,11 @@ class ProvenanceCache:
         if not record_path.exists():
             json_dump(record.to_dict(), record_path)
 
-    def store_batch(self, records: list[ProvenanceRecord]) -> None:
+    def store_batch(
+        self,
+        records: list[ProvenanceRecord],
+        input_paths_map: dict[CacheKey, list[str]] | None = None,
+    ) -> None:
         """Store multiple provenance records efficiently (thread-safe)."""
         if not records:
             return
@@ -197,6 +244,7 @@ class ProvenanceCache:
 
         # Collect records to write outside lock
         records_to_write: list[tuple[Path, ProvenanceRecord]] = []
+        paths_map = input_paths_map or {}
 
         with self._lock:
             if not self._records_dir_created:
@@ -206,6 +254,10 @@ class ProvenanceCache:
             for record in records:
                 # Update page → hash index
                 self._index[record.page_path] = record.provenance.combined_hash
+
+                # Update input_paths for mtime short-circuit
+                if record.page_path in paths_map:
+                    self._input_paths[record.page_path] = list(paths_map[record.page_path])
 
                 # Store record in memory
                 self._records[record.provenance.combined_hash] = record
@@ -265,15 +317,24 @@ class ProvenanceCache:
 
             # Copy data under lock
             index_copy = dict(self._index)
+            input_paths_copy = {k: list(v) for k, v in self._input_paths.items()}
             subvenance_copy = {k: sorted(v) for k, v in self._subvenance.items()}
             self._dirty = False
 
         # File writes outside lock
         # Uses atomic write for crash safety (json_dump creates parent dirs)
 
-        # Save page index
+        # Save page index with mtime short-circuit data
         index_path = self.cache_dir / "index.json"
-        json_dump({"version": 1, "pages": index_copy}, index_path)
+        json_dump(
+            {
+                "version": 2,
+                "last_build_time": time.time(),
+                "pages": index_copy,
+                "input_paths": input_paths_copy,
+            },
+            index_path,
+        )
 
         # Save subvenance index
         subvenance_path = self.cache_dir / "subvenance.json"
@@ -320,6 +381,7 @@ class ProvenanceCache:
 
             for page_path in stale:
                 combined_hash = self._index.pop(page_path, None)
+                self._input_paths.pop(page_path, None)
                 if combined_hash:
                     # Queue record file for deletion
                     record_path = self._records_dir / f"{combined_hash}.json"

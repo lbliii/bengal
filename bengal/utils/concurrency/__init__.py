@@ -24,6 +24,7 @@ Example:
 
 from bengal.utils.concurrency.async_compat import install_uvloop, run_async
 from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
+from bengal.utils.concurrency.context_propagation import submit_with_context
 from bengal.utils.concurrency.gil import (
     format_gil_tip_for_cli,
     get_gil_status_message,
@@ -76,4 +77,5 @@ __all__ = [
     # async_compat
     "run_async",
     "should_parallelize",
+    "submit_with_context",
 ]

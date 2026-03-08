@@ -388,15 +388,25 @@ class PostprocessOrchestrator:
         """
         Generate special pages like 404 (extracted for parallel execution).
 
+        Wraps template rendering with asset_manifest_context when available so
+        asset_url() in base.html resolves fingerprinted paths (Plan: asset-manifest-context-refactor).
+
         Args:
-            build_context: Optional BuildContext with cached knowledge graph
+            build_context: Optional BuildContext with cached knowledge graph and asset_manifest_ctx
 
         Raises:
             Exception: If special page generation fails
         """
+        from bengal.rendering.assets import asset_manifest_context
+
         collector = getattr(self, "_collector", None)
         generator = SpecialPagesGenerator(self.site, collector=collector)
-        generator.generate(build_context=build_context)
+        asset_ctx = getattr(build_context, "asset_manifest_ctx", None) if build_context else None
+        if asset_ctx is not None:
+            with asset_manifest_context(asset_ctx):
+                generator.generate(build_context=build_context)
+        else:
+            generator.generate(build_context=build_context)
 
     def _generate_sitemap(self) -> None:
         """

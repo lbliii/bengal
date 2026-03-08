@@ -31,6 +31,7 @@ if TYPE_CHECKING:
     from bengal.utils.pagination import Paginator
 
 from .page_core import PageCore
+from .utils import normalize_tags
 
 # =============================================================================
 # Lazy Property Delegation Helpers
@@ -242,8 +243,8 @@ class PageProxy:
 
     @property
     def tags(self) -> list[str]:
-        """Get page tags from cached metadata."""
-        return self.core.tags or []
+        """Get page tags from cached metadata (normalized for malformed frontmatter)."""
+        return normalize_tags(self.core.tags)
 
     @property
     def slug(self) -> str | None:

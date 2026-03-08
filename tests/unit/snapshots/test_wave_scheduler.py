@@ -2,7 +2,8 @@
 Tests for WaveScheduler - topological wave-based rendering.
 
 Verifies that pages are rendered in topological waves and HTML files
-are written correctly.
+are written correctly. Includes context propagation tests for asset
+manifest (Plan: asset-manifest-context-refactor).
 """
 
 from __future__ import annotations
@@ -12,8 +13,15 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from bengal.rendering.assets import (
+    AssetManifestContext,
+    asset_manifest_context,
+    clear_manifest_cache,
+    get_resolution_stats,
+)
 from bengal.snapshots import create_site_snapshot
 from bengal.snapshots.scheduler import WaveScheduler
+from bengal.utils.observability.logger import reset_loggers
 
 
 @pytest.mark.bengal(testroot="test-basic")
@@ -203,3 +211,62 @@ def test_wave_scheduler_handles_errors(site, build_site):
 
     finally:
         RenderingPipeline.process_page = original_process_page
+
+
+@pytest.mark.bengal(testroot="test-basic")
+def test_wave_scheduler_propagates_asset_manifest_context(site, build_site):
+    """WaveScheduler workers receive asset manifest via submit_with_context.
+
+    Regression test for Plan: asset-manifest-context-refactor.
+    Without context propagation, asset_url() in templates triggers
+    asset_manifest_disk_fallback warnings in worker threads.
+    """
+    build_site()
+
+    clear_manifest_cache()
+    reset_loggers()
+
+    snapshot = create_site_snapshot(site)
+    stats = MagicMock()
+
+    from bengal.assets.manifest import AssetManifest
+    from bengal.orchestration.build_context import BuildContext
+
+    manifest_path = site.output_dir / "asset-manifest.json"
+    manifest = AssetManifest.load(manifest_path)
+    assert manifest is not None, "test-basic should have asset manifest after build"
+
+    manifest_entries = {k: v.output_path for k, v in manifest.entries.items()}
+    manifest_mtime = manifest_path.stat().st_mtime if manifest_path.exists() else None
+    asset_ctx = AssetManifestContext(entries=manifest_entries, mtime=manifest_mtime)
+
+    build_context = BuildContext(
+        site=site,
+        pages=site.pages,
+        stats=stats,
+    )
+    build_context.snapshot = snapshot
+
+    scheduler = WaveScheduler(
+        snapshot=snapshot,
+        site=site,
+        quiet=True,
+        stats=stats,
+        build_context=build_context,
+        max_workers=2,
+    )
+
+    with asset_manifest_context(asset_ctx):
+        render_stats = scheduler.render_all(list(site.pages))
+
+    assert render_stats.pages_rendered > 0
+    assert render_stats.pages_rendered == len(site.pages)
+
+    # Workers should have used ContextVar (cache hits), not disk fallback
+    resolution_stats = get_resolution_stats()
+    if resolution_stats is not None:
+        unexpected = resolution_stats.items_skipped.get("unexpected_fallback", 0)
+        assert unexpected == 0, (
+            f"Expected no unexpected fallbacks in WaveScheduler workers. "
+            f"Stats: {resolution_stats.format_summary('AssetResolution')}"
+        )

@@ -26,6 +26,7 @@ from bengal.snapshots.utils import (
     RenderProgressTracker,
     resolve_template_name,
 )
+from bengal.utils.concurrency import submit_with_context
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -68,6 +69,7 @@ class WaveScheduler:
         write_behind: Any | None = None,  # WriteBehindCollector type
         strategy: str = "template_first",  # "template_first" or "topological"
         progress_manager: ProgressManagerProtocol | None = None,
+        block_cache: Any | None = None,  # BlockCache for site-wide block reuse (Kida only)
     ):
         self.snapshot = snapshot
         self.site = site
@@ -81,6 +83,7 @@ class WaveScheduler:
         self._write_behind = write_behind
         self._strategy = strategy
         self._progress_manager = progress_manager
+        self._block_cache = block_cache
 
         # Create mapping from snapshot pages to actual pages
         self._page_map: dict[Path, Page] = {}
@@ -270,7 +273,7 @@ class WaveScheduler:
                             stats=self.stats,
                             build_context=self.build_context,
                             changed_sources=None,
-                            block_cache=None,
+                            block_cache=self._block_cache,
                             highlight_cache=None,
                             output_collector=self._output_collector,
                             write_behind=self._write_behind,
@@ -278,8 +281,11 @@ class WaveScheduler:
                         )
                         return page
 
-                    # Submit all pages in this template batch
-                    futures = {executor.submit(process_page, page): page for page in batch_pages}
+                    # Submit all pages in this template batch (context propagation for asset_url)
+                    futures = {
+                        submit_with_context(executor, process_page, page): page
+                        for page in batch_pages
+                    }
 
                     # Collect results and update progress
                     for future in as_completed(futures):
@@ -397,7 +403,7 @@ class WaveScheduler:
                             stats=self.stats,
                             build_context=self.build_context,
                             changed_sources=None,
-                            block_cache=None,
+                            block_cache=self._block_cache,
                             highlight_cache=None,
                             output_collector=self._output_collector,
                             write_behind=self._write_behind,
@@ -406,7 +412,7 @@ class WaveScheduler:
                         return page
 
                     futures = {
-                        executor.submit(process_page_with_pipeline, page): page
+                        submit_with_context(executor, process_page_with_pipeline, page): page
                         for page in wave_pages
                     }
 

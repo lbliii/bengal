@@ -58,6 +58,7 @@ output_dir = "public"
 """
     (tmp_path / "themes" / "default" / "templates" / "default.html").write_text(template)
     (tmp_path / "themes" / "default" / "templates" / "single.html").write_text(template)
+    (tmp_path / "themes" / "default" / "templates" / "404.html").write_text(template)
 
     # Create a basic CSS file
     css = """
@@ -155,6 +156,28 @@ class TestContextVarDuringFullBuild:
         # Verify the summary is informative
         summary = stats.format_summary("AssetResolution")
         assert "cache=" in summary, "Summary should include cache stats"
+
+    def test_no_unexpected_fallback_during_full_build(self, test_site_dir: Path) -> None:
+        """Full build should not trigger unexpected fallbacks (special pages, etc).
+
+        Regression test for Plan: asset-manifest-context-refactor.
+        Postprocess special pages (404, search) render templates that use asset_url.
+        BuildContext.asset_manifest_ctx ensures they have manifest context.
+        """
+        clear_manifest_cache()
+
+        site = Site.from_config(test_site_dir)
+        options = BuildOptions(force_sequential=True)
+        site.build(options)
+
+        stats = get_resolution_stats()
+        assert stats is not None, "Resolution stats should be tracked"
+
+        unexpected = stats.items_skipped.get("unexpected_fallback", 0)
+        assert unexpected == 0, (
+            f"Expected no unexpected fallbacks during full build (includes postprocess). "
+            f"Stats: {stats.format_summary('AssetResolution')}"
+        )
 
 
 class TestStatsResetBetweenBuilds:

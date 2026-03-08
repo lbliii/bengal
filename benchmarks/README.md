@@ -46,6 +46,25 @@ pytest
 
 This will run the benchmarks for all the scenarios defined in the `scenarios` directory. The results will be displayed in the console.
 
+## Profiling Rendering
+
+To profile Bengal's rendering pipeline and find bottlenecks:
+
+```bash
+# CPU profile (cProfile) - saves to benchmarks/.benchmarks/cpu_profile.prof
+uv run python benchmarks/profile_render.py --profile
+
+# With template profiling (shows slow templates/functions)
+uv run python benchmarks/profile_render.py --profile --profile-templates
+
+# Profile a specific site
+uv run python benchmarks/profile_render.py --profile --site /path/to/site
+
+# View saved profile
+python -m pstats benchmarks/.benchmarks/cpu_profile.prof
+# Then: sort cumtime, stats 30
+```
+
 ## Benchmark Suite Overview
 
 | Suite | Purpose |
@@ -63,6 +82,8 @@ This will run the benchmarks for all the scenarios defined in the `scenarios` di
 | `test_import_overhead.py` | CLI startup, import pollution |
 | `tests/performance/benchmark_realistic_scale.py` | Realistic content at scale |
 | `tests/performance/benchmark_template_complexity.py` | Template complexity impact |
+| `tests/performance/test_autodoc_render_regression.py` | Autodoc output shape/size regression gate |
+| `tests/performance/test_asset_fallback_cost.py` | Fallback asset parsing cost regression gate |
 
 ## Benchmark Categories
 

@@ -239,6 +239,19 @@ def display_build_stats(
         else:
             cli.info(f"   {phase_str}")
 
+    # Parse/render cache stats (when any hits)
+    parsed_hits = getattr(stats, "parsed_cache_hits", 0)
+    rendered_hits = getattr(stats, "rendered_cache_hits", 0)
+    parsed_misses = getattr(stats, "parsed_cache_misses", 0)
+    if parsed_hits > 0 or rendered_hits > 0:
+        cache_str = (
+            f"Parsed: {parsed_hits} hits, {parsed_misses} misses | Rendered: {rendered_hits} hits"
+        )
+        if cli.use_rich:
+            cli.console.print(f"   [dim]{cache_str}[/dim]")
+        else:
+            cli.info(f"   {cache_str}")
+
     # Output location
     if output_dir:
         if cli.use_rich:

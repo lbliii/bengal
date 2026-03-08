@@ -339,12 +339,14 @@ class ResourceManager:
             try:
                 self.cleanup(signum=signum)
             finally:
-                # Always exit, even if cleanup raises an exception
+                # Dev server uses process-isolated builds (BENGAL_BUILD_EXECUTOR=process)
+                # so main process has no build ThreadPoolExecutors. Normal sys.exit
+                # works without "Exception ignored on threading shutdown" traceback.
                 sys.exit(0)
         else:
-            # Second interrupt - force exit
+            # Second interrupt - force exit without waiting
             icons = get_icons()
-            print(f"\n  {icons.warning} Force shutdown")
+            print(f"\n  {icons.warning} Stopped")
             sys.exit(1)
 
     def _register_signal_handlers(self) -> None:

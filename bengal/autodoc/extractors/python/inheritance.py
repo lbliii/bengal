@@ -61,6 +61,13 @@ def synthesize_inherited_members(
     if not bases:
         return
 
+    # Skip known stdlib base classes - we don't document them, and simple name
+    # lookup could wrongly match a same-named class in the documented package
+    _STDLIB_BASES = frozenset({"ABC", "object", "BaseException", "Exception"})
+    bases = [b for b in bases if b.rsplit(".", 1)[-1] not in _STDLIB_BASES]
+    if not bases:
+        return
+
     # Track existing member names to avoid duplicates
     existing_members = {child.name for child in class_elem.children}
 
@@ -88,6 +95,10 @@ def synthesize_inherited_members(
         include_private = config.get("include_private", False)
 
         for member in base_elem.children:
+            # Skip members with empty or whitespace-only names (malformed data)
+            if not (member.name and member.name.strip()):
+                continue
+
             # Skip if derived class overrides this member
             if member.name in existing_members:
                 continue
@@ -126,3 +137,6 @@ def synthesize_inherited_members(
             )
             class_elem.children.append(inherited_member)
             existing_members.add(member.name)
+
+    # Defensive: remove any members with empty/whitespace-only names
+    class_elem.children[:] = [c for c in class_elem.children if c.name and c.name.strip()]

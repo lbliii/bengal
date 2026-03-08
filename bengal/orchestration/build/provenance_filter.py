@@ -829,14 +829,16 @@ def phase_incremental_filter_provenance(
             orchestrator.stats.time_saved_ms = result.cache_hits * avg_time_per_page * 0.8
 
         # Log results
-        orchestrator.logger.info(
-            "incremental_work_identified_provenance",
-            pages_to_build=len(result.pages_to_build),
-            assets_to_process=len(result.assets_to_process),
-            skipped_pages=result.cache_hits,
-            cache_hit_rate=f"{result.hit_rate:.1f}%",
-            filter_time_ms=filter_time_ms,
-        )
+        log_kwargs: dict[str, object] = {
+            "pages_to_build": len(result.pages_to_build),
+            "assets_to_process": len(result.assets_to_process),
+            "skipped_pages": result.cache_hits,
+            "cache_hit_rate": f"{result.hit_rate:.1f}%",
+            "filter_time_ms": filter_time_ms,
+        }
+        if provenance_filter._mtime_short_circuit_hits > 0:
+            log_kwargs["mtime_short_circuit_hits"] = provenance_filter._mtime_short_circuit_hits
+        orchestrator.logger.info("incremental_work_identified_provenance", **log_kwargs)
 
         # Verbose output
         if verbose:

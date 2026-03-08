@@ -117,7 +117,8 @@ class ProvenanceFilter:
         self._config_hash = hash_dict(dict(site.config))
 
         # Asset hash tracking (loaded from cache)
-        self._asset_hashes: dict[CacheKey, ContentHash] = {}
+        # Value: ContentHash (str) for legacy, or dict with hash, mtime, size for mtime short-circuit
+        self._asset_hashes: dict[CacheKey, ContentHash | dict[str, Any]] = {}
         self._load_asset_hashes()
 
         # Session caches to avoid redundant I/O and computation
@@ -125,6 +126,9 @@ class ProvenanceFilter:
         self._file_hashes: dict[Path, ContentHash] = {}
         self._computed_provenance: dict[CacheKey, Provenance] = {}
         self._session_lock = threading.Lock()
+
+        # Observability: mtime short-circuit hits (reset each filter())
+        self._mtime_short_circuit_hits: int = 0
 
     def filter(
         self,
@@ -171,6 +175,8 @@ class ProvenanceFilter:
         # Normalize forced paths to content_key for consistent comparison.
         # Watcher uses absolute Paths; discovery uses relative. Both must match.
         forced_keys: set[str] = {content_key(p.resolve(), self.site.root_path) for p in forced}
+
+        self._mtime_short_circuit_hits = 0
 
         pages_to_build: list[Page] = []
         pages_skipped: list[Page] = []
@@ -249,6 +255,38 @@ class ProvenanceFilter:
             changed_page_paths=changed_page_paths,
         )
 
+    def _mtime_short_circuit(self, page: Page, stored_hash: ContentHash) -> bool:
+        """
+        Try to skip verification via mtime check. Returns True if cache hit.
+
+        If BENGAL_PROVENANCE_MTIME=0, always returns False (disabled).
+        """
+        if os.environ.get("BENGAL_PROVENANCE_MTIME", "1") == "0":
+            return False
+
+        page_path = self._get_page_key(page)
+        input_paths = self.cache.get_input_paths(page_path)
+        last_build = self.cache.get_last_build_time()
+
+        if not input_paths or last_build is None:
+            return False
+
+        for rel_path in input_paths:
+            found = False
+            for base in (self.site.root_path, self.site.root_path.parent):
+                full_path = base / rel_path
+                try:
+                    if full_path.exists():
+                        found = True
+                        if full_path.stat().st_mtime > last_build:
+                            return False  # File changed, need full verification
+                        break
+                except OSError:
+                    return False  # File error, do full verification
+            if not found:
+                return False  # File missing, do full verification
+        return True
+
     def _verify_page_provenance(
         self,
         page: Page,
@@ -266,6 +304,12 @@ class ProvenanceFilter:
         paths: set[Path] = set()
         page_path = self._get_page_key(page)
         is_virtual = getattr(page, "_virtual", False)
+
+        # mtime short-circuit: skip hashing if no input file changed since last build
+        if self._mtime_short_circuit(page, stored_hash):
+            with self._session_lock:
+                self._mtime_short_circuit_hits += 1
+            return (None, page, tags, sections, paths)
 
         if not is_virtual and page.source_path.exists():
             provenance_fast = self._compute_provenance_fast(page)
@@ -344,7 +388,8 @@ class ProvenanceFilter:
             provenance=provenance,
             output_hash=output_hash or ContentHash("_rendered_"),
         )
-        self.cache.store(record)
+        input_paths = self._extract_input_paths_for_mtime(record)
+        self.cache.store(record, input_paths)
 
     def save(self) -> None:
         """Save the provenance cache to disk."""
@@ -352,11 +397,17 @@ class ProvenanceFilter:
         self._save_asset_hashes()
 
     def _load_asset_hashes(self) -> None:
-        """Load asset hashes from disk."""
+        """Load asset hashes from disk. Accepts legacy str or new dict format."""
         asset_cache_path = self.cache.cache_dir / "asset_hashes.json"
         try:
             data = json_load(asset_cache_path)
-            self._asset_hashes = {CacheKey(k): ContentHash(v) for k, v in data.items()}
+            result: dict[CacheKey, ContentHash | dict[str, Any]] = {}
+            for k, v in data.items():
+                if isinstance(v, dict):
+                    result[CacheKey(k)] = v
+                else:
+                    result[CacheKey(k)] = ContentHash(str(v))
+            self._asset_hashes = result
         except FileNotFoundError, JSONDecodeError, KeyError:
             self._asset_hashes = {}
 
@@ -667,6 +718,37 @@ class ProvenanceFilter:
         """Get canonical page key for cache lookups."""
         return content_key(page.source_path, self.site.root_path)
 
+    def _extract_input_paths_for_mtime(self, record: ProvenanceRecord) -> list[str]:
+        """
+        Extract file paths from provenance record for mtime short-circuit.
+
+        Returns paths that resolve to existing files. Skips config, taxonomy, virtual.
+        """
+        result: list[str] = []
+        for inp in record.provenance.inputs:
+            if inp.input_type in ("content", "autodoc_source", "cli_source"):
+                path_str = str(inp.path)
+            elif inp.input_type.startswith("cascade_"):
+                path_str = str(inp.path).replace("cascade:", "", 1)
+            else:
+                continue  # Skip config, taxonomy, virtual
+
+            # Resolve to file - try site root first, then parent
+            for base in (self.site.root_path, self.site.root_path.parent):
+                full_path = base / path_str
+                try:
+                    if full_path.exists():
+                        # Return path relative to site root for consistency
+                        try:
+                            rel = str(full_path.relative_to(self.site.root_path))
+                        except ValueError:
+                            rel = path_str
+                        result.append(rel)
+                        break
+                except OSError:
+                    continue
+        return result
+
     def _is_forced_by_dependency(self, asset: Asset, forced: set[Path]) -> bool:
         """
         True if any path in forced is a dependency of this asset (e.g. @import'd CSS).
@@ -700,7 +782,7 @@ class ProvenanceFilter:
         """
         Check if an asset has changed based on content hash.
 
-        OPTIMIZATION: Uses mtime check first to avoid hashing unchanged files.
+        OPTIMIZATION: Uses mtime+size check first to avoid hashing unchanged files.
 
         Thread Safety:
             Uses local variables for hash comparisons. Asset hash dict
@@ -713,34 +795,66 @@ class ProvenanceFilter:
             return True  # File system error - treat as changed
 
         asset_path = self._get_asset_key(asset)
-        stored_hash = self._asset_hashes.get(asset_path)
+        stored = self._asset_hashes.get(asset_path)
 
-        # OPTIMIZATION: If we have a stored hash, check mtime first
-        # This avoids expensive file hashing for unchanged files
-        if stored_hash is not None:
-            try:
-                # Get mtime for quick check (much faster than hashing)
-                _ = asset.source_path.stat().st_mtime
-                # For now, we still hash to be safe, but we could cache mtime too
-            except OSError:
-                return True  # File error - treat as changed
+        try:
+            stat = asset.source_path.stat()
+            current_mtime = stat.st_mtime
+            current_size = stat.st_size
+        except OSError:
+            return True  # File error - treat as changed
 
-        # Compute hash (necessary for correctness)
+        # Short-circuit: mtime+size match stored → unchanged
+        if (
+            stored is not None
+            and isinstance(stored, dict)
+            and stored.get("mtime") == current_mtime
+            and stored.get("size") == current_size
+        ):
+            return False
+
+        # Compute hash (necessary when no short-circuit)
         try:
             current_hash = self._get_file_hash(asset.source_path)
         except OSError:
             return True  # File error - treat as changed
 
-        if stored_hash is None:
+        cached_hash: ContentHash | None = None
+        if stored is not None:
+            cached_hash = stored.get("hash") if isinstance(stored, dict) else stored
+
+        if stored is None:
             # First time seeing this asset
-            self._asset_hashes[asset_path] = current_hash
+            self._asset_hashes[asset_path] = {
+                "hash": current_hash,
+                "mtime": current_mtime,
+                "size": current_size,
+            }
             return True
 
-        if stored_hash != current_hash:
+        if cached_hash != current_hash:
             # Asset content changed
-            self._asset_hashes[asset_path] = current_hash
+            self._asset_hashes[asset_path] = {
+                "hash": current_hash,
+                "mtime": current_mtime,
+                "size": current_size,
+            }
             return True
 
+        # Content same but mtime/size changed (e.g. touch) - update stored metadata
+        if isinstance(stored, dict):
+            self._asset_hashes[asset_path] = {
+                "hash": current_hash,
+                "mtime": current_mtime,
+                "size": current_size,
+            }
+        else:
+            # Legacy format: upgrade to structured
+            self._asset_hashes[asset_path] = {
+                "hash": current_hash,
+                "mtime": current_mtime,
+                "size": current_size,
+            }
         return False
 
     def _get_asset_key(self, asset: Asset) -> CacheKey:
@@ -758,9 +872,14 @@ class ProvenanceFilter:
         try:
             if not asset.source_path.exists():
                 return
+            stat = asset.source_path.stat()
             current_hash = self._get_file_hash(asset.source_path)
             asset_key = self._get_asset_key(asset)
-            self._asset_hashes[asset_key] = current_hash
+            self._asset_hashes[asset_key] = {
+                "hash": current_hash,
+                "mtime": stat.st_mtime,
+                "size": stat.st_size,
+            }
         except OSError:
             pass  # Skip assets that can't be hashed
 
