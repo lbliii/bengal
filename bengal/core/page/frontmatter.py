@@ -7,6 +7,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from bengal.core.page.utils import normalize_tags
+
 
 @dataclass
 class Frontmatter:
@@ -107,7 +109,10 @@ class Frontmatter:
 
         for key, value in data.items():
             if key in known_fields:
-                known[key] = value
+                if key == "tags":
+                    known[key] = normalize_tags(value)
+                else:
+                    known[key] = value
             else:
                 extra[key] = value
 
