@@ -621,7 +621,7 @@ class DevServer:
         Sets development-specific defaults:
         - Disables asset fingerprinting (stable URLs for hot reload)
         - Disables minification (faster rebuilds, easier debugging)
-        - Forces atomic writes (prevents torn reads during hot reload)
+        - Forces atomic writes (required for double-buffered output)
         - Clears baseurl (serves from root '/' not subdirectory)
 
         When baseurl is cleared, also clears the build cache to prevent
@@ -636,10 +636,10 @@ class DevServer:
         cfg["fingerprint_assets"] = False  # Stable CSS/JS filenames
         cfg.setdefault("minify_assets", False)  # Faster builds
 
-        # Force atomic writes so the browser never reads a half-written HTML file
-        # during hot reload. write_text() truncates before writing, creating a
-        # window where the file is empty — the browser loads it without <head>/<link>
-        # tags and renders with no CSS. Atomic writes (temp+rename) eliminate this.
+        # Force atomic writes (temp+rename) for two reasons:
+        # 1. Breaks hardlinks during double-buffered builds so the active buffer
+        #    is never corrupted when the staging buffer is written.
+        # 2. Prevents torn reads if the browser fetches during a write.
         build_settings = cfg.get("build")
         if isinstance(build_settings, dict):
             build_settings["fast_writes"] = False

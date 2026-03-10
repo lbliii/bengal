@@ -3,13 +3,9 @@
 LIVE_RELOAD_SCRIPT = r"""
 <script>
 (function() {
-    // Bengal Live Reload — with debounce to prevent FOUC during rapid rebuilds
+    // Bengal Live Reload — double-buffered output eliminates FOUC
     let backoffMs = 1000;
     const maxBackoffMs = 10000;
-    const DEBOUNCE_MS = 200;
-
-    var _timer = null;
-    var _pending = null;
 
     function saveScroll() {
         sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
@@ -48,23 +44,6 @@ LIVE_RELOAD_SCRIPT = r"""
         }
     }
 
-    function scheduleReload(action, changedPaths) {
-        if (_timer) clearTimeout(_timer);
-        _pending = { action: action, paths: changedPaths };
-        _timer = setTimeout(function() {
-            _timer = null;
-            if (_pending) {
-                executeReload(_pending.action, _pending.paths);
-                _pending = null;
-            }
-        }, DEBOUNCE_MS);
-    }
-
-    function cancelPending() {
-        if (_timer) { clearTimeout(_timer); _timer = null; }
-        _pending = null;
-    }
-
     function connect() {
         var source = new EventSource('/__bengal_reload__');
         var closeSource = function() { try { source.close(); } catch (e) {} };
@@ -76,11 +55,6 @@ LIVE_RELOAD_SCRIPT = r"""
             try { payload = JSON.parse(event.data); } catch (e) {}
             var action = payload && payload.action ? payload.action : event.data;
             var changedPaths = (payload && payload.changedPaths) || [];
-
-            if (action === 'building') {
-                cancelPending();
-                return;
-            }
 
             if (action === 'fragment') {
                 var selector = payload.selector || '#main-content';
@@ -102,7 +76,7 @@ LIVE_RELOAD_SCRIPT = r"""
                 return;
             }
 
-            scheduleReload(action, changedPaths);
+            executeReload(action, changedPaths);
         };
 
         window.addEventListener('load', function() {
@@ -113,7 +87,6 @@ LIVE_RELOAD_SCRIPT = r"""
                 sessionStorage.removeItem('bengal_scroll_x');
                 sessionStorage.removeItem('bengal_scroll_y');
             }
-            // Strip the cache-bust param so it doesn't linger in the address bar
             var clean = new URL(location.href);
             if (clean.searchParams.has('_bengal')) {
                 clean.searchParams.delete('_bengal');
