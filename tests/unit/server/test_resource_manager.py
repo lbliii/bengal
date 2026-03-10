@@ -256,7 +256,7 @@ class TestResourceManagerCleanupContinuesOnError:
         cleanup3.assert_called_once()
 
     def test_cleanup_logs_errors(self):
-        """Test that cleanup errors are logged (via print)."""
+        """Test that cleanup errors are logged via CLIOutput.warning."""
         rm = ResourceManager()
 
         def failing_cleanup(r):
@@ -264,9 +264,12 @@ class TestResourceManagerCleanupContinuesOnError:
 
         rm.register("Failing", object(), failing_cleanup)
 
-        with patch("builtins.print") as mock_print:
+        mock_cli = MagicMock()
+        with patch("bengal.server.resource_manager.CLIOutput", return_value=mock_cli):
             rm.cleanup()
 
-        # Should have printed error message
-        calls = [str(call) for call in mock_print.call_args_list]
-        assert any("Error cleaning up" in str(call) for call in calls)
+        mock_cli.warning.assert_called_once()
+        (msg,) = mock_cli.warning.call_args[0]
+        assert "Error cleaning up" in msg
+        assert "Failing" in msg
+        assert "Test error" in msg

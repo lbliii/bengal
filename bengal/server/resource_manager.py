@@ -57,7 +57,7 @@ from pathlib import Path
 from types import FrameType
 from typing import Any
 
-from bengal.server.utils import get_icons
+from bengal.output import CLIOutput
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -167,34 +167,38 @@ class ResourceManager:
             The server
         """
 
+        def _safe_shutdown(server: Any) -> None:
+            """Run shutdown in thread; catch exceptions to prevent traceback."""
+            with contextlib.suppress(Exception):
+                server.shutdown()
+
         def cleanup(s: Any) -> None:
-            icons = get_icons()
             try:
                 # ServerBackend has start() and port; TCPServer does not
                 if hasattr(s, "start") and hasattr(s, "port"):
-                    shutdown_thread = threading.Thread(target=s.shutdown)
+                    shutdown_thread = threading.Thread(target=_safe_shutdown, args=(s,))
                     shutdown_thread.daemon = True
                     shutdown_thread.start()
                     shutdown_thread.join(timeout=2.0)
                     if shutdown_thread.is_alive():
-                        print(
-                            f"  {icons.warning} Server shutdown timed out (press Ctrl+C again to force quit)"
+                        CLIOutput().warning(
+                            "Server shutdown timed out (press Ctrl+C again to force quit)"
                         )
                     return
                 # TCPServer path
-                shutdown_thread = threading.Thread(target=s.shutdown)
+                shutdown_thread = threading.Thread(target=_safe_shutdown, args=(s,))
                 shutdown_thread.daemon = True
                 shutdown_thread.start()
                 shutdown_thread.join(timeout=2.0)
 
                 if shutdown_thread.is_alive():
-                    print(
-                        f"  {icons.warning} Server shutdown timed out (press Ctrl+C again to force quit)"
+                    CLIOutput().warning(
+                        "Server shutdown timed out (press Ctrl+C again to force quit)"
                     )
 
                 s.server_close()
             except Exception as e:
-                print(f"  {icons.warning} Error closing server: {e}")
+                CLIOutput().warning(f"Error closing server: {e}")
 
         return self.register("HTTP Server", server, cleanup)
 
@@ -210,11 +214,10 @@ class ResourceManager:
         """
 
         def cleanup(w: Any) -> None:
-            icons = get_icons()
             try:
                 w.stop()
             except Exception as e:
-                print(f"  {icons.warning} Error stopping watcher: {e}")
+                CLIOutput().warning(f"Error stopping watcher: {e}")
 
         return self.register("File Watcher", watcher, cleanup)
 
@@ -309,27 +312,27 @@ class ResourceManager:
                 if hasattr(signal.Signals, "__contains__")
                 else str(signum)
             )
+            cli = CLIOutput()
             if sig_name == "SIGINT":
-                print("\n  👋 Shutting down gracefully... (press Ctrl+C again to force quit)")
+                cli.info("\n  👋 Shutting down gracefully... (press Ctrl+C again to force quit)")
             else:
-                print(f"\n  👋 Received {sig_name}, shutting down...")
+                cli.info(f"\n  👋 Received {sig_name}, shutting down...")
 
         # Clean up in reverse order (LIFO - like context managers)
         start_time = time.time()
 
-        icons = get_icons()
         for name, resource, cleanup_fn in reversed(self._resources):
             try:
                 cleanup_fn(resource)
             except Exception as e:
-                print(f"  {icons.warning} Error cleaning up {name}: {e}")
+                CLIOutput().warning(f"Error cleaning up {name}: {e}")
 
         self._restore_signals()
 
         # Show completion message if shutdown was fast enough
         elapsed = time.time() - start_time
         if signum and elapsed < 3.0:  # Only show if cleanup was reasonably quick
-            print(f"  {icons.success} Server stopped")
+            CLIOutput().success("Server stopped")
 
     def _signal_handler(self, signum: int, frame: FrameType | None) -> None:
         """Handle termination signals."""
@@ -345,8 +348,7 @@ class ResourceManager:
                 sys.exit(0)
         else:
             # Second interrupt - force exit without waiting
-            icons = get_icons()
-            print(f"\n  {icons.warning} Stopped")
+            CLIOutput().warning("\n  Stopped")
             sys.exit(1)
 
     def _register_signal_handlers(self) -> None:

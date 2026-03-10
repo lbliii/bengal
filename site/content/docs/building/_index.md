@@ -1,12 +1,12 @@
 ---
 title: Building
-description: Build configuration, CLI usage, and deployment
+description: Build configuration, SEO/discovery, output formats, and deployment
 weight: 30
 icon: settings
 ---
 # Build & Deploy
 
-Configure, build, optimize, and deploy your Bengal site.
+Configure, build, optimize, improve SEO/discovery, and deploy your Bengal site.
 
 ## What Do You Need?
 
@@ -51,6 +51,7 @@ flowchart LR
 | I want to... | Go to... |
 |--------------|----------|
 | Configure my site | [Configuration](./configuration/) |
+| Improve metadata, sitemap, feeds, and social sharing | [SEO & Discovery](./seo.md) |
 | Build OSS vs Enterprise variants | [Multi-Variant Builds](./configuration/variants) |
 | Build for production | [Commands](../reference/architecture/tooling/cli/#commands) |
 | Speed up builds | [Performance](./performance/) |

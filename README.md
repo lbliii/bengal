@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)](https://pypi.org/project/bengal/)
 
-**A high-performance static site generator for Python 3.14+**
+**A Python static site generator for documentation, blogs, and product sites**
 
 ```bash
 pip install bengal
@@ -17,15 +17,26 @@ bengal new site mysite && cd mysite && bengal serve
 
 ## What is Bengal?
 
-Bengal is a high-performance static site generator for Python 3.14+. Parallel builds, incremental rebuilds, Zstandard-compressed caching. Drop `.ipynb` into content and build — no conversion step, no extra deps.
+Bengal is a Python static site generator for documentation sites, blogs, knowledge bases,
+and product sites. It focuses on fast builds, strong defaults, and discovery-friendly
+output: sitemaps, feeds, canonical URLs, Open Graph tags, social cards, search indexes,
+and JSON/LLM exports.
 
-**What's good about it:**
+**Why people pick it:**
 
-- **Fast** — Parallel builds, incremental rebuilds, Zstandard-compressed caching
-- **Modern** — Python 3.14+ with free-threading support, fully typed
-- **Notebooks** — Native Jupyter `.ipynb` rendering, Binder/Colab links
+- **Search-friendly output** — Sitemap, RSS, canonical URLs, Open Graph tags, social cards
+- **Fast builds** — Parallel builds, incremental rebuilds, Zstandard-compressed caching
+- **Modern Python** — Python 3.14+ with free-threading support, fully typed
+- **Content workflows** — Native Jupyter `.ipynb` rendering, Binder/Colab links
 - **Batteries included** — Auto-generated API docs, content validation, site analysis
 - **Extensible** — Pluggable engines for templates, Markdown, and syntax highlighting
+
+## Use Bengal For
+
+- **Documentation sites** — Versioned docs, API reference, search, and internal linking
+- **Blogs and journals** — Tags, categories, feeds, related content, and social sharing
+- **Knowledge bases** — Markdown-first publishing with validation and JSON search indexes
+- **Product and marketing sites** — Landing pages, content collections, and social cards
 
 ---
 
@@ -211,6 +222,7 @@ structure:
 
 | Feature | Description | Docs |
 |---------|-------------|------|
+| **SEO & Discovery** | Sitemap, RSS, canonical URLs, Open Graph tags, social cards, search, JSON/LLM output | [SEO & Discovery →](https://lbliii.github.io/bengal/docs/building/seo/) |
 | **Directives** | Tabs, admonitions, cards, dropdowns, code blocks | [Content →](https://lbliii.github.io/bengal/docs/content/) |
 | **Notebooks** | Native Jupyter `.ipynb` rendering, Binder/Colab links | [Notebooks →](https://lbliii.github.io/bengal/docs/content/authoring/notebooks/) |
 | **Autodoc** | Generate API docs from Python, CLI, OpenAPI | [Autodoc →](https://lbliii.github.io/bengal/docs/content/sources/autodoc/) |

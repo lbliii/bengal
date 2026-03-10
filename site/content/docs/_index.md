@@ -8,12 +8,17 @@ cascade:
   type: doc
   variant: standard
 category: documentation
-description: Bengal documentation
+description: Guides for building documentation sites, blogs, knowledge bases, and product sites with Bengal
 keywords:
-- documentation
-- docs
-- guides
-- reference
+- bengal
+- python static site generator
+- documentation site generator
+- blog generator
+- knowledge base
+- seo
+- sitemap
+- rss
+- search
 menu:
   main:
     weight: 10
@@ -28,146 +33,157 @@ icon: book-open
 
 ## Start Here
 
-New to Bengal? Begin with installation and choose a learning path based on your role.
+New to Bengal? Start here to build documentation sites, blogs, knowledge bases, and
+product sites with Python. Bengal covers authoring, search, SEO/discovery, theming,
+deployment, and performance in one toolchain.
 
-:::{cards}
+::::{cards}
 :columns: 2
 :gap: medium
 
-:::{card} Get Started
+::::{card} Get Started
 :icon: arrow-clockwise
 :link: ./get-started/
 :description: Install Bengal and create your first site
-:::{/card}
+::::{/card}
 
-:::{card} Tutorials
+::::{card} Tutorials
 :icon: notepad
 :link: ./tutorials/
 :description: Guided learning journeys to master Bengal
-:::{/card}
+::::{/card}
 
-:::{/cards}
+::::{/cards}
 
 ## Write & Organize
 
 Author content in Markdown, structure your site, and validate quality.
 
-:::{cards}
+::::{cards}
 :columns: 2
 :gap: medium
 
-:::{card} Author
+::::{card} Author
 :icon: edit
 :link: ./content/authoring/
 :description: Markdown, MyST directives, code blocks, and callouts
-:::{/card}
+::::{/card}
 
-:::{card} Organize
+::::{card} Organize
 :icon: folder
 :link: ./content/organization/
 :description: Pages, sections, bundles, and frontmatter
-:::{/card}
+::::{/card}
 
-:::{card} Reuse
+::::{card} Reuse
 :icon: recycle
 :link: ./content/reuse/
 :description: Snippets, data files, and DRY patterns
-:::{/card}
+::::{/card}
 
-:::{card} Validate
+::::{card} Validate
 :icon: check-circle
 :link: ./content/validation/
 :description: Health checks, linting, and auto-fixes
-:::{/card}
+::::{/card}
 
-:::{card} Version
+::::{card} Version
 :icon: git-branch
 :link: ./content/versioning/
 :description: Maintain multiple doc versions side-by-side
-:::{/card}
+::::{/card}
 
-:::{card} Analyze
+::::{card} Analyze
 :icon: search
 :link: ./content/analysis/
 :description: Find orphan pages and optimize internal linking
-:::{/card}
+::::{/card}
 
-:::{/cards}
+::::{/cards}
 
 ## Customize
 
-Control appearance with themes, templates, and CSS. Add custom directives, content sources, and build hooks.
+Control appearance with themes, templates, and CSS. Add custom directives, content
+sources, and build hooks.
 
-:::{cards}
+::::{cards}
 :columns: 2
 :gap: medium
 
-:::{card} Theming
+::::{card} Theming
 :icon: palette
 :link: ./theming/
 :description: Templates, assets, and visual customization
-:::{/card}
+::::{/card}
 
-:::{card} Extending Bengal
+::::{card} Extending Bengal
 :icon: starburst
 :link: ./extending/
 :description: Custom directives, content sources, collections, and build hooks
-:::{/card}
+::::{/card}
 
-:::{/cards}
+::::{/cards}
 
 ## Build & Ship
 
-Configure builds, optimize performance, and deploy to production.
+Configure builds, optimize performance, improve SEO/discovery, and deploy to
+production.
 
-:::{cards}
+::::{cards}
 :columns: 2
 :gap: medium
 
-:::{card} Configure
+::::{card} Configure
 :icon: settings
 :link: ./building/configuration/
 :description: Site settings, environments, and build options
-:::{/card}
+::::{/card}
 
-:::{card} Performance
+::::{card} SEO & Discovery
+:icon: globe
+:link: ./building/seo/
+:description: Metadata, sitemap, feeds, canonical URLs, social cards, and search
+::::{/card}
+
+::::{card} Performance
 :icon: zap
 :link: ./building/performance/
 :description: Incremental builds, caching, and parallel processing
-:::{/card}
+::::{/card}
 
-:::{card} Deploy
+::::{card} Deploy
 :icon: rocket
 :link: ./building/deployment/
 :description: GitHub Pages, Netlify, Vercel, and CI/CD
-:::{/card}
+::::{/card}
 
-:::{card} Troubleshoot
+::::{card} Troubleshoot
 :icon: warning
 :link: ./building/troubleshooting/
 :description: Common issues and how to resolve them
-:::{/card}
+::::{/card}
 
-:::{/cards}
+::::{/cards}
 
 ## Look It Up
 
-Technical specifications, directive syntax, architecture details, and project background.
+Technical specifications, directive syntax, architecture details, and project
+background.
 
-:::{cards}
+::::{cards}
 :columns: 2
 :gap: medium
 
-:::{card} Reference
+::::{card} Reference
 :icon: bookmark
 :link: ./reference/
 :description: Technical specifications, directives, and architecture
-:::{/card}
+::::{/card}
 
-:::{card} About
+::::{card} About
 :icon: info
 :link: ./about/
 :description: Concepts, benchmarks, and philosophy
-:::{/card}
+::::{/card}
 
-:::{/cards}
+::::{/cards}
