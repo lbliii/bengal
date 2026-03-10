@@ -54,7 +54,7 @@ class PounceBackend:
 def create_pounce_backend(
     host: str,
     port: int,
-    output_dir: Path,
+    output_dir: Path | Callable[[], Path],
     build_in_progress: Callable[[], bool],
     active_palette: Callable[[], str | None] | None = None,
     request_callback: Callable[[], Callable[[str, str, int, float], None] | None] | None = None,
@@ -65,7 +65,8 @@ def create_pounce_backend(
     Args:
         host: Bind address
         port: Port to bind to
-        output_dir: Directory for static file serving
+        output_dir: Directory for static file serving, or callable returning
+            the current active directory (for double-buffered output)
         build_in_progress: Callable returning True when a build is active
         active_palette: Callable returning current palette (or None)
         request_callback: Optional getter returning request log callback. When set,

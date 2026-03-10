@@ -35,7 +35,7 @@ RequestCallbackGetter = Callable[[], RequestCallback | None]
 
 def create_bengal_dev_app(
     *,
-    output_dir: Path,
+    output_dir: Path | Callable[[], Path],
     build_in_progress: Callable[[], bool],
     active_palette: Callable[[], str | None] | str | None = None,
     sse_keepalive_interval: float | None = None,
@@ -49,7 +49,10 @@ def create_bengal_dev_app(
     behavior (rebuilding page during builds).
 
     Args:
-        output_dir: Directory for static file serving
+        output_dir: Directory for static file serving. Accepts a static Path
+            or a callable returning the current active directory (for double-
+            buffered output). When callable, it is invoked once per request
+            to snapshot the serving directory.
         build_in_progress: Callable returning True when a build is active
         active_palette: Callable returning current palette, or static value
         sse_keepalive_interval: Seconds between SSE keepalives (default from env).
@@ -61,6 +64,9 @@ def create_bengal_dev_app(
     Returns:
         ASGI application callable
     """
+    _resolve_dir: Callable[[], Path] = (
+        output_dir if callable(output_dir) else lambda: output_dir  # type: ignore[return-value]
+    )
 
     async def app(scope: dict[str, Any], receive: Any, send: Any) -> None:
         if scope.get("type") != "http":
@@ -73,17 +79,21 @@ def create_bengal_dev_app(
             await _handle_sse(send, keepalive_interval=sse_keepalive_interval)
             return
 
+        # Snapshot the serving directory once per request so all file reads
+        # within this request use the same buffer (double-buffer consistency).
+        serving_dir = _resolve_dir()
+
         if method == "GET":
             await _serve_static(
                 send,
-                output_dir=output_dir,
+                output_dir=serving_dir,
                 path=path,
                 build_in_progress=build_in_progress,
                 active_palette=active_palette,
             )
             return
 
-        await _send_404(send, output_dir=output_dir)
+        await _send_404(send, output_dir=serving_dir)
 
     if request_callback is not None:
         return _request_logging_middleware(app, request_callback)
