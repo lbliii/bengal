@@ -5,15 +5,19 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "bengal"
 version = "0.2.5"
-description = "A high-performance static site generator with modular architecture"
+description = "Python static site generator for documentation, blogs, and product sites"
 readme = "README.md"
 requires-python = ">=3.14"
 license = "MIT"
 authors = [{ name = "Bengal Contributors", email = "lbeezr@icloud.com" }]
 keywords = [
+    "python-static-site-generator",
     "static-site-generator",
     "ssg",
+    "documentation-site-generator",
+    "blog-generator",
     "documentation",
+    "knowledge-base",
     "markdown",
     "website",
     "free-threading",
@@ -77,8 +81,8 @@ all-sources = ["aiohttp>=3.9.0", "cachetools>=5.0.0"] # All remote sources
 bengal = "bengal.__main__:run"
 
 [project.urls]
-Homepage = "https://github.com/lbliii/bengal"
-Documentation = "https://github.com/lbliii/bengal"
+Homepage = "https://lbliii.github.io/bengal/"
+Documentation = "https://lbliii.github.io/bengal/"
 Repository = "https://github.com/lbliii/bengal"
 "Bug Tracker" = "https://github.com/lbliii/bengal/issues"
 
