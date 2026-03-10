@@ -8,8 +8,8 @@ cross-platform.
 
 Usage (dev_server.py / build_trigger.py):
 
-    mgr = BufferManager(base_dir=root / ".bengal" / "buffers")
-    mgr.setup()
+    # Use the standard output_dir as buffer A and .bengal/staging as B:
+    mgr = BufferManager.for_dev_server(output_dir, staging_dir)
 
     # Before each build:
     staging = mgr.prepare_staging()  # hardlink-seeds from active if populated
@@ -35,18 +35,22 @@ logger = get_logger(__name__)
 
 
 class BufferManager:
-    """Thread-safe double-buffer manager with in-process reference swap.
+    """Thread-safe double-buffer manager with in-process reference swap."""
 
-    Attributes:
-        base_dir: Parent directory containing both buffer directories.
-    """
-
-    def __init__(self, base_dir: Path) -> None:
-        self.base_dir = base_dir
-        self._dirs: tuple[Path, Path] = (base_dir / "a", base_dir / "b")
+    def __init__(self, dir_a: Path, dir_b: Path) -> None:
+        self._dirs: tuple[Path, Path] = (dir_a, dir_b)
         self._active_idx: int = 0
         self._lock = threading.Lock()
         self._generation: int = 0
+
+    @classmethod
+    def for_dev_server(cls, output_dir: Path, staging_dir: Path) -> BufferManager:
+        """Create a BufferManager where buffer A is the standard output_dir.
+
+        This avoids copying on startup — the initial build writes to
+        output_dir as usual, and the first rebuild writes to staging_dir.
+        """
+        return cls(dir_a=output_dir, dir_b=staging_dir)
 
     def setup(self) -> None:
         """Create buffer directories if they don't exist."""

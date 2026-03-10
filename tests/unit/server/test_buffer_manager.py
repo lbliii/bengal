@@ -29,15 +29,25 @@ class TestBufferManager:
     @pytest.fixture
     def mgr(self, tmp_path: Path) -> BufferManager:
         """Create a BufferManager with temporary directories."""
-        m = BufferManager(base_dir=tmp_path / "buffers")
+        m = BufferManager(dir_a=tmp_path / "a", dir_b=tmp_path / "b")
         m.setup()
         return m
 
     def test_setup_creates_directories(self, tmp_path: Path) -> None:
-        mgr = BufferManager(base_dir=tmp_path / "buffers")
+        mgr = BufferManager(dir_a=tmp_path / "a", dir_b=tmp_path / "b")
         mgr.setup()
-        assert (tmp_path / "buffers" / "a").is_dir()
-        assert (tmp_path / "buffers" / "b").is_dir()
+        assert (tmp_path / "a").is_dir()
+        assert (tmp_path / "b").is_dir()
+
+    def test_for_dev_server_factory(self, tmp_path: Path) -> None:
+        out = tmp_path / "public"
+        staging = tmp_path / ".bengal" / "staging"
+        mgr = BufferManager.for_dev_server(out, staging)
+        mgr.setup()
+        assert mgr.active_dir == out
+        assert mgr.staging_dir == staging
+        assert out.is_dir()
+        assert staging.is_dir()
 
     def test_initial_active_is_a(self, mgr: BufferManager) -> None:
         assert mgr.active_dir.name == "a"

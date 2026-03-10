@@ -75,6 +75,7 @@ from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
 from bengal.output import CLIOutput
 from bengal.server.backend import ServerBackend, create_pounce_backend
+from bengal.server.buffer_manager import BufferManager
 from bengal.server.build_executor import BuildExecutor, BuildRequest
 from bengal.server.build_state import build_state
 from bengal.server.build_trigger import BuildTrigger
@@ -164,6 +165,15 @@ class DevServer:
 
         # Mark site as running in dev mode to prevent timestamp churn in output files
         self.site.dev_mode = True
+
+        # Double-buffered output: the ASGI app serves from the active buffer
+        # while builds write to the staging buffer, then swap atomically.
+        staging_dir = self.site.root_path / ".bengal" / "staging"
+        self._buffer_manager = BufferManager.for_dev_server(
+            output_dir=self.site.output_dir,
+            staging_dir=staging_dir,
+        )
+        self._buffer_manager.setup()
 
     def start(self) -> None:
         """
@@ -772,6 +782,7 @@ class DevServer:
             host=self.host,
             port=actual_port,
             version_scope=self.version_scope,
+            buffer_manager=self._buffer_manager,
         )
 
         # Create ignore filter from config using class method
@@ -997,10 +1008,13 @@ class DevServer:
                 )
 
         self._request_callback_holder: list = [None]
+        # Pass the buffer manager's active_dir property as a callable so
+        # the ASGI app resolves the serving directory per-request, enabling
+        # atomic buffer swaps without re-creating the app.
         backend = create_pounce_backend(
             host=self.host,
             port=actual_port,
-            output_dir=output_dir,
+            output_dir=lambda: self._buffer_manager.active_dir,
             build_in_progress=build_state.get_build_in_progress,
             active_palette=build_state.get_active_palette,
             request_callback=lambda: self._request_callback_holder[0],

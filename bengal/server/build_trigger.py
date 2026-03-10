@@ -68,6 +68,7 @@ from bengal.orchestration.stats import (
 )
 from bengal.output import CLIOutput
 from bengal.protocols import SiteLike
+from bengal.server.buffer_manager import BufferManager
 from bengal.server.build_executor import BuildExecutor, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.build_state import build_state
@@ -147,6 +148,7 @@ class BuildTrigger:
         controller: ReloadController | None = None,
         notifier: ReloadNotifier | None = None,
         version_scope: str | None = None,
+        buffer_manager: BufferManager | None = None,
     ) -> None:
         """
         Initialize build trigger.
@@ -160,11 +162,14 @@ class BuildTrigger:
             notifier: ReloadNotifier for client notification (uses live reload if None)
             version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
+            buffer_manager: Optional BufferManager for double-buffered output.
+                When set, full builds write to staging and swap on completion.
         """
         self.site = site
         self.host = host
         self.port = port
         self.version_scope = version_scope
+        self._buffer_manager = buffer_manager
         self._executor = executor or BuildExecutor(max_workers=1)
         self._reload_controller = controller or default_reload_controller
         self._reload_notifier = notifier or LiveReloadNotifier()
@@ -387,11 +392,34 @@ class BuildTrigger:
             if self.version_scope:
                 self.site.config["_version_scope"] = self.version_scope
 
+            # Double-buffer: redirect output to staging directory so the ASGI
+            # app continues serving from the active buffer during the build.
+            original_output_dir = self.site.output_dir
+            if self._buffer_manager is not None:
+                staging = self._buffer_manager.prepare_staging()
+                self.site.output_dir = staging
+                logger.debug(
+                    "build_to_staging",
+                    staging=str(staging),
+                    active=str(self._buffer_manager.active_dir),
+                )
+
             # Execute warm build directly on the existing site
             build_start = time.time()
             try:
                 stats = self.site.build(options=build_opts)
                 build_duration = time.time() - build_start
+
+                # Double-buffer: swap staging to active now that the build
+                # wrote a complete, consistent snapshot.
+                if self._buffer_manager is not None:
+                    self._buffer_manager.swap()
+                    self.site.output_dir = self._buffer_manager.active_dir
+                    logger.debug(
+                        "buffer_swapped",
+                        active=str(self._buffer_manager.active_dir),
+                        generation=self._buffer_manager.generation,
+                    )
 
                 # Build succeeded - convert stats to result-like object for display
                 class WarmBuildResult:
@@ -425,6 +453,11 @@ class BuildTrigger:
                 self.seed_content_hash_cache(list(self.site.pages))
 
             except Exception as e:
+                # Double-buffer: restore output_dir on failure (no swap, keep
+                # serving the previous active buffer)
+                if self._buffer_manager is not None:
+                    self.site.output_dir = original_output_dir
+
                 # Build crashed - log error and reinitialize site for next build
                 build_duration = time.time() - build_start
                 error_msg = str(e)
