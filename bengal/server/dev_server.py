@@ -73,6 +73,7 @@ from urllib.request import Request, urlopen
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
+from bengal.output import CLIOutput
 from bengal.server.backend import ServerBackend, create_pounce_backend
 from bengal.server.build_executor import BuildExecutor, BuildRequest
 from bengal.server.build_state import build_state
@@ -262,9 +263,6 @@ class DevServer:
                 def _run_server() -> None:
                     try:
                         backend.start()
-                    except OSError as exc:
-                        server_error[0] = exc
-                        self._print_server_error(exc, actual_port)
                     except Exception as exc:
                         server_error[0] = exc
                         self._print_server_error(exc, actual_port)
@@ -613,6 +611,7 @@ class DevServer:
         Sets development-specific defaults:
         - Disables asset fingerprinting (stable URLs for hot reload)
         - Disables minification (faster rebuilds, easier debugging)
+        - Forces atomic writes (prevents torn reads during hot reload)
         - Clears baseurl (serves from root '/' not subdirectory)
 
         When baseurl is cleared, also clears the build cache to prevent
@@ -626,6 +625,16 @@ class DevServer:
         # Development defaults for faster iteration
         cfg["fingerprint_assets"] = False  # Stable CSS/JS filenames
         cfg.setdefault("minify_assets", False)  # Faster builds
+
+        # Force atomic writes so the browser never reads a half-written HTML file
+        # during hot reload. write_text() truncates before writing, creating a
+        # window where the file is empty — the browser loads it without <head>/<link>
+        # tags and renders with no CSS. Atomic writes (temp+rename) eliminate this.
+        build_settings = cfg.get("build")
+        if isinstance(build_settings, dict):
+            build_settings["fast_writes"] = False
+        else:
+            cfg["build"] = {"fast_writes": False}
         # Disable search index preloading in dev to avoid background index.json fetches
         cfg.setdefault("search_preload", "off")
         # Disable social cards in dev (OG images not needed, saves ~30s on large sites)
@@ -882,8 +891,6 @@ class DevServer:
             )
 
             self._print_stale_process_panel(stale_pid, pid_file, is_holding_port)
-
-            from bengal.output import CLIOutput
 
             # Try to import click for confirmation, fall back to input
             try:
@@ -1162,8 +1169,6 @@ class DevServer:
         # Request log header
         from datetime import datetime
 
-        from bengal.output import CLIOutput
-
         cli = CLIOutput()
 
         def _log_request(method: str, path: str, status: int, _duration_ms: float) -> None:
@@ -1225,8 +1230,6 @@ class DevServer:
                     )
             except Exception as exc:
                 logger.warning("browser_open_failed", error=str(exc))
-                from bengal.output import CLIOutput
-
                 CLIOutput().warning("Could not open browser")
 
         threading.Thread(target=open_browser, daemon=True).start()

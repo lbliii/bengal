@@ -72,6 +72,7 @@ from bengal.server.build_executor import BuildExecutor, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.build_state import build_state
 from bengal.server.live_reload import LiveReloadNotifier
+from bengal.server.live_reload.notification import send_building_payload
 from bengal.server.reload_controller import (
     ReloadController,
     ReloadDecision,
@@ -234,10 +235,9 @@ class BuildTrigger:
             if queued_changes:
                 # Stabilization delay: Give browsers time to fetch updated assets
                 # before the next build potentially replaces them again.
-                # This prevents CSS disappearing during rapid edit sequences.
-                # 100ms is enough for most browser requests to complete while
-                # keeping the feedback loop fast.
-                time.sleep(0.1)
+                # 300ms pairs with the client-side 200ms debounce to ensure
+                # the browser never reloads into a half-written output directory.
+                time.sleep(0.3)
 
                 logger.info(
                     "build_queued_changes_triggering",
@@ -255,8 +255,11 @@ class BuildTrigger:
         """
         Execute the build (internal, called with lock held).
         """
-        # Signal build in progress to request handler
+        # Signal build in progress to request handler and SSE clients.
+        # The "building" event tells the browser to cancel any pending reload
+        # so it doesn't fetch assets mid-write (FOUC during rapid edits).
         self._set_build_in_progress(True)
+        send_building_payload()
 
         try:
             changed_files = [str(p) for p in changed_paths]

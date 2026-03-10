@@ -1124,9 +1124,9 @@ class TestBuildTriggerQueuing:
         # Should have two builds
         assert mock_site.build.call_count == 2
 
-        # Stabilization delay should have been called (0.1 seconds)
+        # Stabilization delay should have been called (0.3 seconds)
         assert len(sleep_calls) >= 1
-        assert 0.1 in sleep_calls, f"Expected 0.1s delay, got calls: {sleep_calls}"
+        assert 0.3 in sleep_calls, f"Expected 0.3s delay, got calls: {sleep_calls}"
 
 
 class TestReloadDecisionFlow:

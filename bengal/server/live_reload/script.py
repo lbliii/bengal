@@ -3,104 +3,126 @@
 LIVE_RELOAD_SCRIPT = r"""
 <script>
 (function() {
-    // Bengal Live Reload
+    // Bengal Live Reload — with debounce to prevent FOUC during rapid rebuilds
     let backoffMs = 1000;
     const maxBackoffMs = 10000;
+    const DEBOUNCE_MS = 200;
+
+    var _timer = null;
+    var _pending = null;
+
+    function saveScroll() {
+        sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
+        sessionStorage.setItem('bengal_scroll_y', window.scrollY.toString());
+    }
+
+    function cacheBustReload() {
+        saveScroll();
+        var url = new URL(location.href);
+        url.searchParams.set('_bengal', Date.now().toString());
+        location.replace(url.toString());
+    }
+
+    function executeReload(action, changedPaths) {
+        if (action === 'reload' || action === 'reload-page') {
+            console.log(action === 'reload' ? '🔄 Bengal: Reloading page...' : '📄 Bengal: Reloading current page...');
+            cacheBustReload();
+        } else if (action === 'reload-css') {
+            console.log('🎨 Bengal: Reloading CSS...', changedPaths);
+            var links = document.querySelectorAll('link[rel="stylesheet"]');
+            var now = Date.now();
+            links.forEach(function(link) {
+                var href = link.getAttribute('href');
+                if (!href) return;
+                var url = new URL(href, window.location.origin);
+                if (changedPaths.length > 0) {
+                    var path = url.pathname.replace(/^\//, '');
+                    if (!changedPaths.includes(path)) return;
+                }
+                url.searchParams.set('v', now.toString());
+                var newLink = link.cloneNode();
+                newLink.href = url.toString();
+                newLink.onload = function() { link.remove(); };
+                link.parentNode.insertBefore(newLink, link.nextSibling);
+            });
+        }
+    }
+
+    function scheduleReload(action, changedPaths) {
+        if (_timer) clearTimeout(_timer);
+        _pending = { action: action, paths: changedPaths };
+        _timer = setTimeout(function() {
+            _timer = null;
+            if (_pending) {
+                executeReload(_pending.action, _pending.paths);
+                _pending = null;
+            }
+        }, DEBOUNCE_MS);
+    }
+
+    function cancelPending() {
+        if (_timer) { clearTimeout(_timer); _timer = null; }
+        _pending = null;
+    }
 
     function connect() {
-        const source = new EventSource('/__bengal_reload__');
-        // Ensure the connection is closed on page unload/navigation to free server threads quickly
-        const closeSource = () => { try { source.close(); } catch (e) {} };
+        var source = new EventSource('/__bengal_reload__');
+        var closeSource = function() { try { source.close(); } catch (e) {} };
         window.addEventListener('beforeunload', closeSource, { once: true });
         window.addEventListener('pagehide', closeSource, { once: true });
 
         source.onmessage = function(event) {
-            let payload = null;
+            var payload = null;
             try { payload = JSON.parse(event.data); } catch (e) {}
-            const action = payload && payload.action ? payload.action : event.data;
-            const changedPaths = (payload && payload.changedPaths) || [];
-            const reason = (payload && payload.reason) || '';
+            var action = payload && payload.action ? payload.action : event.data;
+            var changedPaths = (payload && payload.changedPaths) || [];
 
-            if (action === 'reload') {
-                console.log('🔄 Bengal: Reloading page...');
-                // Save scroll position before reload
-                sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
-                sessionStorage.setItem('bengal_scroll_y', window.scrollY.toString());
-                // Cache-bust: location.reload() can serve cached HTML despite Cache-Control
-                const url = new URL(location.href);
-                url.searchParams.set('_bengal', Date.now().toString());
-                location.replace(url.toString());
-            } else if (action === 'reload-css') {
-                console.log('🎨 Bengal: Reloading CSS...', reason || '', changedPaths);
-                const links = document.querySelectorAll('link[rel="stylesheet"]');
-                const now = Date.now();
-                links.forEach(link => {
-                    const href = link.getAttribute('href');
-                    if (!href) return;
-                    const url = new URL(href, window.location.origin);
-                    // If targeted list provided, only reload those
-                    if (changedPaths.length > 0) {
-                        const path = url.pathname.replace(/^\//, '');
-                        if (!changedPaths.includes(path)) return;
-                    }
-                    // Bust cache with a version param
-                    url.searchParams.set('v', now.toString());
-                    // Replace the link to trigger reload
-                    const newLink = link.cloneNode();
-                    newLink.href = url.toString();
-                    newLink.onload = () => {
-                        // Remove old link after new CSS loads
-                        link.remove();
-                    };
-                    link.parentNode.insertBefore(newLink, link.nextSibling);
-                });
-            } else if (action === 'reload-page') {
-                console.log('📄 Bengal: Reloading current page...');
-                // Save scroll position before reload
-                sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
-                sessionStorage.setItem('bengal_scroll_y', window.scrollY.toString());
-                // Cache-bust: location.reload() can serve cached HTML despite Cache-Control
-                const url = new URL(location.href);
-                url.searchParams.set('_bengal', Date.now().toString());
-                location.replace(url.toString());
-            } else if (action === 'fragment') {
-                const selector = payload.selector || '#main-content';
-                const html = payload.html;
-                const permalink = payload.permalink || '';
-                const norm = function(s) {
+            if (action === 'building') {
+                cancelPending();
+                return;
+            }
+
+            if (action === 'fragment') {
+                var selector = payload.selector || '#main-content';
+                var html = payload.html;
+                var permalink = payload.permalink || '';
+                var norm = function(s) {
                     return s === '/' ? '/' : (s.replace(/\/$/, '') || '/');
                 };
-                const match = !permalink || norm(location.pathname) === norm(permalink);
+                var match = !permalink || norm(location.pathname) === norm(permalink);
                 if (html && match) {
-                    const target = document.querySelector(selector);
+                    var target = document.querySelector(selector);
                     if (target) {
                         target.innerHTML = html;
                         console.log('📄 Bengal: Content updated');
                     } else {
-                        sessionStorage.setItem('bengal_scroll_x', window.scrollX.toString());
-                        sessionStorage.setItem('bengal_scroll_y', window.scrollY.toString());
-                        const url = new URL(location.href);
-                        url.searchParams.set('_bengal', Date.now().toString());
-                        location.replace(url.toString());
+                        cacheBustReload();
                     }
                 }
+                return;
             }
+
+            scheduleReload(action, changedPaths);
         };
 
-        // Restore scroll position after page load
         window.addEventListener('load', function() {
-            const scrollX = sessionStorage.getItem('bengal_scroll_x');
-            const scrollY = sessionStorage.getItem('bengal_scroll_y');
+            var scrollX = sessionStorage.getItem('bengal_scroll_x');
+            var scrollY = sessionStorage.getItem('bengal_scroll_y');
             if (scrollX !== null && scrollY !== null) {
                 window.scrollTo(parseInt(scrollX, 10), parseInt(scrollY, 10));
-                // Clear stored position after restoring
                 sessionStorage.removeItem('bengal_scroll_x');
                 sessionStorage.removeItem('bengal_scroll_y');
+            }
+            // Strip the cache-bust param so it doesn't linger in the address bar
+            var clean = new URL(location.href);
+            if (clean.searchParams.has('_bengal')) {
+                clean.searchParams.delete('_bengal');
+                history.replaceState(null, '', clean.toString());
             }
         });
 
         source.onopen = function() {
-            backoffMs = 1000; // reset on successful connection
+            backoffMs = 1000;
             console.log('🚀 Bengal: Live reload connected');
         };
 
