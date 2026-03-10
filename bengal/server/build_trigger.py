@@ -315,8 +315,9 @@ class BuildTrigger:
 
                 handler = ReactiveContentHandler(self.site, self.site.output_dir)
                 try:
-                    output_path = handler.handle_content_change(path)
-                    if output_path is not None:
+                    result = handler.handle_content_change(path)
+                    if result is not None:
+                        output_path = result.output_path
                         # Use path relative to output_dir (matches full build)
                         rel_path = output_path
                         if output_path.is_absolute() and self.site.output_dir:
@@ -330,33 +331,19 @@ class BuildTrigger:
                             ),
                         )
 
-                        # Fragment path: extract #main-content, send DOM swap
-                        full_path = (
-                            output_path
-                            if output_path.is_absolute()
-                            else self.site.output_dir / output_path
-                        )
+                        # Fragment path: extract #main-content from in-memory
+                        # rendered HTML (zero-disk — no read-back from disk)
                         dev_config = config_dict.get("dev", {}) or {}
                         content_selector = dev_config.get("content_selector", "#main-content")
-                        try:
-                            html = full_path.read_text(encoding="utf-8")
-                            from bengal.server.live_reload.fragment import extract_main_content
-                            from bengal.server.live_reload.notification import send_fragment_payload
-                            from bengal.utils.paths.url_strategy import URLStrategy
+                        from bengal.server.live_reload.fragment import extract_main_content
+                        from bengal.server.live_reload.notification import send_fragment_payload
+                        from bengal.utils.paths.url_strategy import URLStrategy
 
-                            fragment = extract_main_content(html, content_selector)
-                            if fragment:
-                                permalink = URLStrategy.url_from_output_path(output_path, self.site)
-                                send_fragment_payload(content_selector, fragment, permalink)
-                            else:
-                                self._handle_reload(
-                                    BuildReloadInfo(
-                                        changed_files=tuple(changed_files),
-                                        changed_outputs=changed_outputs,
-                                        reload_hint=None,
-                                    )
-                                )
-                        except OSError, UnicodeDecodeError:
+                        fragment = extract_main_content(result.rendered_html, content_selector)
+                        if fragment:
+                            permalink = URLStrategy.url_from_output_path(output_path, self.site)
+                            send_fragment_payload(content_selector, fragment, permalink)
+                        else:
                             self._handle_reload(
                                 BuildReloadInfo(
                                     changed_files=tuple(changed_files),
