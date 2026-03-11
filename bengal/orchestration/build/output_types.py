@@ -86,7 +86,7 @@ OUTPUT_PATTERNS: dict[str, OutputType] = {
     "asset-manifest.json": OutputType.ASSET,
     # Static files (passthrough)
     "favicon.ico": OutputType.STATIC,
-    "robots.txt": OutputType.STATIC,
+    "robots.txt": OutputType.AGGREGATE_FEED,
     ".nojekyll": OutputType.STATIC,
     "CNAME": OutputType.STATIC,
 }

@@ -351,6 +351,26 @@ DEFAULTS: dict[str, Any] = {
         },
     },
     # -------------------------------------------------------------------------
+    # Content Signals (AI/Crawler Content Policy)
+    # -------------------------------------------------------------------------
+    # Declarative control over how automated systems use site content.
+    # Generates robots.txt with Content-Signal directives per
+    # https://contentsignals.org/ and enforces signals at the output format
+    # level (denied formats are not written to disk).
+    #
+    # These defaults propagate into the visibility system — pages and sections
+    # can override via frontmatter `visibility.ai_train` / `visibility.ai_input`.
+    "content_signals": {
+        "enabled": True,
+        "search": True,
+        "ai_input": True,
+        "ai_train": False,
+        "include_sitemap": True,
+        "user_agents": {
+            "*": None,
+        },
+    },
+    # -------------------------------------------------------------------------
     # Markdown
     # -------------------------------------------------------------------------
     "markdown": {

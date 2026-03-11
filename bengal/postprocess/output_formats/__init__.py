@@ -205,9 +205,10 @@ class OutputFormatsGenerator:
         Generate all enabled output formats.
 
         Checks configuration to determine which formats to generate,
-        filters pages based on exclusion rules, then generates:
-        1. Per-page formats (JSON, LLM text)
-        2. Site-wide formats (index.json, llm-full.txt)
+        filters pages based on exclusion rules and content signals,
+        then generates:
+        1. Per-page formats (JSON, LLM text) — only for ai_input-permitted pages
+        2. Site-wide formats (index.json, llm-full.txt) — respecting search/ai_train
 
         All file writes are atomic to prevent corruption during builds.
         """
@@ -227,6 +228,22 @@ class OutputFormatsGenerator:
         # Filter pages based on exclusions
         pages = self._filter_pages()
 
+        # Content-signal-aware subsets: enforce signals at the output level
+        ai_input_pages = [p for p in pages if getattr(p, "in_ai_input", True)]
+        ai_train_pages = [p for p in pages if getattr(p, "in_ai_train", True)]
+        search_pages = [p for p in pages if getattr(p, "in_search", True)]
+
+        excluded_ai_input = len(pages) - len(ai_input_pages)
+        excluded_ai_train = len(pages) - len(ai_train_pages)
+        excluded_search = len(pages) - len(search_pages)
+        if excluded_ai_input or excluded_ai_train or excluded_search:
+            logger.info(
+                "content_signals_enforcement",
+                excluded_ai_input=excluded_ai_input,
+                excluded_ai_train=excluded_ai_train,
+                excluded_search=excluded_search,
+            )
+
         # Track what we generated
         generated = []
         options = self.config.get("options", {})
@@ -242,7 +259,7 @@ class OutputFormatsGenerator:
                 total_pages=len(pages),
             )
 
-        # Per-page outputs
+        # Per-page outputs — use ai_input_pages (machine-readable for AI)
         if "json" in per_page:
             # Get config options for HTML/text inclusion
             include_html = options.get("include_html_content", False)
@@ -258,19 +275,22 @@ class OutputFormatsGenerator:
             # See: plan/drafted/rfc-unified-page-data-accumulation.md
             accumulated_json = None
             if accumulated_data:
+                # Filter accumulated data to ai_input-permitted pages
+                ai_input_urls = {p.href for p in ai_input_pages}
                 accumulated_json = [
                     (data.json_output_path, data.full_json_data)
                     for data in accumulated_data
                     if data.full_json_data is not None
+                    and data.full_json_data.get("url") in ai_input_urls
                 ]
-            count = json_gen.generate(pages, accumulated_json=accumulated_json)
+            count = json_gen.generate(ai_input_pages, accumulated_json=accumulated_json)
             generated.append(f"JSON ({count} files)")
             logger.debug("generated_page_json", file_count=count)
 
         if "llm_txt" in per_page:
             separator_width = options.get("llm_separator_width", 80)
             txt_gen = PageTxtGenerator(self.site, separator_width=separator_width)
-            count = txt_gen.generate(pages)
+            count = txt_gen.generate(ai_input_pages)
             generated.append(f"LLM text ({count} files)")
             logger.debug("generated_page_txt", file_count=count)
 
@@ -288,7 +308,7 @@ class OutputFormatsGenerator:
             # OPTIMIZATION: Pass accumulated page data for hybrid mode
             # See: plan/drafted/rfc-unified-page-data-accumulation.md
             index_result = index_gen.generate(
-                pages,
+                search_pages,
                 accumulated_data=accumulated_data,
                 build_context=self.build_context,
             )
@@ -328,7 +348,7 @@ class OutputFormatsGenerator:
         if "llm_full" in site_wide:
             separator_width = options.get("llm_separator_width", 80)
             llm_gen = SiteLlmTxtGenerator(self.site, separator_width=separator_width)
-            llm_gen.generate(pages)
+            llm_gen.generate(ai_train_pages)
             generated.append("llm-full.txt")
             logger.debug("generated_site_llm_full")
 

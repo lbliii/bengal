@@ -125,6 +125,12 @@ HELPER: Render a menu item (desktop/mobile)
     <meta name="robots" content="{{ page.robots_meta }}">
     {% end %}
 
+    {# Content Signals — per-page AI directives (only when restricted) #}
+    {% if not page.in_ai_train or not page.in_ai_input %}
+    <meta name="content-signal:ai-train" content="{{ 'yes' if page.in_ai_train else 'no' }}">
+    <meta name="content-signal:ai-input" content="{{ 'yes' if page.in_ai_input else 'no' }}">
+    {% end %}
+
     {# Open Graph / Facebook #}
     <meta property="og:type" content="article">
     <meta property="og:title" content="{{ page_title | trim }}">

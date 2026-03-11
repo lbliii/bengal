@@ -1,7 +1,7 @@
 ---
 title: SEO & Discovery
 nav_title: SEO
-description: Use Bengal's built-in metadata, sitemap, feeds, social cards, and output formats to make sites easier to discover
+description: Use Bengal's built-in metadata, sitemap, feeds, social cards, content signals, and output formats to make sites easier to discover
 weight: 35
 icon: globe
 tags:
@@ -11,6 +11,7 @@ tags:
 - rss
 - social cards
 - search
+- content signals
 keywords:
 - python static site generator seo
 - sitemap
@@ -18,6 +19,9 @@ keywords:
 - open graph
 - social cards
 - search index
+- content signals
+- ai training
+- robots.txt
 ---
 
 # SEO & Discovery
@@ -50,11 +54,13 @@ Bengal's post-processing pipeline includes:
 
 - XML sitemap generation for search engines
 - RSS feeds for blog-style content
-- Generated special pages such as `404` and `robots.txt`
+- Generated special pages such as `404`
+- Generated `robots.txt` with [Content Signals](https://contentsignals.org/) directives
 - Version-aware canonical URLs for versioned documentation
+- `.well-known/content-signals.json` machine-readable policy manifest
 
-These features help avoid duplicate-content problems and give search engines a clean map
-of your site.
+These features help avoid duplicate-content problems, give search engines a clean map
+of your site, and let you control how AI systems use your content.
 
 ### Social Sharing
 
@@ -96,6 +102,89 @@ See [Output Formats](./output-formats.md) for configuration details.
 These outputs help with search, internal tooling, and AI consumption without adding a
 backend.
 
+### Content Signals
+
+Bengal generates a `robots.txt` with [Content Signals](https://contentsignals.org/)
+directives that declare how automated systems may use your content. Three signals
+are supported:
+
+| Signal     | Default | Meaning                                    |
+| ---------- | ------- | ------------------------------------------ |
+| `search`   | `true`  | Allow search engine indexing                |
+| `ai_input` | `true`  | Allow AI input (RAG, grounding, AI answers) |
+| `ai_train` | `false` | Allow AI model training and fine-tuning     |
+
+The default posture is **privacy-first**: content is discoverable and citable by AI
+systems, but not available for training. Users opt in to `ai_train`.
+
+#### Site-Wide Configuration
+
+Set defaults in `bengal.toml`:
+
+```toml
+[content_signals]
+search = true
+ai_input = true
+ai_train = false  # opt-in for training
+
+# Target specific crawlers
+[content_signals.user_agents.GPTBot]
+ai_train = false
+ai_input = true
+```
+
+#### Per-Page and Per-Section Control
+
+Override signals using the `visibility` frontmatter. These values cascade through
+sections via `_index.md`:
+
+```yaml
+# Per page
+---
+visibility:
+  ai_train: false
+  ai_input: true
+---
+
+# Section cascade (docs/_index.md) — all children inherit
+---
+cascade:
+  visibility:
+    ai_train: true
+---
+```
+
+#### Disabling Content Signals
+
+To skip `robots.txt` and manifest generation entirely:
+
+```toml
+[content_signals]
+enabled = false
+```
+
+#### Enforcement
+
+Content Signals are not just advisory. Bengal **enforces** them at the output format
+level:
+
+- Pages with `ai_input: false` do not get `page.json` or `page.txt` generated
+- Pages with `ai_train: false` are excluded from `llm-full.txt`
+- Pages with `search: false` are excluded from `index.json`
+- Draft pages are excluded from all machine-readable outputs regardless of visibility
+
+The format simply does not exist on disk for denied or draft pages.
+
+#### Generated Files
+
+| File                                 | Purpose                                                              |
+| ------------------------------------ | -------------------------------------------------------------------- |
+| `robots.txt`                         | Content-Signal directives per the [spec](https://contentsignals.org/) |
+| `.well-known/content-signals.json`   | Machine-readable policy manifest for AI discovery                    |
+
+The meta tags `content-signal:ai-train` and `content-signal:ai-input` are also
+emitted in the HTML `<head>` when a page restricts any signal.
+
 ## Practical Strategy
 
 If you want Bengal sites to rank and convert better, focus on this order:
@@ -106,6 +195,7 @@ If you want Bengal sites to rank and convert better, focus on this order:
 4. Configure `baseurl` so canonical URLs and metadata resolve to the right domain.
 5. Enable social cards for content people are likely to share publicly.
 6. Publish feeds, sitemap, and search indexes as part of normal builds.
+7. Review your content signals policy — decide which sections allow AI training.
 
 ## Recommended Page Types
 
@@ -131,6 +221,8 @@ keywords:
   - documentation site generator
   - bengal
 canonical: https://example.com/docs/build-a-documentation-site/
+visibility:
+  ai_train: true  # allow training on this page
 ---
 ```
 

@@ -570,6 +570,20 @@ class PageMetadataMixin:
         """
         return bool(self.metadata.get("hidden", False))
 
+    def _get_content_signal_defaults(self) -> dict[str, Any]:
+        """Get site-level content signal defaults from config."""
+        site = getattr(self, "_site", None)
+        if site is None:
+            return {}
+        config = getattr(site, "config", None)
+        if config is None:
+            return {}
+        try:
+            cs = config.get("content_signals", {})
+            return cs if isinstance(cs, dict) else {}
+        except Exception:
+            return {}
+
     @property
     def visibility(self) -> dict[str, Any]:
         """
@@ -583,6 +597,8 @@ class PageMetadataMixin:
         - render: When to render - "always", "local", "never" (default: "always")
         - search: Include in search index (default: True)
         - rss: Include in RSS feeds (default: True)
+        - ai_train: Allow AI training on this content (default: from content_signals config)
+        - ai_input: Allow AI input/RAG on this content (default: from content_signals config)
 
         If `hidden: true` is set, it expands to restrictive defaults.
 
@@ -596,7 +612,7 @@ class PageMetadataMixin:
             visibility:
                 menu: false
                 listings: true
-                sitemap: true
+                ai_train: false
             ---
             ```
         """
@@ -610,18 +626,23 @@ class PageMetadataMixin:
                 "render": "always",
                 "search": False,
                 "rss": False,
+                "ai_train": False,
+                "ai_input": False,
             }
 
         # Otherwise, get visibility object with permissive defaults
         vis = self.metadata.get("visibility", {})
+        cs = self._get_content_signal_defaults()
         return {
             "menu": vis.get("menu", True),
             "listings": vis.get("listings", True),
             "sitemap": vis.get("sitemap", True),
             "robots": vis.get("robots", "index, follow"),
             "render": vis.get("render", "always"),
-            "search": vis.get("search", True),
+            "search": vis.get("search", cs.get("search", True)),
             "rss": vis.get("rss", True),
+            "ai_train": vis.get("ai_train", cs.get("ai_train", False)),
+            "ai_input": vis.get("ai_input", cs.get("ai_input", True)),
         }
 
     @property
@@ -671,6 +692,32 @@ class PageMetadataMixin:
             True if page should appear in RSS feeds
         """
         return self.visibility["rss"] and not self.draft
+
+    @property
+    def in_ai_train(self) -> bool:
+        """
+        Check if page content may be used for AI training.
+
+        Controlled by visibility.ai_train (default from content_signals config).
+        Excludes drafts.
+
+        Returns:
+            True if page permits AI training use
+        """
+        return self.visibility["ai_train"] and not self.draft
+
+    @property
+    def in_ai_input(self) -> bool:
+        """
+        Check if page content may be used for AI input (RAG, grounding).
+
+        Controlled by visibility.ai_input (default from content_signals config).
+        Excludes drafts.
+
+        Returns:
+            True if page permits AI input use
+        """
+        return self.visibility["ai_input"] and not self.draft
 
     @property
     def robots_meta(self) -> str:
