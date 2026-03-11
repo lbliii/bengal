@@ -92,15 +92,55 @@ leads to better content structure and clearer internal linking.
 
 Bengal can generate machine-friendly output formats such as:
 
-- Per-page `index.json`
+- Per-page `index.json` (with optional heading-level chunks for RAG)
 - Site-wide `index.json`
 - `search-index.json`
-- `llm-full.txt`
+- `llm-full.txt` — full plain-text corpus of all pages
+- `llms.txt` — curated site overview per the [llms.txt spec](https://llmstxt.org/)
+- `changelog.json` — per-build diff of added, modified, and removed pages
+- `agent.json` — hierarchical site structure for agent discovery
 
 See [Output Formats](./output-formats.md) for configuration details.
 
+`llms.txt` is a short Markdown table of contents that tells AI agents what the site
+is and where to find things. It is auto-generated from the site's section hierarchy
+and page descriptions. Unlike `llm-full.txt` (a full content dump), `llms.txt` is
+a lightweight navigation aid — typically under 100 lines.
+
+Per-page JSON includes structured navigation, freshness data, and optional heading-level chunks for AI agents:
+
+```json
+{
+  "url": "/docs/getting-started/installation/",
+  "title": "Installation",
+  "navigation": {
+    "parent": "/docs/getting-started/",
+    "prev": "/docs/getting-started/quickstart/",
+    "next": "/docs/getting-started/configuration/",
+    "related": ["/docs/building/deployment/"]
+  },
+  "last_modified": "2026-03-10T14:30:00",
+  "content_hash": "a1b2c3...",
+  "chunks": [
+    {"anchor": "prerequisites", "title": "Prerequisites", "level": 2, "content": "...", "content_hash": "..."},
+    {"anchor": "steps", "title": "Steps", "level": 2, "content": "...", "content_hash": "..."}
+  ]
+}
+```
+
+- `navigation` lets agents traverse docs without parsing HTML nav elements
+- `last_modified` comes from frontmatter (`lastmod`, `last_modified`, `updated`) or file mtime
+- `content_hash` is a SHA-256 of the plain text, so RAG pipelines know when to re-index
+- `chunks` (when enabled) splits content by headings for finer-grained RAG retrieval
+
 These outputs help with search, internal tooling, and AI consumption without adding a
 backend.
+
+#### Connect to IDE (Cursor MCP)
+
+Bengal can show a "Connect to IDE" button that opens Cursor and adds your docs as an
+MCP server via a one-click install. Requires a hosted Streamable HTTP MCP server —
+Bengal generates the button; you provide the server. See [Connect to IDE](./connect-to-ide.md) for setup.
 
 ### Content Signals
 
@@ -181,6 +221,9 @@ The format simply does not exist on disk for denied or draft pages.
 | ------------------------------------ | -------------------------------------------------------------------- |
 | `robots.txt`                         | Content-Signal directives per the [spec](https://contentsignals.org/) |
 | `.well-known/content-signals.json`   | Machine-readable policy manifest for AI discovery                    |
+| `llms.txt`                           | Curated site overview for AI agents per [llmstxt.org](https://llmstxt.org/) |
+| `changelog.json`                     | Per-build diff of added, modified, removed pages (for incremental indexing) |
+| `agent.json`                         | Hierarchical site structure and available formats (for agent discovery) |
 
 The meta tags `content-signal:ai-train` and `content-signal:ai-input` are also
 emitted in the HTML `<head>` when a page restricts any signal.

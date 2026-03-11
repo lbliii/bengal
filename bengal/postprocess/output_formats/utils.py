@@ -55,6 +55,7 @@ from __future__ import annotations
 
 import concurrent.futures
 import hashlib
+import re
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, TypeVar
@@ -359,6 +360,92 @@ def parallel_write_files[T](
         raise
 
     return count
+
+
+def extract_heading_chunks(
+    html_content: str,
+    toc_items: list[dict[str, str | int]],
+    page_url: str,
+) -> list[dict[str, str | int]]:
+    """
+    Split HTML content by heading boundaries into chunks with anchors.
+
+    Uses toc_items (id, title, level) to split at <h[2-6] id="..."> boundaries,
+    strips HTML per segment, and returns chunks with anchor URLs for citation.
+
+    Args:
+        html_content: Rendered HTML with heading tags
+        toc_items: List of {id, title, level} from page.toc_items
+        page_url: Base URL for anchor links (e.g. /docs/install/)
+
+    Returns:
+        List of chunks with anchor, title, level, content, content_hash
+
+    Example:
+        >>> chunks = extract_heading_chunks(html, toc_items, "/docs/install/")
+        >>> chunks[0]["anchor"]
+        'installation'
+        >>> chunks[0]["content_hash"]
+        'f3a1...'
+    """
+    if not html_content:
+        return []
+
+    chunks: list[dict[str, str | int]] = []
+    # Build regex to split at h2-h6 with id attribute
+    # Pattern: <h[2-6][^>]*id="anchor"[^>]*> or <h[2-6] id="anchor">
+    heading_pattern = re.compile(
+        r'<h([2-6])\s[^>]*id="([^"]+)"[^>]*>',
+        re.IGNORECASE,
+    )
+
+    # Find all heading positions (level, id, start_pos)
+    matches = list(heading_pattern.finditer(html_content))
+    if not matches:
+        # No headings with ids - treat whole content as one chunk
+        plain = strip_html(html_content)
+        if plain.strip():
+            content_hash = hashlib.sha256(plain.encode("utf-8")).hexdigest()
+            chunks.append(
+                {
+                    "anchor": "",
+                    "title": "",
+                    "level": 1,
+                    "content": plain.strip(),
+                    "content_hash": content_hash,
+                }
+            )
+        return chunks
+
+    # Map toc_items by id for title/level lookup
+    toc_by_id: dict[str, dict[str, str | int]] = {
+        str(item.get("id", "")): item for item in toc_items if item.get("id")
+    }
+
+    for i, match in enumerate(matches):
+        level_num = int(match.group(1))
+        anchor_id = match.group(2)
+        start = match.end()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(html_content)
+        segment = html_content[start:end]
+        plain = strip_html(segment).strip()
+
+        toc_item = toc_by_id.get(anchor_id, {})
+        title = str(toc_item.get("title", ""))
+        level = int(toc_item.get("level", level_num))
+
+        content_hash = hashlib.sha256(plain.encode("utf-8")).hexdigest()
+        chunks.append(
+            {
+                "anchor": anchor_id,
+                "title": title,
+                "level": level,
+                "content": plain,
+                "content_hash": content_hash,
+            }
+        )
+
+    return chunks
 
 
 def write_if_content_changed(

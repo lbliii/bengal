@@ -11,13 +11,14 @@ Structure:
 - txt_generator.py: Per-page LLM text files
 - index_generator.py: Site-wide index.json
 - llm_generator.py: Site-wide llm-full.txt
+- llms_txt_generator.py: Site-wide llms.txt (curated overview per llmstxt.org)
 - utils.py: Shared utilities
 
 Configuration (bengal.toml):
 [output_formats]
     enabled = true
     per_page = ["json", "llm_txt"]
-    site_wide = ["index_json", "llm_full"]
+    site_wide = ["index_json", "llm_full", "llms_txt"]
 
 """
 
@@ -25,10 +26,15 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from bengal.postprocess.output_formats.agent_manifest_generator import (
+    AgentManifestGenerator,
+)
 from bengal.postprocess.output_formats.base import BaseOutputGenerator
+from bengal.postprocess.output_formats.changelog_generator import ChangelogGenerator
 from bengal.postprocess.output_formats.index_generator import SiteIndexGenerator
 from bengal.postprocess.output_formats.json_generator import PageJSONGenerator
 from bengal.postprocess.output_formats.llm_generator import SiteLlmTxtGenerator
+from bengal.postprocess.output_formats.llms_txt_generator import SiteLlmsTxtGenerator
 from bengal.postprocess.output_formats.lunr_index_generator import LunrIndexGenerator
 from bengal.postprocess.output_formats.txt_generator import PageTxtGenerator
 from bengal.postprocess.utils import get_section_name
@@ -48,6 +54,7 @@ __all__ = [
     "PageTxtGenerator",
     "SiteIndexGenerator",
     "SiteLlmTxtGenerator",
+    "SiteLlmsTxtGenerator",
 ]
 
 
@@ -187,10 +194,17 @@ class OutputFormatsGenerator:
         return {
             "enabled": True,
             "per_page": ["json", "llm_txt"],  # JSON + LLM text by default
-            "site_wide": ["index_json", "llm_full"],  # Search index + full LLM text
+            "site_wide": [
+                "index_json",
+                "llm_full",
+                "llms_txt",
+                "changelog",
+                "agent_manifest",
+            ],  # Search index + LLM texts
             "options": {
                 "include_html_content": False,  # HTML file already exists, no need to duplicate
                 "include_plain_text": True,
+                "include_chunks": True,
                 "excerpt_length": 200,
                 "exclude_sections": [],
                 "exclude_patterns": ["404.html", "search.html"],
@@ -264,11 +278,13 @@ class OutputFormatsGenerator:
             # Get config options for HTML/text inclusion
             include_html = options.get("include_html_content", False)
             include_text = options.get("include_plain_text", True)
+            include_chunks = options.get("include_chunks", True)
             json_gen = PageJSONGenerator(
                 self.site,
                 graph_data=self.graph_data,
                 include_html=include_html,
                 include_text=include_text,
+                include_chunks=include_chunks,
             )
             # OPTIMIZATION: Use accumulated page data if available
             # Extract JSON-specific data from unified accumulator
@@ -351,6 +367,24 @@ class OutputFormatsGenerator:
             llm_gen.generate(ai_train_pages)
             generated.append("llm-full.txt")
             logger.debug("generated_site_llm_full")
+
+        if "llms_txt" in site_wide:
+            llms_gen = SiteLlmsTxtGenerator(self.site)
+            llms_gen.generate(ai_input_pages)
+            generated.append("llms.txt")
+            logger.debug("generated_site_llms_txt")
+
+        if "changelog" in site_wide:
+            changelog_gen = ChangelogGenerator(self.site)
+            changelog_gen.generate(ai_input_pages)
+            generated.append("changelog.json")
+            logger.debug("generated_changelog_json")
+
+        if "agent_manifest" in site_wide:
+            agent_gen = AgentManifestGenerator(self.site)
+            agent_gen.generate(ai_input_pages)
+            generated.append("agent.json")
+            logger.debug("generated_agent_manifest")
 
         if generated:
             logger.info("output_formats_complete", formats=generated)

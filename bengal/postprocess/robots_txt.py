@@ -319,6 +319,12 @@ class RobotsTxtGenerator:
             formats["search_index"] = "/index.json"
         if "llm_full" in site_wide:
             formats["llm_corpus"] = "/llm-full.txt"
+        if "llms_txt" in site_wide:
+            formats["llms_overview"] = "/llms.txt"
+        if "changelog" in site_wide:
+            formats["changelog"] = "/changelog.json"
+        if "agent_manifest" in site_wide:
+            formats["agent_manifest"] = "/agent.json"
         if config.get("include_sitemap", True):
             formats["sitemap"] = "/sitemap.xml"
         if self.site.config.get("generate_rss", True):

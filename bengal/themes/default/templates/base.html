@@ -299,6 +299,8 @@ HELPER: Render a menu item (desktop/mobile)
 
     {% block extra_head %}{% end %}
     {% include 'partials/meta-generator.html' %}
+    {% include 'partials/article-jsonld.html' %}
+    {% include 'partials/product-jsonld.html' %}
 
     {% if config.expose_metadata_json %}
     <script id="bengal-bootstrap" type="application/json">{{ bengal | tojson }}</script>

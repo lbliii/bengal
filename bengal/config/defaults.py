@@ -340,15 +340,33 @@ DEFAULTS: dict[str, Any] = {
     "output_formats": {
         "enabled": True,
         "per_page": ["json"],
-        "site_wide": ["index_json"],
+        "site_wide": ["index_json", "llms_txt", "changelog", "agent_manifest"],
         "options": {
             "excerpt_length": 200,
             "json_indent": None,
             "llm_separator_width": 80,
             "include_full_content_in_index": False,
+            "include_chunks": True,
             "exclude_sections": [],
             "exclude_patterns": ["404.html", "search.html"],
         },
+    },
+    # -------------------------------------------------------------------------
+    # Structured Data (Schema.org JSON-LD)
+    # -------------------------------------------------------------------------
+    "structured_data": {
+        "article": True,  # TechArticle for docs, BlogPosting for posts
+    },
+    # -------------------------------------------------------------------------
+    # Connect to IDE (Cursor MCP one-click install)
+    # -------------------------------------------------------------------------
+    # When enabled, shows a "Connect to IDE" button that opens Cursor and
+    # adds an MCP server via cursor:// deeplink. Requires a hosted Streamable
+    # HTTP MCP server at mcp_url (e.g. https://docs.example.com/mcp).
+    "connect_to_ide": {
+        "enabled": False,
+        "mcp_url": "",  # Full URL to MCP endpoint (e.g. https://docs.example.com/mcp)
+        "server_name": "Docs",  # Name shown in Cursor when installing
     },
     # -------------------------------------------------------------------------
     # Content Signals (AI/Crawler Content Policy)

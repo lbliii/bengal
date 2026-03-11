@@ -1,0 +1,66 @@
+{#-
+Article JSON-LD Structured Data Component
+
+Generates schema.org TechArticle (docs) or BlogPosting (posts) for SEO and AI discovery.
+Renders when structured_data.article is enabled (default: true) and page is doc or post.
+
+Uses page: title, description, date, section, word_count, toc_items, author
+Uses site: baseurl, title
+
+Usage in base.html head:
+  {% include "partials/article-jsonld.html" %}
+-#}
+
+{%- set article_enabled = (config.structured_data ?? {}).article ?? true %}
+{%- set is_doc = page.type == 'doc' or page.kind == 'doc' %}
+{%- set is_post = page.type == 'post' or page.kind == 'post' %}
+{%- set _toc = page.toc_items ?? toc_items ?? [] %}
+{%- if article_enabled and (is_doc or is_post) %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": {{ "TechArticle" if is_doc else "BlogPosting" | tojson }},
+  "headline": {{ page.title | tojson }},
+  "description": {{ (page.description ?? page.summary ?? '') | tojson }},
+  {%- if page.date %}
+  "datePublished": {{ page.date.isoformat() if page.date is defined and hasattr(page.date, 'isoformat') else page.date | tojson }},
+  {% end %}
+  {%- set last_mod = page.metadata.get('lastmod') ?? page.metadata.get('last_modified') ?? page.metadata.get('updated') %}
+  {%- if last_mod %}
+  "dateModified": {{ (last_mod.isoformat() if hasattr(last_mod, 'isoformat') else last_mod) | tojson }},
+  {% end %}
+  {%- if page.author ?? site.author %}
+  "author": {
+    "@type": "Person",
+    "name": {{ (page.author ?? site.author ?? '') | tojson }}
+  },
+  {% end %}
+  {%- set wc = page.word_count ?? 0 %}
+  "wordCount": {{ wc }}{{ "," if section or (site.baseurl and page.href) or site.title or (_toc | length > 0) else "" }}
+  {%- if section %}
+  "articleSection": {{ (section.title ?? section.name ?? '') | tojson }}{{ "," if (site.baseurl and page.href) or site.title or (_toc | length > 0) else "" }}
+  {% end %}
+  {%- if site.baseurl and page.href %}
+  "url": {{ (site.baseurl ~ page.href) | tojson }}{{ "," if (site.title or _toc | length > 0) else "" }}
+  {% end %}
+  {%- if site.title %}
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": {{ site.title | tojson }}{% if site.baseurl %},
+    "url": {{ site.baseurl | tojson }}{% end %}
+  }{{ "," if (_toc | length > 0) else "" }}
+  {% end %}
+  {%- if _toc | length > 0 %}
+  "hasPart": [
+    {%- for item in _toc %}
+    {
+      "@type": "WebPageElement",
+      "name": {{ item.title | tojson }},
+      "url": {{ ((site.baseurl ?? '') ~ page.href ~ '#' ~ item.id) | tojson }}
+    }{{ "," if not loop.last else "" }}
+    {% end %}
+  ]
+  {% end %}
+}
+</script>
+{% end %}
