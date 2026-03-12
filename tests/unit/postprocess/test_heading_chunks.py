@@ -18,10 +18,12 @@ class TestExtractHeadingChunks:
         chunks = extract_heading_chunks(html, toc, "/docs/install/")
         assert len(chunks) == 2
         assert chunks[0]["anchor"] == "install"
+        assert chunks[0]["anchor_url"] == "/docs/install#install"
         assert chunks[0]["title"] == "Installation"
         assert chunks[0]["level"] == 1
         assert "pip install" in chunks[0]["content"]
         assert chunks[1]["anchor"] == "config"
+        assert chunks[1]["anchor_url"] == "/docs/install#config"
         assert "bengal.toml" in chunks[1]["content"]
         assert "content_hash" in chunks[0]
 
@@ -41,6 +43,7 @@ class TestExtractHeadingChunks:
         chunks = extract_heading_chunks(html, toc, "/page/")
         assert len(chunks) == 1
         assert chunks[0]["anchor"] == ""
+        assert chunks[0]["anchor_url"] == "/page"
         assert "No headings" in chunks[0]["content"]
 
     def test_strips_html_from_content(self) -> None:
@@ -49,3 +52,13 @@ class TestExtractHeadingChunks:
         chunks = extract_heading_chunks(html, toc, "/")
         assert "<strong>" not in chunks[0]["content"]
         assert "Plain text here" in chunks[0]["content"]
+
+    def test_captures_content_before_first_heading(self) -> None:
+        html = '<p>Introduction paragraph.</p><h2 id="details">Details</h2><p>Detail content.</p>'
+        toc = [{"id": "details", "title": "Details", "level": 2}]
+        chunks = extract_heading_chunks(html, toc, "/docs/page/")
+        assert len(chunks) == 2
+        assert chunks[0]["anchor"] == ""
+        assert "Introduction paragraph" in chunks[0]["content"]
+        assert chunks[1]["anchor"] == "details"
+        assert "Detail content" in chunks[1]["content"]

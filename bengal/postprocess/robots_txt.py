@@ -244,7 +244,7 @@ class RobotsTxtGenerator:
                 lines.append("")
 
         if config.get("include_sitemap", True):
-            baseurl = self.site.baseurl or ""
+            baseurl = (self.site.baseurl or "").rstrip("/")
             lines.append(f"Sitemap: {baseurl}/sitemap.xml")
             lines.append("")
 

@@ -38,17 +38,21 @@ def cursor_mcp_install_url(mcp_url: str, server_name: str = "Docs") -> str:
     Returns:
         cursor:// URL, or empty string if mcp_url is empty
 
-    Example:
-        {{ cursor_mcp_install_url() }}  # Uses config.connect_to_ide
+    Examples:
+        Python:
+            cursor_mcp_install_url("https://docs.example.com/mcp", server_name="Docs")
+        Template (after :func:`register` has been called):
+            {{ cursor_mcp_install_url() }}  {# uses site.config.connect_to_ide.* #}
     """
     if not mcp_url or not mcp_url.strip():
         return ""
     config = {"url": mcp_url.strip().rstrip("/"), "headers": {}}
-    config_b64 = base64.standard_b64encode(
+    config_b64 = base64.urlsafe_b64encode(
         json.dumps(config, separators=(",", ":")).encode("utf-8")
     ).decode("ascii")
+    config_encoded = quote(config_b64, safe="")
     name_encoded = quote(server_name, safe="")
-    return f"{_CURSOR_MCP_BASE}?name={name_encoded}&config={config_b64}"
+    return f"{_CURSOR_MCP_BASE}?name={name_encoded}&config={config_encoded}"
 
 
 def register(env: TemplateEnvironment, site: SiteLike) -> None:

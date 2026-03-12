@@ -253,7 +253,7 @@ class BuildTrigger:
         """
         Execute the build (internal, called with lock held).
         """
-        # Signal build in progress to request handler and SSE clients.
+        # Signal build in progress to the request handler via build_state.
         self._set_build_in_progress(True)
 
         try:
@@ -386,6 +386,7 @@ class BuildTrigger:
             # Double-buffer: redirect output to staging directory so the ASGI
             # app continues serving from the active buffer during the build.
             original_output_dir = self.site.output_dir
+            swapped = False
             if self._buffer_manager is not None:
                 staging = self._buffer_manager.prepare_staging()
                 self.site.output_dir = staging
@@ -405,6 +406,7 @@ class BuildTrigger:
                 # wrote a complete, consistent snapshot.
                 if self._buffer_manager is not None:
                     self._buffer_manager.swap()
+                    swapped = True
                     self.site.output_dir = self._buffer_manager.active_dir
                     logger.debug(
                         "buffer_swapped",
@@ -444,10 +446,14 @@ class BuildTrigger:
                 self.seed_content_hash_cache(list(self.site.pages))
 
             except Exception as e:
-                # Double-buffer: restore output_dir on failure (no swap, keep
-                # serving the previous active buffer)
+                # Double-buffer: resync output_dir with the active buffer.
+                # If swap already ran, active_dir points to the new buffer;
+                # otherwise fall back to original_output_dir (pre-build).
                 if self._buffer_manager is not None:
-                    self.site.output_dir = original_output_dir
+                    if swapped:
+                        self.site.output_dir = self._buffer_manager.active_dir
+                    else:
+                        self.site.output_dir = original_output_dir
 
                 # Build crashed - log error and reinitialize site for next build
                 build_duration = time.time() - build_start

@@ -60,17 +60,20 @@ class BufferManager:
     @property
     def active_dir(self) -> Path:
         """Directory the ASGI app should serve from (snapshot at call time)."""
-        return self._dirs[self._active_idx]
+        with self._lock:
+            return self._dirs[self._active_idx]
 
     @property
     def staging_dir(self) -> Path:
         """Directory the next build should write to."""
-        return self._dirs[1 - self._active_idx]
+        with self._lock:
+            return self._dirs[1 - self._active_idx]
 
     @property
     def generation(self) -> int:
         """Monotonic counter incremented on each swap."""
-        return self._generation
+        with self._lock:
+            return self._generation
 
     def prepare_staging(self, *, clean: bool = True) -> Path:
         """Prepare the staging buffer for a new build.

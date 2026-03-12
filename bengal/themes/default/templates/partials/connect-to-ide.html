@@ -24,9 +24,9 @@ Context: config (site.config), icon() global
 
 {% if _enabled and _mcp_url and _install_url %}
 <a href="{{ _install_url }}" class="action-bar-share-item action-bar-connect-ide"
-    title="{{ t('share.connect_to_ide', default='Add docs to Cursor IDE') }}"
+    title="{{ t('share.connect_to_ide_title', default='Add docs to Cursor IDE') }}"
     rel="noopener noreferrer">
     {{ icon('code', size=16) }}
-    <span>{{ t('share.connect_to_ide', default='Connect to IDE') }}</span>
+    <span>{{ t('share.connect_to_ide_label', default='Connect to IDE') }}</span>
 </a>
 {% end %}

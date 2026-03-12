@@ -97,23 +97,6 @@ def set_reload_action(action: str) -> None:
     logger.debug("reload_action_set", action=action)
 
 
-def send_building_payload() -> None:
-    """Notify SSE clients that a build is starting.
-
-    Connected clients use this to cancel any pending reload so the browser
-    doesn't reload mid-build (which causes FOUC / missing CSS).
-    """
-    if _reload_events_disabled():
-        return
-    with _state.condition:
-        _state.generation += 1
-        payload = json.dumps({"action": "building", "generation": _state.generation})
-        _state.last_action = payload
-        _state.condition.notify_all()
-
-    logger.debug("building_notification_sent", generation=_state.generation)
-
-
 def send_fragment_payload(
     selector: str,
     html: str,

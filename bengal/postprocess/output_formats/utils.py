@@ -391,6 +391,7 @@ def extract_heading_chunks(
     if not html_content:
         return []
 
+    base_url = page_url.rstrip("/") if page_url else ""
     chunks: list[dict[str, str | int]] = []
     # Build regex to split at h2-h6 with id attribute
     # Pattern: <h[2-6][^>]*id="anchor"[^>]*> or <h[2-6] id="anchor">
@@ -409,6 +410,7 @@ def extract_heading_chunks(
             chunks.append(
                 {
                     "anchor": "",
+                    "anchor_url": base_url or "",
                     "title": "",
                     "level": 1,
                     "content": plain.strip(),
@@ -422,6 +424,24 @@ def extract_heading_chunks(
         str(item.get("id", "")): item for item in toc_items if item.get("id")
     }
 
+    # Capture content before the first heading as an intro chunk
+    first_match_start = matches[0].start()
+    if first_match_start > 0:
+        intro_segment = html_content[:first_match_start]
+        intro_plain = strip_html(intro_segment).strip()
+        if intro_plain:
+            content_hash = hashlib.sha256(intro_plain.encode("utf-8")).hexdigest()
+            chunks.append(
+                {
+                    "anchor": "",
+                    "anchor_url": base_url or "",
+                    "title": "",
+                    "level": 1,
+                    "content": intro_plain,
+                    "content_hash": content_hash,
+                }
+            )
+
     for i, match in enumerate(matches):
         level_num = int(match.group(1))
         anchor_id = match.group(2)
@@ -434,10 +454,12 @@ def extract_heading_chunks(
         title = str(toc_item.get("title", ""))
         level = int(toc_item.get("level", level_num))
 
+        anchor_url = f"{base_url}#{anchor_id}" if base_url else f"#{anchor_id}"
         content_hash = hashlib.sha256(plain.encode("utf-8")).hexdigest()
         chunks.append(
             {
                 "anchor": anchor_id,
+                "anchor_url": anchor_url,
                 "title": title,
                 "level": level,
                 "content": plain,

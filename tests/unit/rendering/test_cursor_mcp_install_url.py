@@ -23,7 +23,7 @@ class TestCursorMcpInstallUrl:
         parsed = urlparse(url)
         params = parse_qs(parsed.query)
         config_b64 = params.get("config", [""])[0]
-        config_json = base64.standard_b64decode(config_b64).decode("utf-8")
+        config_json = base64.urlsafe_b64decode(config_b64).decode("utf-8")
         config = json.loads(config_json)
         assert config["url"] == "https://docs.example.com/mcp"
         assert config["headers"] == {}
@@ -33,7 +33,7 @@ class TestCursorMcpInstallUrl:
         parsed = urlparse(url)
         params = parse_qs(parsed.query)
         config_b64 = params.get("config", [""])[0]
-        config = json.loads(base64.standard_b64decode(config_b64).decode("utf-8"))
+        config = json.loads(base64.urlsafe_b64decode(config_b64).decode("utf-8"))
         assert config["url"] == "https://docs.example.com/mcp"
 
     def test_server_name_in_query(self) -> None:

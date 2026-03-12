@@ -203,7 +203,7 @@ class SiteLlmsTxtGenerator:
     def _append_optional_section(self, lines: list[str]) -> None:
         """Append an Optional section with links to machine-readable formats."""
         site_wide = self.site.config.get("output_formats", {}).get("site_wide", [])
-        baseurl = self.site.baseurl or ""
+        baseurl = (self.site.baseurl or "").rstrip("/")
         has_optional = False
 
         optional_lines: list[str] = []
