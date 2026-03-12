@@ -1,5 +1,31 @@
 ## [Unreleased]
 
+## 0.2.6 - 2026-03-12
+
+### Dev Server Reactivity and Reliability
+
+- **Reactive reloads**: content-only Markdown edits can update the main content fragment without a full rebuild or disk read-back
+- **Double-buffered output**: rebuilds write to a staging buffer and swap atomically, reducing FOUC and partial-read glitches during rapid edits
+- **Serve flow**: improved cache validation, cleaner stale-process/port messaging, and steadier hot-reload behavior for local development
+
+### AI and Machine Discovery
+
+- **Output formats**: add site-wide `llms.txt`, `agent.json`, and `changelog.json` for AI navigation, agent discovery, and incremental indexing
+- **Per-page JSON**: enrich `index.json` with navigation, freshness metadata, content hashes, and optional heading-level chunks for RAG workflows
+- **Content Signals**: generate `robots.txt` and `.well-known/content-signals.json`, and enforce AI/search visibility across machine-readable outputs
+- **Cursor MCP**: add "Connect to IDE" support in the default theme so docs can expose one-click Cursor MCP install links
+
+### Template and Authoring Improvements
+
+- **Template validation**: validate Kida template context before render to catch missing variables earlier
+- **Frontmatter**: normalize malformed `tags` input instead of propagating bad metadata into templates and taxonomy
+- **List tables**: fix `list-table` option alias handling and improve empty-cell rendering
+
+### Dependencies and Docs
+
+- **Deps**: require `kida-templates>=0.2.7`, `patitas>=0.3.5`, and `bengal-pounce>=0.2.2`
+- **Docs**: expand SEO/discovery and output-format guides, add free-threading and Connect to IDE documentation, and refresh the README
+
 ## 0.2.5 - 2026-03-03
 
 ### Kida 0.2.3
