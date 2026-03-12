@@ -393,10 +393,10 @@ def extract_heading_chunks(
 
     base_url = page_url.rstrip("/") if page_url else ""
     chunks: list[dict[str, str | int]] = []
-    # Build regex to split at h2-h6 with id attribute
-    # Pattern: <h[2-6][^>]*id="anchor"[^>]*> or <h[2-6] id="anchor">
+    # Build regex to split at h2-h6 with an id attribute in any position,
+    # supporting both single- and double-quoted HTML attributes.
     heading_pattern = re.compile(
-        r'<h([2-6])\s[^>]*id="([^"]+)"[^>]*>',
+        r"""<h([2-6])\b[^>]*\bid\s*=\s*["']([^"']+)["'][^>]*>""",
         re.IGNORECASE,
     )
 

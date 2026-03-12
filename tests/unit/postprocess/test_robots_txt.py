@@ -139,6 +139,14 @@ class TestRobotsTxtRendering:
         content = gen._render_robots_txt(default_policy, {}, {"*": None}, config)
         assert "Sitemap:" not in content
 
+    def test_sitemap_directive_omitted_without_baseurl(self):
+        site = self._make_site()
+        site.baseurl = ""
+        gen = RobotsTxtGenerator(site)
+        default_policy = gen._get_default_policy(gen._get_config())
+        content = gen._render_robots_txt(default_policy, {}, {"*": None}, gen._get_config())
+        assert "Sitemap:" not in content
+
     def test_section_override_rendered(self):
         site = self._make_site()
         gen = RobotsTxtGenerator(site)
@@ -170,6 +178,26 @@ class TestRobotsTxtRendering:
         }
         content = gen._render_robots_txt(default_policy, {}, agents, gen._get_config())
         assert "User-Agent: GPTBot" in content
+
+    def test_section_overrides_emitted_for_each_user_agent(self):
+        site = self._make_site()
+        gen = RobotsTxtGenerator(site)
+        default_policy = SignalPolicy(search=True, ai_input=True, ai_train=False)
+        agents = {
+            "*": None,
+            "GPTBot": {"search": True, "ai_input": True, "ai_train": False},
+        }
+        overrides = {
+            "/blog/": SignalPolicy(search=True, ai_input=True, ai_train=True),
+        }
+        content = gen._render_robots_txt(default_policy, overrides, agents, gen._get_config())
+        assert (
+            "User-Agent: *\nContent-Signal: /blog/ search=yes, ai-input=yes, ai-train=yes"
+            in content
+        )
+        assert (
+            "User-Agent: GPTBot\nContent-Signal: /blog/ search=yes, ai-input=yes, ai-train=yes"
+        ) in content
 
 
 class TestSectionAggregation:

@@ -233,20 +233,23 @@ class RobotsTxtGenerator:
             lines.append("")
 
         if section_overrides:
+            section_agents = list(user_agents) or ["*"]
             for section_path, policy in sorted(section_overrides.items()):
                 all_denied = not policy.search and not policy.ai_input and not policy.ai_train
-                lines.append("User-Agent: *")
-                lines.append(f"Content-Signal: {policy.to_directive(section_path)}")
-                if all_denied:
-                    lines.append(f"Disallow: {section_path}")
-                else:
-                    lines.append(f"Allow: {section_path}")
-                lines.append("")
+                for agent in section_agents:
+                    lines.append(f"User-Agent: {agent}")
+                    lines.append(f"Content-Signal: {policy.to_directive(section_path)}")
+                    if all_denied:
+                        lines.append(f"Disallow: {section_path}")
+                    else:
+                        lines.append(f"Allow: {section_path}")
+                    lines.append("")
 
         if config.get("include_sitemap", True):
             baseurl = (self.site.baseurl or "").rstrip("/")
-            lines.append(f"Sitemap: {baseurl}/sitemap.xml")
-            lines.append("")
+            if baseurl:
+                lines.append(f"Sitemap: {baseurl}/sitemap.xml")
+                lines.append("")
 
         return "\n".join(lines)
 

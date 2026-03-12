@@ -37,6 +37,14 @@ class TestExtractHeadingChunks:
         assert chunks[0]["anchor"] == "x"
         assert chunks[0]["title"] == ""
 
+    def test_single_quoted_heading_id_is_chunked(self) -> None:
+        html = "<h2 class='section' id='x'>X</h2><p>Content</p>"
+        chunks = extract_heading_chunks(html, [], "/")
+        assert len(chunks) == 1
+        assert chunks[0]["anchor"] == "x"
+        assert chunks[0]["anchor_url"] == "#x"
+        assert "Content" in chunks[0]["content"]
+
     def test_no_headings_with_id_returns_single_chunk(self) -> None:
         html = "<p>No headings with id.</p>"
         toc = []
