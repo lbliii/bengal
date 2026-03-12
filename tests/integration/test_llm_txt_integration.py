@@ -30,6 +30,7 @@ def test_site(tmp_path):
     (site_dir / "public").mkdir(exist_ok=True)
 
     # Create test config with LLM.txt enabled
+    # content_signals.ai_train = true so llm-full.txt includes pages (default is False)
     config_content = """
 [site]
 title = "Test Site"
@@ -39,6 +40,9 @@ baseurl = "https://example.com"
 enabled = true
 per_page = ["llm_txt"]
 site_wide = ["llm_full"]
+
+[content_signals]
+ai_train = true
 """
     (site_dir / "bengal.toml").write_text(config_content)
 
