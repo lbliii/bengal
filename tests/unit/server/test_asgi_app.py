@@ -320,3 +320,32 @@ async def test_request_callback_not_invoked_for_static(tmp_path: Path) -> None:
     )
 
     assert len(logged) == 0
+
+
+@pytest.mark.asyncio
+async def test_callable_output_dir_resolves_per_request(tmp_path: Path) -> None:
+    """When output_dir is a callable, it is invoked per request (double-buffer)."""
+    dir_a = tmp_path / "a"
+    dir_b = tmp_path / "b"
+    dir_a.mkdir()
+    dir_b.mkdir()
+    (dir_a / "index.html").write_text("<html><body>buffer-a</body></html>")
+    (dir_b / "index.html").write_text("<html><body>buffer-b</body></html>")
+
+    current = [dir_a]
+    app = create_bengal_dev_app(
+        output_dir=lambda: current[0],
+        build_in_progress=lambda: False,
+    )
+    scope = {"type": "http", "method": "GET", "path": "/"}
+
+    sent, send = _make_send_capture()
+    await app(scope=scope, receive=_noop_receive, send=send)
+    body_a = sent[1]["body"]
+    assert b"buffer-a" in body_a
+
+    current[0] = dir_b
+    sent2, send2 = _make_send_capture()
+    await app(scope=scope, receive=_noop_receive, send=send2)
+    body_b = sent2[1]["body"]
+    assert b"buffer-b" in body_b

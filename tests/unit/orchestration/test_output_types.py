@@ -106,10 +106,10 @@ class TestClassifyOutput:
         path = Path("public/favicon.ico")
         assert classify_output(path) == OutputType.STATIC
 
-    def test_robots_txt_is_static(self) -> None:
-        """robots.txt is classified as STATIC."""
+    def test_robots_txt_is_aggregate_feed(self) -> None:
+        """robots.txt is classified as AGGREGATE_FEED (generated with Content Signals)."""
         path = Path("public/robots.txt")
-        assert classify_output(path) == OutputType.STATIC
+        assert classify_output(path) == OutputType.AGGREGATE_FEED
 
     def test_cname_is_static(self) -> None:
         """CNAME is classified as STATIC."""

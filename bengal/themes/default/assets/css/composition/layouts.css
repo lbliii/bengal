@@ -200,6 +200,22 @@ body[data-type="autodoc-rest"] .docs-main>.page-navigation {
     grid-template-columns: 240px minmax(0, 1fr);
   }
 
+  /* Match the tablet layout even when empty-sidebar :has() rules apply. */
+  .docs-layout:has(.docs-sidebar:empty):has(.docs-toc:empty) {
+    grid-template-areas: "content";
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .docs-layout:has(.docs-sidebar:empty):not(:has(.docs-toc:empty)) {
+    grid-template-areas: "content toc";
+    grid-template-columns: minmax(0, 1fr) 240px;
+  }
+
+  .docs-layout:has(.docs-toc:empty):not(:has(.docs-sidebar:empty)) {
+    grid-template-areas: "sidebar content";
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+
   .docs-sidebar {
     padding-inline-start: var(--space-4);
   }
@@ -231,6 +247,18 @@ body[data-type="autodoc-rest"] .docs-main>.page-navigation {
     right: auto;
     margin-left: 0;
     margin-right: 0;
+  }
+
+  /*
+   * Collapse all docs-layout variants to a single content column on mobile.
+   * Without these overrides, the more specific :has(.docs-toc:empty) rule
+   * leaves behind a 260px sidebar track even after the sidebar becomes fixed.
+   */
+  .docs-layout:has(.docs-sidebar:empty):has(.docs-toc:empty),
+  .docs-layout:has(.docs-sidebar:empty):not(:has(.docs-toc:empty)),
+  .docs-layout:has(.docs-toc:empty):not(:has(.docs-sidebar:empty)) {
+    grid-template-areas: "content";
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .docs-main {

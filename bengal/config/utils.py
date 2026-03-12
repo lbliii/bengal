@@ -25,6 +25,7 @@ See Also:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 # =============================================================================
@@ -275,7 +276,7 @@ def get_default_config() -> dict[str, Any]:
 # =============================================================================
 
 
-def resolve_excerpt_length(page: Any, content_cfg: dict[str, Any]) -> int:
+def resolve_excerpt_length(page: Any, content_cfg: dict[str, Any] | Mapping[str, Any]) -> int:
     """
     Resolve excerpt_length with per-article override from frontmatter.
 

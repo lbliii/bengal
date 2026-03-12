@@ -1,0 +1,32 @@
+{#
+================================================================================
+Connect to IDE Button (Cursor MCP one-click install)
+================================================================================
+
+Renders a "Connect to IDE" link that opens Cursor and adds an MCP server
+via cursor:// deeplink. Only shown when connect_to_ide.enabled and mcp_url
+are configured.
+
+Requires a hosted Streamable HTTP MCP server at the configured mcp_url.
+Bengal does not provide the MCP server — maintainers must host one separately.
+
+Usage:
+{% include 'partials/connect-to-ide.html' %}
+
+Context: config (site.config), icon() global
+================================================================================
+#}
+
+{% set _connect = config?.connect_to_ide ?? {} %}
+{% set _enabled = _connect?.enabled ?? false %}
+{% set _mcp_url = (_connect?.mcp_url ?? '') | trim %}
+{% set _install_url = cursor_mcp_install_url() %}
+
+{% if _enabled and _mcp_url and _install_url %}
+<a href="{{ _install_url }}" class="action-bar-share-item action-bar-connect-ide"
+    title="{{ t('share.connect_to_ide_title', default='Add docs to Cursor IDE') }}"
+    rel="noopener noreferrer">
+    {{ icon('code', size=16) }}
+    <span>{{ t('share.connect_to_ide_label', default='Connect to IDE') }}</span>
+</a>
+{% end %}

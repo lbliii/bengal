@@ -19,6 +19,9 @@ directory index pages) containing:
 - tags: List of tags
 - word_count: Content word count
 - reading_time: Estimated reading time in minutes
+- navigation: Relationship links (parent, prev, next, related)
+- last_modified: ISO 8601 last-modified timestamp (frontmatter or file mtime)
+- content_hash: SHA-256 of plain text content for change detection
 - graph: Contextual minimap connections (if graph data available)
 
 Performance:
@@ -52,11 +55,13 @@ Related:
 
 from __future__ import annotations
 
+import hashlib
 import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from bengal.postprocess.output_formats.utils import (
+    extract_heading_chunks,
     generate_excerpt,
     get_page_json_path,
     get_page_url,
@@ -68,6 +73,8 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
@@ -115,6 +122,7 @@ class PageJSONGenerator:
         graph_data: dict[str, Any] | None = None,
         include_html: bool = False,
         include_text: bool = True,
+        include_chunks: bool = True,
     ) -> None:
         """
         Initialize the JSON generator.
@@ -124,11 +132,13 @@ class PageJSONGenerator:
             graph_data: Optional pre-computed graph data for contextual minimap
             include_html: Whether to include HTML content in JSON (default: False, HTML file already exists)
             include_text: Whether to include plain text content in JSON (default: True)
+            include_chunks: Whether to include heading-level chunks for agent citation (default: True)
         """
         self.site = site
         self.graph_data = graph_data
         self.include_html = include_html
         self.include_text = include_text
+        self.include_chunks = include_chunks
         # Lazily-built indexes for O(1) graph lookups (built on first use)
         self._node_url_index: dict[str, dict[str, Any]] | None = None
         self._edge_index: dict[str, list[dict[str, Any]]] | None = None
@@ -154,17 +164,23 @@ class PageJSONGenerator:
         # See: plan/active/rfc-postprocess-optimization.md
         if accumulated_json:
             page_items = list(accumulated_json)
-            # Update graph connections if graph_data is available (wasn't available during rendering)
-            if self.graph_data and pages:
-                # Need to map pages to accumulated data to update graph connections
+            if pages:
                 page_url_map = {get_page_url(page, self.site): page for page in pages}
                 for _json_path, page_data in page_items:
                     page_url = page_data.get("url", "")
                     if page_url in page_url_map:
                         page = page_url_map[page_url]
-                        connections = self._get_page_connections(page, self.graph_data)
-                        if connections:
-                            page_data["graph"] = connections
+                        if self.graph_data:
+                            connections = self._get_page_connections(page, self.graph_data)
+                            if connections:
+                                page_data["graph"] = connections
+                        if self.include_chunks and "chunks" not in page_data:
+                            html_content = getattr(page, "html_content", None) or ""
+                            toc_items = getattr(page, "toc_items", None) or []
+                            if html_content or toc_items:
+                                chunks = extract_heading_chunks(html_content, toc_items, page_url)
+                                if chunks:
+                                    page_data["chunks"] = chunks
         else:
             # Fallback: Compute JSON data from pages (original behavior)
             # Prepare all page data first (can be parallelized)
@@ -174,7 +190,10 @@ class PageJSONGenerator:
                 if not json_path:
                     continue
                 page_data = self.page_to_json(
-                    page, include_html=self.include_html, include_text=self.include_text
+                    page,
+                    include_html=self.include_html,
+                    include_text=self.include_text,
+                    include_chunks=self.include_chunks,
                 )
                 computed_page_items.append((json_path, page_data))
             page_items = computed_page_items
@@ -200,6 +219,7 @@ class PageJSONGenerator:
         page: PageLike,
         include_html: bool = True,
         include_text: bool = True,
+        include_chunks: bool = True,
         excerpt_length: int = 200,
     ) -> dict[str, Any]:
         """
@@ -209,6 +229,7 @@ class PageJSONGenerator:
             page: Page object
             include_html: Include full HTML content
             include_text: Include plain text content
+            include_chunks: Include heading-level chunks for agent citation
             excerpt_length: Length of excerpt
 
         Returns:
@@ -289,13 +310,93 @@ class PageJSONGenerator:
         data["word_count"] = word_count
         data["reading_time"] = max(1, round(word_count / 200))  # 200 wpm
 
+        # Navigation relationships (for agent traversal)
+        nav = self._get_navigation(page)
+        if nav:
+            data["navigation"] = nav
+
+        # Freshness signals (for RAG re-indexing)
+        last_modified = self._get_last_modified(page)
+        if last_modified:
+            data["last_modified"] = last_modified
+        data["content_hash"] = hashlib.sha256(content_text.encode("utf-8")).hexdigest()
+
         # Graph connections (for contextual minimap)
         if self.graph_data:
             connections = self._get_page_connections(page, self.graph_data)
             if connections:
                 data["graph"] = connections
 
+        # Heading-level chunks (for agent citation and RAG)
+        if include_chunks and self.include_chunks:
+            html_content = page.html_content or ""
+            toc_items = getattr(page, "toc_items", None) or []
+            if html_content or toc_items:
+                page_url = get_page_url(page, self.site)
+                chunks = extract_heading_chunks(html_content, toc_items, page_url)
+                if chunks:
+                    data["chunks"] = chunks
+
         return data
+
+    def _get_navigation(self, page: PageLike) -> dict[str, Any] | None:
+        """Extract navigation relationships from page for agent traversal."""
+        nav: dict[str, Any] = {}
+
+        # Parent section
+        section = getattr(page, "_section", None)
+        if section is not None:
+            section_href = getattr(section, "href", None)
+            if isinstance(section_href, str) and section_href:
+                nav["parent"] = section_href
+
+        # Prev/next within section
+        prev_page = getattr(page, "prev_in_section", None)
+        if prev_page is not None:
+            href = getattr(prev_page, "href", None)
+            if isinstance(href, str):
+                nav["prev"] = href
+
+        next_page = getattr(page, "next_in_section", None)
+        if next_page is not None:
+            href = getattr(next_page, "href", None)
+            if isinstance(href, str):
+                nav["next"] = href
+
+        # Related posts (pre-computed during build by tag overlap)
+        related = getattr(page, "related_posts", None)
+        if related and isinstance(related, list):
+            hrefs = [
+                getattr(r, "href", "") for r in related if isinstance(getattr(r, "href", None), str)
+            ]
+            if hrefs:
+                nav["related"] = hrefs
+
+        return nav if nav else None
+
+    def _get_last_modified(self, page: PageLike) -> str | None:
+        """Resolve last-modified timestamp from frontmatter or file mtime."""
+        # Frontmatter takes priority
+        for key in ("lastmod", "last_modified", "updated"):
+            val = page.metadata.get(key)
+            if val:
+                if isinstance(val, datetime):
+                    return val.isoformat()
+                if hasattr(val, "isoformat"):
+                    return val.isoformat()
+                if isinstance(val, str):
+                    return val
+
+        # Fall back to source file mtime
+        source: Path | None = getattr(page, "source_path", None)
+        if source:
+            try:
+                mtime = source.stat().st_mtime
+                return datetime.fromtimestamp(mtime).isoformat()
+            except OSError, ValueError:
+                pass
+
+        return None
 
     def _build_graph_indexes(self, graph_data: dict[str, Any]) -> None:
         """

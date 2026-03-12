@@ -109,7 +109,7 @@ jobs:
       fail-fast: false
       matrix:
         group: [1, 2, 3, 4]
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
     - uses: actions/checkout@v4
 
@@ -138,8 +138,6 @@ jobs:
         PYTHONUNBUFFERED: "1"
       run: |
         echo "Running integration tests (group ${{ matrix.group }}/4)..."
-        # Split into 4 shards to avoid 45min timeout; each shard ~15-20min.
-        # Use least_duration algo for compatibility with pytest-randomly.
         set -o pipefail
         uv run pytest \
           --splits 4 --group ${{ matrix.group }} \

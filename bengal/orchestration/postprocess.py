@@ -41,6 +41,7 @@ if TYPE_CHECKING:
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator
 from bengal.postprocess.redirects import RedirectGenerator
+from bengal.postprocess.robots_txt import RobotsTxtGenerator
 from bengal.postprocess.rss import RSSGenerator
 from bengal.postprocess.sitemap import SitemapGenerator
 from bengal.postprocess.social_cards import (
@@ -173,6 +174,11 @@ class PostprocessOrchestrator:
         # Sitemap: Always regenerate for correctness (fast: ~10ms for 1K pages)
         if self.site.config.get("generate_sitemap", True):
             tasks.append(("sitemap", self._generate_sitemap))
+
+        # robots.txt with Content-Signal directives (fast, always regenerated)
+        cs_config = self.site.config.get("content_signals", {})
+        if cs_config.get("enabled", True):
+            tasks.append(("robots.txt", self._generate_robots_txt))
 
         if not incremental:
             # Full build: run all expensive tasks
@@ -417,6 +423,12 @@ class PostprocessOrchestrator:
         """
         collector = getattr(self, "_collector", None)
         generator = SitemapGenerator(self.site, collector=collector)
+        generator.generate()
+
+    def _generate_robots_txt(self) -> None:
+        """Generate robots.txt with Content-Signal directives and manifest."""
+        collector = getattr(self, "_collector", None)
+        generator = RobotsTxtGenerator(self.site, collector=collector)
         generator.generate()
 
     def _generate_rss(self) -> None:

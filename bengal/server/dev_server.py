@@ -73,7 +73,9 @@ from urllib.request import Request, urlopen
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
+from bengal.output import CLIOutput
 from bengal.server.backend import ServerBackend, create_pounce_backend
+from bengal.server.buffer_manager import BufferManager
 from bengal.server.build_executor import BuildExecutor, BuildRequest
 from bengal.server.build_state import build_state
 from bengal.server.build_trigger import BuildTrigger
@@ -163,6 +165,15 @@ class DevServer:
 
         # Mark site as running in dev mode to prevent timestamp churn in output files
         self.site.dev_mode = True
+
+        # Double-buffered output: the ASGI app serves from the active buffer
+        # while builds write to the staging buffer, then swap atomically.
+        staging_dir = self.site.root_path / ".bengal" / "staging"
+        self._buffer_manager = BufferManager.for_dev_server(
+            output_dir=self.site.output_dir,
+            staging_dir=staging_dir,
+        )
+        self._buffer_manager.setup()
 
     def start(self) -> None:
         """
@@ -262,9 +273,6 @@ class DevServer:
                 def _run_server() -> None:
                     try:
                         backend.start()
-                    except OSError as exc:
-                        server_error[0] = exc
-                        self._print_server_error(exc, actual_port)
                     except Exception as exc:
                         server_error[0] = exc
                         self._print_server_error(exc, actual_port)
@@ -613,6 +621,7 @@ class DevServer:
         Sets development-specific defaults:
         - Disables asset fingerprinting (stable URLs for hot reload)
         - Disables minification (faster rebuilds, easier debugging)
+        - Forces atomic writes (required for double-buffered output)
         - Clears baseurl (serves from root '/' not subdirectory)
 
         When baseurl is cleared, also clears the build cache to prevent
@@ -626,6 +635,16 @@ class DevServer:
         # Development defaults for faster iteration
         cfg["fingerprint_assets"] = False  # Stable CSS/JS filenames
         cfg.setdefault("minify_assets", False)  # Faster builds
+
+        # Force atomic writes (temp+rename) for two reasons:
+        # 1. Breaks hardlinks during double-buffered builds so the active buffer
+        #    is never corrupted when the staging buffer is written.
+        # 2. Prevents torn reads if the browser fetches during a write.
+        build_settings = cfg.get("build")
+        if isinstance(build_settings, dict):
+            build_settings["fast_writes"] = False
+        else:
+            cfg["build"] = {"fast_writes": False}
         # Disable search index preloading in dev to avoid background index.json fetches
         cfg.setdefault("search_preload", "off")
         # Disable social cards in dev (OG images not needed, saves ~30s on large sites)
@@ -763,12 +782,14 @@ class DevServer:
             host=self.host,
             port=actual_port,
             version_scope=self.version_scope,
+            buffer_manager=self._buffer_manager,
         )
 
         # Create ignore filter from config using class method
         config = self.site.config or {}
         # Handle ConfigSection objects that need .raw for dict access
-        config_dict = config.raw if hasattr(config, "raw") else config
+        raw = getattr(config, "raw", config)
+        config_dict: dict[str, Any] = raw if isinstance(raw, dict) else {}
         ignore_filter = IgnoreFilter.from_config(config_dict, output_dir=self.site.output_dir)
 
         # Get watch directories (already resolved to absolute in _get_watched_directories)
@@ -780,7 +801,10 @@ class DevServer:
         # Force polling for reliable hot reload (macOS, symlinks, editable installs)
         from bengal.server.utils import get_dev_config
 
-        force_polling = get_dev_config(config_dict, "watch", "force_polling", default=None)
+        force_polling_val = get_dev_config(config_dict, "watch", "force_polling", default=None)
+        force_polling: bool | None = (
+            force_polling_val if isinstance(force_polling_val, bool) else None
+        )
 
         # Create watcher runner
         watcher_runner = WatcherRunner(
@@ -882,8 +906,6 @@ class DevServer:
             )
 
             self._print_stale_process_panel(stale_pid, pid_file, is_holding_port)
-
-            from bengal.output import CLIOutput
 
             # Try to import click for confirmation, fall back to input
             try:
@@ -990,10 +1012,13 @@ class DevServer:
                 )
 
         self._request_callback_holder: list = [None]
+        # Pass the buffer manager's active_dir property as a callable so
+        # the ASGI app resolves the serving directory per-request, enabling
+        # atomic buffer swaps without re-creating the app.
         backend = create_pounce_backend(
             host=self.host,
             port=actual_port,
-            output_dir=output_dir,
+            output_dir=lambda: self._buffer_manager.active_dir,
             build_in_progress=build_state.get_build_in_progress,
             active_palette=build_state.get_active_palette,
             request_callback=lambda: self._request_callback_holder[0],
@@ -1162,8 +1187,6 @@ class DevServer:
         # Request log header
         from datetime import datetime
 
-        from bengal.output import CLIOutput
-
         cli = CLIOutput()
 
         def _log_request(method: str, path: str, status: int, _duration_ms: float) -> None:
@@ -1225,8 +1248,6 @@ class DevServer:
                     )
             except Exception as exc:
                 logger.warning("browser_open_failed", error=str(exc))
-                from bengal.output import CLIOutput
-
                 CLIOutput().warning("Could not open browser")
 
         threading.Thread(target=open_browser, daemon=True).start()

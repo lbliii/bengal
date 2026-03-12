@@ -1058,7 +1058,7 @@ class TestBuildTriggerQueuing:
     @patch("bengal.server.build_trigger.display_build_stats")
     @patch("bengal.server.build_trigger.default_reload_controller")
     @patch("bengal.server.live_reload.notification.send_reload_payload")
-    def test_stabilization_delay_before_queued_build(
+    def test_no_stabilization_delay_with_double_buffer(
         self,
         mock_send_reload: MagicMock,
         mock_controller: MagicMock,
@@ -1071,18 +1071,16 @@ class TestBuildTriggerQueuing:
         mock_site: MagicMock,
         mock_executor: MagicMock,
     ) -> None:
-        """Test that a stabilization delay is applied before executing queued builds.
+        """Double-buffered output eliminates the need for stabilization delays.
 
-        This delay allows browsers to fetch updated assets from the just-completed
-        build before the next build potentially replaces them again.
+        Queued builds execute immediately because the ASGI app serves from the
+        active buffer, which is never written to during a build.
         """
         import threading
 
         mock_pre_hooks.return_value = True
         mock_post_hooks.return_value = True
 
-        # Track build order and sleep calls
-        sleep_calls: list[float] = []
         build_call_count = 0
         build_started = threading.Event()
         build_can_finish = threading.Event()
@@ -1098,15 +1096,10 @@ class TestBuildTriggerQueuing:
             stats.changed_outputs = []
             return stats
 
-        def tracking_sleep(seconds: float) -> None:
-            sleep_calls.append(seconds)
-
         mock_site.build.side_effect = tracking_build
-        mock_sleep.side_effect = tracking_sleep
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
-        # Start first build
         first_build = threading.Thread(
             target=trigger.trigger_build,
             args=({Path("first.md")}, {"modified"}),
@@ -1114,19 +1107,13 @@ class TestBuildTriggerQueuing:
         first_build.start()
         build_started.wait(timeout=5.0)
 
-        # Queue a second change
         trigger.trigger_build({Path("second.md")}, {"created"})
 
-        # Let first build finish (which should trigger queued build with delay)
         build_can_finish.set()
         first_build.join(timeout=5.0)
 
-        # Should have two builds
         assert mock_site.build.call_count == 2
-
-        # Stabilization delay should have been called (0.1 seconds)
-        assert len(sleep_calls) >= 1
-        assert 0.1 in sleep_calls, f"Expected 0.1s delay, got calls: {sleep_calls}"
+        mock_sleep.assert_not_called()
 
 
 class TestReloadDecisionFlow:

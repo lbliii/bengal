@@ -6,6 +6,8 @@ Provides URL manipulation filters and functions for working with URLs in templat
 
 from __future__ import annotations
 
+import base64
+import json
 import re
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -18,6 +20,39 @@ if TYPE_CHECKING:
 
 _COLAB_BASE = "https://colab.research.google.com/github"
 _GITHUB_REPO_RE = re.compile(r"github\.com[/:]([^/]+)/([^/]+?)(?:\.git)?/?$", re.I)
+_CURSOR_MCP_BASE = "cursor://anysphere.cursor-deeplink/mcp/install"
+
+
+def cursor_mcp_install_url(mcp_url: str, server_name: str = "Docs") -> str:
+    """
+    Build a Cursor MCP one-click install deeplink.
+
+    Uses the cursor:// scheme per Cursor docs. When clicked, opens Cursor
+    and prompts to add the MCP server. Requires a hosted Streamable HTTP
+    MCP server at mcp_url.
+
+    Args:
+        mcp_url: Full URL to MCP endpoint (e.g. https://docs.example.com/mcp)
+        server_name: Name shown in Cursor when installing (default: Docs)
+
+    Returns:
+        cursor:// URL, or empty string if mcp_url is empty
+
+    Examples:
+        Python:
+            cursor_mcp_install_url("https://docs.example.com/mcp", server_name="Docs")
+        Template (after :func:`register` has been called):
+            {{ cursor_mcp_install_url() }}  {# uses site.config.connect_to_ide.* #}
+    """
+    if not mcp_url or not mcp_url.strip():
+        return ""
+    config = {"url": mcp_url.strip().rstrip("/"), "headers": {}}
+    config_b64 = base64.urlsafe_b64encode(
+        json.dumps(config, separators=(",", ":")).encode("utf-8")
+    ).decode("ascii")
+    config_encoded = quote(config_b64, safe="")
+    name_encoded = quote(server_name, safe="")
+    return f"{_CURSOR_MCP_BASE}?name={name_encoded}&config={config_encoded}"
 
 
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
@@ -55,12 +90,21 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     def notebook_colab_url_with_site(page) -> str:
         return notebook_colab_url(page, site)
 
+    def cursor_mcp_install_url_with_site() -> str:
+        cfg = getattr(site, "config", {}) or {}
+        connect_cfg = cfg.get("connect_to_ide", {}) or {}
+        return cursor_mcp_install_url(
+            mcp_url=connect_cfg.get("mcp_url", "") or "",
+            server_name=connect_cfg.get("server_name", "Docs") or "Docs",
+        )
+
     env.globals.update(
         {
             "ensure_trailing_slash": ensure_trailing_slash,
             "build_artifact_url": build_artifact_url_with_site,
             "notebook_download_url": notebook_download_url_with_site,
             "notebook_colab_url": notebook_colab_url_with_site,
+            "cursor_mcp_install_url": cursor_mcp_install_url_with_site,
         }
     )
 

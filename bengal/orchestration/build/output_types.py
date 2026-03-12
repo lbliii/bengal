@@ -81,12 +81,15 @@ OUTPUT_PATTERNS: dict[str, OutputType] = {
     "index.json": OutputType.AGGREGATE_INDEX,
     "index.json.hash": OutputType.AGGREGATE_INDEX,
     "llm-full.txt": OutputType.AGGREGATE_TEXT,
+    "llms.txt": OutputType.AGGREGATE_TEXT,
+    "changelog.json": OutputType.AGGREGATE_INDEX,
+    "agent.json": OutputType.AGGREGATE_INDEX,
     "index.txt": OutputType.AGGREGATE_TEXT,
     # Static assets with known names
     "asset-manifest.json": OutputType.ASSET,
     # Static files (passthrough)
     "favicon.ico": OutputType.STATIC,
-    "robots.txt": OutputType.STATIC,
+    "robots.txt": OutputType.AGGREGATE_FEED,
     ".nojekyll": OutputType.STATIC,
     "CNAME": OutputType.STATIC,
 }

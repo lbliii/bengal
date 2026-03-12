@@ -92,9 +92,10 @@ def share_url(
 
     platform_lower = platform.lower()
 
+    via_str = via if via is not None else ""
     handlers = {
-        "twitter": lambda: twitter_share_url(url, title, via),
-        "x": lambda: twitter_share_url(url, title, via),  # X is Twitter
+        "twitter": lambda: twitter_share_url(url, title, via_str),
+        "x": lambda: twitter_share_url(url, title, via_str),  # X is Twitter
         "linkedin": lambda: linkedin_share_url(url, title),
         "facebook": lambda: facebook_share_url(url),
         "reddit": lambda: reddit_share_url(url, title),

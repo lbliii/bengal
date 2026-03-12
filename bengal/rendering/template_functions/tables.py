@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from jinja2.utils import pass_environment
+from jinja2 import pass_environment  # type: ignore[attr-defined]
 from kida import Markup
 
 from bengal.errors import ErrorCode

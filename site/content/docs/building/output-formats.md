@@ -15,7 +15,7 @@ Bengal can generate multiple output formats for your content, enabling search fu
 
 Generated for every page in your site:
 
-- **JSON** (`index.json`): Structured data including metadata, HTML content, and plain text.
+- **JSON** (`index.json`): Structured data including metadata, HTML content, plain text, and optional heading-level chunks for RAG.
 - **LLM Text** (`index.txt`): AI-friendly plain text format optimized for **RAG** (Retrieval-Augmented Generation) and LLM consumption.
 
 ### Site-Wide Formats
@@ -24,6 +24,9 @@ Generated at the site root:
 
 - **Site Index** (`index.json`): A searchable index of all pages (useful for client-side search).
 - **Full LLM Text** (`llm-full.txt`): The complete content of your site in a single plain text file.
+- **LLMs.txt** (`llms.txt`): Curated site overview per the [llms.txt spec](https://llmstxt.org/) — lightweight navigation for AI agents.
+- **Build Changelog** (`changelog.json`): Per-build diff of added, modified, and removed pages (for incremental indexing).
+- **Agent Manifest** (`agent.json`): Hierarchical site structure with sections and available formats (for agent discovery).
 
 ## Configuration
 
@@ -43,6 +46,7 @@ output_formats:
     json_indent: null                      # null for compact JSON, 2 for pretty-print
     llm_separator_width: 80                # Width of LLM text separators
     include_full_content_in_index: false   # Include full content in site index
+    include_chunks: true                    # Heading-level chunks in per-page JSON (for RAG)
     exclude_sections: []                   # Sections to exclude from output formats
     exclude_patterns: ["404.html", "search.html"]  # Files to exclude
 ```
@@ -62,6 +66,7 @@ excerpt_length = 200
 json_indent = null
 llm_separator_width = 80
 include_full_content_in_index = false
+include_chunks = true
 exclude_sections = []
 exclude_patterns = ["404.html", "search.html"]
 ```
@@ -73,7 +78,7 @@ exclude_patterns = ["404.html", "search.html"]
 **Effective Defaults**: The `[features]` section controls which formats are enabled. With default features (`json = true`, `llm_txt = true`), Bengal generates:
 
 - **per_page**: `["json", "llm_txt"]` (both JSON and LLM text)
-- **site_wide**: `["index_json", "llm_full"]` (search index and full LLM text)
+- **site_wide**: `["index_json", "llm_full", "llms_txt", "changelog", "agent_manifest"]` (search index, LLM texts, build changelog, and agent manifest)
 
 To disable LLM text generation, set `features.llm_txt = false` in your config.
 :::

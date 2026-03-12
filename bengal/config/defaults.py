@@ -340,14 +340,52 @@ DEFAULTS: dict[str, Any] = {
     "output_formats": {
         "enabled": True,
         "per_page": ["json"],
-        "site_wide": ["index_json"],
+        "site_wide": ["index_json", "llms_txt", "changelog", "agent_manifest"],
         "options": {
             "excerpt_length": 200,
             "json_indent": None,
             "llm_separator_width": 80,
             "include_full_content_in_index": False,
+            "include_chunks": True,
             "exclude_sections": [],
             "exclude_patterns": ["404.html", "search.html"],
+        },
+    },
+    # -------------------------------------------------------------------------
+    # Structured Data (Schema.org JSON-LD)
+    # -------------------------------------------------------------------------
+    "structured_data": {
+        "article": True,  # TechArticle for docs, BlogPosting for posts
+    },
+    # -------------------------------------------------------------------------
+    # Connect to IDE (Cursor MCP one-click install)
+    # -------------------------------------------------------------------------
+    # When enabled, shows a "Connect to IDE" button that opens Cursor and
+    # adds an MCP server via cursor:// deeplink. Requires a hosted Streamable
+    # HTTP MCP server at mcp_url (e.g. https://docs.example.com/mcp).
+    "connect_to_ide": {
+        "enabled": False,
+        "mcp_url": "",  # Full URL to MCP endpoint (e.g. https://docs.example.com/mcp)
+        "server_name": "Docs",  # Name shown in Cursor when installing
+    },
+    # -------------------------------------------------------------------------
+    # Content Signals (AI/Crawler Content Policy)
+    # -------------------------------------------------------------------------
+    # Declarative control over how automated systems use site content.
+    # Generates robots.txt with Content-Signal directives per
+    # https://contentsignals.org/ and enforces signals at the output format
+    # level (denied formats are not written to disk).
+    #
+    # These defaults propagate into the visibility system — pages and sections
+    # can override via frontmatter `visibility.ai_train` / `visibility.ai_input`.
+    "content_signals": {
+        "enabled": True,
+        "search": True,
+        "ai_input": True,
+        "ai_train": False,
+        "include_sitemap": True,
+        "user_agents": {
+            "*": None,
         },
     },
     # -------------------------------------------------------------------------

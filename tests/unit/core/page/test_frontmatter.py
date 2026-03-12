@@ -42,6 +42,20 @@ class TestFrontmatterFromDict:
 
         assert fm.date == now
 
+    @pytest.mark.parametrize(
+        ("raw_tags", "expected"),
+        [
+            pytest.param("single", ["single"], id="string"),
+            pytest.param(None, [], id="none"),
+            pytest.param(["", "a", "  ", "b"], ["a", "b"], id="filters-empty-items"),
+        ],
+    )
+    def test_normalizes_malformed_tags(self, raw_tags: object, expected: list[str]) -> None:
+        """Malformed tag input is normalized before being stored."""
+        fm = Frontmatter.from_dict({"tags": raw_tags})
+
+        assert fm.tags == expected
+
 
 class TestFrontmatterDictAccess:
     """Test dict-style access for template compatibility."""

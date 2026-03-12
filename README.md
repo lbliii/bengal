@@ -24,7 +24,7 @@ and JSON/LLM exports.
 
 **Why people pick it:**
 
-- **Search-friendly output** — Sitemap, RSS, canonical URLs, Open Graph tags, social cards
+- **Search-friendly output** — Sitemap, RSS, canonical URLs, Open Graph tags, social cards, Content Signals
 - **Fast builds** — Parallel builds, incremental rebuilds, Zstandard-compressed caching
 - **Modern Python** — Python 3.14+ with free-threading support, fully typed
 - **Content workflows** — Native Jupyter `.ipynb` rendering, Binder/Colab links
@@ -222,7 +222,7 @@ structure:
 
 | Feature | Description | Docs |
 |---------|-------------|------|
-| **SEO & Discovery** | Sitemap, RSS, canonical URLs, Open Graph tags, social cards, search, JSON/LLM output | [SEO & Discovery →](https://lbliii.github.io/bengal/docs/building/seo/) |
+| **SEO & Discovery** | Sitemap, RSS, canonical URLs, Open Graph, social cards, search, JSON/LLM output, [llms.txt](https://llmstxt.org/), [Content Signals](https://contentsignals.org/) | [SEO & Discovery →](https://lbliii.github.io/bengal/docs/building/seo/) |
 | **Directives** | Tabs, admonitions, cards, dropdowns, code blocks | [Content →](https://lbliii.github.io/bengal/docs/content/) |
 | **Notebooks** | Native Jupyter `.ipynb` rendering, Binder/Colab links | [Notebooks →](https://lbliii.github.io/bengal/docs/content/authoring/notebooks/) |
 | **Autodoc** | Generate API docs from Python, CLI, OpenAPI | [Autodoc →](https://lbliii.github.io/bengal/docs/content/sources/autodoc/) |

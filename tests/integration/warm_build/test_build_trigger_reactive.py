@@ -195,7 +195,8 @@ title: Home
         result = handler.handle_content_change(content_path)
 
         assert result is not None
-        assert result.exists()
+        assert result.output_path.exists()
+        assert result.rendered_html  # in-memory HTML available
 
         # Updated HTML written to disk
         warm_build_site.assert_output_contains("index.html", updated_body)
@@ -239,7 +240,7 @@ date: 2026-01-01
 
         assert result is not None
         # Result may be relative or absolute; resolve for comparison
-        assert result.resolve() == post1_output.resolve()
+        assert result.output_path.resolve() == post1_output.resolve()
 
         # Post1 output updated with new content
         site_with_nav.assert_output_contains("blog/post1/index.html", unique_content)

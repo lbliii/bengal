@@ -52,13 +52,15 @@ class TestHiddenShorthand:
         assert visibility["rss"] is False
         assert visibility["robots"] == "noindex, nofollow"
         assert visibility["render"] == "always"
+        assert visibility["ai_input"] is False
+        assert visibility["ai_train"] is False
 
 
 class TestVisibilityObject:
     """Test the visibility object with granular controls."""
 
     def test_visibility_defaults_to_permissive(self):
-        """By default, all visibility settings are permissive."""
+        """By default, legacy visibility settings are permissive."""
         page = Page(
             source_path=Path("content/test.md"),
             _raw_content="Test content",
@@ -73,6 +75,8 @@ class TestVisibilityObject:
         assert visibility["rss"] is True
         assert visibility["robots"] == "index, follow"
         assert visibility["render"] == "always"
+        assert visibility["ai_input"] is True
+        assert visibility["ai_train"] is False
 
     def test_visibility_partial_override(self):
         """Can override individual visibility settings."""
@@ -388,6 +392,8 @@ class TestVisibilityWithDraft:
                     "sitemap": True,
                     "search": True,
                     "rss": True,
+                    "ai_input": True,
+                    "ai_train": True,
                 },
             },
         )
@@ -397,3 +403,5 @@ class TestVisibilityWithDraft:
         assert page.in_sitemap is False
         assert page.in_search is False
         assert page.in_rss is False
+        assert page.in_ai_input is False
+        assert page.in_ai_train is False

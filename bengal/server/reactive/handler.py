@@ -7,6 +7,7 @@ to disk. Skips full build (discovery, provenance, post-process).
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -23,6 +24,18 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 
+@dataclass(frozen=True, slots=True)
+class ReactiveResult:
+    """Result of a reactive content change.
+
+    Carries both the output path and the rendered HTML so callers can
+    extract fragments in memory without reading back from disk.
+    """
+
+    output_path: Path
+    rendered_html: str
+
+
 class ReactiveContentHandler:
     """Handles content-only edits via reactive path (parse + re-render + write)."""
 
@@ -36,17 +49,21 @@ class ReactiveContentHandler:
         self.site = site
         self.output_dir = output_dir
 
-    def handle_content_change(self, path: Path) -> Path | None:
+    def handle_content_change(self, path: Path) -> ReactiveResult | None:
         """Process content-only change for a single .md file.
 
-        Flow: find page → read source → update page._raw_content → run
-        RenderingPipeline.process_page → write to disk.
+        Flow: find page -> read source -> update page._raw_content -> run
+        RenderingPipeline.process_page -> write to disk.
+
+        Returns a ReactiveResult carrying both the output path and the
+        rendered HTML string so callers can extract fragments in memory
+        without reading the file back from disk.
 
         Args:
             path: Path to the changed markdown file (absolute or relative)
 
         Returns:
-            Output path of the rendered page if successful, None otherwise
+            ReactiveResult with output path and rendered HTML, or None on failure
         """
         page = self._find_page(path)
         if page is None:
@@ -91,7 +108,11 @@ class ReactiveContentHandler:
         )
         pipeline.process_page(page)
 
-        return page.output_path if page.output_path else None
+        if not page.output_path:
+            return None
+
+        rendered = getattr(page, "rendered_html", None) or ""
+        return ReactiveResult(output_path=page.output_path, rendered_html=rendered)
 
     def _find_page(self, path: Path) -> PageLike | None:
         """Find page in site.pages matching the given source path.

@@ -81,6 +81,7 @@ from bengal.postprocess.output_formats import (
     SiteLlmTxtGenerator,
 )
 from bengal.postprocess.redirects import RedirectGenerator
+from bengal.postprocess.robots_txt import RobotsTxtGenerator
 from bengal.postprocess.rss import RSSGenerator
 from bengal.postprocess.sitemap import SitemapGenerator
 from bengal.postprocess.social_cards import (
@@ -105,6 +106,7 @@ __all__ = [
     "RSSGenerator",
     # Special Pages
     "RedirectGenerator",
+    "RobotsTxtGenerator",
     "SiteIndexGenerator",
     "SiteLlmTxtGenerator",
     "SitemapGenerator",

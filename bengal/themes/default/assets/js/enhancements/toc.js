@@ -149,6 +149,14 @@
     const activeHeading = headings[activeIndex];
     const activeLink = activeHeading ? activeHeading.link : null;
     const activeParentGroup = activeLink ? activeLink.closest('details.toc-group') : null;
+    const activeTrackSectionGroup = activeParentGroup
+      ? activeParentGroup.closest('details.toc-group[data-toc-section]')
+      : null;
+    const preserveTrackSectionGroups = (
+      activeTrackSectionGroup
+      && activeTrackSectionGroup.closest('.toc-sidebar')
+      && activeTrackSectionGroup.closest('.toc-sidebar').getAttribute('data-track-filtering') === 'true'
+    );
 
     // Remove active class from all links
     headings.forEach((heading, index) => {
@@ -182,11 +190,24 @@
 
       // Collapse groups that are NOT ancestors of active item
       tocGroups.forEach(group => {
-        if (!ancestorGroups.has(group)) {
-          const otherGroupId = getGroupId(group);
-          if (group.open) {
-            collapseGroup(group, otherGroupId);
+        if (ancestorGroups.has(group)) {
+          return;
+        }
+
+        // Track TOCs swap between top-level section groups as you scroll.
+        // Within the active track section, keep nested subsection groups expanded
+        // so the sidebar shows the full article TOC instead of only the section header.
+        if (preserveTrackSectionGroups && activeTrackSectionGroup.contains(group)) {
+          const activeSectionGroupId = getGroupId(group);
+          if (!group.open) {
+            expandGroup(group, activeSectionGroupId);
           }
+          return;
+        }
+
+        const otherGroupId = getGroupId(group);
+        if (group.open) {
+          collapseGroup(group, otherGroupId);
         }
       });
     } else {

@@ -68,6 +68,7 @@ from bengal.orchestration.stats import (
 )
 from bengal.output import CLIOutput
 from bengal.protocols import SiteLike
+from bengal.server.buffer_manager import BufferManager
 from bengal.server.build_executor import BuildExecutor, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.build_state import build_state
@@ -146,6 +147,7 @@ class BuildTrigger:
         controller: ReloadController | None = None,
         notifier: ReloadNotifier | None = None,
         version_scope: str | None = None,
+        buffer_manager: BufferManager | None = None,
     ) -> None:
         """
         Initialize build trigger.
@@ -159,11 +161,14 @@ class BuildTrigger:
             notifier: ReloadNotifier for client notification (uses live reload if None)
             version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
+            buffer_manager: Optional BufferManager for double-buffered output.
+                When set, full builds write to staging and swap on completion.
         """
         self.site = site
         self.host = host
         self.port = port
         self.version_scope = version_scope
+        self._buffer_manager = buffer_manager
         self._executor = executor or BuildExecutor(max_workers=1)
         self._reload_controller = controller or default_reload_controller
         self._reload_notifier = notifier or LiveReloadNotifier()
@@ -232,13 +237,6 @@ class BuildTrigger:
 
             # Trigger another build if changes were queued during this build
             if queued_changes:
-                # Stabilization delay: Give browsers time to fetch updated assets
-                # before the next build potentially replaces them again.
-                # This prevents CSS disappearing during rapid edit sequences.
-                # 100ms is enough for most browser requests to complete while
-                # keeping the feedback loop fast.
-                time.sleep(0.1)
-
                 logger.info(
                     "build_queued_changes_triggering",
                     queued_count=len(queued_changes),
@@ -255,7 +253,7 @@ class BuildTrigger:
         """
         Execute the build (internal, called with lock held).
         """
-        # Signal build in progress to request handler
+        # Signal build in progress to the request handler via build_state.
         self._set_build_in_progress(True)
 
         try:
@@ -296,7 +294,8 @@ class BuildTrigger:
             # Run pre-build hooks
             config = self.site.config or {}
             # run_pre_build_hooks expects a dict, use .raw for serialization
-            config_dict = config.raw if hasattr(config, "raw") else config
+            raw = getattr(config, "raw", config)
+            config_dict: dict[str, Any] = raw if isinstance(raw, dict) else {}
             if not run_pre_build_hooks(config_dict, self.site.root_path):
                 show_error("Pre-build hook failed - skipping build", show_art=False)
                 cli.request_log_header()
@@ -312,8 +311,9 @@ class BuildTrigger:
 
                 handler = ReactiveContentHandler(self.site, self.site.output_dir)
                 try:
-                    output_path = handler.handle_content_change(path)
-                    if output_path is not None:
+                    result = handler.handle_content_change(path)
+                    if result is not None:
+                        output_path = result.output_path
                         # Use path relative to output_dir (matches full build)
                         rel_path = output_path
                         if output_path.is_absolute() and self.site.output_dir:
@@ -327,33 +327,19 @@ class BuildTrigger:
                             ),
                         )
 
-                        # Fragment path: extract #main-content, send DOM swap
-                        full_path = (
-                            output_path
-                            if output_path.is_absolute()
-                            else self.site.output_dir / output_path
-                        )
+                        # Fragment path: extract #main-content from in-memory
+                        # rendered HTML (zero-disk — no read-back from disk)
                         dev_config = config_dict.get("dev", {}) or {}
                         content_selector = dev_config.get("content_selector", "#main-content")
-                        try:
-                            html = full_path.read_text(encoding="utf-8")
-                            from bengal.server.live_reload.fragment import extract_main_content
-                            from bengal.server.live_reload.notification import send_fragment_payload
-                            from bengal.utils.paths.url_strategy import URLStrategy
+                        from bengal.server.live_reload.fragment import extract_main_content
+                        from bengal.server.live_reload.notification import send_fragment_payload
+                        from bengal.utils.paths.url_strategy import URLStrategy
 
-                            fragment = extract_main_content(html, content_selector)
-                            if fragment:
-                                permalink = URLStrategy.url_from_output_path(output_path, self.site)
-                                send_fragment_payload(content_selector, fragment, permalink)
-                            else:
-                                self._handle_reload(
-                                    BuildReloadInfo(
-                                        changed_files=tuple(changed_files),
-                                        changed_outputs=changed_outputs,
-                                        reload_hint=None,
-                                    )
-                                )
-                        except OSError, UnicodeDecodeError:
+                        fragment = extract_main_content(result.rendered_html, content_selector)
+                        if fragment:
+                            permalink = URLStrategy.url_from_output_path(output_path, self.site)
+                            send_fragment_payload(content_selector, fragment, permalink)
+                        else:
                             self._handle_reload(
                                 BuildReloadInfo(
                                     changed_files=tuple(changed_files),
@@ -397,11 +383,36 @@ class BuildTrigger:
             if self.version_scope:
                 self.site.config["_version_scope"] = self.version_scope
 
+            # Double-buffer: redirect output to staging directory so the ASGI
+            # app continues serving from the active buffer during the build.
+            original_output_dir = self.site.output_dir
+            swapped = False
+            if self._buffer_manager is not None:
+                staging = self._buffer_manager.prepare_staging()
+                self.site.output_dir = staging
+                logger.debug(
+                    "build_to_staging",
+                    staging=str(staging),
+                    active=str(self._buffer_manager.active_dir),
+                )
+
             # Execute warm build directly on the existing site
             build_start = time.time()
             try:
                 stats = self.site.build(options=build_opts)
                 build_duration = time.time() - build_start
+
+                # Double-buffer: swap staging to active now that the build
+                # wrote a complete, consistent snapshot.
+                if self._buffer_manager is not None:
+                    self._buffer_manager.swap()
+                    swapped = True
+                    self.site.output_dir = self._buffer_manager.active_dir
+                    logger.debug(
+                        "buffer_swapped",
+                        active=str(self._buffer_manager.active_dir),
+                        generation=self._buffer_manager.generation,
+                    )
 
                 # Build succeeded - convert stats to result-like object for display
                 class WarmBuildResult:
@@ -435,6 +446,15 @@ class BuildTrigger:
                 self.seed_content_hash_cache(list(self.site.pages))
 
             except Exception as e:
+                # Double-buffer: resync output_dir with the active buffer.
+                # If swap already ran, active_dir points to the new buffer;
+                # otherwise fall back to original_output_dir (pre-build).
+                if self._buffer_manager is not None:
+                    if swapped:
+                        self.site.output_dir = self._buffer_manager.active_dir
+                    else:
+                        self.site.output_dir = original_output_dir
+
                 # Build crashed - log error and reinitialize site for next build
                 build_duration = time.time() - build_start
                 error_msg = str(e)

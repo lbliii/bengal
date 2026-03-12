@@ -6,6 +6,6 @@ the full build: incremental parse, re-render affected page(s), write to disk.
 Skips discovery, provenance filter, assets, post-process, and cache save.
 """
 
-from bengal.server.reactive.handler import ReactiveContentHandler
+from bengal.server.reactive.handler import ReactiveContentHandler, ReactiveResult
 
-__all__ = ["ReactiveContentHandler"]
+__all__ = ["ReactiveContentHandler", "ReactiveResult"]
