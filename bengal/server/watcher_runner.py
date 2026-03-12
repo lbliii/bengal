@@ -323,7 +323,8 @@ def create_watcher_runner(
     # Create ignore filter from site config using class method
     config = getattr(site, "config", {}) or {}
     # Handle ConfigSection objects that need .raw for dict access
-    config_dict = config.raw if hasattr(config, "raw") else config
+    raw = getattr(config, "raw", config)
+    config_dict: dict[str, Any] = raw if isinstance(raw, dict) else {}
     output_dir = site.output_dir if isinstance(site, SiteLike) else None
     ignore_filter = IgnoreFilter.from_config(config_dict, output_dir=output_dir)
 

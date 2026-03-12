@@ -294,7 +294,8 @@ class BuildTrigger:
             # Run pre-build hooks
             config = self.site.config or {}
             # run_pre_build_hooks expects a dict, use .raw for serialization
-            config_dict = config.raw if hasattr(config, "raw") else config
+            raw = getattr(config, "raw", config)
+            config_dict: dict[str, Any] = raw if isinstance(raw, dict) else {}
             if not run_pre_build_hooks(config_dict, self.site.root_path):
                 show_error("Pre-build hook failed - skipping build", show_art=False)
                 cli.request_log_header()

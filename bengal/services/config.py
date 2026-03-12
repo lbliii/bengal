@@ -79,8 +79,9 @@ class ConfigService:
 
         # Eagerly compute theme
         config_dict: dict[str, Any]
-        if hasattr(config, "raw"):
-            config_dict = config.raw
+        raw = getattr(config, "raw", config)
+        if isinstance(raw, dict):
+            config_dict = raw
         elif isinstance(config, dict):
             config_dict = config
         else:
@@ -207,8 +208,9 @@ class ConfigService:
             from bengal.core.theme import Theme
 
             config_dict: dict[str, Any]
-            if hasattr(self.config, "raw"):
-                config_dict = self.config.raw
+            raw = getattr(self.config, "raw", self.config)
+            if isinstance(raw, dict):
+                config_dict = raw
             elif isinstance(self.config, dict):
                 config_dict = self.config
             else:

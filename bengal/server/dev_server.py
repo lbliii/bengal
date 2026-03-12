@@ -788,7 +788,8 @@ class DevServer:
         # Create ignore filter from config using class method
         config = self.site.config or {}
         # Handle ConfigSection objects that need .raw for dict access
-        config_dict = config.raw if hasattr(config, "raw") else config
+        raw = getattr(config, "raw", config)
+        config_dict: dict[str, Any] = raw if isinstance(raw, dict) else {}
         ignore_filter = IgnoreFilter.from_config(config_dict, output_dir=self.site.output_dir)
 
         # Get watch directories (already resolved to absolute in _get_watched_directories)
@@ -800,7 +801,10 @@ class DevServer:
         # Force polling for reliable hot reload (macOS, symlinks, editable installs)
         from bengal.server.utils import get_dev_config
 
-        force_polling = get_dev_config(config_dict, "watch", "force_polling", default=None)
+        force_polling_val = get_dev_config(config_dict, "watch", "force_polling", default=None)
+        force_polling: bool | None = (
+            force_polling_val if isinstance(force_polling_val, bool) else None
+        )
 
         # Create watcher runner
         watcher_runner = WatcherRunner(

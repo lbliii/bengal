@@ -64,9 +64,7 @@ def create_bengal_dev_app(
     Returns:
         ASGI application callable
     """
-    _resolve_dir: Callable[[], Path] = (
-        output_dir if callable(output_dir) else lambda: output_dir  # type: ignore[return-value]
-    )
+    _resolve_dir: Callable[[], Path] = output_dir if callable(output_dir) else lambda: output_dir
 
     async def app(scope: dict[str, Any], receive: Any, send: Any) -> None:
         if scope.get("type") != "http":
