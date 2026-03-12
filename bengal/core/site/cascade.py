@@ -7,6 +7,7 @@ inherited frontmatter metadata. Thread-safe for parallel rendering.
 
 from __future__ import annotations
 
+import dataclasses
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -75,10 +76,14 @@ class SiteCascadeMixin:
 
         Delegates to bengal.core.cascade_snapshot.build_cascade_from_content()
         and stores the result on BuildState (primary) and _cascade_snapshot (fallback).
+
+        Uses dataclasses.replace() to ensure a new instance identity each build,
+        so CascadeView caches (keyed by id(snapshot)) invalidate across rebuilds.
         """
         from bengal.core.cascade_snapshot import build_cascade_from_content
 
         snapshot = build_cascade_from_content(self.root_path, self.sections, self.pages)
+        snapshot = dataclasses.replace(snapshot)  # New id for cache invalidation
 
         if self._current_build_state is not None:
             self._current_build_state.cascade_snapshot = snapshot
