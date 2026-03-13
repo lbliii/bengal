@@ -52,7 +52,7 @@ Kida Features:
   {% let schema_name = ref | split('#/components/schemas/') | last %}
   <div class="api-request-body__schema-ref">
     <span class="api-request-body__label">Schema:</span>
-    <a href="#schema-{{ schema_name | slugify }}" class="api-request-body__schema-link">
+    <a href="{{ url_for_autodoc_schema(section, schema_name) }}" class="api-request-body__schema-link">
       <code>{{ schema_name }}</code>
     </a>
   </div>

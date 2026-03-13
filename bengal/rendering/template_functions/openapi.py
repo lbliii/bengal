@@ -236,9 +236,10 @@ def endpoints_filter(section: SectionLike | None) -> list[EndpointView]:
     raw_endpoints = metadata.get("endpoints", [])
 
     if raw_endpoints:
-        # Consolidated mode - DocElements stored in metadata.endpoints
+        # DocElements from metadata.endpoints - use consolidate flag for href (anchor vs page URL)
+        consolidated = metadata.get("consolidate", True)
         return [
-            EndpointView.from_doc_element(el, consolidated=True)
+            EndpointView.from_doc_element(el, consolidated=consolidated)
             for el in raw_endpoints
             if hasattr(el, "typed_metadata") and el.typed_metadata is not None
         ]
@@ -288,6 +289,67 @@ def schemas_filter(section: SectionLike | None) -> list[SchemaView]:
     ]
 
 
+def _url_for_autodoc_home(section: SectionLike | None, site: SiteLike) -> str:
+    """Get URL for the OpenAPI API home page from a section (e.g. tag section)."""
+    if section is None:
+        return "#"
+    root = section
+    while getattr(root, "parent", None) is not None:
+        root = root.parent
+    index_page = getattr(root, "index_page", None)
+    if index_page and hasattr(index_page, "href"):
+        return index_page.href or "#"
+    rel_url = getattr(root, "relative_url", None) or ""
+    if rel_url:
+        from bengal.rendering.utils.url import apply_baseurl
+
+        return apply_baseurl(f"/{rel_url}/", site)
+    return "#"
+
+
+def _url_for_autodoc_schema(section: SectionLike | None, schema_name: str, site: SiteLike) -> str:
+    """Get URL for an OpenAPI schema page from a section."""
+    if section is None or not schema_name:
+        return "#"
+    root = section
+    while getattr(root, "parent", None) is not None:
+        root = root.parent
+    # Find schemas subsection (section with name "schemas")
+    for sub in getattr(root, "subsections", []) or []:
+        if getattr(sub, "name", None) == "schemas":
+            rel_url = getattr(sub, "relative_url", None) or ""
+            if rel_url:
+                from bengal.autodoc.utils import slugify
+                from bengal.rendering.utils.url import apply_baseurl
+
+                schema_slug = slugify(schema_name)
+                path = f"/{rel_url}/{schema_slug}/"
+                return apply_baseurl(path, site)
+            break
+    return "#"
+
+
+def _url_for_autodoc_tag(section: SectionLike | None, tag: str, site: SiteLike) -> str:
+    """Get URL for an OpenAPI tag section from the root API section."""
+    if section is None or not tag:
+        return "#"
+    root = section
+    while getattr(root, "parent", None) is not None:
+        root = root.parent
+    for sub in getattr(root, "subsections", []) or []:
+        sub_meta = getattr(sub, "metadata", None) or {}
+        if sub_meta.get("tag") == tag:
+            index_page = getattr(sub, "index_page", None)
+            if index_page and hasattr(index_page, "href"):
+                return index_page.href or "#"
+            rel_url = getattr(sub, "relative_url", None) or ""
+            if rel_url:
+                from bengal.rendering.utils.url import apply_baseurl
+
+                return apply_baseurl(f"/{rel_url}/", site)
+    return "#"
+
+
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register OpenAPI functions with template environment.
 
@@ -303,6 +365,9 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "method_color_class": method_color_class,
             "status_code_class": status_code_class,
             "get_response_example": get_response_example,
+            "url_for_autodoc_home": lambda s: _url_for_autodoc_home(s, site),
+            "url_for_autodoc_tag": lambda s, t: _url_for_autodoc_tag(s, t, site),
+            "url_for_autodoc_schema": lambda s, n: _url_for_autodoc_schema(s, n, site),
         }
     )
     env.filters.update(

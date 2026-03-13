@@ -18,6 +18,7 @@ from bengal.autodoc.utils import (
     get_openapi_path,
     get_openapi_tags,
     resolve_cli_url_path,
+    slugify,
 )
 from bengal.core.page import Page
 from bengal.core.section import Section
@@ -142,8 +143,13 @@ def compute_element_urls(
     elif doc_type == "openapi":
         if element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
-            path = path_to_slug(get_openapi_path(element))
-            url_path = f"{prefix}/endpoints/{method}-{path}"
+            path_slug = path_to_slug(get_openapi_path(element))
+            tags = get_openapi_tags(element)
+            if tags:
+                tag_slug = slugify(tags[0])
+                url_path = f"{prefix}/{tag_slug}/{method}-{path_slug}"
+            else:
+                url_path = f"{prefix}/endpoints/{method}-{path_slug}"
         elif element.element_type == "openapi_schema":
             url_path = f"{prefix}/schemas/{element.name}"
         else:
@@ -437,10 +443,16 @@ def get_element_metadata(
             )
         elif element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
-            path = path_to_slug(get_openapi_path(element))
+            path_slug = path_to_slug(get_openapi_path(element))
+            tags = get_openapi_tags(element)
+            if tags:
+                tag_slug = slugify(tags[0])
+                url_path = f"{prefix}/{tag_slug}/{method}-{path_slug}"
+            else:
+                url_path = f"{prefix}/endpoints/{method}-{path_slug}"
             return (
                 "autodoc/openapi/endpoint",
-                f"{prefix}/endpoints/{method}-{path}",
+                url_path,
                 "autodoc-rest",
             )
     # Fallback - use python-reference for prose-constrained layout

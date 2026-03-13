@@ -23,11 +23,11 @@ Context:
     <nav class="api-endpoint-header__breadcrumb" aria-label="API breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb__item">
-                <a href="{{ url_for('autodoc:openapi:home') }}">API</a>
+                <a href="{{ url_for_autodoc_home(section) }}">API</a>
             </li>
             {% for tag in tags %}
             <li class="breadcrumb__item">
-                <a href="{{ url_for('autodoc:openapi:tag', tag=tag) }}">{{ tag }}</a>
+                <a href="{{ url_for_autodoc_tag(section, tag) }}">{{ tag }}</a>
             </li>
             {% end %}
         </ol>
@@ -73,7 +73,7 @@ Context:
         {% if tags %}
         <div class="api-endpoint-header__tags">
             {% for tag in tags %}
-            <a href="{{ url_for('autodoc:openapi:tag', tag=tag) }}" class="tag tag--sm">
+            <a href="{{ url_for_autodoc_tag(section, tag) }}" class="tag tag--sm">
                 {{ tag }}
             </a>
             {% end %}

@@ -256,8 +256,14 @@ class VirtualAutodocOrchestrator:
             )
             all_sections.update(openapi_sections)
 
-            # Consolidate endpoints? Default to True for a "gold standard" experience
-            consolidate = self.openapi_config.get("consolidate", True)
+            # Consolidate endpoints? Default to False so each endpoint gets its own page.
+            consolidate = self.openapi_config.get("consolidate", False)
+
+            # Store consolidate for template filters (endpoints_filter needs it for href vs anchor)
+            prefix = self._resolve_output_prefix("openapi")
+            for key, sec in all_sections.items():
+                if key == prefix or key.startswith(f"{prefix}/"):
+                    sec.metadata["consolidate"] = consolidate
 
             openapi_pages, _ = create_pages(
                 openapi_elements,
@@ -587,8 +593,14 @@ class VirtualAutodocOrchestrator:
                     )
                     all_sections.update(openapi_sections)
 
-                    # Consolidate endpoints? Default to True for a "gold standard" experience
-                    consolidate = self.openapi_config.get("consolidate", True)
+                    # Consolidate endpoints? Default to False so each endpoint gets its own page.
+                    consolidate = self.openapi_config.get("consolidate", False)
+
+                    # Store consolidate for template filters (endpoints_filter needs it)
+                    openapi_prefix = self._resolve_output_prefix("openapi")
+                    for key, sec in all_sections.items():
+                        if key == openapi_prefix or key.startswith(f"{openapi_prefix}/"):
+                            sec.metadata["consolidate"] = consolidate
 
                     openapi_pages, _ = create_pages(
                         openapi_elements,
