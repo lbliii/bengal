@@ -98,6 +98,7 @@ class BuildRequest:
     explain: bool = False
     dry_run: bool = False
     profile_templates: bool = False
+    output_dir_override: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -150,11 +151,25 @@ def _execute_build(request: BuildRequest) -> BuildResult:
         site = Site.from_config(site_root)
         site.dev_mode = True
 
+        # Override output_dir when building to staging (serve-first validation)
+        if request.output_dir_override:
+            site.output_dir = Path(request.output_dir_override)
+
         # Set dev-specific config flags
         cfg = site.config
         site.dev_mode = True  # Runtime flag for dev server mode
         cfg["fingerprint_assets"] = False
         cfg.setdefault("minify_assets", False)
+
+        # RFC: rfc-dev-server-buffer-hardening (Phase 0)
+        # Force atomic writes (temp+rename) so builds break hardlinks.
+        # Without this, writes to staging go through hardlinks and corrupt the
+        # active buffer that the server is currently serving.
+        build_settings = cfg.get("build")
+        if isinstance(build_settings, dict):
+            build_settings["fast_writes"] = False
+        else:
+            cfg["build"] = {"fast_writes": False}
 
         # RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
         # Store version_scope in site config for incremental build filtering

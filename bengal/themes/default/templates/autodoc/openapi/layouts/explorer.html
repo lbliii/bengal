@@ -30,7 +30,7 @@ Kida Features:
 <div class="api-explorer" data-autodoc="openapi" data-layout="explorer">
   {# Left Sidebar: API Navigation #}
   <aside class="api-explorer__sidebar" id="api-sidebar" role="navigation" aria-label="API navigation">
-    {% block sidebar %}
+    {% region sidebar_nav(section, current_page=page) %}
     {% include 'autodoc/openapi/partials/sidebar-nav.html' %}
     {% end %}
   </aside>
@@ -48,10 +48,11 @@ Kida Features:
         {% end %}
       </header>
 
-      {# Main Content Block #}
       <div class="api-explorer__content">
+        {% region endpoint_content() %}
         {% block content_main %}
         {# Override in child templates #}
+        {% end %}
         {% end %}
       </div>
 
@@ -73,7 +74,7 @@ Kida Features:
 
   {# Right Panel: Code Examples (Sticky) #}
   <aside class="api-explorer__code-panel" id="api-examples" role="complementary" aria-label="Code examples">
-    {% block code_panel %}
+    {% region code_panel() %}
     <div class="api-code-samples">
       <header class="api-code-samples__header">
         <h3 class="api-code-samples__title">{{ icon('code', size=14) }} Examples</h3>

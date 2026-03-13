@@ -325,34 +325,102 @@ class OpenAPIExtractor(Extractor):
 
         return elements
 
+    def _resolve_schema(self, schema: dict[str, Any]) -> dict[str, Any]:
+        """
+        Resolve $ref and allOf to produce a flattened schema with merged properties.
+
+        Handles:
+        - $ref: Resolve to referenced schema
+        - allOf: Merge properties, required, enum, example from all subschemas
+        """
+        if not isinstance(schema, dict):
+            return {}
+        if "$ref" in schema:
+            resolved = self._resolve_ref(schema)
+            return self._resolve_schema(resolved) if isinstance(resolved, dict) else {}
+        if "allOf" in schema:
+            merged: dict[str, Any] = {
+                "type": schema.get("type"),
+                "properties": {},
+                "required": [],
+                "enum": schema.get("enum"),
+                "example": schema.get("example"),
+                "description": schema.get("description", ""),
+            }
+            for sub in schema.get("allOf", []):
+                resolved = self._resolve_schema(sub) if isinstance(sub, dict) else {}
+                if not resolved:
+                    ref = self._resolve_ref(sub) if isinstance(sub, dict) else sub
+                    resolved = self._resolve_schema(ref) if isinstance(ref, dict) else {}
+                if resolved:
+                    merged["properties"].update(resolved.get("properties", {}))
+                    merged["required"] = list(
+                        dict.fromkeys(merged.get("required", []) + resolved.get("required", []))
+                    )
+                    if resolved.get("enum") and not merged.get("enum"):
+                        merged["enum"] = resolved["enum"]
+                    if resolved.get("example") and not merged.get("example"):
+                        merged["example"] = resolved["example"]
+                    if resolved.get("description") and not merged.get("description"):
+                        merged["description"] = resolved["description"]
+                    if resolved.get("type") and not merged.get("type"):
+                        merged["type"] = resolved["type"]
+            return merged
+        # Base case: return schema with resolved nested $ref in properties
+        result: dict[str, Any] = {
+            "type": schema.get("type"),
+            "properties": dict(schema.get("properties", {})),
+            "required": list(schema.get("required", [])),
+            "enum": schema.get("enum"),
+            "example": schema.get("example"),
+            "description": schema.get("description", ""),
+            "items": schema.get("items"),
+        }
+        # Resolve $ref in property values
+        for prop_name, prop_val in list(result["properties"].items()):
+            if isinstance(prop_val, dict) and "$ref" in prop_val:
+                result["properties"][prop_name] = self._resolve_schema(prop_val)
+            elif isinstance(prop_val, dict) and "items" in prop_val:
+                items = prop_val.get("items")
+                if isinstance(items, dict) and "$ref" in items:
+                    result["properties"][prop_name] = dict(prop_val)
+                    result["properties"][prop_name]["items"] = self._resolve_schema(items)
+        return result
+
     def _extract_schemas(self, spec: dict[str, Any]) -> list[DocElement]:
-        """Extract component schemas."""
+        """Extract component schemas with $ref and allOf resolution."""
         elements = []
         components = spec.get("components", {})
         schemas = components.get("schemas", {})
 
         for name, schema in schemas.items():
-            # Build typed metadata
+            resolved = self._resolve_schema(dict(schema))
+            schema_type = resolved.get("type", "object")
+            properties = resolved.get("properties", {})
+            required = tuple(resolved.get("required", []))
+            enum = tuple(resolved["enum"]) if resolved.get("enum") else None
+            example = resolved.get("example")
+
             typed_meta = OpenAPISchemaMetadata(
-                schema_type=schema.get("type"),
-                properties=schema.get("properties", {}),
-                required=tuple(schema.get("required", [])),
-                enum=tuple(schema.get("enum", [])) if schema.get("enum") else None,
-                example=schema.get("example"),
+                schema_type=schema_type,
+                properties=properties,
+                required=required,
+                enum=enum,
+                example=example,
             )
 
             element = DocElement(
                 name=name,
                 qualified_name=f"openapi.components.schemas.{name}",
-                description=schema.get("description", ""),
+                description=resolved.get("description", schema.get("description", "")),
                 element_type="openapi_schema",
                 metadata={
-                    "type": schema.get("type"),
-                    "properties": schema.get("properties", {}),
-                    "required": schema.get("required", []),
-                    "enum": schema.get("enum"),
-                    "example": schema.get("example"),
-                    "raw_schema": schema,  # Keep full schema for complex rendering
+                    "type": schema_type,
+                    "properties": properties,
+                    "required": list(required),
+                    "enum": list(enum) if enum else None,
+                    "example": example,
+                    "raw_schema": schema,
                 },
                 typed_metadata=typed_meta,
             )

@@ -1201,7 +1201,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .docs-layout--api-explorer .docs-examples {
   grid-area: examples;
-  background: #0b0c0e; /* Mintlify Dark */
+  background: var(--gray-950);
   border-left: 1px solid rgba(255, 255, 255, 0.05);
   overflow-y: auto;
   padding: var(--space-10) var(--space-8);
@@ -1319,7 +1319,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 /* 6. Code Group Tabs (Right Panel) */
 .api-code-group {
-  background: #111214;
+  background: var(--gray-925);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
   overflow: hidden;

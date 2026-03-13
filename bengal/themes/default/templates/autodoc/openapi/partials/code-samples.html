@@ -3,7 +3,7 @@ Bengal OpenAPI Code Samples
 ===========================
 
 Multi-language code sample panel with tab switching.
-Displays request examples in curl, Python, JavaScript, Go, Ruby, PHP.
+Uses code_panel def for DRY rendering of 6 language panels.
 
 Context:
 - method: HTTP method (GET, POST, etc.)
@@ -20,6 +20,19 @@ Kida Features:
 - Uses generate_code_sample() template function
 - Optional chaining (?.) and null coalescing (??)
 #}
+{% def code_panel(lang_id, code, path_slug, is_active=false, lang_class=none) %}
+{% let code_lang = lang_class ?? ('bash' if lang_id == 'curl' else lang_id) %}
+{% let copy_id = 'js' if lang_id == 'javascript' else lang_id %}
+<div class="api-code-samples__panel{% if is_active %} api-code-samples__panel--active{% end %}" id="code-panel-{{ lang_id }}" role="tabpanel">
+  <div class="api-code-samples__code">
+    <button class="api-code-samples__copy" data-copy-target="code-{{ copy_id }}-{{ path_slug }}" aria-label="Copy code">
+      {{ icon('copy', size=14) }}
+    </button>
+    <pre id="code-{{ copy_id }}-{{ path_slug }}"><code class="language-{{ code_lang }}">{{ code }}</code></pre>
+  </div>
+</div>
+{% end %}
+
 {% let method_upper = method |> upper ?? 'GET' %}
 {% let api_base = base_url ?? 'https://api.example.com' %}
 {% let full_url = api_base ~ path %}
@@ -57,66 +70,14 @@ Kida Features:
   </header>
 
   {# Code Panels #}
+  {% let path_slug = path | slugify %}
   <div class="api-code-samples__panels">
-    {# cURL Panel #}
-    <div class="api-code-samples__panel api-code-samples__panel--active" id="code-panel-curl" role="tabpanel">
-      <div class="api-code-samples__code">
-        <button class="api-code-samples__copy" data-copy-target="code-curl-{{ path | slugify }}" aria-label="Copy code">
-          {{ icon('copy', size=14) }}
-        </button>
-        <pre id="code-curl-{{ path | slugify }}"><code class="language-bash">{{ generate_code_sample('curl', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
-      </div>
-    </div>
-
-    {# Python Panel #}
-    <div class="api-code-samples__panel" id="code-panel-python" role="tabpanel">
-      <div class="api-code-samples__code">
-        <button class="api-code-samples__copy" data-copy-target="code-python-{{ path | slugify }}" aria-label="Copy code">
-          {{ icon('copy', size=14) }}
-        </button>
-        <pre id="code-python-{{ path | slugify }}"><code class="language-python">{{ generate_code_sample('python', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
-      </div>
-    </div>
-
-    {# JavaScript Panel #}
-    <div class="api-code-samples__panel" id="code-panel-javascript" role="tabpanel">
-      <div class="api-code-samples__code">
-        <button class="api-code-samples__copy" data-copy-target="code-js-{{ path | slugify }}" aria-label="Copy code">
-          {{ icon('copy', size=14) }}
-        </button>
-        <pre id="code-js-{{ path | slugify }}"><code class="language-javascript">{{ generate_code_sample('javascript', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
-      </div>
-    </div>
-
-    {# Go Panel #}
-    <div class="api-code-samples__panel" id="code-panel-go" role="tabpanel">
-      <div class="api-code-samples__code">
-        <button class="api-code-samples__copy" data-copy-target="code-go-{{ path | slugify }}" aria-label="Copy code">
-          {{ icon('copy', size=14) }}
-        </button>
-        <pre id="code-go-{{ path | slugify }}"><code class="language-go">{{ generate_code_sample('go', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
-      </div>
-    </div>
-
-    {# Ruby Panel #}
-    <div class="api-code-samples__panel" id="code-panel-ruby" role="tabpanel">
-      <div class="api-code-samples__code">
-        <button class="api-code-samples__copy" data-copy-target="code-ruby-{{ path | slugify }}" aria-label="Copy code">
-          {{ icon('copy', size=14) }}
-        </button>
-        <pre id="code-ruby-{{ path | slugify }}"><code class="language-ruby">{{ generate_code_sample('ruby', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
-      </div>
-    </div>
-
-    {# PHP Panel #}
-    <div class="api-code-samples__panel" id="code-panel-php" role="tabpanel">
-      <div class="api-code-samples__code">
-        <button class="api-code-samples__copy" data-copy-target="code-php-{{ path | slugify }}" aria-label="Copy code">
-          {{ icon('copy', size=14) }}
-        </button>
-        <pre id="code-php-{{ path | slugify }}"><code class="language-php">{{ generate_code_sample('php', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
-      </div>
-    </div>
+    {{ code_panel('curl', generate_code_sample('curl', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth), path_slug, is_active=true) }}
+    {{ code_panel('python', generate_code_sample('python', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth), path_slug) }}
+    {{ code_panel('javascript', generate_code_sample('javascript', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth), path_slug) }}
+    {{ code_panel('go', generate_code_sample('go', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth), path_slug) }}
+    {{ code_panel('ruby', generate_code_sample('ruby', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth), path_slug) }}
+    {{ code_panel('php', generate_code_sample('php', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth), path_slug) }}
   </div>
 
   {# Response Preview (optional) #}

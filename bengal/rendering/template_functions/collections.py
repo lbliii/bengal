@@ -50,15 +50,19 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 
 
 def _get_nested_value(obj: Any, path: str) -> Any:
-    """Get nested value using dot notation (e.g., 'metadata.track_id')."""
+    """Get nested value using dot notation (e.g., 'metadata.track_id').
+
+    Supports both dict-like (.get) and object-like (getattr) access so dataclasses
+    (e.g. OpenAPIParameterMetadata, OpenAPIResponseMetadata) work with where().
+    """
     parts = path.split(".")
     current = obj
 
     for part in parts:
-        if isinstance(current, dict):
-            current = current.get(part)
-        elif hasattr(current, part):
+        if hasattr(current, part) and not isinstance(current, dict):
             current = getattr(current, part, None)
+        elif isinstance(current, dict):
+            current = current.get(part)
         else:
             return None
         if current is None:

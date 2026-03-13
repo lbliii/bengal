@@ -19,6 +19,8 @@ Kida Features:
 #}
 {% extends 'autodoc/openapi/layouts/reference.html' %}
 
+{% from 'autodoc/openapi/_schema.html' import schema_viewer %}
+
 {% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
 {% let schema_name = element?.name ?? page?.title ?? 'Schema' %}
 {% let schema_type = meta?.schema_type ?? 'object' %}
@@ -50,10 +52,7 @@ Kida Features:
     <h2 class="api-schema__section-title">Properties</h2>
 
     {% cache 'openapi-schema-' ~ schema_name %}
-    {% let schema = meta %}
-    {% let name = schema_name %}
-    {% let depth = 0 %}
-    {% include 'autodoc/openapi/partials/schema-viewer.html' %}
+    {{ schema_viewer(meta, name=schema_name, depth=0) }}
     {% end %}
   </section>
   {% end %}

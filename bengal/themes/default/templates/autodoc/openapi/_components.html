@@ -1,0 +1,182 @@
+{#
+Bengal OpenAPI Component Library
+================================
+
+Reusable {% def %} + {% slot %} components for OpenAPI documentation.
+Import via: {% from 'autodoc/openapi/_components.html' import ... %}
+
+Components:
+- playground_bar(method, path, deprecated=false, base_url='')
+- param_row(param)
+- param_group(title, icon_name, params)
+- endpoint_card(ep)
+- schema_card(schema)
+- method_badge(method, size='default')
+- section_panel(title) — uses {% slot %} for header and body
+#}
+
+{% def method_badge(method, size='default') %}
+{% let method_upper = method |> upper ?? 'GET' %}
+{% let method_lower = method |> lower ?? 'get' %}
+{% spaceless %}
+<span class="api-method api-method--{{ size }} api-method--{{ method_lower }}">{{ method_upper }}</span>
+{% end %}
+{% end %}
+
+{% def playground_bar(method, path, deprecated=false, base_url='') %}
+{% let method_upper = method |> upper ?? 'GET' %}
+{% let method_lower = method |> lower ?? 'get' %}
+{% let is_deprecated = deprecated ?? false %}
+{% let api_base = base_url ?? '' %}
+
+<div class="api-playground-bar{% if is_deprecated %} api-playground-bar--deprecated{% end %}">
+  <div class="api-playground-bar__method-path">
+    {% spaceless %}
+    <span class="api-method api-method--{{ method_lower }}">{{ method_upper }}</span>
+    {% end %}
+    <code class="api-playground-bar__path">{% spaceless %}
+      {{ path | highlight_path_params | safe }}
+    {% end %}</code>
+  </div>
+  <button
+    class="api-playground-bar__copy"
+    data-copy="{{ api_base }}{{ path }}"
+    aria-label="Copy endpoint URL"
+    title="Copy endpoint URL"
+  >
+    {{ icon('copy', size=14) }}
+    <span class="api-playground-bar__copy-text">Copy</span>
+  </button>
+</div>
+
+{% if is_deprecated %}
+<div class="api-deprecated-banner" role="alert">
+  {{ icon('alert-triangle', size=16) }}
+  <span>This endpoint is deprecated and may be removed in a future version.</span>
+</div>
+{% end %}
+{% end %}
+
+{% def param_row(param) %}
+{% let name = param?.name ?? 'unnamed' %}
+{% let type = param?.schema_type ?? 'string' %}
+{% let location = param?.location ?? 'query' %}
+{% let is_required = param?.required ?? false %}
+{% let description = param?.description ?? '' %}
+{% let default_val = param?.default %}
+{% let enum_vals = param?.enum %}
+{% let example = param?.example %}
+
+<div class="api-param-row{% if is_required %} api-param-row--required{% end %}" data-required="{{ is_required }}">
+  <div class="api-param-row__meta">
+    <code class="api-param-row__name">{{ name }}</code>
+    <span class="api-param-row__type">{{ type }}</span>
+    {% spaceless %}
+    <div class="api-param-row__badges">
+      {% if is_required %}
+      <span class="badge badge--danger-subtle badge--sm">required</span>
+      {% end %}
+      <span class="badge badge--outline badge--sm">{{ location }}</span>
+    </div>
+    {% end %}
+  </div>
+  {% if description %}
+  <div class="api-param-row__description">
+    {{ description | markdownify | safe }}
+  </div>
+  {% end %}
+  {% with default_val as default %}
+  <div class="api-param-row__default">
+    <span class="api-param-row__label">Default:</span>
+    <code>{{ default }}</code>
+  </div>
+  {% end %}
+  {% with enum_vals as enums %}
+  {% if enums | length > 0 %}
+  <div class="api-param-row__enum">
+    <span class="api-param-row__label">Allowed:</span>
+    {% spaceless %}
+    {% for val in enums %}
+    <code class="api-param-row__enum-value">{{ val }}</code>{% if not loop.last %} {% end %}
+    {% end %}
+    {% end %}
+  </div>
+  {% end %}
+  {% end %}
+  {% with example as ex %}
+  <div class="api-param-row__example">
+    <span class="api-param-row__label">Example:</span>
+    <code>{{ ex }}</code>
+  </div>
+  {% end %}
+</div>
+{% end %}
+
+{% def param_groups_section(parameters) %}
+{% let by_loc = parameters | group_by('location') %}
+{{ param_group('Path Parameters', 'link', by_loc.path | default([], true)) }}
+{{ param_group('Query Parameters', 'filter', by_loc.query | default([], true)) }}
+{{ param_group('Header Parameters', 'file-text', by_loc.header | default([], true)) }}
+{{ param_group('Cookie Parameters', 'disc', by_loc.cookie | default([], true)) }}
+{% end %}
+
+{% def param_group(title, icon_name, params) %}
+{% if params | length > 0 %}
+<div class="api-endpoint__param-group">
+  <h3 class="api-endpoint__param-group-title">
+    {{ icon(icon_name, size=14) }}
+    {{ title }}
+  </h3>
+  <div class="api-endpoint__param-list">
+    {% for p in params %}
+    {{ param_row(p) }}
+    {% end %}
+  </div>
+</div>
+{% end %}
+{% end %}
+
+{% def section_panel(title) %}
+<section class="api-endpoint__section autodoc-section">
+  <h2 class="api-endpoint__section-title">{{ title }}</h2>
+  {% slot %}
+</section>
+{% end %}
+
+{% def endpoint_card(ep) %}
+{% let use_link = (ep?.has_page ?? true) and ep?.href %}
+{% if use_link %}
+<a href="{{ ep.href }}" class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
+{% else %}
+<div class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
+{% end %}
+  <div class="autodoc-card-header">
+    {% spaceless %}
+    {{ method_badge(ep.method, size='sm') }}
+    {% end %}
+    <code class="autodoc-card-name">{{ ep.path | highlight_path_params | safe }}</code>
+  </div>
+  {% if ep.summary %}
+  <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
+  {% end %}
+  {% if ep.deprecated %}
+  <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
+  {% end %}
+{% if use_link %}
+</a>
+{% else %}
+</div>
+{% end %}
+{% end %}
+
+{% def schema_card(schema) %}
+<a href="{{ schema.href }}" class="autodoc-card">
+  <div class="autodoc-card-header">
+    <code class="autodoc-card-name">{{ schema.name }}</code>
+    <span class="badge badge--outline badge--sm">{{ schema.schema_type }}</span>
+  </div>
+  {% if schema.description %}
+  <p class="autodoc-card-desc">{{ schema.description | truncate(80) }}</p>
+  {% end %}
+</a>
+{% end %}

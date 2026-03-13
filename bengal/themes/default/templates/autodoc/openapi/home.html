@@ -30,6 +30,8 @@ Kida Features:
 #}
 {% extends 'autodoc/openapi/layouts/reference.html' %}
 
+{% from 'autodoc/openapi/_components.html' import endpoint_card, schema_card %}
+
 {# Access metadata from section (set by section_builders.py) #}
 {% let sec_meta = section?.metadata ?? {} %}
 {% let api_title = section?.title ?? page?.title ?? 'API Reference' %}
@@ -199,20 +201,7 @@ Kida Features:
     </header>
     <div class="autodoc-cards">
       {% for ep in tag_endpoints %}
-      <a href="{{ ep.href }}" class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
-        <div class="autodoc-card-header">
-          {% spaceless %}
-          <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
-          {% end %}
-          <code class="autodoc-card-name">{{ ep.path }}</code>
-        </div>
-        {% if ep.summary %}
-        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
-        {% end %}
-        {% if ep.deprecated %}
-        <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
-        {% end %}
-      </a>
+      {{ endpoint_card(ep) }}
       {% end %}
     </div>
   </section>
@@ -226,20 +215,7 @@ Kida Features:
     <h2 class="api-home__section-title">{{ icon('list', size=18) }} Endpoints</h2>
     <div class="autodoc-cards">
       {% for ep in eps %}
-      <a href="{{ ep.href }}" class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
-        <div class="autodoc-card-header">
-          {% spaceless %}
-          <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
-          {% end %}
-          <code class="autodoc-card-name">{{ ep.path }}</code>
-        </div>
-        {% if ep.summary %}
-        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
-        {% end %}
-        {% if ep.deprecated %}
-        <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
-        {% end %}
-      </a>
+      {{ endpoint_card(ep) }}
       {% end %}
     </div>
   </section>
@@ -251,15 +227,7 @@ Kida Features:
     <h2 class="api-home__section-title">{{ icon('database', size=18) }} Schemas</h2>
     <div class="autodoc-cards">
       {% for schema in schs %}
-      <a href="{{ schema.href }}" class="autodoc-card">
-        <div class="autodoc-card-header">
-          <code class="autodoc-card-name">{{ schema.name }}</code>
-          <span class="badge badge--outline badge--sm">{{ schema.schema_type }}</span>
-        </div>
-        {% if schema.description %}
-        <p class="autodoc-card-desc">{{ schema.description | truncate(80) }}</p>
-        {% end %}
-      </a>
+      {{ schema_card(schema) }}
       {% end %}
     </div>
   </section>

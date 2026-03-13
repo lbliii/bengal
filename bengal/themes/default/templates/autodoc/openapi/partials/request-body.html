@@ -20,6 +20,8 @@ Kida Features:
 - {% spaceless %} for compact badge output
 - Optional chaining (?.) and null coalescing (??)
 #}
+{% from 'autodoc/openapi/_schema.html' import schema_viewer %}
+
 {% let content_type = request_body?.content_type ?? 'application/json' %}
 {% let is_required = request_body?.required ?? false %}
 {% let description = request_body?.description ?? '' %}
@@ -60,8 +62,8 @@ Kida Features:
 
   {# Inline Schema Viewer #}
   {% with inline_schema as s %}
-  {% let schema = s %}
-  {% let depth = 0 %}
-  {% include 'autodoc/openapi/partials/schema-viewer.html' %}
+  {% if s %}
+  {{ schema_viewer(s, name=none, depth=0) }}
+  {% end %}
   {% end %}
 </section>
