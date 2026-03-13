@@ -74,6 +74,7 @@ autodoc:
   openapi:
     enabled: true
     spec_file: "api/openapi.yaml"  # Relative to site root
+    consolidate: false  # Individual endpoint pages with three-column explorer layout
 
     # Output prefix for OpenAPI docs
     # Empty string = auto-derive from spec title "Bengal Demo Commerce API"
