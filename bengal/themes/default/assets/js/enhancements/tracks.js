@@ -40,8 +40,7 @@
     trackSection: '[data-track-section]',
     sectionTarget: '.track-section',
     tocSidebar: '.track-layout .toc-sidebar',
-    // Only select top-level section groups (not nested groups within sections)
-    tocSectionGroup: '.toc-group[data-toc-section]'
+    tocSectionGroup: '.track-toc-section'
   };
 
   // ============================================================================
@@ -214,10 +213,16 @@
       tocGroups.forEach((group, index) => {
         if (index === currentSectionIndex) {
           group.setAttribute('data-toc-active', '');
+          group.removeAttribute('hidden');
         } else {
           group.removeAttribute('data-toc-active');
+          group.setAttribute('hidden', '');
         }
       });
+
+      if (window.BengalTOC && typeof window.BengalTOC.syncScope === 'function') {
+        window.BengalTOC.syncScope();
+      }
     }
 
     // Announce section change to screen readers (non-intrusively)

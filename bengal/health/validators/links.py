@@ -149,7 +149,7 @@ class LinkValidator:
         """
         Build an index of all source paths for resolving relative links.
 
-        Used to validate relative links like ./sibling.md against actual source files.
+        Used to validate relative links like ``./sibling.md`` against actual source files.
         Uses content_key for consistent path format (discovery vs resolved target).
 
         Args:
@@ -317,7 +317,11 @@ class LinkValidator:
             return True
 
         page_url = str(page_url)
-        resolved_path = resolve_internal_link(page_url, str(parsed.path))
+        resolved_path = resolve_internal_link(
+            page_url,
+            str(parsed.path),
+            getattr(page, "source_path", None),
+        )
         variants = resolved_path_url_variants(resolved_path)
 
         # Check if any variant matches a known page URL
@@ -349,9 +353,9 @@ class LinkValidator:
         Validate a relative link to a .md file by resolving against source path.
 
         This handles common markdown patterns like:
-        - [sibling](./sibling.md)
-        - [parent](../parent.md)
-        - [index](./_index.md)
+        - ``[sibling](./sibling.md)``
+        - ``[parent](../parent.md)``
+        - ``[index](./_index.md)``
 
         Args:
             link_path: The relative path (e.g., "./sibling.md")

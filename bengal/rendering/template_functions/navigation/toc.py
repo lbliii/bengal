@@ -1,7 +1,7 @@
 """
 Table of contents helper functions.
 
-Provides get_toc_grouped(), build_toc_tree(), and combine_track_toc_items() for TOC generation.
+Provides helpers for grouped TOCs, nested TOC trees, and track-aware TOC generation.
 """
 
 from __future__ import annotations
@@ -191,6 +191,64 @@ def get_toc_grouped(
         groups.append(current_group)
 
     return groups
+
+
+def build_track_toc_sections(track_items: list[str], get_page_func: Any) -> list[dict[str, Any]]:
+    """
+    Build one TOC tree per track section page.
+
+    Track pages embed multiple articles into a single pillar page. Each article keeps
+    its own TOC, but heading IDs must be prefixed to remain unique after embedding.
+    This helper returns per-section TOC trees so the UI can swap between article TOCs
+    as the reader scrolls through the track.
+
+    Args:
+        track_items: List of page paths/slugs for track items
+        get_page_func: Function to get page by path (from template context)
+
+    Returns:
+        List of track section dictionaries with:
+        - section_number: 1-based section index
+        - section_id: DOM ID for the embedded section container
+        - title: Section/article title
+        - items: Nested TOC tree for that article with prefixed heading IDs
+
+    """
+    sections: list[dict[str, Any]] = []
+    page_cache: dict[str, Any] = {}
+
+    for index, item_slug in enumerate(track_items, start=1):
+        if item_slug not in page_cache:
+            page_cache[item_slug] = get_page_func(item_slug)
+        page = page_cache[item_slug]
+
+        if not page:
+            continue
+
+        section_prefix = f"s{index}-"
+        prefixed_items: list[dict[str, Any]] = []
+
+        if hasattr(page, "toc_items") and page.toc_items:
+            for toc_item in page.toc_items:
+                original_id = toc_item.get("id", "")
+                prefixed_items.append(
+                    {
+                        "id": f"{section_prefix}{original_id}" if original_id else "",
+                        "title": toc_item.get("title", ""),
+                        "level": toc_item.get("level", 1),
+                    }
+                )
+
+        sections.append(
+            {
+                "section_number": index,
+                "section_id": f"track-section-{index}",
+                "title": getattr(page, "title", "") or f"Section {index}",
+                "items": build_toc_tree(prefixed_items),
+            }
+        )
+
+    return sections
 
 
 def combine_track_toc_items(track_items: list[str], get_page_func: Any) -> list[dict[str, Any]]:

@@ -286,13 +286,22 @@ summary.toc-group-header {
     align-items: center;
     gap: 0.5rem;
     padding: 0;
-    padding-inline-end: 0.25rem; /* Add small padding to prevent shadow clipping */
+    padding-inline-end: 0.25rem;
     background: transparent;
     min-width: 0;
     cursor: pointer;
     list-style: none; /* Remove default disclosure marker */
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+}
+
+.toc-group-caret {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-tertiary);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+    flex-shrink: 0;
 }
 
 /* Remove default marker in all browsers */
@@ -309,6 +318,10 @@ summary.toc-group-header:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
     border-radius: var(--border-radius-small);
+}
+
+details.toc-group[open] .toc-group-caret {
+    transform: rotate(90deg);
 }
 
 /* Count badge (was button, now just a span) */

@@ -34,16 +34,120 @@
   let tocItems = [];
   let progressBar = null;
   let progressPosition = null;
+  let tocSidebar = null;
   let tocNav = null;
   let tocGroups = [];
   let tocScrollContainer = null;
   let headings = [];
+  let currentScopeKey = '';
 
   // Store handlers for cleanup
   let scrollHandler = null;
   let hashChangeHandler = null;
   let resizeHandler = null;
   let keyboardHandler = null;
+  let smoothScrollHandler = null;
+
+  function getTrackActiveSection() {
+    if (!tocSidebar || tocSidebar.getAttribute('data-track-filtering') !== 'true') {
+      return null;
+    }
+
+    return tocSidebar.getAttribute('data-track-active-section');
+  }
+
+  function getActiveScope() {
+    if (!tocSidebar) {
+      return null;
+    }
+
+    const activeSection = getTrackActiveSection();
+    if (!activeSection) {
+      return tocSidebar;
+    }
+
+    return (
+      tocSidebar.querySelector(`.track-toc-section[data-track-toc-section="${activeSection}"]`)
+      || tocSidebar
+    );
+  }
+
+  function handleFocusChange(e) {
+    focusedIndex = allLinks.indexOf(e.currentTarget);
+  }
+
+  function syncKeyboardLinks() {
+    allLinks = Array.from(tocItems);
+
+    allLinks.forEach(link => {
+      if (link.hasAttribute('data-toc-focus-bound')) {
+        return;
+      }
+
+      link.addEventListener('focus', handleFocusChange);
+      link.setAttribute('data-toc-focus-bound', 'true');
+    });
+  }
+
+  function initGroupToggles() {
+    tocGroups.forEach(group => {
+      if (group.hasAttribute('data-toc-toggle-bound')) {
+        return;
+      }
+
+      const groupId = getGroupId(group);
+
+      group.addEventListener('toggle', () => {
+        if (group.open) {
+          if (groupId) collapsedGroups.delete(groupId);
+        } else {
+          if (groupId) collapsedGroups.add(groupId);
+        }
+        saveState();
+      });
+
+      group.setAttribute('data-toc-toggle-bound', 'true');
+    });
+  }
+
+  function syncScopedState(force = false) {
+    const scope = getActiveScope();
+    const scopeKey = getTrackActiveSection() || 'default';
+
+    if (!scope) {
+      tocItems = [];
+      tocGroups = [];
+      headings = [];
+      allLinks = [];
+      currentScopeKey = '';
+      currentActiveIndex = -1;
+      return;
+    }
+
+    if (!force && scopeKey === currentScopeKey) {
+      return;
+    }
+
+    currentScopeKey = scopeKey;
+    currentActiveIndex = -1;
+    tocItems = Array.from(scope.querySelectorAll('[data-toc-item]'));
+    tocGroups = Array.from(scope.querySelectorAll('details.toc-group'));
+    headings = tocItems
+      .map(item => {
+        const itemId = item.getAttribute('data-toc-item');
+        if (!itemId) {
+          return null;
+        }
+
+        const id = itemId.slice(1);
+        const element = document.getElementById(id);
+        return element ? { id, element, link: item } : null;
+      })
+      .filter(Boolean);
+
+    initGroupToggles();
+    syncKeyboardLinks();
+  }
 
   /**
    * Load state from localStorage
@@ -110,6 +214,10 @@
    * This prevents the browser from recalculating layout multiple times per frame.
    */
   function updateActiveItem() {
+    if (!headings.length) {
+      return;
+    }
+
     const viewportOffset = 120; // Offset from top of viewport
 
     // ========================================
@@ -149,16 +257,8 @@
     const activeHeading = headings[activeIndex];
     const activeLink = activeHeading ? activeHeading.link : null;
     const activeParentGroup = activeLink ? activeLink.closest('details.toc-group') : null;
-    const activeTrackSectionGroup = activeParentGroup
-      ? activeParentGroup.closest('details.toc-group[data-toc-section]')
-      : null;
-    const preserveTrackSectionGroups = (
-      activeTrackSectionGroup
-      && activeTrackSectionGroup.closest('.toc-sidebar')
-      && activeTrackSectionGroup.closest('.toc-sidebar').getAttribute('data-track-filtering') === 'true'
-    );
 
-    // Remove active class from all links
+    // Remove active class from all links, apply to active
     headings.forEach((heading, index) => {
       if (index === activeIndex) {
         heading.link.classList.add('active');
@@ -191,17 +291,6 @@
       // Collapse groups that are NOT ancestors of active item
       tocGroups.forEach(group => {
         if (ancestorGroups.has(group)) {
-          return;
-        }
-
-        // Track TOCs swap between top-level section groups as you scroll.
-        // Within the active track section, keep nested subsection groups expanded
-        // so the sidebar shows the full article TOC instead of only the section header.
-        if (preserveTrackSectionGroups && activeTrackSectionGroup.contains(group)) {
-          const activeSectionGroupId = getGroupId(group);
-          if (!group.open) {
-            expandGroup(group, activeSectionGroupId);
-          }
           return;
         }
 
@@ -272,27 +361,6 @@
       collapsedGroups.delete(groupId);
     }
     saveState();
-  }
-
-  /**
-   * Initialize group toggle handlers
-   * With native <details>/<summary>, the browser handles click toggling.
-   * We just need to track state changes for persistence.
-   */
-  function initGroupToggles() {
-    tocGroups.forEach(group => {
-      const groupId = getGroupId(group);
-
-      // Listen for native toggle events (for state persistence)
-      group.addEventListener('toggle', () => {
-        if (group.open) {
-          if (groupId) collapsedGroups.delete(groupId);
-        } else {
-          if (groupId) collapsedGroups.add(groupId);
-        }
-        saveState();
-      });
-    });
   }
 
   // ============================================================================
@@ -391,24 +459,38 @@
    * Initialize smooth scroll on TOC links
    */
   function initSmoothScroll() {
-    tocItems.forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        const id = item.getAttribute('data-toc-item').slice(1);
-        const target = document.getElementById(id);
+    if (!tocSidebar || tocSidebar.hasAttribute('data-toc-scroll-bound')) {
+      return;
+    }
 
-        if (target) {
-          const offsetTop = target.offsetTop - 100; // Account for fixed header
-          window.scrollTo({
-            top: offsetTop,
-            behavior: 'smooth'
-          });
+    smoothScrollHandler = (e) => {
+      const item = e.target.closest('[data-toc-item]');
+      if (!item || !tocSidebar.contains(item)) {
+        return;
+      }
 
-          // Update URL without jumping
-          history.replaceState(null, '', '#' + id);
-        }
-      });
-    });
+      e.preventDefault();
+      const tocItemId = item.getAttribute('data-toc-item');
+      if (!tocItemId) {
+        return;
+      }
+
+      const id = tocItemId.slice(1);
+      const target = document.getElementById(id);
+
+      if (target) {
+        const offsetTop = target.offsetTop - 100; // Account for fixed header
+        window.scrollTo({
+          top: offsetTop,
+          behavior: 'smooth'
+        });
+
+        history.replaceState(null, '', '#' + id);
+      }
+    };
+
+    tocSidebar.addEventListener('click', smoothScrollHandler);
+    tocSidebar.setAttribute('data-toc-scroll-bound', 'true');
   }
 
   // ============================================================================
@@ -424,6 +506,8 @@
   function handleKeydown(e) {
     // Only handle if focus is within TOC
     if (!document.querySelector('.toc-sidebar:focus-within')) return;
+
+    if (!allLinks.length) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -450,14 +534,7 @@
    * Initialize keyboard navigation
    */
   function initKeyboardNavigation() {
-    allLinks = Array.from(tocItems);
-
-    // Track focused link
-    allLinks.forEach((link, index) => {
-      link.addEventListener('focus', () => {
-        focusedIndex = index;
-      });
-    });
+    syncKeyboardLinks();
 
     keyboardHandler = handleKeydown;
     document.addEventListener('keydown', keyboardHandler);
@@ -480,22 +557,19 @@
    * Initialize the TOC
    */
   function initTOC() {
+    cleanup();
+
     // Cache DOM elements
-    tocItems = Array.from(document.querySelectorAll('[data-toc-item]'));
+    tocSidebar = document.querySelector('.toc-sidebar');
     progressBar = document.querySelector('.toc-progress-bar');
     progressPosition = document.querySelector('.toc-progress-position');
     tocNav = document.querySelector('.toc-nav');
-    tocGroups = Array.from(document.querySelectorAll('details.toc-group'));
     tocScrollContainer = document.querySelector('.toc-scroll-container');
+    scrollHandler = throttleScroll(updateOnScroll);
+
+    syncScopedState(true);
 
     if (!tocItems.length) return;
-
-    // Get all heading targets
-    headings = tocItems.map(item => {
-      const id = item.getAttribute('data-toc-item').slice(1);
-      const element = document.getElementById(id);
-      return element ? { id, element, link: item } : null;
-    }).filter(Boolean);
 
     if (!headings.length) return;
 
@@ -503,7 +577,6 @@
     loadState();
 
     // Initialize all features
-    initGroupToggles();
     initControlButtons();
     initSmoothScroll();
     initKeyboardNavigation();
@@ -543,6 +616,11 @@
       document.removeEventListener('keydown', keyboardHandler);
       keyboardHandler = null;
     }
+    if (smoothScrollHandler && tocSidebar) {
+      tocSidebar.removeEventListener('click', smoothScrollHandler);
+      tocSidebar.removeAttribute('data-toc-scroll-bound');
+      smoothScrollHandler = null;
+    }
   }
 
   // ============================================================================
@@ -571,6 +649,10 @@
     init: initTOC,
     cleanup: cleanup,
     updateActiveItem: updateActiveItem,
+    syncScope: () => {
+      syncScopedState(true);
+      updateActiveItem();
+    },
     expandAll: () => {
       tocGroups.forEach(group => {
         const groupId = getGroupId(group);

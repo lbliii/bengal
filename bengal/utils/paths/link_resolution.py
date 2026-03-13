@@ -9,6 +9,7 @@ Used by: bengal/health/validators/links.py
 
 from __future__ import annotations
 
+from pathlib import Path
 from urllib.parse import urljoin
 
 from bengal.utils.paths.url_normalization import split_url_path
@@ -41,7 +42,29 @@ def parent_url_from_page_url(page_url: str) -> str:
     return page_url if page_url.endswith("/") else page_url + "/"
 
 
-def resolve_internal_link(page_url: str, link_path: str) -> str:
+def base_url_for_relative_link(page_url: str, source_path: str | Path | None = None) -> str:
+    """
+    Pick the correct base URL for resolving a relative internal link.
+
+    Section index pages (`_index.md`) own a directory URL, so `./child/` should
+    resolve from the page URL itself. Regular pages map to a leaf URL, so
+    sibling links must resolve from the parent section URL instead.
+
+    Args:
+        page_url: URL of page containing the link
+        source_path: Source content path for the page, when available
+
+    Returns:
+        Base URL to pass to `urljoin`
+    """
+    if source_path is not None and Path(source_path).name == "_index.md":
+        return page_url if page_url.endswith("/") else page_url + "/"
+    return parent_url_from_page_url(page_url)
+
+
+def resolve_internal_link(
+    page_url: str, link_path: str, source_path: str | Path | None = None
+) -> str:
     """
     Resolve relative link against parent of page URL; normalize for matching.
 
@@ -51,11 +74,12 @@ def resolve_internal_link(page_url: str, link_path: str) -> str:
     Args:
         page_url: URL of page containing the link
         link_path: Relative path from parsed link (e.g. "./directives/", "sibling.md")
+        source_path: Source content path for the page, when available
 
     Returns:
         Resolved path normalized for URL matching (no .md, no fragment)
     """
-    base_url = parent_url_from_page_url(page_url)
+    base_url = base_url_for_relative_link(page_url, source_path)
     resolved = urljoin(base_url, link_path)
 
     # Strip fragment for URL matching

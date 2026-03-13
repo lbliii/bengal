@@ -1,12 +1,8 @@
 """Reference roles for cross-linking.
 
 Provides roles for linking to other parts of the documentation:
-- ref: Reference to a labeled target
-- doc: Reference to another document
-
-Example:
-See {ref}`installation-guide` for setup.
-Read the {doc}`/getting-started` guide.
+- `ref`: Reference to a labeled target
+- `doc`: Reference to another document
 
 """
 
@@ -23,14 +19,14 @@ if TYPE_CHECKING:
 
 
 class RefRole:
-    """Handler for {ref}`target` role.
+    """Handler for the `ref` role.
 
     Creates a cross-reference to a labeled target. The target
     is resolved during rendering based on the document structure.
 
     Syntax:
-        {ref}`target` - Uses target as both ID and display text
-        {ref}`display text <target>` - Custom display text
+        `target` - Uses target as both ID and display text
+        `display text <target>` - Custom display text
 
     Thread Safety:
         Stateless handler. Safe for concurrent use.
@@ -86,14 +82,14 @@ class RefRole:
 
 
 class DocRole:
-    """Handler for {doc}`path` role.
+    """Handler for the `doc` role.
 
     Creates a link to another document. The path is resolved
     relative to the current document.
 
     Syntax:
-        {doc}`/path/to/doc` - Link to document
-        {doc}`display text </path/to/doc>` - Custom display text
+        `/path/to/doc` - Link to document
+        `display text </path/to/doc>` - Custom display text
 
     Thread Safety:
         Stateless handler. Safe for concurrent use.
@@ -136,9 +132,11 @@ class DocRole:
         target = node.target or node.content
         display = node.content
 
-        # Convert to .html extension for static site
+        # Normalize document references to Bengal's clean URL form.
+        if target.endswith(".md"):
+            target = target[:-3]
         if not target.endswith(".html") and not target.endswith("/"):
-            target = target.rstrip(".md") + ".html"
+            target = target + "/"
 
         sb.append(f'<a class="reference internal" href="{html_escape(target)}">')
         sb.append(html_escape(display))

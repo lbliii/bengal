@@ -110,7 +110,7 @@ def transform_internal_links(html: str, config: dict[str, Any]) -> str:
         `bengal.rendering.pipeline.unified_transform` instead.
         This function is retained for backward compatibility and benchmarking.
 
-    This handles standard markdown links like [text](/path/) by prepending
+    This handles standard markdown links like ``[text](/path/)`` by prepending
     the configured baseurl. Essential for GitHub Pages project sites and
     similar deployments where the site is not at the domain root.
 

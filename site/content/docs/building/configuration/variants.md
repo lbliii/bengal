@@ -195,5 +195,5 @@ jobs:
 ## See Also
 
 - [Configuration](./) — Base configuration
-- [Deployment](../../deployment/) — Deploying variant sites
+- [Deployment](/docs/building/deployment/) — Deploying variant sites
 - [GitHub Actions](/docs/tutorials/operations/automate-with-github-actions/) — CI/CD for variants

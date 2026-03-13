@@ -10,7 +10,7 @@ COMPONENTS:
 - pagination(current_page, total_pages, base_url): Page number controls
 - page_navigation(page): Sequential prev/next page links
 - section_navigation(page): Section statistics and subsection cards
-- toc(toc_items, toc, page): Table of contents sidebar
+- toc(toc_items, page): Table of contents sidebar
 
 KIDA FEATURES USED:
 - {% def %} for reusable macros
@@ -245,8 +245,9 @@ KIDA FEATURES SHOWCASED:
 - {% break %} for early loop termination (contributor limit)
 ============================================================================= #}
 
-{# HELPER: Render a single TOC node (recursive) #}
-{% def toc_node(node) %}
+{# HELPER: Render a single TOC node (recursive)
+   is_section: marks top-level section groups for track filtering (default false) #}
+{% def toc_node(node, is_section=false) %}
 {% let node_id = node?.id ?? '' %}
 {% let node_title = node?.title ?? '' %}
 {% let node_level = node?.level ?? 2 %}
@@ -257,40 +258,68 @@ KIDA FEATURES SHOWCASED:
 <li class="toc-item toc-level-{{ node_level }}" role="treeitem" data-level="{{ node_level }}">
   {% if has_children %}
   {# Auto-expand based on heading level using match #}
+  {# Add data-toc-section for top-level groups (used by track filtering) #}
   {% match node_level %}
-  {% case 1 %}<details class="toc-group" open>
-    {% case 2 %}<details class="toc-group" open>
-      {% case _ %}<details class="toc-group">
-        {% end %}
-        <summary class="toc-group-header">
-          <a href="#{{ node_id }}" class="toc-link" data-toc-item="#{{ node_id }}">
-            {{ node_title }}
-          </a>
-          {% spaceless %}
-          <span class="toc-count-badge" title="{{ children | length }} subsections">
-            <span class="toc-count">{{ children | length }}</span>
-          </span>
-          {% end %}
-        </summary>
-        <ul class="toc-subitems" role="group">
-          {% for child in children %}
-          {{ toc_node(child) }}
-          {% end %}
-        </ul>
-      </details>
-      {% else %}
-      <a href="#{{ node_id }}" class="toc-link" data-toc-item="#{{ node_id }}">
+  {% case 1 %}<details class="toc-group" {{ 'data-toc-section' if is_section else '' }} open>
+  {% case 2 %}<details class="toc-group" {{ 'data-toc-section' if is_section else '' }} open>
+  {% case _ %}<details class="toc-group">
+  {% end %}
+    <summary class="toc-group-header">
+      <span class="toc-group-caret" aria-hidden="true">
+        {{ icon('caret-right', size=12) }}
+      </span>
+      <a href="#{{ node_id }}" class="toc-link toc-link-h2" data-toc-item="#{{ node_id }}">
         {{ node_title }}
       </a>
+      {% spaceless %}
+      <span class="toc-count-badge" title="{{ children | length }} subsections">
+        <span class="toc-count">{{ children | length }}</span>
+      </span>
       {% end %}
+    </summary>
+    <ul class="toc-subitems" role="group">
+      {% for child in children %}
+      {{ toc_node(child) }}
+      {% end %}
+    </ul>
+  </details>
+  {% else %}
+  <a href="#{{ node_id }}" class="toc-link" data-toc-item="#{{ node_id }}">
+    {{ node_title }}
+  </a>
+  {% end %}
 </li>
 {% end %}
 {% enddef %}
 
-{% def toc(toc_items=none, toc=none, page=none) %}
+{% def track_toc_section(section, is_active=false) %}
+{% let section_number = section?.section_number ?? 0 %}
+{% let section_id = section?.section_id ?? ('track-section-' ~ section_number) %}
+{% let section_title = section?.title ?? 'Section' %}
+{% let section_items = section?.items ?? [] %}
+<div class="track-toc-section" data-track-toc-section="{{ section_number }}" {{ 'data-toc-active' if is_active else '' }} aria-label="{{ section_title }}">
+  {% if section_items | length > 0 %}
+  <ul class="toc-items" role="tree">
+    {% for item in section_items %}
+    {{ toc_node(item, is_section=true) }}
+    {% end %}
+  </ul>
+  {% else %}
+  <ul class="toc-items" role="tree">
+    <li class="toc-item toc-level-1" role="treeitem" data-level="1">
+      <a href="#{{ section_id }}" class="toc-link" data-toc-item="#{{ section_id }}">
+        {{ section_title }}
+      </a>
+    </li>
+  </ul>
+  {% end %}
+</div>
+{% enddef %}
+
+{% def toc(toc_items=none, page=none, track_toc_sections=none) %}
 {# Cache TOC rendering per-page for performance #}
 {% cache 'toc-' ~ (page?._path ?? 'unknown') %}
-<div class="toc-sidebar" data-bengal="toc">
+<div class="toc-sidebar" data-bengal="toc" {{ 'data-track-filtering="true" data-track-active-section="1"' if track_toc_sections else '' }}>
   {# Scroll Progress Indicator #}
   <div class="toc-progress" aria-hidden="true">
     <div class="toc-progress-bar"></div>
@@ -298,7 +327,13 @@ KIDA FEATURES SHOWCASED:
 
   {# Table of Contents #}
   <nav class="toc-nav" aria-label="Table of contents" data-toc-mode="normal">
-    {% if toc_items %}
+    {% if track_toc_sections %}
+    <div class="toc-scroll-container">
+      {% for section in track_toc_sections %}
+      {{ track_toc_section(section, is_active=loop.first) }}
+      {% end %}
+    </div>
+    {% elif toc_items %}
     {# Build nested tree structure for proper children/count badge display #}
     {% let nested_items = build_toc_tree(toc_items) %}
     <div class="toc-scroll-container">
@@ -307,11 +342,6 @@ KIDA FEATURES SHOWCASED:
         {{ toc_node(item) }}
         {% end %}
       </ul>
-    </div>
-    {% elif toc %}
-    {# Fallback to HTML TOC #}
-    <div class="toc-content">
-      {{ toc | safe }}
     </div>
     {% end %}
   </nav>

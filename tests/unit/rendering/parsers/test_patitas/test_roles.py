@@ -12,6 +12,7 @@ from bengal.parsing.backends.patitas.roles import (
 )
 from bengal.parsing.backends.patitas.roles.builtins import (
     AbbrRole,
+    DocRole,
     KbdRole,
     MathRole,
     RefRole,
@@ -148,6 +149,36 @@ class TestRoleHandlers:
 
         assert role.content == "HTML"
         assert role.target == "HyperText Markup Language"
+
+    def test_doc_role_renders_clean_url(self) -> None:
+        """Doc role normalizes bare targets to clean Bengal URLs."""
+        handler = DocRole()
+        from patitas.location import SourceLocation
+        from patitas.stringbuilder import StringBuilder
+
+        loc = SourceLocation(1, 1)
+        role = handler.parse("doc", "/getting-started", loc)
+
+        sb = StringBuilder()
+        handler.render(role, sb)
+        html = sb.build()
+
+        assert 'href="/getting-started/"' in html
+
+    def test_doc_role_strips_md_suffix(self) -> None:
+        """Doc role removes a literal .md suffix before rendering."""
+        handler = DocRole()
+        from patitas.location import SourceLocation
+        from patitas.stringbuilder import StringBuilder
+
+        loc = SourceLocation(1, 1)
+        role = handler.parse("doc", "/guides/install.md", loc)
+
+        sb = StringBuilder()
+        handler.render(role, sb)
+        html = sb.build()
+
+        assert 'href="/guides/install/"' in html
 
     def test_math_role(self) -> None:
         """Math role preserves content."""

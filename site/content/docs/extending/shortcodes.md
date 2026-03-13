@@ -29,7 +29,7 @@ Shortcodes are template-based content components you can add without writing Pyt
 - You need parent-child nesting (e.g., `:::{step}` inside `:::{steps}`)
 - You want structured errors and build-time safety
 
-See [Custom Directives](../custom-directives/) for the Python path.
+See [Custom Directives](/docs/extending/custom-directives/) for the Python path.
 
 ## Notation: Markdown vs Standard
 
@@ -228,6 +228,6 @@ Copy-paste snippets for common patterns.
 
 ## Related
 
-- [Custom Directives](../custom-directives/) — Python-based directives with validation
-- [Theme Customization](../theme-customization/) — Override templates
+- [Custom Directives](/docs/extending/custom-directives/) — Python-based directives with validation
+- [Theme Customization](/docs/extending/theme-customization/) — Override templates
 - [Kida Syntax](/docs/theming/templating/kida/syntax/) — Template language reference

@@ -13,6 +13,7 @@ import pytest
 
 from bengal.rendering.template_functions.navigation import (
     build_toc_tree,
+    build_track_toc_sections,
     get_nav_context,
     get_nav_tree,
     get_pagination_items,
@@ -226,6 +227,65 @@ class TestBuildTocTree:
 
         assert len(result) == 3
         assert all(item["children"] == [] for item in result)
+
+
+class TestBuildTrackTocSections:
+    """Test per-section TOC generation for track pages."""
+
+    def test_empty_track_returns_empty_list(self):
+        """Empty track items return no TOC sections."""
+        assert build_track_toc_sections([], Mock()) == []
+
+    def test_builds_prefixed_toc_tree_per_section(self):
+        """Each track item keeps its own TOC tree with prefixed IDs."""
+        install_page = Mock()
+        install_page.title = "Install Bengal"
+        install_page.toc_items = [
+            {"id": "get-started", "title": "Get Started", "level": 1},
+            {"id": "install", "title": "Install", "level": 2},
+            {"id": "verify", "title": "Verify", "level": 2},
+        ]
+
+        deploy_page = Mock()
+        deploy_page.title = "Deployment"
+        deploy_page.toc_items = [
+            {"id": "deploy", "title": "Deploy", "level": 1},
+            {"id": "github-pages", "title": "GitHub Pages", "level": 2},
+        ]
+
+        pages = {
+            "install": install_page,
+            "deploy": deploy_page,
+        }
+        get_page = Mock(side_effect=lambda slug: pages.get(slug))
+
+        result = build_track_toc_sections(["install", "deploy"], get_page)
+
+        assert [section["section_number"] for section in result] == [1, 2]
+        assert result[0]["section_id"] == "track-section-1"
+        assert result[0]["title"] == "Install Bengal"
+        assert result[0]["items"][0]["id"] == "s1-get-started"
+        assert [child["id"] for child in result[0]["items"][0]["children"]] == [
+            "s1-install",
+            "s1-verify",
+        ]
+        assert result[1]["section_id"] == "track-section-2"
+        assert result[1]["items"][0]["id"] == "s2-deploy"
+        assert result[1]["items"][0]["children"][0]["id"] == "s2-github-pages"
+
+    def test_skips_missing_track_pages(self):
+        """Missing pages are omitted from the rendered track TOC."""
+        page = Mock()
+        page.title = "Writer Quickstart"
+        page.toc_items = [{"id": "intro", "title": "Intro", "level": 1}]
+
+        get_page = Mock(side_effect=lambda slug: page if slug == "writer" else None)
+
+        result = build_track_toc_sections(["writer", "missing"], get_page)
+
+        assert len(result) == 1
+        assert result[0]["title"] == "Writer Quickstart"
+        assert result[0]["items"][0]["id"] == "s1-intro"
 
 
 class TestGetPaginationItems:
