@@ -235,6 +235,7 @@ build-prod = { cmd = "bengal build -e production", help = "Build with production
 test = { cmd = "pytest", help = "Run full test suite" }
 test-unit = { cmd = "pytest tests/unit/ -x -q", help = "Run unit tests only (fast)" }
 test-integration = { cmd = "pytest tests/integration/ -x -q --timeout=30", help = "Run integration tests" }
+test-e2e = { cmd = "pytest tests/e2e/ -v -m e2e --tb=short -n 0", help = "Run E2E tests (build + validate)" }
 test-fast = { cmd = "pytest tests/ -x -q --ignore=tests/e2e --ignore=tests/integration", help = "Fast feedback loop (unit only)" }
 test-cov = { cmd = "pytest tests/ --cov=bengal --cov-report=term-missing", help = "Run tests with coverage" }
 test-parallel = { cmd = "pytest tests/ -n auto -x -q", help = "Run tests in parallel (pytest-xdist)" }

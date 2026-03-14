@@ -63,7 +63,7 @@ Kida Features:
         {% let ep_method = ep_meta?.method ?? 'GET' %}
         {% let ep_path = ep_meta?.path ?? ep_page?.title ?? '' %}
         {% let is_deprecated = ep_meta?.deprecated ?? false %}
-        {% let is_active = current_page?.href == ep_page?.href %}
+        {% let is_active = page?.href == ep_page?.href %}
 
         <li class="api-sidebar-nav__endpoint{% if is_active %} api-sidebar-nav__endpoint--active{% end %}{% if is_deprecated %} api-sidebar-nav__endpoint--deprecated{% end %}">
           <a href="{{ ep_page?.href ?? '#' }}" class="api-sidebar-nav__link">
@@ -91,7 +91,7 @@ Kida Features:
       {% let ep_method = ep_meta?.method ?? 'GET' %}
       {% let ep_path = ep_meta?.path ?? ep_page?.title ?? '' %}
       {% let is_deprecated = ep_meta?.deprecated ?? false %}
-      {% let is_active = current_page?.href == ep_page?.href %}
+      {% let is_active = page?.href == ep_page?.href %}
 
       <li class="api-sidebar-nav__endpoint{% if is_active %} api-sidebar-nav__endpoint--active{% end %}{% if is_deprecated %} api-sidebar-nav__endpoint--deprecated{% end %}">
         <a href="{{ ep_page?.href ?? '#' }}" class="api-sidebar-nav__link">

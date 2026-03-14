@@ -32,20 +32,17 @@ Kida Features:
 
 {% from 'autodoc/openapi/_components.html' import endpoint_card, schema_card %}
 
-{# Access metadata from section (set by section_builders.py) #}
+{% block sidebar %}
+<aside class="api-reference__sidebar" role="navigation" aria-label="API navigation">
+  {% include 'autodoc/openapi/partials/sidebar-nav.html' %}
+</aside>
+{% end %}
+
+{% block header %}
 {% let sec_meta = section?.metadata ?? {} %}
 {% let api_title = section?.title ?? page?.title ?? 'API Reference' %}
 {% let api_version = sec_meta?.version ?? '1.0.0' %}
-{% let servers = sec_meta?.servers ?? () %}
-{% let security_schemes = sec_meta?.security_schemes ?? {} %}
-{% let tags = sec_meta?.tags ?? () %}
 {% let description = sec_meta?.description ?? '' %}
-
-{# Use filters for normalized access #}
-{% let eps = section | endpoints %}
-{% let schs = section | schemas %}
-
-{% block header %}
 <h1 class="api-home__title">{{ api_title }}</h1>
 
 {% if api_version %}
@@ -62,8 +59,14 @@ Kida Features:
 {% end %}
 
 {% block content_main %}
+{% let sec_meta = section?.metadata ?? {} %}
+{% let servers = sec_meta?.servers ?? () %}
+{% let security_schemes = sec_meta?.security_schemes ?? {} %}
+{% let tags = sec_meta?.tags ?? () %}
+{% let eps = section | endpoints %}
+{% let schs = section | schemas %}
+
 <div class="api-home" data-autodoc="openapi" data-element="home">
-  {# Quick Stats #}
   {% let endpoint_count = eps | length %}
   {% let schema_count = schs | length %}
   {% let tag_count = tags | length %}

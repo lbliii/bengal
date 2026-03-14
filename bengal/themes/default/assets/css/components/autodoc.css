@@ -1770,6 +1770,25 @@ body[data-type="autodoc-rest"] #main-content {
   margin-bottom: var(--autodoc-section-gap);
 }
 
+/* Reference layout with sidebar (home page) */
+.api-reference:has(.api-reference__sidebar) {
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  gap: var(--autodoc-gap);
+  max-width: none;
+  padding: var(--space-6);
+}
+
+.api-reference__sidebar {
+  position: sticky;
+  top: var(--space-4);
+  height: fit-content;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  padding-right: var(--space-4);
+  border-right: 1px solid var(--autodoc-border);
+}
+
 /* ============================================
    HTTP METHOD BADGES
    ============================================ */
@@ -2816,6 +2835,14 @@ body[data-type="autodoc-rest"] #main-content {
   }
 
   .api-explorer__sidebar {
+    display: none;
+  }
+
+  .api-reference:has(.api-reference__sidebar) {
+    grid-template-columns: 1fr;
+  }
+
+  .api-reference__sidebar {
     display: none;
   }
 
