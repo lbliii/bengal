@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.hashing import compute_doc_content_hash
+from bengal.autodoc.models.common import MetadataView
 from bengal.autodoc.orchestration.result import AutodocRunResult
 from bengal.autodoc.utils import (
     format_source_file_for_display,
@@ -40,13 +41,6 @@ logger = get_logger(__name__)
 # See: bengal/rendering/pipeline/autodoc_renderer.py for the render-time check.
 
 
-class _MetadataView(dict[str, Any]):
-    """Dict that supports attribute-style access for templates."""
-
-    def __getattr__(self, item: str) -> Any:
-        return self.get(item)
-
-
 def normalize_element_for_templates(element: DocElement) -> None:
     """
     Pre-normalize an autodoc element and its children for template rendering.
@@ -72,7 +66,7 @@ def normalize_element_for_templates(element: DocElement) -> None:
 
         # Wrap metadata for dotted access in templates
         if hasattr(obj, "metadata") and isinstance(obj.metadata, dict):
-            obj.metadata = _MetadataView(obj.metadata)
+            obj.metadata = MetadataView(obj.metadata)
             meta = obj.metadata
 
             # Copy common fields to element for convenience
@@ -94,11 +88,11 @@ def normalize_element_for_templates(element: DocElement) -> None:
                 normalized_props: dict[str, Any] = {}
                 for k, v in meta["properties"].items():
                     if isinstance(v, dict):
-                        normalized_props[k] = _MetadataView(v)
+                        normalized_props[k] = MetadataView(v)
                     elif isinstance(v, str):
-                        normalized_props[k] = _MetadataView({"type": v})
+                        normalized_props[k] = MetadataView({"type": v})
                     else:
-                        normalized_props[k] = _MetadataView({})
+                        normalized_props[k] = MetadataView({})
                 meta["properties"] = normalized_props
 
         # Mark as normalized

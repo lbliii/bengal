@@ -48,6 +48,7 @@ if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.menu import MenuBuilder, MenuItem
     from bengal.core.page import Page
+    from bengal.core.page_cache import PageCacheManager
     from bengal.core.section import Section
 
 
@@ -107,10 +108,8 @@ class SiteContent:
     # Frozen flag
     _frozen: bool = field(default=False, repr=False)
 
-    # Cached derived lists (invalidated on changes)
-    _regular_pages_cache: list[Page] | None = field(default=None, repr=False)
-    _generated_pages_cache: list[Page] | None = field(default=None, repr=False)
-    _listable_pages_cache: list[Page] | None = field(default=None, repr=False)
+    # Page cache manager (delegates regular/generated/listable filtering)
+    _page_cache: PageCacheManager | None = field(default=None, repr=False)
 
     def freeze(self) -> None:
         """
@@ -152,6 +151,14 @@ class SiteContent:
         self._frozen = False
         self.invalidate_caches()
 
+    def _get_page_cache(self) -> PageCacheManager:
+        """Lazily create PageCacheManager backed by self.pages."""
+        if self._page_cache is None:
+            from bengal.core.page_cache import PageCacheManager
+
+            self._page_cache = PageCacheManager(lambda: self.pages)
+        return self._page_cache
+
     def invalidate_caches(self) -> None:
         """
         Invalidate derived page caches.
@@ -159,9 +166,8 @@ class SiteContent:
         Called after modifying pages list to ensure cached
         derived lists are recomputed on next access.
         """
-        self._regular_pages_cache = None
-        self._generated_pages_cache = None
-        self._listable_pages_cache = None
+        if self._page_cache is not None:
+            self._page_cache.invalidate()
 
     @property
     def regular_pages(self) -> list[Page]:
@@ -175,9 +181,7 @@ class SiteContent:
             for page in content.regular_pages:
                 print(page.title)
         """
-        if self._regular_pages_cache is None:
-            self._regular_pages_cache = [p for p in self.pages if not p.metadata.get("_generated")]
-        return self._regular_pages_cache
+        return self._get_page_cache().regular_pages
 
     @property
     def generated_pages(self) -> list[Page]:
@@ -187,9 +191,7 @@ class SiteContent:
         Returns:
             List of pages with _generated flag (taxonomy, archive, etc.)
         """
-        if self._generated_pages_cache is None:
-            self._generated_pages_cache = [p for p in self.pages if p.metadata.get("_generated")]
-        return self._generated_pages_cache
+        return self._get_page_cache().generated_pages
 
     @property
     def listable_pages(self) -> list[Page]:
@@ -204,9 +206,7 @@ class SiteContent:
         Returns:
             List of pages that should appear in public listings
         """
-        if self._listable_pages_cache is None:
-            self._listable_pages_cache = [p for p in self.pages if p.in_listings]
-        return self._listable_pages_cache
+        return self._get_page_cache().listable_pages
 
     @property
     def page_count(self) -> int:

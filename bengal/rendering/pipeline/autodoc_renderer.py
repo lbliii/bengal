@@ -22,6 +22,7 @@ from kida.environment.exceptions import (
 )
 
 from bengal.autodoc.config import get_autodoc_output_prefix
+from bengal.autodoc.models.common import MetadataView
 from bengal.protocols import SiteConfig, SiteLike
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
@@ -37,16 +38,6 @@ if TYPE_CHECKING:
     from bengal.rendering.renderer import Renderer
 
 logger = get_logger(__name__)
-
-
-class MetadataView(dict[str, Any]):
-    """
-    Dict that also supports attribute-style access (dotted) used by templates.
-
-    """
-
-    def __getattr__(self, item: str) -> Any:
-        return self.get(item)
 
 
 class AutodocRenderer:

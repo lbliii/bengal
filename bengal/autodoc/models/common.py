@@ -2,6 +2,7 @@
 Common types for autodoc typed metadata.
 
 Provides shared types used across all metadata domains:
+- MetadataView: Dict wrapper with dotted attribute access for templates
 - SourceLocation: Source code location for a documented element
 - QualifiedName: Validated qualified name for a documented element
 """
@@ -10,6 +11,19 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
+
+
+class MetadataView(dict[str, Any]):
+    """
+    Dict that supports attribute-style access (dotted) for templates.
+
+    Used by autodoc renderer and page builders for template-friendly
+    metadata access (e.g., element.type instead of element["type"]).
+    """
+
+    def __getattr__(self, item: str) -> Any:
+        return self.get(item)
 
 
 @dataclass(frozen=True, slots=True)

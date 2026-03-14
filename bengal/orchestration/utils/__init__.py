@@ -16,6 +16,7 @@ Example:
 
 """
 
+from bengal.orchestration.utils.config import get_max_workers
 from bengal.orchestration.utils.errors import (
     handle_orchestration_error,
     is_shutdown_error,
@@ -44,6 +45,7 @@ __all__ = [
     "claim_url_gracefully",
     "create_virtual_page",
     "get_i18n_config",
+    "get_max_workers",
     "get_site_languages",
     "handle_orchestration_error",
     "is_i18n_enabled",
