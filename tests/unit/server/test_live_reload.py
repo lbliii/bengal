@@ -261,6 +261,42 @@ class TestReloadPayload:
         assert "permalink" in payload
         assert "reason" in payload
 
+    def test_send_fragments_payload_stores_action(self):
+        """Test that send_fragments_payload stores fragments as JSON."""
+        from bengal.server.live_reload.notification import send_fragments_payload
+
+        send_fragments_payload(
+            selector="#main-content",
+            fragments=[("/a/", "<p>A</p>"), ("/b/", "<p>B</p>")],
+        )
+
+        from bengal.server import live_reload
+
+        assert "fragments" in live_reload._last_action
+        assert "#main-content" in live_reload._last_action
+        assert "/a/" in live_reload._last_action
+        assert "/b/" in live_reload._last_action
+
+    def test_fragments_payload_keys_match_client_script(self):
+        """Fragments payload keys must match what the client script expects."""
+        import json
+
+        from bengal.server.live_reload.notification import send_fragments_payload
+
+        send_fragments_payload(
+            selector="#main-content",
+            fragments=[("/page/", "<div>content</div>")],
+        )
+        from bengal.server import live_reload
+
+        payload = json.loads(live_reload._last_action)
+        assert payload["action"] == "fragments"
+        assert "selector" in payload
+        assert "fragments" in payload
+        assert len(payload["fragments"]) == 1
+        assert payload["fragments"][0]["permalink"] == "/page/"
+        assert payload["fragments"][0]["html"] == "<div>content</div>"
+
 
 class TestSSELoopRoundTrip:
     """Tests that send_reload_payload reaches the SSE loop write_fn."""

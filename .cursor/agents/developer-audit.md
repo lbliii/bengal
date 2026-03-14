@@ -1,5 +1,7 @@
 ---
-name: developer-experience-audit
+name: developer-audit
+model: fast
+background: true
 description: >-
   Developer adoption and extension perspective. Use proactively when the user
   asks about developer experience, DX, onboarding, APIs, documentation,

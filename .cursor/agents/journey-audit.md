@@ -1,5 +1,7 @@
 ---
-name: journey-maturity-pm
+name: journey-audit
+model: fast
+background: true
 description: >-
   Product Manager perspective for user journey maturity assessment. Use
   proactively when the user asks about product readiness, user value, what to

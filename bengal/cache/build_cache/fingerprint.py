@@ -31,7 +31,7 @@ from bengal.utils.primitives.hashing import hash_file
 logger = get_logger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class FileFingerprint:
     """
     Fast file change detection using mtime + size, with optional hash verification.

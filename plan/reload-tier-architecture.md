@@ -8,7 +8,7 @@ Bengal's dev server uses multiple reload tiers to minimize rebuild time and pres
 File change detected
   ├─ CSS only?           → reload-css (swap <link> hrefs)
   ├─ Single .md body?   → reactive content → fragment swap
-  ├─ Multi .md body?    → batch reactive → full reload
+  ├─ Multi .md body?    → batch reactive → fragments (swap if on page, else reload)
   ├─ Template change?   → reactive template → re-render affected pages → reload
   ├─ Data file change?  → incremental build (BuildCache.get_affected_pages)
   └─ Structural change? → full warm build → full page reload
@@ -28,7 +28,7 @@ File change detected
 
 ### 3. reactive-content (batch)
 - **Trigger**: 2–10 .md files, all `modified`, all content-only
-- **Action**: Re-render each page, full reload (fragment batching deferred)
+- **Action**: Re-render each page, send fragments payload; client swaps if viewing one of the changed pages, else full reload
 - **Latency**: Sub-second for small batches
 
 ### 4. reactive-template

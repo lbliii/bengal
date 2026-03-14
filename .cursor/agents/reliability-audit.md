@@ -1,5 +1,7 @@
 ---
-name: reliability-maturity-audit
+name: reliability-audit
+model: fast
+background: true
 description: >-
   Reliability engineer perspective for safe behavior in real-world environments.
   Use proactively when the user asks about resilience, failure handling, error

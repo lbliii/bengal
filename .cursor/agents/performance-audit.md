@@ -1,5 +1,7 @@
 ---
-name: performance-maturity-audit
+name: performance-audit
+model: fast
+background: true
 description: >-
   Performance engineer perspective for system efficiency and scalability. Use
   proactively when the user asks about performance, bottlenecks, optimization,

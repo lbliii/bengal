@@ -1,9 +1,11 @@
 ---
-name: architecture-maturity-audit
+name: architectural-audit
+model: fast
+background: true
 description: >-
-  Senior software architect perspective for long-term maintainability. Use
-  proactively when the user asks about architecture, maintainability, tech
-  debt, coupling, modularity, or system design. Evaluates subsystems across
+  Senior software architect perspective. Use proactively when the user asks
+  about system structure, coupling, modularity, subsystem boundaries,
+  dependency structure, or extensibility. Evaluates subsystems across
   modularity, coupling, interfaces, extensibility, cohesion, and dependencies.
 ---
 

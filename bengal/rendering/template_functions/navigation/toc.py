@@ -8,8 +8,10 @@ from __future__ import annotations
 
 from typing import Any
 
+from bengal.core.page.types import TOCItem
 
-def build_toc_tree(toc_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+
+def build_toc_tree(toc_items: list[TOCItem]) -> list[TOCItem]:
     """
     Convert flat TOC items into a nested tree structure with children arrays.
 
@@ -20,36 +22,12 @@ def build_toc_tree(toc_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         toc_items: Flat list of TOC items with id, title, and level
 
     Returns:
-        Nested list where each item has a 'children' array containing
-        its sub-items. Items at level 1 (H2) become root nodes, and
-        deeper levels become nested children.
+        Nested list of TOCItem where each item has children tuple.
+        Items at level 1 (H2) become root nodes, deeper levels nested.
 
     Example:
-        Input (flat):
-            [
-                {"id": "intro", "title": "Introduction", "level": 1},
-                {"id": "setup", "title": "Setup", "level": 2},
-                {"id": "config", "title": "Configuration", "level": 2},
-                {"id": "api", "title": "API", "level": 1},
-                {"id": "endpoints", "title": "Endpoints", "level": 2},
-            ]
-
-        Output (nested):
-            [
-                {
-                    "id": "intro", "title": "Introduction", "level": 1,
-                    "children": [
-                        {"id": "setup", "title": "Setup", "level": 2, "children": []},
-                        {"id": "config", "title": "Configuration", "level": 2, "children": []},
-                    ]
-                },
-                {
-                    "id": "api", "title": "API", "level": 1,
-                    "children": [
-                        {"id": "endpoints", "title": "Endpoints", "level": 2, "children": []},
-                    ]
-                },
-            ]
+        Input (flat): [TOCItem("intro", "Introduction", 1), ...]
+        Output (nested): [TOCItem("intro", "Introduction", 1, children=(...)), ...]
 
     Template usage:
         {% for item in build_toc_tree(toc_items) %}
@@ -60,41 +38,39 @@ def build_toc_tree(toc_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     if not toc_items:
         return []
 
-    # Stack-based tree building for arbitrary depth
-    # Each stack entry: (level, node_with_children)
+    # Stack-based tree building for arbitrary depth.
+    # Build mutable nodes first, then convert to frozen TOCItems bottom-up.
+    # Stack entry: (level, mutable_node_dict)
     root: list[dict[str, Any]] = []
     stack: list[tuple[int, dict[str, Any]]] = []
 
     for item in toc_items:
-        level = item.get("level", 1)
-        # Create node with children array
-        node = {
-            "id": item.get("id", ""),
-            "title": item.get("title", ""),
+        level = item.level
+        node: dict[str, Any] = {
+            "id": item.id,
+            "title": item.title,
             "level": level,
             "children": [],
         }
 
-        # Pop stack until we find parent level
         while stack and stack[-1][0] >= level:
             stack.pop()
 
         if stack:
-            # Add as child to parent
             stack[-1][1]["children"].append(node)
         else:
-            # Root level item
             root.append(node)
 
-        # Push current node for potential children
         stack.append((level, node))
 
-    return root
+    def to_toc_item(d: dict[str, Any]) -> TOCItem:
+        children = tuple(to_toc_item(c) for c in d["children"])
+        return TOCItem(id=d["id"], title=d["title"], level=d["level"], children=children)
+
+    return [to_toc_item(n) for n in root]
 
 
-def get_toc_grouped(
-    toc_items: list[dict[str, Any]], group_by_level: int = 1
-) -> list[dict[str, Any]]:
+def get_toc_grouped(toc_items: list[TOCItem], group_by_level: int = 1) -> list[dict[str, Any]]:
     """
     Group TOC items hierarchically for collapsible sections.
 
@@ -158,7 +134,7 @@ def get_toc_grouped(
     current_group: dict[str, Any] | None = None
 
     for item in toc_items:
-        item_level = item.get("level", 0)
+        item_level = item.level
 
         if item_level == group_by_level:
             # Start a new group
@@ -226,17 +202,13 @@ def build_track_toc_sections(track_items: list[str], get_page_func: Any) -> list
             continue
 
         section_prefix = f"s{index}-"
-        prefixed_items: list[dict[str, Any]] = []
+        prefixed_items: list[TOCItem] = []
 
         if hasattr(page, "toc_items") and page.toc_items:
             for toc_item in page.toc_items:
-                original_id = toc_item.get("id", "")
+                new_id = f"{section_prefix}{toc_item.id}" if toc_item.id else ""
                 prefixed_items.append(
-                    {
-                        "id": f"{section_prefix}{original_id}" if original_id else "",
-                        "title": toc_item.get("title", ""),
-                        "level": toc_item.get("level", 1),
-                    }
+                    TOCItem(id=new_id, title=toc_item.title, level=toc_item.level)
                 )
 
         sections.append(
@@ -271,7 +243,7 @@ def combine_track_toc_items(track_items: list[str], get_page_func: Any) -> list[
         defense-in-depth optimization.
 
     """
-    combined: list[dict[str, Any]] = []
+    combined: list[TOCItem] = []
     # Local cache for pages within this function call.
     # Provides defense-in-depth: even if per-render cache is bypassed,
     # this ensures we don't fetch the same page multiple times.
@@ -289,18 +261,18 @@ def combine_track_toc_items(track_items: list[str], get_page_func: Any) -> list[
         # Add section header as level 1 item
         section_id = f"track-section-{index}"
         section_prefix = f"s{index}-"  # Must match template's prefix_heading_ids
-        combined.append({"id": section_id, "title": page.title, "level": 1})
+        combined.append(TOCItem(id=section_id, title=page.title, level=1))
 
         # Add all TOC items from this section, with prefixed IDs and incremented levels
         if hasattr(page, "toc_items") and page.toc_items:
             for toc_item in page.toc_items:
-                original_id = toc_item.get("id", "")
+                new_id = f"{section_prefix}{toc_item.id}" if toc_item.id else ""
                 combined.append(
-                    {
-                        "id": f"{section_prefix}{original_id}" if original_id else "",
-                        "title": toc_item.get("title", ""),
-                        "level": toc_item.get("level", 2) + 1,  # Increment level
-                    }
+                    TOCItem(
+                        id=new_id,
+                        title=toc_item.title,
+                        level=toc_item.level + 1,  # Increment level
+                    )
                 )
 
     return combined

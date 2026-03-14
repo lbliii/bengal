@@ -46,8 +46,8 @@ from __future__ import annotations
 
 import html as html_module
 import re
-from typing import Any
 
+from bengal.core.page.types import TOCItem
 from bengal.utils.observability.logger import get_logger
 
 # TOC extraction version - increment when extract_toc_structure() logic changes
@@ -56,7 +56,7 @@ TOC_EXTRACTION_VERSION = "2"  # v2: Added regex-based indentation parsing for fl
 logger = get_logger(__name__)
 
 
-def extract_toc_structure(toc_html: str) -> list[dict[str, Any]]:
+def extract_toc_structure(toc_html: str) -> list[TOCItem]:
     """
     Parse TOC HTML into structured data for custom rendering.
 
@@ -94,7 +94,7 @@ def extract_toc_structure(toc_html: str) -> list[dict[str, Any]]:
                     indent_level // 2
                 ) + 1  # 0 spaces = level 1 (H2), 2 spaces = level 2 (H3), etc.
 
-                items.append({"id": anchor_id, "title": title, "level": level})
+                items.append(TOCItem(id=anchor_id, title=title, level=level))
 
         if items:
             return items
@@ -105,8 +105,10 @@ def extract_toc_structure(toc_html: str) -> list[dict[str, Any]]:
         class TOCParser(HTMLParser):
             def __init__(self) -> None:
                 super().__init__()
-                self.items: list[dict[str, Any]] = []
-                self.current_item: dict[str, Any] | None = None
+                self.items: list[TOCItem] = []
+                self._current_id: str = ""
+                self._current_title: str = ""
+                self._current_level: int = 0
                 self.depth = 0
 
             def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -114,25 +116,29 @@ def extract_toc_structure(toc_html: str) -> list[dict[str, Any]]:
                     self.depth += 1
                 elif tag == "a":
                     attrs_dict = dict(attrs)
-                    self.current_item = {
-                        "id": (attrs_dict.get("href") or "").lstrip("#"),
-                        "title": "",
-                        "level": self.depth,
-                    }
+                    self._current_id = (attrs_dict.get("href") or "").lstrip("#")
+                    self._current_title = ""
+                    self._current_level = self.depth
 
             def handle_data(self, data: str) -> None:
-                if self.current_item is not None:
-                    # Decode HTML entities (e.g., &quot; -> ", &amp; -> &)
+                if self._current_id:
                     decoded_data = html_module.unescape(data.strip())
-                    self.current_item["title"] += decoded_data
+                    self._current_title += decoded_data
 
             def handle_endtag(self, tag: str) -> None:
                 if tag == "ul":
                     self.depth -= 1
-                elif tag == "a" and self.current_item:
-                    if self.current_item["title"]:
-                        self.items.append(self.current_item)
-                    self.current_item = None
+                elif tag == "a" and self._current_id:
+                    if self._current_title:
+                        self.items.append(
+                            TOCItem(
+                                id=self._current_id,
+                                title=self._current_title,
+                                level=self._current_level,
+                            )
+                        )
+                    self._current_id = ""
+                    self._current_title = ""
 
         parser = TOCParser()
         parser.feed(toc_html)

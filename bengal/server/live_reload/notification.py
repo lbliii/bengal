@@ -158,3 +158,61 @@ def send_fragment_payload(
             f"[Bengal] Fragment sent: selector={selector!r} permalink={permalink!r}",
             flush=True,
         )
+
+
+def send_fragments_payload(
+    selector: str,
+    fragments: Sequence[tuple[str, str]],
+    *,
+    reason: str = "multi-page-content",
+) -> None:
+    """Send a fragments event for multi-page DOM swap.
+
+    Clients on a matching page swap that fragment; others reload.
+
+    Args:
+        selector: CSS selector (e.g. #main-content)
+        fragments: List of (permalink, html) tuples
+        reason: Optional reason for logging
+    """
+    if _reload_events_disabled():
+        logger.info(
+            "reload_notification_suppressed",
+            reason="env_BENGAL_DISABLE_RELOAD_EVENTS",
+            action="fragments",
+        )
+        return
+    try:
+        payload = json.dumps(
+            {
+                "action": "fragments",
+                "selector": selector,
+                "fragments": [{"permalink": p, "html": h} for p, h in fragments],
+                "reason": reason,
+            }
+        )
+    except Exception as e:
+        logger.warning(
+            "fragments_payload_serialization_failed",
+            error_code=ErrorCode.S003.name,
+            error=str(e),
+        )
+        return
+
+    with _state.condition:
+        _state.last_action = payload
+        _state.generation += 1
+        _state.sent_count += 1
+        _state.condition.notify_all()
+
+    logger.info(
+        "fragments_notification_sent",
+        selector=selector,
+        count=len(fragments),
+        generation=_state.generation,
+    )
+    if os.environ.get("BENGAL_DEBUG_RELOAD"):
+        print(
+            f"[Bengal] Fragments sent: selector={selector!r} count={len(fragments)}",
+            flush=True,
+        )

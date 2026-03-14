@@ -337,10 +337,13 @@ class BuildTrigger:
                     dev_config = config_dict.get("dev", {}) or {}
                     content_selector = dev_config.get("content_selector", "#main-content")
                     from bengal.server.live_reload.fragment import extract_main_content
-                    from bengal.server.live_reload.notification import send_fragment_payload
+                    from bengal.server.live_reload.notification import (
+                        send_fragment_payload,
+                        send_fragments_payload,
+                    )
                     from bengal.utils.paths.url_strategy import URLStrategy
 
-                    # Single page: fragment swap; multi-page: full reload
+                    # Single page: fragment swap; multi-page: fragments or reload
                     if len(results) == 1:
                         _, single_result = results[0]
                         fragment = extract_main_content(
@@ -360,14 +363,27 @@ class BuildTrigger:
                                 )
                             )
                     else:
-                        # Multi-file: full reload (fragments action deferred)
-                        self._handle_reload(
-                            BuildReloadInfo(
-                                changed_files=tuple(changed_files),
-                                changed_outputs=changed_outputs,
-                                reload_hint=None,
+                        # Multi-file: fragments payload (client swaps if on page, else reload)
+                        fragments_list: list[tuple[str, str]] = []
+                        for _, res in results:
+                            frag = extract_main_content(res.rendered_html, content_selector)
+                            if frag:
+                                pl = URLStrategy.url_from_output_path(res.output_path, self.site)
+                                fragments_list.append((pl, frag))
+                        if fragments_list:
+                            send_fragments_payload(
+                                content_selector,
+                                fragments_list,
+                                reason="multi-page-content",
                             )
-                        )
+                        else:
+                            self._handle_reload(
+                                BuildReloadInfo(
+                                    changed_files=tuple(changed_files),
+                                    changed_outputs=changed_outputs,
+                                    reload_hint=None,
+                                )
+                            )
                     self._clear_html_cache()
                     if os.environ.get("BENGAL_DEBUG_RELOAD"):
                         print(

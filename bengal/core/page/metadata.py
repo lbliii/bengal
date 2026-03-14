@@ -42,6 +42,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.core.page.types import TOCItem
 from bengal.core.utils.shared import resolve_nav_title, sortable_weight
 from bengal.core.utils.url import apply_baseurl, get_baseurl, get_site_origin
 
@@ -74,7 +75,7 @@ class PageMetadataMixin:
     toc: str | None
     core: PageCore | None
     _site: Site | None
-    _toc_items_cache: list[dict[str, Any]] | None
+    _toc_items_cache: list[TOCItem] | None
     # slug is defined as a property below - no declaration needed here
 
     @property
@@ -334,7 +335,7 @@ class PageMetadataMixin:
         return f"/{self.slug}/"
 
     @property
-    def toc_items(self) -> list[dict[str, Any]]:
+    def toc_items(self) -> list[TOCItem]:
         """
         Get structured TOC data (lazy evaluation).
 

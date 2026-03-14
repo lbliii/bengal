@@ -79,6 +79,7 @@ from .metadata import PageMetadataMixin
 from .page_core import PageCore
 from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
+from .types import TOCItem
 from .utils import normalize_tags
 
 
@@ -214,7 +215,7 @@ class Page(
     _SECTION_NOT_FOUND: ClassVar[object] = object()
 
     # Private cache for lazy toc_items property
-    _toc_items_cache: list[dict[str, Any]] | None = field(default=None, repr=False, init=False)
+    _toc_items_cache: list[TOCItem] | None = field(default=None, repr=False, init=False)
 
     # AST-extracted excerpt (set by pipeline when Patitas parses; bypasses compute_excerpt)
     _excerpt: str | None = field(default=None, repr=False, init=False)

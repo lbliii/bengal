@@ -1,9 +1,11 @@
 ---
 name: maintainability-audit
+model: fast
+background: true
 description: >-
   Future maintainer perspective for long-term codebase health. Use proactively
-  when the user asks about maintainability, tech debt, code clarity,
-  refactoring, duplication, or future-proofing. Evaluates problematic areas
+  when the user asks about code clarity, readability, duplication,
+  refactoring, tech debt, or future-proofing. Evaluates problematic areas
   across readability, conceptual clarity, duplication, consistency, and docs.
 ---
 

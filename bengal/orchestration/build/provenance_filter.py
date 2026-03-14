@@ -27,6 +27,7 @@ from typing import TYPE_CHECKING
 from bengal.build.contracts.keys import content_key
 from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
 from bengal.build.provenance.filter import ProvenanceFilterResult
+from bengal.cache.build_cache.fingerprint import FileFingerprint
 from bengal.orchestration.build.results import (
     FilterResult,
     IncrementalDecision,
@@ -82,7 +83,7 @@ def _detect_changed_data_files(
             # Check if file changed (compare hash)
             try:
                 current_hash = hash_file(data_file)
-                if stored.get("hash") != current_hash:
+                if stored.hash != current_hash:
                     changed.add(data_file)
             except OSError:
                 # File error - treat as changed
@@ -141,7 +142,7 @@ def _detect_changed_templates(
                 changed.add(tpl_file)
                 continue
 
-            if stored is None or stored.get("hash") != current_hash:
+            if stored is None or stored.hash != current_hash:
                 changed.add(tpl_file)
 
             # Always store current fingerprint so the cache has it for
@@ -150,11 +151,11 @@ def _detect_changed_templates(
                 stat = tpl_file.stat()
                 cache.set_file_fingerprint(
                     tpl_file,
-                    {
-                        "mtime": stat.st_mtime,
-                        "size": stat.st_size,
-                        "hash": current_hash,
-                    },
+                    FileFingerprint(
+                        mtime=stat.st_mtime,
+                        size=stat.st_size,
+                        hash=current_hash,
+                    ),
                 )
             except OSError:
                 pass

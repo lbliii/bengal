@@ -21,6 +21,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.cache.build_cache.fingerprint import FileFingerprint
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
 
@@ -53,23 +54,25 @@ class FileTrackingMixin:
     # Reverse dependency graph: dependency → set of source pages that depend on it
     reverse_dependencies: dict[str, set[str]]
 
-    def get_file_fingerprint(self, path: Path) -> dict[str, Any] | None:
+    def get_file_fingerprint(self, path: Path) -> FileFingerprint | None:
         """
         Get fingerprint for a file (path-based lookup with normalized key).
 
         Use this instead of direct file_fingerprints access to ensure
         correct key normalization (content_key) across path formats.
         """
-        return self.file_fingerprints.get(self._cache_key(path))
+        raw = self.file_fingerprints.get(self._cache_key(path))
+        return FileFingerprint.from_dict(raw) if raw else None
 
-    def set_file_fingerprint(self, path: Path, data: dict[str, Any]) -> None:
+    def set_file_fingerprint(self, path: Path, data: FileFingerprint | dict[str, Any]) -> None:
         """
         Set fingerprint for a file (path-based storage with normalized key).
 
         Use this instead of direct file_fingerprints access to ensure
         correct key normalization (content_key) across path formats.
         """
-        self.file_fingerprints[self._cache_key(path)] = data
+        store = data.to_dict() if isinstance(data, FileFingerprint) else data
+        self.file_fingerprints[self._cache_key(path)] = store
 
     def hash_file(self, file_path: Path) -> str:
         """

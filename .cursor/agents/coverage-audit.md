@@ -1,5 +1,7 @@
 ---
-name: test-coverage-audit
+name: coverage-audit
+model: fast
+background: true
 description: >-
   Quality engineer perspective for preventing regressions. Use proactively when
   the user asks about testing, test coverage, quality assurance, regression

@@ -76,6 +76,31 @@ LIVE_RELOAD_SCRIPT = r"""
                 return;
             }
 
+            if (action === 'fragments') {
+                var selector = payload.selector || '#main-content';
+                var frags = payload.fragments || [];
+                var norm = function(s) {
+                    return s === '/' ? '/' : (s.replace(/\/$/, '') || '/');
+                };
+                var current = norm(location.pathname);
+                for (var i = 0; i < frags.length; i++) {
+                    var p = frags[i].permalink || '';
+                    var h = frags[i].html;
+                    if (h && (!p || norm(p) === current)) {
+                        var target = document.querySelector(selector);
+                        if (target) {
+                            target.innerHTML = h;
+                            console.log('📄 Bengal: Content updated');
+                        } else {
+                            cacheBustReload();
+                        }
+                        return;
+                    }
+                }
+                cacheBustReload();
+                return;
+            }
+
             executeReload(action, changedPaths);
         };
 
