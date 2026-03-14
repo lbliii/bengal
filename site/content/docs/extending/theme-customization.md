@@ -6,6 +6,27 @@ weight: 20
 
 Bengal themes are fully customizable through template overrides, CSS customization, and design token configuration. You can modify the default theme or create your own.
 
+## Instant Reload Contract
+
+When using `bengal serve`, content-only edits can trigger **instant DOM updates** instead of full page reloads. For this to work, your theme **must** include an element matching `dev.content_selector` (default: `#main-content`).
+
+Add a wrapper with the matching ID in your page layout:
+
+```html
+<main id="main-content">
+    {{ page.content | safe }}
+</main>
+```
+
+Configure a different selector in `bengal.toml` if needed:
+
+```toml
+[dev]
+content_selector = "#main-content"   # default; with bengal[dev]: also .class, tag.class
+```
+
+If no matching element exists, the dev server falls back to full page reload and logs a warning.
+
 ## Template Overrides
 
 Override any theme template by placing a file with the same name in your project's `templates/` directory.

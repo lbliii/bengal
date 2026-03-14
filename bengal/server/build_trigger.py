@@ -48,6 +48,7 @@ Related:
 
 from __future__ import annotations
 
+import os
 import re
 import threading
 import time
@@ -59,6 +60,7 @@ from typing import Any
 
 import yaml
 
+from bengal.core.output import OutputRecord
 from bengal.errors import ErrorCode, create_dev_error, get_dev_server_state
 from bengal.orchestration.stats import (
     ReloadHint,
@@ -304,42 +306,63 @@ class BuildTrigger:
 
             # Reactive path: content-only edit skips full build
             if not needs_full_rebuild and self._can_use_reactive_path(changed_paths, event_types):
-                path = next(iter(changed_paths))
                 from bengal.core.output import OutputType
                 from bengal.server.reactive import ReactiveContentHandler
                 from bengal.server.reload_types import SerializedOutputRecord
 
                 handler = ReactiveContentHandler(self.site, self.site.output_dir)
                 try:
-                    result = handler.handle_content_change(path)
-                    if result is not None:
-                        output_path = result.output_path
-                        # Use path relative to output_dir (matches full build)
+                    results: list[tuple[Path, Any]] = []
+                    for path in changed_paths:
+                        result = handler.handle_content_change(path)
+                        if result is None:
+                            raise RuntimeError(f"reactive failed for {path}")
+                        results.append((result.output_path, result))
+
+                    # Build changed_outputs for reload decision
+                    changed_outputs_list = []
+                    for output_path, _ in results:
                         rel_path = output_path
                         if output_path.is_absolute() and self.site.output_dir:
                             with suppress(ValueError):
                                 rel_path = output_path.relative_to(self.site.output_dir)
-                        changed_outputs = (
+                        changed_outputs_list.append(
                             SerializedOutputRecord(
                                 path=str(rel_path),
                                 type_value=OutputType.HTML.value,
                                 phase="render",
-                            ),
+                            )
                         )
+                    changed_outputs = tuple(changed_outputs_list)
 
-                        # Fragment path: extract #main-content from in-memory
-                        # rendered HTML (zero-disk — no read-back from disk)
-                        dev_config = config_dict.get("dev", {}) or {}
-                        content_selector = dev_config.get("content_selector", "#main-content")
-                        from bengal.server.live_reload.fragment import extract_main_content
-                        from bengal.server.live_reload.notification import send_fragment_payload
-                        from bengal.utils.paths.url_strategy import URLStrategy
+                    dev_config = config_dict.get("dev", {}) or {}
+                    content_selector = dev_config.get("content_selector", "#main-content")
+                    from bengal.server.live_reload.fragment import (
+                        extract_main_content_with_fallback,
+                    )
+                    from bengal.server.live_reload.notification import (
+                        send_fragment_payload,
+                        send_fragments_payload,
+                    )
+                    from bengal.utils.paths.url_strategy import URLStrategy
 
-                        fragment = extract_main_content(result.rendered_html, content_selector)
+                    # Single page: fragment swap; multi-page: fragments or reload
+                    if len(results) == 1:
+                        _, single_result = results[0]
+                        fragment, effective_selector = extract_main_content_with_fallback(
+                            single_result.rendered_html, content_selector
+                        )
                         if fragment:
-                            permalink = URLStrategy.url_from_output_path(output_path, self.site)
-                            send_fragment_payload(content_selector, fragment, permalink)
+                            permalink = URLStrategy.url_from_output_path(
+                                single_result.output_path, self.site
+                            )
+                            send_fragment_payload(effective_selector, fragment, permalink)
                         else:
+                            logger.warning(
+                                "fragment_extraction_empty",
+                                selector=content_selector,
+                                path=str(single_result.output_path),
+                            )
                             self._handle_reload(
                                 BuildReloadInfo(
                                     changed_files=tuple(changed_files),
@@ -347,14 +370,119 @@ class BuildTrigger:
                                     reload_hint=None,
                                 )
                             )
-                        self._clear_html_cache()
-                        return
+                    else:
+                        # Multi-file: fragments payload (client swaps if on page, else reload)
+                        fragments_list: list[tuple[str, str]] = []
+                        effective_selector = content_selector
+                        for _, res in results:
+                            frag, eff = extract_main_content_with_fallback(
+                                res.rendered_html, content_selector
+                            )
+                            if frag:
+                                effective_selector = eff
+                                pl = URLStrategy.url_from_output_path(res.output_path, self.site)
+                                fragments_list.append((pl, frag))
+                        if fragments_list:
+                            send_fragments_payload(
+                                effective_selector,
+                                fragments_list,
+                                reason="multi-page-content",
+                            )
+                        else:
+                            paths_str = ", ".join(str(res.output_path) for _, res in results)
+                            logger.warning(
+                                "fragment_extraction_empty",
+                                selector=content_selector,
+                                path=paths_str,
+                            )
+                            self._handle_reload(
+                                BuildReloadInfo(
+                                    changed_files=tuple(changed_files),
+                                    changed_outputs=changed_outputs,
+                                    reload_hint=None,
+                                )
+                            )
+                    self._clear_html_cache()
+                    if os.environ.get("BENGAL_DEBUG_RELOAD"):
+                        print(
+                            f"[Bengal] Reload tier: reactive-content (files={len(changed_paths)})",
+                            flush=True,
+                        )
+                    return
                 except Exception as e:
                     logger.warning(
                         "reactive_path_failed",
                         error=str(e),
                         fallback="full_build",
                     )
+
+            # Reactive template path: template changes → re-render affected pages only
+            template_info = self._get_template_change_info(changed_paths)
+            if (
+                template_info is not None
+                and not structural_changed
+                and not self._should_regenerate_autodoc(changed_paths)
+            ):
+                template_paths, affected_keys = template_info
+                from bengal.server.reactive import ReactiveTemplateHandler
+                from bengal.server.reactive.template_handler import (
+                    REACTIVE_TEMPLATE_PAGE_THRESHOLD,
+                )
+
+                cache = self._get_build_cache()
+                if cache is not None and len(affected_keys) <= REACTIVE_TEMPLATE_PAGE_THRESHOLD:
+                    try:
+                        handler = ReactiveTemplateHandler(self.site, self.site.output_dir, cache)
+                        result = handler.handle_template_changes(template_paths)
+                        if result is not None and result.changed_output_paths:
+                            from bengal.core.output import OutputType
+                            from bengal.server.reload_types import SerializedOutputRecord
+
+                            changed_outputs_list = []
+                            for p in result.changed_output_paths:
+                                rel_path = p
+                                if p.is_absolute() and self.site.output_dir:
+                                    with suppress(ValueError):
+                                        rel_path = p.relative_to(self.site.output_dir)
+                                changed_outputs_list.append(
+                                    SerializedOutputRecord(
+                                        path=str(rel_path),
+                                        type_value=OutputType.HTML.value,
+                                        phase="render",
+                                    )
+                                )
+                            changed_outputs = tuple(changed_outputs_list)
+                            self._handle_reload(
+                                BuildReloadInfo(
+                                    changed_files=tuple(changed_files),
+                                    changed_outputs=changed_outputs,
+                                    reload_hint=None,
+                                )
+                            )
+                            self._clear_html_cache()
+                            if os.environ.get("BENGAL_DEBUG_RELOAD"):
+                                print(
+                                    "[Bengal] Reload tier: reactive-template "
+                                    f"(templates={len(template_paths)}, "
+                                    f"pages={len(result.changed_output_paths)})",
+                                    flush=True,
+                                )
+                            return
+                    except Exception as e:
+                        logger.warning(
+                            "reactive_template_path_failed",
+                            error=str(e),
+                            fallback="full_build",
+                        )
+
+            if os.environ.get("BENGAL_DEBUG_RELOAD"):
+                reason = ""
+                if template_info and not structural_changed:
+                    reason = " (template change, reactive path unavailable)"
+                print(
+                    f"[Bengal] Reload tier: full-build{reason}",
+                    flush=True,
+                )
 
             # Create build options for warm build
             use_incremental = not needs_full_rebuild
@@ -582,6 +710,10 @@ class BuildTrigger:
         - SVG icon changes (inlined in HTML)
         - Shared content changes (_shared/ directory) [versioned sites]
         - Version config changes (versioning.yaml)
+
+        Data files (YAML/JSON in data/) do NOT trigger full rebuild here.
+        They fall through to incremental build; BuildCache tracks data
+        dependencies and get_affected_pages() finds dependent pages.
         """
         # Structural changes always need full rebuild
         if {"created", "deleted", "moved"} & event_types:
@@ -627,13 +759,20 @@ class BuildTrigger:
         Content-only = frontmatter unchanged, body changed. Safe for leaf AND
         section pages. Cascade, nav, and structure keys are in frontmatter;
         if unchanged, no downstream impact.
+
+        Phase 2: Allows multiple .md files when all are modified and content-only,
+        up to REACTIVE_BATCH_MAX (beyond that, full build is faster).
         """
-        if len(changed_paths) != 1 or event_types != {"modified"}:
+        if event_types != {"modified"}:
             return False
-        path = next(iter(changed_paths))
-        if path.suffix.lower() not in {".md", ".markdown"}:
+        md_paths = [p for p in changed_paths if p.suffix.lower() in {".md", ".markdown"}]
+        if not md_paths or len(md_paths) != len(changed_paths):
             return False
-        return self._is_content_only_change(path)
+        from bengal.orchestration.constants import REACTIVE_BATCH_MAX
+
+        if len(md_paths) > REACTIVE_BATCH_MAX:
+            return False
+        return all(self._is_content_only_change(p) for p in md_paths)
 
     def _is_shared_content_change(self, changed_paths: set[Path]) -> bool:
         """
@@ -969,6 +1108,76 @@ class BuildTrigger:
         self._template_dirs = [d for d in dirs if d.exists()]
         return self._template_dirs
 
+    def _get_template_change_info(
+        self, changed_paths: set[Path]
+    ) -> tuple[set[Path], set[str]] | None:
+        """
+        Get template change info for reactive path or full rebuild decision.
+
+        Returns (template_paths, affected_page_keys) when template changes
+        require rebuild, or None when no template changes.
+        """
+        template_dirs = self._get_template_dirs()
+        if not template_dirs:
+            return None
+
+        html_paths = [p for p in changed_paths if p.suffix.lower() == ".html"]
+        if not html_paths:
+            return None
+
+        cache = self._get_build_cache()
+        template_paths: set[Path] = set()
+        all_affected: set[str] = set()
+
+        for path in html_paths:
+            if not self._is_in_template_dir(path, template_dirs):
+                continue
+
+            affected: set[str] = set()
+            if cache is not None:
+                with suppress(Exception):
+                    affected = cache.get_affected_pages(path)
+
+            if not affected:
+                logger.debug(
+                    "template_change_ignored",
+                    template=str(path),
+                    reason="no_dependents",
+                )
+                continue
+
+            if self._can_use_incremental_template_update(path, cache):
+                logger.debug(
+                    "template_change_incremental",
+                    template=str(path),
+                    affected_pages=len(affected),
+                )
+                continue
+
+            template_paths.add(path)
+            all_affected.update(affected)
+
+        if not template_paths:
+            return None
+        return (template_paths, all_affected)
+
+    def _get_build_cache(self) -> Any:
+        """Get BuildCache for dependency tracking."""
+        cache = getattr(self.site, "_cache", None)
+        if cache is not None:
+            return cache
+        try:
+            from bengal.cache import BuildCache
+
+            cache_path = self.site.paths.build_cache
+            if cache_path.exists():
+                cache = BuildCache.load(cache_path)
+                cache.site_root = self.site.root_path
+                return cache
+        except Exception:
+            pass
+        return None
+
     def _is_template_change(self, changed_paths: set[Path]) -> bool:
         """
         Check if template changes require full rebuild.
@@ -985,67 +1194,7 @@ class BuildTrigger:
         2. Use cached template directories (avoids exists() calls)
         3. Check dependency graph to skip orphan templates
         """
-        template_dirs = self._get_template_dirs()
-        if not template_dirs:
-            return False
-
-        # Filter to .html files first (early exit optimization)
-        html_paths = [p for p in changed_paths if p.suffix.lower() == ".html"]
-        if not html_paths:
-            return False
-
-        # Get cache for dependency tracking
-        cache = getattr(self.site, "_cache", None)
-        if cache is None:
-            # Try to get cache from site's cache manager or incremental orchestrator
-            try:
-                from bengal.cache import BuildCache
-
-                cache_path = self.site.paths.build_cache
-                if cache_path.exists():
-                    cache = BuildCache.load(cache_path)
-                    cache.site_root = self.site.root_path
-            except Exception:
-                cache = None
-
-        for path in html_paths:
-            if not self._is_in_template_dir(path, template_dirs):
-                continue
-
-            # Check if template has any dependents
-            affected: set[str] = set()
-            if cache is not None:
-                with suppress(Exception):
-                    affected = cache.get_affected_pages(path)
-
-            if not affected:
-                # Template has no dependents - skip entirely
-                logger.debug(
-                    "template_change_ignored",
-                    template=str(path),
-                    reason="no_dependents",
-                )
-                continue
-
-            # Has dependents - check if we can do incremental update
-            if self._can_use_incremental_template_update(path, cache):
-                logger.debug(
-                    "template_change_incremental",
-                    template=str(path),
-                    affected_pages=len(affected),
-                )
-                continue  # Will be handled by incremental build
-
-            # Must do full rebuild
-            logger.debug(
-                "template_change_full_rebuild",
-                template=str(path),
-                affected_pages=len(affected),
-                reason="incremental_not_possible",
-            )
-            return True
-
-        return False
+        return self._get_template_change_info(changed_paths) is not None
 
     def _is_in_template_dir(self, path: Path, template_dirs: list[Path]) -> bool:
         """Check if path is within any template directory."""
@@ -1158,62 +1307,40 @@ class BuildTrigger:
             logger.info("reload_suppressed", reason="reload-hint-none")
             return
 
-        decision: ReloadDecision | None = None
-        decision_source = "none"
-
-        # Primary: typed outputs from build
+        # Build inputs for decide_reload
+        records: list[OutputRecord] = []
+        fallback_paths: list[str] = []
         if changed_outputs:
             from bengal.core.output import OutputType
 
-            records = []
             for rec in changed_outputs:
                 try:
                     if rec.phase in ("render", "asset", "postprocess"):
                         records.append(rec.to_output_record())
                 except ValueError, TypeError:
                     logger.debug("invalid_output_type", path=rec.path, type_val=rec.type_value)
-
-            if records:
-                decision = self._reload_controller.decide_from_outputs(
-                    records, reload_hint=reload_hint
-                )
-                decision_source = "typed-outputs"
-                logger.debug(
-                    "reload_from_typed_outputs",
-                    output_count=len(records),
-                    css_count=sum(1 for r in records if r.output_type == OutputType.CSS),
-                )
-            else:
-                # Fallback: Path-based decision (when type reconstruction fails)
-                paths = [rec.path for rec in changed_outputs]
-                decision = self._reload_controller.decide_from_changed_paths(paths)
-                decision_source = "fallback-paths"
+            if not records:
+                fallback_paths = [rec.path for rec in changed_outputs]
                 logger.debug(
                     "reload_decision_fallback",
                     reason="typed_output_reconstruction_failed",
                     output_count=len(changed_outputs),
                 )
-
-        # Fallback: If sources changed but no typed outputs were recorded, trigger full reload
-        # This handles cases where the output collector didn't receive records (e.g., subprocess
-        # serialization issues, early exit paths, or collector not being passed through).
-        if decision is None:
-            if changed_files:
-                # Sources changed, but no typed outputs - fall back to full reload
-                decision = ReloadDecision(
-                    action="reload", reason="source-change-no-outputs", changed_paths=()
-                )
-                decision_source = "fallback-source-change"
-                logger.debug(
-                    "reload_fallback_no_outputs",
-                    changed_files_count=len(changed_files),
-                    changed_files=changed_files[:5],
-                )
             else:
-                # No sources changed and no outputs - suppress reload
-                decision = ReloadDecision(action="none", reason="no-changes", changed_paths=())
-                decision_source = "no-changes"
-                logger.debug("reload_suppressed_no_changes")
+                logger.debug(
+                    "reload_from_typed_outputs",
+                    output_count=len(records),
+                    css_count=sum(1 for r in records if r.output_type == OutputType.CSS),
+                )
+
+        decision = self._reload_controller.decide_reload(
+            self.site.output_dir,
+            outputs=records if records else None,
+            changed_paths=fallback_paths if fallback_paths else None,
+            reload_hint=reload_hint,
+            source_changed_no_outputs=bool(changed_files) and not changed_outputs,
+        )
+        decision_source = self._reload_controller._last_decision_source
 
         # Content-hash filter: aggregate-only (sitemap, feeds) → no reload.
         # Skip when: (1) fallback-source-change, or (2) user edited source files.

@@ -48,8 +48,8 @@ bengal.cache: Build caching infrastructure
 from __future__ import annotations
 
 import time
+import uuid
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -61,12 +61,12 @@ from bengal.orchestration.menu import MenuOrchestrator
 from bengal.orchestration.postprocess import PostprocessOrchestrator
 from bengal.orchestration.render import RenderOrchestrator
 from bengal.orchestration.section import SectionOrchestrator
-from bengal.orchestration.stats import BuildStats, ReloadHint
+from bengal.orchestration.stats import BuildStats
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 from bengal.protocols.capabilities import HasErrors
 from bengal.utils.observability.logger import get_logger
 
-from . import content, finalization, initialization, parsing, rendering
+from . import content, finalization, initialization, parsing, rendering, snapshot
 from .inputs import BuildInput
 from .options import BuildOptions
 
@@ -251,6 +251,9 @@ class BuildOrchestrator:
         # Start timing
         build_start = time.time()
 
+        # RFC: rfc-cache-generation-id — shared ID for BuildCache and ProvenanceCache
+        self._build_id = str(uuid.uuid4())
+
         # Clear directory creation cache to ensure robustness if output was cleaned
         from bengal.rendering.pipeline.thread_local import get_created_dirs
 
@@ -359,9 +362,9 @@ class BuildOrchestrator:
         # Record resolved mode in stats
         self.stats.incremental = bool(incremental)
 
-        # Store options and cache for phase-level optimizations
-        self.site._last_build_options = options
-        self.site._cache = self.incremental.cache
+        # Store options and cache on BuildState for phase-level optimizations
+        self.site.build_state.last_build_options = options
+        self.site.build_state.cache = self.incremental.cache
         self._last_build_options = options
 
         # Create BuildContext early for content caching during discovery
@@ -483,23 +486,10 @@ class BuildOrchestrator:
         )
 
         # Phase 12.25: Variant filter (params.edition for multi-variant builds)
-        params_edition = None
-        params = self.site.config.get("params") or {}
-        if isinstance(params, dict):
-            params_edition = params.get("edition")
-        if params_edition is not None and str(params_edition).strip():
-            variant = str(params_edition).strip()
-            pages_to_build = [p for p in pages_to_build if p.in_variant(variant)]
-            self.site.pages = [p for p in self.site.pages if p.in_variant(variant)]
-            self._filter_sections_by_variant(self.site.sections, variant)
-            if hasattr(self.site, "invalidate_regular_pages_cache"):
-                self.site.invalidate_regular_pages_cache()
+        pages_to_build = content.phase_variant_filter(self, pages_to_build)
 
         # Phase 12.5: URL Collision Detection (proactive validation)
-        collisions = self.site.validate_no_url_collisions(strict=options.strict)
-        if collisions:
-            for msg in collisions:
-                logger.warning(msg, event="url_collision_detected")
+        content.phase_url_collision_check(self, options.strict)
 
         content_duration_ms = (time.time() - content_start) * 1000
         taxonomy_count = len(self.site.taxonomies) if hasattr(self.site, "taxonomies") else 0
@@ -529,59 +519,7 @@ class BuildOrchestrator:
         )
 
         # === SNAPSHOT CREATION (after parsing, before rendering) ===
-        # Create immutable snapshot for lock-free parallel rendering
-        # Snapshot now contains pre-parsed HTML content from all pages
-        from bengal.snapshots import create_site_snapshot
-        from bengal.snapshots.persistence import SnapshotCache
-
-        snapshot_start = time.time()
-        with self.logger.phase("snapshot"):
-            site_snapshot = create_site_snapshot(self.site)
-            snapshot_duration_ms = (time.time() - snapshot_start) * 1000
-            # Store snapshot in build context for rendering phase
-            early_ctx.snapshot = site_snapshot
-            # Store snapshot time in stats if available
-            if hasattr(self.stats, "snapshot_time_ms"):
-                self.stats.snapshot_time_ms = snapshot_duration_ms
-
-            # Install pre-computed NavTrees for lock-free lookups during rendering
-            from bengal.core.nav_tree import NavTreeCache
-
-            NavTreeCache.set_precomputed(dict(site_snapshot.nav_trees))
-
-            # Eagerly create global context wrappers (eliminates _context_lock
-            # contention during parallel rendering — cache is populated before
-            # any render thread starts)
-            from bengal.rendering.context import _get_global_contexts
-
-            _get_global_contexts(self.site, build_context=early_ctx)
-
-            # Configure directive cache before parallel rendering (eliminates
-            # _config_lock contention — configure_for_site() only needs to
-            # run once, and doing it here ensures no racing during rendering)
-            from bengal.cache.directive_cache import configure_for_site
-
-            configure_for_site(self.site)
-
-            # Save snapshot for incremental builds (RFC: rfc-bengal-snapshot-engine)
-            # This enables near-instant parsing on subsequent builds
-            cache_dir = self.site.root_path / ".bengal" / "cache" / "snapshots"
-            snapshot_cache = SnapshotCache(cache_dir)
-            snapshot_cache.save(site_snapshot)
-
-            # === SERVICE INSTANTIATION (RFC: bengal-v2-architecture Phase 1) ===
-            # Services operate on the frozen snapshot for thread-safe rendering.
-            # Instantiated once per build, available via build context.
-            from bengal.services.query import QueryService
-
-            early_ctx.query_service = QueryService.from_snapshot(site_snapshot)
-            # DataService instantiation deferred — only when data/ dir exists
-            try:
-                from bengal.services.data import DataService
-
-                early_ctx.data_service = DataService.from_root(self.site.root_path)
-            except Exception:
-                pass  # data/ dir may not exist; service remains None
+        snapshot.phase_snapshot(self, cli, early_ctx, pages_to_build, force_sequential)
 
         # === DRY-RUN MODE: Skip output-producing phases ===
         # RFC: rfc-incremental-build-observability Phase 2
@@ -633,8 +571,13 @@ class BuildOrchestrator:
             progress_manager.start_phase("rendering")
 
         # Phase 14: Render Pages (with cached content from discovery)
-        # Pass force_sequential - phase will compute parallel based on should_parallelize() and page count
-        # Ensure early_ctx has output_collector so pipeline gets it (fixes output_collector_missing)
+        # RFC: rfc-build-orchestrator-phase-groups — pass early_ctx through directly
+        # (no second BuildContext). Populate remaining fields before phase_render.
+        early_ctx.pages = pages_to_build
+        early_ctx.profile = profile
+        early_ctx.progress_manager = progress_manager
+        early_ctx.reporter = reporter
+        early_ctx.profile_templates = profile_templates
         early_ctx.output_collector = output_collector
         try:
             ctx = rendering.phase_render(
@@ -691,76 +634,16 @@ class BuildOrchestrator:
         )
 
         # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered
-        # This enables skipping them on future builds if member content hasn't changed
-        # Note: Update on ALL builds (not just incremental) to populate cache for first build
-        if generated_page_cache:
-            # Build content hash lookup from parsed_content cache
-            content_hash_lookup: dict[str, str] = {}
-            if cache and hasattr(cache, "parsed_content"):
-                for path_str, entry in cache.parsed_content.items():
-                    if isinstance(entry, dict):
-                        content_hash = entry.get("metadata_hash", "")
-                        if content_hash:
-                            content_hash_lookup[path_str] = content_hash
-
-            # Update cache for rendered tag pages
-            updated_entries = 0
-            tag_pages_found = 0
-            tag_pages_with_posts = 0
-            for page in pages_to_build:
-                if page.metadata.get("type") == "tag" and page.metadata.get("_generated"):
-                    tag_pages_found += 1
-                    tag_slug = page.metadata.get("_tag_slug", "")
-                    member_pages = page.metadata.get("_posts", [])
-                    if tag_slug and member_pages:
-                        tag_pages_with_posts += 1
-                        # Note: We don't have rendered_html here, pass empty string
-                        # The cache is primarily for member hash comparison, not HTML caching
-                        generated_page_cache.update(
-                            page_type="tag",
-                            page_id=tag_slug,
-                            member_pages=member_pages,
-                            content_cache=content_hash_lookup,
-                            rendered_html="",  # HTML caching optional
-                            generation_time_ms=0,  # Not tracked here
-                        )
-                        updated_entries += 1
-
-            logger.info(
-                "generated_page_cache_updated",
-                entries=updated_entries,
-                tag_pages_found=tag_pages_found,
-                tag_pages_with_posts=tag_pages_with_posts,
-                content_hash_count=len(content_hash_lookup),
-            )
+        finalization.phase_update_generated_cache(self, pages_to_build, cache, generated_page_cache)
 
         # Phase 18: Save Caches (parallel for independent caches)
-        # Run cache saves concurrently since they're independent I/O operations.
-        # This reduces total cache save time from sum to max of all saves.
-        cache_start = time.perf_counter()
-
-        def _save_main_cache() -> None:
-            self.incremental.save_cache(pages_to_build, assets_to_process)
-
-        def _save_generated_cache() -> None:
-            if generated_page_cache:
-                generated_page_cache.save()
-
-        # Run cache saves in parallel
-        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="CacheSave") as executor:
-            futures = [
-                executor.submit(_save_main_cache),
-                executor.submit(_save_generated_cache),
-            ]
-            # Wait for all saves to complete
-            for future in as_completed(futures):
-                # Re-raise any exceptions from save threads
-                future.result()
-
-        cache_duration_ms = (time.perf_counter() - cache_start) * 1000
-        if cli is not None:
-            cli.phase("Cache save", duration_ms=cache_duration_ms)
-        self.logger.info("cache_saved")
+        finalization.phase_cache_save_parallel(
+            self,
+            pages_to_build,
+            assets_to_process,
+            generated_page_cache,
+            cli=cli,
+        )
 
         # Phase 19: Collect Final Stats
         finalization.phase_collect_stats(self, build_start, cli=cli)
@@ -768,42 +651,12 @@ class BuildOrchestrator:
         # Phase 19.5: Finalize Error Session (track build errors for pattern detection)
         self._finalize_error_session()
 
-        # Populate changed_outputs from collector for hot reload decisions
-        self.stats.changed_outputs = output_collector.get_outputs()
-
-        # Compute reload_hint for smarter dev server decisions.
-        # Only set "none" when we have outputs and can confidently say no reload.
-        # When outputs is empty (e.g. output_collector missing from pipeline),
-        # leave reload_hint=None so the trigger uses changed_files fallback.
-        outputs = self.stats.changed_outputs
-        if self.stats.dry_run:
-            self.stats.reload_hint = ReloadHint.NONE
-        elif not outputs:
-            self.stats.reload_hint = None
-        elif any(o.output_type.value == "html" for o in outputs):
-            self.stats.reload_hint = ReloadHint.FULL
-        elif all(o.output_type.value == "css" for o in outputs):
-            self.stats.reload_hint = ReloadHint.CSS_ONLY
-        else:
-            self.stats.reload_hint = ReloadHint.FULL
-
-        # Debug: Log output collection for hot reload diagnostics
-        if self.stats.changed_outputs:
-            self.logger.debug(
-                "output_collector_results",
-                total_outputs=len(self.stats.changed_outputs),
-                html_count=sum(
-                    1 for o in self.stats.changed_outputs if o.output_type.value == "html"
-                ),
-                css_count=sum(
-                    1 for o in self.stats.changed_outputs if o.output_type.value == "css"
-                ),
-            )
-        else:
-            self.logger.warning(
-                "output_collector_empty",
-                pages_rendered=len(pages_to_build) if pages_to_build else 0,
-            )
+        # Populate changed_outputs and compute reload_hint for hot reload decisions
+        finalization.phase_compute_reload_hint(
+            self.stats,
+            output_collector,
+            pages_rendered=len(pages_to_build) if pages_to_build else 0,
+        )
 
         finalization_duration_ms = (time.time() - finalization_start) * 1000
         notify_phase_complete(
@@ -813,30 +666,28 @@ class BuildOrchestrator:
         )
 
         # === HEALTH PHASE GROUP (dashboard-integrated) ===
-        notify_phase_start("health")
-        health_start = time.time()
+        if not options.fast:
+            notify_phase_start("health")
+            health_start = time.time()
 
-        # Phase 20: Health Check
-        with logger.phase("health_check"):
-            finalization.run_health_check(self, profile=profile, build_context=ctx)
+            # Phase 20: Health Check
+            with logger.phase("health_check"):
+                finalization.run_health_check(self, profile=profile, build_context=ctx)
 
-        health_duration_ms = (time.time() - health_start) * 1000
-        health_report = getattr(self.stats, "health_report", None)
-        health_summary = ""
-        if health_report:
-            passed = health_report.total_passed
-            total = health_report.total_checks
-            health_summary = f"{passed}/{total} checks passed"
-        notify_phase_complete("health", health_duration_ms, health_summary)
+            health_duration_ms = (time.time() - health_start) * 1000
+            health_report = getattr(self.stats, "health_report", None)
+            health_summary = ""
+            if health_report:
+                passed = health_report.total_passed
+                total = health_report.total_checks
+                health_summary = f"{passed}/{total} checks passed"
+            notify_phase_complete("health", health_duration_ms, health_summary)
 
         # Phase 21: Finalize Build
         finalization.phase_finalize(self, verbose, collector)
 
         # Save provenance cache if using provenance-based filtering
-        if hasattr(self, "_provenance_filter"):
-            from bengal.orchestration.build.provenance_filter import save_provenance_cache
-
-            save_provenance_cache(self)
+        finalization.phase_save_provenance(self)
 
         # Clear build state (build complete)
         self.site.set_build_state(None)

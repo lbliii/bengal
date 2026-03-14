@@ -15,8 +15,7 @@ Context:
 - config: Config instance
 
 Kida Features:
-- {% block %} for content slots (sidebar, content, examples)
-- {% embed %} compatible via slot system
+- {% block %} for content slots (header, content_main, code_examples)
 - {% with %} for nil-resilient access
 - Optional chaining (?.) and null coalescing (??)
 #}
@@ -25,14 +24,12 @@ Kida Features:
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
 
 {% block content %}
-{% let meta = element?.metadata ?? element?.typed_metadata ?? {} %}
+{% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
 
 <div class="api-explorer" data-autodoc="openapi" data-layout="explorer">
   {# Left Sidebar: API Navigation #}
   <aside class="api-explorer__sidebar" id="api-sidebar" role="navigation" aria-label="API navigation">
-    {% block sidebar %}
     {% include 'autodoc/openapi/partials/sidebar-nav.html' %}
-    {% end %}
   </aside>
 
   {# Center: Main Documentation #}
@@ -48,7 +45,6 @@ Kida Features:
         {% end %}
       </header>
 
-      {# Main Content Block #}
       <div class="api-explorer__content">
         {% block content_main %}
         {# Override in child templates #}
@@ -73,7 +69,6 @@ Kida Features:
 
   {# Right Panel: Code Examples (Sticky) #}
   <aside class="api-explorer__code-panel" id="api-examples" role="complementary" aria-label="Code examples">
-    {% block code_panel %}
     <div class="api-code-samples">
       <header class="api-code-samples__header">
         <h3 class="api-code-samples__title">{{ icon('code', size=14) }} Examples</h3>
@@ -82,7 +77,6 @@ Kida Features:
       {# Override in child templates #}
       {% end %}
     </div>
-    {% end %}
   </aside>
 </div>
 
@@ -91,4 +85,9 @@ Kida Features:
   {{ icon('list', size=20) }}
 </button>
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
+{% end %}
+
+{% block extra_js %}
+{{ super() }}
+<script defer src="{{ asset_url('js/enhancements/api-explorer.js') }}"></script>
 {% end %}

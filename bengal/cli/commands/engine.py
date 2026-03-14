@@ -11,6 +11,7 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
+from bengal.cli.shared_options import opt_verbose
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -33,7 +34,7 @@ def engine() -> None:
     tags=["engines", "info", "quick"],
 )
 @handle_cli_errors(show_art=False)
-@click.option("--verbose", "-v", is_flag=True, help="Show detailed information")
+@opt_verbose(short="-v", help_text="Show detailed information")
 def list_engines(verbose: bool) -> None:
     """
     📋 List available template engines.

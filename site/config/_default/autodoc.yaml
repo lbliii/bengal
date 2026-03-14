@@ -74,6 +74,14 @@ autodoc:
   openapi:
     enabled: true
     spec_file: "api/openapi.yaml"  # Relative to site root
+    consolidate: false  # Individual endpoint pages with three-column explorer layout
+
+    # Interactive API Explorer (Phase 2C)
+    interactive: true  # "Try it" panel with request builder + response viewer
+    # server_url: ""   # Override base URL (empty = use first server from spec)
+    # auth:
+    #   api_key: { name: "X-API-Key" }
+    #   bearer: true
 
     # Output prefix for OpenAPI docs
     # Empty string = auto-derive from spec title "Bengal Demo Commerce API"

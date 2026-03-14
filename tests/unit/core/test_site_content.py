@@ -156,8 +156,8 @@ class TestClear:
 
         content.clear()
 
-        # Cache should be invalidated
-        assert content._regular_pages_cache is None
+        # Cache should be invalidated; regular_pages returns empty after clear
+        assert content.regular_pages == []
 
 
 class TestDerivedPageLists:
@@ -241,9 +241,8 @@ class TestDerivedPageLists:
 
         content.invalidate_caches()
 
-        assert content._regular_pages_cache is None
-        assert content._generated_pages_cache is None
-        assert content._listable_pages_cache is None
+        # Cache rebuilt on next access; result should still be correct
+        assert content.regular_pages == [regular_page]
 
 
 class TestMenuStructures:

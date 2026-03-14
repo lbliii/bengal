@@ -32,7 +32,7 @@ that use taxonomy templates (tags.html, tag.html).
 Performance:
 Collection: O(n) where n=total pages
 Incremental: O(changed) for affected tags only
-Generation: Parallel via ThreadPoolExecutor for 20+ tags
+Generation: Parallel via ParallelProcessor for 20+ tags
 
 i18n Support:
 When i18n is enabled, generates per-locale tag pages and respects
@@ -51,22 +51,23 @@ bengal.orchestration.build: Phase 7 (taxonomies) coordination
 
 from __future__ import annotations
 
-import concurrent.futures
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.build.contracts.keys import content_key
-from bengal.orchestration.utils.errors import is_shutdown_error
+from bengal.core.page import Page
+from bengal.errors import ErrorCode
 from bengal.orchestration.utils.i18n import (
     filter_pages_by_language,
     get_i18n_config,
 )
+from bengal.orchestration.utils.parallel import ParallelProcessor
 from bengal.orchestration.utils.virtual_pages import (
     VirtualPageSpec,
     create_virtual_page,
 )
-from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
+from bengal.utils.concurrency.workers import WorkloadType
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
 
@@ -81,7 +82,6 @@ MIN_TAGS_FOR_PARALLEL = 10
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.taxonomy_index import TaxonomyIndex
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import PageLike
@@ -229,7 +229,7 @@ class TaxonomyOrchestrator:
 
             # Update cache and get affected tags
             new_tags = set(actual_tags) if actual_tags else set()
-            page_key = cache._cache_key(page.source_path)
+            page_key = cache.cache_key(page.source_path)
             page_affected = cache.taxonomy_index.update_page_tags(page_key, new_tags)
             affected_tags.update(page_affected)
 
@@ -668,7 +668,7 @@ class TaxonomyOrchestrator:
 
     def _generate_tag_pages_parallel(self, locale_tags: dict[str, Any], lang: str) -> int:
         """
-        Generate tag pages in parallel using ThreadPoolExecutor.
+        Generate tag pages in parallel using ParallelProcessor.
 
         Each tag's pages can be generated independently, making this perfectly
         parallelizable. On Python 3.14t (free-threaded), this achieves true
@@ -685,77 +685,43 @@ class TaxonomyOrchestrator:
         Returns:
             Number of pages generated
         """
-        from bengal.errors import ErrorAggregator, ErrorCode
+        from bengal.orchestration.utils.config import get_max_workers
 
-        # Get optimal workers for CPU-bound page generation
-        # Access max_workers from build section (supports both Config and dict)
-        config = self.site.config
-        if hasattr(config, "build"):
-            max_workers_override = config.build.max_workers
-        else:
-            build_section = config.get("build", {})
-            max_workers_override = (
-                build_section.get("max_workers")
-                if isinstance(build_section, dict)
-                else config.get("max_workers")
-            )
+        items = list(locale_tags.items())
 
-        max_workers = get_optimal_workers(
-            len(locale_tags),
-            workload_type=WorkloadType.CPU_BOUND,
-            config_override=max_workers_override,
-        )
+        def process_item(item: tuple[str, Any]) -> list[Page]:
+            tag_slug, tag_data = item
+            return self._create_tag_pages(tag_slug, tag_data, lang=lang)
 
-        all_generated_pages = []
-
-        # Use ThreadPoolExecutor for parallel processing
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all tasks
-            future_to_tag = {
-                executor.submit(self._create_tag_pages_for_lang, tag_slug, tag_data, lang): tag_slug
-                for tag_slug, tag_data in locale_tags.items()
+        def context_extractor(e: Exception, item: tuple[str, Any]) -> dict[str, Any]:
+            tag_slug = item[0]
+            return {
+                "tag_slug": tag_slug,
+                "lang": lang,
+                "error": str(e),
+                "error_type": type(e).__name__,
+                "error_code": ErrorCode.B006.value,
+                "suggestion": "Check tag template 'tag.html' exists and is valid Jinja2",
             }
 
-            # Use ErrorAggregator for batch error handling
-            aggregator = ErrorAggregator(total_items=len(locale_tags))
-            threshold = 5
+        processor = ParallelProcessor[tuple[str, Any], list[Page]](
+            workload_type=WorkloadType.CPU_BOUND,
+            config_override=get_max_workers(self.site.config),
+            error_type="taxonomy",
+        )
+        result = processor.process(
+            items=items,
+            process_fn=process_item,
+            context_extractor=context_extractor,
+        )
 
-            # Collect results as they complete
-            for future in concurrent.futures.as_completed(future_to_tag):
-                tag_slug = future_to_tag[future]
-                try:
-                    tag_pages = future.result()
-                    # Set language for all pages
-                    for page in tag_pages:
-                        page.lang = lang
-                    all_generated_pages.extend(tag_pages)
-                except Exception as e:
-                    # Handle shutdown errors gracefully
-                    if is_shutdown_error(e):
-                        logger.debug("taxonomy_shutdown", tag_slug=tag_slug)
-                        continue
+        all_generated_pages: list[Page] = []
+        for tag_pages in result.results:
+            for page in tag_pages:
+                page.lang = lang
+            all_generated_pages.extend(tag_pages)
 
-                    # Use ErrorAggregator for structured error handling
-                    context = {
-                        "tag_slug": tag_slug,
-                        "lang": lang,
-                        "error": str(e),
-                        "error_type": type(e).__name__,
-                        "error_code": ErrorCode.B006.value,
-                        "suggestion": "Check tag template 'tag.html' exists and is valid Jinja2",
-                    }
-                    if aggregator.should_log_individual(
-                        e, context, threshold=threshold, max_samples=3
-                    ):
-                        logger.error("taxonomy_page_generation_failed", **context)
-                    aggregator.add_error(e, context=context)
-
-            # Log summary if errors occurred
-            aggregator.log_summary(logger, threshold=threshold, error_type="taxonomy")
-
-        # Append all generated pages at once (thread-safe)
         self.site.pages.extend(all_generated_pages)
-
         return len(all_generated_pages)
 
     def _create_tag_index_page(self) -> Page:
@@ -788,13 +754,16 @@ class TaxonomyOrchestrator:
             registry_priority=40,
         )
 
-    def _create_tag_pages(self, tag_slug: str, tag_data: dict[str, Any]) -> list[Page]:
+    def _create_tag_pages(
+        self, tag_slug: str, tag_data: dict[str, Any], lang: str | None = None
+    ) -> list[Page]:
         """
         Create pages for an individual tag (with pagination if needed).
 
         Args:
             tag_slug: URL-safe tag slug
             tag_data: Dictionary containing tag name and pages
+            lang: Optional language code for i18n pages (skip registry when set)
 
         Returns:
             List of generated tag pages
@@ -806,17 +775,14 @@ class TaxonomyOrchestrator:
 
         # Filter out any ineligible pages (defensive check)
         eligible_pages = [p for p in tag_data["pages"] if self._is_eligible_for_taxonomy(p)]
-
-        # Create paginator
         paginator = Paginator(eligible_pages, per_page=per_page)
 
-        # Create a page for each pagination page
         for page_num in range(1, paginator.num_pages + 1):
-            spec = VirtualPageSpec(
-                title=f"Posts tagged '{tag_data['name']}'",
-                template="tag.html",
-                page_type="tag",
-                metadata={
+            spec_kwargs: dict[str, Any] = {
+                "title": f"Posts tagged '{tag_data['name']}'",
+                "template": "tag.html",
+                "page_type": "tag",
+                "metadata": {
                     "_tag": tag_data["name"],
                     "_tag_slug": tag_slug,
                     "_taxonomy_term": tag_slug,
@@ -824,62 +790,28 @@ class TaxonomyOrchestrator:
                     "_paginator": paginator,
                     "_page_num": page_num,
                 },
-            )
+            }
+            if lang is not None:
+                spec_kwargs["lang"] = lang
 
-            tag_page = create_virtual_page(
-                site=self.site,
-                url_strategy=self.url_strategy,
-                spec=spec,
-                path_segments=("tags", tag_slug, f"page_{page_num}"),
-                output_path=self.url_strategy.compute_tag_output_path(
+            spec = VirtualPageSpec(**spec_kwargs)
+
+            create_kwargs: dict[str, Any] = {
+                "site": self.site,
+                "url_strategy": self.url_strategy,
+                "spec": spec,
+                "path_segments": ("tags", tag_slug, f"page_{page_num}"),
+                "output_path": self.url_strategy.compute_tag_output_path(
                     tag_slug=tag_slug, page_num=page_num, site=self.site
                 ),
-                registry_owner="taxonomy",
-                registry_priority=40,
-            )
-            pages_to_create.append(tag_page)
+            }
+            if lang is None:
+                create_kwargs["registry_owner"] = "taxonomy"
+                create_kwargs["registry_priority"] = 40
+            else:
+                create_kwargs["registry_owner"] = None  # Skip registry for lang-specific pages
 
-        return pages_to_create
-
-    def _create_tag_pages_for_lang(
-        self, tag_slug: str, tag_data: dict[str, Any], lang: str
-    ) -> list[Page]:
-        """Create tag pages for a specific language."""
-        from bengal.utils.pagination import Paginator
-
-        pages_to_create: list[Page] = []
-        per_page = self.site.config.get("pagination", {}).get("per_page", 10)
-
-        # Filter out any ineligible pages (defensive check)
-        eligible_pages = [p for p in tag_data["pages"] if self._is_eligible_for_taxonomy(p)]
-        paginator = Paginator(eligible_pages, per_page=per_page)
-
-        for page_num in range(1, paginator.num_pages + 1):
-            spec = VirtualPageSpec(
-                title=f"Posts tagged '{tag_data['name']}'",
-                template="tag.html",
-                page_type="tag",
-                metadata={
-                    "_tag": tag_data["name"],
-                    "_tag_slug": tag_slug,
-                    "_taxonomy_term": tag_slug,
-                    "_posts": eligible_pages,
-                    "_paginator": paginator,
-                    "_page_num": page_num,
-                },
-                lang=lang,
-            )
-
-            tag_page = create_virtual_page(
-                site=self.site,
-                url_strategy=self.url_strategy,
-                spec=spec,
-                path_segments=("tags", tag_slug, f"page_{page_num}"),
-                output_path=self.url_strategy.compute_tag_output_path(
-                    tag_slug=tag_slug, page_num=page_num, site=self.site
-                ),
-                registry_owner=None,  # Skip registry claim for lang-specific pages
-            )
+            tag_page = create_virtual_page(**create_kwargs)
             pages_to_create.append(tag_page)
 
         return pages_to_create

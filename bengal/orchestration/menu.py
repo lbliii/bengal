@@ -128,7 +128,7 @@ class MenuOrchestrator:
             return False
 
         # Check if any changed pages affect menu (menu frontmatter or root-level)
-        from bengal.rendering.template_functions.navigation.auto_nav import _is_root_level_page
+        from bengal.core.page.navigation import is_root_level_page
 
         root_path = getattr(self.site, "root_path", None)
         content_dir = root_path / "content" if root_path else None
@@ -137,7 +137,7 @@ class MenuOrchestrator:
                 continue
             if "menu" in page.metadata:
                 return False
-            if content_dir and _is_root_level_page(page, content_dir):
+            if content_dir and is_root_level_page(page, content_dir):
                 return False
 
         # Compute cache key based on menu config and pages with menu frontmatter
@@ -226,13 +226,13 @@ class MenuOrchestrator:
         auto_dev_bundle = self.site.config.get("menu", {}).get("auto_dev_bundle", True)
 
         # Root-level pages (auto-discovered in get_auto_nav, affect cache when they change)
-        from bengal.rendering.template_functions.navigation.auto_nav import _is_root_level_page
+        from bengal.core.page.navigation import is_root_level_page
 
         root_level_pages = []
         if root_path := getattr(self.site, "root_path", None):
             content_dir = root_path / "content"
             for page in self.site.pages:
-                if _is_root_level_page(page, content_dir):
+                if is_root_level_page(page, content_dir):
                     metadata = getattr(page, "metadata", {})
                     root_level_pages.append(
                         {
@@ -299,18 +299,17 @@ class MenuOrchestrator:
             if dev_bundle:
                 sections_to_exclude.update(dev_bundle.get("_exclude_sections", []))
 
-        # Mark sections to exclude from auto-nav
-        if sections_to_exclude:
-            if self.site._dev_menu_metadata is None:
-                self.site._dev_menu_metadata = {}
-            self.site._dev_menu_metadata["exclude_sections"] = list(sections_to_exclude)
+        # Mark sections to exclude from auto-nav (store on BuildState)
+        _bs = self.site.build_state
+        if sections_to_exclude and _bs is not None:
+            _bs.dev_menu_metadata["exclude_sections"] = list(sections_to_exclude)
 
         # Get auto-discovered sections (will exclude bundled sections)
         auto_items = get_auto_nav(self.site)
 
         # Clear the exclude flag after use
-        if sections_to_exclude and self.site._dev_menu_metadata:
-            self.site._dev_menu_metadata.pop("exclude_sections", None)
+        if sections_to_exclude and _bs is not None:
+            _bs.dev_menu_metadata.pop("exclude_sections", None)
 
         # Build menu items list with deduplication
         menu_items = []
@@ -332,12 +331,11 @@ class MenuOrchestrator:
             self._add_bundle_to_menu(
                 dev_bundle, menu_items, seen_identifiers, seen_urls, seen_names
             )
-            # Store metadata for template
-            if self.site._dev_menu_metadata is None:
-                self.site._dev_menu_metadata = {}
-            self.site._dev_menu_metadata["github_bundled"] = any(
-                item.get("type") == "github" for item in dev_bundle.get("items", [])
-            )
+            # Store metadata for template (on BuildState)
+            if _bs is not None:
+                _bs.dev_menu_metadata["github_bundled"] = any(
+                    item.get("type") == "github" for item in dev_bundle.get("items", [])
+                )
 
         # Process sections with dropdown frontmatter (lowest priority - after bundles)
         menu_items = self._process_dropdown_sections(

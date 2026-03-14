@@ -25,13 +25,14 @@ See Also:
 
 from __future__ import annotations
 
-import concurrent.futures
 from collections.abc import Callable
+from dataclasses import dataclass
 from threading import Lock
 from typing import TYPE_CHECKING
 
-from bengal.orchestration.utils.errors import is_shutdown_error
+from bengal.orchestration.utils.parallel import ParallelProcessor
 from bengal.protocols import ProgressReporter
+from bengal.utils.concurrency.workers import WorkloadType
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
@@ -59,6 +60,14 @@ if TYPE_CHECKING:
 
 # Thread-safe output lock for parallel processing
 _print_lock = Lock()
+
+
+@dataclass
+class _PostprocessTask:
+    """Work item for parallel post-processing."""
+
+    name: str
+    fn: Callable[[], None]
 
 
 class PostprocessOrchestrator:
@@ -293,102 +302,83 @@ class PostprocessOrchestrator:
         reporter: ProgressReporter | None = None,
     ) -> None:
         """
-        Run post-processing tasks in parallel.
+        Run post-processing tasks in parallel using ParallelProcessor.
 
         Args:
             tasks: List of (task_name, task_function) tuples
             progress_manager: Live progress manager (optional)
         """
-        errors = []
-        completed_count = 0
-        lock = Lock()
+        items = [_PostprocessTask(name, fn) for name, fn in tasks]
 
-        try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=len(tasks)) as executor:
-                futures = {executor.submit(task_fn): name for name, task_fn in tasks}
+        def process_item(item: _PostprocessTask) -> None:
+            item.fn()
 
-                for future in concurrent.futures.as_completed(futures):
-                    # Get task name outside try block (dictionary lookup is fast)
-                    task_name = futures[future]
-                    try:
-                        future.result()
-                        if progress_manager:
-                            # Minimize lock hold time - only update counter and progress
-                            with lock:
-                                completed_count += 1
-                                progress_manager.update_phase(
-                                    "postprocess", current=completed_count, current_item=task_name
-                                )
-                    except Exception as e:
-                        # Suppress interpreter shutdown errors - these are expected on Ctrl+C
-                        if is_shutdown_error(e):
-                            logger.debug("postprocess_shutdown", task=task_name)
-                            continue
+        def context_extractor(e: Exception, item: _PostprocessTask) -> dict[str, object]:
+            return {
+                "task": item.name,
+                "error": str(e),
+                "error_type": type(e).__name__,
+            }
 
-                        # Error handling outside lock
-                        error_msg = str(e)
-                        errors.append((task_name, error_msg))
+        def progress_callback(completed: int, item: _PostprocessTask) -> None:
+            if progress_manager:
+                progress_manager.update_phase(
+                    "postprocess", current=completed, current_item=item.name
+                )
 
-                        # Import error handling utilities
-                        from bengal.errors import (
-                            BengalError,
-                            ErrorCode,
-                            ErrorContext,
-                            enrich_error,
-                            record_error,
-                        )
+        processor = ParallelProcessor[_PostprocessTask, None](
+            workload_type=WorkloadType.MIXED,
+            config_override=len(tasks),
+            error_type="postprocess",
+        )
+        result = processor.process(
+            items=items,
+            process_fn=process_item,
+            progress_callback=progress_callback,
+            context_extractor=context_extractor,
+        )
 
-                        # Enrich error with context
-                        context = ErrorContext(
-                            operation=f"post-processing task: {task_name}",
-                            suggestion=f"Check {task_name} configuration and file permissions",
-                            original_error=e,
-                        )
-                        enriched = enrich_error(e, context, BengalError)
+        # Record errors and report to user
+        if result.errors:
+            from bengal.errors import (
+                BengalError,
+                ErrorContext,
+                enrich_error,
+                record_error,
+            )
 
-                        # Log with error code
-                        logger.error(
-                            "postprocess_task_failed",
-                            task=task_name,
-                            error=str(enriched),
-                            error_type=type(e).__name__,
-                            error_code=ErrorCode.B008.value,
-                            suggestion=f"Check {task_name} configuration and file permissions",
-                        )
+            for item, e in result.errors:
+                context = ErrorContext(
+                    operation=f"post-processing task: {item.name}",
+                    suggestion=f"Check {item.name} configuration and file permissions",
+                    original_error=e,
+                )
+                enriched = enrich_error(e, context, BengalError)
+                record_error(enriched, file_path=f"postprocess:{item.name}")
 
-                        # Record in error session
-                        record_error(enriched, file_path=f"postprocess:{task_name}")
-        except RuntimeError as e:
-            # Handle graceful shutdown at executor level
-            if is_shutdown_error(e):
-                logger.debug("postprocess_executor_shutdown")
-                return
-            raise
-
-        # Report errors
-        if errors and not progress_manager:
-            with _print_lock:
-                header = f"  ⚠️  {len(errors)} post-processing task(s) failed:"
-                if reporter:
-                    try:
-                        reporter.log(header)
-                        for task_name, error in errors:
-                            reporter.log(f"    • {task_name}: {error}")
-                    except Exception as reporter_error:
-                        logger.debug(
-                            "postprocess_reporter_error_log_failed",
-                            error_count=len(errors),
-                            reporter_error=str(reporter_error),
-                            error_type=type(reporter_error).__name__,
-                            action="falling_back_to_print",
-                        )
+            if not progress_manager:
+                with _print_lock:
+                    header = f"  ⚠️  {len(result.errors)} post-processing task(s) failed:"
+                    if reporter:
+                        try:
+                            reporter.log(header)
+                            for item, e in result.errors:
+                                reporter.log(f"    • {item.name}: {e}")
+                        except Exception as reporter_error:
+                            logger.debug(
+                                "postprocess_reporter_error_log_failed",
+                                error_count=len(result.errors),
+                                reporter_error=str(reporter_error),
+                                error_type=type(reporter_error).__name__,
+                                action="falling_back_to_print",
+                            )
+                            print(header)
+                            for item, e in result.errors:
+                                print(f"    • {item.name}: {e}")
+                    else:
                         print(header)
-                        for task_name, error in errors:
-                            print(f"    • {task_name}: {error}")
-                else:
-                    print(header)
-                    for task_name, error in errors:
-                        print(f"    • {task_name}: {error}")
+                        for item, e in result.errors:
+                            print(f"    • {item.name}: {e}")
 
     def _generate_special_pages(self, build_context: BuildContext | None = None) -> None:
         """

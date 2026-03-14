@@ -597,7 +597,7 @@ html:not([data-devtools-open]) .blog-post-list > * {
 
 .blog-tag:hover {
     background: var(--color-primary);
-    color: white;
+    color: var(--color-text-inverse);
 }
 
 /* Read More Link */
@@ -1046,8 +1046,7 @@ html:not([data-devtools-open]) .blog-post-list > * {
     background: var(--color-bg-hover);
     border-color: var(--color-primary);
     transform: translate3d(0, -1px, 0);
-    /* Subtle lift effect */
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--elevation-low);
 }
 
 .share-button svg {
@@ -1080,16 +1079,16 @@ html:not([data-devtools-open]) .blog-post-list > * {
 }
 
 .newsletter-form input {
-    padding: 0.5rem;
+    padding: var(--space-2);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
 }
 
 .newsletter-form button {
-    padding: 0.5rem;
+    padding: var(--space-2);
     background: var(--color-primary);
-    color: white;
+    color: var(--color-text-inverse);
     border: none;
     border-radius: var(--radius-md);
     font-weight: var(--weight-medium);

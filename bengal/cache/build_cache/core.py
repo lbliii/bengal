@@ -105,6 +105,9 @@ class BuildCache(
     # Site root for canonical path key normalization (not serialized, set by CacheManager)
     site_root: Path | None = field(default=None, repr=False)
 
+    # Set when load failed and fresh cache was returned (observability for cache-unusable)
+    _recovered_from_error: bool = field(default=False, repr=False)
+
     # file_fingerprints for fast mtime+size change detection
     # Structure: {CacheKey(path): {mtime: float, size: int, hash: str | None}}
     # Use get_file_fingerprint/set_file_fingerprint or _cache_key for lookups
@@ -154,12 +157,34 @@ class BuildCache(
 
     last_build: str | None = None
 
-    def _cache_key(self, path: Path) -> CacheKey:
+    # RFC: rfc-cache-generation-id — shared with ProvenanceCache for divergence detection
+    build_id: str | None = None
+
+    def get_page_tags(self, key: str | Path) -> set[str]:
+        """Get tags for a page from taxonomy index (public API)."""
+        page_key = str(key) if isinstance(key, Path) else key
+        return self.taxonomy_index.get_previous_tags(page_key)
+
+    def update_page_tags(self, key: str | Path, tags: set[str]) -> set[str]:
+        """Update tags for a page in taxonomy index (public API)."""
+        return self.taxonomy_index.update_page_tags(key, tags)
+
+    def remove_page_tags(self, key: str | Path) -> None:
+        """Remove a page from taxonomy index (public API)."""
+        self.taxonomy_index.remove_page(key)
+
+    def cache_key(self, source_path: Path) -> CacheKey:
         """
         Canonical cache key for a path (content_key when site_root set).
 
         Ensures watcher (absolute) and discovery (relative) paths hit the same
         cache entries. Falls back to resolved absolute when site_root is None.
+        """
+        return self._cache_key(source_path)
+
+    def _cache_key(self, path: Path) -> CacheKey:
+        """
+        Internal implementation of cache_key. Use cache_key() for public API.
         """
         if self.site_root is not None:
             return content_key(path, self.site_root)
@@ -223,7 +248,9 @@ class BuildCache(
                 action="using_fresh_cache",
                 error_code=ErrorCode.A003.value,  # cache_read_error
             )
-            return cls()
+            cache = cls()
+            cache._recovered_from_error = True
+            return cache
 
     @classmethod
     def _load_from_file(cls, cache_path: Path) -> BuildCache:
@@ -571,6 +598,7 @@ class BuildCache(
             "discovered_assets": self.discovered_assets,  # Discovered assets
             "config_hash": self.config_hash,  # Config hash for auto-invalidation
             "last_build": datetime.now(UTC).isoformat(),
+            "build_id": self.build_id,  # RFC: rfc-cache-generation-id
         }
 
         if compress:
@@ -689,7 +717,7 @@ class BuildCache(
             deps.discard(file_key)
 
         # Remove page tags
-        self.taxonomy_index.page_tags.pop(file_key, None)
+        self.remove_page_tags(file_key)
 
         # Remove parsed content cache
         self.parsed_content.pop(file_key, None)

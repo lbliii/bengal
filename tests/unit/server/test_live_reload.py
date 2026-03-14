@@ -76,6 +76,91 @@ class TestExtractMainContent:
         assert '<div class="inner">nested</div>' in result
         assert "nested" in result
 
+    def test_handles_html_comment_containing_id(self):
+        """ID in HTML comment does not confuse extraction (bs4 or regex)."""
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = '<!-- id="main-content" --><main id="main-content"><p>Real</p></main>'
+        result = extract_main_content(html)
+        assert "<p>Real</p>" in result
+
+    def test_handles_self_closing_tags_within_target(self):
+        """Self-closing tags (br, hr, img) inside target are preserved."""
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = '<div id="main-content"><p>Line1<br/>Line2</p><hr/><img src="x"/></div>'
+        result = extract_main_content(html)
+        assert "Line1" in result
+        assert "Line2" in result
+        assert "<br" in result or "<br/" in result
+        assert "<hr" in result or "<hr/" in result
+        assert "img" in result
+
+    def test_class_selector_when_bs4_available(self):
+        """Class selector works when beautifulsoup4 is installed."""
+        pytest.importorskip("bs4", reason="beautifulsoup4 for class selector test")
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = '<div class="main-content"><span>Class content</span></div>'
+        result = extract_main_content(html, selector=".main-content")
+        assert "<span>Class content</span>" in result
+
+    def test_tag_class_selector_when_bs4_available(self):
+        """tag.class selector works when beautifulsoup4 is installed."""
+        pytest.importorskip("bs4", reason="beautifulsoup4 for tag.class selector test")
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = '<main class="content-area"><h1>Tag+class</h1></main>'
+        result = extract_main_content(html, selector="main.content-area")
+        assert "<h1>Tag+class</h1>" in result
+
+    def test_extract_with_fallback_uses_primary_when_it_works(self):
+        """extract_main_content_with_fallback returns primary when it matches."""
+        from bengal.server.live_reload.fragment import extract_main_content_with_fallback
+
+        html = '<div id="custom"><p>Custom</p></div>'
+        frag, eff = extract_main_content_with_fallback(html, selector="#custom")
+        assert frag == "<p>Custom</p>"
+        assert eff == "#custom"
+
+    def test_extract_with_fallback_falls_back_to_main_content(self):
+        """When primary fails, tries #main-content."""
+        from bengal.server.live_reload.fragment import extract_main_content_with_fallback
+
+        html = '<main id="main-content"><h1>Fallback</h1></main>'
+        frag, eff = extract_main_content_with_fallback(html, selector="#missing")
+        assert "<h1>Fallback</h1>" in frag
+        assert eff == "#main-content"
+
+    def test_extract_with_fallback_falls_back_to_class_main_content(self):
+        """When #main-content fails, tries .main-content."""
+        pytest.importorskip("bs4", reason="beautifulsoup4 for class selector")
+        from bengal.server.live_reload.fragment import extract_main_content_with_fallback
+
+        html = '<div class="main-content"><p>Class fallback</p></div>'
+        frag, eff = extract_main_content_with_fallback(html, selector="#missing")
+        assert "<p>Class fallback</p>" in frag
+        assert eff == ".main-content"
+
+    def test_extract_with_fallback_falls_back_to_main_tag(self):
+        """When #main-content and .main-content fail, tries main tag."""
+        pytest.importorskip("bs4", reason="beautifulsoup4 for main tag selector")
+        from bengal.server.live_reload.fragment import extract_main_content_with_fallback
+
+        html = "<main><p>Main tag content</p></main>"
+        frag, eff = extract_main_content_with_fallback(html, selector="#nonexistent")
+        assert "<p>Main tag content</p>" in frag
+        assert eff == "main"
+
+    def test_extract_with_fallback_returns_empty_when_all_fail(self):
+        """Returns empty fragment and primary selector when no fallback matches."""
+        from bengal.server.live_reload.fragment import extract_main_content_with_fallback
+
+        html = "<html><body><div>No match</div></body></html>"
+        frag, eff = extract_main_content_with_fallback(html, selector="#custom")
+        assert frag == ""
+        assert eff == "#custom"
+
 
 class TestLiveReloadScriptInjection:
     """Test HTML injection for live reload."""
@@ -260,6 +345,42 @@ class TestReloadPayload:
         assert "html" in payload
         assert "permalink" in payload
         assert "reason" in payload
+
+    def test_send_fragments_payload_stores_action(self):
+        """Test that send_fragments_payload stores fragments as JSON."""
+        from bengal.server.live_reload.notification import send_fragments_payload
+
+        send_fragments_payload(
+            selector="#main-content",
+            fragments=[("/a/", "<p>A</p>"), ("/b/", "<p>B</p>")],
+        )
+
+        from bengal.server import live_reload
+
+        assert "fragments" in live_reload._last_action
+        assert "#main-content" in live_reload._last_action
+        assert "/a/" in live_reload._last_action
+        assert "/b/" in live_reload._last_action
+
+    def test_fragments_payload_keys_match_client_script(self):
+        """Fragments payload keys must match what the client script expects."""
+        import json
+
+        from bengal.server.live_reload.notification import send_fragments_payload
+
+        send_fragments_payload(
+            selector="#main-content",
+            fragments=[("/page/", "<div>content</div>")],
+        )
+        from bengal.server import live_reload
+
+        payload = json.loads(live_reload._last_action)
+        assert payload["action"] == "fragments"
+        assert "selector" in payload
+        assert "fragments" in payload
+        assert len(payload["fragments"]) == 1
+        assert payload["fragments"][0]["permalink"] == "/page/"
+        assert payload["fragments"][0]["html"] == "<div>content</div>"
 
 
 class TestSSELoopRoundTrip:

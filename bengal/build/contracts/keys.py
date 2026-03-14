@@ -111,6 +111,28 @@ def watcher_key(path: Path) -> str:
     return to_posix(path.resolve())
 
 
+def synthetic_key(prefix: str, slug: str) -> str:
+    """
+    Canonical key for virtual/generated pages (taxonomy terms, etc.).
+
+    Use for pages that have no source file. Format must match between
+    provenance_filter and taxonomy_index_mixin. Do NOT use content_key
+    for these - they bypass file resolution.
+
+    Convention:
+        tag:python -> "_generated/tags/tag:python"
+        category:docs -> "_generated/categories/category:docs"
+
+    Args:
+        prefix: Path prefix (e.g. "_generated/tags", "_generated/categories")
+        slug: Term slug (e.g. "tag:python", "category:docs")
+
+    Returns:
+        Synthetic cache key string
+    """
+    return f"{prefix}/{slug}"
+
+
 def parse_key(key: CacheKey) -> tuple[str, str]:
     """
     Parse a cache key into (prefix, path).

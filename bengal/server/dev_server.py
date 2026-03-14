@@ -60,6 +60,7 @@ Related:
 
 from __future__ import annotations
 
+import contextlib
 import errno
 import os
 import socket
@@ -281,7 +282,29 @@ class DevServer:
                 server_thread.start()
 
                 # Run validation build in foreground (shows progress)
-                self._run_validation_build(BuildProfile.WRITER, actual_port)
+                # RFC: rfc-dev-server-buffer-hardening (Phase 1) - catch failure,
+                # keep serving cached content, start watcher so rebuilds work
+                try:
+                    self._run_validation_build(BuildProfile.WRITER, actual_port)
+                except Exception as exc:
+                    logger.error(
+                        "validation_build_failed",
+                        error=str(exc),
+                        action="continuing_with_cached_content",
+                    )
+                    icons = get_icons()
+                    print(f"\n  {icons.warning} Validation failed: {exc}")
+                    print(
+                        f"  {icons.arrow} Serving cached content — next file change will trigger rebuild"
+                    )
+                    # Start watcher despite failure so rebuilds work
+                    if self.watch and hasattr(self, "_watcher_runner"):
+                        if hasattr(self, "_build_trigger"):
+                            self._build_trigger.seed_content_hash_cache(list(self.site.pages))
+                        self._watcher_runner.start()
+                        logger.info(
+                            "file_watcher_started", watch_dirs=self._get_watched_directories()
+                        )
 
                 # Open browser only after validation completes - site is ready
                 if self.open_browser:
@@ -420,14 +443,21 @@ class DevServer:
 
         # Check for index.html as a proxy for "has content"
         index_file = output_dir / "index.html"
-        if index_file.exists():
-            return True
-
-        # Also check for any HTML files
-        try:
-            return any(output_dir.rglob("*.html"))
-        except Exception:
+        has_html = index_file.exists()
+        if not has_html:
+            with contextlib.suppress(Exception):
+                has_html = any(output_dir.rglob("*.html"))
+        if not has_html:
             return False
+
+        # RFC: rfc-dev-server-buffer-hardening (Phase 2) - require CSS assets
+        # to avoid serve-first with incomplete cache (404s on first load)
+        assets_css = output_dir / "assets" / "css"
+        if not assets_css.exists() or not any(assets_css.iterdir()):
+            logger.debug("cached_output_rejected", reason="no_css_assets")
+            return False
+
+        return True
 
     def _run_validation_build(self, profile: Any, port: int) -> None:
         """
@@ -435,9 +465,8 @@ class DevServer:
 
         This validates cached content and triggers hot reload if stale.
 
-        Args:
-            profile: Build profile to use
-            port: Server port for display
+        Uses the double-buffer: builds to staging, then swaps. Prevents serving
+        torn content (e.g. HTML before assets) during validation.
         """
         from bengal.orchestration.build.options import BuildOptions
         from bengal.server.live_reload import send_reload_payload
@@ -457,7 +486,14 @@ class DevServer:
         else:
             controller.decide_and_update(self.site.output_dir)  # Set baseline (legacy)
 
-        stats = self._run_build_via_executor(build_opts, "Validation build")
+        # Double-buffer: build to staging so we never serve from a directory
+        # being written (prevents HTML-without-assets 404s during validation)
+        staging = self._buffer_manager.prepare_staging()
+        stats = self._run_build_via_executor(
+            build_opts, "Validation build", output_dir_override=staging
+        )
+        self._buffer_manager.swap()
+        self.site.output_dir = self._buffer_manager.active_dir
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
 
         logger.debug(
@@ -476,14 +512,9 @@ class DevServer:
         # Initialize reload controller with post-build state
         self._init_reload_controller()
 
-        # RFC: Output Cache Architecture - Use content-hash detection for accurate change counts
-        if controller._use_content_hashes:
-            decision = controller.decide_with_content_hashes(self.site.output_dir)
-            # Report actual content changes, not regeneration noise
-            actual_changes = decision.meaningful_change_count
-        else:
-            decision = controller.decide_and_update(self.site.output_dir)
-            actual_changes = len(decision.changed_paths)
+        # RFC: Output Cache Architecture - Use decide_reload for unified fallback chain
+        decision = controller.decide_reload(self.site.output_dir)
+        actual_changes = len(decision.changed_paths)
 
         if decision.action != "none":
             logger.info(
@@ -508,13 +539,21 @@ class DevServer:
             self._watcher_runner.start()
             logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
 
-    def _run_build_via_executor(self, build_opts: Any, description: str = "Build") -> MinimalStats:
+    def _run_build_via_executor(
+        self,
+        build_opts: Any,
+        description: str = "Build",
+        output_dir_override: Path | None = None,
+    ) -> MinimalStats:
         """
         Run build in process-isolated subprocess for clean Ctrl+C shutdown.
 
         Uses BuildExecutor with ProcessPoolExecutor so the main process has no
         build ThreadPoolExecutors. When user presses Ctrl+C, normal sys.exit()
         works without "Exception ignored on threading shutdown" traceback.
+
+        When output_dir_override is set (e.g. staging path), the build writes
+        there instead of config output_dir, enabling double-buffer for validation.
         """
         from bengal.orchestration.stats import show_error
         from bengal.utils.observability.profile import BuildProfile
@@ -530,6 +569,7 @@ class DevServer:
             incremental=incremental,
             profile=profile_str,
             version_scope=self.version_scope,
+            output_dir_override=str(output_dir_override) if output_dir_override else None,
         )
         executor = BuildExecutor(max_workers=1)
         try:
@@ -568,6 +608,20 @@ class DevServer:
             from bengal.server.utils import get_dev_config
 
             cfg = self.site.config or {}
+
+            # RFC: reload-controller-dual-path §5.3 — warn if content-hash mode
+            # has content_hash_in_html disabled (falls back to full-content hashing)
+            if controller._use_content_hashes:
+                build_cfg = cfg.get("build") or {}
+                if (
+                    isinstance(build_cfg, dict)
+                    and build_cfg.get("content_hash_in_html", True) is False
+                ):
+                    logger.warning(
+                        "content_hash_disabled",
+                        hint="content_hash_in_html=false; content-hash mode will "
+                        "use full-content hashing (slower)",
+                    )
 
             try:
                 min_interval = get_dev_config(cfg, "reload", "min_notify_interval_ms", default=300)

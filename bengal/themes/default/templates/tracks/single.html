@@ -201,10 +201,10 @@ Or set `type: track` to auto-select this template
 
   {# Right Sidebar: TOC from all track sections #}
   {% if track and track_items | length > 0 %}
-  {% let combined_toc_items = combine_track_toc(track_items) %}
-  {% if combined_toc_items %}
+  {% let track_toc_sections = build_track_toc_sections(track_items) %}
+  {% if track_toc_sections %}
   <aside class="docs-toc" role="complementary" aria-label="Table of contents">
-    {{ toc(toc_items=combined_toc_items, page=page) }}
+    {{ toc(track_toc_sections=track_toc_sections, page=page) }}
   </aside>
   {% end %}
   {% elif page_toc_items | length > 0 %}

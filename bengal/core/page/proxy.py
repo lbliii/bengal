@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.core.cascade import CascadeSnapshot, CascadeView
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.core.utils.shared import resolve_nav_title, sortable_weight
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -210,7 +211,7 @@ class PageProxy:
 
         Falls back to title if nav_title not set.
         """
-        return self.core.nav_title or self.core.title
+        return resolve_nav_title(self.core.nav_title, self.core.title)
 
     @property
     def weight(self) -> float:
@@ -220,12 +221,7 @@ class PageProxy:
         Returns weight from cached core if set, otherwise infinity (sorts last).
         This property ensures pages are always sortable without None errors.
         """
-        if self.core.weight is not None:
-            try:
-                return float(self.core.weight)
-            except ValueError, TypeError:
-                pass
-        return float("inf")
+        return sortable_weight(self.core.weight)
 
     @property
     def date(self) -> datetime | None:

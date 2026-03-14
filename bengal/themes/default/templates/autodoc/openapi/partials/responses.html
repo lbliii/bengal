@@ -3,6 +3,7 @@ Bengal OpenAPI Responses
 ========================
 
 Displays API responses with status code tabs and schema information.
+Uses schema_viewer from _schema.html.
 
 Context:
 - responses: List/tuple of OpenAPIResponseMetadata or dict with:
@@ -19,6 +20,7 @@ Kida Features:
 - {% spaceless %} for compact tab output
 - Optional chaining (?.) and null coalescing (??)
 #}
+{% from 'autodoc/openapi/_schema.html' import schema_viewer %}
 
 {# Status code category helper #}
 {% def status_category(code) %}
@@ -110,7 +112,7 @@ Kida Features:
       {% let schema_name = ref | split('#/components/schemas/') | last %}
       <div class="api-responses__schema-ref">
         <span class="api-responses__label">Schema:</span>
-        <a href="#schema-{{ schema_name | slugify }}">
+        <a href="{{ url_for_autodoc_schema(section, schema_name) }}">
           <code>{{ schema_name }}</code>
         </a>
       </div>
@@ -118,9 +120,9 @@ Kida Features:
 
       {# Inline Schema #}
       {% with inline_schema as s %}
-      {% let schema = s %}
-      {% let depth = 0 %}
-      {% include 'autodoc/openapi/partials/schema-viewer.html' %}
+      {% if s %}
+      {{ schema_viewer(s, name=none, depth=0) }}
+      {% end %}
       {% end %}
 
       {# Example Response #}

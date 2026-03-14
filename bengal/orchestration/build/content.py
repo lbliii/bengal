@@ -560,3 +560,59 @@ def phase_update_pages_list(
 
     # Convert back to list for rendering
     return list(pages_to_build_set)
+
+
+def phase_variant_filter(
+    orchestrator: BuildOrchestrator,
+    pages_to_build: list[Any],
+) -> list[Any]:
+    """
+    Phase 12.25: Variant filter (params.edition for multi-variant builds).
+
+    Filters pages and sections by edition when params.edition is set.
+    Mutates orchestrator.site.pages and orchestrator.site.sections.
+
+    Args:
+        orchestrator: Build orchestrator instance
+        pages_to_build: Pages to filter
+
+    Returns:
+        Filtered pages_to_build list
+
+    """
+    params = orchestrator.site.config.get("params") or {}
+    if not isinstance(params, dict):
+        return pages_to_build
+
+    params_edition = params.get("edition")
+    if params_edition is None or not str(params_edition).strip():
+        return pages_to_build
+
+    variant = str(params_edition).strip()
+    filtered_pages = [p for p in pages_to_build if p.in_variant(variant)]
+    orchestrator.site.pages = [p for p in orchestrator.site.pages if p.in_variant(variant)]
+    orchestrator._filter_sections_by_variant(orchestrator.site.sections, variant)
+    if hasattr(orchestrator.site, "invalidate_regular_pages_cache"):
+        orchestrator.site.invalidate_regular_pages_cache()
+
+    return filtered_pages
+
+
+def phase_url_collision_check(
+    orchestrator: BuildOrchestrator,
+    strict: bool,
+) -> None:
+    """
+    Phase 12.5: URL Collision Detection (proactive validation).
+
+    Validates no two pages have the same URL. Logs warnings for collisions.
+
+    Args:
+        orchestrator: Build orchestrator instance
+        strict: Whether to use strict mode for validation
+
+    """
+    collisions = orchestrator.site.validate_no_url_collisions(strict=strict)
+    if collisions:
+        for msg in collisions:
+            orchestrator.logger.warning(msg, event="url_collision_detected")

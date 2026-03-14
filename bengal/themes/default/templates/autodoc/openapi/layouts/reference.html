@@ -22,7 +22,7 @@ Kida Features:
 {% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
 
 {% block content %}
-{% let meta = element?.metadata ?? element?.typed_metadata ?? {} %}
+{% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
 
 <div class="api-reference" data-autodoc="openapi">
   {# Left Sidebar: Navigation (Optional via block) #}

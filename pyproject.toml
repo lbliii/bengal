@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bengal"
-version = "0.2.5"
+version = "0.2.6"
 description = "Python static site generator for documentation, blogs, and product sites"
 readme = "README.md"
 requires-python = ">=3.14"
@@ -50,11 +50,15 @@ dependencies = [
     "httpx>=0.27.0",                           # Async HTTP client for link checking
     "uvloop>=0.21.0; sys_platform != 'win32'", # Rust-based event loop (Linux/macOS)
     "packaging>=23.0",                         # Version parsing for upgrade checks
+    "polib>=1.2.0",                            # PO/MO gettext file handling for i18n
 ]
 
 [project.optional-dependencies]
 # Pre-built Lunr search index (faster client-side search)
 search = ["lunr>=0.7.0"]
+
+# Dev server: robust fragment extraction (#id, .class, tag.class) for instant reload
+dev = ["beautifulsoup4>=4.12.0"]
 
 
 # Image processing (RFC: hugo-inspired-features)
@@ -228,13 +232,17 @@ serve = { cmd = "bengal site serve site", help = "Start development server for s
 dev = { cmd = "bengal serve", help = "Start dev server (auto-detects site)" }
 
 # Building
-build = { cmd = "bengal site build site", help = "Build the documentation site" }
+gen-docs = { cmd = "PYTHONPATH=. python scripts/generate_config_reference.py && PYTHONPATH=. python scripts/generate_template_functions_reference.py", help = "Generate config and template function reference docs" }
+build-site = { cmd = "bengal site build site", help = "Build the documentation site (without gen-docs)" }
+build = { sequence = ["gen-docs", "build-site"], help = "Generate docs + build the documentation site" }
 build-prod = { cmd = "bengal build -e production", help = "Build with production config", cwd = "site" }
 
 # Testing
 test = { cmd = "pytest", help = "Run full test suite" }
 test-unit = { cmd = "pytest tests/unit/ -x -q", help = "Run unit tests only (fast)" }
 test-integration = { cmd = "pytest tests/integration/ -x -q --timeout=30", help = "Run integration tests" }
+test-e2e = { cmd = "pytest tests/e2e/ -v -m e2e --tb=short -n 0", help = "Run E2E tests (build + validate)" }
+test-commonmark = { cmd = "pytest ../patitas/tests/test_commonmark_spec.py -v -m commonmark -q", help = "Run CommonMark 0.31 spec suite (Patitas, requires workspace)" }
 test-fast = { cmd = "pytest tests/ -x -q --ignore=tests/e2e --ignore=tests/integration", help = "Fast feedback loop (unit only)" }
 test-cov = { cmd = "pytest tests/ --cov=bengal --cov-report=term-missing", help = "Run tests with coverage" }
 test-parallel = { cmd = "pytest tests/ -n auto -x -q", help = "Run tests in parallel (pytest-xdist)" }

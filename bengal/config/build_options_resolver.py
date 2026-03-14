@@ -213,6 +213,7 @@ def resolve_build_options(
         force_sequential=force_sequential,
         incremental=resolve("incremental", cli.incremental),
         quiet=quiet,
+        fast=bool(fast_mode),
         verbose=verbose_resolved
         if verbose_resolved is not None
         else DEFAULTS.get("verbose", False),

@@ -5,6 +5,7 @@ Unit tests for MenuOrchestrator.
 from unittest.mock import MagicMock
 
 from bengal.core.site import Site
+from bengal.orchestration.build_state import BuildState
 from bengal.orchestration.menu import MenuOrchestrator
 
 
@@ -179,11 +180,12 @@ def test_dev_menu_preserves_auto_nav():
     del about_section.title
 
     # Dev sections (should be bundled, not shown separately)
-    # Set title=None so fallback names are used
+    # Set title=None so fallback names are used; weight for get_auto_nav sort
     api_section = MagicMock()
     api_section.path = site.root_path / "content" / "api"
     api_section.name = "api"
     api_section.href = "/api/"
+    api_section.weight = 30
     api_section.index_page = None
     api_section.parent = None
     api_section.subsections = []
@@ -194,6 +196,7 @@ def test_dev_menu_preserves_auto_nav():
     cli_section.path = site.root_path / "content" / "cli"
     cli_section.name = "cli"
     cli_section.href = "/cli/"
+    cli_section.weight = 40
     cli_section.index_page = None
     cli_section.parent = None
     cli_section.subsections = []
@@ -201,6 +204,9 @@ def test_dev_menu_preserves_auto_nav():
     cli_section.title = None  # Use fallback name
 
     site.sections = [blog_section, about_section, api_section, cli_section]
+
+    # BuildState required for menu orchestrator to write exclude_sections
+    site.set_build_state(BuildState())
 
     orchestrator = MenuOrchestrator(site)
     orchestrator.build()

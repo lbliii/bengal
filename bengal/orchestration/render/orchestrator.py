@@ -148,14 +148,9 @@ class RenderOrchestrator(
 
     def _get_max_workers(self) -> int | None:
         """Get max_workers from config, supporting both Config and dict."""
-        config = self.site.config
-        build_section = getattr(config, "build", None)
-        if build_section is not None:
-            return getattr(build_section, "max_workers", None)
-        build_section = config.get("build", {})
-        if isinstance(build_section, dict):
-            return build_section.get("max_workers")
-        return config.get("max_workers")
+        from bengal.orchestration.utils.config import get_max_workers
+
+        return get_max_workers(self.site.config)
 
     def process(
         self,

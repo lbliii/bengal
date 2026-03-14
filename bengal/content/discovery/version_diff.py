@@ -391,7 +391,7 @@ def diff_git_versions(
         status, path = parts[0], parts[1]
 
         # Only process content files
-        if not any(path.endswith(ext) for ext in [".md", ".rst"]):
+        if not path.endswith((".md", ".rst")):
             continue
 
         if status == "A":

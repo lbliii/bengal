@@ -28,8 +28,13 @@ def mock_cache():
     cache.file_fingerprints = {}
     cache.taxonomy_index = Mock()
     cache.taxonomy_index.page_tags = {}
+
+    def remove_page_tags(key):
+        k = str(key) if not isinstance(key, str) else key
+        cache.taxonomy_index.page_tags.pop(k, None)
+
+    cache.remove_page_tags = remove_page_tags
     cache.parsed_content = {}
-    cache.file_fingerprints = {}
     cache.autodoc_tracker = Mock()
     return cache
 

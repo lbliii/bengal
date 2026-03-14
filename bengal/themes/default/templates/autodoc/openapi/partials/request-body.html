@@ -20,6 +20,8 @@ Kida Features:
 - {% spaceless %} for compact badge output
 - Optional chaining (?.) and null coalescing (??)
 #}
+{% from 'autodoc/openapi/_schema.html' import schema_viewer %}
+
 {% let content_type = request_body?.content_type ?? 'application/json' %}
 {% let is_required = request_body?.required ?? false %}
 {% let description = request_body?.description ?? '' %}
@@ -52,7 +54,7 @@ Kida Features:
   {% let schema_name = ref | split('#/components/schemas/') | last %}
   <div class="api-request-body__schema-ref">
     <span class="api-request-body__label">Schema:</span>
-    <a href="#schema-{{ schema_name | slugify }}" class="api-request-body__schema-link">
+    <a href="{{ url_for_autodoc_schema(section, schema_name) }}" class="api-request-body__schema-link">
       <code>{{ schema_name }}</code>
     </a>
   </div>
@@ -60,8 +62,8 @@ Kida Features:
 
   {# Inline Schema Viewer #}
   {% with inline_schema as s %}
-  {% let schema = s %}
-  {% let depth = 0 %}
-  {% include 'autodoc/openapi/partials/schema-viewer.html' %}
+  {% if s %}
+  {{ schema_viewer(s, name=none, depth=0) }}
+  {% end %}
   {% end %}
 </section>

@@ -55,6 +55,8 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
 
+from bengal.core.utils.shared import resolve_nav_title, sortable_weight
+
 from .ergonomics import SectionErgonomicsMixin
 from .hierarchy import SectionHierarchyMixin
 from .navigation import SectionNavigationMixin
@@ -237,14 +239,12 @@ class Section(
             nav_title: Authoring
             ---
         """
-        if "nav_title" in self.metadata:
-            return str(self.metadata["nav_title"])
-        # Also check index page for nav_title
-        if self.index_page is not None:
+        nav = self.metadata.get("nav_title")
+        if nav is None and self.index_page is not None:
             index_nav = getattr(self.index_page, "nav_title", None)
             if index_nav and index_nav != self.index_page.title:
-                return index_nav
-        return self.title
+                nav = index_nav
+        return resolve_nav_title(str(nav) if nav is not None else None, self.title)
 
     @property
     def weight(self) -> float:
@@ -260,13 +260,7 @@ class Section(
             weight: 10
             ---
         """
-        w = self.metadata.get("weight")
-        if w is not None:
-            try:
-                return float(w)
-            except ValueError, TypeError:
-                pass
-        return float("inf")
+        return sortable_weight(self.metadata.get("weight"))
 
     def __repr__(self) -> str:
         return f"Section(name='{self.name}', pages={len(self.pages)}, subsections={len(self.subsections)})"

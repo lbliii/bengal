@@ -7,15 +7,25 @@ Phases 17-21: Post-processing, cache save, collect stats, health check, finalize
 from __future__ import annotations
 
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Any
 
+from bengal.orchestration.stats import ReloadHint
+from bengal.utils.observability.logger import get_logger
+
 if TYPE_CHECKING:
+    from bengal.cache.build_cache import BuildCache
+    from bengal.cache.generated_page_cache import GeneratedPageCache
     from bengal.core.output import OutputCollector
+    from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.orchestration.build_context import BuildContext
+    from bengal.orchestration.stats import BuildStats
     from bengal.output import CLIOutput
     from bengal.utils.observability.performance_collector import PerformanceCollector
     from bengal.utils.observability.profile import BuildProfile
+
+logger = get_logger(__name__)
 
 
 def phase_postprocess(
@@ -109,11 +119,182 @@ def phase_cache_save(
     """
     with orchestrator.logger.phase("cache_save"):
         start = time.perf_counter()
+        # RFC: rfc-cache-generation-id — set before save for divergence detection
+        if cache := getattr(orchestrator.incremental, "cache", None):
+            cache.build_id = getattr(orchestrator, "_build_id", None)
         orchestrator.incremental.save_cache(pages_to_build, assets_to_process)
         duration_ms = (time.perf_counter() - start) * 1000
         if cli is not None:
             cli.phase("Cache save", duration_ms=duration_ms)
         orchestrator.logger.info("cache_saved")
+
+
+def phase_update_generated_cache(
+    orchestrator: BuildOrchestrator,
+    pages_to_build: list[Page],
+    cache: BuildCache | None,
+    generated_page_cache: GeneratedPageCache | None,
+) -> None:
+    """
+    Update GeneratedPageCache for tag pages that were rendered.
+
+    RFC: Output Cache Architecture - enables skipping unchanged tag pages
+    on future builds if member content hasn't changed.
+
+    Args:
+        orchestrator: Build orchestrator instance
+        pages_to_build: Pages that were rendered
+        cache: Build cache (for parsed_content lookup)
+        generated_page_cache: Cache to update (or None to skip)
+
+    """
+    if not generated_page_cache:
+        return
+
+    content_hash_lookup: dict[str, str] = {}
+    if cache and hasattr(cache, "parsed_content"):
+        for path_str, entry in cache.parsed_content.items():
+            if isinstance(entry, dict):
+                content_hash = entry.get("metadata_hash", "")
+                if content_hash:
+                    content_hash_lookup[path_str] = content_hash
+
+    updated_entries = 0
+    tag_pages_found = 0
+    tag_pages_with_posts = 0
+    for page in pages_to_build:
+        if page.metadata.get("type") == "tag" and page.metadata.get("_generated"):
+            tag_pages_found += 1
+            tag_slug = page.metadata.get("_tag_slug", "")
+            member_pages = page.metadata.get("_posts", [])
+            if tag_slug and member_pages:
+                tag_pages_with_posts += 1
+                generated_page_cache.update(
+                    page_type="tag",
+                    page_id=tag_slug,
+                    member_pages=member_pages,
+                    content_cache=content_hash_lookup,
+                    rendered_html="",
+                    generation_time_ms=0,
+                )
+                updated_entries += 1
+
+    logger.info(
+        "generated_page_cache_updated",
+        entries=updated_entries,
+        tag_pages_found=tag_pages_found,
+        tag_pages_with_posts=tag_pages_with_posts,
+        content_hash_count=len(content_hash_lookup),
+    )
+
+
+def phase_cache_save_parallel(
+    orchestrator: BuildOrchestrator,
+    pages_to_build: list[Any],
+    assets_to_process: list[Any],
+    generated_page_cache: GeneratedPageCache | None,
+    cli: CLIOutput | None = None,
+) -> None:
+    """
+    Phase 18: Save caches in parallel (main cache + generated page cache).
+
+    Runs cache saves concurrently since they're independent I/O operations.
+
+    Args:
+        orchestrator: Build orchestrator instance
+        pages_to_build: Pages that were built
+        assets_to_process: Assets that were processed
+        generated_page_cache: GeneratedPageCache to save (or None)
+        cli: CLI output (optional) for timing display
+
+    """
+    cache_start = time.perf_counter()
+
+    # RFC: rfc-cache-generation-id — set before save for divergence detection
+    if cache := getattr(orchestrator.incremental, "cache", None):
+        cache.build_id = getattr(orchestrator, "_build_id", None)
+
+    def _save_main_cache() -> None:
+        orchestrator.incremental.save_cache(pages_to_build, assets_to_process)
+
+    def _save_generated_cache() -> None:
+        if generated_page_cache:
+            generated_page_cache.save()
+
+    with ThreadPoolExecutor(max_workers=2, thread_name_prefix="CacheSave") as executor:
+        futures = [
+            executor.submit(_save_main_cache),
+            executor.submit(_save_generated_cache),
+        ]
+        for future in as_completed(futures):
+            future.result()
+
+    cache_duration_ms = (time.perf_counter() - cache_start) * 1000
+    if cli is not None:
+        cli.phase("Cache save", duration_ms=cache_duration_ms)
+    orchestrator.logger.info("cache_saved")
+
+
+def phase_compute_reload_hint(
+    stats: BuildStats,
+    output_collector: OutputCollector | None,
+    pages_rendered: int = 0,
+) -> None:
+    """
+    Compute reload_hint from output collector for dev server decisions.
+
+    Populates stats.changed_outputs and stats.reload_hint based on
+    what was written during the build.
+
+    Args:
+        stats: BuildStats to update
+        output_collector: Output collector with written files (or None)
+        pages_rendered: Page count for warning when collector is empty
+
+    """
+    stats.changed_outputs = output_collector.get_outputs() if output_collector else []
+
+    outputs = stats.changed_outputs
+    if stats.dry_run:
+        stats.reload_hint = ReloadHint.NONE
+    elif not outputs:
+        stats.reload_hint = None
+    elif any(o.output_type.value == "html" for o in outputs):
+        stats.reload_hint = ReloadHint.FULL
+    elif all(o.output_type.value == "css" for o in outputs):
+        stats.reload_hint = ReloadHint.CSS_ONLY
+    else:
+        stats.reload_hint = ReloadHint.FULL
+
+    if stats.changed_outputs:
+        logger.debug(
+            "output_collector_results",
+            total_outputs=len(stats.changed_outputs),
+            html_count=sum(1 for o in stats.changed_outputs if o.output_type.value == "html"),
+            css_count=sum(1 for o in stats.changed_outputs if o.output_type.value == "css"),
+        )
+    else:
+        logger.warning(
+            "output_collector_empty",
+            pages_rendered=pages_rendered,
+        )
+
+
+def phase_save_provenance(orchestrator: BuildOrchestrator) -> None:
+    """
+    Save provenance cache if using provenance-based filtering.
+
+    RFC: rfc-cache-generation-id — sets same build_id as BuildCache.
+
+    Args:
+        orchestrator: Build orchestrator instance (must have _provenance_filter)
+
+    """
+    if hasattr(orchestrator, "_provenance_filter"):
+        from bengal.orchestration.build.provenance_filter import save_provenance_cache
+
+        orchestrator._provenance_filter.cache.set_build_id(getattr(orchestrator, "_build_id", None))
+        save_provenance_cache(orchestrator)
 
 
 def phase_collect_stats(

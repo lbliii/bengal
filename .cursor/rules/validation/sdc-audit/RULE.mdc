@@ -1,0 +1,134 @@
+---
+description: Find code that could be simplified with sets, dicts, or list comprehensions (data structure substitution audit)
+alwaysApply: false
+globs: ["bengal/**/*.py", "tests/**/*.py"]
+---
+
+# SDC Audit (Set / Dict / Comprehension)
+
+Find methods, functions, loops, or logic that could be reduced to sets, dicts, or list comprehensions. Focus on O(n) → O(1) and O(n²) → O(n) improvements.
+
+**Shortcut**: `::sdc-audit`
+
+**Works with**: `modules/evidence-handling` (cite file:line)
+
+---
+
+## Overview
+
+This audit finds code that does expensive operations (loops, repeated lookups, string concatenation) that could be replaced with cheaper data structure operations.
+
+**Goal**: Replace explicit iteration with implicit set/dict/comprehension operations where the semantics match.
+
+---
+
+## Search Patterns (Grep-Friendly)
+
+| Pattern | Likely Fix |
+|---------|------------|
+| `in [x for x in` | `in {x for x in ...}` or `in set(...)` |
+| `next((x for x in ... if` | `{k: v for ...}.get(key)` |
+| `any(... for ...)` then `next(... for ...)` | Single `next(..., None)` |
+| `result += x` in loop | `"".join(...)` or list + join |
+| `x in some_list` (repeated) | `x in set(some_list)` |
+| `for x in items: if x in allowed:` | `allowed = set(allowed)` first |
+| `list.index(item)` | Build `{item: idx}` dict if repeated |
+| `[p for p in a if p in b]` | `b_set = set(b)` then filter |
+
+---
+
+## Substitution Checklist
+
+| Current Pattern | Replace With |
+|-----------------|--------------|
+| Repeated membership checks | `set` |
+| Repeated key→value lookups | `dict` |
+| Build list from iterable + condition | List comprehension |
+| Build string from parts | `"".join(...)` |
+| Two-pass "find then use" | Single `next(..., None)` or dict `.get()` |
+| `list.remove(item)` in loop | `set.discard` or list comprehension |
+| `list.insert(0, x)` in loop | `deque.appendleft` |
+| Nested loop joining on key | `dict` / `defaultdict` index |
+
+---
+
+## Procedure
+
+### Step 1: Scan for Membership (list → set)
+
+```bash
+rg " in \[" bengal/ --type py
+rg " in [a-z_]+" bengal/ --type py -A 0 -B 1  # x in some_var where some_var may be list
+```
+
+**Check**: Is the right-hand side a list used for membership? If so, convert to set when:
+- Used in a loop
+- Used more than once
+- List has more than a few items
+
+### Step 2: Scan for next(...) Lookups
+
+```bash
+rg "next\(\(.*for.*if" bengal/ --type py
+```
+
+**Check**: Could this be a dict lookup? Build `{id: obj for obj in items}` once, then `.get(id)`.
+
+### Step 3: Scan for String Concatenation in Loops
+
+```bash
+rg "result \+= |s \+= " bengal/ --type py
+```
+
+**Check**: Replace with `"".join(parts)` or list comprehension.
+
+### Step 4: Scan for Two-Pass Patterns
+
+Look for `any(...)` followed by `next(...)` over the same iterable. Combine into single `next(..., None)`.
+
+### Step 5: Report Findings
+
+For each finding, cite `file:line` and propose the substitution.
+
+---
+
+## Output Format
+
+```markdown
+## SDC Audit: [Path/Module]
+
+### Findings
+
+| File | Line | Current | Suggested |
+|------|------|---------|-----------|
+| `ergonomics.py` | 168 | `tag in [t.lower() for t in ...]` | `tag in {t.lower() for t in ...}` |
+| `version.py` | 151 | `next((v for v in versions if v.id == x), None)` | `{v.id: v for v in versions}.get(x)` |
+| `reload_controller.py` | 706 | `p in filtered_changed` (list) | `filtered_set = set(filtered_changed)` |
+
+### Summary
+
+- **High**: Hot path, many iterations
+- **Medium**: CLI or per-request
+- **Low**: Rare code path, small N
+```
+
+---
+
+## Integration
+
+**Run when**:
+- After implementing a feature (quick pass)
+- Before performance-sensitive releases
+- Part of periodic codebase health checks
+
+**Triggers**:
+- `::sdc-audit` command
+- "Find set/dict/comprehension opportunities"
+- "Data structure substitution audit"
+
+---
+
+## Related
+
+- `python.mdc` - Data structure selection (O(1) vs O(n), comprehensions)
+- `validation/architecture-audit` - Broader code quality

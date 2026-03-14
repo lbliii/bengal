@@ -24,19 +24,28 @@ See Also:
 
 from __future__ import annotations
 
-import concurrent.futures
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.assets.manifest import AssetManifest
-from bengal.orchestration.utils.errors import is_shutdown_error
-from bengal.orchestration.utils.parallel import BatchProgressUpdater
-from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
+from bengal.orchestration.utils.parallel import BatchProgressUpdater, ParallelProcessor
+from bengal.utils.concurrency.workers import WorkloadType
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
 logger = get_logger(__name__)
+
+
+@dataclass
+class _AssetWorkItem:
+    """Work item for parallel asset processing."""
+
+    asset: Asset
+    is_css_entry: bool
+    css_modules_count: int
+
 
 if TYPE_CHECKING:
     from bengal.core.asset import Asset
@@ -69,7 +78,7 @@ class AssetOrchestrator:
         - Uses: Asset class for asset representation and processing
         - Uses: AssetManifest for cache-busting manifest generation
         - Used by: BuildOrchestrator for asset processing phase
-        - Uses: ThreadPoolExecutor for parallel asset processing
+        - Uses: ParallelProcessor for parallel asset processing
 
     Thread Safety:
         Thread-safe for parallel asset processing. Uses thread-safe locks
@@ -238,8 +247,6 @@ class AssetOrchestrator:
         _bs = self.site.build_state
         if _bs is not None:
             _bs.asset_manifest_previous = prev_manifest
-        else:
-            self.site._asset_manifest_previous = prev_manifest
 
         # Separate CSS entry points, CSS modules, and other assets
         css_entries = [a for a in assets if a.is_css_entry_point()]
@@ -379,89 +386,94 @@ class AssetOrchestrator:
         css_modules_count: int,
     ) -> None:
         """
-        Process CSS and other assets concurrently using a shared thread pool.
+        Process CSS and other assets concurrently using ParallelProcessor.
         """
         assets_output = self.site.output_dir / "assets"
         total_assets = len(css_entries) + len(other_assets)
-        # Use optimal workers based on workload (asset processing is I/O-bound)
-        max_workers = get_optimal_workers(
-            total_assets,
-            workload_type=WorkloadType.IO_BOUND,
-            config_override=self.site.config.get("max_workers"),
-        )
 
-        errors: list[str] = []
-        # Use BatchProgressUpdater for throttled progress updates
+        # Build work items (CSS entries + other assets)
+        work_items: list[_AssetWorkItem] = []
+        for entry in css_entries:
+            work_items.append(
+                _AssetWorkItem(entry, is_css_entry=True, css_modules_count=css_modules_count)
+            )
+        for asset in other_assets:
+            work_items.append(
+                _AssetWorkItem(asset, is_css_entry=False, css_modules_count=css_modules_count)
+            )
+
+        def process_item(item: _AssetWorkItem) -> None:
+            if item.is_css_entry:
+                self._process_css_entry(item.asset, minify, optimize, fingerprint)
+            else:
+                self._process_single_asset(item.asset, assets_output, minify, optimize, fingerprint)
+
+        def context_extractor(e: Exception, item: _AssetWorkItem) -> dict[str, Any]:
+            asset_path = item.asset.source_path if hasattr(item.asset, "source_path") else None
+            return {"asset": str(asset_path), "file_path": asset_path}
+
         progress_updater = BatchProgressUpdater(progress_manager, phase="assets")
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures: list[tuple[concurrent.futures.Future[None], Asset, bool]] = []
+        def progress_callback(completed: int, item: _AssetWorkItem) -> None:
+            item_name = (
+                f"{item.asset.source_path.name} (bundled {item.css_modules_count} modules)"
+                if item.is_css_entry
+                else item.asset.source_path.name
+            )
+            progress_updater.increment(
+                item_name,
+                minified=minify if item.is_css_entry else None,
+                bundled_modules=item.css_modules_count if item.is_css_entry else None,
+            )
 
-            # Submit CSS entries
-            for entry in css_entries:
-                future = executor.submit(
-                    self._process_css_entry, entry, minify, optimize, fingerprint
+        processor = ParallelProcessor[_AssetWorkItem, None](
+            workload_type=WorkloadType.IO_BOUND,
+            config_override=self.site.config.get("max_workers"),
+            error_type="assets",
+        )
+        result = processor.process(
+            items=work_items,
+            process_fn=process_item,
+            progress_callback=progress_callback,
+            context_extractor=context_extractor,
+        )
+
+        # Record errors in build stats and log batch failure
+        if result.errors:
+            from bengal.errors import BengalError, ErrorContext, enrich_error
+
+            if hasattr(self, "site") and hasattr(self.site, "_last_build_stats"):
+                stats = self.site._last_build_stats
+                if stats:
+                    for item, e in result.errors:
+                        asset_path = (
+                            item.asset.source_path if hasattr(item.asset, "source_path") else None
+                        )
+                        context = ErrorContext(
+                            file_path=asset_path,
+                            operation="processing asset",
+                            suggestion="Check file permissions, encoding, and format",
+                            original_error=e,
+                        )
+                        enriched = enrich_error(e, context, BengalError)
+                        stats.add_error(enriched, category="assets")
+
+            errors_str = [
+                str(
+                    enrich_error(
+                        e,
+                        ErrorContext(operation="processing asset", original_error=e),
+                        BengalError,
+                    )
                 )
-                futures.append((future, entry, True))  # True = is_css_entry
-
-            # Submit other assets
-            for asset in other_assets:
-                future = executor.submit(
-                    self._process_single_asset, asset, assets_output, minify, optimize, fingerprint
-                )
-                futures.append((future, asset, False))  # False = not css_entry
-
-            # Collect results as they complete
-            for future, asset, is_css_entry in futures:
-                try:
-                    future.result()
-
-                    # Progress update with batching
-                    item_name = (
-                        f"{asset.source_path.name} (bundled {css_modules_count} modules)"
-                        if is_css_entry
-                        else asset.source_path.name
-                    )
-                    progress_updater.increment(
-                        item_name,
-                        minified=minify if is_css_entry else None,
-                        bundled_modules=css_modules_count if is_css_entry else None,
-                    )
-
-                except Exception as e:
-                    # Handle shutdown errors gracefully
-                    if is_shutdown_error(e):
-                        logger.debug("asset_shutdown", asset=asset.source_path.name)
-                        continue
-
-                    from bengal.errors import BengalError, ErrorContext, enrich_error
-
-                    # Enrich error with context
-                    asset_path = asset.source_path if hasattr(asset, "source_path") else None
-                    context = ErrorContext(
-                        file_path=asset_path,
-                        operation="processing asset",
-                        suggestion="Check file permissions, encoding, and format",
-                        original_error=e,
-                    )
-                    enriched = enrich_error(e, context, BengalError)
-                    errors.append(str(enriched))
-                    # Collect error in build stats if available
-                    if hasattr(self, "site") and hasattr(self.site, "_last_build_stats"):
-                        stats = self.site._last_build_stats
-                        if stats:
-                            stats.add_error(enriched, category="assets")
-
-        # Final progress update
-        progress_updater.finalize(total_assets)
-
-        if errors:
+                for _, e in result.errors
+            ]
             logger.error(
                 "asset_batch_processing_failed",
-                total_errors=len(errors),
+                total_errors=result.total_errors,
                 total_assets=total_assets,
-                success_rate=f"{((total_assets - len(errors)) / total_assets * 100):.1f}%",
-                first_errors=errors[:5],
+                success_rate=f"{((total_assets - result.total_errors) / total_assets * 100):.1f}%",
+                first_errors=errors_str[:5],
                 mode="concurrent",
             )
 

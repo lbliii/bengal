@@ -82,7 +82,7 @@ HELPER: Render a menu item (desktop/mobile)
 </li>
 {% enddef %}
 
-<html lang="{{ _current_lang }}" {% if _view_transitions and _transition_style !='crossfade' %}
+<html lang="{{ _current_lang }}" dir="{{ direction() }}" {% if _view_transitions and _transition_style !='crossfade' %}
     data-transition-style="{{ _transition_style }}" {% end %}>
 
 <head>

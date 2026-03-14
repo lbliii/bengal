@@ -114,6 +114,8 @@ ALLOWED_VIOLATIONS: set[tuple[str, str]] = {
     ("bengal.core", "bengal.server"),
     # Rendering page_operations needs health for link validation
     ("bengal.rendering", "bengal.health"),
+    # Core page.validate_links() delegates to health LinkValidator (lazy import)
+    ("bengal.core.page.operations", "bengal.health.validators.links"),
 }
 
 

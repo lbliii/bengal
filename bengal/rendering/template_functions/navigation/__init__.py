@@ -16,7 +16,7 @@ Organization:
 - pagination.py: get_pagination_items()
 - tree.py: get_nav_tree(), get_nav_context()
 - auto_nav.py: get_auto_nav(), section menu helpers
-- toc.py: get_toc_grouped(), combine_track_toc_items()
+- toc.py: TOC grouping, tree building, and track TOC helpers
 - section.py: get_section(), section_pages()
 
 Core NavTree Models (bengal.core.nav_tree):
@@ -58,6 +58,7 @@ from bengal.rendering.template_functions.navigation.section import (
 )
 from bengal.rendering.template_functions.navigation.toc import (
     build_toc_tree,
+    build_track_toc_sections,
     combine_track_toc_items,
     get_toc_grouped,
 )
@@ -78,6 +79,7 @@ __all__ = [
     "PaginationItem",
     "TocGroupItem",
     "build_toc_tree",
+    "build_track_toc_sections",
     "combine_track_toc_items",
     "get_auto_nav",
     "get_breadcrumbs",
@@ -109,6 +111,13 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             return []
         return combine_track_toc_items(track_items, get_page_func)
 
+    def build_track_toc_sections_with_get_page(track_items: list[str]) -> list[dict[str, Any]]:
+        """Build per-section track TOCs using get_page from template context."""
+        get_page_func = env.globals.get("get_page")
+        if not get_page_func:
+            return []
+        return build_track_toc_sections(track_items, get_page_func)
+
     # Convenience wrappers for section lookups
     def get_section_wrapper(path: str) -> SectionLike | None:
         """Wrapper with site closure."""
@@ -128,6 +137,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "get_nav_context": get_nav_context,
             "get_auto_nav": lambda: get_auto_nav(site),
             "combine_track_toc": combine_track_toc_with_get_page,
+            "build_track_toc_sections": build_track_toc_sections_with_get_page,
             "get_section": get_section_wrapper,
             "section_pages": section_pages_wrapper,
         }

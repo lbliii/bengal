@@ -24,9 +24,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.build.contracts.keys import content_key
+from bengal.build.contracts.keys import content_key, synthetic_key
 from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
 from bengal.build.provenance.filter import ProvenanceFilterResult
+from bengal.cache.build_cache.fingerprint import FileFingerprint
 from bengal.orchestration.build.results import (
     FilterResult,
     IncrementalDecision,
@@ -45,6 +46,18 @@ if TYPE_CHECKING:
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
     from bengal.protocols import SiteLike
+
+
+def _output_dir_empty(output_dir: Path) -> bool:
+    """
+    O(1) check if output directory is empty or missing.
+
+    Uses next(iterdir(), None) instead of len(list(iterdir())) to avoid
+    materializing all entries for large sites.
+    """
+    if not output_dir.exists():
+        return True
+    return next(output_dir.iterdir(), None) is None
 
 
 def _detect_changed_data_files(
@@ -82,7 +95,7 @@ def _detect_changed_data_files(
             # Check if file changed (compare hash)
             try:
                 current_hash = hash_file(data_file)
-                if stored.get("hash") != current_hash:
+                if stored.hash != current_hash:
                     changed.add(data_file)
             except OSError:
                 # File error - treat as changed
@@ -141,7 +154,7 @@ def _detect_changed_templates(
                 changed.add(tpl_file)
                 continue
 
-            if stored is None or stored.get("hash") != current_hash:
+            if stored is None or stored.hash != current_hash:
                 changed.add(tpl_file)
 
             # Always store current fingerprint so the cache has it for
@@ -150,11 +163,11 @@ def _detect_changed_templates(
                 stat = tpl_file.stat()
                 cache.set_file_fingerprint(
                     tpl_file,
-                    {
-                        "mtime": stat.st_mtime,
-                        "size": stat.st_size,
-                        "hash": current_hash,
-                    },
+                    FileFingerprint(
+                        mtime=stat.st_mtime,
+                        size=stat.st_size,
+                        hash=current_hash,
+                    ),
                 )
             except OSError:
                 pass
@@ -176,8 +189,8 @@ def _get_pages_for_data_file(
     """
     Find pages that depend on a data file.
 
-    Queries the cache's dependency graph for pages that have recorded
-    a dependency on the given data file.
+    Uses reverse dependency graph for O(1) lookup when populated;
+    falls back to forward iteration for older caches.
 
     Args:
         cache: BuildCache with dependency tracking
@@ -186,13 +199,16 @@ def _get_pages_for_data_file(
     Returns:
         Set of page source paths that depend on this data file
     """
-    dep_key = cache._cache_key(data_file)
+    dep_key = cache.cache_key(data_file)
+    # O(1) via reverse graph when populated
+    dependents = cache.reverse_dependencies.get(dep_key, set())
+    if dependents:
+        return {Path(p) for p in dependents}
+    # Fallback: O(pages) for caches without reverse index for data files
     pages: set[Path] = set()
-
     for page_str, deps in cache.dependencies.items():
         if dep_key in deps:
             pages.add(Path(page_str))
-
     return pages
 
 
@@ -214,7 +230,7 @@ def _get_pages_for_template(
         Set of page source paths that use this template
     """
     pages: set[Path] = set()
-    template_key = cache._cache_key(template_path)
+    template_key = cache.cache_key(template_path)
 
     # Check reverse dependencies
     dependents = cache.reverse_dependencies.get(template_key, set())
@@ -249,21 +265,20 @@ def _get_taxonomy_term_pages_for_member(
         Set of taxonomy term page paths to rebuild
     """
     term_pages: set[Path] = set()
-    member_key = cache._cache_key(member_path)
+    member_key = cache.cache_key(member_path)
 
     # Get tags for this member page from cache
-    tags = cache.taxonomy_index.page_tags.get(member_key, set())
+    tags = cache.get_page_tags(member_key)
 
     for tag in tags:
         # Find the virtual taxonomy term page for this tag
         # Taxonomy term pages are virtual (no source file), but we need
-        # to identify them so they get rebuilt
-        # The key format matches what track_taxonomy() uses
-        tag_key = f"tag:{str(tag).lower().replace(' ', '-')}"
-        term_page_key = f"_generated/tags/{tag_key}"
+        # to identify them so they get rebuilt. Use synthetic_key for
+        # consistent format (see bengal/build/contracts/keys.py).
+        tag_slug = f"tag:{str(tag).lower().replace(' ', '-')}"
+        term_page_key = synthetic_key("_generated/tags", tag_slug)
 
         # Add the term page path (virtual)
-        # For virtual pages, we use a synthetic path
         term_pages.add(Path(term_page_key))
 
     return term_pages
@@ -307,19 +322,30 @@ def _expand_forced_changed(
                 reasons.setdefault(str(page_path), []).append(f"data_file:{data_file.name}")
 
     # Gap 3: Detect template changes
-    # Per-page template dependencies are not yet recorded in BuildCache,
-    # so _get_pages_for_template() would always return empty.  Instead,
-    # fall back to rebuilding ALL pages when any template changes -- any
-    # page could reference any template via extends/includes.
+    # Per-page template dependencies are recorded during cache_rendered_output.
+    # Use _get_pages_for_template() for targeted invalidation; fall back to
+    # all pages only when no dependents are recorded (e.g. first build).
     changed_templates = _detect_changed_templates(cache, site)
     if changed_templates:
         template_names = ", ".join(t.name for t in changed_templates)
-        for page in pages:
-            if page.source_path not in expanded:
-                expanded.add(page.source_path)
-                reasons.setdefault(str(page.source_path), []).append(
-                    f"template_changed:{template_names}"
-                )
+        affected_by_template: set[Path] = set()
+        for tpl_path in changed_templates:
+            affected_by_template.update(_get_pages_for_template(cache, tpl_path))
+        if affected_by_template:
+            for page_path in affected_by_template:
+                if page_path not in expanded:
+                    expanded.add(page_path)
+                    reasons.setdefault(str(page_path), []).append(
+                        f"template_changed:{template_names}"
+                    )
+        else:
+            # No recorded dependents (e.g. first build) - rebuild all pages
+            for page in pages:
+                if page.source_path not in expanded:
+                    expanded.add(page.source_path)
+                    reasons.setdefault(str(page.source_path), []).append(
+                        f"template_changed:{template_names}"
+                    )
 
     # Gap 2: For content pages that changed, find taxonomy term pages
     # Check which changed pages have tags - their taxonomy term pages need rebuilding
@@ -379,7 +405,43 @@ def phase_incremental_filter_provenance(
 
         # Initialize provenance cache
         provenance_cache = ProvenanceCache(site.root_path / ".bengal" / "provenance")
+        provenance_cache._ensure_loaded()
         provenance_filter = ProvenanceFilter(site, provenance_cache)
+
+        # RFC: rfc-cache-generation-id — divergence detection
+        cache_id = getattr(cache, "build_id", None)
+        provenance_id = provenance_cache.get_build_id()
+        if cache_id is not None and provenance_id is not None and cache_id != provenance_id:
+            logger.warning(
+                "cache_divergence_detected",
+                build_cache_id=cache_id[:8],
+                provenance_id=provenance_id[:8],
+                action="cleared_both",
+            )
+            cli.detail(
+                "BuildCache and ProvenanceCache diverged — clearing both, full rebuild",
+                indent=1,
+            )
+            # Clear BuildCache: replace with fresh instance
+            from bengal.cache import BuildCache
+            from bengal.orchestration.build.coordinator import CacheCoordinator
+
+            fresh_cache = BuildCache()
+            fresh_cache.site_root = site.root_path
+            inc = orchestrator.incremental
+            inc.cache = fresh_cache
+            inc._cache_manager.cache = fresh_cache
+            inc.coordinator = CacheCoordinator(fresh_cache, site)
+            cache = fresh_cache
+            # Clear ProvenanceCache in-memory
+            with provenance_cache._lock:
+                provenance_cache._index = {}
+                provenance_cache._input_paths = {}
+                provenance_cache._subvenance = {}
+                provenance_cache._records = {}
+                provenance_cache._last_build_time = None
+                provenance_cache._build_id = None
+                provenance_cache._loaded = True
 
         # Combine changed sources from file watcher
         forced_changed: set[Path] = set()
@@ -411,7 +473,7 @@ def phase_incremental_filter_provenance(
         # record_build after rendering - no need for the 20+ second filter pass.
         output_dir = site.output_dir
         output_assets_dir = output_dir / "assets"
-        output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
+        output_html_missing = _output_dir_empty(output_dir)
         css_dir = output_assets_dir / "css"
         output_assets_missing = (
             not output_assets_dir.exists()
@@ -723,7 +785,7 @@ def phase_incremental_filter_provenance(
         output_dir = site.output_dir
         output_assets_dir = output_dir / "assets"
 
-        output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
+        output_html_missing = _output_dir_empty(output_dir)
 
         # Check for CSS entry points instead of arbitrary file count
         # CSS entry points (style.css or fingerprinted style.*.css) are critical assets
@@ -776,8 +838,9 @@ def phase_incremental_filter_provenance(
                 if not output_path.exists():
                     missing_pages.append(page)
             if missing_pages:
+                missing_pages_set = set(missing_pages)
                 pages_to_build = list(result.pages_to_build) + missing_pages
-                pages_skipped = [p for p in result.pages_skipped if p not in missing_pages]
+                pages_skipped = [p for p in result.pages_skipped if p not in missing_pages_set]
                 result = ProvenanceFilterResult(
                     pages_to_build=pages_to_build,
                     assets_to_process=result.assets_to_process,

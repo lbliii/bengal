@@ -30,6 +30,10 @@ def should_skip_link(link: str) -> bool:
     if link.startswith("data:"):
         return True
 
+    # Page-top/self placeholder links are valid internal no-ops
+    if link == "#":
+        return True
+
     # Template syntax (Jinja2, JavaScript template literals, etc.)
     # Appears in documentation code examples, not real links
     if "{{" in link or "}}" in link or "${" in link:

@@ -49,6 +49,7 @@ class BuildInput:
     structural_changed: bool = False
     event_types: frozenset[str] = frozenset()
     version_scope: str | None = None
+    output_dir_override: Path | None = None
 
     @classmethod
     def from_options(
@@ -110,6 +111,9 @@ class BuildInput:
             nav_changed_sources=frozenset(Path(p) for p in request.nav_changed_paths),
             structural_changed=request.structural_changed,
             version_scope=request.version_scope,
+            output_dir_override=(
+                Path(request.output_dir_override) if request.output_dir_override else None
+            ),
         )
 
     def to_build_request(self) -> BuildRequest:
@@ -131,4 +135,5 @@ class BuildInput:
             explain=self.options.explain,
             dry_run=self.options.dry_run,
             profile_templates=self.options.profile_templates,
+            output_dir_override=str(self.output_dir_override) if self.output_dir_override else None,
         )

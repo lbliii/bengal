@@ -21,6 +21,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from bengal.config.utils import coerce_int
+
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike, TemplateEnvironment
 
@@ -159,14 +161,8 @@ class PostView:
         # Reading metrics (from page computed properties; coerce to int for template comparisons)
         rt = getattr(page, "reading_time", None) or 0
         wc = getattr(page, "word_count", None) or 0
-        try:
-            reading_time = int(rt)
-        except TypeError, ValueError:
-            reading_time = 0
-        try:
-            word_count = int(wc)
-        except TypeError, ValueError:
-            word_count = 0
+        reading_time = coerce_int(rt, 0)
+        word_count = coerce_int(wc, 0)
 
         # Tags
         tags_raw = getattr(page, "tags", None) or []

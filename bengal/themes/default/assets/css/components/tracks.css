@@ -1380,36 +1380,14 @@
    Only affects section-level groups (data-toc-section), not nested groups
    ============================================ */
 
-/* Hide all SECTION-LEVEL groups by default when filtering is active */
-/* Nested groups within sections are unaffected and remain visible */
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-section] {
+/* Hide all track article TOCs by default when filtering is active */
+.track-layout .toc-sidebar[data-track-filtering="true"] .track-toc-section {
     display: none;
 }
 
-/* Show only the active section's TOC group (via data attribute) */
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-section][data-toc-active] {
+/* Show only the active article TOC */
+.track-layout .toc-sidebar[data-track-filtering="true"] .track-toc-section[data-toc-active] {
     display: block;
-}
-
-/* Hide the count badge on section headers - not needed for tracks (always expanded) */
-/* Keep count badges visible on nested groups within active section */
-.track-layout .toc-sidebar[data-track-filtering="true"] > .toc-nav .toc-items > .toc-item > .toc-group > .toc-group-header > .toc-count-badge {
-    display: none;
-}
-
-/* Style the active section header - cleaner without toggle */
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-section][data-toc-active] > .toc-group-header {
-    margin-bottom: var(--space-2);
-}
-
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-section][data-toc-active] .toc-link-h2 {
-    font-weight: var(--weight-semibold);
-    color: var(--color-primary);
-}
-
-/* Expand the active section group's children */
-.track-layout .toc-sidebar[data-track-filtering="true"] .toc-group[data-toc-section][data-toc-active] > .toc-subitems {
-    display: block !important;
 }
 
 .track-section:last-of-type {

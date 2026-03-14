@@ -1,0 +1,17 @@
+# English translations for test-i18n-gettext
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"MIME-Version: 1.0\n"
+
+msgid "Home"
+msgstr "Home"
+
+msgid "About"
+msgstr "About"
+
+msgid "Welcome"
+msgstr "Welcome"
+
+msgid "Read more"
+msgstr "Read more"

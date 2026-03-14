@@ -21,10 +21,12 @@ from kida.environment.exceptions import (
     TemplateSyntaxError,
 )
 
+from bengal.autodoc.config import get_autodoc_output_prefix
+from bengal.autodoc.models.common import MetadataView
 from bengal.protocols import SiteConfig, SiteLike
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.paths.url_normalization import path_to_slug
+from bengal.utils.paths import path_to_slug, strip_path_params
 
 if TYPE_CHECKING:
     from kida.template import Template
@@ -36,16 +38,6 @@ if TYPE_CHECKING:
     from bengal.rendering.renderer import Renderer
 
 logger = get_logger(__name__)
-
-
-class MetadataView(dict[str, Any]):
-    """
-    Dict that also supports attribute-style access (dotted) used by templates.
-
-    """
-
-    def __getattr__(self, item: str) -> Any:
-        return self.get(item)
 
 
 class AutodocRenderer:
@@ -243,6 +235,16 @@ class AutodocRenderer:
         # Prefer explicit _section reference set by orchestrators; fall back to page.section
         section = getattr(page, "_section", None) or getattr(page, "section", None)
 
+        # Walk up to root API section for sidebar navigation (shows full endpoint tree)
+        api_root_section = None
+        if section and hasattr(section, "root"):
+            api_root_section = section.root
+
+        # OpenAPI-specific context (base_url, interactive, auth) for endpoint pages
+        openapi_context = self._build_openapi_context(
+            template_name, api_root_section, page.metadata
+        )
+
         try:
             # NOTE: We intentionally do NOT pass site= here. The template environment
             # already has site=SiteContext(site) as a global (set in environment.py).
@@ -252,7 +254,9 @@ class AutodocRenderer:
                 element=element,
                 page=page,
                 section=section,  # Pass section explicitly for section index pages
+                api_root_section=api_root_section,
                 config=self._normalize_config(self.site.config),
+                **openapi_context,
                 toc_items=getattr(page, "toc_items", []) or [],
                 toc=getattr(page, "toc", "") or "",
                 # Versioning context - autodoc pages are not versioned
@@ -312,6 +316,46 @@ class AutodocRenderer:
         page._toc_items_cache = []  # Set private cache, not read-only property
         page.rendered_html = html_content
         page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
+
+    def _build_openapi_context(
+        self,
+        template_name: str,
+        api_root_section: Any,
+        page_metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Build OpenAPI-specific template context (base_url, interactive, auth_config).
+
+        Used for endpoint and schema pages when autodoc.openapi is configured.
+        """
+        if not template_name.startswith("autodoc/openapi"):
+            return {}
+
+        autodoc_config = self.site.config.get("autodoc", {})
+        openapi_config = autodoc_config.get("openapi", {})
+        interactive = openapi_config.get("interactive", False)
+        auth_config = openapi_config.get("auth", {})
+
+        # Resolve base_url: config override > first server from spec > default
+        base_url = openapi_config.get("server_url", "").strip()
+        if not base_url and api_root_section:
+            metadata = getattr(api_root_section, "metadata", None)
+            servers = metadata.get("servers", ()) if isinstance(metadata, dict) else ()
+            if servers:
+                first = servers[0] if servers else None
+                if isinstance(first, dict):
+                    base_url = first.get("url", "")
+                elif isinstance(first, str):
+                    base_url = first
+                else:
+                    base_url = getattr(first, "url", "") or ""
+        if not base_url:
+            base_url = "https://api.example.com"
+
+        return {
+            "base_url": base_url.rstrip("/"),
+            "interactive": bool(interactive),
+            "auth_config": auth_config,
+        }
 
     def _load_autodoc_template(self, template_name: str) -> Template:
         """Load autodoc template with proper error handling.
@@ -387,23 +431,23 @@ class AutodocRenderer:
 
             # Get prefixes from config with safe defaults
             if doc_type == "python":
-                prefix = autodoc_config.get("python", {}).get("output_prefix", "api")
+                prefix = get_autodoc_output_prefix(autodoc_config, "python")
                 url_path = f"{prefix}/{qualified_name.replace('.', '/')}"
                 return f"/{url_path}/"
             elif doc_type == "cli":
-                prefix = autodoc_config.get("cli", {}).get("output_prefix", "cli")
+                prefix = get_autodoc_output_prefix(autodoc_config, "cli")
                 from bengal.autodoc.utils import resolve_cli_url_path
 
                 cli_path = resolve_cli_url_path(qualified_name)
                 url_path = f"{prefix}/{cli_path}" if cli_path else prefix
                 return f"/{url_path}/"
             elif doc_type == "openapi":
-                prefix = autodoc_config.get("openapi", {}).get("output_prefix", "api")
+                prefix = get_autodoc_output_prefix(autodoc_config, "openapi")
                 if element_type == "openapi_endpoint":
                     from bengal.autodoc.utils import get_openapi_method, get_openapi_path
 
                     method = get_openapi_method(elem).lower()
-                    path = path_to_slug(get_openapi_path(elem))
+                    path = path_to_slug(strip_path_params(get_openapi_path(elem)))
                     return f"/{prefix}/endpoints/{method}-{path}/"
                 elif element_type == "openapi_schema":
                     return f"/{prefix}/schemas/{elem.name}/"
@@ -411,15 +455,15 @@ class AutodocRenderer:
                     return f"/{prefix}/overview/"
 
             # Fallback: infer from element_type
-            if element_type in ["command", "command-group"]:
-                prefix = autodoc_config.get("cli", {}).get("output_prefix", "cli")
+            if element_type in {"command", "command-group"}:
+                prefix = get_autodoc_output_prefix(autodoc_config, "cli")
                 from bengal.autodoc.utils import resolve_cli_url_path
 
                 cli_path = resolve_cli_url_path(qualified_name)
                 url_path = f"{prefix}/{cli_path}" if cli_path else prefix
                 return f"/{url_path}/"
-            elif element_type in ["class", "function", "method", "module"]:
-                prefix = autodoc_config.get("python", {}).get("output_prefix", "api")
+            elif element_type in {"class", "function", "method", "module"}:
+                prefix = get_autodoc_output_prefix(autodoc_config, "python")
                 url_path = f"{prefix}/{qualified_name.replace('.', '/')}"
                 return f"/{url_path}/"
 

@@ -11,23 +11,25 @@ Use cases:
 - Auto-generated section indexes
 
 Example:
+```md
 ::::{cards}
 :columns: 3
 
 :::{card} Getting Started
 :icon: rocket
-:link: /docs/quickstart/
+:link: /docs/get-started/
 
 Quick introduction to the platform.
 :::
 
 :::{card} API Reference
 :icon: book
-:link: /docs/api/
+:link: /api/
 
 Complete API documentation.
 :::
 ::::
+```
 
 Thread Safety:
 Stateless handlers. Safe for concurrent use across threads.

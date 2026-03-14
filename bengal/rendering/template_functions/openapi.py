@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from typing import TYPE_CHECKING, Any, Protocol
 
 from bengal.utils.observability.logger import get_logger
@@ -236,9 +236,10 @@ def endpoints_filter(section: SectionLike | None) -> list[EndpointView]:
     raw_endpoints = metadata.get("endpoints", [])
 
     if raw_endpoints:
-        # Consolidated mode - DocElements stored in metadata.endpoints
+        # DocElements from metadata.endpoints - use consolidate flag for href (anchor vs page URL)
+        consolidated = metadata.get("consolidate", True)
         return [
-            EndpointView.from_doc_element(el, consolidated=True)
+            EndpointView.from_doc_element(el, consolidated=consolidated)
             for el in raw_endpoints
             if hasattr(el, "typed_metadata") and el.typed_metadata is not None
         ]
@@ -288,6 +289,67 @@ def schemas_filter(section: SectionLike | None) -> list[SchemaView]:
     ]
 
 
+def _url_for_autodoc_home(section: SectionLike | None, site: SiteLike) -> str:
+    """Get URL for the OpenAPI API home page from a section (e.g. tag section)."""
+    if section is None:
+        return "#"
+    root = section
+    while getattr(root, "parent", None) is not None:
+        root = root.parent
+    index_page = getattr(root, "index_page", None)
+    if index_page and hasattr(index_page, "href"):
+        return index_page.href or "#"
+    rel_url = getattr(root, "relative_url", None) or ""
+    if rel_url:
+        from bengal.rendering.utils.url import apply_baseurl
+
+        return apply_baseurl(f"/{rel_url}/", site)
+    return "#"
+
+
+def _url_for_autodoc_schema(section: SectionLike | None, schema_name: str, site: SiteLike) -> str:
+    """Get URL for an OpenAPI schema page from a section."""
+    if section is None or not schema_name:
+        return "#"
+    root = section
+    while getattr(root, "parent", None) is not None:
+        root = root.parent
+    # Find schemas subsection (section with name "schemas")
+    for sub in getattr(root, "subsections", []) or []:
+        if getattr(sub, "name", None) == "schemas":
+            rel_url = getattr(sub, "relative_url", None) or ""
+            if rel_url:
+                from bengal.autodoc.utils import slugify
+                from bengal.rendering.utils.url import apply_baseurl
+
+                schema_slug = slugify(schema_name)
+                path = f"/{rel_url}/{schema_slug}/"
+                return apply_baseurl(path, site)
+            break
+    return "#"
+
+
+def _url_for_autodoc_tag(section: SectionLike | None, tag: str, site: SiteLike) -> str:
+    """Get URL for an OpenAPI tag section from the root API section."""
+    if section is None or not tag:
+        return "#"
+    root = section
+    while getattr(root, "parent", None) is not None:
+        root = root.parent
+    for sub in getattr(root, "subsections", []) or []:
+        sub_meta = getattr(sub, "metadata", None) or {}
+        if sub_meta.get("tag") == tag:
+            index_page = getattr(sub, "index_page", None)
+            if index_page and hasattr(index_page, "href"):
+                return index_page.href or "#"
+            rel_url = getattr(sub, "relative_url", None) or ""
+            if rel_url:
+                from bengal.rendering.utils.url import apply_baseurl
+
+                return apply_baseurl(f"/{rel_url}/", site)
+    return "#"
+
+
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register OpenAPI functions with template environment.
 
@@ -303,6 +365,9 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "method_color_class": method_color_class,
             "status_code_class": status_code_class,
             "get_response_example": get_response_example,
+            "url_for_autodoc_home": lambda s: _url_for_autodoc_home(s, site),
+            "url_for_autodoc_tag": lambda s, t: _url_for_autodoc_tag(s, t, site),
+            "url_for_autodoc_schema": lambda s, n: _url_for_autodoc_schema(s, n, site),
         }
     )
     env.filters.update(
@@ -319,6 +384,38 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 # =============================================================================
 # Code Sample Generation
 # =============================================================================
+
+
+def _normalize_for_code_sample(
+    request_body: dict[str, Any] | Any | None,
+    parameters: list[dict[str, Any]] | tuple[Any, ...] | None,
+) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+    """Convert typed OpenAPI metadata to dict format for code generation."""
+    rb: dict[str, Any] | None = None
+    if request_body is not None:
+        if isinstance(request_body, dict):
+            rb = request_body
+        elif is_dataclass(request_body):
+            rb = asdict(request_body)
+            if "in" not in rb and hasattr(request_body, "location"):
+                rb["in"] = getattr(request_body, "location", "query")
+        else:
+            rb = None
+
+    params: list[dict[str, Any]] = []
+    if parameters:
+        for p in parameters:
+            if isinstance(p, dict):
+                params.append(p)
+            elif is_dataclass(p):
+                d = asdict(p)
+                if "in" not in d and hasattr(p, "location"):
+                    d["in"] = getattr(p, "location", "query")
+                params.append(d)
+            else:
+                params.append({})
+
+    return rb, params
 
 
 def generate_code_sample(
@@ -340,8 +437,8 @@ def generate_code_sample(
         method: HTTP method (GET, POST, PUT, PATCH, DELETE, etc.)
         path: Endpoint path (e.g., "/users/{id}")
         base_url: Base API URL
-        request_body: Request body schema/example
-        parameters: List of parameter definitions
+        request_body: Request body schema/example (dict or OpenAPIRequestBodyMetadata)
+        parameters: List of parameter definitions (dict or OpenAPIParameterMetadata)
         headers: Additional headers
         auth_scheme: Authentication scheme name
 
@@ -352,6 +449,7 @@ def generate_code_sample(
         {{ generate_code_sample('curl', 'GET', '/users/{id}') }}
 
     """
+    request_body, parameters = _normalize_for_code_sample(request_body, parameters)
     method = method.upper()
     generators = {
         "curl": _generate_curl_sample,
@@ -808,6 +906,20 @@ def status_code_class(code: str | int) -> str:
     return categories.get(first_digit, "status--info")
 
 
+def _response_status_code(r: Any) -> str | None:
+    """Get status_code from dict or OpenAPIResponseMetadata."""
+    if isinstance(r, dict):
+        return r.get("status_code")
+    return getattr(r, "status_code", None)
+
+
+def _response_content(r: Any) -> dict[str, Any]:
+    """Get content from dict; OpenAPIResponseMetadata has no content."""
+    if isinstance(r, dict):
+        return r.get("content", {})
+    return {}
+
+
 def get_response_example(
     responses: list[dict[str, Any]] | dict[str, Any] | None,
     status_code: str = "200",
@@ -816,7 +928,7 @@ def get_response_example(
     Extract example response from OpenAPI responses.
 
     Args:
-        responses: List or dict of response definitions
+        responses: List or dict of response definitions (dict or OpenAPIResponseMetadata)
         status_code: Target status code (default "200")
 
     Returns:
@@ -833,17 +945,17 @@ def get_response_example(
     if isinstance(responses, dict):
         response = responses.get(status_code, responses.get("200"))
     else:
-        # List format
+        # List format (dict or OpenAPIResponseMetadata)
         response = next(
-            (r for r in responses if str(r.get("status_code")) == str(status_code)),
+            (r for r in responses if str(_response_status_code(r) or "") == str(status_code)),
             None,
         )
 
     if not response:
         return None
 
-    # Try to get example from content
-    content = response.get("content", {})
+    # Try to get example from content (only dict has content)
+    content = _response_content(response)
     if isinstance(content, dict):
         for media_def in content.values():
             if "example" in media_def:
@@ -854,8 +966,8 @@ def get_response_example(
                     first_example = next(iter(examples.values()), {})
                     return first_example.get("value")
 
-    # Try direct example
-    if "example" in response:
+    # Try direct example (dict only; OpenAPIResponseMetadata has no example)
+    if isinstance(response, dict) and "example" in response:
         return response["example"]
 
     return None

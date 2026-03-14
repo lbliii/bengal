@@ -27,6 +27,29 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _resolve_template_path(site: SiteLike, template_name: str) -> Path | None:
+    """
+    Resolve template name to file path for dependency tracking.
+
+    Searches site templates_dir then theme templates (same order as engine loader).
+    Returns None if template not found (e.g. virtual or theme-only).
+    """
+    templates_dir = site.root_path / "templates"
+    template_dirs: list[Path] = []
+    if templates_dir.exists():
+        template_dirs.append(templates_dir)
+    if site.theme_path:
+        theme_templates = site.theme_path / "templates"
+        if theme_templates.exists():
+            template_dirs.append(theme_templates)
+
+    for tpl_dir in template_dirs:
+        candidate = tpl_dir / template_name
+        if candidate.is_file():
+            return candidate
+    return None
+
+
 class CacheChecker:
     """
     Handles cache operations for the rendering pipeline.
@@ -294,6 +317,10 @@ class CacheChecker:
         """
         Store rendered output in cache for next build.
 
+        Records template dependency for incremental invalidation when templates change.
+        Enables _get_pages_for_template() to return only affected pages instead of
+        rebuilding all pages on any template change.
+
         Args:
             page: Page with rendered HTML
             template: Template name used
@@ -303,7 +330,12 @@ class CacheChecker:
 
         cache = self.build_cache
 
-        page_key = cache._cache_key(page.source_path)
+        # Wire template dependency for per-page invalidation (RFC: cache-provenance-evaluation 2.1)
+        template_path = _resolve_template_path(cast(SiteLike, self.site), template)
+        if template_path is not None:
+            cache.add_dependency(page.source_path, template_path)
+
+        page_key = cache.cache_key(page.source_path)
         deps = list(cache.dependencies.get(page_key, []))
 
         # Pass output_dir to capture asset manifest mtime for cache invalidation

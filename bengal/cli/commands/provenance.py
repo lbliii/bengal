@@ -21,6 +21,7 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
+from bengal.cli.shared_options import opt_source
 
 
 @click.group(name="provenance")
@@ -43,7 +44,7 @@ def provenance_cli() -> None:
     ],
 )
 @click.argument("page_path")
-@click.option("--source", type=click.Path(exists=True), default=".")
+@opt_source()
 @handle_cli_errors()
 def lineage(page_path: str, source: str) -> None:
     """Show what inputs produced a page.
@@ -110,7 +111,7 @@ def lineage(page_path: str, source: str) -> None:
 @click.argument("file_path", required=False)
 @click.option("--by-hash", help="Query by content hash directly")
 @click.option("--by-path", help="Search subvenance index for path substring")
-@click.option("--source", type=click.Path(exists=True), default=".")
+@opt_source()
 @handle_cli_errors()
 def affected(file_path: str | None, by_hash: str | None, by_path: str | None, source: str) -> None:
     """Show what pages depend on a file.
@@ -216,7 +217,7 @@ def affected(file_path: str | None, by_hash: str | None, by_path: str | None, so
     description="Show provenance store statistics",
     examples=["bengal provenance stats"],
 )
-@click.option("--source", type=click.Path(exists=True), default=".")
+@opt_source()
 @handle_cli_errors()
 def stats(source: str) -> None:
     """Show provenance store statistics.
@@ -268,7 +269,7 @@ def stats(source: str) -> None:
     ],
 )
 @click.option("--limit", type=int, help="Limit number of pages to process")
-@click.option("--source", type=click.Path(exists=True), default=".")
+@opt_source()
 @handle_cli_errors()
 def build(limit: int | None, source: str) -> None:
     """Run an incremental build with provenance filtering.
@@ -330,7 +331,7 @@ def build(limit: int | None, source: str) -> None:
     description="Clear provenance cache",
     examples=["bengal provenance clear"],
 )
-@click.option("--source", type=click.Path(exists=True), default=".")
+@opt_source()
 @click.option("--force", is_flag=True, help="Skip confirmation")
 @handle_cli_errors()
 def clear(source: str, force: bool) -> None:

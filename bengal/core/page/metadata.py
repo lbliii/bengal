@@ -42,6 +42,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.core.page.types import TOCItem
+from bengal.core.utils.shared import resolve_nav_title, sortable_weight
 from bengal.core.utils.url import apply_baseurl, get_baseurl, get_site_origin
 
 if TYPE_CHECKING:
@@ -73,7 +75,7 @@ class PageMetadataMixin:
     toc: str | None
     core: PageCore | None
     _site: Site | None
-    _toc_items_cache: list[dict[str, Any]] | None
+    _toc_items_cache: list[TOCItem] | None
     # slug is defined as a property below - no declaration needed here
 
     @property
@@ -124,14 +126,12 @@ class PageMetadataMixin:
         In templates:
             {{ page.nav_title }}  # "Authoring" (or title if not set)
         """
-        # Check core first (cached)
-        if self.core is not None and self.core.nav_title:
-            return self.core.nav_title
-        # Check metadata (fallback)
-        if "nav_title" in self.metadata:
-            return str(self.metadata["nav_title"])
-        # Fall back to title
-        return self.title
+        nav = (
+            self.core.nav_title
+            if self.core is not None and self.core.nav_title
+            else self.metadata.get("nav_title")
+        )
+        return resolve_nav_title(str(nav) if nav is not None else None, self.title)
 
     @property
     def weight(self) -> float:
@@ -149,20 +149,12 @@ class PageMetadataMixin:
             ---
             ```
         """
-        # Check core first (cached)
-        if self.core is not None and self.core.weight is not None:
-            try:
-                return float(self.core.weight)
-            except ValueError, TypeError:
-                pass
-        # Check metadata (fallback)
-        w = self.metadata.get("weight")
-        if w is not None:
-            try:
-                return float(w)
-            except ValueError, TypeError:
-                pass
-        return float("inf")
+        w = (
+            self.core.weight
+            if self.core is not None and self.core.weight is not None
+            else self.metadata.get("weight")
+        )
+        return sortable_weight(w)
 
     @property
     def date(self) -> datetime | None:
@@ -343,7 +335,7 @@ class PageMetadataMixin:
         return f"/{self.slug}/"
 
     @property
-    def toc_items(self) -> list[dict[str, Any]]:
+    def toc_items(self) -> list[TOCItem]:
         """
         Get structured TOC data (lazy evaluation).
 

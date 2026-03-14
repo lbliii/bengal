@@ -123,6 +123,10 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
             "display_name": "",  # Custom display name for nav/h1 (default: "REST API Reference")
             "spec_file": "api/openapi.yaml",  # Default spec file location
             # output_dir removed - virtual pages always output to site.output_dir (public/)
+            # Interactive API Explorer (Phase 2C)
+            "interactive": False,  # Opt-in: "Try it" panel with request builder + response viewer
+            "server_url": "",  # Override: base URL for requests (empty = use first server from spec)
+            "auth": {},  # Auth config: api_key, bearer, oauth2 (see docs)
         },
         "cli": {
             "enabled": False,  # Disabled by default - enable in config
@@ -245,7 +249,7 @@ def _merge_autodoc_config(
             # Validate mode if present
             if "mode" in grouping_config:
                 mode = grouping_config["mode"]
-                if mode not in ["off", "auto", "explicit"]:
+                if mode not in {"off", "auto", "explicit"}:
                     print(f"⚠️  Warning: Invalid grouping mode '{mode}', using 'off'")
                     grouping_config["mode"] = "off"
             default_config["python"]["grouping"].update(grouping_config)
@@ -306,6 +310,43 @@ def get_cli_config(config: dict[str, Any]) -> dict[str, Any]:
 
     """
     return config.get("cli", {})
+
+
+# Default output prefixes per autodoc domain
+_OUTPUT_PREFIX_DEFAULTS: dict[str, str] = {
+    "python": "api",
+    "openapi": "api",
+    "cli": "cli",
+}
+
+
+def get_autodoc_section(config: dict[str, Any], section: str) -> dict[str, Any]:
+    """
+    Get autodoc section config (python, openapi, cli).
+
+    Args:
+        config: Full autodoc configuration dict
+        section: Section name ("python", "openapi", or "cli")
+
+    Returns:
+        Section config dict (empty if not present)
+    """
+    return config.get(section, {})
+
+
+def get_autodoc_output_prefix(config: dict[str, Any], domain: str) -> str:
+    """
+    Get output_prefix for an autodoc domain with safe default.
+
+    Args:
+        config: Full autodoc configuration dict
+        domain: Domain name ("python", "openapi", or "cli")
+
+    Returns:
+        output_prefix string (e.g., "api", "cli")
+    """
+    section = get_autodoc_section(config, domain)
+    return section.get("output_prefix", "") or _OUTPUT_PREFIX_DEFAULTS.get(domain, "api")
 
 
 def get_grouping_config(config: dict[str, Any]) -> dict[str, Any]:

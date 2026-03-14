@@ -1,0 +1,111 @@
+{#
+Bengal OpenAPI Try It Panel (Interactive API Explorer)
+======================================================
+
+Request builder + response viewer. Shown when autodoc.openapi.interactive: true.
+Client-side only — uses fetch() directly. No server proxy required.
+
+Context:
+- method: HTTP method (GET, POST, etc.)
+- path: Endpoint path (e.g. /users/{id})
+- base_url: Base API URL from config or spec servers
+- parameters: List of parameters (path, query, header)
+- request_body: Request body schema (optional)
+- auth_config: Auth config from autodoc.openapi.auth
+#}
+{% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
+{% let method = meta?.method ?? 'GET' %}
+{% let path = meta?.path ?? '/' %}
+{% let api_base = base_url ?? 'https://api.example.com' %}
+{% let params = meta?.parameters ?? () %}
+{% let req_body = meta?.request_body %}
+{% let path_slug = path | slugify %}
+
+<div class="api-try-it" data-api-explorer data-base-url="{{ api_base }}" data-method="{{ method }}" data-path="{{ path }}">
+  <header class="api-try-it__header">
+    <h3 class="api-try-it__title">{{ icon('arrow-right', size=14) }} Try it</h3>
+  </header>
+
+  <div class="api-try-it__request">
+    <div class="api-try-it__url-row">
+      <select class="api-try-it__method" aria-label="HTTP method" data-try-it-method>
+        <option value="GET"{% if method == 'GET' %} selected{% end %}>GET</option>
+        <option value="POST"{% if method == 'POST' %} selected{% end %}>POST</option>
+        <option value="PUT"{% if method == 'PUT' %} selected{% end %}>PUT</option>
+        <option value="PATCH"{% if method == 'PATCH' %} selected{% end %}>PATCH</option>
+        <option value="DELETE"{% if method == 'DELETE' %} selected{% end %}>DELETE</option>
+      </select>
+      <input
+        type="text"
+        class="api-try-it__url"
+        value="{{ api_base }}{{ path }}"
+        aria-label="Request URL"
+        data-try-it-url
+        spellcheck="false"
+      />
+      <button type="button" class="api-try-it__send" data-try-it-send aria-label="Send request">
+        {{ icon('arrow-right', size=14) }}
+        <span>Send</span>
+      </button>
+    </div>
+
+    {% with _auth = auth_config ?? {} %}
+    {% if _auth.api_key or _auth.bearer %}
+    <details class="api-try-it__auth" data-try-it-auth>
+      <summary>Authentication</summary>
+      {% if _auth.api_key %}
+      <div class="api-try-it__auth-row">
+        <label for="try-it-api-key-{{ path_slug }}">API Key</label>
+        <input
+          type="password"
+          id="try-it-api-key-{{ path_slug }}"
+          placeholder="{{ _auth.api_key.name ?? 'X-API-Key' }}"
+          data-try-it-api-key
+          autocomplete="off"
+        />
+      </div>
+      {% end %}
+      {% if _auth.bearer %}
+      <div class="api-try-it__auth-row">
+        <label for="try-it-bearer-{{ path_slug }}">Bearer Token</label>
+        <input
+          type="password"
+          id="try-it-bearer-{{ path_slug }}"
+          placeholder="Your token"
+          data-try-it-bearer
+          autocomplete="off"
+        />
+      </div>
+      {% end %}
+    </details>
+    {% end %}
+    {% end %}
+
+    {% if req_body %}
+    <div class="api-try-it__body">
+      <label for="try-it-body-{{ path_slug }}">Request body (JSON)</label>
+      <textarea
+        id="try-it-body-{{ path_slug }}"
+        class="api-try-it__body-input"
+        rows="6"
+        placeholder='{"key": "value"}'
+        data-try-it-body
+        spellcheck="false"
+      ></textarea>
+    </div>
+    {% end %}
+  </div>
+
+  <div class="api-try-it__response" data-try-it-response hidden>
+    <header class="api-try-it__response-header">
+      <span class="api-try-it__status" data-try-it-status>—</span>
+      <span class="api-try-it__time" data-try-it-time></span>
+    </header>
+    <pre class="api-try-it__response-body"><code data-try-it-response-body></code></pre>
+  </div>
+
+  <div class="api-try-it__loading" data-try-it-loading hidden aria-live="polite">
+    Sending request…
+  </div>
+  <div class="api-try-it__error" data-try-it-error hidden role="alert"></div>
+</div>

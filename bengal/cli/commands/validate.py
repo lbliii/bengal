@@ -16,8 +16,8 @@ import click
 
 from bengal.cache.paths import STATE_DIR_NAME
 from bengal.cli.helpers import handle_cli_errors
+from bengal.cli.shared_options import opt_traceback, opt_verbose
 from bengal.cli.utils import configure_traceback, get_cli_output, load_site_from_cli
-from bengal.errors.traceback import TracebackStyle
 from bengal.health import HealthCheck
 from bengal.utils.observability.profile import BuildProfile
 
@@ -50,11 +50,7 @@ if TYPE_CHECKING:
     type=click.Choice(["writer", "theme-dev", "developer"], case_sensitive=False),
     help="Build profile to use (writer, theme-dev, developer)",
 )
-@click.option(
-    "--verbose",
-    is_flag=True,
-    help="Show verbose output (all checks, not just problems)",
-)
+@opt_verbose(help_text="Show verbose output (all checks, not just problems)")
 @click.option(
     "--suggestions",
     is_flag=True,
@@ -70,11 +66,7 @@ if TYPE_CHECKING:
     multiple=True,
     help="Health check code to ignore (e.g., H101, H202). Can be specified multiple times.",
 )
-@click.option(
-    "--traceback",
-    type=click.Choice([s.value for s in TracebackStyle]),
-    help="Traceback verbosity: full | compact | minimal | off",
-)
+@opt_traceback()
 @click.option(
     "--templates",
     is_flag=True,

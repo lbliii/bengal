@@ -439,6 +439,27 @@ class TestBuildCacheConfigHash:
 
         assert loaded_cache.config_hash == "test_hash_abc"
 
+    def test_build_id_roundtrip(self, tmp_path):
+        """RFC rfc-cache-generation-id: build_id is saved and loaded correctly."""
+        cache = BuildCache()
+        cache.build_id = "abc12345-6789-0def-1234-567890abcdef"
+
+        cache_file = tmp_path / "cache.json"
+        cache.save(cache_file)
+
+        loaded = BuildCache.load(cache_file)
+        assert loaded.build_id == "abc12345-6789-0def-1234-567890abcdef"
+
+    def test_build_id_none_in_old_cache(self, tmp_path):
+        """Old cache without build_id loads with None (backward compatible)."""
+        cache = BuildCache()
+        cache.config_hash = "x"
+        cache_file = tmp_path / "cache.json"
+        cache.save(cache_file)
+
+        loaded = BuildCache.load(cache_file)
+        assert loaded.build_id is None
+
     def test_config_hash_none_in_old_cache(self, tmp_path):
         """Old cache without config_hash loads with None."""
         import json

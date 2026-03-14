@@ -7,6 +7,7 @@ properly apply the | absolute_url filter to support subpath deployments.
 
 from __future__ import annotations
 
+import re
 from unittest.mock import Mock
 
 import pytest
@@ -365,3 +366,108 @@ name = "default"
         html = engine.render_string(template_str, {"nav_item": nav_item})
 
         assert 'href="/repo/docs/"' in html, "Docs link should have baseurl applied"
+
+
+class TestTocGroupStructure:
+    """Ensure TOC group markup keeps heading links visible when collapsed."""
+
+    def test_toc_group_link_inside_summary(self, tmp_path):
+        """Heading link must be inside summary so it remains visible when collapsed."""
+        site_dir = tmp_path / "site"
+        (site_dir / "content").mkdir(parents=True)
+        (site_dir / "public").mkdir(parents=True)
+
+        cfg = site_dir / "bengal.toml"
+        cfg.write_text(
+            """
+[site]
+title = "Test"
+
+[build]
+output_dir = "public"
+            """,
+            encoding="utf-8",
+        )
+
+        (site_dir / "content" / "index.md").write_text(
+            """---\ntitle: Home\n---\n# Home\n""", encoding="utf-8"
+        )
+
+        site = Site.from_config(site_dir)
+        engine = TemplateEngine(site)
+
+        toc_items = [
+            {"id": "section-1", "title": "Section 1", "level": 1},
+            {"id": "section-1-1", "title": "Subsection 1.1", "level": 2},
+        ]
+        page = Mock()
+        page._path = "/docs/guide/"
+
+        template_str = """
+{% from 'partials/navigation-components.html' import toc %}
+{{ toc(toc_items=toc_items, page=page) }}
+        """
+        html = engine.render_string(template_str, {"toc_items": toc_items, "page": page})
+
+        assert 'href="#section-1"' in html
+        summary_match = re.search(r"(<summary[^>]*>)(.*?)(</summary>)", html, re.DOTALL)
+        assert summary_match is not None
+        assert 'href="#section-1"' in summary_match.group(2)
+        assert "toc-group-caret" in summary_match.group(2)
+
+    def test_track_toc_sections_render_section_markers(self, tmp_path):
+        """Track TOCs mark top-level groups so filtering logic has clean boundaries."""
+        site_dir = tmp_path / "site"
+        (site_dir / "content").mkdir(parents=True)
+        (site_dir / "public").mkdir(parents=True)
+
+        cfg = site_dir / "bengal.toml"
+        cfg.write_text(
+            """
+[site]
+title = "Test"
+
+[build]
+output_dir = "public"
+            """,
+            encoding="utf-8",
+        )
+
+        (site_dir / "content" / "index.md").write_text(
+            """---\ntitle: Home\n---\n# Home\n""", encoding="utf-8"
+        )
+
+        site = Site.from_config(site_dir)
+        engine = TemplateEngine(site)
+
+        track_toc_sections = [
+            {
+                "section_number": 1,
+                "section_id": "track-section-1",
+                "title": "Install Bengal",
+                "items": [
+                    {
+                        "id": "s1-install-bengal",
+                        "title": "Install Bengal",
+                        "level": 1,
+                        "children": [
+                            {"id": "s1-requirements", "title": "Requirements", "level": 2},
+                        ],
+                    },
+                ],
+            },
+        ]
+        page = Mock()
+        page._path = "/tracks/install/"
+
+        template_str = """
+{% from 'partials/navigation-components.html' import toc %}
+{{ toc(track_toc_sections=track_toc_sections, page=page) }}
+        """
+        html = engine.render_string(
+            template_str,
+            {"track_toc_sections": track_toc_sections, "page": page},
+        )
+
+        assert "data-track-filtering" in html
+        assert '<details class="toc-group" data-toc-section' in html

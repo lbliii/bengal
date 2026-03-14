@@ -8,7 +8,7 @@ improvement opportunities.
 
 Link Types (by editorial intent):
 High Intent (human-authored):
-    - EXPLICIT: Markdown links [text](url) in content
+    - EXPLICIT: Markdown links like ``[text](url)`` in content
     - MENU: Navigation menu items
 
 Medium Intent (algorithmic):
@@ -63,7 +63,7 @@ class LinkType(Enum):
     the editorial intent and discoverability value of the relationship.
 
     Attributes:
-        EXPLICIT: Human-authored markdown links [text](url) in content
+        EXPLICIT: Human-authored markdown links like ``[text](url)`` in content
         MENU: Navigation menu item (deliberate prominence)
         TAXONOMY: Shared tags/categories (topic clustering)
         RELATED: Algorithm-computed related posts (automated)

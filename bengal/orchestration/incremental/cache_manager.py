@@ -257,7 +257,7 @@ class CacheManager:
                 continue
             self.cache.update_file(page.source_path)
             # Store tags for next build's comparison
-            page_key = self.cache._cache_key(page.source_path)
+            page_key = self.cache.cache_key(page.source_path)
             if page.tags:
                 self.cache.taxonomy_index.update_tags(page_key, set(page.tags))
             else:
@@ -296,7 +296,7 @@ class CacheManager:
                 )
 
         # Update template hashes (even if not changed, to track them)
-        theme_templates_dir = self._get_theme_templates_dir()
+        theme_templates_dir = self.theme_templates_dir
         if theme_templates_dir and theme_templates_dir.exists():
             for template_file in theme_templates_dir.rglob("*.html"):
                 self.cache.update_file(template_file)
@@ -321,13 +321,18 @@ class CacheManager:
         # Save cache
         self.cache.save(cache_path)
 
-    def _get_theme_templates_dir(self) -> Path | None:
+    @property
+    def theme_templates_dir(self) -> Path | None:
         """
-        Get the templates directory for the current theme.
+        Path to the templates directory for the current theme.
 
         Returns:
             Path to theme templates or None if not found
         """
+        return self._get_theme_templates_dir()
+
+    def _get_theme_templates_dir(self) -> Path | None:
+        """Internal implementation of theme_templates_dir."""
         # Be defensive: site.theme may be None, a string, or a Mock in tests
         theme = self.site.theme
         if not theme or not isinstance(theme, str):

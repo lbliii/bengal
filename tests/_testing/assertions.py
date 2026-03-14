@@ -393,7 +393,7 @@ def assert_taxonomy_pages_complete(
         expected_pages = set()
         for page in site.regular_pages:
             page_terms = getattr(page, taxonomy_name, []) or []
-            if term in page_terms or term.lower() in [t.lower() for t in page_terms]:
+            if term in page_terms or term.lower() in {t.lower() for t in page_terms}:
                 expected_pages.add(str(page.source_path))
 
         # Get pages listed in taxonomy

@@ -199,8 +199,6 @@ class Site(
     # Dynamic runtime attributes (set by various orchestrators)
     # Diagnostics sink for core-model events (set by BuildOrchestrator)
     diagnostics: DiagnosticsSink | None = field(default=None, repr=False, init=False)
-    # Menu metadata for dev server menu items (set by MenuOrchestrator)
-    _dev_menu_metadata: dict[str, Any] | None = field(default=None, repr=False, init=False)
     # Page lookup maps for efficient page resolution (set by template functions)
     _page_lookup_maps: dict[str, dict[str, Page]] | None = field(
         default=None, repr=False, init=False
@@ -314,7 +312,10 @@ class Site(
         if not self.output_dir.is_absolute():
             self.output_dir = self.root_path / self.output_dir
 
-        self.data = self._load_data_directory()
+        # Data loaded by ContentOrchestrator during discovery (site.data overwritten)
+        from bengal.utils.primitives.dotdict import DotDict
+
+        self.data = DotDict()
         self._compute_config_hash()
 
         # Construct immutable ConfigService (thread-safe accessor for all config properties)
@@ -663,33 +664,6 @@ class Site(
             )
 
         return collisions
-
-    # =========================================================================
-    # DATA LOADING (inlined from SiteDataMixin)
-    # =========================================================================
-
-    def _load_data_directory(self) -> DotDict:
-        """
-        Load all data files from the data/ directory into site.data.
-
-        Delegates file scanning to bengal.services.data.scan_data_directory(),
-        then wraps the result in DotDict for template dot-access compatibility.
-
-        Example:
-            data/resume.yaml -> site.data.resume
-            data/team/members.json -> site.data.team.members
-
-        Returns:
-            DotDict with loaded data accessible via dot notation
-        """
-        from bengal.services.data import scan_data_directory
-        from bengal.utils.primitives.dotdict import DotDict, wrap_data
-
-        data, _source_files = scan_data_directory(self.root_path)
-        if not data:
-            return DotDict()
-
-        return wrap_data(data)
 
     # =========================================================================
     # SECTION REGISTRY (inlined from SiteSectionRegistryMixin)

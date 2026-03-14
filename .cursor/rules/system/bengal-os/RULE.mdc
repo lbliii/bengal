@@ -27,6 +27,7 @@ Central command interface for Bengal development. Routes commands to specialized
 "::types": validation/type-audit     # Audit type system (run mypy, check Any)
 "::arch": validation/architecture-audit  # Check architecture compliance
 "::coverage": validation/test-coverage   # Analyze test coverage
+"::sdc-audit": validation/sdc-audit  # Set/dict/comprehension substitution audit
 
 # Implementation Guides
 "::new-directive": implementation/add-directive  # Guide: add MyST directive
@@ -85,7 +86,9 @@ examples:
   - "Check my changes are correct"
   - "Validate the type signatures"
   - "Audit the architecture compliance"
-routing: ::validate (or ::types / ::arch for specific audits)
+  - "Find set/dict/comprehension opportunities"
+  - "Data structure substitution audit"
+routing: ::validate (or ::types / ::arch / ::sdc-audit for specific audits)
 ```
 
 ---
@@ -120,6 +123,8 @@ if intent == VALIDATE:
     use: ::types
   elif architecture_related:
     use: ::arch
+  elif set_dict_comprehension_related:
+    use: ::sdc-audit
   else:
     use: ::validate
 ```

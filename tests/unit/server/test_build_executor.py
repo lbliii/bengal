@@ -191,6 +191,33 @@ class TestCreateBuildExecutor:
         assert executor.max_workers == 1
 
 
+class TestBuildInputBuildRequestRoundtrip:
+    """RFC: rfc-dev-server-buffer-hardening (Phase 3) - output_dir_override sync."""
+
+    def test_output_dir_override_preserved_in_roundtrip(self) -> None:
+        """BuildRequest → BuildInput → BuildRequest preserves output_dir_override."""
+        from bengal.orchestration.build.inputs import BuildInput
+
+        request = BuildRequest(
+            site_root="/path/to/site",
+            output_dir_override="/path/to/staging",
+        )
+        build_input = BuildInput.from_build_request(request)
+        restored = build_input.to_build_request()
+
+        assert restored.output_dir_override == "/path/to/staging"
+
+    def test_output_dir_override_none_preserved_in_roundtrip(self) -> None:
+        """BuildRequest without override → BuildInput → BuildRequest keeps None."""
+        from bengal.orchestration.build.inputs import BuildInput
+
+        request = BuildRequest(site_root="/path/to/site")
+        build_input = BuildInput.from_build_request(request)
+        restored = build_input.to_build_request()
+
+        assert restored.output_dir_override is None
+
+
 class TestBuildRequestSerialization:
     """Tests for BuildRequest serialization (required for process isolation)."""
 

@@ -21,6 +21,10 @@ category: guide
 
 Learn how to create and register custom filters for Kida templates in Bengal.
 
+:::{seealso}
+[Extension Guide](/docs/extending/extension-guide/) — **Recommended.** Extend `KidaTemplateEngine` and register as a custom engine (`mykida`). No internal API access required.
+:::
+
 ## Goal
 
 Create a custom filter that formats currency values and use it in templates.

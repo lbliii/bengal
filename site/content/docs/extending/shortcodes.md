@@ -29,7 +29,7 @@ Shortcodes are template-based content components you can add without writing Pyt
 - You need parent-child nesting (e.g., `:::{step}` inside `:::{steps}`)
 - You want structured errors and build-time safety
 
-See [Custom Directives](../custom-directives/) for the Python path.
+See [Custom Directives](/docs/extending/custom-directives/) for the Python path.
 
 ## Notation: Markdown vs Standard
 
@@ -176,8 +176,21 @@ The default theme ships with these shortcodes. Override any by placing a templat
 
 ## Strict Mode
 
-Set `shortcodes.strict: true` in `bengal.yaml` to fail the build when:
+Configure in `bengal.toml`:
 
+```toml
+[shortcodes]
+strict = true
+```
+
+Or in `config/_default/site.yaml`:
+
+```yaml
+shortcodes:
+  strict: true
+```
+
+When enabled, the build fails when:
 - An unknown shortcode is used (no template found)
 - A shortcode template fails to render
 
@@ -228,6 +241,6 @@ Copy-paste snippets for common patterns.
 
 ## Related
 
-- [Custom Directives](../custom-directives/) — Python-based directives with validation
-- [Theme Customization](../theme-customization/) — Override templates
+- [Custom Directives](/docs/extending/custom-directives/) — Python-based directives with validation
+- [Theme Customization](/docs/extending/theme-customization/) — Override templates
 - [Kida Syntax](/docs/theming/templating/kida/syntax/) — Template language reference

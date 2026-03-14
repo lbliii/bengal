@@ -15,7 +15,6 @@ Usage:
 Context required:
 - page: Current page object
 - toc_items: List of TOC items (from markdown headings)
-- toc: TOC HTML string (optional, for raw HTML fallback)
 
 Configuration:
 - Graph minimap can be disabled via theme config
@@ -36,6 +35,6 @@ Configuration:
   {% end %}
 
   {# Table of Contents #}
-  {{ toc(toc_items=toc_items, toc=toc, page=page) }}
+  {{ toc(toc_items=toc_items, page=page) }}
 </aside>
 {% end %}

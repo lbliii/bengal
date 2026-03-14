@@ -97,7 +97,7 @@
     touch-action: manipulation;
     user-select: none;
     -webkit-tap-highlight-color: transparent;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--elevation-subtle);
 }
 
 .toc-toggle-all:hover {
@@ -105,7 +105,7 @@
     border-color: var(--color-primary);
     background: var(--color-bg-tertiary, var(--color-bg-secondary));
     transform: scale(1.05);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--elevation-low);
 }
 
 .toc-toggle-all:active {
@@ -163,7 +163,7 @@
     background: var(--color-bg-primary, white);
     border: 1px solid var(--color-border);
     border-radius: var(--border-radius);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--elevation-medium);
     padding: 0.25rem;
     z-index: 100;
     min-inline-size: 140px;
@@ -286,13 +286,22 @@ summary.toc-group-header {
     align-items: center;
     gap: 0.5rem;
     padding: 0;
-    padding-inline-end: 0.25rem; /* Add small padding to prevent shadow clipping */
+    padding-inline-end: 0.25rem;
     background: transparent;
     min-width: 0;
     cursor: pointer;
     list-style: none; /* Remove default disclosure marker */
     user-select: none;
     -webkit-tap-highlight-color: transparent;
+}
+
+.toc-group-caret {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-tertiary);
+    transition: transform var(--transition-fast), color var(--transition-fast);
+    flex-shrink: 0;
 }
 
 /* Remove default marker in all browsers */
@@ -309,6 +318,10 @@ summary.toc-group-header:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
     border-radius: var(--border-radius-small);
+}
+
+details.toc-group[open] .toc-group-caret {
+    transform: rotate(90deg);
 }
 
 /* Count badge (was button, now just a span) */
@@ -379,7 +392,7 @@ details.toc-group[open] .toc-count {
     font-size: var(--text-xxs); /* 11px - smallest defined size */
     font-weight: var(--weight-medium);
     color: var(--color-text-tertiary);
-    background: var(--color-bg-secondary, #f5f5f5);
+    background: var(--color-bg-secondary);
     border: 1px solid var(--color-border-light);
     border-radius: 10px;
     flex-shrink: 0;

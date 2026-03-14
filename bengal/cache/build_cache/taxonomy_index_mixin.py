@@ -55,7 +55,7 @@ class BuildTaxonomyIndex:
 
         Args:
             taxonomy_term: Taxonomy term (e.g., "tag:python")
-            page: Page path or canonical cache key (use cache._cache_key for normalization)
+            page: Page path or canonical cache key (use cache.cache_key for normalization)
         """
         if taxonomy_term not in self.taxonomy_deps:
             self.taxonomy_deps[taxonomy_term] = set()
@@ -68,7 +68,7 @@ class BuildTaxonomyIndex:
         Get tags from previous build for a page.
 
         Args:
-            page_path: Path or canonical cache key (use cache._cache_key for normalization)
+            page_path: Path or canonical cache key (use cache.cache_key for normalization)
 
         Returns:
             Set of tags from previous build (empty set if new page)
@@ -81,7 +81,7 @@ class BuildTaxonomyIndex:
         Store current tags for a page (for next build's comparison).
 
         Args:
-            page_path: Path or canonical cache key (use cache._cache_key for normalization)
+            page_path: Path or canonical cache key (use cache.cache_key for normalization)
             tags: Current set of tags for the page
         """
         page_key = str(page_path) if isinstance(page_path, Path) else page_path
@@ -98,7 +98,7 @@ class BuildTaxonomyIndex:
         This is the key method that enables O(1) taxonomy reconstruction.
 
         Args:
-            page_path: Path or canonical cache key (use cache._cache_key for normalization)
+            page_path: Path or canonical cache key (use cache.cache_key for normalization)
             tags: Current set of tags for this page (original case, e.g., "Python", "Web Dev")
 
         Returns:
@@ -154,6 +154,22 @@ class BuildTaxonomyIndex:
             Set of page path strings
         """
         return self.tag_to_pages.get(tag_slug, set()).copy()
+
+    def remove_page(self, page_path: Path | str) -> None:
+        """
+        Remove a page from the taxonomy index (forward and inverted).
+
+        Call when a page is deleted to keep indexes consistent.
+        """
+        page_path_str = str(page_path) if isinstance(page_path, Path) else page_path
+        old_tags = self.page_tags.pop(page_path_str, set())
+        old_slugs = {str(tag).lower().replace(" ", "-") for tag in old_tags if tag is not None}
+        for tag_slug in old_slugs:
+            if tag_slug in self.tag_to_pages:
+                self.tag_to_pages[tag_slug].discard(page_path_str)
+                if not self.tag_to_pages[tag_slug]:
+                    del self.tag_to_pages[tag_slug]
+                    self.known_tags.discard(tag_slug)
 
     def get_all_tags(self) -> set[str]:
         """

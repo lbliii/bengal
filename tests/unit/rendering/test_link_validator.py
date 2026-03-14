@@ -177,6 +177,46 @@ class TestInternalLinkValidation:
         assert validator._is_valid_link("/docs/getting-started/#section", page) is True
         assert validator._is_valid_link("/nonexistent/#section", page) is False
 
+    def test_relative_link_from_section_index_uses_page_url(self):
+        """Section index pages resolve `./child/` links from their own URL."""
+        site = MagicMock()
+        section_page = MagicMock()
+        section_page.href = "/docs/building/"
+        section_page.permalink = None
+        section_page.source_path = Path("content/docs/building/_index.md")
+        section_page.links = ["./configuration/"]
+
+        child_page = MagicMock()
+        child_page.href = "/docs/building/configuration/"
+        child_page.permalink = None
+        child_page.source_path = Path("content/docs/building/configuration/_index.md")
+        child_page.links = []
+
+        site.pages = [section_page, child_page]
+
+        validator = LinkValidator(site=site)
+        assert validator._is_valid_link("./configuration/", section_page) is True
+
+    def test_relative_link_from_regular_page_uses_parent_section(self):
+        """Regular pages still resolve sibling links from their parent section."""
+        site = MagicMock()
+        page = MagicMock()
+        page.href = "/docs/building/configuration/"
+        page.permalink = None
+        page.source_path = Path("content/docs/building/configuration.md")
+        page.links = ["./deployment/"]
+
+        sibling_page = MagicMock()
+        sibling_page.href = "/docs/building/deployment/"
+        sibling_page.permalink = None
+        sibling_page.source_path = Path("content/docs/building/deployment/_index.md")
+        sibling_page.links = []
+
+        site.pages = [page, sibling_page]
+
+        validator = LinkValidator(site=site)
+        assert validator._is_valid_link("./deployment/", page) is True
+
 
 class TestPageUrlIndex:
     """Test the page URL index building."""

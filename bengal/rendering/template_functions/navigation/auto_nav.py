@@ -15,6 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.page.navigation import is_root_level_page
 from bengal.rendering.template_functions.memo import site_scoped_memoize
 from bengal.rendering.template_functions.navigation.helpers import get_nav_title
 from bengal.utils.paths.normalize import to_posix
@@ -103,25 +104,6 @@ def _build_section_menu_item(
         "parent": parent_identifier,
         "icon": section_icon,
     }
-
-
-def _is_root_level_page(page: Any, content_dir: Path) -> bool:
-    """
-    Check if a page is at content root (e.g. content/about.md, not content/posts/foo.md).
-
-    Excludes index.md (homepage) and section indices (_index.md).
-    """
-    try:
-        src = Path(page.source_path)
-        if src.is_absolute():
-            rel = src.relative_to(content_dir)
-        else:
-            rel_str = to_posix(str(src))
-            rel = Path(rel_str[8:]) if rel_str.startswith("content/") else Path(rel_str)
-        parts = to_posix(str(rel)).split("/")
-        return len(parts) == 1 and parts[0] not in ("index.md", "_index.md")
-    except ValueError, AttributeError:
-        return False
 
 
 def _build_root_page_menu_item(page: Any) -> dict[str, Any] | None:
@@ -261,7 +243,7 @@ def get_auto_nav(site: SiteLike) -> list[dict[str, Any]]:
     if root_path:
         content_dir = root_path / "content"
         for page in site.pages:
-            if _is_root_level_page(page, content_dir):
+            if is_root_level_page(page, content_dir):
                 item = _build_root_page_menu_item(page)
                 if item:
                     nav_items.append(item)

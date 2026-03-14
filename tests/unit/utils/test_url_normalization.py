@@ -8,6 +8,7 @@ from bengal.utils.paths.url_normalization import (
     normalize_url,
     path_to_slug,
     split_url_path,
+    strip_path_params,
     validate_url,
 )
 
@@ -140,6 +141,29 @@ class TestCleanMdPath:
         """Test empty string."""
         assert clean_md_path("") == ""
         assert clean_md_path("/") == ""
+
+
+class TestStripPathParams:
+    """Tests for strip_path_params function."""
+
+    def test_single_param(self):
+        """Test stripping single path parameter."""
+        assert strip_path_params("/orders/{orderId}") == "/orders/orderId"
+        assert strip_path_params("/users/{userId}") == "/users/userId"
+
+    def test_multiple_params(self):
+        """Test stripping multiple path parameters."""
+        assert strip_path_params("/users/{userId}/posts/{postId}") == "/users/userId/posts/postId"
+
+    def test_no_params(self):
+        """Test path without parameters."""
+        assert strip_path_params("/api/orders") == "/api/orders"
+        assert strip_path_params("/") == "/"
+
+    def test_path_to_slug_with_stripped_params(self):
+        """Test path_to_slug produces clean URLs after stripping."""
+        path = strip_path_params("/orders/{orderId}")
+        assert path_to_slug(path) == "orders-orderId"
 
 
 class TestPathToSlug:

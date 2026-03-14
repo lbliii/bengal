@@ -35,9 +35,11 @@ class TestPathVariantCacheConsistency:
         content_file = site_with_content / "content" / "docs" / "foo.md"
 
         # Store with absolute path
+        from bengal.cache.build_cache.fingerprint import FileFingerprint
+
         cache.set_file_fingerprint(
             content_file,
-            {"mtime": 1.0, "size": 10, "hash": "abc123"},
+            FileFingerprint(mtime=1.0, size=10, hash="abc123"),
         )
 
         # Lookup with different path representations - all should hit
@@ -53,7 +55,7 @@ class TestPathVariantCacheConsistency:
 
         assert fp_rel == fp_abs == fp_res
         assert fp_rel is not None
-        assert fp_rel["hash"] == "abc123"
+        assert fp_rel.hash == "abc123"
 
     def test_content_key_normalizes_path_variants(self, tmp_path: Path) -> None:
         """content_key produces same key for same logical path."""

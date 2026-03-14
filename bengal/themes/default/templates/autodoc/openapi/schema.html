@@ -19,16 +19,20 @@ Kida Features:
 #}
 {% extends 'autodoc/openapi/layouts/reference.html' %}
 
+{% from 'autodoc/openapi/_schema.html' import schema_viewer %}
+
+{% block sidebar %}
+<aside class="api-reference__sidebar" role="navigation" aria-label="API navigation">
+  {% include 'autodoc/openapi/partials/sidebar-nav.html' %}
+</aside>
+{% end %}
+
+{% block header %}
 {% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
 {% let schema_name = element?.name ?? page?.title ?? 'Schema' %}
 {% let schema_type = meta?.schema_type ?? 'object' %}
-{% let properties = meta?.properties ?? {} %}
-{% let required_props = meta?.required ?? () %}
-{% let enum_vals = meta?.enum %}
-{% let example_val = meta?.example %}
 {% let description = element?.description ?? '' %}
 
-{% block header %}
 <h1 class="api-schema__title">
   <code>{{ schema_name }}</code>
   <span class="badge badge--outline">{{ schema_type }}</span>
@@ -42,6 +46,13 @@ Kida Features:
 {% end %}
 
 {% block content_main %}
+{% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
+{% let schema_name = element?.name ?? page?.title ?? 'Schema' %}
+{% let properties = meta?.properties ?? {} %}
+{% let required_props = meta?.required ?? () %}
+{% let enum_vals = meta?.enum %}
+{% let example_val = meta?.example %}
+
 <div class="api-schema" id="schema-{{ schema_name | slugify }}" data-autodoc="openapi" data-element="schema">
 
   {# Schema Properties #}
@@ -50,10 +61,7 @@ Kida Features:
     <h2 class="api-schema__section-title">Properties</h2>
 
     {% cache 'openapi-schema-' ~ schema_name %}
-    {% let schema = meta %}
-    {% let name = schema_name %}
-    {% let depth = 0 %}
-    {% include 'autodoc/openapi/partials/schema-viewer.html' %}
+    {{ schema_viewer(meta, name=schema_name, depth=0) }}
     {% end %}
   </section>
   {% end %}

@@ -80,6 +80,25 @@ class ContentOrchestrator:
         """
         self.site = site
 
+    def _load_data_directory(self) -> None:
+        """
+        Load data files from data/ directory into site.data.
+
+        Delegates to bengal.services.data.scan_data_directory, then wraps
+        the result in DotDict for template dot-access compatibility.
+
+        Called at the start of discover() so site.data is available before
+        content discovery and menu building.
+        """
+        from bengal.services.data import scan_data_directory
+        from bengal.utils.primitives.dotdict import DotDict, wrap_data
+
+        data, _source_files = scan_data_directory(self.site.root_path)
+        if not data:
+            self.site.data = DotDict()
+        else:
+            self.site.data = wrap_data(data)
+
     def discover(
         self,
         incremental: bool = False,
@@ -101,6 +120,7 @@ class ContentOrchestrator:
             build_cache: Optional BuildCache for registering autodoc dependencies.
                         When provided, enables selective autodoc rebuilds.
         """
+        self._load_data_directory()
         self.discover_content(
             incremental=incremental,
             cache=cache,
@@ -285,8 +305,6 @@ class ContentOrchestrator:
         _bs = self.site.build_state
         if _bs is not None:
             _bs.discovery_timing_ms = breakdown_ms
-        else:
-            self.site._discovery_breakdown_ms = breakdown_ms
 
     def _discover_autodoc_content(
         self, cache: PageDiscoveryCache | None = None, build_cache: Any | None = None
@@ -583,8 +601,9 @@ class ContentOrchestrator:
             assets_dir: Assets directory path (defaults to root_path/assets)
         """
         # Optimization: Skip asset discovery if only content files changed
-        options = getattr(self.site, "_last_build_options", None)
-        cache = getattr(self.site, "_cache", None)
+        _bs = self.site.build_state
+        options = _bs.last_build_options if _bs else None
+        cache = _bs.cache if _bs else None
 
         if (
             options
@@ -805,10 +824,8 @@ class ContentOrchestrator:
                             self.site.xref_index["by_anchor"][anchor_key] = []
                         # Check for collisions within the same version only
                         existing_entries = self.site.xref_index["by_anchor"][anchor_key]
-                        same_version_entry = (
-                            next((p, a, v) for p, a, v in existing_entries if v == page_version)
-                            if any(v == page_version for _, _, v in existing_entries)
-                            else None
+                        same_version_entry = next(
+                            (e for e in existing_entries if e[2] == page_version), None
                         )
                         if same_version_entry:
                             # Collision within same version - warn but keep existing (target directives will overwrite later)

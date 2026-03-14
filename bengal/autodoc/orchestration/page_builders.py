@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.hashing import compute_doc_content_hash
+from bengal.autodoc.models.common import MetadataView
 from bengal.autodoc.orchestration.result import AutodocRunResult
 from bengal.autodoc.utils import (
     format_source_file_for_display,
@@ -18,12 +19,13 @@ from bengal.autodoc.utils import (
     get_openapi_path,
     get_openapi_tags,
     resolve_cli_url_path,
+    slugify,
 )
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.paths.url_normalization import path_to_slug
+from bengal.utils.paths.url_normalization import path_to_slug, strip_path_params
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -37,13 +39,6 @@ logger = get_logger(__name__)
 # This avoids redundant normalization during rendering. Elements are normalized
 # once when pages are created, then reused across all renders.
 # See: bengal/rendering/pipeline/autodoc_renderer.py for the render-time check.
-
-
-class _MetadataView(dict[str, Any]):
-    """Dict that supports attribute-style access for templates."""
-
-    def __getattr__(self, item: str) -> Any:
-        return self.get(item)
 
 
 def normalize_element_for_templates(element: DocElement) -> None:
@@ -71,7 +66,7 @@ def normalize_element_for_templates(element: DocElement) -> None:
 
         # Wrap metadata for dotted access in templates
         if hasattr(obj, "metadata") and isinstance(obj.metadata, dict):
-            obj.metadata = _MetadataView(obj.metadata)
+            obj.metadata = MetadataView(obj.metadata)
             meta = obj.metadata
 
             # Copy common fields to element for convenience
@@ -93,11 +88,11 @@ def normalize_element_for_templates(element: DocElement) -> None:
                 normalized_props: dict[str, Any] = {}
                 for k, v in meta["properties"].items():
                     if isinstance(v, dict):
-                        normalized_props[k] = _MetadataView(v)
+                        normalized_props[k] = MetadataView(v)
                     elif isinstance(v, str):
-                        normalized_props[k] = _MetadataView({"type": v})
+                        normalized_props[k] = MetadataView({"type": v})
                     else:
-                        normalized_props[k] = _MetadataView({})
+                        normalized_props[k] = MetadataView({})
                 meta["properties"] = normalized_props
 
         # Mark as normalized
@@ -142,8 +137,13 @@ def compute_element_urls(
     elif doc_type == "openapi":
         if element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
-            path = path_to_slug(get_openapi_path(element))
-            url_path = f"{prefix}/endpoints/{method}-{path}"
+            path_slug = path_to_slug(strip_path_params(get_openapi_path(element)))
+            tags = get_openapi_tags(element)
+            if tags:
+                tag_slug = slugify(tags[0])
+                url_path = f"{prefix}/{tag_slug}/{method}-{path_slug}"
+            else:
+                url_path = f"{prefix}/endpoints/{method}-{path_slug}"
         elif element.element_type == "openapi_schema":
             url_path = f"{prefix}/schemas/{element.name}"
         else:
@@ -254,24 +254,32 @@ def create_pages(
         source_id = f"{url_path}.md"
         output_path = site.output_dir / f"{url_path}/index.html"
 
+        # Build metadata - add method/path for OpenAPI endpoints (sidebar badges)
+        page_metadata: dict[str, Any] = {
+            "type": page_type,
+            "qualified_name": element.qualified_name,
+            "element_type": element.element_type,
+            "description": element.description or f"Documentation for {element.name}",
+            "source_file": display_source_file,
+            "line_number": getattr(element, "line_number", None),
+            "is_autodoc": True,
+            "autodoc_element": element,
+            # Rendering metadata - used by RenderingPipeline to render with full context
+            "_autodoc_template": template_name,
+            "_autodoc_url_path": url_path,
+            "_autodoc_page_type": page_type,
+        }
+        if doc_type == "openapi" and element.element_type == "openapi_endpoint":
+            page_metadata["method"] = get_openapi_method(element)
+            page_metadata["path"] = get_openapi_path(element)
+        elif doc_type == "openapi" and element.element_type == "openapi_schema":
+            page_metadata["path"] = element.name
+
         # Create page with deferred rendering - HTML rendered in rendering phase
         page = Page.create_virtual(
             source_id=source_id,
             title=element.name,
-            metadata={
-                "type": page_type,
-                "qualified_name": element.qualified_name,
-                "element_type": element.element_type,
-                "description": element.description or f"Documentation for {element.name}",
-                "source_file": display_source_file,
-                "line_number": getattr(element, "line_number", None),
-                "is_autodoc": True,
-                "autodoc_element": element,
-                # Rendering metadata - used by RenderingPipeline to render with full context
-                "_autodoc_template": template_name,
-                "_autodoc_url_path": url_path,
-                "_autodoc_page_type": page_type,
-            },
+            metadata=page_metadata,
             rendered_html=None,  # Deferred - rendered in rendering phase with full context
             template_name=template_name,
             output_path=output_path,
@@ -437,10 +445,16 @@ def get_element_metadata(
             )
         elif element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
-            path = path_to_slug(get_openapi_path(element))
+            path_slug = path_to_slug(strip_path_params(get_openapi_path(element)))
+            tags = get_openapi_tags(element)
+            if tags:
+                tag_slug = slugify(tags[0])
+                url_path = f"{prefix}/{tag_slug}/{method}-{path_slug}"
+            else:
+                url_path = f"{prefix}/endpoints/{method}-{path_slug}"
             return (
                 "autodoc/openapi/endpoint",
-                f"{prefix}/endpoints/{method}-{path}",
+                url_path,
                 "autodoc-rest",
             )
     # Fallback - use python-reference for prose-constrained layout
