@@ -199,8 +199,6 @@ class Site(
     # Dynamic runtime attributes (set by various orchestrators)
     # Diagnostics sink for core-model events (set by BuildOrchestrator)
     diagnostics: DiagnosticsSink | None = field(default=None, repr=False, init=False)
-    # Menu metadata for dev server menu items (set by MenuOrchestrator)
-    _dev_menu_metadata: dict[str, Any] | None = field(default=None, repr=False, init=False)
     # Page lookup maps for efficient page resolution (set by template functions)
     _page_lookup_maps: dict[str, dict[str, Page]] | None = field(
         default=None, repr=False, init=False

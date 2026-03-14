@@ -57,6 +57,9 @@ dependencies = [
 # Pre-built Lunr search index (faster client-side search)
 search = ["lunr>=0.7.0"]
 
+# Dev server: robust fragment extraction (#id, .class, tag.class) for instant reload
+dev = ["beautifulsoup4>=4.12.0"]
+
 
 # Image processing (RFC: hugo-inspired-features)
 # Note: Pillow is already a core dependency for social cards

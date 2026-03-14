@@ -60,6 +60,7 @@ from typing import Any
 
 import yaml
 
+from bengal.core.output import OutputRecord
 from bengal.errors import ErrorCode, create_dev_error, get_dev_server_state
 from bengal.orchestration.stats import (
     ReloadHint,
@@ -1300,62 +1301,40 @@ class BuildTrigger:
             logger.info("reload_suppressed", reason="reload-hint-none")
             return
 
-        decision: ReloadDecision | None = None
-        decision_source = "none"
-
-        # Primary: typed outputs from build
+        # Build inputs for decide_reload
+        records: list[OutputRecord] = []
+        fallback_paths: list[str] = []
         if changed_outputs:
             from bengal.core.output import OutputType
 
-            records = []
             for rec in changed_outputs:
                 try:
                     if rec.phase in ("render", "asset", "postprocess"):
                         records.append(rec.to_output_record())
                 except ValueError, TypeError:
                     logger.debug("invalid_output_type", path=rec.path, type_val=rec.type_value)
-
-            if records:
-                decision = self._reload_controller.decide_from_outputs(
-                    records, reload_hint=reload_hint
-                )
-                decision_source = "typed-outputs"
-                logger.debug(
-                    "reload_from_typed_outputs",
-                    output_count=len(records),
-                    css_count=sum(1 for r in records if r.output_type == OutputType.CSS),
-                )
-            else:
-                # Fallback: Path-based decision (when type reconstruction fails)
-                paths = [rec.path for rec in changed_outputs]
-                decision = self._reload_controller.decide_from_changed_paths(paths)
-                decision_source = "fallback-paths"
+            if not records:
+                fallback_paths = [rec.path for rec in changed_outputs]
                 logger.debug(
                     "reload_decision_fallback",
                     reason="typed_output_reconstruction_failed",
                     output_count=len(changed_outputs),
                 )
-
-        # Fallback: If sources changed but no typed outputs were recorded, trigger full reload
-        # This handles cases where the output collector didn't receive records (e.g., subprocess
-        # serialization issues, early exit paths, or collector not being passed through).
-        if decision is None:
-            if changed_files:
-                # Sources changed, but no typed outputs - fall back to full reload
-                decision = ReloadDecision(
-                    action="reload", reason="source-change-no-outputs", changed_paths=()
-                )
-                decision_source = "fallback-source-change"
-                logger.debug(
-                    "reload_fallback_no_outputs",
-                    changed_files_count=len(changed_files),
-                    changed_files=changed_files[:5],
-                )
             else:
-                # No sources changed and no outputs - suppress reload
-                decision = ReloadDecision(action="none", reason="no-changes", changed_paths=())
-                decision_source = "no-changes"
-                logger.debug("reload_suppressed_no_changes")
+                logger.debug(
+                    "reload_from_typed_outputs",
+                    output_count=len(records),
+                    css_count=sum(1 for r in records if r.output_type == OutputType.CSS),
+                )
+
+        decision = self._reload_controller.decide_reload(
+            self.site.output_dir,
+            outputs=records if records else None,
+            changed_paths=fallback_paths if fallback_paths else None,
+            reload_hint=reload_hint,
+            source_changed_no_outputs=bool(changed_files) and not changed_outputs,
+        )
+        decision_source = self._reload_controller._last_decision_source
 
         # Content-hash filter: aggregate-only (sitemap, feeds) → no reload.
         # Skip when: (1) fallback-source-change, or (2) user edited source files.

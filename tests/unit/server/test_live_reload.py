@@ -76,6 +76,44 @@ class TestExtractMainContent:
         assert '<div class="inner">nested</div>' in result
         assert "nested" in result
 
+    def test_handles_html_comment_containing_id(self):
+        """ID in HTML comment does not confuse extraction (bs4 or regex)."""
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = '<!-- id="main-content" --><main id="main-content"><p>Real</p></main>'
+        result = extract_main_content(html)
+        assert "<p>Real</p>" in result
+
+    def test_handles_self_closing_tags_within_target(self):
+        """Self-closing tags (br, hr, img) inside target are preserved."""
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = '<div id="main-content"><p>Line1<br/>Line2</p><hr/><img src="x"/></div>'
+        result = extract_main_content(html)
+        assert "Line1" in result
+        assert "Line2" in result
+        assert "<br" in result or "<br/" in result
+        assert "<hr" in result or "<hr/" in result
+        assert "img" in result
+
+    def test_class_selector_when_bs4_available(self):
+        """Class selector works when beautifulsoup4 is installed."""
+        pytest.importorskip("bs4", reason="beautifulsoup4 for class selector test")
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = '<div class="main-content"><span>Class content</span></div>'
+        result = extract_main_content(html, selector=".main-content")
+        assert "<span>Class content</span>" in result
+
+    def test_tag_class_selector_when_bs4_available(self):
+        """tag.class selector works when beautifulsoup4 is installed."""
+        pytest.importorskip("bs4", reason="beautifulsoup4 for tag.class selector test")
+        from bengal.server.live_reload.fragment import extract_main_content
+
+        html = '<main class="content-area"><h1>Tag+class</h1></main>'
+        result = extract_main_content(html, selector="main.content-area")
+        assert "<h1>Tag+class</h1>" in result
+
 
 class TestLiveReloadScriptInjection:
     """Test HTML injection for live reload."""

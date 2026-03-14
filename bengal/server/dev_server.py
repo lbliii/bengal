@@ -512,14 +512,9 @@ class DevServer:
         # Initialize reload controller with post-build state
         self._init_reload_controller()
 
-        # RFC: Output Cache Architecture - Use content-hash detection for accurate change counts
-        if controller._use_content_hashes:
-            decision = controller.decide_with_content_hashes(self.site.output_dir)
-            # Report actual content changes, not regeneration noise
-            actual_changes = decision.meaningful_change_count
-        else:
-            decision = controller.decide_and_update(self.site.output_dir)
-            actual_changes = len(decision.changed_paths)
+        # RFC: Output Cache Architecture - Use decide_reload for unified fallback chain
+        decision = controller.decide_reload(self.site.output_dir)
+        actual_changes = len(decision.changed_paths)
 
         if decision.action != "none":
             logger.info(

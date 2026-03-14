@@ -66,10 +66,13 @@ from typing import TYPE_CHECKING
 
 from bengal.orchestration.stats import ReloadHint
 from bengal.server.utils import get_icons
+from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputRecord
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -233,6 +236,7 @@ class ReloadController:
         self._baseline_content_hashes: dict[str, str] = {}
         self._output_types: dict[str, str] = {}  # Store type name as string
         self._baseline_output_dir_mtime: float | None = None
+        self._last_decision_source: str = "none"
 
     # --- Runtime configuration setters ---
     def set_min_notify_interval_ms(self, value: int) -> None:
@@ -758,6 +762,64 @@ class ReloadController:
             )
 
         return decision
+
+    def decide_reload(
+        self,
+        output_dir: Path,
+        *,
+        outputs: list[OutputRecord] | None = None,
+        changed_paths: list[str] | None = None,
+        reload_hint: ReloadHint | None = None,
+        source_changed_no_outputs: bool = False,
+    ) -> ReloadDecision:
+        """Unified entry point with explicit fallback chain.
+
+        Fallback order: typed outputs → content-hash → changed paths → snapshot.
+        Logs which path was used at each step for observability.
+
+        Args:
+            output_dir: Path to output directory (e.g., public/)
+            outputs: Typed OutputRecord list from build (preferred)
+            changed_paths: Pre-computed changed paths when outputs unavailable
+            reload_hint: Advisory hint from build (ReloadHint.CSS_ONLY, FULL, NONE)
+            source_changed_no_outputs: When True and no outputs, return full reload
+                (handles build collector gaps)
+
+        Returns:
+            ReloadDecision with action, reason, and changed paths.
+        """
+        if source_changed_no_outputs and not outputs:
+            logger.debug("reload_decision_fallback", path="source-change-no-outputs")
+            self._last_decision_source = "fallback-source-change"
+            return ReloadDecision(
+                action="reload",
+                reason="source-change-no-outputs",
+                changed_paths=(),
+            )
+
+        if outputs:
+            logger.debug("reload_decision_path", path="typed-outputs")
+            self._last_decision_source = "typed-outputs"
+            return self.decide_from_outputs(outputs, reload_hint=reload_hint)
+
+        if self._use_content_hashes and self._baseline_content_hashes:
+            logger.debug("reload_decision_path", path="content-hash")
+            self._last_decision_source = "content-hash"
+            enhanced = self.decide_with_content_hashes(output_dir)
+            return ReloadDecision(
+                action=enhanced.action,
+                reason=enhanced.reason,
+                changed_paths=enhanced.changed_paths,
+            )
+
+        if changed_paths:
+            logger.debug("reload_decision_path", path="changed-paths")
+            self._last_decision_source = "fallback-paths"
+            return self.decide_from_changed_paths(changed_paths)
+
+        logger.debug("reload_decision_fallback", path="snapshot")
+        self._last_decision_source = "snapshot"
+        return self.decide_and_update(output_dir)
 
     def decide_from_outputs(
         self,

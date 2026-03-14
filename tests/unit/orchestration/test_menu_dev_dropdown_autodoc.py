@@ -26,7 +26,11 @@ def test_auto_menu_bundles_github_and_api_into_dev_dropdown() -> None:
     site.menu = {}
     site.menu_localized = {}
     site.pages = []
-    site._dev_menu_metadata = None
+    # Same dict for both: orchestrator writes exclude_sections, get_auto_nav reads it
+    dev_meta: dict = {}
+    site.build_state = MagicMock()
+    site.build_state.dev_menu_metadata = dev_meta
+    site._dev_menu_metadata = dev_meta
 
     # Section with explicit title - this title should be used in the menu
     api_section = Section.create_virtual(name="api", relative_url="/api/", title="API", metadata={})
@@ -57,7 +61,8 @@ def test_auto_menu_api_only_no_dev_dropdown() -> None:
     site.menu = {}
     site.menu_localized = {}
     site.pages = []
-    site._dev_menu_metadata = None
+    site.build_state = MagicMock()
+    site.build_state.dev_menu_metadata = {}
 
     # Section with explicit title
     api_section = Section.create_virtual(name="api", relative_url="/api/", title="API", metadata={})
@@ -93,7 +98,8 @@ def test_auto_menu_cli_only_no_dev_dropdown() -> None:
     site.menu = {}
     site.menu_localized = {}
     site.pages = []
-    site._dev_menu_metadata = None
+    site.build_state = MagicMock()
+    site.build_state.dev_menu_metadata = {}
 
     # Section with explicit title
     cli_section = Section.create_virtual(name="cli", relative_url="/cli/", title="CLI", metadata={})

@@ -2,6 +2,10 @@
 
 Extracts the inner HTML of a selector (e.g. #main-content) from rendered HTML
 for SSE-based content swap instead of full page reload.
+
+Uses BeautifulSoup with html.parser when bs4 is installed (supports #id,
+.class, tag.class). Falls back to regex-based extraction for #id only when
+bs4 is not available.
 """
 
 from __future__ import annotations
@@ -12,26 +16,35 @@ from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
+_BS4_AVAILABLE: bool | None = None
 
-def extract_main_content(html: str, selector: str = "#main-content") -> str:
-    """Extract inner HTML of the first element matching the selector.
 
-    Uses depth-tracking to handle nested same-tag elements correctly
-    (e.g. <div id="main-content"><div>inner</div></div>). Handles id
-    selectors (#main-content) and common tag+id patterns.
+def _has_bs4() -> bool:
+    """Check if BeautifulSoup is available (lazy, cached)."""
+    global _BS4_AVAILABLE
+    if _BS4_AVAILABLE is None:
+        try:
+            __import__("bs4")
+            _BS4_AVAILABLE = True
+        except ImportError:
+            _BS4_AVAILABLE = False
+    return _BS4_AVAILABLE
 
-    Args:
-        html: Full HTML document string
-        selector: CSS selector (default #main-content). Only id selectors
-            (#id) are supported; the id value is used to match.
 
-    Returns:
-        Inner HTML of the matched element, or empty string if not found.
-        Empty string triggers client fallback to full reload.
-    """
-    if not html or not selector.strip():
+def _extract_with_bs4(html: str, selector: str) -> str:
+    """Extract using BeautifulSoup (html.parser). Returns empty string on failure."""
+    from bs4 import BeautifulSoup
+
+    soup = BeautifulSoup(html, "html.parser")
+    elem = soup.select_one(selector)
+    if elem is None:
+        logger.debug("fragment_extraction_not_found", selector=selector)
         return ""
+    return elem.decode_contents().strip()
 
+
+def _extract_with_regex(html: str, selector: str) -> str:
+    """Regex-based extraction for #id selectors only. Fallback when bs4 unavailable."""
     id_match = re.search(r"#([a-zA-Z][\w-]*)", selector)
     if not id_match:
         logger.debug("fragment_extraction_unsupported_selector", selector=selector)
@@ -51,7 +64,6 @@ def extract_main_content(html: str, selector: str = "#main-content") -> str:
     tag_name = match.group(1)
     start = match.end()
 
-    # Depth-tracking: scan for <tagname and </tagname> to handle nesting
     depth = 1
     i = start
     open_pat = re.compile(rf"<\s*{re.escape(tag_name)}\b", re.IGNORECASE)
@@ -77,3 +89,27 @@ def extract_main_content(html: str, selector: str = "#main-content") -> str:
 
     logger.debug("fragment_extraction_unclosed_tag", selector=selector)
     return ""
+
+
+def extract_main_content(html: str, selector: str = "#main-content") -> str:
+    """Extract inner HTML of the first element matching the selector.
+
+    Uses BeautifulSoup (html.parser) when bs4 is installed, supporting #id,
+    .class, and tag.class selectors. Falls back to regex for #id only when
+    bs4 is not available.
+
+    Args:
+        html: Full HTML document string
+        selector: CSS selector (default #main-content). With bs4: #id, .class,
+            tag.class. With regex fallback: #id only.
+
+    Returns:
+        Inner HTML of the matched element, or empty string if not found.
+        Empty string triggers client fallback to full reload.
+    """
+    if not html or not selector.strip():
+        return ""
+
+    if _has_bs4():
+        return _extract_with_bs4(html, selector)
+    return _extract_with_regex(html, selector)
