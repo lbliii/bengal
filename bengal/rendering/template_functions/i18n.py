@@ -2,11 +2,16 @@
 Internationalization (i18n) template helpers.
 
 Provides:
-- t(key, params={}, lang=None): translate UI strings from i18n/<lang>.(yaml|json|toml)
+- t(key, params={}, lang=None): translate UI strings from gettext PO/MO or
+  i18n/<lang>.(yaml|json|toml) fallback
 - current_lang(): current language code inferred from page/site
 - languages(): configured languages list from config
 - alternate_links(page): list of {hreflang, href} for page translations
 - locale_date(date, format='medium'): localized date formatting (Babel if available)
+
+Translation sources (in order):
+1. gettext: i18n/{locale}/LC_MESSAGES/{domain}.mo or .po
+2. Data files: i18n/{lang}.yaml|.json|.toml (dotted keys)
 
 Architecture:
 Core functions (_make_t, _current_lang, _languages, etc.) are pure Python
@@ -20,6 +25,7 @@ from __future__ import annotations
 import threading
 from typing import TYPE_CHECKING, Any, TypedDict
 
+from bengal.i18n import load_catalog
 from bengal.utils.io.file_io import load_data_file
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
@@ -232,16 +238,29 @@ def _make_t(site: SiteLike) -> Callable[[str, dict[str, Any] | None, str | None,
             return default or ""
         i18n_cfg = site.config.get("i18n", {}) or {}
         default_lang = i18n_cfg.get("default_language", "en")
+        domain = i18n_cfg.get("gettext_domain", "messages")
         use_lang = lang or default_lang
-        # Primary language
+
+        # 1. Try gettext PO/MO (i18n/{locale}/LC_MESSAGES/{domain}.mo|.po)
+        catalog = load_catalog(site.root_path, use_lang, domain)
+        if catalog is not None:
+            value = catalog.gettext(key)
+            if value != key:
+                return format_params(value, params or {})
+            if i18n_cfg.get("fallback_to_default", True):
+                catalog_def = load_catalog(site.root_path, default_lang, domain)
+                if catalog_def is not None:
+                    value = catalog_def.gettext(key)
+                    if value != key:
+                        return format_params(value, params or {})
+
+        # 2. Fallback to YAML/JSON/TOML (i18n/{lang}.yaml etc.)
         data = load_lang(use_lang)
         value = resolve_key(data, key)
         if value is None and i18n_cfg.get("fallback_to_default", True):
-            # Fallback to default
             data_def = load_lang(default_lang)
             value = resolve_key(data_def, key)
         if value is None:
-            # Use provided default, or log and return key
             if default is not None:
                 value = default
             else:

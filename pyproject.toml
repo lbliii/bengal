@@ -50,6 +50,7 @@ dependencies = [
     "httpx>=0.27.0",                           # Async HTTP client for link checking
     "uvloop>=0.21.0; sys_platform != 'win32'", # Rust-based event loop (Linux/macOS)
     "packaging>=23.0",                         # Version parsing for upgrade checks
+    "polib>=1.2.0",                            # PO/MO gettext file handling for i18n
 ]
 
 [project.optional-dependencies]
@@ -238,6 +239,7 @@ test = { cmd = "pytest", help = "Run full test suite" }
 test-unit = { cmd = "pytest tests/unit/ -x -q", help = "Run unit tests only (fast)" }
 test-integration = { cmd = "pytest tests/integration/ -x -q --timeout=30", help = "Run integration tests" }
 test-e2e = { cmd = "pytest tests/e2e/ -v -m e2e --tb=short -n 0", help = "Run E2E tests (build + validate)" }
+test-commonmark = { cmd = "pytest ../patitas/tests/test_commonmark_spec.py -v -m commonmark -q", help = "Run CommonMark 0.31 spec suite (Patitas, requires workspace)" }
 test-fast = { cmd = "pytest tests/ -x -q --ignore=tests/e2e --ignore=tests/integration", help = "Fast feedback loop (unit only)" }
 test-cov = { cmd = "pytest tests/ --cov=bengal --cov-report=term-missing", help = "Run tests with coverage" }
 test-parallel = { cmd = "pytest tests/ -n auto -x -q", help = "Run tests in parallel (pytest-xdist)" }
