@@ -13,11 +13,12 @@ Bengal supports several extension mechanisms:
 
 | Extension Type | Use Case | Difficulty |
 |----------------|----------|------------|
+| [Extension Guide](extension-guide/) | Walkthrough for shortcodes, filters, and directives | Start here |
+| [Template Shortcodes](shortcodes/) | Add template-only embeds without Python | Easy |
+| [Custom Directives](custom-directives/) | Create new MyST directive blocks | Advanced |
 | [Build Hooks](build-hooks/) | Run external tools (Tailwind, esbuild) before/after builds | Easy |
 | [Theme Customization](theme-customization/) | Override templates and CSS | Easy |
 | [Content Collections](collections/) | Type-safe frontmatter with schema validation | Moderate |
-| [Template Shortcodes](shortcodes/) | Add template-only embeds without Python | Easy |
-| [Custom Directives](custom-directives/) | Create new MyST directive blocks | Advanced |
 | [Custom Content Sources](custom-sources/) | Fetch content from APIs, databases, or remote services | Advanced |
 
 ## Architecture Overview
@@ -106,26 +107,26 @@ collections = {
 
 ### Custom Directives
 
-Create new directive blocks by subclassing `BengalDirective`:
+Create new directive blocks by implementing the `DirectiveHandler` protocol:
 
 ```python
-from bengal.directives import BengalDirective, DirectiveToken
+from bengal.directives import DirectiveHandler
+from patitas.nodes import Directive
 
-class AlertDirective(BengalDirective):
-    NAMES = ["alert"]
-    TOKEN_TYPE = "alert"
+class AlertDirective:
+    names = ("alert",)
+    token_type = "alert"
 
-    def parse_directive(self, title, options, content, children, state):
-        return DirectiveToken(
-            type=self.TOKEN_TYPE,
-            attrs={"level": title or "info"},
-            children=children,
-        )
+    def parse(self, name, title, options, content, children, location):
+        return Directive(location=location, name=name, title=title,
+                        options={"level": title or "info"}, children=tuple(children))
 
-    def render(self, renderer, text, **attrs):
-        level = attrs.get("level", "info")
-        return f'<div class="alert alert-{level}">{text}</div>'
+    def render(self, node, rendered_children, sb):
+        level = node.options.get("level", "info")
+        sb.append(f'<div class="alert alert-{level}">{rendered_children}</div>')
 ```
+
+See [Extension Guide](extension-guide/) for the full walkthrough.
 
 ## When to Extend
 

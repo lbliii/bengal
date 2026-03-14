@@ -176,8 +176,21 @@ The default theme ships with these shortcodes. Override any by placing a templat
 
 ## Strict Mode
 
-Set `shortcodes.strict: true` in `bengal.yaml` to fail the build when:
+Configure in `bengal.toml`:
 
+```toml
+[shortcodes]
+strict = true
+```
+
+Or in `config/_default/site.yaml`:
+
+```yaml
+shortcodes:
+  strict: true
+```
+
+When enabled, the build fails when:
 - An unknown shortcode is used (no template found)
 - A shortcode template fails to render
 
