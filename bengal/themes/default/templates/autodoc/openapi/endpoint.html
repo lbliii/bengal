@@ -19,22 +19,23 @@ Kida Features:
 - {% cache %} for expensive response rendering
 - Optional chaining (?.) and null coalescing (??)
 #}
-{% extends 'autodoc/openapi/layouts/reference.html' %}
+{% extends 'autodoc/openapi/layouts/explorer.html' %}
 
 {% from 'autodoc/openapi/_components.html' import playground_bar, param_groups_section %}
 
-{% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
-{% let parameters = meta?.parameters ?? () %}
-{% let request_body = meta?.request_body %}
-{% let responses = meta?.responses ?? () %}
-{% let security = meta?.security | default([], true) %}
-
 {% block header %}
+{% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
 {{ playground_bar(meta?.method ?? 'GET', meta?.path ?? '/', deprecated=meta?.deprecated ?? false) }}
 {% include 'autodoc/openapi/partials/endpoint-header.html' %}
 {% end %}
 
 {% block content_main %}
+{% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
+{% let parameters = meta?.parameters ?? () %}
+{% let request_body = meta?.request_body %}
+{% let responses = meta?.responses ?? () %}
+{% let security = meta?.security ?? [] %}
+
 <div class="api-endpoint" data-autodoc="openapi" data-element="endpoint">
 
     {% if parameters | length > 0 %}
@@ -74,7 +75,8 @@ Kida Features:
 {% end %}
 
 {% block code_examples %}
-{# Code Samples Panel #}
+{% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
+{% let responses = meta?.responses ?? () %}
 {% let method = meta?.method ?? 'GET' %}
 {% let path = meta?.path ?? '/' %}
 {% let response_example = get_response_example(responses, '200') %}
