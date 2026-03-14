@@ -29,6 +29,7 @@ import threading
 from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
+from bengal.config.utils import coerce_int
 from bengal.protocols import SiteLike
 from bengal.utils.observability.logger import get_logger
 
@@ -552,7 +553,7 @@ class Renderer:
         page_metadata = page.metadata if page.metadata is not None else {}
         subsections = page_metadata.get("_subsections", [])
         paginator = page_metadata.get("_paginator")
-        page_num = int(page_metadata.get("_page_num") or 1)
+        page_num = coerce_int(page_metadata.get("_page_num"), 1)
 
         if paginator:
             posts = paginator.page(page_num)
@@ -580,10 +581,7 @@ class Renderer:
         safe_pagination = dict(pagination)
         for key in ("current_page", "total_pages"):
             if key in safe_pagination and safe_pagination[key] is not None:
-                try:
-                    safe_pagination[key] = int(safe_pagination[key])
-                except ValueError, TypeError:
-                    safe_pagination[key] = 1
+                safe_pagination[key] = coerce_int(safe_pagination[key], 1)
 
         context.update(
             {
@@ -600,7 +598,7 @@ class Renderer:
         """Add context for an individual tag page."""
         tag_name = page.metadata.get("_tag")
         tag_slug = page.metadata.get("_tag_slug")
-        page_num = int(page.metadata.get("_page_num") or 1)
+        page_num = coerce_int(page.metadata.get("_page_num"), 1)
 
         # PERF: Use cached resolved tag pages instead of filtering on each render.
         # Cache is built once per Renderer instance and reused across all tag page renders.
@@ -710,10 +708,7 @@ class Renderer:
         safe_pagination = dict(pagination)
         for key in ("current_page", "total_pages"):
             if key in safe_pagination and safe_pagination[key] is not None:
-                try:
-                    safe_pagination[key] = int(safe_pagination[key])
-                except ValueError, TypeError:
-                    safe_pagination[key] = 1
+                safe_pagination[key] = coerce_int(safe_pagination[key], 1)
 
         context.update(
             {

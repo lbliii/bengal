@@ -67,13 +67,12 @@ class ShortcodeParams:
 
     def get_int(self, key: str | int, default: int = 0) -> int:
         """Get argument as int (Hugo scalar support)."""
+        from bengal.config.utils import coerce_int
+
         raw = self.get(key, "")
         if not raw:
             return default
-        try:
-            return int(float(raw))
-        except ValueError, TypeError:
-            return default
+        return coerce_int(raw, default)
 
     def get_bool(self, key: str | int, default: bool = False) -> bool:
         """Get argument as bool (Hugo: true/false, 1/0)."""

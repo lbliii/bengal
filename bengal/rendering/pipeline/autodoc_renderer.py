@@ -21,6 +21,7 @@ from kida.environment.exceptions import (
     TemplateSyntaxError,
 )
 
+from bengal.autodoc.config import get_autodoc_output_prefix
 from bengal.protocols import SiteConfig, SiteLike
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
@@ -439,18 +440,18 @@ class AutodocRenderer:
 
             # Get prefixes from config with safe defaults
             if doc_type == "python":
-                prefix = autodoc_config.get("python", {}).get("output_prefix", "api")
+                prefix = get_autodoc_output_prefix(autodoc_config, "python")
                 url_path = f"{prefix}/{qualified_name.replace('.', '/')}"
                 return f"/{url_path}/"
             elif doc_type == "cli":
-                prefix = autodoc_config.get("cli", {}).get("output_prefix", "cli")
+                prefix = get_autodoc_output_prefix(autodoc_config, "cli")
                 from bengal.autodoc.utils import resolve_cli_url_path
 
                 cli_path = resolve_cli_url_path(qualified_name)
                 url_path = f"{prefix}/{cli_path}" if cli_path else prefix
                 return f"/{url_path}/"
             elif doc_type == "openapi":
-                prefix = autodoc_config.get("openapi", {}).get("output_prefix", "api")
+                prefix = get_autodoc_output_prefix(autodoc_config, "openapi")
                 if element_type == "openapi_endpoint":
                     from bengal.autodoc.utils import get_openapi_method, get_openapi_path
 
@@ -464,14 +465,14 @@ class AutodocRenderer:
 
             # Fallback: infer from element_type
             if element_type in ["command", "command-group"]:
-                prefix = autodoc_config.get("cli", {}).get("output_prefix", "cli")
+                prefix = get_autodoc_output_prefix(autodoc_config, "cli")
                 from bengal.autodoc.utils import resolve_cli_url_path
 
                 cli_path = resolve_cli_url_path(qualified_name)
                 url_path = f"{prefix}/{cli_path}" if cli_path else prefix
                 return f"/{url_path}/"
             elif element_type in ["class", "function", "method", "module"]:
-                prefix = autodoc_config.get("python", {}).get("output_prefix", "api")
+                prefix = get_autodoc_output_prefix(autodoc_config, "python")
                 url_path = f"{prefix}/{qualified_name.replace('.', '/')}"
                 return f"/{url_path}/"
 

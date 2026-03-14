@@ -312,6 +312,43 @@ def get_cli_config(config: dict[str, Any]) -> dict[str, Any]:
     return config.get("cli", {})
 
 
+# Default output prefixes per autodoc domain
+_OUTPUT_PREFIX_DEFAULTS: dict[str, str] = {
+    "python": "api",
+    "openapi": "api",
+    "cli": "cli",
+}
+
+
+def get_autodoc_section(config: dict[str, Any], section: str) -> dict[str, Any]:
+    """
+    Get autodoc section config (python, openapi, cli).
+
+    Args:
+        config: Full autodoc configuration dict
+        section: Section name ("python", "openapi", or "cli")
+
+    Returns:
+        Section config dict (empty if not present)
+    """
+    return config.get(section, {})
+
+
+def get_autodoc_output_prefix(config: dict[str, Any], domain: str) -> str:
+    """
+    Get output_prefix for an autodoc domain with safe default.
+
+    Args:
+        config: Full autodoc configuration dict
+        domain: Domain name ("python", "openapi", or "cli")
+
+    Returns:
+        output_prefix string (e.g., "api", "cli")
+    """
+    section = get_autodoc_section(config, domain)
+    return section.get("output_prefix", "") or _OUTPUT_PREFIX_DEFAULTS.get(domain, "api")
+
+
 def get_grouping_config(config: dict[str, Any]) -> dict[str, Any]:
     """
     Get grouping configuration from Python autodoc config.

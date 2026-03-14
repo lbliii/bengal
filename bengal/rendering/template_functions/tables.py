@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any
 from jinja2 import pass_environment  # type: ignore[attr-defined]
 from kida import Markup
 
+from bengal.config.utils import coerce_int
 from bengal.errors import ErrorCode
 from bengal.protocols import SiteConfig
 from bengal.utils.io.file_io import load_data_file
@@ -150,12 +151,11 @@ def _parse_pagination(value: str | bool | int) -> int | bool:
     if str(value).lower() in ("false", "0", "no", "off"):
         return False
 
-    try:
-        page_size = int(value)
-        return max(0, page_size)
-    except ValueError:
+    page_size = coerce_int(value, 50)
+    if page_size < 0:
         logger.warning("data_table_invalid_pagination", value=value)
         return 50
+    return page_size
 
 
 def _parse_columns(value: str) -> list[str] | None:
