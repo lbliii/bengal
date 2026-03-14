@@ -248,6 +248,11 @@ class AutodocRenderer:
         if section and hasattr(section, "root"):
             api_root_section = section.root
 
+        # OpenAPI-specific context (base_url, interactive, auth) for endpoint pages
+        openapi_context = self._build_openapi_context(
+            template_name, api_root_section, page.metadata
+        )
+
         try:
             # NOTE: We intentionally do NOT pass site= here. The template environment
             # already has site=SiteContext(site) as a global (set in environment.py).
@@ -259,6 +264,7 @@ class AutodocRenderer:
                 section=section,  # Pass section explicitly for section index pages
                 api_root_section=api_root_section,
                 config=self._normalize_config(self.site.config),
+                **openapi_context,
                 toc_items=getattr(page, "toc_items", []) or [],
                 toc=getattr(page, "toc", "") or "",
                 # Versioning context - autodoc pages are not versioned
@@ -318,6 +324,46 @@ class AutodocRenderer:
         page._toc_items_cache = []  # Set private cache, not read-only property
         page.rendered_html = html_content
         page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
+
+    def _build_openapi_context(
+        self,
+        template_name: str,
+        api_root_section: Any,
+        page_metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Build OpenAPI-specific template context (base_url, interactive, auth_config).
+
+        Used for endpoint and schema pages when autodoc.openapi is configured.
+        """
+        if not template_name.startswith("autodoc/openapi"):
+            return {}
+
+        autodoc_config = self.site.config.get("autodoc", {})
+        openapi_config = autodoc_config.get("openapi", {})
+        interactive = openapi_config.get("interactive", False)
+        auth_config = openapi_config.get("auth", {})
+
+        # Resolve base_url: config override > first server from spec > default
+        base_url = openapi_config.get("server_url", "").strip()
+        if not base_url and api_root_section:
+            metadata = getattr(api_root_section, "metadata", None)
+            servers = metadata.get("servers", ()) if isinstance(metadata, dict) else ()
+            if servers:
+                first = servers[0] if servers else None
+                if isinstance(first, dict):
+                    base_url = first.get("url", "")
+                elif isinstance(first, str):
+                    base_url = first
+                else:
+                    base_url = getattr(first, "url", "") or ""
+        if not base_url:
+            base_url = "https://api.example.com"
+
+        return {
+            "base_url": base_url.rstrip("/"),
+            "interactive": bool(interactive),
+            "auth_config": auth_config,
+        }
 
     def _load_autodoc_template(self, template_name: str) -> Template:
         """Load autodoc template with proper error handling.

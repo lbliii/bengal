@@ -4,6 +4,7 @@ from pathlib import Path
 
 from bengal.core.site import Site
 from bengal.rendering.template_engine import TemplateEngine
+from bengal.rendering.template_functions.i18n import _direction
 
 
 def _write_i18n(tmp_path: Path, lang: str, content: str) -> None:
@@ -40,6 +41,41 @@ def test_t_and_current_lang_from_context(tmp_path: Path) -> None:
         {"page": P(), "site": site},
     )
     assert "Bonjour Alice" in html
+
+
+def test_direction_rtl_for_arabic(tmp_path: Path) -> None:
+    """direction() returns 'rtl' for Arabic locale."""
+    config = {"i18n": {"default_language": "en", "languages": [{"code": "en"}, {"code": "ar"}]}}
+    site = Site(root_path=tmp_path, config=config)
+
+    class ArPage:
+        lang = "ar"
+
+    assert _direction(site, ArPage()) == "rtl"
+    assert _direction(site, None) == "ltr"  # no page -> default
+
+
+def test_direction_ltr_for_english(tmp_path: Path) -> None:
+    """direction() returns 'ltr' for English locale."""
+    config = {"i18n": {"default_language": "en", "languages": [{"code": "en"}]}}
+    site = Site(root_path=tmp_path, config=config)
+    assert _direction(site, None) == "ltr"
+
+
+def test_direction_config_override(tmp_path: Path) -> None:
+    """direction() respects i18n.languages[].rtl config override."""
+    config = {
+        "i18n": {
+            "default_language": "en",
+            "languages": [{"code": "en"}, {"code": "xx", "rtl": True}],
+        }
+    }
+    site = Site(root_path=tmp_path, config=config)
+
+    class XxPage:
+        lang = "xx"
+
+    assert _direction(site, XxPage()) == "rtl"
 
 
 def test_alternate_links(tmp_path: Path) -> None:

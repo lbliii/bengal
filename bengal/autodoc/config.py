@@ -123,6 +123,10 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
             "display_name": "",  # Custom display name for nav/h1 (default: "REST API Reference")
             "spec_file": "api/openapi.yaml",  # Default spec file location
             # output_dir removed - virtual pages always output to site.output_dir (public/)
+            # Interactive API Explorer (Phase 2C)
+            "interactive": False,  # Opt-in: "Try it" panel with request builder + response viewer
+            "server_url": "",  # Override: base URL for requests (empty = use first server from spec)
+            "auth": {},  # Auth config: api_key, bearer, oauth2 (see docs)
         },
         "cli": {
             "enabled": False,  # Disabled by default - enable in config

@@ -225,7 +225,7 @@ This is a warning message.
 
 ### Registration
 
-Custom directives must be registered in the directive registry. Currently this requires modifying the Bengal codebase or using a fork. Add your handler in `bengal/parsing/backends/patitas/directives/registry.py` inside `create_default_registry()`:
+Custom directives must be registered in the directive registry. Add your handler in `bengal/parsing/backends/patitas/directives/registry.py` inside `create_default_registry()`:
 
 ```python
 from your_module import AlertDirective
@@ -234,7 +234,7 @@ builder.register(AlertDirective())
 ```
 
 :::{note}
-A plugin system for external directive registration is on the roadmap. Until then, custom directives require a fork or patch.
+A plugin system for external directive registration is on the roadmap. Until then, custom directives require modifying the Bengal codebase or using a fork.
 :::
 
 ### Typed Options
@@ -287,7 +287,7 @@ See [Custom Directives](/docs/extending/custom-directives/) for the full referen
 |-----------|----------|--------------|
 | Shortcode | `templates/shortcodes/<name>.html` | None (auto-discovered) |
 | Filter | Custom engine or `env.filters["name"] = func` | `register_engine` or build script |
-| Directive | Python class | `create_default_registry()` (codebase) |
+| Directive | Python class implementing `DirectiveHandler` | `create_default_registry()` (codebase) |
 
 ## Related
 
@@ -295,3 +295,5 @@ See [Custom Directives](/docs/extending/custom-directives/) for the full referen
 - [Add a Custom Filter](/docs/theming/templating/kida/add-custom-filter/) — Filter details and programmatic build
 - [Custom Directives](/docs/extending/custom-directives/) — Directive protocol, options, testing
 - [Extension Points](/docs/reference/architecture/meta/extension-points/) — All extension mechanisms
+- [Config Reference](/docs/reference/architecture/tooling/config-reference/) — Auto-generated config options
+- [Template Functions Reference](/docs/reference/template-functions/reference-generated/) — Auto-generated filters and functions

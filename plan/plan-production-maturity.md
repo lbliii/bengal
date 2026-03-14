@@ -34,18 +34,18 @@
 ### 0A. E2E Test Framework
 
 **Lifts:** J1, J3, J6, J9, J10, J12, J13
-**Gap:** `tests/e2e` referenced in pytest config but doesn't exist
+**Status:** `tests/e2e/` exists with conftest, smoke, baseurl, taxonomy, versioned tests (11 scenarios). CI job in `tests.yml`.
 
-| Work Item | Detail |
-|-----------|--------|
-| Create `tests/e2e/` directory and conftest | Fixture that runs `bengal build` on a root, then inspects output HTML/assets as a real user would |
-| Smoke E2E: build + validate + check links | Covers the golden path across build, health, and output |
-| Dev server E2E: serve → modify → verify reload | Starts dev server, writes a file, confirms SSE reload fires and output updates |
-| Versioned build E2E | Builds multi-version site, verifies all version paths resolve |
-| i18n E2E | Builds multi-language site, verifies per-locale outputs and hreflang |
-| CI integration | Add `e2e` job to `tests.yml`, run on every PR |
+| Work Item | Detail | Status |
+|-----------|--------|--------|
+| Create `tests/e2e/` directory and conftest | Fixture that runs `bengal build` on a root, then inspects output HTML/assets as a real user would | ✓ Done |
+| Smoke E2E: build + validate + check links | Covers the golden path across build, health, and output | ✓ Done |
+| Dev server E2E: serve → modify → verify reload | Starts dev server, writes a file, confirms output updates after rebuild | ✓ Done |
+| Versioned build E2E | Builds multi-version site, verifies all version paths resolve | ✓ Done |
+| i18n E2E | Builds multi-language site, verifies per-locale outputs and hreflang | ✓ Done |
+| CI integration | Add `e2e` job to `tests.yml`, run on every PR | ✓ Done |
 
-**Exit criteria:** `pytest tests/e2e/ -m e2e` passes with 10+ scenarios covering all 13 journeys.
+**Exit criteria:** `pytest tests/e2e/ -m e2e` passes with 10+ scenarios covering all 13 journeys. **Current:** 11 scenarios pass.
 
 ### 0B. Documentation-Code Alignment
 
@@ -54,10 +54,10 @@
 
 | Work Item | Detail |
 |-----------|--------|
-| Fix directive naming mismatch | Docs say `BengalDirective`, code says `DirectiveHandler` — unify to one name |
-| Auto-generate config reference | Script that reads `DEFAULTS` dict and writes config docs |
-| Auto-generate template function reference | Script that reads `register_all()` registrations and writes filter/function docs |
-| Extension guide rewrite | Accurate walkthrough for custom directives, filters, and shortcodes with working examples |
+| Fix directive naming mismatch | Docs say `BengalDirective`, code says `DirectiveHandler` — unify to one name | ✓ Resolved: `BengalDirective = DirectiveHandler` alias in `bengal.directives`; docs use both |
+| Auto-generate config reference | Script that reads `DEFAULTS` dict and writes config docs | ✓ Done: `scripts/generate_config_reference.py`, `poe gen-docs` |
+| Auto-generate template function reference | Script that reads `register_all()` registrations and writes filter/function docs | ✓ Done: `scripts/generate_template_functions_reference.py`, `poe gen-docs` |
+| Extension guide rewrite | Accurate walkthrough for custom directives, filters, and shortcodes with working examples | ✓ Done |
 
 **Exit criteria:** Zero naming mismatches between docs and code. Config reference and template function reference auto-generated on each build.
 

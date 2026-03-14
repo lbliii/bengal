@@ -25,7 +25,7 @@ Kida Features:
 
 {% block header %}
 {% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
-{{ playground_bar(meta?.method ?? 'GET', meta?.path ?? '/', deprecated=meta?.deprecated ?? false) }}
+{{ playground_bar(meta?.method ?? 'GET', meta?.path ?? '/', deprecated=meta?.deprecated ?? false, base_url=base_url ?? '') }}
 {% include 'autodoc/openapi/partials/endpoint-header.html' %}
 {% end %}
 
@@ -80,5 +80,8 @@ Kida Features:
 {% let method = meta?.method ?? 'GET' %}
 {% let path = meta?.path ?? '/' %}
 {% let response_example = get_response_example(responses, '200') %}
+{% if interactive %}
+{% include 'autodoc/openapi/partials/try-it-panel.html' %}
+{% end %}
 {% include 'autodoc/openapi/partials/code-samples.html' %}
 {% end %}

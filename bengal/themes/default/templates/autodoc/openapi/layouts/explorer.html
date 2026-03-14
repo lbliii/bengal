@@ -85,4 +85,9 @@ Kida Features:
   {{ icon('list', size=20) }}
 </button>
 <div class="docs-sidebar-overlay" aria-hidden="true"></div>
+
+{% block extra_js %}
+{{ super() }}
+<script defer src="{{ asset_url('js/enhancements/api-explorer.js') }}"></script>
+{% end %}
 {% end %}

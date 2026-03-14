@@ -402,10 +402,11 @@ Use these in templates for language switching:
 - `languages()` - Get list of configured languages
 - `alternate_links(page)` - Generate hreflang tags for SEO (takes optional page parameter)
 
-### Limitations
+### UI Translations
 
-- UI translation (strings) requires separate i18n YAML files
-- See [[docs/content/i18n|i18n documentation]] for full details
+- Use gettext PO/MO files: `i18n/{locale}/LC_MESSAGES/messages.po`
+- Or YAML fallback: `i18n/{lang}.yaml`
+- See [[docs/content/i18n|i18n documentation]] for PO setup, RTL, and translator workflow
 
 ---
 
