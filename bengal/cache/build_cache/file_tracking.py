@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.cache.build_cache.fingerprint import FileFingerprint
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
@@ -259,14 +260,17 @@ class FileTrackingMixin:
 
         This enables cleanup of output files when source files are deleted.
 
+        Key contract: rel_output is normalized via to_posix() for cross-platform
+        cache portability (Windows would otherwise produce backslash keys).
+
         Args:
             source_path: Path to source file (e.g., content/blog/post.md)
             output_path: Absolute path to output file (e.g., /path/to/public/blog/post/index.html)
             output_dir: Site output directory (e.g., /path/to/public)
         """
-        # Store as relative path from output_dir for portability
+        # Store as relative path from output_dir for portability (POSIX for cache keys)
         try:
-            rel_output = str(output_path.relative_to(output_dir))
+            rel_output = to_posix(output_path.relative_to(output_dir))
             self.output_sources[rel_output] = self._cache_key(source_path)
         except ValueError:
             # output_path not relative to output_dir, skip

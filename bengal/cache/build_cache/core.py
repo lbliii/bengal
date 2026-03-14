@@ -105,6 +105,9 @@ class BuildCache(
     # Site root for canonical path key normalization (not serialized, set by CacheManager)
     site_root: Path | None = field(default=None, repr=False)
 
+    # Set when load failed and fresh cache was returned (observability for cache-unusable)
+    _recovered_from_error: bool = field(default=False, repr=False)
+
     # file_fingerprints for fast mtime+size change detection
     # Structure: {CacheKey(path): {mtime: float, size: int, hash: str | None}}
     # Use get_file_fingerprint/set_file_fingerprint or _cache_key for lookups
@@ -242,7 +245,9 @@ class BuildCache(
                 action="using_fresh_cache",
                 error_code=ErrorCode.A003.value,  # cache_read_error
             )
-            return cls()
+            cache = cls()
+            cache._recovered_from_error = True
+            return cache
 
     @classmethod
     def _load_from_file(cls, cache_path: Path) -> BuildCache:

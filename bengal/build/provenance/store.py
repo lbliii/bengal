@@ -28,6 +28,9 @@ from bengal.build.provenance.types import (
 from bengal.utils.io.json_compat import JSONDecodeError
 from bengal.utils.io.json_compat import dump as json_dump
 from bengal.utils.io.json_compat import load as json_load
+from bengal.utils.observability.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -105,7 +108,15 @@ class ProvenanceCache:
                     input_paths[CacheKey(k)] = list(v) if isinstance(v, list) else []
             last_build = data.get("last_build_time")
             return (pages, input_paths, last_build)
-        except FileNotFoundError, JSONDecodeError, KeyError:
+        except FileNotFoundError:
+            return ({}, {}, None)
+        except (JSONDecodeError, KeyError) as e:
+            logger.warning(
+                "provenance_index_load_failed",
+                path=str(index_path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return ({}, {}, None)
 
     def _load_subvenance_data(self) -> dict[ContentHash, set[CacheKey]]:
@@ -114,7 +125,15 @@ class ProvenanceCache:
         try:
             data = json_load(subvenance_path)
             return {ContentHash(k): set(v) for k, v in data.items()}
-        except FileNotFoundError, JSONDecodeError, KeyError:
+        except FileNotFoundError:
+            return {}
+        except (JSONDecodeError, KeyError) as e:
+            logger.warning(
+                "provenance_subvenance_load_failed",
+                path=str(subvenance_path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return {}
 
     def _get_record(self, combined_hash: ContentHash) -> ProvenanceRecord | None:
@@ -130,7 +149,16 @@ class ProvenanceCache:
             record = ProvenanceRecord.from_dict(data)
             self._records[combined_hash] = record
             return record
-        except FileNotFoundError, JSONDecodeError, KeyError:
+        except FileNotFoundError:
+            return None
+        except (JSONDecodeError, KeyError) as e:
+            logger.warning(
+                "provenance_record_load_failed",
+                path=str(record_path),
+                hash=str(combined_hash),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return None
 
     def get(self, page_path: CacheKey) -> ProvenanceRecord | None:

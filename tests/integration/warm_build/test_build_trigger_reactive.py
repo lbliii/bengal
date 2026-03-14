@@ -160,6 +160,85 @@ Updated body for fragment test.
         assert "Updated body for fragment test" in call_kwargs[0][1]  # html
         assert call_kwargs[0][2] == "/"  # permalink for _index.md
 
+    @patch("bengal.server.build_trigger.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.show_building_indicator")
+    @patch("bengal.server.build_trigger.CLIOutput")
+    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_fragment_payload")
+    def test_reactive_path_uses_fallback_selector_when_primary_misses(
+        self,
+        mock_send_fragment: MagicMock,
+        mock_controller: MagicMock,
+        mock_display: MagicMock,
+        mock_cli: MagicMock,
+        mock_building: MagicMock,
+        mock_post_hooks: MagicMock,
+        mock_pre_hooks: MagicMock,
+        warm_build_site: WarmBuildTestSite,
+        mock_executor: MagicMock,
+    ) -> None:
+        """When primary selector misses, fallback chain uses effective selector for payload.
+
+        HTML has .main-content but not #main-content; content_selector is #missing.
+        Fallback finds .main-content, so send_fragment_payload receives selector=.main-content.
+        """
+        pytest.importorskip("bs4", reason="beautifulsoup4 for .main-content fallback")
+        mock_pre_hooks.return_value = True
+        mock_post_hooks.return_value = True
+
+        site = warm_build_site.site
+        site.config["dev"] = {"content_selector": "#missing"}
+        content_path = warm_build_site.site_dir / "content" / "_index.md"
+        warm_build_site.full_build()
+        warm_build_site.modify_file(
+            "content/_index.md",
+            """---
+title: Home
+---
+
+# Welcome
+
+Fallback selector test body.
+""",
+        )
+
+        from pathlib import Path
+
+        from bengal.server.reactive import ReactiveContentHandler, ReactiveResult
+
+        # HTML with .main-content only (no #main-content) to trigger fallback
+        fallback_html = """<!DOCTYPE html>
+<html><head></head><body>
+<div class="main-content"><h1>Welcome</h1><p>Fallback selector test body.</p></div>
+</body></html>"""
+        output_path = site.output_dir / "index.html"
+
+        def mock_handle(path: Path) -> ReactiveResult:
+            return ReactiveResult(
+                output_path=output_path,
+                rendered_html=fallback_html,
+            )
+
+        with (
+            patch.object(site, "build", wraps=site.build),
+            patch.object(
+                ReactiveContentHandler,
+                "handle_content_change",
+                side_effect=mock_handle,
+            ),
+        ):
+            trigger = BuildTrigger(site=site, executor=mock_executor)
+            trigger.trigger_build(
+                changed_paths={content_path},
+                event_types={"modified"},
+            )
+
+        mock_send_fragment.assert_called_once()
+        assert mock_send_fragment.call_args[0][0] == ".main-content"
+        assert "Fallback selector test body" in mock_send_fragment.call_args[0][1]
+
 
 class TestReactiveContentHandlerIntegration:
     """Integration tests for ReactiveContentHandler writing output to disk."""

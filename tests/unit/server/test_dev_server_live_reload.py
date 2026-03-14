@@ -154,3 +154,38 @@ class TestDevServerServeFirstWatcherOrder:
             assert validation_called, "Validation should have run"
             mock_watcher.start.assert_called_once()
             mock_build_trigger.seed_content_hash_cache.assert_called_once()
+
+
+class TestDevServerContentHashStartupValidation:
+    """RFC: reload-controller-dual-path §5.3 — warn when content_hash_in_html=False."""
+
+    @pytest.mark.bengal(testroot="test-basic")
+    def test_init_reload_controller_warns_when_content_hash_in_html_disabled(
+        self, site, build_site
+    ) -> None:
+        """_init_reload_controller warns when use_content_hashes=True and content_hash_in_html=False."""
+        build_site(incremental=True)
+        site.config["build"] = {"content_hash_in_html": False}
+
+        with patch("bengal.server.dev_server.logger") as mock_logger:
+            server = DevServer(site, watch=False, auto_port=False)
+            server._init_reload_controller()
+
+            mock_logger.warning.assert_called()
+            msg_calls = [c[0][0] if c[0] else "" for c in mock_logger.warning.call_args_list]
+            assert "content_hash_disabled" in msg_calls
+
+    @pytest.mark.bengal(testroot="test-basic")
+    def test_init_reload_controller_no_warning_when_content_hash_in_html_true(
+        self, site, build_site
+    ) -> None:
+        """_init_reload_controller does not warn when content_hash_in_html is True or omitted."""
+        build_site(incremental=True)
+        site.config["build"] = {"content_hash_in_html": True}
+
+        with patch("bengal.server.dev_server.logger") as mock_logger:
+            server = DevServer(site, watch=False, auto_port=False)
+            server._init_reload_controller()
+
+            msg_calls = [c[0][0] if c[0] else "" for c in mock_logger.warning.call_args_list]
+            assert "content_hash_disabled" not in msg_calls

@@ -250,3 +250,35 @@ class TestIsInTemplateDirPathResolution:
         result = trigger._is_in_template_dir(template_file, [link_templates])
 
         assert result is True
+
+
+class TestTrackOutputPosixKeys:
+    """Tests for track_output output_sources key normalization (cache-provenance 2.4)."""
+
+    def test_output_sources_uses_posix_keys(self, tmp_path: Path) -> None:
+        """track_output stores keys with forward slashes for cross-platform portability."""
+        from bengal.build.contracts.keys import content_key
+
+        class ContentKeyTracker(MockFileTracking):
+            def _cache_key(self, path: Path) -> str:
+                return str(content_key(path, tmp_path))
+
+        tracker = ContentKeyTracker()
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "blog").mkdir()
+        (output_dir / "blog" / "post").mkdir()
+        output_path = output_dir / "blog" / "post" / "index.html"
+        output_path.write_text("<html></html>")
+
+        source_path = tmp_path / "content" / "blog" / "post.md"
+        source_path.parent.mkdir(parents=True, exist_ok=True)
+        source_path.write_text("# Post")
+
+        tracker.track_output(source_path, output_path, output_dir)
+
+        # Key must use forward slashes (POSIX) regardless of OS
+        keys = list(tracker.output_sources.keys())
+        assert len(keys) == 1
+        assert "\\" not in keys[0]
+        assert keys[0] == "blog/post/index.html"
