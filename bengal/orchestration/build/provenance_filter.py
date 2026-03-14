@@ -187,7 +187,7 @@ def _get_pages_for_data_file(
     Returns:
         Set of page source paths that depend on this data file
     """
-    dep_key = cache._cache_key(data_file)
+    dep_key = cache.cache_key(data_file)
     pages: set[Path] = set()
 
     for page_str, deps in cache.dependencies.items():
@@ -215,7 +215,7 @@ def _get_pages_for_template(
         Set of page source paths that use this template
     """
     pages: set[Path] = set()
-    template_key = cache._cache_key(template_path)
+    template_key = cache.cache_key(template_path)
 
     # Check reverse dependencies
     dependents = cache.reverse_dependencies.get(template_key, set())
@@ -250,7 +250,7 @@ def _get_taxonomy_term_pages_for_member(
         Set of taxonomy term page paths to rebuild
     """
     term_pages: set[Path] = set()
-    member_key = cache._cache_key(member_path)
+    member_key = cache.cache_key(member_path)
 
     # Get tags for this member page from cache
     tags = cache.taxonomy_index.page_tags.get(member_key, set())

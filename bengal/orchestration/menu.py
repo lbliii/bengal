@@ -128,7 +128,7 @@ class MenuOrchestrator:
             return False
 
         # Check if any changed pages affect menu (menu frontmatter or root-level)
-        from bengal.rendering.template_functions.navigation.auto_nav import _is_root_level_page
+        from bengal.core.page.navigation import is_root_level_page
 
         root_path = getattr(self.site, "root_path", None)
         content_dir = root_path / "content" if root_path else None
@@ -137,7 +137,7 @@ class MenuOrchestrator:
                 continue
             if "menu" in page.metadata:
                 return False
-            if content_dir and _is_root_level_page(page, content_dir):
+            if content_dir and is_root_level_page(page, content_dir):
                 return False
 
         # Compute cache key based on menu config and pages with menu frontmatter
@@ -226,13 +226,13 @@ class MenuOrchestrator:
         auto_dev_bundle = self.site.config.get("menu", {}).get("auto_dev_bundle", True)
 
         # Root-level pages (auto-discovered in get_auto_nav, affect cache when they change)
-        from bengal.rendering.template_functions.navigation.auto_nav import _is_root_level_page
+        from bengal.core.page.navigation import is_root_level_page
 
         root_level_pages = []
         if root_path := getattr(self.site, "root_path", None):
             content_dir = root_path / "content"
             for page in self.site.pages:
-                if _is_root_level_page(page, content_dir):
+                if is_root_level_page(page, content_dir):
                     metadata = getattr(page, "metadata", {})
                     root_level_pages.append(
                         {

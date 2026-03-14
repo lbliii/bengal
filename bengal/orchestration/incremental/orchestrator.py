@@ -241,7 +241,7 @@ class IncrementalOrchestrator:
         template_changes: list[Path] = []
 
         # Check theme templates directory
-        templates_dir = self._cache_manager._get_theme_templates_dir()
+        templates_dir = self._cache_manager.theme_templates_dir
         if templates_dir and templates_dir.exists():
             template_changes.extend(
                 template_file
@@ -260,7 +260,7 @@ class IncrementalOrchestrator:
         affected_pages: set[Path] = set()
 
         # Check theme templates directory
-        templates_dir = self._cache_manager._get_theme_templates_dir()
+        templates_dir = self._cache_manager.theme_templates_dir
         if not templates_dir or not templates_dir.exists():
             return affected_pages
 

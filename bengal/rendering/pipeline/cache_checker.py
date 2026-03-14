@@ -303,7 +303,7 @@ class CacheChecker:
 
         cache = self.build_cache
 
-        page_key = cache._cache_key(page.source_path)
+        page_key = cache.cache_key(page.source_path)
         deps = list(cache.dependencies.get(page_key, []))
 
         # Pass output_dir to capture asset manifest mtime for cache invalidation

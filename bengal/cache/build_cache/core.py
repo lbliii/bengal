@@ -154,12 +154,18 @@ class BuildCache(
 
     last_build: str | None = None
 
-    def _cache_key(self, path: Path) -> CacheKey:
+    def cache_key(self, source_path: Path) -> CacheKey:
         """
         Canonical cache key for a path (content_key when site_root set).
 
         Ensures watcher (absolute) and discovery (relative) paths hit the same
         cache entries. Falls back to resolved absolute when site_root is None.
+        """
+        return self._cache_key(source_path)
+
+    def _cache_key(self, path: Path) -> CacheKey:
+        """
+        Internal implementation of cache_key. Use cache_key() for public API.
         """
         if self.site_root is not None:
             return content_key(path, self.site_root)

@@ -15,7 +15,10 @@ See Also:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from pathlib import Path
+from typing import TYPE_CHECKING, Any
+
+from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
@@ -85,6 +88,25 @@ def get_prev_in_section(page: Page, section: Section | None) -> Page | None:
     except ValueError, IndexError:
         pass
     return None
+
+
+def is_root_level_page(page: Any, content_dir: Path) -> bool:
+    """
+    Check if a page is at content root (e.g. content/about.md, not content/posts/foo.md).
+
+    Excludes index.md (homepage) and section indices (_index.md).
+    """
+    try:
+        src = Path(page.source_path)
+        if src.is_absolute():
+            rel = src.relative_to(content_dir)
+        else:
+            rel_str = to_posix(str(src))
+            rel = Path(rel_str[8:]) if rel_str.startswith("content/") else Path(rel_str)
+        parts = to_posix(str(rel)).split("/")
+        return len(parts) == 1 and parts[0] not in ("index.md", "_index.md")
+    except ValueError, AttributeError:
+        return False
 
 
 def get_ancestors(section: Section | None) -> list[Section]:

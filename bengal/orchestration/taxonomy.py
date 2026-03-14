@@ -229,7 +229,7 @@ class TaxonomyOrchestrator:
 
             # Update cache and get affected tags
             new_tags = set(actual_tags) if actual_tags else set()
-            page_key = cache._cache_key(page.source_path)
+            page_key = cache.cache_key(page.source_path)
             page_affected = cache.taxonomy_index.update_page_tags(page_key, new_tags)
             affected_tags.update(page_affected)
 

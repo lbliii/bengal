@@ -55,7 +55,7 @@ class BuildTaxonomyIndex:
 
         Args:
             taxonomy_term: Taxonomy term (e.g., "tag:python")
-            page: Page path or canonical cache key (use cache._cache_key for normalization)
+            page: Page path or canonical cache key (use cache.cache_key for normalization)
         """
         if taxonomy_term not in self.taxonomy_deps:
             self.taxonomy_deps[taxonomy_term] = set()
@@ -68,7 +68,7 @@ class BuildTaxonomyIndex:
         Get tags from previous build for a page.
 
         Args:
-            page_path: Path or canonical cache key (use cache._cache_key for normalization)
+            page_path: Path or canonical cache key (use cache.cache_key for normalization)
 
         Returns:
             Set of tags from previous build (empty set if new page)
@@ -81,7 +81,7 @@ class BuildTaxonomyIndex:
         Store current tags for a page (for next build's comparison).
 
         Args:
-            page_path: Path or canonical cache key (use cache._cache_key for normalization)
+            page_path: Path or canonical cache key (use cache.cache_key for normalization)
             tags: Current set of tags for the page
         """
         page_key = str(page_path) if isinstance(page_path, Path) else page_path
@@ -98,7 +98,7 @@ class BuildTaxonomyIndex:
         This is the key method that enables O(1) taxonomy reconstruction.
 
         Args:
-            page_path: Path or canonical cache key (use cache._cache_key for normalization)
+            page_path: Path or canonical cache key (use cache.cache_key for normalization)
             tags: Current set of tags for this page (original case, e.g., "Python", "Web Dev")
 
         Returns:
