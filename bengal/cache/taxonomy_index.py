@@ -47,7 +47,7 @@ class TagEntry(Cacheable):
 
     tag_slug: str  # Normalized tag identifier
     tag_name: str  # Original tag name (for display)
-    page_paths: list[str]  # Pages with this tag
+    page_paths: set[str]  # Pages with this tag
     updated_at: str  # ISO timestamp of last update
     is_valid: bool = True  # Whether entry is still valid
 
@@ -56,7 +56,7 @@ class TagEntry(Cacheable):
         return {
             "tag_slug": self.tag_slug,
             "tag_name": self.tag_name,
-            "page_paths": self.page_paths,
+            "page_paths": sorted(self.page_paths),
             "updated_at": self.updated_at,
             "is_valid": self.is_valid,
         }
@@ -67,7 +67,7 @@ class TagEntry(Cacheable):
         return cls(
             tag_slug=data["tag_slug"],
             tag_name=data["tag_name"],
-            page_paths=data["page_paths"],
+            page_paths=set(data["page_paths"]),
             updated_at=data["updated_at"],
             is_valid=data.get("is_valid", True),
         )
@@ -249,7 +249,7 @@ class TaxonomyIndex(PersistentCacheMixin):
             entry = TagEntry(
                 tag_slug=tag_slug,
                 tag_name=tag_name,
-                page_paths=page_paths,
+                page_paths=set(page_paths),
                 updated_at=datetime.now(UTC).isoformat(),
                 is_valid=True,
             )
@@ -389,8 +389,7 @@ class TaxonomyIndex(PersistentCacheMixin):
             for tag_slug in affected_tags:
                 if tag_slug in self.tags:
                     entry = self.tags[tag_slug]
-                    if page_str in entry.page_paths:
-                        entry.page_paths.remove(page_str)
+                    entry.page_paths.discard(page_str)
 
             # Clean up reverse index
             if page_str in self._page_to_tags:

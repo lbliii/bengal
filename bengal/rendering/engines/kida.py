@@ -131,12 +131,17 @@ class KidaTemplateEngine:
         if "max_include_depth" in kida_config:
             env_kwargs["max_include_depth"] = kida_config["max_include_depth"]
 
+        # Disable auto_reload during builds — templates can't change mid-build,
+        # and staleness checks read every template file from disk per render.
+        # Only enable for dev server (auto_reload in development config).
+        is_serving = site.config.get("development", {}).get("auto_reload", False)
+
         # Create Kida environment
         # Note: strict mode (UndefinedError for undefined vars) is always enabled
         self._env = Environment(
             loader=FileSystemLoader(self.template_dirs),
             autoescape=self._select_autoescape,
-            auto_reload=site.config.get("development", {}).get("auto_reload", True),
+            auto_reload=is_serving,
             bytecode_cache=bytecode_cache,
             # Preserve AST for block metadata/dependency analysis (site-wide block caching)
             preserve_ast=True,

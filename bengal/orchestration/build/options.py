@@ -80,6 +80,7 @@ class BuildOptions:
     incremental: bool | None = None
     verbose: bool = False
     quiet: bool = False
+    fast: bool = False
     memory_optimized: bool = False
 
     # Output behavior

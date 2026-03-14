@@ -249,7 +249,7 @@ def _merge_autodoc_config(
             # Validate mode if present
             if "mode" in grouping_config:
                 mode = grouping_config["mode"]
-                if mode not in ["off", "auto", "explicit"]:
+                if mode not in {"off", "auto", "explicit"}:
                     print(f"⚠️  Warning: Invalid grouping mode '{mode}', using 'off'")
                     grouping_config["mode"] = "off"
             default_config["python"]["grouping"].update(grouping_config)

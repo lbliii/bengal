@@ -39,7 +39,7 @@ class TestTagEntry:
         entry = TagEntry(
             tag_slug="python",
             tag_name="Python",
-            page_paths=["post1.md", "post2.md"],
+            page_paths={"post1.md", "post2.md"},
             updated_at="2025-10-16T12:00:00",
             is_valid=True,
         )
@@ -52,7 +52,7 @@ class TestTagEntry:
         entry = TagEntry(
             tag_slug="python",
             tag_name="Python",
-            page_paths=["post1.md"],
+            page_paths={"post1.md"},
             updated_at="2025-10-16T12:00:00",
         )
         data = entry.to_cache_dict()
@@ -89,14 +89,14 @@ class TestTaxonomyIndex:
         entry = index.get_tag("python")
         assert entry is not None
         assert entry.tag_name == "Python"
-        assert entry.page_paths == ["post1.md", "post2.md"]
+        assert entry.page_paths == {"post1.md", "post2.md"}
 
     def test_get_pages_for_tag(self, index):
         """Test getting pages for a tag."""
         index.update_tag("python", "Python", ["post1.md", "post2.md"])
 
         pages = index.get_pages_for_tag("python")
-        assert pages == ["post1.md", "post2.md"]
+        assert set(pages) == {"post1.md", "post2.md"}
 
     def test_has_tag(self, index):
         """Test checking if tag exists."""
@@ -151,8 +151,8 @@ class TestTaxonomyIndex:
         affected = index.remove_page_from_all_tags(Path("post1.md"))
 
         assert affected == {"python", "tutorial"}
-        assert index.get_pages_for_tag("python") == ["post2.md"]
-        assert index.get_pages_for_tag("tutorial") == ["post3.md"]
+        assert set(index.get_pages_for_tag("python")) == {"post2.md"}
+        assert set(index.get_pages_for_tag("tutorial")) == {"post3.md"}
 
     def test_save_and_load(self, cache_dir):
         """Test saving and loading from disk."""
@@ -165,8 +165,8 @@ class TestTaxonomyIndex:
         # Load in new instance
         idx2 = TaxonomyIndex(cache_dir / "taxonomy.json")
         assert idx2.has_tag("python") is True
-        assert idx2.get_pages_for_tag("python") == ["post1.md", "post2.md"]
-        assert idx2.get_pages_for_tag("tutorial") == ["post1.md"]
+        assert set(idx2.get_pages_for_tag("python")) == {"post1.md", "post2.md"}
+        assert set(idx2.get_pages_for_tag("tutorial")) == {"post1.md"}
 
     def test_load_nonexistent_file(self, cache_dir):
         """Test loading when file doesn't exist."""
@@ -253,7 +253,7 @@ class TestTaxonomyIndex:
         index.update_tag("python", "Python", ["post2.md", "post3.md"])
 
         pages = index.get_pages_for_tag("python")
-        assert pages == ["post2.md", "post3.md"]
+        assert set(pages) == {"post2.md", "post3.md"}
 
     def test_empty_page_list(self, index):
         """Test tag with no pages."""
@@ -267,8 +267,8 @@ class TestTaxonomyIndex:
         index.update_tag("c-plus-plus", "C++", ["post1.md"])
         index.update_tag("dot-net", ".NET", ["post2.md"])
 
-        assert index.get_pages_for_tag("c-plus-plus") == ["post1.md"]
-        assert index.get_pages_for_tag("dot-net") == ["post2.md"]
+        assert set(index.get_pages_for_tag("c-plus-plus")) == {"post1.md"}
+        assert set(index.get_pages_for_tag("dot-net")) == {"post2.md"}
 
     def test_multiple_pages_per_tag(self, index):
         """Test tag with many pages."""
@@ -277,7 +277,7 @@ class TestTaxonomyIndex:
 
         retrieved = index.get_pages_for_tag("tutorial")
         assert len(retrieved) == 10
-        assert retrieved == pages
+        assert set(retrieved) == set(pages)
 
     def test_round_trip_compressed_format(self, cache_dir):
         """Test save/load cycle with compressed format."""
@@ -300,8 +300,8 @@ class TestTaxonomyIndex:
         # Load in new instance (should use compressed format)
         idx2 = TaxonomyIndex(cache_dir / "taxonomy.json")
         assert idx2.has_tag("python") is True
-        assert idx2.get_pages_for_tag("python") == ["post1.md", "post2.md"]
-        assert idx2.get_pages_for_tag("tutorial") == ["post1.md"]
+        assert set(idx2.get_pages_for_tag("python")) == {"post1.md", "post2.md"}
+        assert set(idx2.get_pages_for_tag("tutorial")) == {"post1.md"}
 
         # Verify file was written (compression ratio check skipped for small test data)
         # Real-world caches achieve 92-93% reduction, but tiny test payloads
@@ -335,7 +335,7 @@ class TestTaxonomyIndex:
         # Load old format (should work via load_auto fallback)
         idx = TaxonomyIndex(cache_dir / "taxonomy.json")
         assert idx.has_tag("python") is True
-        assert idx.get_pages_for_tag("python") == ["post1.md", "post2.md"]
+        assert set(idx.get_pages_for_tag("python")) == {"post1.md", "post2.md"}
 
         # Save should create new compressed format
         idx.save_to_disk()
@@ -440,7 +440,7 @@ class TestTaxonomyIndexInvariantViolation:
         idx.tags["orphan-tag"] = TagEntry(
             tag_slug="orphan-tag",
             tag_name="Orphan",
-            page_paths=["nonexistent-page.md"],  # Not in _page_to_tags
+            page_paths={"nonexistent-page.md"},  # Not in _page_to_tags
             updated_at="2025-10-16T12:00:00",
             is_valid=True,
         )

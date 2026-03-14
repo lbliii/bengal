@@ -20,6 +20,25 @@ if TYPE_CHECKING:
     pass
 
 
+def _collapse_slashes(url: str) -> str:
+    """Replace runs of consecutive slashes with a single slash (pure string ops)."""
+    if "//" not in url:
+        return url
+    parts = url.split("/")
+    out = [parts[0]]
+    for p in parts[1:]:
+        if p or out[-1:] != [""]:
+            out.append(p)
+        elif out and out[-1] == "":
+            continue
+        else:
+            out.append(p)
+    result = "/".join(p for p in out if p) or ""
+    if url.startswith("/"):
+        result = "/" + result
+    return result
+
+
 def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:
     """
     Normalize a relative URL to a consistent format.
@@ -56,20 +75,20 @@ def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:
         return "/"
 
     # Handle absolute URLs (http://, https://)
-    # Don't normalize these - return as-is
     if url.startswith(("http://", "https://")):
         return url
 
     # Handle protocol-relative URLs (// followed by non-slash)
-    # These are like //example.com/path
     if url.startswith("//") and len(url) > 2 and url[2] != "/":
         return url
 
     # Ensure starts with /
-    url = "/" + url.lstrip("/")
+    if not url.startswith("/"):
+        url = "/" + url
 
-    # Normalize multiple consecutive slashes (except after protocol)
-    url = re.sub(r"(?<!:)/{2,}", "/", url)
+    # Collapse consecutive slashes (string ops, no regex)
+    if "//" in url:
+        url = _collapse_slashes(url)
 
     # Handle root case
     if url == "/":
@@ -78,13 +97,9 @@ def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:
     # Handle trailing slash based on option
     if ensure_trailing_slash:
         if not url.endswith("/"):
-            url += "/"
+            url = url + "/"
     else:
-        # Strip trailing slash when not requested
-        url = url.rstrip("/")
-        # Ensure we don't return empty string for root-like paths
-        if not url:
-            url = "/"
+        url = url.rstrip("/") or "/"
 
     return url
 

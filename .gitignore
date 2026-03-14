@@ -82,6 +82,9 @@ venv-*/
 benchmarks/scenarios/
 .benchmarks/
 
+# Benchmark/test output leaked to repo root (e.g. TMPDIR=. when running benchmarks)
+/content/
+
 
 # other
 .competitor/

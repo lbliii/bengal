@@ -455,14 +455,14 @@ class AutodocRenderer:
                     return f"/{prefix}/overview/"
 
             # Fallback: infer from element_type
-            if element_type in ["command", "command-group"]:
+            if element_type in {"command", "command-group"}:
                 prefix = get_autodoc_output_prefix(autodoc_config, "cli")
                 from bengal.autodoc.utils import resolve_cli_url_path
 
                 cli_path = resolve_cli_url_path(qualified_name)
                 url_path = f"{prefix}/{cli_path}" if cli_path else prefix
                 return f"/{url_path}/"
-            elif element_type in ["class", "function", "method", "module"]:
+            elif element_type in {"class", "function", "method", "module"}:
                 prefix = get_autodoc_output_prefix(autodoc_config, "python")
                 url_path = f"{prefix}/{qualified_name.replace('.', '/')}"
                 return f"/{url_path}/"

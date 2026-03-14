@@ -254,12 +254,27 @@ def _check_available(ssg: str) -> bool:
         return False
 
 
+def _bench_temp_dir(ssg: str) -> Path:
+    """Return a temp dir for benchmarking, never inside the project root."""
+    repo_root = Path(__file__).resolve().parent.parent
+    tmp = Path(tempfile.mkdtemp(prefix=f"bench_{ssg}_"))
+    try:
+        resolved = tmp.resolve()
+        if resolved == repo_root or repo_root in resolved.parents:
+            shutil.rmtree(tmp, ignore_errors=True)
+            base = Path("/tmp") if Path("/tmp").exists() else Path(tempfile.gettempdir())
+            tmp = Path(tempfile.mkdtemp(prefix=f"bench_{ssg}_", dir=base))
+    except OSError:
+        pass
+    return tmp
+
+
 def benchmark_ssg(ssg: str, num_pages: int, runs: int = 3) -> RunResult:
     result = RunResult(ssg=ssg, pages=num_pages)
     setup_fn = SSG_SETUP[ssg]
 
     for run_idx in range(runs):
-        tmp = Path(tempfile.mkdtemp(prefix=f"bench_{ssg}_"))
+        tmp = _bench_temp_dir(ssg)
         try:
             cmd = setup_fn(tmp, num_pages)
             env = {**os.environ, "PYTHON_GIL": "0"}

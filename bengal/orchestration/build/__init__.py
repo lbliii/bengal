@@ -666,21 +666,22 @@ class BuildOrchestrator:
         )
 
         # === HEALTH PHASE GROUP (dashboard-integrated) ===
-        notify_phase_start("health")
-        health_start = time.time()
+        if not options.fast:
+            notify_phase_start("health")
+            health_start = time.time()
 
-        # Phase 20: Health Check
-        with logger.phase("health_check"):
-            finalization.run_health_check(self, profile=profile, build_context=ctx)
+            # Phase 20: Health Check
+            with logger.phase("health_check"):
+                finalization.run_health_check(self, profile=profile, build_context=ctx)
 
-        health_duration_ms = (time.time() - health_start) * 1000
-        health_report = getattr(self.stats, "health_report", None)
-        health_summary = ""
-        if health_report:
-            passed = health_report.total_passed
-            total = health_report.total_checks
-            health_summary = f"{passed}/{total} checks passed"
-        notify_phase_complete("health", health_duration_ms, health_summary)
+            health_duration_ms = (time.time() - health_start) * 1000
+            health_report = getattr(self.stats, "health_report", None)
+            health_summary = ""
+            if health_report:
+                passed = health_report.total_passed
+                total = health_report.total_checks
+                health_summary = f"{passed}/{total} checks passed"
+            notify_phase_complete("health", health_duration_ms, health_summary)
 
         # Phase 21: Finalize Build
         finalization.phase_finalize(self, verbose, collector)

@@ -288,12 +288,16 @@ class OrderingMixin:
                 priority_track_item_paths = self._get_track_item_paths_for_pages(priority_pages)
                 if priority_track_item_paths:
                     content_root = self.site.root_path / "content"
-                    for page in list(normal_pages):
+                    promoted: list[Page] = []
+                    remaining: list[Page] = []
+                    for page in normal_pages:
                         if not page.source_path:
+                            remaining.append(page)
                             continue
                         try:
                             rel = page.source_path.relative_to(content_root)
                         except ValueError:
+                            remaining.append(page)
                             continue
                         rel_str = to_posix(rel)
                         rel_no_ext = rel_str[:-3] if rel_str.endswith(".md") else rel_str
@@ -301,8 +305,11 @@ class OrderingMixin:
                             rel_str in priority_track_item_paths
                             or rel_no_ext in priority_track_item_paths
                         ):
-                            normal_pages.remove(page)
-                            priority_pages.append(page)
+                            promoted.append(page)
+                        else:
+                            remaining.append(page)
+                    normal_pages[:] = remaining
+                    priority_pages.extend(promoted)
                     track_items, track_pages, other = self._partition_by_track(
                         priority_pages, track_item_paths
                     )

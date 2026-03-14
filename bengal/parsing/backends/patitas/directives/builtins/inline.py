@@ -38,22 +38,17 @@ def ensure_badge_base_class(css_class: str) -> str:
     """Ensure badge CSS has a base class (badge or api-badge)."""
     if not css_class:
         return "badge badge-secondary"
-
     classes = css_class.split()
-
-    has_base_badge = any(cls in ("badge", "api-badge") for cls in classes)
-
-    if not has_base_badge:
-        if any(cls.startswith("api-badge") for cls in classes):
-            classes.insert(0, "api-badge")
-        elif any(cls.startswith("badge-") for cls in classes):
-            classes.insert(0, "badge")
-        else:
-            classes.insert(0, "badge")
-
-        return " ".join(classes)
-
-    return css_class
+    base: str | None = None
+    for cls in classes:
+        if cls in ("badge", "api-badge"):
+            return css_class
+        if base is None:
+            if cls.startswith("api-badge"):
+                base = "api-badge"
+            elif cls.startswith("badge-"):
+                base = "badge"
+    return f"{base or 'badge'} {css_class}"
 
 
 if TYPE_CHECKING:

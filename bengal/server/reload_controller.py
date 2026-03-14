@@ -57,6 +57,7 @@ from __future__ import annotations
 
 import fnmatch
 import os
+import re
 import threading
 import time
 from contextlib import suppress
@@ -222,6 +223,9 @@ class ReloadController:
         self._min_interval_ms: int = min_notify_interval_ms
         # Ignore patterns applied relative to output dir
         self._ignored_globs: list[str] = list(ignored_globs or [])
+        self._ignored_patterns: list[re.Pattern[str]] = [
+            re.compile(fnmatch.translate(g)) for g in self._ignored_globs
+        ]
         # Conditional hashing options
         self._hash_on_suspect: bool = hash_on_suspect
         self._suspect_hash_limit: int = suspect_hash_limit
@@ -246,6 +250,7 @@ class ReloadController:
     def set_ignored_globs(self, globs: list[str] | None) -> None:
         with self._config_lock:
             self._ignored_globs = list(globs or [])
+            self._ignored_patterns = [re.compile(fnmatch.translate(g)) for g in self._ignored_globs]
 
     def set_hashing_options(
         self,
@@ -288,6 +293,10 @@ class ReloadController:
         """Record that a notification was sent (for throttling)."""
         self._last_notify_time_ms = self._now_ms()
 
+    def _is_ignored(self, p: str) -> bool:
+        """Check if path matches any ignored glob pattern."""
+        return any(pat.fullmatch(p) for pat in self._ignored_patterns)
+
     def _apply_ignore_globs(self, paths: list[str]) -> list[str]:
         """
         Filter paths through ignore globs.
@@ -301,10 +310,7 @@ class ReloadController:
         if not self._ignored_globs:
             return paths
 
-        def is_ignored(p: str) -> bool:
-            return any(fnmatch.fnmatch(p, pat) for pat in self._ignored_globs)
-
-        return [p for p in paths if not is_ignored(p)]
+        return [p for p in paths if not self._is_ignored(p)]
 
     def _make_css_decision(self, paths: list[str], css_paths: list[str]) -> ReloadDecision:
         """
@@ -697,11 +703,7 @@ class ReloadController:
 
         # Apply ignore globs (relative to output dir)
         if changed and self._ignored_globs:
-
-            def _is_ignored(p: str) -> bool:
-                return any(fnmatch.fnmatch(p, pat) for pat in self._ignored_globs)
-
-            filtered_changed = [p for p in changed if not _is_ignored(p)]
+            filtered_changed = [p for p in changed if not self._is_ignored(p)]
             if len(filtered_changed) != len(changed):
                 filtered_set = set(filtered_changed)
                 css_changed = [p for p in css_changed if p in filtered_set]

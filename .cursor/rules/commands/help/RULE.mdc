@@ -22,6 +22,10 @@ if editing_python_in_core:
     - "::arch" - Verify architecture patterns
     - "::modify-core" - Guide for core changes
 
+if optimizing_or_performance_work:
+  suggest:
+    - "::sdc-audit" - Find set/dict/comprehension opportunities
+
 if editing_tests:
   suggest:
     - "::validate" - Verify test coverage
@@ -61,6 +65,7 @@ if no_clear_context:
 |---------|---------|
 | `::types` | Type system audit (mypy + Any) |
 | `::arch` | Architecture compliance |
+| `::sdc-audit` | Set/dict/comprehension substitution audit |
 
 ### Implementation Guides
 | Command | Purpose |
