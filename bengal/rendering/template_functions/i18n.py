@@ -366,7 +366,8 @@ def _alternate_links(site: SiteLike, page: PageLike | None) -> list[dict[str, st
             continue
     # Add x-default pointing to default language
     default_lang = i18n.get("default_language", "en")
-    default = next((a for a in alternates if a["hreflang"] == default_lang), None)
+    alternates_by_lang = {a["hreflang"]: a for a in alternates}
+    default = alternates_by_lang.get(default_lang)
     if default:
         alternates.append({"hreflang": "x-default", "href": default["href"]})
     return alternates

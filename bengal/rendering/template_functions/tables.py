@@ -177,7 +177,8 @@ def render_data_table_html(
 ) -> str:
     """Render data table to HTML."""
     if visible_columns:
-        columns = [col for col in columns if col["field"] in visible_columns]
+        visible_set = set(visible_columns)
+        columns = [col for col in columns if col["field"] in visible_set]
 
     config: dict[str, Any] = {
         "columns": columns,

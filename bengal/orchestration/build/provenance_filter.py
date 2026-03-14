@@ -189,8 +189,8 @@ def _get_pages_for_data_file(
     """
     Find pages that depend on a data file.
 
-    Queries the cache's dependency graph for pages that have recorded
-    a dependency on the given data file.
+    Uses reverse dependency graph for O(1) lookup when populated;
+    falls back to forward iteration for older caches.
 
     Args:
         cache: BuildCache with dependency tracking
@@ -200,12 +200,15 @@ def _get_pages_for_data_file(
         Set of page source paths that depend on this data file
     """
     dep_key = cache.cache_key(data_file)
+    # O(1) via reverse graph when populated
+    dependents = cache.reverse_dependencies.get(dep_key, set())
+    if dependents:
+        return {Path(p) for p in dependents}
+    # Fallback: O(pages) for caches without reverse index for data files
     pages: set[Path] = set()
-
     for page_str, deps in cache.dependencies.items():
         if dep_key in deps:
             pages.add(Path(page_str))
-
     return pages
 
 
@@ -835,8 +838,9 @@ def phase_incremental_filter_provenance(
                 if not output_path.exists():
                     missing_pages.append(page)
             if missing_pages:
+                missing_pages_set = set(missing_pages)
                 pages_to_build = list(result.pages_to_build) + missing_pages
-                pages_skipped = [p for p in result.pages_skipped if p not in missing_pages]
+                pages_skipped = [p for p in result.pages_skipped if p not in missing_pages_set]
                 result = ProvenanceFilterResult(
                     pages_to_build=pages_to_build,
                     assets_to_process=result.assets_to_process,

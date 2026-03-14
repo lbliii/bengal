@@ -148,7 +148,8 @@ def info(version_id: str, source: str) -> None:
 
     # Resolve alias to version ID
     resolved_id = version_config.aliases.get(version_id, version_id)
-    version = next((v for v in version_config.versions if v.id == resolved_id), None)
+    versions_by_id = {v.id: v for v in version_config.versions}
+    version = versions_by_id.get(resolved_id)
 
     if not version:
         cli.error(f"Version '{version_id}' not found.")
@@ -456,8 +457,9 @@ def diff_versions(
             raise click.Abort()
 
         # Find versions
-        old_v = next((v for v in version_config.versions if v.id == old_version), None)
-        new_v = next((v for v in version_config.versions if v.id == new_version), None)
+        versions_by_id = {v.id: v for v in version_config.versions}
+        old_v = versions_by_id.get(old_version)
+        new_v = versions_by_id.get(new_version)
 
         if not old_v:
             cli.error(f"Version '{old_version}' not found.")

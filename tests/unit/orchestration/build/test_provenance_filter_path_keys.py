@@ -44,8 +44,19 @@ def mock_cache(tmp_path: Path):
         cache.file_fingerprints[cache._cache_key(path)] = store
 
     cache._cache_key = _cache_key
+    cache.cache_key = _cache_key
     cache.get_file_fingerprint = get_fp
     cache.set_file_fingerprint = set_fp
+    cache.dependencies = {}
+    cache.reverse_dependencies = {}
+
+    def get_page_tags(key):
+        key_str = str(key) if isinstance(key, Path) else key
+        ti = getattr(cache, "taxonomy_index", None)
+        page_tags = getattr(ti, "page_tags", {}) if ti else {}
+        return page_tags.get(key_str, set())
+
+    cache.get_page_tags = get_page_tags
     return cache
 
 

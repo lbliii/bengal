@@ -703,7 +703,8 @@ class ReloadController:
 
             filtered_changed = [p for p in changed if not _is_ignored(p)]
             if len(filtered_changed) != len(changed):
-                css_changed = [p for p in css_changed if p in filtered_changed]
+                filtered_set = set(filtered_changed)
+                css_changed = [p for p in css_changed if p in filtered_set]
             changed = filtered_changed
 
         # Prune hash cache entries for deleted files to avoid unbounded growth

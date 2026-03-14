@@ -598,11 +598,14 @@ class IncrementalOrchestrator:
         pages_by_path = self.site.page_by_source_path
 
         pages_to_build: list[Page] = []
+        built_from_pages = False
         for path in pages_to_rebuild:
             page = pages_by_path.get(path)
-            if page is None:
-                # Fallback to scan when cache map isn't populated
-                page = next((p for p in self.site.pages if p.source_path == path), None)
+            if page is None and not built_from_pages:
+                # One-time fallback when cache map empty or path format differs
+                pages_by_path = {p.source_path: p for p in self.site.pages}
+                built_from_pages = True
+                page = pages_by_path.get(path)
             if page is not None:
                 pages_to_build.append(page)
 

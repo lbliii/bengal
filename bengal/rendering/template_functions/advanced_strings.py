@@ -73,12 +73,7 @@ def camelize(text: str) -> str:
         return text
 
     # First word lowercase, rest titlecase
-    result = words[0].lower()
-    for word in words[1:]:
-        if word:
-            result += word.capitalize()
-
-    return result
+    return "".join([words[0].lower()] + [w.capitalize() for w in words[1:] if w])
 
 
 def underscore(text: str) -> str:

@@ -126,8 +126,7 @@ def _is_css_output_missing(orchestrator: BuildOrchestrator) -> bool:
 
     # Look for style.css or style.{hash}.css
     # Fingerprinted CSS files have pattern: style.{8-char-hash}.css
-    style_files = list(css_dir.glob("style*.css"))
-    return len(style_files) == 0
+    return next(css_dir.glob("style*.css"), None) is None
 
 
 def _optimize_css(
