@@ -74,3 +74,21 @@ def test_i18n_status_shows_coverage(site: Site) -> None:
         assert total == 4
         assert translated == 4, f"{locale}: expected 4 translated, got {translated}"
         assert len(missing) == 0
+
+
+@pytest.mark.bengal(testroot="test-i18n-gettext")
+def test_rtl_dir_on_html_for_arabic(site: Site) -> None:
+    """Arabic pages have dir='rtl' on html element."""
+    from bengal.orchestration.build.options import BuildOptions
+
+    site.build(BuildOptions())
+    output_dir = site.output_dir
+    assert output_dir is not None
+    ar_pages = list((output_dir / "ar").rglob("index.html")) if (output_dir / "ar").exists() else []
+    if not ar_pages:
+        ar_pages = [
+            p for p in output_dir.rglob("index.html") if "/ar/" in str(p) or "\\ar\\" in str(p)
+        ]
+    assert len(ar_pages) >= 1, "Expected Arabic output"
+    html = ar_pages[0].read_text(encoding="utf-8", errors="replace")
+    assert 'dir="rtl"' in html or "dir='rtl'" in html, "Arabic page should have dir='rtl' on html"

@@ -52,6 +52,7 @@ __all__ = [
     "resolved_path_url_variants",
     "split_url_path",
     "strip_path_params",
+    "strip_path_params",
     "to_posix",
     "validate_url",
 ]

@@ -230,27 +230,27 @@ def clean_md_path(path: str) -> str:
 
 def strip_path_params(path: str) -> str:
     """
-    Remove OpenAPI-style path parameters ({param}) from a URL path.
+    Remove OpenAPI-style path parameter braces for URL-safe slugs.
 
-    Used when building slugs for autodoc endpoint URLs, where path params
-    like {id} or {user_id} would produce invalid or redundant slugs.
+    Converts /orders/{orderId} to /orders/orderId so path_to_slug produces
+    clean URLs without encoded braces (%7B%7D). Preserves param names to
+    avoid collisions (e.g. GET /orders vs GET /orders/{orderId}).
 
     Args:
-        path: URL path possibly containing {param} segments (e.g., "/users/{id}")
+        path: URL path potentially containing {param} placeholders
 
     Returns:
-        Path with {param} segments removed (e.g., "/users")
+        Path with braces stripped (param names preserved)
 
     Examples:
-        >>> strip_path_params("/users/{id}")
-        '/users'
-        >>> strip_path_params("/items/{item_id}/reviews")
-        '/items/reviews'
+        >>> strip_path_params("/orders/{orderId}")
+        '/orders/orderId'
+        >>> strip_path_params("/users/{userId}/posts/{postId}")
+        '/users/userId/posts/postId'
         >>> strip_path_params("/api/v1/users")
         '/api/v1/users'
-
     """
-    return re.sub(r"/\{[^}]+\}", "", path).rstrip("/") or "/"
+    return re.sub(r"\{([^}]+)\}", r"\1", path)
 
 
 def path_to_slug(path: str) -> str:
@@ -284,6 +284,8 @@ def path_to_slug(path: str) -> str:
         ''
         >>> path_to_slug("single")
         'single'
+        >>> path_to_slug(strip_path_params("/orders/{orderId}"))
+        'orders-orderId'
 
     """
     return path.strip("/").replace("/", "-")

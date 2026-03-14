@@ -27,7 +27,7 @@
 | Capability | Score | Evidence / Notes |
 |------------|:-----:|------------------|
 | **Content discovery** | 5 | `ContentOrchestrator` walks content dirs, discovers pages/sections/assets. 973 lines. Handles nested sections, virtual sections, index pages. Tested across 23 test roots. |
-| **Markdown parsing** | 4 | Patitas parser with full CommonMark support plus GFM tables, footnotes, math, task lists. Error fallback renders `<div class="markdown-error">` instead of crashing. Missing: some CommonMark edge cases per `rfc-patitas-commonmark-compliance.md`. |
+| **Markdown parsing** | 5 | Patitas parser with 100% CommonMark 0.31 spec compliance (652/652), plus GFM tables, footnotes, math, task lists. Error fallback renders `<div class="markdown-error">` instead of crashing. |
 | **Page model** | 5 | `Page` (921 lines) + `PageCore` (375 lines, frozen) + `PageProxy` (893 lines, lazy). Full type annotations, cache serialization, cascade metadata, diagnostics. Property-based tests. |
 | **Build pipeline** | 5 | 21-phase orchestrated build in `BuildOrchestrator`. Phases: fonts → discovery → cache → config → incremental filter → sections → taxonomies → indexes → menus → parsing → snapshot → assets → render → postprocess → health → finalize. |
 | **Default theme** | 4 | Full-featured default theme with `theme.yaml`, appearance config (light/dark/system), palette tokens, CSS manifest. Swizzle system for overrides. Missing: theme marketplace/ecosystem. |
@@ -38,7 +38,7 @@
 **Overall Score: 4.8 — Production**
 
 **Strongest:** Build pipeline orchestration (21 phases, parallel execution, early exit optimization)
-**Weakest:** Markdown CommonMark compliance has known edge-case gaps
+**Weakest:** (Previously: CommonMark edge cases — now resolved; Patitas passes 100% spec)
 
 ---
 
@@ -447,7 +447,7 @@ Ranked by **impact × current gap** (largest opportunity first):
 ### Areas to Watch
 
 - **Codebase size**: ~80,000+ lines across orchestration alone. Some files exceed 900 lines (Page, ContentOrchestrator, BuildOrchestrator). Complexity management is a concern.
-- **CommonMark compliance**: `rfc-patitas-commonmark-compliance.md` exists, indicating known gaps in markdown parsing edge cases.
+- **CommonMark compliance**: Patitas passes 100% of CommonMark 0.31 spec (652/652). See `plan/commonmark-deviations.md`.
 - **Documentation-code drift**: Directive docs reference `BengalDirective` but code uses `DirectiveHandler`. Extension docs need alignment.
 - **E2E gap**: `tests/e2e` is referenced in pytest config but doesn't exist. This is a gap for full-stack confidence.
 - **Module coupling**: `rfc-module-coupling-reduction.md` and `rfc-remaining-coupling-fixes.md` indicate recognized coupling debt.

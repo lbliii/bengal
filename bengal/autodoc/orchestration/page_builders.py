@@ -24,7 +24,7 @@ from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.paths.url_normalization import path_to_slug
+from bengal.utils.paths.url_normalization import path_to_slug, strip_path_params
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -143,7 +143,7 @@ def compute_element_urls(
     elif doc_type == "openapi":
         if element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
-            path_slug = path_to_slug(get_openapi_path(element))
+            path_slug = path_to_slug(strip_path_params(get_openapi_path(element)))
             tags = get_openapi_tags(element)
             if tags:
                 tag_slug = slugify(tags[0])
@@ -260,24 +260,32 @@ def create_pages(
         source_id = f"{url_path}.md"
         output_path = site.output_dir / f"{url_path}/index.html"
 
+        # Build metadata - add method/path for OpenAPI endpoints (sidebar badges)
+        page_metadata: dict[str, Any] = {
+            "type": page_type,
+            "qualified_name": element.qualified_name,
+            "element_type": element.element_type,
+            "description": element.description or f"Documentation for {element.name}",
+            "source_file": display_source_file,
+            "line_number": getattr(element, "line_number", None),
+            "is_autodoc": True,
+            "autodoc_element": element,
+            # Rendering metadata - used by RenderingPipeline to render with full context
+            "_autodoc_template": template_name,
+            "_autodoc_url_path": url_path,
+            "_autodoc_page_type": page_type,
+        }
+        if doc_type == "openapi" and element.element_type == "openapi_endpoint":
+            page_metadata["method"] = get_openapi_method(element)
+            page_metadata["path"] = get_openapi_path(element)
+        elif doc_type == "openapi" and element.element_type == "openapi_schema":
+            page_metadata["path"] = element.name
+
         # Create page with deferred rendering - HTML rendered in rendering phase
         page = Page.create_virtual(
             source_id=source_id,
             title=element.name,
-            metadata={
-                "type": page_type,
-                "qualified_name": element.qualified_name,
-                "element_type": element.element_type,
-                "description": element.description or f"Documentation for {element.name}",
-                "source_file": display_source_file,
-                "line_number": getattr(element, "line_number", None),
-                "is_autodoc": True,
-                "autodoc_element": element,
-                # Rendering metadata - used by RenderingPipeline to render with full context
-                "_autodoc_template": template_name,
-                "_autodoc_url_path": url_path,
-                "_autodoc_page_type": page_type,
-            },
+            metadata=page_metadata,
             rendered_html=None,  # Deferred - rendered in rendering phase with full context
             template_name=template_name,
             output_path=output_path,
@@ -443,7 +451,7 @@ def get_element_metadata(
             )
         elif element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
-            path_slug = path_to_slug(get_openapi_path(element))
+            path_slug = path_to_slug(strip_path_params(get_openapi_path(element)))
             tags = get_openapi_tags(element)
             if tags:
                 tag_slug = slugify(tags[0])

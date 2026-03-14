@@ -332,22 +332,7 @@ def create_openapi_sections(
         else:
             untagged_endpoints.append(element)
 
-    # Create schemas section if we have schemas
-    if all_schemas:
-        schemas_key = f"{prefix}/schemas"
-        schemas_section = Section.create_virtual(
-            name="schemas",
-            relative_url=join_url_paths(prefix, "schemas"),
-            title="Schemas",
-            metadata={
-                "type": "autodoc-rest",
-                "description": "API data schemas and models.",
-            },
-        )
-        api_section.add_subsection(schemas_section)
-        sections[schemas_key] = schemas_section
-
-    # Create sections for tags
+    # 1. Tag sections first (endpoints are the primary content)
     for tag, endpoints in tagged_endpoints.items():
         tag_section = Section.create_virtual(
             name=tag,
@@ -362,7 +347,7 @@ def create_openapi_sections(
         api_section.add_subsection(tag_section)
         sections[f"{prefix}/tags/{tag}"] = tag_section
 
-    # Handle untagged endpoints - create a 'default' tag section if needed
+    # 2. Untagged endpoints
     if untagged_endpoints:
         default_section = Section.create_virtual(
             name="default",
@@ -376,6 +361,21 @@ def create_openapi_sections(
         )
         api_section.add_subsection(default_section)
         sections[f"{prefix}/tags/default"] = default_section
+
+    # 3. Schemas last (reference material)
+    if all_schemas:
+        schemas_key = f"{prefix}/schemas"
+        schemas_section = Section.create_virtual(
+            name="schemas",
+            relative_url=join_url_paths(prefix, "schemas"),
+            title="Schemas",
+            metadata={
+                "type": "autodoc-rest",
+                "description": "API data schemas and models.",
+            },
+        )
+        api_section.add_subsection(schemas_section)
+        sections[schemas_key] = schemas_section
 
     logger.debug("autodoc_sections_created", count=len(sections), type="openapi")
     return sections

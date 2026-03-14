@@ -21,6 +21,12 @@ Kida Features:
 
 {% from 'autodoc/openapi/_schema.html' import schema_viewer %}
 
+{% block sidebar %}
+<aside class="api-reference__sidebar" role="navigation" aria-label="API navigation">
+  {% include 'autodoc/openapi/partials/sidebar-nav.html' %}
+</aside>
+{% end %}
+
 {% block header %}
 {% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
 {% let schema_name = element?.name ?? page?.title ?? 'Schema' %}

@@ -61,19 +61,21 @@
 
 **Exit criteria:** Zero naming mismatches between docs and code. Config reference and template function reference auto-generated on each build.
 
-### 0C. CommonMark Compliance
+### 0C. CommonMark Compliance ✅ COMPLETE
 
 **Lifts:** J1
 **Prior art:** `rfc-patitas-commonmark-compliance.md` (Active)
 
-| Work Item | Detail |
-|-----------|--------|
-| Run CommonMark 0.31 spec suite against Patitas | Identify every failing example |
-| Fix high-impact failures | Prioritize by real-world frequency (list parsing, link resolution, entity handling) |
-| Add spec examples as regression tests | Each fix paired with a test from the spec |
-| Document known intentional deviations | If any CommonMark behaviors are deliberately different, document why |
+| Work Item | Detail | Status |
+|-----------|--------|--------|
+| Run CommonMark 0.31 spec suite against Patitas | Identify every failing example | ✅ 652/652 passing (100%) |
+| Fix high-impact failures | Prioritize by real-world frequency | ✅ N/A (no failures) |
+| Add spec examples as regression tests | Each fix paired with a test from the spec | ✅ `patitas/tests/test_commonmark_spec.py` |
+| Document known intentional deviations | If any CommonMark behaviors are deliberately different, document why | ✅ See `plan/commonmark-deviations.md` |
 
-**Exit criteria:** 95%+ CommonMark 0.31 spec pass rate. Remaining failures documented as intentional deviations.
+**Exit criteria:** 95%+ CommonMark 0.31 spec pass rate. Remaining failures documented as intentional deviations. **Achieved:** 100% pass rate.
+
+**Run:** `poe test-commonmark` (from Bengal workspace) or `cd patitas && pytest tests/test_commonmark_spec.py -m commonmark`
 
 ---
 
