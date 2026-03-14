@@ -39,16 +39,28 @@ bengal.assets.manifest: Asset manifest for fingerprint tracking
 
 from __future__ import annotations
 
-import hashlib
-import shutil
-from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from bengal.assets.manifest import AssetManifest
-from bengal.core.asset.css_transforms import transform_css_nesting
-from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.services.asset_io import (
+    bundle_css as asset_io_bundle_css,
+)
+from bengal.services.asset_io import (
+    copy_asset_to_output as asset_io_copy_to_output,
+)
+from bengal.services.asset_io import (
+    hash_content_from_source,
+)
+from bengal.services.asset_io import (
+    minify_css as asset_io_minify_css,
+)
+from bengal.services.asset_io import (
+    minify_js as asset_io_minify_js,
+)
+from bengal.services.asset_io import (
+    optimize_image as asset_io_optimize_image,
+)
 
 
 @dataclass
@@ -211,177 +223,8 @@ class Asset:
         Returns:
             Bundled CSS content as a string
         """
-        import re
-
-        def bundle_imports(css_content: str, base_path: Path) -> str:
-            """Recursively resolve @import statements, preserving @layer blocks."""
-            from re import Match
-
-            # Pattern for @import statements
-            import_pattern = r'@import\s+(?:url\()?\s*[\'"]([^\'"]+)[\'"]\s*(?:\))?\s*;'
-
-            def resolve_import_in_context(
-                import_match: Match[str], layer_name: str | None = None
-            ) -> str:
-                """Resolve a single @import statement."""
-                import_path = import_match.group(1)
-                imported_file = base_path / import_path
-
-                if not imported_file.exists():
-                    # Keep the @import (might be a URL or external)
-                    return import_match.group(0)
-
-                try:
-                    # Read and recursively process the imported file
-                    imported_content = imported_file.read_text(encoding="utf-8")
-                    # Recursively resolve nested imports
-                    bundled_content = bundle_imports(imported_content, imported_file.parent)
-
-                    # Return bundled content so it can replace the @layer block body
-                    return bundled_content
-                except (OSError, PermissionError) as e:
-                    emit_diagnostic(
-                        self,
-                        "warning",
-                        "css_import_read_failed",
-                        imported_file=str(imported_file),
-                        error=str(e),
-                        error_type=type(e).__name__,
-                    )
-                    return import_match.group(0)
-                except Exception as e:
-                    emit_diagnostic(
-                        self,
-                        "error",
-                        "css_import_unexpected_error",
-                        imported_file=str(imported_file),
-                        error=str(e),
-                        error_type=type(e).__name__,
-                    )
-                    return import_match.group(0)
-
-            def find_layer_block_end(css: str, start_pos: int) -> int:
-                """
-                Find the end position of a @layer block using brace counting.
-                Handles nested braces correctly (e.g., media queries, nested rules).
-
-                Args:
-                    css: CSS content string
-                    start_pos: Position after the opening brace of @layer block
-
-                Returns:
-                    Position of the matching closing brace, or -1 if not found
-                """
-                brace_count = 1  # We start after the opening brace
-                i = start_pos
-                in_string = False
-                string_char = None
-
-                while i < len(css) and brace_count > 0:
-                    char = css[i]
-
-                    # Handle string literals (skip braces inside strings)
-                    if not in_string and char in ("'", '"'):
-                        in_string = True
-                        string_char = char
-                    elif in_string:
-                        if char == "\\" and i + 1 < len(css):
-                            i += 2  # Skip escaped character
-                            continue
-                        elif char == string_char:
-                            in_string = False
-                            string_char = None
-
-                    # Count braces (only when not in string)
-                    if not in_string:
-                        if char == "{":
-                            brace_count += 1
-                        elif char == "}":
-                            brace_count -= 1
-
-                    i += 1
-
-                # Return position of closing brace (i-1 because we incremented after finding it)
-                return i - 1 if brace_count == 0 else -1
-
-            def process_layer_blocks(css: str) -> str:
-                """
-                Process @layer blocks, replacing @import statements inside them.
-                Uses brace counting to handle nested braces correctly.
-                """
-                result = []
-                i = 0
-
-                while i < len(css):
-                    # Look for @layer declaration
-                    layer_match = re.search(r"@layer\s+\w+\s*\{", css[i:])
-                    if not layer_match:
-                        # No more @layer blocks, append rest of content
-                        result.append(css[i:])
-                        break
-
-                    # Append content before @layer block
-                    layer_start = i + layer_match.start()
-                    result.append(css[i:layer_start])
-
-                    # Find the opening brace position
-                    brace_pos = layer_start + layer_match.end() - 1  # Position of '{'
-                    layer_decl = css[layer_start : brace_pos + 1]  # "@layer name {"
-
-                    # Extract layer name
-                    layer_name_match = re.match(r"@layer\s+(\w+)", layer_decl)
-                    layer_name: str = layer_name_match.group(1) if layer_name_match else ""
-
-                    # Find the matching closing brace using brace counting
-                    content_start = brace_pos + 1
-                    content_end = find_layer_block_end(css, content_start)
-
-                    if content_end == -1:
-                        # Malformed @layer block, keep as-is
-                        result.append(css[layer_start:])
-                        break
-
-                    # Extract content inside @layer block
-                    layer_content = css[content_start:content_end]
-
-                    # Process @import statements inside this layer
-                    current_layer = layer_name  # Capture for closure
-
-                    def layer_resolver(m: re.Match[str], layer: str = current_layer) -> str:
-                        return resolve_import_in_context(m, layer)
-
-                    processed_content = re.sub(
-                        import_pattern,
-                        layer_resolver,
-                        layer_content,
-                    )
-
-                    # Reconstruct @layer block
-                    result.append(layer_decl)
-                    result.append(processed_content)
-                    result.append("}")
-
-                    # Continue after this @layer block
-                    i = content_end + 1
-
-                return "".join(result)
-
-            # Process @layer blocks first (using brace counting)
-            result = process_layer_blocks(css_content)
-
-            # Then process standalone @import statements (not in @layer)
-            result = re.sub(import_pattern, lambda m: resolve_import_in_context(m), result)
-
-            return result
-
-        # Read the CSS file
-        with open(self.source_path, encoding="utf-8") as f:
-            css_content = f.read()
-
-        # Bundle all @import statements
-        bundled = bundle_imports(css_content, self.source_path.parent)
+        bundled = asset_io_bundle_css(self.source_path, context=self)
         self.bundled = True
-
         return bundled
 
     def _minify_css(self) -> None:
@@ -395,69 +238,18 @@ class Asset:
 
         For CSS entry points (style.css), this should be called AFTER bundling.
         """
-        # Get the CSS content (bundled if this is an entry point, otherwise read from file)
-        if self._bundled_content is not None:
-            css_content = self._bundled_content
-        else:
-            with open(self.source_path, encoding="utf-8") as f:
-                css_content = f.read()
-
-        try:
-            # Transform CSS nesting first (for browser compatibility)
-            css_content = transform_css_nesting(css_content)
-
-            from bengal.assets.css_minifier import minify_css
-
-            # Simple minification: remove comments and whitespace only
-            # No transformations that could break CSS
-            self._minified_content = minify_css(css_content)
-        except Exception as e:
-            emit_diagnostic(
-                self,
-                "error",
-                "css_minification_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            # On error, use original content (fail-safe)
-            self._minified_content = css_content
+        css_content = (
+            self._bundled_content
+            if self._bundled_content is not None
+            else self.source_path.read_text(encoding="utf-8")
+        )
+        self._minified_content = asset_io_minify_css(css_content, context=self)
 
     def _minify_js(self) -> None:
         """Minify JavaScript content."""
-        # If a file is already explicitly minified (common for third-party libs),
-        # do not re-minify. This avoids expensive `jsmin()` work and prevents
-        # unnecessary content churn.
-        if self.source_path.name.endswith(".min.js"):
-            return
-        try:
-            from jsmin import jsmin
-
-            with open(self.source_path, encoding="utf-8") as f:
-                js_content = f.read()
-
-            minified_content = jsmin(js_content)
-            self._minified_content = minified_content
-        except ImportError:
-            emit_diagnostic(self, "warning", "jsmin_unavailable", source=str(self.source_path))
-
-    def _hash_source_chunks(self) -> Iterator[bytes]:
-        """
-        Yield byte chunks representing the content that should drive fingerprinting.
-
-        Prefers minified (or bundled) content so hashes match the bytes we actually emit.
-        Falls back to the original file contents when no in-memory transform exists.
-        """
-        if self._minified_content is not None:
-            yield self._minified_content.encode("utf-8")
-            return
-
-        if self._bundled_content is not None:
-            yield self._bundled_content.encode("utf-8")
-            return
-
-        with open(self.source_path, "rb") as f:
-            while chunk := f.read(8192):
-                yield chunk
+        result = asset_io_minify_js(self.source_path, context=self)
+        if result is not None:
+            self._minified_content = result
 
     def hash(self) -> str:
         """
@@ -466,12 +258,7 @@ class Asset:
         Returns:
             Hash string (first 8 characters of SHA256)
         """
-        # Performance: stream the hash computation to avoid allocating the entire
-        # asset bytes in memory (many assets, some large).
-        hasher = hashlib.sha256()
-        for chunk in self._hash_source_chunks():
-            hasher.update(chunk)
-        self.fingerprint = hasher.hexdigest()[:8]
+        self.fingerprint = hash_content_from_source(self)
         return self.fingerprint
 
     def optimize(self) -> Asset:
@@ -489,39 +276,7 @@ class Asset:
 
     def _optimize_image(self) -> None:
         """Optimize image assets."""
-        if self.source_path.suffix.lower() == ".svg":
-            # Skip SVG optimization - vector format, no raster compression needed
-            emit_diagnostic(self, "debug", "svg_optimization_skipped", source=str(self.source_path))
-            self.optimized = True
-            return
-
-        try:
-            from PIL import Image
-            from PIL.Image import Image as PILImage
-
-            img: PILImage = Image.open(self.source_path)
-
-            # Basic optimization - could be expanded
-            if img.mode in ("RGBA", "LA"):
-                # Keep alpha channel
-                pass
-            else:
-                # Convert to RGB if needed
-                img = img.convert("RGB")
-
-            # Store optimized image (would be saved during copy_to_output)
-            self._optimized_image = img
-        except ImportError:
-            emit_diagnostic(self, "warning", "pillow_unavailable", source=str(self.source_path))
-        except Exception as e:
-            emit_diagnostic(
-                self,
-                "warning",
-                "image_optimization_failed",
-                source=str(self.source_path),
-                error=str(e),
-                error_type=type(e).__name__,
-            )
+        self._optimized_image = asset_io_optimize_image(self.source_path, context=self)
 
     def copy_to_output(self, output_dir: Path, use_fingerprint: bool = True) -> Path:
         """
@@ -534,179 +289,7 @@ class Asset:
         Returns:
             Path where the asset was copied
         """
-        # Only generate fingerprint if explicitly requested
-        if use_fingerprint:
-            if not self.fingerprint:
-                self.hash()
-            # Clean up old fingerprints after generating new one, before writing
-            self._cleanup_old_fingerprints_prepare(output_dir)
-
-        # Determine output filename
-        if use_fingerprint and self.fingerprint:
-            out_name = f"{self.source_path.stem}.{self.fingerprint}{self.source_path.suffix}"
-        else:
-            out_name = self.source_path.name
-
-        # Determine output path maintaining directory structure
-        if self.output_path:
-            # Insert fingerprint into filename while preserving directory structure
-            parent = (output_dir / self.output_path).parent
-            output_path = parent / out_name
-        else:
-            output_path = output_dir / out_name
-
-        # Create parent directories
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Copy or write optimized/minified content atomically
-        if self._minified_content is not None:
-            # Write minified content atomically (crash-safe)
-            from bengal.utils.io.atomic_write import atomic_write_text
-
-            atomic_write_text(
-                output_path,
-                self._minified_content,
-                encoding="utf-8",
-                ensure_parent=False,  # parent dir already ensured above
-            )
-        elif self._optimized_image is not None:
-            # Save optimized image atomically using unique temp file to prevent race conditions
-            import os
-            import threading
-            import uuid
-
-            pid = os.getpid()
-            tid = threading.get_ident()
-            unique_id = uuid.uuid4().hex[:8]
-            tmp_path = output_path.parent / f".{output_path.name}.{pid}.{tid}.{unique_id}.tmp"
-            try:
-                # Determine image format from original file extension (not .tmp)
-                img_format = None
-                ext = output_path.suffix.upper().lstrip(".")
-                if ext in ("JPG", "JPEG"):
-                    img_format = "JPEG"
-                elif ext in ("PNG", "GIF", "WEBP"):
-                    img_format = ext
-
-                self._optimized_image.save(tmp_path, format=img_format, optimize=True, quality=85)
-                tmp_path.replace(output_path)
-            except Exception as e:
-                emit_diagnostic(
-                    self,
-                    "error",
-                    "atomic_image_save_failed",
-                    path=str(output_path),
-                    error=str(e),
-                    error_type=type(e).__name__,
-                )
-                tmp_path.unlink(missing_ok=True)
-                raise
-        else:
-            # Atomic copy using temporary file and rename (crash-safe)
-            import os
-            import threading
-            import uuid
-
-            pid = os.getpid()
-            tid = threading.get_ident()
-            unique_id = uuid.uuid4().hex[:8]
-            tmp_path = output_path.parent / f".{output_path.name}.{pid}.{tid}.{unique_id}.tmp"
-            try:
-                shutil.copy2(self.source_path, tmp_path)
-                tmp_path.replace(output_path)
-            except Exception as e:
-                emit_diagnostic(
-                    self,
-                    "error",
-                    "atomic_asset_copy_failed",
-                    source=str(self.source_path),
-                    target=str(output_path),
-                    error=str(e),
-                    error_type=type(e).__name__,
-                )
-                tmp_path.unlink(missing_ok=True)
-                raise
-
-        self.output_path = output_path
-        return output_path
-
-    def _cleanup_old_fingerprints_prepare(self, output_dir: Path) -> None:
-        """
-        Remove outdated fingerprinted siblings before writing the new file.
-
-        This ensures only one fingerprinted version exists at a time, preventing
-        stale files from being served.
-
-        Args:
-            output_dir: Output directory where assets are written
-        """
-        try:
-            site = getattr(self, "_site", None)
-            if site is not None and bool(getattr(site, "config", {}).get("_clean_output_this_run")):
-                # Clean output implies no stale fingerprints can exist.
-                return
-
-            # Determine where the file will be written
-            parent = (output_dir / self.output_path).parent if self.output_path else output_dir
-
-            if not parent.exists():
-                return  # Directory doesn't exist yet, nothing to clean
-
-            # Track if we successfully cleaned up via manifest lookup
-            manifest_cleanup_done = False
-
-            # Performance: if we have the previous manifest loaded, delete the exact
-            # stale fingerprinted output path (if any) instead of scanning directories.
-            if site is not None:
-                try:
-                    # Prefer BuildState (fresh each build), fall back to Site
-                    _bs = getattr(site, "build_state", None)
-                    prev: AssetManifest | None = (
-                        getattr(_bs, "asset_manifest_previous", None)
-                        if _bs is not None
-                        else getattr(site, "_asset_manifest_previous", None)
-                    )
-                    if prev is not None and self.logical_path is not None:
-                        logical_str = self.logical_path.as_posix()
-                        prev_entry = prev.get(logical_str)
-                        if prev_entry is not None and prev_entry.output_path:
-                            old_full = Path(site.output_dir) / Path(prev_entry.output_path)
-                            if (
-                                old_full.exists()
-                                and self.fingerprint is not None
-                                and not old_full.name.endswith(
-                                    f".{self.fingerprint}{self.source_path.suffix}"
-                                )
-                            ):
-                                old_full.unlink(missing_ok=True)
-                                manifest_cleanup_done = True
-                except Exception:
-                    # Best-effort only; fall back to directory scan.
-                    pass
-
-            # If manifest cleanup was successful, we're done
-            if manifest_cleanup_done:
-                return
-
-            # Find all existing fingerprinted versions of this asset (fallback/safety)
-            pattern = f"{self.source_path.stem}.*{self.source_path.suffix}"
-            for candidate in parent.glob(pattern):
-                # Skip if this is the file we're about to write (fingerprint already generated)
-                if self.fingerprint and candidate.name.endswith(
-                    f".{self.fingerprint}{self.source_path.suffix}"
-                ):
-                    continue
-                # Remove stale fingerprints (not the current one).
-                # This prevents serving older fingerprinted assets after an update.
-                candidate.unlink(missing_ok=True)
-        except Exception as exc:  # pragma: no cover - best-effort cleanup
-            emit_diagnostic(
-                self,
-                "debug",
-                "asset_fingerprint_cleanup_failed",
-                asset=str(self.source_path),
-                error=str(exc),
-            )
+        return asset_io_copy_to_output(self, output_dir, use_fingerprint, context=self)
 
     @property
     def href(self) -> str:
