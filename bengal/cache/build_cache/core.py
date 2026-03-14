@@ -154,6 +154,19 @@ class BuildCache(
 
     last_build: str | None = None
 
+    def get_page_tags(self, key: str | Path) -> set[str]:
+        """Get tags for a page from taxonomy index (public API)."""
+        page_key = str(key) if isinstance(key, Path) else key
+        return self.taxonomy_index.get_previous_tags(page_key)
+
+    def update_page_tags(self, key: str | Path, tags: set[str]) -> set[str]:
+        """Update tags for a page in taxonomy index (public API)."""
+        return self.taxonomy_index.update_page_tags(key, tags)
+
+    def remove_page_tags(self, key: str | Path) -> None:
+        """Remove a page from taxonomy index (public API)."""
+        self.taxonomy_index.remove_page(key)
+
     def cache_key(self, source_path: Path) -> CacheKey:
         """
         Canonical cache key for a path (content_key when site_root set).
@@ -695,7 +708,7 @@ class BuildCache(
             deps.discard(file_key)
 
         # Remove page tags
-        self.taxonomy_index.page_tags.pop(file_key, None)
+        self.remove_page_tags(file_key)
 
         # Remove parsed content cache
         self.parsed_content.pop(file_key, None)

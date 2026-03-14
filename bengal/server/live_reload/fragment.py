@@ -8,6 +8,10 @@ from __future__ import annotations
 
 import re
 
+from bengal.utils.observability.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def extract_main_content(html: str, selector: str = "#main-content") -> str:
     """Extract inner HTML of the first element matching the selector.
@@ -30,6 +34,7 @@ def extract_main_content(html: str, selector: str = "#main-content") -> str:
 
     id_match = re.search(r"#([a-zA-Z][\w-]*)", selector)
     if not id_match:
+        logger.debug("fragment_extraction_unsupported_selector", selector=selector)
         return ""
 
     elem_id = id_match.group(1)
@@ -40,6 +45,7 @@ def extract_main_content(html: str, selector: str = "#main-content") -> str:
     )
     match = open_tag.search(html)
     if not match:
+        logger.debug("fragment_extraction_not_found", selector=selector)
         return ""
 
     tag_name = match.group(1)
@@ -69,4 +75,5 @@ def extract_main_content(html: str, selector: str = "#main-content") -> str:
         else:
             i = next_lt + 1
 
+    logger.debug("fragment_extraction_unclosed_tag", selector=selector)
     return ""

@@ -238,8 +238,6 @@ class AssetOrchestrator:
         _bs = self.site.build_state
         if _bs is not None:
             _bs.asset_manifest_previous = prev_manifest
-        else:
-            self.site._asset_manifest_previous = prev_manifest
 
         # Separate CSS entry points, CSS modules, and other assets
         css_entries = [a for a in assets if a.is_css_entry_point()]

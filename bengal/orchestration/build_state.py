@@ -115,6 +115,13 @@ class BuildState:
     asset_manifest_previous: Any = None
     asset_manifest_fallbacks: set[str] = field(default_factory=set)
 
+    # Build options and cache (phase-level optimizations)
+    last_build_options: Any = None
+    cache: Any = None
+
+    # Dev menu metadata (exclude_sections, github_bundled) for template access
+    dev_menu_metadata: dict[str, Any] = field(default_factory=dict)
+
     # Thread-safe locks - guarded by _locks_guard for atomic creation
     _locks: dict[str, Lock] = field(default_factory=dict)
     _locks_guard: Lock = field(default_factory=Lock)

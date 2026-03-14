@@ -100,8 +100,7 @@ def cleanup_deleted_files(site: Site, cache: BuildCache) -> int:
         # Remove from file_fingerprints (file_hashes is a compatibility property)
         if source_path_str in cache.file_fingerprints:
             del cache.file_fingerprints[source_path_str]
-        if source_path_str in cache.taxonomy_index.page_tags:
-            del cache.taxonomy_index.page_tags[source_path_str]
+        cache.remove_page_tags(source_path_str)
         if source_path_str in cache.parsed_content:
             del cache.parsed_content[source_path_str]
 

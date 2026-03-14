@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from patitas import parse_frontmatter
 
+from bengal.build.contracts.keys import CacheKey, content_key
 from bengal.core.output import BuildOutputCollector
 from bengal.protocols import SiteLike
 from bengal.rendering.pipeline.core import RenderingPipeline
@@ -117,18 +118,33 @@ class ReactiveContentHandler:
     def _find_page(self, path: Path) -> PageLike | None:
         """Find page in site.pages matching the given source path.
 
-        Uses a lazily-built index for O(1) lookup. Index is invalidated
-        automatically since ReactiveContentHandler is instantiated fresh
-        per trigger.
+        Uses content_key for canonical lookup (matches BuildCache normalization).
+        Falls back to Path.resolve() on miss for transition-period compatibility.
+        Index is invalidated automatically since ReactiveContentHandler is
+        instantiated fresh per trigger.
         """
+        site_root = self.site.root_path
         if not hasattr(self, "_page_index"):
-            self._page_index: dict[Path, PageLike] = {}
+            self._page_index: dict[CacheKey, PageLike] = {}
             for page in self.site.pages:
                 try:
-                    self._page_index[Path(page.source_path).resolve()] = page
+                    key = content_key(Path(page.source_path), site_root)
+                    self._page_index[key] = page
                 except OSError, ValueError, TypeError:
                     continue
         try:
-            return self._page_index.get(path.resolve())
+            key = content_key(path, site_root)
+            page = self._page_index.get(key)
+            if page is not None:
+                return page
+            # Fallback: resolve-based lookup for transition-period compatibility
+            resolved = path.resolve()
+            for p in self._page_index.values():
+                try:
+                    if Path(p.source_path).resolve() == resolved:
+                        return p
+                except OSError, ValueError:
+                    continue
+            return None
         except OSError, ValueError:
             return None

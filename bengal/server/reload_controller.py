@@ -46,7 +46,7 @@ from bengal:content-hash meta tags for accurate change detection:
 3. Aggregate-only changes (sitemap, feeds) don't trigger reload
 
 Related:
-- bengal/server/build_trigger.py: Calls decide_and_update after builds
+- bengal/server/build_trigger.py: Uses decide_from_outputs / decide_from_changed_paths
 - bengal/server/live_reload.py: Sends reload events to connected clients
 - bengal/utils/hashing.py: Content hashing for suspect verification
 - bengal/rendering/pipeline/output.py: Content hash embedding
@@ -336,9 +336,10 @@ class ReloadController:
         """
         Capture content hashes before build for comparison.
 
-        RFC: Output Cache Architecture - MUST be called BEFORE build starts
-        to establish baseline. Build writes may overlap with this scan if
-        called during build.
+        RFC: Output Cache Architecture - Callers MUST invoke before build
+        starts, never during build. Current call site in BuildTrigger
+        guarantees this (capture_content_hash_baseline → site.build() →
+        decide_with_content_hashes).
 
         Args:
             output_dir: Path to output directory (e.g., public/)

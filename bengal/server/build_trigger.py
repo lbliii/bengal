@@ -355,6 +355,11 @@ class BuildTrigger:
                             )
                             send_fragment_payload(content_selector, fragment, permalink)
                         else:
+                            logger.warning(
+                                "fragment_extraction_empty",
+                                selector=content_selector,
+                                path=str(single_result.output_path),
+                            )
                             self._handle_reload(
                                 BuildReloadInfo(
                                     changed_files=tuple(changed_files),
@@ -377,6 +382,12 @@ class BuildTrigger:
                                 reason="multi-page-content",
                             )
                         else:
+                            paths_str = ", ".join(str(res.output_path) for _, res in results)
+                            logger.warning(
+                                "fragment_extraction_empty",
+                                selector=content_selector,
+                                path=paths_str,
+                            )
                             self._handle_reload(
                                 BuildReloadInfo(
                                     changed_files=tuple(changed_files),

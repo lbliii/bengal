@@ -19,7 +19,7 @@ bundle.py: Free functions for bundle detection and resource access
 relationships.py: PageRelationshipsMixin (prev/next, related)
 proxy.py: PageProxy for lazy loading
 utils.py: Field separation utilities
-(PageOperationsMixin moved to bengal.rendering.page_operations)
+operations.py: PageOperationsMixin (render, validate_links, extract_links)
 
 Key Concepts:
 Mixin Architecture: Page combines focused mixins for separation of
@@ -67,15 +67,11 @@ if TYPE_CHECKING:
     from bengal.parsing.ast.types import ASTNode
     from bengal.utils.pagination import Paginator
 
-# Import PageOperationsMixin from rendering layer where it logically belongs.
-# This is an intentional cross-layer import - the mixin contains rendering logic
-# that is mixed into the Page class for API convenience.
-from bengal.rendering.page_operations import PageOperationsMixin
-
 from .bundle import BundleType, PageResource, PageResources
 from .content import PageContentMixin
 from .frontmatter import Frontmatter
 from .metadata import PageMetadataMixin
+from .operations import PageOperationsMixin
 from .page_core import PageCore
 from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin

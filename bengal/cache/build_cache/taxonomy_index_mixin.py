@@ -155,6 +155,22 @@ class BuildTaxonomyIndex:
         """
         return self.tag_to_pages.get(tag_slug, set()).copy()
 
+    def remove_page(self, page_path: Path | str) -> None:
+        """
+        Remove a page from the taxonomy index (forward and inverted).
+
+        Call when a page is deleted to keep indexes consistent.
+        """
+        page_path_str = str(page_path) if isinstance(page_path, Path) else page_path
+        old_tags = self.page_tags.pop(page_path_str, set())
+        old_slugs = {str(tag).lower().replace(" ", "-") for tag in old_tags if tag is not None}
+        for tag_slug in old_slugs:
+            if tag_slug in self.tag_to_pages:
+                self.tag_to_pages[tag_slug].discard(page_path_str)
+                if not self.tag_to_pages[tag_slug]:
+                    del self.tag_to_pages[tag_slug]
+                    self.known_tags.discard(tag_slug)
+
     def get_all_tags(self) -> set[str]:
         """
         Get all known tag slugs from previous build.

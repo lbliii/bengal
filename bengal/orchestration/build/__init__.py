@@ -359,9 +359,9 @@ class BuildOrchestrator:
         # Record resolved mode in stats
         self.stats.incremental = bool(incremental)
 
-        # Store options and cache for phase-level optimizations
-        self.site._last_build_options = options
-        self.site._cache = self.incremental.cache
+        # Store options and cache on BuildState for phase-level optimizations
+        self.site.build_state.last_build_options = options
+        self.site.build_state.cache = self.incremental.cache
         self._last_build_options = options
 
         # Create BuildContext early for content caching during discovery

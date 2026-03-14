@@ -285,8 +285,6 @@ class ContentOrchestrator:
         _bs = self.site.build_state
         if _bs is not None:
             _bs.discovery_timing_ms = breakdown_ms
-        else:
-            self.site._discovery_breakdown_ms = breakdown_ms
 
     def _discover_autodoc_content(
         self, cache: PageDiscoveryCache | None = None, build_cache: Any | None = None
@@ -583,8 +581,9 @@ class ContentOrchestrator:
             assets_dir: Assets directory path (defaults to root_path/assets)
         """
         # Optimization: Skip asset discovery if only content files changed
-        options = getattr(self.site, "_last_build_options", None)
-        cache = getattr(self.site, "_cache", None)
+        _bs = self.site.build_state
+        options = _bs.last_build_options if _bs else None
+        cache = _bs.cache if _bs else None
 
         if (
             options

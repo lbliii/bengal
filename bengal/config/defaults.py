@@ -153,9 +153,10 @@ DEFAULTS: dict[str, Any] = {
     # -------------------------------------------------------------------------
     "dev": {
         "cache_templates": True,
-        "watch_backend": True,
+        "content_selector": "#main-content",
         "live_reload": True,
         "port": 8000,
+        "watch_backend": True,
     },
     # -------------------------------------------------------------------------
     # Static Files

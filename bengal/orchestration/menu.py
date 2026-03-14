@@ -299,18 +299,17 @@ class MenuOrchestrator:
             if dev_bundle:
                 sections_to_exclude.update(dev_bundle.get("_exclude_sections", []))
 
-        # Mark sections to exclude from auto-nav
-        if sections_to_exclude:
-            if self.site._dev_menu_metadata is None:
-                self.site._dev_menu_metadata = {}
-            self.site._dev_menu_metadata["exclude_sections"] = list(sections_to_exclude)
+        # Mark sections to exclude from auto-nav (store on BuildState)
+        _bs = self.site.build_state
+        if sections_to_exclude and _bs is not None:
+            _bs.dev_menu_metadata["exclude_sections"] = list(sections_to_exclude)
 
         # Get auto-discovered sections (will exclude bundled sections)
         auto_items = get_auto_nav(self.site)
 
         # Clear the exclude flag after use
-        if sections_to_exclude and self.site._dev_menu_metadata:
-            self.site._dev_menu_metadata.pop("exclude_sections", None)
+        if sections_to_exclude and _bs is not None:
+            _bs.dev_menu_metadata.pop("exclude_sections", None)
 
         # Build menu items list with deduplication
         menu_items = []
@@ -332,12 +331,11 @@ class MenuOrchestrator:
             self._add_bundle_to_menu(
                 dev_bundle, menu_items, seen_identifiers, seen_urls, seen_names
             )
-            # Store metadata for template
-            if self.site._dev_menu_metadata is None:
-                self.site._dev_menu_metadata = {}
-            self.site._dev_menu_metadata["github_bundled"] = any(
-                item.get("type") == "github" for item in dev_bundle.get("items", [])
-            )
+            # Store metadata for template (on BuildState)
+            if _bs is not None:
+                _bs.dev_menu_metadata["github_bundled"] = any(
+                    item.get("type") == "github" for item in dev_bundle.get("items", [])
+                )
 
         # Process sections with dropdown frontmatter (lowest priority - after bundles)
         menu_items = self._process_dropdown_sections(
