@@ -2,6 +2,7 @@
 OpenAPI documentation extractor.
 
 Extracts documentation from OpenAPI 3.0/3.1 specifications.
+Supports internal (#/), file-relative (./), and URL ($ref) resolution.
 """
 
 from __future__ import annotations
@@ -9,6 +10,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from urllib.request import Request, urlopen
 
 import yaml
 
@@ -45,13 +47,106 @@ class OpenAPIExtractor(Extractor):
     def __init__(self) -> None:
         """Initialize the extractor."""
         self._spec: dict[str, Any] = {}
+        self._spec_dir: Path = Path(".")
+        self._ref_cache: dict[str, Any] = {}
+        self._ref_chain: list[str] = []
 
-    def _resolve_ref(self, ref_or_obj: dict[str, Any]) -> dict[str, Any]:
+    def _apply_json_pointer(self, doc: dict[str, Any], pointer: str) -> Any:
+        """Apply JSON pointer to document. pointer is the path after #/ (unescaped)."""
+        if not pointer or not pointer.strip("/"):
+            return doc
+        parts = pointer.replace("~1", "/").replace("~0", "~").strip("/").split("/")
+        result: Any = doc
+        for part in parts:
+            if isinstance(result, dict) and part in result:
+                result = result[part]
+            elif isinstance(result, list):
+                idx = int(part)
+                result = result[idx] if 0 <= idx < len(result) else None
+            else:
+                return None
+        return result
+
+    def _load_external_doc(self, ref_path: str) -> tuple[Any, Path | None]:
+        """
+        Load external document from file-relative or URL $ref.
+
+        Returns:
+            (loaded_content, base_dir_for_subsequent_refs or None)
+        """
+        base, _, fragment = ref_path.partition("#")
+        fragment = fragment.strip("/") if fragment else ""
+
+        if ref_path in self._ref_cache:
+            cached = self._ref_cache[ref_path]
+            if fragment:
+                result = self._apply_json_pointer(cached, fragment)
+                return (result if isinstance(result, dict) else cached), None
+            return cached, None
+
+        if base.startswith(("http://", "https://")):
+            try:
+                req = Request(base, headers={"User-Agent": "Bengal-OpenAPI-Extractor/1.0"})
+                with urlopen(req, timeout=10) as resp:
+                    content = resp.read().decode("utf-8")
+            except Exception as e:
+                logger.warning("openapi_url_ref_failed", url=base, error=str(e))
+                return {"$ref": ref_path}, None
+
+            if base.endswith((".json", ".json5")):
+                doc = json.loads(content)
+            else:
+                doc = yaml.safe_load(content) or {}
+
+            self._ref_cache[ref_path] = doc
+            if fragment:
+                result = self._apply_json_pointer(doc, fragment)
+                return (result if isinstance(result, dict) else doc), None
+            return doc, None
+
+        # File-relative
+        if not self._spec_dir:
+            logger.warning("openapi_file_ref_no_base", ref=ref_path)
+            return {"$ref": ref_path}, None
+
+        resolved = (self._spec_dir / base).resolve()
+        if not resolved.exists():
+            logger.warning("openapi_file_ref_not_found", path=str(resolved), ref=ref_path)
+            return {"$ref": ref_path}, None
+
+        try:
+            content = resolved.read_text(encoding="utf-8")
+            if resolved.suffix in (".yaml", ".yml"):
+                doc = yaml.safe_load(content)
+            else:
+                doc = json.loads(content)
+        except (yaml.YAMLError, json.JSONDecodeError) as e:
+            logger.warning("openapi_file_ref_parse_failed", path=str(resolved), error=str(e))
+            return {"$ref": ref_path}, None
+
+        doc = doc or {}
+        self._ref_cache[ref_path] = doc
+        new_base = resolved.parent
+
+        if fragment:
+            result = self._apply_json_pointer(doc, fragment)
+            return (result if isinstance(result, dict) else doc), new_base
+        return doc, new_base
+
+    def _resolve_ref(
+        self, ref_or_obj: dict[str, Any], base_dir: Path | None = None
+    ) -> dict[str, Any]:
         """
         Resolve a $ref reference to its actual definition.
 
+        Supports:
+        - Internal: #/components/schemas/User
+        - File-relative: ./schemas/User.yaml
+        - URL: https://example.com/schemas/Pet.yaml
+
         Args:
             ref_or_obj: Either a dict with $ref key, or a regular object
+            base_dir: Base directory for file-relative refs (default: _spec_dir)
 
         Returns:
             Resolved object with actual properties
@@ -63,22 +158,44 @@ class OpenAPIExtractor(Extractor):
             return ref_or_obj
 
         ref_path = ref_or_obj["$ref"]
-        if not ref_path.startswith("#/"):
-            # External references not supported
-            logger.warning(f"External $ref not supported: {ref_path}")
+        if ref_path.startswith("#/"):
+            parts = ref_path[2:].replace("~1", "/").replace("~0", "~").split("/")
+            result = self._spec
+            for part in parts:
+                if isinstance(result, dict) and part in result:
+                    result = result[part]
+                else:
+                    logger.warning("openapi_ref_unresolved", ref=ref_path)
+                    return ref_or_obj
+            return result if isinstance(result, dict) else ref_or_obj
+
+        # External ref
+        if ref_path in self._ref_chain:
+            logger.warning(
+                "openapi_circular_ref",
+                ref=ref_path,
+                chain=" -> ".join([*self._ref_chain, ref_path]),
+            )
             return ref_or_obj
 
-        # Parse the JSON pointer (e.g., "#/components/parameters/UserId")
-        parts = ref_path[2:].split("/")  # Remove "#/" and split
-        result = self._spec
-        for part in parts:
-            if isinstance(result, dict) and part in result:
-                result = result[part]
-            else:
-                logger.warning(f"Could not resolve $ref: {ref_path}")
-                return ref_or_obj
+        base_dir = base_dir or self._spec_dir
+        prev_dir = self._spec_dir
+        if base_dir:
+            self._spec_dir = base_dir
+        self._ref_chain.append(ref_path)
 
-        return result if isinstance(result, dict) else ref_or_obj
+        try:
+            loaded, new_base = self._load_external_doc(ref_path)
+            if isinstance(loaded, dict) and loaded.get("_circular"):
+                return ref_or_obj
+            if isinstance(loaded, dict) and "$ref" in loaded and "_circular" not in loaded:
+                # Resolve nested $ref with new base
+                nested = self._resolve_ref(loaded, new_base or base_dir)
+                return nested if isinstance(nested, dict) else ref_or_obj
+            return loaded if isinstance(loaded, dict) else ref_or_obj
+        finally:
+            self._ref_chain.pop()
+            self._spec_dir = prev_dir
 
     def extract(self, source: Path) -> list[DocElement]:
         """
@@ -125,8 +242,11 @@ class OpenAPIExtractor(Extractor):
                 code=ErrorCode.O003,
             ) from e
 
-        # Store spec for $ref resolution
+        # Store spec and resolution context for $ref
         self._spec = spec
+        self._spec_dir = source.parent.resolve()
+        self._ref_cache.clear()
+        self._ref_chain.clear()
 
         elements: list[DocElement] = []
 
@@ -337,7 +457,11 @@ class OpenAPIExtractor(Extractor):
             return {}
         if "$ref" in schema:
             resolved = self._resolve_ref(schema)
-            return self._resolve_schema(resolved) if isinstance(resolved, dict) else {}
+            if not isinstance(resolved, dict):
+                return {}
+            if "$ref" in resolved:
+                return {}  # Unresolved or circular: break to avoid infinite recursion
+            return self._resolve_schema(resolved)
         if "allOf" in schema:
             merged: dict[str, Any] = {
                 "type": schema.get("type"),

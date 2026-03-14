@@ -428,7 +428,158 @@ paths: {}
     assert "users" in tag_names
 
 
-# --- External $ref (graceful fallback) ---
+# --- File-relative $ref ---
+
+
+def test_extract_file_relative_ref(tmp_path: Path) -> None:
+    """File-relative $ref resolves to external file."""
+    schemas_dir = tmp_path / "schemas"
+    schemas_dir.mkdir()
+    (schemas_dir / "User.yaml").write_text(
+        """
+type: object
+properties:
+  id:
+    type: string
+  email:
+    type: string
+required: [id]
+""",
+        encoding="utf-8",
+    )
+
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """
+openapi: 3.1.0
+info:
+  title: API
+  version: "1.0.0"
+paths:
+  /users:
+    get:
+      summary: List users
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: "./schemas/User.yaml"
+components:
+  schemas:
+    User:
+      $ref: "./schemas/User.yaml"
+""",
+        encoding="utf-8",
+    )
+
+    extractor = OpenAPIExtractor()
+    elements = extractor.extract(spec_path)
+
+    schemas = [e for e in elements if e.element_type == "openapi_schema"]
+    assert len(schemas) == 1
+    assert schemas[0].name == "User"
+    props = schemas[0].metadata.get("properties", {})
+    assert "id" in props
+    assert "email" in props
+
+
+def test_extract_file_relative_ref_with_fragment(tmp_path: Path) -> None:
+    """File-relative $ref with JSON pointer fragment."""
+    schemas_dir = tmp_path / "schemas"
+    schemas_dir.mkdir()
+    (schemas_dir / "common.yaml").write_text(
+        """
+components:
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+""",
+        encoding="utf-8",
+    )
+
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """
+openapi: 3.1.0
+info:
+  title: API
+  version: "1.0.0"
+components:
+  schemas:
+    User:
+      $ref: "./schemas/common.yaml#/components/schemas/User"
+""",
+        encoding="utf-8",
+    )
+
+    extractor = OpenAPIExtractor()
+    elements = extractor.extract(spec_path)
+
+    schemas = [e for e in elements if e.element_type == "openapi_schema"]
+    assert len(schemas) == 1
+    assert schemas[0].name == "User"
+    props = schemas[0].metadata.get("properties", {})
+    assert "id" in props
+    assert "name" in props
+
+
+# --- Circular $ref ---
+
+
+def test_circular_ref_emits_diagnostic(tmp_path: Path) -> None:
+    """Circular $ref logs diagnostic and does not crash."""
+    schemas_dir = tmp_path / "schemas"
+    schemas_dir.mkdir()
+    (schemas_dir / "A.yaml").write_text(
+        """
+type: object
+properties:
+  b:
+    $ref: "./B.yaml"
+""",
+        encoding="utf-8",
+    )
+    (schemas_dir / "B.yaml").write_text(
+        """
+type: object
+properties:
+  a:
+    $ref: "./A.yaml"
+""",
+        encoding="utf-8",
+    )
+
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """
+openapi: 3.1.0
+info:
+  title: API
+  version: "1.0.0"
+components:
+  schemas:
+    A:
+      $ref: "./schemas/A.yaml"
+""",
+        encoding="utf-8",
+    )
+
+    extractor = OpenAPIExtractor()
+    elements = extractor.extract(spec_path)
+    # Should not crash; circular ref emits diagnostic
+    assert len(elements) >= 1
+    overview = next(e for e in elements if e.element_type == "openapi_overview")
+    assert overview.name == "API"
+
+
+# --- External URL $ref (graceful fallback) ---
 
 
 def test_external_ref_returns_unresolved(tmp_path: Path) -> None:
