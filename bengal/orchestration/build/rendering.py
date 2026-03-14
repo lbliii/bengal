@@ -467,6 +467,8 @@ def phase_render(
 
         # All rendering happens inside asset_manifest_context
         # Each thread reads from ContextVar - no locks needed (thread-safe by design)
+        # RFC: rfc-build-orchestrator-phase-groups — use early_context directly when
+        # provided (no second BuildContext). Caller populates pages, profile, etc.
         with asset_manifest_context(asset_ctx):
             # Use memory-optimized streaming if requested
             if memory_optimized:
@@ -474,24 +476,19 @@ def phase_render(
                 from bengal.orchestration.streaming import StreamingRenderOrchestrator
 
                 streaming_render = StreamingRenderOrchestrator(orchestrator.site)
-                ctx = BuildContext(
-                    site=orchestrator.site,
-                    pages=pages_to_build,
-                    stats=orchestrator.stats,
-                    profile=profile,
-                    progress_manager=progress_manager,
-                    reporter=reporter,
-                    profile_templates=profile_templates,
-                    incremental=bool(incremental),
-                    output_collector=collector,
-                )
-                # Transfer cached content from early context (build-integrated validation)
-                if early_context and early_context.has_cached_content:
-                    ctx._page_contents = early_context._page_contents
-                # Transfer incremental state (changed pages) for validators.
                 if early_context is not None:
-                    ctx.changed_page_paths = set(
-                        getattr(early_context, "changed_page_paths", set())
+                    ctx = early_context
+                else:
+                    ctx = BuildContext(
+                        site=orchestrator.site,
+                        pages=pages_to_build,
+                        stats=orchestrator.stats,
+                        profile=profile,
+                        progress_manager=progress_manager,
+                        reporter=reporter,
+                        profile_templates=profile_templates,
+                        incremental=bool(incremental),
+                        output_collector=collector,
                     )
                 ctx.asset_manifest_ctx = asset_ctx  # For postprocess (special pages)
                 # Compute parallel mode: use should_parallelize() unless force_sequential=True
@@ -513,29 +510,20 @@ def phase_render(
             else:
                 from bengal.orchestration.build_context import BuildContext
 
-                ctx = BuildContext(
-                    site=orchestrator.site,
-                    pages=pages_to_build,
-                    stats=orchestrator.stats,
-                    profile=profile,
-                    progress_manager=progress_manager,
-                    reporter=reporter,
-                    profile_templates=profile_templates,
-                    incremental=bool(incremental),
-                    output_collector=collector,
-                )
-                # Transfer cached content from early context (build-integrated validation)
-                if early_context and early_context.has_cached_content:
-                    ctx._page_contents = early_context._page_contents
-                # Transfer incremental state (changed pages) for validators.
                 if early_context is not None:
-                    ctx.changed_page_paths = set(
-                        getattr(early_context, "changed_page_paths", set())
+                    ctx = early_context
+                else:
+                    ctx = BuildContext(
+                        site=orchestrator.site,
+                        pages=pages_to_build,
+                        stats=orchestrator.stats,
+                        profile=profile,
+                        progress_manager=progress_manager,
+                        reporter=reporter,
+                        profile_templates=profile_templates,
+                        incremental=bool(incremental),
+                        output_collector=collector,
                     )
-                # Transfer snapshot from early context (RFC: rfc-bengal-snapshot-engine)
-                if early_context and hasattr(early_context, "snapshot"):
-                    ctx.snapshot = early_context.snapshot
-
                 ctx.asset_manifest_ctx = asset_ctx  # For postprocess (special pages)
 
                 # Compute parallel mode: use should_parallelize() unless force_sequential=True
