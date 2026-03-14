@@ -176,7 +176,6 @@
   box-shadow: var(--neumorphic-base);
   overflow: hidden;
   transition:
-    transform var(--motion-medium) var(--ease-out),
     box-shadow var(--motion-medium) var(--ease-out),
     border-color var(--motion-fast);
   height: 100%;
@@ -184,7 +183,6 @@
 }
 
 .hub-card:hover {
-  transform: translateY(-4px);
   border-color: var(--color-primary);
   box-shadow: var(--neumorphic-hover);
 }

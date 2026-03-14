@@ -80,7 +80,7 @@ Kida Features:
 {% let method = meta?.method ?? 'GET' %}
 {% let path = meta?.path ?? '/' %}
 {% let response_example = get_response_example(responses, '200') %}
-{% if interactive %}
+{% if interactive ?? false %}
 {% include 'autodoc/openapi/partials/try-it-panel.html' %}
 {% end %}
 {% include 'autodoc/openapi/partials/code-samples.html' %}

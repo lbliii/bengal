@@ -304,40 +304,51 @@ class BuildTrigger:
 
             # Reactive path: content-only edit skips full build
             if not needs_full_rebuild and self._can_use_reactive_path(changed_paths, event_types):
-                path = next(iter(changed_paths))
                 from bengal.core.output import OutputType
                 from bengal.server.reactive import ReactiveContentHandler
                 from bengal.server.reload_types import SerializedOutputRecord
 
                 handler = ReactiveContentHandler(self.site, self.site.output_dir)
                 try:
-                    result = handler.handle_content_change(path)
-                    if result is not None:
-                        output_path = result.output_path
-                        # Use path relative to output_dir (matches full build)
+                    results: list[tuple[Path, Any]] = []
+                    for path in changed_paths:
+                        result = handler.handle_content_change(path)
+                        if result is None:
+                            raise RuntimeError(f"reactive failed for {path}")
+                        results.append((result.output_path, result))
+
+                    # Build changed_outputs for reload decision
+                    changed_outputs_list = []
+                    for output_path, _ in results:
                         rel_path = output_path
                         if output_path.is_absolute() and self.site.output_dir:
                             with suppress(ValueError):
                                 rel_path = output_path.relative_to(self.site.output_dir)
-                        changed_outputs = (
+                        changed_outputs_list.append(
                             SerializedOutputRecord(
                                 path=str(rel_path),
                                 type_value=OutputType.HTML.value,
                                 phase="render",
-                            ),
+                            )
                         )
+                    changed_outputs = tuple(changed_outputs_list)
 
-                        # Fragment path: extract #main-content from in-memory
-                        # rendered HTML (zero-disk — no read-back from disk)
-                        dev_config = config_dict.get("dev", {}) or {}
-                        content_selector = dev_config.get("content_selector", "#main-content")
-                        from bengal.server.live_reload.fragment import extract_main_content
-                        from bengal.server.live_reload.notification import send_fragment_payload
-                        from bengal.utils.paths.url_strategy import URLStrategy
+                    dev_config = config_dict.get("dev", {}) or {}
+                    content_selector = dev_config.get("content_selector", "#main-content")
+                    from bengal.server.live_reload.fragment import extract_main_content
+                    from bengal.server.live_reload.notification import send_fragment_payload
+                    from bengal.utils.paths.url_strategy import URLStrategy
 
-                        fragment = extract_main_content(result.rendered_html, content_selector)
+                    # Single page: fragment swap; multi-page: full reload
+                    if len(results) == 1:
+                        _, single_result = results[0]
+                        fragment = extract_main_content(
+                            single_result.rendered_html, content_selector
+                        )
                         if fragment:
-                            permalink = URLStrategy.url_from_output_path(output_path, self.site)
+                            permalink = URLStrategy.url_from_output_path(
+                                single_result.output_path, self.site
+                            )
                             send_fragment_payload(content_selector, fragment, permalink)
                         else:
                             self._handle_reload(
@@ -347,8 +358,17 @@ class BuildTrigger:
                                     reload_hint=None,
                                 )
                             )
-                        self._clear_html_cache()
-                        return
+                    else:
+                        # Multi-file: full reload (fragments action deferred)
+                        self._handle_reload(
+                            BuildReloadInfo(
+                                changed_files=tuple(changed_files),
+                                changed_outputs=changed_outputs,
+                                reload_hint=None,
+                            )
+                        )
+                    self._clear_html_cache()
+                    return
                 except Exception as e:
                     logger.warning(
                         "reactive_path_failed",
@@ -627,13 +647,20 @@ class BuildTrigger:
         Content-only = frontmatter unchanged, body changed. Safe for leaf AND
         section pages. Cascade, nav, and structure keys are in frontmatter;
         if unchanged, no downstream impact.
+
+        Phase 2: Allows multiple .md files when all are modified and content-only,
+        up to REACTIVE_BATCH_MAX (beyond that, full build is faster).
         """
-        if len(changed_paths) != 1 or event_types != {"modified"}:
+        if event_types != {"modified"}:
             return False
-        path = next(iter(changed_paths))
-        if path.suffix.lower() not in {".md", ".markdown"}:
+        md_paths = [p for p in changed_paths if p.suffix.lower() in {".md", ".markdown"}]
+        if not md_paths or len(md_paths) != len(changed_paths):
             return False
-        return self._is_content_only_change(path)
+        from bengal.orchestration.constants import REACTIVE_BATCH_MAX
+
+        if len(md_paths) > REACTIVE_BATCH_MAX:
+            return False
+        return all(self._is_content_only_change(p) for p in md_paths)
 
     def _is_shared_content_change(self, changed_paths: set[Path]) -> bool:
         """

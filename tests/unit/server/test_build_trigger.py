@@ -82,14 +82,40 @@ class TestBuildTrigger:
     def test_can_use_reactive_path_rejects_multiple_files(
         self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
     ) -> None:
-        """Test that _can_use_reactive_path returns False for multiple files."""
+        """Test that _can_use_reactive_path returns False when not all content-only."""
         a = tmp_path / "a.md"
         b = tmp_path / "b.md"
         a.write_text("---\ntitle: A\n---\nA")
         b.write_text("---\ntitle: B\n---\nB")
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
+        # No cache: _is_content_only_change returns False for both
         assert trigger._can_use_reactive_path({a, b}, {"modified"}) is False
+
+    def test_can_use_reactive_path_multi_file_content_only(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Test that _can_use_reactive_path returns True for multi-file content-only."""
+        a = tmp_path / "content" / "a.md"
+        b = tmp_path / "content" / "b.md"
+        a.parent.mkdir(parents=True)
+        a.write_text("---\ntitle: A\n---\nBody A")
+        b.write_text("---\ntitle: B\n---\nBody B")
+
+        page_a = MagicMock()
+        page_a.source_path = a
+        page_b = MagicMock()
+        page_b.source_path = b
+        mock_site.pages = [page_a, page_b]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page_a, page_b])
+
+        # Edit body only in both
+        a.write_text("---\ntitle: A\n---\nBody A edited")
+        b.write_text("---\ntitle: B\n---\nBody B edited")
+
+        assert trigger._can_use_reactive_path({a, b}, {"modified"}) is True
 
     def test_can_use_reactive_path_rejects_created_event(
         self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path

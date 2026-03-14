@@ -29,6 +29,9 @@ from __future__ import annotations
 
 # Frontmatter keys that affect navigation and require section-wide rebuilds when changed.
 # Other metadata changes (like tags, description, custom fields) only require page-only rebuilds.
+# Max markdown files for batch reactive path (beyond this, full build is faster)
+REACTIVE_BATCH_MAX = 10
+
 NAV_AFFECTING_KEYS: frozenset[str] = frozenset(
     {
         # Page identity and URL

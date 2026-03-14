@@ -49,22 +49,23 @@ Context:
       </button>
     </div>
 
-    {% if auth_config and (auth_config.api_key or auth_config.bearer) %}
+    {% with _auth = auth_config ?? {} %}
+    {% if _auth.api_key or _auth.bearer %}
     <details class="api-try-it__auth" data-try-it-auth>
       <summary>Authentication</summary>
-      {% if auth_config.api_key %}
+      {% if _auth.api_key %}
       <div class="api-try-it__auth-row">
         <label for="try-it-api-key-{{ path_slug }}">API Key</label>
         <input
           type="password"
           id="try-it-api-key-{{ path_slug }}"
-          placeholder="{{ auth_config.api_key.name ?? 'X-API-Key' }}"
+          placeholder="{{ _auth.api_key.name ?? 'X-API-Key' }}"
           data-try-it-api-key
           autocomplete="off"
         />
       </div>
       {% end %}
-      {% if auth_config.bearer %}
+      {% if _auth.bearer %}
       <div class="api-try-it__auth-row">
         <label for="try-it-bearer-{{ path_slug }}">Bearer Token</label>
         <input
@@ -77,6 +78,7 @@ Context:
       </div>
       {% end %}
     </details>
+    {% end %}
     {% end %}
 
     {% if req_body %}
