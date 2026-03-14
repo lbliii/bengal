@@ -30,6 +30,7 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
     # Import pure function implementations
     from bengal.rendering.template_functions.i18n import (
         _current_lang,
+        _direction,
         _languages,
         _make_t,
     )
@@ -63,6 +64,10 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
         """
         return _current_lang(site, None)
 
+    def direction() -> str:
+        """Get text direction for current locale: 'rtl' or 'ltr'."""
+        return _direction(site, None)
+
     def languages() -> list[dict[str, Any]]:
         """Get configured languages list."""
         return _languages(site)
@@ -88,6 +93,7 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
             {
                 "t": t,
                 "current_lang": current_lang,
+                "direction": direction,
                 "languages": languages,
                 "tag_url": tag_url,
                 "asset_url": asset_url,

@@ -59,3 +59,18 @@ def test_build_produces_locale_outputs(site: Site) -> None:
         f"Expected at least 3 index.html (en, es, ar), found {len(index_files)}: "
         f"{[str(p.relative_to(output_dir)) for p in index_files]}"
     )
+
+
+@pytest.mark.bengal(testroot="test-i18n-gettext")
+def test_i18n_status_shows_coverage(site: Site) -> None:
+    """bengal i18n status shows per-locale coverage."""
+    from bengal.i18n.catalog import compute_coverage
+
+    # Keys from templates/nav.html
+    keys = {"Home", "About", "Welcome", "Read more"}
+    localedir = site.root_path / "i18n"
+    for locale in ("en", "es", "ar"):
+        translated, total, missing = compute_coverage(localedir, "messages", locale, keys)
+        assert total == 4
+        assert translated == 4, f"{locale}: expected 4 translated, got {translated}"
+        assert len(missing) == 0

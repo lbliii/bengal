@@ -143,12 +143,36 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     # and context injection for Kida
 
 
+# RTL locales (right-to-left scripts). Config can override via languages[].rtl
+_RTL_LOCALES: frozenset[str] = frozenset({"ar", "he", "fa", "ur", "yi", "dv", "ku", "ps", "sd"})
+
+
 def _current_lang(site: SiteLike, page: PageLike | None = None) -> str | None:
     i18n = site.config.get("i18n", {}) or {}
     default = i18n.get("default_language", "en")
     if page is not None and getattr(page, "lang", None):
         return page.lang
     return getattr(site, "current_language", None) or default
+
+
+def _direction(site: SiteLike, page: PageLike | None = None) -> str:
+    """
+    Return text direction for current locale: 'rtl' or 'ltr'.
+
+    Checks i18n.languages[].rtl first, then known RTL locales (ar, he, fa, etc.).
+    """
+    lang = _current_lang(site, page) or "en"
+    i18n = site.config.get("i18n", {}) or {}
+    for entry in i18n.get("languages", []) or []:
+        if isinstance(entry, dict) and entry.get("code") == lang:
+            if entry.get("rtl") is True:
+                return "rtl"
+            if entry.get("rtl") is False:
+                return "ltr"
+            break
+    # Base code for locales like ar-EG, he-IL
+    base = lang.split("-")[0].split("_")[0].lower()
+    return "rtl" if base in _RTL_LOCALES else "ltr"
 
 
 def _languages(site: SiteLike) -> list[LanguageInfo]:

@@ -42,6 +42,7 @@ def register_context_functions(env: Environment, site: SiteLike) -> None:
     # Import pure function implementations
     from bengal.rendering.template_functions.i18n import (
         _current_lang,
+        _direction,
         _make_t,
     )
 
@@ -76,6 +77,12 @@ def register_context_functions(env: Environment, site: SiteLike) -> None:
         return _current_lang(site, page)
 
     @pass_context
+    def direction(ctx: Any) -> str:
+        """Get text direction for current locale: 'rtl' or 'ltr'."""
+        page = ctx.get("page") if hasattr(ctx, "get") else None
+        return _direction(site, page)
+
+    @pass_context
     def tag_url(ctx: Any, tag: str) -> str:
         """Generate tag URL with locale-aware prefix.
 
@@ -106,6 +113,7 @@ def register_context_functions(env: Environment, site: SiteLike) -> None:
         {
             "t": t,
             "current_lang": current_lang,
+            "direction": direction,
             "tag_url": tag_url,
             "asset_url": asset_url,
         }

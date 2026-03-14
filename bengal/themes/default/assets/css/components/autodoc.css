@@ -99,7 +99,7 @@ article[data-autodoc]>p:first-of-type,
 
 .autodoc-examples-panel-title {
   font-size: var(--text-lg);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   margin-bottom: var(--space-3);
 }
 
@@ -223,7 +223,7 @@ article[data-autodoc]>p:first-of-type,
 }
 
 .autodoc-summary-table th {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-muted);
 }
 
@@ -1008,38 +1008,38 @@ a.autodoc-card span {
 }
 
 .autodoc-method[data-method="get"] {
-  background: #61affe;
-  color: white;
+  background: var(--color-method-get);
+  color: var(--color-text-inverse);
 }
 
 .autodoc-method[data-method="post"] {
-  background: #49cc90;
-  color: white;
+  background: var(--color-method-post);
+  color: var(--color-text-inverse);
 }
 
 .autodoc-method[data-method="put"] {
-  background: #fca130;
-  color: white;
+  background: var(--color-method-put);
+  color: var(--color-text-inverse);
 }
 
 .autodoc-method[data-method="delete"] {
-  background: #f93e3e;
-  color: white;
+  background: var(--color-method-delete);
+  color: var(--color-text-inverse);
 }
 
 .autodoc-method[data-method="patch"] {
-  background: #50e3c2;
-  color: white;
+  background: var(--color-method-patch);
+  color: var(--color-text-inverse);
 }
 
 .autodoc-method[data-method="options"] {
-  background: #0d5aa7;
-  color: white;
+  background: var(--color-method-options);
+  color: var(--color-text-inverse);
 }
 
 .autodoc-method[data-method="head"] {
-  background: #9012fe;
-  color: white;
+  background: var(--color-method-head);
+  color: var(--color-text-inverse);
 }
 
 /* ============================================
@@ -1202,7 +1202,7 @@ body[data-type="autodoc-rest"] #main-content {
 .docs-layout--api-explorer .docs-examples {
   grid-area: examples;
   background: var(--gray-950);
-  border-left: 1px solid rgba(255, 255, 255, 0.05);
+  border-left: 1px solid color-mix(in srgb, var(--white) 5%, transparent);
   overflow-y: auto;
   padding: var(--space-10) var(--space-8);
   position: sticky;
@@ -1222,10 +1222,10 @@ body[data-type="autodoc-rest"] #main-content {
 }
 
 .api-playground-method {
-  font-weight: 800;
-  font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 8px;
+  font-weight: var(--weight-extrabold);
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-2-5);
+  border-radius: var(--radius-lg);
   text-transform: uppercase;
 }
 
@@ -1240,15 +1240,15 @@ body[data-type="autodoc-rest"] #main-content {
 }
 
 .api-playground-button {
-  background: #3064e3;
-  color: white;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
   border: none;
-  padding: 6px 14px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 13px;
+  padding: var(--space-1-5) var(--space-3-5);
+  border-radius: var(--radius-md);
+  font-weight: var(--weight-semibold);
+  font-size: var(--text-sm);
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: opacity var(--transition-fast);
 }
 
 .api-playground-button:hover {
@@ -1270,9 +1270,9 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-param-name {
   font-family: var(--font-mono);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--color-primary);
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
 .api-param-meta {
@@ -1281,24 +1281,24 @@ body[data-type="autodoc-rest"] #main-content {
 }
 
 .api-param-badge {
-  font-size: 10px;
-  font-weight: 600;
-  padding: 2px 6px;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-semibold);
+  padding: var(--space-0-5) var(--space-1-5);
   background: var(--color-bg-tertiary);
   color: var(--color-text-muted);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   text-transform: lowercase;
 }
 
 .api-param-badge[data-required="true"] {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: var(--color-error-bg);
+  color: var(--color-error-text);
 }
 
 .api-param-desc {
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: var(--color-text-secondary);
-  line-height: 1.6;
+  line-height: var(--leading-relaxed);
 }
 
 /* 5. Response Section Styling */
@@ -1313,41 +1313,41 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-response-status {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--text-xs);
   color: var(--color-text-muted);
 }
 
 /* 6. Code Group Tabs (Right Panel) */
 .api-code-group {
   background: var(--gray-925);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, var(--white) 10%, transparent);
+  border-radius: var(--radius-2xl);
   overflow: hidden;
   margin-bottom: var(--space-6);
 }
 
 .api-code-header {
   padding: var(--space-3) var(--space-4);
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--white) 3%, transparent);
+  border-bottom: 1px solid color-mix(in srgb, var(--white) 5%, transparent);
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .api-code-title {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-bold);
   text-transform: uppercase;
-  color: #8892b0;
-  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+  letter-spacing: var(--tracking-wide);
 }
 
 .api-code-body pre {
   margin: 0 !important;
   background: transparent !important;
   padding: var(--space-4) !important;
-  font-size: 12px !important;
+  font-size: var(--text-xs) !important;
 }
 
 @media (max-width: 1400px) {
@@ -1385,7 +1385,7 @@ body[data-type="autodoc-rest"] #main-content {
   }
   .web-endpoint-example {
     border-left: none;
-    border-top: 1px solid #1e2227;
+    border-top: 1px solid var(--gray-925);
   }
 }
 
@@ -1416,7 +1416,7 @@ body[data-type="autodoc-rest"] #main-content {
 
   .rest-endpoint__example {
     border-left: none;
-    border-top: 1px solid #1e2227;
+    border-top: 1px solid var(--gray-925);
   }
 }
 
@@ -1443,7 +1443,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-home__title {
   font-size: var(--text-2xl);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-2) 0;
 }
@@ -1476,7 +1476,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-home__tag-section-header {
   font-size: var(--text-lg);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   margin-bottom: var(--space-2);
 }
 
@@ -1506,7 +1506,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-list__title {
   font-size: var(--text-2xl);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-2) 0;
 }
@@ -1555,7 +1555,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-section-index__title {
   font-size: var(--text-2xl);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-2) 0;
 }
@@ -1579,7 +1579,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-section-index__section-title {
   font-size: var(--text-lg);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   margin-bottom: var(--space-3);
 }
 
@@ -1590,7 +1590,7 @@ body[data-type="autodoc-rest"] #main-content {
 }
 
 .api-section-index__card-title {
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -1620,7 +1620,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-schema__title {
   font-size: var(--text-xl);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   margin: 0 0 var(--space-2) 0;
 }
@@ -1636,7 +1636,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-schema__section-title {
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-muted);
   margin-bottom: var(--space-2);
 }
@@ -1742,7 +1742,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-reference__title {
   font-size: var(--text-2xl);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-3);
 }
@@ -1800,7 +1800,7 @@ body[data-type="autodoc-rest"] #main-content {
   padding: var(--space-1) var(--space-2);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.025em;
   border-radius: var(--radius-sm);
@@ -1847,13 +1847,13 @@ body[data-type="autodoc-rest"] #main-content {
 /* Small method badges */
 .api-method--sm {
   padding: var(--space-0-5) var(--space-1-5);
-  font-size: 10px;
+  font-size: var(--font-size-10);
   min-width: 44px;
 }
 
 .api-method--xs {
-  padding: 2px var(--space-1);
-  font-size: 9px;
+  padding: var(--space-0-5) var(--space-1);
+  font-size: var(--font-size-10);
   min-width: 36px;
 }
 
@@ -1891,7 +1891,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-playground-bar__path .api-path-param {
   color: var(--color-primary);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 .api-playground-bar__copy {
@@ -1951,7 +1951,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-endpoint-header__title {
   font-size: var(--text-2xl);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   margin-bottom: var(--space-2);
 }
@@ -2017,7 +2017,7 @@ body[data-type="autodoc-rest"] #main-content {
 .api-param-row__name {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
 }
 
@@ -2087,7 +2087,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-request-body__title {
   font-size: var(--text-lg);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .api-request-body__meta {
@@ -2184,7 +2184,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-schema-viewer__name {
   font-family: var(--font-mono);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .api-schema-viewer__properties {
@@ -2214,7 +2214,7 @@ body[data-type="autodoc-rest"] #main-content {
 .api-schema-viewer__property-name {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 .api-schema-viewer__property-type {
@@ -2281,7 +2281,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-responses__title {
   font-size: var(--text-lg);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .api-responses__tabs {
@@ -2340,7 +2340,7 @@ body[data-type="autodoc-rest"] #main-content {
 .api-responses__status {
   font-family: var(--font-mono);
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
 }
 
 .api-responses__label {
@@ -2386,7 +2386,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-code-samples__title {
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--gray-300);
   margin: 0;
 }
@@ -2502,7 +2502,7 @@ body[data-type="autodoc-rest"] #main-content {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
   text-decoration: none;
 }
@@ -2549,7 +2549,7 @@ body[data-type="autodoc-rest"] #main-content {
 }
 
 .api-sidebar-nav__group-name {
-  font-weight: 500;
+  font-weight: var(--weight-medium);
 }
 
 .api-sidebar-nav__group-count {
@@ -2632,7 +2632,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-home__stat-value {
   font-size: var(--text-3xl);
-  font-weight: 700;
+  font-weight: var(--weight-bold);
   color: var(--color-primary);
 }
 
@@ -2647,7 +2647,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-home__section-title {
   font-size: var(--text-lg);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   margin-bottom: var(--space-4);
 }
 
@@ -2711,7 +2711,7 @@ body[data-type="autodoc-rest"] #main-content {
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-base);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   margin: 0;
 }
 
@@ -2751,7 +2751,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-home__tag-name {
   font-size: var(--text-base);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   margin: 0;
 }
 
@@ -2777,7 +2777,7 @@ body[data-type="autodoc-rest"] #main-content {
 
 .api-endpoint__section-title {
   font-size: var(--text-lg);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   margin-bottom: var(--space-4);
 }
 
@@ -2790,7 +2790,7 @@ body[data-type="autodoc-rest"] #main-content {
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-base);
-  font-weight: 500;
+  font-weight: var(--weight-medium);
   margin-bottom: var(--space-2);
   color: var(--color-text-secondary);
 }

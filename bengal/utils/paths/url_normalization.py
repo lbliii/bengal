@@ -228,6 +228,31 @@ def clean_md_path(path: str) -> str:
     return path.replace(".md", "").strip("/")
 
 
+def strip_path_params(path: str) -> str:
+    """
+    Remove OpenAPI-style path parameters ({param}) from a URL path.
+
+    Used when building slugs for autodoc endpoint URLs, where path params
+    like {id} or {user_id} would produce invalid or redundant slugs.
+
+    Args:
+        path: URL path possibly containing {param} segments (e.g., "/users/{id}")
+
+    Returns:
+        Path with {param} segments removed (e.g., "/users")
+
+    Examples:
+        >>> strip_path_params("/users/{id}")
+        '/users'
+        >>> strip_path_params("/items/{item_id}/reviews")
+        '/items/reviews'
+        >>> strip_path_params("/api/v1/users")
+        '/api/v1/users'
+
+    """
+    return re.sub(r"/\{[^}]+\}", "", path).rstrip("/") or "/"
+
+
 def path_to_slug(path: str) -> str:
     """
     Convert a URL path to a slug by replacing slashes with hyphens.

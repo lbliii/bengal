@@ -24,7 +24,7 @@ from kida.environment.exceptions import (
 from bengal.protocols import SiteConfig, SiteLike
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
-from bengal.utils.paths.url_normalization import path_to_slug
+from bengal.utils.paths import path_to_slug, strip_path_params
 
 if TYPE_CHECKING:
     from kida.template import Template
@@ -243,6 +243,11 @@ class AutodocRenderer:
         # Prefer explicit _section reference set by orchestrators; fall back to page.section
         section = getattr(page, "_section", None) or getattr(page, "section", None)
 
+        # Walk up to root API section for sidebar navigation (shows full endpoint tree)
+        api_root_section = None
+        if section and hasattr(section, "root"):
+            api_root_section = section.root
+
         try:
             # NOTE: We intentionally do NOT pass site= here. The template environment
             # already has site=SiteContext(site) as a global (set in environment.py).
@@ -252,6 +257,7 @@ class AutodocRenderer:
                 element=element,
                 page=page,
                 section=section,  # Pass section explicitly for section index pages
+                api_root_section=api_root_section,
                 config=self._normalize_config(self.site.config),
                 toc_items=getattr(page, "toc_items", []) or [],
                 toc=getattr(page, "toc", "") or "",
@@ -403,7 +409,7 @@ class AutodocRenderer:
                     from bengal.autodoc.utils import get_openapi_method, get_openapi_path
 
                     method = get_openapi_method(elem).lower()
-                    path = path_to_slug(get_openapi_path(elem))
+                    path = path_to_slug(strip_path_params(get_openapi_path(elem)))
                     return f"/{prefix}/endpoints/{method}-{path}/"
                 elif element_type == "openapi_schema":
                     return f"/{prefix}/schemas/{elem.name}/"

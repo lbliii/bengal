@@ -18,8 +18,9 @@ Kida Features:
 - {% spaceless %} for compact badge output
 - Optional chaining (?.) and null coalescing (??)
 #}
-{% let title = api_title ?? section?.title ?? 'API Reference' %}
-{% let home_href = section?.href ?? '/api/' %}
+{% let nav_section = api_root_section ?? section %}
+{% let title = api_title ?? nav_section?.title ?? 'API Reference' %}
+{% let home_href = nav_section?.href ?? '/api/' %}
 
 <nav class="api-sidebar-nav" aria-label="API navigation">
   {# Header with Home Link #}
@@ -43,7 +44,7 @@ Kida Features:
 
   {# Endpoint Groups by Tag #}
   <div class="api-sidebar-nav__groups">
-    {% with section?.subsections as subsections %}
+    {% with nav_section?.subsections as subsections %}
     {% if subsections | length > 0 %}
     {# Navigate by subsections (tag groups) #}
     {% for subsection in subsections %}
@@ -82,11 +83,11 @@ Kida Features:
     {% end %}
     {% else %}
     {# Flat list of pages (no subsections) #}
-    {% with section?.pages as pages %}
+    {% with nav_section?.pages as pages %}
     {% if pages | length > 0 %}
     <ul class="api-sidebar-nav__endpoints api-sidebar-nav__endpoints--flat">
       {% for ep_page in pages %}
-      {% if ep_page != section?.index_page %}
+      {% if ep_page != nav_section?.index_page %}
       {% let ep_meta = ep_page?.metadata ?? {} %}
       {% let ep_method = ep_meta?.method ?? 'GET' %}
       {% let ep_path = ep_meta?.path ?? ep_page?.title ?? '' %}

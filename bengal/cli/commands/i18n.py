@@ -16,7 +16,7 @@ import click
 from bengal.cli.base import BengalGroup
 from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
 from bengal.config import UnifiedConfigLoader
-from bengal.i18n.catalog import clear_catalog_cache
+from bengal.i18n.catalog import clear_catalog_cache, compute_coverage
 
 
 @click.group("i18n", cls=BengalGroup)
@@ -27,6 +27,7 @@ def i18n_cli() -> None:
     Commands:
         compile   Compile .po files to .mo
         extract   Scan templates for t() calls and generate .pot
+        status    Show translation coverage per locale
 
     """
 
@@ -107,6 +108,30 @@ def compile_cmd(domain: str, locales: tuple[str, ...], source: str) -> None:
 _T_PATTERN = re.compile(r'\bt\s*\(\s*["\']([^"\']+)["\']', re.MULTILINE)
 
 
+def _extract_keys_from_templates(root: Path, config: dict) -> set[str]:
+    """Extract t() keys from templates under content, themes, and root."""
+    content_dir = root / config.get("build", {}).get("content_dir", "content")
+    search_dirs: list[Path] = []
+    if content_dir.exists():
+        search_dirs.append(content_dir)
+    themes_dir = root / "themes"
+    if themes_dir.exists():
+        search_dirs.append(themes_dir)
+    search_dirs.append(root)
+    exts = (".html", ".kida", ".jinja2", ".jinja", ".j2")
+    keys: set[str] = set()
+    for search_dir in search_dirs:
+        for path in search_dir.rglob("*"):
+            if path.suffix.lower() in exts and path.is_file():
+                try:
+                    text = path.read_text(encoding="utf-8", errors="replace")
+                    for m in _T_PATTERN.finditer(text):
+                        keys.add(m.group(1))
+                except Exception:
+                    pass
+    return keys
+
+
 @i18n_cli.command("extract")
 @command_metadata(
     category="i18n",
@@ -141,39 +166,14 @@ def extract_cmd(output_path: str, domain: str, source: str) -> None:
     """
     cli = get_cli_output()
     root = Path(source).resolve()
-
-    # Load config for theme/content paths
     config_loader = UnifiedConfigLoader()
     try:
         config = config_loader.load(root)
     except Exception:
         config = {}
 
-    content_dir = root / config.get("build", {}).get("content_dir", "content")
-
-    # Search paths: content, themes (if local), bengal themes
-    search_dirs: list[Path] = []
-    if content_dir.exists():
-        search_dirs.append(content_dir)
-    themes_dir = root / "themes"
-    if themes_dir.exists():
-        search_dirs.append(themes_dir)
-    # Also scan root for top-level templates
-    search_dirs.append(root)
-
-    # Extensions to scan
-    exts = (".html", ".kida", ".jinja2", ".jinja", ".j2")
-
-    keys: set[str] = set()
-    for search_dir in search_dirs:
-        for path in search_dir.rglob("*"):
-            if path.suffix.lower() in exts and path.is_file():
-                try:
-                    text = path.read_text(encoding="utf-8", errors="replace")
-                    for m in _T_PATTERN.finditer(text):
-                        keys.add(m.group(1))
-                except Exception:
-                    pass
+    raw = config.raw if hasattr(config, "raw") else config
+    keys = _extract_keys_from_templates(root, raw)
 
     if not keys:
         cli.warning("No t() calls found in templates.")
@@ -200,3 +200,99 @@ def extract_cmd(output_path: str, domain: str, source: str) -> None:
     except Exception as e:
         cli.error(f"Failed to write .pot: {e}")
         raise
+
+
+@i18n_cli.command("status")
+@command_metadata(
+    category="i18n",
+    description="Show translation coverage per locale",
+    examples=[
+        "bengal i18n status",
+        "bengal i18n status --fail-on-missing",
+    ],
+    requires_site=False,
+    tags=["i18n", "gettext", "translations", "coverage"],
+)
+@handle_cli_errors(show_art=False)
+@click.option(
+    "--domain",
+    default="messages",
+    help="Gettext domain (default: messages)",
+)
+@click.option(
+    "--fail-on-missing-translations",
+    "--fail-on-missing",
+    "fail_on_missing",
+    is_flag=True,
+    help="Exit with code 1 if any locale has incomplete translations (CI gate)",
+)
+@click.argument("source", type=click.Path(exists=True), default=".")
+def status_cmd(domain: str, fail_on_missing: bool, source: str) -> None:
+    """
+    Show translation coverage per locale.
+
+    Compares template t() keys against each locale's PO file.
+    Color coding: green (100%), yellow (80-99%), red (<80%).
+    """
+    cli = get_cli_output()
+    root = Path(source).resolve()
+    localedir = root / "i18n"
+
+    config_loader = UnifiedConfigLoader()
+    try:
+        config = config_loader.load(root)
+    except Exception:
+        config = {}
+    raw = config.raw if hasattr(config, "raw") else config
+
+    keys = _extract_keys_from_templates(root, raw)
+    if not keys:
+        cli.warning("No t() calls found in templates.")
+        cli.info("Run 'bengal i18n extract' to generate .pot, then add locales.")
+        return
+
+    # Locales: from config i18n.languages or from i18n/ dir
+    locales: list[str] = []
+    i18n_cfg = raw.get("i18n") or {}
+    for lang in i18n_cfg.get("languages", []):
+        if isinstance(lang, dict) and "code" in lang:
+            locales.append(lang["code"])
+        elif isinstance(lang, str):
+            locales.append(lang)
+    if not locales:
+        locales.extend(
+            d.name
+            for d in (localedir.iterdir() if localedir.exists() else [])
+            if d.is_dir() and (d / "LC_MESSAGES").exists()
+        )
+
+    if not locales:
+        cli.warning(
+            "No locales found. Add i18n.languages in config or create i18n/{locale}/LC_MESSAGES/"
+        )
+        return
+
+    cli.info(f"Translation coverage ({len(keys)} keys, domain={domain})")
+    any_incomplete = False
+    for locale in sorted(locales):
+        translated, total, missing = compute_coverage(localedir, domain, locale, keys)
+        pct = (translated / total * 100) if total else 0
+        if pct < 100:
+            any_incomplete = True
+        # Color: green 100%, yellow 80-99%, red <80%
+        if pct >= 100:
+            style = "[success]"
+        elif pct >= 80:
+            style = "[warning]"
+        else:
+            style = "[error]"
+        line = f"  {locale}: {style}{translated}/{total} ({pct:.0f}%)[/]"
+        cli.console.print(line)
+        if missing and len(missing) <= 5:
+            for k in missing[:5]:
+                cli.info(f"    missing: {k}", icon="")
+        elif missing:
+            cli.info(f"    {len(missing)} missing", icon="")
+
+    if fail_on_missing and any_incomplete:
+        raise SystemExit(1)

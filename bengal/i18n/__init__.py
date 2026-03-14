@@ -16,12 +16,16 @@ from bengal.i18n.catalog import (
     Catalog,
     MOLoader,
     POLoader,
+    clear_catalog_cache,
+    compute_coverage,
     load_catalog,
 )
 
 __all__ = [
     "Catalog",
-    "load_catalog",
     "MOLoader",
     "POLoader",
+    "clear_catalog_cache",
+    "compute_coverage",
+    "load_catalog",
 ]

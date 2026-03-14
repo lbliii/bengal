@@ -200,7 +200,7 @@
 
 .featured-card:hover {
   transform: translate3d(0, -4px, 0);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--elevation-card-hover);
 }
 
 @supports (color: color-mix(in srgb, white, black)) {
@@ -235,15 +235,15 @@ body.draft-page::before {
 body.hidden-page::before {
   content: "👁️ HIDDEN";
   position: fixed;
-  top: 1rem;
+  top: var(--space-4);
   left: 50%;
   transform: translateX(-50%);
-  background: var(--color-warning, #f59e0b);
-  color: white;
-  padding: 0.5rem 1rem;
+  background: var(--color-warning);
+  color: var(--color-text-inverse);
+  padding: var(--space-2) var(--space-4);
   border-radius: var(--radius-md);
   font-weight: var(--weight-bold);
-  font-size: 0.75rem;
+  font-size: var(--text-xs);
   z-index: var(--z-dropdown);
   box-shadow: var(--shadow-md);
 }

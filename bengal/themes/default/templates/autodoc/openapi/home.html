@@ -71,116 +71,89 @@ Kida Features:
   {% let schema_count = schs | length %}
   {% let tag_count = tags | length %}
 
-  {% if endpoint_count > 0 or schema_count > 0 %}
-  <div class="api-home__stats">
-    {% if endpoint_count > 0 %}
-    <div class="api-home__stat">
-      <span class="api-home__stat-value">{{ endpoint_count }}</span>
-      <span class="api-home__stat-label">Endpoints</span>
+  {# Dense bar: stats + servers + auth in one compact row #}
+  <div class="api-home__dense-bar">
+    {% if endpoint_count > 0 or schema_count > 0 %}
+    <div class="api-home__stats">
+      {% if endpoint_count > 0 %}
+      <div class="api-home__stat">
+        <span class="api-home__stat-value">{{ endpoint_count }}</span>
+        <span class="api-home__stat-label">endpoints</span>
+      </div>
+      {% end %}
+      {% if schema_count > 0 %}
+      <div class="api-home__stat">
+        <span class="api-home__stat-value">{{ schema_count }}</span>
+        <span class="api-home__stat-label">schemas</span>
+      </div>
+      {% end %}
+      {% if tag_count > 0 %}
+      <div class="api-home__stat">
+        <span class="api-home__stat-value">{{ tag_count }}</span>
+        <span class="api-home__stat-label">categories</span>
+      </div>
+      {% end %}
     </div>
     {% end %}
-    {% if schema_count > 0 %}
-    <div class="api-home__stat">
-      <span class="api-home__stat-value">{{ schema_count }}</span>
-      <span class="api-home__stat-label">Schemas</span>
+
+    {% if servers | length > 0 %}
+    <div class="api-home__servers">
+      <span class="api-home__section-title">{{ icon('server', size=12) }} Base</span>
+      <div class="api-home__server-list">
+        {% for server in servers %}
+        {% let server_url = server if server is string else server?.url ?? server %}
+        <div class="api-home__server">
+          <code class="api-home__server-url">{{ server_url }}</code>
+          <button class="api-home__server-copy" data-copy="{{ server_url }}" aria-label="Copy URL">
+            {{ icon('copy', size=12) }}
+          </button>
+        </div>
+        {% end %}
+      </div>
     </div>
     {% end %}
-    {% if tag_count > 0 %}
-    <div class="api-home__stat">
-      <span class="api-home__stat-value">{{ tag_count }}</span>
-      <span class="api-home__stat-label">Categories</span>
+
+    {% if security_schemes | length > 0 %}
+    <div class="api-home__auth">
+      <span class="api-home__section-title">{{ icon('lock', size=12) }} Auth</span>
+      <div class="api-home__auth-schemes">
+        {% for name, scheme in security_schemes |> items %}
+        {% if scheme %}
+        {% let scheme_type = scheme?.type ?? 'apiKey' %}
+        {% let scheme_name = scheme?.name ?? 'Authorization' %}
+        <div class="api-home__auth-scheme">
+          <span class="api-home__auth-name">{{ name }}</span>
+          <span class="badge badge--outline badge--sm">{{ scheme_type }}</span>
+          {% match scheme_type %}
+          {% case 'apiKey' %}
+          <code class="api-home__auth-example">{{ scheme_name }}: KEY</code>
+          {% case 'http' %}
+          <code class="api-home__auth-example">Bearer TOKEN</code>
+          {% case 'oauth2' %}
+          <code class="api-home__auth-example">Bearer TOKEN</code>
+          {% case _ %}
+          <code class="api-home__auth-example">{{ scheme_name }}</code>
+          {% end %}
+        </div>
+        {% end %}
+        {% end %}
+      </div>
     </div>
     {% end %}
   </div>
-  {% end %}
 
-  {# Base URLs / Servers #}
-  {% if servers | length > 0 %}
-  <section class="api-home__servers autodoc-section">
-    <h2 class="api-home__section-title">{{ icon('server', size=18) }} Base URLs</h2>
-    <div class="api-home__server-list">
-      {% for server in servers %}
-      {% let server_url = server if server is string else server?.url ?? server %}
-      {% let server_desc = '' if server is string else server?.description ?? '' %}
-      <div class="api-home__server card">
-        <code class="api-home__server-url">{{ server_url }}</code>
-        {% if server_desc %}
-        <span class="api-home__server-desc text-muted">{{ server_desc }}</span>
-        {% end %}
-        <button class="api-home__server-copy" data-copy="{{ server_url }}" aria-label="Copy URL">
-          {{ icon('copy', size=14) }}
-        </button>
-      </div>
-      {% end %}
-    </div>
-  </section>
-  {% end %}
-
-  {# Authentication #}
-  {% if security_schemes | length > 0 %}
-  <section class="api-home__auth autodoc-section">
-    <h2 class="api-home__section-title">{{ icon('lock', size=18) }} Authentication</h2>
-    <div class="api-home__auth-schemes">
-      {% for name, scheme in security_schemes |> items %}
-      {% if scheme %}
-      {% let scheme_type = scheme?.type ?? 'apiKey' %}
-      {% let scheme_desc = scheme?.description ?? '' %}
-      {% let scheme_in = scheme.get('in', 'header') %}
-      {% let scheme_name = scheme?.name ?? 'Authorization' %}
-
-      <div class="api-home__auth-scheme card">
-        <header class="api-home__auth-header">
-          <h3 class="api-home__auth-name">
-            {{ icon('key', size=14) }}
-            {{ name }}
-          </h3>
-          <span class="badge badge--outline badge--sm">{{ scheme_type }}</span>
-        </header>
-
-        {% if scheme_desc %}
-        <p class="api-home__auth-description">{{ scheme_desc }}</p>
-        {% end %}
-
-        {% match scheme_type %}
-        {% case 'apiKey' %}
-        <code class="api-home__auth-example">{{ scheme_name }}: YOUR_API_KEY</code>
-        {% case 'http' %}
-        {% if scheme?.scheme == 'bearer' %}
-        <code class="api-home__auth-example">Authorization: Bearer YOUR_TOKEN</code>
-        {% else %}
-        <code class="api-home__auth-example">Authorization: Basic BASE64_CREDENTIALS</code>
-        {% end %}
-        {% case 'oauth2' %}
-        <code class="api-home__auth-example">Authorization: Bearer ACCESS_TOKEN</code>
-        {% case _ %}
-        <code class="api-home__auth-example">{{ scheme_name }}: YOUR_CREDENTIALS</code>
-        {% end %}
-      </div>
-      {% end %}
-      {% end %}
-    </div>
-  </section>
-  {% end %}
-
-  {# Endpoint Categories (Tags) - Quick Jump Navigation #}
+  {# Endpoint Categories - compact pills #}
   {% let subsections = section?.subsections ?? () %}
   {% if subsections | length > 0 %}
   <section class="api-home__tags autodoc-section">
-    <h2 class="api-home__section-title">{{ icon('folder', size=18) }} Categories</h2>
+    <h2 class="api-home__section-title">{{ icon('folder', size=14) }} Categories</h2>
     <div class="api-home__tag-grid">
       {% for subsec in subsections %}
       {% let tag_name = subsec?.title ?? 'Endpoints' %}
-      {% let tag_desc = subsec?.metadata?.description ?? '' %}
       {% let tag_endpoints = subsec | endpoints %}
-
-      <a href="#{{ tag_name | slugify }}" class="api-home__tag-card card card--hoverable">
-        <header class="api-home__tag-header">
-          <h3 class="api-home__tag-name">{{ tag_name }}</h3>
-          <span class="badge badge--outline badge--sm">{{ tag_endpoints | length }}</span>
-        </header>
-        {% if tag_desc %}
-        <p class="api-home__tag-description">{{ tag_desc | truncate(100) }}</p>
-        {% end %}
+      <a href="#{{ tag_name | slugify }}" class="api-home__tag-card">
+        <span class="api-home__tag-name">{{ tag_name }}</span>
+        <span class="badge badge--outline badge--sm">{{ tag_endpoints | length }}</span>
       </a>
       {% end %}
     </div>

@@ -9,7 +9,7 @@ from __future__ import annotations
 import gettext
 import threading
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -23,7 +23,7 @@ class Catalog:
     Supports both PO/MO (gettext) and fallback dict-based lookups.
     """
 
-    __slots__ = ("_translation", "_fallback", "_plural_fn")
+    __slots__ = ("_fallback", "_plural_fn", "_translation")
 
     def __init__(
         self,
@@ -165,3 +165,44 @@ def clear_catalog_cache(root_path: Path | None = None) -> None:
             keys_to_remove = [k for k in _catalog_cache if k[0] == root_path]
             for k in keys_to_remove:
                 del _catalog_cache[k]
+
+
+def compute_coverage(
+    localedir: Path,
+    domain: str,
+    locale: str,
+    required_keys: set[str],
+) -> tuple[int, int, list[str]]:
+    """
+    Compute translation coverage for a locale against required keys.
+
+    Args:
+        localedir: Root i18n directory (e.g. root/i18n)
+        domain: Gettext domain (e.g. messages)
+        locale: Locale code (e.g. en, es)
+        required_keys: Keys that must be translated (from template t() calls)
+
+    Returns:
+        (translated_count, total_count, missing_keys)
+    """
+    po_path = localedir / locale / "LC_MESSAGES" / f"{domain}.po"
+    if not po_path.exists():
+        return (0, len(required_keys), list(required_keys))
+
+    try:
+        import polib
+
+        po = polib.pofile(str(po_path))
+        translated = 0
+        missing: list[str] = []
+        for key in required_keys:
+            entry = po.find(key)
+            if entry is None:
+                missing.append(key)
+            elif entry.msgstr and entry.msgstr.strip():
+                translated += 1
+            else:
+                missing.append(key)
+        return (translated, len(required_keys), missing)
+    except Exception:
+        return (0, len(required_keys), list(required_keys))
