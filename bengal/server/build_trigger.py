@@ -48,6 +48,7 @@ Related:
 
 from __future__ import annotations
 
+import os
 import re
 import threading
 import time
@@ -368,6 +369,11 @@ class BuildTrigger:
                             )
                         )
                     self._clear_html_cache()
+                    if os.environ.get("BENGAL_DEBUG_RELOAD"):
+                        print(
+                            f"[Bengal] Reload tier: reactive-content (files={len(changed_paths)})",
+                            flush=True,
+                        )
                     return
                 except Exception as e:
                     logger.warning(
@@ -375,6 +381,74 @@ class BuildTrigger:
                         error=str(e),
                         fallback="full_build",
                     )
+
+            # Reactive template path: template changes → re-render affected pages only
+            template_info = self._get_template_change_info(changed_paths)
+            if (
+                template_info is not None
+                and not structural_changed
+                and not self._should_regenerate_autodoc(changed_paths)
+            ):
+                template_paths, affected_keys = template_info
+                from bengal.server.reactive import ReactiveTemplateHandler
+                from bengal.server.reactive.template_handler import (
+                    REACTIVE_TEMPLATE_PAGE_THRESHOLD,
+                )
+
+                cache = self._get_build_cache()
+                if cache is not None and len(affected_keys) <= REACTIVE_TEMPLATE_PAGE_THRESHOLD:
+                    try:
+                        handler = ReactiveTemplateHandler(self.site, self.site.output_dir, cache)
+                        result = handler.handle_template_changes(template_paths)
+                        if result is not None and result.changed_output_paths:
+                            from bengal.core.output import OutputType
+                            from bengal.server.reload_types import SerializedOutputRecord
+
+                            changed_outputs_list = []
+                            for p in result.changed_output_paths:
+                                rel_path = p
+                                if p.is_absolute() and self.site.output_dir:
+                                    with suppress(ValueError):
+                                        rel_path = p.relative_to(self.site.output_dir)
+                                changed_outputs_list.append(
+                                    SerializedOutputRecord(
+                                        path=str(rel_path),
+                                        type_value=OutputType.HTML.value,
+                                        phase="render",
+                                    )
+                                )
+                            changed_outputs = tuple(changed_outputs_list)
+                            self._handle_reload(
+                                BuildReloadInfo(
+                                    changed_files=tuple(changed_files),
+                                    changed_outputs=changed_outputs,
+                                    reload_hint=None,
+                                )
+                            )
+                            self._clear_html_cache()
+                            if os.environ.get("BENGAL_DEBUG_RELOAD"):
+                                print(
+                                    "[Bengal] Reload tier: reactive-template "
+                                    f"(templates={len(template_paths)}, "
+                                    f"pages={len(result.changed_output_paths)})",
+                                    flush=True,
+                                )
+                            return
+                    except Exception as e:
+                        logger.warning(
+                            "reactive_template_path_failed",
+                            error=str(e),
+                            fallback="full_build",
+                        )
+
+            if os.environ.get("BENGAL_DEBUG_RELOAD"):
+                reason = ""
+                if template_info and not structural_changed:
+                    reason = " (template change, reactive path unavailable)"
+                print(
+                    f"[Bengal] Reload tier: full-build{reason}",
+                    flush=True,
+                )
 
             # Create build options for warm build
             use_incremental = not needs_full_rebuild
@@ -602,6 +676,10 @@ class BuildTrigger:
         - SVG icon changes (inlined in HTML)
         - Shared content changes (_shared/ directory) [versioned sites]
         - Version config changes (versioning.yaml)
+
+        Data files (YAML/JSON in data/) do NOT trigger full rebuild here.
+        They fall through to incremental build; BuildCache tracks data
+        dependencies and get_affected_pages() finds dependent pages.
         """
         # Structural changes always need full rebuild
         if {"created", "deleted", "moved"} & event_types:
@@ -996,6 +1074,76 @@ class BuildTrigger:
         self._template_dirs = [d for d in dirs if d.exists()]
         return self._template_dirs
 
+    def _get_template_change_info(
+        self, changed_paths: set[Path]
+    ) -> tuple[set[Path], set[str]] | None:
+        """
+        Get template change info for reactive path or full rebuild decision.
+
+        Returns (template_paths, affected_page_keys) when template changes
+        require rebuild, or None when no template changes.
+        """
+        template_dirs = self._get_template_dirs()
+        if not template_dirs:
+            return None
+
+        html_paths = [p for p in changed_paths if p.suffix.lower() == ".html"]
+        if not html_paths:
+            return None
+
+        cache = self._get_build_cache()
+        template_paths: set[Path] = set()
+        all_affected: set[str] = set()
+
+        for path in html_paths:
+            if not self._is_in_template_dir(path, template_dirs):
+                continue
+
+            affected: set[str] = set()
+            if cache is not None:
+                with suppress(Exception):
+                    affected = cache.get_affected_pages(path)
+
+            if not affected:
+                logger.debug(
+                    "template_change_ignored",
+                    template=str(path),
+                    reason="no_dependents",
+                )
+                continue
+
+            if self._can_use_incremental_template_update(path, cache):
+                logger.debug(
+                    "template_change_incremental",
+                    template=str(path),
+                    affected_pages=len(affected),
+                )
+                continue
+
+            template_paths.add(path)
+            all_affected.update(affected)
+
+        if not template_paths:
+            return None
+        return (template_paths, all_affected)
+
+    def _get_build_cache(self) -> Any:
+        """Get BuildCache for dependency tracking."""
+        cache = getattr(self.site, "_cache", None)
+        if cache is not None:
+            return cache
+        try:
+            from bengal.cache import BuildCache
+
+            cache_path = self.site.paths.build_cache
+            if cache_path.exists():
+                cache = BuildCache.load(cache_path)
+                cache.site_root = self.site.root_path
+                return cache
+        except Exception:
+            pass
+        return None
+
     def _is_template_change(self, changed_paths: set[Path]) -> bool:
         """
         Check if template changes require full rebuild.
@@ -1012,67 +1160,7 @@ class BuildTrigger:
         2. Use cached template directories (avoids exists() calls)
         3. Check dependency graph to skip orphan templates
         """
-        template_dirs = self._get_template_dirs()
-        if not template_dirs:
-            return False
-
-        # Filter to .html files first (early exit optimization)
-        html_paths = [p for p in changed_paths if p.suffix.lower() == ".html"]
-        if not html_paths:
-            return False
-
-        # Get cache for dependency tracking
-        cache = getattr(self.site, "_cache", None)
-        if cache is None:
-            # Try to get cache from site's cache manager or incremental orchestrator
-            try:
-                from bengal.cache import BuildCache
-
-                cache_path = self.site.paths.build_cache
-                if cache_path.exists():
-                    cache = BuildCache.load(cache_path)
-                    cache.site_root = self.site.root_path
-            except Exception:
-                cache = None
-
-        for path in html_paths:
-            if not self._is_in_template_dir(path, template_dirs):
-                continue
-
-            # Check if template has any dependents
-            affected: set[str] = set()
-            if cache is not None:
-                with suppress(Exception):
-                    affected = cache.get_affected_pages(path)
-
-            if not affected:
-                # Template has no dependents - skip entirely
-                logger.debug(
-                    "template_change_ignored",
-                    template=str(path),
-                    reason="no_dependents",
-                )
-                continue
-
-            # Has dependents - check if we can do incremental update
-            if self._can_use_incremental_template_update(path, cache):
-                logger.debug(
-                    "template_change_incremental",
-                    template=str(path),
-                    affected_pages=len(affected),
-                )
-                continue  # Will be handled by incremental build
-
-            # Must do full rebuild
-            logger.debug(
-                "template_change_full_rebuild",
-                template=str(path),
-                affected_pages=len(affected),
-                reason="incremental_not_possible",
-            )
-            return True
-
-        return False
+        return self._get_template_change_info(changed_paths) is not None
 
     def _is_in_template_dir(self, path: Path, template_dirs: list[Path]) -> bool:
         """Check if path is within any template directory."""
