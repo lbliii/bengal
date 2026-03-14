@@ -56,12 +56,12 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.build.contracts.keys import content_key
+from bengal.core.page import Page
 from bengal.errors import ErrorCode
 from bengal.orchestration.utils.i18n import (
     filter_pages_by_language,
     get_i18n_config,
 )
-from bengal.core.page import Page
 from bengal.orchestration.utils.parallel import ParallelProcessor
 from bengal.orchestration.utils.virtual_pages import (
     VirtualPageSpec,
@@ -687,11 +687,11 @@ class TaxonomyOrchestrator:
         """
         from bengal.orchestration.utils.config import get_max_workers
 
-        items = [(tag_slug, tag_data) for tag_slug, tag_data in locale_tags.items()]
+        items = list(locale_tags.items())
 
         def process_item(item: tuple[str, Any]) -> list[Page]:
             tag_slug, tag_data = item
-            return self._create_tag_pages_for_lang(tag_slug, tag_data, lang)
+            return self._create_tag_pages(tag_slug, tag_data, lang=lang)
 
         def context_extractor(e: Exception, item: tuple[str, Any]) -> dict[str, Any]:
             tag_slug = item[0]
@@ -754,13 +754,16 @@ class TaxonomyOrchestrator:
             registry_priority=40,
         )
 
-    def _create_tag_pages(self, tag_slug: str, tag_data: dict[str, Any]) -> list[Page]:
+    def _create_tag_pages(
+        self, tag_slug: str, tag_data: dict[str, Any], lang: str | None = None
+    ) -> list[Page]:
         """
         Create pages for an individual tag (with pagination if needed).
 
         Args:
             tag_slug: URL-safe tag slug
             tag_data: Dictionary containing tag name and pages
+            lang: Optional language code for i18n pages (skip registry when set)
 
         Returns:
             List of generated tag pages
@@ -772,17 +775,14 @@ class TaxonomyOrchestrator:
 
         # Filter out any ineligible pages (defensive check)
         eligible_pages = [p for p in tag_data["pages"] if self._is_eligible_for_taxonomy(p)]
-
-        # Create paginator
         paginator = Paginator(eligible_pages, per_page=per_page)
 
-        # Create a page for each pagination page
         for page_num in range(1, paginator.num_pages + 1):
-            spec = VirtualPageSpec(
-                title=f"Posts tagged '{tag_data['name']}'",
-                template="tag.html",
-                page_type="tag",
-                metadata={
+            spec_kwargs: dict[str, Any] = {
+                "title": f"Posts tagged '{tag_data['name']}'",
+                "template": "tag.html",
+                "page_type": "tag",
+                "metadata": {
                     "_tag": tag_data["name"],
                     "_tag_slug": tag_slug,
                     "_taxonomy_term": tag_slug,
@@ -790,62 +790,28 @@ class TaxonomyOrchestrator:
                     "_paginator": paginator,
                     "_page_num": page_num,
                 },
-            )
+            }
+            if lang is not None:
+                spec_kwargs["lang"] = lang
 
-            tag_page = create_virtual_page(
-                site=self.site,
-                url_strategy=self.url_strategy,
-                spec=spec,
-                path_segments=("tags", tag_slug, f"page_{page_num}"),
-                output_path=self.url_strategy.compute_tag_output_path(
+            spec = VirtualPageSpec(**spec_kwargs)
+
+            create_kwargs: dict[str, Any] = {
+                "site": self.site,
+                "url_strategy": self.url_strategy,
+                "spec": spec,
+                "path_segments": ("tags", tag_slug, f"page_{page_num}"),
+                "output_path": self.url_strategy.compute_tag_output_path(
                     tag_slug=tag_slug, page_num=page_num, site=self.site
                 ),
-                registry_owner="taxonomy",
-                registry_priority=40,
-            )
-            pages_to_create.append(tag_page)
+            }
+            if lang is None:
+                create_kwargs["registry_owner"] = "taxonomy"
+                create_kwargs["registry_priority"] = 40
+            else:
+                create_kwargs["registry_owner"] = None  # Skip registry for lang-specific pages
 
-        return pages_to_create
-
-    def _create_tag_pages_for_lang(
-        self, tag_slug: str, tag_data: dict[str, Any], lang: str
-    ) -> list[Page]:
-        """Create tag pages for a specific language."""
-        from bengal.utils.pagination import Paginator
-
-        pages_to_create: list[Page] = []
-        per_page = self.site.config.get("pagination", {}).get("per_page", 10)
-
-        # Filter out any ineligible pages (defensive check)
-        eligible_pages = [p for p in tag_data["pages"] if self._is_eligible_for_taxonomy(p)]
-        paginator = Paginator(eligible_pages, per_page=per_page)
-
-        for page_num in range(1, paginator.num_pages + 1):
-            spec = VirtualPageSpec(
-                title=f"Posts tagged '{tag_data['name']}'",
-                template="tag.html",
-                page_type="tag",
-                metadata={
-                    "_tag": tag_data["name"],
-                    "_tag_slug": tag_slug,
-                    "_taxonomy_term": tag_slug,
-                    "_posts": eligible_pages,
-                    "_paginator": paginator,
-                    "_page_num": page_num,
-                },
-                lang=lang,
-            )
-
-            tag_page = create_virtual_page(
-                site=self.site,
-                url_strategy=self.url_strategy,
-                spec=spec,
-                path_segments=("tags", tag_slug, f"page_{page_num}"),
-                output_path=self.url_strategy.compute_tag_output_path(
-                    tag_slug=tag_slug, page_num=page_num, site=self.site
-                ),
-                registry_owner=None,  # Skip registry claim for lang-specific pages
-            )
+            tag_page = create_virtual_page(**create_kwargs)
             pages_to_create.append(tag_page)
 
         return pages_to_create
