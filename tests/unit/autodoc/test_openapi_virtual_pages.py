@@ -20,6 +20,7 @@ def _make_mock_site(tmp_path: Path, spec_path: Path) -> MagicMock:
         "autodoc": {
             "openapi": {
                 "enabled": True,
+                "consolidate": True,  # Endpoints consolidated into section index
                 # Use absolute path to avoid cwd sensitivity
                 "spec_file": str(spec_path),
             }
