@@ -32,7 +32,7 @@ class TestGetTocGrouped:
 
     def test_single_item_no_grouping(self):
         """Single item at grouping level creates one group."""
-        toc_items = [{"id": "section-1", "title": "Section 1", "level": 1}]
+        toc_items = [TOCItem(id="section-1", title="Section 1", level=1)]
 
         result = get_toc_grouped(toc_items)
 
@@ -44,9 +44,9 @@ class TestGetTocGrouped:
     def test_group_with_children(self):
         """Item with children creates a group."""
         toc_items = [
-            {"id": "section-1", "title": "Section 1", "level": 1},
-            {"id": "section-1-1", "title": "Subsection 1.1", "level": 2},
-            {"id": "section-1-2", "title": "Subsection 1.2", "level": 2},
+            TOCItem(id="section-1", title="Section 1", level=1),
+            TOCItem(id="section-1-1", title="Subsection 1.1", level=2),
+            TOCItem(id="section-1-2", title="Subsection 1.2", level=2),
         ]
 
         result = get_toc_grouped(toc_items)
@@ -61,37 +61,34 @@ class TestGetTocGrouped:
     def test_multiple_groups(self):
         """Multiple H2 sections create multiple groups."""
         toc_items = [
-            {"id": "section-1", "title": "Section 1", "level": 1},
-            {"id": "section-1-1", "title": "Subsection 1.1", "level": 2},
-            {"id": "section-2", "title": "Section 2", "level": 1},
-            {"id": "section-2-1", "title": "Subsection 2.1", "level": 2},
+            TOCItem(id="section-1", title="Section 1", level=1),
+            TOCItem(id="section-1-1", title="Subsection 1.1", level=2),
+            TOCItem(id="section-2", title="Section 2", level=1),
+            TOCItem(id="section-2-1", title="Subsection 2.1", level=2),
         ]
 
         result = get_toc_grouped(toc_items)
 
         assert len(result) == 2
-        # First group
-        assert result[0]["header"]["title"] == "Section 1"
+        assert result[0]["header"].title == "Section 1"
         assert len(result[0]["children"]) == 1
         assert result[0]["is_group"]
-        # Second group
-        assert result[1]["header"]["title"] == "Section 2"
+        assert result[1]["header"].title == "Section 2"
         assert len(result[1]["children"]) == 1
         assert result[1]["is_group"]
 
     def test_standalone_item_higher_level(self):
         """H1 items when grouping by H2 are standalone."""
         toc_items = [
-            {"id": "title", "title": "Page Title", "level": 0},
-            {"id": "section-1", "title": "Section 1", "level": 1},
-            {"id": "section-1-1", "title": "Subsection 1.1", "level": 2},
+            TOCItem(id="title", title="Page Title", level=0),
+            TOCItem(id="section-1", title="Section 1", level=1),
+            TOCItem(id="section-1-1", title="Subsection 1.1", level=2),
         ]
 
         result = get_toc_grouped(toc_items)
 
         assert len(result) == 2
-        # H1 is standalone
-        assert result[0]["header"]["level"] == 0
+        assert result[0]["header"].level == 0
         assert not result[0]["is_group"]
         # H2 with children
         assert result[1]["header"].level == 1
@@ -236,16 +233,16 @@ class TestBuildTrackTocSections:
         install_page = Mock()
         install_page.title = "Install Bengal"
         install_page.toc_items = [
-            {"id": "get-started", "title": "Get Started", "level": 1},
-            {"id": "install", "title": "Install", "level": 2},
-            {"id": "verify", "title": "Verify", "level": 2},
+            TOCItem(id="get-started", title="Get Started", level=1),
+            TOCItem(id="install", title="Install", level=2),
+            TOCItem(id="verify", title="Verify", level=2),
         ]
 
         deploy_page = Mock()
         deploy_page.title = "Deployment"
         deploy_page.toc_items = [
-            {"id": "deploy", "title": "Deploy", "level": 1},
-            {"id": "github-pages", "title": "GitHub Pages", "level": 2},
+            TOCItem(id="deploy", title="Deploy", level=1),
+            TOCItem(id="github-pages", title="GitHub Pages", level=2),
         ]
 
         pages = {
@@ -259,20 +256,20 @@ class TestBuildTrackTocSections:
         assert [section["section_number"] for section in result] == [1, 2]
         assert result[0]["section_id"] == "track-section-1"
         assert result[0]["title"] == "Install Bengal"
-        assert result[0]["items"][0]["id"] == "s1-get-started"
-        assert [child["id"] for child in result[0]["items"][0]["children"]] == [
+        assert result[0]["items"][0].id == "s1-get-started"
+        assert [child.id for child in result[0]["items"][0].children] == [
             "s1-install",
             "s1-verify",
         ]
         assert result[1]["section_id"] == "track-section-2"
-        assert result[1]["items"][0]["id"] == "s2-deploy"
-        assert result[1]["items"][0]["children"][0]["id"] == "s2-github-pages"
+        assert result[1]["items"][0].id == "s2-deploy"
+        assert result[1]["items"][0].children[0].id == "s2-github-pages"
 
     def test_skips_missing_track_pages(self):
         """Missing pages are omitted from the rendered track TOC."""
         page = Mock()
         page.title = "Writer Quickstart"
-        page.toc_items = [{"id": "intro", "title": "Intro", "level": 1}]
+        page.toc_items = [TOCItem(id="intro", title="Intro", level=1)]
 
         get_page = Mock(side_effect=lambda slug: page if slug == "writer" else None)
 
@@ -280,7 +277,7 @@ class TestBuildTrackTocSections:
 
         assert len(result) == 1
         assert result[0]["title"] == "Writer Quickstart"
-        assert result[0]["items"][0]["id"] == "s1-intro"
+        assert result[0]["items"][0].id == "s1-intro"
 
 
 class TestGetPaginationItems:

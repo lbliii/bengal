@@ -33,11 +33,19 @@ def mock_cache(tmp_path: Path):
     def _cache_key(path: Path) -> str:
         return str(content_key(path, tmp_path))
 
+    from bengal.cache.build_cache.fingerprint import FileFingerprint
+
+    def get_fp(path):
+        raw = cache.file_fingerprints.get(cache._cache_key(path))
+        return FileFingerprint.from_dict(raw) if raw else None
+
+    def set_fp(path, data):
+        store = data.to_dict() if isinstance(data, FileFingerprint) else data
+        cache.file_fingerprints[cache._cache_key(path)] = store
+
     cache._cache_key = _cache_key
-    cache.get_file_fingerprint = lambda path: cache.file_fingerprints.get(cache._cache_key(path))
-    cache.set_file_fingerprint = lambda path, data: cache.file_fingerprints.__setitem__(
-        cache._cache_key(path), data
-    )
+    cache.get_file_fingerprint = get_fp
+    cache.set_file_fingerprint = set_fp
     return cache
 
 
