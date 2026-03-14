@@ -101,6 +101,9 @@ class Renderer:
         # PERF: Cache for resolved tag pages (computed once per build)
         # Maps tag_slug -> list of filtered, resolved PageLike objects
         self._tag_pages_cache: dict[str, list[PageLike]] | None = None
+        # PERF: Cache for section-based template resolution (IPA audit Task 2)
+        # Key: (section_name, is_section_index) -> resolved template name
+        self._template_name_cache: dict[tuple[str, bool], str] = {}
         # Thread-safety: Lock for initializing caches under free-threading (PEP 703)
         self._cache_lock = threading.Lock()
 
@@ -798,10 +801,14 @@ class Renderer:
             if template_name:
                 return template_name
 
-        # 3. Section-based auto-detection (fallback)
+        # 3. Section-based auto-detection (fallback) — cached per section
         is_section_index = page.source_path.stem == "_index"
         if hasattr(page, "_section") and page._section:
             section_name = page._section.name
+            cache_key = (section_name, is_section_index)
+
+            if cache_key in self._template_name_cache:
+                return self._template_name_cache[cache_key]
 
             if is_section_index:
                 # Try section index templates in order of specificity
@@ -819,17 +826,20 @@ class Renderer:
                     f"{section_name}.html",  # Flat
                 ]
 
-            # Check if any template exists
+            # Check if any template exists and cache the winner
             for template_name in templates_to_try:
                 if self._template_exists(template_name):
+                    self._template_name_cache[cache_key] = template_name
                     return template_name
 
-        # 4. Simple default fallback (no type/kind complexity)
-        if is_section_index:
-            # Section index without custom template
-            return "index.html"
+            # No section-specific template; cache default for this section
+            default = "index.html" if is_section_index else "page.html"
+            self._template_name_cache[cache_key] = default
+            return default
 
-        # Regular page - just use page.html
+        # 4. Simple default fallback (no section — no cache)
+        if is_section_index:
+            return "index.html"
         return "page.html"
 
     def _template_exists(self, template_name: str) -> bool:

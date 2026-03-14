@@ -29,6 +29,7 @@ from bengal.protocols.core import PageLike
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from bengal.health.validators.links import LinkValidator
     from bengal.rendering.template_engine import TemplateEngine
 
 
@@ -71,17 +72,26 @@ class PageOperationsMixin:
         self.rendered_html = renderer.render_page(cast(PageLike, self))
         return self.rendered_html
 
-    def validate_links(self) -> list[str]:
+    def validate_links(self, validator: LinkValidator | None = None) -> list[str]:
         """
         Validate all links in the page.
+
+        For batch validation (e.g. during health check), create a single
+        LinkValidator(site) and pass it to each page to avoid O(pages^2) work.
+
+        Args:
+            validator: Optional shared LinkValidator (IPA audit Task 6).
+                When provided, reuses indexes instead of rebuilding per page.
 
         Returns:
             List of broken link URLs
         """
         from bengal.health.validators.links import LinkValidator
 
-        validator = LinkValidator()
-        broken_links = validator.validate_page_links(cast(PageLike, self))
+        site = getattr(self, "_site", None)
+        if validator is None:
+            validator = LinkValidator(site)
+        broken_links = validator.validate_page_links(cast(PageLike, self), site)
         return broken_links
 
     def apply_template(self, template_name: str, context: dict[str, object] | None = None) -> str:

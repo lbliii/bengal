@@ -29,6 +29,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.orchestration.utils.i18n import get_i18n_config
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 from bengal.utils.primitives.hashing import hash_str
 
 logger = get_logger(__name__)
@@ -132,8 +133,10 @@ class MenuOrchestrator:
 
         root_path = getattr(self.site, "root_path", None)
         content_dir = root_path / "content" if root_path else None
-        for page in self.site.pages:
-            if page.source_path not in changed_pages:
+        page_path_index = self._build_page_path_index()
+        for path in changed_pages:
+            page = page_path_index.get(to_posix(path))
+            if page is None:
                 continue
             if "menu" in page.metadata:
                 return False
@@ -157,6 +160,10 @@ class MenuOrchestrator:
         self._menu_cache_key = current_key
         return False
 
+    def _build_page_path_index(self) -> dict[str, Page]:
+        """Build path -> Page index for O(1) lookups (IPA audit Task 5)."""
+        return {to_posix(p.source_path): p for p in self.site.pages}
+
     def _compute_menu_cache_key(self) -> str:
         """
         Compute cache key for current menu configuration.
@@ -173,17 +180,33 @@ class MenuOrchestrator:
         # Get menu config
         menu_config = self.site.menu_config
 
-        # Get pages with menu frontmatter
-        menu_pages = [
-            {
-                "path": str(page.source_path),
-                "menu": page.metadata["menu"],
-                "title": page.title,
-                "url": getattr(page, "href", "/"),
-            }
-            for page in self.site.pages
-            if "menu" in page.metadata
-        ]
+        # Single-pass partition: menu_pages and root_level_pages (IPA audit Task 5)
+        from bengal.core.page.navigation import is_root_level_page
+
+        root_path = getattr(self.site, "root_path", None)
+        content_dir = root_path / "content" if root_path else None
+        menu_pages: list[dict[str, Any]] = []
+        root_level_pages: list[dict[str, Any]] = []
+        for page in self.site.pages:
+            if "menu" in page.metadata:
+                menu_pages.append(
+                    {
+                        "path": str(page.source_path),
+                        "menu": page.metadata["menu"],
+                        "title": page.title,
+                        "url": getattr(page, "href", "/"),
+                    }
+                )
+            if content_dir and is_root_level_page(page, content_dir):
+                metadata = getattr(page, "metadata", {})
+                root_level_pages.append(
+                    {
+                        "path": str(page.source_path),
+                        "menu": metadata.get("menu", True),
+                        "title": page.title,
+                        "weight": metadata.get("weight", 999),
+                    }
+                )
 
         # Include dev params and section names in cache key
         # (sections affect dev menu bundling)
@@ -224,24 +247,6 @@ class MenuOrchestrator:
         # Include bundles config
         bundles_config = self.site.config.get("menu", {}).get("bundles", {})
         auto_dev_bundle = self.site.config.get("menu", {}).get("auto_dev_bundle", True)
-
-        # Root-level pages (auto-discovered in get_auto_nav, affect cache when they change)
-        from bengal.core.page.navigation import is_root_level_page
-
-        root_level_pages = []
-        if root_path := getattr(self.site, "root_path", None):
-            content_dir = root_path / "content"
-            for page in self.site.pages:
-                if is_root_level_page(page, content_dir):
-                    metadata = getattr(page, "metadata", {})
-                    root_level_pages.append(
-                        {
-                            "path": str(page.source_path),
-                            "menu": metadata.get("menu", True),
-                            "title": page.title,
-                            "weight": metadata.get("weight", 999),
-                        }
-                    )
 
         # Create cache key data
         cache_data = {
@@ -618,6 +623,14 @@ class MenuOrchestrator:
         Returns:
             Updated menu items list with dropdown children added
         """
+        # Build menu item indexes once for O(1) section lookup (IPA audit Task 5)
+        menu_item_by_url: dict[str, dict[str, Any]] = {
+            item.get("url", "").rstrip("/"): item for item in menu_items
+        }
+        menu_item_by_id: dict[str, dict[str, Any]] = {
+            item["identifier"]: item for item in menu_items if item.get("identifier")
+        }
+
         # Find sections with dropdown configuration
         for section in self.site.sections:
             if not hasattr(section, "index_page") or not section.index_page:
@@ -635,14 +648,12 @@ class MenuOrchestrator:
             if not dropdown_config:
                 continue
 
-            # Find this section in menu items
+            # Find this section in menu items (O(1) lookup)
             section_url = getattr(section, "_path", None) or f"/{section.name}/"
-            section_item = None
-            for item in menu_items:
-                item_url = item.get("url", "").rstrip("/")
-                if item_url == section_url.rstrip("/") or item.get("identifier") == section.name:
-                    section_item = item
-                    break
+            section_url_key = section_url.rstrip("/")
+            section_item = menu_item_by_url.get(section_url_key) or menu_item_by_id.get(
+                section.name
+            )
 
             if not section_item:
                 continue
@@ -855,6 +866,26 @@ class MenuOrchestrator:
             # No menus defined, skip
             return False
 
+        # Build pages-by-menu index once (IPA audit Task 5)
+        pages_by_menu: dict[str, list[Page]] = {}
+        pages_by_menu_by_lang: dict[str, dict[str, list[Page]]] = {}
+        for page in self.site.pages:
+            page_menu = page.metadata.get("menu", {})
+            if not isinstance(page_menu, dict):
+                continue
+            page_lang = getattr(page, "lang", None)
+            for mn in page_menu:
+                if not mn:
+                    continue
+                if strategy == "none":
+                    pages_by_menu.setdefault(mn, []).append(page)
+                else:
+                    for lang in sorted(languages):
+                        if page_lang is None or page_lang == lang:
+                            pages_by_menu_by_lang.setdefault(mn, {}).setdefault(lang, []).append(
+                                page
+                            )
+
         logger.info("menu_build_start", menu_count=len(menu_config))
 
         for menu_name, items in menu_config.items():
@@ -863,11 +894,8 @@ class MenuOrchestrator:
                     builder = MenuBuilder(diagnostics=getattr(self.site, "diagnostics", None))
                     if isinstance(items, list):
                         builder.add_from_config(items)
-                    for page in self.site.pages:
+                    for page in pages_by_menu.get(menu_name, []):
                         page_menu = page.metadata.get("menu", {})
-                        # Skip if menu is False or not a dict (menu: false means hide from menu)
-                        if not isinstance(page_menu, dict):
-                            continue
                         if menu_name in page_menu:
                             builder.add_from_page(page, menu_name, page_menu[menu_name])
                     self.site.menu[menu_name] = builder.build_hierarchy()
@@ -919,14 +947,9 @@ class MenuOrchestrator:
                                     continue
                                 filtered_items.append(it)
                             builder.add_from_config(filtered_items)
-                        # Pages in this language
-                        for page in self.site.pages:
-                            if getattr(page, "lang", None) and page.lang != lang:
-                                continue
+                        # Pages in this language (from pre-built index)
+                        for page in pages_by_menu_by_lang.get(menu_name, {}).get(lang, []):
                             page_menu = page.metadata.get("menu", {})
-                            # Skip if menu is False or not a dict (menu: false means hide from menu)
-                            if not isinstance(page_menu, dict):
-                                continue
                             if menu_name in page_menu:
                                 builder.add_from_page(page, menu_name, page_menu[menu_name])
                         menu_tree = builder.build_hierarchy()

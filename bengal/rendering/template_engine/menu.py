@@ -11,7 +11,12 @@ Related Modules:
 
 from __future__ import annotations
 
+from contextvars import ContextVar
 from typing import Any
+
+# ContextVar for current page URL during render (enables per-URL menu cache).
+# Set by render_template before template execution; read by _get_menu for cache key.
+_current_page_url: ContextVar[str] = ContextVar("menu_current_page_url", default="")
 
 
 class MenuHelpersMixin:
@@ -31,7 +36,8 @@ class MenuHelpersMixin:
         """
         Invalidate the menu dict cache.
 
-        Call this after menus are rebuilt to ensure fresh dicts are generated.
+        Call when menus are rebuilt (e.g. at build start). Not needed per-render
+        because cache key includes current page URL for correct active states.
         """
         self._menu_dict_cache.clear()
 
@@ -49,22 +55,25 @@ class MenuHelpersMixin:
             Menu dicts are cached to avoid repeated to_dict() calls on every
             page render. Cache is invalidated when menus are rebuilt.
         """
-        # If i18n enabled and current_language set, prefer localized menu
+        # Include current page URL in cache key so active states are correct per page.
+        # Enables caching across pages without per-render invalidation.
+        current_url = _current_page_url.get()
         i18n = self.site.config.get("i18n", {}) or {}
         lang = getattr(self.site, "current_language", None)
         if lang and i18n.get("strategy") != "none":
             localized = self.site.menu_localized.get(menu_name, {}).get(lang)
             if localized is not None:
-                cache_key = f"{menu_name}:{lang}"
+                cache_key = f"{menu_name}:{lang}:{current_url}"
                 if cache_key not in self._menu_dict_cache:
                     self._menu_dict_cache[cache_key] = [item.to_dict() for item in localized]
                 return self._menu_dict_cache[cache_key]
 
         # Check cache for non-localized menu
-        if menu_name not in self._menu_dict_cache:
+        cache_key = f"{menu_name}:{current_url}"
+        if cache_key not in self._menu_dict_cache:
             menu = self.site.menu.get(menu_name, [])
-            self._menu_dict_cache[menu_name] = [item.to_dict() for item in menu]
-        return self._menu_dict_cache[menu_name]
+            self._menu_dict_cache[cache_key] = [item.to_dict() for item in menu]
+        return self._menu_dict_cache[cache_key]
 
     def _get_menu_lang(self, menu_name: str = "main", lang: str = "") -> list[dict[str, Any]]:
         """
@@ -80,7 +89,8 @@ class MenuHelpersMixin:
         if not lang:
             return self._get_menu(menu_name)
 
-        cache_key = f"{menu_name}:{lang}"
+        current_url = _current_page_url.get()
+        cache_key = f"{menu_name}:{lang}:{current_url}"
         if cache_key in self._menu_dict_cache:
             return self._menu_dict_cache[cache_key]
 

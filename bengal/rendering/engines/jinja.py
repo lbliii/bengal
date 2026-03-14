@@ -31,7 +31,7 @@ from bengal.rendering.template_engine.environment import (
     resolve_theme_chain,
 )
 from bengal.rendering.template_engine.manifest import ManifestHelpersMixin
-from bengal.rendering.template_engine.menu import MenuHelpersMixin
+from bengal.rendering.template_engine.menu import MenuHelpersMixin, _current_page_url
 from bengal.rendering.template_engine.url_helpers import href_for
 from bengal.rendering.template_profiler import (
     ProfiledTemplate,
@@ -166,9 +166,10 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         context.setdefault("site", self.site)
         context.setdefault("config", self.site.config)
 
-        # Invalidate menu cache to ensure fresh active states
-        self.invalidate_menu_cache()
-
+        # Set current page URL for menu cache key (enables per-URL caching without per-render invalidation)
+        page = context.get("page")
+        url = getattr(page, "_path", None) or getattr(page, "href", None) if page else ""
+        token = _current_page_url.set(str(url) if url else "")
         try:
             # Use per-template lock to prevent duplicate compilation across threads.
             # This ensures only one thread compiles a template at a time, reducing
@@ -214,6 +215,8 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
                 suggestion=suggestion,
             )
             raise
+        finally:
+            _current_page_url.reset(token)
 
     def render_string(
         self, template_string: str, context: dict[str, Any], *, strict: bool = True
@@ -231,10 +234,12 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
         """
         context.setdefault("site", self.site)
         context.setdefault("config", self.site.config)
-        self.invalidate_menu_cache()
 
-        template = self.env.from_string(template_string)
+        page = context.get("page")
+        url = getattr(page, "_path", None) or getattr(page, "href", None) if page else ""
+        token = _current_page_url.set(str(url) if url else "")
         try:
+            template = self.env.from_string(template_string)
             return template.render(**context)
         except Exception as e:
             # When strict=False, catch undefined variable errors and return empty string
@@ -245,6 +250,8 @@ class JinjaTemplateEngine(MenuHelpersMixin, ManifestHelpersMixin, AssetURLMixin)
                 if isinstance(e, UndefinedError):
                     return ""
             raise
+        finally:
+            _current_page_url.reset(token)
 
     def template_exists(self, name: str) -> bool:
         """

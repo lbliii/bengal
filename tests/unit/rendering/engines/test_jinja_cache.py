@@ -196,8 +196,8 @@ class TestJinjaCacheInvalidation:
 class TestJinjaMenuCacheInvalidation:
     """Test menu dict cache invalidation."""
 
-    def test_menu_cache_invalidated_on_render(self) -> None:
-        """Verify menu cache is invalidated before rendering."""
+    def test_menu_cache_not_invalidated_on_render(self) -> None:
+        """Verify menu cache is NOT invalidated per render (per-URL caching)."""
         from bengal.rendering.engines.jinja import JinjaTemplateEngine
 
         mock_site = make_mock_site(dev_mode=False)
@@ -212,13 +212,13 @@ class TestJinjaMenuCacheInvalidation:
             engine = JinjaTemplateEngine(mock_site)
 
             # Pre-populate menu cache
-            engine._menu_dict_cache["main"] = [{"name": "Old", "url": "/old/"}]
+            engine._menu_dict_cache["main:/old/"] = [{"name": "Old", "url": "/old/"}]
 
-            # Render should invalidate cache
-            engine.render_template("test.html", {})
+            # Render does NOT invalidate cache (IPA audit fix: per-URL caching)
+            engine.render_template("test.html", {"page": MagicMock(_path="/old/", href="/old/")})
 
-            # Cache should be cleared
-            assert engine._menu_dict_cache == {}
+            # Cache should retain pre-populated entry (no per-render invalidation)
+            assert "main:/old/" in engine._menu_dict_cache
 
     def test_invalidate_menu_cache_clears_all_entries(self) -> None:
         """Verify invalidate_menu_cache clears all entries."""

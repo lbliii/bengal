@@ -269,8 +269,13 @@ class BuildTrigger:
                 first_file = Path(changed_files[0]).name
                 file_name = f"{first_file} (+{file_count - 1} more)"
 
+            # Compute template change info once (IPA audit Task 4)
+            template_info = self._get_template_change_info(changed_paths)
+
             # Determine build strategy
-            needs_full_rebuild = self._needs_full_rebuild(changed_paths, event_types)
+            needs_full_rebuild = self._needs_full_rebuild(
+                changed_paths, event_types, template_info=template_info
+            )
             nav_changed_files = self._detect_nav_changes(changed_paths, needs_full_rebuild)
             structural_changed = bool({"created", "deleted", "moved"} & event_types)
 
@@ -417,7 +422,7 @@ class BuildTrigger:
                     )
 
             # Reactive template path: template changes → re-render affected pages only
-            template_info = self._get_template_change_info(changed_paths)
+            # (template_info already computed above)
             if (
                 template_info is not None
                 and not structural_changed
@@ -502,7 +507,7 @@ class BuildTrigger:
                 force_sequential=False,  # Auto-detect based on page count
                 incremental=use_incremental,
                 profile=BuildProfile.WRITER,
-                changed_sources={Path(p) for p in changed_files} if changed_files else None,
+                changed_sources=changed_paths or set(),
                 nav_changed_sources=nav_changed_files,
                 structural_changed=structural_changed,
             )
@@ -699,6 +704,8 @@ class BuildTrigger:
         self,
         changed_paths: set[Path],
         event_types: set[str],
+        *,
+        template_info: tuple[set[Path], set[str]] | None = None,
     ) -> bool:
         """
         Determine if a full rebuild is needed.
@@ -719,7 +726,10 @@ class BuildTrigger:
         if {"created", "deleted", "moved"} & event_types:
             return True
 
-        # Check for template changes
+        # Check for template changes (use cached template_info when provided)
+        if template_info is not None:
+            logger.debug("full_rebuild_triggered_by_template")
+            return True
         if self._is_template_change(changed_paths):
             logger.debug("full_rebuild_triggered_by_template")
             return True

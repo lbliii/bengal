@@ -35,6 +35,7 @@ from bengal.errors import BengalRenderingError
 from bengal.protocols import EngineCapability, TemplateEngineProtocol
 from bengal.protocols.capabilities import has_clear_template_cache
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
+from bengal.rendering.template_engine.menu import _current_page_url
 from bengal.themes.utils import DEFAULT_THEME_PATH, THEMES_ROOT
 
 if TYPE_CHECKING:
@@ -259,28 +260,31 @@ class KidaTemplateEngine:
         self._env.globals["url_for"] = self._url_for
 
     def _get_menu(self, menu_name: str = "main") -> list[dict]:
-        """Get menu items as dicts (cached)."""
+        """Get menu items as dicts (cached). Cache key includes current URL for active states."""
+        current_url = _current_page_url.get()
         i18n = self.site.config.get("i18n", {}) or {}
         lang = getattr(self.site, "current_language", None)
         if lang and i18n.get("strategy") != "none":
             localized = self.site.menu_localized.get(menu_name, {}).get(lang)
             if localized is not None:
-                cache_key = f"{menu_name}:{lang}"
+                cache_key = f"{menu_name}:{lang}:{current_url}"
                 if cache_key not in self._menu_dict_cache:
                     self._menu_dict_cache[cache_key] = [item.to_dict() for item in localized]
                 return self._menu_dict_cache[cache_key]
 
-        if menu_name not in self._menu_dict_cache:
+        cache_key = f"{menu_name}:{current_url}"
+        if cache_key not in self._menu_dict_cache:
             menu = self.site.menu.get(menu_name, [])
-            self._menu_dict_cache[menu_name] = [item.to_dict() for item in menu]
-        return self._menu_dict_cache[menu_name]
+            self._menu_dict_cache[cache_key] = [item.to_dict() for item in menu]
+        return self._menu_dict_cache[cache_key]
 
     def _get_menu_lang(self, menu_name: str = "main", lang: str = "") -> list[dict]:
         """Get menu items for a specific language (cached)."""
         if not lang:
             return self._get_menu(menu_name)
 
-        cache_key = f"{menu_name}:{lang}"
+        current_url = _current_page_url.get()
+        cache_key = f"{menu_name}:{lang}:{current_url}"
         if cache_key in self._menu_dict_cache:
             return self._menu_dict_cache[cache_key]
 
@@ -295,8 +299,8 @@ class KidaTemplateEngine:
         """
         Invalidate the menu dict cache.
 
-        Call this after menus are rebuilt to ensure fresh dicts are generated.
-        This ensures active menu states are correct for each page render.
+        Call when menus are rebuilt (e.g. at build start). Not needed per-render
+        because cache key includes current page URL for correct active states.
         """
         self._menu_dict_cache.clear()
 
@@ -330,23 +334,24 @@ class KidaTemplateEngine:
             TemplateNotFoundError: If template doesn't exist
             TemplateRenderError: If rendering fails
         """
-        # Invalidate menu cache to ensure fresh active states for each page
-        self.invalidate_menu_cache()
-
-        # Record template dependency for EffectTracer (via ContextVar)
-        from bengal.effects.render_integration import (
-            record_extra_dependency,
-            record_template_include,
-        )
-
-        record_template_include(name)
-        template_path = self.get_template_path(name)
-        if template_path:
-            record_extra_dependency(template_path)
-        # Track all templates in the inheritance chain (extends/includes)
-        self._track_referenced_templates(name)
-
+        # Set current page URL for menu cache key (enables per-URL caching without per-render invalidation)
+        page = context.get("page")
+        url = getattr(page, "_path", None) or getattr(page, "href", None) if page else ""
+        token = _current_page_url.set(str(url) if url else "")
         try:
+            # Record template dependency for EffectTracer (via ContextVar)
+            from bengal.effects.render_integration import (
+                record_extra_dependency,
+                record_template_include,
+            )
+
+            record_template_include(name)
+            template_path = self.get_template_path(name)
+            if template_path:
+                record_extra_dependency(template_path)
+            # Track all templates in the inheritance chain (extends/includes)
+            self._track_referenced_templates(name)
+
             template = self._env.get_template(name)
 
             # Get page-aware functions (t, current_lang, etc.)
@@ -367,10 +372,9 @@ class KidaTemplateEngine:
             if self._profiler:
                 self._profiler.start_template(name)
                 try:
-                    result = template.render(ctx)
+                    return template.render(ctx)
                 finally:
                     self._profiler.end_template(name)
-                return result
             return template.render(ctx)
 
         except KidaTemplateNotFoundError as e:
@@ -446,6 +450,8 @@ class KidaTemplateEngine:
                 line_number=getattr(e, "lineno", None),
                 suggestion=getattr(e, "hint", None) or getattr(e, "suggestion", None),
             ) from e
+        finally:
+            _current_page_url.reset(token)
 
     def render_string(
         self,
@@ -466,9 +472,10 @@ class KidaTemplateEngine:
         """
         from kida.environment.exceptions import UndefinedError
 
-        # Invalidate menu cache to ensure fresh active states
-        self.invalidate_menu_cache()
-
+        # Set current page URL for menu cache key
+        page = context.get("page")
+        url = getattr(page, "_path", None) or getattr(page, "href", None) if page else ""
+        token = _current_page_url.set(str(url) if url else "")
         try:
             tmpl = self._env.from_string(template)
 
@@ -515,6 +522,8 @@ class KidaTemplateEngine:
                 line_number=getattr(e, "lineno", None),
                 suggestion=getattr(e, "hint", None) or getattr(e, "suggestion", None),
             ) from e
+        finally:
+            _current_page_url.reset(token)
 
     def template_exists(self, name: str) -> bool:
         """Check if a template exists.

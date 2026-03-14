@@ -1142,6 +1142,40 @@ class TestBuildTriggerQueuing:
         mock_sleep.assert_not_called()
 
 
+def _setup_reload_mock_dispatch(mock_controller: MagicMock) -> None:
+    """Make mock decide_reload dispatch to decide_from_outputs/decide_from_changed_paths.
+
+    BuildTrigger calls decide_reload(); the real controller dispatches internally.
+    When the whole controller is mocked, decide_reload returns MagicMock by default.
+    This helper makes the mock's decide_reload dispatch so assert_called_once works.
+    """
+    from bengal.server.reload_controller import ReloadDecision
+
+    def decide_reload(
+        output_dir: object,
+        *,
+        outputs: list | None = None,
+        changed_paths: list | None = None,
+        reload_hint: object = None,
+        source_changed_no_outputs: bool = False,
+    ) -> ReloadDecision:
+        if source_changed_no_outputs and not outputs:
+            mock_controller._last_decision_source = "fallback-source-change"
+            return ReloadDecision(
+                action="reload", reason="source-change-no-outputs", changed_paths=()
+            )
+        if outputs:
+            mock_controller._last_decision_source = "typed-outputs"
+            return mock_controller.decide_from_outputs(outputs, reload_hint=reload_hint)
+        if changed_paths:
+            mock_controller._last_decision_source = "fallback-paths"
+            return mock_controller.decide_from_changed_paths(changed_paths)
+        mock_controller._last_decision_source = "snapshot"
+        return ReloadDecision(action="none", reason="snapshot", changed_paths=())
+
+    mock_controller.decide_reload.side_effect = decide_reload
+
+
 class TestReloadDecisionFlow:
     """Tests for simplified reload decision flow.
 
@@ -1182,6 +1216,7 @@ class TestReloadDecisionFlow:
             action="reload-css", reason="css-only", changed_paths=("style.css",)
         )
         mock_controller._use_content_hashes = False
+        _setup_reload_mock_dispatch(mock_controller)
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -1218,6 +1253,7 @@ class TestReloadDecisionFlow:
             action="reload", reason="content-changed", changed_paths=("index.html",)
         )
         mock_controller._use_content_hashes = False
+        _setup_reload_mock_dispatch(mock_controller)
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -1248,6 +1284,7 @@ class TestReloadDecisionFlow:
     ) -> None:
         """Test fallback reload when sources changed but no typed outputs recorded."""
         mock_controller._use_content_hashes = False
+        _setup_reload_mock_dispatch(mock_controller)
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -1271,6 +1308,7 @@ class TestReloadDecisionFlow:
         mock_executor: MagicMock,
     ) -> None:
         """Test that empty outputs AND empty sources suppress reload."""
+        _setup_reload_mock_dispatch(mock_controller)
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
         # No sources, no outputs
@@ -1298,6 +1336,7 @@ class TestReloadDecisionFlow:
         (legacy path), we still run the fallback so changed_files triggers reload.
         """
         mock_controller._use_content_hashes = False
+        _setup_reload_mock_dispatch(mock_controller)
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -1329,6 +1368,7 @@ class TestReloadDecisionFlow:
             action="reload", reason="content-changed", changed_paths=("index.html",)
         )
         mock_controller._use_content_hashes = False
+        _setup_reload_mock_dispatch(mock_controller)
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -1358,6 +1398,7 @@ class TestReloadDecisionFlow:
         """When reload_hint='none' and we have typed outputs, suppress reload."""
         from bengal.orchestration.stats import ReloadHint
 
+        _setup_reload_mock_dispatch(mock_controller)
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
         trigger._handle_reload(
@@ -1395,6 +1436,7 @@ class TestReloadDecisionFlow:
             aggregate_changes=("sitemap.xml",),
             asset_changes=(),
         )
+        _setup_reload_mock_dispatch(mock_controller)
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -1426,6 +1468,7 @@ class TestReloadDecisionFlow:
             action="none", reason="throttled", changed_paths=()
         )
         mock_controller._use_content_hashes = False
+        _setup_reload_mock_dispatch(mock_controller)
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -1451,6 +1494,7 @@ class TestReloadDecisionFlow:
         """Fallback-source-change must not run content-hash filtering (always reload)."""
         mock_controller._use_content_hashes = True
         mock_controller._baseline_content_hashes = {"x": "y"}
+        _setup_reload_mock_dispatch(mock_controller)
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 

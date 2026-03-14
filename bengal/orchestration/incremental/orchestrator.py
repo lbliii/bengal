@@ -199,8 +199,8 @@ class IncrementalOrchestrator:
             invalidated = invalidate_for_reason(InvalidationReason.STRUCTURAL_CHANGE)
             logger.debug("caches_invalidated", reason="structural_changes", caches=invalidated)
 
-        # Check for template changes
-        template_changes = self._detect_template_changes()
+        # Template changes from merged walk (done in _detect_changes)
+        template_changes = getattr(self, "_last_template_changes", []) or []
 
         # Convert paths to page/asset objects
         # Pass changed_paths for proper asset change detection via file watcher
@@ -236,46 +236,31 @@ class IncrementalOrchestrator:
 
         return cascade_info
 
-    def _detect_template_changes(self) -> list[Path]:
-        """Detect changed templates."""
+    def _detect_template_changes_and_affected_pages(
+        self,
+    ) -> tuple[list[Path], set[Path]]:
+        """
+        Walk templates once, detect changed templates and collect affected pages.
+
+        Merges former _detect_template_changes and _detect_template_affected_pages
+        into a single rglob pass (IPA audit Task 3).
+        """
         template_changes: list[Path] = []
-
-        # Check theme templates directory
-        templates_dir = self._cache_manager.theme_templates_dir
-        if templates_dir and templates_dir.exists():
-            template_changes.extend(
-                template_file
-                for template_file in templates_dir.rglob("*.html")
-                if self.cache and self.cache.is_changed(template_file)
-            )
-
-        return template_changes
-
-    def _detect_template_affected_pages(self) -> set[Path]:
-        """
-        Get pages affected by template changes.
-
-        Uses cache.get_affected_pages() to find pages that use changed templates.
-        """
         affected_pages: set[Path] = set()
 
-        # Check theme templates directory
         templates_dir = self._cache_manager.theme_templates_dir
         if not templates_dir or not templates_dir.exists():
-            return affected_pages
+            return template_changes, affected_pages
 
         for template_file in templates_dir.rglob("*.html"):
-            if (
-                self.cache
-                and self.cache.is_changed(template_file)
-                and hasattr(self.cache, "get_affected_pages")
-            ):
-                # Get pages affected by this template
-                affected_paths = self.cache.get_affected_pages(str(template_file))
-                for path_str in affected_paths:
+            if not self.cache or not self.cache.is_changed(template_file):
+                continue
+            template_changes.append(template_file)
+            if hasattr(self.cache, "get_affected_pages"):
+                for path_str in self.cache.get_affected_pages(str(template_file)):
                     affected_pages.add(Path(path_str))
 
-        return affected_pages
+        return template_changes, affected_pages
 
     def find_work(self, verbose: bool = False) -> tuple[list[Page], list[Asset], ChangeSummary]:
         """
@@ -368,8 +353,11 @@ class IncrementalOrchestrator:
         nav_affected = self._detect_nav_metadata_changes(all_changed, verbose=verbose)
         pages_to_rebuild.update(nav_affected)
 
-        # Handle template changes - add affected pages
-        template_affected = self._detect_template_affected_pages()
+        # Handle template changes - add affected pages (single walk for both)
+        template_changes_list, template_affected = (
+            self._detect_template_changes_and_affected_pages()
+        )
+        self._last_template_changes = template_changes_list
         pages_to_rebuild.update(template_affected)
 
         # Add track item dependencies - when a track page is dirty, its items
