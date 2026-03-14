@@ -91,6 +91,13 @@ def _extract_with_regex(html: str, selector: str) -> str:
     return ""
 
 
+def _extract_one(html: str, selector: str) -> str:
+    """Extract using bs4 or regex. Returns empty string on failure."""
+    if _has_bs4():
+        return _extract_with_bs4(html, selector)
+    return _extract_with_regex(html, selector)
+
+
 def extract_main_content(html: str, selector: str = "#main-content") -> str:
     """Extract inner HTML of the first element matching the selector.
 
@@ -109,7 +116,35 @@ def extract_main_content(html: str, selector: str = "#main-content") -> str:
     """
     if not html or not selector.strip():
         return ""
+    return _extract_one(html, selector)
 
-    if _has_bs4():
-        return _extract_with_bs4(html, selector)
-    return _extract_with_regex(html, selector)
+
+def extract_main_content_with_fallback(
+    html: str, selector: str = "#main-content"
+) -> tuple[str, str]:
+    """Extract fragment, trying fallback selectors if primary returns empty.
+
+    When the configured selector returns empty, tries #main-content →
+    .main-content → main before giving up. Use the returned effective_selector
+    for client payloads (send_fragment_payload) so the client swaps the
+    correct DOM element.
+
+    Args:
+        html: Full HTML document string
+        selector: Primary CSS selector from config (e.g. dev.content_selector)
+
+    Returns:
+        (fragment, effective_selector). Use effective_selector for client swap.
+    """
+    if not html or not selector.strip():
+        return ("", selector)
+
+    fallbacks = ["#main-content", ".main-content", "main"]
+    candidates = [selector] + [f for f in fallbacks if f != selector]
+
+    for sel in candidates:
+        frag = _extract_one(html, sel)
+        if frag:
+            return (frag, sel)
+
+    return ("", selector)

@@ -337,7 +337,9 @@ class BuildTrigger:
 
                     dev_config = config_dict.get("dev", {}) or {}
                     content_selector = dev_config.get("content_selector", "#main-content")
-                    from bengal.server.live_reload.fragment import extract_main_content
+                    from bengal.server.live_reload.fragment import (
+                        extract_main_content_with_fallback,
+                    )
                     from bengal.server.live_reload.notification import (
                         send_fragment_payload,
                         send_fragments_payload,
@@ -347,14 +349,14 @@ class BuildTrigger:
                     # Single page: fragment swap; multi-page: fragments or reload
                     if len(results) == 1:
                         _, single_result = results[0]
-                        fragment = extract_main_content(
+                        fragment, effective_selector = extract_main_content_with_fallback(
                             single_result.rendered_html, content_selector
                         )
                         if fragment:
                             permalink = URLStrategy.url_from_output_path(
                                 single_result.output_path, self.site
                             )
-                            send_fragment_payload(content_selector, fragment, permalink)
+                            send_fragment_payload(effective_selector, fragment, permalink)
                         else:
                             logger.warning(
                                 "fragment_extraction_empty",
@@ -371,14 +373,18 @@ class BuildTrigger:
                     else:
                         # Multi-file: fragments payload (client swaps if on page, else reload)
                         fragments_list: list[tuple[str, str]] = []
+                        effective_selector = content_selector
                         for _, res in results:
-                            frag = extract_main_content(res.rendered_html, content_selector)
+                            frag, eff = extract_main_content_with_fallback(
+                                res.rendered_html, content_selector
+                            )
                             if frag:
+                                effective_selector = eff
                                 pl = URLStrategy.url_from_output_path(res.output_path, self.site)
                                 fragments_list.append((pl, frag))
                         if fragments_list:
                             send_fragments_payload(
-                                content_selector,
+                                effective_selector,
                                 fragments_list,
                                 reason="multi-page-content",
                             )

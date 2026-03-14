@@ -114,6 +114,53 @@ class TestExtractMainContent:
         result = extract_main_content(html, selector="main.content-area")
         assert "<h1>Tag+class</h1>" in result
 
+    def test_extract_with_fallback_uses_primary_when_it_works(self):
+        """extract_main_content_with_fallback returns primary when it matches."""
+        from bengal.server.live_reload.fragment import extract_main_content_with_fallback
+
+        html = '<div id="custom"><p>Custom</p></div>'
+        frag, eff = extract_main_content_with_fallback(html, selector="#custom")
+        assert frag == "<p>Custom</p>"
+        assert eff == "#custom"
+
+    def test_extract_with_fallback_falls_back_to_main_content(self):
+        """When primary fails, tries #main-content."""
+        from bengal.server.live_reload.fragment import extract_main_content_with_fallback
+
+        html = '<main id="main-content"><h1>Fallback</h1></main>'
+        frag, eff = extract_main_content_with_fallback(html, selector="#missing")
+        assert "<h1>Fallback</h1>" in frag
+        assert eff == "#main-content"
+
+    def test_extract_with_fallback_falls_back_to_class_main_content(self):
+        """When #main-content fails, tries .main-content."""
+        pytest.importorskip("bs4", reason="beautifulsoup4 for class selector")
+        from bengal.server.live_reload.fragment import extract_main_content_with_fallback
+
+        html = '<div class="main-content"><p>Class fallback</p></div>'
+        frag, eff = extract_main_content_with_fallback(html, selector="#missing")
+        assert "<p>Class fallback</p>" in frag
+        assert eff == ".main-content"
+
+    def test_extract_with_fallback_falls_back_to_main_tag(self):
+        """When #main-content and .main-content fail, tries main tag."""
+        pytest.importorskip("bs4", reason="beautifulsoup4 for main tag selector")
+        from bengal.server.live_reload.fragment import extract_main_content_with_fallback
+
+        html = "<main><p>Main tag content</p></main>"
+        frag, eff = extract_main_content_with_fallback(html, selector="#nonexistent")
+        assert "<p>Main tag content</p>" in frag
+        assert eff == "main"
+
+    def test_extract_with_fallback_returns_empty_when_all_fail(self):
+        """Returns empty fragment and primary selector when no fallback matches."""
+        from bengal.server.live_reload.fragment import extract_main_content_with_fallback
+
+        html = "<html><body><div>No match</div></body></html>"
+        frag, eff = extract_main_content_with_fallback(html, selector="#custom")
+        assert frag == ""
+        assert eff == "#custom"
+
 
 class TestLiveReloadScriptInjection:
     """Test HTML injection for live reload."""

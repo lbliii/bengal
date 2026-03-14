@@ -609,6 +609,20 @@ class DevServer:
 
             cfg = self.site.config or {}
 
+            # RFC: reload-controller-dual-path §5.3 — warn if content-hash mode
+            # has content_hash_in_html disabled (falls back to full-content hashing)
+            if controller._use_content_hashes:
+                build_cfg = cfg.get("build") or {}
+                if (
+                    isinstance(build_cfg, dict)
+                    and build_cfg.get("content_hash_in_html", True) is False
+                ):
+                    logger.warning(
+                        "content_hash_disabled",
+                        hint="content_hash_in_html=false; content-hash mode will "
+                        "use full-content hashing (slower)",
+                    )
+
             try:
                 min_interval = get_dev_config(cfg, "reload", "min_notify_interval_ms", default=300)
                 controller.set_min_notify_interval_ms(int(min_interval))
