@@ -402,7 +402,43 @@ def phase_incremental_filter_provenance(
 
         # Initialize provenance cache
         provenance_cache = ProvenanceCache(site.root_path / ".bengal" / "provenance")
+        provenance_cache._ensure_loaded()
         provenance_filter = ProvenanceFilter(site, provenance_cache)
+
+        # RFC: rfc-cache-generation-id — divergence detection
+        cache_id = getattr(cache, "build_id", None)
+        provenance_id = provenance_cache.get_build_id()
+        if cache_id is not None and provenance_id is not None and cache_id != provenance_id:
+            logger.warning(
+                "cache_divergence_detected",
+                build_cache_id=cache_id[:8],
+                provenance_id=provenance_id[:8],
+                action="cleared_both",
+            )
+            cli.detail(
+                "BuildCache and ProvenanceCache diverged — clearing both, full rebuild",
+                indent=1,
+            )
+            # Clear BuildCache: replace with fresh instance
+            from bengal.cache import BuildCache
+            from bengal.orchestration.build.coordinator import CacheCoordinator
+
+            fresh_cache = BuildCache()
+            fresh_cache.site_root = site.root_path
+            inc = orchestrator.incremental
+            inc.cache = fresh_cache
+            inc._cache_manager.cache = fresh_cache
+            inc.coordinator = CacheCoordinator(fresh_cache, site)
+            cache = fresh_cache
+            # Clear ProvenanceCache in-memory
+            with provenance_cache._lock:
+                provenance_cache._index = {}
+                provenance_cache._input_paths = {}
+                provenance_cache._subvenance = {}
+                provenance_cache._records = {}
+                provenance_cache._last_build_time = None
+                provenance_cache._build_id = None
+                provenance_cache._loaded = True
 
         # Combine changed sources from file watcher
         forced_changed: set[Path] = set()

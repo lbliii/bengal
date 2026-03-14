@@ -82,6 +82,38 @@ def test_get_input_paths_returns_stored_paths(provenance_dir: Path, site_root: P
     assert cache.get_last_build_time() == 1709827353.0
 
 
+def test_build_id_save_load(provenance_dir: Path) -> None:
+    """RFC rfc-cache-generation-id: build_id is saved and loaded correctly."""
+    cache = ProvenanceCache(provenance_dir)
+    cache.set_build_id("abc12345-6789-0def-1234-567890abcdef")
+    cache._index[CacheKey("content/index.md")] = ContentHash("abc123")
+    cache._input_paths[CacheKey("content/index.md")] = ["content/index.md"]
+    cache._loaded = True
+    cache._dirty = True
+    cache.save()
+
+    cache2 = ProvenanceCache(provenance_dir)
+    cache2._ensure_loaded()
+    assert cache2.get_build_id() == "abc12345-6789-0def-1234-567890abcdef"
+
+
+def test_build_id_none_in_old_index(provenance_dir: Path) -> None:
+    """Old index without build_id returns None (backward compatible)."""
+    index_path = provenance_dir / "index.json"
+    index_path.write_text(
+        json.dumps(
+            {
+                "version": 2,
+                "last_build_time": 1709827353.0,
+                "pages": {"content/index.md": "abc123"},
+            }
+        )
+    )
+    cache = ProvenanceCache(provenance_dir)
+    cache._ensure_loaded()
+    assert cache.get_build_id() is None
+
+
 def test_store_persists_input_paths(provenance_dir: Path, site_root: Path) -> None:
     """store() with input_paths persists them."""
     provenance = Provenance().with_input(

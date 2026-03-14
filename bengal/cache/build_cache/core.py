@@ -157,6 +157,9 @@ class BuildCache(
 
     last_build: str | None = None
 
+    # RFC: rfc-cache-generation-id — shared with ProvenanceCache for divergence detection
+    build_id: str | None = None
+
     def get_page_tags(self, key: str | Path) -> set[str]:
         """Get tags for a page from taxonomy index (public API)."""
         page_key = str(key) if isinstance(key, Path) else key
@@ -595,6 +598,7 @@ class BuildCache(
             "discovered_assets": self.discovered_assets,  # Discovered assets
             "config_hash": self.config_hash,  # Config hash for auto-invalidation
             "last_build": datetime.now(UTC).isoformat(),
+            "build_id": self.build_id,  # RFC: rfc-cache-generation-id
         }
 
         if compress:

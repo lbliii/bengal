@@ -483,6 +483,118 @@ title: Home
         assert len(result.pages_to_build) > 0, "Pages should be rebuilt when output is incomplete"
 
 
+class TestCacheDivergence:
+    """
+    RFC rfc-cache-generation-id: Divergent BuildCache and ProvenanceCache.
+
+    When build_id differs between caches, both are cleared and full rebuild runs.
+    """
+
+    @pytest.fixture
+    def site_with_divergent_caches(self, tmp_path: Path) -> Path:
+        """Site with output present but BuildCache and ProvenanceCache have different build_ids."""
+        import json
+
+        from bengal.cache import BuildCache
+        from bengal.cache.paths import BengalPaths
+
+        config = tmp_path / "bengal.toml"
+        config.write_text(
+            """
+[site]
+title = "Test Site"
+theme = "terminal"
+
+[build]
+incremental = true
+output_dir = "public"
+"""
+        )
+
+        content_dir = tmp_path / "content"
+        content_dir.mkdir()
+        (content_dir / "index.md").write_text("---\ntitle: Home\n---\n# Home")
+        (content_dir / "about.md").write_text("---\ntitle: About\n---\n# About")
+
+        paths = BengalPaths(tmp_path)
+        paths.ensure_dirs()
+
+        # BuildCache with build_id A
+        cache = BuildCache()
+        cache.update_file(content_dir / "index.md")
+        cache.update_file(content_dir / "about.md")
+        cache.build_id = "build-id-aaaaaaaa-1111-2222-3333-444444444444"
+        cache.save(paths.build_cache)
+
+        # Provenance index with different build_id B
+        provenance_dir = tmp_path / ".bengal" / "provenance"
+        provenance_dir.mkdir(parents=True)
+        (provenance_dir / "records").mkdir(exist_ok=True)
+        index_path = provenance_dir / "index.json"
+        index_path.write_text(
+            json.dumps(
+                {
+                    "version": 2,
+                    "last_build_time": 1709827353.0,
+                    "build_id": "build-id-bbbbbbbb-5555-6666-7777-888888888888",
+                    "pages": {
+                        "content/index.md": "abc123",
+                        "content/about.md": "def456",
+                    },
+                    "input_paths": {
+                        "content/index.md": ["content/index.md"],
+                        "content/about.md": ["content/about.md"],
+                    },
+                }
+            )
+        )
+
+        # Output exists (so we don't take cold-build path)
+        output_dir = tmp_path / "public"
+        output_dir.mkdir(exist_ok=True)
+        (output_dir / "index.html").write_text("<html></html>")
+        assets_dir = output_dir / "assets"
+        assets_dir.mkdir(exist_ok=True)
+        (assets_dir / "style.css").write_text("body {}")
+
+        return tmp_path
+
+    def test_divergent_caches_trigger_full_rebuild(self, site_with_divergent_caches: Path) -> None:
+        """Divergent build_ids clear both caches and force full rebuild."""
+        from bengal.core.site import Site
+        from bengal.orchestration.build import BuildOrchestrator
+        from bengal.orchestration.build.provenance_filter import (
+            phase_incremental_filter_provenance,
+        )
+        from bengal.output import CLIOutput
+
+        site = Site.from_config(site_with_divergent_caches)
+        orchestrator = BuildOrchestrator(site)
+        orchestrator.content.discover_content()
+        orchestrator.content.discover_assets()
+
+        cache = orchestrator.incremental.initialize(enabled=True)
+        assert cache.build_id == "build-id-aaaaaaaa-1111-2222-3333-444444444444"
+
+        result = phase_incremental_filter_provenance(
+            orchestrator=orchestrator,
+            cli=CLIOutput(),
+            incremental=True,
+            verbose=False,
+            cache=cache,
+            build_start=time.time(),
+        )
+
+        assert result is not None
+        # Full rebuild: all pages should be in pages_to_build
+        assert len(result.pages_to_build) == 2, (
+            "Divergent caches should clear both and rebuild all pages"
+        )
+        # Cache was replaced with fresh BuildCache (build_id None, empty)
+        assert orchestrator.incremental.cache.build_id is None
+        assert len(orchestrator.incremental.cache.file_fingerprints) == 0
+
+
 class TestAutodocOutputMismatch:
     """
     Regression tests for autodoc output missing scenarios.

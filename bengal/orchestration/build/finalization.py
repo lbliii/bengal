@@ -109,6 +109,9 @@ def phase_cache_save(
     """
     with orchestrator.logger.phase("cache_save"):
         start = time.perf_counter()
+        # RFC: rfc-cache-generation-id — set before save for divergence detection
+        if cache := getattr(orchestrator.incremental, "cache", None):
+            cache.build_id = getattr(orchestrator, "_build_id", None)
         orchestrator.incremental.save_cache(pages_to_build, assets_to_process)
         duration_ms = (time.perf_counter() - start) * 1000
         if cli is not None:

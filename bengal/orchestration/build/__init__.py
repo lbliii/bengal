@@ -48,6 +48,7 @@ bengal.cache: Build caching infrastructure
 from __future__ import annotations
 
 import time
+import uuid
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
@@ -250,6 +251,9 @@ class BuildOrchestrator:
 
         # Start timing
         build_start = time.time()
+
+        # RFC: rfc-cache-generation-id — shared ID for BuildCache and ProvenanceCache
+        self._build_id = str(uuid.uuid4())
 
         # Clear directory creation cache to ensure robustness if output was cleaned
         from bengal.rendering.pipeline.thread_local import get_created_dirs
@@ -836,6 +840,8 @@ class BuildOrchestrator:
         if hasattr(self, "_provenance_filter"):
             from bengal.orchestration.build.provenance_filter import save_provenance_cache
 
+            # RFC: rfc-cache-generation-id — set same build_id as BuildCache
+            self._provenance_filter.cache.set_build_id(getattr(self, "_build_id", None))
             save_provenance_cache(self)
 
         # Clear build state (build complete)
