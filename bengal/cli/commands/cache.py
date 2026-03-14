@@ -43,6 +43,7 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
+from bengal.cli.shared_options import opt_verbose
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
@@ -183,12 +184,7 @@ def cache_cli() -> None:
     default="lines",
     help="Output format (default: lines)",
 )
-@click.option(
-    "--verbose",
-    "-v",
-    is_flag=True,
-    help="Show source of each input pattern",
-)
+@opt_verbose(short="-v", help_text="Show source of each input pattern")
 @click.option(
     "--config",
     type=click.Path(exists=True),

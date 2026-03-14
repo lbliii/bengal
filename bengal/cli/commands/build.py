@@ -8,6 +8,7 @@ import click
 
 from bengal.cli.base import BengalCommand
 from bengal.cli.helpers import command_metadata, handle_cli_errors
+from bengal.cli.shared_options import opt_traceback, opt_verbose
 from bengal.cli.utils import (
     configure_cli_logging,
     configure_traceback,
@@ -18,7 +19,6 @@ from bengal.cli.utils import (
     validate_mutually_exclusive,
 )
 from bengal.config.build_options_resolver import CLIFlags, resolve_build_options
-from bengal.errors.traceback import TracebackStyle
 from bengal.orchestration.stats import (
     display_build_stats,
     show_building_indicator,
@@ -97,21 +97,15 @@ from bengal.utils.observability.logger import close_all_loggers, print_all_summa
     is_flag=True,
     help="Use developer profile with full observability (shorthand for --profile dev)",
 )
-@click.option(
-    "--verbose",
-    "-v",
-    is_flag=True,
-    help="Show detailed build output (phase timing, build stats). Does NOT change profile.",
+@opt_verbose(
+    short="-v",
+    help_text="Show detailed build output (phase timing, build stats). Does NOT change profile.",
 )
 @click.option("--strict", is_flag=True, help="Fail on template errors (recommended for CI/CD)")
 @click.option(
     "--debug", is_flag=True, help="Show debug output and full tracebacks (maps to dev profile)"
 )
-@click.option(
-    "--traceback",
-    type=click.Choice([s.value for s in TracebackStyle]),
-    help="Traceback verbosity: full | compact | minimal | off",
-)
+@opt_traceback()
 @click.option(
     "--validate", is_flag=True, help="Validate templates before building (catch errors early)"
 )
