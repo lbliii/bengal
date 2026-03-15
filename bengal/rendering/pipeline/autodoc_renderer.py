@@ -279,12 +279,11 @@ class AutodocRenderer:
             )
 
             # Collect error for deferred display (prevents interleaved output during parallel rendering)
-            # Deduplication ensures same error on multiple pages is only shown once
-            should_collect = True
+            # Always add at least one so we never fail silently (race-safe)
             if self.build_stats is not None:
                 dedup = self.build_stats.get_error_deduplicator()
-                should_collect = dedup.should_display(rich_error)
-                if should_collect:
+                should_add = dedup.should_display(rich_error)
+                if should_add or not self.build_stats.template_errors:
                     self.build_stats.add_template_error(rich_error)
 
             # Log to file only (debug level to avoid console output during parallel rendering)
@@ -300,7 +299,8 @@ class AutodocRenderer:
                 template_line=rich_error.template_context.line_number,
                 source_line=rich_error.template_context.source_line,
             )
-            # Fallback minimal HTML to keep build moving
+            # Fallback minimal HTML to keep build moving (don't cache so errors surface on rebuild)
+            page._used_fallback = True
             fallback_desc = getattr(element, "description", "") if element else ""
             page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
             page.html_content = page._prerendered_html

@@ -134,14 +134,14 @@ def is_root_level_page(page: Any, content_dir: Path) -> bool:
         return False
 
 
-def get_ancestors(section: Section | None) -> list[Section]:
-    """Get all ancestor sections from immediate parent to root."""
+def get_ancestors(section: Section | None) -> tuple[Section, ...]:
+    """Get all ancestor sections from immediate parent to root (immutable)."""
     result: list[Section] = []
     current = section
     while current:
         result.append(current)
         current = getattr(current, "parent", None)
-    return result
+    return tuple(result)
 
 
 class PageNavigationMixin:
@@ -201,4 +201,4 @@ class PageNavigationMixin:
 
         Cost: O(d) cached — proportional to tree depth, computed once.
         """
-        return tuple(get_ancestors(self._section))
+        return get_ancestors(self._section)

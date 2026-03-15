@@ -470,6 +470,30 @@ class NotebookStrategy(ContentTypeStrategy):
         return section_name_matches(section, ("notebooks", "notebook", "examples"))
 
 
+class TagPageStrategy(ContentTypeStrategy):
+    """
+    Strategy for generated tag pages (/tags/{slug}/).
+
+    Used when page.type is "tag". Virtual pages set template in metadata;
+    this provides fallback for template resolution consistency.
+    """
+
+    default_template = "tag.html"
+    allows_pagination = True
+
+
+class TagIndexStrategy(ContentTypeStrategy):
+    """
+    Strategy for generated tag index page (/tags/).
+
+    Used when page.type is "tag-index". Virtual pages set template in metadata;
+    this provides fallback for template resolution consistency.
+    """
+
+    default_template = "tags.html"
+    allows_pagination = False
+
+
 class PageStrategy(ContentTypeStrategy):
     """
     Default strategy for generic pages.

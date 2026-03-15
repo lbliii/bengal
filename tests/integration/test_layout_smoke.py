@@ -42,35 +42,27 @@ class TestTagLayoutSmoke:
     """Smoke tests for tag.html and tags.html via full build."""
 
     def test_tag_page_renders_with_expected_content(self, tmp_path):
-        """Tag page (tag.html) renders with tag name and post count."""
+        """Tag page (tag.html) writes real HTML for the routed page."""
         site_dir = _prepare_site(tmp_path, "test-taxonomy")
         site = Site.from_config(site_dir)
         site.build(BuildOptions(incremental=False))
 
         tag_html = site_dir / "public" / "tags" / "python" / "index.html"
-        if not tag_html.exists():
-            tag_txt = site_dir / "public" / "tags" / "python" / "index.txt"
-            assert tag_txt.exists(), "Expected tag output (html or txt)"
-            content = tag_txt.read_text()
-        else:
-            content = tag_html.read_text()
+        assert tag_html.exists(), "Expected routed tag page HTML output"
+        content = tag_html.read_text()
 
         assert "python" in content
         assert "post" in content.lower() or "Python" in content
 
     def test_tags_index_renders_with_expected_content(self, tmp_path):
-        """Tags index (tags.html) renders with tag list."""
+        """Tags index (tags.html) writes real HTML for the routed page."""
         site_dir = _prepare_site(tmp_path, "test-taxonomy")
         site = Site.from_config(site_dir)
         site.build(BuildOptions(incremental=False))
 
         tags_html = site_dir / "public" / "tags" / "index.html"
-        if not tags_html.exists():
-            tags_txt = site_dir / "public" / "tags" / "index.txt"
-            assert tags_txt.exists(), "Expected tags index output"
-            content = tags_txt.read_text()
-        else:
-            content = tags_html.read_text()
+        assert tags_html.exists(), "Expected routed tags index HTML output"
+        content = tags_html.read_text()
 
         assert "All Tags" in content or "tags" in content.lower()
         assert len(content) > 50

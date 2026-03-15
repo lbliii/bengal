@@ -10,10 +10,10 @@ Required Host Attributes:
 - subsections: list[Section]
 - metadata: dict[str, Any]
 - index_page: Page | None
-- sorted_pages: list[Page] (from SectionQueryMixin)
-- regular_pages_recursive: list[Page] (from SectionQueryMixin)
+- sorted_pages: tuple[Page, ...] (from SectionQueryMixin)
+- regular_pages_recursive: tuple[Page, ...] (from SectionQueryMixin)
 - get_all_pages: Callable (from SectionQueryMixin)
-- hierarchy: list[str] (from SectionHierarchyMixin)
+- hierarchy: tuple[str, ...] (from SectionHierarchyMixin)
 
 Related Modules:
 bengal.core.section: Section dataclass using this mixin
@@ -71,7 +71,7 @@ class SectionErgonomicsMixin:
     # From other mixins - accessed via self but defined in other mixins
     # These are declared as properties to match the @cached_property definitions
     @property
-    def sorted_pages(self) -> list[Page]:
+    def sorted_pages(self) -> tuple[Page, ...]:
         """Sorted pages - provided by SectionQueryMixin.
 
         Cost: O(1) — delegate to host.
@@ -79,7 +79,7 @@ class SectionErgonomicsMixin:
         raise NotImplementedError
 
     @property
-    def regular_pages_recursive(self) -> list[Page]:
+    def regular_pages_recursive(self) -> tuple[Page, ...]:
         """Recursive pages - provided by SectionQueryMixin.
 
         Cost: O(1) — delegate to host.
@@ -87,7 +87,7 @@ class SectionErgonomicsMixin:
         raise NotImplementedError
 
     @property
-    def hierarchy(self) -> list[str]:
+    def hierarchy(self) -> tuple[str, ...]:
         """Hierarchy path - provided by SectionHierarchyMixin.
 
         Cost: O(1) — delegate to host.
@@ -308,12 +308,14 @@ class SectionErgonomicsMixin:
         Returns:
             Dictionary with aggregated content information
         """
+        from bengal.core.utils.page_safe import get_tags_safe
+
         pages = self.get_all_pages(recursive=False)
 
-        # Collect all tags
+        # Collect all tags (safe: some pages may not have tags)
         all_tags = set()
         for page in pages:
-            all_tags.update(page.tags)
+            all_tags.update(get_tags_safe(page))
 
         result = {
             "page_count": len(pages),

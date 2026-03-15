@@ -240,12 +240,14 @@ class SectionHierarchyMixin:
         section.parent = self  # type: ignore[assignment]
         self.subsections.append(section)
 
-    def walk(self) -> list[Section]:
+    def walk(self) -> tuple[Section, ...]:
         """
         Iteratively walk through all sections in the hierarchy.
 
+        Returns immutable tuple for thread safety under free-threading.
+
         Returns:
-            List of all sections (self and descendants)
+            Tuple of all sections (self and descendants)
 
         Example:
             >>> for section in root.walk():
@@ -259,7 +261,7 @@ class SectionHierarchyMixin:
             sections.append(section)
             stack.extend(section.subsections)
 
-        return sections
+        return tuple(sections)
 
     # =========================================================================
     # IDENTITY

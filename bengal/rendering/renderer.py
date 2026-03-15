@@ -430,14 +430,15 @@ class Renderer:
             self._add_generated_page_context(page, context)
 
         # Handle root index pages (top-level _index.md without enclosing section)
-        page_type = page.type
-        is_index_page = page.source_path.stem in ("_index", "index")
+        from bengal.core.page.kind import PageKind
 
+        is_index_page = page.source_path.stem in ("_index", "index")
+        page_kind = PageKind.from_page(page)
         if (
             is_index_page
             and page._section is None
             and not page.is_generated
-            and page_type not in ("tag", "tag-index")
+            and page_kind not in (PageKind.TAG, PageKind.TAG_INDEX)
         ):
             # For root home page, provide site-level context as fallback
             # Filter to top-level items only (exclude nested sections/pages)
@@ -494,11 +495,16 @@ class Renderer:
             # This prevents interleaved output when parallel threads hit the same error.
             if self.build_stats:
                 dedup = self.build_stats.get_error_deduplicator()
-                if dedup.should_display(rich_error):
+                should_add = dedup.should_display(rich_error)
+                # Always add at least one error so we never fail silently (race-safe)
+                if should_add or not self.build_stats.template_errors:
                     self.build_stats.add_template_error(rich_error)
 
             if strict_mode:
                 raise rich_error from e
+
+            # Mark page so pipeline won't cache fallback output (ensures errors surface on rebuild)
+            page._used_fallback = True
 
             # Fallback to simple HTML
             return self._render_fallback(page, content)
@@ -507,43 +513,21 @@ class Renderer:
         """
         Add special context variables for generated pages (archives, tags, etc.).
 
-        Args:
-            page: Page being rendered
-            context: Template context to update
+        Dispatches via PageKind registry (RFC: rfc-generated-page-context-protocol).
         """
-        page_type = page.type
+        from bengal.rendering.context.generated_providers import get_generated_context
 
-        archive_like_types = {
-            "archive",
-            "blog",
-            "autodoc/python",
-            "autodoc-cli",
-            "tutorial",
-            "changelog",
-        }
+        extra = get_generated_context(self, page)
+        if extra:
+            context.update(extra)
 
-        if page_type in archive_like_types:
-            self._add_archive_like_generated_page_context(page, context)
-            return
-
-        if page_type == "tag":
-            self._add_tag_generated_page_context(page, context)
-            return
-
-        if page_type == "tag-index":
-            self._add_tag_index_generated_page_context(page, context)
-            return
-
-    def _add_archive_like_generated_page_context(
-        self, page: PageLike, context: dict[str, Any]
-    ) -> None:
+    def _build_archive_page_context(self, page: PageLike) -> dict[str, Any]:
         """
-        Add context for archive/reference/blog-like generated pages.
+        Build context for archive/reference/blog-like generated pages.
 
         Note: Posts are already filtered and sorted by the content type strategy
         in the SectionOrchestrator, so we do not re-sort here.
         """
-
         section = getattr(page, "internal_section", None)
         if section is None and page.metadata is not None:
             section = page.metadata.get("_section")
@@ -584,19 +568,17 @@ class Renderer:
             if key in safe_pagination and safe_pagination[key] is not None:
                 safe_pagination[key] = coerce_int(safe_pagination[key], 1)
 
-        context.update(
-            {
-                "section": section_for_context,
-                "posts": posts,
-                "pages": posts,  # Alias
-                "subsections": subsections,
-                "total_posts": len(all_posts),
-                **safe_pagination,
-            }
-        )
+        return {
+            "section": section_for_context,
+            "posts": posts,
+            "pages": posts,  # Alias
+            "subsections": subsections,
+            "total_posts": len(all_posts),
+            **safe_pagination,
+        }
 
-    def _add_tag_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
-        """Add context for an individual tag page."""
+    def _build_tag_page_context(self, page: PageLike) -> dict[str, Any]:
+        """Build context for an individual tag page."""
         tag_name = getattr(page, "tag_name", None) or page.metadata.get("_tag")
         tag_slug = getattr(page, "tag_slug", None) or page.metadata.get("_tag_slug")
         page_num = coerce_int(getattr(page, "internal_page_num", 1), 1)
@@ -710,20 +692,16 @@ class Renderer:
             if key in safe_pagination and safe_pagination[key] is not None:
                 safe_pagination[key] = coerce_int(safe_pagination[key], 1)
 
-        context.update(
-            {
-                "tag": tag_name,
-                "tag_slug": tag_slug,
-                "posts": posts,
-                "total_posts": total_posts_count,
-                **safe_pagination,
-            }
-        )
+        return {
+            "tag": tag_name,
+            "tag_slug": tag_slug,
+            "posts": posts,
+            "total_posts": total_posts_count,
+            **safe_pagination,
+        }
 
-    def _add_tag_index_generated_page_context(
-        self, page: PageLike, context: dict[str, Any]
-    ) -> None:
-        """Add context for the tag index page."""
+    def _build_tag_index_page_context(self, page: PageLike) -> dict[str, Any]:
+        """Build context for the tag index page."""
         tags = getattr(page, "internal_tags_index", None) or (
             page.metadata.get("_tags", {}) if page.metadata else {}
         )
@@ -740,12 +718,10 @@ class Renderer:
         ]
         tags_list.sort(key=lambda t: (-t["count"], t["name"].lower()))
 
-        context.update(
-            {
-                "tags": tags_list,
-                "total_tags": len(tags_list),
-            }
-        )
+        return {
+            "tags": tags_list,
+            "total_tags": len(tags_list),
+        }
 
     def _get_template_name(self, page: PageLike) -> str:
         """
@@ -934,3 +910,38 @@ class Renderer:
 </body>
 </html>
 """
+
+
+# =============================================================================
+# Generated Page Context Provider Registration (RFC: rfc-generated-page-context-protocol)
+# =============================================================================
+
+
+def _register_generated_providers() -> None:
+    """Register context providers for generated page kinds."""
+    from bengal.core.page.kind import PageKind
+    from bengal.rendering.context.generated_providers import register_provider
+
+    def archive_provider(renderer: Renderer, page: PageLike) -> dict[str, Any]:
+        return renderer._build_archive_page_context(page)
+
+    def tag_provider(renderer: Renderer, page: PageLike) -> dict[str, Any]:
+        return renderer._build_tag_page_context(page)
+
+    def tag_index_provider(renderer: Renderer, page: PageLike) -> dict[str, Any]:
+        return renderer._build_tag_index_page_context(page)
+
+    for kind in (
+        PageKind.ARCHIVE,
+        PageKind.BLOG,
+        PageKind.CHANGELOG,
+        PageKind.TUTORIAL,
+        PageKind.AUTODOC_PYTHON,
+        PageKind.AUTODOC_CLI,
+    ):
+        register_provider(kind, archive_provider)
+    register_provider(PageKind.TAG, tag_provider)
+    register_provider(PageKind.TAG_INDEX, tag_index_provider)
+
+
+_register_generated_providers()

@@ -624,8 +624,8 @@ def build(
                     for line in format_profile_report(report, top_n=20).splitlines():
                         cli.info(line)
 
-        # Display template errors first if we're in theme-dev or dev mode
-        if stats.template_errors and build_profile != BuildProfile.WRITER:
+        # Display template errors (always surface - never fail silently)
+        if stats.template_errors:
             from bengal.orchestration.stats import display_template_errors
 
             display_template_errors(stats)

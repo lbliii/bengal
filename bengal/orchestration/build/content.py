@@ -496,55 +496,58 @@ def phase_update_pages_list(
     # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
     # RFC: Output Cache Architecture - Use GeneratedPageCache to skip unchanged pages
     skipped_by_cache = 0
+    from bengal.core.page.kind import PageKind
+
     for page in orchestrator.site.generated_pages:
-        if page.type in ("tag", "tag-index"):
-            tag_slug = page.tag_slug
-            page_type = page.type
+        kind = PageKind.from_page(page)
+        if kind not in (PageKind.TAG, PageKind.TAG_INDEX):
+            continue
+        tag_slug = page.tag_slug
 
-            # Base inclusion logic
-            should_include = (
-                not incremental  # Full build: include all
-                or page_type == "tag-index"  # Always include tag index
-                or (affected_tags and tag_slug in affected_tags)  # Include affected tag pages
-            )
+        # Base inclusion logic
+        should_include = (
+            not incremental  # Full build: include all
+            or kind == PageKind.TAG_INDEX  # Always include tag index
+            or (affected_tags and tag_slug in affected_tags)  # Include affected tag pages
+        )
 
-            # RFC: Output Cache Architecture - Check if page actually needs regeneration
-            # This is the KEY optimization: skip if member content hasn't changed
-            if should_include and incremental and generated_page_cache and page_type == "tag":
-                member_pages = page.internal_posts
-                if member_pages and content_hash_lookup:
-                    # Check if this tag page needs regeneration based on member hashes
-                    needs_regen = generated_page_cache.should_regenerate(
-                        page_type="tag",
-                        page_id=tag_slug or "",
-                        member_pages=member_pages,
-                        content_cache=content_hash_lookup,
+        # RFC: Output Cache Architecture - Check if page actually needs regeneration
+        # This is the KEY optimization: skip if member content hasn't changed
+        if should_include and incremental and generated_page_cache and kind == PageKind.TAG:
+            member_pages = page.internal_posts
+            if member_pages and content_hash_lookup:
+                # Check if this tag page needs regeneration based on member hashes
+                needs_regen = generated_page_cache.should_regenerate(
+                    page_type="tag",
+                    page_id=tag_slug or "",
+                    member_pages=member_pages,
+                    content_cache=content_hash_lookup,
+                )
+                if not needs_regen:
+                    skipped_by_cache += 1
+                    orchestrator.logger.debug(
+                        "tag_page_cache_hit",
+                        tag_slug=tag_slug,
+                        member_count=len(member_pages),
                     )
-                    if not needs_regen:
-                        skipped_by_cache += 1
-                        orchestrator.logger.debug(
-                            "tag_page_cache_hit",
-                            tag_slug=tag_slug,
-                            member_count=len(member_pages),
-                        )
-                        should_include = False
+                    should_include = False
 
-            if should_include:
-                pages_to_build_set.add(page)  # O(1) + automatic dedup
-                # CRITICAL: Invalidate rendered output cache for taxonomy pages
-                # This ensures fresh rendering with updated member metadata
-                # Use coordinator if available (RFC: rfc-cache-invalidation-architecture)
-                coordinator = getattr(orchestrator.incremental, "coordinator", None)
-                if coordinator:
-                    from bengal.orchestration.build.coordinator import PageInvalidationReason
+        if should_include:
+            pages_to_build_set.add(page)  # O(1) + automatic dedup
+            # CRITICAL: Invalidate rendered output cache for taxonomy pages
+            # This ensures fresh rendering with updated member metadata
+            # Use coordinator if available (RFC: rfc-cache-invalidation-architecture)
+            coordinator = getattr(orchestrator.incremental, "coordinator", None)
+            if coordinator:
+                from bengal.orchestration.build.coordinator import PageInvalidationReason
 
-                    coordinator.invalidate_page(
-                        page.source_path,
-                        PageInvalidationReason.TAXONOMY_CASCADE,
-                        trigger=f"tag:{tag_slug}" if tag_slug else "tag-index",
-                    )
-                elif cache and hasattr(cache, "invalidate_rendered_output"):
-                    cache.invalidate_rendered_output(page.source_path)
+                coordinator.invalidate_page(
+                    page.source_path,
+                    PageInvalidationReason.TAXONOMY_CASCADE,
+                    trigger=f"tag:{tag_slug}" if tag_slug else "tag-index",
+                )
+            elif cache and hasattr(cache, "invalidate_rendered_output"):
+                cache.invalidate_rendered_output(page.source_path)
 
     # Log cache effectiveness
     if skipped_by_cache > 0:

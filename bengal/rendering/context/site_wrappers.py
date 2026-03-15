@@ -257,11 +257,11 @@ class ThemeContext:
         return self._theme.default_palette or ""
 
     @property
-    def features(self) -> list[str]:
-        """List of enabled feature flags."""
+    def features(self) -> tuple[str, ...]:
+        """List of enabled feature flags (immutable)."""
         if self._theme is None:
-            return []
-        return self._theme.features or []
+            return ()
+        return tuple(self._theme.features or ())
 
     # Header configuration properties for ergonomic template access
     @property

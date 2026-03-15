@@ -174,8 +174,10 @@ def phase_update_generated_cache(
     updated_entries = 0
     tag_pages_found = 0
     tag_pages_with_posts = 0
+    from bengal.core.page.kind import PageKind
+
     for page in pages_to_build:
-        if page.type == "tag" and page.is_generated:
+        if PageKind.from_page(page) == PageKind.TAG and page.is_generated:
             tag_pages_found += 1
             tag_slug = page.tag_slug or ""
             member_pages = page.internal_posts

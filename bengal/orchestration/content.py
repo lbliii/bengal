@@ -87,8 +87,8 @@ class ContentOrchestrator:
         Delegates to bengal.services.data.scan_data_directory, then wraps
         the result in DotDict for template dot-access compatibility.
 
-        Called at the start of discover() so site.data is available before
-        content discovery and menu building.
+        Called at the start of discover_content() so site.data is available
+        before content discovery and menu building.
         """
         from bengal.services.data import scan_data_directory
         from bengal.utils.primitives.dotdict import DotDict, wrap_data
@@ -120,7 +120,6 @@ class ContentOrchestrator:
             build_cache: Optional BuildCache for registering autodoc dependencies.
                         When provided, enables selective autodoc rebuilds.
         """
-        self._load_data_directory()
         self.discover_content(
             incremental=incremental,
             cache=cache,
@@ -154,6 +153,11 @@ class ContentOrchestrator:
             build_cache: Optional BuildCache for registering autodoc dependencies.
                         When provided, enables selective autodoc rebuilds.
         """
+        # Load data/ directory first so site.data.tracks, site.data.authors, etc.
+        # are available for templates and menu building. Required for both
+        # discover() and run_discovery_phase() callers.
+        self._load_data_directory()
+
         if content_dir is None:
             content_dir = self.site.root_path / "content"
 

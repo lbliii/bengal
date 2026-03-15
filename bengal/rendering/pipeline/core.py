@@ -330,8 +330,8 @@ class RenderingPipeline:
             # Inline asset extraction for virtual pages
             self._accumulate_asset_deps(page)
 
-            # Cache the rendered output for next time
-            if is_autodoc:
+            # Cache the rendered output for next time (skip when fallback was used)
+            if is_autodoc and not getattr(page, "_used_fallback", False):
                 template = page.metadata.get("_autodoc_template", "autodoc/python/module")
                 self._cache_checker.cache_rendered_output(page, template)
             return
@@ -651,8 +651,9 @@ class RenderingPipeline:
         # Get tracked assets from render-time tracking
         tracked_assets = tracker.get_assets()
 
-        # Store rendered output in cache
-        self._cache_checker.cache_rendered_output(page, template)
+        # Store rendered output in cache (skip when fallback was used so errors surface on rebuild)
+        if not getattr(page, "_used_fallback", False):
+            self._cache_checker.cache_rendered_output(page, template)
 
         # Write output (sync or async via write-behind)
         write_output(

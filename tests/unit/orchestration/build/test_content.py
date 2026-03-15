@@ -27,6 +27,18 @@ from bengal.orchestration.build.content import (
 )
 
 
+class _GeneratedPageStub:
+    """Simple generated page stub for PageKind-based tests."""
+
+    def __init__(self, page_type: str, slug: str | None = None) -> None:
+        self.is_generated = True
+        self.type = page_type
+        self.tag_slug = slug
+        self.source_path = Path(f"/virtual/{page_type}-{slug or 'index'}.md")
+        self.internal_posts: list[object] = []
+        self.metadata = {"type": page_type}
+
+
 class MockPhaseContext:
     """Helper to create mock context for phase functions."""
 
@@ -502,12 +514,12 @@ class TestPhaseUpdatePagesList:
         pages_to_build = [regular_page]
 
         # Generated tag page
-        tag_page = MagicMock()
-        tag_page.metadata = {"type": "tag", "_tag_slug": "python"}
+        tag_page = _GeneratedPageStub("tag", "python")
         orchestrator.site.generated_pages = [tag_page]
 
         result = phase_update_pages_list(
             orchestrator,
+            cache=None,
             incremental=False,
             pages_to_build=pages_to_build,
             affected_tags=set(),
@@ -524,19 +536,15 @@ class TestPhaseUpdatePagesList:
         pages_to_build = []
 
         # Generated tag pages
-        python_tag = MagicMock()
-        python_tag.metadata = {"type": "tag", "_tag_slug": "python"}
-
-        rust_tag = MagicMock()
-        rust_tag.metadata = {"type": "tag", "_tag_slug": "rust"}
-
-        tag_index = MagicMock()
-        tag_index.metadata = {"type": "tag-index"}
+        python_tag = _GeneratedPageStub("tag", "python")
+        rust_tag = _GeneratedPageStub("tag", "rust")
+        tag_index = _GeneratedPageStub("tag-index")
 
         orchestrator.site.generated_pages = [python_tag, rust_tag, tag_index]
 
         result = phase_update_pages_list(
             orchestrator,
+            cache=None,
             incremental=True,
             pages_to_build=pages_to_build,
             affected_tags={"python"},  # Only python affected
@@ -554,6 +562,7 @@ class TestPhaseUpdatePagesList:
 
         phase_update_pages_list(
             orchestrator,
+            cache=None,
             incremental=False,
             pages_to_build=[],
             affected_tags=set(),
@@ -573,6 +582,7 @@ class TestPhaseUpdatePagesList:
 
         result = phase_update_pages_list(
             orchestrator,
+            cache=None,
             incremental=False,
             pages_to_build=pages_to_build,
             affected_tags=set(),
