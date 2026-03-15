@@ -16,6 +16,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 
 {# Navigation - cache function calls #}
 {% let _current_lang = current_lang() %}
+{% let _direction = direction() %}
 {% let _site_title = site.title %}
 
 {# Normalized config objects (pre-processed by Site with defaults applied) #}
@@ -82,7 +83,7 @@ HELPER: Render a menu item (desktop/mobile)
 </li>
 {% enddef %}
 
-<html lang="{{ _current_lang }}" {% if _view_transitions and _transition_style !='crossfade' %}
+<html lang="{{ _current_lang }}" dir="{{ _direction }}" {% if _view_transitions and _transition_style !='crossfade' %}
     data-transition-style="{{ _transition_style }}" {% end %}>
 
 <head>

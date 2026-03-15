@@ -160,6 +160,9 @@ graph_cli = _create_lazy_group(
 version_cli = _create_lazy_group(
     "bengal.cli.commands.version:version_cli", "version", "Documentation versioning"
 )
+i18n_cli = _create_lazy_group(
+    "bengal.cli.commands.i18n:i18n_cli", "i18n", "Internationalization (PO/MO)"
+)
 
 
 # Lazy-loaded single commands (not groups)
@@ -356,6 +359,9 @@ main.add_command(graph_cli)
 
 # Version management for documentation
 main.add_command(version_cli)
+
+# Internationalization (gettext PO/MO)
+main.add_command(i18n_cli)
 
 # Upgrade command - self-update
 main.add_command(upgrade_cmd)

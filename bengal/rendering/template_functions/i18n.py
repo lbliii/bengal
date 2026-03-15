@@ -4,6 +4,7 @@ Internationalization (i18n) template helpers.
 Provides:
 - t(key, params={}, lang=None): translate UI strings from i18n/<lang>.(yaml|json|toml)
 - current_lang(): current language code inferred from page/site
+- direction(): 'rtl' or 'ltr' for current page (RTL: ar, he, fa, ur, yi, dv, ku, ps, sd)
 - languages(): configured languages list from config
 - alternate_links(page): list of {hreflang, href} for page translations
 - locale_date(date, format='medium'): localized date formatting (Babel if available)
@@ -137,12 +138,32 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     # and context injection for Kida
 
 
+# Default RTL locales (Arabic, Hebrew, Persian, Urdu, etc.)
+_RTL_LOCALES: frozenset[str] = frozenset({"ar", "he", "fa", "ur", "yi", "dv", "ku", "ps", "sd"})
+
+
 def _current_lang(site: SiteLike, page: PageLike | None = None) -> str | None:
     i18n = site.config.get("i18n", {}) or {}
     default = i18n.get("default_language", "en")
     if page is not None and getattr(page, "lang", None):
         return page.lang
     return getattr(site, "current_language", None) or default
+
+
+def _direction(site: SiteLike, page: PageLike | None = None) -> str:
+    """Return 'rtl' or 'ltr' for the current page's language.
+
+    Uses config override (rtl = true/false) if present, otherwise falls back
+    to known RTL locales: ar, he, fa, ur, yi, dv, ku, ps, sd.
+    """
+    lang = _current_lang(site, page) or "en"
+    i18n = site.config.get("i18n", {}) or {}
+    for entry in i18n.get("languages") or []:
+        if isinstance(entry, dict) and entry.get("code") == lang:
+            if "rtl" in entry:
+                return "rtl" if entry["rtl"] else "ltr"
+            break
+    return "rtl" if lang in _RTL_LOCALES else "ltr"
 
 
 def _languages(site: SiteLike) -> list[LanguageInfo]:

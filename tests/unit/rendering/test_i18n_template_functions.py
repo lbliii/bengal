@@ -42,6 +42,85 @@ def test_t_and_current_lang_from_context(tmp_path: Path) -> None:
     assert "Bonjour Alice" in html
 
 
+def test_direction_rtl_for_arabic(tmp_path: Path) -> None:
+    """Arabic pages get dir='rtl' via direction()."""
+    config = {
+        "i18n": {
+            "strategy": "prefix",
+            "default_language": "en",
+            "languages": [{"code": "en"}, {"code": "ar"}],
+        }
+    }
+    site = Site(root_path=tmp_path, config=config)
+
+    class ArabicPage:
+        lang = "ar"
+
+    engine = TemplateEngine(site)
+    html = engine.render_string(
+        'dir="{{ direction() }}"',
+        {"page": ArabicPage(), "site": site},
+    )
+    assert 'dir="rtl"' in html
+
+
+def test_direction_ltr_for_english(tmp_path: Path) -> None:
+    """English pages get dir='ltr' via direction()."""
+    config = {
+        "i18n": {
+            "strategy": "prefix",
+            "default_language": "en",
+            "languages": [{"code": "en"}],
+        }
+    }
+    site = Site(root_path=tmp_path, config=config)
+
+    class EnglishPage:
+        lang = "en"
+
+    engine = TemplateEngine(site)
+    html = engine.render_string(
+        'dir="{{ direction() }}"',
+        {"page": EnglishPage(), "site": site},
+    )
+    assert 'dir="ltr"' in html
+
+
+def test_direction_config_override(tmp_path: Path) -> None:
+    """Config rtl=true/false overrides default RTL detection."""
+    config = {
+        "i18n": {
+            "strategy": "prefix",
+            "default_language": "en",
+            "languages": [
+                {"code": "en"},
+                {"code": "ar", "rtl": False},
+                {"code": "custom-rtl", "name": "Custom", "rtl": True},
+            ],
+        }
+    }
+    site = Site(root_path=tmp_path, config=config)
+    engine = TemplateEngine(site)
+
+    class ArPage:
+        lang = "ar"
+
+    class CustomPage:
+        lang = "custom-rtl"
+
+    ar_html = engine.render_string(
+        'dir="{{ direction() }}"',
+        {"page": ArPage(), "site": site},
+    )
+    assert 'dir="ltr"' in ar_html
+
+    custom_html = engine.render_string(
+        'dir="{{ direction() }}"',
+        {"page": CustomPage(), "site": site},
+    )
+    assert 'dir="rtl"' in custom_html
+
+
 def test_alternate_links(tmp_path: Path) -> None:
     # Build a minimal site with two translated pages
     config = {
