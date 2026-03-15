@@ -713,19 +713,17 @@ class BuildOrchestrator:
 
         cli = get_cli_output()
 
-        # Count page types
-        tag_pages = sum(
-            1
-            for p in self.site.pages
-            if p.is_generated and p.output_path is not None and "tag" in p.output_path.parts
-        )
-        archive_pages = sum(
-            1 for p in self.site.pages if p.is_generated and p.assigned_template == "archive.html"
-        )
-        pagination_pages = sum(
-            1 for p in self.site.pages if p.is_generated and "/page/" in str(p.output_path)
-        )
-        regular_pages = len(self.site.regular_pages)
+        # Single-pass classification (FLOW audit Finding 12)
+        tag_pages = archive_pages = pagination_pages = regular_pages = 0
+        for p in self.site.pages:
+            if not p.is_generated:
+                regular_pages += 1
+            elif p.output_path is not None and "tag" in p.output_path.parts:
+                tag_pages += 1
+            elif p.assigned_template == "archive.html":
+                archive_pages += 1
+            elif p.output_path is not None and "/page/" in str(p.output_path):
+                pagination_pages += 1
 
         cli.detail(f"Regular pages:    {regular_pages}", indent=1, icon="├─")
         if tag_pages:
