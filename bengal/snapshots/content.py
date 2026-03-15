@@ -246,14 +246,10 @@ def _snapshot_section_recursive(
 
 def _resolve_navigation(page_cache: dict[int, PageSnapshot], site: SiteLike) -> None:
     """Resolve next/prev navigation links."""
-    # Create mapping from source_path to page snapshot for lookup
-    pages_by_path: dict[Path, PageSnapshot] = {
-        page.source_path: page for page in page_cache.values()
-    }
-
-    # Build reverse index: source_path -> orig_id for O(1) lookup
+    pages_by_path: dict[Path, PageSnapshot] = {}
     id_by_path: dict[Path, int] = {}
     for oid, snap in page_cache.items():
+        pages_by_path[snap.source_path] = snap
         id_by_path[snap.source_path] = oid
 
     # Sort pages by source_path for consistent ordering
