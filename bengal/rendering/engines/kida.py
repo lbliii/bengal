@@ -62,6 +62,7 @@ class KidaTemplateEngine:
     NAME = "kida"
     __slots__ = (
         "_env",
+        "_known_templates",
         "_menu_dict_cache",
         "_profile",
         "_profiler",
@@ -544,10 +545,11 @@ class KidaTemplateEngine:
         Returns:
             True if template can be loaded
         """
-        known = getattr(self, "_known_templates", None)
-        if known is None:
+        try:
+            known = self._known_templates
+        except AttributeError:
             try:
-                self._known_templates: set[str] = set(self.list_templates())
+                self._known_templates = set(self.list_templates())
             except Exception:
                 self._known_templates = set()
             known = self._known_templates

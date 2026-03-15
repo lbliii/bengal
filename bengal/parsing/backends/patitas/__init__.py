@@ -626,8 +626,14 @@ class Markdown:
         )
         set_patitas_parse_config(patitas_config)
         try:
-            parser = Parser(source)
-            return parser.parse()
+            if hasattr(Parser, "_reinit"):
+                from bengal.parsing.backends.patitas.pool import ParserPool
+
+                with ParserPool.acquire(source) as parser:
+                    return parser.parse()
+            else:
+                parser = Parser(source)
+                return parser.parse()
         finally:
             reset_patitas_parse_config()
             reset_parse_config(parse_token)
@@ -663,15 +669,30 @@ class Markdown:
         config = self._get_render_config(text_transformer)
         render_token = set_render_config(config)
         try:
-            renderer = HtmlRenderer(
-                source,
-                delegate=self._delegate,
-                directive_cache=directive_cache if cache_enabled else None,
-                page_context=page_context,
-                xref_index=xref_index,
-                site=site,
-            )
-            return renderer.render(ast)
+            if hasattr(HtmlRenderer, "_reset"):
+                from bengal.parsing.backends.patitas.pool import RendererPool
+
+                with RendererPool.acquire(
+                    source,
+                    delegate=self._delegate,
+                    directive_cache=directive_cache if cache_enabled else None,
+                    page_context=page_context,
+                ) as renderer:
+                    if xref_index is not None:
+                        renderer._xref_index = xref_index
+                    if site is not None:
+                        renderer._site = site
+                    return renderer.render(ast)
+            else:
+                renderer = HtmlRenderer(
+                    source,
+                    delegate=self._delegate,
+                    directive_cache=directive_cache if cache_enabled else None,
+                    page_context=page_context,
+                    xref_index=xref_index,
+                    site=site,
+                )
+                return renderer.render(ast)
         finally:
             reset_render_config(render_token)
 

@@ -11,6 +11,7 @@ import re
 from re import Match
 from typing import Any
 
+from bengal.errors import BengalRenderingError, ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 __all__ = ["VariableSubstitutionPlugin"]
@@ -309,9 +310,6 @@ class VariableSubstitutionPlugin:
         """
         # Support simple dot notation: page.metadata.title
         parts = expr.split(".")
-
-        # SECURITY: Block access to private/dunder attributes
-        from bengal.errors import BengalRenderingError, ErrorCode
 
         for part in parts:
             if part.startswith("_"):

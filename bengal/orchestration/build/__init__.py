@@ -170,14 +170,10 @@ class BuildOrchestrator:
         self.options = options
         self.current_input: BuildInput = build_input
 
-        # Extract values from options for use in build phases
-        # Parallel is now auto-detected via should_parallelize() unless force_sequential=True
-        # We'll compute it when we know the page count (in rendering phase)
+        # Per-phase parallelism: fan-out phases stay parallel, content
+        # phases go sequential under dev server (3.14t ThreadPoolExecutor hang).
+        parallel = options.phase_parallel()
         force_sequential = options.force_sequential
-        # Dev server: only force taxonomy/related_posts sequential to avoid
-        # ThreadPoolExecutor hang on Python 3.14t / macOS.  Rendering, parsing,
-        # and asset phases remain parallel for performance.
-        _content_sequential = force_sequential or bool(os.environ.get("BENGAL_DEV_SERVER"))
         incremental = options.incremental
         verbose = options.verbose
         quiet = options.quiet
@@ -476,10 +472,9 @@ class BuildOrchestrator:
         # Phase 6: Section Finalization
         content.phase_sections(self, cli, incremental, affected_sections)
 
-        # Phase 7: Taxonomies & Dynamic Pages
-        # Content-sequential: dev server isolates taxonomy ThreadPoolExecutor
+        # Phase 7: Taxonomies & Dynamic Pages (fan-in: mutates site.taxonomies)
         affected_tags = content.phase_taxonomies(
-            self, cache, incremental, _content_sequential, pages_to_build
+            self, cache, incremental, not parallel.taxonomy, pages_to_build
         )
 
         # Phase 8: Save Taxonomy Index
@@ -488,9 +483,8 @@ class BuildOrchestrator:
         # Phase 9: Menus
         content.phase_menus(self, incremental, {str(p) for p in changed_page_paths})
 
-        # Phase 10: Related Posts Index
-        # Content-sequential: dev server isolates related_posts ThreadPoolExecutor
-        content.phase_related_posts(self, incremental, _content_sequential, pages_to_build)
+        # Phase 10: Related Posts Index (fan-in: mutates shared index)
+        content.phase_related_posts(self, incremental, not parallel.related_posts, pages_to_build)
 
         # Phase 11: Query Indexes
         content.phase_query_indexes(self, cache, incremental, pages_to_build)
@@ -553,7 +547,7 @@ class BuildOrchestrator:
                 self,
                 cli,
                 pages_to_build,
-                parallel=not force_sequential,
+                parallel=parallel.parsing,
             )
         parsing_duration_ms = (time.time() - parsing_start) * 1000
         if hasattr(self.stats, "parsing_time_ms"):
@@ -591,7 +585,7 @@ class BuildOrchestrator:
             self,
             cli,
             incremental,
-            not force_sequential,
+            parallel.assets,
             assets_to_process,
             collector=output_collector,
         )
@@ -629,7 +623,7 @@ class BuildOrchestrator:
                 self,
                 cli,
                 incremental,
-                force_sequential,
+                not parallel.rendering,
                 quiet,
                 verbose,
                 memory_optimized,
@@ -659,7 +653,7 @@ class BuildOrchestrator:
         if hasattr(self, "_provenance_filter") and pages_to_build:
             from bengal.orchestration.build.provenance_orchestration import record_all_page_builds
 
-            record_all_page_builds(self, pages_to_build, parallel=not force_sequential)
+            record_all_page_builds(self, pages_to_build, parallel=parallel.rendering)
 
         rendering_duration_ms = (time.time() - rendering_start) * 1000
         notify_phase_complete(
@@ -675,7 +669,7 @@ class BuildOrchestrator:
         # Phase 17: Post-processing
         # Enable parallel post-processing for independent tasks (sitemap, RSS, output formats)
         finalization.phase_postprocess(
-            self, cli, not force_sequential, ctx, incremental, collector=output_collector
+            self, cli, parallel.postprocess, ctx, incremental, collector=output_collector
         )
 
         # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered

@@ -315,8 +315,8 @@ class TestNavigationEdgeCases:
 
         parent.add_subsection(child)
 
-        assert parent.hierarchy == ["docs"]
-        assert child.hierarchy == ["docs", "guides"]
+        assert parent.hierarchy == ("docs",)
+        assert child.hierarchy == ("docs", "guides")
 
     def test_section_root_property(self):
         """Test section.root returns the topmost ancestor."""
@@ -348,24 +348,27 @@ class TestNavigationEdgeCases:
         further up the hierarchy. This enables scoped navigation for docs
         sections that shouldn't show sibling top-level sections.
         """
-        # Three-level hierarchy: site > docs > guides
+        # Without nav_root: root traverses to site_root
         site_root = Section(name="content", path=Path("/content"))
-        docs = Section(name="docs", path=Path("/content/docs"))
-        guides = Section(name="guides", path=Path("/content/docs/guides"))
+        docs_plain = Section(name="docs", path=Path("/content/docs"))
+        guides_plain = Section(name="guides", path=Path("/content/docs/guides"))
+        site_root.add_subsection(docs_plain)
+        docs_plain.add_subsection(guides_plain)
 
-        site_root.add_subsection(docs)
-        docs.add_subsection(guides)
-
-        # Without nav_root, guides.root traverses to site_root
-        assert guides.root == site_root
-        assert docs.root == site_root
+        assert guides_plain.root == site_root
+        assert docs_plain.root == site_root
 
         # With nav_root: true on docs, it becomes the navigation boundary
-        docs.metadata["nav_root"] = True
+        # (fresh sections so cached_property hasn't been computed yet)
+        site_root2 = Section(name="content", path=Path("/content"))
+        docs_nav = Section(name="docs", path=Path("/content/docs"), metadata={"nav_root": True})
+        guides_nav = Section(name="guides", path=Path("/content/docs/guides"))
+        site_root2.add_subsection(docs_nav)
+        docs_nav.add_subsection(guides_nav)
 
-        assert guides.root == docs  # Stops at docs (nav_root)
-        assert docs.root == docs  # docs is its own root now
-        assert site_root.root == site_root  # site_root unchanged
+        assert guides_nav.root == docs_nav
+        assert docs_nav.root == docs_nav
+        assert site_root2.root == site_root2
 
     def test_section_root_stops_at_versions_boundary(self):
         """Test section.root stops at _versions boundary for versioned content.

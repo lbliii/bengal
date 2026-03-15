@@ -136,12 +136,36 @@ class SectionErgonomicsMixin:
         # sorted_pages already excludes index files, so this is a semantic alias
         return self.sorted_pages
 
+    @cached_property
+    def _dated_pages_sorted(self) -> tuple[Page, ...]:
+        """Pages with dates, sorted newest-first. Computed once, sliced by recent_pages()."""
+        dated = [p for p in self.sorted_pages if getattr(p, "date", None)]
+        dated.sort(key=lambda p: p.date or datetime.min, reverse=True)
+        return tuple(dated)
+
+    @cached_property
+    def _featured_pages_sorted(self) -> tuple[Page, ...]:
+        """Featured pages sorted newest-first. Computed once, sliced by featured_posts()."""
+        featured = [p for p in self.sorted_pages if p.metadata.get("featured")]
+        featured.sort(key=lambda p: getattr(p, "date", None) or "", reverse=True)
+        return tuple(featured)
+
+    @cached_property
+    def _tag_index(self) -> dict[str, tuple[Page, ...]]:
+        """Inverted tag index for O(1) tag lookups. Computed once per section."""
+        index: dict[str, list[Page]] = {}
+        for p in self.sorted_pages:
+            for tag in getattr(p, "tags", ()):
+                if tag is not None:
+                    index.setdefault(str(tag).lower(), []).append(p)
+        return {k: tuple(v) for k, v in index.items()}
+
     def recent_pages(self, limit: int = 10) -> list[Page]:
         """
         Get most recent pages by date.
 
         Returns pages that have a date, sorted newest first.
-        Pages without dates are excluded.
+        Pages without dates are excluded. Uses cached sorted list internally.
 
         Args:
             limit: Maximum number of pages to return (default: 10)
@@ -154,15 +178,13 @@ class SectionErgonomicsMixin:
               <article>{{ post.title }} - {{ post.date }}</article>
             {% endfor %}
         """
-        dated_pages = [p for p in self.sorted_pages if getattr(p, "date", None)]
-        dated_pages.sort(key=lambda p: p.date or datetime.min, reverse=True)
-        return dated_pages[:limit]
+        return list(self._dated_pages_sorted[:limit])
 
     def pages_with_tag(self, tag: str) -> list[Page]:
         """
         Get pages containing a specific tag.
 
-        Filters sorted_pages to return only pages that have the given tag.
+        Uses cached inverted tag index for O(1) lookup instead of O(n) scan.
         Matching is case-insensitive.
 
         Args:
@@ -177,19 +199,14 @@ class SectionErgonomicsMixin:
               <article>{{ post.title }}</article>
             {% endfor %}
         """
-        tag_lower = tag.lower()
-        return [
-            p
-            for p in self.sorted_pages
-            if any(t.lower() == tag_lower for t in getattr(p, "tags", []))
-        ]
+        return list(self._tag_index.get(tag.lower(), ()))
 
     def featured_posts(self, limit: int = 5) -> list[Page]:
         """
         Get featured pages from this section.
 
         Returns pages that have `featured: true` in their frontmatter,
-        sorted by date descending (newest first).
+        sorted by date descending (newest first). Uses cached sorted list internally.
 
         Args:
             limit: Maximum number of pages to return (default: 5)
@@ -202,10 +219,7 @@ class SectionErgonomicsMixin:
               <article class="featured">{{ post.title }}</article>
             {% endfor %}
         """
-        featured = [p for p in self.sorted_pages if p.metadata.get("featured")]
-        # Sort by date if available, newest first
-        featured.sort(key=lambda p: getattr(p, "date", None) or "", reverse=True)
-        return featured[:limit]
+        return list(self._featured_pages_sorted[:limit])
 
     # =========================================================================
     # COUNTING PROPERTIES

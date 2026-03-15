@@ -13,6 +13,7 @@ This improves:
 
 from __future__ import annotations
 
+import os
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -107,3 +108,67 @@ class BuildOptions:
     # Callbacks are optional (None = no streaming).
     on_phase_start: PhaseStartCallback | None = None
     on_phase_complete: PhaseCompleteCallback | None = None
+
+    def phase_parallel(self) -> PhaseParallelism:
+        """Compute per-phase parallelism from options and environment.
+
+        Fan-out phases (parsing, rendering, assets) default to parallel.
+        Content phases (taxonomy, related_posts) are forced sequential
+        under the dev server to avoid ThreadPoolExecutor hangs on 3.14t.
+        ``force_sequential=True`` disables parallelism everywhere.
+        """
+        if self.force_sequential:
+            return PhaseParallelism.all_sequential()
+        if os.environ.get("BENGAL_DEV_SERVER"):
+            return PhaseParallelism.dev_server()
+        return PhaseParallelism()
+
+
+@dataclass(frozen=True, slots=True)
+class PhaseParallelism:
+    """Per-phase parallelism control for the build pipeline.
+
+    The build pipeline alternates between fan-out (parallel) and fan-in
+    (sequential barrier) phases.  This dataclass makes each decision
+    explicit instead of cascading a single ``force_sequential`` bool.
+
+    Fan-out phases — work items are independent, read immutable state:
+        parsing, rendering, assets, postprocess, write_behind
+
+    Fan-in barriers — aggregate or mutate shared state:
+        taxonomy, related_posts, menus, snapshot, finalization
+    """
+
+    # Fan-out phases (safe to parallelize: disjoint or immutable data)
+    parsing: bool = True
+    rendering: bool = True
+    assets: bool = True
+    postprocess: bool = True
+
+    # Content phases (mutate shared state — sequential under dev server)
+    taxonomy: bool = True
+    related_posts: bool = True
+
+    @classmethod
+    def all_sequential(cls) -> PhaseParallelism:
+        """All phases sequential (``--no-parallel``)."""
+        return cls(
+            parsing=False,
+            rendering=False,
+            assets=False,
+            postprocess=False,
+            taxonomy=False,
+            related_posts=False,
+        )
+
+    @classmethod
+    def dev_server(cls) -> PhaseParallelism:
+        """Dev server mode: fan-out phases stay parallel, content phases sequential."""
+        return cls(
+            parsing=True,
+            rendering=True,
+            assets=True,
+            postprocess=True,
+            taxonomy=False,
+            related_posts=False,
+        )
