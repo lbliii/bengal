@@ -108,12 +108,13 @@ ALLOWED_VIOLATIONS: set[tuple[str, str]] = {
     # Core site discovery needs content discovery, orchestration
     ("bengal.core", "bengal.content.discovery"),
     ("bengal.core", "bengal.orchestration"),
-    ("bengal.core", "bengal.orchestration.feature_detector"),
     # Core site needs cache, server for lifecycle
     ("bengal.core", "bengal.cache"),
     ("bengal.core", "bengal.server"),
     # Rendering page_operations needs health for link validation
     ("bengal.rendering", "bengal.health"),
+    # Core page.validate_links() delegates to health LinkValidator (lazy import)
+    ("bengal.core.page.operations", "bengal.health.validators.links"),
 }
 
 
