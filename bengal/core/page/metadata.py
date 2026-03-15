@@ -43,7 +43,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.core.page.types import TOCItem
+from bengal.core.page.types import TOCItem, VisibilitySettings
 from bengal.core.utils.shared import resolve_nav_title, sortable_weight
 from bengal.core.utils.url import apply_baseurl, get_baseurl, get_site_origin
 
@@ -461,39 +461,39 @@ class PageMetadataMixin:
             return {}
 
     @cached_property
-    def visibility(self) -> dict[str, Any]:
-        """Get visibility settings with defaults.
+    def visibility(self) -> VisibilitySettings:
+        """Get visibility settings with defaults (frozen for thread-safety).
 
-        Cost: O(1) cached — computed once, then dict lookup for 8 sub-properties.
+        Cost: O(1) cached — computed once, then attribute access for 8 sub-properties.
         """
         # If hidden shorthand is used, return restrictive defaults
         if self.metadata.get("hidden", False):
-            return {
-                "menu": False,
-                "listings": False,
-                "sitemap": False,
-                "robots": "noindex, nofollow",
-                "render": "always",
-                "search": False,
-                "rss": False,
-                "ai_train": False,
-                "ai_input": False,
-            }
+            return VisibilitySettings(
+                menu=False,
+                listings=False,
+                sitemap=False,
+                robots="noindex, nofollow",
+                render="always",
+                search=False,
+                rss=False,
+                ai_train=False,
+                ai_input=False,
+            )
 
         # Otherwise, get visibility object with permissive defaults
         vis = self.metadata.get("visibility", {})
         cs = self._get_content_signal_defaults()
-        return {
-            "menu": vis.get("menu", True),
-            "listings": vis.get("listings", True),
-            "sitemap": vis.get("sitemap", True),
-            "robots": vis.get("robots", "index, follow"),
-            "render": vis.get("render", "always"),
-            "search": vis.get("search", cs.get("search", True)),
-            "rss": vis.get("rss", True),
-            "ai_train": vis.get("ai_train", cs.get("ai_train", False)),
-            "ai_input": vis.get("ai_input", cs.get("ai_input", True)),
-        }
+        return VisibilitySettings(
+            menu=vis.get("menu", True),
+            listings=vis.get("listings", True),
+            sitemap=vis.get("sitemap", True),
+            robots=vis.get("robots", "index, follow"),
+            render=vis.get("render", "always"),
+            search=vis.get("search", cs.get("search", True)),
+            rss=vis.get("rss", True),
+            ai_train=vis.get("ai_train", cs.get("ai_train", False)),
+            ai_input=vis.get("ai_input", cs.get("ai_input", True)),
+        )
 
     @property
     def in_listings(self) -> bool:
@@ -501,7 +501,7 @@ class PageMetadataMixin:
 
         Cost: O(1) — delegates to visibility + draft.
         """
-        return self.visibility["listings"] and not self.draft
+        return self.visibility.listings and not self.draft
 
     @property
     def in_sitemap(self) -> bool:
@@ -509,7 +509,7 @@ class PageMetadataMixin:
 
         Cost: O(1) — delegates to visibility + draft.
         """
-        return self.visibility["sitemap"] and not self.draft
+        return self.visibility.sitemap and not self.draft
 
     @property
     def in_search(self) -> bool:
@@ -517,7 +517,7 @@ class PageMetadataMixin:
 
         Cost: O(1) — delegates to visibility + draft.
         """
-        return self.visibility["search"] and not self.draft
+        return self.visibility.search and not self.draft
 
     @property
     def in_rss(self) -> bool:
@@ -525,7 +525,7 @@ class PageMetadataMixin:
 
         Cost: O(1) — delegates to visibility + draft.
         """
-        return self.visibility["rss"] and not self.draft
+        return self.visibility.rss and not self.draft
 
     @property
     def in_ai_train(self) -> bool:
@@ -533,7 +533,7 @@ class PageMetadataMixin:
 
         Cost: O(1) — delegates to visibility + draft.
         """
-        return self.visibility["ai_train"] and not self.draft
+        return self.visibility.ai_train and not self.draft
 
     @property
     def in_ai_input(self) -> bool:
@@ -541,7 +541,7 @@ class PageMetadataMixin:
 
         Cost: O(1) — delegates to visibility + draft.
         """
-        return self.visibility["ai_input"] and not self.draft
+        return self.visibility.ai_input and not self.draft
 
     @property
     def robots_meta(self) -> str:
@@ -549,7 +549,7 @@ class PageMetadataMixin:
 
         Cost: O(1) — delegates to visibility.
         """
-        return str(self.visibility["robots"])
+        return str(self.visibility.robots)
 
     @property
     def should_render(self) -> bool:
@@ -557,7 +557,7 @@ class PageMetadataMixin:
 
         Cost: O(1) — delegates to visibility.
         """
-        return bool(self.visibility["render"] != "never")
+        return bool(self.visibility.render != "never")
 
     def should_render_in_environment(self, is_production: bool = False) -> bool:
         """
@@ -577,7 +577,7 @@ class PageMetadataMixin:
             ---
             ```
         """
-        render = self.visibility["render"]
+        render = self.visibility.render
 
         if render == "never":
             return False
@@ -705,6 +705,17 @@ class PageMetadataMixin:
     # MUST be accessed via these properties, never through metadata.get("_...").
     # This avoids triggering the full cascade resolution chain for simple
     # boolean/string checks.
+
+    @property
+    def is_autodoc(self) -> bool:
+        """Whether this is an autodoc-generated API page.
+
+        Cost: O(1) — _raw_metadata dict lookup, no cascade.
+        """
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return bool(raw.get("is_autodoc"))
+        return bool(self.metadata.get("is_autodoc"))
 
     @property
     def tag_slug(self) -> str | None:

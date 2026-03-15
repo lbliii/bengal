@@ -76,7 +76,6 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from unittest.mock import Mock
 
 from bengal.postprocess.output_formats.utils import (
     generate_excerpt,
@@ -608,15 +607,25 @@ class SiteIndexGenerator:
 
         return summary
 
+    _JSON_SAFE_TYPES = (str, int, float, bool, type(None))
+
+    def _is_mock(self, obj: Any) -> bool:
+        """Check if object is a unittest.mock.Mock (avoid production import)."""
+        return type(obj).__module__.startswith("unittest.mock")
+
     def _is_json_serializable(self, value: Any) -> bool:
         """Check if value is JSON serializable (excluding Mock objects)."""
-        if isinstance(value, Mock):
+        if self._is_mock(value):
             return False
-        try:
-            json.dumps(value)
+        if isinstance(value, self._JSON_SAFE_TYPES):
             return True
-        except TypeError, ValueError:
-            return False
+        if isinstance(value, (list, tuple)):
+            return all(self._is_json_serializable(v) for v in value)
+        if isinstance(value, dict):
+            return all(
+                isinstance(k, str) and self._is_json_serializable(v) for k, v in value.items()
+            )
+        return False
 
     def _safe_get_metadata_value(self, metadata: dict[str, Any], key: str) -> Any | None:
         """Safely get metadata value, ensuring it's JSON-serializable."""
@@ -624,12 +633,12 @@ class SiteIndexGenerator:
         if value is None:
             return None
         # Filter out Mock objects and non-serializable values
-        if isinstance(value, Mock):
+        if self._is_mock(value):
             return None
         if isinstance(value, (list, tuple)):
             # Filter out Mock objects from lists
             filtered_list = [
-                v for v in value if not isinstance(v, Mock) and self._is_json_serializable(v)
+                v for v in value if not self._is_mock(v) and self._is_json_serializable(v)
             ]
             return filtered_list if filtered_list else None
         if isinstance(value, dict):
@@ -637,7 +646,7 @@ class SiteIndexGenerator:
             filtered_dict = {
                 k: v
                 for k, v in value.items()
-                if not isinstance(v, Mock) and self._is_json_serializable(v)
+                if not self._is_mock(v) and self._is_json_serializable(v)
             }
             return filtered_dict if filtered_dict else None
         if self._is_json_serializable(value):

@@ -178,7 +178,7 @@ class SectionNavigationMixin:
     # =========================================================================
 
     @cached_property
-    def subsection_index_urls(self) -> set[str]:
+    def subsection_index_urls(self) -> frozenset[str]:
         """
         Get set of URLs for all subsection index pages (CACHED).
 
@@ -201,11 +201,12 @@ class SectionNavigationMixin:
               <a href="{{ url_for(page) }}">{{ page.title }}</a>
             {% endif %}
         """
-        return {
-            getattr(subsection.index_page, "_path", None)
+        return frozenset(
+            p
             for subsection in self.subsections
             if subsection.index_page
-        }
+            and (p := getattr(subsection.index_page, "_path", None)) is not None
+        )
 
     @cached_property
     def has_nav_children(self) -> bool:

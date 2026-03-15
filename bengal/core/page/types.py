@@ -27,18 +27,19 @@ class TOCItem:
     children: tuple[TOCItem, ...] = ()
 
 
-class VisibilitySettings(TypedDict, total=False):
-    """Granular visibility settings for page inclusion."""
+@dataclass(frozen=True, slots=True)
+class VisibilitySettings:
+    """Immutable visibility settings for thread-safe parallel render."""
 
-    menu: bool
-    listings: bool
-    sitemap: bool
-    robots: str
-    render: str
-    search: bool
-    rss: bool
-    ai_train: bool
-    ai_input: bool
+    menu: bool = True
+    listings: bool = True
+    sitemap: bool = True
+    robots: str = "index, follow"
+    render: str = "always"
+    search: bool = True
+    rss: bool = True
+    ai_train: bool = False
+    ai_input: bool = True
 
 
 class CascadeBlock(TypedDict, total=False):

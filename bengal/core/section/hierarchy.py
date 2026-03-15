@@ -192,7 +192,7 @@ class SectionHierarchyMixin:
         return str(result) if result else None
 
     @cached_property
-    def sorted_subsections(self) -> list[Section]:
+    def sorted_subsections(self) -> tuple[Section, ...]:
         """
         Get subsections sorted by weight (ascending), then by title (CACHED).
 
@@ -217,9 +217,11 @@ class SectionHierarchyMixin:
         """
         from bengal.core.utils.sorting import DEFAULT_WEIGHT
 
-        return sorted(
-            self.subsections,
-            key=lambda s: (s.metadata.get("weight", DEFAULT_WEIGHT), s.title.lower()),
+        return tuple(
+            sorted(
+                self.subsections,
+                key=lambda s: (s.metadata.get("weight", DEFAULT_WEIGHT), s.title.lower()),
+            )
         )
 
     # =========================================================================

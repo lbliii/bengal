@@ -81,13 +81,13 @@ def get_breadcrumbs(page: PageLike) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
 
     # Handle tag index page (dynamically generated, no ancestors)
-    if hasattr(page, "metadata") and page.metadata.get("type") == "tag-index":
+    if hasattr(page, "metadata") and getattr(page, "type", None) == "tag-index":
         items.append({"title": "Home", "href": "/", "is_current": False})
         items.append({"title": "Tags", "href": "/tags/", "is_current": True})
         return items
 
     # Handle tag pages (dynamically generated, no ancestors)
-    if hasattr(page, "metadata") and page.metadata.get("type") == "tag":
+    if hasattr(page, "metadata") and getattr(page, "type", None) == "tag":
         tag_name = page.metadata.get("_tag", "Tag")
         items.append({"title": "Home", "href": "/", "is_current": False})
         items.append({"title": "Tags", "href": "/tags/", "is_current": False})

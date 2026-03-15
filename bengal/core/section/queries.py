@@ -75,7 +75,7 @@ class SectionQueryMixin:
     # =========================================================================
 
     @cached_property
-    def regular_pages(self) -> list[Page]:
+    def regular_pages(self) -> tuple[Page, ...]:
         """
         Get content pages in this section, excluding index (CACHED).
 
@@ -101,7 +101,7 @@ class SectionQueryMixin:
               <article>{{ page.title }}</article>
             {% endfor %}
         """
-        return list(self.sorted_pages)
+        return tuple(self.sorted_pages)
 
     @property
     def sections(self) -> list[Section]:
@@ -121,7 +121,7 @@ class SectionQueryMixin:
         return self.subsections
 
     @cached_property
-    def sorted_pages(self) -> list[Page]:
+    def sorted_pages(self) -> tuple[Page, ...]:
         """
         Get pages sorted by weight (ascending), then by title (CACHED).
 
@@ -151,10 +151,10 @@ class SectionQueryMixin:
             return p.source_path.stem in ("_index", "index")
 
         non_index = [p for p in self.pages if not is_index_page(p)]
-        return sorted_by_weight(non_index)
+        return tuple(sorted_by_weight(non_index))
 
     @cached_property
-    def regular_pages_recursive(self) -> list[Page]:
+    def regular_pages_recursive(self) -> tuple[Page, ...]:
         """
         Get all regular pages recursively (including from subsections) (CACHED).
 
@@ -174,7 +174,7 @@ class SectionQueryMixin:
         result = list(self.regular_pages)
         for subsection in self.subsections:
             result.extend(subsection.regular_pages_recursive)
-        return result
+        return tuple(result)
 
     # =========================================================================
     # PAGE MANAGEMENT METHODS

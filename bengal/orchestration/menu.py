@@ -80,6 +80,7 @@ class MenuOrchestrator:
         """
         self.site = site
         self._menu_cache_key: str | None = None
+        self._page_path_index: dict[str, Page] | None = None
 
     def build(self, changed_pages: set[Path] | None = None, config_changed: bool = False) -> bool:
         """
@@ -158,11 +159,15 @@ class MenuOrchestrator:
 
         # Config or pages changed - need rebuild
         self._menu_cache_key = current_key
+        self._page_path_index = None  # Invalidate path index cache
         return False
 
     def _build_page_path_index(self) -> dict[str, Page]:
         """Build path -> Page index for O(1) lookups (IPA audit Task 5)."""
-        return {to_posix(p.source_path): p for p in self.site.pages}
+        if self._page_path_index is not None:
+            return self._page_path_index
+        self._page_path_index = {to_posix(p.source_path): p for p in self.site.pages}
+        return self._page_path_index
 
     def _compute_menu_cache_key(self) -> str:
         """

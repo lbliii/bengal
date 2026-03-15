@@ -111,7 +111,7 @@ class SectionErgonomicsMixin:
     # =========================================================================
 
     @cached_property
-    def content_pages(self) -> list[Page]:
+    def content_pages(self) -> tuple[Page, ...]:
         """
         Get content pages (regular pages excluding index).
 

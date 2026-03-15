@@ -99,7 +99,7 @@ def determine_template(page: PageLike) -> str:
         return page.metadata["template"]
 
     # Default based on page type
-    page_type = page.metadata.get("type", "page")
+    page_type = getattr(page, "type", None) or "page"
 
     match page_type:
         case "page":
@@ -118,6 +118,8 @@ def write_output(
     collector: OutputCollector | None = None,
     write_behind: WriteBehindCollector | None = None,
     build_cache: Any = None,
+    *,
+    fast_writes: bool | None = None,
 ) -> None:
     """
     Write rendered page to output directory.
@@ -173,7 +175,8 @@ def write_output(
 
     # Write rendered HTML (atomic for safety, fast mode for performance)
     # Fast mode skips atomic writes for dev server (PERFORMANCE OPTIMIZATION)
-    fast_writes = site.config.get("build", {}).get("fast_writes", False)
+    if fast_writes is None:
+        fast_writes = site.config.get("build", {}).get("fast_writes", False)
 
     try:
         if fast_writes:
@@ -252,7 +255,12 @@ def _track_and_record(
 
     # Track source→output mapping for cleanup on deletion
     # (Skip generated and autodoc pages - they have virtual paths that don't exist on disk)
-    if cache and not page.is_generated and not page.metadata.get("is_autodoc") and page.output_path:
+    if (
+        cache
+        and not page.is_generated
+        and not getattr(page, "is_autodoc", None)
+        and page.output_path
+    ):
         cache.track_output(page.source_path, page.output_path, site.output_dir)
 
     # Record output for hot reload tracking
@@ -262,7 +270,14 @@ def _track_and_record(
         collector.record(page.output_path, OutputType.HTML, phase="render")
 
 
-def format_html(html: str, page: PageLike, site: SiteLike) -> str:
+def format_html(
+    html: str,
+    page: PageLike,
+    site: SiteLike,
+    *,
+    fast_mode: bool | None = None,
+    content_hash_in_html: bool | None = None,
+) -> str:
     """
     Format HTML output (minify/pretty) with content hash embedding.
 
@@ -290,7 +305,9 @@ def format_html(html: str, page: PageLike, site: SiteLike) -> str:
     # RFC: Output Cache Architecture - Embed content hash BEFORE formatting
     # This ensures identical content always produces identical hash
     build_cfg = site.config.get("build", {}) or {}
-    if build_cfg.get("content_hash_in_html", True):
+    if content_hash_in_html is None:
+        content_hash_in_html = build_cfg.get("content_hash_in_html", True)
+    if content_hash_in_html:
         html = embed_content_hash(html)
 
     try:
@@ -298,7 +315,9 @@ def format_html(html: str, page: PageLike, site: SiteLike) -> str:
 
         # RFC: rfc-build-performance-optimizations Phase 1.1
         # Check fast_mode first (highest priority) - skip all formatting
-        if build_cfg.get("fast_mode", False):
+        if fast_mode is None:
+            fast_mode = build_cfg.get("fast_mode", False)
+        if fast_mode:
             return html  # Return raw HTML without formatting
 
         # Resolve mode from config with backward compatibility

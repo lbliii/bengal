@@ -314,7 +314,9 @@ class RenderingPipeline:
         # - Pages with pre-rendered HTML (truthy or empty string)
         # - Autodoc pages that defer rendering until navigation is available
         prerendered = getattr(page, "_prerendered_html", None)
-        is_autodoc = page.metadata.get("is_autodoc")
+        is_autodoc = getattr(page, "is_autodoc", None)
+        if is_autodoc is None and hasattr(page, "metadata"):
+            is_autodoc = page.metadata.get("is_autodoc")
         if getattr(page, "_virtual", False) and (prerendered is not None or is_autodoc):
             if is_autodoc:
                 # Optimized autodoc path: try rendered cache first
@@ -459,6 +461,10 @@ class RenderingPipeline:
         # Pre-compute plain_text cache
         _ = page.plain_text
 
+    def _skip_preprocess(self, page: PageLike) -> bool:
+        """Check if preprocessing should be skipped (preprocess: false in frontmatter)."""
+        return page.metadata.get("preprocess") is False
+
     def _should_generate_toc(self, page: PageLike) -> bool:
         """Determine if TOC should be generated for this page."""
         if page.metadata.get("toc") is False:
@@ -485,7 +491,7 @@ class RenderingPipeline:
             self.site,
             parse_markdown=parse_markdown,
         )
-        if page.metadata.get("preprocess") is False:
+        if self._skip_preprocess(page):
             # Inject source_path and excerpt_length for cross-version dependency tracking
             # (non-context parse methods don't have access to page object)
             from bengal.config.utils import resolve_excerpt_length
@@ -584,7 +590,7 @@ class RenderingPipeline:
             parsed_content = self.parser.parse(content, page.metadata)
             toc = ""
 
-        if page.metadata.get("preprocess") is False:
+        if self._skip_preprocess(page):
             parsed_content = escape_template_syntax_in_html(parsed_content)
 
         page.html_content = parsed_content
@@ -593,7 +599,7 @@ class RenderingPipeline:
     def _enhance_api_docs(self, page: PageLike) -> None:
         """Enhance API documentation with badges."""
         enhancer = self._api_doc_enhancer
-        page_type = page.metadata.get("type")
+        page_type = getattr(page, "type", None)
         if enhancer and enhancer.should_enhance(page_type):
             page.html_content = enhancer.enhance(page.html_content or "", page_type)
 
@@ -630,13 +636,21 @@ class RenderingPipeline:
                     html_content = self.renderer.render_content(page.html_content or "")
                     page.rendered_html = self.renderer.render_page(page, html_content)
                     page.rendered_html = format_html(
-                        page.rendered_html, page, cast(SiteLike, self.site)
+                        page.rendered_html,
+                        page,
+                        cast(SiteLike, self.site),
+                        fast_mode=self._fast_mode,
+                        content_hash_in_html=self._content_hash_in_html,
                     )
             else:
                 html_content = self.renderer.render_content(page.html_content or "")
                 page.rendered_html = self.renderer.render_page(page, html_content)
                 page.rendered_html = format_html(
-                    page.rendered_html, page, cast(SiteLike, self.site)
+                    page.rendered_html,
+                    page,
+                    cast(SiteLike, self.site),
+                    fast_mode=self._fast_mode,
+                    content_hash_in_html=self._content_hash_in_html,
                 )
 
         # Get tracked assets from render-time tracking
@@ -652,6 +666,7 @@ class RenderingPipeline:
             collector=self._output_collector,
             write_behind=self._write_behind,
             build_cache=self.build_cache,
+            fast_writes=self._fast_writes,
         )
 
         # Accumulate unified page data during rendering (JSON + search index)
@@ -799,7 +814,7 @@ class RenderingPipeline:
             self.site,
             parse_markdown=parse_markdown,
         )
-        if page.metadata.get("preprocess") is False:
+        if self._skip_preprocess(page):
             return source
 
         try:

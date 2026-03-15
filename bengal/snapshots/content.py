@@ -128,7 +128,7 @@ def _snapshot_page_initial(page: PageLike, site: SiteLike) -> PageSnapshot:
         excerpt=excerpt,
         meta_description=meta_description,
         metadata=MappingProxyType(metadata),
-        tags=tuple(metadata.get("tags", []) or []),
+        tags=tuple(getattr(page, "tags", None) or metadata.get("tags", []) or []),
         categories=tuple(metadata.get("categories", []) or []),
         reading_time=reading_time,
         word_count=word_count,
@@ -251,6 +251,11 @@ def _resolve_navigation(page_cache: dict[int, PageSnapshot], site: SiteLike) -> 
         page.source_path: page for page in page_cache.values()
     }
 
+    # Build reverse index: source_path -> orig_id for O(1) lookup
+    id_by_path: dict[Path, int] = {}
+    for oid, snap in page_cache.items():
+        id_by_path[snap.source_path] = oid
+
     # Sort pages by source_path for consistent ordering
     sorted_paths = sorted(pages_by_path.keys())
 
@@ -264,11 +269,6 @@ def _resolve_navigation(page_cache: dict[int, PageSnapshot], site: SiteLike) -> 
 
         # Only update if navigation changed
         if page.next_page != next_page or page.prev_page != prev_page:
-            # Find original page in cache by source_path
-            for orig_id, orig_page in list(page_cache.items()):
-                if orig_page.source_path == path:
-                    # Update snapshot with navigation refs
-                    page_cache[orig_id] = update_frozen(
-                        page, next_page=next_page, prev_page=prev_page
-                    )
-                    break
+            orig_id = id_by_path.get(path)
+            if orig_id is not None:
+                page_cache[orig_id] = update_frozen(page, next_page=next_page, prev_page=prev_page)

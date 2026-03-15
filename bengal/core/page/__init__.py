@@ -1002,14 +1002,14 @@ class Page(
         return get_primary_author(self.metadata)
 
     @cached_property
-    def authors(self) -> list[Author]:
-        """All authors as list of Author objects.
+    def authors(self) -> tuple[Author, ...]:
+        """All authors as tuple of Author objects.
 
         Cost: O(n) cached — n = metadata keys.
         """
         from bengal.core.page.computed import get_all_authors
 
-        return get_all_authors(self.metadata)
+        return tuple(get_all_authors(self.metadata))
 
     @cached_property
     def series(self) -> Series | None:

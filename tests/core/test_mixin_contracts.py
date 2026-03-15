@@ -142,13 +142,13 @@ class TestSectionNavigationMixin:
         assert isinstance(result, str)
 
     def test_subsection_index_urls_returns_set(self) -> None:
-        """subsection_index_urls returns a set of strings."""
+        """subsection_index_urls returns a frozenset of strings."""
 
         section = _create_minimal_section()
         section.subsections = []
 
         result = section.subsection_index_urls
-        assert isinstance(result, set)
+        assert isinstance(result, frozenset)
 
 
 class TestSectionHierarchyMixin:
