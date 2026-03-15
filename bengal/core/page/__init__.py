@@ -11,7 +11,7 @@ PageProxy: Lazy-loading proxy for incremental builds (wraps PageCore)
 
 Package Structure:
 page_core.py: PageCore dataclass (cacheable metadata)
-metadata.py: PageMetadataMixin (frontmatter access)
+metadata/: PageMetadataMixin (frontmatter, visibility, URLs, type check)
 navigation.py: Free functions for navigation and hierarchy
 computed.py: Free functions for computed properties (word count, reading time, etc.)
 content.py: PageContentMixin (AST, TOC, excerpts)

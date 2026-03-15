@@ -562,12 +562,14 @@ class Renderer:
             pagination = paginator.page_context(page_num, base_url)
         else:
             posts = all_posts
+            section_name = section.name if section is not None else ""
+            base_url = f"/{section_name}/" if section_name else "/"
             pagination = {
                 "current_page": 1,
                 "total_pages": 1,
                 "has_next": False,
                 "has_prev": False,
-                "base_url": f"/{section.name}/" if section else "/",
+                "base_url": base_url,
             }
 
         # Convert section to SectionSnapshot (no wrapper needed)
@@ -722,7 +724,9 @@ class Renderer:
         self, page: PageLike, context: dict[str, Any]
     ) -> None:
         """Add context for the tag index page."""
-        tags = getattr(page, "internal_tags_index", None) or {}
+        tags = getattr(page, "internal_tags_index", None) or (
+            page.metadata.get("_tags", {}) if page.metadata else {}
+        )
 
         tags_list = [
             {

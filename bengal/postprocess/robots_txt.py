@@ -177,9 +177,9 @@ class RobotsTxtGenerator:
 
             vis = page.visibility
             policy = SignalPolicy(
-                search=vis.get("search", default_policy.search),
-                ai_input=vis.get("ai_input", default_policy.ai_input),
-                ai_train=vis.get("ai_train", default_policy.ai_train),
+                search=vis.search,
+                ai_input=vis.ai_input,
+                ai_train=vis.ai_train,
             )
             section_pages[section_path].append(policy)
 

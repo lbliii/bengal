@@ -2,14 +2,14 @@
 Tests for ResourceManager cleanup and lifecycle management.
 
 BUG FIX: Signal handler exception safety - cleanup exceptions should not
-prevent sys.exit() from being called.
+prevent os._exit() from being called.
 """
 
 from __future__ import annotations
 
 import contextlib
+import os
 import signal
-import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -123,7 +123,7 @@ class TestResourceManagerSignalHandler:
     """
     Tests for ResourceManager signal handling.
 
-    BUG FIX: Signal handler should call sys.exit() even if cleanup raises.
+    BUG FIX: Signal handler should call os._exit() even if cleanup raises.
     """
 
     def test_signal_handler_calls_cleanup_and_exits(self):
@@ -132,7 +132,7 @@ class TestResourceManagerSignalHandler:
         cleanup = MagicMock()
         rm.register("Resource", object(), cleanup)
 
-        with patch.object(sys, "exit") as mock_exit:
+        with patch.object(os, "_exit") as mock_exit:
             rm._signal_handler(signal.SIGINT, None)
 
         cleanup.assert_called_once()
@@ -140,7 +140,7 @@ class TestResourceManagerSignalHandler:
 
     def test_signal_handler_exits_even_if_cleanup_raises(self):
         """
-        Test that sys.exit is called even if cleanup raises an exception.
+        Test that os._exit is called even if cleanup raises an exception.
 
         BUG FIX: Previously, if cleanup() raised an exception, exit would
         never be called, leaving the process in an undefined state.
@@ -152,7 +152,7 @@ class TestResourceManagerSignalHandler:
 
         rm.register("Failing Resource", object(), failing_cleanup)
 
-        with patch.object(sys, "exit") as mock_exit, contextlib.suppress(RuntimeError):
+        with patch.object(os, "_exit") as mock_exit, contextlib.suppress(RuntimeError):
             rm._signal_handler(signal.SIGINT, None)
 
         # Exit should still be called even though cleanup raised
@@ -163,7 +163,7 @@ class TestResourceManagerSignalHandler:
         rm = ResourceManager()
         rm._cleanup_done = True  # Simulate first cleanup already done
 
-        with patch.object(sys, "exit") as mock_exit:
+        with patch.object(os, "_exit") as mock_exit:
             rm._signal_handler(signal.SIGINT, None)
 
         # Should exit with code 1 (force exit)

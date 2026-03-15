@@ -83,8 +83,8 @@ def build_signature(node: ast.FunctionDef | ast.AsyncFunctionDef) -> str:
                 part += f": {annotation_to_string(arg.annotation)}"
 
             # kw_defaults is 1:1 with kwonlyargs
-            if node.args.kw_defaults[i] is not None:
-                part += f" = {expr_to_string(node.args.kw_defaults[i])}"
+            if (kw_default := node.args.kw_defaults[i]) is not None:
+                part += f" = {expr_to_string(kw_default)}"
 
             args_parts.append(part)
 
@@ -178,8 +178,8 @@ def extract_arguments(node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[dict
     if hasattr(node.args, "kwonlyargs"):
         for i, arg in enumerate(node.args.kwonlyargs):
             default = None
-            if node.args.kw_defaults[i] is not None:
-                default = expr_to_string(node.args.kw_defaults[i])
+            if (kw_default := node.args.kw_defaults[i]) is not None:
+                default = expr_to_string(kw_default)
 
             args.append(
                 {

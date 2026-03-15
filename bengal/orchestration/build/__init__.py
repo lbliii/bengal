@@ -47,6 +47,7 @@ bengal.cache: Build caching infrastructure
 
 from __future__ import annotations
 
+import os
 import time
 import uuid
 from collections.abc import Callable
@@ -173,6 +174,10 @@ class BuildOrchestrator:
         # Parallel is now auto-detected via should_parallelize() unless force_sequential=True
         # We'll compute it when we know the page count (in rendering phase)
         force_sequential = options.force_sequential
+        # Dev server: force sequential to avoid content phase hang (ThreadPoolExecutor
+        # in taxonomies/related_posts can block indefinitely on Python 3.14t / macOS)
+        if os.environ.get("BENGAL_DEV_SERVER") and not force_sequential:
+            force_sequential = True
         incremental = options.incremental
         verbose = options.verbose
         quiet = options.quiet
@@ -451,6 +456,22 @@ class BuildOrchestrator:
         # === CONTENT PHASE GROUP (dashboard-integrated) ===
         notify_phase_start("content")
         content_start = time.time()
+        cli.detail("Content phase (taxonomies, menus, related posts)...", indent=1)
+
+        # Memory diagnostics: BENGAL_DEBUG_MEMORY=1 runs GC before content phase and
+        # enables tracemalloc to help diagnose leaks that can cause content phase hangs.
+        if os.environ.get("BENGAL_DEBUG_MEMORY"):
+            import gc
+
+            gc.collect()
+            if not getattr(self, "_tracemalloc_started", False):
+                try:
+                    import tracemalloc
+
+                    tracemalloc.start()
+                    self._tracemalloc_started = True
+                except Exception:
+                    pass
 
         # Phase 6: Section Finalization
         content.phase_sections(self, cli, incremental, affected_sections)
@@ -497,11 +518,31 @@ class BuildOrchestrator:
 
         content_duration_ms = (time.time() - content_start) * 1000
         taxonomy_count = len(self.site.taxonomies) if hasattr(self.site, "taxonomies") else 0
+        cli.phase(
+            "Content",
+            duration_ms=content_duration_ms,
+            details=f"{taxonomy_count} taxonomies, {len(affected_tags)} affected tags",
+        )
         notify_phase_complete(
             "content",
             content_duration_ms,
             f"{taxonomy_count} taxonomies, {len(affected_tags)} affected tags",
         )
+
+        # Memory diagnostics: print tracemalloc top allocations after content phase
+        if os.environ.get("BENGAL_DEBUG_MEMORY") and getattr(self, "_tracemalloc_started", False):
+            try:
+                import tracemalloc
+
+                snapshot = tracemalloc.take_snapshot()
+                top = snapshot.statistics("lineno")[:10]
+                cli.detail("[BENGAL_DEBUG_MEMORY] Top 10 allocations:", indent=1)
+                for stat in top:
+                    frame = stat.traceback[0] if stat.traceback else None
+                    loc = f"{frame.filename}:{frame.lineno}" if frame else "?"
+                    cli.detail(f"  {stat.size / 1024:.1f} KB @ {loc}", indent=1)
+            except Exception:
+                pass
 
         # === PARSING PHASE (after all pages known, before snapshot) ===
         # Parse markdown content for ALL pages (including generated taxonomy pages)

@@ -77,7 +77,7 @@ PAGINATION COMPONENT
 Displays page number controls for paginated content with prev/next buttons.
 ============================================================================= #}
 {% def pagination(current_page, total_pages, base_url) %}
-{% if total_pages > 1 %}
+{% if total_pages > 1 and get_pagination_items is defined %}
 {% let p = get_pagination_items(current_page, total_pages, base_url) %}
 
 <nav class="pagination" role="navigation" aria-label="Pagination">

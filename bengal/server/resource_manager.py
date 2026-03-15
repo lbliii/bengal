@@ -48,8 +48,8 @@ from __future__ import annotations
 
 import atexit
 import contextlib
+import os
 import signal
-import sys
 import threading
 import time
 from collections.abc import Callable
@@ -342,14 +342,19 @@ class ResourceManager:
             try:
                 self.cleanup(signum=signum)
             finally:
-                # Dev server uses process-isolated builds (BENGAL_BUILD_EXECUTOR=process)
-                # so main process has no build ThreadPoolExecutors. Normal sys.exit
-                # works without "Exception ignored on threading shutdown" traceback.
-                sys.exit(0)
+                # Use os._exit(0) instead of sys.exit(0) so the process always exits.
+                # sys.exit() can hang on Python 3.14t (free-threading) when the signal
+                # handler runs in a different thread, or when atexit handlers (e.g.
+                # ThreadPoolExecutor join) block during interpreter shutdown.
+                # Cleanup has already run, so skipping atexit is safe.
+                with contextlib.suppress(OSError, ValueError):
+                    signal.signal(signal.SIGINT, signal.SIG_IGN)
+                os._exit(0)
         else:
-            # Second interrupt - force exit without waiting
+            # Second interrupt while cleanup is in progress - bypass atexit entirely
+            # to avoid SystemExit interleaving with the in-progress shutdown sequence.
             CLIOutput().warning("\n  Stopped")
-            sys.exit(1)
+            os._exit(1)
 
     def _register_signal_handlers(self) -> None:
         """Register signal handlers for cleanup."""
@@ -359,8 +364,6 @@ class ResourceManager:
         # SIGHUP only exists on Unix
         if hasattr(signal, "SIGHUP"):
             signals_to_catch.append(signal.SIGHUP)
-
-        import contextlib
 
         for sig in signals_to_catch:
             with contextlib.suppress(OSError, ValueError):

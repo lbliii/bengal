@@ -117,7 +117,11 @@ def resolve_template_name(page: PageLike, default: str = "page.html") -> str:
     Returns:
         Template name string
     """
-    template = getattr(page, "assigned_template", None) or page.metadata.get("layout")
+    template = (
+        getattr(page, "assigned_template", None)
+        or page.metadata.get("template")
+        or page.metadata.get("layout")
+    )
     if template:
         return str(template)
 

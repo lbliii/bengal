@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, cast
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.version import Version, VersionConfig
-    from bengal.protocols import SiteLike
 
 
 class VersionService:
@@ -186,5 +185,6 @@ class SiteVersioningMixin:
         3. Otherwise → return version root URL
         """
         from bengal.core.version_url import get_version_target_url
+        from bengal.protocols import SiteLike
 
         return get_version_target_url(page, target_version, cast(SiteLike, self))

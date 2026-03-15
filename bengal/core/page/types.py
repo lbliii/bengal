@@ -41,6 +41,10 @@ class VisibilitySettings:
     ai_train: bool = False
     ai_input: bool = True
 
+    def __getitem__(self, key: str) -> bool | str:
+        """Allow dict-like access for backward compatibility (e.g. visibility['ai_train'])."""
+        return getattr(self, key)
+
 
 class CascadeBlock(TypedDict, total=False):
     """Cascade block from _index.md frontmatter."""

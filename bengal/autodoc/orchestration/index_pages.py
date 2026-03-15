@@ -6,7 +6,7 @@ Creates and renders section index pages for autodoc sections.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from bengal.autodoc.utils import get_template_dir_for_type
 from bengal.core.page import Page
@@ -14,6 +14,7 @@ from bengal.core.section import Section
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.protocols import SiteLike
 
 
 def create_index_pages(
@@ -46,7 +47,7 @@ def create_index_pages(
         if hasattr(site, "url_registry") and site.url_registry:
             from bengal.utils.paths.url_strategy import URLStrategy
 
-            url = URLStrategy.url_from_output_path(output_path, site)
+            url = URLStrategy.url_from_output_path(output_path, cast("SiteLike", site))
             existing_claim = site.url_registry.get_claim(url)
             if existing_claim is not None:
                 # Allow re-creation when the existing claim is from our own previous
@@ -113,7 +114,7 @@ def create_index_pages(
             try:
                 from bengal.utils.paths.url_strategy import URLStrategy
 
-                url = URLStrategy.url_from_output_path(output_path, site)
+                url = URLStrategy.url_from_output_path(output_path, cast("SiteLike", site))
                 source = str(index_page.source_path)
                 # Extract section_id from section_path (e.g., "api/python" -> "python")
                 section_id = section_path.split("/")[-1] if "/" in section_path else section_path

@@ -1,2 +1,1 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><title>Arrows</title>
-  <path d="M24,128l48-48v32H184V80l48,48-48,48V144H72v32Z"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="currentColor"><title>Arrows</title><path d="M24,128L80,80V120H112V136H80V176ZM232,128L176,80V120H144V136H176V176Z"/></svg>
