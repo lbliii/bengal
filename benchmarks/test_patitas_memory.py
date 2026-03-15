@@ -92,7 +92,6 @@ def main():
 
     # Setup parsers
     from bengal.parsing.backends.mistune import MistuneParser
-
     from bengal.parsing.backends.patitas import create_markdown
 
     mistune_parser = MistuneParser(enable_highlighting=False)
