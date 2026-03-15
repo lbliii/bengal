@@ -46,6 +46,17 @@ class SiteDiscoveryMixin:
     # - registry: property from main Site class
     # - cascade: property from SiteCascadeMixin
 
+    def _load_data_directory(self) -> None:
+        """Load data files from data/ into site.data (tracks, authors, etc.)."""
+        from bengal.services.data import scan_data_directory
+        from bengal.utils.primitives.dotdict import DotDict, wrap_data
+
+        data, _ = scan_data_directory(self.root_path)
+        if not data:
+            self.data = DotDict()
+        else:
+            self.data = wrap_data(data)
+
     def discover_content(self, content_dir: Path | None = None) -> None:
         """
         Discover all content (pages, sections) in the content directory.
@@ -67,6 +78,10 @@ class SiteDiscoveryMixin:
         if not content_dir.exists():
             emit_diagnostic(self, "warning", "content_dir_not_found", path=str(content_dir))
             return
+
+        # Load data/ directory so site.data.tracks, site.data.authors, etc. are available
+        # (ContentOrchestrator.discover() also does this; here we ensure direct Site API works)
+        self._load_data_directory()
 
         from bengal.collections import load_collections
         from bengal.content.discovery.content_discovery import ContentDiscovery
@@ -147,7 +162,7 @@ class SiteDiscoveryMixin:
             plan/drafted/rfc-css-tree-shaking.md: Design rationale
         """
         from bengal.core.page.proxy import PageProxy
-        from bengal.orchestration.feature_detector import FeatureDetector
+        from bengal.utils.feature_detection import FeatureDetector
 
         detector = FeatureDetector()
 

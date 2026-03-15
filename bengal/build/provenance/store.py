@@ -28,6 +28,9 @@ from bengal.build.provenance.types import (
 from bengal.utils.io.json_compat import JSONDecodeError
 from bengal.utils.io.json_compat import dump as json_dump
 from bengal.utils.io.json_compat import load as json_load
+from bengal.utils.observability.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -56,6 +59,8 @@ class ProvenanceCache:
     _index: dict[CacheKey, ContentHash] = field(default_factory=dict)
     _input_paths: dict[CacheKey, list[str]] = field(default_factory=dict)
     _last_build_time: float | None = field(default=None)
+    # RFC: rfc-cache-generation-id — shared with BuildCache for divergence detection
+    _build_id: str | None = field(default=None)
     _records: dict[ContentHash, ProvenanceRecord] = field(default_factory=dict)
     _subvenance: dict[ContentHash, set[CacheKey]] = field(default_factory=dict)
     _loaded: bool = False
@@ -79,7 +84,7 @@ class ProvenanceCache:
             return
 
         # Load index and subvenance outside lock (I/O can block)
-        index_data, input_paths_data, last_build = self._load_index_data()
+        index_data, input_paths_data, last_build, build_id = self._load_index_data()
         subvenance_data = self._load_subvenance_data()
 
         with self._lock:
@@ -88,13 +93,19 @@ class ProvenanceCache:
             self._index = index_data
             self._input_paths = input_paths_data
             self._last_build_time = last_build
+            self._build_id = build_id
             self._subvenance = subvenance_data
             self._loaded = True
 
     def _load_index_data(
         self,
-    ) -> tuple[dict[CacheKey, ContentHash], dict[CacheKey, list[str]], float | None]:
-        """Load page index, input_paths, and last_build_time from disk (no lock)."""
+    ) -> tuple[
+        dict[CacheKey, ContentHash],
+        dict[CacheKey, list[str]],
+        float | None,
+        str | None,
+    ]:
+        """Load page index, input_paths, last_build_time, and build_id from disk (no lock)."""
         index_path = self.cache_dir / "index.json"
         try:
             data = json_load(index_path)
@@ -104,9 +115,18 @@ class ProvenanceCache:
                 for k, v in data["input_paths"].items():
                     input_paths[CacheKey(k)] = list(v) if isinstance(v, list) else []
             last_build = data.get("last_build_time")
-            return (pages, input_paths, last_build)
-        except FileNotFoundError, JSONDecodeError, KeyError:
-            return ({}, {}, None)
+            build_id = data.get("build_id")
+            return (pages, input_paths, last_build, build_id)
+        except FileNotFoundError:
+            return ({}, {}, None, None)
+        except (JSONDecodeError, KeyError) as e:
+            logger.warning(
+                "provenance_index_load_failed",
+                path=str(index_path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return ({}, {}, None, None)
 
     def _load_subvenance_data(self) -> dict[ContentHash, set[CacheKey]]:
         """Load reverse index (input → pages) from disk (no lock)."""
@@ -114,7 +134,15 @@ class ProvenanceCache:
         try:
             data = json_load(subvenance_path)
             return {ContentHash(k): set(v) for k, v in data.items()}
-        except FileNotFoundError, JSONDecodeError, KeyError:
+        except FileNotFoundError:
+            return {}
+        except (JSONDecodeError, KeyError) as e:
+            logger.warning(
+                "provenance_subvenance_load_failed",
+                path=str(subvenance_path),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return {}
 
     def _get_record(self, combined_hash: ContentHash) -> ProvenanceRecord | None:
@@ -130,7 +158,16 @@ class ProvenanceCache:
             record = ProvenanceRecord.from_dict(data)
             self._records[combined_hash] = record
             return record
-        except FileNotFoundError, JSONDecodeError, KeyError:
+        except FileNotFoundError:
+            return None
+        except (JSONDecodeError, KeyError) as e:
+            logger.warning(
+                "provenance_record_load_failed",
+                path=str(record_path),
+                hash=str(combined_hash),
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             return None
 
     def get(self, page_path: CacheKey) -> ProvenanceRecord | None:
@@ -192,6 +229,23 @@ class ProvenanceCache:
 
         with self._lock:
             return self._last_build_time
+
+    def get_build_id(self) -> str | None:
+        """
+        Get build generation ID for divergence detection (thread-safe).
+
+        RFC: rfc-cache-generation-id. Returns None if not set (legacy index).
+        """
+        self._ensure_loaded()
+
+        with self._lock:
+            return self._build_id
+
+    def set_build_id(self, build_id: str | None) -> None:
+        """Set build_id for next save (RFC: rfc-cache-generation-id)."""
+        with self._lock:
+            self._build_id = build_id
+            self._dirty = True
 
     def store(
         self,
@@ -319,6 +373,7 @@ class ProvenanceCache:
             index_copy = dict(self._index)
             input_paths_copy = {k: list(v) for k, v in self._input_paths.items()}
             subvenance_copy = {k: sorted(v) for k, v in self._subvenance.items()}
+            build_id_copy = self._build_id
             self._dirty = False
 
         # File writes outside lock
@@ -326,15 +381,15 @@ class ProvenanceCache:
 
         # Save page index with mtime short-circuit data
         index_path = self.cache_dir / "index.json"
-        json_dump(
-            {
-                "version": 2,
-                "last_build_time": time.time(),
-                "pages": index_copy,
-                "input_paths": input_paths_copy,
-            },
-            index_path,
-        )
+        index_payload: dict[str, Any] = {
+            "version": 2,
+            "last_build_time": time.time(),
+            "pages": index_copy,
+            "input_paths": input_paths_copy,
+        }
+        if build_id_copy is not None:
+            index_payload["build_id"] = build_id_copy
+        json_dump(index_payload, index_path)
 
         # Save subvenance index
         subvenance_path = self.cache_dir / "subvenance.json"

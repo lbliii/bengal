@@ -94,6 +94,8 @@ class SectionNavigationMixin:
         """
         URL for template href attributes. Includes baseurl.
 
+        Cost: O(1) cached — path + baseurl application.
+
         Use this in templates for all links:
             <a href="{{ section.href }}">
 
@@ -115,6 +117,8 @@ class SectionNavigationMixin:
     def _path(self) -> str:
         """
         Internal site-relative path. NO baseurl.
+
+        Cost: O(d) first access (d = tree depth for parent chain), O(1) cached thereafter.
 
         Use for internal operations only:
         - Cache keys
@@ -159,6 +163,8 @@ class SectionNavigationMixin:
     def absolute_href(self) -> str:
         """
         Fully-qualified URL for meta tags and sitemaps when available.
+
+        Cost: O(1) — origin lookup and string concat.
         """
         from bengal.core.utils.url import get_site_origin
 
@@ -172,9 +178,11 @@ class SectionNavigationMixin:
     # =========================================================================
 
     @cached_property
-    def subsection_index_urls(self) -> set[str]:
+    def subsection_index_urls(self) -> frozenset[str]:
         """
         Get set of URLs for all subsection index pages (CACHED).
+
+        Cost: O(m) first access (m = subsections), O(1) cached thereafter.
 
         This pre-computed set enables O(1) membership checks for determining
         if a page is a subsection index. Used in navigation templates to avoid
@@ -193,16 +201,19 @@ class SectionNavigationMixin:
               <a href="{{ url_for(page) }}">{{ page.title }}</a>
             {% endif %}
         """
-        return {
-            getattr(subsection.index_page, "_path", None)
+        return frozenset(
+            p
             for subsection in self.subsections
             if subsection.index_page
-        }
+            and (p := getattr(subsection.index_page, "_path", None)) is not None
+        )
 
     @cached_property
     def has_nav_children(self) -> bool:
         """
         Check if this section has navigable children (CACHED).
+
+        Cost: O(1) cached — uses cached sorted_pages/sorted_subsections.
 
         A section has navigable children if it contains either:
         - Regular pages (excluding the index page itself)
@@ -291,6 +302,9 @@ class SectionNavigationMixin:
         - Any of its sorted_pages match the version, OR
         - Any of its subsections recursively have content for the version
 
+        Results are cached per version_id to avoid repeated recursive tree walks
+        during navigation rendering (called once per section per page render).
+
         Args:
             version_id: Version to check, or None (always returns True)
 
@@ -305,15 +319,26 @@ class SectionNavigationMixin:
         if version_id is None:
             return True
 
-        # Check index page first
+        cache: dict[str, bool] | None = getattr(self, "_version_content_cache", None)
+        if cache is not None and version_id in cache:
+            return cache[version_id]
+
+        result = self._compute_has_content_for_version(version_id)
+
+        if cache is None:
+            cache = {}
+            self._version_content_cache = cache  # type: ignore[attr-defined]
+        cache[version_id] = result
+        return result
+
+    def _compute_has_content_for_version(self, version_id: str) -> bool:
+        """Compute version content check (uncached implementation)."""
         if self.index_page and getattr(self.index_page, "version", None) == version_id:
             return True
 
-        # Check any regular page in this section
         if any(getattr(p, "version", None) == version_id for p in self.sorted_pages):
             return True
 
-        # Recursively check subsections (needed for versioned content in _versions/<id>/...)
         return any(s.has_content_for_version(version_id) for s in self.subsections)
 
     # =========================================================================

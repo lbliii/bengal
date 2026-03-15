@@ -20,6 +20,25 @@ if TYPE_CHECKING:
     pass
 
 
+def _collapse_slashes(url: str) -> str:
+    """Replace runs of consecutive slashes with a single slash (pure string ops)."""
+    if "//" not in url:
+        return url
+    parts = url.split("/")
+    out = [parts[0]]
+    for p in parts[1:]:
+        if p or out[-1:] != [""]:
+            out.append(p)
+        elif out and out[-1] == "":
+            continue
+        else:
+            out.append(p)
+    result = "/".join(p for p in out if p) or ""
+    if url.startswith("/"):
+        result = "/" + result
+    return result
+
+
 def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:
     """
     Normalize a relative URL to a consistent format.
@@ -56,20 +75,20 @@ def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:
         return "/"
 
     # Handle absolute URLs (http://, https://)
-    # Don't normalize these - return as-is
     if url.startswith(("http://", "https://")):
         return url
 
     # Handle protocol-relative URLs (// followed by non-slash)
-    # These are like //example.com/path
     if url.startswith("//") and len(url) > 2 and url[2] != "/":
         return url
 
     # Ensure starts with /
-    url = "/" + url.lstrip("/")
+    if not url.startswith("/"):
+        url = "/" + url
 
-    # Normalize multiple consecutive slashes (except after protocol)
-    url = re.sub(r"(?<!:)/{2,}", "/", url)
+    # Collapse consecutive slashes (string ops, no regex)
+    if "//" in url:
+        url = _collapse_slashes(url)
 
     # Handle root case
     if url == "/":
@@ -78,13 +97,9 @@ def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:
     # Handle trailing slash based on option
     if ensure_trailing_slash:
         if not url.endswith("/"):
-            url += "/"
+            url = url + "/"
     else:
-        # Strip trailing slash when not requested
-        url = url.rstrip("/")
-        # Ensure we don't return empty string for root-like paths
-        if not url:
-            url = "/"
+        url = url.rstrip("/") or "/"
 
     return url
 
@@ -228,6 +243,31 @@ def clean_md_path(path: str) -> str:
     return path.replace(".md", "").strip("/")
 
 
+def strip_path_params(path: str) -> str:
+    """
+    Remove OpenAPI-style path parameter braces for URL-safe slugs.
+
+    Converts /orders/{orderId} to /orders/orderId so path_to_slug produces
+    clean URLs without encoded braces (%7B%7D). Preserves param names to
+    avoid collisions (e.g. GET /orders vs GET /orders/{orderId}).
+
+    Args:
+        path: URL path potentially containing {param} placeholders
+
+    Returns:
+        Path with braces stripped (param names preserved)
+
+    Examples:
+        >>> strip_path_params("/orders/{orderId}")
+        '/orders/orderId'
+        >>> strip_path_params("/users/{userId}/posts/{postId}")
+        '/users/userId/posts/postId'
+        >>> strip_path_params("/api/v1/users")
+        '/api/v1/users'
+    """
+    return re.sub(r"\{([^}]+)\}", r"\1", path)
+
+
 def path_to_slug(path: str) -> str:
     """
     Convert a URL path to a slug by replacing slashes with hyphens.
@@ -259,6 +299,8 @@ def path_to_slug(path: str) -> str:
         ''
         >>> path_to_slug("single")
         'single'
+        >>> path_to_slug(strip_path_params("/orders/{orderId}"))
+        'orders-orderId'
 
     """
     return path.strip("/").replace("/", "-")

@@ -174,7 +174,7 @@ ICON_MAP: dict[str, str] = {
     "chevron-left": "chevron-left",
     "chevron-up": "chevron-up",
     "chevron-down": "chevron-down",
-    "external": "arrow-square-out",
+    "external": "external",
     "link": "link",
     "search": "magnifying-glass",
     "menu": "list",
@@ -222,6 +222,9 @@ ICON_MAP: dict[str, str] = {
     "danger": "danger",
     "caution": "caution",
     "lightbulb": "tip",  # Backwards compatibility alias
+    # i18n & layout
+    "languages": "translate",
+    "arrows": "arrows",
     # Bengal-specific
     "terminal": "terminal",
     "docs": "file-text",

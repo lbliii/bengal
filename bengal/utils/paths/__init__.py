@@ -32,6 +32,7 @@ from bengal.utils.paths.url_normalization import (
     normalize_url,
     path_to_slug,
     split_url_path,
+    strip_path_params,
     validate_url,
 )
 from bengal.utils.paths.url_strategy import URLStrategy
@@ -50,6 +51,7 @@ __all__ = [
     "resolve_path",
     "resolved_path_url_variants",
     "split_url_path",
+    "strip_path_params",
     "to_posix",
     "validate_url",
 ]

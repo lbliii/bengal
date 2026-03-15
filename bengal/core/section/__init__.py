@@ -55,6 +55,8 @@ if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
 
+from bengal.core.utils.shared import resolve_nav_title, sortable_weight
+
 from .ergonomics import SectionErgonomicsMixin
 from .hierarchy import SectionHierarchyMixin
 from .navigation import SectionNavigationMixin
@@ -147,6 +149,8 @@ class Section(
         """
         Check if this is a virtual section (no disk directory).
 
+        Cost: O(1) — direct field read.
+
         Virtual sections are used for:
         - API documentation generated from Python source code
         - Dynamically-generated content from external sources
@@ -209,6 +213,8 @@ class Section(
         """
         URL-friendly identifier for this section.
 
+        Cost: O(1) — direct field read.
+
         For virtual sections, uses the name directly.
         For physical sections, uses the directory name.
 
@@ -221,13 +227,18 @@ class Section(
 
     @property
     def title(self) -> str:
-        """Get section title from metadata or generate from name."""
+        """Get section title from metadata or generate from name.
+
+        Cost: O(1) — dict get and string ops.
+        """
         return str(self.metadata.get("title", self.name.replace("-", " ").title()))
 
     @property
     def nav_title(self) -> str:
         """
         Get short navigation title (falls back to title).
+
+        Cost: O(1) — metadata/index_page lookups.
 
         Use this in menus and sidebars for compact display.
 
@@ -237,19 +248,19 @@ class Section(
             nav_title: Authoring
             ---
         """
-        if "nav_title" in self.metadata:
-            return str(self.metadata["nav_title"])
-        # Also check index page for nav_title
-        if self.index_page is not None:
+        nav = self.metadata.get("nav_title")
+        if nav is None and self.index_page is not None:
             index_nav = getattr(self.index_page, "nav_title", None)
             if index_nav and index_nav != self.index_page.title:
-                return index_nav
-        return self.title
+                nav = index_nav
+        return resolve_nav_title(str(nav) if nav is not None else None, self.title)
 
     @property
     def weight(self) -> float:
         """
         Get section weight for sorting (always returns sortable value).
+
+        Cost: O(1) — dict get and sortable_weight call.
 
         Returns weight from metadata if set, otherwise infinity (sorts last).
         This property ensures sections are always sortable without None errors.
@@ -260,13 +271,7 @@ class Section(
             weight: 10
             ---
         """
-        w = self.metadata.get("weight")
-        if w is not None:
-            try:
-                return float(w)
-            except ValueError, TypeError:
-                pass
-        return float("inf")
+        return sortable_weight(self.metadata.get("weight"))
 
     def __repr__(self) -> str:
         return f"Section(name='{self.name}', pages={len(self.pages)}, subsections={len(self.subsections)})"

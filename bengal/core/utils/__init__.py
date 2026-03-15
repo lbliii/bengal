@@ -21,6 +21,8 @@ Usage:
 from __future__ import annotations
 
 from bengal.core.utils.config import get_config_section, get_site_value
+from bengal.core.utils.page_safe import get_tags_safe
+from bengal.core.utils.shared import resolve_nav_title, sortable_weight
 from bengal.core.utils.sorting import DEFAULT_WEIGHT, sorted_by_weight, weight_sort_key
 from bengal.core.utils.text import (
     normalize_whitespace,
@@ -32,16 +34,15 @@ from bengal.core.utils.text import (
 from bengal.core.utils.url import apply_baseurl
 
 __all__ = [
-    # Sorting utilities
     "DEFAULT_WEIGHT",
-    # URL utilities
     "apply_baseurl",
     "get_config_section",
-    # Config utilities
     "get_site_value",
+    "get_tags_safe",
     "normalize_whitespace",
+    "resolve_nav_title",
+    "sortable_weight",
     "sorted_by_weight",
-    # Text utilities
     "strip_html",
     "strip_html_and_normalize",
     "truncate_at_sentence",

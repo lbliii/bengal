@@ -165,12 +165,12 @@ class TestSectionSortedPagesProperty:
         assert sorted_pages[2] == page1
 
     def test_sorted_pages_empty_section(self, tmp_path):
-        """Empty section returns empty list."""
+        """Empty section returns empty tuple."""
         section = Section(name="docs", path=tmp_path / "docs")
 
         sorted_pages = section.sorted_pages
 
-        assert sorted_pages == []
+        assert sorted_pages == ()
 
     def test_sorted_pages_single_page(self, tmp_path):
         """Section with single page returns that page."""
@@ -185,7 +185,7 @@ class TestSectionSortedPagesProperty:
 
         sorted_pages = section.sorted_pages
 
-        assert sorted_pages == [page]
+        assert sorted_pages == (page,)
 
     def test_sorted_pages_negative_weights(self, tmp_path):
         """Negative weights are supported and sort before positive."""
@@ -266,12 +266,12 @@ class TestSectionSortedSubsectionsProperty:
         assert sorted_subs[2] == sub1
 
     def test_sorted_subsections_empty(self, tmp_path):
-        """Empty subsections returns empty list."""
+        """Empty subsections returns empty tuple."""
         section = Section(name="docs", path=tmp_path / "docs")
 
         sorted_subs = section.sorted_subsections
 
-        assert sorted_subs == []
+        assert sorted_subs == ()
 
     def test_sorted_subsections_uses_section_title_property(self, tmp_path):
         """Sorting uses Section.title property which handles missing title."""

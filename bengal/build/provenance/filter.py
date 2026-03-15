@@ -655,7 +655,7 @@ class ProvenanceFilter:
                     )
 
             # Taxonomy/tag pages: hash the tag name (page list is implicit)
-            tag_name = page.metadata.get("_taxonomy_term") or page.metadata.get("tag")
+            tag_name = page.taxonomy_term or page.metadata.get("tag")
             if tag_name:
                 tag_hash = hash_content(str(tag_name))
                 provenance = provenance.with_input(
@@ -680,11 +680,7 @@ class ProvenanceFilter:
 
             # Fallback for other virtual pages: use template + title hash
             if provenance.input_count == 0:
-                template = (
-                    page.metadata.get("template")
-                    or page.metadata.get("_autodoc_template")
-                    or "default"
-                )
+                template = page.assigned_template or page.autodoc_template or "default"
                 title = page.metadata.get("title") or rel_path
                 fallback_hash = hash_content(f"{template}:{title}")
                 provenance = provenance.with_input("virtual", rel_path, fallback_hash)

@@ -45,15 +45,15 @@ class TestHiddenShorthand:
         )
 
         visibility = page.visibility
-        assert visibility["menu"] is False
-        assert visibility["listings"] is False
-        assert visibility["sitemap"] is False
-        assert visibility["search"] is False
-        assert visibility["rss"] is False
-        assert visibility["robots"] == "noindex, nofollow"
-        assert visibility["render"] == "always"
-        assert visibility["ai_input"] is False
-        assert visibility["ai_train"] is False
+        assert visibility.menu is False
+        assert visibility.listings is False
+        assert visibility.sitemap is False
+        assert visibility.search is False
+        assert visibility.rss is False
+        assert visibility.robots == "noindex, nofollow"
+        assert visibility.render == "always"
+        assert visibility.ai_input is False
+        assert visibility.ai_train is False
 
 
 class TestVisibilityObject:
@@ -68,15 +68,15 @@ class TestVisibilityObject:
         )
 
         visibility = page.visibility
-        assert visibility["menu"] is True
-        assert visibility["listings"] is True
-        assert visibility["sitemap"] is True
-        assert visibility["search"] is True
-        assert visibility["rss"] is True
-        assert visibility["robots"] == "index, follow"
-        assert visibility["render"] == "always"
-        assert visibility["ai_input"] is True
-        assert visibility["ai_train"] is False
+        assert visibility.menu is True
+        assert visibility.listings is True
+        assert visibility.sitemap is True
+        assert visibility.search is True
+        assert visibility.rss is True
+        assert visibility.robots == "index, follow"
+        assert visibility.render == "always"
+        assert visibility.ai_input is True
+        assert visibility.ai_train is False
 
     def test_visibility_partial_override(self):
         """Can override individual visibility settings."""
@@ -93,10 +93,10 @@ class TestVisibilityObject:
         )
 
         visibility = page.visibility
-        assert visibility["menu"] is True  # Default
-        assert visibility["listings"] is False  # Overridden
-        assert visibility["sitemap"] is True  # Explicitly set
-        assert visibility["search"] is True  # Default
+        assert visibility.menu is True  # Default
+        assert visibility.listings is False  # Overridden
+        assert visibility.sitemap is True  # Explicitly set
+        assert visibility.search is True  # Default
 
     def test_visibility_all_options(self):
         """Can set all visibility options."""
@@ -118,13 +118,13 @@ class TestVisibilityObject:
         )
 
         visibility = page.visibility
-        assert visibility["menu"] is False
-        assert visibility["listings"] is False
-        assert visibility["sitemap"] is False
-        assert visibility["search"] is True
-        assert visibility["rss"] is False
-        assert visibility["robots"] == "noindex"
-        assert visibility["render"] == "local"
+        assert visibility.menu is False
+        assert visibility.listings is False
+        assert visibility.sitemap is False
+        assert visibility.search is True
+        assert visibility.rss is False
+        assert visibility.robots == "noindex"
+        assert visibility.render == "local"
 
 
 class TestInListingsProperty:

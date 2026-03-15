@@ -112,10 +112,8 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
+from bengal.core.diagnostics import emit
 from bengal.protocols import Cacheable
-from bengal.utils.observability.logger import get_logger
-
-logger = get_logger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -266,16 +264,20 @@ class PageCore(Cacheable):
         object.__setattr__(self, "tags", sanitized_tags)
         object.__setattr__(self, "aliases", sanitized_aliases)
 
-        # Log warnings for filtered values (helps users catch YAML issues)
+        # Emit diagnostics for filtered values (helps users catch YAML issues)
         if tags_filtered:
-            logger.debug(
+            emit(
+                self,
+                "debug",
                 "frontmatter_tags_filtered",
                 source_path=self.source_path,
                 filtered=tags_filtered,
                 hint="YAML 'null' becomes None; use quoted strings for literal values",
             )
         if aliases_filtered:
-            logger.debug(
+            emit(
+                self,
+                "debug",
                 "frontmatter_aliases_filtered",
                 source_path=self.source_path,
                 filtered=aliases_filtered,

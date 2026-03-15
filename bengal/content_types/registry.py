@@ -55,6 +55,8 @@ from .strategies import (
     DocsStrategy,
     NotebookStrategy,
     PageStrategy,
+    TagIndexStrategy,
+    TagPageStrategy,
     TrackStrategy,
     TutorialStrategy,
 )
@@ -81,6 +83,8 @@ CONTENT_TYPE_REGISTRY: dict[str, ContentTypeStrategy] = {
     "autodoc-cli": CliReferenceStrategy(),
     "tutorial": TutorialStrategy(),
     "track": TrackStrategy(),
+    "tag": TagPageStrategy(),
+    "tag-index": TagIndexStrategy(),
     "page": PageStrategy(),
     "list": PageStrategy(),  # Alias for generic lists
 }

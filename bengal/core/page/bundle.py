@@ -32,6 +32,7 @@ import fnmatch
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
+from functools import cached_property
 from pathlib import Path
 from typing import Any
 
@@ -90,22 +91,33 @@ class PageResource:
 
     @property
     def name(self) -> str:
-        """Filename with extension."""
+        """Filename with extension.
+
+        Cost: O(1) — Path.name.
+        """
         return self.path.name
 
     @property
     def stem(self) -> str:
-        """Filename without extension."""
+        """Filename without extension.
+
+        Cost: O(1) — Path.stem.
+        """
         return self.path.stem
 
     @property
     def suffix(self) -> str:
-        """File extension including dot (e.g., '.jpg')."""
+        """File extension including dot (e.g., '.jpg').
+
+        Cost: O(1) — Path.suffix.
+        """
         return self.path.suffix
 
     @property
     def rel_permalink(self) -> str:
         """URL relative to site root.
+
+        Cost: O(1) — string concatenation.
 
         Resources are served alongside the page.
         """
@@ -115,7 +127,10 @@ class PageResource:
 
     @property
     def size(self) -> int:
-        """File size in bytes."""
+        """File size in bytes.
+
+        Cost: O(DISK) — stat() call.
+        """
         try:
             return self.path.stat().st_size
         except OSError:
@@ -123,12 +138,17 @@ class PageResource:
 
     @property
     def exists(self) -> bool:
-        """Check if the resource file exists."""
+        """Check if the resource file exists.
+
+        Cost: O(DISK) — path.exists().
+        """
         return self.path.exists()
 
     @property
     def resource_type(self) -> str | None:
         """Get resource type category based on extension.
+
+        Cost: O(1) — constant dict iteration over extension categories.
 
         Returns one of: 'image', 'video', 'audio', 'document', 'data', 'code', 'archive'
         or None if unrecognized.
@@ -403,3 +423,46 @@ def get_resources(source_path: Path, url: str) -> PageResources:
     resources.sort(key=lambda r: r.name)
 
     return PageResources(resources)
+
+
+class PageBundleMixin:
+    """
+    Mixin providing bundle properties (bundle_type, is_bundle, resources).
+
+    Delegates to free functions in this module. Requires source_path and href.
+    """
+
+    source_path: Path
+
+    @cached_property
+    def bundle_type(self) -> BundleType:
+        """Bundle type classification (LEAF, BRANCH, or NONE).
+
+        Cost: O(1) cached — path operations.
+        """
+        return get_bundle_type(self.source_path)
+
+    @property
+    def is_bundle(self) -> bool:
+        """True if this page is a leaf bundle with resources.
+
+        Cost: O(1) cached — delegates to bundle_type.
+        """
+        return self.bundle_type == BundleType.LEAF
+
+    @property
+    def is_branch_bundle(self) -> bool:
+        """True if this page is a branch bundle (section index).
+
+        Cost: O(1) cached — delegates to bundle_type.
+        """
+        return self.bundle_type == BundleType.BRANCH
+
+    @cached_property
+    def resources(self) -> PageResources:
+        """Get resources co-located with this page bundle.
+
+        Cost: O(DISK) cached — directory listing on first access.
+        """
+        url = getattr(self, "href", "/")
+        return get_resources(self.source_path, url)

@@ -98,28 +98,42 @@ class Series:
 
     @property
     def is_first(self) -> bool:
-        """Check if this is the first part in the series."""
+        """Check if this is the first part in the series.
+
+        Cost: O(1) — direct field comparison.
+        """
         return self.part == 1
 
     @property
     def is_last(self) -> bool:
-        """Check if this is the last part in the series (if total is known)."""
+        """Check if this is the last part in the series (if total is known).
+
+        Cost: O(1) — direct field comparison.
+        """
         return self.total > 0 and self.part >= self.total
 
     @property
     def has_prev(self) -> bool:
-        """Check if there's a previous part."""
+        """Check if there's a previous part.
+
+        Cost: O(1) — direct field comparison.
+        """
         return self.part > 1
 
     @property
     def has_next(self) -> bool:
-        """Check if there's a next part (if total is known)."""
+        """Check if there's a next part (if total is known).
+
+        Cost: O(1) — direct field comparison.
+        """
         return self.total == 0 or self.part < self.total
 
     @property
     def progress_percent(self) -> int:
         """
         Calculate progress through series as percentage.
+
+        Cost: O(1) — arithmetic on fields.
 
         Returns 0 if total is unknown.
         """

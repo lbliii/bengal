@@ -24,6 +24,8 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from typing import Any, TypeVar
 
+from bengal.core.utils.shared import sortable_weight
+
 # Standard default weight for unweighted items.
 # Using infinity ensures unweighted items always sort last.
 # DO NOT use 0 (sorts first) or 999999 (can be exceeded).
@@ -73,13 +75,7 @@ def weight_sort_key(
         weight = None
 
     # Normalize weight to float
-    if weight is None:
-        weight = DEFAULT_WEIGHT
-    else:
-        try:
-            weight = float(weight)
-        except ValueError, TypeError:
-            weight = DEFAULT_WEIGHT
+    weight = sortable_weight(weight)
 
     # Get title
     if title_getter is not None:

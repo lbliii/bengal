@@ -88,80 +88,35 @@ class LinkValidator:
         per_page = of.get("per_page", [])
         return "llm_txt" in per_page
 
-    def _build_auxiliary_url_index(self, site: Any) -> set[str]:
+    def _build_indexes(self, site: Any) -> tuple[set[str], set[str]]:
         """
-        Build index of auxiliary output URLs (e.g. index.txt) when enabled.
+        Build page URL index and source path index in a single pass (IPA audit Task 6).
 
-        The action bar links to index.txt for LLM/AI discovery. These are valid
-        when output_formats.per_page includes "llm_txt". Uses same URL convention
-        as action-bar.html: page_url + "index.txt".
-
-        Args:
-            site: Site instance with pages and config
+        Merges _build_page_url_index, _build_source_path_index, and
+        _build_auxiliary_url_index into one pass over site.pages.
 
         Returns:
-            Set of valid auxiliary URLs
+            Tuple of (page_urls, source_paths)
         """
-        if not self._llm_txt_enabled(site):
-            return set()
         urls: set[str] = set()
+        paths: set[str] = set()
+        root = site.root_path
+        include_auxiliary = self._llm_txt_enabled(site)
+
         for page in site.pages:
             url = getattr(page, "href", None)
             if url:
-                base = url.rstrip("/") + "/"
-                urls.add(base + "index.txt")
-        return urls
-
-    def _build_page_url_index(self, site: Any) -> set[str]:
-        """
-        Build an index of all valid internal link targets for fast lookup.
-
-        Includes page URLs and auxiliary outputs (index.txt) when output_formats
-        are enabled. Creates normalized URL variants (with/without trailing
-        slashes) for flexible matching.
-
-        Args:
-            site: Site instance containing pages
-
-        Returns:
-            Set of all valid internal link targets
-        """
-        urls: set[str] = set()
-        for page in site.pages:
-            url = getattr(page, "href", None)
-            if url:
-                # Add both with and without trailing slash for flexible matching
                 urls.add(url)
                 urls.add(url.rstrip("/"))
                 urls.add(url.rstrip("/") + "/")
-
-                # Also add permalink if different
                 permalink = getattr(page, "permalink", None)
                 if permalink and permalink != url:
                     urls.add(permalink)
                     urls.add(permalink.rstrip("/"))
                     urls.add(permalink.rstrip("/") + "/")
+                if include_auxiliary:
+                    urls.add(url.rstrip("/") + "/index.txt")
 
-        urls.update(self._build_auxiliary_url_index(site))
-        return urls
-
-    def _build_source_path_index(self, site: Any) -> set[str]:
-        """
-        Build an index of all source paths for resolving relative links.
-
-        Used to validate relative links like ./sibling.md against actual source files.
-        Uses content_key for consistent path format (discovery vs resolved target).
-
-        Args:
-            site: Site instance containing pages
-
-        Returns:
-            Set of content keys (normalized, relative to site root)
-        """
-        paths: set[str] = set()
-        root = site.root_path
-
-        for page in site.pages:
             source_path = getattr(page, "source_path", None)
             if source_path:
                 full = (
@@ -171,6 +126,21 @@ class LinkValidator:
                 )
                 paths.add(content_key(full, root))
 
+        return (urls, paths)
+
+    def _build_auxiliary_url_index(self, site: Any) -> set[str]:
+        """Legacy: use _build_indexes. Kept for backward compatibility."""
+        urls, _ = self._build_indexes(site)
+        return {u for u in urls if u.endswith("index.txt")}
+
+    def _build_page_url_index(self, site: Any) -> set[str]:
+        """Legacy: use _build_indexes. Kept for backward compatibility."""
+        urls, _ = self._build_indexes(site)
+        return urls
+
+    def _build_source_path_index(self, site: Any) -> set[str]:
+        """Legacy: use _build_indexes. Kept for backward compatibility."""
+        _, paths = self._build_indexes(site)
         return paths
 
     def validate_page_links(self, page: PageLike, site: Any | None = None) -> list[str]:
@@ -189,8 +159,7 @@ class LinkValidator:
 
         # Build indexes on first use (or if site changed)
         if self._page_urls is None and site is not None:
-            self._page_urls = self._build_page_url_index(site)
-            self._source_paths = self._build_source_path_index(site)
+            self._page_urls, self._source_paths = self._build_indexes(site)
             self._site = site
 
         logger.debug(
@@ -229,8 +198,7 @@ class LinkValidator:
         # Reset state
         self.broken_links = []
         self._site = site
-        self._page_urls = self._build_page_url_index(site)
-        self._source_paths = self._build_source_path_index(site)
+        self._page_urls, self._source_paths = self._build_indexes(site)
 
         for page in site.pages:
             self.validate_page_links(page, site)
@@ -317,7 +285,11 @@ class LinkValidator:
             return True
 
         page_url = str(page_url)
-        resolved_path = resolve_internal_link(page_url, str(parsed.path))
+        resolved_path = resolve_internal_link(
+            page_url,
+            str(parsed.path),
+            getattr(page, "source_path", None),
+        )
         variants = resolved_path_url_variants(resolved_path)
 
         # Check if any variant matches a known page URL
@@ -349,9 +321,9 @@ class LinkValidator:
         Validate a relative link to a .md file by resolving against source path.
 
         This handles common markdown patterns like:
-        - [sibling](./sibling.md)
-        - [parent](../parent.md)
-        - [index](./_index.md)
+        - ``[sibling](./sibling.md)``
+        - ``[parent](../parent.md)``
+        - ``[index](./_index.md)``
 
         Args:
             link_path: The relative path (e.g., "./sibling.md")

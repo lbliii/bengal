@@ -142,25 +142,25 @@ class TestSectionNavigationMixin:
         assert isinstance(result, str)
 
     def test_subsection_index_urls_returns_set(self) -> None:
-        """subsection_index_urls returns a set of strings."""
+        """subsection_index_urls returns a frozenset of strings."""
 
         section = _create_minimal_section()
         section.subsections = []
 
         result = section.subsection_index_urls
-        assert isinstance(result, set)
+        assert isinstance(result, frozenset)
 
 
 class TestSectionHierarchyMixin:
     """Verify SectionHierarchyMixin contract."""
 
-    def test_hierarchy_returns_list_of_strings(self) -> None:
-        """hierarchy returns list[str]."""
+    def test_hierarchy_returns_tuple_of_strings(self) -> None:
+        """hierarchy returns tuple[str, ...] (immutable for free-threading)."""
 
         section = _create_minimal_section()
 
         result = section.hierarchy
-        assert isinstance(result, list)
+        assert isinstance(result, tuple)
         assert all(isinstance(s, str) for s in result)
 
     def test_depth_returns_positive_int(self) -> None:

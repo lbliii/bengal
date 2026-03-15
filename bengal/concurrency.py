@@ -93,11 +93,11 @@ Locks acquired during parallel page rendering.
 |                                               |        |  SiteSnapshot.top_level_*/tag_pages)       |
 +-----------------------------------------------+--------+--------------------------------------------+
 | NavTreeCache._lock (class-level)              | Lock   | Site-change invalidation (FALLBACK ONLY —  |
-|   core/nav_tree.py:698                        |        | pre-computed path via SiteSnapshot.nav_trees|
+|   core/nav_tree/cache.py:82                         |        | pre-computed path via SiteSnapshot.nav_trees|
 |                                               |        | is lock-free during normal builds)         |
 +-----------------------------------------------+--------+--------------------------------------------+
 | NavTreeCache._build_locks                     | PKL*   | Per-version build serialization (FALLBACK  |
-|   core/nav_tree.py:699                        |        | ONLY — bypassed when pre-computed trees    |
+|   core/nav_tree/cache.py:95                         |        | ONLY — bypassed when pre-computed trees    |
 |                                               |        | are available from snapshot)               |
 +-----------------------------------------------+--------+--------------------------------------------+
 | NavScaffoldCache._lock (class-level)          | Lock   | Site-change invalidation of scaffold cache |
@@ -176,8 +176,8 @@ Write-path locks for disk I/O and progress reporting.
 | WriteBehindBuffer._created_dirs_lock          | Lock   | _created_dirs set (mkdir dedup)            |
 |   rendering/pipeline/write_behind.py:107      |        |                                            |
 +-----------------------------------------------+--------+--------------------------------------------+
-| ResourceProcessor._write_lock                 | Lock   | Image cache directory writes               |
-|   core/resources/processor.py:99              |        |                                            |
+| ImageProcessor._write_lock                    | Lock   | Image cache directory writes               |
+|   services/image_processor.py                 |        |                                            |
 +-----------------------------------------------+--------+--------------------------------------------+
 | RenderOrchestrator (local lock in             | Lock   | completed_count progress counter           |
 |   _render_pages_parallel)                     |        | (function-scoped, not an attribute)        |
@@ -242,7 +242,7 @@ Each arrow means "then acquire":
 
 1. ``NavTreeCache._lock`` → ``PerKeyLockManager._meta_lock``
      → per-key ``RLock``
-   (core/nav_tree.py — site invalidation check, then per-version build)
+   (core/nav_tree/cache.py — site invalidation check, then per-version build)
 
 2. ``NavScaffoldCache._lock`` → ``PerKeyLockManager._meta_lock``
      → per-key ``RLock``

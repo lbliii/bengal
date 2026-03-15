@@ -10,10 +10,10 @@ Required Host Attributes:
 - subsections: list[Section]
 - metadata: dict[str, Any]
 - index_page: Page | None
-- sorted_pages: list[Page] (from SectionQueryMixin)
-- regular_pages_recursive: list[Page] (from SectionQueryMixin)
+- sorted_pages: tuple[Page, ...] (from SectionQueryMixin)
+- regular_pages_recursive: tuple[Page, ...] (from SectionQueryMixin)
 - get_all_pages: Callable (from SectionQueryMixin)
-- hierarchy: list[str] (from SectionHierarchyMixin)
+- hierarchy: tuple[str, ...] (from SectionHierarchyMixin)
 
 Related Modules:
 bengal.core.section: Section dataclass using this mixin
@@ -37,7 +37,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
-    from bengal.rendering.template_engine import TemplateEngine
+    from bengal.protocols import TemplateEngine
 
 
 class SectionErgonomicsMixin:
@@ -71,23 +71,35 @@ class SectionErgonomicsMixin:
     # From other mixins - accessed via self but defined in other mixins
     # These are declared as properties to match the @cached_property definitions
     @property
-    def sorted_pages(self) -> list[Page]:
-        """Sorted pages - provided by SectionQueryMixin."""
+    def sorted_pages(self) -> tuple[Page, ...]:
+        """Sorted pages - provided by SectionQueryMixin.
+
+        Cost: O(1) — delegate to host.
+        """
         raise NotImplementedError
 
     @property
-    def regular_pages_recursive(self) -> list[Page]:
-        """Recursive pages - provided by SectionQueryMixin."""
+    def regular_pages_recursive(self) -> tuple[Page, ...]:
+        """Recursive pages - provided by SectionQueryMixin.
+
+        Cost: O(1) — delegate to host.
+        """
         raise NotImplementedError
 
     @property
-    def hierarchy(self) -> list[str]:
-        """Hierarchy path - provided by SectionHierarchyMixin."""
+    def hierarchy(self) -> tuple[str, ...]:
+        """Hierarchy path - provided by SectionHierarchyMixin.
+
+        Cost: O(1) — delegate to host.
+        """
         raise NotImplementedError
 
     @property
     def title(self) -> str:
-        """Section title - must be provided by host class."""
+        """Section title - must be provided by host class.
+
+        Cost: O(1) — delegate to host.
+        """
         raise NotImplementedError
 
     def get_all_pages(self, recursive: bool = True) -> list[Page]:
@@ -99,9 +111,11 @@ class SectionErgonomicsMixin:
     # =========================================================================
 
     @cached_property
-    def content_pages(self) -> list[Page]:
+    def content_pages(self) -> tuple[Page, ...]:
         """
         Get content pages (regular pages excluding index).
+
+        Cost: O(1) cached — alias for sorted_pages.
 
         This is useful for listing a section's pages without
         including the section's own index page in the list.
@@ -119,15 +133,39 @@ class SectionErgonomicsMixin:
               <a href="{{ page.href }}">{{ page.title }}</a>
             {% endfor %}
         """
-        # sorted_pages already excludes index files, so this is a semantic alias
-        return self.sorted_pages
+        # sorted_pages already excludes index files; wrap in tuple for immutability
+        return tuple(self.sorted_pages)
+
+    @cached_property
+    def _dated_pages_sorted(self) -> tuple[Page, ...]:
+        """Pages with dates, sorted newest-first. Computed once, sliced by recent_pages()."""
+        dated = [p for p in self.sorted_pages if getattr(p, "date", None)]
+        dated.sort(key=lambda p: p.date or datetime.min, reverse=True)
+        return tuple(dated)
+
+    @cached_property
+    def _featured_pages_sorted(self) -> tuple[Page, ...]:
+        """Featured pages sorted newest-first. Computed once, sliced by featured_posts()."""
+        featured = [p for p in self.sorted_pages if p.metadata.get("featured")]
+        featured.sort(key=lambda p: getattr(p, "date", None) or "", reverse=True)
+        return tuple(featured)
+
+    @cached_property
+    def _tag_index(self) -> dict[str, tuple[Page, ...]]:
+        """Inverted tag index for O(1) tag lookups. Computed once per section."""
+        index: dict[str, list[Page]] = {}
+        for p in self.sorted_pages:
+            for tag in getattr(p, "tags", ()):
+                if tag is not None:
+                    index.setdefault(str(tag).lower(), []).append(p)
+        return {k: tuple(v) for k, v in index.items()}
 
     def recent_pages(self, limit: int = 10) -> list[Page]:
         """
         Get most recent pages by date.
 
         Returns pages that have a date, sorted newest first.
-        Pages without dates are excluded.
+        Pages without dates are excluded. Uses cached sorted list internally.
 
         Args:
             limit: Maximum number of pages to return (default: 10)
@@ -140,15 +178,13 @@ class SectionErgonomicsMixin:
               <article>{{ post.title }} - {{ post.date }}</article>
             {% endfor %}
         """
-        dated_pages = [p for p in self.sorted_pages if getattr(p, "date", None)]
-        dated_pages.sort(key=lambda p: p.date or datetime.min, reverse=True)
-        return dated_pages[:limit]
+        return list(self._dated_pages_sorted[:limit])
 
     def pages_with_tag(self, tag: str) -> list[Page]:
         """
         Get pages containing a specific tag.
 
-        Filters sorted_pages to return only pages that have the given tag.
+        Uses cached inverted tag index for O(1) lookup instead of O(n) scan.
         Matching is case-insensitive.
 
         Args:
@@ -163,17 +199,14 @@ class SectionErgonomicsMixin:
               <article>{{ post.title }}</article>
             {% endfor %}
         """
-        tag_lower = tag.lower()
-        return [
-            p for p in self.sorted_pages if tag_lower in [t.lower() for t in getattr(p, "tags", [])]
-        ]
+        return list(self._tag_index.get(tag.lower(), ()))
 
     def featured_posts(self, limit: int = 5) -> list[Page]:
         """
         Get featured pages from this section.
 
         Returns pages that have `featured: true` in their frontmatter,
-        sorted by date descending (newest first).
+        sorted by date descending (newest first). Uses cached sorted list internally.
 
         Args:
             limit: Maximum number of pages to return (default: 5)
@@ -186,10 +219,7 @@ class SectionErgonomicsMixin:
               <article class="featured">{{ post.title }}</article>
             {% endfor %}
         """
-        featured = [p for p in self.sorted_pages if p.metadata.get("featured")]
-        # Sort by date if available, newest first
-        featured.sort(key=lambda p: getattr(p, "date", None) or "", reverse=True)
-        return featured[:limit]
+        return list(self._featured_pages_sorted[:limit])
 
     # =========================================================================
     # COUNTING PROPERTIES
@@ -199,6 +229,8 @@ class SectionErgonomicsMixin:
     def post_count(self) -> int:
         """
         Get total number of content pages in this section (non-recursive).
+
+        Cost: O(1) cached — len of sorted_pages.
 
         Returns:
             Count of pages (excluding index pages)
@@ -213,6 +245,8 @@ class SectionErgonomicsMixin:
         """
         Get total number of content pages in this section and all subsections.
 
+        Cost: O(1) cached — len of regular_pages_recursive.
+
         Returns:
             Count of all descendant pages
 
@@ -225,6 +259,8 @@ class SectionErgonomicsMixin:
     def word_count(self) -> int:
         """
         Get total word count across all pages in this section.
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
 
         Counts words in rendered content (HTML stripped) for all pages.
 
@@ -249,6 +285,8 @@ class SectionErgonomicsMixin:
         """
         Get total reading time for all pages in this section.
 
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
+
         Sums reading_time property from all pages.
 
         Returns:
@@ -270,16 +308,18 @@ class SectionErgonomicsMixin:
         Returns:
             Dictionary with aggregated content information
         """
+        from bengal.core.utils.page_safe import get_tags_safe
+
         pages = self.get_all_pages(recursive=False)
 
-        # Collect all tags
+        # Collect all tags (safe: some pages may not have tags)
         all_tags = set()
         for page in pages:
-            all_tags.update(page.tags)
+            all_tags.update(get_tags_safe(page))
 
         result = {
             "page_count": len(pages),
-            "total_page_count": len(self.get_all_pages(recursive=True)),
+            "total_page_count": len(self.regular_pages_recursive),
             "subsection_count": len(self.subsections),
             "tags": sorted(all_tags),
             "title": self.title,
@@ -298,14 +338,6 @@ class SectionErgonomicsMixin:
         Returns:
             Rendered HTML for the section index
         """
-        {
-            "section": self,
-            "pages": self.pages,
-            "subsections": self.subsections,
-            "metadata": self.metadata,
-            "aggregated": self.aggregate_content(),
-        }
-
         # Use the index page if available, otherwise generate a listing
         if self.index_page:
             return self.index_page.rendered_html

@@ -35,6 +35,7 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.utils.text import strip_html, truncate_at_sentence, truncate_at_word
@@ -353,3 +354,123 @@ def get_series_neighbor(
             return page
 
     return None
+
+
+class PageComputedMixin:
+    """
+    Mixin providing computed properties (word_count, excerpt, author, etc.).
+
+    Delegates to free functions in this module. Requires _raw_content,
+    metadata, date, and _site.
+    """
+
+    _raw_content: str
+    metadata: Mapping[str, Any]
+    date: datetime | None
+    _site: Site | None
+
+    @property
+    def _source(self) -> str:
+        """Raw markdown source content.
+
+        Cost: O(1) — direct field read.
+        """
+        return self._raw_content
+
+    def HasShortcode(self, name: str) -> bool:
+        """Return True if page content uses the given shortcode."""
+        from bengal.utils.shortcodes import has_shortcode
+
+        return has_shortcode(self, name)
+
+    @cached_property
+    def word_count(self) -> int:
+        """Word count from source markdown.
+
+        Cost: O(n) cached — n = content length.
+        """
+        return compute_word_count(self._raw_content)
+
+    @cached_property
+    def meta_description(self) -> str:
+        """SEO-friendly meta description (max 160 chars).
+
+        Cost: O(1) cached if AST-extracted; O(n) cached otherwise (n = content length).
+        """
+        if getattr(self, "_meta_description", None) is not None:
+            return self._meta_description
+        return compute_meta_description(self.metadata, self._raw_content)
+
+    @cached_property
+    def reading_time(self) -> int:
+        """Estimated reading time in minutes (minimum 1).
+
+        Cost: O(1) cached — delegates to word_count.
+        """
+        return compute_reading_time(self.word_count)
+
+    @cached_property
+    def excerpt(self) -> str:
+        """Content excerpt for listings (max 250 chars).
+
+        Cost: O(1) cached if AST-extracted; O(n) cached otherwise (n = content length).
+        """
+        if getattr(self, "_excerpt", None) is not None:
+            return self._excerpt
+        return compute_excerpt(self._raw_content)
+
+    @cached_property
+    def age_days(self) -> int:
+        """Days since publication.
+
+        Cost: O(1) cached.
+        """
+        return compute_age_days(self.date)
+
+    @cached_property
+    def age_months(self) -> int:
+        """Months since publication.
+
+        Cost: O(1) cached.
+        """
+        return compute_age_months(self.date)
+
+    @cached_property
+    def author(self) -> Author | None:
+        """Primary author as Author object.
+
+        Cost: O(n) cached — n = metadata keys.
+        """
+        return get_primary_author(self.metadata)
+
+    @cached_property
+    def authors(self) -> tuple[Author, ...]:
+        """All authors as tuple of Author objects.
+
+        Cost: O(n) cached — n = metadata keys.
+        """
+        return tuple(get_all_authors(self.metadata))
+
+    @cached_property
+    def series(self) -> Series | None:
+        """Series info as Series object.
+
+        Cost: O(n) cached — n = metadata keys.
+        """
+        return get_series_info(self.metadata)
+
+    @cached_property
+    def prev_in_series(self) -> Page | None:
+        """Previous page in series.
+
+        Cost: O(n) cached — series neighbor lookup.
+        """
+        return get_series_neighbor(self.metadata, self._site, -1)
+
+    @cached_property
+    def next_in_series(self) -> Page | None:
+        """Next page in series.
+
+        Cost: O(n) cached — series neighbor lookup.
+        """
+        return get_series_neighbor(self.metadata, self._site, 1)

@@ -300,9 +300,21 @@ class SiteLifecycleMixin:
         reset_asset_manifest()
 
     @property
+    def _dev_menu_metadata(self) -> dict[str, Any]:
+        """Dev menu metadata (exclude_sections, github_bundled). Reads from BuildState.
+
+        Cost: O(1) — direct field read from BuildState.
+        """
+        if self._current_build_state is not None:
+            return self._current_build_state.dev_menu_metadata
+        return {}
+
+    @property
     def build_state(self) -> BuildState | None:
         """
         Current build state (None outside build context).
+
+        Cost: O(1) — direct field read.
 
         Returns:
             BuildState during build execution, None otherwise

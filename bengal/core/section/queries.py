@@ -75,9 +75,11 @@ class SectionQueryMixin:
     # =========================================================================
 
     @cached_property
-    def regular_pages(self) -> list[Page]:
+    def regular_pages(self) -> tuple[Page, ...]:
         """
         Get content pages in this section, excluding index (CACHED).
+
+        Cost: O(1) cached — delegates to sorted_pages.
 
         Excludes index pages (_index.md, index.md). This is the standard
         "list content" view—the index is the section's landing page, not a
@@ -99,12 +101,14 @@ class SectionQueryMixin:
               <article>{{ page.title }}</article>
             {% endfor %}
         """
-        return list(self.sorted_pages)
+        return self.sorted_pages
 
     @property
     def sections(self) -> list[Section]:
         """
         Get immediate child sections.
+
+        Cost: O(1) — direct field read (subsections).
 
         Returns:
             List of child Section objects
@@ -117,11 +121,11 @@ class SectionQueryMixin:
         return self.subsections
 
     @cached_property
-    def sorted_pages(self) -> list[Page]:
+    def sorted_pages(self) -> tuple[Page, ...]:
         """
         Get pages sorted by weight (ascending), then by title (CACHED).
 
-        This property is cached after first access for O(1) subsequent lookups.
+        Cost: O(n log n) first access (n = pages), O(1) cached thereafter.
         The sort is computed once and reused across all template renders.
 
         Pages without a weight field are treated as having weight=float('inf')
@@ -147,14 +151,14 @@ class SectionQueryMixin:
             return p.source_path.stem in ("_index", "index")
 
         non_index = [p for p in self.pages if not is_index_page(p)]
-        return sorted_by_weight(non_index)
+        return tuple(sorted_by_weight(non_index))
 
     @cached_property
-    def regular_pages_recursive(self) -> list[Page]:
+    def regular_pages_recursive(self) -> tuple[Page, ...]:
         """
         Get all regular pages recursively (including from subsections) (CACHED).
 
-        This property is cached after first access for O(1) subsequent lookups.
+        Cost: O(total pages in subtree) first access, O(1) cached thereafter.
         Cache is invalidated when pages are added via add_page().
 
         Performance:
@@ -170,7 +174,7 @@ class SectionQueryMixin:
         result = list(self.regular_pages)
         for subsection in self.subsections:
             result.extend(subsection.regular_pages_recursive)
-        return result
+        return tuple(result)
 
     # =========================================================================
     # PAGE MANAGEMENT METHODS

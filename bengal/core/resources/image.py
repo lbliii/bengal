@@ -41,13 +41,9 @@ from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-# Import shared types from types.py to avoid circular imports with processor.py
-from bengal.utils.observability.logger import get_logger
-
+# Import shared types from types.py to avoid circular imports with processor
 if TYPE_CHECKING:
     pass
-
-logger = get_logger(__name__)
 
 
 @dataclass
@@ -103,57 +99,70 @@ class ImageResource:
 
     @property
     def exists(self) -> bool:
-        """Check if source image exists."""
+        """Check if source image exists.
+
+        Cost: O(DISK) — path.exists().
+        """
         return self.source_path.exists()
 
     @cached_property
     def _dimensions(self) -> tuple[int, int] | None:
-        """Load image dimensions (lazy)."""
-        try:
-            from PIL import Image
+        """Load image dimensions (lazy) via services layer.
 
-            with Image.open(self.source_path) as img:
-                return img.size
-        except ImportError:
-            logger.warning(
-                "Pillow required for image dimensions. Install: pip install bengal[images]",
-                event="pillow_not_available",
-            )
-            return None
-        except Exception as e:
-            logger.error("image_load_error", path=str(self.source_path), error=str(e))
-            return None
+        Cost: O(DISK) first access, O(1) cached thereafter.
+        """
+        from bengal.services.asset_io import get_image_dimensions
+
+        return get_image_dimensions(self.source_path, context=self.site)
 
     @property
     def width(self) -> int:
-        """Get image width (loads image if needed)."""
+        """Get image width (loads image if needed).
+
+        Cost: O(1) cached — from _dimensions.
+        """
         dims = self._dimensions
         return dims[0] if dims else 0
 
     @property
     def height(self) -> int:
-        """Get image height (loads image if needed)."""
+        """Get image height (loads image if needed).
+
+        Cost: O(1) cached — from _dimensions.
+        """
         dims = self._dimensions
         return dims[1] if dims else 0
 
     @property
     def name(self) -> str:
-        """Filename with extension."""
+        """Filename with extension.
+
+        Cost: O(1) — Path.name.
+        """
         return self.source_path.name
 
     @property
     def stem(self) -> str:
-        """Filename without extension."""
+        """Filename without extension.
+
+        Cost: O(1) — Path.stem.
+        """
         return self.source_path.stem
 
     @property
     def suffix(self) -> str:
-        """File extension including dot."""
+        """File extension including dot.
+
+        Cost: O(1) — Path.suffix.
+        """
         return self.source_path.suffix
 
     @property
     def rel_permalink(self) -> str:
-        """URL to original image (relative to site root)."""
+        """URL to original image (relative to site root).
+
+        Cost: O(1) — path computation.
+        """
         if self.site is None:
             return f"/{self.source_path.name}"
 
@@ -235,7 +244,7 @@ class ImageResource:
     def _process(self, operation: str, spec: str) -> ProcessedImage | None:
         """Execute image processing with caching.
 
-        Delegates to ImageProcessor for actual processing.
+        Delegates to ImageProcessor (services layer) for actual processing.
         Results are cached to avoid reprocessing.
 
         Args:
@@ -245,36 +254,17 @@ class ImageResource:
         Returns:
             ProcessedImage on success, None on error
         """
-        try:
-            from bengal.core.resources.processor import ImageProcessor
+        if self.site is None:
+            return None
 
-            if self.site is None:
-                logger.warning(
-                    "Cannot process image without site context",
-                    event="image_process_no_site",
-                    path=str(self.source_path),
-                )
-                return None
+        try:
+            from bengal.services.image_processor import ImageProcessor
 
             processor = ImageProcessor(self.site)
             return processor.process(self.source_path, operation, spec)
-
-        except ImportError as e:
-            logger.warning(
-                "Install Pillow: pip install bengal[images]",
-                event="image_processing_unavailable",
-                path=str(self.source_path),
-                error=str(e),
-            )
+        except ImportError:
             return None
-        except Exception as e:
-            logger.error(
-                "image_process_error",
-                path=str(self.source_path),
-                operation=operation,
-                spec=spec,
-                error=str(e),
-            )
+        except Exception:
             return None
 
     def __str__(self) -> str:

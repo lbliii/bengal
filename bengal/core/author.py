@@ -99,6 +99,8 @@ class Author:
         """
         Get social links as dictionary.
 
+        Cost: O(k) — dict from tuple (k = social items).
+
         Returns:
             Dictionary mapping platform names to handles/URLs
 
@@ -111,22 +113,34 @@ class Author:
 
     @property
     def twitter(self) -> str:
-        """Shortcut for Twitter handle."""
+        """Shortcut for Twitter handle.
+
+        Cost: O(1) — dict.get.
+        """
         return self.social.get("twitter", "")
 
     @property
     def github(self) -> str:
-        """Shortcut for GitHub username."""
+        """Shortcut for GitHub username.
+
+        Cost: O(1) — dict.get.
+        """
         return self.social.get("github", "")
 
     @property
     def linkedin(self) -> str:
-        """Shortcut for LinkedIn profile."""
+        """Shortcut for LinkedIn profile.
+
+        Cost: O(1) — dict.get.
+        """
         return self.social.get("linkedin", "")
 
     @property
     def mastodon(self) -> str:
-        """Shortcut for Mastodon handle."""
+        """Shortcut for Mastodon handle.
+
+        Cost: O(1) — dict.get.
+        """
         return self.social.get("mastodon", "")
 
     def to_dict(self) -> dict[str, Any]:

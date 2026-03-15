@@ -65,6 +65,8 @@ class PageContentMixin:
         """
         Rendered HTML content for template display.
 
+        Cost: O(1) — alias for html.
+
         This property returns the rendered HTML content, ready for use in templates.
         It follows the convention that properties without underscore prefix are
         template-ready.
@@ -88,6 +90,8 @@ class PageContentMixin:
     def ast(self) -> list[ASTNode] | None:
         """
         True AST - list of tokens from markdown parser.
+
+        Cost: O(1) — direct cache read.
 
         Returns the structural representation of content as parsed by the
         markdown engine. This enables efficient multi-output generation:
@@ -116,6 +120,8 @@ class PageContentMixin:
         """
         HTML content rendered from AST or legacy parser.
 
+        Cost: O(1) cached or O(n) for AST render — cache hit or field read.
+
         This is the preferred way to access rendered HTML content.
         Preferred access over direct html_content field.
 
@@ -143,6 +149,8 @@ class PageContentMixin:
     def plain_text(self) -> str:
         """
         Plain text extracted from content (for search/LLM).
+
+        Cost: O(n) first access (n = content length), O(1) cached thereafter.
 
         Uses AST extraction when available (faster, more accurate),
         falling back to HTML tag stripping for legacy content.

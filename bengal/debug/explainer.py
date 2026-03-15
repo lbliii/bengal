@@ -314,8 +314,8 @@ class PageExplainer:
             Template filename (e.g., "post.html") or None.
         """
         # Check for explicit template in metadata
-        if page.metadata.get("template"):
-            return str(page.metadata["template"])
+        if page.assigned_template:
+            return str(page.assigned_template)
 
         # Check for template override on virtual pages
         if page.is_virtual and page.template_name:
@@ -690,9 +690,7 @@ class PageExplainer:
                         issue_type="template_not_found",
                         message=f"Template '{template_name}' not found",
                         details={
-                            "specified_in": "frontmatter"
-                            if page.metadata.get("template")
-                            else "default",
+                            "specified_in": "frontmatter" if page.assigned_template else "default",
                             "searched_dirs": [str(d) for d in self.template_engine.template_dirs],
                         },
                         suggestion=f"Create {template_name} or use an existing template",

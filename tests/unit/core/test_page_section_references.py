@@ -457,7 +457,7 @@ def test_virtual_section_hierarchical_navigation(temp_site):
     # Verify navigation hierarchy is correct (not flat)
     hierarchy = page._section.hierarchy
     assert len(hierarchy) == 2
-    assert hierarchy == ["api", "core"]
+    assert hierarchy == ("api", "core")
 
 
 def test_virtual_section_url_registry(temp_site):

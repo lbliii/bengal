@@ -131,6 +131,8 @@ class MenuItem:
         """
         URL for templates. Alias for url property.
 
+        Cost: O(1) — direct field read.
+
         Return href property for unified URL model.
         """
         return self.url
