@@ -857,15 +857,15 @@ class Page(
         """
         return self._section
 
-    @property
-    def ancestors(self) -> list[Section]:
+    @cached_property
+    def ancestors(self) -> tuple[Section, ...]:
         """Ancestor sections from immediate parent to root.
 
-        Cost: O(d) — proportional to tree depth.
+        Cost: O(d) cached — proportional to tree depth, computed once.
         """
         from bengal.core.page.navigation import get_ancestors
 
-        return get_ancestors(self._section)
+        return tuple(get_ancestors(self._section))
 
     # ------------------------------------------------------------------
     # Bundle properties (delegate to free functions in bundle.py)

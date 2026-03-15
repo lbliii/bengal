@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime
+from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -546,6 +547,16 @@ class PageProxy:
         """
         return False
 
+    def finalize_identity(self) -> None:
+        """Snapshot hot-path fields into PageIdentity (no-op for proxies).
+
+        PageProxy objects represent cached pages whose identity was already
+        finalized during a prior build. The orchestrator calls this on all
+        pages_to_build; proxies safely ignore it.
+
+        Cost: O(1) — immediate return, no lazy load.
+        """
+
     def normalize_core_paths(self) -> None:
         """
         Normalize PageCore paths to be relative (for cache consistency).
@@ -719,20 +730,20 @@ class PageProxy:
         """
         return self._section
 
-    @property
-    def ancestors(self) -> list[Any]:
+    @cached_property
+    def ancestors(self) -> tuple[Any, ...]:
         """Get all ancestor sections from immediate parent to root.
 
-        Cost: O(d) where d = directory depth — walks parent chain, no lazy load.
+        Cost: O(d) cached — walks parent chain once, then cached.
         """
-        result = []
+        result: list[Any] = []
         current = self._section
 
         while current:
             result.append(current)
             current = getattr(current, "parent", None)
 
-        return result
+        return tuple(result)
 
     # ============================================================================
     # Type/Kind Properties - Metadata-based type checking

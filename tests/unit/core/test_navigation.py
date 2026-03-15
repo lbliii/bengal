@@ -90,7 +90,7 @@ class TestPageAncestors:
         """Test page with no section has empty ancestors."""
         page = Page(source_path=Path("/content/page.md"), _raw_metadata={"title": "Page"})
 
-        assert page.ancestors == []
+        assert page.ancestors == ()
 
     def test_page_in_single_section(self):
         """Test page in a single section."""
