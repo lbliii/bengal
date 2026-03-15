@@ -765,8 +765,8 @@ def phase_incremental_filter_provenance(
             # Assets changed but no content changes - rebuild all pages
             # (fingerprinted URLs embedded in HTML will change)
             result = provenance_filter.filter(
-                pages=list(site.pages),
-                assets=list(site.assets),
+                pages=pages_list,
+                assets=assets_list,
                 incremental=False,  # Force full rebuild
             )
             decision.fingerprint_changes = True
@@ -797,8 +797,8 @@ def phase_incremental_filter_provenance(
         if (output_html_missing or output_assets_missing) and site.pages:
             # Output was cleaned but cache is warm - force full rebuild
             result = provenance_filter.filter(
-                pages=list(site.pages),
-                assets=list(site.assets),
+                pages=pages_list,
+                assets=assets_list,
                 incremental=False,
             )
 

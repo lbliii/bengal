@@ -401,11 +401,8 @@ def _filter_terms(terms: list[dict[str, Any]], tags: list[str]) -> list[dict[str
         if not isinstance(term_tags, list):
             term_tags = [term_tags]
 
-        # Convert to lowercase for comparison
-        term_tags_lower = {t.lower() for t in term_tags if isinstance(t, str)}
-
-        # Match if any tag overlaps
-        if term_tags_lower & tags_set:
+        # Match if any tag overlaps (any() short-circuits, avoids per-term set alloc)
+        if any(str(t).lower() in tags_set for t in term_tags if isinstance(t, str)):
             filtered.append(term)
 
     return filtered

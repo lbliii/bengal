@@ -144,9 +144,8 @@ def classify_output(path: Path, metadata: dict[str, Any] | None = None) -> Outpu
     if path.suffix == ".html":
         return OutputType.CONTENT_PAGE
 
-    # Assets in asset directories
-    parts_lower = {p.lower() for p in path.parts}
-    if parts_lower & ASSET_DIRS:
+    # Assets in asset directories (any() short-circuits, avoids set alloc)
+    if any(p.lower() in ASSET_DIRS for p in path.parts):
         return OutputType.ASSET
 
     # CSS/JS files are assets regardless of location
