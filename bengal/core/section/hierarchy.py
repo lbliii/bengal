@@ -97,7 +97,7 @@ class SectionHierarchyMixin:
         """
         Get the depth of this section in the hierarchy.
 
-        Cost: O(d) — len(hierarchy), which traverses parent chain (d = tree depth).
+        Cost: O(d) — walks parent chain (d = tree depth), no list allocation.
 
         Returns:
             Nesting depth (1 for root, 2 for first-level sections, etc.)
@@ -108,7 +108,12 @@ class SectionHierarchyMixin:
             >>> site.get_section("blog/2024").depth
             3
         """
-        return len(self.hierarchy)
+        d = 1
+        current: Section = self  # type: ignore[assignment]
+        while current.parent:
+            d += 1
+            current = current.parent
+        return d
 
     @property
     def root(self) -> Section:

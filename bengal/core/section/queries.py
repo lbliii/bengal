@@ -101,7 +101,7 @@ class SectionQueryMixin:
               <article>{{ page.title }}</article>
             {% endfor %}
         """
-        return tuple(self.sorted_pages)
+        return self.sorted_pages
 
     @property
     def sections(self) -> list[Section]:
