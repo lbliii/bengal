@@ -70,6 +70,7 @@ class WaveScheduler:
         strategy: str = "template_first",  # "template_first" or "topological"
         progress_manager: ProgressManagerProtocol | None = None,
         block_cache: Any | None = None,  # BlockCache for site-wide block reuse (Kida only)
+        highlight_cache: Any | None = None,  # HighlightCache for code block reuse across pages
     ):
         self.snapshot = snapshot
         self.site = site
@@ -84,6 +85,7 @@ class WaveScheduler:
         self._strategy = strategy
         self._progress_manager = progress_manager
         self._block_cache = block_cache
+        self._highlight_cache = highlight_cache
 
         # Create mapping from snapshot pages to actual pages
         self._page_map: dict[Path, Page] = {}
@@ -183,6 +185,12 @@ class WaveScheduler:
             if not page.output_path:
                 page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
 
+        # Pre-create output directories for write-behind (avoids FileNotFoundError in writer threads)
+        if self._write_behind:
+            output_paths = [p.output_path for p in pages_to_render if p.output_path]
+            if output_paths:
+                self._write_behind.precreate_directories(output_paths)
+
         # Build shared context once (caches in self._shared_context)
         self._build_shared_context()
 
@@ -274,7 +282,7 @@ class WaveScheduler:
                             build_context=self.build_context,
                             changed_sources=None,
                             block_cache=self._block_cache,
-                            highlight_cache=None,
+                            highlight_cache=self._highlight_cache,
                             output_collector=self._output_collector,
                             write_behind=self._write_behind,
                             current_generation=None,
@@ -295,6 +303,12 @@ class WaveScheduler:
                             stats.pages_rendered += 1
                             self._progress_tracker.increment(rendered_page)
                         except Exception as e:
+                            logger.warning(
+                                "page_rendering_error",
+                                page=str(page.source_path),
+                                error=str(e),
+                                error_type=type(e).__name__,
+                            )
                             stats.errors.append((page.source_path, e))
 
                     batch_time = (time.perf_counter() - batch_start) * 1000
@@ -344,6 +358,12 @@ class WaveScheduler:
         for page in pages_to_render:
             if not page.output_path:
                 page.output_path = URLStrategy.compute_regular_page_output_path(page, self.site)
+
+        # Pre-create output directories for write-behind (avoids FileNotFoundError in writer threads)
+        if self._write_behind:
+            output_paths = [p.output_path for p in pages_to_render if p.output_path]
+            if output_paths:
+                self._write_behind.precreate_directories(output_paths)
 
         from bengal.rendering.engines import create_engine
 
@@ -404,7 +424,7 @@ class WaveScheduler:
                             build_context=self.build_context,
                             changed_sources=None,
                             block_cache=self._block_cache,
-                            highlight_cache=None,
+                            highlight_cache=self._highlight_cache,
                             output_collector=self._output_collector,
                             write_behind=self._write_behind,
                             current_generation=None,
@@ -423,6 +443,12 @@ class WaveScheduler:
                             stats.pages_rendered += 1
                             self._progress_tracker.increment(rendered_page)
                         except Exception as e:
+                            logger.warning(
+                                "page_rendering_error",
+                                page=str(page.source_path),
+                                error=str(e),
+                                error_type=type(e).__name__,
+                            )
                             stats.errors.append((page.source_path, e))
 
             # Final progress update to ensure 100%

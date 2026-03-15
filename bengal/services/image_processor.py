@@ -13,9 +13,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit
-
-if TYPE_CHECKING:
-    from bengal.core.resources.image import ProcessedImage
 from bengal.core.resources.types import parse_spec
 from bengal.services.asset_io import (
     load_pil_image,
@@ -23,6 +20,12 @@ from bengal.services.asset_io import (
     save_pil_image,
     write_json_file,
 )
+from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.core.resources.image import ProcessedImage
+
+logger = get_logger(__name__)
 
 CACHE_SCHEMA_VERSION = 1
 LARGE_IMAGE_THRESHOLD = 10_000_000
@@ -139,7 +142,13 @@ class ImageProcessor:
                 format=meta["format"],
                 file_size=image_path.stat().st_size,
             )
-        except KeyError:
+        except KeyError as e:
+            logger.warning(
+                "image_cache_metadata_invalid",
+                cache_key=cache_key,
+                error=str(e),
+                path=str(meta_path),
+            )
             return None
 
     def _cache_result(self, cache_key: str, result: Any) -> None:

@@ -37,6 +37,9 @@ from bengal.protocols.capabilities import has_clear_template_cache
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
 from bengal.rendering.template_engine.menu import _current_page_url
 from bengal.themes.utils import DEFAULT_THEME_PATH, THEMES_ROOT
+from bengal.utils.observability.logger import get_logger
+
+logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core import Site
@@ -623,8 +626,14 @@ class KidaTemplateEngine:
                     # Queue for recursive processing (catches nested includes)
                     to_process.append(ref_name)
 
-            except AttributeError, TypeError, KeyError, OSError:
+            except (AttributeError, TypeError, KeyError, OSError) as e:
                 # Template analysis is optional - don't fail the build
+                logger.warning(
+                    "template_analysis_failed",
+                    template=template_name,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 continue
 
         # IPA audit Task 9: cache transitive deps (exclude self)

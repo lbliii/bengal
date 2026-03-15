@@ -381,7 +381,11 @@ def _log_template_introspection(orchestrator: BuildOrchestrator, verbose: bool) 
 
     except Exception as e:
         # Don't fail build if introspection fails
-        orchestrator.logger.debug("template_introspection_failed", error=str(e))
+        orchestrator.logger.warning(
+            "template_introspection_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
 
 
 def phase_render(
@@ -592,7 +596,13 @@ def phase_render(
                     _render_stats = scheduler.render_all(pages_to_build)
                     # RenderStats are for internal tracking only
                     # BuildStats tracks timing via rendering_time_ms (set below)
-                    # Errors are handled by RenderingPipeline and tracked in BuildStats.errors_by_category
+                    if _render_stats.errors:
+                        for page_path, error in _render_stats.errors:
+                            orchestrator.logger.error(
+                                "page_rendering_error",
+                                page=str(page_path),
+                                error=str(error),
+                            )
 
                     # Collect block cache stats (WaveScheduler path bypasses RenderOrchestrator)
                     if block_cache is not None:
