@@ -406,7 +406,7 @@ Use these in templates for language switching:
 
 - Use gettext PO/MO files: `i18n/{locale}/LC_MESSAGES/messages.po`
 - Or YAML fallback: `i18n/{lang}.yaml`
-- See [[docs/content/i18n|i18n documentation]] for PO setup, RTL, and translator workflow
+- See [[docs/content/i18n|Multilingual Sites Guide]] for i18n setup, translations, and language configuration
 
 ---
 

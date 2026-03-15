@@ -185,7 +185,7 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `file_exists` | `file_exists_with_site` |
 | `file_size` | `file_size_with_site` |
 | `generate_code_sample` | `generate_code_sample` |
-| `get_auto_nav` | `<lambda>` |
+| `get_auto_nav` | `get_auto_nav` |
 | `get_breadcrumbs` | `get_breadcrumbs` |
 | `get_data` | `get_data_with_site` |
 | `get_element_stats` | `get_element_stats` |
@@ -230,7 +230,7 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `ref` | `ref_with_site` |
 | `related_posts` | `related_posts_with_site` |
 | `relref` | `relref_with_site` |
-| `resources` | `<bengal.rendering.template_functions.resources.ResourcesProxy object at 0x4fd8cca1c90>` |
+| `resources` | `ResourcesProxy` |
 | `return_type` | `return_type` |
 | `section_pages` | `section_pages_wrapper` |
 | `share_url` | `share_url_with_site` |
@@ -238,9 +238,9 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `t` | `t` |
 | `tag_url` | `tag_url` |
 | `twitter_share_url` | `twitter_share_url` |
-| `url_for_autodoc_home` | `<lambda>` |
-| `url_for_autodoc_schema` | `<lambda>` |
-| `url_for_autodoc_tag` | `<lambda>` |
+| `url_for_autodoc_home` | `url_for_autodoc_home` |
+| `url_for_autodoc_schema` | `url_for_autodoc_schema` |
+| `url_for_autodoc_tag` | `url_for_autodoc_tag` |
 | `xref` | `ref_with_site` |
 
 ## See Also
