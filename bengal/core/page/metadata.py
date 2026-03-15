@@ -419,20 +419,20 @@ class PageMetadataMixin:
         """
         return bool(self.metadata.get("draft", False))
 
-    @property
-    def keywords(self) -> list[str]:
+    @cached_property
+    def keywords(self) -> tuple[str, ...]:
         """Get page keywords from metadata.
 
-        Cost: O(k) — CascadeView lookup + list normalization where k = len(keywords).
+        Cost: O(k) cached — CascadeView lookup + list normalization where k = len(keywords).
         """
         keywords = self.metadata.get("keywords", [])
         if isinstance(keywords, str):
             # Split comma-separated keywords
-            return [k.strip() for k in keywords.split(",") if k.strip()]
+            return tuple(k.strip() for k in keywords.split(",") if k.strip())
         if isinstance(keywords, list):
             # Sanitize: filter None, convert to strings, filter empty (compute strip once)
-            return [s for s in (str(k).strip() for k in keywords if k is not None) if s]
-        return []
+            return tuple(s for s in (str(k).strip() for k in keywords if k is not None) if s)
+        return ()
 
     # =========================================================================
     # Visibility System
@@ -587,20 +587,20 @@ class PageMetadataMixin:
     # Variant / Edition Filtering (multi-variant builds)
     # =========================================================================
 
-    @property
-    def edition(self) -> list[str]:
+    @cached_property
+    def edition(self) -> tuple[str, ...]:
         """Get edition/variant list from frontmatter for multi-variant builds.
 
-        Cost: O(k) — CascadeView lookup + list normalization where k = len(editions).
+        Cost: O(k) cached — CascadeView lookup + list normalization where k = len(editions).
         """
         val = self.metadata.get("edition")
         if val is None:
-            return []
+            return ()
         if isinstance(val, str):
-            return [val] if val else []
+            return (val,) if val else ()
         if isinstance(val, list):
-            return [str(v).strip() for v in val if v is not None and str(v).strip()]
-        return []
+            return tuple(str(v).strip() for v in val if v is not None and str(v).strip())
+        return ()
 
     def in_variant(self, variant: str | None) -> bool:
         """

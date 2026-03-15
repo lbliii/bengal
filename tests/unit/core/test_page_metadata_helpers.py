@@ -155,34 +155,34 @@ class TestEditionVariantFiltering:
     """Test edition and in_variant for multi-variant builds."""
 
     def test_edition_empty_when_missing(self):
-        """Should return empty list when edition not set."""
+        """Should return empty tuple when edition not set."""
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
             metadata: ClassVar[dict] = {}
 
         page = TestPage()
-        assert page.edition == []
+        assert page.edition == ()
 
     def test_edition_list_from_frontmatter(self):
-        """Should return list when edition is list."""
+        """Should return tuple when edition is list."""
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
             metadata: ClassVar[dict] = {"edition": ["oss", "enterprise"]}
 
         page = TestPage()
-        assert page.edition == ["oss", "enterprise"]
+        assert page.edition == ("oss", "enterprise")
 
     def test_edition_string_normalized_to_list(self):
-        """Should normalize single string to list."""
+        """Should normalize single string to tuple."""
         from bengal.core.page.metadata import PageMetadataMixin
 
         class TestPage(PageMetadataMixin):
             metadata: ClassVar[dict] = {"edition": "enterprise"}
 
         page = TestPage()
-        assert page.edition == ["enterprise"]
+        assert page.edition == ("enterprise",)
 
     def test_in_variant_none_always_included(self):
         """Should include page when variant is None (no filtering)."""
