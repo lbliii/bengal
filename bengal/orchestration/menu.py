@@ -169,30 +169,34 @@ class MenuOrchestrator:
         self._page_path_index = {to_posix(p.source_path): p for p in self.site.pages}
         return self._page_path_index
 
-    def _compute_menu_cache_key(self) -> str:
+    def _build_path_index_and_menu_data(
+        self,
+        *,
+        strategy: str = "none",
+        languages: set[str] | None = None,
+    ) -> tuple[
+        dict[str, Page],
+        list[dict[str, Any]],
+        list[dict[str, Any]],
+        dict[str, list[Page]],
+        dict[str, dict[str, list[Page]]],
+    ]:
         """
-        Compute cache key for current menu configuration.
-
-        Key includes:
-        - Menu config from bengal.toml
-        - List of pages with menu frontmatter and their menu data
-        - Dev params (repo_url)
-        - Dev section names (api, cli) that affect dev menu bundling
-
-        Returns:
-            SHA256 hash of menu-related data
+        Single pass: path index + menu_pages + root_level_pages + pages_by_menu (FLOW audit Finding 16).
         """
-        # Get menu config
-        menu_config = self.site.menu_config
-
-        # Single-pass partition: menu_pages and root_level_pages (IPA audit Task 5)
         from bengal.core.page.navigation import is_root_level_page
 
-        root_path = getattr(self.site, "root_path", None)
-        content_dir = root_path / "content" if root_path else None
+        path_index: dict[str, Page] = {}
         menu_pages: list[dict[str, Any]] = []
         root_level_pages: list[dict[str, Any]] = []
+        pages_by_menu: dict[str, list[Page]] = {}
+        pages_by_menu_by_lang: dict[str, dict[str, list[Page]]] = {}
+        root_path = getattr(self.site, "root_path", None)
+        content_dir = root_path / "content" if root_path else None
+        sorted_languages = sorted(languages) if languages else []
+
         for page in self.site.pages:
+            path_index[to_posix(page.source_path)] = page
             if "menu" in page.metadata:
                 menu_pages.append(
                     {
@@ -212,6 +216,43 @@ class MenuOrchestrator:
                         "weight": metadata.get("weight", 999),
                     }
                 )
+            # Build pages_by_menu in same pass (Finding 16)
+            page_menu = page.metadata.get("menu", {})
+            if isinstance(page_menu, dict):
+                page_lang = getattr(page, "lang", None)
+                for mn in page_menu:
+                    if not mn:
+                        continue
+                    if strategy == "none":
+                        pages_by_menu.setdefault(mn, []).append(page)
+                    else:
+                        for lang in sorted_languages:
+                            if page_lang is None or page_lang == lang:
+                                pages_by_menu_by_lang.setdefault(mn, {}).setdefault(
+                                    lang, []
+                                ).append(page)
+
+        return path_index, menu_pages, root_level_pages, pages_by_menu, pages_by_menu_by_lang
+
+    def _compute_menu_cache_key(self) -> str:
+        """
+        Compute cache key for current menu configuration.
+
+        Key includes:
+        - Menu config from bengal.toml
+        - List of pages with menu frontmatter and their menu data
+        - Dev params (repo_url)
+        - Dev section names (api, cli) that affect dev menu bundling
+
+        Returns:
+            SHA256 hash of menu-related data
+        """
+        # Get menu config
+        menu_config = self.site.menu_config
+
+        # Use single-pass data (FLOW audit Finding 16)
+        path_index, menu_pages, root_level_pages, _, _ = self._build_path_index_and_menu_data()
+        self._page_path_index = path_index
 
         # Include dev params and section names in cache key
         # (sections affect dev menu bundling)
@@ -866,30 +907,17 @@ class MenuOrchestrator:
         strategy = i18n_config.strategy
         # When i18n enabled, build per-locale menus keyed by site.menu_localized[lang]
         languages: set[str] = set(i18n_config.languages) if i18n_config.is_enabled else set()
+        sorted_languages = sorted(languages)  # FLOW audit Finding 23: cache once
 
         if not menu_config:
             # No menus defined, skip
             return False
 
-        # Build pages-by-menu index once (IPA audit Task 5)
-        pages_by_menu: dict[str, list[Page]] = {}
-        pages_by_menu_by_lang: dict[str, dict[str, list[Page]]] = {}
-        for page in self.site.pages:
-            page_menu = page.metadata.get("menu", {})
-            if not isinstance(page_menu, dict):
-                continue
-            page_lang = getattr(page, "lang", None)
-            for mn in page_menu:
-                if not mn:
-                    continue
-                if strategy == "none":
-                    pages_by_menu.setdefault(mn, []).append(page)
-                else:
-                    for lang in sorted(languages):
-                        if page_lang is None or page_lang == lang:
-                            pages_by_menu_by_lang.setdefault(mn, {}).setdefault(lang, []).append(
-                                page
-                            )
+        # Single-pass: path index + menu data + pages_by_menu (FLOW audit Finding 16)
+        path_index, _, _, pages_by_menu, pages_by_menu_by_lang = (
+            self._build_path_index_and_menu_data(strategy=strategy, languages=languages)
+        )
+        self._page_path_index = path_index
 
         logger.info("menu_build_start", menu_count=len(menu_config))
 
@@ -937,7 +965,7 @@ class MenuOrchestrator:
             else:
                 # Build per-locale
                 self.site.menu_localized.setdefault(menu_name, {})
-                for lang in sorted(languages):
+                for lang in sorted_languages:
                     try:
                         builder = MenuBuilder(diagnostics=getattr(self.site, "diagnostics", None))
                         # Config-defined items may have optional 'lang'

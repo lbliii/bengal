@@ -100,10 +100,8 @@ class RelatedPostsOrchestrator:
             logger.debug("related_posts_skipped", reason="no_tags")
             return
 
-        # Phase 1: Build shared data structures (O(n) — done once)
-        page_tags_map = self._build_page_tags_map()
-        excluded_ids = self._build_exclusion_set()
-        id_to_page = {id(p): p for p in self.site.pages}
+        # Phase 1: Build shared data structures in single pass (FLOW audit Finding 17)
+        page_tags_map, excluded_ids, id_to_page = self._build_page_data()
         tag_to_page_ids = self._build_tag_index(tags_dict, excluded_ids)
 
         # Determine which pages to process
@@ -122,11 +120,6 @@ class RelatedPostsOrchestrator:
                 pages_to_process, page_tags_map, tag_to_page_ids, id_to_page, limit
             )
 
-        # Set empty for excluded pages
-        for page in self.site.pages:
-            if id(page) in excluded_ids:
-                page.related_posts = []
-
         logger.info(
             "related_posts_build_complete",
             pages_with_related=pages_with_related,
@@ -137,30 +130,49 @@ class RelatedPostsOrchestrator:
             else "sequential",
         )
 
-    def _build_exclusion_set(self) -> frozenset[int]:
+    def _build_page_data(
+        self,
+    ) -> tuple[dict[Page, set[str]], frozenset[int], dict[int, Page]]:
         """
-        Pre-compute ids of pages to exclude from related posts.
+        Build page_tags_map, excluded_ids, and id_to_page in a single pass.
 
-        Resolves _generated, kind, and path checks ONCE instead of inside
-        the inner scoring loop. Uses _raw_metadata for O(1) dict access
-        (avoids the metadata property's cascade/relative_to overhead).
+        FLOW audit Finding 17: Merges _build_page_tags_map, _build_exclusion_set,
+        and id_to_page construction. Also sets related_posts=[] for excluded pages.
         """
-        excluded = set()
+        page_tags_map: dict[Page, set[str]] = {}
+        excluded: set[int] = set()
+        id_to_page: dict[int, Page] = {}
+
         for page in self.site.pages:
+            pid = id(page)
+            id_to_page[pid] = page
+
+            # Page tags
+            if hasattr(page, "tags") and page.tags:
+                page_tags_map[page] = {
+                    str(tag).lower().replace(" ", "-") for tag in page.tags if tag is not None
+                }
+            else:
+                page_tags_map[page] = set()
+
+            # Exclusion set
             if page._raw_metadata.get("_generated"):
-                excluded.add(id(page))
+                excluded.add(pid)
+                page.related_posts = []
                 continue
 
             path = getattr(page, "_path", "") or getattr(page, "href", "") or ""
             path_str = str(path).rstrip("/") if path else ""
             if path_str in ("", "/") or str(path) in ("/", "/index.html", ""):
-                excluded.add(id(page))
+                excluded.add(pid)
+                page.related_posts = []
                 continue
 
             if getattr(page, "kind", None) == "index":
-                excluded.add(id(page))
+                excluded.add(pid)
+                page.related_posts = []
 
-        return frozenset(excluded)
+        return page_tags_map, frozenset(excluded), id_to_page
 
     def _build_tag_index(
         self,
@@ -252,23 +264,6 @@ class RelatedPostsOrchestrator:
     def _set_empty_related_posts(self) -> None:
         for page in self.site.pages:
             page.related_posts = []
-
-    def _build_page_tags_map(self) -> dict[Page, set[str]]:
-        """
-        Build mapping of page → set of tag slugs.
-
-        Returns:
-            Dictionary mapping Page to set of tag slugs
-        """
-        page_tags: dict[Page, set[str]] = {}
-        for page in self.site.pages:
-            if hasattr(page, "tags") and page.tags:
-                page_tags[page] = {
-                    str(tag).lower().replace(" ", "-") for tag in page.tags if tag is not None
-                }
-            else:
-                page_tags[page] = set()
-        return page_tags
 
     @staticmethod
     def _score_page(

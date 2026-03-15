@@ -489,31 +489,8 @@ def phase_update_pages_list(
     # (Tag pages were just added in Phase 4, so cache might be stale)
     orchestrator.site.invalidate_page_caches()
 
-    # METADATA CASCADE: For incremental builds, cascade metadata changes to taxonomy pages
-    # RFC: rfc-incremental-build-dependency-gaps Phase 2
-    # When a page's metadata (title, date, summary) changes, taxonomy listing pages
-    # that include that page must be rebuilt to reflect the updated metadata.
-    if incremental and pages_to_build:
-        cascaded_tags: set[str] = set()
-        for page in pages_to_build:
-            # Skip generated pages (taxonomy pages themselves)
-            if page.is_generated:
-                continue
-            # If page has tags, cascade to those tag pages
-            if page.tags:
-                for tag in page.tags:
-                    if tag is not None:
-                        tag_slug = str(tag).lower().replace(" ", "-")
-                        cascaded_tags.add(tag_slug)
-
-        # Merge cascaded tags with affected_tags
-        if cascaded_tags:
-            affected_tags = affected_tags | cascaded_tags
-            orchestrator.logger.debug(
-                "metadata_cascade_tags",
-                cascaded_tags=len(cascaded_tags),
-                total_affected_tags=len(affected_tags),
-            )
+    # METADATA CASCADE: cascaded_tags already computed in phase 7 (FLOW audit Finding 20)
+    # phase_taxonomies returns affected_tags with cascaded_tags merged; no re-extraction
 
     # Add newly generated tag pages to rebuild set
     # OPTIMIZATION: Use site.generated_pages (cached) instead of filtering all pages
