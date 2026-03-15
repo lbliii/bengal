@@ -215,6 +215,68 @@ class SiteIndexGenerator:
 
         return generated
 
+    def _build_site_metadata(self) -> dict[str, Any]:
+        """Build site metadata dict for index.json."""
+        site_metadata: dict[str, Any] = {
+            "title": str(self.site.title or "Bengal Site"),
+            "description": str(getattr(self.site, "description", "") or ""),
+            "baseurl": str(self.site.baseurl or ""),
+        }
+        if not self.site.dev_mode:
+            build_time = getattr(self.site, "build_time", None)
+            if isinstance(build_time, datetime):
+                site_metadata["build_time"] = build_time.isoformat()
+        return site_metadata
+
+    def _build_site_data(
+        self,
+        pages: list[PageLike],
+        accumulated_data: list[AccumulatedPageData] | None = None,
+    ) -> dict[str, Any]:
+        """Build site_data from pages/accumulated_data with mode detection and aggregation."""
+        site_data: dict[str, Any] = {
+            "site": self._build_site_metadata(),
+            "pages": [],
+            "sections": {},
+            "tags": {},
+        }
+        accumulated_count = len(accumulated_data) if accumulated_data else 0
+        use_hybrid = 0 < accumulated_count < len(pages)
+        use_accumulated_only = accumulated_count == len(pages) and accumulated_count > 0
+
+        if use_accumulated_only:
+            assert accumulated_data is not None
+            logger.debug("index_generator_mode", mode="accumulated_only")
+            for data in accumulated_data:
+                self._add_to_site_data(site_data, self._accumulated_to_summary(data))
+        elif use_hybrid:
+            logger.debug(
+                "index_generator_mode",
+                mode="hybrid",
+                accumulated=accumulated_count,
+                total=len(pages),
+            )
+            for page in pages:
+                if acc_data := self._accumulated_index.get(page.source_path):
+                    summary = self._accumulated_to_summary(acc_data)
+                else:
+                    summary = self.page_to_summary(page)
+                self._add_to_site_data(site_data, summary)
+        else:
+            logger.debug("index_generator_mode", mode="legacy")
+            for page in pages:
+                self._add_to_site_data(site_data, self.page_to_summary(page))
+
+        site_data["sections"] = [
+            {"name": name, "count": count} for name, count in sorted(site_data["sections"].items())
+        ]
+        site_data["tags"] = [
+            {"name": name, "count": count}
+            for name, count in sorted(site_data["tags"].items(), key=lambda x: -x[1])
+        ]
+        site_data["pages"] = sorted(site_data["pages"], key=lambda p: p.get("url", ""))
+        return site_data
+
     def _generate_single_index(
         self,
         pages: list[PageLike],
@@ -231,96 +293,23 @@ class SiteIndexGenerator:
         See: plan/drafted/rfc-unified-page-data-accumulation.md
         """
         logger.debug("generating_site_index_json", page_count=len(pages))
-
-        # Build site metadata (per-locale when i18n is enabled)
-        # Ensure all values are strings, not Mock objects
-        site_metadata = {
-            "title": str(self.site.title or "Bengal Site"),
-            "description": str(getattr(self.site, "description", "") or ""),
-            "baseurl": str(self.site.baseurl or ""),
-        }
-
-        # Only include build_time in production builds
-        # Use site.build_time (set once at build start) for deterministic output
-        if not self.site.dev_mode:
-            build_time = getattr(self.site, "build_time", None)
-            # Verify it's a real datetime (not a Mock) with a working isoformat method
-            if isinstance(build_time, datetime):
-                site_metadata["build_time"] = build_time.isoformat()
-
-        site_data: dict[str, Any] = {
-            "site": site_metadata,
-            "pages": [],
-            "sections": {},
-            "tags": {},
-        }
-
-        # Determine mode
-        accumulated_count = len(accumulated_data) if accumulated_data else 0
-        use_hybrid = 0 < accumulated_count < len(pages)
-        use_accumulated_only = accumulated_count == len(pages) and accumulated_count > 0
-
-        if use_accumulated_only:
-            # FAST PATH: All pages have accumulated data
-            assert accumulated_data is not None  # Guaranteed by use_accumulated_only
-            logger.debug("index_generator_mode", mode="accumulated_only")
-            for data in accumulated_data:
-                page_summary = self._accumulated_to_summary(data)
-                self._add_to_site_data(site_data, page_summary)
-        elif use_hybrid:
-            # HYBRID PATH: Mix of accumulated + computed
-            logger.debug(
-                "index_generator_mode",
-                mode="hybrid",
-                accumulated=accumulated_count,
-                total=len(pages),
-            )
-            for page in pages:
-                if acc_data := self._accumulated_index.get(page.source_path):
-                    page_summary = self._accumulated_to_summary(acc_data)
-                else:
-                    page_summary = self.page_to_summary(page)
-                self._add_to_site_data(site_data, page_summary)
-        else:
-            # LEGACY PATH: Compute from pages
-            logger.debug("index_generator_mode", mode="legacy")
-            for page in pages:
-                page_summary = self.page_to_summary(page)
-                self._add_to_site_data(site_data, page_summary)
-
-        # Convert counts to lists (sorted for deterministic output)
-        site_data["sections"] = [
-            {"name": name, "count": count} for name, count in sorted(site_data["sections"].items())
-        ]
-        site_data["tags"] = [
-            {"name": name, "count": count}
-            for name, count in sorted(site_data["tags"].items(), key=lambda x: -x[1])
-        ]
-        # Sort pages by URL for deterministic output (important for idempotent builds)
-        site_data["pages"] = sorted(site_data["pages"], key=lambda p: p.get("url", ""))
-
+        site_data = self._build_site_data(pages, accumulated_data)
         logger.debug(
             "site_index_data_aggregated",
             total_pages=len(site_data["pages"]),
             sections=len(site_data["sections"]),
             tags=len(site_data["tags"]),
         )
-
-        # Determine output path
         index_path = self._get_index_path()
-
-        # Write only if content changed (sort_keys for deterministic JSON)
         new_json_str = json.dumps(
             site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True
         )
         self._write_if_changed(index_path, new_json_str)
-
         logger.debug(
             "site_index_json_written",
             path=str(index_path),
             size_kb=index_path.stat().st_size / 1024,
         )
-
         return index_path
 
     def _add_to_site_data(self, site_data: dict[str, Any], page_summary: dict[str, Any]) -> None:
@@ -400,87 +389,22 @@ class SiteIndexGenerator:
             version_id=version_id or "latest",
             page_count=len(pages),
         )
-
-        # Build site metadata
-        site_metadata = {
-            "title": self.site.title or "Bengal Site",
-            "description": getattr(self.site, "description", "") or "",
-            "baseurl": self.site.baseurl or "",
-        }
-
-        # Only include build_time in production builds
-        # Use site.build_time (set once at build start) for deterministic output
-        if not self.site.dev_mode:
-            build_time = getattr(self.site, "build_time", None)
-            # Verify it's a real datetime (not a Mock) with a working isoformat method
-            if isinstance(build_time, datetime):
-                site_metadata["build_time"] = build_time.isoformat()
-
-        site_data: dict[str, Any] = {
-            "site": site_metadata,
-            "pages": [],
-            "sections": {},
-            "tags": {},
-        }
-
-        # Determine mode
-        accumulated_count = len(accumulated_data) if accumulated_data else 0
-        use_hybrid = 0 < accumulated_count < len(pages)
-        use_accumulated_only = accumulated_count == len(pages) and accumulated_count > 0
-
-        if use_accumulated_only:
-            # FAST PATH: All pages have accumulated data
-            assert accumulated_data is not None  # Guaranteed by use_accumulated_only
-            for data in accumulated_data:
-                page_summary = self._accumulated_to_summary(data)
-                self._add_to_site_data(site_data, page_summary)
-        elif use_hybrid:
-            # HYBRID PATH: Mix of accumulated + computed
-            for page in pages:
-                if acc_data := self._accumulated_index.get(page.source_path):
-                    page_summary = self._accumulated_to_summary(acc_data)
-                else:
-                    page_summary = self.page_to_summary(page)
-                self._add_to_site_data(site_data, page_summary)
-        else:
-            # LEGACY PATH: Compute from pages
-            for page in pages:
-                page_summary = self.page_to_summary(page)
-                self._add_to_site_data(site_data, page_summary)
-
-        # Convert counts to lists (sorted for deterministic output)
-        site_data["sections"] = [
-            {"name": name, "count": count} for name, count in sorted(site_data["sections"].items())
-        ]
-        site_data["tags"] = [
-            {"name": name, "count": count}
-            for name, count in sorted(site_data["tags"].items(), key=lambda x: -x[1])
-        ]
-        # Sort pages by URL for deterministic output (important for idempotent builds)
-        site_data["pages"] = sorted(site_data["pages"], key=lambda p: p.get("url", ""))
-
-        # Determine output path
+        site_data = self._build_site_data(pages, accumulated_data)
         if version_id is None or self._is_latest_version(version_id):
-            # Latest version: output_dir/index.json
             index_path = self._get_index_path()
         else:
-            # Older version: output_dir/docs/v1/index.json
             index_path = self.site.output_dir / "docs" / version_id / "index.json"
             index_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Write only if content changed (sort_keys for deterministic JSON)
         new_json_str = json.dumps(
             site_data, indent=self.json_indent, ensure_ascii=False, sort_keys=True
         )
         self._write_if_changed(index_path, new_json_str)
-
         logger.debug(
             "version_index_json_written",
             version_id=version_id or "latest",
             path=str(index_path),
             size_kb=index_path.stat().st_size / 1024,
         )
-
         return index_path
 
     def _group_by_version(self, pages: list[PageLike]) -> dict[str | None, list[PageLike]]:

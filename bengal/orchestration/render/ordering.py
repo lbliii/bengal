@@ -57,7 +57,12 @@ class OrderingMixin:
         """Check if track dependency ordering is enabled."""
         return self.site.config.get("build", {}).get("track_dependency_ordering", True)
 
-    def _maybe_sort_by_complexity(self, pages: list[Page], max_workers: int) -> list[Page]:
+    def _maybe_sort_by_complexity(
+        self,
+        pages: list[Page],
+        max_workers: int,
+        track_item_paths: set[str] | None = None,
+    ) -> list[Page]:
         """Sort pages by complexity if enabled and beneficial.
 
         When track_dependency_ordering is also enabled, preserves partition order
@@ -69,6 +74,12 @@ class OrderingMixin:
         2. We have more pages than workers (otherwise no benefit)
 
         Heavy pages are sorted first within each partition to minimize stragglers.
+
+        Args:
+            pages: Pages to sort
+            max_workers: Max parallel workers
+            track_item_paths: Precomputed track item paths (avoids redundant lookup when
+                called from _priority_sort). If None, computed when needed.
         """
         if not self._should_use_complexity_ordering():
             return pages
@@ -82,8 +93,7 @@ class OrderingMixin:
             sort_by_complexity,
         )
 
-        track_item_paths = None
-        if self._should_use_track_dependency_ordering():
+        if track_item_paths is None and self._should_use_track_dependency_ordering():
             track_item_paths = self._get_track_item_paths()
 
         if track_item_paths:
@@ -321,7 +331,14 @@ class OrderingMixin:
             normal_count=len(normal_pages),
         )
         max_workers = self._get_max_workers() or 4
-        priority_pages = self._maybe_sort_by_complexity(priority_pages, max_workers)
-        normal_pages = self._maybe_sort_by_complexity(normal_pages, max_workers)
+        track_item_paths = (
+            self._get_track_item_paths() if self._should_use_track_dependency_ordering() else None
+        )
+        priority_pages = self._maybe_sort_by_complexity(
+            priority_pages, max_workers, track_item_paths=track_item_paths
+        )
+        normal_pages = self._maybe_sort_by_complexity(
+            normal_pages, max_workers, track_item_paths=track_item_paths
+        )
 
         return priority_pages + normal_pages
