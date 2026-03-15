@@ -203,7 +203,7 @@ return f"{base or 'badge'} {css_class}"
 | `text.index(start)` | `errors/utils.py:425` | String `.index()`, not list; correct usage |
 | `response.index(b"\r\n\r\n")` | `injection.py:25` | Bytes `.index()` for HTTP split; correct |
 | `visited.remove(neighbor)` | `path_analysis.py:531` | DFS backtracking (set); O(1) |
-| `for tpl_dir in [templates_dir, *dirs]` | `provenance_filter.py:146` | List construction for iteration; fine |
+| `for tpl_dir in [templates_dir, *dirs]` | `provenance_orchestration.py:146` | List construction for iteration; fine |
 | `summary += f"..."` | `content.py:588` | Single conditional append, not loop |
 | `url += "/"` | `metadata.py:302` | Single conditional append, not loop |
 | `line += f"..."` | `logger.py:830-841` | Display formatting, not hot path |

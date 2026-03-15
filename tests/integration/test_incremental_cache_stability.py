@@ -360,7 +360,7 @@ title: Home
         # Load site
         from bengal.core.site import Site
         from bengal.orchestration.build import BuildOrchestrator
-        from bengal.orchestration.build.provenance_filter import (
+        from bengal.orchestration.build.provenance_orchestration import (
             phase_incremental_filter_provenance,
         )
         from bengal.output import CLIOutput
@@ -416,7 +416,7 @@ title: Home
 
         from bengal.core.site import Site
         from bengal.orchestration.build import BuildOrchestrator
-        from bengal.orchestration.build.provenance_filter import (
+        from bengal.orchestration.build.provenance_orchestration import (
             phase_incremental_filter_provenance,
         )
         from bengal.output import CLIOutput
@@ -454,7 +454,7 @@ title: Home
 
         from bengal.core.site import Site
         from bengal.orchestration.build import BuildOrchestrator
-        from bengal.orchestration.build.provenance_filter import (
+        from bengal.orchestration.build.provenance_orchestration import (
             phase_incremental_filter_provenance,
         )
         from bengal.output import CLIOutput
@@ -563,7 +563,7 @@ output_dir = "public"
         """Divergent build_ids clear both caches and force full rebuild."""
         from bengal.core.site import Site
         from bengal.orchestration.build import BuildOrchestrator
-        from bengal.orchestration.build.provenance_filter import (
+        from bengal.orchestration.build.provenance_orchestration import (
             phase_incremental_filter_provenance,
         )
         from bengal.output import CLIOutput

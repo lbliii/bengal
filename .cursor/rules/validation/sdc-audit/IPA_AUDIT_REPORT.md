@@ -16,7 +16,7 @@
 | 4 | `server/build_trigger.py` | 273, 420 | `_get_template_change_info()` computed twice per build | **High** |
 | 5 | `orchestration/menu.py` | 657-711 | Full page scan per menu per locale: O(menus x langs x pages) | **High** |
 | 6 | `health/validators/links.py` + `core/page/operations.py` | 83, 565 | New `LinkValidator` + full index rebuild per page | **High** |
-| 7 | `orchestration/build/provenance_filter.py` | 523 | Set comprehension rebuilt inside loop over taxonomy pages | **Medium** |
+| 7 | `orchestration/build/provenance_orchestration.py` | 523 | Set comprehension rebuilt inside loop over taxonomy pages | **Medium** |
 | 8 | `orchestration/menu.py` | 480-486 | O(sections x menu_items) nested scan for dropdown matching | **Medium** |
 | 9 | `orchestration/menu.py` | 176-244 | Two full scans of `site.pages` in `_compute_menu_cache_key` | **Medium** |
 | 10 | `cache/taxonomy_index.py` | 336, 411, 420 | `get_all_tags()` / `get_valid_entries()` / `get_invalid_entries()` rebuild filtered dicts every call | **Medium** |
@@ -24,7 +24,7 @@
 | 12 | `rendering/template_functions/collections.py` | 104-114 | `operators` dict rebuilt on every `where()` call | **Medium** |
 | 13 | `rendering/engines/kida.py` | 347 | `_track_referenced_templates()` recursive template loading per render | **Medium** |
 | 14 | `server/build_trigger.py` | 262, 385 | Path -> str -> Path round-trip conversion | **Medium** |
-| 15 | `orchestration/build/provenance_filter.py` | 336, 462 | Repeated `list(site.pages)` materializations in same phase | **Medium** |
+| 15 | `orchestration/build/provenance_orchestration.py` | 336, 462 | Repeated `list(site.pages)` materializations in same phase | **Medium** |
 | 16 | `health/validators/links.py` | 106-175 | Three full iterations over `site.pages` to build URL, source path, and auxiliary indexes | **Medium** |
 | 17 | `orchestration/incremental/orchestrator.py` | 532-538 | Nested loops with per-file `stat()` I/O for shared content changes | **Medium** |
 | 18 | `orchestration/build/inputs.py` | 109-110 | `changed_paths` iterated twice (once for Options, once for Input) | **Low** |
@@ -128,7 +128,7 @@
 
 ### Finding 7 — Set rebuilt inside taxonomy page loop (MEDIUM)
 
-```523:523:bengal/orchestration/build/provenance_filter.py
+```523:523:bengal/orchestration/build/provenance_orchestration.py
     for page in taxonomy_pages:
         affected_lower = {t.lower() for t in result.affected_tags}  # rebuilt every iteration
 ```
@@ -221,7 +221,7 @@
 
 ### Finding 15 — Repeated `list(site.pages)` in same phase (MEDIUM)
 
-```336:463:bengal/orchestration/build/provenance_filter.py
+```336:463:bengal/orchestration/build/provenance_orchestration.py
     pages_list_for_deps = list(site.pages)  # first materialization
     # ... later ...
     pages_list = list(site.pages)           # second materialization
@@ -288,7 +288,7 @@
 | 4 | ✅ Addressed | `template_info` computed once in `build_trigger.py`, passed to `_needs_full_rebuild` and `_execute_build` |
 | 5 | ✅ Addressed | `menu.py` uses `_page_path_index` (cached) and `menu_item_by_url` / `menu_item_by_id` indexes for O(1) section lookup |
 | 6 | 🔲 Open | LinkValidator still created per page; shared instance or cached indexes not implemented |
-| 7 | ✅ Addressed | `affected_lower` hoisted above loop in `provenance_filter.py` |
+| 7 | ✅ Addressed | `affected_lower` hoisted above loop in `provenance_orchestration.py` |
 | 8 | ✅ Addressed | `menu_item_by_url` and `menu_item_by_id` indexes built once for dropdown section lookup |
 | 9 | ✅ Addressed | `_compute_menu_cache_key` uses single-pass partition for `menu_pages` and `root_level_pages` |
 | 10–20 | 🔲 Open | Medium/low findings remain for future optimization |

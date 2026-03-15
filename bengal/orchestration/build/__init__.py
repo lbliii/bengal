@@ -419,7 +419,7 @@ class BuildOrchestrator:
 
         # Phase 5: Incremental Filtering (determine what to build)
         # Always use provenance-based filtering (replaces old IncrementalFilterEngine)
-        from bengal.orchestration.build.provenance_filter import (
+        from bengal.orchestration.build.provenance_orchestration import (
             phase_incremental_filter_provenance,
         )
 
@@ -616,7 +616,7 @@ class BuildOrchestrator:
 
         # Record provenance for all built pages (if using provenance-based filtering)
         if hasattr(self, "_provenance_filter") and pages_to_build:
-            from bengal.orchestration.build.provenance_filter import record_all_page_builds
+            from bengal.orchestration.build.provenance_orchestration import record_all_page_builds
 
             record_all_page_builds(self, pages_to_build, parallel=not force_sequential)
 

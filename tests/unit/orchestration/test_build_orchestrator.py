@@ -76,7 +76,7 @@ class TestBuildOrchestrator:
         mock_orchestrators["section"].return_value.validate_sections.return_value = []
 
         with patch(
-            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
+            "bengal.orchestration.build.provenance_orchestration.phase_incremental_filter_provenance"
         ) as mock_filter:
             mock_filter.return_value = FilterResult(
                 pages_to_build=[],
@@ -144,7 +144,7 @@ class TestBuildOrchestrator:
         )
 
         with patch(
-            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
+            "bengal.orchestration.build.provenance_orchestration.phase_incremental_filter_provenance"
         ) as mock_filter:
             mock_filter.return_value = filter_result
             # Run incremental build with BuildOptions
@@ -186,7 +186,7 @@ class TestBuildOrchestrator:
         # Expect exception with strict mode
         options = BuildOptions(incremental=False, strict=True)
         with patch(
-            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
+            "bengal.orchestration.build.provenance_orchestration.phase_incremental_filter_provenance"
         ) as mock_filter:
             mock_filter.return_value = filter_result
             with pytest.raises(Exception, match="Build failed: 1 section validation error"):
@@ -212,7 +212,7 @@ class TestBuildOrchestrator:
         # Run with specific flags (force_sequential=False means auto-detect, which may use parallel)
         options = BuildOptions(force_sequential=False, incremental=False)
         with patch(
-            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
+            "bengal.orchestration.build.provenance_orchestration.phase_incremental_filter_provenance"
         ) as mock_filter:
             mock_filter.return_value = filter_result
             orchestrator.build(options)

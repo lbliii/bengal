@@ -137,11 +137,11 @@ Left unaddressed, these erode the model/orchestrator boundary that enables safe 
 
 **Goal**: Eliminate naming confusion between `build/` and `orchestration/build/`.
 
-### Task 3.1 — Rename `orchestration/build/provenance_filter.py`
+### Task 3.1 — Rename `orchestration/build/provenance_filter.py` ✅
 
 | Field | Value |
 |-------|-------|
-| **Files** | `bengal/orchestration/build/provenance_filter.py` (988 lines) |
+| **Files** | `bengal/orchestration/build/provenance_orchestration.py` (988 lines) |
 | **Issue** | Name collision with `bengal/build/provenance/filter.py` (909 lines) |
 | **Action** | Rename to `provenance_orchestration.py` or `provenance_phase.py`. Update all 4 import sites. |
 | **Validation** | No file named `*provenance_filter*` exists in `orchestration/` |

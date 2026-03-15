@@ -13,7 +13,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.build.contracts.keys import content_key
-from bengal.orchestration.build.provenance_filter import (
+from bengal.orchestration.build.provenance_orchestration import (
     _detect_changed_data_files,
     _detect_changed_templates,
     _get_pages_for_data_file,

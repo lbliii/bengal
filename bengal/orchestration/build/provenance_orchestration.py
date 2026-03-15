@@ -5,7 +5,7 @@ Replaces the old IncrementalFilterEngine with content-addressed provenance.
 Provides 30x faster incremental builds with correct invalidation.
 
 Usage in build orchestrator:
-    from bengal.orchestration.build.provenance_filter import phase_incremental_filter_provenance
+    from bengal.orchestration.build.provenance_orchestration import phase_incremental_filter_provenance
 
     # Replace phase_incremental_filter call with:
     filter_result = phase_incremental_filter_provenance(orchestrator, cli, incremental, ...)
