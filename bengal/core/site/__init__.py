@@ -19,7 +19,10 @@ config_normalized.py: SiteNormalizedConfigMixin (normalized config)
 discovery.py: SiteDiscoveryMixin (content/asset discovery)
 factory.py: Factory functions (from_config, for_testing)
 lifecycle.py: SiteLifecycleMixin (build, serve, clean, state reset)
-versioning.py: VersionService (version support, composed)
+site_query.py: SiteQueryMixin (section/page lookup, caches)
+site_registry.py: SiteRegistryMixin (config_service, indexes, registry)
+site_validation.py: SiteValidationMixin (URL collision validation)
+versioning.py: SiteVersioningMixin, VersionService (version support)
 
 Key Features:
 Build Coordination: site.build() orchestrates full build pipeline

@@ -266,12 +266,12 @@ class TestSectionSortedSubsectionsProperty:
         assert sorted_subs[2] == sub1
 
     def test_sorted_subsections_empty(self, tmp_path):
-        """Empty subsections returns empty list."""
+        """Empty subsections returns empty tuple."""
         section = Section(name="docs", path=tmp_path / "docs")
 
         sorted_subs = section.sorted_subsections
 
-        assert sorted_subs == []
+        assert sorted_subs == ()
 
     def test_sorted_subsections_uses_section_title_property(self, tmp_path):
         """Sorting uses Section.title property which handles missing title."""

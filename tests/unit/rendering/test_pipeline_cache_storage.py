@@ -53,11 +53,14 @@ class DummyTemplateEngine:
 def site_with_cache(tmp_path):
     """Create a site with a real BuildCache."""
     cache = BuildCache()
+    theme_dir = tmp_path / "themes" / "default"
+    theme_dir.mkdir(parents=True, exist_ok=True)
     site = SimpleNamespace(
         config={"markdown_engine": "mistune"},
         root_path=tmp_path,
         output_dir=tmp_path / "public",
         theme="default",
+        theme_path=theme_dir,
         xref_index={},
     )
     site.output_dir.mkdir(parents=True, exist_ok=True)
