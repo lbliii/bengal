@@ -112,11 +112,13 @@ class NavTreeCache:
         if version_id is None:
             cls._cache.clear()
             cls._build_locks.clear()
-            cls._precomputed.clear()
+            # Atomic swap: avoids mutating dict while concurrent .get() reads
+            cls._precomputed = {}
         else:
             cache_key = version_id if version_id is not None else "__default__"
             cls._cache.delete(cache_key)
-            cls._precomputed.pop(cache_key, None)
+            # Atomic swap: replace dict without in-place mutation
+            cls._precomputed = {k: v for k, v in cls._precomputed.items() if k != cache_key}
 
     @classmethod
     def clear_locks(cls) -> None:
@@ -127,7 +129,8 @@ class NavTreeCache:
         Safe to call when no threads are actively building.
         """
         cls._build_locks.clear()
-        cls._precomputed.clear()
+        # Atomic swap: avoids mutating dict while concurrent .get() reads
+        cls._precomputed = {}
 
     @classmethod
     def stats(cls) -> dict[str, Any]:

@@ -27,11 +27,14 @@ if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.site import Site
 
-# id(pages) -> (mapping, key_id). Lists are not weakref-able, so we use id() keys
-# with bounded cache size. Typical builds have ~10-100 distinct page lists.
-_index_cache: dict[int, tuple[dict[int, int], int]] = {}
+# id(pages) -> mapping. Lists are not weakref-able, so we use id() keys
+# with bounded cache size. Safe because page lists (site.pages, section.sorted_pages)
+# are kept alive by the site object for the entire build; id() cannot be reused while
+# the referent is alive. Cache is cleared between builds via site identity change in
+# NavTreeCache. Typical builds have ~10-100 distinct page lists.
+_index_cache: dict[int, dict[int, int]] = {}
 _index_cache_lock = threading.Lock()
-_index_cache_max = 1000
+_INDEX_CACHE_MAX = 1000
 
 
 def _page_index_map(pages: list[Page] | tuple[Page, ...]) -> dict[int, int]:
@@ -39,15 +42,14 @@ def _page_index_map(pages: list[Page] | tuple[Page, ...]) -> dict[int, int]:
     key_id = id(pages)
     with _index_cache_lock:
         cached = _index_cache.get(key_id)
-        if cached is not None and cached[1] == key_id:
-            return cached[0]
+        if cached is not None:
+            return cached
         mapping: dict[int, int] = {id(p): i for i, p in enumerate(pages)}
-        if len(_index_cache) >= _index_cache_max:
-            # LRU eviction: drop oldest half instead of clearing all
+        if len(_index_cache) >= _INDEX_CACHE_MAX:
             to_remove = list(_index_cache.keys())[: len(_index_cache) // 2]
             for k in to_remove:
                 del _index_cache[k]
-        _index_cache[key_id] = (mapping, key_id)
+        _index_cache[key_id] = mapping
         return mapping
 
 

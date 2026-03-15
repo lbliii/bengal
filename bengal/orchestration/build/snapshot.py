@@ -12,10 +12,14 @@ import threading
 import time
 from typing import TYPE_CHECKING
 
+from bengal.utils.observability.logger import get_logger
+
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.orchestration.build_context import BuildContext
+
+logger = get_logger(__name__)
 
 
 def phase_snapshot(
@@ -92,5 +96,11 @@ def phase_snapshot(
             from bengal.services.data import DataService
 
             early_ctx.data_service = DataService.from_root(orchestrator.site.root_path)
-        except Exception:
-            pass  # data/ dir may not exist; service remains None
+        except ImportError:
+            logger.debug("data_service_unavailable", reason="DataService not installed")
+        except Exception as exc:
+            logger.debug(
+                "data_service_init_skipped",
+                error=str(exc),
+                reason="data/ dir may not exist",
+            )

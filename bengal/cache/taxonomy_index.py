@@ -23,6 +23,7 @@ import threading
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from types import MappingProxyType
 from typing import Any
 
 from bengal.cache.utils import (
@@ -337,20 +338,20 @@ class TaxonomyIndex(PersistentCacheMixin):
         self._valid_cache = None
         self._invalid_cache = None
 
-    def get_all_tags(self) -> dict[str, TagEntry]:
+    def get_all_tags(self) -> MappingProxyType[str, TagEntry]:
         """
         Get all valid tags.
 
         Returns:
-            Dictionary mapping tag_slug to TagEntry for valid tags
+            Read-only view of tag_slug to TagEntry for valid tags
         """
         with self._lock:
             if self._valid_cache is not None:
-                return self._valid_cache
+                return MappingProxyType(self._valid_cache)
             self._valid_cache = {
                 tag_slug: entry for tag_slug, entry in self.tags.items() if entry.is_valid
             }
-            return self._valid_cache
+            return MappingProxyType(self._valid_cache)
 
     # =========================================================================
     # Invalidation
@@ -421,29 +422,29 @@ class TaxonomyIndex(PersistentCacheMixin):
     # Query helpers
     # =========================================================================
 
-    def get_valid_entries(self) -> dict[str, TagEntry]:
+    def get_valid_entries(self) -> MappingProxyType[str, TagEntry]:
         """
         Get all valid tag entries.
 
         Returns:
-            Dictionary mapping tag_slug to TagEntry for valid entries
+            Read-only view of tag_slug to TagEntry for valid entries
         """
         return self.get_all_tags()
 
-    def get_invalid_entries(self) -> dict[str, TagEntry]:
+    def get_invalid_entries(self) -> MappingProxyType[str, TagEntry]:
         """
         Get all invalid tag entries.
 
         Returns:
-            Dictionary mapping tag_slug to TagEntry for invalid entries
+            Read-only view of tag_slug to TagEntry for invalid entries
         """
         with self._lock:
             if self._invalid_cache is not None:
-                return self._invalid_cache
+                return MappingProxyType(self._invalid_cache)
             self._invalid_cache = {
                 tag_slug: entry for tag_slug, entry in self.tags.items() if not entry.is_valid
             }
-            return self._invalid_cache
+            return MappingProxyType(self._invalid_cache)
 
     def get_all_tag_slugs(self) -> set[str]:
         """
