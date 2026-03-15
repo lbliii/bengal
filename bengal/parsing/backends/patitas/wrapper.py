@@ -177,7 +177,14 @@ class PatitasParser(BaseMarkdownParser):
                 if not metadata.get("description")
                 else str(metadata.get("description", ""))
             )
-        except Exception:
+        except Exception as e:
+            source_path = metadata.get("_source_path", "unknown")
+            logger.warning(
+                "excerpt_extraction_failed",
+                path=source_path,
+                error=str(e),
+                error_type=type(e).__name__,
+            )
             excerpt = ""
             meta_desc = ""
 
@@ -225,18 +232,16 @@ class PatitasParser(BaseMarkdownParser):
             # 1. Preprocess: handle {{/* escaped syntax */}}
             content = var_plugin.preprocess(content)
 
-            # 2. Parse & Substitute in ONE pass (the "window thing")
-            # The Lexer handles variable substitution as it scans lines.
-            # This is O(n) with zero extra passes or AST walks.
+            # 2. Parse and substitute on inline markdown segments only
             html = self._md(
                 content,
-                text_transformer=var_plugin.substitute_variables,
+                text_transformer=var_plugin.substitute_inline_markdown,
                 page_context=page_context,
                 xref_index=xref_index,
                 site=site,
             )
 
-            # 3. Restore placeholders: restore BENGALESCAPED placeholders
+            # 3. Restore literal template markers for documentation output
             html = var_plugin.restore_placeholders(html)
 
             # 4. Apply other post-processing (cross-references, etc.)
@@ -293,8 +298,10 @@ class PatitasParser(BaseMarkdownParser):
             # 1. Preprocess: handle {{/* escaped syntax */}}
             content = var_plugin.preprocess(content)
 
-            # 2. Parse & Substitute in ONE pass (the "window thing")
-            ast = self._md.parse_to_ast(content, text_transformer=var_plugin.substitute_variables)
+            # 2. Parse with inline-aware substitution
+            ast = self._md.parse_to_ast(
+                content, text_transformer=var_plugin.substitute_inline_markdown
+            )
 
             # 3. Extract excerpt and meta description from AST (parse once, use many)
             try:
@@ -312,7 +319,14 @@ class PatitasParser(BaseMarkdownParser):
                     if not metadata.get("description")
                     else str(metadata.get("description", ""))
                 )
-            except Exception:
+            except Exception as e:
+                source_path = metadata.get("_source_path", "unknown")
+                logger.warning(
+                    "excerpt_extraction_failed",
+                    path=source_path,
+                    error=str(e),
+                    error_type=type(e).__name__,
+                )
                 excerpt = ""
                 meta_desc = ""
 
@@ -321,7 +335,7 @@ class PatitasParser(BaseMarkdownParser):
             html, toc, _toc_items = self._md.render_ast_with_toc(
                 ast,
                 content,
-                text_transformer=var_plugin.substitute_variables,
+                text_transformer=var_plugin.substitute_inline_markdown,
                 page_context=page_context,
                 xref_index=xref_index,
                 site=site,
@@ -405,7 +419,18 @@ class PatitasParser(BaseMarkdownParser):
         if not content:
             return []
 
-        ast = parse_to_ast(content)
+        directive_registry = self._md._parse_config.directive_registry
+        if self._var_plugin:
+            content = self._var_plugin.preprocess(content)
+            ast = parse_to_ast(
+                content,
+                plugins=self._plugins,
+                text_transformer=self._var_plugin.substitute_inline_markdown,
+                directive_registry=directive_registry,
+            )
+            return [self._node_to_dict(node) for node in ast]
+
+        ast = parse_to_ast(content, plugins=self._plugins, directive_registry=directive_registry)
         return [self._node_to_dict(node) for node in ast]
 
     def parse_to_document(self, content: str, metadata: dict[str, Any]) -> Document:
@@ -421,10 +446,18 @@ class PatitasParser(BaseMarkdownParser):
         Returns:
             Document AST
         """
-        text_transformer = None
+        directive_registry = self._md._parse_config.directive_registry
         if self._var_plugin:
-            text_transformer = self._var_plugin.substitute_variables
-        return parse_to_document(content, plugins=self._plugins, text_transformer=text_transformer)
+            content = self._var_plugin.preprocess(content)
+            return parse_to_document(
+                content,
+                plugins=self._plugins,
+                text_transformer=self._var_plugin.substitute_inline_markdown,
+                directive_registry=directive_registry,
+            )
+        return parse_to_document(
+            content, plugins=self._plugins, directive_registry=directive_registry
+        )
 
     def render_ast(self, ast: list[dict[str, Any]]) -> str:
         """Render AST tokens to HTML.
@@ -482,6 +515,9 @@ class PatitasParser(BaseMarkdownParser):
             xref_index=xref_index,
             site=site,
         )
+        from bengal.rendering.plugins import VariableSubstitutionPlugin
+
+        html = VariableSubstitutionPlugin.restore_static_placeholders(html)
         metadata = getattr(page, "metadata", {}) if page else {}
         html = self._apply_post_processing(html, metadata)
         return html, toc

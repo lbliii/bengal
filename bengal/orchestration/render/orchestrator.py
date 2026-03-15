@@ -290,16 +290,14 @@ class RenderOrchestrator(
                     pages, quiet, stats, progress_manager, build_context, changed_sources
                 )
         finally:
-            # Flush write-behind queue and wait for all writes to complete
-            if write_behind:
-                try:
+            # Flush write-behind queue and wait for all writes to complete.
+            # Let BengalRenderingError propagate so build fails on write failure.
+            try:
+                if write_behind:
                     written = write_behind.flush_and_close()
                     logger.debug("write_behind_flushed", files_written=written)
-                except Exception as e:
-                    logger.error("write_behind_flush_error", error=str(e))
-
-            # Clear build context for memoization (cleanup)
-            set_build_context(None)
+            finally:
+                set_build_context(None)
 
     def _render_parallel(
         self,
@@ -468,6 +466,8 @@ class RenderOrchestrator(
             build_context=build_context,
             output_collector=output_collector,
             max_workers=max_workers,
+            highlight_cache=self._highlight_cache,
+            block_cache=self._block_cache,
         )
 
         # Render using wave scheduler

@@ -20,13 +20,14 @@ logger = get_logger(__name__)
 
 class VariableSubstitutionPlugin:
     """
-    Mistune plugin for safe variable substitution in markdown content.
+    Structure-aware variable substitution for markdown content.
 
     ARCHITECTURE: Separation of Concerns
     =====================================
 
     This plugin handles ONLY variable substitution ({{ vars }}) in markdown.
-    It operates at the AST level after Mistune parses the markdown structure.
+    It substitutes on inline markdown fragments before inline parsing so links
+    still parse correctly, while code spans and fenced code stay literal.
 
     WHAT THIS HANDLES:
     ------------------
@@ -64,8 +65,8 @@ class VariableSubstitutionPlugin:
 
     KEY FEATURE: Code blocks stay literal naturally!
     ------------------------------------------------
-    Since this plugin only processes text tokens (not code tokens),
-    code blocks and inline code automatically preserve their content:
+    Since this plugin skips code spans and leaves fenced code to block parsing,
+    code blocks and inline code preserve their content:
 
         Use `{{ page.title }}` to show the title.  ← Stays literal in output
 
@@ -74,9 +75,9 @@ class VariableSubstitutionPlugin:
             print("{{ page.title }}")
             ```
 
-    This is the RIGHT architectural approach:
-    - Single-pass parsing (fast!)
-    - Natural code block handling (no escaping needed!)
+    This is the pragmatic architectural approach with current Patitas hooks:
+    - Structural awareness for inline markdown
+    - Natural code fence handling
     - Clear separation: content (markdown) vs logic (templates)
 
     """
@@ -84,6 +85,11 @@ class VariableSubstitutionPlugin:
     VARIABLE_PATTERN = re.compile(r"\{\{\s*([^}]+)\s*\}\}")
     # Capture everything between {{/* and */}} without stripping whitespace
     ESCAPE_PATTERN = re.compile(r"\{\{/\*(.+?)\*/\}\}")
+    LITERAL_MARKER_START = "BGL["
+    LITERAL_MARKER_END = "]LGB"
+    LITERAL_MARKER_PATTERN = re.compile(
+        rf"{re.escape(LITERAL_MARKER_START)}(.*?){re.escape(LITERAL_MARKER_END)}"
+    )
 
     def __init__(self, context: dict[str, Any]):
         """
@@ -94,7 +100,9 @@ class VariableSubstitutionPlugin:
         """
         self.context = context
         self.errors: list[str] = []  # Track substitution errors
-        self.escaped_placeholders: dict[str, str] = {}  # Track escaped template syntax
+        # Pipeline checks this to decide whether to run restore_placeholders.
+        # Always True: restore is idempotent (no-op when no placeholders).
+        self.escaped_placeholders = True
 
     def update_context(self, context: dict[str, Any]) -> None:
         """
@@ -105,7 +113,6 @@ class VariableSubstitutionPlugin:
         """
         self.context = context
         self.errors = []  # Reset errors for new page
-        self.escaped_placeholders = {}  # Reset placeholders
 
     def __call__(self, md: Any) -> None:
         """Register the plugin with Mistune."""
@@ -132,10 +139,7 @@ class VariableSubstitutionPlugin:
         def save_escaped(match: Match[str]) -> str:
             # Preserve the original content without stripping whitespace
             expr = match.group(1)
-            placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
-            # Store the literal {{ }} for later restoration, preserving whitespace
-            self.escaped_placeholders[placeholder] = f"{{{{{expr}}}}}"
-            return placeholder
+            return self._literal_placeholder(expr)
 
         return self.ESCAPE_PATTERN.sub(save_escaped, text)
 
@@ -158,34 +162,74 @@ class VariableSubstitutionPlugin:
                 or " if " in expr
                 or " for " in expr
             ):
-                # Keep as placeholder - will be restored after Mistune
-                placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
-                self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
-                return placeholder
+                return self._literal_placeholder(f" {expr} ")
 
             try:
                 # Evaluate expression in context
                 result = self._eval_expression(expr)
                 if result is None:
-                    # Variable not found - treat as documentation example
-                    placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
-                    self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
-                    return placeholder
+                    return self._literal_placeholder(f" {expr} ")
                 return str(result)
             except Exception as e:
                 # On error, keep as placeholder for documentation display
-                logger.debug(
+                msg = f"{expr}: {e}"
+                self.errors.append(msg)
+                logger.warning(
                     "variable_substitution_failed",
                     expression=expr,
                     error=str(e),
                     error_type=type(e).__name__,
                     action="keeping_as_placeholder",
                 )
-                placeholder = f"BENGALESCAPED{len(self.escaped_placeholders)}ENDESC"
-                self.escaped_placeholders[placeholder] = f"{{{{ {expr} }}}}"
-                return placeholder
+                return self._literal_placeholder(f" {expr} ")
 
         return self.VARIABLE_PATTERN.sub(replace_var, text)
+
+    def substitute_inline_markdown(self, text: str) -> str:
+        """
+        Substitute variables in inline markdown while preserving code spans.
+
+        Patitas needs live values before inline parsing so constructs like
+        ``[Docs]({{ page.href }})`` can still become real links. This scanner
+        rewrites only the plain-text segments between backtick code spans.
+        """
+        if "`" not in text:
+            return self.substitute_variables(text)
+
+        parts: list[str] = []
+        text_start = 0
+        pos = 0
+        text_len = len(text)
+
+        while pos < text_len:
+            if text[pos] != "`":
+                pos += 1
+                continue
+
+            count = 1
+            while pos + count < text_len and text[pos + count] == "`":
+                count += 1
+
+            delimiter = "`" * count
+            close_pos = text.find(delimiter, pos + count)
+            if close_pos == -1:
+                pos += count
+                continue
+
+            if text_start < pos:
+                parts.append(self.substitute_variables(text[text_start:pos]))
+
+            parts.append(text[pos : close_pos + count])
+            pos = close_pos + count
+            text_start = pos
+
+        if not parts:
+            return self.substitute_variables(text)
+
+        if text_start < text_len:
+            parts.append(self.substitute_variables(text[text_start:]))
+
+        return "".join(parts)
 
     def _substitute_variables(self, text: str) -> str:
         """
@@ -213,11 +257,34 @@ class VariableSubstitutionPlugin:
         Returns:
             HTML with placeholders restored as HTML entities
         """
-        for placeholder, literal in self.escaped_placeholders.items():
-            # Convert {{ and }} to HTML entities so Jinja2 doesn't process them
-            html_escaped = literal.replace("{", "&#123;").replace("}", "&#125;")
-            html = html.replace(placeholder, html_escaped)
+        return self.restore_static_placeholders(html)
+
+    @classmethod
+    def restore_static_placeholders(cls, html: str) -> str:
+        """
+        Restore stateless literal markers back to HTML-escaped template syntax.
+
+        This supports both the AST-aware marker form and raw ``{{/* ... */}}``
+        escape syntax so cached AST re-renders and direct content renders behave
+        the same.
+        """
+
+        def restore_marker(match: Match[str]) -> str:
+            return cls._html_escape_template(match.group(1))
+
+        html = cls.LITERAL_MARKER_PATTERN.sub(restore_marker, html)
+        html = cls.ESCAPE_PATTERN.sub(lambda match: cls._html_escape_template(match.group(1)), html)
         return html
+
+    @classmethod
+    def _literal_placeholder(cls, inner: str) -> str:
+        """Encode literal template syntax using fixed-width stateless markers."""
+        return f"{cls.LITERAL_MARKER_START}{inner}{cls.LITERAL_MARKER_END}"
+
+    @staticmethod
+    def _html_escape_template(inner: str) -> str:
+        """Render template syntax as HTML entities for literal display."""
+        return f"&#123;&#123;{inner}&#125;&#125;"
 
     def _eval_expression(self, expr: str) -> Any:
         """

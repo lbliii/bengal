@@ -587,6 +587,7 @@ def phase_render(
                         write_behind=write_behind,
                         progress_manager=progress_manager,
                         block_cache=block_cache,
+                        highlight_cache=orchestrator.render._highlight_cache,
                     )
                     _render_stats = scheduler.render_all(pages_to_build)
                     # RenderStats are for internal tracking only
@@ -608,13 +609,11 @@ def phase_render(
                                 "time_saved_ms", 0.0
                             )
 
-                    # Flush write-behind collector if enabled (same as RenderOrchestrator)
+                    # Flush write-behind collector if enabled (same as RenderOrchestrator).
+                    # Let BengalRenderingError propagate so build fails on write failure.
                     if ctx.write_behind:
-                        try:
-                            written = ctx.write_behind.flush_and_close()
-                            orchestrator.logger.debug("write_behind_flushed", files_written=written)
-                        except Exception as e:
-                            orchestrator.logger.error("write_behind_flush_error", error=str(e))
+                        written = ctx.write_behind.flush_and_close()
+                        orchestrator.logger.debug("write_behind_flushed", files_written=written)
                 else:
                     # Fallback to existing renderer (sequential or when snapshot unavailable)
                     orchestrator.render.process(
