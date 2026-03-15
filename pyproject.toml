@@ -103,6 +103,10 @@ bengal = [
 line-length = 100
 target-version = "py314"
 
+[tool.ruff.lint.isort]
+# Pin first-party so CI and local (workspace vs repo root) agree on import grouping
+known-first-party = ["bengal"]
+
 [tool.ruff.lint]
 # Enable Python upgrade rules and other quality checks
 select = [
