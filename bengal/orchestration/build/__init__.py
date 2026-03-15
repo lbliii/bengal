@@ -534,8 +534,8 @@ class BuildOrchestrator:
             try:
                 import tracemalloc
 
-                snapshot = tracemalloc.take_snapshot()
-                top = snapshot.statistics("lineno")[:10]
+                mem_snapshot = tracemalloc.take_snapshot()
+                top = mem_snapshot.statistics("lineno")[:10]
                 cli.detail("[BENGAL_DEBUG_MEMORY] Top 10 allocations:", indent=1)
                 for stat in top:
                     frame = stat.traceback[0] if stat.traceback else None
