@@ -362,6 +362,16 @@ class PageMetadataMixin:
         return self._toc_items_cache if self._toc_items_cache is not None else []
 
     @property
+    def is_generated(self) -> bool:
+        """
+        Check if this is a generated page (tag indexes, archives, pagination).
+
+        Reads directly from _raw_metadata for O(1) dict lookup, avoiding the
+        full metadata property chain (cascade resolution, section_path computation).
+        """
+        return bool(self._raw_metadata.get("_generated"))
+
+    @property
     def is_home(self) -> bool:
         """
         Check if this page is the home page.
@@ -869,19 +879,6 @@ class PageMetadataMixin:
         if not key.startswith("_"):
             key = f"_{key}"
         return self.metadata.get(key, default)
-
-    @property
-    def is_generated(self) -> bool:
-        """
-        Whether page was dynamically generated.
-
-        Generated pages are created by autodoc, pagination, or other
-        dynamic content generators, not from markdown source files.
-
-        Returns:
-            True if page was generated (not from source file)
-        """
-        return bool(self.metadata.get("_generated"))
 
     @property
     def assigned_template(self) -> str | None:

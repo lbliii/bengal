@@ -451,21 +451,17 @@ def phase_incremental_filter_provenance(
             forced_changed.update(nav_changed_sources)
 
         # RFC: rfc-incremental-build-dependency-gaps
-        # Expand forced_changed to include dependency-triggered rebuilds:
-        # - Data file changes → dependent pages
-        # - Template changes → dependent pages
-        # - Content changes → taxonomy term pages
-        pages_list_for_deps = list(site.pages)
+        # Materialize pages once for deps and filter (IPA audit Task 7)
+        pages_list = list(site.pages)
         forced_changed, dependency_reasons = _expand_forced_changed(
             forced_changed,
             cache,
             site,
-            pages_list_for_deps,
+            pages_list,
         )
 
         # Filter pages and assets
         filter_start = time.time()
-        pages_list = list(site.pages)
         assets_list = list(site.assets)
 
         # COLD BUILD: If output is missing, skip provenance verification entirely.
@@ -642,6 +638,7 @@ def phase_incremental_filter_provenance(
         # When content pages change, their taxonomy term pages need rebuilding.
         # Find taxonomy term pages that list any of the affected tags.
         if result.affected_tags and incremental:
+            affected_lower = {t.lower() for t in result.affected_tags}
             taxonomy_pages_to_add: list[Page] = []
             pages_to_build_sources = {p.source_path for p in result.pages_to_build}
 
@@ -666,7 +663,7 @@ def phase_incremental_filter_provenance(
 
                 if (
                     term
-                    and str(term).lower() in {t.lower() for t in result.affected_tags}
+                    and str(term).lower() in affected_lower
                     and page.source_path not in pages_to_build_sources
                 ):
                     # This taxonomy page lists a tag that was affected

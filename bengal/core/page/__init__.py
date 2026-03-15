@@ -224,6 +224,8 @@ class Page(
     # Cache for CascadeView (invalidated when site/section changes)
     _metadata_view_cache: CascadeView | None = field(default=None, init=False, repr=False)
     _metadata_view_cache_key: tuple[int, str] | None = field(default=None, init=False, repr=False)
+    # Cached section path string (avoids pathlib.relative_to on every .metadata access)
+    _cached_section_path_str: str | None = field(default=None, init=False, repr=False)
 
     # Private caches for AST-based content (Phase 3 of RFC)
     # See: plan/active/rfc-content-ast-architecture.md
@@ -291,14 +293,18 @@ class Page(
         if cascade is None or not isinstance(cascade, CascadeSnapshot):
             return self._raw_metadata
 
-        # Get section path for cascade lookup
-        section_path = ""
-        if self._section_path:
-            try:
-                content_dir = self._site.root_path / "content"
-                section_path = str(self._section_path.relative_to(content_dir))
-            except ValueError, AttributeError:
-                section_path = str(self._section_path)
+        # Use cached section path string (avoids pathlib.relative_to per access)
+        section_path = self._cached_section_path_str
+        if section_path is None:
+            if self._section_path:
+                try:
+                    content_dir = self._site.root_path / "content"
+                    section_path = str(self._section_path.relative_to(content_dir))
+                except ValueError, AttributeError:
+                    section_path = str(self._section_path)
+            else:
+                section_path = ""
+            self._cached_section_path_str = section_path
 
         # Check cache validity (site id + section path)
         cache_key = (id(cascade), section_path)
@@ -720,9 +726,10 @@ class Page(
             self._section_path = None
             self._section_url = getattr(value, "_path", None) or f"/{value.name}/"
 
-        # Invalidate resolved section cache (reference changed).
+        # Invalidate resolved section cache and section path string cache.
         self._section_obj_cache_key = None
         self._section_obj_cache = None
+        self._cached_section_path_str = None
 
     @property
     def section_path(self) -> str | None:

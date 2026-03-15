@@ -130,6 +130,9 @@ class TaxonomyIndex(PersistentCacheMixin):
         self._page_to_tags: dict[str, set[str]] = {}
         # Thread safety lock for concurrent access
         self._lock = threading.RLock()
+        # Cached filtered views (IPA audit Task 8)
+        self._valid_cache: dict[str, TagEntry] | None = None
+        self._invalid_cache: dict[str, TagEntry] | None = None
         self._load_cache()
 
     # =========================================================================
@@ -175,6 +178,8 @@ class TaxonomyIndex(PersistentCacheMixin):
         """Clear state on version mismatch."""
         self.tags = {}
         self._page_to_tags = {}
+        self._valid_cache = None
+        self._invalid_cache = None
 
     def save_to_disk(self) -> None:
         """Save taxonomy index to disk (including reverse index)."""
@@ -190,6 +195,7 @@ class TaxonomyIndex(PersistentCacheMixin):
                 )
                 self.tags.clear()
                 self._page_to_tags.clear()
+                self._invalidate_filter_caches()
                 return
 
             self._save_cache()
@@ -254,6 +260,7 @@ class TaxonomyIndex(PersistentCacheMixin):
                 is_valid=True,
             )
             self.tags[tag_slug] = entry
+            self._invalidate_filter_caches()
 
     def get_tag(self, tag_slug: str) -> TagEntry | None:
         """
@@ -325,6 +332,11 @@ class TaxonomyIndex(PersistentCacheMixin):
             # Filter to only valid tags
             return {tag for tag in tags if tag in self.tags and self.tags[tag].is_valid}
 
+    def _invalidate_filter_caches(self) -> None:
+        """Clear filtered view caches (IPA audit Task 8)."""
+        self._valid_cache = None
+        self._invalid_cache = None
+
     def get_all_tags(self) -> dict[str, TagEntry]:
         """
         Get all valid tags.
@@ -333,7 +345,12 @@ class TaxonomyIndex(PersistentCacheMixin):
             Dictionary mapping tag_slug to TagEntry for valid tags
         """
         with self._lock:
-            return {tag_slug: entry for tag_slug, entry in self.tags.items() if entry.is_valid}
+            if self._valid_cache is not None:
+                return self._valid_cache
+            self._valid_cache = {
+                tag_slug: entry for tag_slug, entry in self.tags.items() if entry.is_valid
+            }
+            return self._valid_cache
 
     # =========================================================================
     # Invalidation
@@ -352,18 +369,21 @@ class TaxonomyIndex(PersistentCacheMixin):
         with self._lock:
             if tag_slug in self.tags:
                 self.tags[tag_slug].is_valid = False
+            self._invalidate_filter_caches()
 
     def invalidate_all(self) -> None:
         """Invalidate all tag entries."""
         with self._lock:
             for entry in self.tags.values():
                 entry.is_valid = False
+            self._invalidate_filter_caches()
 
     def clear(self) -> None:
         """Clear all tags and reverse index."""
         with self._lock:
             self.tags.clear()
             self._page_to_tags.clear()
+            self._invalidate_filter_caches()
 
     def remove_page_from_all_tags(self, page_path: Path) -> set[str]:
         """
@@ -408,7 +428,7 @@ class TaxonomyIndex(PersistentCacheMixin):
         Returns:
             Dictionary mapping tag_slug to TagEntry for valid entries
         """
-        return {tag_slug: entry for tag_slug, entry in self.tags.items() if entry.is_valid}
+        return self.get_all_tags()
 
     def get_invalid_entries(self) -> dict[str, TagEntry]:
         """
@@ -417,7 +437,22 @@ class TaxonomyIndex(PersistentCacheMixin):
         Returns:
             Dictionary mapping tag_slug to TagEntry for invalid entries
         """
-        return {tag_slug: entry for tag_slug, entry in self.tags.items() if not entry.is_valid}
+        with self._lock:
+            if self._invalid_cache is not None:
+                return self._invalid_cache
+            self._invalid_cache = {
+                tag_slug: entry for tag_slug, entry in self.tags.items() if not entry.is_valid
+            }
+            return self._invalid_cache
+
+    def get_all_tag_slugs(self) -> set[str]:
+        """
+        Get all valid tag slugs (keys only).
+
+        Use when callers only need keys, avoiding dict construction (IPA audit Task 8).
+        """
+        with self._lock:
+            return {tag_slug for tag_slug, entry in self.tags.items() if entry.is_valid}
 
     def pages_changed(self, tag_slug: str, new_page_paths: list[str]) -> bool:
         """

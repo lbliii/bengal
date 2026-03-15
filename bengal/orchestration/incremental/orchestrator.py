@@ -734,11 +734,13 @@ class IncrementalOrchestrator:
                         continue
 
         # Check if any shared files have changed via cache
+        # IPA audit Task 10: check directory mtime before rglob (skip if dir unchanged)
         for shared_path in version_config.shared:
             shared_dir = content_dir / shared_path
             if not shared_dir.exists():
                 continue
-
+            if not self.cache.is_changed(shared_dir):
+                continue
             for file_path in shared_dir.rglob("*.md"):
                 if self.cache.is_changed(file_path):
                     return True

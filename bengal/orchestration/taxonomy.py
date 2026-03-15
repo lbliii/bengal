@@ -406,7 +406,7 @@ class TaxonomyOrchestrator:
         current_page_map = {p.source_path: p for p in eligible_pages}
 
         # For each tag in cache, map paths to current Page objects
-        for tag_slug in cache.taxonomy_index.get_all_tags():
+        for tag_slug in cache.taxonomy_index.get_all_tag_slugs():
             page_paths = cache.taxonomy_index.get_pages_for_tag(tag_slug)
 
             # Map paths to current Page objects
@@ -483,11 +483,14 @@ class TaxonomyOrchestrator:
         # Get i18n configuration using utility
         i18n_config = get_i18n_config(self.site.config)
 
+        # Materialize tag items once before language loop (IPA audit Task 8)
+        all_tag_items = list(self.site.taxonomies["tags"].items())
+
         # Generate per-locale tag pages
         for lang in i18n_config.languages:
             # Build per-locale tag mapping
             locale_tags = {}
-            for tag_slug, tag_data in self.site.taxonomies["tags"].items():
+            for tag_slug, tag_data in all_tag_items:
                 # Filter pages by language using utility
                 pages_for_lang = filter_pages_by_language(
                     tag_data["pages"],

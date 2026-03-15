@@ -9,6 +9,7 @@ import pytest
 
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.reload_controller import ReloadDecision
+from tests.unit.server.test_build_trigger import _setup_reload_mock_dispatch
 
 
 def _make_build_stats(changed_outputs: list | None = None) -> MagicMock:
@@ -91,6 +92,7 @@ def test_css_only_change_triggers_reload_css(
         action="reload-css", reason="css-only", changed_paths=[]
     )
     mock_controller._use_content_hashes = False
+    _setup_reload_mock_dispatch(mock_controller)
 
     trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
@@ -145,6 +147,7 @@ def test_mixed_change_triggers_full_reload(
         action="reload", reason="source-change", changed_paths=[]
     )
     mock_controller._use_content_hashes = False
+    _setup_reload_mock_dispatch(mock_controller)
 
     trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 

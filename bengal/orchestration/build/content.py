@@ -330,13 +330,13 @@ def phase_related_posts(
                 affected_pages=pages_to_build if incremental else None,
             )
 
-            # Log statistics
+            # Log statistics (use _raw_metadata to avoid metadata property overhead)
             pages_with_related = sum(
                 1
                 for p in orchestrator.site.pages
                 if hasattr(p, "related_posts")
                 and p.related_posts
-                and not p.metadata.get("_generated")
+                and not p._raw_metadata.get("_generated")
             )
             orchestrator.stats.related_posts_time_ms = (time.time() - related_posts_start) * 1000
             orchestrator.logger.info(

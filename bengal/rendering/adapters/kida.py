@@ -72,7 +72,8 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
             default: str | None = None,
         ) -> str:
             """Translate a key using page context for language detection."""
-            use_lang = lang or getattr(page, "lang", None)
+            raw = lang or (getattr(page, "lang", None) if page else None)
+            use_lang = raw if isinstance(raw, str) else None
             return base_translate(key, params, use_lang, default)
 
         def current_lang() -> str | None:

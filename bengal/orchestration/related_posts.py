@@ -5,20 +5,21 @@ Builds a pre-computed index of related posts during the build phase, enabling
 O(1) template access at render time. Uses tag-based matching to identify
 content relationships.
 
-Algorithm:
-For each page with tags, finds other pages that share tags and scores
-them by the number of shared tags. Higher scores indicate stronger
-relevance. The top N related posts are stored on each page.
+Algorithm (vectorized):
+1. Build inverted index: tag_slug → frozenset of eligible page ids  [O(n·t)]
+2. Pre-compute exclusion set of page ids (generated, home, indices) [O(n)]
+3. For each page, use Counter over tag sets to score co-occurrences  [O(t·k)]
+   where k = avg pages per tag (much less than n for real sites)
+4. Extract top-N from Counter.most_common()                         [O(k·log(limit))]
 
-Performance:
-Build-time: O(n·t) where n=pages and t=average tags per page
+Total complexity: O(n·t·k_avg) — linear in n when tag popularity is bounded.
+Worst-case (single tag shared by all pages): O(n²), but this is pathological.
+
 Render-time: O(1) - pre-computed list on page.related_posts
 
-This moves expensive computation from render-time O(n²) to build-time,
-resulting in significant performance improvement for template access.
-
-Parallel processing is used for sites with 100+ pages to avoid thread
-pool overhead on smaller sites.
+Parallel processing shards page list across threads for true parallelism
+on Python 3.14t (free-threaded, no GIL). Each shard operates on read-only
+shared data (tag index, exclusion set) with zero contention.
 
 Usage in Templates:
 {% for post in page.related_posts %}
@@ -37,6 +38,7 @@ bengal.orchestration.taxonomy: Provides taxonomy index used for matching
 from __future__ import annotations
 
 import concurrent.futures
+from collections import Counter
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
@@ -44,8 +46,6 @@ from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Note: MIN_PAGES_FOR_PARALLEL is deprecated in favor of should_parallelize()
-# Kept for backwards compatibility if accessed directly
 MIN_PAGES_FOR_PARALLEL = 50
 
 if TYPE_CHECKING:
@@ -57,44 +57,21 @@ class RelatedPostsOrchestrator:
     """
     Builds related posts relationships during the build phase.
 
-    Uses the taxonomy index for efficient tag-based matching. For each page,
-    finds other pages with overlapping tags and scores by shared tag count.
+    Uses a vectorized inverted-index algorithm with pre-computed exclusion sets.
+    All expensive property access (metadata, kind, path) is resolved once during
+    index construction, not inside the per-page scoring loop.
 
     Complexity:
-        Build: O(n·t) where n=pages, t=average tags per page (typically 2-5)
+        Build: O(n·t·k_avg) where n=pages, t=avg tags, k_avg=avg pages per tag
         Access: O(1) via page.related_posts attribute
 
-    Creation:
-        Direct instantiation: RelatedPostsOrchestrator(site)
-            - Created by BuildOrchestrator during build
-            - Requires Site instance with taxonomies populated
-
-    Attributes:
-        site: Site instance containing pages and taxonomies
-
-    Relationships:
-        - Uses: site.taxonomies['tags'] for tag-to-page mapping
-        - Updates: page.related_posts for each processed page
-        - Used by: BuildOrchestrator for Phase 10 (related posts)
-
     Thread Safety:
-        Supports parallel processing for sites with 100+ pages.
-        Each page's computation is independent and thread-safe.
-
-    Example:
-        orchestrator = RelatedPostsOrchestrator(site)
-        orchestrator.build_index(limit=5, parallel=True)
-        # page.related_posts now contains list of related Page objects
-
+        Parallel mode shards pages across threads. Each thread reads from
+        shared immutable data (tag index, exclusion set, id→page map).
+        No locks needed — pure functional scoring.
     """
 
     def __init__(self, site: Site):
-        """
-        Initialize related posts orchestrator.
-
-        Args:
-            site: Site instance
-        """
         self.site = site
 
     def build_index(
@@ -103,15 +80,8 @@ class RelatedPostsOrchestrator:
         """
         Compute related posts for pages using tag-based matching.
 
-        This is called once during the build phase. Each page gets a
-        pre-computed list of related pages stored in page.related_posts.
-
-        Args:
-            limit: Maximum related posts per page (default: 5)
-            parallel: Whether to use parallel processing (default: True)
-            affected_pages: List of pages whose related posts should be recomputed.
-                          If None, computes for all pages (full build).
-                          If provided, only updates affected pages (incremental).
+        Builds shared data structures once, then scores pages independently
+        (parallelizable with zero contention on 3.14t).
         """
         logger.info(
             "related_posts_build_start",
@@ -119,7 +89,6 @@ class RelatedPostsOrchestrator:
             incremental=affected_pages is not None,
         )
 
-        # Skip if no taxonomies built yet
         if not hasattr(self.site, "taxonomies"):
             self._set_empty_related_posts()
             logger.debug("related_posts_skipped", reason="no_taxonomies")
@@ -127,106 +96,115 @@ class RelatedPostsOrchestrator:
 
         tags_dict = self.site.taxonomies.get("tags", {})
         if not tags_dict:
-            # No tags in site - nothing to relate
             self._set_empty_related_posts()
             logger.debug("related_posts_skipped", reason="no_tags")
             return
 
-        # Build inverted index: page_id -> set of tag slugs
-        # This is O(n) where n = number of pages
+        # Phase 1: Build shared data structures (O(n) — done once)
         page_tags_map = self._build_page_tags_map()
+        excluded_ids = self._build_exclusion_set()
+        id_to_page = {id(p): p for p in self.site.pages}
+        tag_to_page_ids = self._build_tag_index(tags_dict, excluded_ids)
 
         # Determine which pages to process
         if affected_pages is not None:
-            # Incremental: only process affected pages (filter out generated)
-            pages_to_process = [p for p in affected_pages if not p.metadata.get("_generated")]
+            pages_to_process = [p for p in affected_pages if id(p) not in excluded_ids]
         else:
-            # Full build: process all regular pages (use cached property)
             pages_to_process = list(self.site.regular_pages)
 
-        # Use parallel processing for larger sites to avoid thread overhead
-        # Related posts computation is CPU-bound (tag matching, scoring)
-        # parallel is now always a boolean (computed from force_sequential in phase_related_posts)
-        # so we can use it directly
-        if parallel:
+        # Phase 2: Score pages (embarrassingly parallel)
+        if parallel and len(pages_to_process) > MIN_PAGES_FOR_PARALLEL:
             pages_with_related = self._build_parallel(
-                pages_to_process, page_tags_map, tags_dict, limit
+                pages_to_process, page_tags_map, tag_to_page_ids, id_to_page, limit
             )
         else:
             pages_with_related = self._build_sequential(
-                pages_to_process, page_tags_map, tags_dict, limit
+                pages_to_process, page_tags_map, tag_to_page_ids, id_to_page, limit
             )
+
+        # Set empty for excluded pages
+        for page in self.site.pages:
+            if id(page) in excluded_ids:
+                page.related_posts = []
 
         logger.info(
             "related_posts_build_complete",
             pages_with_related=pages_with_related,
             total_pages=len(self.site.pages),
             affected_pages=len(pages_to_process) if affected_pages else None,
-            mode="parallel" if parallel else "sequential",
+            mode="parallel"
+            if parallel and len(pages_to_process) > MIN_PAGES_FOR_PARALLEL
+            else "sequential",
         )
+
+    def _build_exclusion_set(self) -> frozenset[int]:
+        """
+        Pre-compute ids of pages to exclude from related posts.
+
+        Resolves _generated, kind, and path checks ONCE instead of inside
+        the inner scoring loop. Uses _raw_metadata for O(1) dict access
+        (avoids the metadata property's cascade/relative_to overhead).
+        """
+        excluded = set()
+        for page in self.site.pages:
+            if page._raw_metadata.get("_generated"):
+                excluded.add(id(page))
+                continue
+
+            path = getattr(page, "_path", "") or getattr(page, "href", "") or ""
+            path_str = str(path).rstrip("/") if path else ""
+            if path_str in ("", "/") or str(path) in ("/", "/index.html", ""):
+                excluded.add(id(page))
+                continue
+
+            if getattr(page, "kind", None) == "index":
+                excluded.add(id(page))
+
+        return frozenset(excluded)
+
+    def _build_tag_index(
+        self,
+        tags_dict: dict[str, dict[str, Any]],
+        excluded_ids: frozenset[int],
+    ) -> dict[str, frozenset[int]]:
+        """
+        Build inverted index: tag_slug → frozenset of eligible page ids.
+
+        Uses frozenset for immutable sharing across threads (no copying needed).
+        Excludes ineligible pages at index build time, not scoring time.
+        """
+        tag_to_page_ids: dict[str, frozenset[int]] = {}
+        for tag_slug, tag_data in tags_dict.items():
+            pages_with_tag = tag_data.get("pages", [])
+            eligible = frozenset(id(p) for p in pages_with_tag if id(p) not in excluded_ids)
+            if eligible:
+                tag_to_page_ids[tag_slug] = eligible
+        return tag_to_page_ids
 
     def _build_sequential(
         self,
         pages: list[Page],
         page_tags_map: dict[Page, set[str]],
-        tags_dict: dict[str, dict[str, Any]],
+        tag_to_page_ids: dict[str, frozenset[int]],
+        id_to_page: dict[int, Page],
         limit: int,
     ) -> int:
-        """
-        Build related posts sequentially (original implementation).
-
-        Args:
-            pages: List of pages to process
-            page_tags_map: Pre-built page -> tags mapping
-            tags_dict: Taxonomy tags dictionary
-            limit: Maximum related posts per page
-
-        Returns:
-            Number of pages with related posts found
-        """
         pages_with_related = 0
-
         for page in pages:
-            page.related_posts = self._find_related_posts(page, page_tags_map, tags_dict, limit)
-            if page.related_posts:
+            related = self._score_page(page, page_tags_map, tag_to_page_ids, id_to_page, limit)
+            page.related_posts = related
+            if related:
                 pages_with_related += 1
-
-        # Set empty for generated pages
-        for page in self.site.pages:
-            if page.metadata.get("_generated"):
-                page.related_posts = []
-
         return pages_with_related
 
     def _build_parallel(
         self,
         pages: list[Page],
         page_tags_map: dict[Page, set[str]],
-        tags_dict: dict[str, dict[str, Any]],
+        tag_to_page_ids: dict[str, frozenset[int]],
+        id_to_page: dict[int, Page],
         limit: int,
     ) -> int:
-        """
-        Build related posts in parallel using ThreadPoolExecutor.
-
-        Each page's related posts computation is independent, making this
-        perfectly parallelizable. On Python 3.14t (free-threaded), this
-        achieves true parallelism without GIL contention.
-
-        Performance:
-            - Python 3.13 (GIL): 2-3x faster
-            - Python 3.14t (no GIL): 6-8x faster
-
-        Args:
-            pages: List of pages to process
-            page_tags_map: Pre-built page -> tags mapping
-            tags_dict: Taxonomy tags dictionary
-            limit: Maximum related posts per page
-
-        Returns:
-            Number of pages with related posts found
-        """
-        # Get optimal workers based on workload (CPU-bound tag matching)
-        # Access from build section (supports both Config and dict)
         config = self.site.config
         if hasattr(config, "build"):
             max_workers_override = config.build.max_workers
@@ -246,26 +224,22 @@ class RelatedPostsOrchestrator:
 
         pages_with_related = 0
 
-        # Use ThreadPoolExecutor for parallel processing
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all tasks
             future_to_page = {
                 executor.submit(
-                    self._find_related_posts, page, page_tags_map, tags_dict, limit
+                    self._score_page, page, page_tags_map, tag_to_page_ids, id_to_page, limit
                 ): page
                 for page in pages
             }
 
-            # Collect results as they complete
             for future in concurrent.futures.as_completed(future_to_page):
                 page = future_to_page[future]
                 try:
-                    related_posts = future.result()
-                    page.related_posts = related_posts
-                    if related_posts:
+                    related = future.result()
+                    page.related_posts = related
+                    if related:
                         pages_with_related += 1
                 except Exception as e:
-                    # Log error but don't fail the build
                     logger.error(
                         "related_posts_computation_failed",
                         page=str(page.source_path),
@@ -273,112 +247,62 @@ class RelatedPostsOrchestrator:
                     )
                     page.related_posts = []
 
-        # Set empty for generated pages
-        for page in self.site.pages:
-            if page.metadata.get("_generated"):
-                page.related_posts = []
-
         return pages_with_related
 
     def _set_empty_related_posts(self) -> None:
-        """Set empty related_posts list for all pages."""
         for page in self.site.pages:
             page.related_posts = []
 
     def _build_page_tags_map(self) -> dict[Page, set[str]]:
         """
-        Build mapping of page -> set of tag slugs.
-
-        This creates an efficient lookup structure for checking tag overlap.
-        Now uses pages directly as keys (hashable based on source_path).
+        Build mapping of page → set of tag slugs.
 
         Returns:
             Dictionary mapping Page to set of tag slugs
         """
-        page_tags = {}
+        page_tags: dict[Page, set[str]] = {}
         for page in self.site.pages:
             if hasattr(page, "tags") and page.tags:
-                # Convert tags to slugs for consistent matching (same as taxonomy)
-                # Filter out None tags (YAML parses 'null' as None)
                 page_tags[page] = {
                     str(tag).lower().replace(" ", "-") for tag in page.tags if tag is not None
                 }
             else:
                 page_tags[page] = set()
-
         return page_tags
 
-    def _find_related_posts(
-        self,
+    @staticmethod
+    def _score_page(
         page: Page,
         page_tags_map: dict[Page, set[str]],
-        tags_dict: dict[str, dict[str, Any]],
+        tag_to_page_ids: dict[str, frozenset[int]],
+        id_to_page: dict[int, Page],
         limit: int,
     ) -> list[Page]:
         """
-        Find related posts for a single page using tag overlap scoring.
+        Score related pages for a single page using Counter over tag sets.
 
-        Algorithm:
-        1. For each tag on the current page
-        2. Find all other pages with that tag (via taxonomy index)
-        3. Score pages by number of shared tags
-        4. Return top N pages sorted by score
+        Pure function: reads only from immutable shared data structures.
+        Safe for concurrent execution without locks on 3.14t.
 
-        Args:
-            page: Page to find related posts for
-            page_tags_map: Pre-built page -> tags mapping (now uses pages directly)
-            tags_dict: Taxonomy tags dictionary {slug: {pages: [...]}}
-            limit: Maximum related posts to return
-
-        Returns:
-            List of related pages sorted by relevance (most shared tags first)
+        Counter.update() with frozensets is C-optimized — each tag's page set
+        is counted in a single C-level pass, no Python-level per-element loop.
         """
-        page_tag_slugs = page_tags_map.get(page, set())
-
-        if not page_tag_slugs:
-            # Page has no tags - no related posts
+        tag_slugs = page_tags_map.get(page, set())
+        if not tag_slugs:
             return []
 
-        # Score other pages by number of shared tags
-        # Now using pages directly as keys (hashable!)
-        scored_pages = {}
+        page_id = id(page)
+        scores: Counter[int] = Counter()
 
-        # For each tag on current page
-        for tag_slug in page_tag_slugs:
-            if tag_slug not in tags_dict:
-                continue
+        for tag_slug in tag_slugs:
+            page_ids = tag_to_page_ids.get(tag_slug)
+            if page_ids is not None:
+                scores.update(page_ids)
 
-            # Get all pages with this tag from taxonomy index
-            tag_data = tags_dict[tag_slug]
-            pages_with_tag = tag_data.get("pages", [])
+        # Remove self-reference
+        scores.pop(page_id, None)
 
-            for other_page in pages_with_tag:
-                # Skip self
-                if other_page == page:
-                    continue
-
-                # Skip generated pages (tag indexes, archives, etc.)
-                if other_page.metadata.get("_generated"):
-                    continue
-
-                # Exclude structural/navigation pages (home, section indices)
-                path = getattr(other_page, "_path", "") or getattr(other_page, "href", "") or ""
-                path_str = str(path).rstrip("/") if path else ""
-                if path_str in ("", "/") or str(path) in ("/", "/index.html", ""):
-                    continue  # Home page
-                if getattr(other_page, "kind", None) == "index":
-                    continue  # Section indices (posts hub, etc.)
-
-                # Increment score (counts shared tags)
-                if other_page not in scored_pages:
-                    scored_pages[other_page] = [other_page, 0]
-                scored_pages[other_page][1] += 1
-
-        if not scored_pages:
+        if not scores:
             return []
 
-        # Sort by score (descending) and return top N
-        # Higher score = more shared tags = more related
-        sorted_pages = sorted(scored_pages.values(), key=lambda x: x[1], reverse=True)
-
-        return [page for page, score in sorted_pages[:limit]]
+        return [id_to_page[pid] for pid, _ in scores.most_common(limit) if pid in id_to_page]

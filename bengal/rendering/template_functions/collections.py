@@ -17,6 +17,18 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# IPA audit Task 9: module-level operators constant (avoid per-call dict creation)
+_OPERATORS: dict[str, Any] = {
+    "eq": lambda a, b: a == b,
+    "ne": lambda a, b: a != b,
+    "gt": lambda a, b: a > b,
+    "gte": lambda a, b: a >= b,
+    "lt": lambda a, b: a < b,
+    "lte": lambda a, b: a <= b,
+    "in": lambda a, b: a in b if isinstance(b, (list, tuple, set)) else False,
+    "not_in": lambda a, b: a not in b if isinstance(b, (list, tuple, set)) else True,
+}
+
 
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
@@ -101,25 +113,13 @@ def where(
     if not items:
         return []
 
-    # Operator functions
-    operators = {
-        "eq": lambda a, b: a == b,
-        "ne": lambda a, b: a != b,
-        "gt": lambda a, b: a > b,
-        "gte": lambda a, b: a >= b,
-        "lt": lambda a, b: a < b,
-        "lte": lambda a, b: a <= b,
-        "in": lambda a, b: a in b if isinstance(b, (list, tuple, set)) else False,
-        "not_in": lambda a, b: a not in b if isinstance(b, (list, tuple, set)) else True,
-    }
-
     # Normalize operator name (handle spaces and variations)
     operator_normalized = str(operator).lower().replace(" ", "_")
-    if operator_normalized not in operators:
+    if operator_normalized not in _OPERATORS:
         # Fallback to 'eq' for unknown operators
         operator_normalized = "eq"
 
-    compare = operators[operator_normalized]
+    compare = _OPERATORS[operator_normalized]
 
     result = []
     for item in items:

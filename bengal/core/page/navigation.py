@@ -18,7 +18,6 @@ from __future__ import annotations
 import threading
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-from weakref import WeakKeyDictionary
 
 from bengal.utils.paths.normalize import to_posix
 
@@ -27,23 +26,27 @@ if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.site import Site
 
-_index_cache: WeakKeyDictionary[Any, dict[int, int]] = WeakKeyDictionary()
+# id(pages) -> (mapping, key_id). Lists are not weakref-able, so we use id() keys
+# with bounded cache size. Typical builds have ~10-100 distinct page lists.
+_index_cache: dict[int, tuple[dict[int, int], int]] = {}
 _index_cache_lock = threading.Lock()
+_index_cache_max = 1000
 
 
 def _page_index_map(pages: list[Page] | tuple[Page, ...]) -> dict[int, int]:
     """Build id(page)->index map, cached per list identity."""
     key_id = id(pages)
-    cached = _index_cache.get(pages)
-    if cached is not None and getattr(cached, "_list_id", None) == key_id:
-        return cached
+    cached = _index_cache.get(key_id)
+    if cached is not None and cached[1] == key_id:
+        return cached[0]
     with _index_cache_lock:
-        cached = _index_cache.get(pages)
-        if cached is not None and getattr(cached, "_list_id", None) == key_id:
-            return cached
+        cached = _index_cache.get(key_id)
+        if cached is not None and cached[1] == key_id:
+            return cached[0]
         mapping: dict[int, int] = {id(p): i for i, p in enumerate(pages)}
-        mapping._list_id = key_id  # type: ignore[attr-defined]
-        _index_cache[pages] = mapping  # type: ignore[index]
+        if len(_index_cache) >= _index_cache_max:
+            _index_cache.clear()
+        _index_cache[key_id] = (mapping, key_id)
         return mapping
 
 

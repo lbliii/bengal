@@ -62,6 +62,7 @@ class KidaTemplateEngine:
         "_menu_dict_cache",
         "_profile",
         "_profiler",
+        "_template_deps_cache",
         "site",
         "template_dirs",
     )
@@ -101,6 +102,9 @@ class KidaTemplateEngine:
         self.template_dirs = self._build_template_dirs()
 
         # Legacy dependency tracking removed — EffectTracer handles this now
+
+        # Template dependency graph cache (IPA audit Task 9)
+        self._template_deps_cache: dict[str, set[str]] = {}
 
         # Template profiling support
         self._profile = profile
@@ -572,6 +576,17 @@ class KidaTemplateEngine:
             record_template_include,
         )
 
+        # IPA audit Task 9: use cached deps when available
+        if template_name in self._template_deps_cache:
+            cached = self._template_deps_cache[template_name]
+            for ref_name in cached:
+                if ref_name != template_name:
+                    record_template_include(ref_name)
+                    ref_path = self.get_template_path(ref_name)
+                    if ref_path:
+                        record_extra_dependency(ref_path)
+            return
+
         seen: set[str] = {template_name}
         to_process: list[str] = [template_name]
 
@@ -611,6 +626,9 @@ class KidaTemplateEngine:
             except AttributeError, TypeError, KeyError, OSError:
                 # Template analysis is optional - don't fail the build
                 continue
+
+        # IPA audit Task 9: cache transitive deps (exclude self)
+        self._template_deps_cache[template_name] = seen - {template_name}
 
     def _extract_referenced_templates(self, ast: Any) -> set[str]:
         """Extract all referenced template names from an AST.
@@ -870,6 +888,8 @@ class KidaTemplateEngine:
         """
         if has_clear_template_cache(self._env):
             self._env.clear_template_cache(names)
+        # IPA audit Task 9: clear template deps cache on template reload
+        self._template_deps_cache.clear()
 
     def precompile_templates(self, template_names: list[str] | None = None) -> int:
         """Pre-compile templates to warm the cache.

@@ -180,6 +180,15 @@ class BuildTaxonomyIndex:
         """
         return self.known_tags.copy()
 
+    def get_all_tag_slugs(self) -> set[str]:
+        """
+        Get all known tag slugs (alias for get_all_tags for API compatibility).
+
+        Returns:
+            Set of tag slugs
+        """
+        return self.get_all_tags()
+
     def clear(self) -> None:
         """Clear all taxonomy index data."""
         self.taxonomy_deps.clear()
