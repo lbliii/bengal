@@ -33,6 +33,10 @@ def _collect_registrations() -> tuple[dict[str, str], dict[str, str]]:
             super().__init__()
             self._out = out
 
+        def __setitem__(self, key: str, value: object) -> None:
+            super().__setitem__(key, value)
+            self._out[key] = getattr(value, "__name__", str(value))
+
         def update(self, other: object = (), /, **kw: object) -> None:
             super().update(other, **kw)
             d = dict(other) if isinstance(other, dict) else kw

@@ -1,4 +1,4 @@
-"""Scaling regression tests — assert that build phases stay linear.
+"""Scaling regression tests - assert that build phases stay linear.
 
 Runs timed builds at two page counts (SMALL, LARGE) and asserts the
 per-doubling ratio stays below LINEAR_THRESHOLD for every phase group.

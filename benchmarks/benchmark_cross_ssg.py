@@ -206,6 +206,8 @@ def _setup_pelican(root: Path, num_pages: int) -> list[str]:
     ]
 
 
+DEFAULT_SSGS = ("bengal", "mkdocs", "pelican")
+
 SSG_SETUP = {
     "bengal": _setup_bengal,
     "mkdocs": _setup_mkdocs,
@@ -435,7 +437,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    random.seed(42)
+    random.seed(42)  # Reproducible content for comparable runs
 
     if args.pages:
         scales = [args.pages]
@@ -444,9 +446,7 @@ def main() -> int:
     else:
         scales = [64, 256, 1024]
 
-    ssgs = (
-        [s.strip() for s in args.only.split(",")] if args.only else ["bengal", "mkdocs", "pelican"]
-    )
+    ssgs = [s.strip() for s in args.only.split(",")] if args.only else list(DEFAULT_SSGS)
 
     # Check availability
     available = {}
