@@ -27,6 +27,8 @@ Central command interface for Bengal development. Routes commands to specialized
 "::types": validation/type-audit     # Audit type system (run mypy, check Any)
 "::arch": validation/architecture-audit  # Check architecture compliance
 "::coverage": validation/test-coverage   # Analyze test coverage
+"::sdc-audit": validation/sdc-audit  # Set/dict/comprehension substitution audit
+"::flow-audit": validation/flow-audit  # Execution flow / pipeline efficiency audit
 
 # Implementation Guides
 "::new-directive": implementation/add-directive  # Guide: add MyST directive
@@ -85,7 +87,11 @@ examples:
   - "Check my changes are correct"
   - "Validate the type signatures"
   - "Audit the architecture compliance"
-routing: ::validate (or ::types / ::arch for specific audits)
+  - "Find set/dict/comprehension opportunities"
+  - "Data structure substitution audit"
+  - "Pipeline efficiency review"
+  - "Execution flow audit"
+routing: ::validate (or ::types / ::arch / ::sdc-audit / ::flow-audit for specific audits)
 ```
 
 ---
@@ -120,6 +126,10 @@ if intent == VALIDATE:
     use: ::types
   elif architecture_related:
     use: ::arch
+  elif set_dict_comprehension_related:
+    use: ::sdc-audit
+  elif pipeline_or_flow_related:
+    use: ::flow-audit
   else:
     use: ::validate
 ```
@@ -205,6 +215,7 @@ quality_gates:
 | Make changes | `::implement` | varies |
 | Verify quality | `::validate` | 10-15 min |
 | Check types | `::types` | 5 min |
+| Flow audit | `::flow-audit` | 10-15 min |
 | Full feature | `::workflow-feature` | 30-45 min |
 | Quick fix | `::workflow-fix` | 25-40 min |
 
@@ -258,6 +269,7 @@ Please provide more details or run `::research` first.
 - `validation/type-audit` - Type system audit with mypy
 - `validation/architecture-audit` - Architecture compliance
 - `validation/test-coverage` - Coverage analysis
+- `validation/flow-audit` - Execution flow / pipeline efficiency
 
 ### Implementation Guides
 - `implementation/type-first` - Type-first development
