@@ -327,6 +327,63 @@ Render phase (fully parallel, no locks):
 It is computed at the end of content phases via `page.finalize_identity()` and is
 immutable for the entire render phase.
 
+### @cached_property at the Boundary
+
+`@cached_property` is a common mechanism for lazy-computing data that crosses the
+build/render boundary. Since it writes to `instance.__dict__` without a lock,
+properties read during parallel render MUST either:
+
+1. Return immutable types (tuple, frozenset, frozen dataclass) so the race is benign
+2. Be pre-warmed during the sequential snapshot phase so they're already cached
+
+Properties that return mutable containers and are accessed during render are
+**data races** under 3.14t. Known properties that require immutable returns:
+
+| Property | File | Safe Return Type |
+|---|---|---|
+| `visibility` | `page/metadata.py` | `VisibilitySettings` (frozen dataclass) |
+| `regular_pages` | `section/queries.py` | `tuple[Page, ...]` |
+| `sorted_pages` | `section/queries.py` | `tuple[Page, ...]` |
+| `sorted_subsections` | `section/hierarchy.py` | `tuple[Section, ...]` |
+| `subsection_index_urls` | `section/navigation.py` | `frozenset[str]` |
+| `authors` | `page/__init__.py` | `tuple[Author, ...]` |
+
+See `modules/free-threading` for the full audit classification and decision tree.
+
+### Module-Level Cache Pattern
+
+Module-level mutable dicts used as caches MUST protect ALL access paths with a
+lock — including the "fast-path" read. Under free-threading, a concurrent `.clear()`
+or write can race with an unprotected `.get()`.
+
+```python
+# ❌ WRONG — fast-path read outside lock races with .clear()
+cached = _cache.get(key)
+if cached is not None:
+    return cached
+with _lock:
+    ...
+
+# ✅ CORRECT — all reads inside lock (uncontended after warm-up)
+with _lock:
+    cached = _cache.get(key)
+    if cached is not None:
+        return cached
+    result = compute()
+    _cache[key] = result
+    return result
+```
+
+Never use `.clear()` for cache eviction — it evicts all entries at once, causing a
+stampede where every thread misses and rebuilds simultaneously. Use LRU eviction:
+
+```python
+if len(_cache) >= _max_size:
+    to_remove = list(_cache.keys())[:len(_cache) // 2]
+    for k in to_remove:
+        del _cache[k]
+```
+
 ---
 
 ## Evidence

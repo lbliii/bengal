@@ -91,6 +91,10 @@ class BuildInput:
         """Create BuildInput from BuildRequest (e.g. in subprocess)."""
         from bengal.utils.observability.profile import BuildProfile
 
+        # IPA Finding 18: build changed_paths once, reuse for Options and Input
+        changed_sources = frozenset(Path(p) for p in request.changed_paths)
+        nav_changed_sources = frozenset(Path(p) for p in request.nav_changed_paths)
+
         profile = BuildProfile.from_string(request.profile)
         options = BuildOptions(
             force_sequential=request.force_sequential,
@@ -100,16 +104,15 @@ class BuildInput:
             explain=getattr(request, "explain", False),
             dry_run=getattr(request, "dry_run", False),
             profile_templates=getattr(request, "profile_templates", False),
-            changed_sources={Path(p) for p in request.changed_paths},
-            nav_changed_sources={Path(p) for p in request.nav_changed_paths},
+            changed_sources=changed_sources,
+            nav_changed_sources=nav_changed_sources,
             structural_changed=request.structural_changed,
         )
-        # IPA audit Task 10: use options.changed_sources (already a set)
         return cls(
             options=options,
             site_root=Path(request.site_root),
-            changed_sources=frozenset(options.changed_sources or ()),
-            nav_changed_sources=frozenset(options.nav_changed_sources or ()),
+            changed_sources=changed_sources,
+            nav_changed_sources=nav_changed_sources,
             structural_changed=request.structural_changed,
             version_scope=request.version_scope,
             output_dir_override=(

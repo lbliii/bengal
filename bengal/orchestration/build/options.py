@@ -98,8 +98,8 @@ class BuildOptions:
     profile_phases: bool = False
 
     # Incremental build hints (from dev server / file watcher)
-    changed_sources: set[Path] = field(default_factory=set)
-    nav_changed_sources: set[Path] = field(default_factory=set)
+    changed_sources: set[Path] | frozenset[Path] = field(default_factory=set)
+    nav_changed_sources: set[Path] | frozenset[Path] = field(default_factory=set)
     structural_changed: bool = False
 
     # Phase streaming callbacks (RFC: rfc-dashboard-api-integration)
