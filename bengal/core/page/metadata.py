@@ -366,10 +366,13 @@ class PageMetadataMixin:
         """
         Check if this is a generated page (tag indexes, archives, pagination).
 
-        Reads directly from _raw_metadata for O(1) dict lookup, avoiding the
-        full metadata property chain (cascade resolution, section_path computation).
+        Prefers _raw_metadata for O(1) dict lookup (avoids cascade resolution).
+        Falls back to metadata for compatibility with test mocks and proxies.
         """
-        return bool(self._raw_metadata.get("_generated"))
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return bool(raw.get("_generated"))
+        return bool(self.metadata.get("_generated"))
 
     @property
     def is_home(self) -> bool:
