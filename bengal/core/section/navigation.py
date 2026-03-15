@@ -34,11 +34,16 @@ Example:
 
 from __future__ import annotations
 
+import threading
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.utils.url import apply_baseurl, get_baseurl
 from bengal.utils.paths.url_normalization import split_url_path
+
+# Lock for initializing per-section cache locks (avoids race when two threads
+# first access the same section)
+_version_content_cache_init_lock = threading.Lock()
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -319,17 +324,26 @@ class SectionNavigationMixin:
         if version_id is None:
             return True
 
-        cache: dict[str, bool] | None = getattr(self, "_version_content_cache", None)
-        if cache is not None and version_id in cache:
-            return cache[version_id]
+        lock = getattr(self, "_version_content_cache_lock", None)
+        if lock is None:
+            with _version_content_cache_init_lock:
+                lock = getattr(self, "_version_content_cache_lock", None)
+                if lock is None:
+                    lock = threading.Lock()
+                    self._version_content_cache_lock = lock  # type: ignore[attr-defined]
 
-        result = self._compute_has_content_for_version(version_id)
+        with lock:
+            cache: dict[str, bool] | None = getattr(self, "_version_content_cache", None)
+            if cache is not None and version_id in cache:
+                return cache[version_id]
 
-        if cache is None:
-            cache = {}
-            self._version_content_cache = cache  # type: ignore[attr-defined]
-        cache[version_id] = result
-        return result
+            result = self._compute_has_content_for_version(version_id)
+
+            if cache is None:
+                cache = {}
+                self._version_content_cache = cache  # type: ignore[attr-defined]
+            cache[version_id] = result
+            return result
 
     def _compute_has_content_for_version(self, version_id: str) -> bool:
         """Compute version content check (uncached implementation)."""

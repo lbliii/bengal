@@ -45,6 +45,10 @@ class VisibilitySettings:
         """Allow dict-like access for backward compatibility (e.g. visibility['ai_train'])."""
         return getattr(self, key)
 
+    def get(self, key: str, default: bool | str = True) -> bool | str:
+        """Dict-like get for backward compatibility (e.g. visibility.get('menu', True))."""
+        return getattr(self, key, default)
+
 
 class CascadeBlock(TypedDict, total=False):
     """Cascade block from _index.md frontmatter."""

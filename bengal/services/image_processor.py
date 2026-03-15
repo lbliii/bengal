@@ -202,7 +202,8 @@ class ImageProcessor:
             emit(self.site, "error", "unknown_operation", operation=operation)
             return None
 
-        output_format = params.format or source.suffix[1:].lower()
+        suffix = (source.suffix or ".png")[1:].lower()
+        output_format = params.format or suffix or "png"
         if output_format == "jpg":
             output_format = "jpeg"
         output_ext = "jpg" if output_format == "jpeg" else output_format

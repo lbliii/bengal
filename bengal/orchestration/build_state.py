@@ -79,6 +79,7 @@ class BuildState:
         template_metadata_cache: Cached template metadata
         asset_manifest_previous: Previous manifest for incremental comparison
         asset_manifest_fallbacks: Set of fallback warnings already emitted
+        dev_menu_metadata: Dev menu metadata (exclude_sections, github_bundled)
 
     """
 
@@ -114,6 +115,9 @@ class BuildState:
     # Asset manifest state
     asset_manifest_previous: Any = None
     asset_manifest_fallbacks: set[str] = field(default_factory=set)
+
+    # Dev menu metadata (exclude_sections, github_bundled) — populated by menu orchestrator
+    dev_menu_metadata: dict[str, Any] = field(default_factory=dict)
 
     # Thread-safe locks - guarded by _locks_guard for atomic creation
     _locks: dict[str, Lock] = field(default_factory=dict)

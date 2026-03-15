@@ -29,11 +29,14 @@ SHORTCODE_OPENING = re.compile(
 def shortcodes_used_in_content(content: str) -> frozenset[str]:
     """Extract shortcode names used in content ({{< name or {{% name)."""
     names: set[str] = set()
-    for pattern in (SHORTCODE_OPENING, SHORTCODE_SELF_CLOSING):
-        for m in pattern.finditer(content):
-            name = m.group(2).strip()
-            if name and not name.startswith("/"):
-                names.add(name)
+    for m in SHORTCODE_OPENING.finditer(content):
+        name = m.group(2).strip()
+        if name and not name.startswith("/"):
+            names.add(name)
+    for m in SHORTCODE_SELF_CLOSING.finditer(content):
+        name = m.group(1).strip()  # name is group 1; group 2 is optional args
+        if name:
+            names.add(name)
     return frozenset(names)
 
 

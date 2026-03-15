@@ -57,8 +57,10 @@ def base_url_for_relative_link(page_url: str, source_path: str | Path | None = N
     Returns:
         Base URL to pass to `urljoin`
     """
+    # Section index pages own the directory URL; use it as base for ./child/
     if source_path is not None and Path(source_path).name == "_index.md":
         return page_url if page_url.endswith("/") else page_url + "/"
+    # Regular pages: resolve sibling links from parent section URL
     return parent_url_from_page_url(page_url)
 
 
