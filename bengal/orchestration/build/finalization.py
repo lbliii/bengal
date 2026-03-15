@@ -315,7 +315,7 @@ def phase_save_provenance(orchestrator: BuildOrchestrator) -> None:
 
     """
     if hasattr(orchestrator, "_provenance_filter"):
-        from bengal.orchestration.build.provenance_filter import save_provenance_cache
+        from bengal.orchestration.build.provenance_orchestration import save_provenance_cache
 
         orchestrator._provenance_filter.cache.set_build_id(getattr(orchestrator, "_build_id", None))
         save_provenance_cache(orchestrator)

@@ -159,7 +159,7 @@ Left unaddressed, these erode the model/orchestrator boundary that enables safe 
 
 **Goal**: No file exceeds 800 lines. Files over 1,000 lines are split into packages.
 
-### Task 4.1 — Convert `core/nav_tree.py` (845 lines) to package
+### Task 4.1 — Convert `core/nav_tree.py` (845 lines) to package ✅
 
 | Field | Value |
 |-------|-------|
