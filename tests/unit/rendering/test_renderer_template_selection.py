@@ -33,6 +33,10 @@ class MockTemplateEngine:
         """Check if a template exists (protocol method)."""
         return name in self.available_templates
 
+    def get_template_path(self, name: str) -> Path | None:
+        """Resolve template name to path (protocol method)."""
+        return Path(name) if name in self.available_templates else None
+
 
 class TestTemplateSelection:
     """Tests for Renderer._get_template_name() logic."""

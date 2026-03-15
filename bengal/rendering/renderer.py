@@ -547,14 +547,15 @@ class Renderer:
         in the SectionOrchestrator, so we do not re-sort here.
         """
 
-        section = page.metadata.get("_section") if page.metadata is not None else None
-        all_posts = (
-            page.metadata.get("_posts", []) if page.metadata is not None else []
-        )  # Already filtered & sorted!
-        page_metadata = page.metadata if page.metadata is not None else {}
-        subsections = page_metadata.get("_subsections", [])
-        paginator = page_metadata.get("_paginator")
-        page_num = coerce_int(page_metadata.get("_page_num"), 1)
+        section = getattr(page, "internal_section", None)
+        if section is None and page.metadata is not None:
+            section = page.metadata.get("_section")
+        all_posts = getattr(page, "internal_posts", None)
+        if all_posts is None:
+            all_posts = page.metadata.get("_posts", []) if page.metadata is not None else []
+        subsections = getattr(page, "internal_subsections", None) or []
+        paginator = getattr(page, "internal_paginator", None)
+        page_num = coerce_int(getattr(page, "internal_page_num", 1), 1)
 
         if paginator:
             posts = paginator.page(page_num)
@@ -597,9 +598,9 @@ class Renderer:
 
     def _add_tag_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
         """Add context for an individual tag page."""
-        tag_name = page.metadata.get("_tag")
-        tag_slug = page.metadata.get("_tag_slug")
-        page_num = coerce_int(page.metadata.get("_page_num"), 1)
+        tag_name = getattr(page, "tag_name", None) or page.metadata.get("_tag")
+        tag_slug = getattr(page, "tag_slug", None) or page.metadata.get("_tag_slug")
+        page_num = coerce_int(getattr(page, "internal_page_num", 1), 1)
 
         # PERF: Use cached resolved tag pages instead of filtering on each render.
         # Cache is built once per Renderer instance and reused across all tag page renders.
@@ -608,7 +609,7 @@ class Renderer:
 
         # Fallback: Try to resolve from stored metadata if cache yielded nothing
         if not all_posts and page.metadata is not None:
-            stored_posts = page.metadata.get("_posts", [])
+            stored_posts = getattr(page, "internal_posts", None) or page.metadata.get("_posts", [])
             if stored_posts:
                 str_page_map = self.site.get_page_path_map()
                 for stored_item in stored_posts:
@@ -624,8 +625,7 @@ class Renderer:
                         if resolved_page:
                             all_posts.append(resolved_page)
 
-        page_metadata = page.metadata if page.metadata is not None else {}
-        paginator = page_metadata.get("_paginator")
+        paginator = getattr(page, "internal_paginator", None)
 
         if all_posts:
             total_posts_count = len(all_posts)
@@ -725,7 +725,7 @@ class Renderer:
         self, page: PageLike, context: dict[str, Any]
     ) -> None:
         """Add context for the tag index page."""
-        tags = page.metadata.get("_tags", {})
+        tags = getattr(page, "internal_tags_index", None) or {}
 
         tags_list = [
             {
@@ -844,23 +844,17 @@ class Renderer:
         """
         Check if a template exists in any template directory.
 
+        Uses get_template_path (lightweight path check) instead of get_template
+        (full load/compile) to avoid O(N) template loads during section-based
+        resolution. IPA audit Finding 2.
+
         Args:
             template_name: Template filename or path
 
         Returns:
             True if template exists, False otherwise
         """
-        try:
-            self.template_engine.env.get_template(template_name)
-            return True
-        except Exception as e:
-            logger.debug(
-                "template_check_failed",
-                template=template_name,
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-            return False
+        return self.template_engine.get_template_path(template_name) is not None
 
     def _get_site_title(self) -> str:
         """Get site title from config, supporting both Config and dict."""
