@@ -1,0 +1,312 @@
+---
+description: Detect inefficient execution flow, multi-pass pipelines, and unnecessary intermediate structures
+alwaysApply: false
+globs: ["bengal/**/*.py", "tests/**/*.py"]
+---
+
+# FLOW Audit (Execution Flow / Pipeline Audit)
+
+Find places where the program performs unnecessary work across the **entire execution path**.
+
+This audit operates **one level above interaction pattern audits**.
+Instead of examining individual functions or component interactions, this audit evaluates the **shape of the data flow and processing pipeline**.
+
+Focus on identifying when code:
+
+- performs multiple passes over the same data
+- creates unnecessary intermediate structures
+- recomputes derived data repeatedly
+- materializes results earlier than necessary
+- walks the same graph or tree multiple times
+
+**Goal:** Reduce the total amount of work required to produce the final output.
+
+**Shortcut:** `::flow-audit`
+
+Works well alongside:
+- `sdc-audit`
+- `ipa-audit`
+
+---
+
+# Overview
+
+Many inefficiencies appear when code is correct locally but inefficient globally.
+
+For example:
+
+```
+filter → transform → sort → aggregate
+```
+
+Each stage may scan the entire dataset separately.
+
+This audit identifies when pipelines can be:
+
+- merged
+- reordered
+- streamed
+- cached
+- or reduced to a single traversal.
+
+---
+
+# High Signal Indicators
+
+Investigate immediately when you see:
+
+- multiple passes over the same list
+- chained comprehensions producing intermediate lists
+- repeated tree or graph traversals
+- derived structures rebuilt frequently
+- `list()` used on generators unnecessarily
+- functions that walk the same dataset repeatedly
+- early materialization of large results
+
+---
+
+# Flow Symptoms
+
+## 1. Multi-Pass Pipelines
+
+### Symptom
+
+```
+filtered = [x for x in items if cond(x)]
+sorted_items = sorted(filtered)
+result = [transform(x) for x in sorted_items]
+```
+
+### Problem
+
+Multiple passes over the same dataset.
+
+### Suggested Fix
+
+Combine stages when possible.
+
+```
+sorted(transform(x) for x in items if cond(x))
+```
+
+Or delay sorting until necessary.
+
+---
+
+## 2. Intermediate Structure Explosion
+
+### Symptom
+
+```
+ids = [x.id for x in items]
+unique_ids = set(ids)
+```
+
+### Problem
+
+Temporary list created only to build another structure.
+
+### Suggested Fix
+
+```
+unique_ids = {x.id for x in items}
+```
+
+---
+
+## 3. Recomputing Derived Data
+
+### Symptom
+
+```
+def resolve(user_id):
+    roles = load_roles()
+    return roles[user_id]
+```
+
+Called repeatedly.
+
+### Problem
+
+Derived data recomputed on every call.
+
+### Suggested Fix
+
+Cache or compute once.
+
+```
+roles = load_roles()
+```
+
+Reuse where needed.
+
+---
+
+## 4. Repeated Graph or Tree Traversals
+
+### Symptom
+
+```
+validate(tree)
+resolve(tree)
+serialize(tree)
+```
+
+Each function walks the entire structure.
+
+### Problem
+
+Multiple full traversals.
+
+### Suggested Fix
+
+Combine operations into a single traversal when possible.
+
+---
+
+## 5. Early Materialization
+
+### Symptom
+
+```
+results = list(generator())
+```
+
+When only iteration is needed.
+
+### Problem
+
+Entire dataset materialized unnecessarily.
+
+### Suggested Fix
+
+Stream results directly.
+
+```
+for item in generator():
+```
+
+---
+
+## 6. Work Performed Too Early
+
+### Symptom
+
+```
+all_results = expensive_search()
+filtered = [x for x in all_results if cond(x)]
+```
+
+### Problem
+
+Filtering happens after expensive computation.
+
+### Suggested Fix
+
+Push filtering into the search step if possible.
+
+---
+
+## 7. Repeated Sorting
+
+### Symptom
+
+```
+sorted(items)
+```
+
+Called multiple times in different functions.
+
+### Problem
+
+Repeated expensive operation.
+
+### Suggested Fix
+
+Sort once or maintain sorted structures.
+
+---
+
+# Grep-Friendly Searches
+
+```
+rg "\[.*for.*in.*\]" bengal/
+rg "sorted\(" bengal/
+rg "list\(" bengal/
+rg "set\(" bengal/
+rg "for .* in .*:\n" bengal/
+rg "return \[" bengal/
+```
+
+Look for repeated passes or temporary structures.
+
+---
+
+# Procedure
+
+### Step 1
+
+Identify pipelines that process the same dataset multiple times.
+
+### Step 2
+
+Check for intermediate structures that exist only briefly.
+
+### Step 3
+
+Look for repeated traversals of the same object graph.
+
+### Step 4
+
+Determine whether operations can be merged into a single pass.
+
+### Step 5
+
+Check whether lazy evaluation or streaming could reduce work.
+
+---
+
+# Output Format
+
+```
+## FLOW Audit: [Path/Module]
+
+### Findings
+
+| File | Line | Flow Issue | Suggested Fix |
+|-----|-----|-----|-----|
+| pipeline.py | 72 | Three-pass pipeline | Combine filter + transform |
+| resolver.py | 144 | Repeated role loading | Cache roles |
+| tree.py | 93 | Multiple graph traversals | Combine passes |
+
+### Summary
+
+High: repeated traversals or large multi-pass pipelines
+Medium: intermediate structures
+Low: minor extra passes
+```
+
+---
+
+# Integration
+
+Run when:
+
+- reviewing execution pipelines
+- optimizing large datasets
+- profiling performance
+- before performance-sensitive releases
+
+Triggers:
+
+- `::flow-audit`
+- "execution flow audit"
+- "pipeline efficiency review"
+
+---
+
+# Related
+
+- `sdc-audit` — micro data-structure substitutions
+- `ipa-audit` — interaction pattern efficiency
+- `architecture-audit` — system design and responsibility boundaries
