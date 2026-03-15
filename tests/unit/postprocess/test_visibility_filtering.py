@@ -6,6 +6,8 @@ hidden/visibility-filtered pages.
 
 from unittest.mock import MagicMock
 
+from bengal.core.page.types import VisibilitySettings
+
 
 class TestSitemapVisibilityFiltering:
     """Test that sitemap generator respects visibility settings."""
@@ -142,29 +144,29 @@ class TestNavigationVisibilityFiltering:
     def test_navigation_excludes_menu_false(self):
         """Navigation should exclude pages with visibility.menu: false."""
         page = MagicMock()
-        page.visibility = {"menu": False}
+        page.visibility = VisibilitySettings(menu=False)
 
         pages = [page]
-        in_menu_pages = [p for p in pages if p.visibility.get("menu", True)]
+        in_menu_pages = [p for p in pages if p.visibility.menu]
 
         assert len(in_menu_pages) == 0
 
     def test_navigation_excludes_hidden(self):
         """Navigation should exclude hidden pages."""
         page = MagicMock()
-        page.visibility = {"menu": False}  # hidden expands to menu: false
+        page.visibility = VisibilitySettings(menu=False)  # hidden expands to menu: false
 
         pages = [page]
-        in_menu_pages = [p for p in pages if p.visibility.get("menu", True)]
+        in_menu_pages = [p for p in pages if p.visibility.menu]
 
         assert len(in_menu_pages) == 0
 
     def test_navigation_includes_regular_pages(self):
         """Navigation should include regular pages."""
         page = MagicMock()
-        page.visibility = {"menu": True}
+        page.visibility = VisibilitySettings(menu=True)
 
         pages = [page]
-        in_menu_pages = [p for p in pages if p.visibility.get("menu", True)]
+        in_menu_pages = [p for p in pages if p.visibility.menu]
 
         assert len(in_menu_pages) == 1

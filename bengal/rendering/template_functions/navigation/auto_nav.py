@@ -63,7 +63,10 @@ def _build_section_menu_item(
         # Check visibility system (hidden: true or visibility.menu: false)
         if hasattr(index_page, "visibility"):
             visibility = index_page.visibility
-            if not visibility.get("menu", True):
+            menu_visible = (
+                visibility.menu if hasattr(visibility, "menu") else visibility.get("menu", True)
+            )
+            if not menu_visible:
                 section_hidden = True
 
         # Get nav_title (short) or title from frontmatter if available
@@ -116,7 +119,8 @@ def _build_root_page_menu_item(page: Any) -> dict[str, Any] | None:
         isinstance(menu_setting, dict) and menu_setting.get("main") is False
     ):
         return None
-    if hasattr(page, "visibility") and page.visibility and not page.visibility.get("menu", True):
+    vis = getattr(page, "visibility", None)
+    if vis is not None and not (vis.menu if hasattr(vis, "menu") else vis.get("menu", True)):
         return None
     page_url = getattr(page, "_path", None) or "/"
     page_title = get_nav_title(page, getattr(page, "title", "Untitled"))
