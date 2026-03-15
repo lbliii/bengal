@@ -49,15 +49,9 @@ bengal.orchestration.content: Content discovery and page creation
 from __future__ import annotations
 
 import threading
-from collections.abc import Mapping
 from dataclasses import dataclass, field
-from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
-
-from bengal.core.cascade import CascadeSnapshot, CascadeView
-from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.protocols import SiteLike
 
 if TYPE_CHECKING:
     from bengal.core.author import Author
@@ -67,13 +61,16 @@ if TYPE_CHECKING:
     from bengal.parsing.ast.types import ASTNode
     from bengal.utils.pagination import Paginator
 
-from .bundle import BundleType, PageResource, PageResources
+from .bundle import BundleType, PageBundleMixin, PageResource, PageResources
+from .computed import PageComputedMixin
 from .content import PageContentMixin
 from .frontmatter import Frontmatter
 from .metadata import PageMetadataMixin
+from .navigation import PageNavigationMixin
 from .operations import PageOperationsMixin
 from .page_core import PageCore
 from .page_identity import PageIdentity
+from .page_section import PageSectionMixin
 from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
 from .types import TOCItem
@@ -83,7 +80,11 @@ from .utils import normalize_tags
 @dataclass
 class Page(
     PageMetadataMixin,
+    PageSectionMixin,
     PageRelationshipsMixin,
+    PageNavigationMixin,
+    PageBundleMixin,
+    PageComputedMixin,
     PageOperationsMixin,
     PageContentMixin,
 ):
@@ -223,7 +224,7 @@ class Page(
     _frontmatter: Frontmatter | None = field(default=None, init=False, repr=False)
 
     # Cache for CascadeView (invalidated when site/section changes)
-    _metadata_view_cache: CascadeView | None = field(default=None, init=False, repr=False)
+    _metadata_view_cache: Any = field(default=None, init=False, repr=False)
     _metadata_view_cache_key: tuple[int, str] | None = field(default=None, init=False, repr=False)
     # Cached section path string (avoids pathlib.relative_to on every .metadata access)
     _cached_section_path_str: str | None = field(default=None, init=False, repr=False)
@@ -322,52 +323,6 @@ class Page(
             href=self.href,
         )
 
-    @property
-    def metadata(self) -> Mapping[str, Any]:
-        """Return combined frontmatter + cascade metadata as CascadeView.
-
-        Cost: O(1) cached after first access per cascade snapshot. First access
-        with _cached_section_path_str unset: O(n) pathlib.relative_to.
-
-        Hot-path alternative: page.identity for boolean flags and pre-computed strings.
-        """
-        # During early construction or without site, return raw metadata
-        if self._site is None:
-            return self._raw_metadata
-
-        # Get cascade snapshot from site
-        cascade = getattr(self._site, "cascade", None)
-        if cascade is None or not isinstance(cascade, CascadeSnapshot):
-            return self._raw_metadata
-
-        # Use cached section path string (avoids pathlib.relative_to per access)
-        section_path = self._cached_section_path_str
-        if section_path is None:
-            if self._section_path:
-                try:
-                    content_dir = self._site.root_path / "content"
-                    section_path = str(self._section_path.relative_to(content_dir))
-                except ValueError, AttributeError:
-                    section_path = str(self._section_path)
-            else:
-                section_path = ""
-            self._cached_section_path_str = section_path
-
-        # Check cache validity (site id + section path)
-        cache_key = (id(cascade), section_path)
-        if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
-            return self._metadata_view_cache
-
-        # Create and cache new CascadeView
-        view = CascadeView.for_page(
-            frontmatter=self._raw_metadata,
-            section_path=section_path,
-            snapshot=cascade,
-        )
-        self._metadata_view_cache = view
-        self._metadata_view_cache_key = cache_key
-        return view
-
     def _init_core_from_fields(self) -> None:
         """
         Initialize PageCore from Page fields.
@@ -454,66 +409,6 @@ class Page(
         if updates:
             self.core = replace(self.core, **updates)
 
-    @property
-    def is_virtual(self) -> bool:
-        """
-        Check if this is a virtual page (not backed by a disk file).
-
-        Cost: O(1) — direct field read.
-
-        Virtual pages are used for:
-        - API documentation generated from Python source code
-        - Dynamically-generated content from external sources
-        - Content that doesn't have a corresponding content/ file
-
-        Returns:
-            True if this page is virtual (not backed by a disk file)
-        """
-        return self._virtual
-
-    @property
-    def template_name(self) -> str | None:
-        """
-        Get custom template name for this page.
-
-        Cost: O(1) — direct field read.
-
-        Virtual pages may specify a custom template for rendering.
-        Returns None to use the default template selection logic.
-        """
-        return self._template_name
-
-    @property
-    def prerendered_html(self) -> str | None:
-        """
-        Get pre-rendered HTML for virtual pages.
-
-        Cost: O(1) — direct field read.
-
-        Virtual pages with pre-rendered HTML bypass markdown parsing
-        and use this HTML directly in the template.
-        """
-        return self._prerendered_html
-
-    @property
-    def frontmatter(self) -> Frontmatter:
-        """
-        Typed access to frontmatter fields.
-
-        Cost: O(1) cached — first access O(n) for metadata keys via Frontmatter.from_dict.
-
-        Lazily created from metadata dict on first access.
-
-        Example:
-            >>> page.frontmatter.title  # Typed: str
-            'My Post'
-            >>> page.frontmatter["title"]  # Dict syntax for templates
-            'My Post'
-        """
-        if self._frontmatter is None:
-            self._frontmatter = Frontmatter.from_dict(self.metadata)
-        return self._frontmatter
-
     @classmethod
     def create_virtual(
         cls,
@@ -573,18 +468,6 @@ class Page(
 
         return page
 
-    @property
-    def relative_path(self) -> str:
-        """
-        Get relative path string (alias for source_path as string).
-
-        Cost: O(1) — direct field read.
-
-        Used by templates and filtering where a string path is expected.
-        This provides convenience.
-        """
-        return str(self.source_path)
-
     def __hash__(self) -> int:
         """
         Hash based on source_path for stable identity.
@@ -616,430 +499,6 @@ class Page(
         if not isinstance(other, Page):
             return NotImplemented
         return self.source_path == other.source_path
-
-    def __repr__(self) -> str:
-        return f"Page(title='{self.title}', source='{self.source_path}')"
-
-    def _format_path_for_log(self, path: Path | str | None) -> str | None:
-        """
-        Format a path as relative to site root for logging.
-
-        Makes paths relative to the site root directory to avoid showing
-        user-specific absolute paths in logs and warnings.
-
-        Args:
-            path: Path to format (can be Path, str, or None)
-
-        Returns:
-            Relative path string, or None if path was None
-        """
-        from bengal.utils.primitives.text import format_path_for_display
-
-        base_path = None
-        if self._site is not None and isinstance(self._site, SiteLike):
-            base_path = self._site.root_path
-
-        return format_path_for_display(path, base_path)
-
-    @property
-    def _section(self) -> Section | None:
-        """
-        Get the section this page belongs to (lazy lookup via path or URL).
-
-        Cost: O(1) cached — first access O(1) registry lookup.
-
-        This property performs a path-based or URL-based lookup in the site's
-        section registry, enabling stable section references across rebuilds
-        when Section objects are recreated.
-
-        Virtual sections (path=None) use URL-based lookups via _section_url.
-        Regular sections use path-based lookups via _section_path.
-
-        Returns:
-            Section object if found, None if page has no section or section not found
-
-        Implementation Note:
-            Uses counter-gated warnings to prevent log spam when sections are
-            missing (warns first 3 times, shows summary, then silent).
-
-        See Also:
-            plan/active/rfc-page-section-reference-contract.md
-        """
-        # No section reference at all
-        if self._section_path is None and self._section_url is None:
-            return None
-
-        if self._site is None:
-            # Warn globally about missing site reference (class-level counter)
-            warn_key = "missing_site"
-            with self._warnings_lock:
-                if self._global_missing_section_warnings.get(warn_key, 0) < 3:
-                    emit_diagnostic(
-                        self,
-                        "warning",
-                        "page_section_lookup_no_site",
-                        page=self._format_path_for_log(self.source_path),
-                        section_path=self._format_path_for_log(self._section_path),
-                        section_url=self._section_url,
-                    )
-                    # Bound the warning dict to prevent unbounded growth
-                    if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
-                        # Remove oldest entry (first key in dict)
-                        first_key = next(iter(self._global_missing_section_warnings))
-                        del self._global_missing_section_warnings[first_key]
-                    self._global_missing_section_warnings[warn_key] = (
-                        self._global_missing_section_warnings.get(warn_key, 0) + 1
-                    )
-            return None
-
-        # Cache key ties the resolved section to the active site object + reference fields + registry epoch.
-        # This keeps lookups O(1) after the first resolution within a build.
-        # The epoch ensures cache invalidation when sections are re-registered.
-        epoch = self._site.registry.epoch if hasattr(self._site, "registry") else 0
-        cache_key = (id(self._site), epoch, self._section_path, self._section_url)
-        if self._section_obj_cache_key == cache_key:
-            cached = self._section_obj_cache
-            return None if cached is self._SECTION_NOT_FOUND else cached
-
-        # Perform O(1) lookup via appropriate registry (but may be non-trivial due to normalization)
-        if self._section_path is not None:
-            # Regular section: path-based lookup
-            section = self._site.get_section_by_path(self._section_path)
-        else:
-            # Virtual section: URL-based lookup
-            section = self._site.get_section_by_url(self._section_url)
-
-        if section is None:
-            # Counter-gated warning to prevent log spam (class-level counter)
-            warn_key = str(self._section_path or self._section_url)
-            with self._warnings_lock:
-                count = self._global_missing_section_warnings.get(warn_key, 0)
-
-                if count < 3:
-                    emit_diagnostic(
-                        self,
-                        "warning",
-                        "page_section_not_found",
-                        page=self._format_path_for_log(self.source_path),
-                        section_path=self._format_path_for_log(self._section_path),
-                        section_url=self._section_url,
-                        count=count + 1,
-                    )
-                    # Bound the warning dict to prevent unbounded growth
-                    if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
-                        # Remove oldest entry (first key in dict)
-                        first_key = next(iter(self._global_missing_section_warnings))
-                        del self._global_missing_section_warnings[first_key]
-                    self._global_missing_section_warnings[warn_key] = count + 1
-                elif count == 3:
-                    # Show summary after 3rd warning, then go silent
-                    emit_diagnostic(
-                        self,
-                        "warning",
-                        "page_section_not_found_summary",
-                        page=self._format_path_for_log(self.source_path),
-                        section_path=self._format_path_for_log(self._section_path),
-                        section_url=self._section_url,
-                        total_warnings=count + 1,
-                        note="Further warnings for this section will be suppressed",
-                    )
-                    # Bound the warning dict to prevent unbounded growth
-                    if len(self._global_missing_section_warnings) >= self._MAX_WARNING_KEYS:
-                        # Remove oldest entry (first key in dict)
-                        first_key = next(iter(self._global_missing_section_warnings))
-                        del self._global_missing_section_warnings[first_key]
-                    self._global_missing_section_warnings[warn_key] = count + 1
-
-        # Cache both hits and misses (misses use a sentinel).
-        self._section_obj_cache_key = cache_key
-        self._section_obj_cache = section if section is not None else self._SECTION_NOT_FOUND
-        return section
-
-    @_section.setter
-    def _section(self, value: Section | None) -> None:
-        """
-        Set the section this page belongs to (stores path or URL, not object).
-
-        This setter extracts the path (or URL for virtual sections) from the
-        Section object and stores it, enabling stable references when Section
-        objects are recreated during incremental rebuilds.
-
-        For virtual sections (path=None), stores relative_url in _section_url.
-        For regular sections, stores path in _section_path.
-
-        Args:
-            value: Section object or None
-
-        See Also:
-            plan/active/rfc-page-section-reference-contract.md
-        """
-        if value is None:
-            self._section_path = None
-            self._section_url = None
-        elif value.path is not None:
-            # Regular section: use path for lookup
-            self._section_path = value.path
-            self._section_url = None
-        else:
-            # Virtual section: use _path for lookup
-            self._section_path = None
-            self._section_url = getattr(value, "_path", None) or f"/{value.name}/"
-
-        # Invalidate resolved section cache and section path string cache.
-        self._section_obj_cache_key = None
-        self._section_obj_cache = None
-        self._cached_section_path_str = None
-
-    @property
-    def section_path(self) -> str | None:
-        """
-        Get the section path as a string.
-
-        Cost: O(1) — direct field read.
-
-        Returns the path to the section this page belongs to, or None if
-        the page doesn't belong to a section.
-
-        Returns:
-            Section path as string (e.g., "docs/guides") or None
-        """
-        return str(self._section_path) if self._section_path else None
-
-    # ------------------------------------------------------------------
-    # Navigation properties (delegate to free functions in navigation.py)
-    # ------------------------------------------------------------------
-
-    @property
-    def next(self) -> Page | None:
-        """Next page in site collection.
-
-        Cost: O(1) — delegates to get_next_page (cached index map).
-        """
-        from bengal.core.page.navigation import get_next_page
-
-        return get_next_page(self, self._site)
-
-    @property
-    def prev(self) -> Page | None:
-        """Previous page in site collection.
-
-        Cost: O(1) — delegates to get_prev_page (cached index map).
-        """
-        from bengal.core.page.navigation import get_prev_page
-
-        return get_prev_page(self, self._site)
-
-    @property
-    def next_in_section(self) -> Page | None:
-        """Next page in current section.
-
-        Cost: O(n) — iterates section pages; worst case to skip index pages.
-        """
-        from bengal.core.page.navigation import get_next_in_section
-
-        return get_next_in_section(self, self._section)
-
-    @property
-    def prev_in_section(self) -> Page | None:
-        """Previous page in current section.
-
-        Cost: O(n) — iterates section pages; worst case to skip index pages.
-        """
-        from bengal.core.page.navigation import get_prev_in_section
-
-        return get_prev_in_section(self, self._section)
-
-    @property
-    def parent(self) -> Section | None:
-        """Parent section of this page.
-
-        Cost: O(1) cached — delegates to _section.
-        """
-        return self._section
-
-    @cached_property
-    def ancestors(self) -> tuple[Section, ...]:
-        """Ancestor sections from immediate parent to root.
-
-        Cost: O(d) cached — proportional to tree depth, computed once.
-        """
-        from bengal.core.page.navigation import get_ancestors
-
-        return tuple(get_ancestors(self._section))
-
-    # ------------------------------------------------------------------
-    # Bundle properties (delegate to free functions in bundle.py)
-    # ------------------------------------------------------------------
-
-    @cached_property
-    def bundle_type(self) -> BundleType:
-        """Bundle type classification (LEAF, BRANCH, or NONE).
-
-        Cost: O(1) cached — path operations.
-        """
-        from bengal.core.page.bundle import get_bundle_type
-
-        return get_bundle_type(self.source_path)
-
-    @property
-    def is_bundle(self) -> bool:
-        """True if this page is a leaf bundle with resources.
-
-        Cost: O(1) cached — delegates to bundle_type.
-        """
-        return self.bundle_type == BundleType.LEAF
-
-    @property
-    def is_branch_bundle(self) -> bool:
-        """True if this page is a branch bundle (section index).
-
-        Cost: O(1) cached — delegates to bundle_type.
-        """
-        return self.bundle_type == BundleType.BRANCH
-
-    @cached_property
-    def resources(self) -> PageResources:
-        """Get resources co-located with this page bundle.
-
-        Cost: O(DISK) cached — directory listing on first access.
-        """
-        from bengal.core.page.bundle import get_resources
-
-        return get_resources(self.source_path, getattr(self, "url", "/"))
-
-    # ------------------------------------------------------------------
-    # Computed properties (delegate to free functions in computed.py)
-    # ------------------------------------------------------------------
-
-    @property
-    def _source(self) -> str:
-        """Raw markdown source content.
-
-        Cost: O(1) — direct field read.
-        """
-        return self._raw_content
-
-    def HasShortcode(self, name: str) -> bool:
-        """Return True if page content uses the given shortcode."""
-        from bengal.utils.shortcodes import has_shortcode
-
-        return has_shortcode(self, name)
-
-    @cached_property
-    def word_count(self) -> int:
-        """Word count from source markdown.
-
-        Cost: O(n) cached — n = content length.
-        """
-        from bengal.core.page.computed import compute_word_count
-
-        return compute_word_count(self._raw_content)
-
-    @cached_property
-    def meta_description(self) -> str:
-        """SEO-friendly meta description (max 160 chars).
-
-        Cost: O(1) cached if AST-extracted; O(n) cached otherwise (n = content length).
-        """
-        # Prefer AST-extracted meta description set by pipeline (Patitas parse-once path)
-        if getattr(self, "_meta_description", None) is not None:
-            return self._meta_description
-        from bengal.core.page.computed import compute_meta_description
-
-        return compute_meta_description(self.metadata, self._raw_content)
-
-    @cached_property
-    def reading_time(self) -> int:
-        """Estimated reading time in minutes (minimum 1).
-
-        Cost: O(1) cached — delegates to word_count.
-        """
-        from bengal.core.page.computed import compute_reading_time
-
-        return compute_reading_time(self.word_count)
-
-    @cached_property
-    def excerpt(self) -> str:
-        """Content excerpt for listings (max 250 chars).
-
-        Cost: O(1) cached if AST-extracted; O(n) cached otherwise (n = content length).
-        """
-        # Prefer AST-extracted excerpt set by pipeline (Patitas parse-once path)
-        if getattr(self, "_excerpt", None) is not None:
-            return self._excerpt
-        from bengal.core.page.computed import compute_excerpt
-
-        return compute_excerpt(self._raw_content)
-
-    @cached_property
-    def age_days(self) -> int:
-        """Days since publication.
-
-        Cost: O(1) cached.
-        """
-        from bengal.core.page.computed import compute_age_days
-
-        return compute_age_days(self.date)
-
-    @cached_property
-    def age_months(self) -> int:
-        """Months since publication.
-
-        Cost: O(1) cached.
-        """
-        from bengal.core.page.computed import compute_age_months
-
-        return compute_age_months(self.date)
-
-    @cached_property
-    def author(self) -> Author | None:
-        """Primary author as Author object.
-
-        Cost: O(n) cached — n = metadata keys.
-        """
-        from bengal.core.page.computed import get_primary_author
-
-        return get_primary_author(self.metadata)
-
-    @cached_property
-    def authors(self) -> tuple[Author, ...]:
-        """All authors as tuple of Author objects.
-
-        Cost: O(n) cached — n = metadata keys.
-        """
-        from bengal.core.page.computed import get_all_authors
-
-        return tuple(get_all_authors(self.metadata))
-
-    @cached_property
-    def series(self) -> Series | None:
-        """Series info as Series object.
-
-        Cost: O(n) cached — n = metadata keys.
-        """
-        from bengal.core.page.computed import get_series_info
-
-        return get_series_info(self.metadata)
-
-    @cached_property
-    def prev_in_series(self) -> Page | None:
-        """Previous page in series.
-
-        Cost: O(n) cached — series neighbor lookup.
-        """
-        from bengal.core.page.computed import get_series_neighbor
-
-        return get_series_neighbor(self.metadata, self._site, -1)
-
-    @cached_property
-    def next_in_series(self) -> Page | None:
-        """Next page in series.
-
-        Cost: O(n) cached — series neighbor lookup.
-        """
-        from bengal.core.page.computed import get_series_neighbor
-
-        return get_series_neighbor(self.metadata, self._site, 1)
 
 
 __all__ = [

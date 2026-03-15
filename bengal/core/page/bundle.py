@@ -32,6 +32,7 @@ import fnmatch
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
+from functools import cached_property
 from pathlib import Path
 from typing import Any
 
@@ -422,3 +423,46 @@ def get_resources(source_path: Path, url: str) -> PageResources:
     resources.sort(key=lambda r: r.name)
 
     return PageResources(resources)
+
+
+class PageBundleMixin:
+    """
+    Mixin providing bundle properties (bundle_type, is_bundle, resources).
+
+    Delegates to free functions in this module. Requires source_path and href.
+    """
+
+    source_path: Path
+
+    @cached_property
+    def bundle_type(self) -> BundleType:
+        """Bundle type classification (LEAF, BRANCH, or NONE).
+
+        Cost: O(1) cached — path operations.
+        """
+        return get_bundle_type(self.source_path)
+
+    @property
+    def is_bundle(self) -> bool:
+        """True if this page is a leaf bundle with resources.
+
+        Cost: O(1) cached — delegates to bundle_type.
+        """
+        return self.bundle_type == BundleType.LEAF
+
+    @property
+    def is_branch_bundle(self) -> bool:
+        """True if this page is a branch bundle (section index).
+
+        Cost: O(1) cached — delegates to bundle_type.
+        """
+        return self.bundle_type == BundleType.BRANCH
+
+    @cached_property
+    def resources(self) -> PageResources:
+        """Get resources co-located with this page bundle.
+
+        Cost: O(DISK) cached — directory listing on first access.
+        """
+        url = getattr(self, "href", "/")
+        return get_resources(self.source_path, url)

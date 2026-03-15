@@ -16,6 +16,7 @@ See Also:
 from __future__ import annotations
 
 import threading
+from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -139,3 +140,63 @@ def get_ancestors(section: Section | None) -> list[Section]:
         result.append(current)
         current = getattr(current, "parent", None)
     return result
+
+
+class PageNavigationMixin:
+    """
+    Mixin providing navigation properties (next, prev, next_in_section, etc.).
+
+    Delegates to free functions in this module. Requires _site and _section.
+    """
+
+    _site: Site | None
+    _section: Section | None
+    source_path: Path
+
+    @property
+    def next(self) -> Page | None:
+        """Next page in site collection.
+
+        Cost: O(1) — delegates to get_next_page (cached index map).
+        """
+        return get_next_page(self, self._site)
+
+    @property
+    def prev(self) -> Page | None:
+        """Previous page in site collection.
+
+        Cost: O(1) — delegates to get_prev_page (cached index map).
+        """
+        return get_prev_page(self, self._site)
+
+    @property
+    def next_in_section(self) -> Page | None:
+        """Next page in current section.
+
+        Cost: O(n) — iterates section pages; worst case to skip index pages.
+        """
+        return get_next_in_section(self, self._section)
+
+    @property
+    def prev_in_section(self) -> Page | None:
+        """Previous page in current section.
+
+        Cost: O(n) — iterates section pages; worst case to skip index pages.
+        """
+        return get_prev_in_section(self, self._section)
+
+    @property
+    def parent(self) -> Section | None:
+        """Parent section of this page.
+
+        Cost: O(1) cached — delegates to _section.
+        """
+        return self._section
+
+    @cached_property
+    def ancestors(self) -> tuple[Section, ...]:
+        """Ancestor sections from immediate parent to root.
+
+        Cost: O(d) cached — proportional to tree depth, computed once.
+        """
+        return tuple(get_ancestors(self._section))

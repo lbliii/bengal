@@ -38,11 +38,14 @@ See Also:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import datetime
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.cascade import CascadeSnapshot, CascadeView
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.core.page.frontmatter import Frontmatter
 from bengal.core.page.types import TOCItem, VisibilitySettings
 from bengal.core.utils.shared import resolve_nav_title, sortable_weight
 from bengal.core.utils.url import apply_baseurl, get_baseurl, get_site_origin
@@ -68,8 +71,6 @@ class PageMetadataMixin:
     """
 
     # Declare attributes that will be provided by the dataclass this mixin is mixed into
-    # Note: metadata is a property returning CascadeView, _raw_metadata is the dict
-    metadata: Any  # CascadeView or dict (Mapping[str, Any])
     _raw_metadata: dict[str, Any]
     source_path: Path
     output_path: Path | None
@@ -77,7 +78,97 @@ class PageMetadataMixin:
     core: PageCore | None
     _site: Site | None
     _toc_items_cache: list[TOCItem] | None
-    # slug is defined as a property below - no declaration needed here
+    _section_path: Path | None
+    _cached_section_path_str: str | None
+    _metadata_view_cache: CascadeView | None
+    _metadata_view_cache_key: tuple[int, str] | None
+    _frontmatter: Frontmatter | None
+    _virtual: bool
+    _prerendered_html: str | None
+    _template_name: str | None
+
+    @property
+    def metadata(self) -> Mapping[str, Any]:
+        """Return combined frontmatter + cascade metadata as CascadeView.
+
+        Cost: O(1) cached after first access per cascade snapshot. First access
+        with _cached_section_path_str unset: O(n) pathlib.relative_to.
+
+        Hot-path alternative: page.identity for boolean flags and pre-computed strings.
+        """
+        if self._site is None:
+            return self._raw_metadata
+
+        cascade = getattr(self._site, "cascade", None)
+        if cascade is None or not isinstance(cascade, CascadeSnapshot):
+            return self._raw_metadata
+
+        section_path = self._cached_section_path_str
+        if section_path is None:
+            if self._section_path:
+                try:
+                    content_dir = self._site.root_path / "content"
+                    section_path = str(self._section_path.relative_to(content_dir))
+                except ValueError, AttributeError:
+                    section_path = str(self._section_path)
+            else:
+                section_path = ""
+            self._cached_section_path_str = section_path
+
+        cache_key = (id(cascade), section_path)
+        if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
+            return self._metadata_view_cache
+
+        view = CascadeView.for_page(
+            frontmatter=self._raw_metadata,
+            section_path=section_path,
+            snapshot=cascade,
+        )
+        self._metadata_view_cache = view
+        self._metadata_view_cache_key = cache_key
+        return view
+
+    @property
+    def is_virtual(self) -> bool:
+        """Check if this is a virtual page (not backed by a disk file).
+
+        Cost: O(1) — direct field read.
+        """
+        return self._virtual
+
+    @property
+    def template_name(self) -> str | None:
+        """Get custom template name for this page.
+
+        Cost: O(1) — direct field read.
+        """
+        return self._template_name
+
+    @property
+    def prerendered_html(self) -> str | None:
+        """Get pre-rendered HTML for virtual pages.
+
+        Cost: O(1) — direct field read.
+        """
+        return self._prerendered_html
+
+    @property
+    def frontmatter(self) -> Frontmatter:
+        """Typed access to frontmatter fields.
+
+        Cost: O(1) cached — first access O(n) for metadata keys via Frontmatter.from_dict.
+        """
+        if self._frontmatter is None:
+            self._frontmatter = Frontmatter.from_dict(self.metadata)
+        return self._frontmatter
+
+    @property
+    def relative_path(self) -> str:
+        """Get relative path string (alias for source_path as string).
+
+        Cost: O(1) — direct field read.
+        """
+        return str(self.source_path)
 
     @property
     def title(self) -> str:
