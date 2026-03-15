@@ -162,9 +162,15 @@ class TaxonomyOrchestrator:
             index = TaxonomyIndex(self.site.paths.taxonomy_cache)
             index.clear()  # Start fresh for full build
 
-            # Populate index from collected taxonomies
+            path_key_map = {
+                p.source_path: self._page_path_key(p.source_path) for p in self.site.regular_pages
+            }
             for tag_slug, tag_data in self.site.taxonomies.get("tags", {}).items():
-                page_paths = [self._page_path_key(p.source_path) for p in tag_data.get("pages", [])]
+                page_paths = [
+                    path_key_map[p.source_path]
+                    for p in tag_data.get("pages", [])
+                    if p.source_path in path_key_map
+                ]
                 logger.debug(
                     "taxonomy_index_update_tag",
                     tag_slug=tag_slug,
@@ -283,9 +289,15 @@ class TaxonomyOrchestrator:
         # This persists the tag-to-pages mappings so Phase 2c.2 can detect unchanged tags
         if taxonomy_index:
             try:
+                path_key_map = {
+                    p.source_path: self._page_path_key(p.source_path)
+                    for p in self.site.regular_pages
+                }
                 for tag_slug, tag_data in self.site.taxonomies.get("tags", {}).items():
                     page_paths = [
-                        self._page_path_key(p.source_path) for p in tag_data.get("pages", [])
+                        path_key_map[p.source_path]
+                        for p in tag_data.get("pages", [])
+                        if p.source_path in path_key_map
                     ]
                     taxonomy_index.update_tag(tag_slug, tag_data.get("name", tag_slug), page_paths)
 
@@ -454,6 +466,29 @@ class TaxonomyOrchestrator:
         """
         self.generate_dynamic_pages_for_tags_with_cache(affected_tags, taxonomy_index=None)
 
+    def _build_locale_tags(self) -> dict[str, dict[str, Any]]:
+        """Build locale_tags_by_lang for i18n tag page generation."""
+        i18n_config = get_i18n_config(self.site.config)
+        languages = i18n_config.languages
+        locale_tags_by_lang: dict[str, dict[str, Any]] = {lang: {} for lang in languages}
+        for tag_slug, tag_data in self.site.taxonomies["tags"].items():
+            for lang in languages:
+                pages_for_lang = filter_pages_by_language(
+                    tag_data["pages"],
+                    lang,
+                    i18n_config.default_language,
+                    i18n_config.share_taxonomies,
+                    i18n_config.strategy,
+                )
+                if not pages_for_lang:
+                    continue
+                locale_tags_by_lang[lang][tag_slug] = {
+                    "name": tag_data["name"],
+                    "slug": tag_slug,
+                    "pages": pages_for_lang,
+                }
+        return locale_tags_by_lang
+
     def generate_dynamic_pages_for_tags_with_cache(
         self, affected_tags: set[str], taxonomy_index: TaxonomyIndex | None = None
     ) -> None:
@@ -473,28 +508,14 @@ class TaxonomyOrchestrator:
         if not self.site.taxonomies.get("tags"):
             return
 
-        # Get i18n configuration using utility
         i18n_config = get_i18n_config(self.site.config)
-
-        # IPA audit Finding 11: build locale_tags_by_lang in one pass over tags
+        locale_tags_by_lang = self._build_locale_tags()
         languages = i18n_config.languages
-        locale_tags_by_lang: dict[str, dict[str, Any]] = {lang: {} for lang in languages}
-        for tag_slug, tag_data in self.site.taxonomies["tags"].items():
-            for lang in languages:
-                pages_for_lang = filter_pages_by_language(
-                    tag_data["pages"],
-                    lang,
-                    i18n_config.default_language,
-                    i18n_config.share_taxonomies,
-                    i18n_config.strategy,
-                )
-                if not pages_for_lang:
-                    continue
-                locale_tags_by_lang[lang][tag_slug] = {
-                    "name": tag_data["name"],
-                    "slug": tag_slug,
-                    "pages": pages_for_lang,
-                }
+        path_key_map: dict[Path, str] = {}
+        if taxonomy_index is not None:
+            path_key_map = {
+                p.source_path: self._page_path_key(p.source_path) for p in self.site.regular_pages
+            }
 
         # Generate per-locale tag pages
         for lang in languages:
@@ -521,7 +542,9 @@ class TaxonomyOrchestrator:
                         # PHASE 2C.2 OPTIMIZATION: Skip regenerating tags with unchanged pages
                         if taxonomy_index:
                             page_paths = [
-                                self._page_path_key(p.source_path) for p in tag_data["pages"]
+                                path_key_map[p.source_path]
+                                for p in tag_data["pages"]
+                                if p.source_path in path_key_map
                             ]
                             if not taxonomy_index.pages_changed(tag_slug, page_paths):
                                 logger.debug(
@@ -566,30 +589,15 @@ class TaxonomyOrchestrator:
             parallel: Whether to use parallel processing for tag pages (default: True)
         """
         generated_count = 0
+        tag_count = 0
+        pagination_count = 0
         # Get i18n configuration using utility
         i18n_config = get_i18n_config(self.site.config)
 
         # Generate per-locale tag pages
-        # IPA audit Finding 11: build locale_tags_by_lang in one pass over tags
         if self.site.taxonomies.get("tags"):
+            locale_tags_by_lang = self._build_locale_tags()
             languages = i18n_config.languages
-            locale_tags_by_lang: dict[str, dict[str, Any]] = {lang: {} for lang in languages}
-            for tag_slug, tag_data in self.site.taxonomies["tags"].items():
-                for lang in languages:
-                    pages_for_lang = filter_pages_by_language(
-                        tag_data["pages"],
-                        lang,
-                        i18n_config.default_language,
-                        i18n_config.share_taxonomies,
-                        i18n_config.strategy,
-                    )
-                    if not pages_for_lang:
-                        continue
-                    locale_tags_by_lang[lang][tag_slug] = {
-                        "name": tag_data["name"],
-                        "slug": tag_slug,
-                        "pages": pages_for_lang,
-                    }
 
             for lang in languages:
                 locale_tags = locale_tags_by_lang[lang]
@@ -606,30 +614,24 @@ class TaxonomyOrchestrator:
                         tag_index.lang = lang
                         self.site.pages.append(tag_index)
                         generated_count += 1
+                        if tag_index.output_path and "tag" in tag_index.output_path.parts:
+                            tag_count += 1
 
                     # Individual tag pages for this language
                     # Use parallel generation if we have many tags
                     if parallel and len(locale_tags) >= MIN_TAGS_FOR_PARALLEL:
-                        tag_pages_count = self._generate_tag_pages_parallel(locale_tags, lang)
+                        total, tc, pc = self._generate_tag_pages_parallel(locale_tags, lang)
                     else:
-                        tag_pages_count = self._generate_tag_pages_sequential(locale_tags, lang)
+                        total, tc, pc = self._generate_tag_pages_sequential(locale_tags, lang)
 
-                    generated_count += tag_pages_count
+                    generated_count += total
+                    tag_count += tc
+                    pagination_count += pc
                 finally:
                     self.site.current_language = prev_lang
 
         # Invalidate cached page lists after adding generated pages
         self.site.invalidate_page_caches()
-
-        # Count types of generated pages
-        tag_count = sum(
-            1
-            for p in self.site.pages
-            if p.is_generated and p.output_path and "tag" in p.output_path.parts
-        )
-        pagination_count = sum(
-            1 for p in self.site.pages if p.is_generated and "/page/" in str(p.output_path)
-        )
 
         if generated_count > 0:
             logger.info(
@@ -639,7 +641,9 @@ class TaxonomyOrchestrator:
                 total=generated_count,
             )
 
-    def _generate_tag_pages_sequential(self, locale_tags: dict[str, Any], lang: str) -> int:
+    def _generate_tag_pages_sequential(
+        self, locale_tags: dict[str, Any], lang: str
+    ) -> tuple[int, int, int]:
         """
         Generate tag pages sequentially (original implementation).
 
@@ -648,21 +652,28 @@ class TaxonomyOrchestrator:
             lang: Language code
 
         Returns:
-            Number of pages generated
+            Tuple of (total_count, tag_count, pagination_count)
         """
-        count = 0
+        tag_count = 0
+        pagination_count = 0
+        total = 0
         for tag_slug, tag_data in locale_tags.items():
-            # Route through _create_tag_pages so tests that patch it can count calls
             pages = self._create_tag_pages(
                 tag_slug, {"name": tag_data["name"], "pages": tag_data["pages"]}
             )
             for page in pages:
                 page.lang = lang
                 self.site.pages.append(page)
-                count += 1
-        return count
+                total += 1
+                if page.output_path and "tag" in page.output_path.parts:
+                    tag_count += 1
+                if "/page/" in str(page.output_path):
+                    pagination_count += 1
+        return (total, tag_count, pagination_count)
 
-    def _generate_tag_pages_parallel(self, locale_tags: dict[str, Any], lang: str) -> int:
+    def _generate_tag_pages_parallel(
+        self, locale_tags: dict[str, Any], lang: str
+    ) -> tuple[int, int, int]:
         """
         Generate tag pages in parallel using ParallelProcessor.
 
@@ -679,7 +690,7 @@ class TaxonomyOrchestrator:
             lang: Language code
 
         Returns:
-            Number of pages generated
+            Tuple of (total_count, tag_count, pagination_count)
         """
         from bengal.orchestration.utils.config import get_max_workers
 
@@ -712,13 +723,19 @@ class TaxonomyOrchestrator:
         )
 
         all_generated_pages: list[Page] = []
+        tag_count = 0
+        pagination_count = 0
         for tag_pages in result.results:
             for page in tag_pages:
                 page.lang = lang
+                if page.output_path and "tag" in page.output_path.parts:
+                    tag_count += 1
+                if "/page/" in str(page.output_path):
+                    pagination_count += 1
             all_generated_pages.extend(tag_pages)
 
         self.site.pages.extend(all_generated_pages)
-        return len(all_generated_pages)
+        return (len(all_generated_pages), tag_count, pagination_count)
 
     def _create_tag_index_page(self) -> Page:
         """
