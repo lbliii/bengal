@@ -132,17 +132,14 @@ class Renderer:
             )
             return self._top_level_cache
 
-        # Fallback: compute from mutable site data
-        # Build set of all pages that are in any section (O(sections × pages_per_section))
+        # Fallback: compute from mutable site data (FLOW audit Finding 19)
+        # Single pass over sections for both pages_in_sections and nested_sections
         pages_in_sections: set[int] = set()
+        nested_sections: set[int] = set()
         for section in self.site.sections:
             for p in section.pages:
                 pages_in_sections.add(id(p))
-
-        # Build set of all sections that are subsections of another (O(sections × subsections))
-        nested_sections: set[int] = set()
-        for parent in self.site.sections:
-            for s in parent.subsections:
+            for s in section.subsections:
                 nested_sections.add(id(s))
 
         # Filter using O(1) set membership
