@@ -43,7 +43,6 @@ bengal.cache.build_cache: Build state persistence
 
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -71,7 +70,10 @@ from .config_normalized import SiteNormalizedConfigMixin
 from .discovery import SiteDiscoveryMixin
 from .factory import for_testing, from_config
 from .lifecycle import SiteLifecycleMixin
-from .versioning import VersionService
+from .site_query import SiteQueryMixin
+from .site_registry import SiteRegistryMixin
+from .site_validation import SiteValidationMixin
+from .versioning import SiteVersioningMixin, VersionService
 
 if TYPE_CHECKING:
     from bengal.assets.manifest import AssetManifest
@@ -91,11 +93,15 @@ _print_lock = Lock()
 
 @dataclass
 class Site(
+    SiteRegistryMixin,
     SiteAccessorsMixin,
     SiteCascadeMixin,
     SiteLifecycleMixin,
     SiteNormalizedConfigMixin,
     SiteDiscoveryMixin,
+    SiteVersioningMixin,
+    SiteValidationMixin,
+    SiteQueryMixin,
 ):
     """
     Represents the entire website and orchestrates the build process.
@@ -357,71 +363,6 @@ class Site(
             self._registry.url_ownership = self.url_registry
 
     # =========================================================================
-    # REGISTRY ACCESS
-    # =========================================================================
-
-    @property
-    def config_service(self) -> ConfigService:
-        """
-        Immutable configuration service for thread-safe config access.
-
-        Cost: O(1) — lazy init, then direct field read.
-
-        Provides config-derived properties (title, baseurl, author, etc.)
-        via a frozen dataclass that requires no locks during parallel rendering.
-        """
-        if self._config_service is None:
-            self._config_service = ConfigService.from_config(self.config, self.root_path)
-        return self._config_service
-
-    def _compute_config_hash(self) -> None:
-        """Compute and cache the configuration hash (backward compat)."""
-        from bengal.config.hash import compute_config_hash
-
-        self._config_hash = compute_config_hash(self.config)
-        emit_diagnostic(
-            self,
-            "debug",
-            "config_hash_computed",
-            hash=self._config_hash[:8] if self._config_hash else "none",
-        )
-
-    @property
-    def indexes(self) -> QueryIndexRegistry:
-        """Access to query indexes for O(1) page lookups.
-
-        Cost: O(1) — lazy init, then direct field read.
-        """
-        if self._query_registry is None:
-            from bengal.cache.query_index_registry import QueryIndexRegistry
-
-            self._query_registry = QueryIndexRegistry(cast(SiteLike, self), self.paths.indexes_dir)
-        return self._query_registry
-
-    @property
-    def registry(self) -> ContentRegistry:
-        """
-        Content registry for O(1) page/section lookups.
-
-        Cost: O(1) — lazy init, then direct field read.
-
-        Provides centralized access to content lookups without scanning
-        hierarchies. Initialized lazily on first access.
-
-        Returns:
-            ContentRegistry instance
-
-        Example:
-            page = site.registry.get_page(path)
-            section = site.registry.get_section_by_url("/api/")
-        """
-        if self._registry is None:
-            self._registry = ContentRegistry()
-            self._registry.set_root_path(self.root_path)
-            self._registry.url_ownership = self.url_registry
-        return self._registry
-
-    # =========================================================================
     # FACTORY METHODS (module-level functions attached as classmethods)
     # =========================================================================
 
@@ -477,346 +418,11 @@ class Site(
         """
         return for_testing(cls, root_path, config)
 
-    # =========================================================================
-    # VERSIONING (delegated to VersionService)
-    # =========================================================================
-
-    @property
-    def versioning_enabled(self) -> bool:
-        """Whether versioned documentation is enabled.
-
-        Cost: O(1) — delegate to VersionService.
-        """
-        return self._version_service.versioning_enabled if self._version_service else False
-
-    @property
-    def versions(self) -> list[dict[str, Any]]:
-        """Available documentation versions.
-
-        Cost: O(1) — delegate to VersionService (cached).
-        """
-        return self._version_service.versions if self._version_service else []
-
-    @property
-    def latest_version(self) -> dict[str, Any] | None:
-        """Latest documentation version.
-
-        Cost: O(1) — delegate to VersionService (cached).
-        """
-        return self._version_service.latest_version if self._version_service else None
-
-    def get_version(self, version_id: str) -> Version | None:
-        """Get version by ID or alias."""
-        return self._version_service.get_version(version_id) if self._version_service else None
-
-    def invalidate_version_caches(self) -> None:
-        """Clear cached version data."""
-        if self._version_service:
-            self._version_service.invalidate_caches()
-
-    # =========================================================================
-    # HELPERS
-    # =========================================================================
-
-    def get_version_target_url(
-        self, page: Page | None, target_version: dict[str, Any] | None
-    ) -> str:
-        """
-        Get the best URL for a page in the target version.
-
-        Computes a fallback cascade at build time:
-        1. If exact equivalent page exists → return that URL
-        2. If section index exists → return section index URL
-        3. Otherwise → return version root URL
-
-        This is engine-agnostic and works with any template engine (Jinja2,
-        Mako, or any BYORenderer).
-
-        Args:
-            page: Current page object (may be None for edge cases)
-            target_version: Target version dict with 'id', 'url_prefix', 'latest' keys
-
-        Returns:
-            Best URL to navigate to (guaranteed to exist, never 404)
-
-        Example (Jinja2):
-            {% for v in versions %}
-            <option data-target="{{ site.get_version_target_url(page, v) }}">
-              {{ v.label }}
-            </option>
-            {% endfor %}
-
-        Example (Mako):
-            % for v in versions:
-            <option data-target="${site.get_version_target_url(page, v)}">
-              ${v['label']}
-            </option>
-            % endfor
-        """
-        from bengal.core.version_url import get_version_target_url
-
-        return get_version_target_url(page, target_version, cast(SiteLike, self))
-
     def __repr__(self) -> str:
         pages = len(self.pages)
         sections = len(self.sections)
         assets = len(self.assets)
         return f"Site(pages={pages}, sections={sections}, assets={assets})"
-
-    # =========================================================================
-    # VALIDATION (inlined from SiteValidationMixin)
-    # =========================================================================
-
-    def validate_no_url_collisions(self, *, strict: bool = False) -> list[str]:
-        """
-        Detect when multiple pages output to the same URL.
-
-        This method catches URL collisions early during the build process,
-        preventing silent overwrites that cause broken navigation.
-
-        Uses URLRegistry if available for enhanced ownership context, otherwise
-        falls back to page iteration if URLRegistry is not available.
-
-        Args:
-            strict: If True, raise ValueError on collision instead of warning.
-                   Set to True when site config has strict_mode=True.
-
-        Returns:
-            List of collision warning messages (empty if no collisions)
-
-        Raises:
-            ValueError: If strict=True and collisions are detected
-
-        Example:
-            >>> collisions = site.validate_no_url_collisions()
-            >>> if collisions:
-            ...     for msg in collisions:
-            ...         print(f"Warning: {msg}")
-
-        Note:
-            This is a proactive check during Phase 12 (Update Pages List) that
-            catches issues before they cause broken navigation.
-
-        See Also:
-            - bengal/health/validators/url_collisions.py: Health check validator
-        """
-        collisions: list[str] = []
-
-        # Use registry if available (provides ownership context)
-        if hasattr(self, "url_registry") and self.url_registry:
-            # Check for duplicate URLs in pages (registry tracks all claims, including non-page)
-            urls_seen: dict[str, str] = {}  # url -> source description
-
-            for page in self.pages:
-                url = page._path
-                source = str(getattr(page, "source_path", page.title))
-
-                if url in urls_seen:
-                    # Get ownership context from registry
-                    claim = self.url_registry.get_claim(url)
-                    owner_info = f" ({claim.owner}, priority {claim.priority})" if claim else ""
-
-                    msg = (
-                        f"URL collision detected: {url}\n"
-                        f"  Already claimed by: {urls_seen[url]}{owner_info}\n"
-                        f"  Also claimed by: {source}\n"
-                        f"Tip: Check for duplicate slugs or conflicting autodoc output"
-                    )
-                    collisions.append(msg)
-
-                    # Emit diagnostic for orchestrators to surface
-                    emit_diagnostic(
-                        self,
-                        "warning",
-                        "url_collision",
-                        url=url,
-                        first_source=urls_seen[url],
-                        second_source=source,
-                    )
-                else:
-                    urls_seen[url] = source
-        else:
-            # Fallback: iterate pages
-            urls_seen = {}  # url -> source description
-
-            for page in self.pages:
-                url = page._path
-                source = str(getattr(page, "source_path", page.title))
-
-                if url in urls_seen:
-                    msg = (
-                        f"URL collision detected: {url}\n"
-                        f"  Already claimed by: {urls_seen[url]}\n"
-                        f"  Also claimed by: {source}\n"
-                        f"Tip: Check for duplicate slugs or conflicting autodoc output"
-                    )
-                    collisions.append(msg)
-
-                    # Emit diagnostic for orchestrators to surface
-                    emit_diagnostic(
-                        self,
-                        "warning",
-                        "url_collision",
-                        url=url,
-                        first_source=urls_seen[url],
-                        second_source=source,
-                    )
-                else:
-                    urls_seen[url] = source
-
-        if collisions and strict:
-            from bengal.errors import BengalContentError, ErrorCode
-
-            raise BengalContentError(
-                "URL collisions detected (strict mode):\n\n" + "\n\n".join(collisions),
-                code=ErrorCode.D005,
-                suggestion=(
-                    "Check for duplicate slugs, conflicting autodoc output, "
-                    "or use different URLs for conflicting pages"
-                ),
-            )
-
-        return collisions
-
-    # =========================================================================
-    # SECTION REGISTRY (inlined from SiteSectionRegistryMixin)
-    # =========================================================================
-
-    def get_section_by_path(self, path: Path | str) -> Section | None:
-        """
-        Look up a section by its path (O(1) operation).
-
-        Args:
-            path: Section path (absolute, relative to content/, or relative to root)
-
-        Returns:
-            Section object if found, None otherwise
-        """
-        if isinstance(path, str):
-            path = Path(path)
-
-        if not path.is_absolute():
-            content_relative = self.root_path / "content" / path
-            if content_relative.exists():
-                path = content_relative
-            else:
-                root_relative = self.root_path / path
-                if root_relative.exists():
-                    path = root_relative
-
-        section = self.registry.get_section(path)
-
-        if section is None:
-            emit_diagnostic(
-                self,
-                "debug",
-                "section_not_found_in_registry",
-                path=str(path),
-                registry_size=self.registry.section_count,
-            )
-
-        return section
-
-    def get_section_by_url(self, url: str) -> Section | None:
-        """
-        Look up a section by its relative URL (O(1) operation).
-
-        Args:
-            url: Section relative URL (e.g., "/api/", "/api/core/")
-
-        Returns:
-            Section object if found, None otherwise
-        """
-        section = self.registry.get_section_by_url(url)
-
-        if section is None:
-            emit_diagnostic(
-                self,
-                "debug",
-                "section_not_found_in_url_registry",
-                url=url,
-                registry_size=self.registry.section_count,
-            )
-
-        return section
-
-    def register_sections(self) -> None:
-        """
-        Build the section registry for path-based and URL-based lookups.
-
-        Populates ContentRegistry with all sections (recursive).
-        Must be called after discover_content().
-        """
-        start = time.time()
-
-        self.registry._sections_by_path.clear()
-        self.registry._sections_by_url.clear()
-
-        for section in self.sections:
-            self.registry.register_sections_recursive(section)
-
-        self.registry.increment_epoch()
-
-        elapsed_ms = (time.time() - start) * 1000
-
-        emit_diagnostic(
-            self,
-            "debug",
-            "section_registry_built",
-            sections=self.registry.section_count,
-            elapsed_ms=f"{elapsed_ms:.2f}",
-            avg_us_per_section=f"{(elapsed_ms * 1000 / self.registry.section_count):.2f}"
-            if self.registry.section_count
-            else "0",
-        )
-
-    # =========================================================================
-    # PAGE CACHES (delegated to PageCacheManager)
-    # =========================================================================
-
-    @property
-    def regular_pages(self) -> list[Page]:
-        """Regular content pages (excludes generated taxonomy/archive pages).
-
-        Cost: O(n) first access (n = pages), O(1) cached thereafter.
-        """
-        return self._page_cache.regular_pages
-
-    @property
-    def generated_pages(self) -> list[Page]:
-        """Generated pages (taxonomy, archive, pagination).
-
-        Cost: O(n) first access (n = pages), O(1) cached thereafter.
-        """
-        return self._page_cache.generated_pages
-
-    @property
-    def listable_pages(self) -> list[Page]:
-        """Pages eligible for public listings (excludes hidden/draft).
-
-        Cost: O(n) first access (n = pages), O(1) cached thereafter.
-        """
-        return self._page_cache.listable_pages
-
-    def get_page_path_map(self) -> dict[str, Page]:
-        """Cached string-keyed page lookup map for O(1) resolution."""
-        return self._page_cache.get_page_path_map()
-
-    @property
-    def page_by_source_path(self) -> dict[Path, Page]:
-        """O(1) page lookup by source Path (shared across orchestrators).
-
-        Cost: O(n) first access (n = pages), O(1) cached thereafter.
-        """
-        return self._page_cache.page_by_source_path
-
-    def invalidate_page_caches(self) -> None:
-        """Clear all page caches. Call after adding/removing pages."""
-        self._page_cache.invalidate()
-
-    def invalidate_regular_pages_cache(self) -> None:
-        """Clear only the regular_pages cache."""
-        self._page_cache.invalidate_regular()
 
 
 __all__ = [

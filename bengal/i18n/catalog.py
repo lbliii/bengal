@@ -27,7 +27,7 @@ class Catalog:
 
     def __init__(
         self,
-        translation: gettext.translation | None = None,
+        translation: gettext.GNUTranslations | None = None,
         fallback: dict[str, str] | None = None,
         plural_fn: Callable[[int], int] | None = None,
     ) -> None:
@@ -144,13 +144,14 @@ def load_catalog(
         if cache_key not in _catalog_cache:
             _catalog_cache[cache_key] = {}
         cache = _catalog_cache[cache_key]
-    if locale in cache:
-        return cache[locale]
-    # Try MO first (compiled, faster)
+        if locale in cache:
+            return cache[locale]
     catalog = MOLoader.load(localedir, domain, locale)
     if catalog is None:
         catalog = POLoader.load(localedir, domain, locale)
     with _cache_lock:
+        if locale in cache:
+            return cache[locale]
         cache[locale] = catalog
     return catalog
 

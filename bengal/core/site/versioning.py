@@ -1,11 +1,13 @@
-"""Version service for site versioning support."""
+"""Version service and Site versioning mixin."""
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 if TYPE_CHECKING:
+    from bengal.core.page import Page
     from bengal.core.version import Version, VersionConfig
+    from bengal.protocols import SiteLike
 
 
 class VersionService:
@@ -125,3 +127,64 @@ class VersionService:
         """
         self._versions_dict_cache = None
         self._latest_version_dict_cache = None
+
+
+class SiteVersioningMixin:
+    """
+    Mixin providing version methods that delegate to VersionService.
+
+    Handles:
+    - versioning_enabled, versions, latest_version
+    - get_version, invalidate_version_caches
+    - get_version_target_url
+    """
+
+    _version_service: VersionService | None
+
+    @property
+    def versioning_enabled(self) -> bool:
+        """Whether versioned documentation is enabled.
+
+        Cost: O(1) — delegate to VersionService.
+        """
+        return self._version_service.versioning_enabled if self._version_service else False
+
+    @property
+    def versions(self) -> list[dict[str, Any]]:
+        """Available documentation versions.
+
+        Cost: O(1) — delegate to VersionService (cached).
+        """
+        return self._version_service.versions if self._version_service else []
+
+    @property
+    def latest_version(self) -> dict[str, Any] | None:
+        """Latest documentation version.
+
+        Cost: O(1) — delegate to VersionService (cached).
+        """
+        return self._version_service.latest_version if self._version_service else None
+
+    def get_version(self, version_id: str) -> Version | None:
+        """Get version by ID or alias."""
+        return self._version_service.get_version(version_id) if self._version_service else None
+
+    def invalidate_version_caches(self) -> None:
+        """Clear cached version data."""
+        if self._version_service:
+            self._version_service.invalidate_caches()
+
+    def get_version_target_url(
+        self, page: Page | None, target_version: dict[str, Any] | None
+    ) -> str:
+        """
+        Get the best URL for a page in the target version.
+
+        Computes a fallback cascade at build time:
+        1. If exact equivalent page exists → return that URL
+        2. If section index exists → return section index URL
+        3. Otherwise → return version root URL
+        """
+        from bengal.core.version_url import get_version_target_url
+
+        return get_version_target_url(page, target_version, cast(SiteLike, self))
