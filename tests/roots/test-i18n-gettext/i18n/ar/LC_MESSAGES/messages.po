@@ -1,0 +1,17 @@
+# Arabic translations for test-i18n-gettext
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"MIME-Version: 1.0\n"
+
+msgid "Home"
+msgstr "الرئيسية"
+
+msgid "About"
+msgstr "حول"
+
+msgid "Welcome"
+msgstr "مرحبا"
+
+msgid "Read more"
+msgstr "اقرأ المزيد"

@@ -34,6 +34,7 @@ env/
 .coverage.*
 htmlcov/
 coverage.xml
+coverage.json
 *.cover
 .hypothesis/
 
@@ -81,6 +82,9 @@ venv-*/
 # Benchmark scenarios (auto-generated; run scripts/generate_benchmark_scenarios.py)
 benchmarks/scenarios/
 .benchmarks/
+
+# Benchmark/test output leaked to repo root (e.g. TMPDIR=. when running benchmarks)
+/content/
 
 
 # other

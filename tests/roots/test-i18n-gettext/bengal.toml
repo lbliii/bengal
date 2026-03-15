@@ -1,0 +1,24 @@
+[site]
+title = "Test i18n Gettext Site"
+baseurl = "/"
+description = "Test site for gettext PO/MO workflow"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[markdown]
+parser = "patitas"
+
+[i18n]
+default_language = "en"
+strategy = "prefix"
+content_structure = "dir"
+fallback_to_default = true
+gettext_domain = "messages"
+languages = [
+    { code = "en", name = "English", weight = 1 },
+    { code = "es", name = "Español", weight = 2 },
+    { code = "ar", name = "العربية", weight = 3 },
+]
