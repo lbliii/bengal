@@ -26,6 +26,8 @@ from enum import Flag, auto
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
+from bengal.protocols.core import PageLike
+
 if TYPE_CHECKING:
     from bengal.core import Site
     from bengal.rendering.engines.errors import TemplateError
@@ -176,6 +178,42 @@ class TemplateRenderer(Protocol):
         Contract:
             - MUST automatically inject `site` and `config` into context
             - MUST NOT cache the compiled template
+        """
+        ...
+
+
+@runtime_checkable
+class PageRenderer(Protocol):
+    """
+    Protocol for page-level rendering.
+
+    Implementations take a PageLike and produce fully rendered HTML.
+    Used by PageOperationsMixin.render() to avoid core importing from rendering.
+
+    Thread Safety:
+        Implementations MUST be thread-safe. render_page() may be called
+        concurrently from multiple render threads during parallel builds.
+
+    Example:
+            >>> def render_site(renderer: PageRenderer, pages: list[PageLike]) -> None:
+            ...     for page in pages:
+            ...         page.rendered_html = renderer.render_page(page)
+
+    Implementations:
+        - bengal.rendering.renderer.Renderer: Full page renderer with template engine
+
+    """
+
+    def render_page(self, page: PageLike, content: str | None = None) -> str:
+        """
+        Render a complete page with template.
+
+        Args:
+            page: Page to render
+            content: Optional pre-rendered content (uses page.html_content if not provided)
+
+        Returns:
+            Fully rendered HTML page
         """
         ...
 
@@ -559,19 +597,15 @@ class DirectiveHandler(Protocol):
 
 __all__ = [
     "DirectiveHandler",
-    # Engine capabilities
     "EngineCapability",
     "HighlightBackend",  # Backwards compatibility
-    # Highlighting
     "HighlightService",
-    # Roles and directives
+    "PageRenderer",
     "RoleHandler",
     "TemplateEngine",
     "TemplateEngineProtocol",  # Backwards compatibility
-    # Template environment
     "TemplateEnvironment",
     "TemplateIntrospector",
-    # Template engine protocols (composable)
     "TemplateRenderer",
     "TemplateValidator",
 ]

@@ -84,6 +84,7 @@ from bengal.protocols.rendering import (
     EngineCapability,
     HighlightBackend,
     HighlightService,
+    PageRenderer,
     RoleHandler,
     TemplateEngine,
     TemplateEngineProtocol,
@@ -126,6 +127,7 @@ __all__ = [
     "OutputCollector",
     "OutputTarget",
     "PageLike",
+    "PageRenderer",
     "PhaseStats",
     "PhaseTiming",
     # Infrastructure
