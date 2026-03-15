@@ -68,6 +68,7 @@ class SectionHierarchyMixin:
     index_page: Page | None
     _virtual: bool
     _relative_url_override: str | None
+    _frozen: bool
 
     # =========================================================================
     # PROPERTIES
@@ -237,6 +238,11 @@ class SectionHierarchyMixin:
         Args:
             section: Child section to add
         """
+        if self._frozen:
+            raise RuntimeError(
+                f"Cannot call add_subsection() on frozen Section '{self.name}'. "
+                "All mutations must complete before freeze()."
+            )
         section.parent = self  # type: ignore[assignment]
         self.subsections.append(section)
 

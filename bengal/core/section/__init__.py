@@ -124,6 +124,9 @@ class Section(
     # Optional diagnostics sink (for unit tests or if no site is available yet)
     _diagnostics: DiagnosticsSink | None = field(default=None, repr=False)
 
+    # Phase separation: set True by freeze() to prevent mutations after content discovery
+    _frozen: bool = field(default=False, repr=False)
+
     def _emit_diagnostic(self, event: DiagnosticEvent) -> None:
         """
         Emit a diagnostic event if a sink is available.
@@ -143,6 +146,41 @@ class Section(
         except Exception:
             # Diagnostics must never break core behavior.
             return
+
+    def freeze(self) -> None:
+        """Transition to read-only phase. Pre-computes all cached state.
+
+        After freeze(), mutation methods (add_page, add_subsection,
+        sort_children_by_weight) raise RuntimeError. All @cached_property
+        values are eagerly computed for lock-free parallel rendering.
+
+        Called by the build orchestrator after all content phases complete,
+        before parsing and rendering begin.
+        """
+        if self._frozen:
+            return
+
+        # Convert mutable collections to immutable
+        object.__setattr__(self, "pages", tuple(self.pages))
+        object.__setattr__(self, "subsections", tuple(self.subsections))
+
+        # Pre-compute all page-dependent cached properties in dependency order.
+        # sorted_pages first (others derive from it), then ergonomics caches.
+        _ = self.sorted_pages
+        _ = self.regular_pages
+        _ = self.regular_pages_recursive
+        _ = self.content_pages
+        _ = self._dated_pages_sorted
+        _ = self._featured_pages_sorted
+        _ = self._tag_index
+        _ = self.post_count
+        _ = self.post_count_recursive
+
+        self._frozen = True
+
+        # Recursively freeze child sections
+        for sub in self.subsections:
+            sub.freeze()
 
     @property
     def is_virtual(self) -> bool:

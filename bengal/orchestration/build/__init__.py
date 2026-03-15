@@ -509,6 +509,13 @@ class BuildOrchestrator:
             f"{taxonomy_count} taxonomies, {len(affected_tags)} affected tags",
         )
 
+        # Phase 12.75: Freeze sections (structural mutation barrier)
+        # All content mutations are complete. Freezing converts mutable
+        # collections to tuples, pre-computes all cached properties, and
+        # prevents any further add_page/add_subsection calls.
+        for section in self.site.sections:
+            section.freeze()
+
         # === PARSING PHASE (after all pages known, before snapshot) ===
         # Parse markdown content for ALL pages (including generated taxonomy pages)
         # RFC: rfc-bengal-snapshot-engine - pre-parse to avoid redundant work during rendering
@@ -847,9 +854,7 @@ class BuildOrchestrator:
         """Filter section pages by variant; invalidate cached properties."""
         for section in sections:
             section.pages = [p for p in section.pages if p.in_variant(variant)]
-            section.__dict__.pop("regular_pages", None)
-            section.__dict__.pop("sorted_pages", None)
-            section.__dict__.pop("regular_pages_recursive", None)
+            section._invalidate_page_caches()
             self._filter_sections_by_variant(section.subsections, variant)
 
     def _print_rendering_summary(self) -> None:

@@ -67,6 +67,7 @@ class SectionQueryMixin:
     subsections: list[Section]
     metadata: dict[str, Any]
     index_page: Page | None
+    _frozen: bool
 
     def _emit_diagnostic(self, event: DiagnosticEvent) -> None: ...
 
@@ -202,6 +203,14 @@ class SectionQueryMixin:
         ):
             self.__dict__.pop(key, None)
 
+    def _assert_mutable(self, method: str) -> None:
+        """Raise if this section has been frozen (read-only phase)."""
+        if self._frozen:
+            raise RuntimeError(
+                f"Cannot call {method}() on frozen Section '{self.name}'. "
+                "All mutations must complete before freeze()."
+            )
+
     def add_page(self, page: Page | PageProxy) -> None:
         """
         Add a page to this section.
@@ -212,6 +221,8 @@ class SectionQueryMixin:
         Args:
             page: Page or PageProxy to add
         """
+        self._assert_mutable("add_page")
+
         from bengal.core.diagnostics import DiagnosticEvent
 
         is_index = page.source_path.stem in ("index", "_index")
@@ -265,6 +276,8 @@ class SectionQueryMixin:
 
         This is typically called after content discovery is complete.
         """
+        self._assert_mutable("sort_children_by_weight")
+
         # Sort pages by weight (ascending), then title (alphabetically)
         # weight_sort_key normalises weight to float, preventing mixed-type TypeError
         self.pages.sort(key=weight_sort_key)
