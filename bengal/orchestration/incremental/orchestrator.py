@@ -521,7 +521,7 @@ class IncrementalOrchestrator:
             if not page:
                 continue
             is_track_page = (
-                page.metadata.get("template") == "tracks/single.html"
+                page.assigned_template == "tracks/single.html"
                 or page.metadata.get("track_id") is not None
             )
             if not is_track_page:

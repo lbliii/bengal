@@ -252,12 +252,7 @@ def _track_and_record(
 
     # Track source→output mapping for cleanup on deletion
     # (Skip generated and autodoc pages - they have virtual paths that don't exist on disk)
-    if (
-        cache
-        and not page.metadata.get("_generated")
-        and not page.metadata.get("is_autodoc")
-        and page.output_path
-    ):
+    if cache and not page.is_generated and not page.metadata.get("is_autodoc") and page.output_path:
         cache.track_output(page.source_path, page.output_path, site.output_dir)
 
     # Record output for hot reload tracking

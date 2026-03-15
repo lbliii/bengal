@@ -66,6 +66,7 @@ class CLIFlags:
     fast: bool | None = None
     memory_optimized: bool | None = None
     profile_templates: bool | None = None
+    profile_phases: bool | None = None
 
 
 def _get_build_config_value(config: dict[str, Any] | Any, key: str) -> Any:
@@ -224,4 +225,5 @@ def resolve_build_options(
         profile_templates=profile_templates_resolved
         if profile_templates_resolved is not None
         else DEFAULTS.get("profile_templates", False),
+        profile_phases=bool(cli.profile_phases) if cli.profile_phases is not None else False,
     )

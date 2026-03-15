@@ -95,6 +95,7 @@ class BuildOptions:
     # Profiling
     profile: BuildProfile | None = None
     profile_templates: bool = False
+    profile_phases: bool = False
 
     # Incremental build hints (from dev server / file watcher)
     changed_sources: set[Path] = field(default_factory=set)

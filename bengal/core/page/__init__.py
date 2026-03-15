@@ -73,6 +73,7 @@ from .frontmatter import Frontmatter
 from .metadata import PageMetadataMixin
 from .operations import PageOperationsMixin
 from .page_core import PageCore
+from .page_identity import PageIdentity
 from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
 from .types import TOCItem
@@ -252,6 +253,9 @@ class Page(
     # Template override for virtual pages (uses custom template)
     _template_name: str | None = field(default=None, repr=False)
 
+    # Frozen identity struct for hot-path O(1) access in build/render loops
+    _identity: PageIdentity | None = field(default=None, repr=False, init=False)
+
     # Complexity cache for parallel render ordering (set by orchestration)
     _complexity_score: int | None = field(default=None, repr=False, init=False)
     # Cascade invalidation flag (set by provenance filter when provenance changes)
@@ -269,20 +273,63 @@ class Page(
         self._init_core_from_fields()
 
     @property
-    def metadata(self) -> Mapping[str, Any]:
+    def identity(self) -> PageIdentity:
+        """Frozen hot-path struct for O(1) access in build/render loops.
+
+        Cost: O(1) — returns cached frozen dataclass.
+
+        Raises RuntimeError if accessed before finalize_identity() is called
+        (i.e., before content phases complete).
         """
-        Return combined frontmatter + cascade metadata as CascadeView.
+        if self._identity is None:
+            raise RuntimeError(
+                f"PageIdentity not yet finalized for {self.source_path}. "
+                "Call page.finalize_identity() after content phases complete."
+            )
+        return self._identity
 
-        This property provides dict-like access to page metadata. Values come from:
-        1. Page frontmatter (always takes precedence)
-        2. Cascade from parent sections (inherited values)
+    def finalize_identity(self) -> None:
+        """Snapshot the page's hot-path fields into a frozen PageIdentity struct.
 
-        The CascadeView is immutable and resolves values on access, ensuring
-        cascade values are always current even during incremental builds.
+        Called by build orchestration at the end of content phases, after all
+        section assignments, output paths, and tag normalization are complete.
+        The resulting PageIdentity is immutable and safe for concurrent read
+        access during rendering.
+        """
+        section_str = self._cached_section_path_str
+        if section_str is None and self._section_path:
+            try:
+                if self._site:
+                    content_dir = self._site.root_path / "content"
+                    section_str = str(self._section_path.relative_to(content_dir))
+                else:
+                    section_str = str(self._section_path)
+            except ValueError, AttributeError:
+                section_str = str(self._section_path)
+            self._cached_section_path_str = section_str
 
-        Returns:
-            CascadeView combining frontmatter and cascade, or raw metadata dict
-            if cascade is not yet available (during early construction).
+        tag_slugs = frozenset(self.tags) if self.tags else frozenset()
+
+        self._identity = PageIdentity(
+            page_id=id(self),
+            source_path=str(self.source_path),
+            section_path_str=section_str or "",
+            slug=self.slug,
+            kind=self.kind,
+            is_generated=bool(self._raw_metadata.get("_generated")),
+            is_index=self.source_path.stem in ("_index", "index"),
+            tag_slugs=tag_slugs,
+            href=self.href,
+        )
+
+    @property
+    def metadata(self) -> Mapping[str, Any]:
+        """Return combined frontmatter + cascade metadata as CascadeView.
+
+        Cost: O(1) cached after first access per cascade snapshot. First access
+        with _cached_section_path_str unset: O(n) pathlib.relative_to.
+
+        Hot-path alternative: page.identity for boolean flags and pre-computed strings.
         """
         # During early construction or without site, return raw metadata
         if self._site is None:
@@ -919,6 +966,7 @@ __all__ = [
     "BundleType",
     "Frontmatter",
     "Page",
+    "PageIdentity",
     "PageProxy",
     "PageResource",
     "PageResources",

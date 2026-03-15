@@ -81,6 +81,11 @@ from bengal.utils.observability.logger import close_all_loggers, print_all_summa
     help="Profile template rendering times (shows which templates and functions are slow)",
 )
 @click.option(
+    "--profile-phases",
+    is_flag=True,
+    help="Show per-phase build timing breakdown (discovery, content, parsing, rendering, finalization)",
+)
+@click.option(
     "--clean-output/--no-clean-output",
     default=False,
     help="Delete the output directory before building (useful for CI cache-busting).",
@@ -173,6 +178,7 @@ def build(
     profile: str,
     perf_profile: str,
     profile_templates: bool,
+    profile_phases: bool,
     clean_output: bool,
     use_theme_dev: bool,
     use_dev: bool,
@@ -286,6 +292,7 @@ def build(
             fast=fast,
             memory_optimized=memory_optimized,
             profile_templates=profile_templates,
+            profile_phases=profile_phases,
         )
         build_options = resolve_build_options(site.config, cli_flags)
 
@@ -556,6 +563,17 @@ def build(
             if explain_json:
                 explain = True
 
+            # Set up phase profiling if requested
+            phase_timer = None
+            phase_start_cb = None
+            phase_complete_cb = None
+            if profile_phases:
+                from bengal.orchestration.build.profiler import PhaseTimer
+
+                phase_timer = PhaseTimer()
+                phase_start_cb = phase_timer.on_start
+                phase_complete_cb = phase_timer.on_complete
+
             build_opts = BuildOptions(
                 force_sequential=build_options.force_sequential,
                 incremental=incremental,
@@ -566,9 +584,12 @@ def build(
                 strict=strict,
                 full_output=full_output,
                 profile_templates=profile_templates,
+                profile_phases=profile_phases,
                 explain=explain,
                 dry_run=dry_run,
                 explain_json=explain_json,
+                on_phase_start=phase_start_cb,
+                on_phase_complete=phase_complete_cb,
             )
             stats = site.build(options=build_opts)
 
@@ -578,6 +599,15 @@ def build(
                     _print_explain_json(stats, dry_run=dry_run)
                 else:
                     _print_explain_output(stats, cli, dry_run=dry_run)
+
+            # Display phase profiling report if enabled
+            if phase_timer is not None:
+                from bengal.orchestration.build.profiler import format_phase_table
+
+                cli.blank()
+                cli.header("Build Phase Profiling Report")
+                for line in format_phase_table(phase_timer).splitlines():
+                    cli.info(line)
 
             # Display template profiling report if enabled
             if profile_templates and not quiet:

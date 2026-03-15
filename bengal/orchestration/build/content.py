@@ -129,7 +129,7 @@ def phase_taxonomies(
             already_generated_tags = affected_tags.copy()
             cascaded_tags: set[str] = set()
             for page in pages_to_build:
-                if page.metadata.get("_generated"):
+                if page.is_generated:
                     continue
                 if page.tags:
                     for tag in page.tags:
@@ -173,7 +173,7 @@ def phase_taxonomies(
 
             # Update cache with full taxonomy data (for next incremental build)
             for page in orchestrator.site.pages:
-                if not page.metadata.get("_generated") and page.tags:
+                if not page.is_generated and page.tags:
                     cache.taxonomy_index.update_page_tags(page.source_path, set(page.tags))
 
         orchestrator.stats.taxonomy_time_ms = (time.time() - taxonomy_start) * 1000
@@ -334,9 +334,7 @@ def phase_related_posts(
             pages_with_related = sum(
                 1
                 for p in orchestrator.site.pages
-                if hasattr(p, "related_posts")
-                and p.related_posts
-                and not p._raw_metadata.get("_generated")
+                if hasattr(p, "related_posts") and p.related_posts and not p.is_generated
             )
             orchestrator.stats.related_posts_time_ms = (time.time() - related_posts_start) * 1000
             orchestrator.logger.info(
@@ -471,7 +469,7 @@ def phase_update_pages_list(
         cascaded_tags: set[str] = set()
         for page in pages_to_build:
             # Skip generated pages (taxonomy pages themselves)
-            if page.metadata.get("_generated"):
+            if page.is_generated:
                 continue
             # If page has tags, cascade to those tag pages
             if page.tags:
@@ -494,11 +492,9 @@ def phase_update_pages_list(
     # RFC: Output Cache Architecture - Use GeneratedPageCache to skip unchanged pages
     skipped_by_cache = 0
     for page in orchestrator.site.generated_pages:
-        if page.metadata.get("type") in ("tag", "tag-index"):
-            # For full builds, add all taxonomy pages
-            # For incremental builds, add only affected tag pages + tag index
-            tag_slug = page.metadata.get("_tag_slug")
-            page_type = page.metadata.get("type")
+        if page.type in ("tag", "tag-index"):
+            tag_slug = page.tag_slug
+            page_type = page.type
 
             # Base inclusion logic
             should_include = (

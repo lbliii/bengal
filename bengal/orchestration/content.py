@@ -735,7 +735,7 @@ class ContentOrchestrator:
 
         missing_weight_pages = []
         for page in self.site.pages:
-            content_type = page.metadata.get("type")
+            content_type = page.type
             # Skip index pages (they don't need weight for navigation)
             if (
                 content_type in doc_types

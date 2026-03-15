@@ -491,6 +491,10 @@ class BuildOrchestrator:
         # Phase 12.5: URL Collision Detection (proactive validation)
         content.phase_url_collision_check(self, options.strict)
 
+        # Finalize PageIdentity for all pages (frozen hot-path struct)
+        for page in pages_to_build:
+            page.finalize_identity()
+
         content_duration_ms = (time.time() - content_start) * 1000
         taxonomy_count = len(self.site.taxonomies) if hasattr(self.site, "taxonomies") else 0
         notify_phase_complete(
@@ -713,20 +717,13 @@ class BuildOrchestrator:
         tag_pages = sum(
             1
             for p in self.site.pages
-            if p.metadata is not None
-            and p.metadata.get("_generated")
-            and p.output_path is not None
-            and "tag" in p.output_path.parts
+            if p.is_generated and p.output_path is not None and "tag" in p.output_path.parts
         )
         archive_pages = sum(
-            1
-            for p in self.site.pages
-            if p.metadata.get("_generated") and p.metadata.get("template") == "archive.html"
+            1 for p in self.site.pages if p.is_generated and p.assigned_template == "archive.html"
         )
         pagination_pages = sum(
-            1
-            for p in self.site.pages
-            if p.metadata.get("_generated") and "/page/" in str(p.output_path)
+            1 for p in self.site.pages if p.is_generated and "/page/" in str(p.output_path)
         )
         regular_pages = len(self.site.regular_pages)
 

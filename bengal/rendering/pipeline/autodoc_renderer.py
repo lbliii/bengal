@@ -198,7 +198,7 @@ class AutodocRenderer:
             page: Virtual page with autodoc_element in metadata
         """
         element = self._normalize_autodoc_element(page.metadata.get("autodoc_element"))
-        template_name = page.metadata.get("_autodoc_template", "autodoc/python/module")
+        template_name = page.autodoc_template or "autodoc/python/module"
 
         # Mark active menu items for this page
         if hasattr(self.site, "mark_active_menu_items"):

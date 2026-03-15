@@ -279,9 +279,61 @@ When reviewing code:
 
 ---
 
+## Frozen Boundary: Build → Render
+
+Data flowing from build phases to the render phase MUST be immutable. The render
+phase runs in parallel (free-threading, Python 3.14t) — mutable shared state
+causes data races.
+
+### Rule
+
+| Container | Allowed in build output? | Allowed in render input? |
+|-----------|-------------------------|-------------------------|
+| `frozenset` | Yes | Yes (read-only) |
+| `tuple` | Yes | Yes (read-only) |
+| `frozen dataclass` | Yes | Yes (read-only) |
+| `dict[K, frozenset]` | Yes | Yes (read values only) |
+| `list` | Build-internal only | **NO** — freeze before handoff |
+| `set` | Build-internal only | **NO** — freeze before handoff |
+| `dict` (mutable values) | Build-internal only | **NO** |
+
+### Examples
+
+```python
+# ✅ CORRECT — Frozen artifacts from build to render
+page_tags_map: dict[int, frozenset[str]]    # immutable tag sets
+excluded_ids: frozenset[int]                 # immutable exclusion set
+tag_index: dict[str, frozenset[int]]        # immutable inverted index
+identity_map: dict[int, PageIdentity]       # frozen dataclass values
+
+# ❌ WRONG — Mutable containers crossing the boundary
+related_map: dict[int, list[Page]]          # list is mutable
+active_tags: set[str]                        # set is mutable
+```
+
+### Where the Boundary Is
+
+Build phases (sequential or cooperative parallel):
+- Discovery → Content → Parsing (phases 1-12.5)
+- Output: frozen data structures on Site and pages
+
+Render phase (fully parallel, no locks):
+- Rendering → Finalization (phases 13+)
+- Reads frozen data, writes individual page HTML files
+
+### PageIdentity as Boundary Artifact
+
+`page.identity` (PageIdentity frozen dataclass) is the primary boundary artifact.
+It is computed at the end of content phases via `page.finalize_identity()` and is
+immutable for the entire render phase.
+
+---
+
 ## Evidence
 
 - `bengal/core/site.py` - Site delegates to orchestrators
 - `bengal/core/page/__init__.py` - Page uses mixins
+- `bengal/core/page/page_identity.py` - PageIdentity frozen dataclass
 - `bengal/orchestration/build_orchestrator.py` - Orchestrator with I/O
+- `bengal/orchestration/related_posts.py` - Frozen build artifacts example
 - `architecture/design-principles.md` - Full design documentation

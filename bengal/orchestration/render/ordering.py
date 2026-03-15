@@ -151,7 +151,7 @@ class OrderingMixin:
         priority_track_ids: set[str] = set()
         for page in pages:
             is_track_page = (
-                page.metadata.get("template") == "tracks/single.html"
+                page.assigned_template == "tracks/single.html"
                 or page.metadata.get("track_id") is not None
             )
             if not is_track_page:
@@ -201,7 +201,7 @@ class OrderingMixin:
             rel_no_ext = rel_str[:-3] if rel_str.endswith(".md") else rel_str
             is_track_item = rel_str in track_item_paths or rel_no_ext in track_item_paths
             is_track_page = (
-                page.metadata.get("template") == "tracks/single.html"
+                page.assigned_template == "tracks/single.html"
                 or page.metadata.get("track_id") is not None
             )
             if is_track_item:

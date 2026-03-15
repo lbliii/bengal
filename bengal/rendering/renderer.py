@@ -282,7 +282,7 @@ class Renderer:
                     source_str = str(page_to_check.source_path)
                     # Apply filtering rules: exclude generated, API, and CLI pages
                     if (
-                        not page_to_check.metadata.get("_generated")
+                        not page_to_check.is_generated
                         and "content/api" not in source_str
                         and "content/cli" not in source_str
                     ):
@@ -429,19 +429,17 @@ class Renderer:
 
         # Add special context for generated pages (tags, archives, etc.)
         # These need additional pagination and tag-specific data
-        if page.metadata.get("_generated"):
+        if page.is_generated:
             self._add_generated_page_context(page, context)
 
         # Handle root index pages (top-level _index.md without enclosing section)
-        # Provide context for ALL root index pages, regardless of type
-        # EXCLUDE generated pages (tags, archives) which have their own context logic
-        page_type = page.metadata.get("type")
+        page_type = page.type
         is_index_page = page.source_path.stem in ("_index", "index")
 
         if (
             is_index_page
             and page._section is None
-            and not page.metadata.get("_generated")
+            and not page.is_generated
             and page_type not in ("tag", "tag-index")
         ):
             # For root home page, provide site-level context as fallback
@@ -516,7 +514,7 @@ class Renderer:
             page: Page being rendered
             context: Template context to update
         """
-        page_type = page.metadata.get("type")
+        page_type = page.type
 
         archive_like_types = {
             "archive",

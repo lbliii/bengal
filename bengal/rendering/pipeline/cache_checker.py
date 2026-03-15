@@ -119,7 +119,7 @@ class CacheChecker:
         Returns:
             True if cache hit (page written), False if cache miss
         """
-        if not self.build_cache or page.metadata.get("_generated"):
+        if not self.build_cache or page.is_generated:
             return False
 
         cache = self.build_cache
@@ -168,7 +168,7 @@ class CacheChecker:
         Returns:
             True if cache hit (page rendered and written), False if cache miss
         """
-        if not self.build_cache or page.metadata.get("_generated"):
+        if not self.build_cache or page.is_generated:
             return False
 
         cache = self.build_cache
@@ -285,7 +285,7 @@ class CacheChecker:
             template: Template name used
             parser_version: Parser version used
         """
-        if not self.build_cache or page.metadata.get("_generated"):
+        if not self.build_cache or page.is_generated:
             return
 
         cache = self.build_cache
@@ -325,7 +325,7 @@ class CacheChecker:
             page: Page with rendered HTML
             template: Template name used
         """
-        if not self.build_cache or page.metadata.get("_generated"):
+        if not self.build_cache or page.is_generated:
             return
 
         cache = self.build_cache
