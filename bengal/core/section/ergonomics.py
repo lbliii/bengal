@@ -165,7 +165,9 @@ class SectionErgonomicsMixin:
         """
         tag_lower = tag.lower()
         return [
-            p for p in self.sorted_pages if tag_lower in {t.lower() for t in getattr(p, "tags", [])}
+            p
+            for p in self.sorted_pages
+            if any(t.lower() == tag_lower for t in getattr(p, "tags", []))
         ]
 
     def featured_posts(self, limit: int = 5) -> list[Page]:
@@ -279,7 +281,7 @@ class SectionErgonomicsMixin:
 
         result = {
             "page_count": len(pages),
-            "total_page_count": len(self.get_all_pages(recursive=True)),
+            "total_page_count": len(self.regular_pages_recursive),
             "subsection_count": len(self.subsections),
             "tags": sorted(all_tags),
             "title": self.title,

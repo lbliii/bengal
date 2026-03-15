@@ -129,7 +129,7 @@ class TaxonomyOrchestrator:
             True if page should be included in taxonomies
         """
         # Skip generated pages (tag pages, archive pages, etc.)
-        if page.metadata.get("_generated"):
+        if page.is_generated:
             return False
 
         # Skip pages from autodoc output directories as defensive measure
@@ -212,7 +212,7 @@ class TaxonomyOrchestrator:
         # This is the O(changed) optimization - only look at changed pages
         affected_tags = set()
         for page in changed_pages:
-            if page.metadata.get("_generated"):
+            if page.is_generated:
                 continue
 
             # For changed pages that are PageProxy objects, the cached metadata
@@ -239,7 +239,7 @@ class TaxonomyOrchestrator:
         # This ensures taxonomy listing pages use current Page objects with
         # up-to-date metadata (title, date, summary) even if tags didn't change.
         # The rebuild is O(tags * pages_per_tag) but typically fast (<50ms).
-        pages_with_tags = [p for p in changed_pages if p.tags and not p.metadata.get("_generated")]
+        pages_with_tags = [p for p in changed_pages if p.tags and not p.is_generated]
         if affected_tags or not changed_pages or pages_with_tags:
             # Rebuild if: (1) tags changed OR (2) no pages changed OR (3) pages with tags changed
             self._rebuild_taxonomy_structure_from_cache(cache)
@@ -423,21 +423,14 @@ class TaxonomyOrchestrator:
                 # Tag has no pages - skip it (was removed)
                 continue
 
-            # Get original tag name (not slug) from first page's tags
-            # This handles "Python" vs "python" correctly
-            original_tag = None
-            for page in current_pages:
-                if page.tags:
-                    for tag in page.tags:
-                        tag_str = str(tag)
-                        if tag_str.lower().replace(" ", "-") == tag_slug:
-                            original_tag = tag_str
-                            break
-                if original_tag:
-                    break
-
-            if not original_tag:
-                original_tag = tag_slug  # Fallback
+            # Get original tag name from BuildTaxonomyIndex.page_tags (avoids O(pages×tags) scan)
+            first_path = next(iter(page_paths), None)
+            original_tag = tag_slug
+            if first_path:
+                for t in cache.taxonomy_index.page_tags.get(first_path, set()):
+                    if str(t).lower().replace(" ", "-") == tag_slug:
+                        original_tag = str(t)
+                        break
 
             # Create tag entry with CURRENT page objects
             self.site.taxonomies["tags"][tag_slug] = {
@@ -630,12 +623,10 @@ class TaxonomyOrchestrator:
         tag_count = sum(
             1
             for p in self.site.pages
-            if p.metadata.get("_generated") and p.output_path and "tag" in p.output_path.parts
+            if p.is_generated and p.output_path and "tag" in p.output_path.parts
         )
         pagination_count = sum(
-            1
-            for p in self.site.pages
-            if p.metadata.get("_generated") and "/page/" in str(p.output_path)
+            1 for p in self.site.pages if p.is_generated and "/page/" in str(p.output_path)
         )
 
         if generated_count > 0:

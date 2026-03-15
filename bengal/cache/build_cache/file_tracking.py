@@ -366,9 +366,9 @@ class FileTrackingMixin:
                 if not self.reverse_dependencies[dep]:
                     del self.reverse_dependencies[dep]
 
-        # Remove as a dependency from other files (forward graph)
-        for source_deps in self.dependencies.values():
-            source_deps.discard(file_key)
+        # Remove as a dependency from other files using the reverse index
+        for source_key in list(self.reverse_dependencies.get(file_key, set())):
+            self.dependencies.get(source_key, set()).discard(file_key)
 
         # Remove from reverse graph (as a dependency)
         self.reverse_dependencies.pop(file_key, None)

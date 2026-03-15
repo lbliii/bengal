@@ -39,6 +39,7 @@ See Also:
 from __future__ import annotations
 
 from datetime import datetime
+from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
@@ -80,19 +81,13 @@ class PageMetadataMixin:
 
     @property
     def title(self) -> str:
-        """
-        Get page title from metadata or generate intelligently from context.
+        """Get page title from metadata or generate intelligently from context.
+
+        Cost: O(1) cached — CascadeView dict lookup after first metadata access.
 
         For index pages (_index.md or index.md) without explicit titles,
         uses the parent directory name humanized instead of showing "Index"
         which is not user-friendly in menus, navigation, or page titles.
-
-        Examples:
-            api/_index.md → "Api"
-            docs/index.md → "Docs"
-            data-designer/_index.md → "Data Designer"
-            my_module/index.md → "My Module"
-            about.md → "About"
         """
         # Check metadata first (explicit titles always win)
         if "title" in self.metadata:
@@ -109,22 +104,11 @@ class PageMetadataMixin:
 
     @property
     def nav_title(self) -> str:
-        """
-        Get navigation title (shorter title for menus/sidebar).
+        """Get navigation title (shorter title for menus/sidebar).
+
+        Cost: O(1) cached — core field or CascadeView lookup + resolve_nav_title.
 
         Falls back to regular title if nav_title not specified in frontmatter.
-        Use this in navigation/menu templates for compact display.
-
-        Example:
-            ```yaml
-            ---
-            title: Content Authoring Guide
-            nav_title: Authoring
-            ---
-            ```
-
-        In templates:
-            {{ page.nav_title }}  # "Authoring" (or title if not set)
         """
         nav = (
             self.core.nav_title
@@ -135,19 +119,9 @@ class PageMetadataMixin:
 
     @property
     def weight(self) -> float:
-        """
-        Get page weight for sorting (always returns sortable value).
+        """Get page weight for sorting (always returns sortable value).
 
-        Returns weight from metadata/core if set, otherwise infinity (sorts last).
-        This property ensures pages are always sortable without None errors.
-
-        Example in frontmatter:
-            ```yaml
-            ---
-            title: Getting Started
-            weight: 10
-            ---
-            ```
+        Cost: O(1) cached — core field or CascadeView lookup + sortable_weight.
         """
         w = (
             self.core.weight
@@ -158,10 +132,9 @@ class PageMetadataMixin:
 
     @property
     def date(self) -> datetime | None:
-        """
-        Get page date from metadata.
+        """Get page date from metadata.
 
-        Uses bengal.utils.dates.parse_date for flexible date parsing.
+        Cost: O(1) cached — CascadeView lookup + parse_date.
         """
         from bengal.utils.primitives.dates import parse_date
 
@@ -170,14 +143,9 @@ class PageMetadataMixin:
 
     @property
     def version(self) -> str | None:
-        """
-        Get version ID for this page.
+        """Get version ID for this page (e.g., 'v3', 'v2').
 
-        Returns the version this page belongs to (e.g., 'v3', 'v2').
-        Set during discovery based on content path or frontmatter override.
-
-        Returns:
-            Version ID string or None if not versioned
+        Cost: O(1) cached — core field or CascadeView lookup.
         """
         # Core has authoritative version (for cached pages)
         if self.core is not None and self.core.version:
@@ -190,7 +158,10 @@ class PageMetadataMixin:
 
     @property
     def slug(self) -> str:
-        """Get URL slug for the page."""
+        """Get URL slug for the page.
+
+        Cost: O(1) cached — CascadeView lookup or filename stem.
+        """
         # Check metadata first
         if "slug" in self.metadata:
             return str(self.metadata["slug"])
@@ -204,18 +175,11 @@ class PageMetadataMixin:
 
     @property
     def href(self) -> str:
-        """
-        URL for template href attributes. Includes baseurl.
+        """URL for template href attributes. Includes baseurl.
 
-        Use this in templates for all links:
-            <a href="{{ page.href }}">
-            <link href="{{ page.href }}">
+        Cost: O(1) cached — cached after first computation via _href_cache.
 
-        Returns:
-            URL path with baseurl prepended (if configured)
-
-        Note: Uses manual caching that only stores when _path is properly
-        computed (not from fallback).
+        Hot-path alternative: page.identity.href (pre-computed, no property chain).
         """
         # Check for manually-set value first (tests use this pattern)
         # This allows __dict__['href'] = '/path/' to work
@@ -249,16 +213,12 @@ class PageMetadataMixin:
 
     @property
     def _path(self) -> str:
-        """
-        Internal site-relative path. NO baseurl.
+        """Internal site-relative path. NO baseurl.
 
-        Use for internal operations only:
-        - Cache keys
-        - Active trail detection
-        - URL comparisons
-        - Link validation
+        Cost: O(1) cached — cached via _path_cache after first computation.
+        First access: O(n) pathlib.relative_to if output_path is set.
 
-        NEVER use in templates - use .href instead.
+        NEVER use in templates — use .href instead.
         """
         # Check for manually-set value first (tests use this pattern)
         manual_value = self.__dict__.get("_path")
@@ -306,17 +266,9 @@ class PageMetadataMixin:
 
     @property
     def absolute_href(self) -> str:
-        """
-        Fully-qualified URL for meta tags and sitemaps when available.
+        """Fully-qualified URL for meta tags and sitemaps when available.
 
-        Bengal's configuration model uses `baseurl` as the public URL prefix. It may be:
-        - Empty: "" (root-relative URLs)
-        - Path-only: "/bengal" (GitHub Pages subpath)
-        - Absolute: "https://example.com" (fully-qualified base)
-
-        If `baseurl` is absolute, `href` is already absolute and this returns it.
-        Otherwise, this falls back to `href` (root-relative) because no fully-qualified
-        site origin is configured.
+        Cost: O(1) cached — delegates to cached href / _path.
         """
         origin = get_site_origin(self._site) if self._site else ""
         if not origin:
@@ -336,18 +288,10 @@ class PageMetadataMixin:
 
     @property
     def toc_items(self) -> list[TOCItem]:
-        """
-        Get structured TOC data (lazy evaluation).
+        """Get structured TOC data (lazy evaluation).
 
-        Only extracts TOC structure when accessed by templates, saving
-        HTMLParser overhead for pages that don't use toc_items.
-
-        Important: This property does NOT cache empty results. This allows
-        toc_items to be accessed before parsing (during xref indexing) without
-        preventing extraction after parsing when page.toc is actually set.
-
-        Returns:
-            List of TOC items with id, title, and level
+        Cost: O(1) cached after first extraction. First access: O(n) HTMLParser
+        over page.toc HTML. Does NOT cache empty results to allow re-evaluation.
         """
         # Only extract and cache if we haven't extracted yet AND toc exists
         # Don't cache empty results - toc might be set later during parsing
@@ -363,11 +307,11 @@ class PageMetadataMixin:
 
     @property
     def is_generated(self) -> bool:
-        """
-        Check if this is a generated page (tag indexes, archives, pagination).
+        """Check if this is a generated page (tag indexes, archives, pagination).
 
-        Prefers _raw_metadata for O(1) dict lookup (avoids cascade resolution).
-        Falls back to metadata for compatibility with test mocks and proxies.
+        Cost: O(1) — reads _raw_metadata dict directly, no cascade resolution.
+
+        Hot-path alternative: page.identity.is_generated (frozen, no property chain).
         """
         raw = getattr(self, "_raw_metadata", None)
         if raw is not None:
@@ -376,31 +320,19 @@ class PageMetadataMixin:
 
     @property
     def is_home(self) -> bool:
-        """
-        Check if this page is the home page.
+        """Check if this page is the home page.
 
-        Returns:
-            True if this is the home page
+        Cost: O(1) cached — _path lookup + slug comparison.
 
-        Example:
-            {% if page.is_home %}
-              <h1>Welcome to the home page!</h1>
-            {% endif %}
+        Hot-path alternative: page.identity.kind == "home".
         """
         return self._path == "/" or self.slug in ("index", "_index", "home")
 
     @property
     def is_section(self) -> bool:
-        """
-        Check if this page is a section page.
+        """Check if this page is a section page.
 
-        Returns:
-            True if this is a section (always False for Page, True for Section)
-
-        Example:
-            {% if page.is_section %}
-              <h2>Section: {{ page.title }}</h2>
-            {% endif %}
+        Cost: O(1) — isinstance check.
         """
         # Import here to avoid circular import
         from bengal.core.section import Section
@@ -409,31 +341,19 @@ class PageMetadataMixin:
 
     @property
     def is_page(self) -> bool:
-        """
-        Check if this is a regular page (not a section).
+        """Check if this is a regular page (not a section).
 
-        Returns:
-            True if this is a regular page
-
-        Example:
-            {% if page.is_page %}
-              <article>{{ page.content }}</article>
-            {% endif %}
+        Cost: O(1) — negated isinstance check.
         """
         return not self.is_section
 
     @property
     def kind(self) -> str:
-        """
-        Get the kind of page: 'home', 'section', or 'page'.
+        """Get the kind of page: 'home', 'section', or 'page'.
 
-        Returns:
-            String indicating page kind
+        Cost: O(1) cached — delegates to is_home/is_section.
 
-        Example:
-            {% if page.kind == 'section' %}
-              {# Render section template #}
-            {% endif %}
+        Hot-path alternative: page.identity.kind (frozen string).
         """
         if self.is_home:
             return "home"
@@ -447,27 +367,17 @@ class PageMetadataMixin:
 
     @property
     def type(self) -> str | None:
-        """
-        Get page type from metadata (frontmatter or cascade, already merged).
+        """Get page type from metadata (frontmatter or cascade, already merged).
 
-        Component Model: Identity.
-
-        With eager cascade merge, cascade values are merged into metadata
-        after snapshot build. This eliminates the duality between
-        page.metadata.get("type") and page.type - they now return the same value.
-
-        Returns:
-            Page type or None
+        Cost: O(1) cached — CascadeView dict lookup.
         """
         return self.metadata.get("type")
 
     @property
     def description(self) -> str:
-        """
-        Get page description from core metadata (preferred) or frontmatter.
+        """Get page description from core metadata (preferred) or frontmatter.
 
-        Returns:
-            Page description or empty string
+        Cost: O(1) cached — core field or CascadeView lookup.
         """
         if self.core is not None and self.core.description:
             return self.core.description
@@ -475,17 +385,9 @@ class PageMetadataMixin:
 
     @property
     def variant(self) -> str | None:
-        """
-        Get visual variant from metadata (frontmatter or cascade, already merged).
+        """Get visual variant from metadata (frontmatter or cascade, already merged).
 
-        Component Model: Mode.
-
-        With eager cascade merge, cascade values (including 'variant' and 'layout')
-        are merged into metadata after snapshot build. Falls back to 'layout'
-        or 'hero_style' for backward compatibility.
-
-        Returns:
-            Variant string or None
+        Cost: O(1) cached — CascadeView lookup with layout/hero_style fallback.
         """
         return (
             self.metadata.get("variant")
@@ -495,55 +397,41 @@ class PageMetadataMixin:
 
     @property
     def props(self) -> dict[str, Any]:
-        """
-        Get page props (alias for metadata).
+        """Get page props (alias for metadata). Component Model: Data.
 
-        Component Model: Data.
-
-        Returns:
-            Page metadata dictionary
+        Cost: O(1) cached — returns metadata CascadeView.
         """
         return self.metadata
 
     @property
     def params(self) -> dict[str, Any]:
-        """
-        Get page params (alias for metadata).
+        """Get page params (alias for metadata).
 
-        Provides ergonomic access to frontmatter in templates:
-            {{ page.params.author }}
-            {{ page.params.get('custom_field', 'default') }}
-
-        Returns:
-            Page metadata dictionary
+        Cost: O(1) cached — returns metadata CascadeView.
         """
         return self.metadata
 
     @property
     def draft(self) -> bool:
-        """
-        Check if page is marked as draft.
+        """Check if page is marked as draft.
 
-        Returns:
-            True if page is a draft
+        Cost: O(1) cached — CascadeView dict lookup.
         """
         return bool(self.metadata.get("draft", False))
 
     @property
     def keywords(self) -> list[str]:
-        """
-        Get page keywords from metadata.
+        """Get page keywords from metadata.
 
-        Returns:
-            List of keywords (sanitized strings)
+        Cost: O(k) — CascadeView lookup + list normalization where k = len(keywords).
         """
         keywords = self.metadata.get("keywords", [])
         if isinstance(keywords, str):
             # Split comma-separated keywords
             return [k.strip() for k in keywords.split(",") if k.strip()]
         if isinstance(keywords, list):
-            # Sanitize: filter None, convert to strings, filter empty
-            return [str(k).strip() for k in keywords if k is not None and str(k).strip()]
+            # Sanitize: filter None, convert to strings, filter empty (compute strip once)
+            return [s for s in (str(k).strip() for k in keywords if k is not None) if s]
         return []
 
     # =========================================================================
@@ -552,26 +440,9 @@ class PageMetadataMixin:
 
     @property
     def hidden(self) -> bool:
-        """
-        Check if page is hidden (unlisted).
+        """Check if page is hidden (unlisted).
 
-        Hidden pages:
-        - Are excluded from navigation menus
-        - Are excluded from site.pages queries (listings)
-        - Are excluded from sitemap.xml
-        - Get noindex,nofollow robots meta
-        - Still render and are accessible via direct URL
-
-        Returns:
-            True if page is hidden
-
-        Example:
-            ```yaml
-            ---
-            title: Secret Page
-            hidden: true
-            ---
-            ```
+        Cost: O(1) cached — CascadeView dict lookup.
         """
         return bool(self.metadata.get("hidden", False))
 
@@ -589,37 +460,11 @@ class PageMetadataMixin:
         except Exception:
             return {}
 
-    @property
+    @cached_property
     def visibility(self) -> dict[str, Any]:
-        """
-        Get visibility settings with defaults.
+        """Get visibility settings with defaults.
 
-        The visibility object provides granular control over page visibility:
-        - menu: Include in navigation menus (default: True)
-        - listings: Include in site.pages queries (default: True)
-        - sitemap: Include in sitemap.xml (default: True)
-        - robots: Robots meta directive (default: "index, follow")
-        - render: When to render - "always", "local", "never" (default: "always")
-        - search: Include in search index (default: True)
-        - rss: Include in RSS feeds (default: True)
-        - ai_train: Allow AI training on this content (default: from content_signals config)
-        - ai_input: Allow AI input/RAG on this content (default: from content_signals config)
-
-        If `hidden: true` is set, it expands to restrictive defaults.
-
-        Returns:
-            Dict with visibility settings
-
-        Example:
-            ```yaml
-            ---
-            title: Partially Hidden
-            visibility:
-                menu: false
-                listings: true
-                ai_train: false
-            ---
-            ```
+        Cost: O(1) cached — computed once, then dict lookup for 8 sub-properties.
         """
         # If hidden shorthand is used, return restrictive defaults
         if self.metadata.get("hidden", False):
@@ -652,98 +497,65 @@ class PageMetadataMixin:
 
     @property
     def in_listings(self) -> bool:
-        """
-        Check if page should appear in listings/queries.
+        """Check if page should appear in listings/queries.
 
-        Excludes drafts and pages with visibility.listings=False.
-
-        Returns:
-            True if page should appear in site.pages queries
+        Cost: O(1) — delegates to visibility + draft.
         """
         return self.visibility["listings"] and not self.draft
 
     @property
     def in_sitemap(self) -> bool:
-        """
-        Check if page should appear in sitemap.
+        """Check if page should appear in sitemap.
 
-        Excludes drafts and pages with visibility.sitemap=False.
-
-        Returns:
-            True if page should appear in sitemap.xml
+        Cost: O(1) — delegates to visibility + draft.
         """
         return self.visibility["sitemap"] and not self.draft
 
     @property
     def in_search(self) -> bool:
-        """
-        Check if page should appear in search index.
+        """Check if page should appear in search index.
 
-        Excludes drafts and pages with visibility.search=False.
-
-        Returns:
-            True if page should appear in search index
+        Cost: O(1) — delegates to visibility + draft.
         """
         return self.visibility["search"] and not self.draft
 
     @property
     def in_rss(self) -> bool:
-        """
-        Check if page should appear in RSS feeds.
+        """Check if page should appear in RSS feeds.
 
-        Excludes drafts and pages with visibility.rss=False.
-
-        Returns:
-            True if page should appear in RSS feeds
+        Cost: O(1) — delegates to visibility + draft.
         """
         return self.visibility["rss"] and not self.draft
 
     @property
     def in_ai_train(self) -> bool:
-        """
-        Check if page content may be used for AI training.
+        """Check if page content may be used for AI training.
 
-        Controlled by visibility.ai_train (default from content_signals config).
-        Excludes drafts.
-
-        Returns:
-            True if page permits AI training use
+        Cost: O(1) — delegates to visibility + draft.
         """
         return self.visibility["ai_train"] and not self.draft
 
     @property
     def in_ai_input(self) -> bool:
-        """
-        Check if page content may be used for AI input (RAG, grounding).
+        """Check if page content may be used for AI input (RAG, grounding).
 
-        Controlled by visibility.ai_input (default from content_signals config).
-        Excludes drafts.
-
-        Returns:
-            True if page permits AI input use
+        Cost: O(1) — delegates to visibility + draft.
         """
         return self.visibility["ai_input"] and not self.draft
 
     @property
     def robots_meta(self) -> str:
-        """
-        Get robots meta content for this page.
+        """Get robots meta content for this page.
 
-        Returns:
-            Robots directive string (e.g., "index, follow" or "noindex, nofollow")
+        Cost: O(1) — delegates to visibility.
         """
         return str(self.visibility["robots"])
 
     @property
     def should_render(self) -> bool:
-        """
-        Check if page should be rendered based on visibility.render setting.
+        """Check if page should be rendered based on visibility.render setting.
 
-        Note: This checks the render setting but doesn't know about environment.
-        Use should_render_in_environment() for environment-aware checks.
-
-        Returns:
-            True if render is not "never"
+        Cost: O(1) — delegates to visibility.
         """
         return bool(self.visibility["render"] != "never")
 
@@ -777,22 +589,9 @@ class PageMetadataMixin:
 
     @property
     def edition(self) -> list[str]:
-        """
-        Get edition/variant list from frontmatter for multi-variant builds.
+        """Get edition/variant list from frontmatter for multi-variant builds.
 
-        Used with params.edition to exclude pages from builds. Omit or use
-        [oss, enterprise] for shared content; use [enterprise] for enterprise-only.
-
-        Returns:
-            List of edition names (e.g. ["oss", "enterprise"]). Empty if not set.
-
-        Example:
-            ```yaml
-            ---
-            title: Enterprise Feature
-            edition: [enterprise]
-            ---
-            ```
+        Cost: O(k) — CascadeView lookup + list normalization where k = len(editions).
         """
         val = self.metadata.get("edition")
         if val is None:
@@ -885,40 +684,46 @@ class PageMetadataMixin:
 
     @property
     def assigned_template(self) -> str | None:
-        """
-        Template explicitly assigned to this page.
+        """Template explicitly assigned to this page via frontmatter.
 
-        Returns the template specified in frontmatter, if any.
-        This overrides automatic template selection.
-
-        Returns:
-            Template name or None if not explicitly assigned
-
-        Example:
-            ```yaml
-            ---
-            template: custom/landing.html
-            ---
-            ```
+        Cost: O(1) cached — CascadeView dict lookup.
         """
         return self.metadata.get("template")
 
     @property
     def content_type_name(self) -> str | None:
-        """
-        Content type assigned to this page.
+        """Content type assigned to this page.
 
-        Returns the content type from frontmatter. Content types
-        determine sorting, filtering, and template selection behavior.
-
-        Returns:
-            Content type name or None
-
-        Example:
-            ```yaml
-            ---
-            content_type: blog
-            ---
-            ```
+        Cost: O(1) cached — CascadeView dict lookup.
         """
         return self.metadata.get("content_type")
+
+    # =========================================================================
+    # Canonical Internal Flag Accessors
+    # =========================================================================
+    # Internal build flags (_generated, _tag_slug, _autodoc_template, etc.)
+    # MUST be accessed via these properties, never through metadata.get("_...").
+    # This avoids triggering the full cascade resolution chain for simple
+    # boolean/string checks.
+
+    @property
+    def tag_slug(self) -> str | None:
+        """Tag slug for generated tag pages.
+
+        Cost: O(1) — _raw_metadata dict lookup, no cascade.
+        """
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return raw.get("_tag_slug")
+        return self.metadata.get("_tag_slug")
+
+    @property
+    def autodoc_template(self) -> str | None:
+        """Autodoc template override for auto-generated API doc pages.
+
+        Cost: O(1) — _raw_metadata dict lookup, no cascade.
+        """
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return raw.get("_autodoc_template")
+        return self.metadata.get("_autodoc_template")
