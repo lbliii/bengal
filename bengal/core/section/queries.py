@@ -180,6 +180,28 @@ class SectionQueryMixin:
     # PAGE MANAGEMENT METHODS
     # =========================================================================
 
+    def _invalidate_page_caches(self) -> None:
+        """Invalidate all cached properties that depend on the pages list.
+
+        Must be called whenever self.pages is mutated. Covers caches from
+        both SectionQueryMixin and SectionErgonomicsMixin so new
+        @cached_property additions cannot silently go stale.
+        """
+        for key in (
+            "regular_pages",
+            "sorted_pages",
+            "regular_pages_recursive",
+            "content_pages",
+            "_dated_pages_sorted",
+            "_featured_pages_sorted",
+            "_tag_index",
+            "post_count",
+            "post_count_recursive",
+            "word_count",
+            "total_reading_time",
+        ):
+            self.__dict__.pop(key, None)
+
     def add_page(self, page: Page | PageProxy) -> None:
         """
         Add a page to this section.
@@ -196,10 +218,7 @@ class SectionQueryMixin:
 
         self.pages.append(page)
 
-        # Invalidate cached properties that depend on pages list
-        self.__dict__.pop("regular_pages", None)
-        self.__dict__.pop("sorted_pages", None)
-        self.__dict__.pop("regular_pages_recursive", None)
+        self._invalidate_page_caches()
 
         # Set as index page if it's named index.md or _index.md
         if is_index:
@@ -249,6 +268,7 @@ class SectionQueryMixin:
         # Sort pages by weight (ascending), then title (alphabetically)
         # weight_sort_key normalises weight to float, preventing mixed-type TypeError
         self.pages.sort(key=weight_sort_key)
+        self._invalidate_page_caches()
 
         # Sort subsections by weight (ascending), then title (alphabetically)
         self.subsections.sort(key=weight_sort_key)

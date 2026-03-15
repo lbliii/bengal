@@ -204,17 +204,16 @@ class TestSectionAggregation:
     """Test section-level signal aggregation from pages."""
 
     def _make_page(self, path, visibility=None, draft=False):
+        from bengal.core.page.types import VisibilitySettings
+
         page = MagicMock()
         page._path = path
         page.output_path = Path(f"/tmp/output{path}index.html")
         page.draft = draft
-        page.visibility = {
-            "search": True,
-            "ai_input": True,
-            "ai_train": False,
-        }
+        defaults = {"search": True, "ai_input": True, "ai_train": False}
         if visibility:
-            page.visibility.update(visibility)
+            defaults.update(visibility)
+        page.visibility = VisibilitySettings(**defaults)
         return page
 
     def test_no_override_when_all_match_default(self):

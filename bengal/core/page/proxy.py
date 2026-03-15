@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.core.cascade import CascadeSnapshot, CascadeView
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.core.page.types import VisibilitySettings
 from bengal.core.utils.shared import resolve_nav_title, sortable_weight
 
 if TYPE_CHECKING:
@@ -793,7 +794,7 @@ class PageProxy:
     )
 
     @property
-    def visibility(self) -> dict[str, Any]:
+    def visibility(self) -> VisibilitySettings:
         """Get visibility settings with defaults.
 
         Cost: O(DISK) first access, O(1) after — triggers full page load.
@@ -801,16 +802,8 @@ class PageProxy:
         self._ensure_loaded()
         if self._full_page:
             return self._full_page.visibility
-        # Fallback to permissive defaults
-        return {
-            "menu": True,
-            "listings": True,
-            "sitemap": True,
-            "robots": "index, follow",
-            "render": "always",
-            "search": True,
-            "rss": True,
-        }
+        # Fallback to permissive defaults (same type as Page.visibility)
+        return VisibilitySettings()
 
     def should_render_in_environment(self, is_production: bool = False) -> bool:
         """Check if page should be rendered in the given environment."""

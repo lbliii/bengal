@@ -325,12 +325,12 @@ class SectionLike(Protocol):
         ...
 
     @property
-    def regular_pages(self) -> list[PageLike]:
-        """Non-index pages in this section."""
+    def regular_pages(self) -> tuple[PageLike, ...] | list[PageLike]:
+        """Non-index pages in this section (tuple from Section, list from snapshot)."""
         ...
 
     @property
-    def hierarchy(self) -> list[str]:
+    def hierarchy(self) -> tuple[str, ...] | list[str]:
         """Full hierarchy path (e.g., ['docs', 'guide'] for docs/guide/)."""
         ...
 

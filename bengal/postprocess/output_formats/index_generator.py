@@ -684,7 +684,7 @@ class SiteIndexGenerator:
         # Check hidden frontmatter or visibility.search setting
         visibility = self._safe_get_metadata_value(metadata, "visibility")
         if metadata.get("hidden", False) or (
-            isinstance(visibility, dict) and not visibility.get("search", True)
+            hasattr(visibility, "get") and not visibility.get("search", True)
         ):
             summary["search_exclude"] = True
 

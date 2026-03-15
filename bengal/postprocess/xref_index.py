@@ -213,7 +213,7 @@ class XRefIndexGenerator:
             return
 
         visibility = page.metadata.get("visibility", {})
-        if isinstance(visibility, dict) and not visibility.get("search", True):
+        if hasattr(visibility, "get") and not visibility.get("search", True):
             return
 
         # Get page URL

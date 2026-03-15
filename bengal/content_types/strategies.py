@@ -41,6 +41,7 @@ Related:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
 from .base import ContentTypeStrategy
@@ -83,7 +84,7 @@ class BlogStrategy(ContentTypeStrategy):
     default_template = "blog/list.html"
     allows_pagination = True
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: Iterable[Page]) -> list[Page]:
         """
         Sort pages by date, newest first.
 
@@ -160,7 +161,7 @@ class DocsStrategy(ContentTypeStrategy):
     default_template = "doc/list.html"
     allows_pagination = False  # Docs should not be paginated
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: Iterable[Page]) -> list[Page]:
         """
         Sort pages by weight, then title alphabetically.
 
@@ -206,7 +207,7 @@ class ApiReferenceStrategy(ContentTypeStrategy):
     default_template = "autodoc/python/list.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: Iterable[Page]) -> list[Page]:
         """
         Preserve original discovery order (typically alphabetical).
 
@@ -269,7 +270,7 @@ class CliReferenceStrategy(ContentTypeStrategy):
     default_template = "autodoc/cli/list.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: Iterable[Page]) -> list[Page]:
         """
         Preserve original discovery order (typically alphabetical).
 
@@ -334,7 +335,7 @@ class TutorialStrategy(ContentTypeStrategy):
     default_template = "tutorial/list.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: Iterable[Page]) -> list[Page]:
         """
         Sort pages by weight for sequential tutorial ordering.
 
@@ -375,7 +376,7 @@ class ChangelogStrategy(ContentTypeStrategy):
     default_template = "changelog/list.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: Iterable[Page]) -> list[Page]:
         """
         Sort releases by date (newest first), then title descending.
 
@@ -421,7 +422,7 @@ class TrackStrategy(ContentTypeStrategy):
     default_template = "tracks/list.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: Iterable[Page]) -> list[Page]:
         """
         Sort track pages by weight for sequential learning order.
 
@@ -461,7 +462,7 @@ class NotebookStrategy(ContentTypeStrategy):
     default_template = "notebook/single.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: Iterable[Page]) -> list[Page]:
         """Sort notebook pages by weight, then title."""
         return sorted(pages, key=weight_title_key)
 
@@ -520,7 +521,7 @@ class PageStrategy(ContentTypeStrategy):
     default_template = "index.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: Iterable[Page]) -> list[Page]:
         """
         Sort pages by weight, then title alphabetically.
 

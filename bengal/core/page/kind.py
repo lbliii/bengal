@@ -32,6 +32,9 @@ class PageKind(StrEnum):
     HOME = "home"
     SECTION_INDEX = "section-index"
 
+    # Content-type pages (detected from section name)
+    TRACK = "track"
+
     # Generated pages (orchestrator-created)
     TAG = "tag"
     TAG_INDEX = "tag-index"
@@ -73,6 +76,7 @@ class PageKind(StrEnum):
     def _from_generated_type(cls, page_type: str) -> PageKind | None:
         """Map metadata type string to PageKind."""
         mapping = {
+            "track": cls.TRACK,
             "tag": cls.TAG,
             "tag-index": cls.TAG_INDEX,
             "archive": cls.ARCHIVE,
@@ -88,6 +92,7 @@ class PageKind(StrEnum):
     def is_generated_kind(self) -> bool:
         """True if this kind is for orchestrator-generated pages."""
         return self in (
+            PageKind.TRACK,
             PageKind.TAG,
             PageKind.TAG_INDEX,
             PageKind.ARCHIVE,

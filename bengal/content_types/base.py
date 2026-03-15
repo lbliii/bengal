@@ -39,6 +39,7 @@ Related:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -91,7 +92,7 @@ class ContentTypeStrategy:
     default_template = "index.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: Iterable[Page]) -> list[Page]:
         """
         Sort pages for display in list views.
 
@@ -100,10 +101,10 @@ class ContentTypeStrategy:
         (alphabetical), which works well for documentation and generic pages.
 
         Args:
-            pages: List of Page objects to sort.
+            pages: Iterable of Page objects to sort (list, tuple, etc.).
 
         Returns:
-            New sorted list of pages. Does not modify the input list.
+            New sorted list of pages. Does not modify the input.
 
         Example:
             >>> # Default behavior: sort by weight, then title
@@ -118,7 +119,9 @@ class ContentTypeStrategy:
 
         return sorted(pages, key=weight_title_key)
 
-    def filter_display_pages(self, pages: list[Page], index_page: Page | None = None) -> list[Page]:
+    def filter_display_pages(
+        self, pages: Iterable[Page], index_page: Page | None = None
+    ) -> list[Page]:
         """
         Filter which pages to show in list views.
 

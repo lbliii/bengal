@@ -204,7 +204,7 @@ class JsonAccumulator:
         # Visibility system integration
         visibility = metadata.get("visibility")
         if metadata.get("hidden", False) or (
-            isinstance(visibility, dict) and not visibility.get("search", True)
+            hasattr(visibility, "get") and not visibility.get("search", True)
         ):
             enhanced["search_exclude"] = True
 
