@@ -392,6 +392,14 @@ class IncrementalOrchestrator:
         cascade_rebuild: set[Path] = set()
         page_by_path = self.site.page_by_source_path
 
+        # FLOW audit Finding 15: Build reverse index for O(1) section lookup
+        page_to_section: dict[int, Any] = {}
+        for section in self.site.sections:
+            if hasattr(section, "index_page") and section.index_page is not None:
+                page_to_section[id(section.index_page)] = section
+            for p in section.pages:
+                page_to_section[id(p)] = section
+
         for path in changed_paths:
             if path.suffix != ".md":
                 continue
@@ -405,23 +413,14 @@ class IncrementalOrchestrator:
                 continue
 
             # Page has cascade - mark all pages in same section and subsections
-            # Find the section this page belongs to
-            for section in self.site.sections:
+            section = page_to_section.get(id(page))
+            if section is not None:
+                for section_page in section.pages:
+                    cascade_rebuild.add(section_page.source_path)
                 if hasattr(section, "index_page") and section.index_page is page:
-                    # This is a section index with cascade - mark all section pages
-                    for section_page in section.pages:
-                        cascade_rebuild.add(section_page.source_path)
-                    # Also mark subsection pages
                     self._add_subsection_pages(section, cascade_rebuild)
-                    break
-                elif hasattr(section, "pages") and page in section.pages:
-                    # Regular page with cascade in a section
-                    for section_page in section.pages:
-                        cascade_rebuild.add(section_page.source_path)
-                    break
             else:
-                # No section found - this might be a root-level page
-                # Root-level cascade affects all pages
+                # No section found - root-level page, cascade affects all
                 for p in self.site.pages:
                     cascade_rebuild.add(p.source_path)
 
