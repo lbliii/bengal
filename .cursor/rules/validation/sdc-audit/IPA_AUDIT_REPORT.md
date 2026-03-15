@@ -275,3 +275,20 @@
 - **Low** (3): Redundant iterations, unnecessary dict returns, template filter sorts
 
 **Recommended priority**: Fix findings 1, 2, 5, and 6 first. They all create O(pages^2) or worse interactions on the build hot path and dominate build time for large sites. Findings 3 and 4 are high-impact for incremental/dev-server builds specifically.
+
+---
+
+## Resolution Status (2026-03-14)
+
+| # | Status | Notes |
+|---|--------|-------|
+| 1 | ✅ Addressed | Menu cache key includes `current_url`; per-URL caching. `invalidate_menu_cache()` not called from `render_template()` in current flow |
+| 2 | 🔲 Open | Lightweight `template_exists()` or per-section cache not yet implemented |
+| 3 | ✅ Addressed | `_detect_template_changes_and_affected_pages` merges both walks in incremental orchestrator |
+| 4 | ✅ Addressed | `template_info` computed once in `build_trigger.py`, passed to `_needs_full_rebuild` and `_execute_build` |
+| 5 | ✅ Addressed | `menu.py` uses `_page_path_index` (cached) and `menu_item_by_url` / `menu_item_by_id` indexes for O(1) section lookup |
+| 6 | 🔲 Open | LinkValidator still created per page; shared instance or cached indexes not implemented |
+| 7 | ✅ Addressed | `affected_lower` hoisted above loop in `provenance_filter.py` |
+| 8 | ✅ Addressed | `menu_item_by_url` and `menu_item_by_id` indexes built once for dropdown section lookup |
+| 9 | ✅ Addressed | `_compute_menu_cache_key` uses single-pass partition for `menu_pages` and `root_level_pages` |
+| 10–20 | 🔲 Open | Medium/low findings remain for future optimization |

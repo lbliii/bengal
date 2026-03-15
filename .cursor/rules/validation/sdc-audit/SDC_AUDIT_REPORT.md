@@ -217,3 +217,18 @@ return f"{base or 'badge'} {css_class}"
 - **Low** (2): Config-time list membership, triple-pass badge class check
 
 **Recommended priority**: Fix findings 1 and 2 first — they're on build hot paths and scale with site size.
+
+---
+
+## Resolution Status (2026-03-14)
+
+| # | Status | Notes |
+|---|--------|-------|
+| 1 | ✅ Fixed | `ordering.py` uses partition approach (promoted/remaining) instead of `.remove()` in loop |
+| 2 | ✅ Fixed | `TagEntry.page_paths` is `set[str]` with `.discard()` |
+| 3 | ✅ Fixed | `reload_controller.py` uses pre-compiled `_ignored_patterns` with `re.compile(fnmatch.translate(g))` |
+| 4 | ✅ Fixed | `autodoc_renderer.py` uses `element_type in {"command", "command-group"}` |
+| 5 | ✅ Fixed | `autodoc_renderer.py` uses `element_type in {"class", "function", "method", "module"}` |
+| 6 | ✅ Fixed | `autodoc/config.py` uses `mode not in {"off", "auto", "explicit"}` |
+| 7 | ✅ Fixed | `inline.py` uses single-pass `ensure_badge_base_class()` with `base = None` loop |
+| 8 | ✅ Fixed | `_get_track_item_paths_for_pages()` returns `set[str]` — O(1) lookups |
