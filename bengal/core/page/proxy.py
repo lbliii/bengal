@@ -534,6 +534,18 @@ class PageProxy:
         """
         return False
 
+    @property
+    def is_generated(self) -> bool:
+        """Check if this is a generated page (tag indexes, archives, pagination).
+
+        PageProxy objects represent cached content pages from disk. Generated
+        pages (tag indexes, archives, pagination) are always created fresh
+        during the build and never become proxies.
+
+        Cost: O(1) — constant False, no lazy load.
+        """
+        return False
+
     def normalize_core_paths(self) -> None:
         """
         Normalize PageCore paths to be relative (for cache consistency).
