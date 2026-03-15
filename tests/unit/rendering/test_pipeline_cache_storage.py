@@ -84,6 +84,7 @@ def mock_page(tmp_path):
         _prerendered_html=None,
         _virtual=False,
         is_virtual=False,
+        is_generated=False,
         _toc_items_cache=[],
         links=[],
     )

@@ -8,9 +8,8 @@ from bengal.rendering.shortcodes import (
     _deindent,
     _parse_args,
     expand_shortcodes,
-    has_shortcode,
 )
-from bengal.utils.shortcodes import shortcodes_used_in_content
+from bengal.utils.shortcodes import has_shortcode, shortcodes_used_in_content
 
 
 class TestParseArgs:

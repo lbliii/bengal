@@ -12,6 +12,7 @@ from unittest.mock import Mock
 
 import pytest
 
+from bengal.core.page.types import TOCItem
 from bengal.core.site import Site
 from bengal.orchestration.menu import MenuOrchestrator
 from bengal.rendering.template_engine import TemplateEngine
@@ -301,6 +302,7 @@ output_dir = "public"
         page.metadata = {}
         page.keywords = []
         page.tags = []
+        page.lang = None  # Avoid Mock returning Mock for current_lang()
 
         # Render base template (contains menu)
         html = engine.render("base.html", {"page": page})
@@ -397,8 +399,8 @@ output_dir = "public"
         engine = TemplateEngine(site)
 
         toc_items = [
-            {"id": "section-1", "title": "Section 1", "level": 1},
-            {"id": "section-1-1", "title": "Subsection 1.1", "level": 2},
+            TOCItem(id="section-1", title="Section 1", level=1),
+            TOCItem(id="section-1-1", title="Subsection 1.1", level=2),
         ]
         page = Mock()
         page._path = "/docs/guide/"

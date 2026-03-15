@@ -96,12 +96,12 @@ class Site(
     SiteRegistryMixin,
     SiteAccessorsMixin,
     SiteCascadeMixin,
+    SiteQueryMixin,
     SiteLifecycleMixin,
     SiteNormalizedConfigMixin,
     SiteDiscoveryMixin,
     SiteVersioningMixin,
     SiteValidationMixin,
-    SiteQueryMixin,
 ):
     """
     Represents the entire website and orchestrates the build process.
