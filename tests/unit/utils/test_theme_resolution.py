@@ -67,7 +67,7 @@ class TestReadThemeExtends:
         mock_manifest.write_text('extends = "installed-parent"')
         mock_pkg.resolve_resource_path.return_value = mock_manifest
 
-        with patch("bengal.core.theme.resolution.get_theme_package", return_value=mock_pkg):
+        with patch("bengal.services.theme_io.get_theme_package", return_value=mock_pkg):
             extends = _read_theme_extends(tmp_path, "installed-theme")
 
         assert extends == "installed-parent"
@@ -75,7 +75,7 @@ class TestReadThemeExtends:
     def test_checks_bundled_themes(self, tmp_path):
         """Falls back to bundled themes."""
         # No site or installed theme
-        with patch("bengal.core.theme.resolution.get_theme_package", return_value=None):
+        with patch("bengal.services.theme_io.get_theme_package", return_value=None):
             # Bundled theme check happens via Path(__file__).parent.parent / "themes"
             # This is harder to test without mocking Path, so we verify no error
             extends = _read_theme_extends(tmp_path, "bundled-theme")

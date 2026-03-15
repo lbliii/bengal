@@ -252,6 +252,7 @@ class TestPageExplainer:
     def test_get_template_name_from_metadata(self, mock_site):
         """Test getting template name from page metadata."""
         mock_site.pages[0].metadata["template"] = "custom.html"
+        mock_site.pages[0].assigned_template = "custom.html"
 
         explainer = PageExplainer(mock_site)
         template = explainer._get_template_name(mock_site.pages[0])
@@ -260,6 +261,8 @@ class TestPageExplainer:
 
     def test_get_template_name_from_type(self, mock_site):
         """Test getting template name from page type."""
+        mock_site.pages[0].assigned_template = None  # MagicMock is truthy by default
+
         explainer = PageExplainer(mock_site)
         template = explainer._get_template_name(mock_site.pages[0])
 

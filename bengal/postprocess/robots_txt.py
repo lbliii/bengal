@@ -176,11 +176,18 @@ class RobotsTxtGenerator:
                 continue
 
             vis = page.visibility
-            policy = SignalPolicy(
-                search=vis.search,
-                ai_input=vis.ai_input,
-                ai_train=vis.ai_train,
-            )
+            if isinstance(vis, dict):
+                policy = SignalPolicy(
+                    search=vis.get("search", True),
+                    ai_input=vis.get("ai_input", True),
+                    ai_train=vis.get("ai_train", False),
+                )
+            else:
+                policy = SignalPolicy(
+                    search=vis.search,
+                    ai_input=vis.ai_input,
+                    ai_train=vis.ai_train,
+                )
             section_pages[section_path].append(policy)
 
         overrides: dict[str, SignalPolicy] = {}
