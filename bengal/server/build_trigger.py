@@ -91,6 +91,11 @@ from bengal.utils.stats_minimal import MinimalStats
 
 logger = get_logger(__name__)
 
+# Sentinel for _needs_full_rebuild: distinguishes "template_info not passed" from
+# "template_info computed and is None" to avoid redundant _get_template_change_info
+# call (IPA audit Finding 4).
+_TEMPLATE_INFO_NOT_COMPUTED: object = object()
+
 
 @dataclass(frozen=True, slots=True)
 class FrontmatterCacheEntry:
@@ -705,7 +710,7 @@ class BuildTrigger:
         changed_paths: set[Path],
         event_types: set[str],
         *,
-        template_info: tuple[set[Path], set[str]] | None = None,
+        template_info: tuple[set[Path], set[str]] | None | object = _TEMPLATE_INFO_NOT_COMPUTED,
     ) -> bool:
         """
         Determine if a full rebuild is needed.
@@ -727,10 +732,12 @@ class BuildTrigger:
             return True
 
         # Check for template changes (use cached template_info when provided)
-        if template_info is not None:
-            logger.debug("full_rebuild_triggered_by_template")
-            return True
-        if self._is_template_change(changed_paths):
+        if template_info is not _TEMPLATE_INFO_NOT_COMPUTED:
+            if template_info is not None:
+                logger.debug("full_rebuild_triggered_by_template")
+                return True
+            # template_info is None: already computed, no template changes
+        elif self._is_template_change(changed_paths):
             logger.debug("full_rebuild_triggered_by_template")
             return True
 
