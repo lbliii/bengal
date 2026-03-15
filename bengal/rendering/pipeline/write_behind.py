@@ -224,14 +224,16 @@ class WriteBehindCollector:
             path: Destination path
             content: File content
         """
+        parent_path = path.parent
+        parent_key = str(parent_path)
+
         # Ensure parent directory exists (thread-safe with lock)
         # Note: If precreate_directories() was called, this is a fast no-op
-        parent = str(path.parent)
-        if parent not in self._created_dirs:
+        if parent_key not in self._created_dirs:
             with self._created_dirs_lock:
-                if parent not in self._created_dirs:
-                    path.parent.mkdir(parents=True, exist_ok=True)
-                    self._created_dirs.add(parent)
+                if parent_key not in self._created_dirs:
+                    parent_path.mkdir(parents=True, exist_ok=True)
+                    self._created_dirs.add(parent_key)
 
         if self._fast_writes:
             # Direct write (faster, not crash-safe) - used in dev server mode
@@ -254,11 +256,19 @@ class WriteBehindCollector:
         pid = os.getpid()
         tid = threading.get_ident()
         counter = next(_temp_file_counter)
-        tmp_path = path.parent / f".{path.name}.{pid}.{tid}.{counter}.tmp"
+        parent = path.parent
+        tmp_path = parent / f".{path.name}.{pid}.{tid}.{counter}.tmp"
 
         try:
             tmp_path.write_text(content, encoding="utf-8")
             tmp_path.replace(path)  # Atomic rename on POSIX
+        except FileNotFoundError:
+            # Robustness: parent may have been missing (e.g. path not in precreate)
+            parent.mkdir(parents=True, exist_ok=True)
+            with self._created_dirs_lock:
+                self._created_dirs.add(str(parent))
+            tmp_path.write_text(content, encoding="utf-8")
+            tmp_path.replace(path)
         except Exception:
             tmp_path.unlink(missing_ok=True)
             raise

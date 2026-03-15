@@ -296,11 +296,6 @@ class RenderingPipeline:
         Args:
             page: Page object to process. Must have source_path set.
         """
-        # Clear per-render get_page() cache at start of each page render.
-        from bengal.rendering.template_functions.get_page import clear_get_page_cache
-
-        clear_get_page_cache()
-
         # Set enhancer in context so get_page() can use it during template rendering
         set_enhancer_for_render(self._api_doc_enhancer)
         try:

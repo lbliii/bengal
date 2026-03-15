@@ -73,31 +73,32 @@ class SectionHierarchyMixin:
     # PROPERTIES
     # =========================================================================
 
-    @property
-    def hierarchy(self) -> list[str]:
+    @cached_property
+    def hierarchy(self) -> tuple[str, ...]:
         """
         Get the full hierarchy path of this section.
 
-        Cost: O(d) — recurses up parent chain (d = tree depth).
+        Cost: O(d) first access (d = tree depth), O(1) cached thereafter.
+        Returns immutable tuple for thread safety under free-threading.
 
         Returns:
-            List of section names from root to this section
+            Tuple of section names from root to this section
 
         Example:
             >>> section = site.get_section("docs/api/core")
             >>> section.hierarchy
-            ['docs', 'api', 'core']
+            ('docs', 'api', 'core')
         """
         if self.parent:
-            return [*self.parent.hierarchy, self.name]
-        return [self.name]
+            return (*self.parent.hierarchy, self.name)
+        return (self.name,)
 
-    @property
+    @cached_property
     def depth(self) -> int:
         """
         Get the depth of this section in the hierarchy.
 
-        Cost: O(d) — walks parent chain (d = tree depth), no list allocation.
+        Cost: O(d) first access (d = tree depth), O(1) cached thereafter.
 
         Returns:
             Nesting depth (1 for root, 2 for first-level sections, etc.)
@@ -115,12 +116,12 @@ class SectionHierarchyMixin:
             current = current.parent
         return d
 
-    @property
+    @cached_property
     def root(self) -> Section:
         """
         Get the root section of this section's hierarchy.
 
-        Cost: O(d) — traverses parent chain (d = tree depth).
+        Cost: O(d) first access (d = tree depth), O(1) cached thereafter.
 
         Traverses up the parent chain until reaching either:
         - A section with no parent (topmost ancestor)
@@ -143,16 +144,10 @@ class SectionHierarchyMixin:
         """
         current: Section = self  # type: ignore[assignment]
         while current.parent:
-            # Stop if current section declares itself as a nav root
             if current.metadata.get("nav_root"):
                 return current
-            # Stop at top-level section inside a version folder
-            # Hierarchy is: _versions/<version_id>/<section>/...
-            # We want <section> as root, not <version_id> or _versions
             parent = current.parent
             if parent.parent and parent.parent.name == "_versions":
-                # current.parent is the version folder (e.g., v1)
-                # current is the top-level section (e.g., docs)
                 return current
             current = parent
         return current

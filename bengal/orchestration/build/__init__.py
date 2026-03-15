@@ -174,10 +174,10 @@ class BuildOrchestrator:
         # Parallel is now auto-detected via should_parallelize() unless force_sequential=True
         # We'll compute it when we know the page count (in rendering phase)
         force_sequential = options.force_sequential
-        # Dev server: force sequential to avoid content phase hang (ThreadPoolExecutor
-        # in taxonomies/related_posts can block indefinitely on Python 3.14t / macOS)
-        if os.environ.get("BENGAL_DEV_SERVER") and not force_sequential:
-            force_sequential = True
+        # Dev server: only force taxonomy/related_posts sequential to avoid
+        # ThreadPoolExecutor hang on Python 3.14t / macOS.  Rendering, parsing,
+        # and asset phases remain parallel for performance.
+        _content_sequential = force_sequential or bool(os.environ.get("BENGAL_DEV_SERVER"))
         incremental = options.incremental
         verbose = options.verbose
         quiet = options.quiet
@@ -477,9 +477,9 @@ class BuildOrchestrator:
         content.phase_sections(self, cli, incremental, affected_sections)
 
         # Phase 7: Taxonomies & Dynamic Pages
-        # Pass force_sequential - phase will compute parallel based on should_parallelize()
+        # Content-sequential: dev server isolates taxonomy ThreadPoolExecutor
         affected_tags = content.phase_taxonomies(
-            self, cache, incremental, force_sequential, pages_to_build
+            self, cache, incremental, _content_sequential, pages_to_build
         )
 
         # Phase 8: Save Taxonomy Index
@@ -489,8 +489,8 @@ class BuildOrchestrator:
         content.phase_menus(self, incremental, {str(p) for p in changed_page_paths})
 
         # Phase 10: Related Posts Index
-        # Pass force_sequential - phase will compute parallel based on should_parallelize()
-        content.phase_related_posts(self, incremental, force_sequential, pages_to_build)
+        # Content-sequential: dev server isolates related_posts ThreadPoolExecutor
+        content.phase_related_posts(self, incremental, _content_sequential, pages_to_build)
 
         # Phase 11: Query Indexes
         content.phase_query_indexes(self, cache, incremental, pages_to_build)
@@ -733,6 +733,11 @@ class BuildOrchestrator:
 
         # Save provenance cache if using provenance-based filtering
         finalization.phase_save_provenance(self)
+
+        # Wait for background snapshot save before reporting build complete
+        save_thread = getattr(self, "_snapshot_save_thread", None)
+        if save_thread is not None:
+            save_thread.join(timeout=10)
 
         # Clear build state (build complete)
         self.site.set_build_state(None)

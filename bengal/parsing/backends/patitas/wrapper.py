@@ -92,8 +92,18 @@ class PatitasParser(BaseMarkdownParser):
         self._xref_enabled = False
         self._xref_plugin: Any | None = None
 
-        # Variable substitution plugin (stored for placeholder restoration)
+        # Variable substitution plugin (reused across pages to avoid per-page allocation)
         self._var_plugin: Any | None = None
+
+    def _get_or_create_var_plugin(self, context: dict[str, Any]) -> Any:
+        """Reuse the variable substitution plugin across pages, resetting context each time."""
+        from bengal.rendering.plugins import VariableSubstitutionPlugin
+
+        if self._var_plugin is not None:
+            self._var_plugin.update_context(context)
+        else:
+            self._var_plugin = VariableSubstitutionPlugin(context)
+        return self._var_plugin
 
     def parse(self, content: str, metadata: dict[str, Any]) -> str:
         """Parse Markdown content into HTML.
@@ -216,11 +226,7 @@ class PatitasParser(BaseMarkdownParser):
         if not content:
             return ""
 
-        from bengal.rendering.plugins import VariableSubstitutionPlugin
-
-        # Create plugin instance for this page and store for pipeline access
-        self._var_plugin = VariableSubstitutionPlugin(context)
-        var_plugin = self._var_plugin
+        var_plugin = self._get_or_create_var_plugin(context)
 
         # Extract page context for directives (child-cards, breadcrumbs, etc.)
         page_context = context.get("page")
@@ -282,11 +288,7 @@ class PatitasParser(BaseMarkdownParser):
         if not content:
             return "", "", "", ""
 
-        from bengal.rendering.plugins import VariableSubstitutionPlugin
-
-        # Create plugin instance for this page and store for pipeline access
-        self._var_plugin = VariableSubstitutionPlugin(context)
-        var_plugin = self._var_plugin
+        var_plugin = self._get_or_create_var_plugin(context)
 
         # Extract page context for directives (child-cards, breadcrumbs, etc.)
         page_context = context.get("page")
@@ -308,11 +310,20 @@ class PatitasParser(BaseMarkdownParser):
                 from patitas import extract_excerpt, extract_meta_description
 
                 # Per-article override: pipeline sets metadata._excerpt_length
-                content_cfg = context.get("config", {}).get("content", {}) or {}
-                max_chars = metadata.get(
-                    "_excerpt_length",
-                    content_cfg.get("excerpt_length", get_default("content", "excerpt_length")),
-                )
+                # content_cfg may be ContentSection (from ConfigContext) or dict
+                config = context.get("config") or {}
+                content_cfg = config.get("content", {}) if hasattr(config, "get") else {}
+                if hasattr(content_cfg, "excerpt_length"):
+                    default_excerpt = getattr(
+                        content_cfg, "excerpt_length", get_default("content", "excerpt_length")
+                    )
+                elif isinstance(content_cfg, dict):
+                    default_excerpt = content_cfg.get(
+                        "excerpt_length", get_default("content", "excerpt_length")
+                    )
+                else:
+                    default_excerpt = get_default("content", "excerpt_length")
+                max_chars = metadata.get("_excerpt_length", default_excerpt)
                 excerpt = extract_excerpt(ast, content, excerpt_as_html=True, max_chars=max_chars)
                 meta_desc = (
                     extract_meta_description(ast, content)

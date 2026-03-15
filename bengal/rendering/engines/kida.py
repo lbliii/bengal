@@ -535,14 +535,30 @@ class KidaTemplateEngine:
     def template_exists(self, name: str) -> bool:
         """Check if a template exists.
 
+        Uses a cached set of known template names (populated on first call)
+        to avoid loading full templates just for existence checks.
+
         Args:
             name: Template identifier
 
         Returns:
             True if template can be loaded
         """
+        known = getattr(self, "_known_templates", None)
+        if known is None:
+            try:
+                self._known_templates: set[str] = set(self.list_templates())
+            except Exception:
+                self._known_templates = set()
+            known = self._known_templates
+
+        if name in known:
+            return True
+
+        # Fallback for dynamically-added templates not in initial scan
         try:
             self._env.get_template(name)
+            known.add(name)
             return True
         except KidaTemplateNotFoundError, OSError:
             return False
@@ -899,6 +915,9 @@ class KidaTemplateEngine:
             self._env.clear_template_cache(names)
         # IPA audit Task 9: clear template deps cache on template reload
         self._template_deps_cache.clear()
+        # Invalidate known-templates set so template_exists() re-scans
+        if hasattr(self, "_known_templates"):
+            del self._known_templates
 
     def precompile_templates(self, template_names: list[str] | None = None) -> int:
         """Pre-compile templates to warm the cache.

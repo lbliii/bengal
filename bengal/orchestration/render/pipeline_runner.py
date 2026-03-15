@@ -68,6 +68,10 @@ def process_page_with_pipeline(
         needs_new_pipeline = not hasattr(_thread_local, "pipeline")
 
     if needs_new_pipeline:
+        from bengal.rendering.template_functions.get_page import clear_get_page_cache
+
+        clear_get_page_cache()
+
         out_collector = output_collector or (
             build_context.output_collector if build_context else None
         )

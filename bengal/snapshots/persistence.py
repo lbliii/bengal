@@ -22,7 +22,6 @@ RFC: rfc-bengal-snapshot-engine (Snapshot Persistence section)
 
 from __future__ import annotations
 
-import dataclasses
 import json
 import threading
 import time
@@ -44,6 +43,18 @@ SNAPSHOT_VERSION = 1
 
 # Default cache location
 DEFAULT_CACHE_DIR = ".bengal/cache/snapshots"
+
+
+def _toc_item_to_dict(item: Any) -> dict[str, Any]:
+    """Serialize a TOCItem without the overhead of dataclasses.asdict() deep copy."""
+    if isinstance(item, dict):
+        return item
+    return {
+        "id": item.id,
+        "title": item.title,
+        "level": item.level,
+        "children": [_toc_item_to_dict(c) for c in item.children] if item.children else [],
+    }
 
 
 class SnapshotCache:
@@ -165,10 +176,7 @@ class SnapshotCache:
                     "content_hash": page.content_hash,
                     "parsed_html": page.parsed_html,
                     "toc": page.toc,
-                    "toc_items": [
-                        dataclasses.asdict(item) if dataclasses.is_dataclass(item) else item
-                        for item in page.toc_items
-                    ],
+                    "toc_items": [_toc_item_to_dict(item) for item in page.toc_items],
                     "reading_time": page.reading_time,
                     "word_count": page.word_count,
                     "excerpt": page.excerpt,

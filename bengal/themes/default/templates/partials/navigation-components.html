@@ -97,10 +97,16 @@ Displays page number controls for paginated content with prev/next buttons.
       {% end %}
     </li>
 
-    {# Page Numbers #}
+    {# Page Numbers - inlined to avoid cross-macro namespace issues #}
     {% for item in p?.pages ?? [] %}
     <li>
-      {{ pagination_item(item) }}
+      {% if item?.is_ellipsis %}
+      <span class="ellipsis">...</span>
+      {% elif item?.is_current %}
+      <span class="active" aria-current="page">{{ item.num }}</span>
+      {% else %}
+      <a href="{{ item.href }}" class="squeeze">{{ item.num }}</a>
+      {% end %}
     </li>
     {% end %}
 

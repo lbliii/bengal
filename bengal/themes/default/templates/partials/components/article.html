@@ -10,12 +10,12 @@ Usage:
 ================================================================================
 #}
 
-{% from 'partials/components/tags.html' import tag_list %}
-
-{# =============================================================================
+{#
+================================================================================
 ARTICLE CARD COMPONENT
 
 Displays a rich card preview of an article with metadata, tags, and image.
+Tag list inlined to avoid cross-macro namespace issues (tag_list → tag_link).
 ============================================================================= #}
 {% def article_card(article, show_excerpt=true, show_image=false) %}
 {% let article_meta = article?.metadata ?? {} %}
@@ -29,7 +29,7 @@ Displays a rich card preview of an article with metadata, tags, and image.
 {% let authors_registry = (site?.data?.authors | default({})) %}
 {% let author_data = authors_registry.get(author_slug, {}) if author_slug else {} %}
 {% let article_author = author_data?.name ?? article_meta?.author ?? article_params?.author ?? '' %}
-{% let is_featured = article is featured %}
+{% let is_featured = 'featured' in (article?.tags ?? []) %}
 {% let theme_features = theme?.features ?? [] %}
 
 <article class="article-card gradient-border fluid-combined{{ ' featured-card' if is_featured else '' }}">
@@ -83,8 +83,19 @@ Displays a rich card preview of an article with metadata, tags, and image.
     {% end %}
 
     {% if article_tags | length > 0 %}
+    {% let max_display = (theme?.max_tags_display ?? 0) | int %}
+    {% let display_tags = (article_tags[:max_display] if max_display > 0 else article_tags) %}
     <div class="article-card-footer">
-      {{ tag_list(article_tags, small=true) }}
+      <div class="tags tags-small">
+        {% for t in display_tags %}
+        {% if t %}
+        <a href="{{ tag_url(t) }}" class="tag squeeze">{{ t }}</a>
+        {% end %}
+        {% end %}
+        {% if max_display > 0 and (article_tags | length) > max_display %}
+        <span class="tag tag-more">+{{ (article_tags | length) - max_display }} more</span>
+        {% end %}
+      </div>
     </div>
     {% end %}
   </div>

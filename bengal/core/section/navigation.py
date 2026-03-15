@@ -302,6 +302,9 @@ class SectionNavigationMixin:
         - Any of its sorted_pages match the version, OR
         - Any of its subsections recursively have content for the version
 
+        Results are cached per version_id to avoid repeated recursive tree walks
+        during navigation rendering (called once per section per page render).
+
         Args:
             version_id: Version to check, or None (always returns True)
 
@@ -316,15 +319,26 @@ class SectionNavigationMixin:
         if version_id is None:
             return True
 
-        # Check index page first
+        cache: dict[str, bool] | None = getattr(self, "_version_content_cache", None)
+        if cache is not None and version_id in cache:
+            return cache[version_id]
+
+        result = self._compute_has_content_for_version(version_id)
+
+        if cache is None:
+            cache = {}
+            self._version_content_cache = cache  # type: ignore[attr-defined]
+        cache[version_id] = result
+        return result
+
+    def _compute_has_content_for_version(self, version_id: str) -> bool:
+        """Compute version content check (uncached implementation)."""
         if self.index_page and getattr(self.index_page, "version", None) == version_id:
             return True
 
-        # Check any regular page in this section
         if any(getattr(p, "version", None) == version_id for p in self.sorted_pages):
             return True
 
-        # Recursively check subsections (needed for versioned content in _versions/<id>/...)
         return any(s.has_content_for_version(version_id) for s in self.subsections)
 
     # =========================================================================

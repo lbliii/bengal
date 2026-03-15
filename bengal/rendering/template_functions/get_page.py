@@ -59,13 +59,14 @@ def _get_render_cache() -> dict[str, Page | None]:
 
 def clear_get_page_cache() -> None:
     """
-    Clear per-render cache for get_page() results.
+    Clear per-build cache for get_page() results.
 
-    Called at the start of each page render by RenderingPipeline.process_page().
-    Thread-safe: only clears the cache for the current thread.
+    Called once per thread when a new pipeline is created (build generation change).
+    Results persist across page renders within the same build since page state is
+    stable once parsed.
 
     See Also:
-        bengal/rendering/pipeline/core.py: RenderingPipeline.process_page()
+        bengal/orchestration/render/pipeline_runner.py: process_page_with_pipeline()
 
     """
     if hasattr(_render_cache, "pages"):

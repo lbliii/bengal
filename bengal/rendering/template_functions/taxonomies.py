@@ -228,6 +228,30 @@ def tag_view_filter(tag_slug: str) -> TagView | None:
     return TagView.from_taxonomy_entry(tag_slug, tag_data, total_posts)
 
 
+_tag_index_cache: dict[int, dict[str, list[Any]]] = {}
+
+
+def _get_tag_index(all_pages: list[Any]) -> dict[str, list[Any]]:
+    """Build or retrieve a cached inverted tag index for O(tags) related-post lookups."""
+    cache_key = id(all_pages)
+    cached = _tag_index_cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    index: dict[str, list[Any]] = {}
+    for p in all_pages:
+        tags = getattr(p, "tags", None)
+        if not tags:
+            continue
+        for tag in tags:
+            tag_lower = tag.lower() if isinstance(tag, str) else str(tag).lower()
+            index.setdefault(tag_lower, []).append(p)
+
+    _tag_index_cache.clear()
+    _tag_index_cache[cache_key] = index
+    return index
+
+
 def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5) -> list[Any]:
     """
     Find related posts based on shared tags.
@@ -272,14 +296,13 @@ def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5)
     # SLOW PATH: Fallback to runtime computation for backward compatibility
     # (Only happens if related posts weren't pre-computed during build)
     logger.warning(
-        "Pre-computed related posts not available, using O(n²) fallback algorithm",
+        "Pre-computed related posts not available, using inverted-index fallback",
         page=page_slug,
         all_pages=len(all_pages) if all_pages else 0,
         caller="template",
     )
 
     if all_pages is None:
-        # Can't compute without all_pages
         logger.debug("related_posts_no_pages", page=page_slug)
         return []
 
@@ -291,29 +314,23 @@ def related_posts(page: Any, all_pages: list[Any] | None = None, limit: int = 5)
 
     start = time.time()
 
+    tag_index = _get_tag_index(all_pages)
     page_tags = set(page.tags)
-    scored_pages = []
 
-    for other_page in all_pages:
-        # Skip the current page
-        if other_page == page:
-            continue
+    scores: dict[int, int] = {}
+    page_map: dict[int, Any] = {}
+    page_id = id(page)
 
-        # Skip pages without tags
-        if not hasattr(other_page, "tags") or not other_page.tags:
-            continue
+    for tag in page_tags:
+        tag_lower = tag.lower() if isinstance(tag, str) else str(tag).lower()
+        for other_page in tag_index.get(tag_lower, ()):
+            other_id = id(other_page)
+            if other_id != page_id:
+                scores[other_id] = scores.get(other_id, 0) + 1
+                page_map[other_id] = other_page
 
-        # Calculate relevance score (number of shared tags)
-        other_tags = set(other_page.tags)
-        shared_tags = page_tags & other_tags
-
-        if shared_tags:
-            score = len(shared_tags)
-            scored_pages.append((score, other_page))
-
-    # Sort by score (descending) and return top N
-    scored_pages.sort(key=lambda x: x[0], reverse=True)
-    result = [page for score, page in scored_pages[:limit]]
+    scored_pages = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    result = [page_map[pid] for pid, _ in scored_pages[:limit]]
 
     duration_ms = (time.time() - start) * 1000
     logger.debug(

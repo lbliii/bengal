@@ -8,6 +8,7 @@ configuration, and service instantiation (QueryService, DataService).
 
 from __future__ import annotations
 
+import threading
 import time
 from typing import TYPE_CHECKING
 
@@ -70,10 +71,18 @@ def phase_snapshot(
 
         configure_for_site(orchestrator.site)
 
-        # Save snapshot for incremental builds (RFC: rfc-bengal-snapshot-engine)
+        # Save snapshot for incremental builds in background (non-blocking).
+        # Serialization is I/O-bound and should not delay the rendering phase.
         cache_dir = orchestrator.site.root_path / ".bengal" / "cache" / "snapshots"
         snapshot_cache = SnapshotCache(cache_dir)
-        snapshot_cache.save(site_snapshot)
+        save_thread = threading.Thread(
+            target=snapshot_cache.save,
+            args=(site_snapshot,),
+            name="Bengal-SnapshotSave",
+            daemon=True,
+        )
+        save_thread.start()
+        orchestrator._snapshot_save_thread = save_thread
 
         # Service instantiation (RFC: bengal-v2-architecture Phase 1)
         from bengal.services.query import QueryService

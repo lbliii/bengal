@@ -126,6 +126,7 @@ from bengal.parsing.backends.patitas.request_context import (
 if TYPE_CHECKING:
     from patitas.parser import Parser
 
+    from bengal.parsing.backends.patitas.directives.registry import DirectiveRegistry
     from bengal.parsing.backends.patitas.protocols import LexerDelegate
     from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
@@ -307,10 +308,12 @@ def parse_to_ast(
     *,
     plugins: list[str] | None = None,
     text_transformer: Callable[[str], str] | None = None,
+    directive_registry: DirectiveRegistry | None = None,
 ) -> Sequence[Block]:
     """Parse Markdown source into typed AST blocks.
 
     Uses ContextVar pattern for configuration. Plugins are set via ParseConfig.
+    directive_registry is required for typed directive options (class_, selected, etc.).
     """
     from patitas.config import (
         ParseConfig as PatitasParseConfig,
@@ -331,6 +334,7 @@ def parse_to_ast(
         footnotes_enabled="footnotes" in (plugins or []),
         math_enabled="math" in (plugins or []),
         autolinks_enabled="autolinks" in (plugins or []),
+        directive_registry=directive_registry,
         text_transformer=text_transformer,
     )
 
@@ -345,6 +349,7 @@ def parse_to_ast(
         footnotes_enabled=config.footnotes_enabled,
         math_enabled=config.math_enabled,
         autolinks_enabled=config.autolinks_enabled,
+        directive_registry=directive_registry,
         text_transformer=config.text_transformer,
     )
     set_patitas_parse_config(patitas_config)
@@ -362,12 +367,20 @@ def parse_to_document(
     *,
     plugins: list[str] | None = None,
     text_transformer: Callable[[str], str] | None = None,
+    directive_registry: DirectiveRegistry | None = None,
 ) -> Document:
     """Parse Markdown source into a typed Document AST.
 
     Returns Document for serialization via patitas.to_dict(doc).
+    directive_registry is required for typed directive options (class_, selected, etc.).
     """
-    blocks = parse_to_ast(source, source_file, plugins=plugins, text_transformer=text_transformer)
+    blocks = parse_to_ast(
+        source,
+        source_file,
+        plugins=plugins,
+        text_transformer=text_transformer,
+        directive_registry=directive_registry,
+    )
     loc = SourceLocation(
         lineno=1,
         col_offset=1,

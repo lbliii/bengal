@@ -318,8 +318,14 @@ def get_deferred_collector() -> CodeBlockCollector | None:
     return getattr(_thread_local, "collector", None)
 
 
+_PLACEHOLDER_PATTERN = re.compile(r"<!--code:(cb\d+)-->")
+
+
 def flush_deferred_highlighting(content: str) -> str:
     """Batch highlight all collected code blocks and replace placeholders.
+
+    Uses single-pass regex replacement instead of per-block str.replace()
+    to avoid O(k × n) string scanning for pages with many code blocks.
 
     Args:
         content: HTML content with code block placeholders
@@ -332,15 +338,15 @@ def flush_deferred_highlighting(content: str) -> str:
     if not collector or len(collector) == 0:
         return content
 
-    # Batch highlight all collected blocks
     results = collector.flush()
+    if not results:
+        return content
 
-    # Replace placeholders with highlighted HTML
-    for block_id, highlighted_html in results.items():
-        placeholder = f"<!--code:{block_id}-->"
-        content = content.replace(placeholder, highlighted_html)
+    def _replace(match: re.Match[str]) -> str:
+        block_id = match.group(1)
+        return results.get(block_id, match.group(0))
 
-    return content
+    return _PLACEHOLDER_PATTERN.sub(_replace, content)
 
 
 # Re-export for backward compatibility

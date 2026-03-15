@@ -8,9 +8,12 @@ without those examples being processed by the template engine.
 from __future__ import annotations
 
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 
+from bengal.core.page import Page
+from bengal.core.site import Site
 from bengal.rendering.plugins.variable_substitution import VariableSubstitutionPlugin
 
 
@@ -228,6 +231,97 @@ To show dates, use {{/* page.date | format_date */}}.
         assert "use &#123;&#123; page.date | format_date &#125;&#125;" in processed
 
 
+class TestASTAwareVariableSubstitution:
+    """Integration tests for AST-aware markdown substitution."""
+
+    def test_parser_keeps_inline_code_literal(self):
+        """Inline code spans should stay literal while prose still substitutes."""
+        from bengal.parsing.backends.patitas import PatitasParser
+
+        parser = PatitasParser()
+        page = type("Page", (), {"title": "My Page"})()
+
+        result = parser.parse_with_context(
+            "Live {{ page.title }} and code `{{ page.title }}`.",
+            {},
+            {"page": page},
+        )
+
+        assert "Live My Page" in result
+        assert "<code>{{ page.title }}</code>" in result
+
+    def test_parser_keeps_fenced_code_literal(self):
+        """Fenced code should not evaluate live markdown variables."""
+        from bengal.parsing.backends.patitas import PatitasParser
+
+        parser = PatitasParser(enable_highlighting=False)
+        page = type("Page", (), {"title": "My Page"})()
+
+        result = parser.parse_with_context(
+            """Live {{ page.title }}
+
+```jinja2
+{{ page.title }}
+```""",
+            {},
+            {"page": page},
+        )
+
+        assert "Live My Page" in result
+        assert result.count("{{ page.title }}") == 1
+
+    def test_parser_preserves_escaped_templates_in_fenced_code(self):
+        """Escaped examples in fenced code should render as literal template syntax."""
+        from bengal.parsing.backends.patitas import PatitasParser
+
+        parser = PatitasParser(enable_highlighting=False)
+
+        result = parser.parse_with_context(
+            """```jinja2
+{{/* page.title */}}
+```""",
+            {},
+            {},
+        )
+
+        assert "&#123;&#123; page.title &#125;&#125;" in result
+        assert "{{/*" not in result
+
+    def test_parser_substitutes_link_destinations(self):
+        """Link destinations should keep working after AST-phase substitution."""
+        from bengal.parsing.backends.patitas import PatitasParser
+
+        parser = PatitasParser()
+        page = type("Page", (), {"href": "/docs/"})()
+
+        result = parser.parse_with_context("[Docs]({{ page.href }})", {}, {"page": page})
+
+        assert 'href="/docs/"' in result
+
+    def test_cached_ast_render_restores_escaped_templates(self):
+        """AST cache fallback should restore literal template examples correctly."""
+        import patitas
+
+        from bengal.parsing.backends.patitas import PatitasParser
+
+        parser = PatitasParser(enable_highlighting=False)
+        page = type("Page", (), {"title": "My Page", "metadata": {}})()
+        content = """```jinja2
+{{/* page.title */}}
+```"""
+
+        parser.parse_with_context(content, {}, {"page": page})
+        document = parser.parse_to_document(content, {})
+        result = parser.render_ast_from_dict(
+            patitas.to_dict(document), content, page=page, site=None
+        )
+
+        assert result is not None
+        html, _toc = result
+        assert "&#123;&#123; page.title &#125;&#125;" in html
+        assert "{{/*" not in html
+
+
 class TestRegressionPrevention:
     """Tests to prevent regressions of the showcase site issues."""
 
@@ -442,3 +536,25 @@ class TestVariableSubstitutionSecurity:
         # Should become HTML-escaped (blocked, not substituted)
         assert "&#123;&#123; page._private &#125;&#125;" in result
         assert "secret" not in result
+
+    def test_substitute_variables_uses_compact_page_repr_for_site_pages(self):
+        """
+        Test that site.pages substitution stays compact for docs examples.
+
+        Regression: after the Page mixin split, Page fell back to dataclass auto-repr,
+        which recursively expanded page relationships when docs contained examples like
+        ``{{ site.pages }}`` in markdown content.
+        """
+        site = Site(root_path=Path("/site"), config={})
+        site.pages = [
+            Page(
+                source_path=Path("/content/docs/guide.md"),
+                _raw_metadata={"title": "Guide"},
+            )
+        ]
+        plugin = VariableSubstitutionPlugin({"site": site})
+
+        result = plugin.substitute_variables("{{ site.pages }}")
+
+        assert "Page(title='Guide', source='/content/docs/guide.md')" in result
+        assert "source_path=" not in result

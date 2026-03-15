@@ -500,6 +500,17 @@ class Page(
             return NotImplemented
         return self.source_path == other.source_path
 
+    def __repr__(self) -> str:
+        """
+        Keep page repr compact to avoid recursive dataclass expansion.
+
+        This repr is used by markdown variable substitution when docs include
+        examples like ``{{ site.pages }}``. A small, stable repr prevents those
+        examples from exploding into recursive page/section structures during
+        parse-time string coercion.
+        """
+        return f"Page(title='{self.title}', source='{self.source_path}')"
+
 
 __all__ = [
     "BundleType",
