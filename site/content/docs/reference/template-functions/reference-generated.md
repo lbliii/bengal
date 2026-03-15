@@ -47,6 +47,7 @@ Use with the pipe operator: `{{ value | filter_name }}` or `{{ value |> filter_n
 | `excerpt` | `excerpt` |
 | `excerpt_for_card` | `excerpt_for_card` |
 | `extract_content` | `extract_content` |
+| `feature_enabled` | `feature_enabled_filter` |
 | `featured_posts` | `featured_posts_filter` |
 | `filesize` | `filesize` |
 | `first` | `first` |
@@ -170,7 +171,6 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `asset_url` | `asset_url` |
 | `build_artifact_url` | `build_artifact_url_with_site` |
 | `build_toc_tree` | `build_toc_tree` |
-| `build_track_toc_sections` | `build_track_toc_sections_with_get_page` |
 | `canonical_url` | `canonical_url_with_site` |
 | `children_by_type` | `children_by_type` |
 | `combine_track_toc` | `combine_track_toc_with_get_page` |
@@ -181,16 +181,20 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `doc` | `doc_with_site` |
 | `email_share_url` | `email_share_url` |
 | `ensure_trailing_slash` | `ensure_trailing_slash` |
+| `ext` | `ext` |
+| `ext_exists` | `ext_exists` |
 | `facebook_share_url` | `facebook_share_url` |
+| `feature_enabled` | `feature_enabled_filter` |
 | `file_exists` | `file_exists_with_site` |
 | `file_size` | `file_size_with_site` |
 | `generate_code_sample` | `generate_code_sample` |
-| `get_auto_nav` | `get_auto_nav` |
+| `get_auto_nav` | `<lambda>` |
 | `get_breadcrumbs` | `get_breadcrumbs` |
 | `get_data` | `get_data_with_site` |
 | `get_element_stats` | `get_element_stats` |
 | `get_nav_context` | `get_nav_context` |
 | `get_nav_tree` | `get_nav_tree` |
+| `get_page` | `get_page` |
 | `get_pagination_items` | `get_pagination_items` |
 | `get_params` | `get_params` |
 | `get_response_example` | `get_response_example` |
@@ -201,6 +205,7 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `get_version_target_url` | `get_version_target_url_wrapper` |
 | `hackernews_share_url` | `hackernews_share_url` |
 | `highlight_path_params` | `highlight_path_params` |
+| `icon` | `icon` |
 | `image_data_uri` | `image_data_uri_with_site` |
 | `image_dimensions` | `image_dimensions_with_site` |
 | `image_srcset_gen` | `image_srcset_gen` |
@@ -218,6 +223,7 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `og_image` | `og_image_with_site` |
 | `option_view` | `option_view_filter` |
 | `options` | `options_filter` |
+| `page_exists` | `page_exists_wrapper` |
 | `page_exists_in_version` | `page_exists_in_version_wrapper` |
 | `page_range` | `page_range` |
 | `page_url` | `page_url` |
@@ -230,7 +236,8 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `ref` | `ref_with_site` |
 | `related_posts` | `related_posts_with_site` |
 | `relref` | `relref_with_site` |
-| `resources` | `ResourcesProxy` |
+| `render_icon` | `icon` |
+| `resources` | `<bengal.rendering.template_functions.resources.ResourcesProxy object at 0x2048e9e1990>` |
 | `return_type` | `return_type` |
 | `section_pages` | `section_pages_wrapper` |
 | `share_url` | `share_url_with_site` |
@@ -238,9 +245,6 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `t` | `t` |
 | `tag_url` | `tag_url` |
 | `twitter_share_url` | `twitter_share_url` |
-| `url_for_autodoc_home` | `url_for_autodoc_home` |
-| `url_for_autodoc_schema` | `url_for_autodoc_schema` |
-| `url_for_autodoc_tag` | `url_for_autodoc_tag` |
 | `xref` | `ref_with_site` |
 
 ## See Also
