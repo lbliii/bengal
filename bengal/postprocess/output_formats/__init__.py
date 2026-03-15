@@ -242,10 +242,17 @@ class OutputFormatsGenerator:
         # Filter pages based on exclusions
         pages = self._filter_pages()
 
-        # Content-signal-aware subsets: enforce signals at the output level
-        ai_input_pages = [p for p in pages if getattr(p, "in_ai_input", True)]
-        ai_train_pages = [p for p in pages if getattr(p, "in_ai_train", True)]
-        search_pages = [p for p in pages if getattr(p, "in_search", True)]
+        # Single-pass content-signal classification (FLOW audit Finding 18)
+        ai_input_pages: list[Any] = []
+        ai_train_pages: list[Any] = []
+        search_pages: list[Any] = []
+        for p in pages:
+            if getattr(p, "in_ai_input", True):
+                ai_input_pages.append(p)
+            if getattr(p, "in_ai_train", True):
+                ai_train_pages.append(p)
+            if getattr(p, "in_search", True):
+                search_pages.append(p)
 
         excluded_ai_input = len(pages) - len(ai_input_pages)
         excluded_ai_train = len(pages) - len(ai_train_pages)
