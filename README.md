@@ -24,7 +24,7 @@ and JSON/LLM exports.
 
 **Why people pick it:**
 
-- **Search-friendly output** — Sitemap, RSS, canonical URLs, Open Graph tags, social cards, Content Signals
+- **Search-friendly output** — Sitemap, RSS, canonical URLs, Open Graph tags, social cards, Content Signals, and AI-ready outputs
 - **Fast builds** — Parallel builds, incremental rebuilds, Zstandard-compressed caching
 - **Modern Python** — Python 3.14+ with free-threading support, fully typed
 - **Content workflows** — Native Jupyter `.ipynb` rendering, Binder/Colab links
@@ -222,7 +222,7 @@ structure:
 
 | Feature | Description | Docs |
 |---------|-------------|------|
-| **SEO & Discovery** | Sitemap, RSS, canonical URLs, Open Graph, social cards, search, JSON/LLM output, [llms.txt](https://llmstxt.org/), [Content Signals](https://contentsignals.org/) | [SEO & Discovery →](https://lbliii.github.io/bengal/docs/building/seo/) |
+| **SEO & Discovery** | Sitemap, RSS, canonical URLs, Open Graph, social cards, search, JSON/LLM output, [llms.txt](https://llmstxt.org/), `agent.json`, build `changelog.json`, and [Content Signals](https://contentsignals.org/) | [SEO & Discovery →](https://lbliii.github.io/bengal/docs/building/seo/) |
 | **Directives** | Tabs, admonitions, cards, dropdowns, code blocks | [Content →](https://lbliii.github.io/bengal/docs/content/) |
 | **Notebooks** | Native Jupyter `.ipynb` rendering, Binder/Colab links | [Notebooks →](https://lbliii.github.io/bengal/docs/content/authoring/notebooks/) |
 | **Autodoc** | Generate API docs from Python, CLI, OpenAPI | [Autodoc →](https://lbliii.github.io/bengal/docs/content/sources/autodoc/) |
@@ -232,6 +232,7 @@ structure:
 | **Theming** | Dark mode, responsive, syntax highlighting, search | [Theming →](https://lbliii.github.io/bengal/docs/theming/) |
 | **Validation** | Health checks, broken link detection, auto-fix | [Building →](https://lbliii.github.io/bengal/docs/building/) |
 | **Performance** | Parallel builds, incremental rebuilds, streaming | [Large Sites →](https://lbliii.github.io/bengal/docs/building/performance/large-sites/) |
+| **IDE Integration** | One-click Cursor MCP connect links for hosted docs servers | [Connect to IDE →](https://lbliii.github.io/bengal/docs/building/connect-to-ide/) |
 | **Zero-Config Deploy** | Auto-detects GitHub Pages, Netlify, Vercel | [Deployment →](https://lbliii.github.io/bengal/docs/building/deployment/) |
 
 📚 **Full documentation**: [lbliii.github.io/bengal](https://lbliii.github.io/bengal/)
