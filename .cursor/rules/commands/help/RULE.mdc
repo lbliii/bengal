@@ -26,6 +26,10 @@ if optimizing_or_performance_work:
   suggest:
     - "::sdc-audit" - Find set/dict/comprehension opportunities
 
+if pipeline_or_execution_flow_work:
+  suggest:
+    - "::flow-audit" - Execution flow / pipeline efficiency audit
+
 if editing_tests:
   suggest:
     - "::validate" - Verify test coverage
@@ -65,7 +69,9 @@ if no_clear_context:
 |---------|---------|
 | `::types` | Type system audit (mypy + Any) |
 | `::arch` | Architecture compliance |
+| `::coverage` | Test coverage analysis |
 | `::sdc-audit` | Set/dict/comprehension substitution audit |
+| `::flow-audit` | Execution flow / pipeline efficiency audit |
 
 ### Implementation Guides
 | Command | Purpose |

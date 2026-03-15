@@ -269,6 +269,7 @@ Please provide more details or run `::research` first.
 - `validation/type-audit` - Type system audit with mypy
 - `validation/architecture-audit` - Architecture compliance
 - `validation/test-coverage` - Coverage analysis
+- `validation/sdc-audit` - Set/dict/comprehension substitution
 - `validation/flow-audit` - Execution flow / pipeline efficiency
 
 ### Implementation Guides
