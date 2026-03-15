@@ -52,7 +52,6 @@ def count_directives(content: str) -> int:
 def render_baseline(content: str) -> tuple[str, float]:
     """Render without cache, return (html, time_ms)."""
     from bengal.directives.cache import configure_cache
-
     from bengal.parsing.backends.patitas import create_markdown
 
     # Ensure cache is disabled for baseline
@@ -70,7 +69,6 @@ def render_baseline(content: str) -> tuple[str, float]:
 def render_with_cache(content: str) -> tuple[str, float]:
     """Render with directive cache, return (html, time_ms)."""
     from bengal.directives.cache import configure_cache
-
     from bengal.parsing.backends.patitas import create_markdown
 
     # Ensure cache is enabled
