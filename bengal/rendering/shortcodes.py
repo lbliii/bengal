@@ -24,6 +24,10 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalRenderingError, ErrorCode
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.shortcodes import (
+    SHORTCODE_OPENING,
+    SHORTCODE_SELF_CLOSING,
+)
 from bengal.utils.xref import resolve_link_to_url_and_page
 
 if TYPE_CHECKING:
@@ -31,19 +35,7 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# Self-closing: {{< name args >}} or {{< name args />}}
-# Paired opening: {{< name args >}} or {{% name args %}}
 # Paired closing: {{< /name >}} or {{% /name %}}
-# Args: [^>]* allows / in paths (e.g. src=/audio/test.mp3)
-# /? = optional slash before > (for {{< name />}})
-SHORTCODE_SELF_CLOSING = re.compile(
-    r"\{\{<\s*([\w/.-]+)(?:\s+([^>]*))?\s*/?\s*>\s*\}\}",
-    re.DOTALL,
-)
-SHORTCODE_OPENING = re.compile(
-    r"\{\{([<%])\s*([\w/.-]+)(?:\s+([^>%]*?))?\s*[>%]\s*\}\}",
-    re.DOTALL,
-)
 SHORTCODE_CLOSING = re.compile(
     r"\{\{([<%])\s*/\s*([\w/.-]+)\s*[>%]\s*\}\}",
     re.DOTALL,
@@ -248,24 +240,6 @@ def _page_dir(page: PageLike) -> str | None:
     if "/" in path_str:
         return path_str.rsplit("/", 1)[0]
     return path_str or None
-
-
-def _shortcodes_used_in_content(content: str) -> frozenset[str]:
-    """Extract shortcode names used in content ({{< name or {{% name)."""
-    names: set[str] = set()
-    for pattern in (SHORTCODE_OPENING, SHORTCODE_SELF_CLOSING):
-        for m in pattern.finditer(content):
-            name = m.group(2).strip()
-            if name and not name.startswith("/"):
-                names.add(name)
-    return frozenset(names)
-
-
-def has_shortcode(page: PageLike, name: str) -> bool:
-    """Return True if page content uses the given shortcode."""
-    # Page/PageProxy use _source or _raw_content; protocol has no raw_content
-    source = getattr(page, "_source", None) or getattr(page, "_raw_content", "")
-    return name in _shortcodes_used_in_content(str(source or ""))
 
 
 def _relative_url(from_url: str, to_url: str) -> str:

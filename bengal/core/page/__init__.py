@@ -921,7 +921,7 @@ class Page(
 
     def HasShortcode(self, name: str) -> bool:
         """Return True if page content uses the given shortcode."""
-        from bengal.rendering.shortcodes import has_shortcode
+        from bengal.utils.shortcodes import has_shortcode
 
         return has_shortcode(self, name)
 

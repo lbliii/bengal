@@ -7,10 +7,10 @@ from unittest.mock import MagicMock
 from bengal.rendering.shortcodes import (
     _deindent,
     _parse_args,
-    _shortcodes_used_in_content,
     expand_shortcodes,
     has_shortcode,
 )
+from bengal.utils.shortcodes import shortcodes_used_in_content
 
 
 class TestParseArgs:
@@ -223,9 +223,9 @@ class TestExpandShortcodes:
         assert '<img src="cat.jpg" class="thumbnails">' in result
 
     def test_shortcodes_used_in_content(self) -> None:
-        """_shortcodes_used_in_content extracts shortcode names."""
+        """shortcodes_used_in_content extracts shortcode names."""
         content = "{{< audio src=x >}} {{% blockquote %}}x{{% /blockquote %}}"
-        names = _shortcodes_used_in_content(content)
+        names = shortcodes_used_in_content(content)
         assert "audio" in names
         assert "blockquote" in names
 

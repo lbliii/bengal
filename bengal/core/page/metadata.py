@@ -296,8 +296,7 @@ class PageMetadataMixin:
         # Only extract and cache if we haven't extracted yet AND toc exists
         # Don't cache empty results - toc might be set later during parsing
         if self._toc_items_cache is None and self.toc:
-            # Import here to avoid circular dependency
-            from bengal.rendering.pipeline import extract_toc_structure
+            from bengal.utils.toc import extract_toc_structure
 
             self._toc_items_cache = extract_toc_structure(self.toc)
 
