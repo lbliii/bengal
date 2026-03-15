@@ -15,8 +15,6 @@ and per-doubling ratio ~2.0x. An O(n^2) phase has raw ratio ~16x and
 per-doubling ratio ~4.0x. LINEAR_THRESHOLD (2.2) catches the latter.
 """
 
-from __future__ import annotations
-
 import math
 import shutil
 import tempfile
