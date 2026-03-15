@@ -13,8 +13,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.cache.paths import BengalPaths
     from bengal.core.theme import Theme
+    from bengal.protocols.infrastructure import PathsLike
     from bengal.services.config import ConfigService
 
 
@@ -33,7 +33,7 @@ class SiteAccessorsMixin:
     _description_override: str | None
 
     @property
-    def paths(self) -> BengalPaths:
+    def paths(self) -> PathsLike:
         """Access to .bengal directory paths.
 
         Cost: O(1) — direct attribute read.

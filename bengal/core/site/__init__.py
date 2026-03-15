@@ -553,12 +553,9 @@ class Site(
             </option>
             % endfor
         """
-        # Delegate to core logic (engine-agnostic pure Python)
-        from bengal.rendering.template_functions.version_url import (
-            get_version_target_url as _get_version_target_url,
-        )
+        from bengal.core.version_url import get_version_target_url
 
-        return _get_version_target_url(page, target_version, cast(SiteLike, self))
+        return get_version_target_url(page, target_version, cast(SiteLike, self))
 
     def __repr__(self) -> str:
         pages = len(self.pages)

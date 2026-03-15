@@ -343,6 +343,38 @@ class OutputTarget(Protocol):
 
 
 # =============================================================================
+# Paths Protocol
+# =============================================================================
+
+
+@runtime_checkable
+class PathsLike(Protocol):
+    """
+    Protocol for .bengal directory path accessors.
+
+    Used by core/site/accessors to avoid importing BengalPaths from cache.
+    BengalPaths implements this protocol.
+
+    Attributes:
+        root: Project root path
+        state_dir: Path to .bengal directory
+        build_cache: Main build cache file path
+        indexes_dir: Query indexes directory
+        taxonomy_cache: Taxonomy index cache file path
+        metrics_dir: Metrics directory path
+        templates_dir: Template bytecode cache directory
+    """
+
+    root: Path
+    state_dir: Path
+    build_cache: Path
+    indexes_dir: Path
+    taxonomy_cache: Path
+    metrics_dir: Path
+    templates_dir: Path
+
+
+# =============================================================================
 # Exports
 # =============================================================================
 
@@ -351,5 +383,6 @@ __all__ = [
     "ContentSourceProtocol",
     "OutputCollector",
     "OutputTarget",
+    "PathsLike",
     "ProgressReporter",
 ]

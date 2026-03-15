@@ -75,6 +75,8 @@ Left unaddressed, these erode the model/orchestrator boundary that enables safe 
 
 **Sprint 1 done-check**: `rg "(get_logger|import logging|open\(|\.write\(|\.read\()" bengal/core/` returns only false positives (e.g., `open` in docstrings).
 
+**Sprint 1 status (2026-03-14)**: Complete. Tasks 1.1–1.4 were already addressed in prior work (processor→services, image→services, theme→services.theme_io). Removed dead `get_logger` from `core/version_url.py`.
+
 ---
 
 ## Sprint 2: Boundary Violation Elimination

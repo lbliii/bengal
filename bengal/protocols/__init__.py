@@ -78,6 +78,7 @@ from bengal.protocols.infrastructure import (
     ContentSourceProtocol,
     OutputCollector,
     OutputTarget,
+    PathsLike,
     ProgressReporter,
 )
 from bengal.protocols.rendering import (
@@ -85,6 +86,7 @@ from bengal.protocols.rendering import (
     EngineCapability,
     HighlightBackend,
     HighlightService,
+    PageRenderer,
     RoleHandler,
     TemplateEngine,
     TemplateEngineProtocol,
@@ -122,6 +124,8 @@ __all__ = [
     "OutputCollector",
     "OutputTarget",
     "PageLike",
+    "PageRenderer",
+    "PathsLike",
     "PhaseStats",
     "PhaseTiming",
     "ProgressReporter",

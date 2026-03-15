@@ -147,7 +147,7 @@ class SiteDiscoveryMixin:
             plan/drafted/rfc-css-tree-shaking.md: Design rationale
         """
         from bengal.core.page.proxy import PageProxy
-        from bengal.orchestration.feature_detector import FeatureDetector
+        from bengal.utils.feature_detection import FeatureDetector
 
         detector = FeatureDetector()
 

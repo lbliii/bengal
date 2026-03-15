@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from bengal.core import Site
+    from bengal.protocols.core import PageLike
     from bengal.rendering.engines.errors import TemplateError
 
 
@@ -263,6 +264,20 @@ class TemplateValidator(Protocol):
             - MUST NOT raise exceptions (return errors in list)
             - MUST validate syntax only (not runtime errors)
         """
+        ...
+
+
+@runtime_checkable
+class PageRenderer(Protocol):
+    """
+    Renders a page to HTML.
+
+    Used by PageOperationsMixin.render() to avoid core importing from rendering.
+    Implementations (e.g. bengal.rendering.Renderer) are provided by callers.
+    """
+
+    def render_page(self, page: PageLike, content: str | None = None) -> str:
+        """Render page to HTML. content is optional pre-rendered markdown."""
         ...
 
 
@@ -564,6 +579,8 @@ __all__ = [
     "HighlightBackend",  # Backwards compatibility
     # Highlighting
     "HighlightService",
+    # Page rendering
+    "PageRenderer",
     # Roles and directives
     "RoleHandler",
     "TemplateEngine",

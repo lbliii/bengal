@@ -24,13 +24,13 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, cast
 
+from bengal.protocols import PageRenderer
 from bengal.protocols.core import PageLike
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.health.validators.links import LinkValidator
-    from bengal.rendering.template_engine import TemplateEngine
 
 
 class PageOperationsMixin:
@@ -56,19 +56,19 @@ class PageOperationsMixin:
     links: list[str]
     source_path: Path
 
-    def render(self, template_engine: TemplateEngine) -> str:
+    def render(self, renderer: PageRenderer) -> str:
         """
-        Render the page using the provided template engine.
+        Render the page using the provided page renderer.
+
+        Caller creates the renderer (e.g. Renderer(template_engine)) and passes it.
+        This avoids core importing from rendering.
 
         Args:
-            template_engine: Template engine instance
+            renderer: Page renderer instance (e.g. from bengal.rendering.Renderer)
 
         Returns:
             Rendered HTML content
         """
-        from bengal.rendering.renderer import Renderer
-
-        renderer = Renderer(template_engine)
         self.rendered_html = renderer.render_page(cast(PageLike, self))
         return self.rendered_html
 

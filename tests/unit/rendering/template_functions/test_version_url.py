@@ -12,7 +12,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.core.version import Version, VersionConfig
-from bengal.rendering.template_functions.version_url import (
+from bengal.core.version_url import (
     _build_version_page_index,
     _construct_version_url,
     _get_section_index_url,
@@ -29,9 +29,10 @@ def mock_site():
     site = MagicMock()
     site.versioning_enabled = True
 
-    # Set up config mock for baseurl handling
+    # Set up config mock for baseurl handling (get_baseurl reads config.site.baseurl)
     config_mock = MagicMock()
-    config_mock.get.return_value = ""  # Default empty baseurl
+    config_mock.get.return_value = ""
+    config_mock.site = MagicMock(baseurl="")
     site.config = config_mock
 
     # Set baseurl as a string property (not MagicMock) so with_baseurl works correctly
@@ -160,9 +161,9 @@ class TestGetVersionTargetUrl:
         """When versioning disabled, return current URL."""
         site = MagicMock()
         site.versioning_enabled = False
-        # Set up config mock for baseurl handling
         config_mock = MagicMock()
-        config_mock.get.return_value = ""  # Default empty baseurl
+        config_mock.get.return_value = ""
+        config_mock.site = MagicMock(baseurl="")
         site.config = config_mock
 
         page = MagicMock()
