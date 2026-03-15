@@ -104,13 +104,8 @@ class POLoader:
             for entry in po:
                 if entry.msgid and entry.msgstr:
                     fallback[entry.msgid] = entry.msgstr
-            # Plural entries: store as msgid -> (msgid_plural, forms) for ngettext
-            # Catalog uses fallback for gettext only; ngettext needs _translation
-            # For PO-only: build a minimal gettext.GNUTranslations from polib
-            # Polib can save to .mo - we could compile in memory. Simpler: use
-            # fallback dict and accept ngettext returns singular/plural by index.
             return Catalog(fallback=fallback)
-        except Exception:
+        except OSError, ValueError:
             return None
 
 
@@ -205,5 +200,5 @@ def compute_coverage(
             else:
                 missing.append(key)
         return (translated, len(required_keys), missing)
-    except Exception:
+    except OSError, ValueError:
         return (0, len(required_keys), list(required_keys))

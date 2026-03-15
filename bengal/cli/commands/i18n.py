@@ -16,6 +16,7 @@ import click
 from bengal.cli.base import BengalGroup
 from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
 from bengal.config import UnifiedConfigLoader
+from bengal.config.directory_loader import ConfigLoadError
 from bengal.i18n.catalog import clear_catalog_cache, compute_coverage
 
 
@@ -127,7 +128,7 @@ def _extract_keys_from_templates(root: Path, config: dict) -> set[str]:
                     text = path.read_text(encoding="utf-8", errors="replace")
                     for m in _T_PATTERN.finditer(text):
                         keys.add(m.group(1))
-                except Exception:
+                except OSError:
                     pass
     return keys
 
@@ -169,7 +170,7 @@ def extract_cmd(output_path: str, domain: str, source: str) -> None:
     config_loader = UnifiedConfigLoader()
     try:
         config = config_loader.load(root)
-    except Exception:
+    except ConfigLoadError, OSError:
         config = {}
 
     raw = config.raw if hasattr(config, "raw") else config
@@ -241,7 +242,7 @@ def status_cmd(domain: str, fail_on_missing: bool, source: str) -> None:
     config_loader = UnifiedConfigLoader()
     try:
         config = config_loader.load(root)
-    except Exception:
+    except ConfigLoadError, OSError:
         config = {}
     raw = config.raw if hasattr(config, "raw") else config
 
