@@ -1,0 +1,336 @@
+# Free-Threading Safety (Python 3.14t)
+
+Comprehensive reference for writing thread-safe code in Bengal under Python 3.14t
+(free-threaded, no GIL). This is the single source of truth for concurrency patterns.
+
+**Works with**: `python.mdc`, `modules/architecture-patterns`, `modules/cost-annotations`
+
+---
+
+## Bengal's Concurrency Model
+
+```
+Build (sequential)                 Render (PARALLEL)           Finalization
+┌──────────────────────────┐      ┌─────────────────────┐     ┌──────────────┐
+│ Discovery                │      │ Thread 1: page A    │     │ Thread 1     │
+│ → Content                │      │ Thread 2: page B    │     │ Thread 2     │
+│ → Parsing                │ ──── │ Thread 3: page C    │ ──→ │ ...          │
+│ → Sections               │      │ ...                 │     │ Thread N     │
+│ → Taxonomy               │      │ Thread N: page Z    │     └──────────────┘
+│ → Snapshot               │      └─────────────────────┘
+└──────────────────────────┘
+ Phases 1–12.5 (single thread)    Phase 13+ (ThreadPoolExecutor)
+```
+
+**The core rule**: if data is read during the render phase, it must be safe for
+concurrent access. "Safe" means either immutable or protected by a lock.
+
+Build phases are sequential — mutable state is fine internally. The **frozen
+boundary** is between snapshot (end of build) and render (start of parallel work).
+
+---
+
+## The Immutable Return Rule
+
+`@cached_property` and `@property` accessed during render MUST return immutable types.
+
+`functools.cached_property` writes to `instance.__dict__` without synchronization.
+Two threads can race to compute and store the value. This is only safe if the
+result is immutable — both threads compute identical values and the losing write
+is harmless.
+
+### Classification
+
+| Return Type | Thread-Safe? | Action |
+|---|---|---|
+| `str`, `int`, `float`, `bool` | SAFE | No change needed |
+| `tuple[X, ...]` | SAFE | Use instead of `list` |
+| `frozenset[X]` | SAFE | Use instead of `set` |
+| `frozen dataclass` | SAFE | Use instead of plain `dict` |
+| `None` | SAFE | No change needed |
+| `list[X]` | **UNSAFE** | Convert to `tuple(...)` |
+| `set[X]` | **UNSAFE** | Convert to `frozenset(...)` |
+| `dict[str, Any]` | **UNSAFE** | Convert to frozen dataclass |
+| Mutable object | **UNSAFE** | Freeze or pre-warm |
+
+### Known Properties Requiring Immutable Returns
+
+These are accessed during parallel render on **shared objects** (Section, Site):
+
+| Property | File | Current | Safe Type |
+|---|---|---|---|
+| `visibility` | `page/metadata.py` | `dict` | `VisibilitySettings` (frozen) |
+| `regular_pages` | `section/queries.py` | `list` | `tuple[Page, ...]` |
+| `sorted_pages` | `section/queries.py` | `list` | `tuple[Page, ...]` |
+| `regular_pages_recursive` | `section/queries.py` | `list` | `tuple[Page, ...]` |
+| `sorted_subsections` | `section/hierarchy.py` | `list` | `tuple[Section, ...]` |
+| `subsection_index_urls` | `section/navigation.py` | `set` | `frozenset[str]` |
+| `authors` | `page/__init__.py` | `list` | `tuple[Author, ...]` |
+| `content_pages` | `section/ergonomics.py` | `list` | `tuple[Page, ...]` |
+
+Page-level properties returning immutable values (str, int, bool) are safe even
+without pre-warming because the race produces identical results.
+
+---
+
+## Container Freeze Cheatsheet
+
+| Mutable | Immutable Replacement | Notes |
+|---|---|---|
+| `list[X]` | `tuple[X, ...]` | `tuple()` wraps any iterable |
+| `set[X]` | `frozenset[X]` | `frozenset()` wraps any iterable |
+| `dict` (fixed schema) | `@dataclass(frozen=True, slots=True)` | Named fields, type-checked |
+| `dict` (dynamic keys) | `types.MappingProxyType(d)` | Read-only view of underlying dict |
+| `dict` (never mutated) | Keep as `dict` | Safe if no writer; document it |
+
+Templates iterate `tuple` and `frozenset` identically to `list` and `set` —
+`{% for item in section.sorted_pages %}` works the same regardless of container type.
+
+---
+
+## Lock Patterns
+
+### Double-Check with ALL Reads Inside Lock
+
+Module-level mutable dicts used as caches must protect **every** access path.
+Under 3.14t, a concurrent write or `.clear()` can race with an unprotected `.get()`.
+
+```python
+import threading
+
+_cache: dict[str, Any] = {}
+_lock = threading.Lock()
+_max_size = 1000
+
+def get_or_compute(key: str, compute: Callable[[], Any]) -> Any:
+    with _lock:
+        cached = _cache.get(key)
+        if cached is not None:
+            return cached
+        result = compute()
+        if len(_cache) >= _max_size:
+            # LRU eviction: drop oldest half (NOT .clear())
+            to_remove = list(_cache.keys())[:len(_cache) // 2]
+            for k in to_remove:
+                del _cache[k]
+        _cache[key] = result
+        return result
+```
+
+### Why NOT fast-path outside lock
+
+```python
+# ❌ WRONG — looks fast, races under free-threading
+cached = _cache.get(key)       # another thread calls .clear() here
+if cached is not None:
+    return cached               # returns stale/corrupted data
+with _lock:
+    ...
+```
+
+Under GIL-protected CPython, the fast-path read is safe because dict operations
+are atomic. Under 3.14t, they are NOT — `.get()` during a concurrent resize or
+`.clear()` is undefined behavior.
+
+### Never .clear() for Eviction
+
+`.clear()` evicts ALL entries at once, causing a **cache cliff** — every thread
+immediately misses and rebuilds simultaneously. Use LRU eviction (pop oldest half)
+or a bounded `OrderedDict` / `cachetools.LRUCache`.
+
+---
+
+## @cached_property vs @property Decision Tree
+
+Use this when adding or reviewing properties in `bengal/core/`:
+
+```
+Is the property read during render (phase 13+)?
+├── NO → @cached_property or @property with any return type is fine
+└── YES
+    ├── Does it return an immutable type (str, int, tuple, frozenset, frozen DC)?
+    │   └── YES → @cached_property is safe (race produces identical values)
+    └── Does it return a mutable type (list, set, dict)?
+        ├── Can you change the return type to immutable (tuple, frozenset)?
+        │   └── YES → Do that. This is the preferred fix.
+        └── NO (e.g., external API constraint)?
+            └── Pre-warm during snapshot phase so it's cached before render.
+
+Is it on a shared object (Section, Site)?
+├── YES → HIGH RISK — multiple threads access the same instance
+└── NO (Page-level)
+    └── LOWER RISK — typically one thread per page,
+        but cross-references (page.related_posts[0].authors) exist
+```
+
+---
+
+## Module-Level State Rules
+
+| Pattern | Thread-Safe? | Notes |
+|---|---|---|
+| Module-level `ContextVar` | SAFE | Thread-isolated by design |
+| Module-level frozen data (tuple, frozenset) | SAFE | Immutable after import |
+| Module-level `dict` with lock on ALL paths | SAFE | Must include reads |
+| Module-level `dict` with fast-path read | **UNSAFE** | Read races with write |
+| `@lru_cache` / `@cache` on functions | Mostly safe | Internal lock in 3.14t |
+| `@lru_cache` on methods | **UNSAFE** | Prevents GC, not thread-safe |
+| `@cached_property` returning mutable | **UNSAFE** | Race on `__dict__` write |
+
+### Preferred Patterns
+
+```python
+# ✅ ContextVar for per-thread/per-task state
+from contextvars import ContextVar
+_build_ctx: ContextVar[BuildContext] = ContextVar('build_ctx')
+
+# ✅ Module-level frozen data
+PHASE_GROUPS: tuple[str, ...] = ("Discovery", "Content", "Rendering")
+
+# ✅ Instance-level lock-protected cache
+class TemplateCache:
+    def __init__(self) -> None:
+        self._data: dict[str, str] = {}
+        self._lock = threading.Lock()
+
+    def get_or_compute(self, key: str, compute: Callable[[], str]) -> str:
+        with self._lock:
+            if key in self._data:
+                return self._data[key]
+            self._data[key] = compute()
+            return self._data[key]
+```
+
+---
+
+## Pre-Warming Pattern
+
+Eagerly compute `@cached_property` values during the sequential snapshot phase
+so they're already in `instance.__dict__` before render threads access them.
+This eliminates the race entirely — no concurrent computation, no wasted work.
+
+```python
+# In snapshot phase (sequential, before parallel render):
+def pre_warm_for_render(site: Site) -> None:
+    """Touch @cached_property values to populate __dict__ before parallel render."""
+    for section in site.sections:
+        _ = section.sorted_pages
+        _ = section.sorted_subsections
+        _ = section.subsection_index_urls
+        _ = section.regular_pages
+    for page in site.pages:
+        _ = page.visibility
+        _ = page.authors
+```
+
+Pre-warming is the right choice when:
+- The property does I/O (disk, network) — avoids duplicate work
+- The property is on a shared object (Section) — eliminates race window
+- The computation is expensive — avoids N threads computing the same thing
+
+Pre-warming is unnecessary when:
+- The property returns an immutable type — race is already benign
+- The property is on Page and only accessed by the owning render thread
+
+---
+
+## Anti-Patterns
+
+Collected from the Bengal thread-safety audit:
+
+### 1. Mutable @cached_property on Shared Objects
+```python
+# ❌ Section.regular_pages returns list, accessed by multiple render threads
+@cached_property
+def regular_pages(self) -> list[Page]:
+    return list(self.sorted_pages)
+
+# ✅ Return tuple — immutable, race-safe
+@cached_property
+def regular_pages(self) -> tuple[Page, ...]:
+    return tuple(self.sorted_pages)
+```
+
+### 2. Fast-Path Dict Read Outside Lock
+```python
+# ❌ _index_cache.get() races with _index_cache.clear()
+cached = _index_cache.get(key_id)  # unprotected
+if cached is not None:
+    return cached[0]
+with _index_cache_lock:
+    ...
+```
+
+### 3. Cache Cliff via .clear()
+```python
+# ❌ Evicts 1000 entries at once → stampede
+if len(_cache) >= 1000:
+    _cache.clear()
+
+# ✅ LRU eviction — drop oldest half
+if len(_cache) >= 1000:
+    to_remove = list(_cache.keys())[:500]
+    for k in to_remove:
+        del _cache[k]
+```
+
+### 4. unittest.mock in Production Code
+```python
+# ❌ Importing test infrastructure at runtime
+from unittest.mock import Mock
+if isinstance(value, Mock):
+    return False
+
+# ✅ Check by module name instead
+def _is_mock(obj: Any) -> bool:
+    return type(obj).__module__.startswith("unittest.mock")
+```
+
+### 5. json.dumps() for Type Validation
+```python
+# ❌ Full serialization just to check type
+try:
+    json.dumps(value)
+    return True
+except TypeError:
+    return False
+
+# ✅ isinstance check — orders of magnitude faster
+_JSON_SAFE = (str, int, float, bool, type(None))
+def is_json_safe(value: Any) -> bool:
+    if isinstance(value, _JSON_SAFE):
+        return True
+    if isinstance(value, (list, tuple)):
+        return all(is_json_safe(v) for v in value)
+    if isinstance(value, dict):
+        return all(isinstance(k, str) and is_json_safe(v) for k, v in value.items())
+    return False
+```
+
+---
+
+## Validation Checklist
+
+When reviewing code for free-threading safety:
+
+- [ ] All `@cached_property` in `bengal/core/` return immutable types (or are pre-warmed)
+- [ ] Module-level mutable dicts have lock-protected reads (not just writes)
+- [ ] No `.clear()` eviction on shared caches (use LRU instead)
+- [ ] Frozen boundary respected: no `list`/`set`/mutable-dict crossing build → render
+- [ ] No `unittest.mock` imports in production modules
+- [ ] No `json.dumps()` used solely for type validation
+- [ ] Properties on shared objects (Section, Site) use immutable containers
+- [ ] Config values read per-page are cached at pipeline init, not re-read from dict
+
+---
+
+## Evidence
+
+- `bengal/core/page/navigation.py` — `_index_cache` race condition (fast-path outside lock)
+- `bengal/core/page/metadata.py:463` — `visibility` returns mutable dict, CRITICAL race
+- `bengal/core/section/queries.py` — `regular_pages`, `sorted_pages` return mutable lists
+- `bengal/core/section/hierarchy.py` — `sorted_subsections` returns mutable list
+- `bengal/core/section/navigation.py` — `subsection_index_urls` returns mutable set
+- `bengal/snapshots/content.py:266` — O(n^2) navigation resolution
+- `bengal/rendering/pipeline/output.py` — config re-read per page instead of cached
+- `bengal/postprocess/output_formats/index_generator.py` — Mock import + json.dumps validation

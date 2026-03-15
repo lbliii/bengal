@@ -1,239 +1,354 @@
 ---
-description: Audit architecture compliance - model/orchestrator split, composition patterns, file organization
+description: Evaluate system-level design, module responsibilities, and data ownership boundaries
 alwaysApply: false
-globs: ["bengal/**/*.py"]
+globs: ["bengal/**/*.py", "tests/**/*.py"]
 ---
 
-# Architecture Audit
+# ARCH Audit (Architecture & Responsibility Audit)
 
-Validates Bengal's architecture patterns: passive models, orchestrator operations, composition over inheritance.
+Find structural design issues across modules, classes, and subsystems.
 
-**Shortcut**: `::arch`
+This audit operates **one level above flow and interaction audits**.
+Instead of focusing on execution efficiency, it examines **system organization, ownership, and boundaries**.
 
-**Works with**: `modules/architecture-patterns`, `modules/evidence-handling`
+Focus on identifying when:
+
+- modules have unclear responsibilities
+- logic is duplicated across components
+- data ownership is ambiguous
+- dependencies create tight coupling
+- orchestration logic becomes centralized or tangled
+
+**Goal:** Improve maintainability, clarity, and long-term scalability of the codebase.
+
+**Shortcut:** `::arch` or `::arch-audit`
+
+Works well alongside:
+- `flow-audit`
+- `ipa-audit`
+- `sdc-audit`
+
+**Works with:** `modules/architecture-patterns`, `modules/evidence-handling`
 
 ---
 
-## Overview
+# Overview
 
-This audit checks:
-1. **Model/Orchestrator split** - No I/O in `bengal/core/`
-2. **Composition patterns** - Mixins over inheritance
-3. **File organization** - 400-line threshold, package structure
-4. **Single responsibility** - Focused classes
+Architectural issues rarely cause immediate failures but often lead to:
+
+- increasing code duplication
+- difficult refactoring
+- performance inefficiencies
+- fragile feature additions
+
+This audit identifies **structural patterns that predict long-term complexity growth**.
+
+Bengal-specific checks (model purity, orchestrator placement) remain in Steps 1–2.
 
 ---
 
-## Co-located Scripts
+# High Signal Indicators
 
-```bash
-# Run architecture audit
-python new-rules/validation/architecture-audit/scripts/audit_arch.py bengal/
+Investigate immediately when you see:
 
-# Check specific subsystem
-python new-rules/validation/architecture-audit/scripts/audit_arch.py bengal/core/
+- large modules doing many unrelated tasks
+- duplicated logic across multiple files
+- circular imports
+- functions that move data across many modules
+- "god classes" coordinating many subsystems
+- data structures passed through many layers unchanged
+- modules that mostly call other modules
+
+---
+
+# Architectural Symptoms
+
+## 1. Unclear Data Ownership
+
+### Symptom
+
+Multiple modules modify or construct the same structure.
+
+Example:
+
+```
+module_a.create_user()
+module_b.update_user()
+module_c.validate_user()
 ```
 
+### Problem
+
+No clear owner of the data model.
+
+### Suggested Fix
+
+Define a primary module responsible for creation, validation, and updates.
+
 ---
 
-## Procedure
+## 2. God Modules / Coordinator Classes
 
-### Step 1: Check Model Purity
+### Symptom
 
-**Models (`bengal/core/`) must NOT contain**:
+Large classes or modules coordinating many subsystems.
 
-```python
-# ❌ VIOLATIONS
-import logging              # No logging imports
-logger = get_logger(...)    # No logger usage
-logger.info(...)            # No log calls
-open(file, 'w')            # No file writes
-Path(...).write_text(...)  # No file operations
-requests.get(...)          # No network calls
-subprocess.run(...)        # No shell commands
+Example:
+
+```
+class SystemManager:
+    load_config()
+    validate_inputs()
+    call_service()
+    store_results()
 ```
 
-**Search commands**:
+### Problem
+
+Centralized orchestration creates tight coupling.
+
+### Suggested Fix
+
+Split responsibilities into smaller components.
+
+---
+
+## 3. Logic Duplication
+
+### Symptom
+
+Similar logic appearing in multiple modules.
+
+Example:
+
+```
+validation logic repeated in:
+- loader.py
+- resolver.py
+- service.py
+```
+
+### Problem
+
+Future changes require updating multiple places.
+
+### Suggested Fix
+
+Extract shared functionality into a single module.
+
+---
+
+## 4. Circular Dependencies
+
+### Symptom
+
+```
+module_a → imports module_b
+module_b → imports module_a
+```
+
+### Problem
+
+Tight coupling between modules.
+
+### Suggested Fix
+
+Extract shared logic into a third module.
+
+---
+
+## 5. Data Passing Through Layers
+
+### Symptom
+
+Large structures passed through several functions without modification.
+
+Example:
+
+```
+controller → service → helper → util
+```
+
+Each layer forwards the same data.
+
+### Problem
+
+Layers provide little value.
+
+### Suggested Fix
+
+Collapse unnecessary layers or move logic closer to data.
+
+---
+
+## 6. Boundary Violations
+
+### Symptom
+
+Modules accessing internal structures of other modules.
+
+Example:
+
+```
+user_service._internal_cache
+```
+
+### Problem
+
+Encapsulation broken.
+
+### Suggested Fix
+
+Expose a proper interface.
+
+---
+
+## 7. Feature Logic Scattered Across Files
+
+### Symptom
+
+Implementing a single feature requires modifying many modules.
+
+Example:
+
+```
+parser.py
+resolver.py
+loader.py
+validator.py
+```
+
+### Problem
+
+Feature cohesion is weak.
+
+### Suggested Fix
+
+Group related logic into feature-focused modules.
+
+---
+
+# Bengal-Specific Checks
+
+## Model Purity (`bengal/core/`)
+
+Models **MUST NOT** contain logging, file I/O, or network calls:
+
 ```bash
-# Find logging in core
 grep -rn "logger\." bengal/core/
 grep -rn "import logging" bengal/core/
-grep -rn "get_logger" bengal/core/
-
-# Find I/O in core
 grep -rn "\.write\(" bengal/core/
 grep -rn "open(" bengal/core/
-grep -rn "Path.*write" bengal/core/
 ```
 
-### Step 2: Check Orchestrator Placement
+## Orchestrator Placement
 
-**All I/O operations should be in**:
-- `bengal/orchestration/`
-- `bengal/cli/`
-- `bengal/server/`
+All I/O in `bengal/orchestration/`, `bengal/cli/`, `bengal/server/`.
+Models delegate to orchestrators.
 
-**Verify delegation pattern**:
-```python
-# ✅ CORRECT - Model delegates to orchestrator
-class Site:
-    def build(self) -> None:
-        return BuildOrchestrator.build(self)
-```
+## File Size Threshold
 
-### Step 3: Check Inheritance Depth
-
-**Maximum inheritance depth**: 2 levels
-
-```python
-# ✅ OK - Composition with mixins
-class Page(MetadataMixin, NavigationMixin):
-    pass
-
-# ❌ BAD - Deep inheritance
-class ArticlePage(BlogPage(ContentPage(BasePage))):
-    pass
-```
-
-**Detection**:
-```bash
-# Find class definitions
-grep -rn "^class.*(.*):" bengal/ --include="*.py"
-
-# Check for deep chains (manual review needed)
-```
-
-### Step 4: Check File Sizes
-
-**Threshold**: 400 lines per file
-
-```bash
-# Find large files
-find bengal/ -name "*.py" -exec wc -l {} \; | awk '$1 > 400 {print}'
-```
-
-**If exceeded**:
-- File should be a package (`__init__.py` + modules)
-- Or split into focused modules
-
-### Step 5: Check Single Responsibility
-
-**Warning signs**:
-- More than 10 public methods
-- Imports from >5 different modules
-- Multiple unrelated responsibilities
+Files >400 lines → convert to package or split.
 
 ---
 
-## Output Format
+# Grep-Friendly Searches
+
+```
+rg "import .*" bengal/
+rg "from .* import .*" bengal/
+rg "class .*Manager" bengal/
+rg "class .*Controller" bengal/
+rg "pass" bengal/
+```
+
+Look for modules that primarily orchestrate or pass data.
+
+---
+
+# Procedure
+
+### Step 1
+
+Map major modules and their responsibilities.
+
+### Step 2
+
+Identify which modules create, own, and mutate core data structures.
+
+### Step 3
+
+Look for duplicated logic or scattered features.
+
+### Step 4
+
+Detect circular dependencies.
+
+### Step 5
+
+Evaluate whether responsibilities could be consolidated or better separated.
+
+### Step 6 (Bengal)
+
+Run model purity and orchestrator placement checks (see Bengal-Specific Checks).
+
+---
+
+# Co-located Scripts
+
+```bash
+# Run architecture audit script
+python .cursor/rules/validation/architecture-audit/scripts/audit_arch.py bengal/
+
+# Check specific subsystem
+python .cursor/rules/validation/architecture-audit/scripts/audit_arch.py bengal/core/
+```
+
+---
+
+# Output Format
 
 ```markdown
-## 🔍 Architecture Audit: [Path]
+## ARCH Audit: [Subsystem]
 
-### Model Purity (`bengal/core/`)
+### Findings
 
-| Check | Status | Details |
-|-------|--------|---------|
-| No logging | ✅/❌ | [findings] |
-| No file I/O | ✅/❌ | [findings] |
-| No network | ✅/❌ | [findings] |
-| Delegates to orchestrators | ✅/❌ | [findings] |
+| File | Line | Architectural Issue | Suggested Fix |
+|------|------|---------------------|----------------|
+| system_manager.py | 22 | God class coordinating many subsystems | Split responsibilities |
+| resolver.py | 87 | Validation logic duplicated | Extract shared validator |
+| service.py | 144 | Circular dependency with loader | Introduce shared module |
 
-**Violations found**: [N]
+### Summary
 
-### Composition Patterns
-
-| Check | Status | Details |
-|-------|--------|---------|
-| Max inheritance depth ≤2 | ✅/❌ | [findings] |
-| Uses mixins | ✅/❌ | [findings] |
-| No God objects | ✅/❌ | [findings] |
-
-### File Organization
-
-| File | Lines | Status |
-|------|-------|--------|
-| `site.py` | 350 | ✅ OK |
-| `page/__init__.py` | 180 | ✅ Package |
-| `template.py` | 520 | ❌ Too large |
-
-### Single Responsibility
-
-| Class | Methods | Imports | Status |
-|-------|---------|---------|--------|
-| `Site` | 8 | 4 | ✅ OK |
-| `Page` | 12 | 6 | ⚠️ Review |
-
-### Confidence
-
-**Overall**: [N]% [🟢/🟡/🟠/🔴]
-
-### 📋 Action Items
-
-**Critical**:
-- [ ] Remove logging from `bengal/core/site.py:45`
-- [ ] Split `bengal/rendering/template.py` into package
-
-**Recommended**:
-- [ ] Extract mixin from large class
+- **High**: ownership ambiguity or circular dependencies
+- **Medium**: duplicated logic or scattered features
+- **Low**: minor boundary violations
 ```
 
 ---
 
-## Quick Fixes
+# Integration
 
-### Logging in Model → Move to Orchestrator
+Run when:
 
-```python
-# Before (in bengal/core/site.py)
-class Site:
-    def build(self):
-        logger.info("Building site")  # ❌ NO!
-        self._render()
+- performing major refactors
+- adding new subsystems
+- evaluating long-term maintainability
+- conducting architecture reviews
 
-# After (in bengal/orchestration/build_orchestrator.py)
-class BuildOrchestrator:
-    @staticmethod
-    def build(site: Site) -> None:
-        logger.info("Building site")  # ✅ OK here
-        site._render()
-```
+Triggers:
 
-### Large File → Package
-
-```bash
-# Before
-bengal/core/page.py  # 520 lines
-
-# After
-bengal/core/page/
-├── __init__.py      # Main class, re-exports
-├── core.py          # PageCore
-├── metadata.py      # Metadata mixin
-├── navigation.py    # Navigation mixin
-└── computed.py      # Computed properties
-```
-
-### Deep Inheritance → Composition
-
-```python
-# Before
-class BlogPage(ContentPage):
-    pass
-
-class ContentPage(BasePage):
-    pass
-
-# After
-class Page(ContentMixin, BlogMixin):
-    """Composed from focused mixins."""
-    pass
-```
+- `::arch`
+- `::arch-audit`
+- "architecture audit"
+- "module responsibility review"
 
 ---
 
-## Related
+# Related
 
-- `modules/architecture-patterns` - Detailed patterns
-- `implementation/core-model` - Guide for modifying core
-- `architecture/design-principles.md` - Design documentation
+- `flow-audit` — execution pipeline efficiency
+- `ipa-audit` — interaction patterns between components
+- `sdc-audit` — micro data structure optimizations
+- `modules/architecture-patterns` — Bengal model/orchestrator patterns

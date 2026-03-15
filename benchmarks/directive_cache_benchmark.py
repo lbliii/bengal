@@ -148,10 +148,10 @@ def render_with_simulated_cache(content: str) -> tuple[str, dict[str, Any]]:
     This simulates what would happen if we wired up DirectiveCache
     by manually caching at the render level.
     """
-    from bengal.directives.cache import DirectiveCache
     from patitas.nodes import Directive
     from patitas.stringbuilder import StringBuilder
 
+    from bengal.directives.cache import DirectiveCache
     from bengal.parsing.backends.patitas import create_markdown
     from bengal.parsing.backends.patitas.directives.registry import create_default_registry
     from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer

@@ -135,6 +135,42 @@ class Cache:
             return self._data[key]
 ```
 
+### @cached_property Is NOT Thread-Safe
+`functools.cached_property` writes to `instance.__dict__` without synchronization.
+Two threads can race to compute and store the value simultaneously.
+
+- **Immutable return** (str, int, bool, tuple, frozenset, frozen dataclass): race is
+  benign — both threads compute the same value, one wins, no corruption
+- **Mutable return** (list, set, dict): race is a **real bug** — one thread's result
+  is silently dropped; any consumer that mutates the container triggers a data race
+
+Rule: `@cached_property` accessed during parallel render MUST return immutable types.
+Alternative: pre-warm the property during the sequential build/snapshot phase.
+
+See `modules/free-threading` for the full decision tree and audit reference.
+
+```python
+# ❌ Returns mutable list — race under parallel render
+@cached_property
+def sorted_pages(self) -> list[Page]:
+    return sorted(self.pages, key=lambda p: p.weight)
+
+# ✅ Returns immutable tuple — race is benign
+@cached_property
+def sorted_pages(self) -> tuple[Page, ...]:
+    return tuple(sorted(self.pages, key=lambda p: p.weight))
+
+# ✅ Fixed-schema dict → frozen dataclass
+@dataclass(frozen=True, slots=True)
+class VisibilitySettings:
+    menu: bool = True
+    listings: bool = True
+
+@cached_property
+def visibility(self) -> VisibilitySettings:
+    return VisibilitySettings(menu=..., listings=...)
+```
+
 ### Avoid
 ```python
 # ❌ Global mutable state
@@ -145,6 +181,16 @@ _instance = HeavyObject()
 
 # ❌ Assuming atomicity
 counter += 1
+
+# ❌ @cached_property returning mutable container
+@cached_property
+def items(self) -> list[str]:  # list is mutable — race under 3.14t
+    return [...]
+
+# ❌ Fast-path read outside lock on module-level dict
+cached = _cache.get(key)  # races with concurrent .clear()
+if cached is not None:
+    return cached           # stale or corrupted under free-threading
 ```
 
 ## Common Mistakes to Avoid
@@ -177,6 +223,9 @@ counter += 1
 - Use `threading.Lock` for shared state, not global singletons
 - Prefer `contextvars` for thread-local-like behavior
 - No `@cache`/`@lru_cache` on methods without care (not thread-safe by default)
+- `@cached_property` MUST return immutable types if accessed during parallel phases
+- Module-level mutable dicts need lock protection on ALL reads, not just writes
+- Never use `.clear()` for cache eviction — causes stampede; use LRU eviction instead
 
 ## Common Ruff Fixes I Should Apply Automatically
 - UP: Use modern syntax (`match`, `|` unions, f-strings, etc.)

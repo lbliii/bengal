@@ -1,0 +1,66 @@
+# Cost Annotations on Properties
+
+Every `@property` in `bengal/core/` that does more than return a stored field MUST include a `Cost:` line in its docstring.
+
+**Works with**: All modules (inherited automatically)
+
+---
+
+## Format
+
+```python
+@property
+def some_property(self) -> str:
+    """Brief description.
+
+    Cost: O(1) cached — CascadeView dict lookup.
+    """
+```
+
+## Cost Vocabulary
+
+| Marker | Meaning | Safe In |
+|--------|---------|---------|
+| `Cost: O(1)` | Constant time, no hidden work | Tight loops, scoring |
+| `Cost: O(1) cached` | First access may compute; subsequent O(1) | Tight loops after warmup |
+| `Cost: O(n)` | Linear in some dimension | Per-page, NOT in nested loops |
+| `Cost: O(k)` | Linear in a small parameter (e.g., len(tags)) | Per-page |
+| `Cost: DISK` | I/O bound | NEVER in scoring/build loops |
+
+## Hot-Path Alternative
+
+When a property has a cheaper alternative via `page.identity`, add:
+
+```python
+    """Brief description.
+
+    Cost: O(1) cached — CascadeView dict lookup.
+
+    Hot-path alternative: page.identity.is_generated (frozen, no property chain).
+    """
+```
+
+## Enforcement
+
+- New `@property` definitions in `bengal/core/` without a `Cost:` annotation should be flagged during review.
+- Grep pattern to audit: `rg "@property" bengal/core/ -A5 | rg -v "Cost:"` will show unannotated properties.
+
+## Examples
+
+```python
+# Good: cost is visible at glance
+@property
+def is_generated(self) -> bool:
+    """Check if this is a generated page.
+
+    Cost: O(1) — reads _raw_metadata dict directly, no cascade resolution.
+
+    Hot-path alternative: page.identity.is_generated (frozen, no property chain).
+    """
+
+# Bad: hidden cost behind innocent API
+@property
+def metadata(self) -> Mapping[str, Any]:
+    """Return combined frontmatter + cascade metadata."""
+    # Reader has no idea this calls pathlib.relative_to on first access
+```
