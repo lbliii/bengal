@@ -1,8 +1,9 @@
 # Epic: Test Coverage Remediation
 
-**Status**: Planned  
+**Status**: In Progress  
 **Created**: 2026-03-15  
 **Target**: v0.3.x  
+**Progress**: Sprint 1 ✓ | Sprint 2 ✓ | Sprint 3 ✓ | Sprints 4–6 pending  
 **Estimated Effort**: 40-55 hours  
 **Dependencies**: None (standalone, can run in parallel with other epics)  
 **Source**: Coverage Audit (2026-03-15)
@@ -95,7 +96,7 @@ Left unaddressed, these gaps mean regressions in page discovery, build caching, 
 | **Action** | Create `tests/unit/cache/test_rendered_output_cache.py`. Test: cache hit/miss, invalidation on content change, stale entry cleanup. |
 | **Validation** | Rendered output cache correctly detects stale entries. |
 
-**Sprint 1 done-check**: `tests/unit/content/discovery/` has 4+ test files. `tests/unit/cache/test_build_cache_core.py` exists. All pass.
+**Sprint 1 done-check**: `tests/unit/content/discovery/` has 4+ test files. `tests/unit/cache/test_build_cache_core.py` exists. All pass. ✅ Done
 
 ---
 
@@ -148,7 +149,7 @@ Left unaddressed, these gaps mean regressions in page discovery, build caching, 
 | **Action** | Create `tests/unit/errors/test_reporter.py`. Test: report generation, severity filtering, quiet mode suppression. |
 | **Validation** | Reports match expected format for various error combinations. |
 
-**Sprint 2 done-check**: `tests/unit/errors/` has 8+ test files (5 existing + 3-5 new). All pass.
+**Sprint 2 done-check**: `tests/unit/errors/` has 8+ test files (5 existing + 3-5 new). All pass. ✅ Done
 
 ---
 
@@ -210,7 +211,7 @@ Left unaddressed, these gaps mean regressions in page discovery, build caching, 
 | **Action** | Create `tests/unit/cli/test_upgrade_commands.py`. Test: version check logic, upgrade recommendation display, installer selection. Mock network calls. |
 | **Validation** | Upgrade commands correctly compare versions and suggest actions. |
 
-**Sprint 3 done-check**: `tests/unit/cli/` has 19+ test files (13 existing + 6 new). All pass.
+**Sprint 3 done-check**: `tests/unit/cli/` has 19+ test files (13 existing + 6 new). All pass. ✅ Done
 
 ---
 
@@ -383,8 +384,8 @@ Left unaddressed, these gaps mean regressions in page discovery, build caching, 
 | Sprint | Status | Tests Added | Source Lines Covered |
 |--------|--------|-------------|---------------------|
 | 1 — Content Discovery + Cache | Done | 62 tests | ~2,800 lines |
-| 2 — Error Handling | Not Started | — | ~2,500 lines |
-| 3 — CLI Commands | Not Started | — | ~3,500 lines |
+| 2 — Error Handling | Done | 40 tests | ~2,500 lines |
+| 3 — CLI Commands | Done | 29 tests | ~3,500 lines |
 | 4 — Assets + i18n + Output | Not Started | — | ~2,200 lines |
 | 5 — Autodoc + Scaffolds + Debug | Not Started | — | ~3,700 lines |
 | 6 — Test Infrastructure | Not Started | — | (meta) |
