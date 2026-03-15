@@ -476,15 +476,11 @@ class TaxonomyOrchestrator:
         # Get i18n configuration using utility
         i18n_config = get_i18n_config(self.site.config)
 
-        # Materialize tag items once before language loop (IPA audit Task 8)
-        all_tag_items = list(self.site.taxonomies["tags"].items())
-
-        # Generate per-locale tag pages
-        for lang in i18n_config.languages:
-            # Build per-locale tag mapping
-            locale_tags = {}
-            for tag_slug, tag_data in all_tag_items:
-                # Filter pages by language using utility
+        # IPA audit Finding 11: build locale_tags_by_lang in one pass over tags
+        languages = i18n_config.languages
+        locale_tags_by_lang: dict[str, dict[str, Any]] = {lang: {} for lang in languages}
+        for tag_slug, tag_data in self.site.taxonomies["tags"].items():
+            for lang in languages:
                 pages_for_lang = filter_pages_by_language(
                     tag_data["pages"],
                     lang,
@@ -494,12 +490,15 @@ class TaxonomyOrchestrator:
                 )
                 if not pages_for_lang:
                     continue
-                locale_tags[tag_slug] = {
+                locale_tags_by_lang[lang][tag_slug] = {
                     "name": tag_data["name"],
                     "slug": tag_slug,
                     "pages": pages_for_lang,
                 }
 
+        # Generate per-locale tag pages
+        for lang in languages:
+            locale_tags = locale_tags_by_lang[lang]
             if not locale_tags:
                 continue
 
@@ -571,12 +570,12 @@ class TaxonomyOrchestrator:
         i18n_config = get_i18n_config(self.site.config)
 
         # Generate per-locale tag pages
+        # IPA audit Finding 11: build locale_tags_by_lang in one pass over tags
         if self.site.taxonomies.get("tags"):
-            for lang in i18n_config.languages:
-                # Build per-locale tag mapping
-                locale_tags = {}
-                for tag_slug, tag_data in self.site.taxonomies["tags"].items():
-                    # Filter pages by language using utility
+            languages = i18n_config.languages
+            locale_tags_by_lang: dict[str, dict[str, Any]] = {lang: {} for lang in languages}
+            for tag_slug, tag_data in self.site.taxonomies["tags"].items():
+                for lang in languages:
                     pages_for_lang = filter_pages_by_language(
                         tag_data["pages"],
                         lang,
@@ -586,11 +585,14 @@ class TaxonomyOrchestrator:
                     )
                     if not pages_for_lang:
                         continue
-                    locale_tags[tag_slug] = {
+                    locale_tags_by_lang[lang][tag_slug] = {
                         "name": tag_data["name"],
                         "slug": tag_slug,
                         "pages": pages_for_lang,
                     }
+
+            for lang in languages:
+                locale_tags = locale_tags_by_lang[lang]
                 if not locale_tags:
                     continue
 

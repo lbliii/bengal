@@ -267,12 +267,14 @@ class BuildTrigger:
             changed_files = [str(p) for p in changed_paths]
             file_count = len(changed_files)
 
-            # Determine file name for display
-            if file_count == 1:
-                file_name = Path(changed_files[0]).name
+            # Determine file name for display (IPA Finding 14: use Path directly)
+            first_path = next(iter(changed_paths), None)
+            if file_count == 1 and first_path:
+                file_name = first_path.name
+            elif first_path:
+                file_name = f"{first_path.name} (+{file_count - 1} more)"
             else:
-                first_file = Path(changed_files[0]).name
-                file_name = f"{first_file} (+{file_count - 1} more)"
+                file_name = "files"
 
             # Compute template change info once (IPA audit Task 4)
             template_info = self._get_template_change_info(changed_paths)
