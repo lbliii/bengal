@@ -29,6 +29,10 @@ def phase_sections(
 
     Ensures all sections have index pages and validates section structure.
 
+    Complexity: O(s) — where s = sections
+    Budget: < 10% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -91,6 +95,10 @@ def phase_taxonomies(
 
     Collects taxonomy terms (tags, categories) and generates taxonomy pages.
     Optimized for incremental builds - only processes changed pages.
+
+    Complexity: O(n * t) — where n = pages, t = unique tags
+    Budget: < 10% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
 
     Args:
         orchestrator: Build orchestrator instance
@@ -196,6 +204,10 @@ def phase_taxonomy_index(orchestrator: BuildOrchestrator) -> None:
 
     Persists tag-to-pages mapping for incremental builds.
 
+    Complexity: O(t * p) — where t = tags, p = avg pages per tag
+    Budget: < 10% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Side effects:
         - Writes taxonomy index to .bengal/taxonomy_index.json
 
@@ -253,6 +265,10 @@ def phase_menus(
 
     Builds navigation menus. Optimized for incremental builds.
 
+    Complexity: O(n + s) — where n = pages, s = sections
+    Budget: < 10% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         incremental: Whether this is an incremental build
@@ -293,6 +309,10 @@ def phase_related_posts(
 
     Pre-computes related posts for O(1) template access.
     Skipped for large sites (>5K pages) or sites without tags.
+
+    Complexity: O(n * t) — where n = pages, t = unique tags
+    Budget: < 10% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
 
     Args:
         orchestrator: Build orchestrator instance
@@ -365,6 +385,10 @@ def phase_query_indexes(
 
     Builds pre-computed indexes for O(1) template lookups.
 
+    Complexity: O(n) — where n = pages
+    Budget: < 10% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         cache: Build cache
@@ -421,6 +445,10 @@ def phase_update_pages_list(
     Phase 12: Update Pages List.
 
     Updates the pages_to_build list to include newly generated taxonomy pages.
+
+    Complexity: O(n + g) — where n = pages, g = generated pages
+    Budget: < 10% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
 
     Handles metadata cascade: when a page's title/date/summary changes, taxonomy
     pages that list it must be rebuilt to show updated content.
@@ -506,7 +534,7 @@ def phase_update_pages_list(
             # RFC: Output Cache Architecture - Check if page actually needs regeneration
             # This is the KEY optimization: skip if member content hasn't changed
             if should_include and incremental and generated_page_cache and page_type == "tag":
-                member_pages = page.metadata.get("_posts", [])
+                member_pages = page.internal_posts
                 if member_pages and content_hash_lookup:
                     # Check if this tag page needs regeneration based on member hashes
                     needs_regen = generated_page_cache.should_regenerate(
@@ -568,6 +596,10 @@ def phase_variant_filter(
     Filters pages and sections by edition when params.edition is set.
     Mutates orchestrator.site.pages and orchestrator.site.sections.
 
+    Complexity: O(n + s) — where n = pages, s = sections
+    Budget: < 10% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         pages_to_build: Pages to filter
@@ -602,6 +634,10 @@ def phase_url_collision_check(
     Phase 12.5: URL Collision Detection (proactive validation).
 
     Validates no two pages have the same URL. Logs warnings for collisions.
+
+    Complexity: O(n) — where n = pages
+    Budget: < 2% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
 
     Args:
         orchestrator: Build orchestrator instance

@@ -329,7 +329,7 @@ class IncrementalOrchestrator:
         # Also check for cache-based changes (files modified since last build)
         all_changed: set[Path] = set(changed_paths)
         for page in self.site.pages:
-            if page.metadata.get("_generated"):
+            if page.is_generated:
                 continue
             if self.cache and self.cache.should_bypass(page.source_path):
                 all_changed.add(page.source_path)

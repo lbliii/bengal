@@ -72,22 +72,34 @@ class SectionErgonomicsMixin:
     # These are declared as properties to match the @cached_property definitions
     @property
     def sorted_pages(self) -> list[Page]:
-        """Sorted pages - provided by SectionQueryMixin."""
+        """Sorted pages - provided by SectionQueryMixin.
+
+        Cost: O(1) — delegate to host.
+        """
         raise NotImplementedError
 
     @property
     def regular_pages_recursive(self) -> list[Page]:
-        """Recursive pages - provided by SectionQueryMixin."""
+        """Recursive pages - provided by SectionQueryMixin.
+
+        Cost: O(1) — delegate to host.
+        """
         raise NotImplementedError
 
     @property
     def hierarchy(self) -> list[str]:
-        """Hierarchy path - provided by SectionHierarchyMixin."""
+        """Hierarchy path - provided by SectionHierarchyMixin.
+
+        Cost: O(1) — delegate to host.
+        """
         raise NotImplementedError
 
     @property
     def title(self) -> str:
-        """Section title - must be provided by host class."""
+        """Section title - must be provided by host class.
+
+        Cost: O(1) — delegate to host.
+        """
         raise NotImplementedError
 
     def get_all_pages(self, recursive: bool = True) -> list[Page]:
@@ -102,6 +114,8 @@ class SectionErgonomicsMixin:
     def content_pages(self) -> list[Page]:
         """
         Get content pages (regular pages excluding index).
+
+        Cost: O(1) cached — alias for sorted_pages.
 
         This is useful for listing a section's pages without
         including the section's own index page in the list.
@@ -202,6 +216,8 @@ class SectionErgonomicsMixin:
         """
         Get total number of content pages in this section (non-recursive).
 
+        Cost: O(1) cached — len of sorted_pages.
+
         Returns:
             Count of pages (excluding index pages)
 
@@ -215,6 +231,8 @@ class SectionErgonomicsMixin:
         """
         Get total number of content pages in this section and all subsections.
 
+        Cost: O(1) cached — len of regular_pages_recursive.
+
         Returns:
             Count of all descendant pages
 
@@ -227,6 +245,8 @@ class SectionErgonomicsMixin:
     def word_count(self) -> int:
         """
         Get total word count across all pages in this section.
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
 
         Counts words in rendered content (HTML stripped) for all pages.
 
@@ -250,6 +270,8 @@ class SectionErgonomicsMixin:
     def total_reading_time(self) -> int:
         """
         Get total reading time for all pages in this section.
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
 
         Sums reading_time property from all pages.
 

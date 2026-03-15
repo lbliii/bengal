@@ -42,6 +42,9 @@ from .utils import normalize_tags
 # =============================================================================
 
 
+_LAZY_COST = "\n\nCost: O(DISK) first access, O(1) after — triggers full page load."
+
+
 def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None) -> property:
     """Create a lazy property that delegates to _full_page.
 
@@ -56,7 +59,8 @@ def _lazy_property(attr_name: str, default: Any = None, doc: str | None = None) 
         self._ensure_loaded()
         return getattr(self._full_page, attr_name, default) if self._full_page else default
 
-    getter.__doc__ = doc or f"Get {attr_name} (lazy-loaded from full page)."
+    base_doc = doc or f"Get {attr_name} (lazy-loaded from full page)."
+    getter.__doc__ = base_doc + _LAZY_COST
     return property(getter)
 
 
@@ -81,7 +85,8 @@ def _lazy_property_with_setter(
         if self._full_page:
             setattr(self._full_page, attr_name, value)
 
-    getter.__doc__ = getter_doc or f"Get {attr_name} (lazy-loaded from full page)."
+    base_doc = getter_doc or f"Get {attr_name} (lazy-loaded from full page)."
+    getter.__doc__ = base_doc + _LAZY_COST
     setter.__doc__ = f"Set {attr_name}."
     return property(getter, setter)
 
@@ -201,31 +206,38 @@ class PageProxy:
 
     @property
     def title(self) -> str:
-        """Get page title from cached metadata."""
+        """Get page title from cached metadata.
+
+        Cost: O(1) — direct PageCore field read, no lazy load.
+        """
         return self.core.title
 
     @property
     def nav_title(self) -> str:
-        """
-        Get navigation title from cached metadata.
+        """Get navigation title from cached metadata.
 
         Falls back to title if nav_title not set.
+
+        Cost: O(1) — PageCore field read + fallback logic, no lazy load.
         """
         return resolve_nav_title(self.core.nav_title, self.core.title)
 
     @property
     def weight(self) -> float:
-        """
-        Get page weight for sorting (always returns sortable value).
+        """Get page weight for sorting (always returns sortable value).
 
         Returns weight from cached core if set, otherwise infinity (sorts last).
-        This property ensures pages are always sortable without None errors.
+
+        Cost: O(1) — PageCore field read, no lazy load.
         """
         return sortable_weight(self.core.weight)
 
     @property
     def date(self) -> datetime | None:
-        """Get page date from cached metadata (parsed from ISO string)."""
+        """Get page date from cached metadata (parsed from ISO string).
+
+        Cost: O(1) — PageCore field read + ISO parse, no lazy load.
+        """
         if not self.core.date:
             return None
         # Parse ISO date string to datetime if it's a string
@@ -239,69 +251,84 @@ class PageProxy:
 
     @property
     def tags(self) -> list[str]:
-        """Get page tags from cached metadata (normalized for malformed frontmatter)."""
+        """Get page tags from cached metadata (normalized for malformed frontmatter).
+
+        Cost: O(t) — normalizes tag list, no lazy load.
+        """
         return normalize_tags(self.core.tags)
 
     @property
     def slug(self) -> str | None:
-        """Get URL slug from cached metadata."""
+        """Get URL slug from cached metadata.
+
+        Cost: O(1) — direct PageCore field read, no lazy load.
+        """
         return self.core.slug
 
     @property
     def lang(self) -> str | None:
-        """Get language code from cached metadata."""
+        """Get language code from cached metadata.
+
+        Cost: O(1) — direct PageCore field read, no lazy load.
+        """
         return self.core.lang
 
     @property
     def type(self) -> str | None:
-        """
-        Get page type from metadata (frontmatter or cascade, already merged).
+        """Get page type from metadata (frontmatter or cascade).
 
-        With eager cascade merge, cascade values are merged into metadata
-        on first access. This eliminates the duality between
-        page.metadata.get("type") and page.type.
+        Cost: O(1) cached — CascadeView dict lookup (may construct view on first access).
+        Hot-path alternative: page.identity.kind for type checks in build loops.
         """
         return self.metadata.get("type")
 
     @property
     def variant(self) -> str | None:
-        """
-        Get visual variant from metadata (frontmatter or cascade, already merged).
+        """Get visual variant from metadata (frontmatter or cascade).
 
-        With eager cascade merge, cascade values (including 'variant' and 'layout')
-        are merged into metadata on first access.
+        Cost: O(1) cached — 3 CascadeView dict lookups.
         """
         props = self.metadata
         return props.get("variant") or props.get("layout") or props.get("hero_style")
 
     @property
     def props(self) -> dict[str, Any]:
-        """
-        Get custom props from cached metadata.
+        """Get custom props from cached metadata.
 
-        This provides access to the 'props' dictionary (formerly metadata)
-        without loading the full page.
+        Cost: O(1) — direct PageCore field read, no lazy load.
         """
         return self.core.props
 
     @property
     def section(self) -> str | None:
-        """Get section path from cached metadata."""
+        """Get section path from cached metadata.
+
+        Cost: O(1) — direct PageCore field read, no lazy load.
+        """
         return self.core.section
 
     @property
     def relative_path(self) -> str:
-        """Get relative path string (alias for source_path as string)."""
+        """Get relative path string (alias for source_path as string).
+
+        Cost: O(1) — str() conversion, no lazy load.
+        """
         return str(self.source_path)
 
     @property
     def version(self) -> str | None:
-        """Get version ID from cached metadata."""
+        """Get version ID from cached metadata.
+
+        Cost: O(1) — direct PageCore field read, no lazy load.
+        """
         return self.core.version
 
     @property
     def aliases(self) -> list[str]:
-        """Get redirect aliases from cached metadata."""
+        """Get redirect aliases from cached metadata.
+
+        Cost: O(1) — direct PageCore field read, no lazy load.
+        """
         return self.core.aliases or []
 
     def _ensure_loaded(self) -> None:
@@ -352,19 +379,16 @@ class PageProxy:
 
     @property
     def metadata(self) -> Mapping[str, Any]:
-        """
-        Return combined frontmatter + cascade metadata as CascadeView.
+        """Return combined frontmatter + cascade metadata as CascadeView.
 
         This property provides dict-like access to page metadata. Values come from:
         1. Page frontmatter (from PageCore, always takes precedence)
         2. Cascade from parent sections (inherited values)
 
-        The CascadeView is immutable and resolves values on access, ensuring
-        cascade values are always current even during incremental builds.
-
-        Returns:
-            CascadeView combining frontmatter and cascade, or raw metadata dict
-            if cascade is not yet available (during early construction).
+        Cost: O(1) cached — returns cached CascadeView after first construction.
+        First access: O(1) if loaded (delegates to full page), or O(n) to build
+        CascadeView with pathlib.relative_to. Avoid in tight build loops;
+        use page.identity or canonical accessors instead.
         """
         # If fully loaded, use full page metadata (delegates to its CascadeView)
         if self._lazy_loaded and self._full_page:
@@ -463,7 +487,10 @@ class PageProxy:
 
     @property
     def output_path(self) -> Path | None:
-        """Get output path (lazy-loaded)."""
+        """Get output path (lazy-loaded).
+
+        Cost: O(1) if pending path set, O(DISK) otherwise — triggers full page load.
+        """
         # Check if output_path was set before loading
         if hasattr(self, "_pending_output_path"):
             return self._pending_output_path
@@ -498,15 +525,12 @@ class PageProxy:
 
     @property
     def is_virtual(self) -> bool:
-        """
-        Check if this is a virtual page (not backed by a disk file).
+        """Check if this is a virtual page (not backed by a disk file).
 
         PageProxy objects are always backed by cached disk files, so they
-        are never virtual. Virtual pages (like autodoc-generated pages)
-        are not cached as proxies.
+        are never virtual.
 
-        Returns:
-            Always False for PageProxy
+        Cost: O(1) — constant False, no lazy load.
         """
         return False
 
@@ -521,7 +545,10 @@ class PageProxy:
 
     @property
     def related_posts(self) -> list[Page]:
-        """Get related posts (lazy-loaded)."""
+        """Get related posts (lazy-loaded).
+
+        Cost: O(1) if cache set, O(DISK) otherwise — triggers full page load.
+        """
         # If set on proxy without loading, return cached value
         if self._related_posts_cache is not None:
             return self._related_posts_cache
@@ -551,7 +578,10 @@ class PageProxy:
 
     @property
     def _posts(self) -> list[Page] | None:
-        """Get posts list for section index pages."""
+        """Get posts list for section index pages.
+
+        Cost: O(1) — returns local cache or delegates to loaded page.
+        """
         if self._posts_cache is not None:
             return self._posts_cache
         if self._lazy_loaded and self._full_page:
@@ -570,7 +600,10 @@ class PageProxy:
 
     @property
     def _subsections(self) -> list[Any] | None:
-        """Get subsections list for section index pages."""
+        """Get subsections list for section index pages.
+
+        Cost: O(1) — returns local cache or delegates to loaded page.
+        """
         if self._subsections_cache is not None:
             return self._subsections_cache
         if self._lazy_loaded and self._full_page:
@@ -589,7 +622,10 @@ class PageProxy:
 
     @property
     def _paginator(self) -> Paginator[Page] | None:
-        """Get paginator for section index pages."""
+        """Get paginator for section index pages.
+
+        Cost: O(1) — returns local cache or delegates to loaded page.
+        """
         if self._paginator_cache is not None:
             return self._paginator_cache
         if self._lazy_loaded and self._full_page:
@@ -608,7 +644,10 @@ class PageProxy:
 
     @property
     def _page_num(self) -> int | None:
-        """Get page number for paginated section index pages."""
+        """Get page number for paginated section index pages.
+
+        Cost: O(1) — returns local cache or delegates to loaded page.
+        """
         if self._page_num_cache is not None:
             return self._page_num_cache
         if self._lazy_loaded and self._full_page:
@@ -646,7 +685,10 @@ class PageProxy:
 
     @property
     def reading_time(self) -> str:
-        """Get reading time estimate (lazy-loaded from full page)."""
+        """Get reading time estimate (lazy-loaded from full page).
+
+        Cost: O(DISK) first access, O(1) after — triggers full page load.
+        """
         self._ensure_loaded()
         if self._full_page:
             rt = self._full_page.reading_time
@@ -659,20 +701,17 @@ class PageProxy:
 
     @property
     def parent(self) -> Section | None:
-        """
-        Get the parent section of this page.
+        """Get the parent section of this page.
 
-        Returns parent section without forcing full page load (uses _section).
+        Cost: O(1) — delegates to _section (path-based site registry lookup), no lazy load.
         """
         return self._section
 
     @property
     def ancestors(self) -> list[Any]:
-        """
-        Get all ancestor sections of this page.
+        """Get all ancestor sections from immediate parent to root.
 
-        Returns list of ancestor sections from immediate parent to root
-        without forcing full page load (uses _section property).
+        Cost: O(d) where d = directory depth — walks parent chain, no lazy load.
         """
         result = []
         current = self._section
@@ -699,11 +738,9 @@ class PageProxy:
 
     @property
     def description(self) -> str:
-        """
-        Get page description.
+        """Get page description.
 
-        Favors core.description (fast, cached) but falls back to full page
-        load if not available, for backward compatibility.
+        Cost: O(1) if core.description set, O(DISK) otherwise — falls back to full page load.
         """
         if self.core.description:
             return self.core.description
@@ -734,7 +771,10 @@ class PageProxy:
 
     @property
     def visibility(self) -> dict[str, Any]:
-        """Get visibility settings with defaults."""
+        """Get visibility settings with defaults.
+
+        Cost: O(DISK) first access, O(1) after — triggers full page load.
+        """
         self._ensure_loaded()
         if self._full_page:
             return self._full_page.visibility
@@ -793,14 +833,12 @@ class PageProxy:
 
     @property
     def _section(self) -> Section | None:
-        """
-        Get the section this page belongs to (lazy lookup via path).
+        """Get the section this page belongs to (lazy lookup via path).
 
-        If the page is loaded, delegates to the full page's _section property.
-        Otherwise, performs path-based lookup via site registry without forcing load.
+        If loaded, delegates to full page. Otherwise, O(1) path-based site
+        registry lookup without forcing load.
 
-        Returns:
-            Section object if found, None otherwise
+        Cost: O(1) — site registry dict lookup, no lazy load.
         """
         # If page is loaded, delegate to full page
         if self._lazy_loaded and self._full_page:
@@ -832,14 +870,9 @@ class PageProxy:
 
     @property
     def section_path(self) -> str | None:
-        """
-        Get the section path as a string.
+        """Get the section path as a string (e.g., "docs/guides").
 
-        Returns the path to the section this page belongs to, or None if
-        the page doesn't belong to a section.
-
-        Returns:
-            Section path as string (e.g., "docs/guides") or None
+        Cost: O(1) — str() conversion of cached path, no lazy load.
         """
         return str(self._section_path) if self._section_path else None
 

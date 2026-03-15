@@ -103,12 +103,18 @@ class ImageResource:
 
     @property
     def exists(self) -> bool:
-        """Check if source image exists."""
+        """Check if source image exists.
+
+        Cost: O(DISK) — path.exists().
+        """
         return self.source_path.exists()
 
     @cached_property
     def _dimensions(self) -> tuple[int, int] | None:
-        """Load image dimensions (lazy)."""
+        """Load image dimensions (lazy).
+
+        Cost: O(DISK) first access, O(1) cached thereafter.
+        """
         try:
             from PIL import Image
 
@@ -126,34 +132,52 @@ class ImageResource:
 
     @property
     def width(self) -> int:
-        """Get image width (loads image if needed)."""
+        """Get image width (loads image if needed).
+
+        Cost: O(1) cached — from _dimensions.
+        """
         dims = self._dimensions
         return dims[0] if dims else 0
 
     @property
     def height(self) -> int:
-        """Get image height (loads image if needed)."""
+        """Get image height (loads image if needed).
+
+        Cost: O(1) cached — from _dimensions.
+        """
         dims = self._dimensions
         return dims[1] if dims else 0
 
     @property
     def name(self) -> str:
-        """Filename with extension."""
+        """Filename with extension.
+
+        Cost: O(1) — Path.name.
+        """
         return self.source_path.name
 
     @property
     def stem(self) -> str:
-        """Filename without extension."""
+        """Filename without extension.
+
+        Cost: O(1) — Path.stem.
+        """
         return self.source_path.stem
 
     @property
     def suffix(self) -> str:
-        """File extension including dot."""
+        """File extension including dot.
+
+        Cost: O(1) — Path.suffix.
+        """
         return self.source_path.suffix
 
     @property
     def rel_permalink(self) -> str:
-        """URL to original image (relative to site root)."""
+        """URL to original image (relative to site root).
+
+        Cost: O(1) — path computation.
+        """
         if self.site is None:
             return f"/{self.source_path.name}"
 

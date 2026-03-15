@@ -90,22 +90,33 @@ class PageResource:
 
     @property
     def name(self) -> str:
-        """Filename with extension."""
+        """Filename with extension.
+
+        Cost: O(1) — Path.name.
+        """
         return self.path.name
 
     @property
     def stem(self) -> str:
-        """Filename without extension."""
+        """Filename without extension.
+
+        Cost: O(1) — Path.stem.
+        """
         return self.path.stem
 
     @property
     def suffix(self) -> str:
-        """File extension including dot (e.g., '.jpg')."""
+        """File extension including dot (e.g., '.jpg').
+
+        Cost: O(1) — Path.suffix.
+        """
         return self.path.suffix
 
     @property
     def rel_permalink(self) -> str:
         """URL relative to site root.
+
+        Cost: O(1) — string concatenation.
 
         Resources are served alongside the page.
         """
@@ -115,7 +126,10 @@ class PageResource:
 
     @property
     def size(self) -> int:
-        """File size in bytes."""
+        """File size in bytes.
+
+        Cost: O(DISK) — stat() call.
+        """
         try:
             return self.path.stat().st_size
         except OSError:
@@ -123,12 +137,17 @@ class PageResource:
 
     @property
     def exists(self) -> bool:
-        """Check if the resource file exists."""
+        """Check if the resource file exists.
+
+        Cost: O(DISK) — path.exists().
+        """
         return self.path.exists()
 
     @property
     def resource_type(self) -> str | None:
         """Get resource type category based on extension.
+
+        Cost: O(1) — constant dict iteration over extension categories.
 
         Returns one of: 'image', 'video', 'audio', 'document', 'data', 'code', 'archive'
         or None if unrecognized.

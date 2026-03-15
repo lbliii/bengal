@@ -94,6 +94,8 @@ class SectionNavigationMixin:
         """
         URL for template href attributes. Includes baseurl.
 
+        Cost: O(1) cached — path + baseurl application.
+
         Use this in templates for all links:
             <a href="{{ section.href }}">
 
@@ -115,6 +117,8 @@ class SectionNavigationMixin:
     def _path(self) -> str:
         """
         Internal site-relative path. NO baseurl.
+
+        Cost: O(d) first access (d = tree depth for parent chain), O(1) cached thereafter.
 
         Use for internal operations only:
         - Cache keys
@@ -159,6 +163,8 @@ class SectionNavigationMixin:
     def absolute_href(self) -> str:
         """
         Fully-qualified URL for meta tags and sitemaps when available.
+
+        Cost: O(1) — origin lookup and string concat.
         """
         from bengal.core.utils.url import get_site_origin
 
@@ -175,6 +181,8 @@ class SectionNavigationMixin:
     def subsection_index_urls(self) -> set[str]:
         """
         Get set of URLs for all subsection index pages (CACHED).
+
+        Cost: O(m) first access (m = subsections), O(1) cached thereafter.
 
         This pre-computed set enables O(1) membership checks for determining
         if a page is a subsection index. Used in navigation templates to avoid
@@ -203,6 +211,8 @@ class SectionNavigationMixin:
     def has_nav_children(self) -> bool:
         """
         Check if this section has navigable children (CACHED).
+
+        Cost: O(1) cached — uses cached sorted_pages/sorted_subsections.
 
         A section has navigable children if it contains either:
         - Regular pages (excluding the index page itself)

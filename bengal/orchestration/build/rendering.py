@@ -273,6 +273,10 @@ def phase_assets(
 
     Processes assets (copy, minify, fingerprint) before rendering so asset_url() works.
 
+    Complexity: O(a) — where a = number of assets
+    Budget: < 10% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -401,6 +405,10 @@ def phase_render(
     Phase 14: Render Pages.
 
     Renders all pages to HTML using templates.
+
+    Complexity: O(n * RENDER) — where n = number of pages
+    Budget: < 40% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
 
     Args:
         orchestrator: Build orchestrator instance
@@ -693,6 +701,10 @@ def phase_update_site_pages(
     Updates site.pages with freshly rendered pages (for incremental builds).
     Replaces stale PageProxy objects with rendered Page objects.
 
+    Complexity: O(n) — where n = number of pages
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         incremental: Whether this is an incremental build
@@ -772,6 +784,10 @@ def phase_track_assets(
     Persists asset dependencies that were accumulated during rendering
     (inline extraction). Assets are extracted in RenderingPipeline and
     accumulated in BuildContext for efficient batch persistence.
+
+    Complexity: O(n) — where n = number of pages
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
 
     Args:
         orchestrator: Build orchestrator instance

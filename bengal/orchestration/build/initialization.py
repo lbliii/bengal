@@ -151,6 +151,10 @@ def phase_fonts(
     Downloads Google Fonts and generates CSS if configured in site config.
     This runs before asset discovery so font CSS is available.
 
+    Complexity: O(f) — where f = font families (fixed, typically small)
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -235,6 +239,10 @@ def phase_template_validation(
     This catches template errors early, providing faster feedback.
 
     Only runs if `[build] validate_templates = true` in site config.
+
+    Complexity: O(t) — where t = templates
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
 
     Args:
         orchestrator: Build orchestrator instance
@@ -412,6 +420,10 @@ def phase_discovery(
     Thin wrapper that constructs DiscoveryPhaseInput, calls run_discovery_phase,
     and updates orchestrator stats. Discovery mutates orchestrator.site.
 
+    Complexity: O(n * DISK) — where n = content files, DISK = I/O per file
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -478,6 +490,10 @@ def phase_cache_metadata(orchestrator: BuildOrchestrator) -> None:
     Saves page discovery metadata to cache for future incremental builds.
     This enables lazy loading of unchanged pages.
 
+    Complexity: O(n * DISK) — where n = pages, DISK = write per page
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Side effects:
         - Normalizes page core paths to relative
         - Persists page metadata to .bengal/page_metadata.json
@@ -518,6 +534,10 @@ def phase_config_check(
     Phase 4: Config Check and Cleanup.
 
     Checks if config file changed (forces full rebuild) and cleans up deleted files.
+
+    Complexity: O(d) — where d = deleted files (config check is O(1))
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
 
     Args:
         orchestrator: Build orchestrator instance

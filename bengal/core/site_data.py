@@ -150,31 +150,46 @@ class SiteData:
 
     @property
     def baseurl(self) -> str:
-        """Get baseurl from config."""
+        """Get baseurl from config.
+
+        Cost: O(1) — config lookup.
+        """
         value = get_site_value(self.config, "baseurl", "")
         return str(value) if value else ""
 
     @property
     def title(self) -> str:
-        """Get site title from config."""
+        """Get site title from config.
+
+        Cost: O(1) — config lookup.
+        """
         value = get_site_value(self.config, "title", "")
         return str(value) if value else ""
 
     @property
     def author(self) -> str | None:
-        """Get site author from config."""
+        """Get site author from config.
+
+        Cost: O(1) — config lookup.
+        """
         author = get_site_value(self.config, "author")
         return str(author) if author else None
 
     @property
     def description(self) -> str | None:
-        """Get site description from config."""
+        """Get site description from config.
+
+        Cost: O(1) — config lookup.
+        """
         desc = get_site_value(self.config, "description")
         return str(desc) if desc else None
 
     @property
     def language(self) -> str:
-        """Get default language from config."""
+        """Get default language from config.
+
+        Cost: O(1) — config lookup.
+        """
         value = get_site_value(self.config, "language", "en")
         return str(value) if value else "en"
 

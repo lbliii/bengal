@@ -209,6 +209,8 @@ class Version:
         """
         Get URL prefix for this version.
 
+        Cost: O(1) — direct field check and string concat.
+
         Latest version has no prefix, older versions have version prefix.
 
         Returns:
@@ -308,7 +310,10 @@ class VersionConfig:
 
     @property
     def is_git_mode(self) -> bool:
-        """Check if using git-based versioning."""
+        """Check if using git-based versioning.
+
+        Cost: O(1) — direct field comparison.
+        """
         return self.mode == "git" and self.git_config is not None
 
     def add_discovered_version(self, version: Version) -> None:
@@ -329,6 +334,8 @@ class VersionConfig:
     def latest_version(self) -> Version | None:
         """
         Get the latest/default version.
+
+        Cost: O(n) — iterates versions (n = len(versions)).
 
         Returns:
             Version marked as latest, or first version, or None

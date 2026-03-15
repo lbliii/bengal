@@ -727,3 +727,94 @@ class PageMetadataMixin:
         if raw is not None:
             return raw.get("_autodoc_template")
         return self.metadata.get("_autodoc_template")
+
+    @property
+    def tag_name(self) -> str | None:
+        """Display name for generated tag pages (e.g., "Python").
+
+        Cost: O(1) — _raw_metadata dict lookup, no cascade.
+        """
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return raw.get("_tag")
+        return self.metadata.get("_tag")
+
+    @property
+    def taxonomy_term(self) -> str | None:
+        """Taxonomy term slug for provenance tracking on generated tag pages.
+
+        Cost: O(1) — _raw_metadata dict lookup, no cascade.
+        """
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return raw.get("_taxonomy_term")
+        return self.metadata.get("_taxonomy_term")
+
+    @property
+    def internal_posts(self) -> list:
+        """Posts list injected by section/taxonomy orchestrators for generated pages.
+
+        Cost: O(1) — _raw_metadata dict lookup, no cascade.
+        Returns empty list if not set.
+        """
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return raw.get("_posts", [])
+        return self.metadata.get("_posts", [])
+
+    @property
+    def internal_section(self):
+        """Section object injected by SectionOrchestrator for section index pages.
+
+        Cost: O(1) — _raw_metadata dict lookup, no cascade.
+        """
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return raw.get("_section")
+        return self.metadata.get("_section")
+
+    @property
+    def internal_subsections(self) -> list:
+        """Subsections list injected by SectionOrchestrator.
+
+        Cost: O(1) — _raw_metadata dict lookup, no cascade.
+        Returns empty list if not set.
+        """
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return raw.get("_subsections", [])
+        return self.metadata.get("_subsections", [])
+
+    @property
+    def internal_paginator(self):
+        """Paginator object for paginated section/tag pages.
+
+        Cost: O(1) — _raw_metadata dict lookup, no cascade.
+        """
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return raw.get("_paginator")
+        return self.metadata.get("_paginator")
+
+    @property
+    def internal_page_num(self) -> int:
+        """Page number for paginated pages (1-indexed).
+
+        Cost: O(1) — _raw_metadata dict lookup, no cascade.
+        """
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return raw.get("_page_num", 1)
+        return self.metadata.get("_page_num", 1)
+
+    @property
+    def internal_tags_index(self) -> dict:
+        """Tags index dict for the tag index page (maps slug -> tag data).
+
+        Cost: O(1) — _raw_metadata dict lookup, no cascade.
+        Returns empty dict if not set.
+        """
+        raw = getattr(self, "_raw_metadata", None)
+        if raw is not None:
+            return raw.get("_tags", {})
+        return self.metadata.get("_tags", {})

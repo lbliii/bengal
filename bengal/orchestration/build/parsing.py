@@ -37,6 +37,10 @@ def phase_parse_content(
     near-instant incremental builds by reusing pre-parsed HTML from the
     previous build.
 
+    Complexity: O(n * PARSE) — where n = number of pages
+    Budget: < 15% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages

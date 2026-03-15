@@ -95,12 +95,18 @@ class NavNode:
 
     @property
     def has_children(self) -> bool:
-        """True if this node has child nodes."""
+        """True if this node has child nodes.
+
+        Cost: O(1) — len() on list.
+        """
         return len(self.children) > 0
 
     @property
     def depth(self) -> int:
-        """Nesting level (0 = top level)."""
+        """Nesting level (0 = top level).
+
+        Cost: O(1) — direct attribute read.
+        """
         return self._depth
 
     def walk(self) -> Iterator[NavNode]:
@@ -207,12 +213,18 @@ class NavTree:
 
     @property
     def flat_nodes(self) -> dict[str, NavNode]:
-        """Dictionary of URL -> NavNode for all nodes in the tree."""
+        """Dictionary of URL -> NavNode for all nodes in the tree.
+
+        Cost: O(1) — returns cached dict reference.
+        """
         return self._flat_nodes
 
     @property
     def urls(self) -> set[str]:
-        """Set of all URLs present in this navigation tree."""
+        """Set of all URLs present in this navigation tree.
+
+        Cost: O(1) — returns cached set reference.
+        """
         return self._urls
 
     def find(self, url: str) -> NavNode | None:
@@ -540,6 +552,8 @@ class NavNodeProxy:
         Use this in templates: <a href="{{ item.href }}">
 
         For internal comparisons or lookups, use _path instead.
+
+        Cost: O(1) cached — computed once on first access, then returns cached value.
         """
         if self._href_cached is not None:
             return self._href_cached
@@ -588,6 +602,8 @@ class NavNodeProxy:
         - Cache lookups
 
         For template href attributes, use .href instead.
+
+        Cost: O(1) — direct attribute read.
         """
         return self._node._path
 
@@ -598,12 +614,17 @@ class NavNodeProxy:
 
         If baseurl is absolute, returns href. Otherwise returns href as-is
         (root-relative) since no fully-qualified site origin is configured.
+
+        Cost: O(1) — delegates to href (O(1) when href cached).
         """
         return self.href
 
     @property
     def is_current(self) -> bool:
-        """True if this node is the current page (cached)."""
+        """True if this node is the current page (cached).
+
+        Cost: O(1) cached — string comparison on first access, then cached.
+        """
         if self._is_current_cached is not None:
             return self._is_current_cached
         self._is_current_cached = self._context.is_current(self._node)
@@ -611,7 +632,10 @@ class NavNodeProxy:
 
     @property
     def is_in_trail(self) -> bool:
-        """True if this node is in the active trail (cached)."""
+        """True if this node is in the active trail (cached).
+
+        Cost: O(1) cached — set membership on first access, then cached.
+        """
         if self._is_in_trail_cached is not None:
             return self._is_in_trail_cached
         self._is_in_trail_cached = self._context.is_active(self._node)
@@ -619,7 +643,10 @@ class NavNodeProxy:
 
     @property
     def is_expanded(self) -> bool:
-        """True if this node should be expanded (cached)."""
+        """True if this node should be expanded (cached).
+
+        Cost: O(1) cached — delegates to is_active (set membership) on first access.
+        """
         if self._is_expanded_cached is not None:
             return self._is_expanded_cached
         self._is_expanded_cached = self._context.is_expanded(self._node)
@@ -627,12 +654,18 @@ class NavNodeProxy:
 
     @property
     def is_section(self) -> bool:
-        """True if this node represents a section (has section reference)."""
+        """True if this node represents a section (has section reference).
+
+        Cost: O(1) — direct attribute read.
+        """
         return self._node.section is not None
 
     @property
     def children(self) -> list[NavNodeProxy]:
-        """Child nodes wrapped as proxies (cached)."""
+        """Child nodes wrapped as proxies (cached).
+
+        Cost: O(n) on first access (iterates children to wrap), O(1) cached thereafter.
+        """
         if self._children_cached is not None:
             return self._children_cached
         self._children_cached = [self._context._wrap_node(child) for child in self._node.children]

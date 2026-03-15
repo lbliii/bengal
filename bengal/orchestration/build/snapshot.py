@@ -30,6 +30,10 @@ def phase_snapshot(
     Runs after parsing, before rendering. Creates immutable snapshot for
     lock-free parallel rendering. Mutates early_ctx in place.
 
+    Complexity: O(n) — where n = number of pages
+    Budget: < 2% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output (for phase timing)

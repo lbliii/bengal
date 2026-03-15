@@ -27,6 +27,8 @@ class SiteNormalizedConfigMixin:
         """
         Get normalized build badge configuration.
 
+        Cost: O(1) — config.get and dict building.
+
         Handles all supported formats:
         - None/False: disabled
         - True: enabled with defaults
@@ -82,6 +84,8 @@ class SiteNormalizedConfigMixin:
     def document_application(self) -> dict[str, Any]:
         """
         Get normalized document application configuration.
+
+        Cost: O(1) — config.get and dict merge.
 
         Document Application enables modern browser-native features:
         - View Transitions API for smooth page transitions
@@ -179,6 +183,8 @@ class SiteNormalizedConfigMixin:
     def link_previews(self) -> dict[str, Any]:
         """
         Get normalized link previews configuration.
+
+        Cost: O(1) — config.get and dict merge.
 
         Link Previews provide Wikipedia-style hover cards for internal links,
         showing page title, excerpt, reading time, and tags. Requires per-page

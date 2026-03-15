@@ -42,6 +42,8 @@ class SiteCascadeMixin:
         """
         Get the immutable cascade snapshot for this build.
 
+        Cost: O(1) — BuildState/field lookup or empty snapshot creation.
+
         Resolution order:
             1. BuildState.cascade_snapshot (during builds — structurally fresh)
             2. Local _cascade_snapshot (outside builds — tests, CLI)

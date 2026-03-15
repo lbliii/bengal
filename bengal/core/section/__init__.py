@@ -149,6 +149,8 @@ class Section(
         """
         Check if this is a virtual section (no disk directory).
 
+        Cost: O(1) — direct field read.
+
         Virtual sections are used for:
         - API documentation generated from Python source code
         - Dynamically-generated content from external sources
@@ -211,6 +213,8 @@ class Section(
         """
         URL-friendly identifier for this section.
 
+        Cost: O(1) — direct field read.
+
         For virtual sections, uses the name directly.
         For physical sections, uses the directory name.
 
@@ -223,13 +227,18 @@ class Section(
 
     @property
     def title(self) -> str:
-        """Get section title from metadata or generate from name."""
+        """Get section title from metadata or generate from name.
+
+        Cost: O(1) — dict get and string ops.
+        """
         return str(self.metadata.get("title", self.name.replace("-", " ").title()))
 
     @property
     def nav_title(self) -> str:
         """
         Get short navigation title (falls back to title).
+
+        Cost: O(1) — metadata/index_page lookups.
 
         Use this in menus and sidebars for compact display.
 
@@ -250,6 +259,8 @@ class Section(
     def weight(self) -> float:
         """
         Get section weight for sorting (always returns sortable value).
+
+        Cost: O(1) — dict get and sortable_weight call.
 
         Returns weight from metadata if set, otherwise infinity (sorts last).
         This property ensures sections are always sortable without None errors.

@@ -41,6 +41,10 @@ def phase_postprocess(
 
     Runs post-build tasks: sitemap, RSS, output formats, validation.
 
+    Complexity: O(n) — where n = number of pages
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -110,6 +114,10 @@ def phase_cache_save(
 
     Saves build cache for future incremental builds.
 
+    Complexity: O(n + a) — where n = pages, a = assets
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         pages_to_build: Pages that were built
@@ -141,6 +149,10 @@ def phase_update_generated_cache(
     RFC: Output Cache Architecture - enables skipping unchanged tag pages
     on future builds if member content hasn't changed.
 
+    Complexity: O(n) — where n = number of pages
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         pages_to_build: Pages that were rendered
@@ -163,10 +175,10 @@ def phase_update_generated_cache(
     tag_pages_found = 0
     tag_pages_with_posts = 0
     for page in pages_to_build:
-        if page.metadata.get("type") == "tag" and page.metadata.get("_generated"):
+        if page.type == "tag" and page.is_generated:
             tag_pages_found += 1
-            tag_slug = page.metadata.get("_tag_slug", "")
-            member_pages = page.metadata.get("_posts", [])
+            tag_slug = page.tag_slug or ""
+            member_pages = page.internal_posts
             if tag_slug and member_pages:
                 tag_pages_with_posts += 1
                 generated_page_cache.update(
@@ -199,6 +211,10 @@ def phase_cache_save_parallel(
     Phase 18: Save caches in parallel (main cache + generated page cache).
 
     Runs cache saves concurrently since they're independent I/O operations.
+
+    Complexity: O(n + a) — where n = pages, a = assets
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
 
     Args:
         orchestrator: Build orchestrator instance
@@ -246,6 +262,10 @@ def phase_compute_reload_hint(
     Populates stats.changed_outputs and stats.reload_hint based on
     what was written during the build.
 
+    Complexity: O(o) — where o = number of outputs
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         stats: BuildStats to update
         output_collector: Output collector with written files (or None)
@@ -286,6 +306,10 @@ def phase_save_provenance(orchestrator: BuildOrchestrator) -> None:
 
     RFC: rfc-cache-generation-id — sets same build_id as BuildCache.
 
+    Complexity: O(1) — fixed disk write
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance (must have _provenance_filter)
 
@@ -304,6 +328,10 @@ def phase_collect_stats(
     Phase 19: Collect Final Stats.
 
     Collects final build statistics.
+
+    Complexity: O(n) — where n = number of pages
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
 
     Args:
         orchestrator: Build orchestrator instance
@@ -494,6 +522,10 @@ def phase_finalize(
     Phase 21: Finalize Build.
 
     Performs final cleanup and logging.
+
+    Complexity: O(1) — fixed cleanup
+    Budget: < 5% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
 
     Args:
         orchestrator: Build orchestrator instance

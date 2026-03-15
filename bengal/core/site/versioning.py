@@ -35,6 +35,8 @@ class VersionService:
         """
         Check if versioned documentation is enabled.
 
+        Cost: O(1) — config field check.
+
         Returns:
             True if versioning is configured and enabled
         """
@@ -44,6 +46,8 @@ class VersionService:
     def versions(self) -> list[dict[str, Any]]:
         """
         Get list of all versions for templates (cached).
+
+        Cost: O(n) first access (n = versions), O(1) cached thereafter.
 
         Available in templates as ``site.versions`` for version selector rendering.
         Each version dict contains: id, label, latest, deprecated, url_prefix.
@@ -70,6 +74,8 @@ class VersionService:
     def latest_version(self) -> dict[str, Any] | None:
         """
         Get the latest version info for templates (cached).
+
+        Cost: O(1) cached — config lookup and to_dict().
 
         Returns:
             Latest version dictionary or None if versioning disabled

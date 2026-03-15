@@ -365,6 +365,8 @@ class Site(
         """
         Immutable configuration service for thread-safe config access.
 
+        Cost: O(1) — lazy init, then direct field read.
+
         Provides config-derived properties (title, baseurl, author, etc.)
         via a frozen dataclass that requires no locks during parallel rendering.
         """
@@ -386,7 +388,10 @@ class Site(
 
     @property
     def indexes(self) -> QueryIndexRegistry:
-        """Access to query indexes for O(1) page lookups."""
+        """Access to query indexes for O(1) page lookups.
+
+        Cost: O(1) — lazy init, then direct field read.
+        """
         if self._query_registry is None:
             from bengal.cache.query_index_registry import QueryIndexRegistry
 
@@ -397,6 +402,8 @@ class Site(
     def registry(self) -> ContentRegistry:
         """
         Content registry for O(1) page/section lookups.
+
+        Cost: O(1) — lazy init, then direct field read.
 
         Provides centralized access to content lookups without scanning
         hierarchies. Initialized lazily on first access.
@@ -476,17 +483,26 @@ class Site(
 
     @property
     def versioning_enabled(self) -> bool:
-        """Whether versioned documentation is enabled."""
+        """Whether versioned documentation is enabled.
+
+        Cost: O(1) — delegate to VersionService.
+        """
         return self._version_service.versioning_enabled if self._version_service else False
 
     @property
     def versions(self) -> list[dict[str, Any]]:
-        """Available documentation versions."""
+        """Available documentation versions.
+
+        Cost: O(1) — delegate to VersionService (cached).
+        """
         return self._version_service.versions if self._version_service else []
 
     @property
     def latest_version(self) -> dict[str, Any] | None:
-        """Latest documentation version."""
+        """Latest documentation version.
+
+        Cost: O(1) — delegate to VersionService (cached).
+        """
         return self._version_service.latest_version if self._version_service else None
 
     def get_version(self, version_id: str) -> Version | None:
@@ -763,17 +779,26 @@ class Site(
 
     @property
     def regular_pages(self) -> list[Page]:
-        """Regular content pages (excludes generated taxonomy/archive pages)."""
+        """Regular content pages (excludes generated taxonomy/archive pages).
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
+        """
         return self._page_cache.regular_pages
 
     @property
     def generated_pages(self) -> list[Page]:
-        """Generated pages (taxonomy, archive, pagination)."""
+        """Generated pages (taxonomy, archive, pagination).
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
+        """
         return self._page_cache.generated_pages
 
     @property
     def listable_pages(self) -> list[Page]:
-        """Pages eligible for public listings (excludes hidden/draft)."""
+        """Pages eligible for public listings (excludes hidden/draft).
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
+        """
         return self._page_cache.listable_pages
 
     def get_page_path_map(self) -> dict[str, Page]:
@@ -782,7 +807,10 @@ class Site(
 
     @property
     def page_by_source_path(self) -> dict[Path, Page]:
-        """O(1) page lookup by source Path (shared across orchestrators)."""
+        """O(1) page lookup by source Path (shared across orchestrators).
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
+        """
         return self._page_cache.page_by_source_path
 
     def invalidate_page_caches(self) -> None:

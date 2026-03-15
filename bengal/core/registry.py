@@ -314,23 +314,34 @@ class ContentRegistry:
 
     @property
     def page_count(self) -> int:
-        """Number of registered pages."""
+        """Number of registered pages.
+
+        Cost: O(1) — len(dict).
+        """
         return len(self._pages_by_path)
 
     @property
     def section_count(self) -> int:
-        """Number of registered sections."""
+        """Number of registered sections.
+
+        Cost: O(1) — len(dict).
+        """
         return len(self._sections_by_path)
 
     @property
     def is_frozen(self) -> bool:
-        """Whether the registry is frozen."""
+        """Whether the registry is frozen.
+
+        Cost: O(1) — direct field read.
+        """
         return self._frozen
 
     @property
     def epoch(self) -> int:
         """
         Registry epoch counter for cache invalidation.
+
+        Cost: O(1) — direct field read.
 
         Incremented when clear() is called. Used by Page._section to
         detect when cached section lookups are stale.

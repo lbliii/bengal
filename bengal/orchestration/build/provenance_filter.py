@@ -386,6 +386,10 @@ def phase_incremental_filter_provenance(
     Uses content-addressed provenance tracking for correct cache invalidation.
     30x faster than the old IncrementalFilterEngine approach.
 
+    Complexity: O(n) — where n = number of pages
+    Budget: < 10% of total build at 1024 pages
+    Scaling: < 2.2x per doubling (linear threshold)
+
     Args:
         orchestrator: Build orchestrator instance
         cli: CLI output for user messages
@@ -645,7 +649,7 @@ def phase_incremental_filter_provenance(
             for page in pages_list:
                 # Check if this is a taxonomy term page
                 is_taxonomy = getattr(page, "_virtual", False) and (
-                    page.metadata.get("_taxonomy_term")
+                    page.taxonomy_term
                     or page.metadata.get("tag")
                     or "/tags/" in str(page.source_path)
                     or "/categories/" in str(page.source_path)
@@ -656,7 +660,7 @@ def phase_incremental_filter_provenance(
 
                 # Get the tag/term this page represents
                 term = (
-                    page.metadata.get("_taxonomy_term")
+                    page.taxonomy_term
                     or page.metadata.get("tag")
                     or page.metadata.get("title", "").lower()
                 )

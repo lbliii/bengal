@@ -655,7 +655,7 @@ class ProvenanceFilter:
                     )
 
             # Taxonomy/tag pages: hash the tag name (page list is implicit)
-            tag_name = page.metadata.get("_taxonomy_term") or page.metadata.get("tag")
+            tag_name = page.taxonomy_term or page.metadata.get("tag")
             if tag_name:
                 tag_hash = hash_content(str(tag_name))
                 provenance = provenance.with_input(

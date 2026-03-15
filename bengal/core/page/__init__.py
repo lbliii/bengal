@@ -459,6 +459,8 @@ class Page(
         """
         Check if this is a virtual page (not backed by a disk file).
 
+        Cost: O(1) — direct field read.
+
         Virtual pages are used for:
         - API documentation generated from Python source code
         - Dynamically-generated content from external sources
@@ -474,6 +476,8 @@ class Page(
         """
         Get custom template name for this page.
 
+        Cost: O(1) — direct field read.
+
         Virtual pages may specify a custom template for rendering.
         Returns None to use the default template selection logic.
         """
@@ -484,6 +488,8 @@ class Page(
         """
         Get pre-rendered HTML for virtual pages.
 
+        Cost: O(1) — direct field read.
+
         Virtual pages with pre-rendered HTML bypass markdown parsing
         and use this HTML directly in the template.
         """
@@ -493,6 +499,8 @@ class Page(
     def frontmatter(self) -> Frontmatter:
         """
         Typed access to frontmatter fields.
+
+        Cost: O(1) cached — first access O(n) for metadata keys via Frontmatter.from_dict.
 
         Lazily created from metadata dict on first access.
 
@@ -570,6 +578,8 @@ class Page(
         """
         Get relative path string (alias for source_path as string).
 
+        Cost: O(1) — direct field read.
+
         Used by templates and filtering where a string path is expected.
         This provides convenience.
         """
@@ -635,6 +645,8 @@ class Page(
     def _section(self) -> Section | None:
         """
         Get the section this page belongs to (lazy lookup via path or URL).
+
+        Cost: O(1) cached — first access O(1) registry lookup.
 
         This property performs a path-based or URL-based lookup in the site's
         section registry, enabling stable section references across rebuilds
@@ -783,6 +795,8 @@ class Page(
         """
         Get the section path as a string.
 
+        Cost: O(1) — direct field read.
+
         Returns the path to the section this page belongs to, or None if
         the page doesn't belong to a section.
 
@@ -797,40 +811,58 @@ class Page(
 
     @property
     def next(self) -> Page | None:
-        """Next page in site collection."""
+        """Next page in site collection.
+
+        Cost: O(1) — delegates to get_next_page (cached index map).
+        """
         from bengal.core.page.navigation import get_next_page
 
         return get_next_page(self, self._site)
 
     @property
     def prev(self) -> Page | None:
-        """Previous page in site collection."""
+        """Previous page in site collection.
+
+        Cost: O(1) — delegates to get_prev_page (cached index map).
+        """
         from bengal.core.page.navigation import get_prev_page
 
         return get_prev_page(self, self._site)
 
     @property
     def next_in_section(self) -> Page | None:
-        """Next page in current section."""
+        """Next page in current section.
+
+        Cost: O(n) — iterates section pages; worst case to skip index pages.
+        """
         from bengal.core.page.navigation import get_next_in_section
 
         return get_next_in_section(self, self._section)
 
     @property
     def prev_in_section(self) -> Page | None:
-        """Previous page in current section."""
+        """Previous page in current section.
+
+        Cost: O(n) — iterates section pages; worst case to skip index pages.
+        """
         from bengal.core.page.navigation import get_prev_in_section
 
         return get_prev_in_section(self, self._section)
 
     @property
     def parent(self) -> Section | None:
-        """Parent section of this page."""
+        """Parent section of this page.
+
+        Cost: O(1) cached — delegates to _section.
+        """
         return self._section
 
     @property
     def ancestors(self) -> list[Section]:
-        """Ancestor sections from immediate parent to root."""
+        """Ancestor sections from immediate parent to root.
+
+        Cost: O(d) — proportional to tree depth.
+        """
         from bengal.core.page.navigation import get_ancestors
 
         return get_ancestors(self._section)
@@ -841,24 +873,36 @@ class Page(
 
     @cached_property
     def bundle_type(self) -> BundleType:
-        """Bundle type classification (LEAF, BRANCH, or NONE)."""
+        """Bundle type classification (LEAF, BRANCH, or NONE).
+
+        Cost: O(1) cached — path operations.
+        """
         from bengal.core.page.bundle import get_bundle_type
 
         return get_bundle_type(self.source_path)
 
     @property
     def is_bundle(self) -> bool:
-        """True if this page is a leaf bundle with resources."""
+        """True if this page is a leaf bundle with resources.
+
+        Cost: O(1) cached — delegates to bundle_type.
+        """
         return self.bundle_type == BundleType.LEAF
 
     @property
     def is_branch_bundle(self) -> bool:
-        """True if this page is a branch bundle (section index)."""
+        """True if this page is a branch bundle (section index).
+
+        Cost: O(1) cached — delegates to bundle_type.
+        """
         return self.bundle_type == BundleType.BRANCH
 
     @cached_property
     def resources(self) -> PageResources:
-        """Get resources co-located with this page bundle."""
+        """Get resources co-located with this page bundle.
+
+        Cost: O(DISK) cached — directory listing on first access.
+        """
         from bengal.core.page.bundle import get_resources
 
         return get_resources(self.source_path, getattr(self, "url", "/"))
@@ -869,7 +913,10 @@ class Page(
 
     @property
     def _source(self) -> str:
-        """Raw markdown source content."""
+        """Raw markdown source content.
+
+        Cost: O(1) — direct field read.
+        """
         return self._raw_content
 
     def HasShortcode(self, name: str) -> bool:
@@ -880,14 +927,20 @@ class Page(
 
     @cached_property
     def word_count(self) -> int:
-        """Word count from source markdown."""
+        """Word count from source markdown.
+
+        Cost: O(n) cached — n = content length.
+        """
         from bengal.core.page.computed import compute_word_count
 
         return compute_word_count(self._raw_content)
 
     @cached_property
     def meta_description(self) -> str:
-        """SEO-friendly meta description (max 160 chars)."""
+        """SEO-friendly meta description (max 160 chars).
+
+        Cost: O(1) cached if AST-extracted; O(n) cached otherwise (n = content length).
+        """
         # Prefer AST-extracted meta description set by pipeline (Patitas parse-once path)
         if getattr(self, "_meta_description", None) is not None:
             return self._meta_description
@@ -897,14 +950,20 @@ class Page(
 
     @cached_property
     def reading_time(self) -> int:
-        """Estimated reading time in minutes (minimum 1)."""
+        """Estimated reading time in minutes (minimum 1).
+
+        Cost: O(1) cached — delegates to word_count.
+        """
         from bengal.core.page.computed import compute_reading_time
 
         return compute_reading_time(self.word_count)
 
     @cached_property
     def excerpt(self) -> str:
-        """Content excerpt for listings (max 250 chars)."""
+        """Content excerpt for listings (max 250 chars).
+
+        Cost: O(1) cached if AST-extracted; O(n) cached otherwise (n = content length).
+        """
         # Prefer AST-extracted excerpt set by pipeline (Patitas parse-once path)
         if getattr(self, "_excerpt", None) is not None:
             return self._excerpt
@@ -914,49 +973,70 @@ class Page(
 
     @cached_property
     def age_days(self) -> int:
-        """Days since publication."""
+        """Days since publication.
+
+        Cost: O(1) cached.
+        """
         from bengal.core.page.computed import compute_age_days
 
         return compute_age_days(self.date)
 
     @cached_property
     def age_months(self) -> int:
-        """Months since publication."""
+        """Months since publication.
+
+        Cost: O(1) cached.
+        """
         from bengal.core.page.computed import compute_age_months
 
         return compute_age_months(self.date)
 
     @cached_property
     def author(self) -> Author | None:
-        """Primary author as Author object."""
+        """Primary author as Author object.
+
+        Cost: O(n) cached — n = metadata keys.
+        """
         from bengal.core.page.computed import get_primary_author
 
         return get_primary_author(self.metadata)
 
     @cached_property
     def authors(self) -> list[Author]:
-        """All authors as list of Author objects."""
+        """All authors as list of Author objects.
+
+        Cost: O(n) cached — n = metadata keys.
+        """
         from bengal.core.page.computed import get_all_authors
 
         return get_all_authors(self.metadata)
 
     @cached_property
     def series(self) -> Series | None:
-        """Series info as Series object."""
+        """Series info as Series object.
+
+        Cost: O(n) cached — n = metadata keys.
+        """
         from bengal.core.page.computed import get_series_info
 
         return get_series_info(self.metadata)
 
     @cached_property
     def prev_in_series(self) -> Page | None:
-        """Previous page in series."""
+        """Previous page in series.
+
+        Cost: O(n) cached — series neighbor lookup.
+        """
         from bengal.core.page.computed import get_series_neighbor
 
         return get_series_neighbor(self.metadata, self._site, -1)
 
     @cached_property
     def next_in_series(self) -> Page | None:
-        """Next page in series."""
+        """Next page in series.
+
+        Cost: O(n) cached — series neighbor lookup.
+        """
         from bengal.core.page.computed import get_series_neighbor
 
         return get_series_neighbor(self.metadata, self._site, 1)

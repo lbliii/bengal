@@ -51,7 +51,10 @@ class PageCacheManager:
 
     @property
     def regular_pages(self) -> list[Page]:
-        """Regular content pages (excludes generated taxonomy/archive pages)."""
+        """Regular content pages (excludes generated taxonomy/archive pages).
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
+        """
         if self._regular is not None:
             return self._regular
         self._regular = [p for p in self._pages_fn() if not p.metadata.get("_generated")]
@@ -59,7 +62,10 @@ class PageCacheManager:
 
     @property
     def generated_pages(self) -> list[Page]:
-        """Generated pages (taxonomy, archive, pagination)."""
+        """Generated pages (taxonomy, archive, pagination).
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
+        """
         if self._generated is not None:
             return self._generated
         self._generated = [p for p in self._pages_fn() if p.metadata.get("_generated")]
@@ -67,7 +73,10 @@ class PageCacheManager:
 
     @property
     def listable_pages(self) -> list[Page]:
-        """Pages eligible for public listings (excludes hidden/draft)."""
+        """Pages eligible for public listings (excludes hidden/draft).
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
+        """
         if self._listable is not None:
             return self._listable
         self._listable = [p for p in self._pages_fn() if p.in_listings]
@@ -88,7 +97,10 @@ class PageCacheManager:
 
     @property
     def page_by_source_path(self) -> dict[Path, Page]:
-        """O(1) page lookup by source Path (shared across orchestrators)."""
+        """O(1) page lookup by source Path (shared across orchestrators).
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
+        """
         if self._source_path_map is None:
             self._source_path_map = {p.source_path: p for p in self._pages_fn()}
         return self._source_path_map

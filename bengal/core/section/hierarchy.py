@@ -78,6 +78,8 @@ class SectionHierarchyMixin:
         """
         Get the full hierarchy path of this section.
 
+        Cost: O(d) — recurses up parent chain (d = tree depth).
+
         Returns:
             List of section names from root to this section
 
@@ -95,6 +97,8 @@ class SectionHierarchyMixin:
         """
         Get the depth of this section in the hierarchy.
 
+        Cost: O(d) — len(hierarchy), which traverses parent chain (d = tree depth).
+
         Returns:
             Nesting depth (1 for root, 2 for first-level sections, etc.)
 
@@ -110,6 +114,8 @@ class SectionHierarchyMixin:
     def root(self) -> Section:
         """
         Get the root section of this section's hierarchy.
+
+        Cost: O(d) — traverses parent chain (d = tree depth).
 
         Traverses up the parent chain until reaching either:
         - A section with no parent (topmost ancestor)
@@ -151,6 +157,8 @@ class SectionHierarchyMixin:
         """
         Get section icon from index page metadata (cached).
 
+        Cost: O(1) cached — dict lookups.
+
         Icons can be specified in a section's _index.md frontmatter:
 
             ---
@@ -188,7 +196,7 @@ class SectionHierarchyMixin:
         """
         Get subsections sorted by weight (ascending), then by title (CACHED).
 
-        This property is cached after first access for O(1) subsequent lookups.
+        Cost: O(m log m) first access (m = subsections), O(1) cached thereafter.
         The sort is computed once and reused across all template renders.
 
         Subsections without a weight field in their index page metadata

@@ -130,7 +130,10 @@ class SiteContent:
 
     @property
     def is_frozen(self) -> bool:
-        """Whether content is frozen."""
+        """Whether content is frozen.
+
+        Cost: O(1) — direct field read.
+        """
         return self._frozen
 
     def clear(self) -> None:
@@ -174,6 +177,8 @@ class SiteContent:
         """
         Get non-generated pages (cached).
 
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
+
         Returns:
             List of pages without _generated flag
 
@@ -188,6 +193,8 @@ class SiteContent:
         """
         Get generated pages (cached).
 
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
+
         Returns:
             List of pages with _generated flag (taxonomy, archive, etc.)
         """
@@ -197,6 +204,8 @@ class SiteContent:
     def listable_pages(self) -> list[Page]:
         """
         Get pages visible in listings (cached).
+
+        Cost: O(n) first access (n = pages), O(1) cached thereafter.
 
         Respects visibility settings:
         - Excludes pages with hidden: true
@@ -210,17 +219,26 @@ class SiteContent:
 
     @property
     def page_count(self) -> int:
-        """Total number of pages."""
+        """Total number of pages.
+
+        Cost: O(1) — len(pages).
+        """
         return len(self.pages)
 
     @property
     def section_count(self) -> int:
-        """Total number of sections."""
+        """Total number of sections.
+
+        Cost: O(1) — len(sections).
+        """
         return len(self.sections)
 
     @property
     def asset_count(self) -> int:
-        """Total number of assets."""
+        """Total number of assets.
+
+        Cost: O(1) — len(assets).
+        """
         return len(self.assets)
 
     def __repr__(self) -> str:
