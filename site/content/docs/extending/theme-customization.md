@@ -22,7 +22,7 @@ Configure a different selector in `bengal.toml` if needed:
 
 ```toml
 [dev]
-content_selector = "#main-content"   # default; with bengal[dev]: also .class, tag.class
+content_selector = "#main-content"   # default; only #id selectors supported
 ```
 
 If no matching element exists, the dev server falls back to full page reload and logs a warning.

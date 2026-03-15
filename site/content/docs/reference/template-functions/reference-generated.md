@@ -188,7 +188,7 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `file_exists` | `file_exists_with_site` |
 | `file_size` | `file_size_with_site` |
 | `generate_code_sample` | `generate_code_sample` |
-| `get_auto_nav` | `<lambda>` |
+| `get_auto_nav` | `get_auto_nav` |
 | `get_breadcrumbs` | `get_breadcrumbs` |
 | `get_data` | `get_data_with_site` |
 | `get_element_stats` | `get_element_stats` |
@@ -237,7 +237,7 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `related_posts` | `related_posts_with_site` |
 | `relref` | `relref_with_site` |
 | `render_icon` | `icon` |
-| `resources` | `<bengal.rendering.template_functions.resources.ResourcesProxy object at 0x2048e9e1990>` |
+| `resources` | `resources` |
 | `return_type` | `return_type` |
 | `section_pages` | `section_pages_wrapper` |
 | `share_url` | `share_url_with_site` |

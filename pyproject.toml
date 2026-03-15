@@ -235,6 +235,13 @@ dev = { cmd = "bengal serve", help = "Start dev server (auto-detects site)" }
 build = { cmd = "bengal site build site", help = "Build the documentation site" }
 build-prod = { cmd = "bengal build -e production", help = "Build with production config", cwd = "site" }
 
+# Documentation generation (config + template functions reference)
+gen-docs.shell = """
+python scripts/generate_config_reference.py
+python scripts/generate_template_functions_reference.py
+"""
+gen-docs.help = "Regenerate config and template functions reference docs"
+
 # Testing
 test = { cmd = "pytest", help = "Run full test suite" }
 test-unit = { cmd = "pytest tests/unit/ -x -q", help = "Run unit tests only (fast)" }

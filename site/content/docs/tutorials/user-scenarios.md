@@ -404,8 +404,7 @@ Use these in templates for language switching:
 
 ### UI Translations
 
-- Use gettext PO/MO files: `i18n/{locale}/LC_MESSAGES/messages.po`
-- Or YAML fallback: `i18n/{lang}.yaml`
+- Use YAML, JSON, or TOML: `i18n/{lang}.yaml` (or `.yml`, `.json`, `.toml`)
 - See [[docs/content/i18n|Multilingual Sites Guide]] for i18n setup, translations, and language configuration
 
 ---
