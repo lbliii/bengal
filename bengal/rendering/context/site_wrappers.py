@@ -51,12 +51,13 @@ class SiteContext:
 
     """
 
-    __slots__ = ("_params_cache", "_site", "_tracked_data_cache")
+    __slots__ = ("_params_cache", "_site", "_tracked_data_cache", "_tracked_data_id")
 
     def __init__(self, site: SiteLike):
         self._site = site
         self._params_cache: ParamsContext | None = None
         self._tracked_data_cache: Any = None
+        self._tracked_data_id: int = 0
 
     def __getattr__(self, name: str) -> Any:
         """Proxy to underlying site, with safe fallbacks."""
@@ -85,23 +86,21 @@ class SiteContext:
         Returns a TrackedData wrapper that will record data file access
         when a tracker is available via get_current_tracker() at access time.
 
-        The TrackedData wrapper is cached per-SiteContext instance since
-        it looks up the tracker dynamically from ContextVar.
+        The wrapper is cached but invalidated when site.data is reassigned
+        (e.g. after ContentOrchestrator._load_data_directory() replaces it).
 
         Returns:
             TrackedData wrapper (tracks only when tracker is set)
         """
         from bengal.rendering.context.data_tracking import TrackedData
 
-        # Create TrackedData wrapper (cached per-site)
-        # TrackedData looks up tracker from ContextVar at access time,
-        # so caching is safe even across different page renders.
-        if self._tracked_data_cache is None:
+        current_data = self._site.data
+        current_id = id(current_data)
+
+        if self._tracked_data_cache is None or self._tracked_data_id != current_id:
             data_dir = self._site.root_path / "data"
-            self._tracked_data_cache = TrackedData(
-                self._site.data,
-                data_dir,
-            )
+            self._tracked_data_cache = TrackedData(current_data, data_dir)
+            self._tracked_data_id = current_id
 
         return self._tracked_data_cache
 

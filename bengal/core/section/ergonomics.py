@@ -133,8 +133,8 @@ class SectionErgonomicsMixin:
               <a href="{{ page.href }}">{{ page.title }}</a>
             {% endfor %}
         """
-        # sorted_pages already excludes index files, so this is a semantic alias
-        return self.sorted_pages
+        # sorted_pages already excludes index files; wrap in tuple for immutability
+        return tuple(self.sorted_pages)
 
     @cached_property
     def _dated_pages_sorted(self) -> tuple[Page, ...]:
@@ -336,14 +336,6 @@ class SectionErgonomicsMixin:
         Returns:
             Rendered HTML for the section index
         """
-        {
-            "section": self,
-            "pages": self.pages,
-            "subsections": self.subsections,
-            "metadata": self.metadata,
-            "aggregated": self.aggregate_content(),
-        }
-
         # Use the index page if available, otherwise generate a listing
         if self.index_page:
             return self.index_page.rendered_html
