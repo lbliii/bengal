@@ -31,6 +31,11 @@ def test_baseurl_paths(site, build_site):
     assert 'href="/site/assets/' in html
 ```
 
+### test-tracks
+**Purpose**: Tests tracks layout (tracks/list.html, tracks/single.html)  
+**Structure**: data/tracks.yaml, content/tracks/, content/docs/  
+**Use for**: Layout smoke tests for tracks index and single pages
+
 ### test-taxonomy
 **Purpose**: Tests taxonomy/tagging  
 **Structure**: 3 pages with tags (python, testing)  

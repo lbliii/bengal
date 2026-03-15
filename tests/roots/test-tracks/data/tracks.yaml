@@ -1,0 +1,6 @@
+getting-started:
+  title: "Getting Started"
+  description: "Learn the basics"
+  items:
+    - docs/getting-started/page1
+    - docs/getting-started/page2
