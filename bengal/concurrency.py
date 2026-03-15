@@ -176,8 +176,8 @@ Write-path locks for disk I/O and progress reporting.
 | WriteBehindBuffer._created_dirs_lock          | Lock   | _created_dirs set (mkdir dedup)            |
 |   rendering/pipeline/write_behind.py:107      |        |                                            |
 +-----------------------------------------------+--------+--------------------------------------------+
-| ResourceProcessor._write_lock                 | Lock   | Image cache directory writes               |
-|   core/resources/processor.py:99              |        |                                            |
+| ImageProcessor._write_lock                    | Lock   | Image cache directory writes               |
+|   services/image_processor.py                 |        |                                            |
 +-----------------------------------------------+--------+--------------------------------------------+
 | RenderOrchestrator (local lock in             | Lock   | completed_count progress counter           |
 |   _render_pages_parallel)                     |        | (function-scoped, not an attribute)        |

@@ -42,6 +42,7 @@ from bengal.protocols.build import (
     BuildOptionsDict,
     BuildPhase,
     BuildStateProtocol,
+    CascadeBuildStateProtocol,
     PhaseStats,
     PhaseTiming,
     RenderContext,
@@ -99,28 +100,23 @@ from bengal.protocols.stats import (
 __all__ = [
     "BuildContextDict",
     "BuildOptionsDict",
-    # Build
     "BuildPhase",
     "BuildStateProtocol",
-    # Stats
     "BuildStatsProtocol",
     "Cacheable",
+    "CascadeBuildStateProtocol",
     "ConfigLike",
     "ContentSourceProtocol",
     "DirectiveHandler",
     "EngineCapability",
     "HasActionRebuild",
-    # Capabilities (TypeGuard protocols)
     "HasClearTemplateCache",
     "HasConfigChangedSignal",
     "HasErrors",
     "HasWalk",
-    "HighlightBackend",  # Backwards compatibility
-    # Rendering - Highlighting
+    "HighlightBackend",
     "HighlightService",
-    # Analysis
     "KnowledgeGraphProtocol",
-    # Core - Page role protocols
     "Navigable",
     "NavigableSection",
     "OutputCollector",
@@ -128,23 +124,19 @@ __all__ = [
     "PageLike",
     "PhaseStats",
     "PhaseTiming",
-    # Infrastructure
     "ProgressReporter",
     "QueryableSection",
     "RenderContext",
     "RenderResult",
     "Renderable",
-    # Rendering - Roles and Directives
     "RoleHandler",
     "SectionLike",
-    # Core - Site role protocols
     "SiteConfig",
     "SiteContent",
     "SiteLike",
     "Summarizable",
     "TemplateEngine",
-    "TemplateEngineProtocol",  # Backwards compatibility
-    # Rendering - Template
+    "TemplateEngineProtocol",
     "TemplateEnvironment",
     "TemplateIntrospector",
     "TemplateRenderer",

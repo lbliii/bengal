@@ -30,7 +30,7 @@ Migration:
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Literal, Protocol, TypedDict, runtime_checkable
+from typing import TYPE_CHECKING, Any, Literal, Protocol, TypedDict, runtime_checkable
 
 if TYPE_CHECKING:
     pass
@@ -202,6 +202,13 @@ class BuildStateProtocol(Protocol):
         ...
 
 
+@runtime_checkable
+class CascadeBuildStateProtocol(Protocol):
+    """Protocol for build state with cascade snapshot. Used by core/site/cascade."""
+
+    cascade_snapshot: Any
+
+
 # =============================================================================
 # Exports
 # =============================================================================
@@ -214,6 +221,7 @@ __all__ = [
     "BuildPhase",
     # Protocols
     "BuildStateProtocol",
+    "CascadeBuildStateProtocol",
     # Phase stats
     "PhaseStats",
     "PhaseTiming",

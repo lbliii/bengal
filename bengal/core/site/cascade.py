@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from bengal.core.cascade_snapshot import CascadeSnapshot
     from bengal.core.page import Page
     from bengal.core.section import Section
-    from bengal.orchestration.build_state import BuildState
+    from bengal.protocols import CascadeBuildStateProtocol
 
 
 class SiteCascadeMixin:
@@ -34,7 +34,7 @@ class SiteCascadeMixin:
     root_path: Path
     sections: list[Section]
     pages: list[Page]
-    _current_build_state: BuildState | None
+    _current_build_state: CascadeBuildStateProtocol | None
     _cascade_snapshot: CascadeSnapshot | None
 
     @property

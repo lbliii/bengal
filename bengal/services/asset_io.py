@@ -17,6 +17,7 @@ Functions:
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 import shutil
@@ -226,6 +227,113 @@ def hash_content_from_source(asset: _HashableAsset) -> str:
                 hasher.update(chunk)
 
     return hasher.hexdigest()[:8]
+
+
+def read_json_file(path: Path) -> dict[str, Any] | None:
+    """
+    Read JSON file. Returns None on error (invalid JSON, missing file).
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except OSError, ValueError:
+        return None
+
+
+def write_json_file(path: Path, data: dict[str, Any], context: Any | None = None) -> bool:
+    """
+    Write JSON file atomically. Returns True on success.
+    """
+    try:
+        content = json.dumps(data)
+        atomic_write_text(path, content, encoding="utf-8", ensure_parent=True)
+        return True
+    except OSError:
+        emit_diagnostic(
+            context,
+            "error",
+            "json_write_failed",
+            path=str(path),
+        )
+        return False
+
+
+def load_pil_image(path: Path, context: Any | None = None) -> Any | None:
+    """
+    Load PIL Image from path. Returns None on ImportError or read failure.
+    """
+    try:
+        from PIL import Image
+
+        return Image.open(path)
+    except ImportError:
+        emit_diagnostic(context, "warning", "pillow_unavailable", source=str(path))
+        return None
+    except Exception as e:
+        emit_diagnostic(
+            context,
+            "warning",
+            "image_load_failed",
+            source=str(path),
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        return None
+
+
+def get_image_dimensions(path: Path, context: Any | None = None) -> tuple[int, int] | None:
+    """
+    Get image dimensions without loading full image. Returns (width, height) or None.
+    """
+    try:
+        from PIL import Image
+
+        with Image.open(path) as img:
+            return img.size
+    except ImportError:
+        emit_diagnostic(context, "warning", "pillow_unavailable", source=str(path))
+        return None
+    except Exception as e:
+        emit_diagnostic(
+            context,
+            "warning",
+            "image_load_failed",
+            source=str(path),
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        return None
+
+
+def save_pil_image(
+    img: Any,
+    path: Path,
+    format: str,
+    context: Any | None = None,
+    **kwargs: Any,
+) -> bool:
+    """
+    Save PIL Image to path atomically. Returns True on success.
+    """
+    pid = os.getpid()
+    tid = threading.get_ident()
+    unique_id = uuid.uuid4().hex[:8]
+    tmp_path = path.parent / f".{path.name}.{pid}.{tid}.{unique_id}.tmp"
+    try:
+        img.save(tmp_path, format=format.upper(), **kwargs)
+        tmp_path.replace(path)
+        return True
+    except Exception as e:
+        emit_diagnostic(
+            context,
+            "error",
+            "image_save_failed",
+            path=str(path),
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        tmp_path.unlink(missing_ok=True)
+        return False
 
 
 def optimize_image(source_path: Path, context: Any | None = None) -> Any | None:

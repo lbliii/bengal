@@ -1,113 +1,24 @@
 """
 Theme resolution and inheritance chain building.
 
-Resolves theme inheritance chains by reading theme.toml files and following
-extends relationships. Supports site themes, installed themes, and bundled themes.
-Builds complete inheritance chains for template and asset discovery.
-
-Key Concepts:
-- Theme inheritance: Child themes extend parent themes
-- Resolution order: Site themes → installed themes → bundled themes
-- Chain building: Recursive resolution of extends relationships
-- Template discovery: Uses inheritance chain for template lookup
-
-Related Modules:
-- bengal.core.theme.registry: Installed theme discovery
-- bengal.rendering.template_engine: Template engine using inheritance chains
-- bengal.core.theme.config: Theme configuration object
-
-See Also:
-- bengal/core/theme/resolution.py:resolve_theme_chain() for chain resolution
-- plan/active/rfc-theme-inheritance.md: Theme inheritance design
-
+Resolves theme inheritance chains by following extends relationships.
+Manifest I/O delegated to bengal.services.theme_io for core model purity.
 """
 
 from __future__ import annotations
 
-import tomllib
 from collections.abc import Iterable
 from pathlib import Path
-from typing import cast
 
 from bengal.core.diagnostics import emit
 from bengal.core.theme.registry import get_theme_package
+from bengal.services.theme_io import read_theme_extends
 from bengal.themes.utils import THEMES_ROOT
 
 
 def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
-    """Read theme.toml for 'extends' from site, installed, or bundled theme path."""
-    # Site theme manifest
-    site_manifest = site_root / "themes" / theme_name / "theme.toml"
-    if site_manifest.exists():
-        try:
-            with open(site_manifest, "rb") as f:
-                data = tomllib.load(f)
-            if isinstance(data, dict):
-                extends = data.get("extends")
-                return cast(str | None, extends) if extends is not None else None
-            return None
-        except Exception as e:
-            emit(
-                None,
-                "debug",
-                "theme_manifest_read_failed",
-                theme=theme_name,
-                path=str(site_manifest),
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-
-    # Installed theme manifest
-    try:
-        pkg = get_theme_package(theme_name)
-        if pkg:
-            manifest_path = pkg.resolve_resource_path("theme.toml")
-            if manifest_path and manifest_path.exists():
-                try:
-                    with open(manifest_path, "rb") as f:
-                        data = tomllib.load(f)
-                    extends_val = data.get("extends")
-                    return str(extends_val) if extends_val else None
-                except Exception as e:
-                    emit(
-                        None,
-                        "debug",
-                        "theme_manifest_read_failed",
-                        theme=theme_name,
-                        path=str(manifest_path),
-                        error=str(e),
-                        error_type=type(e).__name__,
-                    )
-    except Exception as e:
-        emit(
-            None,
-            "debug",
-            "theme_package_resolve_failed",
-            theme=theme_name,
-            error=str(e),
-            error_type=type(e).__name__,
-        )
-
-    # Bundled theme manifest
-    bundled_manifest = THEMES_ROOT / theme_name / "theme.toml"
-    if bundled_manifest.exists():
-        try:
-            with open(bundled_manifest, "rb") as f:
-                data = tomllib.load(f)
-            extends_val = data.get("extends")
-            return str(extends_val) if extends_val else None
-        except Exception as e:
-            emit(
-                None,
-                "debug",
-                "theme_manifest_read_failed",
-                theme=theme_name,
-                path=str(bundled_manifest),
-                error=str(e),
-                error_type=type(e).__name__,
-            )
-
-    return None
+    """Read theme.toml for 'extends' via services layer (backward compat)."""
+    return read_theme_extends(site_root, theme_name)
 
 
 def resolve_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:

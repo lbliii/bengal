@@ -15,12 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.utils.observability.logger import get_logger
-
 if TYPE_CHECKING:
     pass
-
-logger = get_logger(__name__)
 
 
 @dataclass
@@ -40,11 +36,6 @@ class ProcessParams:
     def __post_init__(self) -> None:
         """Validate parameters."""
         if self.quality < 1 or self.quality > 100:
-            logger.warning(
-                "Quality must be 1-100, using 85",
-                event="invalid_quality",
-                quality=self.quality,
-            )
             self.quality = 85
 
 
@@ -92,7 +83,6 @@ def parse_spec(spec: str) -> ProcessParams | None:
                 params.height = int(h_str) if h_str else None
                 continue
             except ValueError:
-                logger.error("invalid_dimension_spec", spec=part)
                 return None
 
         # Try to parse as format
@@ -110,8 +100,7 @@ def parse_spec(spec: str) -> ProcessParams | None:
             params.anchor = part_lower
             continue
 
-        # Unknown part - log warning but continue
-        logger.warning("unknown_spec_part", part=part, full_spec=spec)
+        # Unknown part - skip
 
     return params
 

@@ -37,7 +37,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.section import Section
-    from bengal.rendering.template_engine import TemplateEngine
+    from bengal.protocols import TemplateEngine
 
 
 class SectionErgonomicsMixin:

@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING
 from bengal.core.diagnostics import emit
 from bengal.core.output.types import OutputRecord, OutputType
 from bengal.protocols import OutputCollector
-from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from typing import Literal
@@ -54,7 +53,6 @@ class BuildOutputCollector:
         self._output_dir = output_dir
         self._outputs: list[OutputRecord] = []
         self._lock = Lock()
-        self._logger = get_logger(__name__)
 
     def record(
         self,
