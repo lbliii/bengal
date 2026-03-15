@@ -386,6 +386,10 @@ def run_discovery_phase(input: DiscoveryPhaseInput) -> DiscoveryPhaseOutput:
         if input.content_orchestrator is not None
         else ContentOrchestrator(site)
     )
+    # Load data/ directory (tracks, authors, etc.) before content discovery.
+    # ContentOrchestrator.discover() does this; run_discovery_phase calls
+    # discover_content() directly, so we must load data here.
+    content._load_data_directory()
     content_start = time.time()
     content.discover_content(
         incremental=input.incremental,
