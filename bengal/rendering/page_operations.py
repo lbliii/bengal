@@ -1,19 +1,13 @@
 """
-Page Operations Mixin - Operations and transformations on pages.
+Page Operations Mixin - Link extraction for pages.
 
-This mixin provides methods for page rendering, link extraction, and template
-application. It handles the operational aspects of page processing.
-
-Key Methods:
-- render(): Render page using template engine
-- validate_links(): Validate all links in the page
-- extract_links(): Extract all links from page content
-- apply_template(): Apply a specific template to the page
+This mixin provides link extraction methods used during the build pipeline.
+The rendering pipeline calls extract_links() on each page after parsing to
+populate page.links for downstream link validation.
 
 Related Modules:
-- bengal.rendering.renderer: Page rendering implementation
-- bengal.health.validators.links: Link validation logic
-- bengal.rendering.template_engine: Template application
+- bengal.rendering.pipeline.core: Calls extract_links() during page processing
+- bengal.rendering.pipeline.cache_checker: Calls extract_links() on cache restore
 
 See Also:
 - bengal/core/page/__init__.py: Page class that uses this mixin
@@ -23,24 +17,15 @@ See Also:
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, cast
-
-from bengal.protocols.core import PageLike
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.rendering.template_engine import TemplateEngine
-
 
 class PageOperationsMixin:
     """
-    Mixin providing operations for pages.
-
-    This mixin handles:
-    - Rendering with templates
-    - Link validation and extraction
-    - Template application
+    Mixin providing link extraction operations for pages.
 
     Attributes:
         content: Raw page content (markdown)
@@ -55,50 +40,6 @@ class PageOperationsMixin:
     rendered_html: str
     links: list[str]
     source_path: Path
-
-    def render(self, template_engine: TemplateEngine) -> str:
-        """
-        Render the page using the provided template engine.
-
-        Args:
-            template_engine: Template engine instance
-
-        Returns:
-            Rendered HTML content
-        """
-        from bengal.rendering.renderer import Renderer
-
-        renderer = Renderer(template_engine)
-        self.rendered_html = renderer.render_page(cast(PageLike, self))
-        return self.rendered_html
-
-    def validate_links(self) -> list[str]:
-        """
-        Validate all links in the page.
-
-        Returns:
-            List of broken link URLs
-        """
-        from bengal.health.validators.links import LinkValidator
-
-        validator = LinkValidator()
-        broken_links = validator.validate_page_links(cast(PageLike, self))
-        return broken_links
-
-    def apply_template(self, template_name: str, context: dict[str, object] | None = None) -> str:
-        """
-        Apply a specific template to this page.
-
-        Args:
-            template_name: Name of the template to apply
-            context: Additional context variables
-
-        Returns:
-            Rendered content with template applied
-        """
-
-        # Template application will be handled by the template engine
-        return self.rendered_html
 
     def extract_links(self, plugin_links: list[str] | None = None) -> list[str]:
         """

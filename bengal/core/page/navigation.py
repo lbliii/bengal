@@ -15,6 +15,7 @@ See Also:
 
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -23,14 +24,45 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
 
 
+def _get_site_page_index(site: Site) -> dict:
+    """Return a lazily-built and cached page→index mapping for site.pages.
+
+    The cache is stored directly on the site object and rebuilt whenever the
+    number of pages changes (covers the common case of pages being appended
+    during taxonomy/archive generation).
+    """
+    pages = site.pages
+    cached: dict | None = getattr(site, "_page_index_cache", None)
+    if cached is None or len(cached) != len(pages):
+        cached = {p: i for i, p in enumerate(pages)}
+        with suppress(AttributeError):
+            site._page_index_cache = cached  # type: ignore[attr-defined]
+    return cached
+
+
+def _get_section_page_index(section: Section) -> dict:
+    """Return a lazily-built and cached page→index mapping for section.sorted_pages.
+
+    sorted_pages is itself a @cached_property so the underlying list is stable;
+    we only rebuild when its length changes.
+    """
+    sorted_pages = section.sorted_pages
+    cached: dict | None = getattr(section, "_sorted_page_index_cache", None)
+    if cached is None or len(cached) != len(sorted_pages):
+        cached = {p: i for i, p in enumerate(sorted_pages)}
+        with suppress(AttributeError):
+            section._sorted_page_index_cache = cached  # type: ignore[attr-defined]
+    return cached
+
+
 def get_next_page(page: Page, site: Site | None) -> Page | None:
     """Get the next page in the site's collection."""
     if not site or not hasattr(site, "pages"):
         return None
     try:
         pages = site.pages
-        idx = pages.index(page)
-        if idx < len(pages) - 1:
+        idx = _get_site_page_index(site).get(page)
+        if idx is not None and idx < len(pages) - 1:
             return pages[idx + 1]
     except ValueError, IndexError:
         pass
@@ -43,8 +75,8 @@ def get_prev_page(page: Page, site: Site | None) -> Page | None:
         return None
     try:
         pages = site.pages
-        idx = pages.index(page)
-        if idx > 0:
+        idx = _get_site_page_index(site).get(page)
+        if idx is not None and idx > 0:
             return pages[idx - 1]
     except ValueError, IndexError:
         pass
@@ -57,7 +89,9 @@ def get_next_in_section(page: Page, section: Section | None) -> Page | None:
         return None
     try:
         sorted_pages = section.sorted_pages
-        idx = sorted_pages.index(page)
+        idx = _get_section_page_index(section).get(page)
+        if idx is None:
+            return None
         next_idx = idx + 1
         while next_idx < len(sorted_pages):
             next_page = sorted_pages[next_idx]
@@ -75,7 +109,9 @@ def get_prev_in_section(page: Page, section: Section | None) -> Page | None:
         return None
     try:
         sorted_pages = section.sorted_pages
-        idx = sorted_pages.index(page)
+        idx = _get_section_page_index(section).get(page)
+        if idx is None:
+            return None
         prev_idx = idx - 1
         while prev_idx >= 0:
             prev_page = sorted_pages[prev_idx]
