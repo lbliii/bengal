@@ -124,7 +124,7 @@ wheels = [
 
 [[package]]
 name = "bengal"
-version = "0.2.1"
+version = "0.2.5"
 source = { editable = "." }
 dependencies = [
     { name = "bengal-pounce" },
@@ -137,7 +137,6 @@ dependencies = [
     { name = "patitas" },
     { name = "pillow" },
     { name = "psutil" },
-    { name = "python-frontmatter" },
     { name = "pyyaml" },
     { name = "questionary" },
     { name = "rosettes" },
@@ -194,6 +193,7 @@ dev = [
     { name = "pytest-forked" },
     { name = "pytest-mock" },
     { name = "pytest-randomly" },
+    { name = "pytest-split" },
     { name = "pytest-textual-snapshot" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
@@ -215,24 +215,23 @@ requires-dist = [
     { name = "aiohttp", marker = "extra == 'github'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'notion'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'rest'", specifier = ">=3.9.0" },
-    { name = "bengal-pounce", specifier = ">=0.2.0" },
+    { name = "bengal-pounce", specifier = ">=0.2.2" },
     { name = "cachetools", marker = "extra == 'all-sources'", specifier = ">=5.0.0" },
     { name = "cachetools", marker = "extra == 'notion'", specifier = ">=5.0.0" },
     { name = "click", specifier = ">=8.1.7" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "jinja2", specifier = ">=3.1.0" },
     { name = "jsmin", specifier = ">=3.0.1" },
-    { name = "kida-templates", specifier = ">=0.2.3" },
+    { name = "kida-templates", specifier = ">=0.2.7" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
     { name = "packaging", specifier = ">=23.0" },
-    { name = "patitas", specifier = ">=0.3.0" },
+    { name = "patitas", specifier = ">=0.3.5" },
     { name = "pillow", specifier = ">=10.0.0" },
     { name = "pillow", marker = "extra == 'avif'", specifier = ">=10.0" },
     { name = "pillow", marker = "extra == 'images'", specifier = ">=10.0" },
     { name = "pillow", marker = "extra == 'smartcrop'", specifier = ">=10.0" },
     { name = "pillow-avif-plugin", marker = "extra == 'avif'", specifier = ">=1.3" },
     { name = "psutil", specifier = ">=5.9.0" },
-    { name = "python-frontmatter", specifier = ">=1.0.0" },
     { name = "pyvips", marker = "extra == 'fast-images'", specifier = ">=2.2" },
     { name = "pyyaml", specifier = ">=6.0" },
     { name = "questionary", specifier = ">=2.0.0" },
@@ -259,6 +258,7 @@ dev = [
     { name = "pytest-forked", specifier = ">=1.6.0" },
     { name = "pytest-mock", specifier = ">=3.11.0" },
     { name = "pytest-randomly", specifier = ">=3.15.0" },
+    { name = "pytest-split", specifier = ">=0.10.0" },
     { name = "pytest-textual-snapshot", specifier = ">=0.4.0" },
     { name = "pytest-timeout", specifier = ">=2.2.0" },
     { name = "pytest-xdist", specifier = ">=3.3.0" },
@@ -276,14 +276,14 @@ dev = [
 
 [[package]]
 name = "bengal-pounce"
-version = "0.2.0"
+version = "0.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "h11" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/7e/6f/7b36a0fb77bb22eaa910c10d70e743282c78b2fa2388fb63bdc672818c34/bengal_pounce-0.2.0.tar.gz", hash = "sha256:2c5c1787016aedc93b3d334803a4ca6eeb91b8290fe054543fb12f8b4efeb21b", size = 99897, upload-time = "2026-02-13T23:59:51.528Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/88/21/0cbcd74ef896611cf6f59e417c1982d98e1c0693e805999d5fbb2a3e3dc6/bengal_pounce-0.3.0.tar.gz", hash = "sha256:b4dddbc028ea87fdb193a56d811aee7cd3aa2c76364414e50f6da572e303b3f6", size = 125544, upload-time = "2026-03-17T18:37:22.405Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/9e/46/2b5b9c5943337c8c89cbee6d40cbc72aec5f3582a92610a3410f8678f19d/bengal_pounce-0.2.0-py3-none-any.whl", hash = "sha256:328e0e0530c18efbcbd95a9862260a0b75ff19e33043db08403fa2af163da443", size = 121393, upload-time = "2026-02-13T23:59:49.832Z" },
+    { url = "https://files.pythonhosted.org/packages/9b/c6/bcb997ae4b962aed3c068534a07fffee9762c1f5fd5e2a16b19e59b495ec/bengal_pounce-0.3.0-py3-none-any.whl", hash = "sha256:93a13925873de65f8e2fb005c61bf3515019519e48a994be54da1e682dbdef05", size = 153159, upload-time = "2026-03-17T18:37:20.514Z" },
 ]
 
 [[package]]
@@ -530,11 +530,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/5e/73/e01e4c5e11ad0494f
 
 [[package]]
 name = "kida-templates"
-version = "0.2.3"
+version = "0.2.7"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/64/a6/362c524f64ee5284b613980a0e21e97d90179c82eb34c283105134228cfa/kida_templates-0.2.3.tar.gz", hash = "sha256:2172fec3f8964a0c7cb6545de8453c122c09ceda93bd65d65f737d8d0f51eaf0", size = 341892, upload-time = "2026-03-03T23:25:06.884725Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/8a/0c/90e039eba2c35f03f6bdc54033b811faa0ea957154df4409024ca0456da7/kida_templates-0.2.7.tar.gz", hash = "sha256:965f93a141301889c5954dc83141e630d4a91ea74bc1d30672121615a227a53c", size = 363957, upload-time = "2026-03-12T17:59:29.143Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d0/5d/9c140125712fa07d06f5a68d4d117934f6e2bd0b3309aa803a0fd282304c/kida_templates-0.2.3-py3-none-any.whl", hash = "sha256:70949354657d7d0c2ba6bc592c0ed7b3f3a93727efd51bfb229ea10aac103a7a", size = 236937, upload-time = "2026-03-03T23:25:05.496402Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/61/a8872dc11df6fd6843df8920bf0871260882f56c0c5066e6becdfc1d1358/kida_templates-0.2.7-py3-none-any.whl", hash = "sha256:4214ab65ebcba42a3bd7ded23b26873c155872934ff90967e23f2b8cf32adfef", size = 254472, upload-time = "2026-03-12T17:59:27.602Z" },
 ]
 
 [[package]]
@@ -741,11 +741,14 @@ wheels = [
 
 [[package]]
 name = "patitas"
-version = "0.3.0"
+version = "0.3.5"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/50/31/d2de958ec72ea85e49e9cb0c85fc077c1d38a354e032ec8f0bf512d5113f/patitas-0.3.0.tar.gz", hash = "sha256:8ec5cbe5e385c7b8f0cabbfacf6772d6decdeb561971285bf551d04c1940cc9d", size = 208077, upload-time = "2026-02-14T21:38:41.886Z" }
+dependencies = [
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a9/f2/5515ccb29656ba4285dca0325fa581229f945815975ed9735eb5a96fa428/patitas-0.3.5.tar.gz", hash = "sha256:5944be9ef0fd2573852c785ee80039412cea02fdc1296abf9b5b1d27fe862eb1", size = 221352, upload-time = "2026-03-09T21:54:06.804Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/74/9f/1df8796624ddef3504beb0f2ba5e73866294eb1fb914db6c49bd16c87122/patitas-0.3.0-py3-none-any.whl", hash = "sha256:af95d1a0391a4ed20661f74a126d55f9b70294b5c0943a65289c5f11dd4ba717", size = 204504, upload-time = "2026-02-14T21:38:40.054Z" },
+    { url = "https://files.pythonhosted.org/packages/a5/00/a73e99e95487add89d890ee3703c8143ee8e7caeccfab8cb90792d29709f/patitas-0.3.5-py3-none-any.whl", hash = "sha256:da841c65f036ec159065bf5c302bf416ba95e1511b8243676e8ceb390205271b", size = 214833, upload-time = "2026-03-09T21:54:05.499Z" },
 ]
 
 [[package]]
@@ -1042,6 +1045,18 @@ wheels = [
 ]
 
 [[package]]
+name = "pytest-split"
+version = "0.11.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pytest" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2f/16/8af4c5f2ceb3640bb1f78dfdf5c184556b10dfe9369feaaad7ff1c13f329/pytest_split-0.11.0.tar.gz", hash = "sha256:8ebdb29cc72cc962e8eb1ec07db1eeb98ab25e215ed8e3216f6b9fc7ce0ec2b5", size = 13421, upload-time = "2026-02-03T09:14:31.469Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ae/a1/d4423657caaa8be9b31e491592b49cebdcfd434d3e74512ce71f6ec39905/pytest_split-0.11.0-py3-none-any.whl", hash = "sha256:899d7c0f5730da91e2daf283860eb73b503259cb416851a65599368849c7f382", size = 11911, upload-time = "2026-02-03T09:14:33.708Z" },
+]
+
+[[package]]
 name = "pytest-textual-snapshot"
 version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1080,18 +1095,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/78/b4/439b179d1ff526791eb921115fca8e44e596a13efeda518b9d845a619450/pytest_xdist-3.8.0.tar.gz", hash = "sha256:7e578125ec9bc6050861aa93f2d59f1d8d085595d6551c2c90b6f4fad8d3a9f1", size = 88069, upload-time = "2025-07-01T13:30:59.346Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ca/31/d4e37e9e550c2b92a9cbc2e4d0b7420a27224968580b5a447f420847c975/pytest_xdist-3.8.0-py3-none-any.whl", hash = "sha256:202ca578cfeb7370784a8c33d6d05bc6e13b4f25b5053c30a152269fd10f0b88", size = 46396, upload-time = "2025-07-01T13:30:56.632Z" },
-]
-
-[[package]]
-name = "python-frontmatter"
-version = "1.1.0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "pyyaml" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/96/de/910fa208120314a12f9a88ea63e03707261692af782c99283f1a2c8a5e6f/python-frontmatter-1.1.0.tar.gz", hash = "sha256:7118d2bd56af9149625745c58c9b51fb67e8d1294a0c76796dafdc72c36e5f6d", size = 16256, upload-time = "2024-01-16T18:50:04.052Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/87/3c8da047b3ec5f99511d1b4d7a5bc72d4b98751c7e78492d14dc736319c5/python_frontmatter-1.1.0-py3-none-any.whl", hash = "sha256:335465556358d9d0e6c98bbeb69b1c969f2a4a21360587b9873bfc3b213407c1", size = 9834, upload-time = "2024-01-16T18:50:00.911Z" },
 ]
 
 [[package]]
