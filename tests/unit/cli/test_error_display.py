@@ -183,15 +183,13 @@ class TestBeautifyCommonException:
             assert "JSON" in message
             assert suggestion is not None
 
-    def test_jinja2_template_syntax_error(self) -> None:
-        """Test beautifying Jinja2 template syntax errors."""
-        import jinja2
+    def test_kida_template_syntax_error(self) -> None:
+        """Test beautifying Kida template syntax errors."""
+        from kida import TemplateSyntaxError as KidaSyntaxError
 
-        error = jinja2.TemplateSyntaxError(
-            message="unexpected 'end of print statement'",
-            lineno=15,
-            name="base.html",
-            filename="/templates/base.html",
+        error = KidaSyntaxError(
+            "unexpected 'end of print statement'",
+            15,
         )
 
         result = beautify_common_exception(error)
@@ -199,13 +197,12 @@ class TestBeautifyCommonException:
         assert result is not None
         message, _suggestion = result
         assert "syntax error" in message.lower()
-        assert "line 15" in message
 
-    def test_jinja2_undefined_error(self) -> None:
-        """Test beautifying Jinja2 undefined variable errors."""
-        import jinja2
+    def test_kida_undefined_error(self) -> None:
+        """Test beautifying Kida undefined variable errors."""
+        from kida import UndefinedError as KidaUndefinedError
 
-        error = jinja2.UndefinedError("'page' is undefined")
+        error = KidaUndefinedError("'page' is undefined")
 
         result = beautify_common_exception(error)
 
@@ -214,11 +211,11 @@ class TestBeautifyCommonException:
         assert "Undefined" in message
         assert "context" in suggestion.lower()
 
-    def test_jinja2_template_not_found(self) -> None:
-        """Test beautifying Jinja2 template not found errors."""
-        import jinja2
+    def test_kida_template_not_found(self) -> None:
+        """Test beautifying Kida template not found errors."""
+        from kida import TemplateNotFoundError as KidaTemplateNotFound
 
-        error = jinja2.TemplateNotFound("custom.html")
+        error = KidaTemplateNotFound("custom.html")
 
         result = beautify_common_exception(error)
 

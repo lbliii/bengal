@@ -125,12 +125,6 @@ def create_engine(
     """
     engine_name = site.config.get("template_engine", "kida")
 
-    if engine_name == "jinja2":
-        from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-        engine = JinjaTemplateEngine(site, profile=profile)
-        return engine  # JinjaTemplateEngine implements TemplateEngineProtocol structurally
-
     if engine_name == "kida":
         from bengal.rendering.engines.kida import KidaTemplateEngine
 
@@ -167,7 +161,7 @@ def create_engine(
     if engine_name in _ENGINES:
         return _ENGINES[engine_name](site)
 
-    available = ["jinja2", "kida", "mako", "patitas", *_ENGINES.keys()]
+    available = ["kida", "mako", "patitas", *_ENGINES.keys()]
     raise BengalConfigError(
         f"Unknown template engine: '{engine_name}'. Available: {', '.join(sorted(available))}",
         code=ErrorCode.C003,

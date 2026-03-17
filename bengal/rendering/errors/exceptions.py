@@ -15,25 +15,19 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from jinja2 import TemplateSyntaxError, UndefinedError
-from jinja2.exceptions import TemplateAssertionError, TemplateRuntimeError
-
-# Also import Kida exceptions for proper classification
-# Bengal now uses Kida as its template engine, so we need to handle both
-from kida.environment.exceptions import (
-    TemplateRuntimeError as KidaRuntimeError,
-)
-from kida.environment.exceptions import (
-    TemplateSyntaxError as KidaSyntaxError,
-)
-from kida.environment.exceptions import (
-    UndefinedError as KidaUndefinedError,
-)
+from kida.environment.exceptions import TemplateRuntimeError, TemplateSyntaxError, UndefinedError
+from kida.environment.exceptions import TemplateRuntimeError as KidaRuntimeError
+from kida.environment.exceptions import TemplateSyntaxError as KidaSyntaxError
+from kida.environment.exceptions import UndefinedError as KidaUndefinedError
 
 from bengal.errors import BengalRenderingError
 from bengal.utils.observability.logger import truncate_error
 
 from .context import InclusionChain, TemplateErrorContext
+
+# Kida does not have TemplateAssertionError; use TemplateSyntaxError as equivalent
+# (filter-unknown errors are compile-time syntax errors under Kida)
+TemplateAssertionError = TemplateSyntaxError
 
 
 class TemplateRenderError(BengalRenderingError):

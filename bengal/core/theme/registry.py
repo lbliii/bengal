@@ -31,8 +31,6 @@ from dataclasses import dataclass
 from importlib import metadata, resources
 from pathlib import Path
 
-from jinja2 import PackageLoader
-
 from bengal.core.diagnostics import emit
 from bengal.utils.primitives.lru_cache import LRUCache
 
@@ -166,9 +164,6 @@ class ThemePackage:
             )
 
         return False
-
-    def jinja_loader(self) -> PackageLoader:
-        return PackageLoader(self.package, "templates")
 
     def resolve_resource_path(self, relative: str) -> Path | None:
         # Fallback: direct module import (works for test packages in sys.path)

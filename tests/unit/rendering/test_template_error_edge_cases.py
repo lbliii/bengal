@@ -10,8 +10,8 @@ from __future__ import annotations
 from unittest.mock import Mock
 
 import pytest
-from jinja2 import TemplateSyntaxError, UndefinedError
-from jinja2.exceptions import TemplateAssertionError, TemplateRuntimeError
+from kida import TemplateSyntaxError, UndefinedError
+from kida.environment.exceptions import TemplateRuntimeError
 
 from bengal.rendering.errors import (
     TemplateRenderError,
@@ -20,6 +20,9 @@ from bengal.rendering.errors import (
     _extract_variable_name,
     _generate_enhanced_suggestions,
 )
+
+# Kida has no TemplateAssertionError; use TemplateSyntaxError as equivalent
+TemplateAssertionError = TemplateSyntaxError
 
 
 class TestErrorMessageExtraction:

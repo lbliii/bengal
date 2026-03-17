@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 
-from jinja2 import Environment
+from kida import Environment
 
 from bengal.core.section import Section
 from bengal.rendering import template_tests

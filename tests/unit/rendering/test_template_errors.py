@@ -7,8 +7,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-from jinja2 import Environment, TemplateSyntaxError, UndefinedError
-from jinja2.exceptions import TemplateAssertionError
+from kida import Environment, TemplateSyntaxError, UndefinedError
 
 from bengal.errors import BengalError, BengalRenderingError
 from bengal.rendering.errors import (
@@ -17,6 +16,9 @@ from bengal.rendering.errors import (
     TemplateRenderError,
     display_template_error,
 )
+
+# Kida has no TemplateAssertionError; use TemplateSyntaxError as equivalent
+TemplateAssertionError = TemplateSyntaxError
 
 
 class MockTemplateEngine:
@@ -109,11 +111,11 @@ class TestTemplateRenderError:
         assert error_type == "undefined"
 
     def test_from_jinja2_error_syntax(self):
-        """Test creating rich error from Jinja2 syntax error."""
-        # Create a Jinja2 syntax error
+        """Test creating rich error from template syntax error."""
+        # Create a syntax error via Kida's from_string
         try:
             env = Environment()
-            env.parse("{% if test %}\n  content\n{# missing endif #}")
+            env.from_string("{% if test %}\n  content\n{# missing endif #}")
         except TemplateSyntaxError as e:
             mock_engine = MockTemplateEngine()
             rich_error = TemplateRenderError.from_jinja2_error(
@@ -130,7 +132,7 @@ class TestTemplateRenderError:
         try:
             env = Environment()
             env.from_string("{{ value | unknown_filter }}")
-        except TemplateAssertionError as e:
+        except (TemplateAssertionError, TemplateSyntaxError) as e:
             mock_engine = MockTemplateEngine()
             rich_error = TemplateRenderError.from_jinja2_error(
                 e, "test.html", Path("/tmp/content/page.md"), mock_engine
@@ -263,19 +265,16 @@ class TestIntegration:
 
     def test_full_error_creation_workflow(self, tmp_path):
         """Test full workflow of creating and displaying an error."""
+        from kida import FileSystemLoader
+
         # Create a template file with an error
         template_file = tmp_path / "broken.html"
-        template_file.write_text("""
-{% if condition %}
-  <p>Content</p>
-{# Missing endif #}
-""")
+        template_file.write_text("{% if condition %}\n  <p>Content</p>\n{# Missing endif #}\n")
 
-        # Try to parse it
+        # Try to load and trigger a syntax error via Kida
         try:
-            env = Environment()
-            with open(template_file) as f:
-                env.parse(f.read(), str(template_file), str(template_file))
+            env = Environment(loader=FileSystemLoader(str(tmp_path)))
+            env.get_template("broken.html")
         except TemplateSyntaxError as e:
             # Create rich error
             mock_engine = MockTemplateEngine(template_dirs=[tmp_path])

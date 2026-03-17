@@ -34,7 +34,6 @@ classifiers = [
 dependencies = [
     "click>=8.1.7",
 
-    "jinja2>=3.1.0",
     "rosettes>=0.2.0",
     "kida-templates>=0.2.7",                   # Kida template engine (AST-native, free-threading ready)
     "patitas>=0.3.5",                          # Markdown + notebook + frontmatter parser

@@ -41,7 +41,7 @@ from functools import wraps
 from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
 
 if TYPE_CHECKING:
-    from jinja2 import Template
+    from kida import Template
 
 
 @dataclass

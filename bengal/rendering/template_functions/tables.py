@@ -11,7 +11,6 @@ import json
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from jinja2 import pass_environment  # type: ignore[attr-defined]
 from kida import Markup
 
 from bengal.errors import ErrorCode
@@ -33,13 +32,17 @@ def register(env: TemplateEnvironment, site: SiteConfig) -> None:
     Register functions with template environment.
 
     Args:
-        env: Jinja2 environment
+        env: Template environment
         site: Site instance
 
     """
+
+    def _data_table(path: str, **options: Any) -> Markup:
+        return data_table(path, site=site, **options)
+
     env.globals.update(
         {
-            "data_table": data_table,
+            "data_table": _data_table,
         }
     )
 
@@ -229,16 +232,15 @@ def render_data_table_html(
 # ---------------------------------------------------------------------------
 
 
-@pass_environment
-def data_table(env: Any, path: str, **options: Any) -> Markup:
+def data_table(path: str, site: Any, **options: Any) -> Markup:
     """
     Render interactive data table from YAML or CSV file.
 
     Uses standalone data-loading and rendering logic.
 
     Args:
-        env: Jinja2 environment (injected)
         path: Relative path to data file (YAML or CSV)
+        site: Site instance (provides root_path)
         **options: Table options
             - search (bool): Enable search box (default: True)
             - filter (bool): Enable column filters (default: True)
@@ -278,8 +280,6 @@ def data_table(env: Any, path: str, **options: Any) -> Markup:
             "</div>"
         )
 
-    # Get site from environment globals
-    site = env.globals["site"]
     if not hasattr(site, "root_path"):
         raise TypeError("Site object missing required 'root_path' attribute")
 

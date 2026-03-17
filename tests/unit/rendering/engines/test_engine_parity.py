@@ -1,23 +1,14 @@
 """
-Tests for template engine parity between Kida and Jinja2.
+Tests for the Kida template engine interface.
 
-These tests ensure that both engines have equivalent behavior and thread-safety
-properties, allowing users to swap engines without breaking functionality.
-
-Note: Kida is the primary/default engine, but Jinja2 is still supported
-for users who want to use it.
+These tests verify that the Kida engine correctly implements the
+TemplateEngineProtocol interface.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
-
-import pytest
-
-if TYPE_CHECKING:
-    pass
 
 
 def make_mock_site(
@@ -49,199 +40,70 @@ def make_mock_site(
     return mock_site
 
 
+def make_kida_engine(mock_site: MagicMock):
+    """Create a KidaTemplateEngine with mocked environment for testing."""
+    with (
+        patch("bengal.rendering.engines.kida.FileSystemLoader"),
+        patch("bengal.rendering.engines.kida.Environment"),
+    ):
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        return KidaTemplateEngine(mock_site)
+
+
 class TestEngineCommonInterface:
-    """Test that both engines implement the same interface."""
+    """Test that the Kida engine implements the required interface."""
 
-    @pytest.mark.parametrize("engine_type", ["kida", "jinja"])
-    def test_render_template_method_exists(self, engine_type: str) -> None:
-        """Both engines should have render_template method."""
+    def test_render_template_method_exists(self) -> None:
+        """Engine should have render_template method."""
         mock_site = make_mock_site()
-
-        if engine_type == "kida":
-            with (
-                patch("bengal.rendering.engines.kida.FileSystemLoader"),
-                patch("bengal.rendering.engines.kida.Environment"),
-            ):
-                from bengal.rendering.engines.kida import KidaTemplateEngine
-
-                engine = KidaTemplateEngine(mock_site)
-        else:
-            with patch(
-                "bengal.rendering.engines.jinja.create_jinja_environment"
-            ) as mock_create_env:
-                mock_env = MagicMock()
-                mock_create_env.return_value = (mock_env, [])
-
-                from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-                engine = JinjaTemplateEngine(mock_site)
-
+        engine = make_kida_engine(mock_site)
         assert hasattr(engine, "render_template")
         assert callable(engine.render_template)
 
-    @pytest.mark.parametrize("engine_type", ["kida", "jinja"])
-    def test_render_string_method_exists(self, engine_type: str) -> None:
-        """Both engines should have render_string method."""
+    def test_render_string_method_exists(self) -> None:
+        """Engine should have render_string method."""
         mock_site = make_mock_site()
-
-        if engine_type == "kida":
-            with (
-                patch("bengal.rendering.engines.kida.FileSystemLoader"),
-                patch("bengal.rendering.engines.kida.Environment"),
-            ):
-                from bengal.rendering.engines.kida import KidaTemplateEngine
-
-                engine = KidaTemplateEngine(mock_site)
-        else:
-            with patch(
-                "bengal.rendering.engines.jinja.create_jinja_environment"
-            ) as mock_create_env:
-                mock_env = MagicMock()
-                mock_create_env.return_value = (mock_env, [])
-
-                from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-                engine = JinjaTemplateEngine(mock_site)
-
+        engine = make_kida_engine(mock_site)
         assert hasattr(engine, "render_string")
         assert callable(engine.render_string)
 
-    @pytest.mark.parametrize("engine_type", ["kida", "jinja"])
-    def test_template_exists_method_exists(self, engine_type: str) -> None:
-        """Both engines should have template_exists method."""
+    def test_template_exists_method_exists(self) -> None:
+        """Engine should have template_exists method."""
         mock_site = make_mock_site()
-
-        if engine_type == "kida":
-            with (
-                patch("bengal.rendering.engines.kida.FileSystemLoader"),
-                patch("bengal.rendering.engines.kida.Environment"),
-            ):
-                from bengal.rendering.engines.kida import KidaTemplateEngine
-
-                engine = KidaTemplateEngine(mock_site)
-        else:
-            with patch(
-                "bengal.rendering.engines.jinja.create_jinja_environment"
-            ) as mock_create_env:
-                mock_env = MagicMock()
-                mock_create_env.return_value = (mock_env, [])
-
-                from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-                engine = JinjaTemplateEngine(mock_site)
-
+        engine = make_kida_engine(mock_site)
         assert hasattr(engine, "template_exists")
         assert callable(engine.template_exists)
 
-    @pytest.mark.parametrize("engine_type", ["kida", "jinja"])
-    def test_get_template_path_method_exists(self, engine_type: str) -> None:
-        """Both engines should have get_template_path method."""
+    def test_get_template_path_method_exists(self) -> None:
+        """Engine should have get_template_path method."""
         mock_site = make_mock_site()
-
-        if engine_type == "kida":
-            with (
-                patch("bengal.rendering.engines.kida.FileSystemLoader"),
-                patch("bengal.rendering.engines.kida.Environment"),
-            ):
-                from bengal.rendering.engines.kida import KidaTemplateEngine
-
-                engine = KidaTemplateEngine(mock_site)
-        else:
-            with patch(
-                "bengal.rendering.engines.jinja.create_jinja_environment"
-            ) as mock_create_env:
-                mock_env = MagicMock()
-                mock_create_env.return_value = (mock_env, [])
-
-                from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-                engine = JinjaTemplateEngine(mock_site)
-
+        engine = make_kida_engine(mock_site)
         assert hasattr(engine, "get_template_path")
         assert callable(engine.get_template_path)
 
-    @pytest.mark.parametrize("engine_type", ["kida", "jinja"])
-    def test_list_templates_method_exists(self, engine_type: str) -> None:
-        """Both engines should have list_templates method."""
+    def test_list_templates_method_exists(self) -> None:
+        """Engine should have list_templates method."""
         mock_site = make_mock_site()
-
-        if engine_type == "kida":
-            with (
-                patch("bengal.rendering.engines.kida.FileSystemLoader"),
-                patch("bengal.rendering.engines.kida.Environment"),
-            ):
-                from bengal.rendering.engines.kida import KidaTemplateEngine
-
-                engine = KidaTemplateEngine(mock_site)
-        else:
-            with patch(
-                "bengal.rendering.engines.jinja.create_jinja_environment"
-            ) as mock_create_env:
-                mock_env = MagicMock()
-                mock_create_env.return_value = (mock_env, [])
-
-                from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-                engine = JinjaTemplateEngine(mock_site)
-
+        engine = make_kida_engine(mock_site)
         assert hasattr(engine, "list_templates")
         assert callable(engine.list_templates)
 
 
 class TestEngineMenuCache:
-    """Test that both engines have menu caching."""
+    """Test that the Kida engine has menu caching."""
 
-    @pytest.mark.parametrize("engine_type", ["kida", "jinja"])
-    def test_invalidate_menu_cache_method_exists(self, engine_type: str) -> None:
-        """Both engines should have invalidate_menu_cache method."""
+    def test_invalidate_menu_cache_method_exists(self) -> None:
+        """Engine should have invalidate_menu_cache method."""
         mock_site = make_mock_site()
-
-        if engine_type == "kida":
-            with (
-                patch("bengal.rendering.engines.kida.FileSystemLoader"),
-                patch("bengal.rendering.engines.kida.Environment"),
-            ):
-                from bengal.rendering.engines.kida import KidaTemplateEngine
-
-                engine = KidaTemplateEngine(mock_site)
-        else:
-            with patch(
-                "bengal.rendering.engines.jinja.create_jinja_environment"
-            ) as mock_create_env:
-                mock_env = MagicMock()
-                mock_create_env.return_value = (mock_env, [])
-
-                from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-                engine = JinjaTemplateEngine(mock_site)
-
+        engine = make_kida_engine(mock_site)
         assert hasattr(engine, "invalidate_menu_cache")
         assert callable(engine.invalidate_menu_cache)
 
-    @pytest.mark.parametrize("engine_type", ["kida", "jinja"])
-    def test_menu_dict_cache_attribute_exists(self, engine_type: str) -> None:
-        """Both engines should have _menu_dict_cache attribute."""
+    def test_menu_dict_cache_attribute_exists(self) -> None:
+        """Engine should have _menu_dict_cache attribute."""
         mock_site = make_mock_site()
-
-        if engine_type == "kida":
-            with (
-                patch("bengal.rendering.engines.kida.FileSystemLoader"),
-                patch("bengal.rendering.engines.kida.Environment"),
-            ):
-                from bengal.rendering.engines.kida import KidaTemplateEngine
-
-                engine = KidaTemplateEngine(mock_site)
-        else:
-            with patch(
-                "bengal.rendering.engines.jinja.create_jinja_environment"
-            ) as mock_create_env:
-                mock_env = MagicMock()
-                mock_create_env.return_value = (mock_env, [])
-
-                from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-                engine = JinjaTemplateEngine(mock_site)
-
+        engine = make_kida_engine(mock_site)
         assert hasattr(engine, "_menu_dict_cache")
         assert isinstance(engine._menu_dict_cache, dict)
 
@@ -252,86 +114,22 @@ class TestEngineCapabilities:
     def test_kida_has_advanced_capabilities(self) -> None:
         """Verify Kida reports advanced capabilities."""
         mock_site = make_mock_site()
+        engine = make_kida_engine(mock_site)
 
-        with (
-            patch("bengal.rendering.engines.kida.FileSystemLoader"),
-            patch("bengal.rendering.engines.kida.Environment"),
-        ):
-            from bengal.protocols import EngineCapability
-            from bengal.rendering.engines.kida import KidaTemplateEngine
+        from bengal.protocols import EngineCapability
 
-            engine = KidaTemplateEngine(mock_site)
-
-        # Kida should have advanced capabilities
         assert engine.has_capability(EngineCapability.BLOCK_CACHING)
         assert engine.has_capability(EngineCapability.INTROSPECTION)
 
-    def test_jinja_has_no_advanced_capabilities(self) -> None:
-        """Verify Jinja2 reports no advanced capabilities."""
+    def test_capabilities_property_exists(self) -> None:
+        """Engine should have capabilities property."""
         mock_site = make_mock_site()
-
-        with patch("bengal.rendering.engines.jinja.create_jinja_environment") as mock_create_env:
-            mock_env = MagicMock()
-            mock_create_env.return_value = (mock_env, [])
-
-            from bengal.protocols import EngineCapability
-            from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-            engine = JinjaTemplateEngine(mock_site)
-
-        # Jinja2 doesn't have advanced capabilities
-        assert not engine.has_capability(EngineCapability.BLOCK_CACHING)
-        assert not engine.has_capability(EngineCapability.INTROSPECTION)
-
-    @pytest.mark.parametrize("engine_type", ["kida", "jinja"])
-    def test_capabilities_property_exists(self, engine_type: str) -> None:
-        """Both engines should have capabilities property."""
-        mock_site = make_mock_site()
-
-        if engine_type == "kida":
-            with (
-                patch("bengal.rendering.engines.kida.FileSystemLoader"),
-                patch("bengal.rendering.engines.kida.Environment"),
-            ):
-                from bengal.rendering.engines.kida import KidaTemplateEngine
-
-                engine = KidaTemplateEngine(mock_site)
-        else:
-            with patch(
-                "bengal.rendering.engines.jinja.create_jinja_environment"
-            ) as mock_create_env:
-                mock_env = MagicMock()
-                mock_create_env.return_value = (mock_env, [])
-
-                from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-                engine = JinjaTemplateEngine(mock_site)
-
+        engine = make_kida_engine(mock_site)
         assert hasattr(engine, "capabilities")
 
-    @pytest.mark.parametrize("engine_type", ["kida", "jinja"])
-    def test_has_capability_method_exists(self, engine_type: str) -> None:
-        """Both engines should have has_capability method."""
+    def test_has_capability_method_exists(self) -> None:
+        """Engine should have has_capability method."""
         mock_site = make_mock_site()
-
-        if engine_type == "kida":
-            with (
-                patch("bengal.rendering.engines.kida.FileSystemLoader"),
-                patch("bengal.rendering.engines.kida.Environment"),
-            ):
-                from bengal.rendering.engines.kida import KidaTemplateEngine
-
-                engine = KidaTemplateEngine(mock_site)
-        else:
-            with patch(
-                "bengal.rendering.engines.jinja.create_jinja_environment"
-            ) as mock_create_env:
-                mock_env = MagicMock()
-                mock_create_env.return_value = (mock_env, [])
-
-                from bengal.rendering.engines.jinja import JinjaTemplateEngine
-
-                engine = JinjaTemplateEngine(mock_site)
-
+        engine = make_kida_engine(mock_site)
         assert hasattr(engine, "has_capability")
         assert callable(engine.has_capability)
