@@ -259,6 +259,57 @@ class MenuOrchestrator:
         data_str = json.dumps(cache_data, sort_keys=True)
         return hash_str(data_str)
 
+    def _compute_auto_nav_inputs(
+        self,
+    ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Any] | None]:
+        """
+        Compute the three inputs needed to assemble the auto menu.
+
+        This method encapsulates the ordering-sensitive coordination with
+        get_auto_nav(): bundle exclusions must be set on site._dev_menu_metadata
+        BEFORE get_auto_nav() is called (it is memoized), and cleared immediately
+        after so that render-phase template calls to get_auto_nav() see no
+        exclusions.
+
+        Returns:
+            (auto_items, config_bundles, dev_bundle)
+        """
+        from bengal.rendering.template_functions.navigation import get_auto_nav
+
+        menu_config = self.site.config.get("menu", {})
+        bundles_config = menu_config.get("bundles", {})
+        available_assets = self._detect_bundleable_assets()
+
+        sections_to_exclude: set[str] = set()
+
+        config_bundles = self._process_config_bundles(bundles_config, available_assets)
+        for bundle in config_bundles:
+            sections_to_exclude.update(bundle.get("_exclude_sections", []))
+
+        auto_dev_enabled = menu_config.get("auto_dev_bundle", True)
+        has_custom_dev_bundle = "dev" in bundles_config
+
+        dev_bundle = None
+        if auto_dev_enabled and not has_custom_dev_bundle:
+            dev_bundle = self._create_default_dev_bundle(available_assets)
+            if dev_bundle:
+                sections_to_exclude.update(dev_bundle.get("_exclude_sections", []))
+
+        # Set exclusions, call get_auto_nav(), then clear immediately.
+        # The clear is required: render-phase template calls to get_auto_nav()
+        # recompute from a fresh build-context cache and must not see exclusions.
+        if sections_to_exclude:
+            if self.site._dev_menu_metadata is None:
+                self.site._dev_menu_metadata = {}
+            self.site._dev_menu_metadata["exclude_sections"] = list(sections_to_exclude)
+
+        auto_items = get_auto_nav(self.site)
+
+        if sections_to_exclude and self.site._dev_menu_metadata:
+            self.site._dev_menu_metadata.pop("exclude_sections", None)
+
+        return auto_items, config_bundles, dev_bundle
+
     def _build_auto_menu_with_dev_bundling(self) -> list[dict[str, Any]]:
         """
         Build auto-discovered menu with configurable bundling.
@@ -271,80 +322,40 @@ class MenuOrchestrator:
         Returns:
             List of menu item dicts ready for MenuBuilder (with deduplication)
         """
-        from bengal.rendering.template_functions.navigation import get_auto_nav
-
-        # Get menu config for bundles
         menu_config = self.site.config.get("menu", {})
-        bundles_config = menu_config.get("bundles", {})
 
-        # Detect available assets for bundling
-        available_assets = self._detect_bundleable_assets()
+        # Ordering-sensitive: exclusions must be set before get_auto_nav() is called.
+        auto_items, config_bundles, dev_bundle = self._compute_auto_nav_inputs()
 
-        # Determine which sections to exclude from auto-nav (they'll be in bundles)
-        sections_to_exclude = set()
-
-        # Process config-defined bundles first (highest priority for bundles)
-        config_bundles = self._process_config_bundles(bundles_config, available_assets)
-        for bundle in config_bundles:
-            sections_to_exclude.update(bundle.get("_exclude_sections", []))
-
-        # Check if Dev bundle should be auto-created (default behavior)
-        # Skip if explicitly disabled or if a custom dev bundle is defined in config
-        auto_dev_enabled = menu_config.get("auto_dev_bundle", True)
-        has_custom_dev_bundle = "dev" in bundles_config
-
-        dev_bundle = None
-        if auto_dev_enabled and not has_custom_dev_bundle:
-            dev_bundle = self._create_default_dev_bundle(available_assets)
-            if dev_bundle:
-                sections_to_exclude.update(dev_bundle.get("_exclude_sections", []))
-
-        # Mark sections to exclude from auto-nav
-        if sections_to_exclude:
-            if self.site._dev_menu_metadata is None:
-                self.site._dev_menu_metadata = {}
-            self.site._dev_menu_metadata["exclude_sections"] = list(sections_to_exclude)
-
-        # Get auto-discovered sections (will exclude bundled sections)
-        auto_items = get_auto_nav(self.site)
-
-        # Clear the exclude flag after use
-        if sections_to_exclude and self.site._dev_menu_metadata:
-            self.site._dev_menu_metadata.pop("exclude_sections", None)
-
-        # Build menu items list with deduplication
-        menu_items = []
+        # Build menu items list with deduplication.
+        # Insertion order is priority: auto items first, then config bundles,
+        # then dev bundle. First item with a given URL/name/identifier wins.
+        menu_items: list[dict[str, Any]] = []
         seen_identifiers: set[str] = set()
         seen_urls: set[str] = set()
         seen_names: set[str] = set()
 
-        # Add auto items with deduplication
         for item in auto_items:
-            if self._add_item_if_unique(item, menu_items, seen_identifiers, seen_urls, seen_names):
-                pass  # Item added
+            self._add_item_if_unique(item, menu_items, seen_identifiers, seen_urls, seen_names)
 
-        # Add config-defined bundles
         for bundle in config_bundles:
             self._add_bundle_to_menu(bundle, menu_items, seen_identifiers, seen_urls, seen_names)
 
-        # Add default Dev bundle if applicable
         if dev_bundle:
             self._add_bundle_to_menu(
                 dev_bundle, menu_items, seen_identifiers, seen_urls, seen_names
             )
-            # Store metadata for template
             if self.site._dev_menu_metadata is None:
                 self.site._dev_menu_metadata = {}
             self.site._dev_menu_metadata["github_bundled"] = any(
                 item.get("type") == "github" for item in dev_bundle.get("items", [])
             )
 
-        # Process sections with dropdown frontmatter (lowest priority - after bundles)
+        # Dropdown sections must be processed after their parent items exist in the list.
         menu_items = self._process_dropdown_sections(
             menu_items, seen_identifiers, seen_urls, seen_names
         )
 
-        # Append extra items from menu.extra config (allows adding one-off links in auto mode)
         extra_items = menu_config.get("extra", [])
         if extra_items and isinstance(extra_items, list):
             for item in extra_items:
@@ -859,19 +870,24 @@ class MenuOrchestrator:
 
         logger.info("menu_build_start", menu_count=len(menu_config))
 
+        # Pre-index pages by menu name in a single pass so the per-menu loop
+        # below does not need to scan all pages once per menu × language.
+        _menu_pages: dict[str, list[Page]] = {}
+        for _page in self.site.pages:
+            _pm = _page.metadata.get("menu", {})
+            if isinstance(_pm, dict):
+                for _mname in _pm:
+                    _menu_pages.setdefault(_mname, []).append(_page)
+
         for menu_name, items in menu_config.items():
             if strategy == "none":
                 try:
                     builder = MenuBuilder(diagnostics=getattr(self.site, "diagnostics", None))
                     if isinstance(items, list):
                         builder.add_from_config(items)
-                    for page in self.site.pages:
+                    for page in _menu_pages.get(menu_name, []):
                         page_menu = page.metadata.get("menu", {})
-                        # Skip if menu is False or not a dict (menu: false means hide from menu)
-                        if not isinstance(page_menu, dict):
-                            continue
-                        if menu_name in page_menu:
-                            builder.add_from_page(page, menu_name, page_menu[menu_name])
+                        builder.add_from_page(page, menu_name, page_menu[menu_name])
                     self.site.menu[menu_name] = builder.build_hierarchy()
                     self.site.menu_builders[menu_name] = builder
                     logger.info(
@@ -921,16 +937,12 @@ class MenuOrchestrator:
                                     continue
                                 filtered_items.append(it)
                             builder.add_from_config(filtered_items)
-                        # Pages in this language
-                        for page in self.site.pages:
+                        # Pages in this language (pre-indexed above)
+                        for page in _menu_pages.get(menu_name, []):
                             if getattr(page, "lang", None) and page.lang != lang:
                                 continue
                             page_menu = page.metadata.get("menu", {})
-                            # Skip if menu is False or not a dict (menu: false means hide from menu)
-                            if not isinstance(page_menu, dict):
-                                continue
-                            if menu_name in page_menu:
-                                builder.add_from_page(page, menu_name, page_menu[menu_name])
+                            builder.add_from_page(page, menu_name, page_menu[menu_name])
                         menu_tree = builder.build_hierarchy()
                         self.site.menu_localized[menu_name][lang] = menu_tree
                         self.site.menu_builders_localized.setdefault(menu_name, {})[lang] = builder

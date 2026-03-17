@@ -73,10 +73,14 @@ class SectionHierarchyMixin:
     # PROPERTIES
     # =========================================================================
 
-    @property
+    @cached_property
     def hierarchy(self) -> list[str]:
         """
-        Get the full hierarchy path of this section.
+        Get the full hierarchy path of this section (cached after first access).
+
+        Safe to cache because all production parent assignments go through
+        add_subsection(), which invalidates this cache on the child. The cache
+        is populated lazily after the full section tree is assembled.
 
         Returns:
             List of section names from root to this section
@@ -90,10 +94,10 @@ class SectionHierarchyMixin:
             return [*self.parent.hierarchy, self.name]
         return [self.name]
 
-    @property
+    @cached_property
     def depth(self) -> int:
         """
-        Get the depth of this section in the hierarchy.
+        Get the depth of this section in the hierarchy (cached after first access).
 
         Returns:
             Nesting depth (1 for root, 2 for first-level sections, etc.)
@@ -222,13 +226,20 @@ class SectionHierarchyMixin:
         """
         Add a subsection to this section.
 
-        Sets the parent reference on the child section.
+        Sets the parent reference on the child section and invalidates any
+        previously cached hierarchy/depth values on the child, since those
+        caches depend on the parent chain.
 
         Args:
             section: Child section to add
         """
         section.parent = self  # type: ignore[assignment]
         self.subsections.append(section)
+        # Invalidate parent-dependent caches on the child. These are
+        # @cached_property values stored in __dict__; popping them forces
+        # recomputation on next access with the correct parent chain.
+        section.__dict__.pop("hierarchy", None)
+        section.__dict__.pop("depth", None)
 
     def walk(self) -> list[Section]:
         """
