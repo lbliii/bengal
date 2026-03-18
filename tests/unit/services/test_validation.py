@@ -430,24 +430,9 @@ class TestEngineProtocolCompliance:
         result = engine.validate()
         assert isinstance(result, list)
 
-    def test_jinja_engine_has_validate_method(self, minimal_site):
-        """Jinja engine must implement validate() method."""
-        minimal_site.config["template_engine"] = "jinja2"
-
-        from bengal.rendering.engines import create_engine
-
-        engine = create_engine(minimal_site)
-
-        assert hasattr(engine, "validate")
-        assert callable(engine.validate)
-
-        # validate() should return list of TemplateError
-        result = engine.validate()
-        assert isinstance(result, list)
-
     def test_engines_have_get_template_path_method(self, minimal_site):
         """Engines must implement get_template_path() for error context."""
-        for engine_name in ["kida", "jinja2"]:
+        for engine_name in ["kida"]:
             minimal_site.config["template_engine"] = engine_name
 
             from bengal.rendering.engines import create_engine

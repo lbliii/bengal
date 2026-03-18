@@ -129,14 +129,14 @@ class TestBeautifyCommonException:
             assert suggestion is not None
 
     # =========================================================================
-    # Jinja2 Errors
+    # Kida Template Errors
     # =========================================================================
 
-    def test_jinja2_template_not_found(self) -> None:
-        """Jinja2 TemplateNotFound shows template name."""
-        jinja2 = pytest.importorskip("jinja2")
+    def test_kida_template_not_found(self) -> None:
+        """Kida TemplateNotFoundError shows template name."""
+        from kida import TemplateNotFoundError
 
-        err = jinja2.TemplateNotFound("missing_template.html")
+        err = TemplateNotFoundError("missing_template.html")
         result = beautify_common_exception(err)
 
         assert result is not None
@@ -144,11 +144,11 @@ class TestBeautifyCommonException:
         assert "missing_template.html" in message
         assert "template" in suggestion.lower()
 
-    def test_jinja2_undefined_error(self) -> None:
-        """Jinja2 UndefinedError shows variable info."""
-        jinja2 = pytest.importorskip("jinja2")
+    def test_kida_undefined_error(self) -> None:
+        """Kida UndefinedError shows variable info."""
+        from kida import UndefinedError
 
-        err = jinja2.UndefinedError("'page' is undefined")
+        err = UndefinedError("page")
         result = beautify_common_exception(err)
 
         assert result is not None
@@ -156,18 +156,17 @@ class TestBeautifyCommonException:
         assert "undefined" in message.lower() or "page" in message
         assert suggestion is not None
 
-    def test_jinja2_syntax_error(self) -> None:
-        """Jinja2 TemplateSyntaxError shows location."""
-        jinja2 = pytest.importorskip("jinja2")
+    def test_kida_syntax_error(self) -> None:
+        """Kida TemplateSyntaxError shows location."""
+        from kida import TemplateSyntaxError
 
-        try:
-            jinja2.Template("{% if unclosed")
-        except jinja2.TemplateSyntaxError as err:
-            result = beautify_common_exception(err)
-            assert result is not None
-            message, suggestion = result
-            assert "syntax" in message.lower()
-            assert suggestion is not None
+        err = TemplateSyntaxError("unexpected end of template", lineno=1, filename="test.html")
+        result = beautify_common_exception(err)
+
+        assert result is not None
+        message, suggestion = result
+        assert "syntax" in message.lower()
+        assert suggestion is not None
 
     # =========================================================================
     # Encoding Errors
