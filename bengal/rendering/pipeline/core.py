@@ -262,6 +262,11 @@ class RenderingPipeline:
         # These flags are immutable during a build, so caching is safe.
         build_cfg = site.config.get("build", {}) or {}
         self._fast_writes = build_cfg.get("fast_writes", False)
+        # PERF: Lazily-initialized reverse manifest map (fingerprinted_path -> logical_path).
+        # Built at most once per pipeline instance (one per worker thread) rather than
+        # once per cache-hit page, eliminating repeated O(manifest) dict construction.
+        self._manifest_reverse: dict[str, str] | None = None
+        self._manifest_reverse_built: bool = False
         self._fast_mode = build_cfg.get("fast_mode", False)
         self._content_hash_in_html = build_cfg.get("content_hash_in_html", True)
 
@@ -801,9 +806,15 @@ class RenderingPipeline:
                 # "http://host/assets/css/style.abc123.css", not logical paths
                 # like "css/style.css". Use the manifest reverse map to recover
                 # the logical path so incremental builds invalidate correctly.
-                manifest = get_asset_manifest()
-                if manifest and manifest.entries and raw_assets:
-                    reverse = {v: k for k, v in manifest.entries.items()}
+                # Build reverse map once per pipeline instance (lazy, cached).
+                if not self._manifest_reverse_built:
+                    manifest = get_asset_manifest()
+                    if manifest and manifest.entries:
+                        self._manifest_reverse = {v: k for k, v in manifest.entries.items()}
+                    self._manifest_reverse_built = True
+
+                if self._manifest_reverse and raw_assets:
+                    reverse = self._manifest_reverse
                     normalized: set[str] = set()
                     for url in raw_assets:
                         path = urlparse(url).path.lstrip("/") if "://" in url else url.lstrip("/")
