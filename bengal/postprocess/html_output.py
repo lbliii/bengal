@@ -222,15 +222,17 @@ def format_html_output(html: str, mode: str = "raw", options: dict[str, Any] | N
         if remove_comments:
             transformed = _remove_html_comments(transformed)
 
-        # Trim trailing whitespace first for stability
-        transformed = _strip_trailing_whitespace(transformed)
-
         if mode == "pretty":
+            # Trim trailing whitespace for stable, human-readable output
+            transformed = _strip_trailing_whitespace(transformed)
             if collapse_blanks:
                 transformed = _collapse_blank_lines(transformed)
             # Apply indentation for readability
             transformed = _pretty_indent_html(transformed)
         elif mode == "minify":
+            # Skip _strip_trailing_whitespace — trailing spaces before newlines
+            # are invisible to browsers, compressed away by gzip, and cost ~1ms/page.
+            # _collapse_intertag_whitespace handles the meaningful whitespace reduction.
             transformed = _collapse_intertag_whitespace(transformed)
             if collapse_blanks:
                 transformed = _collapse_blank_lines(transformed)
