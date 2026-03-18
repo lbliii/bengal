@@ -218,7 +218,7 @@ requires-dist = [
     { name = "aiohttp", marker = "extra == 'github'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'notion'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'rest'", specifier = ">=3.9.0" },
-    { name = "bengal-pounce", specifier = ">=0.2.2" },
+    { name = "bengal-pounce", specifier = ">=0.3.0" },
     { name = "cachetools", marker = "extra == 'all-sources'", specifier = ">=5.0.0" },
     { name = "cachetools", marker = "extra == 'notion'", specifier = ">=5.0.0" },
     { name = "click", specifier = ">=8.1.7" },
