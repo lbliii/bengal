@@ -28,6 +28,9 @@ import json
 import time
 from typing import TYPE_CHECKING, Any
 
+from bengal.rendering.pipeline.profiler import RenderProfiler
+from bengal.rendering.pipeline.profiler import is_enabled as _profiling_enabled
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -439,6 +442,10 @@ def phase_render(
         dedup = orchestrator.stats.get_error_deduplicator()
         dedup.reset()
 
+    if _profiling_enabled():
+        RenderProfiler.reset()  # fresh profiler for this build
+        RenderProfiler.get().start_wall()
+
     with orchestrator.logger.phase(
         "rendering",
         page_count=len(pages_to_build),
@@ -634,6 +641,8 @@ def phase_render(
                     )
 
         orchestrator.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
+        if _profiling_enabled():
+            RenderProfiler.get().stop_wall()
 
         # Collect block cache stats (RFC: kida-template-introspection)
         block_cache_stats = orchestrator.render.get_block_cache_stats()
@@ -678,6 +687,10 @@ def phase_render(
             else 0,
             memory_optimized=memory_optimized,
         )
+
+    # Print render pipeline profile if enabled
+    if _profiling_enabled():
+        print(RenderProfiler.get().report())
 
     # Print rendering summary in quiet mode
     if quiet_mode:

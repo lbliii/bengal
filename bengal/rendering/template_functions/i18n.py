@@ -207,6 +207,7 @@ def _languages(site: SiteLike) -> list[LanguageInfo]:
 
 def _make_t(site: SiteLike) -> Callable[[str, dict[str, Any] | None, str | None, str | None], str]:
     cache: dict[str, dict[str, Any]] = {}
+    catalog_cache: dict[str, Any] = {}  # lang -> Catalog | None
     i18n_dir = site.root_path / "i18n"
 
     def load_lang(lang: str) -> dict[str, Any]:
@@ -221,6 +222,19 @@ def _make_t(site: SiteLike) -> Callable[[str, dict[str, Any] | None, str | None,
                 return data
         cache[lang] = {}
         return {}
+
+    def load_catalog_for_lang(lang: str) -> Any:
+        if lang in catalog_cache:
+            return catalog_cache[lang]
+        try:
+            from bengal.i18n import load_catalog
+
+            cat = load_catalog(site.root_path, lang, "messages")
+            catalog_cache[lang] = cat
+            return cat
+        except Exception:
+            catalog_cache[lang] = None
+            return None
 
     def resolve_key(data: dict[str, Any], key: str) -> str | None:
         cur: Any = data
@@ -254,13 +268,26 @@ def _make_t(site: SiteLike) -> Callable[[str, dict[str, Any] | None, str | None,
         i18n_cfg = site.config.get("i18n", {}) or {}
         default_lang = i18n_cfg.get("default_language", "en")
         use_lang = lang or default_lang
-        # Primary language
+        # Primary language — dict-based (YAML/JSON/TOML)
         data = load_lang(use_lang)
         value = resolve_key(data, key)
+        # Fallback to gettext catalog when dict lookup misses
+        if value is None:
+            cat = load_catalog_for_lang(use_lang)
+            if cat:
+                result = cat.gettext(key)
+                if result != key:
+                    value = result
         if value is None and i18n_cfg.get("fallback_to_default", True):
-            # Fallback to default
+            # Fallback to default language
             data_def = load_lang(default_lang)
             value = resolve_key(data_def, key)
+            if value is None:
+                cat_def = load_catalog_for_lang(default_lang)
+                if cat_def:
+                    result = cat_def.gettext(key)
+                    if result != key:
+                        value = result
         if value is None:
             # Use provided default, or log and return key
             if default is not None:

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import ast
 import re
+from bisect import bisect_left
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -266,9 +267,12 @@ class CrossReferenceValidator(BaseValidator):
         refs: list[CodeReference] = []
         file_path_str = str(file_path)
 
+        # Precompute newline positions once for O(log n) line-number lookups.
+        newline_offsets = [i for i, c in enumerate(content) if c == "\n"]
+
         # Function calls: `function_name()`
         for match in re.finditer(r"`([a-z_][a-z0-9_]*)\(\)`", content):
-            line = content[: match.start()].count("\n") + 1
+            line = bisect_left(newline_offsets, match.start()) + 1
             refs.append(
                 CodeReference(
                     ref_type="function",
@@ -284,7 +288,7 @@ class CrossReferenceValidator(BaseValidator):
             name = match.group(1)
             # Skip if it looks like a constant (has consecutive caps)
             if not re.search(r"[A-Z]{2,}", name):
-                line = content[: match.start()].count("\n") + 1
+                line = bisect_left(newline_offsets, match.start()) + 1
                 refs.append(
                     CodeReference(
                         ref_type="class",
@@ -300,7 +304,7 @@ class CrossReferenceValidator(BaseValidator):
             name = match.group(1)
             # Skip common words that aren't config
             if name not in {"true", "false", "null", "none", "self", "cls"}:
-                line = content[: match.start()].count("\n") + 1
+                line = bisect_left(newline_offsets, match.start()) + 1
                 refs.append(
                     CodeReference(
                         ref_type="config",
@@ -313,7 +317,7 @@ class CrossReferenceValidator(BaseValidator):
 
         # Constants: `UPPER_CASE`
         for match in re.finditer(r"`([A-Z][A-Z0-9_]+)`", content):
-            line = content[: match.start()].count("\n") + 1
+            line = bisect_left(newline_offsets, match.start()) + 1
             refs.append(
                 CodeReference(
                     ref_type="constant",
@@ -391,11 +395,12 @@ class CrossReferenceValidator(BaseValidator):
 
         # Match version patterns: v1.0, 1.0.0, etc.
         version_pattern = re.compile(r"\bv?(\d+\.\d+(?:\.\d+)?)\b")
+        newline_offsets = [i for i, c in enumerate(content) if c == "\n"]
 
         for match in version_pattern.finditer(content):
             version = match.group(1)
             if version in self.deprecated_versions:
-                line = content[: match.start()].count("\n") + 1
+                line = bisect_left(newline_offsets, match.start()) + 1
                 results.append(
                     CheckResult(
                         status=CheckStatus.WARNING,
@@ -442,11 +447,12 @@ class CrossReferenceValidator(BaseValidator):
 
         # Find internal anchor links
         anchor_link_pattern = re.compile(r"\[([^\]]+)\]\(#([^)]+)\)")
+        newline_offsets = [i for i, c in enumerate(content) if c == "\n"]
 
         for match in anchor_link_pattern.finditer(content):
             anchor = match.group(2)
             if anchor not in valid_anchors:
-                line = content[: match.start()].count("\n") + 1
+                line = bisect_left(newline_offsets, match.start()) + 1
                 results.append(
                     CheckResult(
                         status=CheckStatus.WARNING,

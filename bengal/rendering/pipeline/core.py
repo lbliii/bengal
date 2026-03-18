@@ -51,6 +51,8 @@ from bengal.rendering.pipeline.output import (
     format_html,
     write_output,
 )
+from bengal.rendering.pipeline.profiler import RenderProfiler
+from bengal.rendering.pipeline.profiler import is_enabled as _profiling_enabled
 from bengal.rendering.pipeline.thread_local import get_thread_parser
 from bengal.rendering.pipeline.toc import TOC_EXTRACTION_VERSION
 from bengal.rendering.pipeline.transforms import (
@@ -260,6 +262,11 @@ class RenderingPipeline:
         # These flags are immutable during a build, so caching is safe.
         build_cfg = site.config.get("build", {}) or {}
         self._fast_writes = build_cfg.get("fast_writes", False)
+        # PERF: Lazily-initialized reverse manifest map (fingerprinted_path -> logical_path).
+        # Built at most once per pipeline instance (one per worker thread) rather than
+        # once per cache-hit page, eliminating repeated O(manifest) dict construction.
+        self._manifest_reverse: dict[str, str] | None = None
+        self._manifest_reverse_built: bool = False
         self._fast_mode = build_cfg.get("fast_mode", False)
         self._content_hash_in_html = build_cfg.get("content_hash_in_html", True)
 
@@ -310,6 +317,8 @@ class RenderingPipeline:
 
     def _process_page_impl(self, page: PageLike) -> None:
         """Implementation of page processing (called within tracker context)."""
+        _prof = RenderProfiler.get() if _profiling_enabled() else None
+
         # Handle virtual pages (autodoc, etc.)
         # - Pages with pre-rendered HTML (truthy or empty string)
         # - Autodoc pages that defer rendering until navigation is available
@@ -325,6 +334,9 @@ class RenderingPipeline:
                     # Cache hit - skip extraction and rendering
                     self._json_accumulator.accumulate_unified_page_data(page)
                     self._accumulate_asset_deps(page)
+                    if _prof:
+                        _prof.record("cache_hit_rendered", 0)
+                        _prof.record_page()
                     return
 
             self._autodoc_renderer.process_virtual_page(page)
@@ -337,6 +349,8 @@ class RenderingPipeline:
             if is_autodoc:
                 template = page.metadata.get("_autodoc_template", "autodoc/python/module")
                 self._cache_checker.cache_rendered_output(page, template)
+            if _prof:
+                _prof.record_page()
             return
 
         if not page.output_path:
@@ -346,7 +360,11 @@ class RenderingPipeline:
         parser_version = self._get_parser_version()
 
         # Determine cache bypass using centralized helper
-        skip_cache = self._cache_checker.should_bypass_cache(page, self.changed_sources)
+        if _prof:
+            with _prof.step("cache_check"):
+                skip_cache = self._cache_checker.should_bypass_cache(page, self.changed_sources)
+        else:
+            skip_cache = self._cache_checker.should_bypass_cache(page, self.changed_sources)
 
         # Track cache bypass statistics
         if self.build_stats:
@@ -358,12 +376,21 @@ class RenderingPipeline:
         if not skip_cache and self._cache_checker.try_rendered_cache(page, template):
             # Inline asset extraction for cache hits
             self._accumulate_asset_deps(page)
+            if _prof:
+                _prof.record("cache_hit_rendered", 0)
+                _prof.record_page()
             return
 
         if not skip_cache and self._cache_checker.try_parsed_cache(page, template, parser_version):
             # Inline asset extraction for parsed cache hits
             self._accumulate_asset_deps(page)
+            if _prof:
+                _prof.record("cache_hit_parsed", 0)
+                _prof.record_page()
             return
+
+        if _prof:
+            _prof.record("full_render", 0)
 
         # Full pipeline execution
         # Skip parsing if already done (e.g., by parsing phase before snapshot)
@@ -372,12 +399,26 @@ class RenderingPipeline:
             if self.build_stats:
                 self.build_stats.parsed_cache_misses += 1
             self._set_links_collector_for_parse()
-            self._parse_content(page)
-        self._enhance_api_docs(page)
+            if _prof:
+                with _prof.step("parse_markdown"):
+                    self._parse_content(page)
+            else:
+                self._parse_content(page)
+
+        if _prof:
+            with _prof.step("api_enhance"):
+                self._enhance_api_docs(page)
+        else:
+            self._enhance_api_docs(page)
+
         # Extract links: use plugin-collected wikilinks when available, merge with markdown/HTML
         try:
             plugin_links = self._get_plugin_collected_links()
-            page.extract_links(plugin_links=plugin_links)
+            if _prof:
+                with _prof.step("link_extract"):
+                    page.extract_links(plugin_links=plugin_links)
+            else:
+                page.extract_links(plugin_links=plugin_links)
         except Exception as e:
             # Log at warning level so users are aware of extraction issues
             # In strict mode, this could indicate malformed content that needs attention
@@ -395,8 +436,16 @@ class RenderingPipeline:
                     f"Link extraction failed: {truncate_error(e)}",
                     "link_extraction",
                 )
-        self._cache_checker.cache_parsed_content(page, template, parser_version)
-        self._render_and_write(page, template)
+
+        if _prof:
+            with _prof.step("cache_parsed"):
+                self._cache_checker.cache_parsed_content(page, template, parser_version)
+        else:
+            self._cache_checker.cache_parsed_content(page, template, parser_version)
+
+        self._render_and_write(page, template, _prof=_prof)
+        if _prof:
+            _prof.record_page()
 
     def _set_links_collector_for_parse(self) -> None:
         """Set links collector on xref plugin before parse (Patitas only)."""
@@ -434,12 +483,21 @@ class RenderingPipeline:
             # Flush deferred highlighting: batch process all code blocks in parallel
             # This replaces <!--code:XXX--> placeholders with highlighted HTML
             # Must run BEFORE transformer so highlighter output is also escaped/transformed
+            _prof_inner = RenderProfiler.get() if _profiling_enabled() else None
             if page.html_content:
-                page.html_content = flush_deferred_highlighting(page.html_content)
+                if _prof_inner:
+                    with _prof_inner.step("flush_highlight"):
+                        page.html_content = flush_deferred_highlighting(page.html_content)
+                else:
+                    page.html_content = flush_deferred_highlighting(page.html_content)
 
             # PERF: Unified HTML transformation (~27% faster than separate passes)
             # Handles: Jinja block escaping, .md link normalization, baseurl prefixing
-            page.html_content = self._html_transformer.transform(page.html_content or "")
+            if _prof_inner:
+                with _prof_inner.step("html_transform"):
+                    page.html_content = self._html_transformer.transform(page.html_content or "")
+            else:
+                page.html_content = self._html_transformer.transform(page.html_content or "")
 
             # Restore any remaining escape placeholders in code block output
             # This is needed because deferred highlighting captures code BEFORE
@@ -457,7 +515,12 @@ class RenderingPipeline:
             disable_deferred_highlighting()
 
         # Pre-compute plain_text cache
-        _ = page.plain_text
+        _prof_pt = RenderProfiler.get() if _profiling_enabled() else None
+        if _prof_pt:
+            with _prof_pt.step("plain_text"):
+                _ = page.plain_text
+        else:
+            _ = page.plain_text
 
     def _should_generate_toc(self, page: PageLike) -> bool:
         """Determine if TOC should be generated for this page."""
@@ -597,7 +660,9 @@ class RenderingPipeline:
         if enhancer and enhancer.should_enhance(page_type):
             page.html_content = enhancer.enhance(page.html_content or "", page_type)
 
-    def _render_and_write(self, page: PageLike, template: str) -> None:
+    def _render_and_write(
+        self, page: PageLike, template: str, _prof: RenderProfiler | None = None
+    ) -> None:
         """Render template and write output.
 
         RFC: rfc-build-performance-optimizations Phase 2
@@ -624,42 +689,83 @@ class RenderingPipeline:
 
         tracker = AssetTracker()
         with tracker:
-            # Use effect recorder context if enabled
             if effect_recorder:
                 with effect_recorder:
+                    if _prof:
+                        with _prof.step("render_content"):
+                            html_content = self.renderer.render_content(page.html_content or "")
+                        with _prof.step("render_template"):
+                            page.rendered_html = self.renderer.render_page(page, html_content)
+                        with _prof.step("format_html"):
+                            page.rendered_html = format_html(
+                                page.rendered_html, page, cast(SiteLike, self.site)
+                            )
+                    else:
+                        html_content = self.renderer.render_content(page.html_content or "")
+                        page.rendered_html = self.renderer.render_page(page, html_content)
+                        page.rendered_html = format_html(
+                            page.rendered_html, page, cast(SiteLike, self.site)
+                        )
+            else:
+                if _prof:
+                    with _prof.step("render_content"):
+                        html_content = self.renderer.render_content(page.html_content or "")
+                    with _prof.step("render_template"):
+                        page.rendered_html = self.renderer.render_page(page, html_content)
+                    with _prof.step("format_html"):
+                        page.rendered_html = format_html(
+                            page.rendered_html, page, cast(SiteLike, self.site)
+                        )
+                else:
                     html_content = self.renderer.render_content(page.html_content or "")
                     page.rendered_html = self.renderer.render_page(page, html_content)
                     page.rendered_html = format_html(
                         page.rendered_html, page, cast(SiteLike, self.site)
                     )
-            else:
-                html_content = self.renderer.render_content(page.html_content or "")
-                page.rendered_html = self.renderer.render_page(page, html_content)
-                page.rendered_html = format_html(
-                    page.rendered_html, page, cast(SiteLike, self.site)
-                )
 
         # Get tracked assets from render-time tracking
         tracked_assets = tracker.get_assets()
 
         # Store rendered output in cache
-        self._cache_checker.cache_rendered_output(page, template)
+        if _prof:
+            with _prof.step("cache_rendered"):
+                self._cache_checker.cache_rendered_output(page, template)
+        else:
+            self._cache_checker.cache_rendered_output(page, template)
 
         # Write output (sync or async via write-behind)
-        write_output(
-            page,
-            cast(SiteLike, self.site),
-            collector=self._output_collector,
-            write_behind=self._write_behind,
-            build_cache=self.build_cache,
-        )
+        if _prof:
+            with _prof.step("write_output"):
+                write_output(
+                    page,
+                    cast(SiteLike, self.site),
+                    collector=self._output_collector,
+                    write_behind=self._write_behind,
+                    build_cache=self.build_cache,
+                )
+        else:
+            write_output(
+                page,
+                cast(SiteLike, self.site),
+                collector=self._output_collector,
+                write_behind=self._write_behind,
+                build_cache=self.build_cache,
+            )
 
         # Accumulate unified page data during rendering (JSON + search index)
-        self._json_accumulator.accumulate_unified_page_data(page)
+        if _prof:
+            with _prof.step("json_accumulate"):
+                self._json_accumulator.accumulate_unified_page_data(page)
+        else:
+            self._json_accumulator.accumulate_unified_page_data(page)
 
         # RFC: rfc-build-performance-optimizations Phase 2
         # Use render-time tracked assets, fall back to HTML parsing if needed
-        self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
+        if _prof:
+            with _prof.step("asset_deps"):
+                self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
+        else:
+            self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
 
     def _accumulate_asset_deps(
         self, page: PageLike, tracked_assets: set[str] | None = None
@@ -686,9 +792,37 @@ class RenderingPipeline:
         else:
             # Fallback: parse HTML (slow, but catches assets not using filters)
             try:
-                from bengal.rendering.asset_extractor import extract_assets_from_html
+                from urllib.parse import urlparse
 
-                assets = extract_assets_from_html(page.rendered_html)
+                from bengal.rendering.asset_extractor import extract_assets_from_html
+                from bengal.rendering.assets import get_asset_manifest
+
+                raw_assets = extract_assets_from_html(page.rendered_html)
+
+                # Normalize fingerprinted URLs back to logical paths.
+                # When Kida fragment cache hits, asset_url() is not called, so
+                # tracked_assets is empty and we fall back to HTML parsing.
+                # HTML parsing extracts full fingerprinted URLs like
+                # "http://host/assets/css/style.abc123.css", not logical paths
+                # like "css/style.css". Use the manifest reverse map to recover
+                # the logical path so incremental builds invalidate correctly.
+                # Build reverse map once per pipeline instance (lazy, cached).
+                # Use getattr so tests can pass a SimpleNamespace as self.
+                if not getattr(self, "_manifest_reverse_built", False):
+                    manifest = get_asset_manifest()
+                    if manifest and manifest.entries:
+                        self._manifest_reverse = {v: k for k, v in manifest.entries.items()}
+                    self._manifest_reverse_built = True
+
+                if getattr(self, "_manifest_reverse", None) and raw_assets:
+                    reverse = self._manifest_reverse
+                    normalized: set[str] = set()
+                    for url in raw_assets:
+                        path = urlparse(url).path.lstrip("/") if "://" in url else url.lstrip("/")
+                        normalized.add(reverse.get(path, url))
+                    assets = normalized
+                else:
+                    assets = raw_assets
             except Exception as e:
                 # Extraction failure should not break render
                 # Fallback extraction will handle this page in phase_track_assets

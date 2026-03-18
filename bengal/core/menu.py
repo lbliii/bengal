@@ -254,8 +254,12 @@ class MenuItem:
         Creates a dictionary representation suitable for JSON serialization
         and template rendering. Recursively converts children to dictionaries.
 
+        Active state is intentionally excluded — templates compute it via URL
+        comparison (``item.href == current_url``) so the cached dicts remain
+        valid across all pages and the menu cache never needs invalidation.
+
         Returns:
-            Dictionary with name, url, icon, active, active_trail, and children fields.
+            Dictionary with name, href, icon, and children fields.
             Children are recursively converted to dictionaries.
 
         Examples:
@@ -264,19 +268,15 @@ class MenuItem:
             data = item.to_dict()
             # Returns: {
             #     "name": "Home",
-            #     "url": "/",
+            #     "href": "/",
             #     "icon": "house",
-            #     "active": False,
-            #     "active_trail": False,
-            #     "children": [{"name": "About", "url": "/about", "icon": "info", ...}]
+            #     "children": [{"name": "About", "href": "/about", "icon": "info", ...}]
             # }
         """
         return {
             "name": self.name,
             "href": self.href,
             "icon": self.icon,
-            "active": self.active,
-            "active_trail": self.active_trail,
             "children": [child.to_dict() for child in self.children],
         }
 

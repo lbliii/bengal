@@ -49,13 +49,6 @@ def detect_adapter_type(env: Any) -> str:
     class_name = type(env).__name__.lower()
     module_name = type(env).__module__.lower() if hasattr(type(env), "__module__") else ""
 
-    # Check for Jinja2 environment
-    if "jinja" in class_name or "jinja" in module_name:
-        return "jinja"
-    # Jinja2's Environment class is just called "Environment"
-    if class_name == "environment" and "jinja2" in module_name:
-        return "jinja"
-
     # Check for Kida environment
     if "kida" in class_name or "kida" in module_name:
         return "kida"
@@ -104,11 +97,7 @@ def register_context_functions(env: Any, site: SiteLike, adapter_type: str | Non
     if adapter_type is None:
         adapter_type = get_adapter_type(env, site)
 
-    if adapter_type == "jinja":
-        from bengal.rendering.adapters.jinja import register_context_functions as jinja_register
-
-        jinja_register(env, site)
-    elif adapter_type == "kida":
+    if adapter_type == "kida":
         from bengal.rendering.adapters.kida import register_context_functions as kida_register
 
         kida_register(env, site)

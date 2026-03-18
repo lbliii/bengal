@@ -61,7 +61,7 @@ class TestParentTemplateChanges:
         Jinja2's auto_reload feature (enabled in dev mode) should detect
         the parent's mtime change and recompile.
         """
-        from jinja2 import Environment, FileSystemLoader
+        from kida import Environment, FileSystemLoader
 
         # Create parent template
         templates_dir = tmp_path / "templates"
@@ -101,7 +101,7 @@ class TestIncludeAndMacroChanges:
 
     def test_included_template_changes_detected(self, tmp_path):
         """Changes to included templates should be detected in dev mode."""
-        from jinja2 import Environment, FileSystemLoader
+        from kida import Environment, FileSystemLoader
 
         templates_dir = tmp_path / "templates"
         templates_dir.mkdir()
@@ -137,14 +137,14 @@ class TestIncludeAndMacroChanges:
 
     def test_macro_file_changes_detected(self, tmp_path):
         """Changes to macro files should be detected in dev mode."""
-        from jinja2 import Environment, FileSystemLoader
+        from kida import Environment, FileSystemLoader
 
         templates_dir = tmp_path / "templates"
         templates_dir.mkdir()
 
-        # Create macro file
+        # Create macro file (Kida uses {% def %} instead of {% macro %})
         macros = templates_dir / "_macros.html"
-        macros.write_text("{% macro greeting() %}Hello v1{% endmacro %}")
+        macros.write_text("{% def greeting() %}Hello v1{% enddef %}")
 
         # Create template using macro
         main = templates_dir / "page.html"
@@ -164,7 +164,7 @@ class TestIncludeAndMacroChanges:
         import time
 
         time.sleep(0.1)
-        macros.write_text("{% macro greeting() %}Hello v2{% endmacro %}")
+        macros.write_text("{% def greeting() %}Hello v2{% enddef %}")
 
         # Re-render should pick up change
         template = env.get_template("page.html")
@@ -173,17 +173,17 @@ class TestIncludeAndMacroChanges:
 
 
 class TestDevModeEnsuresAutoReload:
-    """Test that dev mode properly enables auto_reload."""
+    """Test that dev mode properly enables auto_reload via Kida engine."""
 
     def test_dev_server_config_enables_auto_reload(self, tmp_path):
         """
-        When dev_server=True in config, Jinja environment should have auto_reload=True.
+        When dev_mode=True, the Kida engine should configure auto_reload.
 
         This ensures template file changes are detected during development.
         """
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import MagicMock
 
-        from bengal.rendering.template_engine.environment import create_jinja_environment
+        from bengal.rendering.engines.kida import KidaTemplateEngine
 
         site = MagicMock()
         site.root_path = tmp_path
@@ -192,41 +192,47 @@ class TestDevModeEnsuresAutoReload:
         site.config = {"dev_server": True}
         site.theme = None
         site.theme_config = {}
-        # Required Site attributes for template engine
         site.dev_mode = True
         site._bengal_template_dirs_cache = None
         site._bengal_theme_chain_cache = None
+        site.build_state = None
+        site.versioning_enabled = False
+        site.versions = []
+        site._asset_manifest_fallbacks_global = set()
+        site._asset_manifest_fallbacks_lock = None
 
-        mock_engine = MagicMock()
-
-        with patch("bengal.rendering.template_engine.environment.register_all"):
-            env, _ = create_jinja_environment(site, mock_engine, profile_templates=False)
-
-        assert env.auto_reload is True, "auto_reload should be True in dev server mode"
+        engine = KidaTemplateEngine(site)
+        # In dev mode, the Kida environment's auto_reload should be True
+        assert engine._env.auto_reload is True, "auto_reload should be True in dev server mode"
 
     def test_production_mode_disables_auto_reload(self, tmp_path):
         """
-        When dev_server=False in config, auto_reload should be disabled for performance.
+        When dev_mode=False and auto_reload=False, auto_reload should be disabled.
         """
-        from unittest.mock import MagicMock, patch
+        from unittest.mock import MagicMock
 
-        from bengal.rendering.template_engine.environment import create_jinja_environment
+        from bengal.rendering.engines.kida import KidaTemplateEngine
 
         site = MagicMock()
         site.root_path = tmp_path
         site.output_dir = tmp_path / "public"
         site.output_dir.mkdir(parents=True, exist_ok=True)
-        site.config = {"dev_server": False, "cache_templates": False}  # No bytecode cache needed
+        # Explicitly disable auto_reload via the development config key Kida reads
+        site.config = {
+            "dev_server": False,
+            "cache_templates": False,
+            "development": {"auto_reload": False},
+        }
         site.theme = None
         site.theme_config = {}
-        # Required Site attributes for template engine
         site.dev_mode = False
         site._bengal_template_dirs_cache = None
         site._bengal_theme_chain_cache = None
+        site.build_state = None
+        site.versioning_enabled = False
+        site.versions = []
+        site._asset_manifest_fallbacks_global = set()
+        site._asset_manifest_fallbacks_lock = None
 
-        mock_engine = MagicMock()
-
-        with patch("bengal.rendering.template_engine.environment.register_all"):
-            env, _ = create_jinja_environment(site, mock_engine, profile_templates=False)
-
-        assert env.auto_reload is False, "auto_reload should be False in production mode"
+        engine = KidaTemplateEngine(site)
+        assert engine._env.auto_reload is False, "auto_reload should be False in production mode"

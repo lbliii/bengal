@@ -131,7 +131,7 @@ class TestGetSection:
 
     def test_registered_in_environment(self, site_with_sections: Site):
         """Test that get_section is registered in Jinja2 environment."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register_navigation(env, site_with_sections)
@@ -182,7 +182,7 @@ class TestSectionPages:
 
     def test_registered_in_environment(self, site_with_sections: Site):
         """Test that section_pages is registered in Jinja2 environment."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register_navigation(env, site_with_sections)
@@ -231,7 +231,7 @@ class TestPageExists:
 
     def test_registered_in_environment(self, site_with_sections: Site):
         """Test that page_exists is registered in Jinja2 environment."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register_get_page(env, site_with_sections)
@@ -282,7 +282,7 @@ class TestWordCount:
 
     def test_filter_registered(self, site_with_sections: Site):
         """Test that word_count is registered as a filter."""
-        from jinja2 import Environment
+        from kida import Environment
 
         from bengal.rendering.template_functions.strings import register as register_strings
 

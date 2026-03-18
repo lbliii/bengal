@@ -325,9 +325,6 @@ class KidaTemplateEngine:
             TemplateNotFoundError: If template doesn't exist
             TemplateRenderError: If rendering fails
         """
-        # Invalidate menu cache to ensure fresh active states for each page
-        self.invalidate_menu_cache()
-
         # Record template dependency for EffectTracer (via ContextVar)
         from bengal.effects.render_integration import (
             record_extra_dependency,
@@ -460,9 +457,6 @@ class KidaTemplateEngine:
             Rendered HTML string
         """
         from kida.environment.exceptions import UndefinedError
-
-        # Invalidate menu cache to ensure fresh active states
-        self.invalidate_menu_cache()
 
         try:
             tmpl = self._env.from_string(template)

@@ -190,6 +190,8 @@ HELPER: Render a menu item (desktop/mobile)
     <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
     {% end %}
 
+    {# Favicon, preconnect, fonts, stylesheets — site-stable, same for every page in a build #}
+    {% cache 'base-head-assets-' ~ (bengal.build.timestamp ?? '') %}
     {# Favicon - use let for safer nil handling #}
     {% let favicon_path = site.favicon ?? none %}
     {% if favicon_path %}
@@ -220,7 +222,10 @@ HELPER: Render a menu item (desktop/mobile)
     {% if 'content.math' in (theme.features ?? []) %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin>
     {% end %}
+    {% end %}{# /cache base-head-assets #}
 
+    {# Theme init scripts — site-stable, same for every page in a build #}
+    {% cache 'base-theme-init-' ~ (bengal.build.timestamp ?? '') %}
     {# Theme configuration JS #}
     <script>
         window.BENGAL_THEME_DEFAULTS = {
@@ -265,8 +270,10 @@ HELPER: Render a menu item (desktop/mobile)
             } catch (e) { document.documentElement.setAttribute('data-theme', 'light'); }
         })();
     </script>
+    {% end %}{# /cache base-theme-init #}
 
-    {# Speculation Rules #}
+    {# Speculation Rules — site-stable, same for every page in a build #}
+    {% cache 'base-speculation-' ~ (bengal.build.timestamp ?? '') %}
     {% with _doc_app.speculation as speculation %}
     {% if _doc_app.enabled and speculation.enabled and (_doc_app.features?.speculation_rules ?? true) %}
     <script type="speculationrules">
@@ -297,9 +304,12 @@ HELPER: Render a menu item (desktop/mobile)
     </script>
     {% end %}
     {% end %}
+    {% end %}{# /cache base-speculation #}
 
     {% block extra_head %}{% end %}
+    {% cache 'base-meta-generator-' ~ (bengal.build.timestamp ?? '') %}
     {% include 'partials/meta-generator.html' %}
+    {% end %}{# /cache base-meta-generator #}
     {% include 'partials/article-jsonld.html' %}
     {% include 'partials/product-jsonld.html' %}
 
@@ -323,6 +333,7 @@ HELPER: Render a menu item (desktop/mobile)
 
     {# Search Modal Block #}
     {% block site_search_modal %}
+    {% cache 'base-search-modal-' ~ _current_lang ~ '-' ~ (bengal.build.timestamp ?? '') %}
     {% with config.search.ui as ui %}
     {% if ui.modal ?? false %}
     <dialog id="search-modal" class="search-modal"
@@ -384,6 +395,7 @@ HELPER: Render a menu item (desktop/mobile)
     </dialog>
     {% end %}
     {% end %}
+    {% end %}{# /cache base-search-modal #}
     {% end %}
 
     {# Header #}
@@ -437,7 +449,7 @@ HELPER: Render a menu item (desktop/mobile)
                         icon('magnifying-glass', size=16) }} <span>Search</span></a>
                     {% end %}
                     {% end %}
-                    {% with theme_menu_id='theme-menu-desktop' %}{% include 'partials/theme-controls.html' %}{% end %}
+                    {% cache 'base-theme-ctrl-d-' ~ _current_lang ~ '-' ~ (bengal.build.timestamp ?? '') %}{% with theme_menu_id='theme-menu-desktop' %}{% include 'partials/theme-controls.html' %}{% end %}{% end %}{# /cache base-theme-ctrl-d #}
                 </div>
 
                 <button class="mobile-nav-toggle visible-mobile" aria-label="Open menu"
@@ -490,14 +502,15 @@ HELPER: Render a menu item (desktop/mobile)
             </ul>
         </nav>
         {% end %}
-        <div class="mobile-nav-footer">{% with theme_menu_id='theme-menu-mobile' %}{% include
-            'partials/theme-controls.html' %}{% end %}</div>
+        <div class="mobile-nav-footer">{% cache 'base-theme-ctrl-m-' ~ _current_lang ~ '-' ~ (bengal.build.timestamp ?? '') %}{% with theme_menu_id='theme-menu-mobile' %}{% include
+            'partials/theme-controls.html' %}{% end %}{% end %}{# /cache base-theme-ctrl-m #}</div>
     </dialog>
 
     <main id="main-content" role="main">{% block content %}{% end %}</main>
 
     {# Footer #}
     {% block site_footer %}
+    {% cache 'base-footer-' ~ _current_lang ~ '-' ~ (bengal.build.timestamp ?? '') %}
     <footer role="contentinfo">
         <div class="container">
             <div class="footer-bottom">
@@ -527,10 +540,12 @@ HELPER: Render a menu item (desktop/mobile)
             </div>
         </div>
     </footer>
+    {% end %}{# /cache base-footer #}
     {% end %}
 
     {# Scripts #}
     {% block site_scripts %}
+    {% cache 'base-scripts-' ~ (bengal.build.timestamp ?? '') %}
     {% if config.assets.bundle_js ?? false %}
     <script defer src="{{ asset_url('js/bundle.js') }}"></script>
     <script defer src="{{ asset_url('js/vendor/lunr.min.js') }}"></script>
@@ -566,6 +581,7 @@ HELPER: Render a menu item (desktop/mobile)
     </script>
     <script defer src="{{ asset_url('js/enhancements/lazy-loaders.js') }}"></script>
     {% end %}
+    {% end %}{# /cache base-scripts #}
     {% end %}
 
     {% block extra_js %}{% end %}

@@ -71,7 +71,7 @@ class TestGetPageFunction:
 
     def test_get_page_by_relative_path(self, site_with_content: Site):
         """Test resolving page by content-relative path."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register(env, site_with_content)
@@ -89,7 +89,7 @@ class TestGetPageFunction:
 
     def test_get_page_by_path_without_extension(self, site_with_content: Site):
         """Test resolving page when .md extension omitted."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register(env, site_with_content)
@@ -101,7 +101,7 @@ class TestGetPageFunction:
 
     def test_get_page_nonexistent_path(self, site_with_content: Site):
         """Test None returned for non-existent pages."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register(env, site_with_content)
@@ -115,7 +115,7 @@ class TestGetPageFunction:
 
     def test_get_page_empty_path(self, site_with_content: Site):
         """Test empty path handling."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register(env, site_with_content)
@@ -126,7 +126,7 @@ class TestGetPageFunction:
 
     def test_get_page_path_normalization(self, site_with_content: Site):
         """Test Windows/Unix path separator normalization."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register(env, site_with_content)
@@ -144,7 +144,7 @@ class TestGetPageFunction:
 
     def test_get_page_lookup_map_caching(self, site_with_content: Site):
         """Test that lookup maps are cached on site object."""
-        from jinja2 import Environment
+        from kida import Environment
 
         # Clear per-render cache to ensure we hit lookup map creation path
         clear_get_page_cache()
@@ -168,7 +168,7 @@ class TestGetPageFunction:
 
     def test_get_page_index_page(self, site_with_content: Site):
         """Test resolving index page."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register(env, site_with_content)
@@ -180,7 +180,7 @@ class TestGetPageFunction:
 
     def test_get_page_with_trailing_slash(self, site_with_content: Site):
         """Test path with trailing slash is handled."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register(env, site_with_content)
@@ -193,7 +193,7 @@ class TestGetPageFunction:
 
     def test_get_page_case_sensitivity(self, site_with_content: Site):
         """Test that path matching is case-sensitive."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register(env, site_with_content)
@@ -210,7 +210,7 @@ class TestGetPageFunction:
 
     def test_get_page_parses_on_demand(self, site_with_content: Site):
         """Test that get_page parses pages on-demand when accessed from templates."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register(env, site_with_content)
@@ -229,7 +229,7 @@ class TestGetPageFunction:
 
     def test_get_page_does_not_reparse_already_parsed_pages(self, site_with_content: Site):
         """Test that get_page doesn't reparse pages that are already parsed."""
-        from jinja2 import Environment
+        from kida import Environment
 
         env = Environment()
         register(env, site_with_content)
@@ -308,7 +308,7 @@ class TestPerRenderCache:
 
     def test_cache_hit_returns_same_object(self, site_with_content: Site):
         """Test that cached get_page() returns the same object."""
-        from jinja2 import Environment
+        from kida import Environment
 
         clear_get_page_cache()
 
@@ -326,7 +326,7 @@ class TestPerRenderCache:
 
     def test_cache_miss_also_cached(self, site_with_content: Site):
         """Test that None results are also cached."""
-        from jinja2 import Environment
+        from kida import Environment
 
         clear_get_page_cache()
 
@@ -346,7 +346,7 @@ class TestPerRenderCache:
 
     def test_different_path_variants_hit_same_cache_entry(self, site_with_content: Site):
         """Test that different path formats resolve to same cache entry."""
-        from jinja2 import Environment
+        from kida import Environment
 
         clear_get_page_cache()
 

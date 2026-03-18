@@ -229,33 +229,48 @@ def beautify_common_exception(e: Exception) -> tuple[str, str | None] | None:
     except ImportError:
         pass
 
-    # Handle Jinja2 template errors
+    # Handle Kida template errors
     try:
-        import jinja2
+        from kida import (
+            TemplateError as KidaTemplateError,
+        )
+        from kida import (
+            TemplateNotFoundError as KidaTemplateNotFound,
+        )
+        from kida import (
+            TemplateSyntaxError as KidaSyntaxError,
+        )
+        from kida import (
+            UndefinedError as KidaUndefinedError,
+        )
 
-        if isinstance(e, jinja2.TemplateSyntaxError):
+        if isinstance(e, KidaSyntaxError):
             location = ""
-            if e.lineno:
+            if getattr(e, "lineno", None):
                 location = f" at line {e.lineno}"
-            if e.filename:
+            if getattr(e, "filename", None):
                 location = f" in {e.filename}{location}"
+            msg = getattr(e, "message", None) or str(e)
             return (
-                f"Template syntax error{location}: {e.message}",
+                f"Template syntax error{location}: {msg}",
                 "Check template syntax - common issues: missing end tags, unclosed braces",
             )
-        if isinstance(e, jinja2.UndefinedError):
+        if isinstance(e, KidaUndefinedError):
+            msg = getattr(e, "message", None) or str(e)
             return (
-                f"Undefined variable in template: {e.message}",
+                f"Undefined variable in template: {msg}",
                 "Check that the variable is passed to the template context",
             )
-        if isinstance(e, jinja2.TemplateNotFound):
+        if isinstance(e, KidaTemplateNotFound):
+            name = getattr(e, "name", None) or str(e)
             return (
-                f"Template not found: {e.name}",
+                f"Template not found: {name}",
                 "Check templates/ directory and theme template inheritance",
             )
-        if isinstance(e, jinja2.TemplateError):
+        if isinstance(e, KidaTemplateError):
+            msg = getattr(e, "message", None) or str(e)
             return (
-                f"Template error: {e.message}",
+                f"Template error: {msg}",
                 "Check template syntax and variable names",
             )
     except ImportError:

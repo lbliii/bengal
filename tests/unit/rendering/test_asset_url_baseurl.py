@@ -3,8 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from bengal.assets.manifest import AssetManifest
-from bengal.core.theme import Theme
-from bengal.rendering.engines.jinja import JinjaTemplateEngine
+from bengal.rendering.assets import resolve_asset_url
 
 
 class DummySite:
@@ -14,59 +13,49 @@ class DummySite:
         self.config = {"baseurl": baseurl or ""}
         self.theme = "default"
         self._baseurl = baseurl or ""
-        # Required Site attributes for template engine
         self.dev_mode = False
         self.versioning_enabled = False
         self.versions: list[str] = []
-        self._bengal_template_dirs_cache = None
-        self._bengal_theme_chain_cache = None
 
     @property
     def baseurl(self) -> str:
         """Return baseurl (uses cached value or config)."""
         return self._baseurl
-        self._bengal_theme_chain_cache = None
-        self._bengal_template_metadata_cache = None
-        self._asset_manifest_fallbacks_global: set[str] = set()
-        self._asset_manifest_fallbacks_lock = None
-
-    @property
-    def theme_config(self) -> Theme:
-        """Return a default Theme for testing."""
-        return Theme(name=self.theme)
 
 
 def test_asset_url_no_baseurl(tmp_path: Path):
     site = DummySite(tmp_path, baseurl="")
-    engine = JinjaTemplateEngine(site)
-    url = engine._asset_url("css/style.css")
+    url = resolve_asset_url("css/style.css", site)
     assert url == "/assets/css/style.css"
 
 
 def test_asset_url_path_baseurl(tmp_path: Path):
     site = DummySite(tmp_path, baseurl="/bengal")
-    engine = JinjaTemplateEngine(site)
-    url = engine._asset_url("css/style.css")
+    url = resolve_asset_url("css/style.css", site)
     assert url == "/bengal/assets/css/style.css"
 
 
 def test_asset_url_absolute_baseurl(tmp_path: Path):
     site = DummySite(tmp_path, baseurl="https://docs.example.com/sub")
-    engine = JinjaTemplateEngine(site)
-    url = engine._asset_url("css/style.css")
+    url = resolve_asset_url("css/style.css", site)
     assert url == "https://docs.example.com/sub/assets/css/style.css"
 
 
 def test_asset_url_prefers_fingerprinted_when_present_with_baseurl(tmp_path: Path):
     site = DummySite(tmp_path, baseurl="/bengal")
-    engine = JinjaTemplateEngine(site)
 
-    out = site.output_dir / "assets" / "css"
-    out.mkdir(parents=True, exist_ok=True)
-    (out / "style.css").write_text("body{}", encoding="utf-8")
-    (out / "style.12345678.css").write_text("body{color:black}", encoding="utf-8")
+    # Write a manifest with the fingerprinted entry
+    manifest = AssetManifest()
+    manifest.set_entry(
+        logical_path="css/style.css",
+        output_path="assets/css/style.12345678.css",
+        fingerprint="12345678",
+        size_bytes=100,
+        updated_at=1_700_000_000.0,
+    )
+    manifest.write(site.output_dir / "asset-manifest.json")
 
-    url = engine._asset_url("css/style.css")
+    url = resolve_asset_url("css/style.css", site)
     assert url.endswith("/assets/css/style.12345678.css")
     assert url.startswith("/bengal/")
 
@@ -83,6 +72,5 @@ def test_asset_url_respects_manifest_mapping(tmp_path: Path):
     )
     manifest.write(site.output_dir / "asset-manifest.json")
 
-    engine = JinjaTemplateEngine(site)
-    url = engine._asset_url("css/style.css")
+    url = resolve_asset_url("css/style.css", site)
     assert url == "/docs/assets/css/style.deadbeef.css"

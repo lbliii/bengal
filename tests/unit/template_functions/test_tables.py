@@ -6,8 +6,7 @@ from unittest.mock import MagicMock
 
 import pytest
 import yaml
-from jinja2 import Environment
-from kida import Markup
+from kida import Environment, Markup
 
 from bengal.rendering.template_functions.tables import data_table, register
 
@@ -56,14 +55,14 @@ def csv_data_file(temp_data_dir):
 
 @pytest.fixture
 def mock_env(temp_data_dir):
-    """Create a mock Jinja2 environment with site."""
+    """Create a mock Kida environment with site."""
     env = Environment()
 
     # Mock site object
     site = MagicMock()
     site.root_path = temp_data_dir.parent
 
-    # Add site to globals (data_table accesses env.globals["site"])
+    # Add site to globals (for template rendering tests)
     env.globals["site"] = site
     return env
 
@@ -97,7 +96,7 @@ class TestDataTableFunction:
 
     def test_render_yaml_file(self, mock_env, yaml_data_file):
         """Test rendering data table from YAML file."""
-        result = data_table(mock_env, f"data/{yaml_data_file.name}")
+        result = data_table(f"data/{yaml_data_file.name}", site=mock_env.globals["site"])
 
         assert isinstance(result, Markup)
         html = str(result)
@@ -108,7 +107,7 @@ class TestDataTableFunction:
 
     def test_render_csv_file(self, mock_env, csv_data_file):
         """Test rendering data table from CSV file."""
-        result = data_table(mock_env, f"data/{csv_data_file.name}")
+        result = data_table(f"data/{csv_data_file.name}", site=mock_env.globals["site"])
 
         assert isinstance(result, Markup)
         html = str(result)
@@ -118,7 +117,7 @@ class TestDataTableFunction:
 
     def test_empty_path_shows_error(self, mock_env):
         """Test that empty path shows error message."""
-        result = data_table(mock_env, "")
+        result = data_table("", site=mock_env.globals["site"])
 
         assert isinstance(result, Markup)
         html = str(result)
@@ -128,7 +127,7 @@ class TestDataTableFunction:
 
     def test_missing_file_shows_error(self, mock_env):
         """Test that missing file shows error message."""
-        result = data_table(mock_env, "data/missing.yaml")
+        result = data_table("data/missing.yaml", site=mock_env.globals["site"])
 
         assert isinstance(result, Markup)
         html = str(result)
@@ -138,21 +137,27 @@ class TestDataTableFunction:
 
     def test_with_search_option(self, mock_env, yaml_data_file):
         """Test data table with search option."""
-        result = data_table(mock_env, f"data/{yaml_data_file.name}", search=True)
+        result = data_table(
+            f"data/{yaml_data_file.name}", site=mock_env.globals["site"], search=True
+        )
 
         html = str(result)
         assert "bengal-data-table-search" in html
 
     def test_without_search_option(self, mock_env, yaml_data_file):
         """Test data table without search option."""
-        result = data_table(mock_env, f"data/{yaml_data_file.name}", search=False)
+        result = data_table(
+            f"data/{yaml_data_file.name}", site=mock_env.globals["site"], search=False
+        )
 
         html = str(result)
         assert "bengal-data-table-search" not in html
 
     def test_with_filter_option(self, mock_env, yaml_data_file):
         """Test data table with filter option."""
-        result = data_table(mock_env, f"data/{yaml_data_file.name}", filter=True)
+        result = data_table(
+            f"data/{yaml_data_file.name}", site=mock_env.globals["site"], filter=True
+        )
 
         html = str(result)
         # Filter adds headerFilter to columns in config
@@ -160,28 +165,36 @@ class TestDataTableFunction:
 
     def test_with_pagination(self, mock_env, yaml_data_file):
         """Test data table with pagination."""
-        result = data_table(mock_env, f"data/{yaml_data_file.name}", pagination=100)
+        result = data_table(
+            f"data/{yaml_data_file.name}", site=mock_env.globals["site"], pagination=100
+        )
 
         html = str(result)
         assert '"paginationSize": 100' in html
 
     def test_without_pagination(self, mock_env, yaml_data_file):
         """Test data table without pagination."""
-        result = data_table(mock_env, f"data/{yaml_data_file.name}", pagination=False)
+        result = data_table(
+            f"data/{yaml_data_file.name}", site=mock_env.globals["site"], pagination=False
+        )
 
         html = str(result)
         assert '"pagination": false' in html
 
     def test_with_custom_height(self, mock_env, yaml_data_file):
         """Test data table with custom height."""
-        result = data_table(mock_env, f"data/{yaml_data_file.name}", height="600px")
+        result = data_table(
+            f"data/{yaml_data_file.name}", site=mock_env.globals["site"], height="600px"
+        )
 
         html = str(result)
         assert '"height": "600px"' in html
 
     def test_with_columns_filter(self, mock_env, yaml_data_file):
         """Test data table with columns filter."""
-        result = data_table(mock_env, f"data/{yaml_data_file.name}", columns="name")
+        result = data_table(
+            f"data/{yaml_data_file.name}", site=mock_env.globals["site"], columns="name"
+        )
 
         html = str(result)
         # Should only include name column
@@ -285,8 +298,12 @@ class TestOptionConversion:
     def test_boolean_option_conversion(self, mock_env, yaml_data_file):
         """Test that Python booleans are converted to strings for directive."""
         # This tests internal conversion logic
-        result1 = data_table(mock_env, f"data/{yaml_data_file.name}", search=True)
-        result2 = data_table(mock_env, f"data/{yaml_data_file.name}", search=False)
+        result1 = data_table(
+            f"data/{yaml_data_file.name}", site=mock_env.globals["site"], search=True
+        )
+        result2 = data_table(
+            f"data/{yaml_data_file.name}", site=mock_env.globals["site"], search=False
+        )
 
         html1 = str(result1)
         html2 = str(result2)
@@ -297,14 +314,18 @@ class TestOptionConversion:
 
     def test_integer_option_conversion(self, mock_env, yaml_data_file):
         """Test that integers are converted properly."""
-        result = data_table(mock_env, f"data/{yaml_data_file.name}", pagination=25)
+        result = data_table(
+            f"data/{yaml_data_file.name}", site=mock_env.globals["site"], pagination=25
+        )
 
         html = str(result)
         assert "25" in html
 
     def test_string_option_passthrough(self, mock_env, yaml_data_file):
         """Test that string options are passed through."""
-        result = data_table(mock_env, f"data/{yaml_data_file.name}", height="500px")
+        result = data_table(
+            f"data/{yaml_data_file.name}", site=mock_env.globals["site"], height="500px"
+        )
 
         html = str(result)
         assert "500px" in html
@@ -315,7 +336,7 @@ class TestErrorHandling:
 
     def test_handles_load_errors_gracefully(self, mock_env):
         """Test that load errors are handled gracefully."""
-        result = data_table(mock_env, "data/nonexistent.yaml")
+        result = data_table("data/nonexistent.yaml", site=mock_env.globals["site"])
 
         assert isinstance(result, Markup)
         html = str(result)
@@ -325,7 +346,9 @@ class TestErrorHandling:
     def test_error_message_is_safe_html(self, mock_env):
         """Test that error messages are safe HTML (escaped)."""
         # Test with path containing HTML-like characters
-        result = data_table(mock_env, "data/<script>alert('xss')</script>.yaml")
+        result = data_table(
+            "data/<script>alert('xss')</script>.yaml", site=mock_env.globals["site"]
+        )
 
         html = str(result)
         # Should not contain unescaped script tags
@@ -337,7 +360,7 @@ class TestMarkupSafety:
 
     def test_returns_markup_object(self, mock_env, yaml_data_file):
         """Test that function returns Markup object."""
-        result = data_table(mock_env, f"data/{yaml_data_file.name}")
+        result = data_table(f"data/{yaml_data_file.name}", site=mock_env.globals["site"])
 
         assert isinstance(result, Markup)
 
@@ -367,7 +390,7 @@ class TestEdgeCases:
         empty_file.parent.mkdir(exist_ok=True)
         empty_file.write_text("")
 
-        result = data_table(mock_env, "data/empty.yaml")
+        result = data_table("data/empty.yaml", site=mock_env.globals["site"])
 
         html = str(result)
         # Should show error for invalid/empty data
@@ -382,7 +405,7 @@ class TestEdgeCases:
         with open(file_path, "w") as f:
             yaml.dump(data, f)
 
-        result = data_table(mock_env, "data/no_data.yaml")
+        result = data_table("data/no_data.yaml", site=mock_env.globals["site"])
 
         # Should still render (empty table)
         html = str(result)
@@ -396,7 +419,7 @@ class TestEdgeCases:
             writer = csv.DictWriter(f, fieldnames=["name", "age"])
             writer.writeheader()
 
-        result = data_table(mock_env, "data/headers_only.csv")
+        result = data_table("data/headers_only.csv", site=mock_env.globals["site"])
 
         html = str(result)
         # Should show error about no data
@@ -407,7 +430,7 @@ class TestEdgeCases:
         # This might raise an error or return error HTML
         # Depends on implementation
         try:
-            result = data_table(mock_env, None)
+            result = data_table(None, site=mock_env.globals["site"])
             html = str(result)
             assert "error" in html.lower()
         except TypeError, AttributeError:

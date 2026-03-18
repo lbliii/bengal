@@ -35,10 +35,10 @@ _MISSING = object()
 
 def is_undefined(value: Any) -> bool:
     """
-    Check if a value is a Jinja2 Undefined object.
+    Check if a value is a template Undefined object (Kida strict mode never produces these).
 
-    This is a wrapper around jinja2.is_undefined() that provides a clean API
-    for template function developers and avoids import overhead when not needed.
+    Kida uses strict mode — undefined variables raise UndefinedError immediately.
+    This function exists for API compatibility; always returns False under Kida.
 
     Args:
         value: Value to check
@@ -46,22 +46,10 @@ def is_undefined(value: Any) -> bool:
     Returns:
         True if value is Undefined, False otherwise
 
-    Example:
-        >>> from jinja2 import Undefined
-        >>> is_undefined(Undefined())
-        True
-        >>> is_undefined("hello")
-        False
-        >>> is_undefined(None)
-        False
-
     """
-    try:
-        from jinja2 import is_undefined as jinja_is_undefined
-
-        return jinja_is_undefined(value)
-    except ImportError:
-        return False
+    # Kida uses strict mode — undefined variables raise UndefinedError immediately.
+    # This function exists for API compatibility; always returns False under Kida.
+    return False
 
 
 def safe_get(obj: Any, key: str, default: Any = None) -> Any:

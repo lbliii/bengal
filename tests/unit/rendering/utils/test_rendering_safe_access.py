@@ -1,12 +1,13 @@
 """Tests for safe access utilities.
 
 These tests verify the consolidated safe_access module which provides
-safe attribute/dict access with Jinja2 Undefined handling.
+safe attribute/dict access with Kida strict-mode semantics.
+
+Under Kida, is_undefined() always returns False because Kida raises
+UndefinedError immediately rather than passing Undefined objects around.
 """
 
 from __future__ import annotations
-
-from jinja2 import Undefined
 
 from bengal.rendering.utils.safe_access import (
     ensure_defined,
@@ -18,11 +19,19 @@ from bengal.rendering.utils.safe_access import (
 
 
 class TestIsUndefined:
-    """Tests for is_undefined function."""
+    """Tests for is_undefined function.
 
-    def test_undefined_object(self):
-        """Undefined objects should return True."""
-        assert is_undefined(Undefined()) is True
+    Under Kida strict mode, is_undefined() always returns False.
+    Undefined access raises UndefinedError immediately.
+    """
+
+    def test_always_returns_false_for_any_value(self):
+        """Under Kida strict mode, is_undefined always returns False."""
+        assert is_undefined(None) is False
+        assert is_undefined("hello") is False
+        assert is_undefined(42) is False
+        assert is_undefined([]) is False
+        assert is_undefined({}) is False
 
     def test_defined_values(self):
         """Defined values should return False."""
@@ -78,11 +87,11 @@ class TestSafeGet:
         assert safe_get(data, "missing") is None
         assert safe_get(data, "missing", "default") == "default"
 
-    def test_undefined_value_returns_default(self):
-        """Undefined attribute value should return default."""
+    def test_none_attribute_value_returns_default_when_missing(self):
+        """Missing attribute should return default (Kida raises immediately for undefined)."""
 
         class Page:
-            title = Undefined()
+            pass
 
         page = Page()
         assert safe_get(page, "title", "Untitled") == "Untitled"
@@ -103,9 +112,13 @@ class TestSafeGet:
         assert safe_get("string", "anything", "default") == "default"
         assert safe_get(True, "anything", "default") == "default"
 
-    def test_undefined_object_returns_default(self):
-        """Undefined object itself should return default."""
-        assert safe_get(Undefined(), "anything", "default") == "default"
+    def test_object_without_attr_returns_default(self):
+        """Object missing the attribute should return default."""
+
+        class Empty:
+            pass
+
+        assert safe_get(Empty(), "anything", "default") == "default"
 
 
 class TestSafeGetNested:
@@ -175,11 +188,11 @@ class TestSafeGetNested:
         result = safe_get_nested(user, "profile", "missing", default="N/A")
         assert result == "N/A"
 
-    def test_undefined_intermediate_returns_default(self):
-        """Undefined intermediate should return default."""
+    def test_none_intermediate_returns_default_strict(self):
+        """None intermediate should return default (under Kida strict semantics)."""
 
         class User:
-            profile = Undefined()
+            profile = None
 
         user = User()
         result = safe_get_nested(user, "profile", "name", default="Unknown")
@@ -226,9 +239,9 @@ class TestHasValue:
         assert has_value(False) is False
         assert has_value(None) is False
 
-    def test_undefined_returns_false(self):
-        """Undefined should return False."""
-        assert has_value(Undefined()) is False
+    def test_none_returns_false(self):
+        """None should return False (falsy)."""
+        assert has_value(None) is False
 
 
 class TestEnsureDefined:
@@ -240,10 +253,10 @@ class TestEnsureDefined:
         assert ensure_defined(42) == 42
         assert ensure_defined([1, 2, 3]) == [1, 2, 3]
 
-    def test_undefined_returns_default(self):
-        """Undefined should return default."""
-        assert ensure_defined(Undefined()) == ""
-        assert ensure_defined(Undefined(), "fallback") == "fallback"
+    def test_none_returns_default_ensure_defined(self):
+        """None should return default (under Kida strict semantics)."""
+        assert ensure_defined(None) == ""
+        assert ensure_defined(None, "fallback") == "fallback"
 
     def test_none_is_replaced(self):
         """None should be replaced with default."""

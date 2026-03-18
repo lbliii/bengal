@@ -26,6 +26,19 @@ import re
 from typing import Any
 
 _WS_SENSITIVE_TAGS = ("pre", "code", "textarea", "script", "style")
+
+# Pre-compiled patterns for hot-path minification (avoids repeated LRU cache lookups)
+_RE_PROTECTED = re.compile(
+    r"(" + r"|".join(rf"<(?:{tag})(?:[^>]*)>.*?</(?:{tag})>" for tag in _WS_SENSITIVE_TAGS) + r")",
+    re.IGNORECASE | re.DOTALL,
+)
+_RE_TRAILING_WS = re.compile(r"[ \t]+(?=\n)")
+_RE_INTERTAG_WS = re.compile(r">\s+<")
+_RE_BLANK_LINES_3 = re.compile(r"\n{3,}")
+_RE_BLANK_LINES_WS = re.compile(r"\n\s*\n(\s*\n)+")
+_RE_HTML_COMMENT = re.compile(r"<!--(?!\[if|<!\s*\[endif\])(?:(?!-->).)*-->", re.DOTALL)
+_RE_CLASS_ATTR = re.compile(r'(class=")([^"]*)(")')
+_RE_TITLE_TAG = re.compile(r"(<title>)([\s\S]*?)(</title>)", re.IGNORECASE)
 _VOID_TAGS = {
     "area",
     "base",
@@ -54,18 +67,9 @@ def _split_protected_regions(html: str) -> list[tuple[str, bool]]:
     if not html:
         return [("", False)]
 
-    # Regex to capture protected blocks with minimal, case-insensitive matching
-    # Handles nested text but not nested same tags (sufficient for our use)
-    pattern = re.compile(
-        r"("
-        + r"|".join(rf"<(?:{tag})(?:[^>]*)>.*?</(?:{tag})>" for tag in _WS_SENSITIVE_TAGS)
-        + r")",
-        re.IGNORECASE | re.DOTALL,
-    )
-
     parts: list[tuple[str, bool]] = []
     last = 0
-    for m in pattern.finditer(html):
+    for m in _RE_PROTECTED.finditer(html):
         if m.start() > last:
             parts.append((html[last : m.start()], False))
         parts.append((m.group(0), True))
@@ -79,11 +83,11 @@ def _split_protected_regions(html: str) -> list[tuple[str, bool]]:
 
 def _collapse_blank_lines(text: str) -> str:
     # Replace 2+ consecutive blank lines with a single blank line
-    return re.sub(r"\n\s*\n(\s*\n)+", "\n\n", text)
+    return _RE_BLANK_LINES_WS.sub("\n\n", text)
 
 
 def _strip_trailing_whitespace(text: str) -> str:
-    return re.sub(r"[ \t]+(?=\n)", "", text)
+    return _RE_TRAILING_WS.sub("", text)
 
 
 def _collapse_intertag_whitespace(text: str) -> str:
@@ -95,15 +99,15 @@ def _collapse_intertag_whitespace(text: str) -> str:
         s = match.group(0)
         return ">\n<" if "\n" in s else "> <"
 
-    text = re.sub(r">\s+<", _repl, text)
+    text = _RE_INTERTAG_WS.sub(_repl, text)
     # Collapse runs of blank lines to single newline
-    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = _RE_BLANK_LINES_3.sub("\n\n", text)
     return text
 
 
 def _remove_html_comments(text: str) -> str:
     # Remove standard HTML comments, preserve conditional IE comments `<!--[if ...]>` and `<![endif]-->`
-    return re.sub(r"<!--(?!\[if|<!\s*\[endif\])(?:(?!-->).)*-->", "", text, flags=re.DOTALL)
+    return _RE_HTML_COMMENT.sub("", text)
 
 
 def _normalize_class_attributes(text: str) -> str:
@@ -113,7 +117,7 @@ def _normalize_class_attributes(text: str) -> str:
         normalized = " ".join(value.split())
         return f"{before}{normalized}{after}"
 
-    return re.sub(r"(class=\")([^\"]*)(\")", _repl, text)
+    return _RE_CLASS_ATTR.sub(_repl, text)
 
 
 def _trim_title_text(text: str) -> str:
@@ -123,7 +127,7 @@ def _trim_title_text(text: str) -> str:
         collapsed = " ".join(value.split())
         return f"{start}{collapsed}{end}"
 
-    return re.sub(r"(<title>)([\s\S]*?)(</title>)", _repl, text, flags=re.IGNORECASE)
+    return _RE_TITLE_TAG.sub(_repl, text)
 
 
 def _pretty_indent_html(html: str) -> str:
@@ -185,7 +189,11 @@ def format_html_output(html: str, mode: str = "raw", options: dict[str, Any] | N
     Args:
         html: Input HTML string
         mode: "raw" (no-op), "pretty" (stable whitespace), or "minify" (compact inter-tag spacing)
-        options: optional flags, e.g., {"remove_comments": True, "collapse_blank_lines": True}
+        options: optional flags:
+            remove_comments (bool): Remove HTML comments. Default True for minify.
+            collapse_blank_lines (bool): Collapse blank lines. Default True.
+            normalize_class_attrs (bool): Normalize class attribute whitespace. Default False.
+            trim_title (bool): Collapse whitespace in <title> tags. Default False.
 
     Returns:
         Formatted HTML string
@@ -197,6 +205,9 @@ def format_html_output(html: str, mode: str = "raw", options: dict[str, Any] | N
     opts = options or {}
     remove_comments = bool(opts.get("remove_comments", mode == "minify"))
     collapse_blanks = bool(opts.get("collapse_blank_lines", True))
+    # Cosmetic-only passes — opt-in, off by default (browsers are indifferent)
+    normalize_class = bool(opts.get("normalize_class_attrs", False))
+    trim_title = bool(opts.get("trim_title", False))
 
     segments = _split_protected_regions(html)
     out: list[str] = []
@@ -211,22 +222,25 @@ def format_html_output(html: str, mode: str = "raw", options: dict[str, Any] | N
         if remove_comments:
             transformed = _remove_html_comments(transformed)
 
-        # Trim trailing whitespace first for stability
-        transformed = _strip_trailing_whitespace(transformed)
-
         if mode == "pretty":
+            # Trim trailing whitespace for stable, human-readable output
+            transformed = _strip_trailing_whitespace(transformed)
             if collapse_blanks:
                 transformed = _collapse_blank_lines(transformed)
             # Apply indentation for readability
             transformed = _pretty_indent_html(transformed)
         elif mode == "minify":
+            # Skip _strip_trailing_whitespace — trailing spaces before newlines
+            # are invisible to browsers, compressed away by gzip, and cost ~1ms/page.
+            # _collapse_intertag_whitespace handles the meaningful whitespace reduction.
             transformed = _collapse_intertag_whitespace(transformed)
             if collapse_blanks:
                 transformed = _collapse_blank_lines(transformed)
 
-        # Attribute and inline text normalizations (safe, tag-scoped)
-        transformed = _normalize_class_attributes(transformed)
-        transformed = _trim_title_text(transformed)
+        if normalize_class:
+            transformed = _normalize_class_attributes(transformed)
+        if trim_title:
+            transformed = _trim_title_text(transformed)
 
         out.append(transformed)
 

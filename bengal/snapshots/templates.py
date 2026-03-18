@@ -10,10 +10,9 @@ for O(1) template→page lookups during incremental builds.
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Callable
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -65,34 +64,9 @@ def _get_template_partials(template_name: str, site: SiteLike) -> list[Path]:
         partials: set[str] = set()
 
         if hasattr(engine, "_track_referenced_templates") and hasattr(engine, "_env"):
-            # Jinja2/Kida engines have this method - extract referenced templates
+            # Kida engine approach - extract referenced templates via AST
             env = engine._env
 
-            # Jinja2 approach
-            if hasattr(env, "parse"):
-                try:
-                    from jinja2 import meta
-
-                    # Type narrowing: loader may not be on Protocol
-                    loader = getattr(env, "loader", None)
-                    if loader and hasattr(loader, "get_source"):
-                        get_source = cast(
-                            Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]],
-                            loader.get_source,
-                        )
-                        source, _filename, _uptodate = get_source(env, template_name)
-                    else:
-                        raise AttributeError("Loader does not have get_source method")
-                    # Type narrowing: parse method
-                    parse_method = cast(Callable[[str], Any], env.parse)
-                    ast = parse_method(source)
-                    for ref in meta.find_referenced_templates(ast) or []:
-                        if isinstance(ref, str):
-                            partials.add(ref)
-                except Exception:
-                    pass
-
-            # Kida approach (if available)
             if hasattr(env, "get_template"):
                 try:
                     # Type narrowing: get_template may not be callable
@@ -259,66 +233,23 @@ def _analyze_template(template_name: str, site: SiteLike) -> TemplateSnapshot | 
         if hasattr(engine, "_env"):
             env = engine._env
 
+            # Kida approach: use template dependencies() if available
             try:
-                from jinja2 import meta
-                from jinja2 import nodes as jinja_nodes
-
-                # Load source
-                if hasattr(env, "loader") and env.loader:
-                    try:
-                        # Type narrowing: Jinja2 loader has get_source method
-                        loader = env.loader
-                        if not hasattr(loader, "get_source"):
-                            raise AttributeError("Loader does not have get_source method")
-                        get_source = cast(
-                            Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]],
-                            loader.get_source,
-                        )
-                        source, _filename, _uptodate = get_source(env, template_name)
-
-                        # Type narrowing: Jinja2 Environment has parse method
-                        if not hasattr(env, "parse"):
-                            raise AttributeError("Environment does not have parse method")
-                        parse_method = cast(Callable[[str], Any], env.parse)
-                        ast = parse_method(source)
-
-                        # Find referenced templates (extends, includes, imports)
-                        for ref in meta.find_referenced_templates(ast) or []:
+                get_template_method = getattr(env, "get_template", None)
+                if callable(get_template_method):
+                    template = get_template_method(template_name)
+                    if hasattr(template, "dependencies"):
+                        for ref in template.dependencies() or []:
                             if isinstance(ref, str):
                                 all_deps.add(ref)
-
-                        # Walk AST for more details
-                        for node in ast.body:
-                            if isinstance(node, jinja_nodes.Extends):
-                                if isinstance(node.template, jinja_nodes.Const):
-                                    extends = str(node.template.value)
-                                    all_deps.add(extends)
-                            elif isinstance(node, jinja_nodes.Include):
-                                if isinstance(node.template, jinja_nodes.Const):
-                                    includes.add(str(node.template.value))
-                            elif isinstance(node, jinja_nodes.FromImport):
-                                if isinstance(node.template, jinja_nodes.Const):
-                                    imports.add(str(node.template.value))
-                            elif isinstance(node, jinja_nodes.Block):
-                                blocks.add(node.name)
-                            elif isinstance(node, jinja_nodes.Macro):
-                                macros_defined.add(node.name)
-
-                        # Look for macro calls in the AST
-                        def find_macro_calls(node: Any) -> None:
-                            if hasattr(node, "node") and isinstance(node.node, jinja_nodes.Name):
-                                pass  # Simple variable, not a macro call
-                            if hasattr(node, "iter_child_nodes"):
-                                for child in node.iter_child_nodes():
-                                    find_macro_calls(child)
-
-                        find_macro_calls(ast)
-
-                    except Exception:
-                        pass
-
-            except ImportError:
-                # Jinja2 not available, try basic parsing
+                    elif hasattr(template, "_optimized_ast"):
+                        ast = template._optimized_ast
+                        extract_method = getattr(engine, "_extract_referenced_templates", None)
+                        if callable(extract_method):
+                            for ref in extract_method(ast) or []:
+                                if isinstance(ref, str):
+                                    all_deps.add(ref)
+            except Exception:
                 pass
 
         # Get transitive dependencies
@@ -365,10 +296,12 @@ def _get_transitive_deps_for_template(
         engine = create_engine(site, profile=False)
         env = getattr(engine, "_env", None)
 
-        if not env or not hasattr(env, "loader") or not env.loader:
+        if not env:
             return all_deps
 
-        from jinja2 import meta
+        get_template_method = getattr(env, "get_template", None)
+        if not callable(get_template_method):
+            return all_deps
 
         while queue and depth < max_depth:
             depth += 1
@@ -381,23 +314,19 @@ def _get_transitive_deps_for_template(
                 all_deps.add(dep_name)
 
                 try:
-                    # Type narrowing: loader and parse methods
-                    loader = getattr(env, "loader", None)
-                    if loader and hasattr(loader, "get_source"):
-                        get_source = cast(
-                            Callable[[Any, str], tuple[str, str | None, Callable[[], bool] | None]],
-                            loader.get_source,
-                        )
-                        source, _filename, _uptodate = get_source(env, dep_name)
-                    else:
-                        continue
-                    parse_method = cast(Callable[[str], Any], env.parse)
-                    ast = parse_method(source)
-                    next_queue.extend(
-                        ref
-                        for ref in (meta.find_referenced_templates(ast) or [])
-                        if isinstance(ref, str) and ref not in seen
-                    )
+                    template = get_template_method(dep_name)
+                    deps: list[str] = []
+                    if hasattr(template, "dependencies"):
+                        deps = [r for r in (template.dependencies() or []) if isinstance(r, str)]
+                    elif hasattr(template, "_optimized_ast"):
+                        extract_method = getattr(engine, "_extract_referenced_templates", None)
+                        if callable(extract_method):
+                            deps = [
+                                r
+                                for r in (extract_method(template._optimized_ast) or [])
+                                if isinstance(r, str)
+                            ]
+                    next_queue.extend(ref for ref in deps if ref not in seen)
                 except Exception:
                     continue
 

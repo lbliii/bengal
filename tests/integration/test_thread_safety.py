@@ -103,8 +103,11 @@ class TestConcurrentRecordAndQuery:
 
         def record_loop() -> None:
             i = 0
+            # Cap at 1000 to prevent millions of effects under free-threading,
+            # which would make get_statistics() (O(n) under lock) hold the lock
+            # for seconds and starve the stop_event check → hang.
             try:
-                while not stop_event.is_set():
+                while not stop_event.is_set() and i < 1000:
                     effect = Effect.for_page_render(
                         source_path=Path(f"content/loop/page{i}.md"),
                         output_path=Path(f"public/loop/page{i}/index.html"),
