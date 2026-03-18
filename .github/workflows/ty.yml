@@ -11,7 +11,43 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for code changes
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE=${{ github.event.pull_request.base.sha }}
+          else
+            BASE=${{ github.event.before }}
+          fi
+          CHANGED=$(git diff --name-only "$BASE" HEAD 2>/dev/null || echo "FORCE_RUN")
+
+          if echo "$CHANGED" | grep -q "FORCE_RUN"; then
+            echo "code=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          CODE_CHANGED="false"
+          while IFS= read -r file; do
+            case "$file" in
+              site/*|docs/*|plan/*|skills/*|*.md|LICENSE|.context/*) ;;
+              *) CODE_CHANGED="true"; break ;;
+            esac
+          done <<< "$CHANGED"
+
+          echo "code=$CODE_CHANGED" >> $GITHUB_OUTPUT
+
   lint-and-type:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -40,3 +76,21 @@ jobs:
 
       - name: Run ty type checker
         run: uv run ty check bengal/
+
+  # Gate job for branch protection — succeeds when lint passes OR was skipped (docs-only)
+  lint-ok:
+    if: always()
+    needs: [detect-changes, lint-and-type]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Decide status
+        run: |
+          if [ "${{ needs.detect-changes.outputs.code }}" = "false" ]; then
+            echo "Docs-only change — lint skipped, CI passes"
+            exit 0
+          fi
+          if [ "${{ needs.lint-and-type.result }}" = "failure" ]; then
+            echo "Lint/type check failed"
+            exit 1
+          fi
+          echo "Lint/type check passed"
