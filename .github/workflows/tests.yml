@@ -133,7 +133,13 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running E2E tests..."
-        uv run pytest tests/e2e/ -v -m e2e --tb=short -n 0
+        uv run pytest \
+          tests/integration/test_cli_smoke.py \
+          tests/integration/test_documentation_builds.py \
+          tests/integration/test_blog_scenarios.py \
+          tests/integration/test_golden_output.py \
+          tests/integration/test_full_site_url_consistency.py \
+          -v --tb=short -n 0
 
   # Integration tests split into 4 shards to avoid timeout
   integration:
