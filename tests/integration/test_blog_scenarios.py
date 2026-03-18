@@ -18,25 +18,25 @@ import pytest
 class TestBlogScenarios:
     """Test blog functionality: pagination, RSS, taxonomy with 25 posts."""
 
-    def test_site_discovers_all_posts(self, built_site) -> None:
+    def test_site_discovers_all_posts(self, shared_site) -> None:
         """All 25 posts should be discovered."""
-        posts = [p for p in built_site.pages if "/posts/post-" in str(p.source_path)]
+        posts = [p for p in shared_site.pages if "/posts/post-" in str(p.source_path)]
         assert len(posts) == 25, f"Expected 25 posts, found {len(posts)}"
 
-    def test_posts_have_dates_for_sorting(self, built_site) -> None:
+    def test_posts_have_dates_for_sorting(self, shared_site) -> None:
         """Posts should have dates that can be used for sorting."""
-        posts = [p for p in built_site.pages if "/posts/post-" in str(p.source_path)]
+        posts = [p for p in shared_site.pages if "/posts/post-" in str(p.source_path)]
         dates = [post.date for post in posts if hasattr(post, "date") and post.date]
         assert len(dates) == len(posts), "All posts should have dates for sorting"
         sorted_dates = sorted(dates, reverse=True)
         assert sorted_dates[0] > sorted_dates[-1], "Posts should have different dates"
 
-    def test_pagination_pages_created(self, built_site) -> None:
+    def test_pagination_pages_created(self, shared_site) -> None:
         """Pagination should create multiple page directories.
 
         With 25 posts and 5 per page, we should have 5 pagination pages.
         """
-        output = built_site.output_dir
+        output = shared_site.output_dir
 
         assert (output / "posts" / "index.html").exists(), "Posts index should exist"
 
@@ -48,17 +48,17 @@ class TestBlogScenarios:
             index_html = (output / "posts" / "index.html").read_text()
             assert "post-" in index_html.lower() or len(list(output.glob("**/post-*"))) > 0
 
-    def test_individual_post_pages_created(self, built_site) -> None:
+    def test_individual_post_pages_created(self, shared_site) -> None:
         """Each post should have its own page."""
-        output = built_site.output_dir
+        output = shared_site.output_dir
 
         for i in [1, 10, 25]:
             post_path = output / "posts" / f"post-{i:02d}" / "index.html"
             assert post_path.exists(), f"Post {i} page should exist at {post_path}"
 
-    def test_rss_feed_generated(self, built_site) -> None:
+    def test_rss_feed_generated(self, shared_site) -> None:
         """RSS feed should be generated for blog."""
-        output = built_site.output_dir
+        output = shared_site.output_dir
 
         rss_locations = [
             output / "feed.xml",
@@ -77,9 +77,9 @@ class TestBlogScenarios:
                 f"XML files found: {[str(f.relative_to(output)) for f in xml_files]}"
             )
 
-    def test_rss_contains_posts(self, built_site) -> None:
+    def test_rss_contains_posts(self, shared_site) -> None:
         """RSS feed should contain post entries."""
-        output = built_site.output_dir
+        output = shared_site.output_dir
 
         rss_path = None
         for path in [
@@ -101,15 +101,15 @@ class TestBlogScenarios:
             "RSS feed should contain items/entries"
         )
 
-    def test_tags_discovered(self, built_site) -> None:
+    def test_tags_discovered(self, shared_site) -> None:
         """Posts should have tags extracted."""
-        posts = [p for p in built_site.pages if "/posts/post-" in str(p.source_path)]
+        posts = [p for p in shared_site.pages if "/posts/post-" in str(p.source_path)]
         posts_with_tags = [p for p in posts if hasattr(p, "tags") and p.tags]
         assert len(posts_with_tags) > 0, "Posts should have tags"
 
-    def test_tag_pages_created(self, built_site) -> None:
+    def test_tag_pages_created(self, shared_site) -> None:
         """Tag pages should be generated."""
-        output = built_site.output_dir
+        output = shared_site.output_dir
 
         tags_dir = output / "tags"
 

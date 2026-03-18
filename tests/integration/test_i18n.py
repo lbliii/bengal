@@ -21,17 +21,17 @@ class TestI18n:
 
     # --- Translation functionality ---
 
-    def test_translation_files_loaded(self, built_site) -> None:
+    def test_translation_files_loaded(self, shared_site) -> None:
         """Translation files should be loadable from i18n/ directory."""
-        i18n_dir = built_site.root_path / "i18n"
+        i18n_dir = shared_site.root_path / "i18n"
 
         # Verify translation files exist
         assert (i18n_dir / "en.yaml").exists(), "English translations should exist"
         assert (i18n_dir / "fr.yaml").exists(), "French translations should exist"
 
-    def test_i18n_config_present(self, built_site) -> None:
+    def test_i18n_config_present(self, shared_site) -> None:
         """i18n configuration should be loaded from bengal.toml."""
-        i18n_config = built_site.config.get("i18n", {})
+        i18n_config = shared_site.config.get("i18n", {})
 
         assert i18n_config.get("default_language") == "en", "Default language should be 'en'"
 
@@ -41,24 +41,26 @@ class TestI18n:
         assert "en" in lang_codes, "English should be configured"
         assert "fr" in lang_codes, "French should be configured"
 
-    def test_content_directories_exist(self, built_site) -> None:
+    def test_content_directories_exist(self, shared_site) -> None:
         """Language-specific content directories should exist."""
-        content_dir = built_site.root_path / "content"
+        content_dir = shared_site.root_path / "content"
 
         assert (content_dir / "en" / "_index.md").exists(), "English home page should exist"
         assert (content_dir / "fr" / "_index.md").exists(), "French home page should exist"
 
-    def test_pages_have_lang_attribute(self, built_site) -> None:
+    def test_pages_have_lang_attribute(self, shared_site) -> None:
         """Pages should have language attribute set."""
-        pages_with_lang = [page for page in built_site.pages if hasattr(page, "lang") and page.lang]
+        pages_with_lang = [
+            page for page in shared_site.pages if hasattr(page, "lang") and page.lang
+        ]
 
         assert len(pages_with_lang) >= 2, "At least 2 pages should have lang attribute set"
 
-    def test_translation_keys_present(self, built_site) -> None:
+    def test_translation_keys_present(self, shared_site) -> None:
         """Pages should have translation_key for linking translations."""
         pages_with_key = [
             page
-            for page in built_site.pages
+            for page in shared_site.pages
             if hasattr(page, "translation_key") and page.translation_key
         ]
 
@@ -66,11 +68,11 @@ class TestI18n:
 
     # --- Template functions integration ---
 
-    def test_languages_function_returns_configured(self, built_site) -> None:
+    def test_languages_function_returns_configured(self, shared_site) -> None:
         """languages() should return configured language list."""
         from bengal.rendering.template_functions.i18n import _languages
 
-        langs = _languages(built_site)
+        langs = _languages(shared_site)
 
         # Should return list of language info dicts
         assert isinstance(langs, list), "languages() should return a list"
@@ -81,11 +83,11 @@ class TestI18n:
         assert "en" in codes, "English should be in languages list"
         assert "fr" in codes, "French should be in languages list"
 
-    def test_t_function_translates(self, built_site) -> None:
+    def test_t_function_translates(self, shared_site) -> None:
         """t() should translate UI strings."""
         from bengal.rendering.template_functions.i18n import _make_t
 
-        translate = _make_t(built_site)
+        translate = _make_t(shared_site)
 
         # Test English translation
         en_home = translate("ui.home", lang="en")
@@ -95,11 +97,11 @@ class TestI18n:
         fr_home = translate("ui.home", lang="fr")
         assert fr_home == "Accueil", f"Expected 'Accueil', got '{fr_home}'"
 
-    def test_t_function_fallback(self, built_site) -> None:
+    def test_t_function_fallback(self, shared_site) -> None:
         """t() should fallback to default language if key missing."""
         from bengal.rendering.template_functions.i18n import _make_t
 
-        translate = _make_t(built_site)
+        translate = _make_t(shared_site)
 
         # Request a key that might only exist in one language
         # or fall back to key if not found at all
@@ -108,25 +110,25 @@ class TestI18n:
         # Should return the key itself as fallback
         assert result == "nonexistent.key", f"Missing key should return key itself, got '{result}'"
 
-    def test_current_lang_function(self, built_site) -> None:
+    def test_current_lang_function(self, shared_site) -> None:
         """current_lang() should detect language from config."""
         from bengal.rendering.template_functions.i18n import _current_lang
 
-        lang = _current_lang(built_site)
+        lang = _current_lang(shared_site)
 
         # Should return default language when no page context
         assert lang == "en", f"Expected 'en' as default, got '{lang}'"
 
     # --- Build output ---
 
-    def test_builds_successfully(self, built_site) -> None:
+    def test_builds_successfully(self, shared_site) -> None:
         """i18n site should build without errors."""
-        output = built_site.output_dir
+        output = shared_site.output_dir
         assert output.exists(), "Output directory should exist"
 
-    def test_generates_language_directories(self, built_site) -> None:
+    def test_generates_language_directories(self, shared_site) -> None:
         """Build should generate language-specific directories."""
-        output = built_site.output_dir
+        output = shared_site.output_dir
 
         # Check for language directories in output
         en_exists = (output / "en" / "index.html").exists()
@@ -134,9 +136,9 @@ class TestI18n:
 
         assert en_exists or fr_exists, "At least one language directory should exist in output"
 
-    def test_pages_contain_translated_content(self, built_site) -> None:
+    def test_pages_contain_translated_content(self, shared_site) -> None:
         """Built pages should contain language-specific content."""
-        output = built_site.output_dir
+        output = shared_site.output_dir
 
         # Check English content
         en_paths = [
@@ -170,11 +172,11 @@ class TestI18n:
 
     # --- Alternate links (hreflang) ---
 
-    def test_pages_linked_by_translation_key(self, built_site) -> None:
+    def test_pages_linked_by_translation_key(self, shared_site) -> None:
         """Pages with same translation_key should be linked."""
         # Group pages by translation_key
         by_key: dict[str, list] = {}
-        for page in built_site.pages:
+        for page in shared_site.pages:
             key = getattr(page, "translation_key", None)
             if key:
                 by_key.setdefault(key, []).append(page)
@@ -186,13 +188,13 @@ class TestI18n:
             "At least one page should have translations in multiple languages"
         )
 
-    def test_alternate_links_function(self, built_site) -> None:
+    def test_alternate_links_function(self, shared_site) -> None:
         """alternate_links() should generate hreflang tags."""
         from bengal.rendering.template_functions.i18n import _alternate_links
 
         # Find a page with translation_key
         test_page = None
-        for page in built_site.pages:
+        for page in shared_site.pages:
             if getattr(page, "translation_key", None):
                 test_page = page
                 break
@@ -200,7 +202,7 @@ class TestI18n:
         if test_page is None:
             pytest.skip("No page with translation_key found")
 
-        alternates = _alternate_links(built_site, test_page)
+        alternates = _alternate_links(shared_site, test_page)
 
         # If translations exist, should have alternates
         if alternates:

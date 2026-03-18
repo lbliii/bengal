@@ -23,6 +23,79 @@ from bengal.core.site import Site
 from bengal.icons import resolver as icon_resolver
 
 
+def create_site_from_testroot(
+    testroot: str,
+    rootdir: Path,
+    site_dir: Path,
+    confoverrides: dict[str, Any] | None = None,
+) -> Site:
+    """
+    Create a Site instance from a test root directory.
+
+    Shared logic used by both site_factory (function-scoped) and
+    shared_site (class-scoped) fixtures.
+
+    """
+    root_path = rootdir / testroot
+    if not root_path.exists():
+        available = [p.name for p in rootdir.iterdir() if p.is_dir()]
+        raise ValueError(
+            f"Test root '{testroot}' not found. Available roots: {', '.join(available)}"
+        )
+
+    # Check if skeleton manifest exists - use it if available
+    skeleton_manifest = root_path / "skeleton.yaml"
+    if skeleton_manifest.exists():
+        from bengal.cli.skeleton.hydrator import Hydrator
+        from bengal.cli.skeleton.schema import Skeleton
+
+        skeleton = Skeleton.from_yaml(skeleton_manifest.read_text())
+        content_dir = site_dir / "content"
+        content_dir.mkdir()
+
+        hydrator = Hydrator(content_dir, dry_run=False, force=True)
+        hydrator.apply(skeleton)
+
+        # Copy config and other files from root
+        for item in root_path.iterdir():
+            if item.name not in ("skeleton.yaml", "content"):
+                if item.is_file():
+                    shutil.copy2(item, site_dir / item.name)
+                elif item.is_dir() and item.name != "public":  # Skip public/build artifacts
+                    shutil.copytree(item, site_dir / item.name, dirs_exist_ok=True)
+    else:
+        # Fallback: Copy entire root (backward compatibility)
+        shutil.copytree(root_path, site_dir, dirs_exist_ok=True)
+
+    # Apply config overrides if provided
+    if confoverrides:
+        config_path = site_dir / "bengal.toml"
+        if config_path.exists():
+            with open(config_path, "rb") as f:
+                config = tomllib.load(f)
+
+            # Apply nested overrides (e.g., "site.title" -> config["site"]["title"])
+            for key, value in confoverrides.items():
+                if "." in key:
+                    section, subkey = key.split(".", 1)
+                    if section not in config:
+                        config[section] = {}
+                    config[section][subkey] = value
+                else:
+                    config[key] = value
+
+            # Write back
+            with open(config_path, "wb") as f:
+                tomli_w.dump(config, f)
+
+    # Create and initialize Site
+    site = Site.from_config(site_dir)
+    site.discover_content()
+    site.discover_assets()
+
+    return site
+
+
 @pytest.fixture(autouse=True)
 def reset_icon_resolver():
     """
@@ -77,70 +150,9 @@ def site_factory(tmp_path: Path, rootdir: Path) -> Callable:
     """
 
     def _factory(testroot: str, confoverrides: dict[str, Any] | None = None) -> Site:
-        # Validate testroot exists
-        root_path = rootdir / testroot
-        if not root_path.exists():
-            available = [p.name for p in rootdir.iterdir() if p.is_dir()]
-            raise ValueError(
-                f"Test root '{testroot}' not found. Available roots: {', '.join(available)}"
-            )
-
-        # Create site directory
         site_dir = tmp_path / "site"
         site_dir.mkdir()
-
-        # Check if skeleton manifest exists - use it if available
-        skeleton_manifest = root_path / "skeleton.yaml"
-        if skeleton_manifest.exists():
-            # Use skeleton manifest to create structure
-            from bengal.cli.skeleton.hydrator import Hydrator
-            from bengal.cli.skeleton.schema import Skeleton
-
-            skeleton = Skeleton.from_yaml(skeleton_manifest.read_text())
-            content_dir = site_dir / "content"
-            content_dir.mkdir()
-
-            hydrator = Hydrator(content_dir, dry_run=False, force=True)
-            hydrator.apply(skeleton)
-
-            # Copy config and other files from root
-            for item in root_path.iterdir():
-                if item.name not in ("skeleton.yaml", "content"):
-                    if item.is_file():
-                        shutil.copy2(item, site_dir / item.name)
-                    elif item.is_dir() and item.name != "public":  # Skip public/build artifacts
-                        shutil.copytree(item, site_dir / item.name, dirs_exist_ok=True)
-        else:
-            # Fallback: Copy entire root (backward compatibility)
-            shutil.copytree(root_path, site_dir, dirs_exist_ok=True)
-
-        # Apply config overrides if provided
-        if confoverrides:
-            config_path = site_dir / "bengal.toml"
-            if config_path.exists():
-                with open(config_path, "rb") as f:
-                    config = tomllib.load(f)
-
-                # Apply nested overrides (e.g., "site.title" -> config["site"]["title"])
-                for key, value in confoverrides.items():
-                    if "." in key:
-                        section, subkey = key.split(".", 1)
-                        if section not in config:
-                            config[section] = {}
-                        config[section][subkey] = value
-                    else:
-                        config[key] = value
-
-                # Write back
-                with open(config_path, "wb") as f:
-                    tomli_w.dump(config, f)
-
-        # Create and initialize Site
-        site = Site.from_config(site_dir)
-        site.discover_content()
-        site.discover_assets()
-
-        return site
+        return create_site_from_testroot(testroot, rootdir, site_dir, confoverrides)
 
     return _factory
 

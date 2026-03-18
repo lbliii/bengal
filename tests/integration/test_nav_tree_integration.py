@@ -18,17 +18,17 @@ from bengal.core.nav_tree import NavTree, NavTreeCache
 class TestNavTreeVersionedSite:
     """Integration tests for NavTree with versioned site."""
 
-    def test_nav_tree_builds_for_each_version(self, built_site):
+    def test_nav_tree_builds_for_each_version(self, shared_site):
         """Test that NavTree builds correctly for each version."""
 
         # Clear cache to ensure fresh builds
         NavTreeCache.invalidate()
 
         # Build trees for each version
-        tree_v1 = NavTree.build(built_site, version_id="v1")
-        tree_v2 = NavTree.build(built_site, version_id="v2")
-        tree_v3 = NavTree.build(built_site, version_id="v3")
-        tree_none = NavTree.build(built_site, version_id=None)
+        tree_v1 = NavTree.build(shared_site, version_id="v1")
+        tree_v2 = NavTree.build(shared_site, version_id="v2")
+        tree_v3 = NavTree.build(shared_site, version_id="v3")
+        tree_none = NavTree.build(shared_site, version_id=None)
 
         # Each version should have its own tree
         assert tree_v1.version_id == "v1"
@@ -41,7 +41,7 @@ class TestNavTreeVersionedSite:
         assert "v2" in tree_v1.versions
         assert "v3" in tree_v1.versions
 
-    def test_shared_content_in_all_versions(self, built_site):
+    def test_shared_content_in_all_versions(self, shared_site):
         """Test that _shared/ pages appear in all version navigation trees.
 
         NOTE: Currently shared content injection into nav trees is not implemented.
@@ -50,7 +50,7 @@ class TestNavTreeVersionedSite:
         """
 
         # Verify shared page exists in site
-        shared_pages = [p for p in built_site.pages if "_shared" in str(p.source_path)]
+        shared_pages = [p for p in shared_site.pages if "_shared" in str(p.source_path)]
         assert len(shared_pages) > 0, "Shared pages should be discovered"
 
         changelog_page = next((p for p in shared_pages if "changelog" in str(p.source_path)), None)
@@ -61,15 +61,15 @@ class TestNavTreeVersionedSite:
         # TODO: Once shared content injection is implemented in NavTree.build(),
         # uncomment these assertions:
         # NavTreeCache.invalidate()
-        # tree_v1 = NavTree.build(built_site, version_id="v1")
-        # tree_v2 = NavTree.build(built_site, version_id="v2")
-        # tree_v3 = NavTree.build(built_site, version_id="v3")
+        # tree_v1 = NavTree.build(shared_site, version_id="v1")
+        # tree_v2 = NavTree.build(shared_site, version_id="v2")
+        # tree_v3 = NavTree.build(shared_site, version_id="v3")
         # changelog_url = "/_shared/changelog/"
         # assert tree_v1.find(changelog_url) is not None
         # assert tree_v2.find(changelog_url) is not None
         # assert tree_v3.find(changelog_url) is not None
 
-    def test_version_specific_content_filtering(self, built_site):
+    def test_version_specific_content_filtering(self, shared_site):
         """Test that version-specific content only appears in correct version tree.
 
         NOTE: Currently, versioned pages (v1, v2) are not in separate sections,
@@ -81,7 +81,7 @@ class TestNavTreeVersionedSite:
         NavTreeCache.invalidate()
 
         # Build tree for latest version (v3)
-        tree_v3 = NavTree.build(built_site, version_id="v3")
+        tree_v3 = NavTree.build(shared_site, version_id="v3")
 
         # v3 guide (latest, uses main docs/)
         v3_guide_url = "/docs/guide/"
@@ -94,35 +94,35 @@ class TestNavTreeVersionedSite:
         v3_docs = tree_v3.find(v3_docs_url)
         assert v3_docs is not None, "v3 docs section should be in nav tree"
 
-    def test_nav_tree_cache_works(self, built_site):
+    def test_nav_tree_cache_works(self, shared_site):
         """Test that NavTreeCache properly caches trees."""
 
         NavTreeCache.invalidate()
 
         # First call builds the tree
-        tree_v1_first = NavTreeCache.get(built_site, version_id="v1")
+        tree_v1_first = NavTreeCache.get(shared_site, version_id="v1")
 
         # Second call should return cached tree
-        tree_v1_second = NavTreeCache.get(built_site, version_id="v1")
+        tree_v1_second = NavTreeCache.get(shared_site, version_id="v1")
 
         # Should be the same object (cached)
         assert tree_v1_first is tree_v1_second
 
         # Different versions should be different objects
-        tree_v2 = NavTreeCache.get(built_site, version_id="v2")
+        tree_v2 = NavTreeCache.get(shared_site, version_id="v2")
         assert tree_v1_first is not tree_v2
 
-    def test_nav_tree_context_active_trail(self, built_site):
+    def test_nav_tree_context_active_trail(self, shared_site):
         """Test that NavTreeContext correctly identifies active trail."""
 
         NavTreeCache.invalidate()
 
         # Use v3 (latest) tree since v1/v2 pages aren't in separate sections
-        tree_v3 = NavTree.build(built_site, version_id="v3")
+        tree_v3 = NavTree.build(shared_site, version_id="v3")
 
         # Find v3 guide page (latest version)
         v3_guide_page = None
-        for page in built_site.pages:
+        for page in shared_site.pages:
             if page.version == "v3" and "guide.md" in str(page.source_path):
                 v3_guide_page = page
                 break
@@ -149,21 +149,21 @@ class TestNavTreeVersionedSite:
             assert context.is_active(docs_section) is True
             assert context.is_current(docs_section) is False
 
-    def test_version_switcher_urls_exist(self, built_site):
+    def test_version_switcher_urls_exist(self, shared_site):
         """Test that version switcher URLs point to valid pages (no 404s)."""
 
         NavTreeCache.invalidate()
 
         # Get all version trees
-        tree_v1 = NavTree.build(built_site, version_id="v1")
-        tree_v3 = NavTree.build(built_site, version_id="v3")
+        tree_v1 = NavTree.build(shared_site, version_id="v1")
+        tree_v3 = NavTree.build(shared_site, version_id="v3")
 
         # For each version, check that switching to other versions produces valid URLs
         # This tests the fallback cascade logic
 
         # Find a page in v2
         v2_guide_page = None
-        for page in built_site.pages:
+        for page in shared_site.pages:
             if page.version == "v2" and "guide.md" in str(page.source_path):
                 v2_guide_page = page
                 break
@@ -172,20 +172,20 @@ class TestNavTreeVersionedSite:
 
         # Test version switching using Site API (public contract)
         # Get v1 version dict from site
-        v1_version = next((v for v in built_site.versions if v["id"] == "v1"), None)
+        v1_version = next((v for v in shared_site.versions if v["id"] == "v1"), None)
         assert v1_version is not None
 
-        target_v1 = built_site.get_version_target_url(v2_guide_page, v1_version)
+        target_v1 = shared_site.get_version_target_url(v2_guide_page, v1_version)
         assert target_v1 is not None
         assert isinstance(target_v1, str)
         assert len(target_v1) > 0
 
         # get_version_target_url returns URLs with baseurl, so strip it for comparison
         # Access from site section (supports both Config and dict)
-        if hasattr(built_site.config, "site"):
-            baseurl = built_site.config.site.baseurl or "/"
+        if hasattr(shared_site.config, "site"):
+            baseurl = shared_site.config.site.baseurl or "/"
         else:
-            baseurl = built_site.config.get("site", {}).get("baseurl", "/")
+            baseurl = shared_site.config.get("site", {}).get("baseurl", "/")
         baseurl = baseurl.rstrip("/")
         target_v1_rel = target_v1
         if baseurl and target_v1.startswith(baseurl):
@@ -207,9 +207,9 @@ class TestNavTreeVersionedSite:
         assert is_valid_fallback, f"Target URL {target_v1_rel} should be a valid fallback URL"
 
         # Test switching to v3 (latest)
-        v3_version = next((v for v in built_site.versions if v["id"] == "v3"), None)
+        v3_version = next((v for v in shared_site.versions if v["id"] == "v3"), None)
         assert v3_version is not None
-        target_v3 = built_site.get_version_target_url(v2_guide_page, v3_version)
+        target_v3 = shared_site.get_version_target_url(v2_guide_page, v3_version)
         assert target_v3 is not None
         assert isinstance(target_v3, str)
         assert len(target_v3) > 0
@@ -229,18 +229,18 @@ class TestNavTreeVersionedSite:
         )
         assert is_valid_fallback_v3, f"Target URL {target_v3_rel} should be valid in v3 tree"
 
-    def test_nav_tree_find_all_pages(self, built_site):
+    def test_nav_tree_find_all_pages(self, shared_site):
         """Test that NavTree.find() can locate all pages in the tree."""
 
         NavTreeCache.invalidate()
 
         # Use v3 (latest) tree since v1/v2 pages aren't in separate sections
-        tree_v3 = NavTree.build(built_site, version_id="v3")
+        tree_v3 = NavTree.build(shared_site, version_id="v3")
 
         # Get all pages for v3 (excluding index pages, which are represented by section nodes)
         v3_pages = [
             p
-            for p in built_site.pages
+            for p in shared_site.pages
             if p.version == "v3"
             and (p._section is None or p != getattr(p._section, "index_page", None))
         ]
@@ -258,12 +258,12 @@ class TestNavTreeVersionedSite:
         assert v3_section_node is not None, "Section node should exist for v3 docs"
         assert v3_section_node.is_index is True, "Section node should be marked as index"
 
-    def test_nav_tree_flat_nodes_completeness(self, built_site):
+    def test_nav_tree_flat_nodes_completeness(self, shared_site):
         """Test that flat_nodes includes all nodes in the tree."""
 
         NavTreeCache.invalidate()
 
-        tree_v3 = NavTree.build(built_site, version_id="v3")
+        tree_v3 = NavTree.build(shared_site, version_id="v3")
 
         # Walk the tree and collect all URLs
         walked_urls = {node._path for node in tree_v3.root.walk()}
@@ -273,12 +273,12 @@ class TestNavTreeVersionedSite:
 
         assert walked_urls == flat_urls, "flat_nodes should contain all nodes from walk()"
 
-    def test_nav_tree_urls_set_completeness(self, built_site):
+    def test_nav_tree_urls_set_completeness(self, shared_site):
         """Test that urls set includes all node URLs."""
 
         NavTreeCache.invalidate()
 
-        tree_v3 = NavTree.build(built_site, version_id="v3")
+        tree_v3 = NavTree.build(shared_site, version_id="v3")
 
         # URLs set should match flat_nodes keys
         flat_urls = set(tree_v3.flat_nodes.keys())

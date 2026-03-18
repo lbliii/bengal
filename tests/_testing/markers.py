@@ -24,11 +24,7 @@ Usage:
 RFC: rfc-behavioral-test-hardening
 """
 
-import shutil
-import tomllib
-
 import pytest
-import tomli_w
 
 from bengal.orchestration.build.options import BuildOptions
 
@@ -87,7 +83,7 @@ def site(request, site_factory):
 
 
 @pytest.fixture(scope="class")
-def built_site(request, tmp_path_factory, rootdir):
+def shared_site(request, tmp_path_factory, rootdir):
     """
     Class-scoped built site for read-only integration tests.
 
@@ -96,13 +92,16 @@ def built_site(request, tmp_path_factory, rootdir):
 
     Tests using this fixture must NOT modify the site or its files.
 
+    Note: Named 'shared_site' (not 'built_site') to avoid collision with
+    module-local fixtures of the same name in test_output_quality.py.
+
     """
-    from bengal.core.site import Site
+    from tests._testing.fixtures import create_site_from_testroot
 
     bengal_marker = request.node.get_closest_marker("bengal")
     if not bengal_marker:
         raise pytest.UsageError(
-            f"Test {request.node.nodeid} uses 'built_site' fixture but has no "
+            f"Test {request.node.nodeid} uses 'shared_site' fixture but has no "
             "@pytest.mark.bengal marker."
         )
 
@@ -114,59 +113,8 @@ def built_site(request, tmp_path_factory, rootdir):
             f"@pytest.mark.bengal requires 'testroot' parameter. Test: {request.node.nodeid}"
         )
 
-    root_path = rootdir / testroot
-    if not root_path.exists():
-        available = [p.name for p in rootdir.iterdir() if p.is_dir()]
-        raise ValueError(
-            f"Test root '{testroot}' not found. Available roots: {', '.join(available)}"
-        )
-
-    site_dir = tmp_path_factory.mktemp(f"built_{testroot}")
-
-    # Check if skeleton manifest exists
-    skeleton_manifest = root_path / "skeleton.yaml"
-    if skeleton_manifest.exists():
-        from bengal.cli.skeleton.hydrator import Hydrator
-        from bengal.cli.skeleton.schema import Skeleton
-
-        skeleton = Skeleton.from_yaml(skeleton_manifest.read_text())
-        content_dir = site_dir / "content"
-        content_dir.mkdir()
-
-        hydrator = Hydrator(content_dir, dry_run=False, force=True)
-        hydrator.apply(skeleton)
-
-        for item in root_path.iterdir():
-            if item.name not in ("skeleton.yaml", "content"):
-                if item.is_file():
-                    shutil.copy2(item, site_dir / item.name)
-                elif item.is_dir() and item.name != "public":
-                    shutil.copytree(item, site_dir / item.name, dirs_exist_ok=True)
-    else:
-        shutil.copytree(root_path, site_dir, dirs_exist_ok=True)
-
-    # Apply config overrides
-    if confoverrides:
-        config_path = site_dir / "bengal.toml"
-        if config_path.exists():
-            with open(config_path, "rb") as f:
-                config = tomllib.load(f)
-
-            for key, value in confoverrides.items():
-                if "." in key:
-                    section, subkey = key.split(".", 1)
-                    if section not in config:
-                        config[section] = {}
-                    config[section][subkey] = value
-                else:
-                    config[key] = value
-
-            with open(config_path, "wb") as f:
-                tomli_w.dump(config, f)
-
-    site = Site.from_config(site_dir)
-    site.discover_content()
-    site.discover_assets()
+    site_dir = tmp_path_factory.mktemp(f"shared_{testroot}")
+    site = create_site_from_testroot(testroot, rootdir, site_dir, confoverrides)
     site.build(BuildOptions(force_sequential=True))
 
     return site
