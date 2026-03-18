@@ -1,5 +1,53 @@
 ## [Unreleased]
 
+## 0.2.6 - 2026-03-17
+
+### Double-Buffered Dev Server
+- **server**: add BufferManager for double-buffered output — eliminates FOUC during rapid rebuilds
+- **server**: ASGI app accepts callable output_dir for per-request directory consistency
+- **server**: zero-disk reactive path for content-only edits
+- **server**: in-process builds for clean Ctrl+C shutdown (no zombie subprocesses)
+- **server**: remove stopgap FOUC mitigations now redundant with double-buffer
+
+### i18n Gettext Workflow
+- **cli**: add `bengal i18n extract`, `bengal i18n compile`, `bengal i18n status` commands (Phase 1A)
+- **i18n**: add PO/MO catalog management and coverage computation
+- **cli**: narrow exception handling in i18n commands and catalog
+
+### Jinja2 Engine Removed
+- **rendering**: remove Jinja2 engine and adapter — Kida is now the only template engine
+- **BREAKING**: `template_engine: jinja2` config no longer valid; use `kida`
+
+### Performance
+- **navigation**: O(n²)→O(1) page navigation via lazy dict index with auto-invalidation
+- **validation**: precompute newline positions + bisect for O(N + M log N) cross-ref validation
+- **cache**: add excerpt index for PageProxy without full page load
+
+### Orchestration
+- **orchestration**: wire block cache into WaveScheduler for per-page rendering optimization
+- **orchestration**: propagate asset manifest context explicitly through pipeline
+- **orchestration**: aggregated fallback diagnostics (sampled, summarized at phase end)
+- **orchestration**: add parsed/rendered cache hit metrics to build summary
+
+### New Output Generators
+- **postprocess**: add agent manifest generator
+- **postprocess**: add changelog generator
+- **postprocess**: add llms.txt generator
+- **postprocess**: add robots.txt generator
+
+### Other
+- **core**: add `visibility.ai_train` and `visibility.ai_input` page properties for Content Signals
+- **core**: normalize tags in `Frontmatter.from_dict()` for malformed input
+- **core**: rename menu `url` → `href`; remove `active`/`active_trail` from MenuItem.to_dict()
+- **directives**: fix list-table options mapping, re-enable skipped tests
+- **cli**: use CLIOutput for stale process and port-in-use messaging
+- **rendering**: add `direction()` template function for RTL language support
+- **rendering**: add template context validation (`--templates-context` flag)
+- **rendering**: add template profiler for render performance analysis
+- **cli**: scan all subdirectories for Bengal site markers (not hardcoded names)
+- **code**: remove three unused methods from PageOperationsMixin
+- **deps**: kida-templates ≥0.2.8, patitas ≥0.3.5, bengal-pounce ≥0.3.0
+
 ## 0.2.5 - 2026-03-03
 
 ### Kida 0.2.3

@@ -322,17 +322,13 @@ Bengal ships with a modern, accessible default theme:
 Bengal follows a "bring your own" pattern — swap engines without changing your content.
 
 <details>
-<summary><strong>Template Engines</strong></summary>
+<summary><strong>Template Engine</strong></summary>
 
 | Engine | Description | Install |
 |--------|-------------|---------|
-| **Kida** (default) | Bengal's native engine. AST-native, free-threading safe, Jinja2-compatible syntax | Built-in |
-| **Jinja2** | Industry-standard with extensive ecosystem | Built-in |
+| **Kida** | Bengal's native engine. AST-native, free-threading safe, Jinja2-compatible syntax | Built-in |
 
-```yaml
-# config/_default/site.yaml
-template_engine: kida  # or jinja2
-```
+Kida is the built-in template engine. It uses Jinja2-compatible syntax, so existing Jinja2 templates generally work without changes. See the [Kida migration guide](https://lbliii.github.io/bengal/docs/theming/templating/kida/migration/from-jinja/) if migrating from Jinja2.
 
 </details>
 

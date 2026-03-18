@@ -40,7 +40,7 @@ Create styled badges for labels, tags, or status indicators.
 **Aliases**: `bdg`
 
 :::{note}
-Bengal also supports **inline badge syntax**: `{bdg-primary}`text`` for embedding badges within paragraphs. See [Inline Elements](/docs/reference/inline/) for details.
+Bengal also supports **inline badge syntax**: `{bdg-primary}`text`` for embedding badges within paragraphs.
 :::
 
 **Syntax**:

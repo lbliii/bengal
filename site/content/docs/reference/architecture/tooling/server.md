@@ -20,7 +20,8 @@ Provide a local development environment with automatic rebuilds.
 
 ### Features
 
-- Built-in HTTP server (ThreadingTCPServer)
+- ASGI server via [Pounce](https://github.com/lbliii/pounce)
+- Double-buffered output (eliminates FOUC during rebuilds)
 - File system watching with watchfiles
 - Automatic rebuild on changes
 - Live reload via SSE (Server-Sent Events)
@@ -28,6 +29,7 @@ Provide a local development environment with automatic rebuilds.
 - Automatic browser opening
 - Stale process detection and cleanup
 - Automatic port fallback if port is in use
+- In-process builds for clean Ctrl+C shutdown
 
 ### Architecture
 
@@ -79,7 +81,7 @@ bengal serve --verbose
 The server watches for changes in:
 
 - Content files (`content/**/*.md`)
-- Templates (`templates/**/*.html`, `templates/**/*.jinja2`)
+- Templates (`templates/**/*.html`)
 - Assets (`assets/**/*`)
 - Data files (`data/**/*`)
 - Static files (`static/**/*`) if enabled
@@ -131,13 +133,21 @@ source.onmessage = (event) => {
 </script>
 ```
 
+### Double-Buffered Output
+
+The dev server uses a double-buffered output strategy to prevent flash-of-unstyled-content (FOUC) during rebuilds. Instead of writing directly to the directory being served, builds write to an alternate buffer and atomically swap it in when complete.
+
+- **BufferManager** manages two output directories and provides an atomic swap
+- The ASGI app resolves the active directory per-request, so in-flight requests always see a consistent snapshot
+- Content-only edits can use a zero-disk reactive path that skips the full write cycle
+
 ### Performance Considerations
 
 - **Incremental builds**: Only rebuild changed files (5-10x faster than full builds)
 - **Debouncing**: Groups rapid changes (300ms delay) to avoid multiple rebuilds
 - **Efficient watching**: Uses watchfiles with native file system events
 - **Selective injection**: Reload script only in HTML, not assets
-- **Process isolation**: Builds run in subprocess for crash resilience
+- **In-process builds**: Builds run in the server process for clean Ctrl+C shutdown
 
 ### Configuration
 
