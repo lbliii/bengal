@@ -787,9 +787,30 @@ class RenderingPipeline:
         else:
             # Fallback: parse HTML (slow, but catches assets not using filters)
             try:
-                from bengal.rendering.asset_extractor import extract_assets_from_html
+                from urllib.parse import urlparse
 
-                assets = extract_assets_from_html(page.rendered_html)
+                from bengal.rendering.asset_extractor import extract_assets_from_html
+                from bengal.rendering.assets import get_asset_manifest
+
+                raw_assets = extract_assets_from_html(page.rendered_html)
+
+                # Normalize fingerprinted URLs back to logical paths.
+                # When Kida fragment cache hits, asset_url() is not called, so
+                # tracked_assets is empty and we fall back to HTML parsing.
+                # HTML parsing extracts full fingerprinted URLs like
+                # "http://host/assets/css/style.abc123.css", not logical paths
+                # like "css/style.css". Use the manifest reverse map to recover
+                # the logical path so incremental builds invalidate correctly.
+                manifest = get_asset_manifest()
+                if manifest and manifest.entries and raw_assets:
+                    reverse = {v: k for k, v in manifest.entries.items()}
+                    normalized: set[str] = set()
+                    for url in raw_assets:
+                        path = urlparse(url).path.lstrip("/") if "://" in url else url.lstrip("/")
+                        normalized.add(reverse.get(path, url))
+                    assets = normalized
+                else:
+                    assets = raw_assets
             except Exception as e:
                 # Extraction failure should not break render
                 # Fallback extraction will handle this page in phase_track_assets
