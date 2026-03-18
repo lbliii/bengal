@@ -123,8 +123,9 @@ class TestMenuItem:
         data = parent.to_dict()
         assert data["name"] == "Docs"
         assert data["href"] == "/docs/"  # to_dict uses href not url
-        assert data["active"] is False
-        assert data["active_trail"] is False
+        # active/active_trail are excluded from to_dict — templates compute via URL comparison
+        assert "active" not in data
+        assert "active_trail" not in data
         assert len(data["children"]) == 1
         assert data["children"][0]["name"] == "Guide"
 
