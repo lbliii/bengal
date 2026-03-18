@@ -807,13 +807,14 @@ class RenderingPipeline:
                 # like "css/style.css". Use the manifest reverse map to recover
                 # the logical path so incremental builds invalidate correctly.
                 # Build reverse map once per pipeline instance (lazy, cached).
-                if not self._manifest_reverse_built:
+                # Use getattr so tests can pass a SimpleNamespace as self.
+                if not getattr(self, "_manifest_reverse_built", False):
                     manifest = get_asset_manifest()
                     if manifest and manifest.entries:
                         self._manifest_reverse = {v: k for k, v in manifest.entries.items()}
                     self._manifest_reverse_built = True
 
-                if self._manifest_reverse and raw_assets:
+                if getattr(self, "_manifest_reverse", None) and raw_assets:
                     reverse = self._manifest_reverse
                     normalized: set[str] = set()
                     for url in raw_assets:
