@@ -157,6 +157,9 @@ avif = [
 fast-images = [
     { name = "pyvips" },
 ]
+gettext = [
+    { name = "polib" },
+]
 github = [
     { name = "aiohttp" },
 ]
@@ -184,6 +187,7 @@ dev = [
     { name = "hypothesis" },
     { name = "markdown" },
     { name = "poethepoet" },
+    { name = "polib" },
     { name = "prek" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
@@ -229,6 +233,7 @@ requires-dist = [
     { name = "pillow", marker = "extra == 'images'", specifier = ">=10.0" },
     { name = "pillow", marker = "extra == 'smartcrop'", specifier = ">=10.0" },
     { name = "pillow-avif-plugin", marker = "extra == 'avif'", specifier = ">=1.3" },
+    { name = "polib", marker = "extra == 'gettext'", specifier = ">=1.0" },
     { name = "psutil", specifier = ">=5.9.0" },
     { name = "pyvips", marker = "extra == 'fast-images'", specifier = ">=2.2" },
     { name = "pyyaml", specifier = ">=6.0" },
@@ -240,7 +245,7 @@ requires-dist = [
     { name = "uvloop", marker = "sys_platform != 'win32'", specifier = ">=0.21.0" },
     { name = "watchfiles", specifier = ">=0.20" },
 ]
-provides-extras = ["search", "images", "smartcrop", "avif", "fast-images", "github", "notion", "rest", "all-sources"]
+provides-extras = ["search", "images", "smartcrop", "avif", "fast-images", "gettext", "github", "notion", "rest", "all-sources"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -248,6 +253,7 @@ dev = [
     { name = "hypothesis", specifier = ">=6.92.0" },
     { name = "markdown", specifier = ">=3.5.0" },
     { name = "poethepoet", specifier = ">=0.35.0" },
+    { name = "polib", specifier = ">=1.0" },
     { name = "prek", specifier = ">=0.3.2" },
     { name = "pytest", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", specifier = ">=0.23.0" },
@@ -817,6 +823,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/38/9d/054c8435b03324ed9abd5d5ab8c45065b1f42c23952cd23f13a5921d8465/poethepoet-0.40.0.tar.gz", hash = "sha256:91835f00d03d6c4f0e146f80fa510e298ad865e7edd27fe4cb9c94fdc090791b", size = 81114, upload-time = "2026-01-05T19:09:13.116Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fb/bc/73327d12b176abea7a3c6c7d760e1a953992f7b59d72c0354e39d7a353b5/poethepoet-0.40.0-py3-none-any.whl", hash = "sha256:afd276ae31d5c53573c0c14898118d4848ccee3709b6b0be6a1c6cbe522bbc8a", size = 106672, upload-time = "2026-01-05T19:09:11.536Z" },
+]
+
+[[package]]
+name = "polib"
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/10/9a/79b1067d27e38ddf84fe7da6ec516f1743f31f752c6122193e7bce38bdbf/polib-1.2.0.tar.gz", hash = "sha256:f3ef94aefed6e183e342a8a269ae1fc4742ba193186ad76f175938621dbfc26b", size = 161658, upload-time = "2023-02-23T17:53:56.873Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6b/99/45bb1f9926efe370c6dbe324741c749658e44cb060124f28dad201202274/polib-1.2.0-py2.py3-none-any.whl", hash = "sha256:1c77ee1b81feb31df9bca258cbc58db1bbb32d10214b173882452c73af06d62d", size = 20634, upload-time = "2023-02-23T17:53:59.919Z" },
 ]
 
 [[package]]
