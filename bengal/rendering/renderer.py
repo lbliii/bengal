@@ -103,6 +103,29 @@ class Renderer:
         # Thread-safety: Lock for initializing caches under free-threading (PEP 703)
         self._cache_lock = threading.Lock()
 
+    @staticmethod
+    def _default_pagination(base_url: str) -> dict[str, Any]:
+        """Return default single-page pagination dict."""
+        return {
+            "current_page": 1,
+            "total_pages": 1,
+            "has_next": False,
+            "has_prev": False,
+            "base_url": base_url,
+        }
+
+    @staticmethod
+    def _coerce_pagination_ints(pagination: dict[str, Any]) -> dict[str, Any]:
+        """Coerce YAML string pagination values to int."""
+        result = dict(pagination)
+        for key in ("current_page", "total_pages"):
+            if key in result and result[key] is not None:
+                try:
+                    result[key] = int(result[key])
+                except ValueError, TypeError:
+                    result[key] = 1
+        return result
+
     def _get_top_level_content(self) -> tuple[list[PageLike], list[SectionLike]]:
         """
         Get top-level pages and sections (not nested in any section).
@@ -562,13 +585,7 @@ class Renderer:
             pagination = paginator.page_context(page_num, base_url)
         else:
             posts = all_posts
-            pagination = {
-                "current_page": 1,
-                "total_pages": 1,
-                "has_next": False,
-                "has_prev": False,
-                "base_url": f"/{section.name}/" if section else "/",
-            }
+            pagination = self._default_pagination(f"/{section.name}/" if section else "/")
 
         # Convert section to SectionSnapshot (no wrapper needed)
         snapshot = None
@@ -576,14 +593,7 @@ class Renderer:
             snapshot = getattr(self.build_context, "snapshot", None)
         section_for_context = self._to_section_snapshot(section, snapshot)
 
-        # Coerce pagination values to int - YAML/config may pass strings
-        safe_pagination = dict(pagination)
-        for key in ("current_page", "total_pages"):
-            if key in safe_pagination and safe_pagination[key] is not None:
-                try:
-                    safe_pagination[key] = int(safe_pagination[key])
-                except ValueError, TypeError:
-                    safe_pagination[key] = 1
+        safe_pagination = self._coerce_pagination_ints(pagination)
 
         context.update(
             {
@@ -641,22 +651,10 @@ class Renderer:
                     pagination = fresh_paginator.page_context(page_num, f"/tags/{tag_slug}/")
                 except ValueError:
                     posts = all_posts
-                    pagination = {
-                        "current_page": 1,
-                        "total_pages": 1,
-                        "has_next": False,
-                        "has_prev": False,
-                        "base_url": f"/tags/{tag_slug}/",
-                    }
+                    pagination = self._default_pagination(f"/tags/{tag_slug}/")
             else:
                 posts = all_posts
-                pagination = {
-                    "current_page": 1,
-                    "total_pages": 1,
-                    "has_next": False,
-                    "has_prev": False,
-                    "base_url": f"/tags/{tag_slug}/",
-                }
+                pagination = self._default_pagination(f"/tags/{tag_slug}/")
         elif paginator and hasattr(paginator, "items") and paginator.items:
             resolved_items = []
             str_page_map = self.site.get_page_path_map()
@@ -679,23 +677,11 @@ class Renderer:
             else:
                 posts = []
                 total_posts_count = 0
-                pagination = {
-                    "current_page": 1,
-                    "total_pages": 1,
-                    "has_next": False,
-                    "has_prev": False,
-                    "base_url": f"/tags/{tag_slug}/",
-                }
+                pagination = self._default_pagination(f"/tags/{tag_slug}/")
         else:
             posts = []
             total_posts_count = 0
-            pagination = {
-                "current_page": 1,
-                "total_pages": 1,
-                "has_next": False,
-                "has_prev": False,
-                "base_url": f"/tags/{tag_slug}/",
-            }
+            pagination = self._default_pagination(f"/tags/{tag_slug}/")
 
         logger.debug(
             "tag_page_context",
@@ -706,14 +692,7 @@ class Renderer:
             page_num=page_num,
         )
 
-        # Coerce pagination values to int - YAML/config may pass strings
-        safe_pagination = dict(pagination)
-        for key in ("current_page", "total_pages"):
-            if key in safe_pagination and safe_pagination[key] is not None:
-                try:
-                    safe_pagination[key] = int(safe_pagination[key])
-                except ValueError, TypeError:
-                    safe_pagination[key] = 1
+        safe_pagination = self._coerce_pagination_ints(pagination)
 
         context.update(
             {

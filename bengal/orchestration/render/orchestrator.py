@@ -37,6 +37,7 @@ import concurrent.futures
 import contextvars
 import sys
 import threading
+from contextlib import contextmanager
 from itertools import batched
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -79,6 +80,31 @@ if TYPE_CHECKING:
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
     from bengal.utils.observability.cli_progress import LiveProgressManager
+
+
+@contextmanager
+def _managed_executor(max_workers: int):
+    """Context manager that shuts down a ThreadPoolExecutor correctly on error.
+
+    On normal exit or RuntimeError from interpreter shutdown, shuts down
+    gracefully.  On KeyboardInterrupt/SystemExit, cancels pending futures
+    and re-raises.
+    """
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
+    try:
+        yield executor
+    except KeyboardInterrupt, SystemExit:
+        executor.shutdown(wait=False, cancel_futures=True)
+        raise
+    except RuntimeError as e:
+        if is_shutdown_error(e):
+            logger.debug("render_executor_shutdown")
+            executor.shutdown(wait=False, cancel_futures=True)
+            return
+        executor.shutdown(wait=True)
+        raise
+    else:
+        executor.shutdown(wait=True)
 
 
 class RenderOrchestrator(
@@ -532,8 +558,7 @@ class RenderOrchestrator(
                 current_generation=current_gen,
             )
 
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
-        try:
+        with _managed_executor(max_workers) as executor:
             batch_size = max(max_workers * 2, 1)
             aggregator = ErrorAggregator(total_items=len(sorted_pages))
             threshold = 5
@@ -563,18 +588,6 @@ class RenderOrchestrator(
                         aggregator.add_error(e, context=context)
 
             aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
-        except KeyboardInterrupt, SystemExit:
-            executor.shutdown(wait=False, cancel_futures=True)
-            raise
-        except RuntimeError as e:
-            if is_shutdown_error(e):
-                logger.debug("render_executor_shutdown")
-                executor.shutdown(wait=False, cancel_futures=True)
-                return
-            executor.shutdown(wait=True)
-            raise
-        else:
-            executor.shutdown(wait=True)
 
     def _render_parallel_with_live_progress(
         self,
@@ -651,8 +664,7 @@ class RenderOrchestrator(
                     threads=max_workers,
                 )
 
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
-        try:
+        with _managed_executor(max_workers) as executor:
             batch_size = max(max_workers * 2, 1)
             aggregator = ErrorAggregator(total_items=len(sorted_pages))
             threshold = 5
@@ -690,18 +702,6 @@ class RenderOrchestrator(
                     current_item="",
                     threads=max_workers,
                 )
-        except KeyboardInterrupt, SystemExit:
-            executor.shutdown(wait=False, cancel_futures=True)
-            raise
-        except RuntimeError as e:
-            if is_shutdown_error(e):
-                logger.debug("render_executor_shutdown")
-                executor.shutdown(wait=False, cancel_futures=True)
-                return
-            executor.shutdown(wait=True)
-            raise
-        else:
-            executor.shutdown(wait=True)
 
     def _render_parallel_with_progress(
         self,
@@ -764,8 +764,7 @@ class RenderOrchestrator(
         ) as progress:
             task = progress.add_task("[cyan]Rendering pages...", total=len(sorted_pages))
 
-            executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
-            try:
+            with _managed_executor(max_workers) as executor:
                 batch_size = max(max_workers * 2, 1)
                 aggregator = ErrorAggregator(total_items=len(sorted_pages))
                 threshold = 5
@@ -796,18 +795,6 @@ class RenderOrchestrator(
                         progress.update(task, advance=1)
 
                 aggregator.log_summary(logger, threshold=5, error_type="rendering")
-            except KeyboardInterrupt, SystemExit:
-                executor.shutdown(wait=False, cancel_futures=True)
-                raise
-            except RuntimeError as e:
-                if is_shutdown_error(e):
-                    logger.debug("render_executor_shutdown")
-                    executor.shutdown(wait=False, cancel_futures=True)
-                    return
-                executor.shutdown(wait=True)
-                raise
-            else:
-                executor.shutdown(wait=True)
 
     def _set_output_paths_for_pages(self, pages: list[Page]) -> None:
         """

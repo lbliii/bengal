@@ -73,11 +73,11 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.errors.codes import ErrorCode
     from bengal.errors.context import (
-        BuildPhase,
         ErrorDebugPayload,
         ErrorSeverity,
         RelatedFile,
     )
+    from bengal.protocols.build import BuildPhase
 
 
 class BengalError(Exception):
@@ -93,6 +93,10 @@ class BengalError(Exception):
     - Debug payloads for AI troubleshooting
     - Investigation helpers
 
+    Subclasses can set a default build phase via the class variable
+    ``_default_build_phase``. If set, instances will automatically use
+    that phase unless an explicit ``build_phase`` kwarg is provided.
+
     Example:
         from bengal.errors import BengalError, ErrorCode
 
@@ -105,6 +109,10 @@ class BengalError(Exception):
         )
 
     """
+
+    # Subclasses set this to a BuildPhase member name (e.g., "INITIALIZATION")
+    # to auto-populate build_phase when not explicitly provided.
+    _default_build_phase_name: str | None = None
 
     def __init__(
         self,
@@ -141,7 +149,14 @@ class BengalError(Exception):
         self.line_number = line_number
         self.suggestion = suggestion
         self.original_error = original_error
-        self.build_phase = build_phase
+        if build_phase is not None:
+            self.build_phase = build_phase
+        elif self._default_build_phase_name:
+            from bengal.protocols.build import BuildPhase
+
+            self.build_phase = BuildPhase[self._default_build_phase_name]
+        else:
+            self.build_phase = None
         self.severity = severity
         self.related_files = related_files or []
         self.debug_payload = debug_payload
@@ -238,7 +253,7 @@ class BengalError(Exception):
 
         # Template error specific suggestions
         if self.build_phase:
-            from bengal.errors.context import BuildPhase
+            from bengal.protocols.build import BuildPhase
 
             if self.build_phase == BuildPhase.RENDERING:
                 commands.append("# Check rendering pipeline")
@@ -335,7 +350,7 @@ class BengalError(Exception):
 
         # Default: search based on build phase
         if self.build_phase:
-            from bengal.errors.context import BuildPhase
+            from bengal.protocols.build import BuildPhase
 
             phase_tests = {
                 BuildPhase.RENDERING: ["tests/unit/rendering/", "tests/integration/test_render.py"],
@@ -414,13 +429,7 @@ class BengalConfigError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        # Set default build phase if not provided
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.INITIALIZATION
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "INITIALIZATION"
 
 
 class BengalContentError(BengalError):
@@ -454,12 +463,7 @@ class BengalContentError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.PARSING
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "PARSING"
 
 
 class DirectiveContractError(BengalContentError):
@@ -532,12 +536,7 @@ class BengalRenderingError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.RENDERING
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "RENDERING"
 
 
 class BengalDiscoveryError(BengalError):
@@ -565,12 +564,7 @@ class BengalDiscoveryError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.DISCOVERY
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "DISCOVERY"
 
 
 class BengalCacheError(BengalError):
@@ -598,12 +592,7 @@ class BengalCacheError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.CACHE
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "CACHE"
 
 
 class BengalServerError(BengalError):
@@ -630,12 +619,7 @@ class BengalServerError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.SERVER
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "SERVER"
 
 
 class BengalAssetError(BengalError):
@@ -663,12 +647,7 @@ class BengalAssetError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.ASSET_PROCESSING
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "ASSET_PROCESSING"
 
 
 class BengalGraphError(BengalError):
@@ -695,12 +674,7 @@ class BengalGraphError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.ANALYSIS
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "ANALYSIS"
 
 
 class BengalParsingError(BengalError):
@@ -729,12 +703,7 @@ class BengalParsingError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.PARSING
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "PARSING"
 
 
 class BengalAutodocError(BengalError):
@@ -762,12 +731,7 @@ class BengalAutodocError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.DISCOVERY
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "DISCOVERY"
 
 
 class BengalValidatorError(BengalError):
@@ -794,12 +758,7 @@ class BengalValidatorError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.ANALYSIS
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "ANALYSIS"
 
 
 class BengalBuildError(BengalError):
@@ -830,12 +789,7 @@ class BengalBuildError(BengalError):
 
     """
 
-    def __init__(self, message: str, **kwargs: Any) -> None:
-        if "build_phase" not in kwargs:
-            from bengal.errors.context import BuildPhase
-
-            kwargs["build_phase"] = BuildPhase.POSTPROCESSING
-        super().__init__(message, **kwargs)
+    _default_build_phase_name = "POSTPROCESSING"
 
 
 class BengalTemplateFunctionError(BengalRenderingError):
