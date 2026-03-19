@@ -106,6 +106,7 @@ def test_snapshot_rendering_produces_html(site, build_site):
             )
 
 
+@pytest.mark.slow
 @pytest.mark.bengal(testroot="test-taxonomy")
 def test_snapshot_vs_sequential_rendering(site, build_site):
     """Test that snapshot-based rendering produces same output as sequential."""

@@ -185,7 +185,7 @@ jobs:
           tests/integration/test_blog_scenarios.py \
           tests/integration/test_golden_output.py \
           tests/integration/test_full_site_url_consistency.py \
-          -v --tb=short -n 0
+          -v --tb=short -n auto --dist worksteal --max-worker-restart=3
 
   # Integration tests split into 4 shards to avoid timeout
   integration:

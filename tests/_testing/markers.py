@@ -26,6 +26,8 @@ RFC: rfc-behavioral-test-hardening
 
 import pytest
 
+from bengal.orchestration.build.options import BuildOptions
+
 
 def pytest_configure(config):
     """Register custom markers."""
@@ -78,3 +80,41 @@ def site(request, site_factory):
         f"Test {request.node.nodeid} uses 'site' fixture but has no @pytest.mark.bengal marker. "
         "Either add the marker or use site_factory directly."
     )
+
+
+@pytest.fixture(scope="class")
+def shared_site(request, tmp_path_factory, rootdir):
+    """
+    Class-scoped built site for read-only integration tests.
+
+    Creates, discovers, and builds the site ONCE per test class.
+    Use this instead of site + build_site() for tests that only read output.
+
+    Tests using this fixture must NOT modify the site or its files.
+
+    Note: Named 'shared_site' (not 'built_site') to avoid collision with
+    module-local fixtures of the same name in test_output_quality.py.
+
+    """
+    from tests._testing.fixtures import create_site_from_testroot
+
+    bengal_marker = request.node.get_closest_marker("bengal")
+    if not bengal_marker:
+        raise pytest.UsageError(
+            f"Test {request.node.nodeid} uses 'shared_site' fixture but has no "
+            "@pytest.mark.bengal marker."
+        )
+
+    testroot = bengal_marker.kwargs.get("testroot")
+    confoverrides = bengal_marker.kwargs.get("confoverrides")
+
+    if not testroot:
+        raise ValueError(
+            f"@pytest.mark.bengal requires 'testroot' parameter. Test: {request.node.nodeid}"
+        )
+
+    site_dir = tmp_path_factory.mktemp(f"shared_{testroot}")
+    site = create_site_from_testroot(testroot, rootdir, site_dir, confoverrides)
+    site.build(BuildOptions(force_sequential=True))
+
+    return site
