@@ -94,7 +94,7 @@ class BengalError(Exception):
     - Investigation helpers
 
     Subclasses can set a default build phase via the class variable
-    ``_default_build_phase``. If set, instances will automatically use
+    ``_default_build_phase_name``. If set, instances will automatically use
     that phase unless an explicit ``build_phase`` kwarg is provided.
 
     Example:
