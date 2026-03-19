@@ -97,7 +97,8 @@ async def test_check_successful_link(http_server):
     checker = AsyncLinkChecker(timeout=5.0, retries=0)
 
     urls = [(f"{http_server}/200", "/test.md")]
-    results = await checker.check_links(urls)
+    async with asyncio.timeout(30):
+        results = await checker.check_links(urls)
 
     assert len(results) == 1
     result = results[f"{http_server}/200"]
@@ -113,7 +114,8 @@ async def test_check_404_link(http_server):
     checker = AsyncLinkChecker(timeout=5.0, retries=0)
 
     urls = [(f"{http_server}/404", "/test.md")]
-    results = await checker.check_links(urls)
+    async with asyncio.timeout(30):
+        results = await checker.check_links(urls)
 
     assert len(results) == 1
     result = results[f"{http_server}/404"]
@@ -128,7 +130,8 @@ async def test_check_500_link(http_server):
     checker = AsyncLinkChecker(timeout=5.0, retries=0)
 
     urls = [(f"{http_server}/500", "/test.md")]
-    results = await checker.check_links(urls)
+    async with asyncio.timeout(30):
+        results = await checker.check_links(urls)
 
     assert len(results) == 1
     result = results[f"{http_server}/500"]
@@ -146,7 +149,8 @@ async def test_check_500_with_ignore(http_server):
     checker = AsyncLinkChecker(timeout=5.0, retries=0, ignore_policy=ignore_policy)
 
     urls = [(f"{http_server}/500", "/test.md")]
-    results = await checker.check_links(urls)
+    async with asyncio.timeout(30):
+        results = await checker.check_links(urls)
 
     assert len(results) == 1
     result = results[f"{http_server}/500"]
@@ -162,7 +166,8 @@ async def test_head_fallback_to_get(http_server):
     checker = AsyncLinkChecker(timeout=5.0, retries=0)
 
     urls = [(f"{http_server}/no-head", "/test.md")]
-    results = await checker.check_links(urls)
+    async with asyncio.timeout(30):
+        results = await checker.check_links(urls)
 
     assert len(results) == 1
     result = results[f"{http_server}/no-head"]
@@ -183,7 +188,8 @@ async def test_multiple_references_to_same_url(http_server):
         (f"{http_server}/200", "/page2.md"),
         (f"{http_server}/200", "/page3.md"),
     ]
-    results = await checker.check_links(urls)
+    async with asyncio.timeout(30):
+        results = await checker.check_links(urls)
 
     assert len(results) == 1  # Only one unique URL
     result = results[f"{http_server}/200"]
@@ -203,7 +209,8 @@ async def test_concurrent_checking(http_server):
         (f"{http_server}/404", "/test.md"),
         (f"{http_server}/500", "/test.md"),
     ]
-    results = await checker.check_links(urls)
+    async with asyncio.timeout(30):
+        results = await checker.check_links(urls)
 
     assert len(results) == 3
 
@@ -220,7 +227,8 @@ async def test_timeout_handling():
     checker = AsyncLinkChecker(timeout=0.5, retries=0)
 
     urls = [("http://10.255.255.1/page", "/test.md")]
-    results = await checker.check_links(urls)
+    async with asyncio.timeout(30):
+        results = await checker.check_links(urls)
 
     assert len(results) == 1
     result = results["http://10.255.255.1/page"]
