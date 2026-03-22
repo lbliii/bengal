@@ -1,119 +1,23 @@
 #!/usr/bin/env python3
 """
-Benchmark HTML Transform Approaches.
+Benchmark HTML Transform Performance.
 
-Compares the current 3-pass transform chain with proposed hybrid approaches
-to validate whether combining transforms provides meaningful improvement.
+Measures the production HybridHTMLTransformer across different content
+profiles (small, medium, large, no-op) to establish performance baselines.
 
 Usage:
     uv run python scripts/benchmark_transforms.py
-
-This script measures:
-1. Current approach: escape_jinja_blocks + normalize_markdown_links + transform_internal_links
-2. Hybrid approach: str.replace() for Jinja + combined regex for links
 
 RFC Reference: plan/drafted/rfc-rendering-package-optimizations.md
 """
 
 from __future__ import annotations
 
-import re
 import statistics
 import time
 from dataclasses import dataclass
 
-# Current implementations (imported for baseline)
-from bengal.rendering.pipeline.transforms import (
-    escape_jinja_blocks,
-    normalize_markdown_links,
-    transform_internal_links,
-)
-
-# =============================================================================
-# Proposed Hybrid Transformer
-# =============================================================================
-
-
-class HybridHTMLTransformer:
-    """
-    Hybrid transformation approach.
-
-    Strategy:
-    - Jinja escaping: Keep fast str.replace() (C-optimized)
-    - Link transforms: Combine into single regex pass
-    """
-
-    def __init__(self, baseurl: str = ""):
-        self.baseurl = baseurl.rstrip("/") if baseurl else ""
-        self.should_transform_links = bool(self.baseurl)
-
-        # Normalize baseurl for comparison
-        if self.baseurl and not self.baseurl.startswith(("http://", "https://", "file://", "/")):
-            self.baseurl = "/" + self.baseurl
-
-        # Combined pattern for both .md and internal link transforms
-        # Note: We use two separate patterns and run them sequentially
-        # because combining them leads to complex backreference issues
-        self._md_pattern = re.compile(r'(href)=(["\'])([^"\']*?\.md)\2')
-        self._internal_pattern = re.compile(r'(href|src)=(["\'])(/(?!/)[^"\'#][^"\']*)\2')
-
-    def transform(self, html: str) -> str:
-        """
-        Transform HTML with hybrid approach.
-
-        O(n) for Jinja str.replace() + O(n) for md links + O(n) for internal = O(3n)
-        Same as current, but cleaner code structure.
-        """
-        if not html:
-            return html
-
-        # Step 1: Jinja escaping - str.replace() is C-optimized, very fast
-        result = html.replace("{%", "&#123;%").replace("%}", "%&#125;")
-
-        # Step 2: Normalize .md links
-        if ".md" in result:
-            result = self._md_pattern.sub(self._md_replacer, result)
-
-        # Step 3: Transform internal links with baseurl
-        if self.should_transform_links and '="/' in result:
-            result = self._internal_pattern.sub(self._internal_replacer, result)
-
-        return result
-
-    def _md_replacer(self, match: re.Match) -> str:
-        """Transform .md link to clean URL."""
-        attr = match.group(1)
-        quote = match.group(2)
-        path = match.group(3)
-
-        # Handle _index.md and index.md special cases
-        if path.endswith("/_index.md"):
-            clean = path[:-10] + "/"
-            if clean == "/":
-                clean = "./"
-        elif path.endswith("_index.md"):
-            clean = "./"
-        elif path.endswith("/index.md"):
-            clean = path[:-9] + "/"
-        elif path.endswith("index.md"):
-            clean = "./"
-        else:
-            clean = path[:-3] + "/"
-
-        return f"{attr}={quote}{clean}{quote}"
-
-    def _internal_replacer(self, match: re.Match) -> str:
-        """Transform internal link with baseurl."""
-        attr = match.group(1)
-        quote = match.group(2)
-        path = match.group(3)
-
-        # Skip if already has baseurl
-        if path.startswith(self.baseurl + "/") or path == self.baseurl:
-            return match.group(0)
-
-        return f"{attr}={quote}{self.baseurl}{path}{quote}"
-
+from bengal.rendering.pipeline.unified_transform import HybridHTMLTransformer
 
 # =============================================================================
 # Benchmark Infrastructure
@@ -231,40 +135,15 @@ minify: true
     }
 
     if page_type == "mixed":
-        # Return a mix that represents realistic site distribution
         return samples["small"] + samples["medium"] + samples["large"]
 
     return samples.get(page_type, samples["medium"])
 
 
-def benchmark_current_approach(
-    html_samples: list[str], config: dict, iterations: int
-) -> BenchmarkResult:
-    """Benchmark current 3-pass transform chain."""
-    start = time.perf_counter()
-
-    for _ in range(iterations):
-        for html in html_samples:
-            result = escape_jinja_blocks(html)
-            result = normalize_markdown_links(result)
-            result = transform_internal_links(result, config)
-
-    elapsed = time.perf_counter() - start
-    total_pages = iterations * len(html_samples)
-
-    return BenchmarkResult(
-        name="Current (3-pass)",
-        total_ms=elapsed * 1000,
-        per_page_ms=(elapsed * 1000) / total_pages,
-        iterations=iterations,
-        pages=len(html_samples),
-    )
-
-
-def benchmark_hybrid_approach(
+def benchmark_transformer(
     html_samples: list[str], baseurl: str, iterations: int
 ) -> BenchmarkResult:
-    """Benchmark proposed hybrid transformer."""
+    """Benchmark the production HybridHTMLTransformer."""
     transformer = HybridHTMLTransformer(baseurl)
 
     start = time.perf_counter()
@@ -277,43 +156,12 @@ def benchmark_hybrid_approach(
     total_pages = iterations * len(html_samples)
 
     return BenchmarkResult(
-        name="Hybrid (2-pass)",
+        name="HybridHTMLTransformer",
         total_ms=elapsed * 1000,
         per_page_ms=(elapsed * 1000) / total_pages,
         iterations=iterations,
         pages=len(html_samples),
     )
-
-
-def verify_correctness(html_samples: list[str], config: dict, baseurl: str) -> bool:
-    """Verify hybrid produces identical output to current approach."""
-    transformer = HybridHTMLTransformer(baseurl)
-
-    for i, html in enumerate(html_samples):
-        # Current approach
-        current = escape_jinja_blocks(html)
-        current = normalize_markdown_links(current)
-        current = transform_internal_links(current, config)
-
-        # Hybrid approach
-        hybrid = transformer.transform(html)
-
-        if current != hybrid:
-            print(f"\n❌ Output mismatch on sample {i}!")
-            print(f"Current length: {len(current)}")
-            print(f"Hybrid length: {len(hybrid)}")
-
-            # Find first difference
-            for j, (c, h) in enumerate(zip(current, hybrid, strict=False)):
-                if c != h:
-                    print(f"First diff at position {j}:")
-                    print(f"  Current: ...{current[max(0, j - 20) : j + 20]}...")
-                    print(f"  Hybrid:  ...{hybrid[max(0, j - 20) : j + 20]}...")
-                    break
-
-            return False
-
-    return True
 
 
 def run_benchmarks():
@@ -323,12 +171,9 @@ def run_benchmarks():
     print("=" * 70)
     print()
 
-    # Configuration
-    config = {"baseurl": "/bengal"}
     baseurl = "/bengal"
     iterations = 1000
 
-    # Generate samples
     samples = [
         generate_sample_html("small"),
         generate_sample_html("medium"),
@@ -342,84 +187,23 @@ def run_benchmarks():
     print(f"Total operations: {iterations * len(samples):,} page transforms")
     print()
 
-    # Verify correctness first
-    print("Verifying correctness...")
-    if not verify_correctness(samples, config, baseurl):
-        print("❌ Correctness check failed! Aborting benchmark.")
-        return
+    # Run multiple times for stability
+    runs = 5
+    times = []
 
-    print("✅ Output is identical\n")
-
-    # Run benchmarks
     print("Running benchmarks...")
     print("-" * 70)
 
-    results = []
-
-    # Run multiple times for stability
-    runs = 5
-    current_times = []
-    hybrid_times = []
-
     for _run in range(runs):
-        current = benchmark_current_approach(samples, config, iterations)
-        hybrid = benchmark_hybrid_approach(samples, baseurl, iterations)
-        current_times.append(current.total_ms)
-        hybrid_times.append(hybrid.total_ms)
+        result = benchmark_transformer(samples, baseurl, iterations)
+        times.append(result.total_ms)
 
-    # Use median for stability
-    current_median = statistics.median(current_times)
-    hybrid_median = statistics.median(hybrid_times)
+    median_ms = statistics.median(times)
+    total_pages = iterations * len(samples)
 
-    # Final results
-    current_result = BenchmarkResult(
-        name="Current (3-pass)",
-        total_ms=current_median,
-        per_page_ms=current_median / (iterations * len(samples)),
-        iterations=iterations,
-        pages=len(samples),
-    )
-
-    hybrid_result = BenchmarkResult(
-        name="Hybrid (2-pass)",
-        total_ms=hybrid_median,
-        per_page_ms=hybrid_median / (iterations * len(samples)),
-        iterations=iterations,
-        pages=len(samples),
-    )
-
-    results = [current_result, hybrid_result]
-
-    # Print results
-    print(f"{'Approach':<20} {'Total (ms)':<15} {'Per-page (ms)':<15}")
-    print("-" * 50)
-
-    for r in results:
-        print(f"{r.name:<20} {r.total_ms:>10.2f}     {r.per_page_ms:>10.4f}")
-
-    print()
-
-    # Calculate improvement
-    speedup = current_median / hybrid_median
-    improvement_pct = (1 - hybrid_median / current_median) * 100
-
-    print("=" * 70)
-    print("RESULTS")
-    print("=" * 70)
-    print(f"Speedup: {speedup:.2f}x")
-    print(f"Improvement: {improvement_pct:.1f}%")
-    print()
-
-    if improvement_pct >= 15:
-        print("✅ RECOMMENDATION: Proceed with hybrid implementation")
-        print("   Improvement exceeds 15% threshold from RFC")
-    elif improvement_pct >= 5:
-        print("⚠️  MARGINAL: Hybrid is faster but improvement is modest")
-        print("   Consider proceeding if code simplification is valuable")
-    else:
-        print("❌ NOT RECOMMENDED: Improvement is negligible")
-        print("   Current implementation is adequate")
-
+    print(f"{'Approach':<25} {'Total (ms)':<15} {'Per-page (ms)':<15}")
+    print("-" * 55)
+    print(f"{'HybridHTMLTransformer':<25} {median_ms:>10.2f}     {median_ms / total_pages:>10.4f}")
     print()
 
     # Per-page breakdown
@@ -428,14 +212,8 @@ def run_benchmarks():
     print()
     for sample_type in ["small", "medium", "large", "no_transforms"]:
         sample = [generate_sample_html(sample_type)]
-        current = benchmark_current_approach(sample, config, 1000)
-        hybrid = benchmark_hybrid_approach(sample, baseurl, 1000)
-        diff = current.per_page_ms - hybrid.per_page_ms
-        pct = (diff / current.per_page_ms) * 100 if current.per_page_ms > 0 else 0
-        print(
-            f"  {sample_type:<15}: Current={current.per_page_ms:.4f}ms, "
-            f"Hybrid={hybrid.per_page_ms:.4f}ms ({pct:+.1f}%)"
-        )
+        result = benchmark_transformer(sample, baseurl, 1000)
+        print(f"  {sample_type:<15}: {result.per_page_ms:.4f}ms")
 
 
 if __name__ == "__main__":

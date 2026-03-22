@@ -34,6 +34,7 @@ from bengal.orchestration.incremental.effect_detector import (
     EffectBasedDetector,
     create_detector_from_build,
 )
+from bengal.orchestration.render.ordering import _normalize_content_path
 from bengal.utils.cache_registry import InvalidationReason, invalidate_for_reason
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
@@ -199,8 +200,8 @@ class IncrementalOrchestrator:
             invalidated = invalidate_for_reason(InvalidationReason.STRUCTURAL_CHANGE)
             logger.debug("caches_invalidated", reason="structural_changes", caches=invalidated)
 
-        # Check for template changes
-        template_changes = self._detect_template_changes()
+        # Check for template changes (single traversal for both summary and rebuild)
+        template_changes, _template_affected_pages = self._detect_template_changes()
 
         # Convert paths to page/asset objects
         # Pass changed_paths for proper asset change detection via file watcher
@@ -236,46 +237,35 @@ class IncrementalOrchestrator:
 
         return cascade_info
 
-    def _detect_template_changes(self) -> list[Path]:
-        """Detect changed templates."""
+    def _detect_template_changes(self) -> tuple[list[Path], set[Path]]:
+        """Detect changed templates and pages affected by those changes.
+
+        Single traversal of the templates directory to find both changed
+        template files (for ChangeSummary) and affected pages (for rebuild).
+
+        Returns:
+            Tuple of (changed_template_paths, affected_page_paths).
+        """
         template_changes: list[Path] = []
-
-        # Check theme templates directory
-        templates_dir = self._cache_manager._get_theme_templates_dir()
-        if templates_dir and templates_dir.exists():
-            template_changes.extend(
-                template_file
-                for template_file in templates_dir.rglob("*.html")
-                if self.cache and self.cache.is_changed(template_file)
-            )
-
-        return template_changes
-
-    def _detect_template_affected_pages(self) -> set[Path]:
-        """
-        Get pages affected by template changes.
-
-        Uses cache.get_affected_pages() to find pages that use changed templates.
-        """
         affected_pages: set[Path] = set()
 
-        # Check theme templates directory
         templates_dir = self._cache_manager._get_theme_templates_dir()
         if not templates_dir or not templates_dir.exists():
-            return affected_pages
+            return template_changes, affected_pages
+
+        can_get_affected = self.cache and hasattr(self.cache, "get_affected_pages")
 
         for template_file in templates_dir.rglob("*.html"):
-            if (
-                self.cache
-                and self.cache.is_changed(template_file)
-                and hasattr(self.cache, "get_affected_pages")
-            ):
-                # Get pages affected by this template
-                affected_paths = self.cache.get_affected_pages(str(template_file))
-                for path_str in affected_paths:
+            if not self.cache or not self.cache.is_changed(template_file):
+                continue
+
+            template_changes.append(template_file)
+
+            if can_get_affected:
+                for path_str in self.cache.get_affected_pages(str(template_file)):
                     affected_pages.add(Path(path_str))
 
-        return affected_pages
+        return template_changes, affected_pages
 
     def find_work(self, verbose: bool = False) -> tuple[list[Page], list[Asset], ChangeSummary]:
         """
@@ -369,7 +359,7 @@ class IncrementalOrchestrator:
         pages_to_rebuild.update(nav_affected)
 
         # Handle template changes - add affected pages
-        template_affected = self._detect_template_affected_pages()
+        _template_changes, template_affected = self._detect_template_changes()
         pages_to_rebuild.update(template_affected)
 
         # Add track item dependencies - when a track page is dirty, its items
@@ -555,11 +545,7 @@ class IncrementalOrchestrator:
             for item in items:
                 if not isinstance(item, str):
                     continue
-                normalized = to_posix(item)
-                if normalized.startswith("./"):
-                    normalized = normalized[2:]
-                if normalized.startswith("content/"):
-                    normalized = normalized[8:]
+                normalized = _normalize_content_path(item)
                 if not normalized.endswith(".md"):
                     normalized = f"{normalized}.md"
                 # Add both .md and non-.md: page_by_path keys may use either format.
