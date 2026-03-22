@@ -34,6 +34,7 @@ def test_snapshot_created_during_build(site, build_site):
     assert stats is not None
 
 
+@pytest.mark.heavyweight
 @pytest.mark.bengal(testroot="test-taxonomy")
 def test_snapshot_enables_parallel_rendering(site, build_site, tmp_path):
     """Test that snapshot enables parallel rendering and HTML files are written."""
@@ -107,6 +108,7 @@ def test_snapshot_rendering_produces_html(site, build_site):
 
 
 @pytest.mark.slow
+@pytest.mark.heavyweight
 @pytest.mark.bengal(testroot="test-taxonomy")
 def test_snapshot_vs_sequential_rendering(site, build_site):
     """Test that snapshot-based rendering produces same output as sequential."""

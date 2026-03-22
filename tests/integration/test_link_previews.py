@@ -10,163 +10,121 @@ See: plan/rfc-cross-site-xref-link-previews.md
 
 from __future__ import annotations
 
+import json
+
+import pytest
+
 from bengal.config.defaults import get_default
+from tests._testing.fixtures import build_ephemeral_site_at
+
+_INDEX = "---\ntitle: Home\n---\nWelcome"
 
 
-class TestLinkPreviewsTemplateRendering:
-    """Test that link previews config is rendered correctly in templates."""
-
-    def test_config_bridge_present_when_enabled(self, site_builder):
-        """Config bridge script block should be present when enabled."""
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "output_formats": {
-                    "enabled": True,
-                    "per_page": ["json"],
-                },
-                "link_previews": {
-                    "enabled": True,
-                },
+@pytest.fixture(scope="module")
+def site_lp_enabled_json_on(tmp_path_factory):
+    """One build shared by tests that only assert on enabled + JSON output."""
+    base = tmp_path_factory.mktemp("lp_en_json_on")
+    site = build_ephemeral_site_at(
+        base / "ephemeral_site",
+        config={
+            "title": "Test Site",
+            "output_formats": {
+                "enabled": True,
+                "per_page": ["json"],
             },
-            content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
-        )
-        site.build()
-
-        html = site.read_output("index.html")
-        assert 'id="bengal-config"' in html
-        assert "linkPreviews" in html
-        assert '"enabled": true' in html
-
-    def test_config_bridge_absent_when_disabled(self, site_builder):
-        """Config bridge should not be present when link previews disabled."""
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "output_formats": {
-                    "enabled": True,
-                    "per_page": ["json"],
-                },
-                "link_previews": {
-                    "enabled": False,
-                },
+            "link_previews": {
+                "enabled": True,
             },
-            content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
-        )
-        site.build()
+        },
+        content={"_index.md": _INDEX},
+    )
+    site.build()
+    return site
 
-        html = site.read_output("index.html")
-        # Config bridge should not be present when disabled
-        # Note: bengal-config might exist for other features, so we check for linkPreviews
-        if 'id="bengal-config"' in html:
-            assert '"enabled": true' not in html or "linkPreviews" not in html
 
-    def test_config_bridge_absent_without_json(self, site_builder):
-        """Config bridge should not be present without per-page JSON."""
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "output_formats": {
-                    "enabled": True,
-                    "per_page": [],  # No JSON
-                },
-                "link_previews": {
-                    "enabled": True,
-                },
+@pytest.fixture(scope="module")
+def site_lp_disabled_json(tmp_path_factory):
+    base = tmp_path_factory.mktemp("lp_dis_json")
+    site = build_ephemeral_site_at(
+        base / "ephemeral_site",
+        config={
+            "title": "Test Site",
+            "output_formats": {
+                "enabled": True,
+                "per_page": ["json"],
             },
-            content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
-        )
-        site.build()
-
-        html = site.read_output("index.html")
-        # Should not have link previews config without JSON
-        assert "linkPreviews" not in html
-
-    def test_script_included_when_enabled(self, site_builder):
-        """Link previews script should be included when enabled."""
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "output_formats": {
-                    "enabled": True,
-                    "per_page": ["json"],
-                },
-                "link_previews": {
-                    "enabled": True,
-                },
+            "link_previews": {
+                "enabled": False,
             },
-            content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
-        )
-        site.build()
+        },
+        content={"_index.md": _INDEX},
+    )
+    site.build()
+    return site
 
-        html = site.read_output("index.html")
-        # Script may have fingerprint hash in name, e.g., link-previews.af9b6471.js
-        assert "link-previews" in html
 
-    def test_custom_config_values_rendered(self, site_builder):
-        """Custom config values should be rendered in config bridge."""
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "output_formats": {
-                    "enabled": True,
-                    "per_page": ["json"],
-                },
-                "link_previews": {
-                    "enabled": True,
-                    "hover_delay": 400,
-                    "show_section": False,
-                    "max_tags": 5,
-                },
+@pytest.fixture(scope="module")
+def site_lp_enabled_no_json(tmp_path_factory):
+    base = tmp_path_factory.mktemp("lp_no_json")
+    site = build_ephemeral_site_at(
+        base / "ephemeral_site",
+        config={
+            "title": "Test Site",
+            "output_formats": {
+                "enabled": True,
+                "per_page": [],
             },
-            content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
-        )
-        site.build()
-
-        html = site.read_output("index.html")
-        assert '"hoverDelay": 400' in html
-        assert '"showSection": false' in html
-        assert '"maxTags": 5' in html
-
-
-class TestLinkPreviewsJsonGeneration:
-    """Test that per-page JSON files are generated correctly."""
-
-    def test_json_file_created_for_each_page(self, site_builder):
-        """Each page should have a corresponding JSON file."""
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "output_formats": {
-                    "enabled": True,
-                    "per_page": ["json"],
-                },
+            "link_previews": {
+                "enabled": True,
             },
-            content={
-                "_index.md": "---\ntitle: Home\n---\nWelcome",
-                "about.md": "---\ntitle: About\n---\nAbout us",
+        },
+        content={"_index.md": _INDEX},
+    )
+    site.build()
+    return site
+
+
+@pytest.fixture(scope="module")
+def site_lp_custom_hover(tmp_path_factory):
+    base = tmp_path_factory.mktemp("lp_custom")
+    site = build_ephemeral_site_at(
+        base / "ephemeral_site",
+        config={
+            "title": "Test Site",
+            "output_formats": {
+                "enabled": True,
+                "per_page": ["json"],
             },
-        )
-        site.build()
-
-        # Check JSON files exist
-        assert (site.output_dir / "index.json").exists()
-        assert (site.output_dir / "about" / "index.json").exists()
-
-    def test_json_contains_preview_data(self, site_builder):
-        """JSON should contain data needed for previews."""
-        import json
-
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "output_formats": {
-                    "enabled": True,
-                    "per_page": ["json"],
-                },
+            "link_previews": {
+                "enabled": True,
+                "hover_delay": 400,
+                "show_section": False,
+                "max_tags": 5,
             },
-            content={
-                "docs/getting-started.md": """---
+        },
+        content={"_index.md": _INDEX},
+    )
+    site.build()
+    return site
+
+
+@pytest.fixture(scope="module")
+def site_lp_json_multi_page(tmp_path_factory):
+    """Single build with multiple pages for JSON generation tests."""
+    base = tmp_path_factory.mktemp("lp_json_multi")
+    site = build_ephemeral_site_at(
+        base / "ephemeral_site",
+        config={
+            "title": "Test Site",
+            "output_formats": {
+                "enabled": True,
+                "per_page": ["json"],
+            },
+        },
+        content={
+            "_index.md": _INDEX,
+            "about.md": "---\ntitle: About\n---\nAbout us",
+            "docs/getting-started.md": """---
 title: Getting Started
 description: Learn how to install Bengal
 tags:
@@ -177,11 +135,95 @@ tags:
 This is a guide to getting started with Bengal. It covers installation,
 configuration, and your first build.
 """,
-            },
-        )
-        site.build()
+        },
+    )
+    site.build()
+    return site
 
-        json_path = site.output_dir / "docs" / "getting-started" / "index.json"
+
+@pytest.fixture(scope="module")
+def site_lp_json_css_default(tmp_path_factory):
+    base = tmp_path_factory.mktemp("lp_css_def")
+    site = build_ephemeral_site_at(
+        base / "ephemeral_site",
+        config={
+            "title": "Test Site",
+            "output_formats": {
+                "enabled": True,
+                "per_page": ["json"],
+            },
+        },
+        content={"_index.md": _INDEX},
+    )
+    site.build()
+    return site
+
+
+@pytest.fixture(scope="module")
+def site_lp_default_previews(tmp_path_factory):
+    """No explicit link_previews — defaults apply."""
+    base = tmp_path_factory.mktemp("lp_def_pv")
+    site = build_ephemeral_site_at(
+        base / "ephemeral_site",
+        config={
+            "title": "Test Site",
+            "output_formats": {
+                "enabled": True,
+                "per_page": ["json"],
+            },
+        },
+        content={"_index.md": _INDEX},
+    )
+    site.build()
+    return site
+
+
+class TestLinkPreviewsTemplateRendering:
+    """Test that link previews config is rendered correctly in templates."""
+
+    def test_config_bridge_present_when_enabled(self, site_lp_enabled_json_on):
+        """Config bridge script block should be present when enabled."""
+        html = site_lp_enabled_json_on.read_output("index.html")
+        assert 'id="bengal-config"' in html
+        assert "linkPreviews" in html
+        assert '"enabled": true' in html
+
+    def test_config_bridge_absent_when_disabled(self, site_lp_disabled_json):
+        """Config bridge should not be present when link previews disabled."""
+        html = site_lp_disabled_json.read_output("index.html")
+        if 'id="bengal-config"' in html:
+            assert '"enabled": true' not in html or "linkPreviews" not in html
+
+    def test_config_bridge_absent_without_json(self, site_lp_enabled_no_json):
+        """Config bridge should not be present without per-page JSON."""
+        html = site_lp_enabled_no_json.read_output("index.html")
+        assert "linkPreviews" not in html
+
+    def test_script_included_when_enabled(self, site_lp_enabled_json_on):
+        """Link previews script should be included when enabled."""
+        html = site_lp_enabled_json_on.read_output("index.html")
+        assert "link-previews" in html
+
+    def test_custom_config_values_rendered(self, site_lp_custom_hover):
+        """Custom config values should be rendered in config bridge."""
+        html = site_lp_custom_hover.read_output("index.html")
+        assert '"hoverDelay": 400' in html
+        assert '"showSection": false' in html
+        assert '"maxTags": 5' in html
+
+
+class TestLinkPreviewsJsonGeneration:
+    """Test that per-page JSON files are generated correctly."""
+
+    def test_json_file_created_for_each_page(self, site_lp_json_multi_page):
+        """Each page should have a corresponding JSON file."""
+        out = site_lp_json_multi_page.output_dir
+        assert (out / "index.json").exists()
+        assert (out / "about" / "index.json").exists()
+
+    def test_json_contains_preview_data(self, site_lp_json_multi_page):
+        """JSON should contain data needed for previews."""
+        json_path = site_lp_json_multi_page.output_dir / "docs" / "getting-started" / "index.json"
         assert json_path.exists()
 
         data = json.loads(json_path.read_text())
@@ -196,51 +238,22 @@ configuration, and your first build.
 class TestLinkPreviewsCss:
     """Test that link preview CSS is included."""
 
-    def test_css_includes_link_preview_styles(self, site_builder):
+    def test_css_includes_link_preview_styles(self, site_lp_json_css_default):
         """Link preview CSS should be bundled in theme styles."""
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "output_formats": {
-                    "enabled": True,
-                    "per_page": ["json"],
-                },
-            },
-            content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
-        )
-        site.build()
-
-        # Find CSS file (may have fingerprint in name)
-        css_dir = site.output_dir / "assets" / "css"
+        css_dir = site_lp_json_css_default.output_dir / "assets" / "css"
         css_files = list(css_dir.glob("style*.css"))
         assert len(css_files) > 0, "No CSS file found"
 
         css = css_files[0].read_text()
-        # Should have link-preview classes (bundled via @import)
         assert ".link-preview" in css
 
 
 class TestLinkPreviewsDefaultBehavior:
     """Test default behavior without explicit configuration."""
 
-    def test_enabled_by_default_with_json(self, site_builder):
+    def test_enabled_by_default_with_json(self, site_lp_default_previews):
         """Link previews should be enabled by default when JSON is enabled."""
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "output_formats": {
-                    "enabled": True,
-                    "per_page": ["json"],
-                },
-                # No explicit link_previews config
-            },
-            content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
-        )
-        site.build()
-
-        html = site.read_output("index.html")
-        # Should have link previews enabled by default
-        # Script may have fingerprint hash in name, e.g., link-previews.af9b6471.js
+        html = site_lp_default_previews.read_output("index.html")
         assert "link-previews" in html
         assert "linkPreviews" in html
 
@@ -339,14 +352,12 @@ class TestCrossSiteLinkPreviewsConfigBridge:
                 },
                 "link_previews": {
                     "enabled": True,
-                    # No cross-site config - use defaults
                 },
             },
             content={"_index.md": "---\ntitle: Home\n---\nTest"},
         )
         site.build()
         html = site.read_output("index.html")
-        # Should have default values
         assert '"allowedHosts": []' in html
         assert '"allowedSchemes": ["https"]' in html
         assert '"hostFailureThreshold": 3' in html

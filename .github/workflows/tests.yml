@@ -187,7 +187,7 @@ jobs:
           tests/integration/test_full_site_url_consistency.py \
           -v --tb=short -n auto --dist worksteal --max-worker-restart=3
 
-  # Integration tests split into 4 shards to avoid timeout
+  # Integration tests (excluding warm_build/ — see warm-build job)
   integration:
     needs: full-suite
     if: ${{ !cancelled() && needs.full-suite.result == 'success' }}
@@ -196,7 +196,7 @@ jobs:
       fail-fast: false
       matrix:
         group: [1, 2, 3, 4]
-    timeout-minutes: 25
+    timeout-minutes: 15
     steps:
     - uses: actions/checkout@v4
 
@@ -216,7 +216,7 @@ jobs:
     - name: Install dependencies
       run: uv sync --no-sources --group dev
 
-    - name: Integration tests (shard ${{ matrix.group }}/4)
+    - name: Integration tests (shard ${{ matrix.group }}/4, excludes warm_build/)
       env:
         CI: true
         BENGAL_CI_FAST: "1"
@@ -230,8 +230,10 @@ jobs:
           --splits 4 --group ${{ matrix.group }} \
           --splitting-algorithm least_duration \
           -n auto -vv -ra --tb=short --maxfail=1 --durations=40 \
-          --dist loadgroup --max-worker-restart=3 \
+          --timeout=60 --timeout-method=signal \
+          --dist worksteal --max-worker-restart=3 \
           tests/integration \
+          --ignore=tests/integration/warm_build \
           -m "not slow and not performance and not stateful and not autodoc and not known_gap" \
           --junitxml=integration-results.xml \
           2>&1 | tee integration-tests.log
@@ -244,6 +246,66 @@ jobs:
         path: |
           integration-tests.log
           integration-results.xml
+        if-no-files-found: warn
+
+  # Warm-build integration tests (isolated; heavy full/incremental site builds)
+  warm-build:
+    needs: full-suite
+    if: ${{ !cancelled() && needs.full-suite.result == 'success' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        group: [1, 2]
+    timeout-minutes: 15
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        python-version: "3.14t"
+
+    - name: Cache uv dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+        restore-keys: |
+          uv-${{ runner.os }}-
+
+    - name: Install dependencies
+      run: uv sync --no-sources --group dev
+
+    - name: Warm build tests (shard ${{ matrix.group }}/2)
+      env:
+        CI: true
+        BENGAL_CI_FAST: "1"
+        OMP_NUM_THREADS: "1"
+        PYTHON_GIL: "0"
+        PYTHONUNBUFFERED: "1"
+      run: |
+        echo "Running warm_build integration tests (group ${{ matrix.group }}/2)..."
+        set -o pipefail
+        uv run pytest \
+          --splits 2 --group ${{ matrix.group }} \
+          --splitting-algorithm least_duration \
+          -n auto -vv -ra --tb=short --maxfail=1 --durations=20 \
+          --timeout=60 --timeout-method=signal \
+          --dist worksteal --max-worker-restart=3 \
+          tests/integration/warm_build/ \
+          -m "not slow and not performance and not stateful" \
+          --junitxml=warm-build-results.xml \
+          2>&1 | tee warm-build-tests.log
+
+    - name: Upload warm-build diagnostics
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: warm-build-diagnostics-group${{ matrix.group }}
+        path: |
+          warm-build-tests.log
+          warm-build-results.xml
         if-no-files-found: warn
 
   # Render output regression sentinels (autodoc + fallback path)
@@ -388,13 +450,20 @@ jobs:
         uv run pytest -n auto -q --tb=short -m performance --dist worksteal --max-worker-restart=2
 
     - name: Upload coverage
-      if: matrix.baseurl == ''
+      if: success()
       uses: codecov/codecov-action@v4
 
   # Gate job for branch protection — succeeds when tests pass OR were skipped (docs-only)
   ci-ok:
     if: always()
-    needs: [detect-changes, fast-check, full-suite, e2e, integration, render-output-regression]
+    needs:
+      - detect-changes
+      - fast-check
+      - full-suite
+      - e2e
+      - integration
+      - warm-build
+      - render-output-regression
     runs-on: ubuntu-latest
     steps:
       - name: Decide status
@@ -409,6 +478,7 @@ jobs:
              [ "${{ needs.full-suite.result }}" = "failure" ] || \
              [ "${{ needs.e2e.result }}" = "failure" ] || \
              [ "${{ needs.integration.result }}" = "failure" ] || \
+             [ "${{ needs.warm-build.result }}" = "failure" ] || \
              [ "${{ needs.render-output-regression.result }}" = "failure" ]; then
             echo "One or more test jobs failed"
             exit 1

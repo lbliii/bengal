@@ -31,6 +31,7 @@ class TestBlogScenarios:
         sorted_dates = sorted(dates, reverse=True)
         assert sorted_dates[0] > sorted_dates[-1], "Posts should have different dates"
 
+    @pytest.mark.heavyweight
     def test_pagination_pages_created(self, shared_site) -> None:
         """Pagination should create multiple page directories.
 
@@ -107,6 +108,7 @@ class TestBlogScenarios:
         posts_with_tags = [p for p in posts if hasattr(p, "tags") and p.tags]
         assert len(posts_with_tags) > 0, "Posts should have tags"
 
+    @pytest.mark.heavyweight
     def test_tag_pages_created(self, shared_site) -> None:
         """Tag pages should be generated."""
         output = shared_site.output_dir
