@@ -146,6 +146,12 @@ jobs:
       run: |
         uv run pytest -n 0 -q --tb=short --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
 
+    - name: Upload coverage
+      if: matrix.baseurl == ''
+      uses: codecov/codecov-action@v4
+      with:
+        files: coverage.xml
+
   # E2E tests (build + validate + check links)
   e2e:
     needs: full-suite
@@ -448,10 +454,6 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         uv run pytest -n auto -q --tb=short -m performance --dist worksteal --max-worker-restart=2
-
-    - name: Upload coverage
-      if: success()
-      uses: codecov/codecov-action@v4
 
   # Gate job for branch protection — succeeds when tests pass OR were skipped (docs-only)
   ci-ok:

@@ -191,8 +191,8 @@ class TestLinkPreviewsTemplateRendering:
     def test_config_bridge_absent_when_disabled(self, site_lp_disabled_json):
         """Config bridge should not be present when link previews disabled."""
         html = site_lp_disabled_json.read_output("index.html")
-        if 'id="bengal-config"' in html:
-            assert '"enabled": true' not in html or "linkPreviews" not in html
+        assert 'id="bengal-config"' not in html
+        assert "linkPreviews" not in html
 
     def test_config_bridge_absent_without_json(self, site_lp_enabled_no_json):
         """Config bridge should not be present without per-page JSON."""
