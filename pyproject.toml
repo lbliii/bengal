@@ -242,6 +242,7 @@ build-prod = { cmd = "bengal build -e production", help = "Build with production
 test = { cmd = "pytest", help = "Run full test suite" }
 test-unit = { cmd = "pytest tests/unit/ -x -q", help = "Run unit tests only (fast)" }
 test-integration = { cmd = "pytest tests/integration/ -x -q --timeout=30", help = "Run integration tests" }
+test-integration-durations = { cmd = "pytest tests/integration/ -o addopts= -n 0 --store-durations --durations-path=.test_durations -q", help = "Regenerate .test_durations for CI pytest-split (slow)" }
 test-fast = { cmd = "pytest tests/ -x -q --ignore=tests/e2e --ignore=tests/integration", help = "Fast feedback loop (unit only)" }
 test-cov = { cmd = "pytest tests/ --cov=bengal --cov-report=term-missing", help = "Run tests with coverage" }
 test-parallel = { cmd = "pytest tests/ -n auto -x -q", help = "Run tests in parallel (pytest-xdist)" }
