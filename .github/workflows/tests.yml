@@ -230,6 +230,7 @@ jobs:
           --splits 4 --group ${{ matrix.group }} \
           --splitting-algorithm least_duration \
           -n auto -vv -ra --tb=short --maxfail=1 --durations=40 \
+          --timeout=120 --timeout-method=signal \
           --dist loadgroup --max-worker-restart=3 \
           tests/integration \
           -m "not slow and not performance and not stateful and not autodoc and not known_gap" \

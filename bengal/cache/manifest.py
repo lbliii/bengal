@@ -168,14 +168,15 @@ class RebuildManifest:
         Returns:
             Dictionary representation of the manifest
         """
+        stats = self.summary()
         return {
             "build_id": self.build_id,
             "incremental": self.incremental,
-            "rebuilt": len([e for e in self.entries if not e.from_cache]),
-            "cache_hits": len([e for e in self.entries if e.from_cache]),
+            "rebuilt": stats["total_rebuilt"],
+            "cache_hits": stats["total_cache_hits"],
             "skipped": len(self.skipped),
-            "by_reason": self.summary()["by_reason"],
-            "total_duration_ms": self.summary()["total_duration_ms"],
+            "by_reason": stats["by_reason"],
+            "total_duration_ms": stats["total_duration_ms"],
         }
 
     def summary(self) -> dict[str, Any]:
@@ -191,16 +192,24 @@ class RebuildManifest:
             - total_duration_ms: Total rebuild time
         """
         by_reason: dict[str, int] = {}
+        total_rebuilt = 0
+        total_cache_hits = 0
+        total_duration_ms = 0.0
+
         for entry in self.entries:
-            if not entry.from_cache:
+            total_duration_ms += entry.duration_ms
+            if entry.from_cache:
+                total_cache_hits += 1
+            else:
+                total_rebuilt += 1
                 by_reason[entry.reason] = by_reason.get(entry.reason, 0) + 1
 
         return {
-            "total_rebuilt": len([e for e in self.entries if not e.from_cache]),
+            "total_rebuilt": total_rebuilt,
             "total_skipped": len(self.skipped),
-            "total_cache_hits": len([e for e in self.entries if e.from_cache]),
+            "total_cache_hits": total_cache_hits,
             "by_reason": by_reason,
-            "total_duration_ms": sum(e.duration_ms for e in self.entries),
+            "total_duration_ms": total_duration_ms,
         }
 
     def merge(self, other: RebuildManifest) -> None:
