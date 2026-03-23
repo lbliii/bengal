@@ -895,3 +895,18 @@ def site_with_output_formats(tmp_path: Path) -> WarmBuildTestSite:
     site_dir.mkdir()
     create_output_formats_site_structure(site_dir)
     return WarmBuildTestSite(site_dir=site_dir)
+
+
+@pytest.fixture(scope="class")
+def shared_warm_build_site(tmp_path_factory: pytest.TempPathFactory) -> WarmBuildTestSite:
+    """Class-scoped minimal site with one full build.
+
+    Use for read-only tests that do not mutate ``site_dir``. Prefer
+    ``warm_build_site`` when a test touches files or runs incremental builds.
+    """
+    site_dir = tmp_path_factory.mktemp("shared_wb") / "test_site"
+    site_dir.mkdir(parents=True)
+    create_basic_site_structure(site_dir)
+    site = WarmBuildTestSite(site_dir=site_dir)
+    site.full_build()
+    return site

@@ -484,7 +484,6 @@
     "tests/integration/test_product.py::TestProductTemplateRegistration::test_product_template_has_description": 0.0007096250192262232,
     "tests/integration/test_product.py::TestProductTemplateRegistration::test_product_template_has_files": 0.0005529159680008888,
     "tests/integration/test_product.py::TestProductTemplateRegistration::test_product_template_registered": 0.052308707032352686,
-    "tests/integration/test_resource_cleanup.py::TestDevServerCleanup::test_server_creates_pid_file": 0.00019354105461388826,
     "tests/integration/test_resource_cleanup.py::TestPIDManager::test_check_stale_pid_no_file": 0.0029915000777691603,
     "tests/integration/test_resource_cleanup.py::TestPIDManager::test_check_stale_pid_with_current_process": 0.009161708992905915,
     "tests/integration/test_resource_cleanup.py::TestPIDManager::test_check_stale_pid_with_dead_process": 1.2864407490123995,

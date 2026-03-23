@@ -234,6 +234,60 @@ class EphemeralSite:
         return (self.output_dir / path).exists()
 
 
+def build_ephemeral_site_at(
+    site_dir: Path,
+    config: dict[str, Any] | None = None,
+    content: dict[str, str] | None = None,
+) -> EphemeralSite:
+    """
+    Create an EphemeralSite at ``site_dir`` from config/content dicts.
+
+    Shared by ``site_builder`` and class/module-scoped tests that need one
+    build reused across several assertions.
+    """
+    site_dir.mkdir(parents=True, exist_ok=True)
+
+    full_config: dict[str, Any] = {
+        "site": {
+            "title": "Test Site",
+            "baseurl": "/",
+        },
+        "build": {
+            "output_dir": "public",
+        },
+    }
+
+    if config:
+        for key, value in config.items():
+            if (
+                key in full_config
+                and isinstance(full_config[key], dict)
+                and isinstance(value, dict)
+            ):
+                full_config[key].update(value)
+            else:
+                full_config[key] = value
+
+    config_path = site_dir / "bengal.toml"
+    with open(config_path, "wb") as f:
+        tomli_w.dump(full_config, f)
+
+    content_dir = site_dir / "content"
+    content_dir.mkdir(exist_ok=True)
+
+    if content:
+        for rel_path, file_content in content.items():
+            file_path = content_dir / rel_path
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_text(file_content)
+
+    site = Site.from_config(site_dir)
+    site.discover_content()
+    site.discover_assets()
+
+    return EphemeralSite(site=site, site_dir=site_dir)
+
+
 @pytest.fixture
 def site_builder(tmp_path: Path) -> Callable:
     """
@@ -262,53 +316,7 @@ def site_builder(tmp_path: Path) -> Callable:
         config: dict[str, Any] | None = None,
         content: dict[str, str] | None = None,
     ) -> EphemeralSite:
-        # Create site directory
         site_dir = tmp_path / "ephemeral_site"
-        site_dir.mkdir(exist_ok=True)
-
-        # Build config with sensible defaults
-        full_config: dict[str, Any] = {
-            "site": {
-                "title": "Test Site",
-                "baseurl": "/",
-            },
-            "build": {
-                "output_dir": "public",
-            },
-        }
-
-        # Merge provided config
-        if config:
-            for key, value in config.items():
-                if (
-                    key in full_config
-                    and isinstance(full_config[key], dict)
-                    and isinstance(value, dict)
-                ):
-                    full_config[key].update(value)
-                else:
-                    full_config[key] = value
-
-        # Write config file
-        config_path = site_dir / "bengal.toml"
-        with open(config_path, "wb") as f:
-            tomli_w.dump(full_config, f)
-
-        # Create content directory and files
-        content_dir = site_dir / "content"
-        content_dir.mkdir(exist_ok=True)
-
-        if content:
-            for rel_path, file_content in content.items():
-                file_path = content_dir / rel_path
-                file_path.parent.mkdir(parents=True, exist_ok=True)
-                file_path.write_text(file_content)
-
-        # Create and initialize Site
-        site = Site.from_config(site_dir)
-        site.discover_content()
-        site.discover_assets()
-
-        return EphemeralSite(site=site, site_dir=site_dir)
+        return build_ephemeral_site_at(site_dir, config, content)
 
     return _factory

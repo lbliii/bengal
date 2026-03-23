@@ -33,6 +33,18 @@ Use `pytest.ini` defaults for fast feedback: parallel execution (`-n auto`), qui
 - **Ultra-fast dev** (skip slows + Hypothesis):  
   `pytest -m "not slow and not hypothesis"` (~15s)
 
+## CI integration shards
+
+GitHub Actions runs `tests/integration/` in six shards (excluding `tests/integration/warm_build/`) and warm-build tests in two shards. Sharding uses `pytest-split` with [`.test_durations`](../.test_durations). After adding or materially changing integration tests, refresh timings:
+
+```bash
+poe test-integration-durations
+```
+
+This runs the same marker filter as the CI integration job (`not slow`, `not stateful`, etc.), sequentially (allow roughly 30–60 minutes). The warm-build CI job uses a slightly looser filter; tests only in that job may fall back to default split weights until included here.
+
+If a run shows **“The operation was canceled”** in GitHub Actions, it is often the **job timeout** (fixed shard time budget) or **`concurrency.cancel-in-progress`** when a newer push replaces an in-flight workflow—not necessarily a failing test.
+
 ## Markers
 Markers help control execution. See `pytest.ini` for full list.
 
@@ -52,6 +64,8 @@ Markers help control execution. See `pytest.ini` for full list.
   **Critical**: Mark tests with `@pytest.mark.parallel_unsafe` if they spawn their own thread/process pools.  
   Reason: pytest-xdist runs tests in parallel workers. If a test creates its own pool, this causes nested parallelism → worker crashes ("node down: Not properly terminated").  
   Examples: `TestThreadSafety`, `TestAssetDiscoveryWithRaceConditions`, `TestRealWorldScenarios`.
+
+- `heavyweight`: Tests that often exceed ~15s (large roots, full builds). Informational for profiling; they still run in default CI.
 
 List markers: `pytest --markers`.
 
