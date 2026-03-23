@@ -191,7 +191,8 @@ class RelatedPostsOrchestrator:
             if page.related_posts:
                 pages_with_related += 1
 
-        # Set empty for generated pages
+        # Single finalization pass: clear generated pages' related_posts
+        # (computed pages already set above, only generated pages need clearing)
         for page in self.site.pages:
             if page.metadata.get("_generated"):
                 page.related_posts = []
@@ -273,7 +274,7 @@ class RelatedPostsOrchestrator:
                     )
                     page.related_posts = []
 
-        # Set empty for generated pages
+        # Single finalization pass: clear generated pages' related_posts
         for page in self.site.pages:
             if page.metadata.get("_generated"):
                 page.related_posts = []

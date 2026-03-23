@@ -263,6 +263,37 @@ class CacheManager:
             else:
                 self.cache.taxonomy_index.update_tags(page_key, set())
 
+        # Record per-page template dependencies for selective template invalidation.
+        # Uses determine_template() to resolve the primary template, then queries
+        # the engine for the full dependency chain (extends/includes).
+        from bengal.rendering.pipeline.output import determine_template
+
+        for page in pages_built:
+            if page.is_virtual or page.metadata.get("_generated"):
+                continue
+            try:
+                primary_template = determine_template(page)
+                # Start with the primary template
+                template_names: set[str] = {primary_template}
+
+                # Try to get the full dependency chain from the engine
+                try:
+                    from bengal.rendering.template_engine import get_engine
+
+                    engine = get_engine(self.site)
+                    if hasattr(engine, "_env"):
+                        tpl = engine._env.get_template(primary_template)
+                        if hasattr(tpl, "dependencies"):
+                            deps = tpl.dependencies()
+                            for key in ("extends", "includes", "embeds", "imports"):
+                                template_names.update(deps.get(key, []))
+                except Exception:
+                    pass  # Engine query is best-effort
+
+                self.cache.record_page_templates(str(page.source_path), frozenset(template_names))
+            except Exception:
+                pass  # Template resolution is best-effort; don't break cache save
+
         # Update all asset hashes
         for asset in assets_processed:
             self.cache.update_file(asset.source_path)

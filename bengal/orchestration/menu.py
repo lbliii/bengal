@@ -109,6 +109,66 @@ class MenuOrchestrator:
         # Full menu rebuild needed
         return self._build_full()
 
+    def _analyze_menu_state(
+        self, changed_pages: set[Path] | None = None
+    ) -> tuple[bool, list[dict[str, Any]], list[dict[str, Any]]]:
+        """
+        Single-pass analysis of menu-relevant page state.
+
+        Replaces three separate page walks (_can_skip_menu_rebuild check,
+        menu pages collection, root-level pages collection) with one traversal.
+
+        Args:
+            changed_pages: Set of changed page paths (None for full build)
+
+        Returns:
+            (needs_rebuild, menu_pages, root_level_pages) where:
+            - needs_rebuild: True if a changed page has menu frontmatter or is root-level
+            - menu_pages: List of dicts for pages with menu frontmatter
+            - root_level_pages: List of dicts for root-level pages
+        """
+        from bengal.rendering.template_functions.navigation.auto_nav import _is_root_level_page
+
+        needs_rebuild = False
+        menu_pages: list[dict[str, Any]] = []
+        root_level_pages: list[dict[str, Any]] = []
+
+        root_path = getattr(self.site, "root_path", None)
+        content_dir = root_path / "content" if root_path else None
+
+        for page in self.site.pages:
+            has_menu = "menu" in page.metadata
+            is_root = content_dir is not None and _is_root_level_page(page, content_dir)
+
+            # Check if changed page affects menu (was _can_skip_menu_rebuild)
+            if changed_pages and page.source_path in changed_pages and (has_menu or is_root):
+                needs_rebuild = True
+
+            # Collect menu pages (was first part of _compute_menu_cache_key)
+            if has_menu:
+                menu_pages.append(
+                    {
+                        "path": str(page.source_path),
+                        "menu": page.metadata["menu"],
+                        "title": page.title,
+                        "url": getattr(page, "href", "/"),
+                    }
+                )
+
+            # Collect root-level pages (was second part of _compute_menu_cache_key)
+            if is_root:
+                metadata = getattr(page, "metadata", {})
+                root_level_pages.append(
+                    {
+                        "path": str(page.source_path),
+                        "menu": metadata.get("menu", True),
+                        "title": page.title,
+                        "weight": metadata.get("weight", 999),
+                    }
+                )
+
+        return needs_rebuild, menu_pages, root_level_pages
+
     def _can_skip_rebuild(self, changed_pages: set[Path]) -> bool:
         """
         Check if menu rebuild can be skipped (incremental optimization).
@@ -127,21 +187,13 @@ class MenuOrchestrator:
         if not self.site.menu:
             return False
 
-        # Check if any changed pages affect menu (menu frontmatter or root-level)
-        from bengal.rendering.template_functions.navigation.auto_nav import _is_root_level_page
-
-        root_path = getattr(self.site, "root_path", None)
-        content_dir = root_path / "content" if root_path else None
-        for page in self.site.pages:
-            if page.source_path not in changed_pages:
-                continue
-            if "menu" in page.metadata:
-                return False
-            if content_dir and _is_root_level_page(page, content_dir):
-                return False
+        # Single-pass analysis: check changed pages AND collect data for cache key
+        needs_rebuild, menu_pages, root_level_pages = self._analyze_menu_state(changed_pages)
+        if needs_rebuild:
+            return False
 
         # Compute cache key based on menu config and pages with menu frontmatter
-        current_key = self._compute_menu_cache_key()
+        current_key = self._compute_menu_cache_key(menu_pages, root_level_pages)
 
         # Compare with previous cache key
         if self._menu_cache_key is None:
@@ -157,7 +209,11 @@ class MenuOrchestrator:
         self._menu_cache_key = current_key
         return False
 
-    def _compute_menu_cache_key(self) -> str:
+    def _compute_menu_cache_key(
+        self,
+        menu_pages: list[dict[str, Any]] | None = None,
+        root_level_pages: list[dict[str, Any]] | None = None,
+    ) -> str:
         """
         Compute cache key for current menu configuration.
 
@@ -167,23 +223,25 @@ class MenuOrchestrator:
         - Dev params (repo_url)
         - Dev section names (api, cli) that affect dev menu bundling
 
+        Args:
+            menu_pages: Pre-collected menu pages (from _analyze_menu_state).
+                       If None, collected via a fresh walk.
+            root_level_pages: Pre-collected root-level pages (from _analyze_menu_state).
+                            If None, collected via a fresh walk.
+
         Returns:
             SHA256 hash of menu-related data
         """
         # Get menu config
         menu_config = self.site.menu_config
 
-        # Get pages with menu frontmatter
-        menu_pages = [
-            {
-                "path": str(page.source_path),
-                "menu": page.metadata["menu"],
-                "title": page.title,
-                "url": getattr(page, "href", "/"),
-            }
-            for page in self.site.pages
-            if "menu" in page.metadata
-        ]
+        # Use pre-collected data if available, otherwise collect fresh
+        if menu_pages is None or root_level_pages is None:
+            _, menu_pages_fresh, root_level_pages_fresh = self._analyze_menu_state()
+            if menu_pages is None:
+                menu_pages = menu_pages_fresh
+            if root_level_pages is None:
+                root_level_pages = root_level_pages_fresh
 
         # Include dev params and section names in cache key
         # (sections affect dev menu bundling)
@@ -224,24 +282,6 @@ class MenuOrchestrator:
         # Include bundles config
         bundles_config = self.site.config.get("menu", {}).get("bundles", {})
         auto_dev_bundle = self.site.config.get("menu", {}).get("auto_dev_bundle", True)
-
-        # Root-level pages (auto-discovered in get_auto_nav, affect cache when they change)
-        from bengal.rendering.template_functions.navigation.auto_nav import _is_root_level_page
-
-        root_level_pages = []
-        if root_path := getattr(self.site, "root_path", None):
-            content_dir = root_path / "content"
-            for page in self.site.pages:
-                if _is_root_level_page(page, content_dir):
-                    metadata = getattr(page, "metadata", {})
-                    root_level_pages.append(
-                        {
-                            "path": str(page.source_path),
-                            "menu": metadata.get("menu", True),
-                            "title": page.title,
-                            "weight": metadata.get("weight", 999),
-                        }
-                    )
 
         # Create cache key data
         cache_data = {

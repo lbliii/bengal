@@ -32,10 +32,18 @@ class EffectTracer:
     """
     Unified dependency tracking.
 
-    Thread-safe because it only reads frozen SiteSnapshot.
     Records effects during rendering and computes invalidation sets.
-
     Replaces 13 detector classes with one unified model.
+
+    Thread-safety (Free-Threading / PEP 703):
+        All mutations (record, record_batch, update_fingerprint,
+        flush_pending_fingerprints, clear) are serialized under self._lock.
+        All reads (invalidated_by, outputs_needing_rebuild,
+        get_dependencies_for_output, get_effects_for_cache_key,
+        is_changed, get_changed_files, effects property, to_dict,
+        get_statistics, to_dependency_graph) also acquire self._lock
+        to prevent observing partially-constructed defaultdict entries
+        or list mutations without the GIL.
 
     Usage:
         >>> tracer = EffectTracer()
@@ -242,8 +250,13 @@ class EffectTracer:
     # --- File Fingerprinting ---
 
     def update_fingerprint(self, path: Path) -> None:
-        """Record current file fingerprint (deferred until flush)."""
-        self._pending_fingerprints.add(path)
+        """Record current file fingerprint (deferred until flush).
+
+        Thread-safe: Protected by lock for concurrent access under
+        free-threading (PEP 703).
+        """
+        with self._lock:
+            self._pending_fingerprints.add(path)
 
     def flush_pending_fingerprints(self) -> None:
         """Apply all pending fingerprint updates."""
@@ -260,9 +273,14 @@ class EffectTracer:
             self._pending_fingerprints.clear()
 
     def is_changed(self, path: Path) -> bool:
-        """Check if a file has changed since last fingerprint."""
+        """Check if a file has changed since last fingerprint.
+
+        Thread-safe: Reads fingerprint data under lock, performs I/O
+        outside lock to avoid holding lock during disk access.
+        """
         key = str(path)
-        cached = self._fingerprints.get(key)
+        with self._lock:
+            cached = self._fingerprints.get(key)
         if cached is None:
             return True  # New file
         if not path.exists():
@@ -271,9 +289,15 @@ class EffectTracer:
         return stat.st_mtime != cached["mtime"] or stat.st_size != cached["size"]
 
     def get_changed_files(self, root_path: Path) -> set[Path]:
-        """Get all files that have changed since last fingerprint."""
+        """Get all files that have changed since last fingerprint.
+
+        Thread-safe: Snapshots fingerprint keys under lock, then
+        checks each file outside lock.
+        """
+        with self._lock:
+            fingerprint_keys = list(self._fingerprints.keys())
         changed: set[Path] = set()
-        for path_str in self._fingerprints:
+        for path_str in fingerprint_keys:
             path = Path(path_str)
             if self.is_changed(path):
                 changed.add(path)

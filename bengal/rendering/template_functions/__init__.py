@@ -87,6 +87,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.plugins.registry import FrozenPluginRegistry
     from bengal.protocols import SiteLike, TemplateEnvironment
 
 from bengal.rendering import template_tests
@@ -127,7 +128,12 @@ from . import (
 logger = get_logger(__name__)
 
 
-def register_all(env: TemplateEnvironment, site: SiteLike, engine_type: str | None = None) -> None:
+def register_all(
+    env: TemplateEnvironment,
+    site: SiteLike,
+    engine_type: str | None = None,
+    plugin_registry: FrozenPluginRegistry | None = None,
+) -> None:
     """
     Register all template functions with template environment.
 
@@ -210,6 +216,12 @@ def register_all(env: TemplateEnvironment, site: SiteLike, engine_type: str | No
         from bengal.rendering.adapters import register_context_functions
 
         register_context_functions(env, site, engine_type)
+
+    # Phase 11: Plugin-provided template extensions
+    if plugin_registry is not None:
+        from bengal.plugins.integration import apply_plugin_template_extensions
+
+        apply_plugin_template_extensions(plugin_registry, env, site)
 
     logger.debug("template_functions_registered", count=20)
 

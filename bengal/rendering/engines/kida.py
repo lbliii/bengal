@@ -227,9 +227,16 @@ class KidaTemplateEngine:
         # This handles both non-context functions (icons, dates, strings, etc.)
         # and context-dependent functions (t, current_lang, tag_url, asset_url)
         # via the adapter layer
+        # Pass active plugin registry for plugin-provided template extensions
+        from bengal.plugins import get_active_registry
         from bengal.rendering.template_functions import register_all
 
-        register_all(self._env, self.site, engine_type="kida")
+        register_all(
+            self._env,
+            self.site,
+            engine_type="kida",
+            plugin_registry=get_active_registry(),
+        )
 
         # === Step 2: Add filters from TemplateEngine mixins ===
         # These are added by Jinja's environment.py but not by register_all()

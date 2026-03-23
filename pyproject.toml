@@ -82,6 +82,8 @@ all-sources = ["aiohttp>=3.9.0", "cachetools>=5.0.0"] # All remote sources
 [project.scripts]
 bengal = "bengal.__main__:run"
 
+[project.entry-points."bengal.plugins"]
+
 [project.urls]
 Homepage = "https://lbliii.github.io/bengal/"
 Documentation = "https://lbliii.github.io/bengal/"
