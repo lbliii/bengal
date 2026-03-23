@@ -307,19 +307,61 @@ def _expand_forced_changed(
                 reasons.setdefault(str(page_path), []).append(f"data_file:{data_file.name}")
 
     # Gap 3: Detect template changes
-    # Per-page template dependencies are not yet recorded in BuildCache,
-    # so _get_pages_for_template() would always return empty.  Instead,
-    # fall back to rebuilding ALL pages when any template changes -- any
-    # page could reference any template via extends/includes.
+    # Use per-page template dependency tracking when available.
+    # Falls back to rebuilding ALL pages when no dependency data exists
+    # (first build or cache miss) to ensure correctness.
     changed_templates = _detect_changed_templates(cache, site)
     if changed_templates:
-        template_names = ", ".join(t.name for t in changed_templates)
-        for page in pages:
-            if page.source_path not in expanded:
-                expanded.add(page.source_path)
-                reasons.setdefault(str(page.source_path), []).append(
-                    f"template_changed:{template_names}"
-                )
+        # Resolve template names relative to template dirs (matches determine_template() format)
+        templates_dir = site.root_path / "templates"
+        theme_templates_dir = (
+            site.theme_path / "templates"
+            if isinstance(site, SiteLike) and site.theme_path
+            else None
+        )
+
+        def _template_rel_name(tpl_path: Path) -> str:
+            """Get template name relative to its templates dir (POSIX separators)."""
+            for tpl_dir in (templates_dir, theme_templates_dir):
+                if tpl_dir and tpl_path.is_relative_to(tpl_dir):
+                    return tpl_path.relative_to(tpl_dir).as_posix()
+            return tpl_path.name
+
+        template_names_str = ", ".join(_template_rel_name(t) for t in changed_templates)
+        if cache.template_dependencies:
+            # Selective rebuild: only rebuild pages that depend on changed templates
+            needs_full_rebuild = False
+            for changed_template in changed_templates:
+                template_name = _template_rel_name(changed_template)
+                affected = cache.get_pages_for_template(template_name)
+                if affected:
+                    for page_path_str in affected:
+                        page_path = Path(page_path_str)
+                        if page_path not in expanded:
+                            expanded.add(page_path)
+                            reasons.setdefault(str(page_path), []).append(
+                                f"template_changed:{template_name}"
+                            )
+                else:
+                    # No dependency data for this template (first build or cache miss)
+                    # Fall back to full rebuild for safety
+                    needs_full_rebuild = True
+                    break
+            if needs_full_rebuild:
+                for page in pages:
+                    if page.source_path not in expanded:
+                        expanded.add(page.source_path)
+                        reasons.setdefault(str(page.source_path), []).append(
+                            f"template_changed:{template_names_str}"
+                        )
+        else:
+            # No template dependency data yet — fall back to rebuilding ALL pages
+            for page in pages:
+                if page.source_path not in expanded:
+                    expanded.add(page.source_path)
+                    reasons.setdefault(str(page.source_path), []).append(
+                        f"template_changed:{template_names_str}"
+                    )
 
     # Gap 2: For content pages that changed, find taxonomy term pages
     # Check which changed pages have tags - their taxonomy term pages need rebuilding
@@ -393,17 +435,16 @@ def phase_incremental_filter_provenance(
         # - Data file changes → dependent pages
         # - Template changes → dependent pages
         # - Content changes → taxonomy term pages
-        pages_list_for_deps = list(site.pages)
+        pages_list = list(site.pages)
         forced_changed, dependency_reasons = _expand_forced_changed(
             forced_changed,
             cache,
             site,
-            pages_list_for_deps,
+            pages_list,
         )
 
         # Filter pages and assets
         filter_start = time.time()
-        pages_list = list(site.pages)
         assets_list = list(site.assets)
 
         # COLD BUILD: If output is missing, skip provenance verification entirely.

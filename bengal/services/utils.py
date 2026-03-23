@@ -12,18 +12,24 @@ services operate on immutable data structures.
 
 from __future__ import annotations
 
-from functools import lru_cache
 from pathlib import Path
 from types import MappingProxyType
 from typing import Any, TypeVar
 
+from bengal.utils.primitives.lru_cache import LRUCache
+
 T = TypeVar("T")
 
+# Thread-safe cache for bengal directory (replaces @lru_cache for free-threading)
+_bengal_dir_cache: LRUCache[str, Path] = LRUCache(maxsize=1, name="bengal_dir")
 
-@lru_cache(maxsize=1)
+
 def get_bengal_dir() -> Path:
     """
     Get the bengal package root directory (cached).
+
+    Thread-safe: Uses LRUCache with RLock for safe concurrent access
+    under free-threading (PEP 703).
 
     Returns:
         Path to the bengal package directory
@@ -35,10 +41,14 @@ def get_bengal_dir() -> Path:
         >>> bengal_dir = get_bengal_dir()
         >>> themes_dir = bengal_dir / "themes"
     """
-    import bengal
 
-    assert bengal.__file__ is not None, "bengal module has no __file__"
-    return Path(bengal.__file__).parent
+    def _resolve() -> Path:
+        import bengal
+
+        assert bengal.__file__ is not None, "bengal module has no __file__"
+        return Path(bengal.__file__).parent
+
+    return _bengal_dir_cache.get_or_set("bengal_dir", _resolve)
 
 
 def get_bundled_themes_dir() -> Path:

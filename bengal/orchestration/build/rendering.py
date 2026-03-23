@@ -741,8 +741,11 @@ def phase_update_site_pages(
             else:
                 rendered_map[page.source_path] = page
 
-        # Replace stale proxies with fresh pages
+        # Replace stale proxies with fresh pages, counting types in the same pass
+
+        debug = orchestrator.logger.level.value <= 10  # DEBUG level
         updated_pages = []
+        page_types: dict[str, int] = {}
         for page in orchestrator.site.pages:
             if page.source_path in rendered_map:
                 # Use the freshly rendered page
@@ -750,25 +753,18 @@ def phase_update_site_pages(
             else:
                 # Keep the existing page (proxy or unchanged)
                 updated_pages.append(page)
+            if debug:
+                ptype = type(updated_pages[-1]).__name__
+                page_types[ptype] = page_types.get(ptype, 0) + 1
 
         orchestrator.site.pages = updated_pages
 
         # Log composition for debugging (helps troubleshoot incremental issues)
-        if orchestrator.logger.level.value <= 10:  # DEBUG level
-            page_types = {"Page": 0, "PageProxy": 0, "other": 0}
-            for p in orchestrator.site.pages:
-                ptype = type(p).__name__
-                if ptype == "Page":
-                    page_types["Page"] += 1
-                elif ptype == "PageProxy":
-                    page_types["PageProxy"] += 1
-                else:
-                    page_types["other"] += 1
-
+        if debug and page_types:
             orchestrator.logger.debug(
                 "site_pages_composition_before_postprocess",
-                fresh_pages=page_types["Page"],
-                cached_proxies=page_types["PageProxy"],
+                fresh_pages=page_types.get("Page", 0),
+                cached_proxies=page_types.get("PageProxy", 0),
                 total_pages=len(orchestrator.site.pages),
             )
         else:

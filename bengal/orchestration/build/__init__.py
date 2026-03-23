@@ -378,6 +378,12 @@ class BuildOrchestrator:
         # This collector tracks all written files (HTML, CSS, assets) for typed reload decisions.
         output_collector = BuildOutputCollector(output_dir=self.site.output_dir)
 
+        # Phase 0: Plugin Loading
+        from bengal.plugins import load_plugins, set_active_registry
+
+        plugin_registry = load_plugins()
+        set_active_registry(plugin_registry)
+
         # Phase 1: Font Processing
         initialization.phase_fonts(self, cli, collector=output_collector)
 
@@ -858,25 +864,19 @@ class BuildOrchestrator:
 
         cli = get_cli_output()
 
-        # Count page types
-        tag_pages = sum(
-            1
-            for p in self.site.pages
-            if p.metadata is not None
-            and p.metadata.get("_generated")
-            and p.output_path is not None
-            and "tag" in p.output_path.parts
-        )
-        archive_pages = sum(
-            1
-            for p in self.site.pages
-            if p.metadata.get("_generated") and p.metadata.get("template") == "archive.html"
-        )
-        pagination_pages = sum(
-            1
-            for p in self.site.pages
-            if p.metadata.get("_generated") and "/page/" in str(p.output_path)
-        )
+        # Count page types in a single pass
+        tag_pages = 0
+        archive_pages = 0
+        pagination_pages = 0
+        for p in self.site.pages:
+            meta = p.metadata
+            if meta is not None and meta.get("_generated"):
+                if p.output_path is not None and "tag" in p.output_path.parts:
+                    tag_pages += 1
+                if meta.get("template") == "archive.html":
+                    archive_pages += 1
+                if p.output_path is not None and "/page/" in str(p.output_path):
+                    pagination_pages += 1
         regular_pages = len(self.site.regular_pages)
 
         cli.detail(f"Regular pages:    {regular_pages}", indent=1, icon="├─")

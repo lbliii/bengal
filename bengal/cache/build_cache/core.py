@@ -143,6 +143,10 @@ class BuildCache(
     # Enables skipping asset discovery walk during hot reload if no assets changed.
     discovered_assets: dict[str, str] = field(default_factory=dict)
 
+    # Per-page template dependencies: page source path → frozenset of template names used
+    # Enables selective rebuilds when templates change (instead of rebuilding ALL pages)
+    template_dependencies: dict[str, frozenset[str]] = field(default_factory=dict)
+
     # URL ownership claims: url → URLClaim dict
     # Persists URL claims for incremental build safety (prevents shadowing by new content)
     # Structure: {url: {owner: str, source: str, priority: int, version: str | None, lang: str | None}}
@@ -174,6 +178,11 @@ class BuildCache(
         # Convert reverse_dependencies lists back to sets (RFC: Cache Algorithm Optimization)
         self.reverse_dependencies = {
             k: set(v) if isinstance(v, list) else v for k, v in self.reverse_dependencies.items()
+        }
+        # Convert template_dependencies lists back to frozensets
+        self.template_dependencies = {
+            k: frozenset(v) if isinstance(v, list) else v
+            for k, v in self.template_dependencies.items()
         }
         # Parsed content is already in dict format (no conversion needed)
         # Synthetic pages is already in dict format (no conversion needed)
@@ -369,6 +378,16 @@ class BuildCache(
             # Discovered assets (tolerate missing)
             if "discovered_assets" not in data or not isinstance(data["discovered_assets"], dict):
                 data["discovered_assets"] = {}
+
+            # Template dependencies (tolerate missing)
+            if "template_dependencies" not in data or not isinstance(
+                data["template_dependencies"], dict
+            ):
+                data["template_dependencies"] = {}
+            else:
+                data["template_dependencies"] = {
+                    k: frozenset(v) for k, v in data["template_dependencies"].items()
+                }
 
             # Autodoc content cache (tolerate missing, reconstruct CachedModuleInfo)
             if "autodoc_content_cache" not in data or not isinstance(
@@ -567,6 +586,9 @@ class BuildCache(
             "autodoc_content_cache": autodoc_content_serialized,
             # Cached synthetic payloads (e.g., autodoc elements)
             "synthetic_pages": self.synthetic_pages,
+            "template_dependencies": {
+                k: list(v) for k, v in self.template_dependencies.items()
+            },  # Per-page template deps
             "url_claims": self.url_claims,  # URL ownership claims (already dict format)
             "discovered_assets": self.discovered_assets,  # Discovered assets
             "config_hash": self.config_hash,  # Config hash for auto-invalidation
@@ -615,6 +637,7 @@ class BuildCache(
         self.validation_results.clear()
         self.autodoc_tracker.clear()
         self.autodoc_content_cache.clear()
+        self.template_dependencies.clear()
         self.discovered_assets.clear()
         self.url_claims.clear()
         self.config_hash = None
@@ -746,6 +769,42 @@ class BuildCache(
             page_data: Page data to cache
         """
         self.synthetic_pages[cache_key] = page_data
+
+    def record_page_templates(self, page_path: str, templates: frozenset[str]) -> None:
+        """
+        Record which templates a page uses.
+
+        Args:
+            page_path: Page source path (string key)
+            templates: Frozenset of template names used by this page
+        """
+        self.template_dependencies[page_path] = templates
+        # Invalidate reverse index so it's rebuilt on next lookup
+        self._template_reverse_index = None
+
+    def _build_template_reverse_index(self) -> dict[str, set[str]]:
+        """Build reverse index: template name → set of page paths."""
+        index: dict[str, set[str]] = {}
+        for page_path, templates in self.template_dependencies.items():
+            for tpl in templates:
+                index.setdefault(tpl, set()).add(page_path)
+        return index
+
+    def get_pages_for_template(self, template_name: str) -> set[str]:
+        """
+        Find all pages that depend on a given template.
+
+        Uses a lazily-built reverse index for O(1) lookups.
+
+        Args:
+            template_name: Template name to look up
+
+        Returns:
+            Set of page source paths that use this template
+        """
+        if not hasattr(self, "_template_reverse_index") or self._template_reverse_index is None:
+            self._template_reverse_index = self._build_template_reverse_index()
+        return self._template_reverse_index.get(template_name, set())
 
     def invalidate_page_cache(self, cache_key: str) -> None:
         """

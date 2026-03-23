@@ -377,20 +377,25 @@ class TestCacheProperties:
         assume(content.strip())  # Skip empty content
 
         with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_path = Path(tmp_dir)
+            tmp_path = Path(tmp_dir).resolve()
             test_file = tmp_path / "test.md"
+
+            # Use the same key normalization as BuildCache._cache_key()
+            from bengal.utils.paths.normalize import to_posix
+
+            file_key = to_posix(test_file)
 
             # First content
             test_file.write_text(f"---\ntitle: Test\n---\n{content}")
             cache1 = BuildCache()
             cache1.update_file(test_file)
-            fp1 = cache1.file_fingerprints.get(str(test_file))
+            fp1 = cache1.file_fingerprints.get(file_key)
 
             # Different content
             test_file.write_text(f"---\ntitle: Different\n---\n{content[::-1]}")  # Reversed
             cache2 = BuildCache()
             cache2.update_file(test_file)
-            fp2 = cache2.file_fingerprints.get(str(test_file))
+            fp2 = cache2.file_fingerprints.get(file_key)
 
             # PROPERTY: Different content should produce different fingerprint
             assert fp1 is not None

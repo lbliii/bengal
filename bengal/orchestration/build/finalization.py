@@ -132,12 +132,20 @@ def phase_collect_stats(
     """
     start = time.perf_counter()
     site = orchestrator.site
-    orchestrator.stats.total_pages = len(site.pages)
     orchestrator.stats.regular_pages = len(site.regular_pages)
     orchestrator.stats.generated_pages = len(site.generated_pages)
+
+    # Single pass over site.pages for total count and autodoc detection
     from bengal.utils.autodoc import is_autodoc_page
 
-    orchestrator.stats.autodoc_pages = sum(1 for p in site.pages if is_autodoc_page(p))
+    total = 0
+    autodoc = 0
+    for p in site.pages:
+        total += 1
+        if is_autodoc_page(p):
+            autodoc += 1
+    orchestrator.stats.total_pages = total
+    orchestrator.stats.autodoc_pages = autodoc
     orchestrator.stats.total_assets = len(orchestrator.site.assets)
     orchestrator.stats.total_sections = len(orchestrator.site.sections)
     orchestrator.stats.taxonomies_count = sum(
