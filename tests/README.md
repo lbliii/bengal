@@ -35,13 +35,15 @@ Use `pytest.ini` defaults for fast feedback: parallel execution (`-n auto`), qui
 
 ## CI integration shards
 
-GitHub Actions runs `tests/integration/` in four shards (excluding `tests/integration/warm_build/`) and warm-build tests in two shards. Sharding uses `pytest-split` with [`.test_durations`](../.test_durations). After adding or materially changing integration tests, refresh timings:
+GitHub Actions runs `tests/integration/` in six shards (excluding `tests/integration/warm_build/`) and warm-build tests in two shards. Sharding uses `pytest-split` with [`.test_durations`](../.test_durations). After adding or materially changing integration tests, refresh timings:
 
 ```bash
 poe test-integration-durations
 ```
 
-This runs the full integration suite sequentially (allow roughly 30–60 minutes).
+This runs the same marker filter as the CI integration job (`not slow`, `not stateful`, etc.), sequentially (allow roughly 30–60 minutes). The warm-build CI job uses a slightly looser filter; tests only in that job may fall back to default split weights until included here.
+
+If a run shows **“The operation was canceled”** in GitHub Actions, it is often the **job timeout** (fixed shard time budget) or **`concurrency.cancel-in-progress`** when a newer push replaces an in-flight workflow—not necessarily a failing test.
 
 ## Markers
 Markers help control execution. See `pytest.ini` for full list.

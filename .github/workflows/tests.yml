@@ -201,8 +201,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        group: [1, 2, 3, 4]
-    timeout-minutes: 15
+        group: [1, 2, 3, 4, 5, 6]
+    # 15m was too tight for slowest shards (runner cancels mid-run). 25m + 6 shards
+    # keeps wall time per shard well under the limit.
+    timeout-minutes: 25
     steps:
     - uses: actions/checkout@v4
 
@@ -222,7 +224,7 @@ jobs:
     - name: Install dependencies
       run: uv sync --no-sources --group dev
 
-    - name: Integration tests (shard ${{ matrix.group }}/4, excludes warm_build/)
+    - name: Integration tests (shard ${{ matrix.group }}/6, excludes warm_build/)
       env:
         CI: true
         BENGAL_CI_FAST: "1"
@@ -230,10 +232,10 @@ jobs:
         PYTHON_GIL: "0"
         PYTHONUNBUFFERED: "1"
       run: |
-        echo "Running integration tests (group ${{ matrix.group }}/4)..."
+        echo "Running integration tests (group ${{ matrix.group }}/6)..."
         set -o pipefail
         uv run pytest \
-          --splits 4 --group ${{ matrix.group }} \
+          --splits 6 --group ${{ matrix.group }} \
           --splitting-algorithm least_duration \
           -n auto -vv -ra --tb=short --maxfail=1 --durations=40 \
           --timeout=60 --timeout-method=signal \
@@ -263,7 +265,7 @@ jobs:
       fail-fast: false
       matrix:
         group: [1, 2]
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
     - uses: actions/checkout@v4
 
