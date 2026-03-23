@@ -176,18 +176,6 @@ class TestResourceManager:
         assert cleanup_order == ["ok", "fail", "ok"]
 
 
-class TestDevServerCleanup:
-    """Test dev server cleanup integration."""
-
-    @pytest.mark.skipif(
-        not os.path.exists("examples/quickstart"), reason="Requires quickstart example"
-    )
-    def test_server_creates_pid_file(self, tmp_path):
-        """Test that dev server creates and cleans up PID file."""
-        # This is more of a smoke test - we can't easily test signal handling
-        # in pytest without more complex subprocess management
-
-
 @pytest.mark.skipif(os.name == "nt", reason="Signal handling differs on Windows")
 class TestSignalHandling:
     """Test signal handling (Unix-like systems only)."""
