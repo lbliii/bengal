@@ -4,6 +4,15 @@ Integration helpers to wire FrozenPluginRegistry into existing subsystems.
 Each function applies one category of plugin extensions to the appropriate
 Bengal subsystem (directive builder, template environment, etc.).
 
+Currently wired:
+- Template extensions (functions, filters, tests) — via register_all() in
+  bengal.rendering.template_functions
+
+Scaffolding for future subsystem integration:
+- Directives and roles — pending directive/role builder plugin hooks
+- Content sources — pending content source registry plugin hooks
+- Phase hooks — pending build orchestrator phase hook wiring
+
 """
 
 from __future__ import annotations

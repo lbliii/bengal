@@ -779,12 +779,22 @@ class BuildCache(
             templates: Frozenset of template names used by this page
         """
         self.template_dependencies[page_path] = templates
+        # Invalidate reverse index so it's rebuilt on next lookup
+        self._template_reverse_index = None
+
+    def _build_template_reverse_index(self) -> dict[str, set[str]]:
+        """Build reverse index: template name → set of page paths."""
+        index: dict[str, set[str]] = {}
+        for page_path, templates in self.template_dependencies.items():
+            for tpl in templates:
+                index.setdefault(tpl, set()).add(page_path)
+        return index
 
     def get_pages_for_template(self, template_name: str) -> set[str]:
         """
         Find all pages that depend on a given template.
 
-        Performs a reverse lookup over template_dependencies.
+        Uses a lazily-built reverse index for O(1) lookups.
 
         Args:
             template_name: Template name to look up
@@ -792,11 +802,9 @@ class BuildCache(
         Returns:
             Set of page source paths that use this template
         """
-        pages: set[str] = set()
-        for page_path, templates in self.template_dependencies.items():
-            if template_name in templates:
-                pages.add(page_path)
-        return pages
+        if not hasattr(self, "_template_reverse_index") or self._template_reverse_index is None:
+            self._template_reverse_index = self._build_template_reverse_index()
+        return self._template_reverse_index.get(template_name, set())
 
     def invalidate_page_cache(self, cache_key: str) -> None:
         """

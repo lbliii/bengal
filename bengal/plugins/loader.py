@@ -37,7 +37,11 @@ def discover_plugins() -> list[Plugin]:
             plugin = plugin_cls() if isinstance(plugin_cls, type) else plugin_cls
             if isinstance(plugin, Plugin):
                 plugins.append(plugin)
-                logger.debug("plugin_discovered", name=ep.name, plugin=plugin.name)
+                logger.debug(
+                    "plugin_discovered",
+                    name=ep.name,
+                    plugin=getattr(plugin, "name", "<unknown>"),
+                )
             else:
                 logger.warning(
                     "plugin_invalid",
@@ -69,9 +73,17 @@ def load_plugins(extra_plugins: list[Plugin] | None = None) -> FrozenPluginRegis
     for plugin in plugins:
         try:
             plugin.register(registry)
-            logger.info("plugin_registered", name=plugin.name, version=plugin.version)
+            logger.info(
+                "plugin_registered",
+                name=getattr(plugin, "name", "<unknown>"),
+                version=getattr(plugin, "version", "<unknown>"),
+            )
         except Exception:
-            logger.error("plugin_register_failed", name=plugin.name, exc_info=True)
+            logger.error(
+                "plugin_register_failed",
+                name=getattr(plugin, "name", "<unknown>"),
+                exc_info=True,
+            )
 
     frozen = registry.freeze()
 

@@ -269,8 +269,6 @@ class CacheManager:
         from bengal.rendering.pipeline.output import determine_template
 
         for page in pages_built:
-            if page.is_virtual or page.metadata.get("_generated"):
-                continue
             try:
                 primary_template = determine_template(page)
                 # Start with the primary template
@@ -288,11 +286,11 @@ class CacheManager:
                             for key in ("extends", "includes", "embeds", "imports"):
                                 template_names.update(deps.get(key, []))
                 except Exception:
-                    pass  # Engine query is best-effort
+                    logger.debug("template_deps_engine_query_failed", page=str(page.source_path))
 
                 self.cache.record_page_templates(str(page.source_path), frozenset(template_names))
             except Exception:
-                pass  # Template resolution is best-effort; don't break cache save
+                logger.debug("template_deps_resolution_failed", page=str(page.source_path))
 
         # Update all asset hashes
         for asset in assets_processed:

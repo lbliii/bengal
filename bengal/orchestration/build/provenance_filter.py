@@ -312,12 +312,27 @@ def _expand_forced_changed(
     # (first build or cache miss) to ensure correctness.
     changed_templates = _detect_changed_templates(cache, site)
     if changed_templates:
-        template_names_str = ", ".join(t.name for t in changed_templates)
+        # Resolve template names relative to template dirs (matches determine_template() format)
+        templates_dir = site.root_path / "templates"
+        theme_templates_dir = (
+            site.theme_path / "templates"
+            if isinstance(site, SiteLike) and site.theme_path
+            else None
+        )
+
+        def _template_rel_name(tpl_path: Path) -> str:
+            """Get template name relative to its templates dir (POSIX separators)."""
+            for tpl_dir in (templates_dir, theme_templates_dir):
+                if tpl_dir and tpl_path.is_relative_to(tpl_dir):
+                    return tpl_path.relative_to(tpl_dir).as_posix()
+            return tpl_path.name
+
+        template_names_str = ", ".join(_template_rel_name(t) for t in changed_templates)
         if cache.template_dependencies:
             # Selective rebuild: only rebuild pages that depend on changed templates
             needs_full_rebuild = False
             for changed_template in changed_templates:
-                template_name = changed_template.name
+                template_name = _template_rel_name(changed_template)
                 affected = cache.get_pages_for_template(template_name)
                 if affected:
                     for page_path_str in affected:
