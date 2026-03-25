@@ -33,15 +33,15 @@ jobs:
     timeout-minutes: 120  # Mutation testing can be slow
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v4
+      uses: astral-sh/setup-uv@v5
       with:
         python-version: "3.14t"
 
     - name: Cache uv dependencies
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: ~/.cache/uv
         key: uv-mutation-${{ runner.os }}-${{ hashFiles('uv.lock') }}
@@ -50,7 +50,7 @@ jobs:
           uv-${{ runner.os }}-
 
     - name: Cache mutation results
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: .mutmut-cache
         key: mutmut-${{ github.sha }}
@@ -144,7 +144,7 @@ jobs:
         fi
 
     - name: Upload mutation report
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v5
       with:
         name: mutation-report
         path: mutation-report.md
