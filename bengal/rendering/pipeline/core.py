@@ -548,6 +548,12 @@ class RenderingPipeline:
             self.site,
             parse_markdown=parse_markdown,
         )
+
+        # Protect pipes inside [[...]] cross-references from table cell splitting.
+        # Must run before the markdown parser sees the source.
+        if "[[" in source and hasattr(self.parser, "_xref_plugin") and self.parser._xref_plugin:
+            source = self.parser._xref_plugin.protect_table_pipes(source)
+
         if page.metadata.get("preprocess") is False:
             # Inject source_path and excerpt_length for cross-version dependency tracking
             # (non-context parse methods don't have access to page object)
@@ -933,6 +939,11 @@ class RenderingPipeline:
             self.site,
             parse_markdown=parse_markdown,
         )
+
+        # Protect pipes inside [[...]] cross-references from table cell splitting
+        if "[[" in source and hasattr(self.parser, "_xref_plugin") and self.parser._xref_plugin:
+            source = self.parser._xref_plugin.protect_table_pipes(source)
+
         if page.metadata.get("preprocess") is False:
             return source
 

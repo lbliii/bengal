@@ -222,6 +222,11 @@ def run_health_check(
     if not health_config.get("enabled", True):
         return
 
+    # Build shared link registry before health checks (zero-cost: reuses toc_items)
+    from bengal.health.link_registry import build_link_registry
+
+    orchestrator.site.link_registry = build_link_registry(orchestrator.site)
+
     health_start = time.time()
 
     # Run health checks with profile filtering

@@ -28,6 +28,7 @@ def mock_site():
     site = MagicMock()
     site.config = {"validate_links": True}
     site.root_path = Path("/project")
+    site.link_registry = None
 
     # Create mock pages with hrefs that exist in the site
     page1 = MagicMock()
@@ -66,6 +67,7 @@ def mock_site_with_broken_links():
     site = MagicMock()
     site.config = {"validate_links": True}
     site.root_path = Path("/project")
+    site.link_registry = None
 
     # Create mock pages with broken links
     page1 = MagicMock()
@@ -235,3 +237,103 @@ class TestLinkValidatorWrapperSilenceIsGolden:
 
         success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
         assert len(success_results) == 0
+
+
+class TestLinkValidatorAnchorValidation:
+    """Tests for anchor validation via LinkRegistry."""
+
+    @pytest.fixture
+    def site_with_registry(self):
+        """Create mock site with a LinkRegistry providing anchor data."""
+        from bengal.health.link_registry import LinkRegistry
+
+        site = MagicMock()
+        site.config = {"validate_links": True}
+        site.root_path = Path("/project")
+
+        registry = LinkRegistry(
+            page_urls=frozenset(["/docs/", "/docs", "/about/", "/about"]),
+            source_paths=frozenset(),
+            anchors_by_url={
+                "/docs/": frozenset(["introduction", "getting-started"]),
+                "/docs": frozenset(["introduction", "getting-started"]),
+                "/about/": frozenset(["team", "mission"]),
+                "/about": frozenset(["team", "mission"]),
+            },
+            auxiliary_urls=frozenset(),
+        )
+        site.link_registry = registry
+
+        return site
+
+    def test_valid_fragment_link_passes(self, site_with_registry):
+        """Fragment-only link to existing anchor is valid."""
+        page = MagicMock()
+        page._path = "/docs/"
+        page.href = "/docs/"
+        page.source_path = Path("/project/content/docs/_index.md")
+        page.links = ["#introduction"]
+        site_with_registry.pages = [page]
+
+        validator = LinkValidator()
+        broken = validator.validate_site(site_with_registry)
+        assert len(broken) == 0
+
+    def test_broken_fragment_link_detected(self, site_with_registry):
+        """Fragment-only link to nonexistent anchor is broken."""
+        page = MagicMock()
+        page._path = "/docs/"
+        page.href = "/docs/"
+        page.source_path = Path("/project/content/docs/_index.md")
+        page.links = ["#nonexistent-heading"]
+        site_with_registry.pages = [page]
+
+        validator = LinkValidator()
+        broken = validator.validate_site(site_with_registry)
+        assert len(broken) == 1
+        assert broken[0][1] == "#nonexistent-heading"
+
+    def test_valid_path_with_fragment_passes(self, site_with_registry):
+        """Path+fragment link where both page and anchor exist is valid."""
+        page = MagicMock()
+        page._path = "/about/"
+        page.href = "/about/"
+        page.source_path = Path("/project/content/about.md")
+        page.links = ["/docs/#introduction"]
+        site_with_registry.pages = [page]
+
+        validator = LinkValidator()
+        broken = validator.validate_site(site_with_registry)
+        assert len(broken) == 0
+
+    def test_broken_anchor_on_valid_page_detected(self, site_with_registry):
+        """Path+fragment link where page exists but anchor doesn't is broken."""
+        page = MagicMock()
+        page._path = "/about/"
+        page.href = "/about/"
+        page.source_path = Path("/project/content/about.md")
+        page.links = ["/docs/#nonexistent-section"]
+        site_with_registry.pages = [page]
+
+        validator = LinkValidator()
+        broken = validator.validate_site(site_with_registry)
+        assert len(broken) == 1
+        assert broken[0][1] == "/docs/#nonexistent-section"
+
+    def test_no_anchor_validation_without_registry(self):
+        """Without registry, fragment links pass (backward compat)."""
+        site = MagicMock()
+        site.config = {"validate_links": True}
+        site.root_path = Path("/project")
+        site.link_registry = None
+
+        page = MagicMock()
+        page.href = "/docs/"
+        page._path = "/docs/"
+        page.source_path = Path("/project/content/docs/_index.md")
+        page.links = ["#any-heading"]
+        site.pages = [page]
+
+        validator = LinkValidator()
+        broken = validator.validate_site(site)
+        assert len(broken) == 0

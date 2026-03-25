@@ -28,6 +28,7 @@ from bengal.health.linkcheck.models import LinkCheckResult, LinkKind, LinkStatus
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.health.link_registry import LinkRegistry
     from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
@@ -91,29 +92,108 @@ class InternalLinkChecker:
         self._output_paths: set[str] = set()
         self._anchors_by_page: dict[str, set[str]] = {}
 
-        if self.output_dir.exists():
-            # Scan all HTML files and build URL index
-            for html_file in self.output_dir.rglob("*.html"):
-                # Convert file path to URL
-                rel_path = html_file.relative_to(self.output_dir)
-
-                # Convert path/index.html -> /path/
-                # Convert path.html -> /path
-                if rel_path.name == "index.html":
-                    url = "/" if rel_path.parent == Path(".") else f"/{rel_path.parent}/"
-                else:
-                    url = f"/{rel_path.with_suffix('')}"
-
-                # Add both with and without trailing slash
-                self._output_paths.add(url)
-                self._output_paths.add(url.rstrip("/"))
-                if url != "/":
-                    self._output_paths.add(url.rstrip("/") + "/")
+        self._build_index_from_scan()
 
         logger.debug(
             "internal_checker_initialized",
             output_paths_count=len(self._output_paths),
             output_dir=str(self.output_dir),
+        )
+
+    @classmethod
+    def from_registry(
+        cls,
+        registry: LinkRegistry,
+        site: SiteLike,
+        ignore_policy: IgnorePolicy | None = None,
+    ) -> InternalLinkChecker:
+        """
+        Create an InternalLinkChecker pre-populated from a LinkRegistry.
+
+        Skips the output directory scan since the registry already has
+        all valid URLs and anchor data.
+
+        Args:
+            registry: Pre-built LinkRegistry with page URLs and anchors
+            site: Site instance (for baseurl and output_dir)
+            ignore_policy: Policy for ignoring certain links
+        """
+        instance = cls.__new__(cls)
+        instance.site = site
+        instance.ignore_policy = ignore_policy or IgnorePolicy()
+        instance.output_dir = site.output_dir
+
+        baseurl = site.baseurl or ""
+        if baseurl:
+            parsed = urlparse(baseurl)
+            instance.baseurl_path = parsed.path.rstrip("/")
+        else:
+            instance.baseurl_path = ""
+
+        # Populate from registry instead of scanning output_dir
+        instance._output_paths = set(registry.page_urls | registry.auxiliary_urls)
+        instance._anchors_by_page = {
+            url: set(anchors) for url, anchors in registry.anchors_by_url.items()
+        }
+
+        logger.debug(
+            "internal_checker_from_registry",
+            output_paths_count=len(instance._output_paths),
+            anchors_pages=len(registry.anchors_by_url),
+        )
+
+        return instance
+
+    def _build_index_from_scan(self) -> None:
+        """Build URL index by scanning the output directory for HTML and txt files."""
+        if not self.output_dir.exists():
+            return
+
+        for html_file in self.output_dir.rglob("*.html"):
+            self._index_html_file(html_file)
+
+        # Also index auxiliary output files (.txt for LLM-friendly output)
+        for txt_file in self.output_dir.rglob("*.txt"):
+            rel_path = txt_file.relative_to(self.output_dir)
+            self._output_paths.add(f"/{rel_path}")
+
+    def _index_html_file(self, html_file: Path) -> None:
+        """Add a single HTML file to the URL index."""
+        rel_path = html_file.relative_to(self.output_dir)
+
+        if rel_path.name == "index.html":
+            url = "/" if rel_path.parent == Path(".") else f"/{rel_path.parent}/"
+        else:
+            url = f"/{rel_path.with_suffix('')}"
+
+        self._output_paths.add(url)
+        self._output_paths.add(url.rstrip("/"))
+        if url != "/":
+            self._output_paths.add(url.rstrip("/") + "/")
+
+    def set_file_index(self, html_files: list[Path]) -> None:
+        """Rebuild URL index from a pre-discovered list of HTML files.
+
+        This avoids a redundant ``rglob("*.html")`` when the orchestrator
+        has already enumerated the output directory during link extraction.
+
+        Args:
+            html_files: List of HTML file paths already discovered.
+        """
+        self._output_paths.clear()
+
+        for html_file in html_files:
+            self._index_html_file(html_file)
+
+        # Re-scan for .txt files (small number, fast)
+        if self.output_dir.exists():
+            for txt_file in self.output_dir.rglob("*.txt"):
+                rel_path = txt_file.relative_to(self.output_dir)
+                self._output_paths.add(f"/{rel_path}")
+
+        logger.debug(
+            "internal_checker_reindexed",
+            output_paths_count=len(self._output_paths),
         )
 
     def check_links(self, links: list[tuple[str, str]]) -> dict[str, LinkCheckResult]:

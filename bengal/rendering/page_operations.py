@@ -94,6 +94,18 @@ class PageOperationsMixin:
             wikilink_urls = self._extract_wikilinks_from_source(content_without_code)
             self.links = [url for _, url in markdown_links] + html_links + wikilink_urls
 
+        # Capture directive-generated links from html_content (cards, buttons, etc.)
+        # html_content is set by the parser before this method runs and does NOT
+        # yet have baseurl applied, so extracted links are consistent with page.links.
+        if self.html_content and plugin_links is not None:
+            directive_links = re.findall(r'<a\s+[^>]*href=["\']([^"\']+)["\']', self.html_content)
+            if directive_links:
+                existing = set(self.links)
+                for link in directive_links:
+                    if link not in existing:
+                        self.links.append(link)
+                        existing.add(link)
+
         return self.links
 
     def _extract_all_links_from_html(self) -> list[str]:

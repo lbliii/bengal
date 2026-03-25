@@ -121,7 +121,7 @@ with render_config_context(RenderConfig(highlight=True)):
     html = renderer.render(ast)
 ```
 
-> **Note**: Custom parser registration currently requires modifying core code. A plugin-based registration system is planned for v0.4.0.
+> **Note**: Custom parser registration currently requires modifying core code; the [plugin system](#9-plugin-system) does **not** currently expose a parser registration hook. Use the plugin system only for other kinds of extensions that do not require core modifications.
 
 ## 3. Custom Template Engines
 
@@ -158,19 +158,18 @@ register_engine("myengine", MyEngine)
 
 **Implementation**:
 ```python
-# In your site's custom module
-def my_custom_filter(value):
-    """Custom filter implementation."""
-    return value.upper()
+from bengal.plugins.protocol import Plugin
+from bengal.plugins.registry import PluginRegistry
 
-# Register via build hook (uses internal API - may change)
-def register_filters(site):
-    # Note: _template_engine is internal; plugin API coming in v0.4.0
-    env = site._template_engine._env
-    env.filters['custom'] = my_custom_filter
+class MyFilterPlugin(Plugin):
+    name = "my-filters"
+    version = "1.0.0"
+
+    def register(self, registry: PluginRegistry) -> None:
+        registry.add_template_filter("custom", lambda value: value.upper())
 ```
 
-> **Caution**: This approach accesses internal attributes (`_template_engine._env`). A stable public API for filter registration is planned for the plugin system (v0.4.0).
+> **Tip**: The plugin system provides a stable public API for filter registration. See [Plugin System](#9-plugin-system) for the full pattern including entry-point discovery.
 
 **Usage in templates**:
 ```kida
@@ -200,11 +199,11 @@ class RobotsGenerator:
         # Build robots.txt content
         return "User-agent: *\nDisallow: /admin/"
 
-# Add to PostprocessOrchestrator
-# (requires modification or plugin hook)
+# Register via plugin phase hook
+# registry.on_phase("post_render", my_generator.generate)
 ```
 
-**Future**: Plugin system will provide hooks
+**Tip**: Use the plugin system's `on_phase()` to register post-processing hooks without modifying core code
 
 ## 6. Custom Validators
 
@@ -274,24 +273,24 @@ theme = "my-theme"
 
 **Documentation**: Themes automatically override default templates
 
-## 8. Custom Shortcodes (Planned)
+## 8. Custom Shortcodes
 
 **Purpose**: Define custom markdown syntax extensions
 
-**Planned API**:
+**Implementation** (via plugin system):
 ```python
-# Planned API (not implemented yet):
-# from bengal.rendering.plugins import ShortcodePlugin
+from bengal.plugins.protocol import Plugin
+from bengal.plugins.registry import PluginRegistry
 
-class AlertShortcode(ShortcodePlugin):
-    name = "alert"
+class AlertPlugin(Plugin):
+    name = "alert-shortcode"
+    version = "1.0.0"
 
-    def render(self, content, **kwargs):
-        alert_type = kwargs.get('type', 'info')
-        return f'<div class="alert alert-{alert_type}">{content}</div>'
-
-# Register shortcode
-# (requires plugin system)
+    def register(self, registry: PluginRegistry) -> None:
+        registry.add_shortcode(
+            "alert",
+            '<div class="alert alert-{{ type | default("info") }}">{{ content }}</div>',
+        )
 ```
 
 **Usage in markdown**:
@@ -301,51 +300,65 @@ This is a warning message!
 {{% /alert %}}
 ```
 
-## 9. Plugin System (Planned v0.4.0)
+## 9. Plugin System
 
-**Purpose**: Formal plugin architecture with lifecycle hooks
+**Purpose**: Unified extension framework with 9 extension points and thread-safe rendering
 
-**Planned API**:
+**Protocol**: All plugins implement `Plugin` — a runtime-checkable protocol with `name`, `version`, and `register()`:
+
 ```python
-# Planned API (not implemented yet):
-# from bengal.plugins import Plugin, hook
+from bengal.plugins.protocol import Plugin
+from bengal.plugins.registry import PluginRegistry
+
 
 class MyPlugin(Plugin):
     name = "my-plugin"
     version = "1.0.0"
 
-    @hook('pre_build')
-    def before_build(self, site):
-        """Called before build starts"""
-        print(f"Building {len(site.pages)} pages")
+    def register(self, registry: PluginRegistry) -> None:
+        # Directives and roles
+        registry.add_directive(MyDirectiveHandler)
+        registry.add_role(MyRoleHandler)
 
-    @hook('post_page_render')
-    def after_page_render(self, page, html):
-        """Called after each page renders"""
-        return self._modify_html(html)
+        # Template extensions
+        registry.add_template_function("my_func", my_func, phase=1)
+        registry.add_template_filter("my_filter", my_filter)
+        registry.add_template_test("my_test", my_test)
 
-    @hook('post_build')
-    def after_build(self, site, stats):
-        """Called after build completes"""
-        print(f"Built in {stats.duration}s")
+        # Content and validation
+        registry.add_content_source("my-source", MySourceClass)
+        registry.add_health_validator(MyValidator())
+        registry.add_shortcode("alert", '<div class="alert">{{ content }}</div>')
 
-# Register plugin
-# bengal.toml:
-# [plugins]
-# my-plugin = true
+        # Build lifecycle
+        registry.on_phase("pre_render", self.before_render)
+        registry.on_phase("post_render", self.after_render)
 ```
 
-**Planned Hooks**:
-- `pre_build` - Before build starts
-- `post_content_discovery` - After content discovered
-- `pre_page_render` - Before page renders
-- `post_page_render` - After page renders
-- `post_build` - After build completes
-- `template_context` - Modify template context
-- `pre_asset_process` - Before asset processing
-- `post_asset_process` - After asset processing
+**Discovery**: Plugins are auto-discovered via the `bengal.plugins` entry point group. Declare your plugin in `pyproject.toml`:
 
-## 10. Custom CLI Commands (Future)
+```toml
+[project.entry-points."bengal.plugins"]
+my-plugin = "my_package:MyPlugin"
+```
+
+**Thread Safety**: The registry uses a builder→immutable pattern. During startup, plugins register into a mutable `PluginRegistry`. Before rendering begins, `freeze()` produces a `FrozenPluginRegistry` dataclass that is safe to share across threads during parallel rendering.
+
+**Extension Points**:
+
+| Method | Purpose |
+|--------|---------|
+| `add_directive()` | Block-level content directives |
+| `add_role()` | Inline markup roles |
+| `add_template_function()` | Template globals (with phase ordering) |
+| `add_template_filter()` | Value transformers (`{{ x \| filter }}`) |
+| `add_template_test()` | Boolean predicates (`{% if x is test %}`) |
+| `add_content_source()` | Content source types |
+| `add_health_validator()` | Health check validators |
+| `add_shortcode()` | Shortcode templates |
+| `on_phase()` | Build phase lifecycle hooks |
+
+## Future: Custom CLI Commands
 
 **Purpose**: Add custom commands to Bengal CLI
 
@@ -401,14 +414,14 @@ class OpenAPIExtractor(Extractor):
 # (planned: autodoc registry system)
 ```
 
-## Current Workarounds
+## Choosing an Extension Approach
 
-Until the plugin system is implemented, some extensions require:
+Most extensions should use the plugin system. For simpler cases:
 
-1. **Fork and modify**: Make changes in your own fork
-2. **Wrapper scripts**: Write scripts that call Bengal + custom logic
-3. **Template-based**: Many customizations possible via templates alone
-4. **Theme-based**: Package customizations in a theme
+1. **Plugin system**: Recommended for directives, filters, content sources, validators, and build hooks
+2. **Template-based**: Many customizations possible via templates alone (no code needed)
+3. **Theme-based**: Package related template and asset customizations in a theme
+4. **Wrapper scripts**: Write scripts that call Bengal + custom logic for CI/deployment
 
 ## Extension Best Practices
 
@@ -429,13 +442,14 @@ Planned extension registry at `bengal-ssg.org/extensions/`:
 - Content strategies
 - CLI commands
 
-## Migration Path
+## Migrating to the Plugin System
 
-When plugin system arrives:
-1. Existing extensions can be migrated incrementally
-2. Old patterns will continue working (backward compatibility)
-3. New APIs will be opt-in
-4. Migration guides will be provided
+If you have existing extensions using internal APIs or fork-based patterns:
+
+1. Create a class implementing the `Plugin` protocol (`name`, `version`, `register()`)
+2. Move registration logic into `register()` using the `PluginRegistry` methods
+3. Add a `bengal.plugins` entry point in your `pyproject.toml`
+4. Remove any code that accesses internal attributes (e.g., `site._template_engine._env`)
 
 ## Related Documentation
 

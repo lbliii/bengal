@@ -64,8 +64,8 @@ class AsyncLinkChecker:
 
     def __init__(
         self,
-        max_concurrency: int = 20,
-        per_host_limit: int = 4,
+        max_concurrency: int = 50,
+        per_host_limit: int = 8,
         timeout: float = 10.0,
         retries: int = 2,
         retry_backoff: float = 0.5,
@@ -417,8 +417,8 @@ class AsyncLinkChecker:
         ignore_policy = IgnorePolicy.from_config(config)
 
         return cls(
-            max_concurrency=config.get("max_concurrency", 20),
-            per_host_limit=config.get("per_host_limit", 4),
+            max_concurrency=config.get("max_concurrency", 50),
+            per_host_limit=config.get("per_host_limit", 8),
             timeout=config.get("timeout", 10.0),
             retries=config.get("retries", 2),
             retry_backoff=config.get("retry_backoff", 0.5),
