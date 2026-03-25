@@ -121,7 +121,7 @@ with render_config_context(RenderConfig(highlight=True)):
     html = renderer.render(ast)
 ```
 
-> **Note**: Custom parser registration currently requires modifying core code. Use the [plugin system](#9-plugin-system) to register extensions without core modifications.
+> **Note**: Custom parser registration currently requires modifying core code; the [plugin system](#9-plugin-system) does **not** currently expose a parser registration hook. Use the plugin system only for other kinds of extensions that do not require core modifications.
 
 ## 3. Custom Template Engines
 
@@ -302,7 +302,7 @@ This is a warning message!
 
 ## 9. Plugin System
 
-**Purpose**: Unified extension framework with 10 extension points and thread-safe rendering
+**Purpose**: Unified extension framework with 9 extension points and thread-safe rendering
 
 **Protocol**: All plugins implement `Plugin` — a runtime-checkable protocol with `name`, `version`, and `register()`:
 

@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -273,7 +273,7 @@ class LinkCheckOrchestrator:
         file_links: list[tuple[Path, list[str]]] = []
         with ThreadPoolExecutor(thread_name_prefix="linkextract") as pool:
             futures = {pool.submit(_parse_file, f): f for f in html_files}
-            for future in futures:
+            for future in as_completed(futures):
                 html_file = futures[future]
                 try:
                     links = future.result()

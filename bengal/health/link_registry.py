@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from bengal.build.contracts.keys import content_key
@@ -46,7 +47,7 @@ class LinkRegistry:
 
     page_urls: frozenset[str]
     source_paths: frozenset[str]
-    anchors_by_url: dict[str, frozenset[str]]
+    anchors_by_url: MappingProxyType[str, frozenset[str]]
     auxiliary_urls: frozenset[str]
 
 
@@ -74,14 +75,19 @@ def build_link_registry(site: SiteLike) -> LinkRegistry:
         url = getattr(page, "href", None)
         if url:
             urls.add(url)
-            urls.add(url.rstrip("/"))
-            urls.add(url.rstrip("/") + "/")
+            # Avoid adding empty string for root URL "/"
+            stripped = url.rstrip("/")
+            if stripped:
+                urls.add(stripped)
+            urls.add(stripped + "/")
 
             permalink = getattr(page, "permalink", None)
             if permalink and permalink != url:
                 urls.add(permalink)
-                urls.add(permalink.rstrip("/"))
-                urls.add(permalink.rstrip("/") + "/")
+                p_stripped = permalink.rstrip("/")
+                if p_stripped:
+                    urls.add(p_stripped)
+                urls.add(p_stripped + "/")
 
         # Collect source paths for relative .md link resolution
         source_path = getattr(page, "source_path", None)
@@ -116,7 +122,7 @@ def build_link_registry(site: SiteLike) -> LinkRegistry:
     return LinkRegistry(
         page_urls=frozenset(urls),
         source_paths=frozenset(paths),
-        anchors_by_url=anchors,
+        anchors_by_url=MappingProxyType(anchors),
         auxiliary_urls=frozenset(aux_urls),
     )
 

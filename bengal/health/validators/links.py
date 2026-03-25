@@ -198,6 +198,7 @@ class LinkValidator:
             else:
                 self._page_urls = self._build_page_url_index(site)
                 self._source_paths = self._build_source_path_index(site)
+                self._anchors_by_url = None
             self._site = site
 
         logger.debug(
@@ -244,6 +245,7 @@ class LinkValidator:
         else:
             self._page_urls = self._build_page_url_index(site)
             self._source_paths = self._build_source_path_index(site)
+            self._anchors_by_url = None
 
         for page in site.pages:
             self.validate_page_links(page, site)

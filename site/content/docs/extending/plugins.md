@@ -189,6 +189,6 @@ frozen = load_plugins(extra_plugins=[MyPlugin()])
 
 ## See Also
 
-- [Extension Points](/docs/reference/architecture/meta/extension-points/) — Full reference for all 11 extension points
+- [Extension Points](/docs/reference/architecture/meta/extension-points/) — Full reference for all extension points
 - [Custom Directives](../custom-directives/) — Directive authoring guide
 - [Template Shortcodes](../shortcodes/) — Template-only shortcodes (no Python required)

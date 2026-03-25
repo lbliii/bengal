@@ -5,7 +5,7 @@
 ### Plugin System
 - **plugins**: add unified plugin framework with `Plugin` protocol, `PluginRegistry`, and `FrozenPluginRegistry`
 - **plugins**: entry-point discovery via `bengal.plugins` group — third-party plugins auto-discovered
-- **plugins**: 10 extension points: directives, roles, template functions/filters/tests, content sources, health validators, shortcodes, phase hooks
+- **plugins**: 9 extension points: directives, roles, template functions/filters/tests, content sources, health validators, shortcodes, phase hooks
 - **plugins**: builder→immutable pattern — mutable registry during registration, frozen snapshot for thread-safe rendering
 
 ### Template Dependency Tracking
