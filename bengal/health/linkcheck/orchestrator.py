@@ -6,7 +6,7 @@ internal or external, and delegates to specialized checkers. Results are
 consolidated into reports for console output and JSON serialization.
 
 Architecture:
-1. Extract links from output_dir/*.html using HTML parsing
+1. Extract links from output_dir/*.html using parallel HTML parsing
 2. Classify links (http/https -> external, else -> internal)
 3. Run InternalLinkChecker and AsyncLinkChecker concurrently
 4. Build consolidated results and summary
@@ -22,6 +22,9 @@ from __future__ import annotations
 
 import asyncio
 import time
+from concurrent.futures import ThreadPoolExecutor
+from html.parser import HTMLParser
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.health.linkcheck.async_checker import AsyncLinkChecker
@@ -40,6 +43,40 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+class _LinkExtractor(HTMLParser):
+    """
+    HTML parser that extracts href links, skipping code blocks.
+
+    Tracks nesting depth in <code> and <pre> tags to avoid extracting
+    code examples as real links.
+    """
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.links: list[str] = []
+        self._in_code_block = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in ("code", "pre"):
+            self._in_code_block += 1
+        elif tag == "a" and self._in_code_block == 0:
+            for attr, value in attrs:
+                if attr == "href" and value:
+                    self.links.append(value)
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in ("code", "pre"):
+            self._in_code_block = max(0, self._in_code_block - 1)
+
+
+def _parse_file(html_file: Path) -> list[str]:
+    """Read and parse a single HTML file, returning extracted links."""
+    html_content = html_file.read_text(encoding="utf-8")
+    parser = _LinkExtractor()
+    parser.feed(html_content)
+    return parser.links
+
+
 class LinkCheckOrchestrator:
     """
     Orchestrates internal and external link checking.
@@ -49,9 +86,9 @@ class LinkCheckOrchestrator:
     formats (console, JSON).
 
     Features:
-        - HTML parsing to extract href attributes
+        - Parallel HTML parsing to extract href attributes
         - Automatic internal/external classification
-        - Concurrent checking with ignore policies
+        - Pipelined checking (external starts while internal runs)
         - Console and JSON report formatting
 
     Attributes:
@@ -100,9 +137,15 @@ class LinkCheckOrchestrator:
         # Create ignore policy
         self.ignore_policy = IgnorePolicy.from_config(self.config)
 
-        # Create checkers
+        # Create checkers — use registry when available to avoid redundant output scan
+        registry = getattr(site, "link_registry", None)
         if self.check_internal:
-            self.internal_checker = InternalLinkChecker(site, self.ignore_policy)
+            if registry is not None:
+                self.internal_checker = InternalLinkChecker.from_registry(
+                    registry, site, self.ignore_policy
+                )
+            else:
+                self.internal_checker = InternalLinkChecker(site, self.ignore_policy)
         if self.check_external:
             self.external_checker = AsyncLinkChecker.from_config(self.config)
 
@@ -110,8 +153,8 @@ class LinkCheckOrchestrator:
         """
         Check all links in the built site.
 
-        Extracts links from HTML files, checks internal and external links
-        according to configuration, and returns consolidated results.
+        Extracts links using parallel file I/O, then pipelines internal and
+        external checking (external async loop starts before internal finishes).
 
         Returns:
             Tuple of (results, summary) where results is a list of
@@ -119,8 +162,8 @@ class LinkCheckOrchestrator:
         """
         start_time = time.time()
 
-        # Extract all links from pages
-        internal_links, external_links = self._extract_links()
+        # Extract all links from pages (parallel file I/O)
+        internal_links, external_links, html_files = self._extract_links()
 
         logger.info(
             "link_check_starting",
@@ -130,7 +173,31 @@ class LinkCheckOrchestrator:
             check_external=self.check_external,
         )
 
-        # Check internal and external links
+        # Pass discovered file index to internal checker to skip redundant rglob
+        if self.check_internal:
+            self.internal_checker.set_file_index(html_files)
+
+        # Pipeline: kick off external checks in a background thread while
+        # internal checking runs synchronously on the main thread.
+        external_future = None
+        external_executor = None
+        if self.check_external and external_links:
+
+            def _run_external() -> dict[str, LinkCheckResult]:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                try:
+                    return loop.run_until_complete(
+                        self.external_checker.check_links(external_links)
+                    )
+                finally:
+                    loop.close()
+
+            external_executor = ThreadPoolExecutor(
+                max_workers=1, thread_name_prefix="linkcheck-ext"
+            )
+            external_future = external_executor.submit(_run_external)
+
         results: list[LinkCheckResult] = []
 
         if self.check_internal and internal_links:
@@ -142,24 +209,16 @@ class LinkCheckOrchestrator:
                 broken=sum(1 for r in internal_results.values() if r.status == LinkStatus.BROKEN),
             )
 
-        if self.check_external and external_links:
-            # Run async checker
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                external_results = loop.run_until_complete(
-                    self.external_checker.check_links(external_links)
-                )
-                results.extend(external_results.values())
-                logger.info(
-                    "external_links_checked",
-                    count=len(external_results),
-                    broken=sum(
-                        1 for r in external_results.values() if r.status == LinkStatus.BROKEN
-                    ),
-                )
-            finally:
-                loop.close()
+        if external_future is not None:
+            external_results = external_future.result()
+            if external_executor:
+                external_executor.shutdown(wait=False)
+            results.extend(external_results.values())
+            logger.info(
+                "external_links_checked",
+                count=len(external_results),
+                broken=sum(1 for r in external_results.values() if r.status == LinkStatus.BROKEN),
+            )
 
         # Build summary
         duration_ms = (time.time() - start_time) * 1000
@@ -177,28 +236,27 @@ class LinkCheckOrchestrator:
 
         return results, summary
 
-    def _extract_links(self) -> tuple[list[tuple[str, str]], list[tuple[str, str]]]:
+    def _extract_links(
+        self,
+    ) -> tuple[list[tuple[str, str]], list[tuple[str, str]], list[Path]]:
         """
-        Extract all links from built HTML files.
+        Extract all links from built HTML files using parallel I/O.
 
-        Parses HTML files in output_dir, extracts href attributes from anchor
-        tags (excluding those inside code blocks), and classifies as internal
-        or external based on URL scheme.
+        Parses HTML files in output_dir concurrently via a thread pool,
+        extracts href attributes from anchor tags (excluding code blocks),
+        and classifies as internal or external based on URL scheme.
 
         Returns:
-            Tuple of (internal_links, external_links) where each is a list of
-            (url, page_path) tuples. page_path is the relative path of the
-            HTML file that contains the link.
+            Tuple of (internal_links, external_links, html_files) where links
+            are lists of (url, page_path) tuples and html_files is the
+            discovered HTML file list (reused by InternalLinkChecker).
 
         Note:
             Skips mailto:, tel:, data:, and javascript: URLs.
         """
-        from html.parser import HTMLParser
-
         internal_links: list[tuple[str, str]] = []
         external_links: list[tuple[str, str]] = []
 
-        # Get output directory
         output_dir = self.site.output_dir
         if not output_dir.exists():
             logger.warning(
@@ -206,75 +264,48 @@ class LinkCheckOrchestrator:
                 path=str(output_dir),
                 suggestion="Build the site first with 'bengal build' before running link checks.",
             )
-            return internal_links, external_links
+            return internal_links, external_links, []
 
-        class LinkExtractor(HTMLParser):
-            """
-            HTML parser that extracts href links, skipping code blocks.
+        # Discover all HTML files once (shared with internal checker)
+        html_files = list(output_dir.rglob("*.html"))
 
-            Tracks nesting depth in <code> and <pre> tags to avoid extracting
-            code examples as real links.
-            """
+        # Parse files in parallel (I/O-bound: file reads + HTML parsing)
+        file_links: list[tuple[Path, list[str]]] = []
+        with ThreadPoolExecutor(thread_name_prefix="linkextract") as pool:
+            futures = {pool.submit(_parse_file, f): f for f in html_files}
+            for future in futures:
+                html_file = futures[future]
+                try:
+                    links = future.result()
+                    file_links.append((html_file, links))
+                except Exception as e:
+                    from bengal.errors import ErrorCode
 
-            def __init__(self) -> None:
-                super().__init__()
-                self.links: list[str] = []
-                self._in_code_block = 0  # Track nesting depth of code blocks
+                    logger.warning(
+                        "failed_to_parse_html",
+                        file=str(html_file),
+                        error=str(e),
+                        error_code=ErrorCode.V005.value,
+                        suggestion="Check HTML file for malformed content. Link check will skip this file.",
+                    )
 
-            def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-                # Track code block tags
-                if tag in ("code", "pre"):
-                    self._in_code_block += 1
-                # Only extract links if not inside a code block
-                elif tag == "a" and self._in_code_block == 0:
-                    for attr, value in attrs:
-                        if attr == "href" and value:
-                            self.links.append(value)
+        # Classify extracted links
+        for html_file, links in file_links:
+            rel_path = html_file.relative_to(output_dir)
+            page_ref = str(rel_path)
 
-            def handle_endtag(self, tag: str) -> None:
-                # Exit code block when closing tag found
-                if tag in ("code", "pre"):
-                    self._in_code_block = max(0, self._in_code_block - 1)
+            for link in links:
+                if link.startswith(("mailto:", "tel:", "data:", "javascript:")):
+                    continue
+                if link == "#" or not link:
+                    continue
 
-        # Scan all HTML files
-        for html_file in output_dir.rglob("*.html"):
-            try:
-                html_content = html_file.read_text(encoding="utf-8")
-                parser = LinkExtractor()
-                parser.feed(html_content)
+                if link.startswith(("http://", "https://")):
+                    external_links.append((link, page_ref))
+                else:
+                    internal_links.append((link, page_ref))
 
-                # Get relative path for reference
-                rel_path = html_file.relative_to(output_dir)
-                page_ref = str(rel_path)
-
-                for link in parser.links:
-                    # Skip mailto, tel, data URIs
-                    if link.startswith(("mailto:", "tel:", "data:", "javascript:")):
-                        continue
-
-                    # Skip empty anchors
-                    if link == "#" or not link:
-                        continue
-
-                    # Classify as internal or external
-                    if link.startswith(("http://", "https://")):
-                        external_links.append((link, page_ref))
-                    else:
-                        internal_links.append((link, page_ref))
-
-            except Exception as e:
-                from bengal.errors import ErrorCode
-
-                logger.warning(
-                    "failed_to_parse_html",
-                    file=str(html_file),
-                    error=str(e),
-                    error_code=ErrorCode.V005.value,
-                    suggestion="Check HTML file for malformed content. Link check will skip this file.",
-                )
-                continue
-
-        return internal_links, external_links
+        return internal_links, external_links, html_files
 
     def _build_summary(
         self, results: list[LinkCheckResult], duration_ms: float
@@ -345,23 +376,23 @@ class LinkCheckOrchestrator:
         """
         lines = []
         lines.append("\n" + "=" * 70)
-        lines.append("🔗 Link Check Report")
+        lines.append("\U0001f517 Link Check Report")
         lines.append("=" * 70)
         lines.append("")
 
         # Summary
         lines.append(f"Total checked:   {summary.total_checked}")
-        lines.append(f"✅ OK:           {summary.ok_count}")
-        lines.append(f"❌ Broken:       {summary.broken_count}")
-        lines.append(f"⚠️  Errors:       {summary.error_count}")
-        lines.append(f"⊘  Ignored:      {summary.ignored_count}")
-        lines.append(f"⏱️  Duration:     {summary.duration_ms:.2f}ms")
+        lines.append(f"\u2705 OK:           {summary.ok_count}")
+        lines.append(f"\u274c Broken:       {summary.broken_count}")
+        lines.append(f"\u26a0\ufe0f  Errors:       {summary.error_count}")
+        lines.append(f"\u2298  Ignored:      {summary.ignored_count}")
+        lines.append(f"\u23f1\ufe0f  Duration:     {summary.duration_ms:.2f}ms")
         lines.append("")
 
         # Broken links
         broken = [r for r in results if r.status == LinkStatus.BROKEN]
         if broken:
-            lines.append(f"❌ Broken Links ({len(broken)}):")
+            lines.append(f"\u274c Broken Links ({len(broken)}):")
             lines.append("-" * 70)
             for result in broken[:20]:  # Show first 20
                 lines.append(f"  {result.url}")
@@ -378,7 +409,7 @@ class LinkCheckOrchestrator:
         # Errors
         errors = [r for r in results if r.status == LinkStatus.ERROR]
         if errors:
-            lines.append(f"⚠️  Errors ({len(errors)}):")
+            lines.append(f"\u26a0\ufe0f  Errors ({len(errors)}):")
             lines.append("-" * 70)
             for result in errors[:10]:  # Show first 10
                 lines.append(f"  {result.url}")
@@ -393,9 +424,9 @@ class LinkCheckOrchestrator:
         # Final status
         lines.append("=" * 70)
         if summary.passed:
-            lines.append("✅ PASSED - All links are valid")
+            lines.append("\u2705 PASSED - All links are valid")
         else:
-            lines.append("❌ FAILED - Broken or error links found")
+            lines.append("\u274c FAILED - Broken or error links found")
         lines.append("=" * 70)
 
         return "\n".join(lines)

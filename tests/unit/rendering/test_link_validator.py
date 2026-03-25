@@ -21,6 +21,7 @@ def mock_site(tmp_path):
     """Create a mock site with sample pages."""
     site = MagicMock()
     site.root_path = tmp_path
+    site.link_registry = None
 
     # Create mock pages with URLs
     page1 = MagicMock()
@@ -238,6 +239,7 @@ class TestPageUrlIndex:
         """Test that action-bar index.txt links validate when llm_txt is enabled."""
         site = MagicMock()
         site.config = {"output_formats": {"enabled": True, "per_page": ["llm_txt"]}}
+        site.link_registry = None
         page = MagicMock()
         page.href = "/api/bengal/experimental/"
         page.source_path = Path("content/api/bengal/experimental.md")

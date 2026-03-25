@@ -152,8 +152,8 @@ def test_from_config_with_defaults():
     checker = AsyncLinkChecker.from_config(config)
 
     # Should use defaults
-    assert checker.max_concurrency == 20
-    assert checker.per_host_limit == 4
+    assert checker.max_concurrency == 50
+    assert checker.per_host_limit == 8
     assert checker.timeout == 10.0
     assert checker.retries == 2
     assert checker.retry_backoff == 0.5
@@ -162,16 +162,16 @@ def test_from_config_with_defaults():
 def test_from_config_partial_override():
     """Test from_config with partial config."""
     config = {
-        "max_concurrency": 50,
+        "max_concurrency": 100,
         "timeout": 15.0,
         # Other values use defaults
     }
 
     checker = AsyncLinkChecker.from_config(config)
 
-    assert checker.max_concurrency == 50
+    assert checker.max_concurrency == 100
     assert checker.timeout == 15.0
-    assert checker.per_host_limit == 4  # Default
+    assert checker.per_host_limit == 8  # Default
     assert checker.retries == 2  # Default
 
 

@@ -1,5 +1,40 @@
 ## [Unreleased]
 
+## 0.2.7 - 2026-03-25
+
+### Plugin System
+- **plugins**: add unified plugin framework with `Plugin` protocol, `PluginRegistry`, and `FrozenPluginRegistry`
+- **plugins**: entry-point discovery via `bengal.plugins` group — third-party plugins auto-discovered
+- **plugins**: 10 extension points: directives, roles, template functions/filters/tests, content sources, health validators, shortcodes, phase hooks
+- **plugins**: builder→immutable pattern — mutable registry during registration, frozen snapshot for thread-safe rendering
+
+### Template Dependency Tracking
+- **cache**: per-page template dependency recording — tracks which templates (and their include/extends chain) each page uses
+- **incremental**: selective rebuild when templates change — only affected pages rebuild instead of full site rebuild
+- **provenance**: `_expand_forced_changed()` uses per-page dependencies for targeted invalidation; falls back to full rebuild on cache miss
+
+### Free-Threading Hardening
+- **effects**: serialize all EffectTracer mutations and reads under lock for PEP 703 free-threading
+- **utils**: replace `@lru_cache` on `get_bengal_dir()` with thread-safe `LRUCache` (RLock-backed)
+- **deps**: kida-templates 0.2.8→0.2.9 for free-threading support
+
+### Performance
+- **orchestration**: coalesce 8 redundant `site.pages` traversals into single passes across menu, finalization, provenance, and rendering phases
+- **menu**: `_analyze_menu_state()` replaces 3 separate page scans with one pass returning `(needs_rebuild, menu_pages, root_level_pages)`
+- **finalization**: merge page count + autodoc detection into single loop
+- **manifest**: fix `summary()` multi-scan (4 scans → 1 efficient pass)
+
+### Code Simplification
+- **errors**: replace 11 manual `__init__` methods in exception subclasses with `_default_build_phase_name` class variable pattern
+- **rendering**: remove 3 deprecated transforms (`escape_jinja_blocks`, `transform_internal_links`, `normalize_markdown_links`) — consolidated into `HybridHTMLTransformer`
+- **rendering**: extract `_default_pagination()` and `_coerce_pagination_ints()` helpers in renderer
+
+### Test Infrastructure
+- **tests**: add comprehensive `tests/README.md` with test suite guide (4,065+ tests, 116 property-based)
+- **ci**: restructure workflow for 6 parallel integration shards with signal-based timeouts (free-threading compatible)
+- **fixtures**: extract `build_ephemeral_site_at()` for class/module-scoped test reuse
+- **cleanup**: remove no-op `test_resource_cleanup.py`
+
 ## 0.2.6 - 2026-03-17
 
 ### Double-Buffered Dev Server

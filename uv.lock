@@ -124,7 +124,7 @@ wheels = [
 
 [[package]]
 name = "bengal"
-version = "0.2.6"
+version = "0.2.7"
 source = { editable = "." }
 dependencies = [
     { name = "bengal-pounce" },
@@ -536,9 +536,9 @@ sdist = { url = "https://files.pythonhosted.org/packages/5e/73/e01e4c5e11ad0494f
 name = "kida-templates"
 version = "0.2.9"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/e1/b4/6f0d560341ee647255a654983964b9cab292c2297af71c10397e907564b2/kida_templates-0.2.9.tar.gz", hash = "sha256:c6bec9814926ed311d0b28b974f369bb40066f483b9287bc9cfb991177b9d8d3", size = 380649, upload-time = "2026-03-23T18:45:47.782332Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e1/b4/6f0d560341ee647255a654983964b9cab292c2297af71c10397e907564b2/kida_templates-0.2.9.tar.gz", hash = "sha256:c6bec9814926ed311d0b28b974f369bb40066f483b9287bc9cfb991177b9d8d3", size = 380649, upload-time = "2026-03-23T18:45:47.782Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f3/fc/1288087da032c0d85782d201d26dbab532c979a4f915acf471aca7f0f844/kida_templates-0.2.9-py3-none-any.whl", hash = "sha256:7244eaff10c9465c0debe7fce79a26c37b6c7b2eb9faa058951dfbc1354380c5", size = 265874, upload-time = "2026-03-23T18:45:45.704184Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/fc/1288087da032c0d85782d201d26dbab532c979a4f915acf471aca7f0f844/kida_templates-0.2.9-py3-none-any.whl", hash = "sha256:7244eaff10c9465c0debe7fce79a26c37b6c7b2eb9faa058951dfbc1354380c5", size = 265874, upload-time = "2026-03-23T18:45:45.704Z" },
 ]
 
 [[package]]

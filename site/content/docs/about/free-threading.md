@@ -104,6 +104,44 @@ def get_or_create_pipeline(current_gen, create_pipeline_fn):
 
 On free-threaded Python, ~1.5–2x faster than GIL builds at the same worker count. Incremental builds: 35–80 ms for a single-page change on an 800-page site.
 
+## Thread-Safe Internals (0.2.7+)
+
+Several internal components were hardened for free-threading in v0.2.7:
+
+### EffectTracer Lock Serialization
+
+The build tracer records timing, cache hits, and fingerprint data. Without the GIL, concurrent `defaultdict` access can observe partially-constructed entries. All EffectTracer mutations (`record`, `record_batch`, `update_fingerprint`, `flush_pending_fingerprints`, `clear`) and reads now acquire a lock:
+
+```python
+class EffectTracer:
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._effects: dict[str, list] = defaultdict(list)
+
+    def record(self, phase, event):
+        with self._lock:
+            self._effects[phase].append(event)
+```
+
+### Thread-Safe LRU Cache
+
+`functools.lru_cache` relies on the GIL for internal dict coherency. Bengal's `get_bengal_dir()` — called from multiple threads during rendering — now uses `LRUCache` from `bengal.utils.primitives.lru_cache`, which protects access with an `RLock`:
+
+```python
+# Before (GIL-dependent):
+@lru_cache(maxsize=1)
+def get_bengal_dir(): ...
+
+# After (free-threading safe):
+_cache = LRUCache(maxsize=1)
+def get_bengal_dir():
+    return _cache.get_or_compute("bengal_dir", _find_bengal_dir)
+```
+
+### Plugin Registry Freeze
+
+The plugin system uses a builder→immutable pattern. `PluginRegistry` collects extensions during startup, then `freeze()` produces a `FrozenPluginRegistry` (frozen dataclass with tuple fields) — no locks needed during rendering because the data is immutable.
+
 ## Code References
 
 | Pattern | File |
@@ -113,6 +151,9 @@ On free-threaded Python, ~1.5–2x faster than GIL builds at the same worker cou
 | Context propagation to workers | [bengal/utils/concurrency/context_propagation.py](https://github.com/lbliii/bengal/blob/main/bengal/utils/concurrency/context_propagation.py) |
 | Immutable snapshots | [bengal/snapshots/types.py](https://github.com/lbliii/bengal/blob/main/bengal/snapshots/types.py) |
 | Rendering (asset ContextVar) | [bengal/orchestration/build/rendering.py](https://github.com/lbliii/bengal/blob/main/bengal/orchestration/build/rendering.py) |
+| EffectTracer (lock-serialized) | [bengal/effects/tracer.py](https://github.com/lbliii/bengal/blob/main/bengal/effects/tracer.py) |
+| Thread-safe LRUCache | [bengal/utils/primitives/lru_cache.py](https://github.com/lbliii/bengal/blob/main/bengal/utils/primitives/lru_cache.py) |
+| Plugin registry (freeze pattern) | [bengal/plugins/registry.py](https://github.com/lbliii/bengal/blob/main/bengal/plugins/registry.py) |
 
 ## See Also
 

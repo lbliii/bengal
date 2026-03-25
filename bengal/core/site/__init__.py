@@ -196,6 +196,9 @@ class Site(
     # Immutable config service (constructed in __post_init__, thread-safe)
     _config_service: ConfigService | None = field(default=None, repr=False, init=False)
 
+    # Shared link registry built after rendering (consumed by all link validators)
+    link_registry: Any | None = field(default=None, repr=False, init=False)
+
     # Dynamic runtime attributes (set by various orchestrators)
     # Diagnostics sink for core-model events (set by BuildOrchestrator)
     diagnostics: DiagnosticsSink | None = field(default=None, repr=False, init=False)

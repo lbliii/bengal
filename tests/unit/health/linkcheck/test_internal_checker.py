@@ -243,6 +243,37 @@ class TestInternalLinkCheckerBaseURL:
         assert result.status == LinkStatus.OK
 
 
+class TestInternalLinkCheckerTxtFiles:
+    """Tests for auxiliary .txt file indexing (LLM-friendly output)."""
+
+    def test_indexes_txt_files(self, mock_site, tmp_path):
+        """Checker indexes .txt files alongside .html files."""
+        # Create a .txt companion file (like LLM-friendly output)
+        (tmp_path / "about" / "index.txt").write_text("About page plain text")
+        (tmp_path / "docs" / "guide.txt").write_text("Guide plain text")
+
+        checker = InternalLinkChecker(mock_site)
+
+        assert "/about/index.txt" in checker._output_paths
+        assert "/docs/guide.txt" in checker._output_paths
+
+    def test_txt_links_resolve_as_valid(self, mock_site, tmp_path):
+        """Links to index.txt files are not reported as broken."""
+        (tmp_path / "about" / "index.txt").write_text("About page plain text")
+
+        checker = InternalLinkChecker(mock_site)
+        result = checker._check_internal_link("/about/index.txt", ["page.html"])
+
+        assert result.status == LinkStatus.OK
+
+    def test_missing_txt_still_broken(self, mock_site):
+        """Links to non-existent .txt files are still reported as broken."""
+        checker = InternalLinkChecker(mock_site)
+        result = checker._check_internal_link("/missing/index.txt", ["page.html"])
+
+        assert result.status == LinkStatus.BROKEN
+
+
 class TestInternalLinkCheckerBatchChecking:
     """Tests for batch link checking."""
 

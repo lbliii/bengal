@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bengal"
-version = "0.2.6"
+version = "0.2.7"
 description = "Python static site generator for documentation, blogs, and product sites"
 readme = "README.md"
 requires-python = ">=3.14"

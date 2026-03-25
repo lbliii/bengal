@@ -77,6 +77,7 @@ class LinkValidator:
         self.broken_links: list[tuple[Path | None, str]] = []
         self._page_urls: set[str] | None = None
         self._source_paths: set[str] | None = None
+        self._anchors_by_url: dict[str, frozenset[str]] | None = None
         self._site: SiteLike | None = site
 
     def _llm_txt_enabled(self, site: Any) -> bool:
@@ -189,8 +190,14 @@ class LinkValidator:
 
         # Build indexes on first use (or if site changed)
         if self._page_urls is None and site is not None:
-            self._page_urls = self._build_page_url_index(site)
-            self._source_paths = self._build_source_path_index(site)
+            registry = getattr(site, "link_registry", None)
+            if registry is not None:
+                self._page_urls = set(registry.page_urls | registry.auxiliary_urls)
+                self._source_paths = set(registry.source_paths)
+                self._anchors_by_url = registry.anchors_by_url
+            else:
+                self._page_urls = self._build_page_url_index(site)
+                self._source_paths = self._build_source_path_index(site)
             self._site = site
 
         logger.debug(
@@ -229,8 +236,14 @@ class LinkValidator:
         # Reset state
         self.broken_links = []
         self._site = site
-        self._page_urls = self._build_page_url_index(site)
-        self._source_paths = self._build_source_path_index(site)
+        registry = getattr(site, "link_registry", None)
+        if registry is not None:
+            self._page_urls = set(registry.page_urls | registry.auxiliary_urls)
+            self._source_paths = set(registry.source_paths)
+            self._anchors_by_url = registry.anchors_by_url
+        else:
+            self._page_urls = self._build_page_url_index(site)
+            self._source_paths = self._build_source_path_index(site)
 
         for page in site.pages:
             self.validate_page_links(page, site)
@@ -278,8 +291,21 @@ class LinkValidator:
         # Parse the link
         parsed = urlparse(link)
 
-        # Fragment-only links (e.g., "#section") are valid within the page
+        # Fragment-only links (e.g., "#section") — validate anchor exists on current page
         if not parsed.path and parsed.fragment:
+            if self._anchors_by_url is not None:
+                page_path = getattr(page, "_path", None)
+                if page_path:
+                    anchors = self._anchors_by_url.get(page_path, frozenset())
+                    if anchors and parsed.fragment not in anchors:
+                        logger.debug(
+                            "validating_fragment_link",
+                            link=link,
+                            page=str(page.source_path),
+                            result="broken_anchor",
+                            fragment=parsed.fragment,
+                        )
+                        return False
             logger.debug(
                 "validating_fragment_link",
                 link=link,
@@ -324,6 +350,25 @@ class LinkValidator:
         is_valid = any(v in self._page_urls for v in variants)
 
         if is_valid:
+            # If link has a fragment, also validate the anchor exists
+            if parsed.fragment and self._anchors_by_url is not None:
+                anchors = self._anchors_by_url.get(resolved_path, frozenset())
+                if not anchors:
+                    # Try with/without trailing slash
+                    anchors = self._anchors_by_url.get(
+                        resolved_path.rstrip("/"), frozenset()
+                    ) or self._anchors_by_url.get(resolved_path.rstrip("/") + "/", frozenset())
+                if anchors and parsed.fragment not in anchors:
+                    logger.debug(
+                        "validating_internal_link",
+                        link=link,
+                        resolved=resolved_path,
+                        page=str(page.source_path),
+                        result="broken_anchor",
+                        fragment=parsed.fragment,
+                    )
+                    return False
+
             logger.debug(
                 "validating_internal_link",
                 link=link,

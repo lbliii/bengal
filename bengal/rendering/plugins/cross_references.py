@@ -115,6 +115,36 @@ class CrossReferencePlugin:
         # Matches: [[path]] or [[path|text]]
         self.pattern = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
 
+    # Placeholder used to protect pipes inside [[...]] from table cell splitting
+    _PIPE_PLACEHOLDER = "\x00XREFPIPE\x00"
+
+    # Pattern to find [[...]] spans that contain pipes (for table protection)
+    _BRACKET_PATTERN = re.compile(r"\[\[[^\]]*\|[^\]]*\]\]")
+
+    @staticmethod
+    def protect_table_pipes(source: str) -> str:
+        """Pre-process markdown source to protect pipes inside [[...]] from table splitting.
+
+        Markdown table parsers split cells on ``|``, which breaks cross-reference
+        syntax like ``[[ext:kida:|Kida]]``.  This replaces ``|`` inside ``[[...]]``
+        with a null-byte placeholder so the table parser sees them as regular text.
+        The placeholder is restored during cross-reference resolution.
+        """
+        if "[[" not in source or "|" not in source:
+            return source
+
+        def _protect(m: Match[str]) -> str:
+            return m.group(0).replace("|", CrossReferencePlugin._PIPE_PLACEHOLDER)
+
+        return CrossReferencePlugin._BRACKET_PATTERN.sub(_protect, source)
+
+    @staticmethod
+    def restore_table_pipes(text: str) -> str:
+        """Restore pipe placeholders back to real pipes."""
+        if CrossReferencePlugin._PIPE_PLACEHOLDER in text:
+            return text.replace(CrossReferencePlugin._PIPE_PLACEHOLDER, "|")
+        return text
+
     def set_links_collector(self, collector: list[str] | None) -> None:
         """Set the list to collect resolved/broken link URLs for validation."""
         self._links_collector = collector
@@ -186,6 +216,8 @@ class CrossReferencePlugin:
         """
         if "[[" not in text:
             return text
+        # Restore pipe placeholders so the regex can match [[ref|text]] normally
+        text = self.restore_table_pipes(text)
 
         def replace_xref(match: Match[str]) -> str:
             ref = match.group(1).strip()
