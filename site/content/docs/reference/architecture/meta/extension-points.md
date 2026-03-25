@@ -358,7 +358,7 @@ my-plugin = "my_package:MyPlugin"
 | `add_shortcode()` | Shortcode templates |
 | `on_phase()` | Build phase lifecycle hooks |
 
-## 10. Custom CLI Commands (Future)
+## Future: Custom CLI Commands
 
 **Purpose**: Add custom commands to Bengal CLI
 

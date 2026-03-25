@@ -14,6 +14,9 @@ concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # Detect whether code paths changed — skip tests for docs-only PRs
   detect-changes:
