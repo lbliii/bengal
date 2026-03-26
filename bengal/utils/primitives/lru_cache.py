@@ -27,7 +27,7 @@ import threading
 import time
 from collections import OrderedDict
 from collections.abc import Callable
-from typing import Any, overload
+from typing import Any, Literal, overload
 
 
 class LRUCache[K, V]:
@@ -123,7 +123,7 @@ class LRUCache[K, V]:
     @overload
     def get_or_set(self, key: K, factory: Callable[[], V]) -> V: ...
     @overload
-    def get_or_set(self, key: K, factory: Callable[[K], V], *, pass_key: bool) -> V: ...
+    def get_or_set(self, key: K, factory: Callable[[K], V], *, pass_key: Literal[True]) -> V: ...
 
     def get_or_set(
         self,

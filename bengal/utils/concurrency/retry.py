@@ -126,7 +126,8 @@ def retry_with_backoff[T](
                 raise
 
     # Should never reach here (loop always runs at least once and re-raises)
-    assert last_error is not None
+    if last_error is None:
+        raise RuntimeError("retry_with_backoff: no attempts executed")
     raise last_error
 
 
@@ -183,5 +184,6 @@ async def async_retry_with_backoff[T](
             else:
                 raise
 
-    assert last_error is not None
+    if last_error is None:
+        raise RuntimeError("async_retry_with_backoff: no attempts executed")
     raise last_error

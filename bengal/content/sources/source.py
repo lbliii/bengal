@@ -82,7 +82,7 @@ class ContentSource(ABC):
             ...     print(entry.title)
         """
         ...
-        # Unreachable yield to make this an async generator; cast satisfies ty
+        # Unreachable yield to make this an async generator for ty
         return
         yield  # type: ignore[misc]  # pragma: no cover
 
