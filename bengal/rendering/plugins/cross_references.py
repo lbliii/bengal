@@ -115,8 +115,10 @@ class CrossReferencePlugin:
         # Matches: [[path]] or [[path|text]]
         self.pattern = re.compile(r"\[\[([^\]|]+)(?:\|([^\]]+))?\]\]")
 
-    # Placeholder used to protect pipes inside [[...]] from table cell splitting
-    _PIPE_PLACEHOLDER = "\x00XREFPIPE\x00"
+    # Placeholder used to protect pipes inside [[...]] from table cell splitting.
+    # Uses \x02 (STX) as delimiter — \x00 is stripped by Patitas escape_html()
+    # for lazy-continuation markers, which destroys the placeholder.
+    _PIPE_PLACEHOLDER = "\x02XREFPIPE\x02"
 
     # Pattern to find [[...]] spans that contain pipes (for table protection)
     _BRACKET_PATTERN = re.compile(r"\[\[[^\]]*\|[^\]]*\]\]")
