@@ -189,7 +189,12 @@ class RenderingPipeline:
                 from bengal.rendering.external_refs import ExternalRefResolver
 
                 external_ref_resolver = ExternalRefResolver(site.config)
-                # Expose resolver for health checks (unresolved external refs)
+                # Accumulate resolvers from all worker threads so health checks
+                # see unresolved refs from every thread, not just the last one.
+                if not hasattr(site, "_external_ref_resolvers"):
+                    site._external_ref_resolvers = []
+                site._external_ref_resolvers.append(external_ref_resolver)
+                # Backward compat: keep single resolver reference
                 site.external_ref_resolver = external_ref_resolver
 
             rich_parser = cast(RichMarkdownParser, self.parser)

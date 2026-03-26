@@ -123,6 +123,11 @@ class CrossReferencePlugin:
     # Pattern to find [[...]] spans that contain pipes (for table protection)
     _BRACKET_PATTERN = re.compile(r"\[\[[^\]]*\|[^\]]*\]\]")
 
+    # Pattern to split HTML by code blocks (pre/code) for xref substitution
+    _CODE_BLOCK_SPLIT = re.compile(
+        r"(<pre.*?</pre>|<code[^>]*>.*?</code>)", re.DOTALL | re.IGNORECASE
+    )
+
     @staticmethod
     def protect_table_pipes(source: str) -> str:
         """Pre-process markdown source to protect pipes inside [[...]] from table splitting.
@@ -202,9 +207,7 @@ class CrossReferencePlugin:
         # Split by code blocks (both pre/code blocks and inline code)
         # Use non-greedy matching for content
         # Pattern captures delimiters so they are included in parts
-        parts = re.split(
-            r"(<pre.*?</pre>|<code[^>]*>.*?</code>)", html, flags=re.DOTALL | re.IGNORECASE
-        )
+        parts = self._CODE_BLOCK_SPLIT.split(html)
 
         for i in range(0, len(parts), 2):
             # Even indices are text outside code blocks
