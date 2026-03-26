@@ -27,7 +27,7 @@ import threading
 import time
 from collections import OrderedDict
 from collections.abc import Callable
-from typing import Any, overload
+from typing import Any, Literal, overload
 
 
 class LRUCache[K, V]:
@@ -123,12 +123,12 @@ class LRUCache[K, V]:
     @overload
     def get_or_set(self, key: K, factory: Callable[[], V]) -> V: ...
     @overload
-    def get_or_set(self, key: K, factory: Callable[[K], V], *, pass_key: bool) -> V: ...
+    def get_or_set(self, key: K, factory: Callable[[K], V], *, pass_key: Literal[True]) -> V: ...
 
     def get_or_set(
         self,
         key: K,
-        factory: Callable[[], V] | Callable[[K], V],
+        factory: Callable[..., V],
         *,
         pass_key: bool = False,
     ) -> V:
@@ -155,9 +155,8 @@ class LRUCache[K, V]:
             if not self._enabled:
                 self._misses += 1
                 if pass_key:
-                    return factory(key)  # type: ignore[call-arg]
-                return factory()  # type: ignore[call-arg]
-
+                    return factory(key)
+                return factory()
             if key in self._cache:
                 # Check TTL
                 if self._ttl is not None:
@@ -179,8 +178,7 @@ class LRUCache[K, V]:
             self._misses += 1
 
         # Compute outside lock to avoid blocking other threads
-        value = factory(key) if pass_key else factory()  # type: ignore[call-arg]
-
+        value = factory(key) if pass_key else factory()
         # Store result
         with self._lock:
             if not self._enabled:
