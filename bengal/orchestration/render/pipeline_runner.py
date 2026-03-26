@@ -13,6 +13,7 @@ Thread Safety:
 
 from __future__ import annotations
 
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -85,4 +86,6 @@ def process_page_with_pipeline(
         if current_generation is not None:
             _thread_local.pipeline_generation = current_generation
 
+    _start = time.perf_counter()
     _thread_local.pipeline.process_page(page)
+    page.render_time_ms = (time.perf_counter() - _start) * 1000
