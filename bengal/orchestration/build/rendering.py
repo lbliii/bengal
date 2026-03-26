@@ -587,6 +587,7 @@ def phase_render(
                     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 
                     write_behind = WriteBehindCollector() if use_parallel else None
+                    ctx.write_behind = write_behind
 
                     scheduler = WaveScheduler(
                         snapshot=ctx.snapshot,

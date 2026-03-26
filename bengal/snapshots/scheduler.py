@@ -250,10 +250,14 @@ class WaveScheduler:
             )
 
             # Render by template batch
-            with ThreadPoolExecutor(
+            # Manage executor manually to avoid shutdown(wait=True) hanging
+            # when a render thread is stuck (e.g., pytest-timeout fires
+            # KeyboardInterrupt but ThreadPoolExecutor.__exit__ blocks).
+            executor = ThreadPoolExecutor(
                 max_workers=self.max_workers,
                 thread_name_prefix="Bengal-Render",
-            ) as executor:
+            )
+            try:
                 for template_idx, template_name in enumerate(sorted_templates):
                     batch_pages = template_to_pages[template_name]
                     if not batch_pages:
@@ -300,6 +304,14 @@ class WaveScheduler:
                     batch_time = (time.perf_counter() - batch_start) * 1000
                     stats.template_batches[template_name] = len(batch_pages)
                     stats.batch_times_ms[template_name] = batch_time
+            except BaseException:
+                # Force-cancel remaining futures and shut down without waiting.
+                # Catches KeyboardInterrupt (pytest-timeout) and SystemExit
+                # to prevent hangs from ThreadPoolExecutor.shutdown(wait=True).
+                executor.shutdown(wait=False, cancel_futures=True)
+                raise
+            else:
+                executor.shutdown(wait=True)
 
             # Final progress update to ensure 100%
             self._progress_tracker.finalize(total_pages)
