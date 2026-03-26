@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import time
+from pathlib import Path
 
 import click
 
@@ -78,16 +78,41 @@ def build(watch: bool, source: str) -> None:
         run_once()
         return
 
-    cli.info("Watching assets... Press Ctrl+C to stop.")
+    # Build initial then watch for changes
+    run_once()
+
+    root = Path(source).resolve()
+    watch_dirs: list[str] = []
+    assets_dir = root / "assets"
+    if assets_dir.exists():
+        watch_dirs.append(str(assets_dir))
+    theme = getattr(site, "theme", None)
+    if theme:
+        theme_path = getattr(theme, "assets_path", None) or getattr(theme, "path", None)
+        if theme_path:
+            theme_assets = Path(theme_path) / "assets"
+            if theme_assets.exists():
+                watch_dirs.append(str(theme_assets))
+
+    if not watch_dirs:
+        cli.warning("No assets directories found to watch.")
+        return
+
     try:
-        last_run = 0.0
-        while True:
-            # naive: re-run every 2s; a proper watcher can be added later
-            now = time.time()
-            if now - last_run >= 2.0:
-                run_once()
-                last_run = now
-            time.sleep(0.5)
+        import watchfiles
+    except ImportError:
+        cli.error("watchfiles is required for --watch: pip install watchfiles")
+        raise click.Abort() from None
+
+    cli.info(f"Watching {len(watch_dirs)} directory(ies) for changes... Press Ctrl+C to stop.")
+    try:
+        for changes in watchfiles.watch(*watch_dirs, debounce=1000):
+            changed_files = [Path(path) for _, path in changes]
+            names = ", ".join(p.name for p in changed_files[:3])
+            if len(changed_files) > 3:
+                names += f" (+{len(changed_files) - 3} more)"
+            cli.info(f"Changed: {names}")
+            run_once()
     except KeyboardInterrupt:
         cli.blank()
         cli.warning("Stopped asset watcher.")

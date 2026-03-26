@@ -178,6 +178,11 @@ class ContentOrchestrator:
         collections = load_collections(self.site.root_path)
         breakdown_ms["collections"] = (time.perf_counter() - t0) * 1000
 
+        # Fetch remote content sources if any collections have loaders
+        t0 = time.perf_counter()
+        self._fetch_remote_sources(collections, content_dir)
+        breakdown_ms["remote_sources"] = (time.perf_counter() - t0) * 1000
+
         # Check if strict validation is enabled
         build_config = (
             self.site.config.get("build", {}) if isinstance(self.site.config, dict) else {}
@@ -287,6 +292,93 @@ class ContentOrchestrator:
             _bs.discovery_timing_ms = breakdown_ms
         else:
             self.site._discovery_breakdown_ms = breakdown_ms
+
+    def _fetch_remote_sources(
+        self,
+        collections: dict,
+        content_dir: Path,
+    ) -> None:
+        """Fetch remote content sources and write to content directory.
+
+        For each collection with a remote loader, fetches content entries
+        and writes them as markdown files into the collection's directory
+        under content_dir. Uses the ContentLayerManager's built-in caching
+        to avoid re-fetching on every build.
+
+        This bridges the gap between the content layer (async fetch + cache)
+        and the directory walker (filesystem-based discovery).
+        """
+        remote_collections = {
+            name: config
+            for name, config in collections.items()
+            if getattr(config, "is_remote", False) and getattr(config, "loader", None)
+        }
+
+        if not remote_collections:
+            return
+
+        logger.info(
+            "fetching_remote_sources",
+            count=len(remote_collections),
+            collections=list(remote_collections.keys()),
+        )
+
+        from bengal.cache.paths import BengalPaths
+        from bengal.content.sources.manager import ContentLayerManager
+
+        paths = BengalPaths(self.site.root_path)
+        manager = ContentLayerManager(cache_dir=paths.content_dir)
+
+        for name, config in remote_collections.items():
+            manager.register_custom_source(name, config.loader)
+
+        try:
+            entries = manager.fetch_all_sync(use_cache=True)
+        except Exception:
+            logger.warning(
+                "remote_source_fetch_failed",
+                error="Failed to fetch remote sources, continuing with local content",
+            )
+            return
+
+        # Write fetched entries to content directory as markdown files
+        written = 0
+        for entry in entries:
+            collection_name = entry.source_name
+            config = remote_collections.get(collection_name)
+            if config is None:
+                continue
+
+            # Determine target directory
+            directory = getattr(config, "directory", None) or collection_name
+            target_dir = content_dir / directory
+            target_dir.mkdir(parents=True, exist_ok=True)
+
+            # Write markdown file
+            slug = entry.slug or entry.id
+            target_file = target_dir / f"{slug}.md"
+
+            # Build frontmatter + content
+            lines = ["---"]
+            for key, value in (entry.frontmatter or {}).items():
+                if isinstance(value, list):
+                    lines.append(f"{key}:")
+                    lines.extend(f"  - {item}" for item in value)
+                elif isinstance(value, bool):
+                    lines.append(f"{key}: {'true' if value else 'false'}")
+                else:
+                    lines.append(f"{key}: {value}")
+            if entry.source_url:
+                lines.append(f"source_url: {entry.source_url}")
+            lines.append("---")
+            lines.append("")
+            lines.append(entry.content or "")
+
+            target_file.write_text("\n".join(lines), encoding="utf-8")
+            written += 1
+
+        if written:
+            logger.info("remote_sources_written", entries=written)
 
     def _discover_autodoc_content(
         self, cache: PageDiscoveryCache | None = None, build_cache: Any | None = None

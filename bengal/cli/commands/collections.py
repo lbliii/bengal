@@ -221,7 +221,7 @@ def list_collections(config: str | None, source: str) -> None:
     directories and schema fields.
 
     """
-    from dataclasses import fields, is_dataclass
+    from dataclasses import MISSING, fields, is_dataclass
 
     from bengal.collections import CollectionConfig, load_collections
 
@@ -254,7 +254,7 @@ def list_collections(config: str | None, source: str) -> None:
         if is_dataclass(coll_config.schema):
             cli.detail("Fields:", indent=1)
             for f in fields(coll_config.schema):
-                required = f.default is f.default_factory is type(f.default)
+                required = f.default is MISSING and f.default_factory is MISSING
                 marker = "*" if required else " "
                 cli.detail(f"  {marker} {f.name}: {f.type}", indent=1)
 
