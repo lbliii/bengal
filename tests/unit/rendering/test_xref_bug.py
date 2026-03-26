@@ -214,3 +214,51 @@ class TestProtectTablePipes:
 
         assert "|" not in protected.replace(CrossReferencePlugin._PIPE_PLACEHOLDER, "")
         assert CrossReferencePlugin.restore_table_pipes(protected) == source
+
+
+class TestLinksCollector:
+    """Tests for directive link collection during rendering.
+
+    Verifies that the LinksCollector captures directive-generated hrefs
+    during rendering, eliminating the need for post-hoc regex scanning.
+    """
+
+    def test_card_directive_links_collected(self, parser):
+        """Card directive with :link: populates the links collector."""
+        mock_page = MockPage(
+            title="Guide",
+            href="/docs/guide/",
+            slug="guide",
+        )
+        xref_index = {
+            "by_path": {"docs/guide": mock_page},
+            "by_slug": {"guide": mock_page},
+            "by_id": {},
+            "by_heading": {},
+            "by_anchor": {},
+        }
+        parser.enable_cross_references(xref_index)
+
+        collector: list[str] = []
+        source = ":::{card}\n:link: docs/guide\n\nA card\n:::\n"
+        parser._md(
+            source,
+            xref_index=xref_index,
+            links_collector=collector,
+        )
+
+        assert "/docs/guide/" in collector
+
+    def test_collector_empty_without_directives(self, parser):
+        """Collector stays empty when content has no directives."""
+        collector: list[str] = []
+        source = "Just a paragraph with [a link](https://example.com)."
+        parser._md(source, links_collector=collector)
+
+        assert collector == []
+
+    def test_collector_none_is_noop(self, parser):
+        """Rendering works normally when no collector is provided."""
+        source = "Just a paragraph."
+        result = parser._md(source)
+        assert "<p>" in result

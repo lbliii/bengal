@@ -8,6 +8,7 @@ Thread-safe: all state is local to each render() call.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -17,6 +18,9 @@ from patitas.stringbuilder import StringBuilder
 from bengal.parsing.backends.patitas.renderers.utils import escape_attr, escape_html
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
+
+# Pattern for extracting hrefs from directive-rendered HTML
+_DIRECTIVE_HREF = re.compile(r'<a\s+[^>]*href=["\']([^"\']+)["\']')
 
 logger = get_logger(__name__)
 
@@ -128,6 +132,7 @@ class DirectiveRendererMixin:
             result = result_sb.build()
             if cache_key and self._directive_cache:
                 self._directive_cache.put("directive_html", cache_key, result)
+            self._collect_directive_links(result)
             sb.append(result)
             return
 
@@ -141,7 +146,20 @@ class DirectiveRendererMixin:
         result = result_sb.build()
         if cache_key and self._directive_cache:
             self._directive_cache.put("directive_html", cache_key, result)
+        self._collect_directive_links(result)
         sb.append(result)
+
+    def _collect_directive_links(self: HtmlRendererProtocol, html: str) -> None:
+        """Extract hrefs from directive output and add to links collector.
+
+        Called after each directive renders. Only runs when a links_collector
+        is attached (i.e., during page rendering in the pipeline).
+        """
+        collector = getattr(self, "_links_collector", None)
+        if collector is None or not html or "href" not in html:
+            return
+        for match in _DIRECTIVE_HREF.finditer(html):
+            collector.append(match.group(1))
 
     def _compute_current_page_dir(self: HtmlRendererProtocol) -> str | None:
         """Derive current_page_dir from page context for relative link resolution."""

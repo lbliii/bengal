@@ -191,10 +191,11 @@ class RenderingPipeline:
                 external_ref_resolver = ExternalRefResolver(site.config)
                 # Accumulate resolvers from all worker threads so health checks
                 # see unresolved refs from every thread, not just the last one.
+                # List is pre-initialized by the orchestrator before thread dispatch;
+                # fallback here handles direct RenderingPipeline use (tests, CLI).
                 if not hasattr(site, "_external_ref_resolvers"):
                     site._external_ref_resolvers = []
                 site._external_ref_resolvers.append(external_ref_resolver)
-                # Backward compat: keep single resolver reference
                 site.external_ref_resolver = external_ref_resolver
 
             rich_parser = cast(RichMarkdownParser, self.parser)
@@ -559,6 +560,9 @@ class RenderingPipeline:
         if "[[" in source and hasattr(self.parser, "_xref_plugin") and self.parser._xref_plugin:
             source = self.parser._xref_plugin.protect_table_pipes(source)
 
+        # Collect directive-generated links during rendering (cards, buttons, etc.)
+        directive_links: list[str] = []
+
         if page.metadata.get("preprocess") is False:
             # Inject source_path and excerpt_length for cross-version dependency tracking
             # (non-context parse methods don't have access to page object)
@@ -587,6 +591,7 @@ class RenderingPipeline:
             from bengal.config.utils import resolve_excerpt_length
 
             context = self._build_variable_context(page)
+            context["_links_collector"] = directive_links
             md_cfg = self.site.config.get("markdown", {}) or {}
             ast_cache_cfg = md_cfg.get("ast_cache", {}) or {}
             persist_tokens = bool(ast_cache_cfg.get("persist_tokens", False))
@@ -648,6 +653,10 @@ class RenderingPipeline:
 
         page.html_content = parsed_content
         page.toc = toc
+
+        # Store directive-collected links on page for extract_links to use
+        if directive_links:
+            page._directive_links = directive_links
 
     def _parse_with_legacy(self, page: PageLike, need_toc: bool) -> None:
         """Parse content using legacy python-markdown parser."""
