@@ -76,7 +76,7 @@ class ThreadLocalCache[T]:
             name: Name for this cache (used in attribute names)
         """
         self._local = threading.local()
-        self._factory = factory
+        self._factory: Callable[..., T] = factory
         self._name = name
         self._factory_accepts_key = self._check_factory_signature()
 
@@ -100,7 +100,7 @@ class ThreadLocalCache[T]:
         cache_key = f"_cache_{self._name}_{key or 'default'}"
 
         if not hasattr(self._local, cache_key):
-            instance = self._factory(key) if self._factory_accepts_key and key else self._factory()  # type: ignore[call-arg]
+            instance = self._factory(key) if self._factory_accepts_key and key else self._factory()
             setattr(self._local, cache_key, instance)
 
         return cast(T, getattr(self._local, cache_key))

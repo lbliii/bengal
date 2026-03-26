@@ -125,8 +125,9 @@ def retry_with_backoff[T](
             else:
                 raise
 
-    # Should never reach here, but satisfies type checker
-    raise last_error  # type: ignore[misc]
+    # Should never reach here (loop always runs at least once and re-raises)
+    assert last_error is not None
+    raise last_error
 
 
 async def async_retry_with_backoff[T](
@@ -182,4 +183,5 @@ async def async_retry_with_backoff[T](
             else:
                 raise
 
-    raise last_error  # type: ignore[misc]
+    assert last_error is not None
+    raise last_error
