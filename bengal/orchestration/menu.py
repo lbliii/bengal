@@ -817,7 +817,7 @@ class MenuOrchestrator:
         # Add each data item as a child
         for i, (item_id, item_info) in enumerate(data.items()):
             if isinstance(item_info, dict):
-                item_title = item_info.get("title", item_id.replace("-", " ").title())
+                item_title = str(item_info.get("title") or item_id.replace("-", " ").title())
             else:
                 item_title = item_id.replace("-", " ").title()
 

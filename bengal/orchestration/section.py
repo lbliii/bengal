@@ -363,7 +363,7 @@ class SectionOrchestrator:
         template = self._get_template_for_content_type(content_type)
 
         # Base metadata
-        metadata = {
+        metadata: dict[str, object] = {
             "title": section.title,
             "template": template,
             "type": content_type,

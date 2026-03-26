@@ -82,8 +82,9 @@ class ContentSource(ABC):
             ...     print(entry.title)
         """
         ...
-        # Make this a generator
-        yield  # pragma: no cover
+        # Unreachable yield to make this an async generator; cast satisfies ty
+        return
+        yield  # type: ignore[misc]  # pragma: no cover
 
     @abstractmethod
     async def fetch_one(self, id: str) -> ContentEntry | None:
