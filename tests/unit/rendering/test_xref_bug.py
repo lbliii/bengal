@@ -20,16 +20,29 @@ class TestPipePlaceholderSurvivesEscapeHtml:
     otherwise cross-references with pipes render as literal 'XREFPIPE' text.
     """
 
-    def test_placeholder_not_stripped_by_patitas_escape(self):
-        """Placeholder delimiter must survive Patitas escape_html."""
-        from bengal.parsing.backends.patitas.renderers.utils import (
-            escape_html as patitas_escape,
+    def test_placeholder_survives_patitas_escape_and_resolves(self, parser):
+        """Placeholder survives Patitas escape_html and xref resolves end-to-end."""
+        mock_page = MockPage(
+            title="Guide",
+            href="/docs/guide/",
+            slug="guide",
         )
+        xref_index = {
+            "by_path": {"docs/guide": mock_page},
+            "by_slug": {},
+            "by_id": {},
+            "by_heading": {},
+        }
+        parser.enable_cross_references(xref_index)
 
-        placeholder = CrossReferencePlugin._PIPE_PLACEHOLDER
-        escaped = patitas_escape(f"[[docs/guide{placeholder}Guide]]")
-        # The placeholder must survive escaping so restore_table_pipes can find it
-        assert placeholder in escaped
+        source = "See [[docs/guide|Guide]] for details."
+        protected = CrossReferencePlugin.protect_table_pipes(source)
+        result = parser.parse(protected, {})
+
+        # Placeholder must not leak; link must resolve
+        assert "XREFPIPE" not in result
+        assert "\x02" not in result
+        assert '<a href="/docs/guide/">Guide</a>' in result
 
     def test_xref_with_pipe_resolves_through_patitas(self, parser):
         """Cross-reference with pipe text resolves correctly through full Patitas pipeline."""

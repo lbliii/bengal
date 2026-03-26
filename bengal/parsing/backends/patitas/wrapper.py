@@ -374,6 +374,11 @@ class PatitasParser(BaseMarkdownParser):
 
             html = self._xref_plugin._substitute_xrefs(html)
 
+        # Defensive cleanup: strip any leaked pipe placeholders so control
+        # characters (\x02) never reach rendered HTML output.
+        if "\x02" in html:
+            html = html.replace("\x02XREFPIPE\x02", "|").replace("\x02", "")
+
         return html
 
     # =========================================================================
