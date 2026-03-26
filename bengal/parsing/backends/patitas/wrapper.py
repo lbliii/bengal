@@ -220,6 +220,7 @@ class PatitasParser(BaseMarkdownParser):
         # Extract xref_index and site for link resolution and site-wide context
         xref_index = context.get("xref_index")
         site = context.get("site")
+        links_collector = context.get("_links_collector")
 
         try:
             # 1. Preprocess: handle {{/* escaped syntax */}}
@@ -234,6 +235,7 @@ class PatitasParser(BaseMarkdownParser):
                 page_context=page_context,
                 xref_index=xref_index,
                 site=site,
+                links_collector=links_collector,
             )
 
             # 3. Restore placeholders: restore BENGALESCAPED placeholders
@@ -288,6 +290,7 @@ class PatitasParser(BaseMarkdownParser):
         # Extract xref_index and site for link resolution and site-wide context
         xref_index = context.get("xref_index")
         site = context.get("site")
+        links_collector = context.get("_links_collector")
 
         try:
             # 1. Preprocess: handle {{/* escaped syntax */}}
@@ -325,6 +328,7 @@ class PatitasParser(BaseMarkdownParser):
                 page_context=page_context,
                 xref_index=xref_index,
                 site=site,
+                links_collector=links_collector,
             )
 
             # 5. Restore placeholders
@@ -373,6 +377,11 @@ class PatitasParser(BaseMarkdownParser):
                 self._xref_plugin.current_source_page = None
 
             html = self._xref_plugin._substitute_xrefs(html)
+
+        # Defensive cleanup: strip any leaked pipe placeholders so control
+        # characters (\x02) never reach rendered HTML output.
+        if "\x02" in html:
+            html = html.replace("\x02XREFPIPE\x02", "|").replace("\x02", "")
 
         return html
 

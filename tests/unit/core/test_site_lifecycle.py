@@ -320,7 +320,8 @@ class TestCascadePreservedAcrossRebuild:
         site.pages = [index_page, child]
         site.build_cascade_snapshot()
 
-        first_snapshot_id = id(site._cascade_snapshot)
+        first_snapshot = site._cascade_snapshot  # Hold reference to prevent id reuse
+        first_snapshot_id = id(first_snapshot)
         assert child.metadata.get("layout") == "alpha"
 
         # Rebuild with layout=beta

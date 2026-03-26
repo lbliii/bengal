@@ -35,8 +35,18 @@ class ExternalRefValidator(BaseValidator):
         if isinstance(external_refs_config, dict) and not external_refs_config.get("enabled", True):
             return results
 
-        resolver = getattr(site, "external_ref_resolver", None)
-        unresolved = getattr(resolver, "unresolved", []) if resolver else []
+        # Aggregate unresolved refs from ALL worker thread resolvers.
+        # Each rendering thread creates its own ExternalRefResolver; only
+        # checking the last one would silently lose earlier threads' refs.
+        resolvers = getattr(site, "_external_ref_resolvers", None)
+        if isinstance(resolvers, list) and resolvers:
+            unresolved = []
+            for r in resolvers:
+                unresolved.extend(getattr(r, "unresolved", []))
+        else:
+            # Fallback: single resolver (backward compat / tests)
+            resolver = getattr(site, "external_ref_resolver", None)
+            unresolved = getattr(resolver, "unresolved", []) if resolver else []
 
         for ref in unresolved:
             details = []

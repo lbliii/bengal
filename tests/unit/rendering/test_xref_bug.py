@@ -2,13 +2,108 @@
 Tests for cross-reference bug fixes.
 
 Verifies that cross-references are NOT substituted inside code blocks,
-and that [[ext:project:|Text]] works correctly inside markdown tables.
+that [[ext:project:|Text]] works correctly inside markdown tables,
+and that pipe placeholders survive Patitas HTML escaping.
 """
 
 import pytest
 
 from bengal.rendering.plugins.cross_references import CrossReferencePlugin
 from tests._testing.mocks import MockPage
+
+
+class TestPipePlaceholderSurvivesEscapeHtml:
+    """Regression tests for XREFPIPE placeholder leaking into rendered output.
+
+    The Patitas escape_html() strips \\x00 null bytes (used for lazy continuation
+    markers). The pipe placeholder must use a delimiter that survives this step,
+    otherwise cross-references with pipes render as literal 'XREFPIPE' text.
+    """
+
+    def test_placeholder_survives_patitas_escape_and_resolves(self, parser):
+        """Placeholder survives Patitas escape_html and xref resolves end-to-end."""
+        mock_page = MockPage(
+            title="Guide",
+            href="/docs/guide/",
+            slug="guide",
+        )
+        xref_index = {
+            "by_path": {"docs/guide": mock_page},
+            "by_slug": {},
+            "by_id": {},
+            "by_heading": {},
+        }
+        parser.enable_cross_references(xref_index)
+
+        source = "See [[docs/guide|Guide]] for details."
+        protected = CrossReferencePlugin.protect_table_pipes(source)
+        result = parser.parse(protected, {})
+
+        # Placeholder must not leak; link must resolve
+        assert "XREFPIPE" not in result
+        assert "\x02" not in result
+        assert '<a href="/docs/guide/">Guide</a>' in result
+
+    def test_xref_with_pipe_resolves_through_patitas(self, parser):
+        """Cross-reference with pipe text resolves correctly through full Patitas pipeline."""
+        mock_page = MockPage(
+            title="Tutorials",
+            href="/docs/tutorials/",
+            slug="tutorials",
+        )
+        xref_index = {
+            "by_path": {"docs/tutorials": mock_page},
+            "by_slug": {},
+            "by_id": {},
+            "by_heading": {},
+        }
+        parser.enable_cross_references(xref_index)
+
+        # Protect pipes then parse (simulates what the pipeline does)
+        source = "See [[docs/tutorials|My Tutorials]] for help."
+        protected = CrossReferencePlugin.protect_table_pipes(source)
+        result = parser.parse(protected, {})
+
+        assert "XREFPIPE" not in result
+        assert '<a href="/docs/tutorials/">My Tutorials</a>' in result
+
+    def test_xref_with_pipe_in_table_resolves(self, parser):
+        """Cross-reference with pipe inside a table cell resolves correctly."""
+        mock_page = MockPage(
+            title="Guide",
+            href="/docs/guide/",
+            slug="guide",
+        )
+        xref_index = {
+            "by_path": {"docs/guide": mock_page},
+            "by_slug": {},
+            "by_id": {},
+            "by_heading": {},
+        }
+        parser.enable_cross_references(xref_index)
+
+        source = "| Resource | Description |\n| --- | --- |\n| [[docs/guide|Guide]] | The guide |\n"
+        protected = CrossReferencePlugin.protect_table_pipes(source)
+        result = parser.parse(protected, {})
+
+        assert "XREFPIPE" not in result
+        assert '<a href="/docs/guide/">Guide</a>' in result
+
+    def test_no_xrefpipe_in_broken_ref(self, parser):
+        """Even broken xrefs must not leak XREFPIPE placeholder text."""
+        xref_index = {
+            "by_path": {},
+            "by_slug": {},
+            "by_id": {},
+            "by_heading": {},
+        }
+        parser.enable_cross_references(xref_index)
+
+        source = "Link: [[nonexistent/page|Display Text]]"
+        protected = CrossReferencePlugin.protect_table_pipes(source)
+        result = parser.parse(protected, {})
+
+        assert "XREFPIPE" not in result
 
 
 class TestCrossReferenceBug:
@@ -119,3 +214,51 @@ class TestProtectTablePipes:
 
         assert "|" not in protected.replace(CrossReferencePlugin._PIPE_PLACEHOLDER, "")
         assert CrossReferencePlugin.restore_table_pipes(protected) == source
+
+
+class TestLinksCollector:
+    """Tests for directive link collection during rendering.
+
+    Verifies that the LinksCollector captures directive-generated hrefs
+    during rendering, eliminating the need for post-hoc regex scanning.
+    """
+
+    def test_card_directive_links_collected(self, parser):
+        """Card directive with :link: populates the links collector."""
+        mock_page = MockPage(
+            title="Guide",
+            href="/docs/guide/",
+            slug="guide",
+        )
+        xref_index = {
+            "by_path": {"docs/guide": mock_page},
+            "by_slug": {"guide": mock_page},
+            "by_id": {},
+            "by_heading": {},
+            "by_anchor": {},
+        }
+        parser.enable_cross_references(xref_index)
+
+        collector: list[str] = []
+        source = ":::{card}\n:link: docs/guide\n\nA card\n:::\n"
+        parser._md(
+            source,
+            xref_index=xref_index,
+            links_collector=collector,
+        )
+
+        assert "/docs/guide/" in collector
+
+    def test_collector_empty_without_directives(self, parser):
+        """Collector stays empty when content has no directives."""
+        collector: list[str] = []
+        source = "Just a paragraph with [a link](https://example.com)."
+        parser._md(source, links_collector=collector)
+
+        assert collector == []
+
+    def test_collector_none_is_noop(self, parser):
+        """Rendering works normally when no collector is provided."""
+        source = "Just a paragraph."
+        result = parser._md(source)
+        assert "<p>" in result

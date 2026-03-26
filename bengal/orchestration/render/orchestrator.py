@@ -257,6 +257,11 @@ class RenderOrchestrator(
 
         set_build_context(build_context)
 
+        # Pre-initialize thread-safe resolver accumulator before threads start
+        # (avoids TOCTOU race in per-thread RenderingPipeline.__init__)
+        if not hasattr(self.site, "_external_ref_resolvers"):
+            self.site._external_ref_resolvers = []
+
         # Warm block cache before parallel rendering (Kida only)
         self._warm_block_cache()
 

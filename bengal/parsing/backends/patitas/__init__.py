@@ -530,6 +530,7 @@ class Markdown:
         page_context: Any | None = None,
         xref_index: dict[str, Any] | None = None,
         site: Any | None = None,
+        links_collector: list[str] | None = None,
     ) -> str:
         """Parse and render Markdown source to HTML."""
         ast = self._parse_to_ast(source, text_transformer=text_transformer)
@@ -540,6 +541,7 @@ class Markdown:
             page_context=page_context,
             xref_index=xref_index,
             site=site,
+            links_collector=links_collector,
         )
 
     def _get_config_with_transformer[T](
@@ -627,6 +629,7 @@ class Markdown:
         page_context: Any | None = None,
         xref_index: dict[str, Any] | None = None,
         site: Any | None = None,
+        links_collector: list[str] | None = None,
     ) -> str:
         """Render AST with configured options.
 
@@ -639,6 +642,7 @@ class Markdown:
             page_context: Optional page object for directives that need page/section info
             xref_index: Optional cross-reference index for link resolution
             site: Optional site object for site-wide context
+            links_collector: Optional list to collect directive-generated links
         """
         from bengal.cache.directive_cache import get_cache
         from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
@@ -657,6 +661,7 @@ class Markdown:
                 page_context=page_context,
                 xref_index=xref_index,
                 site=site,
+                links_collector=links_collector,
             )
             return renderer.render(ast)
         finally:
@@ -676,6 +681,7 @@ class Markdown:
         page_context: Any | None = None,
         xref_index: dict[str, Any] | None = None,
         site: Any | None = None,
+        links_collector: list[str] | None = None,
     ) -> str:
         """Render AST to HTML."""
         return self._render_ast(
@@ -685,6 +691,7 @@ class Markdown:
             page_context=page_context,
             xref_index=xref_index,
             site=site,
+            links_collector=links_collector,
         )
 
     def render_ast_with_toc(
@@ -695,6 +702,7 @@ class Markdown:
         page_context: Any | None = None,
         xref_index: dict[str, Any] | None = None,
         site: Any | None = None,
+        links_collector: list[str] | None = None,
     ) -> tuple[str, str, list[dict[str, Any]]]:
         """Render AST to HTML with single-pass TOC extraction.
 
@@ -710,6 +718,7 @@ class Markdown:
             page_context: Optional page object for directives that need page/section info
             xref_index: Optional cross-reference index for link resolution
             site: Optional site object for site-wide context
+            links_collector: Optional list to collect directive-generated links
 
         Returns:
             Tuple of (HTML with heading IDs, TOC HTML, TOC items list)
@@ -731,6 +740,7 @@ class Markdown:
                 page_context=page_context,
                 xref_index=xref_index,
                 site=site,
+                links_collector=links_collector,
             )
 
             # Render HTML - headings collected during this walk

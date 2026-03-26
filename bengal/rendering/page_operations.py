@@ -22,6 +22,15 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from pathlib import Path
 
+# Compiled patterns for link extraction (used per-page in extract_links)
+_FENCE_4PLUS = re.compile(r"`{4,}[^\n]*\n.*?`{4,}", re.DOTALL)
+_FENCE_3 = re.compile(r"```[^\n]*\n.*?```", re.DOTALL)
+_INLINE_CODE = re.compile(r"`[^`]+`")
+_MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\(([^)]+)\)")
+_HTML_HREF = re.compile(r'<a\s+[^>]*href=["\']([^"\']+)["\']')
+_WIKILINK = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]")
+_BROKEN_REF = re.compile(r'<span\s+class="broken-ref"[^>]*data-ref="([^"]+)"')
+
 
 class PageOperationsMixin:
     """
@@ -65,23 +74,19 @@ class PageOperationsMixin:
         content_without_code = self._source
 
         # Remove 4+ backtick fences first (handles nested 3-backtick blocks)
-        content_without_code = re.sub(
-            r"`{4,}[^\n]*\n.*?`{4,}", "", content_without_code, flags=re.DOTALL
-        )
+        content_without_code = _FENCE_4PLUS.sub("", content_without_code)
 
         # Then remove 3-backtick fences
-        content_without_code = re.sub(
-            r"```[^\n]*\n.*?```", "", content_without_code, flags=re.DOTALL
-        )
+        content_without_code = _FENCE_3.sub("", content_without_code)
 
         # Also remove inline code spans
-        content_without_code = re.sub(r"`[^`]+`", "", content_without_code)
+        content_without_code = _INLINE_CODE.sub("", content_without_code)
 
         # Extract Markdown links [text](url)
-        markdown_links = re.findall(r"\[([^\]]+)\]\(([^)]+)\)", content_without_code)
+        markdown_links = _MARKDOWN_LINK.findall(content_without_code)
 
         # Extract HTML links <a href="url">
-        html_links = re.findall(r'<a\s+[^>]*href=["\']([^"\']+)["\']', content_without_code)
+        html_links = _HTML_HREF.findall(content_without_code)
 
         # Wikilinks: use plugin-collected when available, else fallback
         if plugin_links is not None:
@@ -94,11 +99,18 @@ class PageOperationsMixin:
             wikilink_urls = self._extract_wikilinks_from_source(content_without_code)
             self.links = [url for _, url in markdown_links] + html_links + wikilink_urls
 
-        # Capture directive-generated links from html_content (cards, buttons, etc.)
-        # html_content is set by the parser before this method runs and does NOT
-        # yet have baseurl applied, so extracted links are consistent with page.links.
-        if self.html_content and plugin_links is not None:
-            directive_links = re.findall(r'<a\s+[^>]*href=["\']([^"\']+)["\']', self.html_content)
+        # Capture directive-generated links (cards, buttons, navigation, etc.)
+        # Prefer renderer-collected links when available (set by LinksCollector
+        # during rendering), falling back to post-hoc regex scan of html_content.
+        collected = getattr(self, "_directive_links", None)
+        if collected:
+            existing = set(self.links)
+            for link in collected:
+                if link not in existing:
+                    self.links.append(link)
+                    existing.add(link)
+        elif self.html_content and plugin_links is not None:
+            directive_links = _HTML_HREF.findall(self.html_content)
             if directive_links:
                 existing = set(self.links)
                 for link in directive_links:
@@ -111,18 +123,13 @@ class PageOperationsMixin:
     def _extract_all_links_from_html(self) -> list[str]:
         """Extract all links from html_content (fallback when plugin didn't run)."""
         urls: list[str] = []
-        urls.extend(re.findall(r'<a\s+[^>]*href=["\']([^"\']+)["\']', self.html_content))
-        urls.extend(
-            match.group(1)
-            for match in re.finditer(
-                r'<span\s+class="broken-ref"[^>]*data-ref="([^"]+)"', self.html_content
-            )
-        )
+        urls.extend(_HTML_HREF.findall(self.html_content))
+        urls.extend(match.group(1) for match in _BROKEN_REF.finditer(self.html_content))
         return urls
 
     def _extract_wikilinks_from_source(self, content: str) -> list[str]:
         """Extract wikilinks from source via regex (last-resort fallback)."""
-        wikilink_matches = re.findall(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]", content)
+        wikilink_matches = _WIKILINK.findall(content)
         wikilink_urls = []
         for path in wikilink_matches:
             path = path.strip()

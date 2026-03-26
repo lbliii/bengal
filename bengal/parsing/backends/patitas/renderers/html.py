@@ -105,10 +105,11 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin, HtmlRendererProto
         "_delegate",
         "_directive_cache",
         "_headings",
+        "_links_collector",
         "_page_context",
         "_seen_slugs",
         "_site",
-        # Per-render state only (9 slots)
+        # Per-render state only (10 slots)
         "_source",
         "_xref_index",
     )
@@ -122,6 +123,7 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin, HtmlRendererProto
         page_context: Any | None = None,
         xref_index: dict[str, Any] | None = None,
         site: Any | None = None,
+        links_collector: list[str] | None = None,
     ) -> None:
         """Initialize renderer with source and per-render state only.
 
@@ -135,6 +137,7 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin, HtmlRendererProto
             page_context: Optional page context for directives that need page/section info
             xref_index: Optional cross-reference index for link resolution
             site: Optional site object for site-wide context
+            links_collector: Optional list to collect directive-generated links during rendering
         """
         self._source = source
         self._delegate = delegate
@@ -150,6 +153,8 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin, HtmlRendererProto
         self._site = site
         # Directive cache is per-site, passed in (not config)
         self._directive_cache = directive_cache
+        # Collect directive-generated links during rendering (cards, buttons, etc.)
+        self._links_collector = links_collector
 
     def _reset(
         self,
@@ -160,6 +165,7 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin, HtmlRendererProto
         page_context: Any | None = None,
         xref_index: dict[str, Any] | None = None,
         site: Any | None = None,
+        links_collector: list[str] | None = None,
     ) -> None:
         """Reset renderer state for reuse.
 
@@ -173,6 +179,7 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin, HtmlRendererProto
             page_context: Optional page context for directives
             xref_index: Optional cross-reference index for link resolution
             site: Optional site object for site-wide context
+            links_collector: Optional list to collect directive-generated links
         """
         self._source = source
         self._delegate = delegate
@@ -183,6 +190,7 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin, HtmlRendererProto
         self._xref_index = xref_index
         self._site = site
         self._directive_cache = directive_cache
+        self._links_collector = links_collector
 
     # =========================================================================
     # Config access via properties (read from ContextVar)
