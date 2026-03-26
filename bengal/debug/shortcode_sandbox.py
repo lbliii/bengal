@@ -230,13 +230,13 @@ class ShortcodeSandbox(DebugTool):
                 errors=validation.errors,
             )
 
-        # Parse
+        # Parse + render (PatitasParser.parse returns HTML directly)
         parse_start = time.perf_counter()
         try:
             from bengal.parsing.backends.patitas import PatitasParser
 
             parser = PatitasParser()
-            tokens = parser.parse(content)
+            html = parser.parse(content, metadata=self._mock_context)
             parse_ms = (time.perf_counter() - parse_start) * 1000
         except Exception as e:
             parse_ms = (time.perf_counter() - parse_start) * 1000
@@ -248,26 +248,7 @@ class ShortcodeSandbox(DebugTool):
                 errors=[f"Parse error: {e}"],
                 parse_time_ms=parse_ms,
             )
-
-        # Render
-        render_start = time.perf_counter()
-        try:
-            from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
-
-            renderer = HtmlRenderer()
-            html = renderer.render(tokens)
-            render_ms = (time.perf_counter() - render_start) * 1000
-        except Exception as e:
-            render_ms = (time.perf_counter() - render_start) * 1000
-            return RenderResult(
-                input_content=content,
-                html="",
-                success=False,
-                directive_name=directive_name,
-                errors=[f"Render error: {e}"],
-                parse_time_ms=parse_ms,
-                render_time_ms=render_ms,
-            )
+        render_ms = 0.0
 
         return RenderResult(
             input_content=content,
