@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict, cast
 
 
 class BaseNode(TypedDict, total=False):
@@ -205,6 +205,10 @@ def get_heading_level(node: ASTNode) -> int | None:
 
 def get_node_text(node: ASTNode) -> str:
     """Extract text content from a node."""
-    if "raw" in node:
-        return node["raw"]  # type: ignore[typeddict-item]
+    # Check runtime keys not in every TypedDict variant; use dict access to avoid invalid-key
+    mapping = cast(dict[str, object], node)
+    for key in ("raw", "content", "code"):
+        value = mapping.get(key)
+        if isinstance(value, str):
+            return value
     return ""

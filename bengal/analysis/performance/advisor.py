@@ -143,17 +143,28 @@ class PerformanceGrade:
         """
         score = 100
 
-        # Factor 1: Throughput (50 points)
-        if stats.build_time_ms > 0 and stats.total_pages > 0:
-            pages_per_second = (stats.total_pages / stats.build_time_ms) * 1000
+        # Factor 1: Throughput (50 points) - use rendering time for fair measurement
+        # Scale thresholds by site size: larger sites get more lenient targets
+        render_ms = stats.rendering_time_ms if stats.rendering_time_ms > 0 else stats.build_time_ms
+        if render_ms > 0 and stats.total_pages > 0:
+            pages_per_second = (stats.total_pages / render_ms) * 1000
 
-            if pages_per_second >= 100:
+            if stats.total_pages <= 50:
+                scale = 1.0
+            elif stats.total_pages <= 500:
+                scale = 0.7
+            elif stats.total_pages <= 2000:
+                scale = 0.5
+            else:
+                scale = 0.35
+
+            if pages_per_second >= 100 * scale:
                 throughput_score = 50
-            elif pages_per_second >= 50:
+            elif pages_per_second >= 50 * scale:
                 throughput_score = 40
-            elif pages_per_second >= 20:
+            elif pages_per_second >= 20 * scale:
                 throughput_score = 30
-            elif pages_per_second >= 10:
+            elif pages_per_second >= 10 * scale:
                 throughput_score = 20
             else:
                 throughput_score = 10
@@ -162,22 +173,21 @@ class PerformanceGrade:
 
         # Factor 2: Time distribution (30 points)
         # Penalize if one phase takes >60% of time (bottleneck)
-        total_phase_time = (
-            stats.discovery_time_ms
-            + stats.taxonomy_time_ms
-            + stats.rendering_time_ms
-            + stats.assets_time_ms
-            + stats.postprocess_time_ms
-        )
+        phase_times = [
+            stats.fonts_time_ms,
+            stats.discovery_time_ms,
+            stats.taxonomy_time_ms,
+            stats.menu_time_ms,
+            stats.related_posts_time_ms,
+            stats.rendering_time_ms,
+            stats.assets_time_ms,
+            stats.postprocess_time_ms,
+            stats.health_check_time_ms,
+        ]
+        total_phase_time = sum(phase_times)
 
         if total_phase_time > 0:
-            max_phase_pct = max(
-                stats.discovery_time_ms / total_phase_time,
-                stats.taxonomy_time_ms / total_phase_time,
-                stats.rendering_time_ms / total_phase_time,
-                stats.assets_time_ms / total_phase_time,
-                stats.postprocess_time_ms / total_phase_time,
-            )
+            max_phase_pct = max(t / total_phase_time for t in phase_times)
 
             if max_phase_pct < 0.5:
                 balance_score = 30  # Well balanced
@@ -346,12 +356,18 @@ class PerformanceAdvisor:
 
     def _check_rendering_bottleneck(self) -> None:
         """Check if rendering is a bottleneck."""
-        total_phase_time = (
-            self.stats.discovery_time_ms
-            + self.stats.taxonomy_time_ms
-            + self.stats.rendering_time_ms
-            + self.stats.assets_time_ms
-            + self.stats.postprocess_time_ms
+        total_phase_time = sum(
+            [
+                self.stats.fonts_time_ms,
+                self.stats.discovery_time_ms,
+                self.stats.taxonomy_time_ms,
+                self.stats.menu_time_ms,
+                self.stats.related_posts_time_ms,
+                self.stats.rendering_time_ms,
+                self.stats.assets_time_ms,
+                self.stats.postprocess_time_ms,
+                self.stats.health_check_time_ms,
+            ]
         )
 
         if total_phase_time == 0:
@@ -376,6 +392,18 @@ class PerformanceAdvisor:
                         config_example="# Consider simplifying complex template logic",
                     )
                 )
+
+            # Suggest template profiling to identify the specific slow template
+            self.suggestions.append(
+                PerformanceSuggestion(
+                    type=SuggestionType.TEMPLATES,
+                    priority=SuggestionPriority.MEDIUM,
+                    title="Profile your templates",
+                    description=f"Rendering is {rendering_pct * 100:.0f}% of build time",
+                    impact="Identifies the specific template to optimize",
+                    action="Run: bengal build --profile-templates",
+                )
+            )
 
     def _check_asset_optimization(self) -> None:
         """Check asset processing performance."""
@@ -455,11 +483,15 @@ class PerformanceAdvisor:
             Name of slowest phase, or None if well-balanced
         """
         phases = {
+            "Fonts": self.stats.fonts_time_ms,
             "Discovery": self.stats.discovery_time_ms,
             "Taxonomies": self.stats.taxonomy_time_ms,
+            "Menus": self.stats.menu_time_ms,
+            "Related Posts": self.stats.related_posts_time_ms,
             "Rendering": self.stats.rendering_time_ms,
             "Assets": self.stats.assets_time_ms,
             "Postprocess": self.stats.postprocess_time_ms,
+            "Health Check": self.stats.health_check_time_ms,
         }
 
         total = sum(phases.values())

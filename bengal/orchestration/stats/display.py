@@ -4,6 +4,7 @@ Build statistics display functions.
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.orchestration.stats.helpers import format_time
@@ -52,6 +53,10 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
         cli.warning(
             f"Built with {error_summary['total_errors']} error(s), {error_summary['total_warnings']} warning(s)"
         )
+
+    # Regression nudge for writers (only when significantly slower)
+    if stats.regression_pct is not None and stats.regression_pct > 30:
+        cli.warning(f"Slower than usual (+{stats.regression_pct:.0f}%)")
 
     # Show errors using new error reporter
     if stats.has_errors:
@@ -169,23 +174,28 @@ def display_build_stats(
         mode_parts.append("parallel")
     mode_text = "+".join(mode_parts) if mode_parts else "sequential"
 
-    # Throughput
-    pages_per_sec = (
-        (stats.total_pages / stats.build_time_ms) * 1000 if stats.build_time_ms > 0 else 0
-    )
+    # Throughput - use rendering time for accurate per-page speed
+    render_ms = stats.rendering_time_ms if stats.rendering_time_ms > 0 else stats.build_time_ms
+    pages_per_sec = (stats.total_pages / render_ms) * 1000 if render_ms > 0 else 0
 
     # Phase breakdown - collect non-zero phases
     phases = []
-    if stats.rendering_time_ms > 0:
-        phases.append(f"Render {format_time(stats.rendering_time_ms)}")
+    if stats.fonts_time_ms > 0:
+        phases.append(f"Fonts {format_time(stats.fonts_time_ms)}")
     if stats.discovery_time_ms > 0:
         phases.append(f"Discovery {format_time(stats.discovery_time_ms)}")
-    if stats.health_check_time_ms > 0:
-        phases.append(f"Health {format_time(stats.health_check_time_ms)}")
-    if stats.postprocess_time_ms > 0:
-        phases.append(f"Post {format_time(stats.postprocess_time_ms)}")
+    if stats.menu_time_ms > 0:
+        phases.append(f"Menus {format_time(stats.menu_time_ms)}")
+    if stats.related_posts_time_ms > 0:
+        phases.append(f"Related {format_time(stats.related_posts_time_ms)}")
+    if stats.rendering_time_ms > 0:
+        phases.append(f"Render {format_time(stats.rendering_time_ms)}")
     if stats.assets_time_ms > 0:
         phases.append(f"Assets {format_time(stats.assets_time_ms)}")
+    if stats.postprocess_time_ms > 0:
+        phases.append(f"Post {format_time(stats.postprocess_time_ms)}")
+    if stats.health_check_time_ms > 0:
+        phases.append(f"Health {format_time(stats.health_check_time_ms)}")
 
     # Build main summary line
     total_time_str = format_time(stats.build_time_ms)
@@ -239,6 +249,31 @@ def display_build_stats(
         else:
             cli.info(f"   {phase_str}")
 
+    # Per-page render time distribution
+    if stats.render_p50_ms > 0:
+        render_dist = (
+            f"   Render/page: P50 {stats.render_p50_ms:.0f}ms | P95 {stats.render_p95_ms:.0f}ms"
+        )
+        if stats.slowest_pages:
+            slowest_path, slowest_ms = stats.slowest_pages[0]
+            # Show just the filename for brevity
+            short_path = Path(slowest_path).name if "/" in slowest_path else slowest_path
+            render_dist += f" | Slowest: {short_path} ({slowest_ms:.0f}ms)"
+        if cli.use_rich:
+            cli.console.print(f"[dim]{render_dist}[/dim]")
+        else:
+            cli.info(render_dist)
+
+    # Regression vs previous build
+    if stats.regression_pct is not None and abs(stats.regression_pct) > 10:
+        sign = "+" if stats.regression_pct > 0 else ""
+        regression_str = f"   Build: {sign}{stats.regression_pct:.0f}% vs last"
+        if cli.use_rich:
+            style = "yellow" if stats.regression_pct > 0 else "green"
+            cli.console.print(f"[{style}]{regression_str}[/{style}]")
+        else:
+            cli.info(regression_str)
+
     # Parse/render cache stats (when any hits)
     parsed_hits = getattr(stats, "parsed_cache_hits", 0)
     rendered_hits = getattr(stats, "rendered_cache_hits", 0)
@@ -247,6 +282,9 @@ def display_build_stats(
         cache_str = (
             f"Parsed: {parsed_hits} hits, {parsed_misses} misses | Rendered: {rendered_hits} hits"
         )
+        effectiveness = stats.cache_effectiveness_pct
+        if effectiveness is not None:
+            cache_str += f" | Cache saved {effectiveness:.0f}% of render time"
         if cli.use_rich:
             cli.console.print(f"   [dim]{cache_str}[/dim]")
         else:

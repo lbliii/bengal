@@ -641,6 +641,8 @@ def phase_render(
                     )
 
         orchestrator.stats.rendering_time_ms = (time.time() - rendering_start) * 1000
+        if orchestrator.stats is not None:
+            orchestrator.stats.compute_render_quantiles(pages_to_build)
         if _profiling_enabled():
             RenderProfiler.get().stop_wall()
 

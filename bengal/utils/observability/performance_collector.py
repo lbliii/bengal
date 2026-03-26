@@ -27,7 +27,7 @@ import time
 import tracemalloc
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.orchestration.stats import BuildStats
@@ -88,6 +88,8 @@ class PerformanceCollector:
         self.start_time: float | None = None
         self.start_memory: int | None = None
         self.start_rss: int | None = None
+        self.previous: Any = None
+        self.regression_pct: float | None = None
 
         # Initialize psutil if available
         if HAS_PSUTIL:
@@ -110,6 +112,20 @@ class PerformanceCollector:
         # Get initial RSS if psutil available (lightweight, always ok)
         if self.process:
             self.start_rss = self.process.memory_info().rss
+
+    def load_previous(self):
+        """Load previous build metrics from latest.json."""
+        latest_file = self.metrics_dir / "latest.json"
+        if not latest_file.exists():
+            return None
+        try:
+            from bengal.utils.observability.performance_report import BuildMetric
+
+            with open(latest_file, encoding="utf-8") as f:
+                data = json.load(f)
+            return BuildMetric.from_dict(data)
+        except Exception:
+            return None
 
     def end_build(self, stats: BuildStats) -> BuildStats:
         """
@@ -139,6 +155,15 @@ class PerformanceCollector:
         stats.memory_rss_mb = memory_rss_mb
         stats.memory_heap_mb = memory_heap_mb
         stats.memory_peak_mb = memory_peak_mb
+
+        # Regression detection: compare to previous build (before save overwrites latest.json)
+        self.previous = self.load_previous()
+        if self.previous and self.previous.build_time_ms > 0 and stats.build_time_ms > 0:
+            self.regression_pct = (
+                (stats.build_time_ms - self.previous.build_time_ms)
+                / self.previous.build_time_ms
+                * 100
+            )
 
         return stats
 

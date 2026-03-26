@@ -336,6 +336,8 @@ def phase_finalize(
     # Collect memory metrics and save performance data (if enabled by profile)
     if collector:
         orchestrator.stats = collector.end_build(orchestrator.stats)
+        if collector.regression_pct is not None:
+            orchestrator.stats.regression_pct = collector.regression_pct
         collector.save(orchestrator.stats)
 
     # Log build completion
