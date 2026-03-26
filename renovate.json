@@ -1,0 +1,31 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "labels": ["dependencies"],
+  "schedule": ["before 9am on monday"],
+  "timezone": "America/New_York",
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 9am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Group all Python dependency updates",
+      "matchManagers": ["pep621"],
+      "groupName": "python dependencies"
+    },
+    {
+      "description": "Pin dev tools that break CI on minor bumps",
+      "matchPackageNames": ["ty", "ruff"],
+      "matchManagers": ["pep621"],
+      "groupName": "dev tooling",
+      "automerge": false
+    },
+    {
+      "description": "Group b-stack packages (pounce, patitas, kida)",
+      "matchPackageNames": ["bengal-pounce", "patitas", "kida-templates", "rosettes"],
+      "groupName": "b-stack",
+      "automerge": false
+    }
+  ]
+}
