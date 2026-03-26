@@ -302,7 +302,11 @@ class BuildStats:
 
     def compute_render_quantiles(self, pages: list[Any]) -> None:
         """Compute per-page render time quantiles from rendered pages."""
-        times = sorted(p.render_time_ms for p in pages if p.render_time_ms > 0)
+        times = sorted(
+            t
+            for p in pages
+            if isinstance(t := getattr(p, "render_time_ms", 0), (int, float)) and t > 0
+        )
         if not times:
             return
         n = len(times)
@@ -311,7 +315,11 @@ class BuildStats:
         self.render_max_ms = times[-1]
         # Top 5 slowest pages by render time
         slowest = sorted(
-            ((p, p.render_time_ms) for p in pages if p.render_time_ms > 0),
+            (
+                (p, t)
+                for p in pages
+                if isinstance(t := getattr(p, "render_time_ms", 0), (int, float)) and t > 0
+            ),
             key=lambda x: x[1],
             reverse=True,
         )[:5]
