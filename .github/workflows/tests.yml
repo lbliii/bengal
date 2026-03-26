@@ -27,7 +27,10 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          fetch-depth: 0
+          # For PRs the base SHA is fetched automatically; for pushes we only
+          # need the previous commit.  Fall back to full clone only when the
+          # shallow history doesn't contain the base SHA.
+          fetch-depth: 20
 
       - name: Check for code changes
         id: filter
@@ -87,7 +90,7 @@ jobs:
     - name: Install dependencies
       run: uv sync --no-sources --group dev
 
-    - name: Fast test suite (unit tests only)
+    - name: Fast test suite (unit tests + coverage)
       timeout-minutes: 15
       env:
         CI: true
@@ -96,17 +99,21 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running fast test suite (unit tests only, excluding slow)..."
-        uv run pytest -n auto -q --tb=short --dist worksteal --max-worker-restart=3 tests/unit tests/core tests/test_thread_safety.py -m "not slow"
+        uv run pytest -n auto -q --tb=short --maxfail=5 --dist worksteal --max-worker-restart=3 --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
 
-  # Baseurl spot-checks + Coverage (single-process)
-  full-suite:
+    - name: Upload coverage
+      uses: codecov/codecov-action@v5
+      with:
+        files: coverage.xml
+
+  # Baseurl spot-checks (parallel with downstream test jobs)
+  baseurl:
     needs: fast-check
     if: ${{ !cancelled() && needs.fast-check.result == 'success' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.14t"]
-        baseurl: ["", "/bengal", "https://example.com/sub"]
+        baseurl: ["/bengal", "https://example.com/sub"]
 
     steps:
     - uses: actions/checkout@v5
@@ -114,7 +121,7 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: "3.14t"
 
     - name: Cache uv dependencies
       uses: actions/cache@v5
@@ -137,28 +144,12 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running with BENGAL_BASEURL='${BENGAL_BASEURL}'"
-        uv run pytest -q --tb=short -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
-
-    - name: Coverage (unit tests, single-process)
-      timeout-minutes: 15
-      if: matrix.baseurl == ''
-      env:
-        CI: true
-        BENGAL_CI_FAST: "1"
-        PYTHON_GIL: "0"
-      run: |
-        uv run pytest -n 0 -q --tb=short --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
-
-    - name: Upload coverage
-      if: matrix.baseurl == ''
-      uses: codecov/codecov-action@v5
-      with:
-        files: coverage.xml
+        uv run pytest -q --tb=short --maxfail=5 -n auto tests/unit/config/test_config_loader_baseurl_env.py tests/unit/rendering/test_asset_url_baseurl.py tests/unit/rendering/test_template_links_baseurl.py tests/integration/test_baseurl_builds.py
 
   # E2E tests (build + validate + check links)
   e2e:
-    needs: full-suite
-    if: ${{ !cancelled() && needs.full-suite.result == 'success' }}
+    needs: fast-check
+    if: ${{ !cancelled() && needs.fast-check.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -198,8 +189,8 @@ jobs:
 
   # Integration tests (excluding warm_build/ — see warm-build job)
   integration:
-    needs: full-suite
-    if: ${{ !cancelled() && needs.full-suite.result == 'success' }}
+    needs: fast-check
+    if: ${{ !cancelled() && needs.fast-check.result == 'success' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -261,8 +252,8 @@ jobs:
 
   # Warm-build integration tests (isolated; heavy full/incremental site builds)
   warm-build:
-    needs: full-suite
-    if: ${{ !cancelled() && needs.full-suite.result == 'success' }}
+    needs: fast-check
+    if: ${{ !cancelled() && needs.fast-check.result == 'success' }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -321,8 +312,8 @@ jobs:
 
   # Render output regression sentinels (autodoc + fallback path)
   render-output-regression:
-    needs: full-suite
-    if: ${{ !cancelled() && needs.full-suite.result == 'success' }}
+    needs: fast-check
+    if: ${{ !cancelled() && needs.fast-check.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v5
@@ -466,7 +457,7 @@ jobs:
     needs:
       - detect-changes
       - fast-check
-      - full-suite
+      - baseurl
       - e2e
       - integration
       - warm-build
@@ -482,7 +473,7 @@ jobs:
           fi
           # Otherwise, check that no test job failed
           if [ "${{ needs.fast-check.result }}" = "failure" ] || \
-             [ "${{ needs.full-suite.result }}" = "failure" ] || \
+             [ "${{ needs.baseurl.result }}" = "failure" ] || \
              [ "${{ needs.e2e.result }}" = "failure" ] || \
              [ "${{ needs.integration.result }}" = "failure" ] || \
              [ "${{ needs.warm-build.result }}" = "failure" ] || \
