@@ -615,6 +615,24 @@ def build(
                 # Simple, clean output for writers
                 from bengal.orchestration.stats import display_simple_build_stats
 
+                # Writers don't have a collector, but can read previous metrics
+                if stats.regression_pct is None:
+                    try:
+                        from bengal.utils.observability.performance_collector import (
+                            PerformanceCollector,
+                        )
+
+                        _reader = PerformanceCollector(metrics_dir=site.paths.metrics_dir)
+                        _prev = _reader.load_previous()
+                        if _prev and _prev.build_time_ms > 0 and stats.build_time_ms > 0:
+                            stats.regression_pct = (
+                                (stats.build_time_ms - _prev.build_time_ms)
+                                / _prev.build_time_ms
+                                * 100
+                            )
+                    except Exception:
+                        pass
+
                 display_simple_build_stats(stats, output_dir=str(site.output_dir))
             elif build_profile == BuildProfile.DEVELOPER:
                 # Rich intelligent summary with performance insights (Phase 2)

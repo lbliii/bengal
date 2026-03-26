@@ -110,13 +110,16 @@ class PerformanceValidator(BaseValidator):
         """Check pages per second throughput."""
         results: list[CheckResult] = []
 
+        rendering_time_ms = build_stats.get("rendering_time_ms", 0)
         build_time_ms = build_stats.get("build_time_ms", 0)
         total_pages = build_stats.get("total_pages", 0)
 
-        if build_time_ms == 0 or total_pages == 0:
+        # Use rendering time for fair per-page throughput measurement
+        time_ms = rendering_time_ms if rendering_time_ms > 0 else build_time_ms
+        if time_ms == 0 or total_pages == 0:
             return results
 
-        throughput = (total_pages / build_time_ms) * 1000  # pages/second
+        throughput = (total_pages / time_ms) * 1000  # pages/second
 
         # Thresholds
         if throughput > 100:

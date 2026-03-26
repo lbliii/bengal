@@ -39,6 +39,7 @@ bengal.orchestration.build.finalization: Calls display after build
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from rich.console import Group
@@ -75,23 +76,21 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
     table.add_column("% of Total", justify="right")
     table.add_column("Bar", width=20)
 
-    # Calculate total phase time
-    total_phase_time = (
-        stats.discovery_time_ms
-        + stats.taxonomy_time_ms
-        + stats.rendering_time_ms
-        + stats.assets_time_ms
-        + stats.postprocess_time_ms
-    )
-
     # Add rows for each phase
     phases = [
+        ("Fonts", stats.fonts_time_ms),
         ("Discovery", stats.discovery_time_ms),
         ("Taxonomies", stats.taxonomy_time_ms),
+        ("Menus", stats.menu_time_ms),
+        ("Related Posts", stats.related_posts_time_ms),
         ("Rendering", stats.rendering_time_ms),
         ("Assets", stats.assets_time_ms),
         ("Postprocess", stats.postprocess_time_ms),
+        ("Health Check", stats.health_check_time_ms),
     ]
+
+    # Calculate total phase time
+    total_phase_time = sum(t for _, t in phases)
 
     for phase_name, phase_time in phases:
         if phase_time == 0:
@@ -131,6 +130,18 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
         else:
             table.add_row(phase_name, time_str, "-", "")
 
+    # Overhead row (unaccounted time)
+    if stats.overhead_ms > 0 and total_phase_time > 0:
+        overhead = stats.overhead_ms
+        overhead_str = f"{int(overhead)}ms" if overhead < 1000 else f"{overhead / 1000:.2f}s"
+        overhead_pct = (overhead / stats.build_time_ms) * 100 if stats.build_time_ms > 0 else 0
+        table.add_row(
+            "[dim]Overhead[/dim]",
+            f"[dim]{overhead_str}[/dim]",
+            f"[dim]{overhead_pct:.1f}%[/dim]",
+            f"[dim]{'█' * int((overhead_pct / 100) * 20)}{'░' * (20 - int((overhead_pct / 100) * 20))}[/dim]",
+        )
+
     # Add total
     total_time = stats.build_time_ms
     total_str = f"{int(total_time)}ms" if total_time < 1000 else f"{total_time / 1000:.2f}s"
@@ -141,6 +152,13 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
         "[bold]100%[/bold]",
         "[success]████████████████████[/success]",
     )
+
+    # Slowest pages (top 3)
+    if stats.slowest_pages:
+        table.add_row("", "", "", "")
+        for path, ms in stats.slowest_pages[:3]:
+            short = Path(path).name
+            table.add_row(f"[dim]  {short}[/dim]", f"[dim]{ms:.0f}ms[/dim]", "", "")
 
     return table
 
@@ -174,11 +192,42 @@ def create_performance_panel(stats: BuildStats, advisor: PerformanceAdvisor) -> 
     lines.append(Text())
     lines.append(Text(grade.summary, style="dim", justify="center"))
 
-    # Throughput calculation
-    if stats.build_time_ms > 0 and stats.total_pages > 0:
-        pages_per_sec = (stats.total_pages / stats.build_time_ms) * 1000
+    # Throughput calculation - use rendering time for accurate per-page speed
+    render_ms = stats.rendering_time_ms if stats.rendering_time_ms > 0 else stats.build_time_ms
+    if render_ms > 0 and stats.total_pages > 0:
+        pages_per_sec = (stats.total_pages / render_ms) * 1000
         lines.append(Text())
         lines.append(Text(f"📈 {pages_per_sec:.1f} pages/second", style="cyan", justify="center"))
+
+    # Per-page render distribution
+    if stats.render_p50_ms > 0:
+        lines.append(
+            Text(
+                f"P50 {stats.render_p50_ms:.0f}ms | P95 {stats.render_p95_ms:.0f}ms | Max {stats.render_max_ms:.0f}ms",
+                style="dim cyan",
+                justify="center",
+            )
+        )
+
+    # Memory per page
+    if stats.total_pages > 0 and stats.memory_rss_mb > 0:
+        mem_per_page = stats.memory_rss_mb / stats.total_pages
+        lines.append(Text(f"{mem_per_page:.2f} MB/page", style="dim", justify="center"))
+
+    # Regression vs previous build
+    if stats.regression_pct is not None and abs(stats.regression_pct) > 10:
+        sign = "+" if stats.regression_pct > 0 else ""
+        style = (
+            "bold red"
+            if stats.regression_pct > 25
+            else "yellow"
+            if stats.regression_pct > 0
+            else "green"
+        )
+        lines.append(Text())
+        lines.append(
+            Text(f"{sign}{stats.regression_pct:.0f}% vs last build", style=style, justify="center")
+        )
 
     # Bottleneck detection
     bottleneck = advisor.get_bottleneck()
@@ -362,6 +411,17 @@ def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
                 else:
                     saved_str = f"{block_time_saved / 1000:.2f}s"
                 lines.append(Text(f"   ✨ Cache gain:  {saved_str}", style="cyan"))
+
+    # Cache effectiveness summary
+    effectiveness = stats.cache_effectiveness_pct
+    if effectiveness is not None:
+        if lines:
+            lines.append(Text())
+        lines.append(
+            Text("Cache saved ", style="cyan")
+            + Text(f"{effectiveness:.0f}%", style="bold green")
+            + Text(" of render time", style="cyan")
+        )
 
     # Return None if no cache data at all
     if not lines:

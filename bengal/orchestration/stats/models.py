@@ -118,6 +118,15 @@ class BuildStats:
     asset_manifest_fallback_count: int = 0
     asset_manifest_fallback_samples: list[str] = field(default_factory=list)
 
+    # Per-page render time aggregates
+    render_p50_ms: float = 0.0
+    render_p95_ms: float = 0.0
+    render_max_ms: float = 0.0
+    slowest_pages: list[tuple[str, float]] = field(default_factory=list)  # top 5
+
+    # Regression detection (vs previous build)
+    regression_pct: float | None = None
+
     # Additional phase timings (Phase 2)
     menu_time_ms: float = 0
     related_posts_time_ms: float = 0
@@ -291,6 +300,54 @@ class BuildStats:
             grouped[warning.warning_type].append(warning)
         return dict(grouped)
 
+    def compute_render_quantiles(self, pages: list[Any]) -> None:
+        """Compute per-page render time quantiles from rendered pages."""
+        times = sorted(
+            t
+            for p in pages
+            if isinstance(t := getattr(p, "render_time_ms", 0), (int, float)) and t > 0
+        )
+        if not times:
+            return
+        n = len(times)
+        self.render_p50_ms = times[n // 2]
+        self.render_p95_ms = times[min(int(n * 0.95), n - 1)]
+        self.render_max_ms = times[-1]
+        # Top 5 slowest pages by render time
+        slowest = sorted(
+            (
+                (p, t)
+                for p in pages
+                if isinstance(t := getattr(p, "render_time_ms", 0), (int, float)) and t > 0
+            ),
+            key=lambda x: x[1],
+            reverse=True,
+        )[:5]
+        self.slowest_pages = [(str(p.source_path), ms) for p, ms in slowest]
+
+    @property
+    def overhead_ms(self) -> float:
+        """Unaccounted time: build_time minus sum of all phase timings."""
+        phase_sum = (
+            self.fonts_time_ms
+            + self.discovery_time_ms
+            + self.taxonomy_time_ms
+            + self.menu_time_ms
+            + self.related_posts_time_ms
+            + self.rendering_time_ms
+            + self.assets_time_ms
+            + self.postprocess_time_ms
+            + self.health_check_time_ms
+        )
+        return max(0, self.build_time_ms - phase_sum)
+
+    @property
+    def cache_effectiveness_pct(self) -> float | None:
+        """Percentage of render time saved by caching."""
+        if self.rendering_time_ms <= 0 or self.time_saved_ms <= 0:
+            return None
+        return (self.time_saved_ms / (self.rendering_time_ms + self.time_saved_ms)) * 100
+
     def to_dict(self) -> dict[str, Any]:
         """Convert stats to dictionary."""
         return {
@@ -298,27 +355,49 @@ class BuildStats:
             "regular_pages": self.regular_pages,
             "generated_pages": self.generated_pages,
             "autodoc_pages": self.autodoc_pages,
+            "tag_pages": self.tag_pages,
+            "archive_pages": self.archive_pages,
+            "pagination_pages": self.pagination_pages,
             "total_assets": self.total_assets,
             "total_sections": self.total_sections,
             "taxonomies_count": self.taxonomies_count,
+            "total_directives": self.total_directives,
             "build_time_ms": self.build_time_ms,
             "parallel": self.parallel,
             "incremental": self.incremental,
             "skipped": self.skipped,
+            # Phase timings
+            "fonts_time_ms": self.fonts_time_ms,
             "discovery_time_ms": self.discovery_time_ms,
             "taxonomy_time_ms": self.taxonomy_time_ms,
+            "menu_time_ms": self.menu_time_ms,
+            "related_posts_time_ms": self.related_posts_time_ms,
             "rendering_time_ms": self.rendering_time_ms,
+            "pages_rendered": self.pages_rendered,
             "assets_time_ms": self.assets_time_ms,
             "postprocess_time_ms": self.postprocess_time_ms,
+            "health_check_time_ms": self.health_check_time_ms,
+            # Memory
             "memory_rss_mb": self.memory_rss_mb,
             "memory_heap_mb": self.memory_heap_mb,
             "memory_peak_mb": self.memory_peak_mb,
-            # Block cache stats
+            # Page-level cache
+            "cache_hits": self.cache_hits,
+            "cache_misses": self.cache_misses,
+            "time_saved_ms": self.time_saved_ms,
+            "cache_bypass_hits": self.cache_bypass_hits,
+            "cache_bypass_misses": self.cache_bypass_misses,
+            # Block cache
             "block_cache_hits": self.block_cache_hits,
             "block_cache_misses": self.block_cache_misses,
             "block_cache_site_blocks": self.block_cache_site_blocks,
             "block_cache_time_saved_ms": self.block_cache_time_saved_ms,
+            # Render pipeline cache
             "parsed_cache_hits": self.parsed_cache_hits,
             "rendered_cache_hits": self.rendered_cache_hits,
             "parsed_cache_misses": self.parsed_cache_misses,
+            # Per-page render time distribution
+            "render_p50_ms": self.render_p50_ms,
+            "render_p95_ms": self.render_p95_ms,
+            "render_max_ms": self.render_max_ms,
         }

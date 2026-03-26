@@ -97,10 +97,16 @@ class BuildMetric:
         return self.build_time_ms / 1000
 
     @property
+    def rendering_time_s(self) -> float:
+        """Rendering time in seconds (convenience property)."""
+        return self.rendering_time_ms / 1000
+
+    @property
     def pages_per_second(self) -> float:
-        """Build throughput in pages per second."""
-        if self.build_time_s > 0:
-            return self.total_pages / self.build_time_s
+        """Rendering throughput in pages per second."""
+        time_s = self.rendering_time_s if self.rendering_time_s > 0 else self.build_time_s
+        if time_s > 0:
+            return self.total_pages / time_s
         return 0
 
     @property

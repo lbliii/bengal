@@ -177,6 +177,7 @@ class Page(
     # HTML content rendered from Markdown by Patitas parser.
     html_content: str | None = None
     rendered_html: str = ""
+    render_time_ms: float = 0.0  # Per-page render time, set during rendering
     output_path: Path | None = None
     links: list[str] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)

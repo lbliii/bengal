@@ -84,12 +84,35 @@ class MinimalStats:
     warnings: list[Any] = field(default_factory=list)
 
     # Phase timings: default to 0 (display skips if 0)
+    fonts_time_ms: float = 0.0
     discovery_time_ms: float = 0.0
     taxonomy_time_ms: float = 0.0
+    menu_time_ms: float = 0.0
+    related_posts_time_ms: float = 0.0
     rendering_time_ms: float = 0.0
     assets_time_ms: float = 0.0
     postprocess_time_ms: float = 0.0
     health_check_time_ms: float = 0.0
+
+    # Per-page render time aggregates
+    render_p50_ms: float = 0.0
+    render_p95_ms: float = 0.0
+    render_max_ms: float = 0.0
+    slowest_pages: list[tuple[str, float]] = field(default_factory=list)
+
+    # Regression detection
+    regression_pct: float | None = None
+
+    # Cache effectiveness
+    time_saved_ms: float = 0.0
+    memory_rss_mb: float = 0.0
+
+    @property
+    def cache_effectiveness_pct(self) -> float | None:
+        """Percentage of render time saved by caching."""
+        if self.rendering_time_ms <= 0 or self.time_saved_ms <= 0:
+            return None
+        return (self.time_saved_ms / (self.rendering_time_ms + self.time_saved_ms)) * 100
 
     @property
     def has_errors(self) -> bool:
