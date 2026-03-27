@@ -505,7 +505,9 @@ class NodePipeline:
             BengalAssetError: If the command exits with non-zero status (code X003).
         """
         logger.debug("pipeline_exec", cmd=" ".join(cmd))
-        proc = subprocess.run(cmd, check=False, cwd=str(cwd), capture_output=True, text=True)
+        proc = subprocess.run(
+            cmd, check=False, cwd=str(cwd), capture_output=True, text=True, timeout=120
+        )
         if proc.returncode != 0:
             from bengal.errors import BengalAssetError, ErrorCode
 

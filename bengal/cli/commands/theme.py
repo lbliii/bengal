@@ -642,7 +642,7 @@ def install(name: str, force: bool) -> None:
         import sys
 
         cmd = [sys.executable, "-m", "uv", "pip", "install", pkg]
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         if proc.returncode != 0:
             cli.error(proc.stderr or proc.stdout)
             raise SystemExit(proc.returncode) from None
@@ -653,7 +653,7 @@ def install(name: str, force: bool) -> None:
         import sys
 
         cmd = [sys.executable, "-m", "pip", "install", pkg]
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         if proc.returncode != 0:
             cli.error(proc.stderr or proc.stdout)
             raise SystemExit(proc.returncode) from None

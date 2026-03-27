@@ -125,6 +125,7 @@ def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
             check=True,
             capture_output=True,
             text=True,
+            timeout=120,
         )
         cli.success(f"Successfully upgraded to v{latest}")
         click.echo()

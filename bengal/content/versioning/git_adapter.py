@@ -265,6 +265,7 @@ class GitVersionAdapter:
                 capture_output=True,
                 text=True,
                 check=True,
+                timeout=60,
             )
             logger.debug(
                 "git_worktree_created",
@@ -353,6 +354,7 @@ class GitVersionAdapter:
                 capture_output=True,
                 text=True,
                 check=True,
+                timeout=30,
             )
             for line in result.stdout.strip().split("\n"):
                 if not line:
@@ -394,6 +396,7 @@ class GitVersionAdapter:
                 capture_output=True,
                 text=True,
                 check=True,
+                timeout=30,
             )
             for line in result.stdout.strip().split("\n"):
                 if not line:
@@ -439,6 +442,7 @@ class GitVersionAdapter:
                 capture_output=True,
                 text=True,
                 check=True,
+                timeout=10,
             )
             return result.stdout.strip()
         except subprocess.CalledProcessError:
@@ -452,6 +456,7 @@ class GitVersionAdapter:
                 cwd=self.repo_path,
                 capture_output=True,
                 check=True,
+                timeout=30,
             )
         except subprocess.CalledProcessError:
             # Fallback: manually remove directory
@@ -463,4 +468,5 @@ class GitVersionAdapter:
             ["git", "worktree", "prune"],
             cwd=self.repo_path,
             capture_output=True,
+            timeout=30,
         )

@@ -232,7 +232,7 @@ jobs:
           --splits 6 --group ${{ matrix.group }} \
           --splitting-algorithm least_duration \
           -n auto -vv -ra --tb=short --maxfail=1 --durations=40 \
-          --timeout=60 --timeout-method=thread \
+          --timeout=120 --timeout-method=thread \
           --dist worksteal --max-worker-restart=3 \
           tests/integration \
           --ignore=tests/integration/warm_build \

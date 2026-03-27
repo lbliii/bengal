@@ -725,6 +725,7 @@ def rmtree_robust(
                     ["rm", "-rf", str(path)],
                     capture_output=True,
                     text=True,
+                    timeout=30,
                 )
                 if result.returncode == 0:
                     logger.debug(
