@@ -139,6 +139,10 @@ def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
             click.echo(e.stderr, err=True)
         cli.tip(f"Try running manually: {installer.display_command}")
         raise SystemExit(1) from None
+    except subprocess.TimeoutExpired:
+        cli.error("Upgrade timed out after 120s")
+        cli.tip(f"Try running manually: {installer.display_command}")
+        raise SystemExit(1) from None
 
 
 def show_upgrade_notification() -> None:

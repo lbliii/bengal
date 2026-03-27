@@ -41,6 +41,7 @@ bengal.orchestration.build: Build coordinator that calls this orchestrator
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -334,10 +335,11 @@ class ContentOrchestrator:
 
         try:
             entries = manager.fetch_all_sync(use_cache=True)
-        except Exception:
+        except Exception as e:
             logger.warning(
                 "remote_source_fetch_failed",
-                error="Failed to fetch remote sources, continuing with local content",
+                error=str(e),
+                error_type=type(e).__name__,
             )
             return
 
@@ -354,27 +356,30 @@ class ContentOrchestrator:
             target_dir = content_dir / directory
             target_dir.mkdir(parents=True, exist_ok=True)
 
-            # Write markdown file
+            # Write markdown file (sanitize slug to prevent path traversal)
             slug = entry.slug or entry.id
+            slug = re.sub(r"[^\w\-.]", "-", slug).strip("-.")
+            if not slug:
+                slug = f"entry-{written}"
             target_file = target_dir / f"{slug}.md"
 
-            # Build frontmatter + content
-            lines = ["---"]
-            for key, value in (entry.frontmatter or {}).items():
-                if isinstance(value, list):
-                    lines.append(f"{key}:")
-                    lines.extend(f"  - {item}" for item in value)
-                elif isinstance(value, bool):
-                    lines.append(f"{key}: {'true' if value else 'false'}")
-                else:
-                    lines.append(f"{key}: {value}")
-            if entry.source_url:
-                lines.append(f"source_url: {entry.source_url}")
-            lines.append("---")
-            lines.append("")
-            lines.append(entry.content or "")
+            # Verify resolved path stays within target_dir
+            if not target_file.resolve().is_relative_to(target_dir.resolve()):
+                logger.warning("remote_source_slug_traversal", slug=slug)
+                continue
 
-            target_file.write_text("\n".join(lines), encoding="utf-8")
+            # Build frontmatter + content
+            import yaml
+
+            fm = dict(entry.frontmatter or {})
+            if entry.source_url:
+                fm["source_url"] = entry.source_url
+            frontmatter = yaml.dump(fm, sort_keys=False, default_flow_style=False).strip()
+            text = f"---\n{frontmatter}\n---\n\n{entry.content or ''}"
+
+            from bengal.utils.io.atomic_write import atomic_write_text
+
+            atomic_write_text(target_file, text)
             written += 1
 
         if written:

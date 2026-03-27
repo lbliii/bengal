@@ -320,7 +320,12 @@ def status_cmd(domain: str, fail_on_missing: bool, source: str) -> None:
     default="messages",
     help="Gettext domain (default: messages)",
 )
-@click.argument("source", type=click.Path(exists=True), default=".", required=False)
+@click.option(
+    "--source",
+    type=click.Path(exists=True),
+    default=".",
+    help="Project root directory (default: current directory)",
+)
 def init_cmd(locale_codes: tuple[str, ...], domain: str, source: str) -> None:
     """
     Initialize locale directory structure and PO files.
@@ -488,7 +493,7 @@ def sync_cmd(domain: str, locales: tuple[str, ...], source: str) -> None:
         # Mark removed keys as obsolete
         obsoleted = 0
         for entry in list(po):
-            if entry.msgid and entry.msgid not in keys and entry not in po.obsolete_entries():
+            if entry.msgid and entry.msgid not in keys and not entry.obsolete:
                 entry.obsolete = True
                 obsoleted += 1
 

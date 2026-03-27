@@ -721,12 +721,16 @@ def rmtree_robust(
                     path=str(path),
                     caller=caller,
                 )
-                result = subprocess.run(
-                    ["rm", "-rf", str(path)],
-                    capture_output=True,
-                    text=True,
-                    timeout=30,
-                )
+                try:
+                    result = subprocess.run(
+                        ["rm", "-rf", str(path)],
+                        capture_output=True,
+                        text=True,
+                        timeout=30,
+                    )
+                except subprocess.TimeoutExpired:
+                    logger.error("rmtree_rm_timeout", path=str(path), caller=caller)
+                    raise OSError(f"rm -rf timed out for {path}") from None
                 if result.returncode == 0:
                     logger.debug(
                         "rmtree_rm_success",

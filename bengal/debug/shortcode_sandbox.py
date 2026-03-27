@@ -138,7 +138,9 @@ class ShortcodeSandbox(DebugTool):
             result.append(
                 {
                     "names": list(handler.names),
-                    "description": getattr(handler, "description", handler.__class__.__doc__ or ""),
+                    "description": getattr(handler, "description", None)
+                    or handler.__class__.__doc__
+                    or "",
                     "class": handler.__class__.__name__,
                 }
             )

@@ -273,17 +273,18 @@ class GitVersionAdapter:
                 ref=ref,
                 path=str(worktree_path),
             )
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+            stderr = getattr(e, "stderr", None) or str(e)
             logger.error(
                 "git_worktree_failed",
                 version_id=version_id,
                 ref=ref,
-                error=e.stderr,
+                error=stderr,
             )
             from bengal.errors import BengalDiscoveryError, ErrorCode
 
             raise BengalDiscoveryError(
-                f"Failed to create worktree for {ref}: {e.stderr}",
+                f"Failed to create worktree for {ref}: {stderr}",
                 suggestion="Check git repository state and permissions. Ensure git is installed and the repository is accessible.",
                 original_error=e,
                 code=ErrorCode.D007,
@@ -371,11 +372,11 @@ class GitVersionAdapter:
                             ref_type="branch",
                         )
                     )
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
 
             error = BengalDiscoveryError(
-                f"Failed to list git branches: {e.stderr}",
+                f"Failed to list git branches: {getattr(e, 'stderr', None) or e}",
                 code=ErrorCode.D014,
                 file_path=self.repo_path,
                 suggestion="Check git repository state and permissions",
@@ -413,11 +414,11 @@ class GitVersionAdapter:
                             ref_type="tag",
                         )
                     )
-        except subprocess.CalledProcessError as e:
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             from bengal.errors import BengalDiscoveryError, ErrorCode, record_error
 
             error = BengalDiscoveryError(
-                f"Failed to list git tags: {e.stderr}",
+                f"Failed to list git tags: {getattr(e, 'stderr', None) or e}",
                 code=ErrorCode.D014,
                 file_path=self.repo_path,
                 suggestion="Check git repository state and permissions",
@@ -445,7 +446,7 @@ class GitVersionAdapter:
                 timeout=10,
             )
             return result.stdout.strip()
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError, subprocess.TimeoutExpired:
             return ""
 
     def _remove_worktree(self, path: Path) -> None:
@@ -458,15 +459,18 @@ class GitVersionAdapter:
                 check=True,
                 timeout=30,
             )
-        except subprocess.CalledProcessError:
+        except subprocess.CalledProcessError, subprocess.TimeoutExpired:
             # Fallback: manually remove directory
             if path.exists():
                 shutil.rmtree(path, ignore_errors=True)
 
         # Prune worktree list
-        subprocess.run(
-            ["git", "worktree", "prune"],
-            cwd=self.repo_path,
-            capture_output=True,
-            timeout=30,
-        )
+        try:
+            subprocess.run(
+                ["git", "worktree", "prune"],
+                cwd=self.repo_path,
+                capture_output=True,
+                timeout=30,
+            )
+        except subprocess.TimeoutExpired:
+            logger.debug("git_worktree_prune_timeout", path=str(path))

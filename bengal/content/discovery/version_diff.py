@@ -376,8 +376,8 @@ def diff_git_versions(
             check=True,
             timeout=30,
         )
-    except subprocess.CalledProcessError as e:
-        logger.error("git_diff_failed", error=e.stderr)
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+        logger.error("git_diff_failed", error=getattr(e, "stderr", None) or str(e))
         return result
 
     # Parse diff output
@@ -450,5 +450,5 @@ def _git_show_file(repo_path: Path, ref: str, path: str) -> str | None:
             timeout=30,
         )
         return result.stdout
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError, subprocess.TimeoutExpired:
         return None

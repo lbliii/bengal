@@ -505,9 +505,18 @@ class NodePipeline:
             BengalAssetError: If the command exits with non-zero status (code X003).
         """
         logger.debug("pipeline_exec", cmd=" ".join(cmd))
-        proc = subprocess.run(
-            cmd, check=False, cwd=str(cwd), capture_output=True, text=True, timeout=120
-        )
+        try:
+            proc = subprocess.run(
+                cmd, check=False, cwd=str(cwd), capture_output=True, text=True, timeout=120
+            )
+        except subprocess.TimeoutExpired:
+            from bengal.errors import BengalAssetError, ErrorCode
+
+            raise BengalAssetError(
+                f"Asset pipeline command timed out after 120s: {' '.join(cmd)}",
+                code=ErrorCode.X003,
+                suggestion="Check if the command is hanging or increase the timeout",
+            ) from None
         if proc.returncode != 0:
             from bengal.errors import BengalAssetError, ErrorCode
 
