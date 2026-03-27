@@ -368,10 +368,12 @@ class BuildOrchestrator:
         # This enables build-integrated validation: validators use cached content
         # instead of re-reading from disk, saving ~4 seconds on health checks.
         from bengal.orchestration.build_context import BuildContext
+        from bengal.utils.concurrency.executor import CancellationToken
 
         early_ctx = BuildContext(
             site=self.site,
             stats=self.stats,
+            cancellation_token=CancellationToken(timeout=300.0),
         )
 
         # Create output collector for hot reload tracking
@@ -753,15 +755,16 @@ class BuildOrchestrator:
                 generated_page_cache.save()
 
         # Run cache saves in parallel
-        with ThreadPoolExecutor(max_workers=2, thread_name_prefix="CacheSave") as executor:
+        from bengal.utils.concurrency.executor import managed_executor
+
+        with managed_executor(2, thread_name_prefix="CacheSave") as executor:
             futures = [
                 executor.submit(_save_main_cache),
                 executor.submit(_save_generated_cache),
             ]
-            # Wait for all saves to complete
+            # Wait for all saves to complete (bounded)
             for future in as_completed(futures):
-                # Re-raise any exceptions from save threads
-                future.result()
+                future.result(timeout=60)
 
         cache_duration_ms = (time.perf_counter() - cache_start) * 1000
         if cli is not None:

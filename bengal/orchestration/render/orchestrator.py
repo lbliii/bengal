@@ -37,7 +37,6 @@ import concurrent.futures
 import contextvars
 import sys
 import threading
-from contextlib import contextmanager
 from itertools import batched
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -45,6 +44,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.errors import ErrorAggregator, extract_error_context
 from bengal.orchestration.utils.errors import is_shutdown_error
 from bengal.protocols import ProgressReporter
+from bengal.utils.concurrency.executor import CancellationError, managed_executor
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
@@ -82,29 +82,12 @@ if TYPE_CHECKING:
     from bengal.utils.observability.cli_progress import LiveProgressManager
 
 
-@contextmanager
 def _managed_executor(max_workers: int):
     """Context manager that shuts down a ThreadPoolExecutor correctly on error.
 
-    On normal exit or RuntimeError from interpreter shutdown, shuts down
-    gracefully.  On KeyboardInterrupt/SystemExit, cancels pending futures
-    and re-raises.
+    Delegates to the shared managed_executor utility.
     """
-    executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers)
-    try:
-        yield executor
-    except KeyboardInterrupt, SystemExit:
-        executor.shutdown(wait=False, cancel_futures=True)
-        raise
-    except RuntimeError as e:
-        if is_shutdown_error(e):
-            logger.debug("render_executor_shutdown")
-            executor.shutdown(wait=False, cancel_futures=True)
-            return
-        executor.shutdown(wait=True)
-        raise
-    else:
-        executor.shutdown(wait=True)
+    return managed_executor(max_workers, thread_name_prefix="Bengal-Render")
 
 
 class RenderOrchestrator(
@@ -563,6 +546,8 @@ class RenderOrchestrator(
                 current_generation=current_gen,
             )
 
+        token = build_context.cancellation_token if build_context else None
+
         with _managed_executor(max_workers) as executor:
             batch_size = max(max_workers * 2, 1)
             aggregator = ErrorAggregator(total_items=len(sorted_pages))
@@ -580,7 +565,13 @@ class RenderOrchestrator(
                 for future in concurrent.futures.as_completed(future_to_page):
                     page = future_to_page[future]
                     try:
-                        future.result()
+                        if token:
+                            token.result(future, per_item_timeout=60.0)
+                        else:
+                            future.result()
+                    except CancellationError:
+                        logger.warning("render_cancelled", page=page.source_path.name)
+                        break
                     except Exception as e:
                         if is_shutdown_error(e):
                             logger.debug("render_shutdown", page=page.source_path.name)
@@ -669,6 +660,8 @@ class RenderOrchestrator(
                     threads=max_workers,
                 )
 
+        token = build_context.cancellation_token if build_context else None
+
         with _managed_executor(max_workers) as executor:
             batch_size = max(max_workers * 2, 1)
             aggregator = ErrorAggregator(total_items=len(sorted_pages))
@@ -686,7 +679,13 @@ class RenderOrchestrator(
                 for future in concurrent.futures.as_completed(future_to_page):
                     page = future_to_page[future]
                     try:
-                        future.result()
+                        if token:
+                            token.result(future, per_item_timeout=60.0)
+                        else:
+                            future.result()
+                    except CancellationError:
+                        logger.warning("render_cancelled", page=page.source_path.name)
+                        break
                     except Exception as e:
                         if is_shutdown_error(e):
                             logger.debug("render_shutdown", page=page.source_path.name)
@@ -769,6 +768,8 @@ class RenderOrchestrator(
         ) as progress:
             task = progress.add_task("[cyan]Rendering pages...", total=len(sorted_pages))
 
+            token = build_context.cancellation_token if build_context else None
+
             with _managed_executor(max_workers) as executor:
                 batch_size = max(max_workers * 2, 1)
                 aggregator = ErrorAggregator(total_items=len(sorted_pages))
@@ -786,7 +787,13 @@ class RenderOrchestrator(
                     for future in concurrent.futures.as_completed(future_to_page):
                         page = future_to_page[future]
                         try:
-                            future.result()
+                            if token:
+                                token.result(future, per_item_timeout=60.0)
+                            else:
+                                future.result()
+                        except CancellationError:
+                            logger.warning("render_cancelled")
+                            break
                         except Exception as e:
                             if is_shutdown_error(e):
                                 logger.debug("render_shutdown")

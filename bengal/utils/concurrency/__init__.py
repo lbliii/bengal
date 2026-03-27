@@ -25,6 +25,7 @@ Example:
 from bengal.utils.concurrency.async_compat import install_uvloop, run_async
 from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 from bengal.utils.concurrency.context_propagation import submit_with_context
+from bengal.utils.concurrency.executor import CancellationError, CancellationToken, managed_executor
 from bengal.utils.concurrency.gil import (
     format_gil_tip_for_cli,
     get_gil_status_message,
@@ -50,6 +51,8 @@ from bengal.utils.concurrency.workers import (
 )
 
 __all__ = [
+    "CancellationError",
+    "CancellationToken",
     "Environment",
     # concurrent_locks
     "PerKeyLockManager",
@@ -72,6 +75,8 @@ __all__ = [
     "install_uvloop",
     # gil
     "is_gil_disabled",
+    # executor
+    "managed_executor",
     "order_by_complexity",
     "retry_with_backoff",
     # async_compat

@@ -50,6 +50,7 @@ if TYPE_CHECKING:
     from bengal.services.data import DataService
     from bengal.services.query import QueryService
     from bengal.snapshots.types import SiteSnapshot
+    from bengal.utils.concurrency.executor import CancellationToken
     from bengal.utils.observability.cli_progress import LiveProgressManager
     from bengal.utils.observability.profile import BuildProfile
 
@@ -231,6 +232,9 @@ class BuildContext:
 
     # Timing (build start time for duration calculation)
     build_start: float = 0.0
+
+    # Cancellation token for bounded parallel work (prevents indefinite hangs)
+    cancellation_token: CancellationToken | None = None
 
     # =========================================================================
     # Build-Scoped Caching (RFC: Cache Lifecycle Hardening)
