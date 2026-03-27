@@ -29,6 +29,7 @@ Performance Optimizations:
 
 from __future__ import annotations
 
+import contextlib
 import itertools
 import os
 import threading
@@ -46,6 +47,26 @@ logger = get_logger(__name__)
 
 # Module-level atomic counter for temp file names (faster than uuid4)
 _temp_file_counter = itertools.count()
+
+# Module-level kill switch for all WriteBehindCollector threads.
+# Used by test teardown to stop leaked writer threads between tests.
+_global_shutdown = threading.Event()
+
+
+def shutdown_all_writers() -> None:
+    """Signal all WriteBehindCollector threads to exit.
+
+    Call this between tests to prevent thread accumulation.
+    Each WriteBehindCollector spawns 8 daemon threads that poll forever
+    unless explicitly shut down. Without cleanup, threads accumulate
+    across tests and cause deadlocks.
+    """
+    _global_shutdown.set()
+
+
+def reset_writer_shutdown() -> None:
+    """Clear the global shutdown so new collectors can start fresh."""
+    _global_shutdown.clear()
 
 
 class WriteBehindCollector:
@@ -141,6 +162,13 @@ class WriteBehindCollector:
             thread.start()
             self._writer_threads.append(thread)
 
+    def __del__(self) -> None:
+        """Safety net: signal shutdown so writer threads can exit."""
+        if not self._shutdown.is_set():
+            self._shutdown.set()
+            with contextlib.suppress(Exception):
+                self._queue.put_nowait(None)
+
     def precreate_directories(self, paths: list[Path]) -> None:
         """Pre-create all unique parent directories in a single pass.
 
@@ -194,7 +222,9 @@ class WriteBehindCollector:
                     # Wait for item with timeout to check shutdown
                     item = self._queue.get(timeout=0.1)
                 except Empty:
-                    if self._shutdown.is_set() and self._queue.empty():
+                    if (
+                        self._shutdown.is_set() or _global_shutdown.is_set()
+                    ) and self._queue.empty():
                         break
                     continue
 
