@@ -38,6 +38,7 @@ from bengal.utils.concurrency.retry import (
     retry_with_backoff,
 )
 from bengal.utils.concurrency.thread_local import ThreadLocalCache, ThreadSafeSet
+from bengal.utils.concurrency.work_scope import WorkResult, WorkScope
 from bengal.utils.concurrency.workers import (
     Environment,
     WorkloadProfile,
@@ -54,16 +55,14 @@ __all__ = [
     "CancellationError",
     "CancellationToken",
     "Environment",
-    # concurrent_locks
     "PerKeyLockManager",
-    # thread_local
     "ThreadLocalCache",
     "ThreadSafeSet",
+    "WorkResult",
+    "WorkScope",
     "WorkloadProfile",
-    # workers
     "WorkloadType",
     "async_retry_with_backoff",
-    # retry
     "calculate_backoff",
     "detect_environment",
     "estimate_page_weight",
@@ -73,13 +72,10 @@ __all__ = [
     "get_profile",
     "has_free_threading_support",
     "install_uvloop",
-    # gil
     "is_gil_disabled",
-    # executor
     "managed_executor",
     "order_by_complexity",
     "retry_with_backoff",
-    # async_compat
     "run_async",
     "should_parallelize",
     "submit_with_context",
