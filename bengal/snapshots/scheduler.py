@@ -266,7 +266,7 @@ class WaveScheduler:
                         current_generation=None,
                     )
                 except Exception as e:
-                    e.__page_source_path__ = page.source_path
+                    e.__page_source_path__ = page.source_path  # type: ignore[attr-defined]
                     raise
                 return page
 
@@ -403,7 +403,7 @@ class WaveScheduler:
                         current_generation=None,
                     )
                 except Exception as e:
-                    e.__page_source_path__ = page.source_path
+                    e.__page_source_path__ = page.source_path  # type: ignore[attr-defined]
                     raise
                 return page
 

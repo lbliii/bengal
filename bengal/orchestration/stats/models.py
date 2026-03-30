@@ -177,7 +177,7 @@ class BuildStats:
     def __post_init__(self) -> None:
         # Ensure _lock is always a real Lock even when dataclass __init__ is bypassed
         # (e.g. copy.copy, pickle, or test construction via object.__setattr__).
-        if not isinstance(self._lock, threading.Lock):
+        if self._lock is None:
             object.__setattr__(self, "_lock", threading.Lock())
 
     def get_error_deduplicator(self) -> ErrorDeduplicator:

@@ -240,10 +240,8 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
             if _bs is not None:
                 _bs.template_metadata_cache = cache_val
             else:
-                import threading as _threading
-
                 _init_lock = getattr(site, "_init_lock", None)
-                if isinstance(_init_lock, _threading.Lock):
+                if _init_lock is not None:
                     with _init_lock:
                         if getattr(site, "_bengal_template_metadata_cache", None) is None:
                             site._bengal_template_metadata_cache = cache_val

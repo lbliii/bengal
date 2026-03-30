@@ -5,8 +5,10 @@ ThreadPoolExecutor with correct shutdown semantics, context propagation,
 cancellation, and timeout enforcement.
 
 Every thread spawned within a WorkScope is bounded by that scope's lifetime.
-When the scope exits (normally or via exception), all threads are cancelled
-and joined. No thread outlives its scope.
+On normal exit, all threads are joined (shutdown(wait=True)). On exception
+or timeout, pending futures are cancelled and the executor shuts down without
+waiting (shutdown(wait=False, cancel_futures=True)) — running threads may
+briefly outlive the scope but receive no new work.
 
 Example:
     >>> from bengal.utils.concurrency.work_scope import WorkScope
@@ -213,6 +215,14 @@ class WorkScope:
         results: list[WorkResult[R]] = []
         total = len(items)
         for i, item in enumerate(items):
+            # Enforce scope deadline even in sequential mode
+            if self._deadline > 0 and time.monotonic() >= self._deadline:
+                self._timed_out = True
+                timeout_err = TimeoutError(f"{self._name}: scope deadline exceeded")
+                results.extend(
+                    WorkResult(value=None, error=timeout_err, elapsed_ms=0.0) for _ in items[i:]
+                )
+                break
             start = time.perf_counter()
             try:
                 value = fn(item)
@@ -268,6 +278,8 @@ class WorkScope:
                 except RuntimeError as e:
                     if _is_shutdown_error(e):
                         logger.debug("work_scope_shutdown", scope=self._name)
+                        for f in future_to_item:
+                            f.cancel()
                         break
                     results.append(WorkResult(value=None, error=e, elapsed_ms=0.0))
                 except Exception as e:
@@ -302,5 +314,14 @@ class WorkScope:
                 self._executor.shutdown(wait=False, cancel_futures=True)
                 self._executor = None
             raise
+
+        # Ensure results list has entries for all items (shutdown may have
+        # broken out of the loop early, leaving some items unaccounted for).
+        if len(results) < total:
+            shutdown_error = RuntimeError(f"{self._name}: executor shut down")
+            results.extend(
+                WorkResult(value=None, error=shutdown_error, elapsed_ms=0.0)
+                for _ in range(total - len(results))
+            )
 
         return results

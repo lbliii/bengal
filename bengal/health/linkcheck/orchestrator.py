@@ -189,15 +189,15 @@ class LinkCheckOrchestrator:
 
             def _run_external() -> None:
                 nonlocal external_results, external_exc
-                from bengal.utils.concurrency.work_scope import WorkScope
-
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
-                    with WorkScope("linkcheck-ext", max_workers=1, timeout=120.0):
-                        external_results = loop.run_until_complete(
-                            self.external_checker.check_links(external_links)
+                    external_results = loop.run_until_complete(
+                        asyncio.wait_for(
+                            self.external_checker.check_links(external_links),
+                            timeout=120.0,
                         )
+                    )
                 except BaseException as exc:
                     external_exc = exc
                 finally:
@@ -219,9 +219,14 @@ class LinkCheckOrchestrator:
 
         if external_thread is not None:
             external_thread.join(timeout=130.0)
-            if external_exc is not None:
+            if external_thread.is_alive():
+                logger.warning(
+                    "external_link_check_timeout",
+                    message="External link check timed out after 130s",
+                )
+            elif external_exc is not None:
                 raise external_exc
-            if external_results is not None:
+            elif external_results is not None:
                 results.extend(external_results.values())
                 logger.info(
                     "external_links_checked",
