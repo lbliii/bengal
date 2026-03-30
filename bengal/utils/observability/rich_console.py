@@ -50,6 +50,7 @@ See Also:
 from __future__ import annotations
 
 import os
+import threading
 from pathlib import Path
 
 from rich.console import Console
@@ -95,6 +96,7 @@ bengal_theme = Theme(
 )
 
 _console: Console | None = None
+_console_lock = threading.Lock()
 
 
 def should_use_emoji() -> bool:
@@ -121,22 +123,24 @@ def get_console() -> Console:
     global _console
 
     if _console is None:
-        # Detect environment
-        force_terminal = None
-        no_color = os.getenv("NO_COLOR") is not None
-        ci_mode = os.getenv("CI") is not None
+        with _console_lock:
+            if _console is None:
+                # Detect environment
+                force_terminal = None
+                no_color = os.getenv("NO_COLOR") is not None
+                ci_mode = os.getenv("CI") is not None
 
-        if ci_mode:
-            # In CI, force simple output
-            force_terminal = False
+                if ci_mode:
+                    # In CI, force simple output
+                    force_terminal = False
 
-        _console = Console(
-            theme=bengal_theme,
-            force_terminal=force_terminal,
-            no_color=no_color,
-            highlight=True,
-            emoji=should_use_emoji(),  # ASCII-first; opt-in via BENGAL_EMOJI=1
-        )
+                _console = Console(
+                    theme=bengal_theme,
+                    force_terminal=force_terminal,
+                    no_color=no_color,
+                    highlight=True,
+                    emoji=should_use_emoji(),  # ASCII-first; opt-in via BENGAL_EMOJI=1
+                )
 
     return _console
 

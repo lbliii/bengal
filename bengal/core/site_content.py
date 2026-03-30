@@ -41,6 +41,7 @@ plan/drafted/rfc-site-responsibility-separation.md
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -111,6 +112,8 @@ class SiteContent:
     _regular_pages_cache: list[Page] | None = field(default=None, repr=False)
     _generated_pages_cache: list[Page] | None = field(default=None, repr=False)
     _listable_pages_cache: list[Page] | None = field(default=None, repr=False)
+    # Lock for thread-safe lazy initialization of page caches
+    _cache_lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
     def freeze(self) -> None:
         """
@@ -176,7 +179,11 @@ class SiteContent:
                 print(page.title)
         """
         if self._regular_pages_cache is None:
-            self._regular_pages_cache = [p for p in self.pages if not p.metadata.get("_generated")]
+            with self._cache_lock:
+                if self._regular_pages_cache is None:
+                    self._regular_pages_cache = [
+                        p for p in self.pages if not p.metadata.get("_generated")
+                    ]
         return self._regular_pages_cache
 
     @property
@@ -188,7 +195,11 @@ class SiteContent:
             List of pages with _generated flag (taxonomy, archive, etc.)
         """
         if self._generated_pages_cache is None:
-            self._generated_pages_cache = [p for p in self.pages if p.metadata.get("_generated")]
+            with self._cache_lock:
+                if self._generated_pages_cache is None:
+                    self._generated_pages_cache = [
+                        p for p in self.pages if p.metadata.get("_generated")
+                    ]
         return self._generated_pages_cache
 
     @property
@@ -205,7 +216,9 @@ class SiteContent:
             List of pages that should appear in public listings
         """
         if self._listable_pages_cache is None:
-            self._listable_pages_cache = [p for p in self.pages if p.in_listings]
+            with self._cache_lock:
+                if self._listable_pages_cache is None:
+                    self._listable_pages_cache = [p for p in self.pages if p.in_listings]
         return self._listable_pages_cache
 
     @property

@@ -37,8 +37,8 @@ Related:
 from __future__ import annotations
 
 import contextlib
+import contextvars
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -47,6 +47,7 @@ from bengal.content.discovery.directory_walker import DirectoryWalker
 from bengal.content.discovery.section_builder import SectionBuilder
 from bengal.core.page import Page, PageProxy
 from bengal.core.section import Section
+from bengal.utils.concurrency.executor import managed_executor
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
 
@@ -137,7 +138,7 @@ class ContentDiscovery:
         self._section_builder = SectionBuilder(site)
 
         # Thread pool for parallel processing (initialized during discovery)
-        self._executor: ThreadPoolExecutor | None = None
+        self._executor: Any = None  # ThreadPoolExecutor from managed_executor
 
     @property
     def _validation_errors(self) -> list[tuple[Path, str, list[Any]]]:
@@ -209,29 +210,29 @@ class ContentDiscovery:
             if self.site and self.site.config
             else None,
         )
-        self._executor = ThreadPoolExecutor(max_workers=max_workers)
+        with managed_executor(max_workers, thread_name_prefix="Bengal-Discovery") as executor:
+            self._executor = executor
+            try:
+                # Walk top-level items
+                for item in sorted(self.content_dir.iterdir()):
+                    if self._walker.should_skip_item(item):
+                        continue
 
-        try:
-            # Walk top-level items
-            for item in sorted(self.content_dir.iterdir()):
-                if self._walker.should_skip_item(item):
-                    continue
+                    # Detect language-root directories for i18n
+                    if self._is_language_root(item, i18n_config):
+                        for sub in sorted(item.iterdir()):
+                            self._process_top_level_item_surgical(
+                                sub, cache, current_lang=item.name
+                            )
+                        continue
 
-                # Detect language-root directories for i18n
-                if self._is_language_root(item, i18n_config):
-                    for sub in sorted(item.iterdir()):
-                        self._process_top_level_item_surgical(sub, cache, current_lang=item.name)
-                    continue
-
-                current_lang = (
-                    i18n_config.get("default_lang")
-                    if i18n_config.get("strategy") == "prefix"
-                    else None
-                )
-                self._process_top_level_item_surgical(item, cache, current_lang=current_lang)
-        finally:
-            if self._executor:
-                self._executor.shutdown(wait=True)
+                    current_lang = (
+                        i18n_config.get("default_lang")
+                        if i18n_config.get("strategy") == "prefix"
+                        else None
+                    )
+                    self._process_top_level_item_surgical(item, cache, current_lang=current_lang)
+            finally:
                 self._executor = None
 
         # Sort sections
@@ -266,7 +267,10 @@ class ContentDiscovery:
                 self._section_builder.pages.append(page)
             elif self._executor:
                 # Cache miss: submit to executor
-                future = self._executor.submit(self._create_page, item_path, current_lang, None)
+                ctx = contextvars.copy_context()
+                future = self._executor.submit(
+                    ctx.run, self._create_page, item_path, current_lang, None
+                )
                 # Resolve immediately for top-level pages (no section)
                 self._resolve_page_futures([future])
             else:
@@ -311,8 +315,11 @@ class ContentDiscovery:
                     self._section_builder.pages.append(page)
                 elif self._executor:
                     # Cache miss: None returned, submit to executor for parsing
+                    ctx = contextvars.copy_context()
                     file_futures.append(
-                        self._executor.submit(self._create_page, item, current_lang, parent_section)
+                        self._executor.submit(
+                            ctx.run, self._create_page, item, current_lang, parent_section
+                        )
                     )
                 else:
                     # No executor available, parse synchronously
@@ -443,29 +450,27 @@ class ContentDiscovery:
             if self.site and self.site.config
             else None,
         )
-        self._executor = ThreadPoolExecutor(max_workers=max_workers)
+        with managed_executor(max_workers, thread_name_prefix="Bengal-Discovery") as executor:
+            self._executor = executor
+            try:
+                # Walk top-level items
+                for item in sorted(self.content_dir.iterdir()):
+                    if self._walker.should_skip_item(item):
+                        continue
 
-        try:
-            # Walk top-level items
-            for item in sorted(self.content_dir.iterdir()):
-                if self._walker.should_skip_item(item):
-                    continue
+                    # Detect language-root directories for i18n
+                    if self._is_language_root(item, i18n_config):
+                        for sub in sorted(item.iterdir()):
+                            self._process_top_level_item(sub, current_lang=item.name)
+                        continue
 
-                # Detect language-root directories for i18n
-                if self._is_language_root(item, i18n_config):
-                    for sub in sorted(item.iterdir()):
-                        self._process_top_level_item(sub, current_lang=item.name)
-                    continue
-
-                current_lang = (
-                    i18n_config.get("default_lang")
-                    if i18n_config.get("strategy") == "prefix"
-                    else None
-                )
-                self._process_top_level_item(item, current_lang=current_lang)
-        finally:
-            if self._executor:
-                self._executor.shutdown(wait=True)
+                    current_lang = (
+                        i18n_config.get("default_lang")
+                        if i18n_config.get("strategy") == "prefix"
+                        else None
+                    )
+                    self._process_top_level_item(item, current_lang=current_lang)
+            finally:
                 self._executor = None
 
         # Sort sections
@@ -549,8 +554,9 @@ class ContentDiscovery:
 
         if item_path.is_file() and self._walker.is_content_file(item_path):
             if self._executor:
+                ctx = contextvars.copy_context()
                 pending_pages.append(
-                    self._executor.submit(self._create_page, item_path, current_lang, None)
+                    self._executor.submit(ctx.run, self._create_page, item_path, current_lang, None)
                 )
             else:
                 page = self._create_page(item_path, current_lang=current_lang, section=None)
@@ -589,8 +595,11 @@ class ContentDiscovery:
 
             if item.is_file() and self._walker.is_content_file(item):
                 if self._executor:
+                    ctx = contextvars.copy_context()
                     file_futures.append(
-                        self._executor.submit(self._create_page, item, current_lang, parent_section)
+                        self._executor.submit(
+                            ctx.run, self._create_page, item, current_lang, parent_section
+                        )
                     )
                 else:
                     page = self._create_page(
@@ -619,7 +628,7 @@ class ContentDiscovery:
         for fut in futures:
 
             def get_page_result(f: Any = fut) -> Page:
-                return cast(Page, f.result())
+                return cast(Page, f.result(timeout=90))
 
             page = with_error_recovery(
                 get_page_result,

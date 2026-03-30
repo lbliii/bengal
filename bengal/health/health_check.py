@@ -39,7 +39,6 @@ from __future__ import annotations
 
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -632,40 +631,37 @@ class HealthCheck:
         # Use provided worker count or auto-detect
         max_workers = worker_count or self._get_optimal_workers(len(validators))
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Submit all validators for parallel execution
-            futures = {
-                executor.submit(
-                    self._run_single_validator, v, build_context, cache, files_to_validate
-                ): v
-                for v in validators
-            }
+        from bengal.utils.concurrency.work_scope import WorkScope
 
-            # Process results as they complete
-            for future in as_completed(futures):
-                validator = futures[future]
-                try:
-                    validator_report = future.result()
-                    report.validator_reports.append(validator_report)
+        def _run_validator(v):
+            return v, self._run_single_validator(v, build_context, cache, files_to_validate)
 
-                    if verbose:
-                        status = "✅" if not validator_report.has_problems else "⚠️"
-                        print(
-                            f"  {status} {validator.name}: "
-                            f"{len(validator_report.results)} checks in "
-                            f"{validator_report.duration_ms:.1f}ms"
-                        )
-                except Exception as e:
-                    # Future itself failed (shouldn't happen with our error handling)
-                    validator_report = ValidatorReport(
-                        validator_name=validator.name,
-                        results=[CheckResult.error(f"Validator execution failed: {e}")],
-                        duration_ms=0,
+        with WorkScope("healthcheck", max_workers=max_workers) as scope:
+            results = scope.map(_run_validator, validators)
+
+        for r in results:
+            if r.error:
+                # Future itself failed (shouldn't happen with our error handling)
+                validator_report = ValidatorReport(
+                    validator_name="unknown",
+                    results=[CheckResult.error(f"Validator execution failed: {r.error}")],
+                    duration_ms=0,
+                )
+                report.validator_reports.append(validator_report)
+
+                if verbose:
+                    print(f"  ❌ unknown: execution failed - {r.error}")
+            elif r.value is not None:
+                validator, validator_report = r.value
+                report.validator_reports.append(validator_report)
+
+                if verbose:
+                    status = "✅" if not validator_report.has_problems else "⚠️"
+                    print(
+                        f"  {status} {validator.name}: "
+                        f"{len(validator_report.results)} checks in "
+                        f"{validator_report.duration_ms:.1f}ms"
                     )
-                    report.validator_reports.append(validator_report)
-
-                    if verbose:
-                        print(f"  ❌ {validator.name}: execution failed - {e}")
 
     def run_and_print(
         self, build_stats: dict[str, Any] | None = None, verbose: bool = False

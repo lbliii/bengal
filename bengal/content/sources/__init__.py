@@ -57,6 +57,8 @@ Related:
 
 from __future__ import annotations
 
+import threading
+
 from bengal.content.sources.entry import ContentEntry
 
 # Loader factory functions (lazy import actual sources)
@@ -72,14 +74,16 @@ from bengal.content.sources.source import ContentSource
 # Source registry - maps type names to source classes
 # Remote sources use lazy loading to avoid importing heavy dependencies
 SOURCE_REGISTRY: dict[str, type[ContentSource]] = {}
+_registry_lock = threading.Lock()
 
 
 def _register_local_source() -> None:
     """Register the local source (always available)."""
     from bengal.content.sources.local import LocalSource
 
-    SOURCE_REGISTRY["local"] = LocalSource
-    SOURCE_REGISTRY["filesystem"] = LocalSource  # Alias
+    with _registry_lock:
+        SOURCE_REGISTRY["local"] = LocalSource
+        SOURCE_REGISTRY["filesystem"] = LocalSource  # Alias
 
 
 def _register_github_source() -> None:
@@ -87,7 +91,8 @@ def _register_github_source() -> None:
     try:
         from bengal.content.sources.github import GitHubSource
 
-        SOURCE_REGISTRY["github"] = GitHubSource
+        with _registry_lock:
+            SOURCE_REGISTRY["github"] = GitHubSource
     except ImportError:
         pass  # aiohttp not installed
 
@@ -97,8 +102,9 @@ def _register_rest_source() -> None:
     try:
         from bengal.content.sources.rest import RESTSource
 
-        SOURCE_REGISTRY["rest"] = RESTSource
-        SOURCE_REGISTRY["api"] = RESTSource  # Alias
+        with _registry_lock:
+            SOURCE_REGISTRY["rest"] = RESTSource
+            SOURCE_REGISTRY["api"] = RESTSource  # Alias
     except ImportError:
         pass  # aiohttp not installed
 
@@ -108,7 +114,8 @@ def _register_notion_source() -> None:
     try:
         from bengal.content.sources.notion import NotionSource
 
-        SOURCE_REGISTRY["notion"] = NotionSource
+        with _registry_lock:
+            SOURCE_REGISTRY["notion"] = NotionSource
     except ImportError:
         pass  # aiohttp not installed
 

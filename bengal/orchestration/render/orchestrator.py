@@ -244,6 +244,10 @@ class RenderOrchestrator(
         # (avoids TOCTOU race in per-thread RenderingPipeline.__init__)
         if not hasattr(self.site, "_external_ref_resolvers"):
             self.site._external_ref_resolvers = []
+        if not hasattr(self.site, "_external_ref_resolvers_lock"):
+            import threading
+
+            self.site._external_ref_resolvers_lock = threading.Lock()
 
         # Warm block cache before parallel rendering (Kida only)
         self._warm_block_cache()

@@ -21,8 +21,8 @@ Related:
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -177,26 +177,34 @@ class LinkCheckOrchestrator:
         if self.check_internal:
             self.internal_checker.set_file_index(html_files)
 
-        # Pipeline: kick off external checks in a background thread while
-        # internal checking runs synchronously on the main thread.
-        external_future = None
-        external_executor = None
+        # Pipeline: run internal and external checks concurrently.
+        # External checks run in a background thread so internal checks can
+        # proceed on the main thread at the same time, restoring the original
+        # parallel design that was lost during the WorkScope migration.
+        external_results: dict[str, LinkCheckResult] | None = None
+        external_exc: BaseException | None = None
+        external_thread: threading.Thread | None = None
+
         if self.check_external and external_links:
 
-            def _run_external() -> dict[str, LinkCheckResult]:
+            def _run_external() -> None:
+                nonlocal external_results, external_exc
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
-                    return loop.run_until_complete(
-                        self.external_checker.check_links(external_links)
+                    external_results = loop.run_until_complete(
+                        asyncio.wait_for(
+                            self.external_checker.check_links(external_links),
+                            timeout=120.0,
+                        )
                     )
+                except BaseException as exc:
+                    external_exc = exc
                 finally:
                     loop.close()
 
-            external_executor = ThreadPoolExecutor(
-                max_workers=1, thread_name_prefix="linkcheck-ext"
-            )
-            external_future = external_executor.submit(_run_external)
+            external_thread = threading.Thread(target=_run_external, daemon=True)
+            external_thread.start()
 
         results: list[LinkCheckResult] = []
 
@@ -209,16 +217,24 @@ class LinkCheckOrchestrator:
                 broken=sum(1 for r in internal_results.values() if r.status == LinkStatus.BROKEN),
             )
 
-        if external_future is not None:
-            external_results = external_future.result()
-            if external_executor:
-                external_executor.shutdown(wait=False)
-            results.extend(external_results.values())
-            logger.info(
-                "external_links_checked",
-                count=len(external_results),
-                broken=sum(1 for r in external_results.values() if r.status == LinkStatus.BROKEN),
-            )
+        if external_thread is not None:
+            external_thread.join(timeout=130.0)
+            if external_thread.is_alive():
+                logger.warning(
+                    "external_link_check_timeout",
+                    message="External link check timed out after 130s",
+                )
+            elif external_exc is not None:
+                raise external_exc
+            elif external_results is not None:
+                results.extend(external_results.values())
+                logger.info(
+                    "external_links_checked",
+                    count=len(external_results),
+                    broken=sum(
+                        1 for r in external_results.values() if r.status == LinkStatus.BROKEN
+                    ),
+                )
 
         # Build summary
         duration_ms = (time.time() - start_time) * 1000
@@ -270,24 +286,32 @@ class LinkCheckOrchestrator:
         html_files = list(output_dir.rglob("*.html"))
 
         # Parse files in parallel (I/O-bound: file reads + HTML parsing)
-        file_links: list[tuple[Path, list[str]]] = []
-        with ThreadPoolExecutor(thread_name_prefix="linkextract") as pool:
-            futures = {pool.submit(_parse_file, f): f for f in html_files}
-            for future in as_completed(futures):
-                html_file = futures[future]
-                try:
-                    links = future.result()
-                    file_links.append((html_file, links))
-                except Exception as e:
-                    from bengal.errors import ErrorCode
+        from bengal.utils.concurrency.work_scope import WorkScope
 
-                    logger.warning(
-                        "failed_to_parse_html",
-                        file=str(html_file),
-                        error=str(e),
-                        error_code=ErrorCode.V005.value,
-                        suggestion="Check HTML file for malformed content. Link check will skip this file.",
-                    )
+        def _parse_with_path(html_file: Path) -> tuple[Path, list[str]]:
+            try:
+                return html_file, _parse_file(html_file)
+            except Exception as e:
+                e.__html_file__ = str(html_file)  # type: ignore[attr-defined]
+                raise
+
+        file_links: list[tuple[Path, list[str]]] = []
+        with WorkScope("linkextract", max_workers=min(8, len(html_files) or 1)) as scope:
+            results = scope.map(_parse_with_path, html_files)
+        for r in results:
+            if r.error:
+                from bengal.errors import ErrorCode
+
+                html_file = getattr(r.error, "__html_file__", None)
+                logger.warning(
+                    "failed_to_parse_html",
+                    file=html_file,
+                    error=str(r.error),
+                    error_code=ErrorCode.V005.value,
+                    suggestion="Check HTML file for malformed content. Link check will skip this file.",
+                )
+            else:
+                file_links.append(r.value)
 
         # Classify extracted links
         for html_file, links in file_links:

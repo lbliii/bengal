@@ -53,7 +53,6 @@ Related:
 
 from __future__ import annotations
 
-import concurrent.futures
 import hashlib
 import re
 from collections.abc import Callable
@@ -345,20 +344,12 @@ def parallel_write_files[T](
             )
             return False
 
-    count = 0
-    try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            # Consume iterator fully before exiting context manager
-            # This ensures all tasks complete and exceptions are raised properly
-            results = list(executor.map(safe_write, items))
-            count = sum(1 for r in results if r)
-    except RuntimeError as e:
-        # Handle graceful shutdown - "cannot schedule new futures after interpreter shutdown"
-        if "interpreter shutdown" in str(e):
-            logger.debug(f"{operation_name}_shutdown", reason="interpreter_shutting_down")
-            return count
-        raise
+    from bengal.utils.concurrency.work_scope import WorkScope
 
+    with WorkScope("FileWrite", max_workers=max_workers) as scope:
+        results = scope.map(safe_write, items)
+
+    count = sum(1 for r in results if r.ok and r.value)
     return count
 
 

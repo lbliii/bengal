@@ -10,6 +10,7 @@ via invalidate() or invalidate_regular().
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -33,6 +34,7 @@ class PageCacheManager:
     __slots__ = (
         "_generated",
         "_listable",
+        "_lock",
         "_pages_fn",
         "_path_map",
         "_path_map_version",
@@ -48,6 +50,7 @@ class PageCacheManager:
         self._path_map: dict[str, Page] | None = None
         self._path_map_version: int = -1
         self._source_path_map: dict[Path, Page] | None = None
+        self._lock = threading.Lock()
 
     @property
     def regular_pages(self) -> list[Page]:
@@ -82,15 +85,19 @@ class PageCacheManager:
         pages = self._pages_fn()
         current_version = len(pages)
         if self._path_map is None or self._path_map_version != current_version:
-            self._path_map = {str(p.source_path): p for p in pages}
-            self._path_map_version = current_version
+            with self._lock:
+                if self._path_map is None or self._path_map_version != current_version:
+                    self._path_map = {str(p.source_path): p for p in pages}
+                    self._path_map_version = current_version
         return self._path_map
 
     @property
     def page_by_source_path(self) -> dict[Path, Page]:
         """O(1) page lookup by source Path (shared across orchestrators)."""
         if self._source_path_map is None:
-            self._source_path_map = {p.source_path: p for p in self._pages_fn()}
+            with self._lock:
+                if self._source_path_map is None:
+                    self._source_path_map = {p.source_path: p for p in self._pages_fn()}
         return self._source_path_map
 
     def invalidate(self) -> None:

@@ -11,6 +11,7 @@ JsonAccumulator: Accumulates page data during rendering.
 
 from __future__ import annotations
 
+import threading
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
@@ -56,6 +57,7 @@ class JsonAccumulator:
         self.build_context = build_context
         self._page_json_generator: Any = None
         self._page_json_generator_opts: tuple[bool, bool] | None = None
+        self._generator_lock = threading.Lock()
 
     def accumulate_unified_page_data(self, page: PageLike) -> None:
         """
@@ -261,8 +263,10 @@ class JsonAccumulator:
         # Reuse per-pipeline generator instance for speed.
         opts = (include_html, include_text)
         if self._page_json_generator is None or self._page_json_generator_opts != opts:
-            self._page_json_generator = PageJSONGenerator(self.site, graph_data=None)
-            self._page_json_generator_opts = opts
+            with self._generator_lock:
+                if self._page_json_generator is None or self._page_json_generator_opts != opts:
+                    self._page_json_generator = PageJSONGenerator(self.site, graph_data=None)
+                    self._page_json_generator_opts = opts
 
         return self._page_json_generator.page_to_json(
             page, include_html=include_html, include_text=include_text

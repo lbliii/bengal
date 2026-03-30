@@ -22,12 +22,14 @@ Related:
 
 from __future__ import annotations
 
+import threading
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.output.core import CLIOutput
 
 _cli_output: CLIOutput | None = None
+_cli_output_lock = threading.Lock()
 
 
 def get_cli_output() -> CLIOutput:
@@ -47,9 +49,11 @@ def get_cli_output() -> CLIOutput:
     """
     global _cli_output
     if _cli_output is None:
-        from bengal.output.core import CLIOutput
+        with _cli_output_lock:
+            if _cli_output is None:
+                from bengal.output.core import CLIOutput
 
-        _cli_output = CLIOutput()
+                _cli_output = CLIOutput()
     return _cli_output
 
 

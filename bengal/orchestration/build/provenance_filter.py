@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import os
 import time
-from concurrent.futures import as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -946,12 +945,13 @@ def record_all_page_builds(
     use_parallel = parallel and len(pages) > 50
     if use_parallel:
         max_workers = min(32, (os.cpu_count() or 1) + 4)
-        from bengal.utils.concurrency.executor import managed_executor
+        from bengal.utils.concurrency.work_scope import WorkScope
 
-        with managed_executor(max_workers, thread_name_prefix="Bengal-Provenance") as executor:
-            futures = {executor.submit(pf.record_build, page): page for page in pages}
-            for future in as_completed(futures):
-                future.result(timeout=90)  # Raise any exception
+        with WorkScope("provenance", max_workers=max_workers) as scope:
+            results = scope.map(pf.record_build, pages)
+            for r in results:
+                if r.error:
+                    raise r.error
     else:
         for page in pages:
             pf.record_build(page)

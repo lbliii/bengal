@@ -17,6 +17,7 @@ Usage:
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -56,6 +57,8 @@ class ErrorDeduplicator:
     seen_errors: dict[ErrorDedupKey, list[str]] = field(default_factory=dict)
     # Maximum errors to show per unique error signature
     max_display_per_error: int = 2
+    # Thread-safety lock — protects seen_errors dict read+write in should_display
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
 
     def _get_error_key(self, error: TemplateRenderError) -> ErrorDedupKey:
         """Generate a key for error deduplication."""
@@ -78,13 +81,14 @@ class ErrorDeduplicator:
         key = self._get_error_key(error)
         page_source = str(error.page_source) if error.page_source else "unknown"
 
-        if key not in self.seen_errors:
-            self.seen_errors[key] = []
+        with self._lock:
+            if key not in self.seen_errors:
+                self.seen_errors[key] = []
 
-        self.seen_errors[key].append(page_source)
+            self.seen_errors[key].append(page_source)
 
-        # Display if we haven't hit the limit yet
-        return len(self.seen_errors[key]) <= self.max_display_per_error
+            # Display if we haven't hit the limit yet
+            return len(self.seen_errors[key]) <= self.max_display_per_error
 
     def get_suppressed_count(self) -> int:
         """Get total count of suppressed (not displayed) errors."""

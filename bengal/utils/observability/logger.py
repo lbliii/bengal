@@ -609,20 +609,23 @@ class LazyLogger:
 
     """
 
-    __slots__ = ("_name", "_real_logger", "_version")
+    __slots__ = ("_init_lock", "_name", "_real_logger", "_version")
 
     def __init__(self, name: str):
         self._name = name
         self._real_logger: BengalLogger | None = None
         self._version: int = -1
+        self._init_lock = threading.Lock()
 
     @property
     def _logger(self) -> BengalLogger:
         """Fetch the real logger, refreshing if the registry was reset."""
         global _registry_version
         if self._real_logger is None or self._version != _registry_version:
-            self._real_logger = _get_actual_logger(self._name)
-            self._version = _registry_version
+            with self._init_lock:
+                if self._real_logger is None or self._version != _registry_version:
+                    self._real_logger = _get_actual_logger(self._name)
+                    self._version = _registry_version
         return self._real_logger
 
     def __getattr__(self, attr: str) -> Any:

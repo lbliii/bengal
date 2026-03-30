@@ -51,7 +51,6 @@ bengal.orchestration.build: Phase 7 (taxonomies) coordination
 
 from __future__ import annotations
 
-import concurrent.futures
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -708,52 +707,51 @@ class TaxonomyOrchestrator:
 
         all_generated_pages = []
 
-        # Use managed_executor for safe shutdown on timeout/error
-        from bengal.utils.concurrency.executor import managed_executor
+        # Use WorkScope for structured concurrency
+        from bengal.utils.concurrency.work_scope import WorkScope
 
-        with managed_executor(max_workers, thread_name_prefix="Bengal-Taxonomy") as executor:
-            # Submit all tasks
-            future_to_tag = {
-                executor.submit(self._create_tag_pages_for_lang, tag_slug, tag_data, lang): tag_slug
-                for tag_slug, tag_data in locale_tags.items()
-            }
+        def _create_tag_pages(tag_item: tuple[str, dict]) -> tuple[str, list]:
+            tag_slug, tag_data = tag_item
+            try:
+                return tag_slug, self._create_tag_pages_for_lang(tag_slug, tag_data, lang)
+            except Exception as e:
+                e.__tag_slug__ = tag_slug  # type: ignore[attr-defined]
+                raise
 
-            # Use ErrorAggregator for batch error handling
-            aggregator = ErrorAggregator(total_items=len(locale_tags))
-            threshold = 5
+        with WorkScope("Taxonomy", max_workers=max_workers) as scope:
+            results = scope.map(_create_tag_pages, locale_tags.items())
 
-            # Collect results as they complete
-            for future in concurrent.futures.as_completed(future_to_tag):
-                tag_slug = future_to_tag[future]
-                try:
-                    tag_pages = future.result(timeout=90)
-                    # Set language for all pages
-                    for page in tag_pages:
-                        page.lang = lang
-                    all_generated_pages.extend(tag_pages)
-                except Exception as e:
-                    # Handle shutdown errors gracefully
-                    if is_shutdown_error(e):
-                        logger.debug("taxonomy_shutdown", tag_slug=tag_slug)
-                        continue
+        # Use ErrorAggregator for batch error handling
+        aggregator = ErrorAggregator(total_items=len(locale_tags))
+        threshold = 5
 
-                    # Use ErrorAggregator for structured error handling
-                    context = {
-                        "tag_slug": tag_slug,
-                        "lang": lang,
-                        "error": str(e),
-                        "error_type": type(e).__name__,
-                        "error_code": ErrorCode.B006.value,
-                        "suggestion": "Check tag template 'tag.html' exists and is valid Jinja2",
-                    }
-                    if aggregator.should_log_individual(
-                        e, context, threshold=threshold, max_samples=3
-                    ):
-                        logger.error("taxonomy_page_generation_failed", **context)
-                    aggregator.add_error(e, context=context)
+        # Process results (completion order)
+        for r in results:
+            if r.ok and r.value is not None:
+                _tag_slug, tag_pages = r.value
+                for page in tag_pages:
+                    page.lang = lang
+                all_generated_pages.extend(tag_pages)
+            else:
+                e = r.error
+                if is_shutdown_error(e):
+                    logger.debug("taxonomy_shutdown")
+                    continue
 
-            # Log summary if errors occurred
-            aggregator.log_summary(logger, threshold=threshold, error_type="taxonomy")
+                context = {
+                    "tag_slug": getattr(e, "__tag_slug__", "unknown"),
+                    "lang": lang,
+                    "error": str(e),
+                    "error_type": type(e).__name__,
+                    "error_code": ErrorCode.B006.value,
+                    "suggestion": "Check tag template 'tag.html' exists and is valid Jinja2",
+                }
+                if aggregator.should_log_individual(e, context, threshold=threshold, max_samples=3):
+                    logger.error("taxonomy_page_generation_failed", **context)
+                aggregator.add_error(e, context=context)
+
+        # Log summary if errors occurred
+        aggregator.log_summary(logger, threshold=threshold, error_type="taxonomy")
 
         # Append all generated pages at once (thread-safe)
         self.site.pages.extend(all_generated_pages)

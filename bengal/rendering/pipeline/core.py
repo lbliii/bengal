@@ -195,8 +195,15 @@ class RenderingPipeline:
                 # fallback here handles direct RenderingPipeline use (tests, CLI).
                 if not hasattr(site, "_external_ref_resolvers"):
                     site._external_ref_resolvers = []
-                site._external_ref_resolvers.append(external_ref_resolver)
-                site.external_ref_resolver = external_ref_resolver
+                import _thread
+                import threading
+
+                lock = getattr(site, "_external_ref_resolvers_lock", None)
+                if not isinstance(lock, _thread.LockType):
+                    site._external_ref_resolvers_lock = lock = threading.Lock()
+                with lock:
+                    site._external_ref_resolvers.append(external_ref_resolver)
+                    site.external_ref_resolver = external_ref_resolver
 
             rich_parser = cast(RichMarkdownParser, self.parser)
             rich_parser.enable_cross_references(

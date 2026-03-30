@@ -254,6 +254,7 @@ class BuildContext:
     # These eliminate redundant expensive computations across build phases
     _knowledge_graph: Any = field(default=None, repr=False)
     _knowledge_graph_enabled: bool = field(default=True, repr=False)
+    _knowledge_graph_lock: Lock = field(default_factory=Lock, repr=False)
 
     # Content cache - populated during discovery, shared by validators
     # Eliminates redundant disk I/O during health checks (4s+ → <100ms)
@@ -301,7 +302,9 @@ class BuildContext:
             return None
 
         if self._knowledge_graph is None:
-            self._knowledge_graph = self._build_knowledge_graph()
+            with self._knowledge_graph_lock:
+                if self._knowledge_graph is None:
+                    self._knowledge_graph = self._build_knowledge_graph()
         return self._knowledge_graph
 
     def _build_knowledge_graph(self) -> KnowledgeGraph | None:

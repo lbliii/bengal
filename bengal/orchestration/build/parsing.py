@@ -10,7 +10,6 @@ RFC: rfc-bengal-snapshot-engine (Snapshot Persistence section)
 from __future__ import annotations
 
 import time
-from concurrent.futures import as_completed
 from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
@@ -102,27 +101,33 @@ def phase_parse_content(
         if parallel and len(pages_to_parse) > 1:
             # Parallel parsing
             max_workers = min(len(pages_to_parse), 8)  # Reasonable limit
-            from bengal.utils.concurrency.executor import managed_executor
+            from bengal.utils.concurrency.work_scope import WorkScope
 
-            with managed_executor(max_workers, thread_name_prefix="Bengal-Parse") as executor:
-                futures = {executor.submit(parse_page, page): page for page in pages_to_parse}
+            def _parse_with_page(page):
+                try:
+                    parse_page(page)
+                except Exception as e:
+                    e.__page_source_path__ = page.source_path  # type: ignore[attr-defined]
+                    raise
+                return page
 
-                for future in as_completed(futures):
-                    page = futures[future]
-                    try:
-                        future.result(timeout=90)
-                    except Exception as e:
-                        logger.error(
-                            "parsing_failed",
-                            page=str(page.source_path),
-                            error=str(e),
-                            error_type=type(e).__name__,
+            with WorkScope("parse", max_workers=max_workers) as scope:
+                results = scope.map(_parse_with_page, pages_to_parse)
+            for r in results:
+                if r.error:
+                    page_path = getattr(r.error, "__page_source_path__", None)
+                    logger.error(
+                        "parsing_failed",
+                        page=str(page_path) if page_path is not None else None,
+                        error=str(r.error),
+                        error_type=type(r.error).__name__,
+                    )
+                    if orchestrator.stats:
+                        page_label = str(page_path) if page_path is not None else "unknown"
+                        orchestrator.stats.add_error(
+                            Exception(f"Parsing failed for {page_label}: {r.error}"),
+                            category="parsing",
                         )
-                        if orchestrator.stats:
-                            orchestrator.stats.add_error(
-                                Exception(f"Parsing failed for {page.source_path}: {e}"),
-                                category="parsing",
-                            )
         else:
             # Sequential parsing
             for page in pages_to_parse:

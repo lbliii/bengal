@@ -24,6 +24,7 @@ enhanced_html = enhancer.enhance(html, page_type='python-module')
 from __future__ import annotations
 
 import re
+import threading
 from contextvars import ContextVar
 from typing import ClassVar, Protocol
 
@@ -193,7 +194,8 @@ class APIDocEnhancer(APIDocEnhancerProtocol):
 
 
 # Singleton instance for reuse across pages
-_enhancer = None
+_enhancer: APIDocEnhancer | None = None
+_enhancer_lock = threading.Lock()
 
 
 def get_enhancer() -> APIDocEnhancer:
@@ -206,5 +208,7 @@ def get_enhancer() -> APIDocEnhancer:
     """
     global _enhancer
     if _enhancer is None:
-        _enhancer = APIDocEnhancer()
+        with _enhancer_lock:
+            if _enhancer is None:
+                _enhancer = APIDocEnhancer()
     return _enhancer

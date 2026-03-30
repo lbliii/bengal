@@ -30,6 +30,8 @@ from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from bengal.protocols import SiteLike
+from bengal.rendering.context import build_page_context
+from bengal.rendering.errors import TemplateRenderError
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -377,8 +379,6 @@ class Renderer:
         Returns:
             Fully rendered HTML page
         """
-        from bengal.rendering.context import build_page_context
-
         if content is None:
             content = page.html_content or ""
             # Debug: Check core/page specifically
@@ -486,8 +486,6 @@ class Renderer:
             return str(result) if result else ""
         except Exception as e:
             import os
-
-            from bengal.rendering.errors import TemplateRenderError
 
             rich_error = TemplateRenderError.from_jinja2_error(
                 e, template_name, page.source_path, self.template_engine
