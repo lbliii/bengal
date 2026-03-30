@@ -448,6 +448,27 @@ def reset_bengal_state(request):
 
     # Teardown: Reset all stateful components after each test
 
+    # 0. Kill leaked WriteBehind threads from builds
+    # WriteBehindCollector spawns 8 daemon threads per build that poll forever
+    # unless _shutdown is set. Without cleanup, threads accumulate across tests
+    # (24 after 3 builds, 320+ across a full shard) and cause deadlocks.
+    import threading
+
+    try:
+        from bengal.rendering.pipeline.write_behind import (
+            reset_writer_shutdown,
+            shutdown_all_writers,
+        )
+
+        shutdown_all_writers()
+        # Give threads time to see the signal and exit
+        for t in threading.enumerate():
+            if "WriteBehind" in t.name and t.is_alive():
+                t.join(timeout=1.0)
+        reset_writer_shutdown()
+    except ImportError:
+        pass
+
     # 1. Reset Rich console
     try:
         from bengal.utils.observability.rich_console import reset_console

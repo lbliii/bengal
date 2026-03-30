@@ -304,14 +304,16 @@ class PostprocessOrchestrator:
         lock = Lock()
 
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=len(tasks)) as executor:
+            from bengal.utils.concurrency.executor import managed_executor
+
+            with managed_executor(len(tasks), thread_name_prefix="Bengal-PostProcess") as executor:
                 futures = {executor.submit(task_fn): name for name, task_fn in tasks}
 
                 for future in concurrent.futures.as_completed(futures):
                     # Get task name outside try block (dictionary lookup is fast)
                     task_name = futures[future]
                     try:
-                        future.result()
+                        future.result(timeout=90)
                         if progress_manager:
                             # Minimize lock hold time - only update counter and progress
                             with lock:

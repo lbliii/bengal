@@ -41,6 +41,7 @@ bengal.orchestration.build: Build coordinator that calls this orchestrator
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -178,6 +179,11 @@ class ContentOrchestrator:
         collections = load_collections(self.site.root_path)
         breakdown_ms["collections"] = (time.perf_counter() - t0) * 1000
 
+        # Fetch remote content sources if any collections have loaders
+        t0 = time.perf_counter()
+        self._fetch_remote_sources(collections, content_dir)
+        breakdown_ms["remote_sources"] = (time.perf_counter() - t0) * 1000
+
         # Check if strict validation is enabled
         build_config = (
             self.site.config.get("build", {}) if isinstance(self.site.config, dict) else {}
@@ -287,6 +293,97 @@ class ContentOrchestrator:
             _bs.discovery_timing_ms = breakdown_ms
         else:
             self.site._discovery_breakdown_ms = breakdown_ms
+
+    def _fetch_remote_sources(
+        self,
+        collections: dict,
+        content_dir: Path,
+    ) -> None:
+        """Fetch remote content sources and write to content directory.
+
+        For each collection with a remote loader, fetches content entries
+        and writes them as markdown files into the collection's directory
+        under content_dir. Uses the ContentLayerManager's built-in caching
+        to avoid re-fetching on every build.
+
+        This bridges the gap between the content layer (async fetch + cache)
+        and the directory walker (filesystem-based discovery).
+        """
+        remote_collections = {
+            name: config
+            for name, config in collections.items()
+            if getattr(config, "is_remote", False) and getattr(config, "loader", None)
+        }
+
+        if not remote_collections:
+            return
+
+        logger.info(
+            "fetching_remote_sources",
+            count=len(remote_collections),
+            collections=list(remote_collections.keys()),
+        )
+
+        from bengal.cache.paths import BengalPaths
+        from bengal.content.sources.manager import ContentLayerManager
+
+        paths = BengalPaths(self.site.root_path)
+        manager = ContentLayerManager(cache_dir=paths.content_dir)
+
+        for name, config in remote_collections.items():
+            manager.register_custom_source(name, config.loader)
+
+        try:
+            entries = manager.fetch_all_sync(use_cache=True)
+        except Exception as e:
+            logger.warning(
+                "remote_source_fetch_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+            )
+            return
+
+        # Write fetched entries to content directory as markdown files
+        written = 0
+        for entry in entries:
+            collection_name = entry.source_name
+            config = remote_collections.get(collection_name)
+            if config is None:
+                continue
+
+            # Determine target directory
+            directory = getattr(config, "directory", None) or collection_name
+            target_dir = content_dir / directory
+            target_dir.mkdir(parents=True, exist_ok=True)
+
+            # Write markdown file (sanitize slug to prevent path traversal)
+            slug = entry.slug or entry.id
+            slug = re.sub(r"[^\w\-.]", "-", slug).strip("-.")
+            if not slug:
+                slug = f"entry-{written}"
+            target_file = target_dir / f"{slug}.md"
+
+            # Verify resolved path stays within target_dir
+            if not target_file.resolve().is_relative_to(target_dir.resolve()):
+                logger.warning("remote_source_slug_traversal", slug=slug)
+                continue
+
+            # Build frontmatter + content
+            import yaml
+
+            fm = dict(entry.frontmatter or {})
+            if entry.source_url:
+                fm["source_url"] = entry.source_url
+            frontmatter = yaml.dump(fm, sort_keys=False, default_flow_style=False).strip()
+            text = f"---\n{frontmatter}\n---\n\n{entry.content or ''}"
+
+            from bengal.utils.io.atomic_write import atomic_write_text
+
+            atomic_write_text(target_file, text)
+            written += 1
+
+        if written:
+            logger.info("remote_sources_written", entries=written)
 
     def _discover_autodoc_content(
         self, cache: PageDiscoveryCache | None = None, build_cache: Any | None = None

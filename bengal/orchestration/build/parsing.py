@@ -10,7 +10,7 @@ RFC: rfc-bengal-snapshot-engine (Snapshot Persistence section)
 from __future__ import annotations
 
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
@@ -102,16 +102,15 @@ def phase_parse_content(
         if parallel and len(pages_to_parse) > 1:
             # Parallel parsing
             max_workers = min(len(pages_to_parse), 8)  # Reasonable limit
-            with ThreadPoolExecutor(
-                max_workers=max_workers,
-                thread_name_prefix="Bengal-Parse",
-            ) as executor:
+            from bengal.utils.concurrency.executor import managed_executor
+
+            with managed_executor(max_workers, thread_name_prefix="Bengal-Parse") as executor:
                 futures = {executor.submit(parse_page, page): page for page in pages_to_parse}
 
                 for future in as_completed(futures):
                     page = futures[future]
                     try:
-                        future.result()
+                        future.result(timeout=90)
                     except Exception as e:
                         logger.error(
                             "parsing_failed",

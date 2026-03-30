@@ -292,13 +292,20 @@ class WaveScheduler:
                     }
 
                     # Collect results and update progress
+                    token = self.build_context.cancellation_token if self.build_context else None
                     for future in as_completed(futures):
                         page = futures[future]
                         try:
-                            rendered_page = future.result()
+                            if token:
+                                rendered_page = token.result(future, per_item_timeout=60.0)
+                            else:
+                                rendered_page = future.result(timeout=90)
                             stats.pages_rendered += 1
                             self._progress_tracker.increment(rendered_page)
                         except Exception as e:
+                            if type(e).__name__ == "CancellationError":
+                                logger.warning("render_cancelled_wave")
+                                break
                             stats.errors.append((page.source_path, e))
 
                     batch_time = (time.perf_counter() - batch_start) * 1000
@@ -428,13 +435,20 @@ class WaveScheduler:
                         for page in wave_pages
                     }
 
+                    token = self.build_context.cancellation_token if self.build_context else None
                     for future in as_completed(futures):
                         page = futures[future]
                         try:
-                            rendered_page = future.result()
+                            if token:
+                                rendered_page = token.result(future, per_item_timeout=60.0)
+                            else:
+                                rendered_page = future.result(timeout=90)
                             stats.pages_rendered += 1
                             self._progress_tracker.increment(rendered_page)
                         except Exception as e:
+                            if type(e).__name__ == "CancellationError":
+                                logger.warning("render_cancelled_wave")
+                                break
                             stats.errors.append((page.source_path, e))
 
             # Final progress update to ensure 100%
@@ -443,7 +457,7 @@ class WaveScheduler:
         finally:
             if scout:
                 scout.stop()
-                scout.join(timeout=1.0)
+                scout.join(timeout=5.0)
 
             if self._write_behind:
                 stats.files_written = self._write_behind.flush_and_close()

@@ -125,6 +125,7 @@ def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
             check=True,
             capture_output=True,
             text=True,
+            timeout=120,
         )
         cli.success(f"Successfully upgraded to v{latest}")
         click.echo()
@@ -136,6 +137,10 @@ def upgrade(dry_run: bool, yes: bool, force: bool) -> None:
         cli.error("Upgrade failed")
         if e.stderr:
             click.echo(e.stderr, err=True)
+        cli.tip(f"Try running manually: {installer.display_command}")
+        raise SystemExit(1) from None
+    except subprocess.TimeoutExpired:
+        cli.error("Upgrade timed out after 120s")
         cli.tip(f"Try running manually: {installer.display_command}")
         raise SystemExit(1) from None
 

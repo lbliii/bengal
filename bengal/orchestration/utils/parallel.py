@@ -261,7 +261,9 @@ class ParallelProcessor[T, R]:
             return process_fn(item)
 
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            from bengal.utils.concurrency.executor import managed_executor
+
+            with managed_executor(max_workers, thread_name_prefix="Bengal-Parallel") as executor:
                 # Submit tasks with optional context propagation
                 if self._propagate_context:
                     future_to_item = {
@@ -279,7 +281,7 @@ class ParallelProcessor[T, R]:
                 for future in concurrent.futures.as_completed(future_to_item):
                     item = future_to_item[future]
                     try:
-                        item_result = future.result()
+                        item_result = future.result(timeout=90)
                         result.results.append(item_result)
                         result.total_processed += 1
 
@@ -389,7 +391,9 @@ class ParallelProcessor[T, R]:
             return process_fn(item, instance)
 
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            from bengal.utils.concurrency.executor import managed_executor
+
+            with managed_executor(max_workers, thread_name_prefix="Bengal-Parallel") as executor:
                 if self._propagate_context:
                     future_to_item = {
                         executor.submit(
@@ -407,7 +411,7 @@ class ParallelProcessor[T, R]:
                 for future in concurrent.futures.as_completed(future_to_item):
                     item = future_to_item[future]
                     try:
-                        item_result = future.result()
+                        item_result = future.result(timeout=90)
                         result.results.append(item_result)
                         result.total_processed += 1
 

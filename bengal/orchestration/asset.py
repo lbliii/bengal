@@ -394,7 +394,9 @@ class AssetOrchestrator:
         # Use BatchProgressUpdater for throttled progress updates
         progress_updater = BatchProgressUpdater(progress_manager, phase="assets")
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        from bengal.utils.concurrency.executor import managed_executor
+
+        with managed_executor(max_workers, thread_name_prefix="Bengal-Assets") as executor:
             futures: list[tuple[concurrent.futures.Future[None], Asset, bool]] = []
 
             # Submit CSS entries
@@ -414,7 +416,7 @@ class AssetOrchestrator:
             # Collect results as they complete
             for future, asset, is_css_entry in futures:
                 try:
-                    future.result()
+                    future.result(timeout=90)
 
                     # Progress update with batching
                     item_name = (

@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import ErrorAggregator, extract_error_context
+from bengal.utils.concurrency.executor import CancellationError
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -61,6 +62,8 @@ class SequentialRenderMixin:
         """
         from bengal.rendering.pipeline import RenderingPipeline
 
+        token = build_context.cancellation_token if build_context else None
+
         if progress_manager:
             import time
 
@@ -77,6 +80,9 @@ class SequentialRenderMixin:
             update_interval = 0.1
 
             for i, page in enumerate(pages):
+                if token and token.is_cancelled:
+                    logger.warning("render_cancelled_sequential", pages_completed=i)
+                    break
                 pipeline.process_page(page)
                 now = time.time()
                 if (i + 1) % 10 == 0 or (now - last_update_time) >= update_interval:
@@ -116,7 +122,10 @@ class SequentialRenderMixin:
                 block_cache=self._block_cache,
                 highlight_cache=self._highlight_cache,
             )
-            for page in pages:
+            for i, page in enumerate(pages):
+                if token and token.is_cancelled:
+                    logger.warning("render_cancelled_sequential", pages_completed=i)
+                    break
                 pipeline.process_page(page)
 
     def _render_sequential_with_progress(
@@ -140,6 +149,7 @@ class SequentialRenderMixin:
         from bengal.rendering.pipeline import RenderingPipeline
         from bengal.utils.observability.rich_console import get_console
 
+        token = build_context.cancellation_token if build_context else None
         console = get_console()
         pipeline = RenderingPipeline(
             self.site,
@@ -169,8 +179,14 @@ class SequentialRenderMixin:
             threshold = 5
 
             for page in pages:
+                if token and token.is_cancelled:
+                    logger.warning("render_cancelled_sequential", pages_completed=task.completed)
+                    break
                 try:
                     pipeline.process_page(page)
+                except CancellationError:
+                    logger.warning("render_cancelled_sequential")
+                    break
                 except Exception as e:
                     context = extract_error_context(e, page)
 

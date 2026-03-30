@@ -642,22 +642,29 @@ def install(name: str, force: bool) -> None:
         import sys
 
         cmd = [sys.executable, "-m", "uv", "pip", "install", pkg]
-        proc = subprocess.run(cmd, capture_output=True, text=True)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
         if proc.returncode != 0:
             cli.error(proc.stderr or proc.stdout)
             raise SystemExit(proc.returncode) from None
         cli.success(f"Installed {pkg}")
+    except subprocess.TimeoutExpired:
+        cli.error(f"Installation of {pkg} timed out after 120s")
+        raise SystemExit(1) from None
     except FileNotFoundError:
         cli.warning("uv not found; falling back to pip")
         import subprocess
         import sys
 
-        cmd = [sys.executable, "-m", "pip", "install", pkg]
-        proc = subprocess.run(cmd, capture_output=True, text=True)
-        if proc.returncode != 0:
-            cli.error(proc.stderr or proc.stdout)
-            raise SystemExit(proc.returncode) from None
-        cli.success(f"Installed {pkg}")
+        try:
+            cmd = [sys.executable, "-m", "pip", "install", pkg]
+            proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            if proc.returncode != 0:
+                cli.error(proc.stderr or proc.stdout)
+                raise SystemExit(proc.returncode) from None
+            cli.success(f"Installed {pkg}")
+        except subprocess.TimeoutExpired:
+            cli.error(f"Installation of {pkg} timed out after 120s")
+            raise SystemExit(1) from None
 
 
 def _sanitize_slug(slug: str) -> str:

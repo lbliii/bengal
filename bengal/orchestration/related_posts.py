@@ -247,8 +247,10 @@ class RelatedPostsOrchestrator:
 
         pages_with_related = 0
 
-        # Use ThreadPoolExecutor for parallel processing
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Use managed_executor for safe shutdown on timeout/error
+        from bengal.utils.concurrency.executor import managed_executor
+
+        with managed_executor(max_workers, thread_name_prefix="Bengal-Related") as executor:
             # Submit all tasks
             future_to_page = {
                 executor.submit(
@@ -261,7 +263,7 @@ class RelatedPostsOrchestrator:
             for future in concurrent.futures.as_completed(future_to_page):
                 page = future_to_page[future]
                 try:
-                    related_posts = future.result()
+                    related_posts = future.result(timeout=90)
                     page.related_posts = related_posts
                     if related_posts:
                         pages_with_related += 1
