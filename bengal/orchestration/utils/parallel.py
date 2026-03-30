@@ -279,7 +279,7 @@ class ParallelProcessor[T, R]:
                 for future in concurrent.futures.as_completed(future_to_item):
                     item = future_to_item[future]
                     try:
-                        item_result = future.result()
+                        item_result = future.result(timeout=90)
                         result.results.append(item_result)
                         result.total_processed += 1
 
@@ -407,7 +407,7 @@ class ParallelProcessor[T, R]:
                 for future in concurrent.futures.as_completed(future_to_item):
                     item = future_to_item[future]
                     try:
-                        item_result = future.result()
+                        item_result = future.result(timeout=90)
                         result.results.append(item_result)
                         result.total_processed += 1
 

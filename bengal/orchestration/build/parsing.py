@@ -111,7 +111,7 @@ def phase_parse_content(
                 for future in as_completed(futures):
                     page = futures[future]
                     try:
-                        future.result()
+                        future.result(timeout=90)
                     except Exception as e:
                         logger.error(
                             "parsing_failed",

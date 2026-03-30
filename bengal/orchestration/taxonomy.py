@@ -724,7 +724,7 @@ class TaxonomyOrchestrator:
             for future in concurrent.futures.as_completed(future_to_tag):
                 tag_slug = future_to_tag[future]
                 try:
-                    tag_pages = future.result()
+                    tag_pages = future.result(timeout=90)
                     # Set language for all pages
                     for page in tag_pages:
                         page.lang = lang

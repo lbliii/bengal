@@ -311,7 +311,7 @@ class PostprocessOrchestrator:
                     # Get task name outside try block (dictionary lookup is fast)
                     task_name = futures[future]
                     try:
-                        future.result()
+                        future.result(timeout=90)
                         if progress_manager:
                             # Minimize lock hold time - only update counter and progress
                             with lock:

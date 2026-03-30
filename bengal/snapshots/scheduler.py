@@ -299,7 +299,7 @@ class WaveScheduler:
                             if token:
                                 rendered_page = token.result(future, per_item_timeout=60.0)
                             else:
-                                rendered_page = future.result()
+                                rendered_page = future.result(timeout=90)
                             stats.pages_rendered += 1
                             self._progress_tracker.increment(rendered_page)
                         except Exception as e:
@@ -442,7 +442,7 @@ class WaveScheduler:
                             if token:
                                 rendered_page = token.result(future, per_item_timeout=60.0)
                             else:
-                                rendered_page = future.result()
+                                rendered_page = future.result(timeout=90)
                             stats.pages_rendered += 1
                             self._progress_tracker.increment(rendered_page)
                         except Exception as e:

@@ -261,7 +261,7 @@ class RelatedPostsOrchestrator:
             for future in concurrent.futures.as_completed(future_to_page):
                 page = future_to_page[future]
                 try:
-                    related_posts = future.result()
+                    related_posts = future.result(timeout=90)
                     page.related_posts = related_posts
                     if related_posts:
                         pages_with_related += 1

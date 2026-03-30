@@ -414,7 +414,7 @@ class AssetOrchestrator:
             # Collect results as they complete
             for future, asset, is_css_entry in futures:
                 try:
-                    future.result()
+                    future.result(timeout=90)
 
                     # Progress update with batching
                     item_name = (

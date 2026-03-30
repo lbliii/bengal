@@ -949,7 +949,7 @@ def record_all_page_builds(
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {executor.submit(pf.record_build, page): page for page in pages}
             for future in as_completed(futures):
-                future.result()  # Raise any exception
+                future.result(timeout=90)  # Raise any exception
     else:
         for page in pages:
             pf.record_build(page)

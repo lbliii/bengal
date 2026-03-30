@@ -568,7 +568,7 @@ class RenderOrchestrator(
                         if token:
                             token.result(future, per_item_timeout=60.0)
                         else:
-                            future.result()
+                            future.result(timeout=90)
                     except CancellationError:
                         logger.warning("render_cancelled", page=page.source_path.name)
                         break
@@ -682,7 +682,7 @@ class RenderOrchestrator(
                         if token:
                             token.result(future, per_item_timeout=60.0)
                         else:
-                            future.result()
+                            future.result(timeout=90)
                     except CancellationError:
                         logger.warning("render_cancelled", page=page.source_path.name)
                         break
@@ -790,7 +790,7 @@ class RenderOrchestrator(
                             if token:
                                 token.result(future, per_item_timeout=60.0)
                             else:
-                                future.result()
+                                future.result(timeout=90)
                         except CancellationError:
                             logger.warning("render_cancelled")
                             break
