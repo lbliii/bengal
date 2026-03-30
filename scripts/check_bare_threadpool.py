@@ -44,10 +44,18 @@ def check_file(filepath: Path) -> list[str]:
         if rel.endswith(allowed):
             return []
 
+    in_docstring = False
     for i, line in enumerate(content.splitlines(), 1):
-        # Skip comments and docstrings
         stripped = line.lstrip()
-        if stripped.startswith(("#", '"""', "'''")):
+        # Toggle docstring state on triple-quote boundaries
+        if '"""' in stripped or "'''" in stripped:
+            count = stripped.count('"""') + stripped.count("'''")
+            if count % 2 == 1:  # odd number of triple-quotes toggles state
+                in_docstring = not in_docstring
+            continue
+        if in_docstring:
+            continue
+        if stripped.startswith("#"):
             continue
         if PATTERN.search(line):
             errors.append(
@@ -65,7 +73,7 @@ def main() -> int:
     all_errors = []
     for filepath in sys.argv[1:]:
         path = Path(filepath)
-        if path.suffix == ".py" and "bengal/" in str(path):
+        if path.suffix == ".py" and "bengal" in path.parts:
             errors = check_file(path)
             all_errors.extend(errors)
 

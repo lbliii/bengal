@@ -250,7 +250,11 @@ class RelatedPostsOrchestrator:
         from bengal.utils.concurrency.work_scope import WorkScope
 
         def _find_related_for_page(page):
-            related = self._find_related_posts(page, page_tags_map, tags_dict, limit)
+            try:
+                related = self._find_related_posts(page, page_tags_map, tags_dict, limit)
+            except Exception as e:
+                e.__page_source_path__ = page.source_path  # type: ignore[attr-defined]
+                raise
             return page, related
 
         with WorkScope("related-posts", max_workers=max_workers) as scope:
@@ -258,8 +262,10 @@ class RelatedPostsOrchestrator:
 
         for r in results:
             if r.error:
+                page_path = getattr(r.error, "__page_source_path__", None)
                 logger.error(
                     "related_posts_computation_failed",
+                    page=str(page_path) if page_path is not None else None,
                     error=str(r.error),
                 )
             elif r.value is not None:

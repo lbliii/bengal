@@ -756,7 +756,7 @@ class BuildOrchestrator:
         # Run cache saves in parallel
         from bengal.utils.concurrency.work_scope import WorkScope
 
-        with WorkScope("CacheSave", max_workers=2, per_item_timeout=60.0) as scope:
+        with WorkScope("CacheSave", max_workers=2) as scope:
             results = scope.map(lambda fn: fn(), [_save_main_cache, _save_generated_cache])
 
         for r in results:

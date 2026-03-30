@@ -21,6 +21,7 @@ Related:
 from __future__ import annotations
 
 import asyncio
+import threading
 import time
 from html.parser import HTMLParser
 from pathlib import Path
@@ -176,24 +177,34 @@ class LinkCheckOrchestrator:
         if self.check_internal:
             self.internal_checker.set_file_index(html_files)
 
-        # Pipeline: run internal and external checks concurrently via WorkScope.
-        external_work_results = None
+        # Pipeline: run internal and external checks concurrently.
+        # External checks run in a background thread so internal checks can
+        # proceed on the main thread at the same time, restoring the original
+        # parallel design that was lost during the WorkScope migration.
+        external_results: dict[str, LinkCheckResult] | None = None
+        external_exc: BaseException | None = None
+        external_thread: threading.Thread | None = None
+
         if self.check_external and external_links:
 
-            def _run_external() -> dict[str, LinkCheckResult]:
+            def _run_external() -> None:
+                nonlocal external_results, external_exc
+                from bengal.utils.concurrency.work_scope import WorkScope
+
                 loop = asyncio.new_event_loop()
                 asyncio.set_event_loop(loop)
                 try:
-                    return loop.run_until_complete(
-                        self.external_checker.check_links(external_links)
-                    )
+                    with WorkScope("linkcheck-ext", max_workers=1, timeout=120.0):
+                        external_results = loop.run_until_complete(
+                            self.external_checker.check_links(external_links)
+                        )
+                except BaseException as exc:
+                    external_exc = exc
                 finally:
                     loop.close()
 
-            from bengal.utils.concurrency.work_scope import WorkScope
-
-            with WorkScope("linkcheck-ext", max_workers=1, timeout=120.0) as scope:
-                external_work_results = scope.map(lambda _: _run_external(), [None])
+            external_thread = threading.Thread(target=_run_external, daemon=True)
+            external_thread.start()
 
         results: list[LinkCheckResult] = []
 
@@ -206,17 +217,19 @@ class LinkCheckOrchestrator:
                 broken=sum(1 for r in internal_results.values() if r.status == LinkStatus.BROKEN),
             )
 
-        if external_work_results is not None:
-            ext_result = external_work_results[0]
-            if ext_result.error:
-                raise ext_result.error
-            external_results = ext_result.value
-            results.extend(external_results.values())
-            logger.info(
-                "external_links_checked",
-                count=len(external_results),
-                broken=sum(1 for r in external_results.values() if r.status == LinkStatus.BROKEN),
-            )
+        if external_thread is not None:
+            external_thread.join(timeout=130.0)
+            if external_exc is not None:
+                raise external_exc
+            if external_results is not None:
+                results.extend(external_results.values())
+                logger.info(
+                    "external_links_checked",
+                    count=len(external_results),
+                    broken=sum(
+                        1 for r in external_results.values() if r.status == LinkStatus.BROKEN
+                    ),
+                )
 
         # Build summary
         duration_ms = (time.time() - start_time) * 1000
@@ -271,7 +284,11 @@ class LinkCheckOrchestrator:
         from bengal.utils.concurrency.work_scope import WorkScope
 
         def _parse_with_path(html_file: Path) -> tuple[Path, list[str]]:
-            return html_file, _parse_file(html_file)
+            try:
+                return html_file, _parse_file(html_file)
+            except Exception as e:
+                e.__html_file__ = str(html_file)  # type: ignore[attr-defined]
+                raise
 
         file_links: list[tuple[Path, list[str]]] = []
         with WorkScope("linkextract", max_workers=min(8, len(html_files) or 1)) as scope:
@@ -280,8 +297,10 @@ class LinkCheckOrchestrator:
             if r.error:
                 from bengal.errors import ErrorCode
 
+                html_file = getattr(r.error, "__html_file__", None)
                 logger.warning(
                     "failed_to_parse_html",
+                    file=html_file,
                     error=str(r.error),
                     error_code=ErrorCode.V005.value,
                     suggestion="Check HTML file for malformed content. Link check will skip this file.",

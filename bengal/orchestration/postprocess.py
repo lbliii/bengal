@@ -303,26 +303,23 @@ class PostprocessOrchestrator:
 
         def _run_task(name_fn_tuple: tuple[str, Callable[[], None]]) -> str:
             name, fn = name_fn_tuple
-            fn()
+            try:
+                fn()
+            except Exception as e:
+                e.__task_name__ = name  # type: ignore[attr-defined]
+                raise
             return name
-
-        def _on_progress(completed: int, total: int) -> None:
-            nonlocal completed_count
-            if progress_manager:
-                completed_count = completed
-                progress_manager.update_phase(
-                    "postprocess", current=completed_count, current_item=""
-                )
 
         from bengal.utils.concurrency.work_scope import WorkScope
 
-        with WorkScope("PostProcess", max_workers=len(tasks), on_progress=_on_progress) as scope:
+        with WorkScope("PostProcess", max_workers=len(tasks)) as scope:
             results = scope.map(_run_task, tasks)
 
         for r in results:
             if r.ok:
                 task_name = r.value
                 if progress_manager:
+                    completed_count += 1
                     progress_manager.update_phase(
                         "postprocess", current=completed_count, current_item=task_name
                     )
@@ -333,7 +330,7 @@ class PostprocessOrchestrator:
                     continue
 
                 # Extract task name from the error if possible
-                task_name = "unknown"
+                task_name = getattr(e, "__task_name__", "unknown")
                 error_msg = str(e)
                 errors.append((task_name, error_msg))
 

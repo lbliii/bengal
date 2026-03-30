@@ -83,7 +83,6 @@ class WorkScope:
         max_workers: Maximum worker threads. None = auto-tune.
         workload_type: Workload characteristics for auto-tuning.
         timeout: Scope-level deadline in seconds (0 = no deadline).
-        per_item_timeout: Per-work-item timeout in seconds.
         on_progress: Optional callback(completed_count, total_count)
             fired after each item completes.
     """
@@ -94,7 +93,7 @@ class WorkScope:
         "_max_workers",
         "_name",
         "_on_progress",
-        "_per_item_timeout",
+        "_timed_out",
         "_timeout",
         "_workload_type",
     )
@@ -106,36 +105,35 @@ class WorkScope:
         max_workers: int | None = None,
         workload_type: WorkloadType | None = None,
         timeout: float = 300.0,
-        per_item_timeout: float = 90.0,
         on_progress: Callable[[int, int], None] | None = None,
     ) -> None:
         self._name = name
         self._max_workers = max_workers
         self._workload_type = workload_type
         self._timeout = timeout
-        self._per_item_timeout = per_item_timeout
         self._on_progress = on_progress
         self._executor: concurrent.futures.ThreadPoolExecutor | None = None
         self._deadline: float = 0.0
+        self._timed_out: bool = False
 
     def __enter__(self) -> WorkScope:
         if self._timeout > 0:
             self._deadline = time.monotonic() + self._timeout
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         if self._executor is not None:
-            if exc_type is not None:
-                # Any exception: cancel pending and don't wait
+            if exc_type is not None or self._timed_out:
+                # Any exception or internal timeout: cancel pending and don't wait
                 self._executor.shutdown(wait=False, cancel_futures=True)
             else:
                 self._executor.shutdown(wait=True)
             self._executor = None
-        return None
+        return False
 
     @property
     def remaining(self) -> float:
-        """Seconds remaining before scope deadline. 0 if no deadline."""
+        """Seconds remaining before scope deadline. float('inf') if no deadline."""
         if self._deadline <= 0:
             return float("inf")
         return max(0.0, self._deadline - time.monotonic())
@@ -171,13 +169,6 @@ class WorkScope:
             )
         return self._executor
 
-    def _item_timeout(self) -> float:
-        """Effective per-item timeout, capped by scope remaining time."""
-        remaining = self.remaining
-        if remaining == float("inf"):
-            return self._per_item_timeout
-        return min(self._per_item_timeout, remaining)
-
     def map(
         self,
         fn: Callable[[T], R],
@@ -186,9 +177,8 @@ class WorkScope:
         """Process items in parallel, returning results for all items.
 
         Context variables are automatically propagated to worker threads.
-        Each item's result is bounded by per_item_timeout and the scope
-        deadline. Errors are captured per-item (never raises for individual
-        item failures).
+        Each item's result is bounded by the scope deadline. Errors are
+        captured per-item (never raises for individual item failures).
 
         Args:
             fn: Function to apply to each item.
@@ -289,6 +279,7 @@ class WorkScope:
 
         except FuturesTimeoutError:
             # as_completed timed out — scope deadline expired
+            self._timed_out = True
             remaining_count = total - completed
             logger.warning(
                 "work_scope_deadline_expired",

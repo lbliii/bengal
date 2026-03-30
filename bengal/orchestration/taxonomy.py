@@ -712,7 +712,11 @@ class TaxonomyOrchestrator:
 
         def _create_tag_pages(tag_item: tuple[str, dict]) -> tuple[str, list]:
             tag_slug, tag_data = tag_item
-            return tag_slug, self._create_tag_pages_for_lang(tag_slug, tag_data, lang)
+            try:
+                return tag_slug, self._create_tag_pages_for_lang(tag_slug, tag_data, lang)
+            except Exception as e:
+                e.__tag_slug__ = tag_slug  # type: ignore[attr-defined]
+                raise
 
         with WorkScope("Taxonomy", max_workers=max_workers) as scope:
             results = scope.map(_create_tag_pages, locale_tags.items())
@@ -735,7 +739,7 @@ class TaxonomyOrchestrator:
                     continue
 
                 context = {
-                    "tag_slug": "unknown",
+                    "tag_slug": getattr(e, "__tag_slug__", "unknown"),
                     "lang": lang,
                     "error": str(e),
                     "error_type": type(e).__name__,

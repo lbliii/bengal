@@ -280,7 +280,11 @@ class GraphBuilder:
         from bengal.utils.concurrency.work_scope import WorkScope
 
         def _analyze_with_page(page):
-            return page, analyze_page(page)
+            try:
+                return page, analyze_page(page)
+            except Exception as e:
+                e.__page_source_path__ = str(page.source_path)  # type: ignore[attr-defined]
+                raise
 
         results: list[dict[str, Any]] = []
         with WorkScope("graphbuild", max_workers=max_workers) as scope:
@@ -288,8 +292,10 @@ class GraphBuilder:
             for r in work_results:
                 if r.error:
                     # Track error for session aggregation and debugging
+                    page_path = getattr(r.error, "__page_source_path__", None)
                     logger.warning(
                         "graph_page_analysis_failed",
+                        page=page_path,
                         error=str(r.error),
                         code="G005",
                     )

@@ -400,10 +400,14 @@ class AssetOrchestrator:
 
         def _process_asset(item: tuple[Asset, bool]) -> tuple[Asset, bool]:
             asset, is_css = item
-            if is_css:
-                self._process_css_entry(asset, minify, optimize, fingerprint)
-            else:
-                self._process_single_asset(asset, assets_output, minify, optimize, fingerprint)
+            try:
+                if is_css:
+                    self._process_css_entry(asset, minify, optimize, fingerprint)
+                else:
+                    self._process_single_asset(asset, assets_output, minify, optimize, fingerprint)
+            except Exception as e:
+                e.__asset_path__ = asset.source_path  # type: ignore[attr-defined]
+                raise
             return asset, is_css
 
         from bengal.utils.concurrency.work_scope import WorkScope
@@ -432,8 +436,9 @@ class AssetOrchestrator:
 
                 from bengal.errors import BengalError, ErrorContext, enrich_error
 
+                asset_path = getattr(e, "__asset_path__", None)
                 context = ErrorContext(
-                    file_path=None,
+                    file_path=asset_path,
                     operation="processing asset",
                     suggestion="Check file permissions, encoding, and format",
                     original_error=e,

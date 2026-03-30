@@ -104,21 +104,28 @@ def phase_parse_content(
             from bengal.utils.concurrency.work_scope import WorkScope
 
             def _parse_with_page(page):
-                parse_page(page)
+                try:
+                    parse_page(page)
+                except Exception as e:
+                    e.__page_source_path__ = page.source_path  # type: ignore[attr-defined]
+                    raise
                 return page
 
             with WorkScope("parse", max_workers=max_workers) as scope:
                 results = scope.map(_parse_with_page, pages_to_parse)
             for r in results:
                 if r.error:
+                    page_path = getattr(r.error, "__page_source_path__", None)
                     logger.error(
                         "parsing_failed",
+                        page=str(page_path) if page_path is not None else None,
                         error=str(r.error),
                         error_type=type(r.error).__name__,
                     )
                     if orchestrator.stats:
+                        page_label = str(page_path) if page_path is not None else "unknown"
                         orchestrator.stats.add_error(
-                            Exception(f"Parsing failed: {r.error}"),
+                            Exception(f"Parsing failed for {page_label}: {r.error}"),
                             category="parsing",
                         )
         else:

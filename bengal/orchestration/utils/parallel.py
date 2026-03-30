@@ -253,28 +253,30 @@ class ParallelProcessor[T, R]:
         aggregator = ErrorAggregator(total_items=len(items))
         completed_count = 0
 
-        def _on_progress(completed: int, total: int) -> None:
-            nonlocal completed_count
-            completed_count = completed
-            if progress_callback:
-                # progress_callback expects (count, item) but we don't have item in completion order
-                pass
+        def _wrapped(item: T) -> tuple[T, R]:
+            try:
+                return (item, process_fn(item))
+            except Exception as e:
+                e.__item__ = item  # type: ignore[attr-defined]
+                raise
 
         from bengal.utils.concurrency.work_scope import WorkScope
 
         with WorkScope("Parallel", max_workers=max_workers) as scope:
-            work_results = scope.map(process_fn, items)
+            work_results = scope.map(_wrapped, items)
 
         for r in work_results:
             if r.ok:
-                result.results.append(r.value)
+                assert r.value is not None  # guaranteed by r.ok
+                item, processed_value = r.value
+                result.results.append(processed_value)
                 result.total_processed += 1
 
                 if progress_updater:
-                    progress_updater.increment("")
+                    progress_updater.increment(str(item))
                 elif progress_callback:
                     completed_count += 1
-                    progress_callback(completed_count, r.value)
+                    progress_callback(completed_count, item)
 
             else:
                 e = r.error
@@ -282,13 +284,14 @@ class ParallelProcessor[T, R]:
                     logger.debug(f"{self._error_type}_shutdown")
                     continue
 
-                result.errors.append((None, e))
+                item = getattr(e, "__item__", None)
+                result.errors.append((item, e))
                 result.total_errors += 1
 
                 if context_extractor:
-                    context = context_extractor(e, None)
+                    context = context_extractor(e, item)
                 else:
-                    context = extract_error_context(e, None)
+                    context = extract_error_context(e, item)
 
                 if aggregator.should_log_individual(
                     e,
@@ -349,7 +352,7 @@ class ParallelProcessor[T, R]:
         aggregator = ErrorAggregator(total_items=len(items))
         generation_attr = f"{thread_local_attr}_generation"
 
-        def process_with_local(item: T) -> R:
+        def process_with_local(item: T) -> tuple[T, R]:
             """Process item with thread-local instance."""
             # Check if instance exists and is current generation
             needs_new = not hasattr(thread_local, thread_local_attr) or (
@@ -361,7 +364,11 @@ class ParallelProcessor[T, R]:
                     setattr(thread_local, generation_attr, generation)
 
             instance = getattr(thread_local, thread_local_attr)
-            return process_fn(item, instance)
+            try:
+                return (item, process_fn(item, instance))
+            except Exception as e:
+                e.__item__ = item  # type: ignore[attr-defined]
+                raise
 
         from bengal.utils.concurrency.work_scope import WorkScope
 
@@ -370,11 +377,13 @@ class ParallelProcessor[T, R]:
 
         for r in work_results:
             if r.ok:
-                result.results.append(r.value)
+                assert r.value is not None  # guaranteed by r.ok
+                item, processed_value = r.value
+                result.results.append(processed_value)
                 result.total_processed += 1
 
                 if progress_updater:
-                    progress_updater.increment("")
+                    progress_updater.increment(str(item))
 
             else:
                 e = r.error
@@ -382,13 +391,14 @@ class ParallelProcessor[T, R]:
                     logger.debug(f"{self._error_type}_shutdown")
                     continue
 
-                result.errors.append((None, e))
+                item = getattr(e, "__item__", None)
+                result.errors.append((item, e))
                 result.total_errors += 1
 
                 if context_extractor:
-                    context = context_extractor(e, None)
+                    context = context_extractor(e, item)
                 else:
-                    context = extract_error_context(e, None)
+                    context = extract_error_context(e, item)
 
                 if aggregator.should_log_individual(
                     e,
