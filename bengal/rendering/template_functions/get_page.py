@@ -103,6 +103,55 @@ def _normalize_cache_key(path: str) -> str:
     return normalized
 
 
+def _create_template_parser(site: SiteLike) -> Any:
+    """
+    Create and configure a markdown parser for on-demand page parsing.
+
+    Instantiates the parser selected by site config and enables cross-reference
+    support when applicable.  Must be called under site._init_lock (if available)
+    to guarantee at-most-once creation in free-threaded Python.
+
+    Args:
+        site: Site instance supplying config and xref_index.
+
+    Returns:
+        Configured parser instance.
+
+    """
+    from bengal.parsing import create_markdown_parser
+
+    # Get parser engine from config (same logic as RenderingPipeline)
+    markdown_engine = site.config.get("markdown_engine")
+    if not markdown_engine:
+        markdown_config = site.config.get("markdown", {})
+        markdown_engine = markdown_config.get("parser", "patitas")
+
+    parser = create_markdown_parser(markdown_engine)
+
+    # Enable cross-references if available
+    if hasattr(site, "xref_index") and hasattr(parser, "enable_cross_references"):
+        version_config = getattr(site, "version_config", None)
+
+        # Create external reference resolver for [[ext:project:target]] syntax
+        external_ref_resolver = None
+        external_refs_config = site.config.get("external_refs", {})
+        if (
+            external_refs_config
+            and isinstance(external_refs_config, dict)
+            and external_refs_config.get("enabled", True)
+        ):
+            from bengal.rendering.external_refs import ExternalRefResolver
+
+            config_dict = cast(dict[str, Any], site.config)
+            external_ref_resolver = ExternalRefResolver(config_dict)
+
+        enable_method = getattr(parser, "enable_cross_references", None)
+        if callable(enable_method):
+            enable_method(site.xref_index, version_config, None, external_ref_resolver)
+
+    return parser
+
+
 def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
     """
     Ensure a page is parsed if it hasn't been parsed yet.
@@ -123,49 +172,22 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
     if not hasattr(page, "content") or not page._source:
         return
 
-    # Lazy-create parser on site object for reuse
+    # Lazy-create parser on site object for reuse (double-checked locking)
     # Type narrowing: _template_parser may not be on SiteLike protocol
     template_parser = getattr(site, "_template_parser", None)
     if template_parser is None:
-        from bengal.parsing import create_markdown_parser
-
-        # Get parser engine from config (same logic as RenderingPipeline)
-        markdown_engine = site.config.get("markdown_engine")
-        if not markdown_engine:
-            markdown_config = site.config.get("markdown", {})
-            markdown_engine = markdown_config.get("parser", "patitas")
-
-        template_parser = create_markdown_parser(markdown_engine)
-        if hasattr(site, "_template_parser"):
-            site._template_parser = template_parser
-
-        # Enable cross-references if available
-        if hasattr(site, "xref_index") and hasattr(
-            template_parser,
-            "enable_cross_references",
-        ):
-            # Pass version_config for cross-version linking support [[v2:path]]
-            version_config = getattr(site, "version_config", None)
-
-            # Create external reference resolver for [[ext:project:target]] syntax
-            # See: plan/rfc-external-references.md
-            external_ref_resolver = None
-            external_refs_config = site.config.get("external_refs", {})
-            if (
-                external_refs_config
-                and isinstance(external_refs_config, dict)
-                and external_refs_config.get("enabled", True)
-            ):
-                from bengal.rendering.external_refs import ExternalRefResolver
-
-                # Cast SiteConfig to dict[str, Any] for compatibility
-                config_dict = cast(dict[str, Any], site.config)
-                external_ref_resolver = ExternalRefResolver(config_dict)
-
-            # Type narrowing: check if method is callable
-            enable_method = getattr(template_parser, "enable_cross_references", None)
-            if callable(enable_method):
-                enable_method(site.xref_index, version_config, None, external_ref_resolver)
+        init_lock = getattr(site, "_init_lock", None)
+        if init_lock is not None:
+            with init_lock:
+                template_parser = getattr(site, "_template_parser", None)
+                if template_parser is None:
+                    template_parser = _create_template_parser(site)
+                    if hasattr(site, "_template_parser"):
+                        site._template_parser = template_parser
+        else:
+            template_parser = _create_template_parser(site)
+            if hasattr(site, "_template_parser"):
+                site._template_parser = template_parser
 
     parser = template_parser
 
@@ -366,24 +388,43 @@ def _build_lookup_maps(site: SiteLike) -> None:
         Build-scoped caching ensures maps are built once per build,
         not once per page render. This saves ~200ms on large sites.
     """
-    # Check if already cached on site object
+    # Check if already cached on site object (fast path — no lock)
     page_lookup_maps = getattr(site, "_page_lookup_maps", None)
     if page_lookup_maps is not None:
         return
 
-    # Try build-scoped cache first (preferred - automatically cleared per build)
-    from bengal.rendering.template_functions.memo import get_build_context
+    init_lock = getattr(site, "_init_lock", None)
+    if init_lock is not None:
+        with init_lock:
+            # Re-check inside the lock (double-checked locking)
+            if getattr(site, "_page_lookup_maps", None) is not None:
+                return
 
-    build_ctx = get_build_context()
-    if build_ctx is not None:
-        maps = build_ctx.get_cached("page_lookup_maps", lambda: _build_lookup_maps_impl(site))
+            # Try build-scoped cache first (preferred - automatically cleared per build)
+            from bengal.rendering.template_functions.memo import get_build_context
+
+            build_ctx = get_build_context()
+            if build_ctx is not None:
+                maps = build_ctx.get_cached(
+                    "page_lookup_maps", lambda: _build_lookup_maps_impl(site)
+                )
+            else:
+                maps = _build_lookup_maps_impl(site)
+
+            if hasattr(site, "_page_lookup_maps"):
+                site._page_lookup_maps = maps
     else:
-        # Fallback to direct computation (no build context available)
-        maps = _build_lookup_maps_impl(site)
+        # No lock available (e.g. mock site in tests) — best-effort
+        from bengal.rendering.template_functions.memo import get_build_context
 
-    # Cache on site object for subsequent lookups within this render
-    if hasattr(site, "_page_lookup_maps"):
-        site._page_lookup_maps = maps
+        build_ctx = get_build_context()
+        if build_ctx is not None:
+            maps = build_ctx.get_cached("page_lookup_maps", lambda: _build_lookup_maps_impl(site))
+        else:
+            maps = _build_lookup_maps_impl(site)
+
+        if hasattr(site, "_page_lookup_maps"):
+            site._page_lookup_maps = maps
 
 
 def page_exists(path: str, site: SiteLike) -> bool:

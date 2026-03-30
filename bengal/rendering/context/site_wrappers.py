@@ -10,6 +10,7 @@ RFC: rfc-incremental-build-dependency-gaps (Phase 1)
 
 from __future__ import annotations
 
+import threading
 from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.context.data_wrappers import ParamsContext, SmartDict
@@ -51,12 +52,13 @@ class SiteContext:
 
     """
 
-    __slots__ = ("_params_cache", "_site", "_tracked_data_cache")
+    __slots__ = ("_init_lock", "_params_cache", "_site", "_tracked_data_cache")
 
     def __init__(self, site: SiteLike):
         self._site = site
         self._params_cache: ParamsContext | None = None
         self._tracked_data_cache: Any = None
+        self._init_lock = threading.Lock()
 
     def __getattr__(self, name: str) -> Any:
         """Proxy to underlying site, with safe fallbacks."""
@@ -97,11 +99,13 @@ class SiteContext:
         # TrackedData looks up tracker from ContextVar at access time,
         # so caching is safe even across different page renders.
         if self._tracked_data_cache is None:
-            data_dir = self._site.root_path / "data"
-            self._tracked_data_cache = TrackedData(
-                self._site.data,
-                data_dir,
-            )
+            with self._init_lock:
+                if self._tracked_data_cache is None:
+                    data_dir = self._site.root_path / "data"
+                    self._tracked_data_cache = TrackedData(
+                        self._site.data,
+                        data_dir,
+                    )
 
         return self._tracked_data_cache
 
@@ -178,7 +182,9 @@ class SiteContext:
             {{ site.params.social.twitter }}
         """
         if self._params_cache is None:
-            self._params_cache = ParamsContext(self._site.config.get("params", {}))
+            with self._init_lock:
+                if self._params_cache is None:
+                    self._params_cache = ParamsContext(self._site.config.get("params", {}))
         return self._params_cache
 
     def __bool__(self) -> bool:
@@ -207,11 +213,12 @@ class ThemeContext:
 
     """
 
-    __slots__ = ("_config_cache", "_theme")
+    __slots__ = ("_config_cache", "_init_lock", "_theme")
 
     def __init__(self, theme: Theme | None):
         self._theme = theme
         self._config_cache: ParamsContext | None = None
+        self._init_lock = threading.Lock()
 
     @classmethod
     def _empty(cls) -> ThemeContext:
@@ -293,10 +300,12 @@ class ThemeContext:
     def config(self) -> ParamsContext:
         """Theme config as ParamsContext for safe nested access (cached)."""
         if self._config_cache is None:
-            if self._theme is None or self._theme.config is None:
-                self._config_cache = ParamsContext({})
-            else:
-                self._config_cache = ParamsContext(self._theme.config)
+            with self._init_lock:
+                if self._config_cache is None:
+                    if self._theme is None or self._theme.config is None:
+                        self._config_cache = ParamsContext({})
+                    else:
+                        self._config_cache = ParamsContext(self._theme.config)
         return self._config_cache
 
     def has(self, feature: str) -> bool:

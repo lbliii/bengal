@@ -4,6 +4,7 @@ Build statistics data models.
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING, Any
@@ -170,6 +171,15 @@ class BuildStats:
     # Enhanced error collection by category
     errors_by_category: dict[str, ErrorCategory] = field(default_factory=dict)
 
+    # Thread-safety lock — protects counter increments, list appends, and lazy init
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False, compare=False)
+
+    def __post_init__(self) -> None:
+        # Ensure _lock is always a real Lock even when dataclass __init__ is bypassed
+        # (e.g. copy.copy, pickle, or test construction via object.__setattr__).
+        if not isinstance(self._lock, threading.Lock):
+            object.__setattr__(self, "_lock", threading.Lock())
+
     def get_error_deduplicator(self) -> ErrorDeduplicator:
         """
         Get the error deduplicator for this build.
@@ -179,15 +189,17 @@ class BuildStats:
         Returns:
             ErrorDeduplicator instance for this build
         """
-        if self._error_deduplicator is None:
-            from bengal.rendering.errors import ErrorDeduplicator
+        with self._lock:
+            if self._error_deduplicator is None:
+                from bengal.rendering.errors import ErrorDeduplicator
 
-            self._error_deduplicator = ErrorDeduplicator()
-        return self._error_deduplicator
+                self._error_deduplicator = ErrorDeduplicator()
+            return self._error_deduplicator
 
     def add_warning(self, file_path: str, message: str, warning_type: str = "other") -> None:
         """Add a warning to the build."""
-        self.warnings.append(BuildWarning(file_path, message, warning_type))
+        with self._lock:
+            self.warnings.append(BuildWarning(file_path, message, warning_type))
 
     def add_template_error(self, error: Any) -> None:
         """
@@ -196,9 +208,10 @@ class BuildStats:
         Args:
             error: TemplateRenderError instance (or compatible exception)
         """
-        self.template_errors.append(error)
-        # Also add to categorized errors
-        self.add_error(error, category="rendering")
+        with self._lock:
+            self.template_errors.append(error)
+            # Also add to categorized errors (inline to avoid re-acquiring lock)
+            self._add_error_unlocked(error, category="rendering")
 
     def add_error(self, error: Any, category: str = "general") -> None:
         """
@@ -208,6 +221,11 @@ class BuildStats:
             error: BengalError instance (or compatible exception)
             category: Error category name (e.g., "rendering", "discovery", "config")
         """
+        with self._lock:
+            self._add_error_unlocked(error, category=category)
+
+    def _add_error_unlocked(self, error: Any, category: str = "general") -> None:
+        """Add error to category without acquiring the lock (caller must hold it)."""
         if category not in self.errors_by_category:
             self.errors_by_category[category] = ErrorCategory(name=category)
         self.errors_by_category[category].errors.append(error)
@@ -240,8 +258,11 @@ class BuildStats:
 
     def add_directive(self, directive_type: str) -> None:
         """Track a directive usage."""
-        self.total_directives += 1
-        self.directives_by_type[directive_type] = self.directives_by_type.get(directive_type, 0) + 1
+        with self._lock:
+            self.total_directives += 1
+            self.directives_by_type[directive_type] = (
+                self.directives_by_type.get(directive_type, 0) + 1
+            )
 
     @property
     def pages_built(self) -> int:

@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import json
 import sys
+import threading
 import time
 import tracemalloc
 from datetime import UTC, datetime
@@ -35,15 +36,18 @@ if TYPE_CHECKING:
 
 # Lazy logger - only loaded when actually logging (error paths)
 _logger: BengalLogger | None = None
+_logger_lock = threading.Lock()
 
 
 def _get_logger():
     """Get logger lazily to avoid import overhead."""
     global _logger
     if _logger is None:
-        from bengal.utils.observability.logger import get_logger
+        with _logger_lock:
+            if _logger is None:
+                from bengal.utils.observability.logger import get_logger
 
-        _logger = get_logger(__name__)
+                _logger = get_logger(__name__)
     return _logger
 
 

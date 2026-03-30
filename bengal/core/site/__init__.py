@@ -236,6 +236,9 @@ class Site(
     # Lock for thread-safe fallback set access (initialized in __post_init__)
     _asset_manifest_fallbacks_lock: Lock | None = field(default=None, repr=False, init=False)
 
+    # Shared lock for lazy-property initialization (double-checked locking pattern)
+    _init_lock: Lock = field(default_factory=Lock, repr=False, init=False)
+
     # --- Legacy Template Environment Caches (primary: BuildState) ---
     _bengal_theme_chain_cache: dict[str, Any] | None = field(default=None, repr=False, init=False)
     _bengal_template_dirs_cache: dict[str, Any] | None = field(default=None, repr=False, init=False)
@@ -371,7 +374,9 @@ class Site(
         via a frozen dataclass that requires no locks during parallel rendering.
         """
         if self._config_service is None:
-            self._config_service = ConfigService.from_config(self.config, self.root_path)
+            with self._init_lock:
+                if self._config_service is None:
+                    self._config_service = ConfigService.from_config(self.config, self.root_path)
         return self._config_service
 
     def _compute_config_hash(self) -> None:
@@ -390,9 +395,13 @@ class Site(
     def indexes(self) -> QueryIndexRegistry:
         """Access to query indexes for O(1) page lookups."""
         if self._query_registry is None:
-            from bengal.cache.query_index_registry import QueryIndexRegistry
+            with self._init_lock:
+                if self._query_registry is None:
+                    from bengal.cache.query_index_registry import QueryIndexRegistry
 
-            self._query_registry = QueryIndexRegistry(cast(SiteLike, self), self.paths.indexes_dir)
+                    self._query_registry = QueryIndexRegistry(
+                        cast(SiteLike, self), self.paths.indexes_dir
+                    )
         return self._query_registry
 
     @property
@@ -411,9 +420,12 @@ class Site(
             section = site.registry.get_section_by_url("/api/")
         """
         if self._registry is None:
-            self._registry = ContentRegistry()
-            self._registry.set_root_path(self.root_path)
-            self._registry.url_ownership = self.url_registry
+            with self._init_lock:
+                if self._registry is None:
+                    _reg = ContentRegistry()
+                    _reg.set_root_path(self.root_path)
+                    _reg.url_ownership = self.url_registry
+                    self._registry = _reg
         return self._registry
 
     # =========================================================================

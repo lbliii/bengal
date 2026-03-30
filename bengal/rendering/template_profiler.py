@@ -425,6 +425,7 @@ def format_profile_report(report: dict[str, Any], top_n: int = 20) -> str:
 
 # Global profiler instance (disabled by default)
 _global_profiler: TemplateProfiler | None = None
+_global_profiler_lock = threading.Lock()
 
 
 def get_profiler() -> TemplateProfiler | None:
@@ -442,7 +443,9 @@ def enable_profiling() -> TemplateProfiler:
     """
     global _global_profiler
     if _global_profiler is None:
-        _global_profiler = TemplateProfiler()
+        with _global_profiler_lock:
+            if _global_profiler is None:
+                _global_profiler = TemplateProfiler()
     _global_profiler.enable()
     return _global_profiler
 

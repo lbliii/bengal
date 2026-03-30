@@ -202,7 +202,7 @@ class RenderingPipeline:
                     site._external_ref_resolvers_lock = lock = threading.Lock()
                 with lock:
                     site._external_ref_resolvers.append(external_ref_resolver)
-                site.external_ref_resolver = external_ref_resolver
+                    site.external_ref_resolver = external_ref_resolver
 
             rich_parser = cast(RichMarkdownParser, self.parser)
             rich_parser.enable_cross_references(

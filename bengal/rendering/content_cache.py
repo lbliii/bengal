@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -228,13 +229,16 @@ class ContentCache:
 
 # Global content cache instance (singleton)
 _content_cache: ContentCache | None = None
+_content_cache_lock = threading.Lock()
 
 
 def get_content_cache() -> ContentCache:
     """Get or create the global content cache."""
     global _content_cache
     if _content_cache is None:
-        _content_cache = ContentCache()
+        with _content_cache_lock:
+            if _content_cache is None:
+                _content_cache = ContentCache()
     return _content_cache
 
 

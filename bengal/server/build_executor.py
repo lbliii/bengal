@@ -57,7 +57,15 @@ logger = get_logger(__name__)
 
 # Use spawn context to avoid fork issues with threads
 # spawn starts a fresh Python interpreter, avoiding shared state issues
-mp_context = multiprocessing.get_context("spawn")
+# Lazy getter avoids the import-time side effect of get_context("spawn")
+_mp_context = None
+
+
+def _get_mp_context() -> multiprocessing.context.BaseContext:
+    global _mp_context
+    if _mp_context is None:
+        _mp_context = multiprocessing.get_context("spawn")
+    return _mp_context
 
 
 @dataclass(frozen=True, slots=True)
@@ -295,7 +303,7 @@ class BuildExecutor:
             else:
                 self._executor = ProcessPoolExecutor(
                     max_workers=self.max_workers,
-                    mp_context=mp_context,
+                    mp_context=_get_mp_context(),
                 )
                 logger.info("build_executor_created", type="process", workers=self.max_workers)
 

@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import hashlib
 import shutil
+import threading
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -49,6 +50,10 @@ from typing import Any
 from bengal.assets.manifest import AssetManifest
 from bengal.core.asset.css_transforms import transform_css_nesting
 from bengal.core.diagnostics import emit as emit_diagnostic
+
+# Pillow C extensions are not thread-safe under free-threading (3.14t);
+# serialise all PIL operations with this lock so worker threads don't race.
+_pil_lock = threading.Lock()
 
 
 @dataclass
@@ -499,15 +504,17 @@ class Asset:
             from PIL import Image
             from PIL.Image import Image as PILImage
 
-            img: PILImage = Image.open(self.source_path)
+            # Pillow C extensions are not thread-safe under free-threading (3.14t)
+            with _pil_lock:
+                img: PILImage = Image.open(self.source_path)
 
-            # Basic optimization - could be expanded
-            if img.mode in ("RGBA", "LA"):
-                # Keep alpha channel
-                pass
-            else:
-                # Convert to RGB if needed
-                img = img.convert("RGB")
+                # Basic optimization - could be expanded
+                if img.mode in ("RGBA", "LA"):
+                    # Keep alpha channel
+                    pass
+                else:
+                    # Convert to RGB if needed
+                    img = img.convert("RGB")
 
             # Store optimized image (would be saved during copy_to_output)
             self._optimized_image = img
@@ -588,7 +595,11 @@ class Asset:
                 elif ext in ("PNG", "GIF", "WEBP"):
                     img_format = ext
 
-                self._optimized_image.save(tmp_path, format=img_format, optimize=True, quality=85)
+                # Pillow C extensions are not thread-safe under free-threading (3.14t)
+                with _pil_lock:
+                    self._optimized_image.save(
+                        tmp_path, format=img_format, optimize=True, quality=85
+                    )
                 tmp_path.replace(output_path)
             except Exception as e:
                 emit_diagnostic(

@@ -16,6 +16,7 @@ Architecture:
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable, Mapping
 from datetime import datetime
 from pathlib import Path
@@ -170,6 +171,7 @@ class PageProxy:
         self._loader = loader
         self._lazy_loaded = False
         self._full_page: Page | None = None
+        self._load_lock = threading.Lock()
         self._related_posts_cache: list[Page] | None = None
         self._site = None  # Site reference - set externally
 
@@ -313,32 +315,36 @@ class PageProxy:
         if self._lazy_loaded:
             return
 
-        try:
-            self._full_page = self._loader(self.source_path)
-            self._lazy_loaded = True
+        with self._load_lock:
+            if self._lazy_loaded:
+                return
 
-            # Transfer site and section references to loaded page
-            if self._full_page:
-                if hasattr(self, "_site"):
-                    self._full_page._site = self._site
-                # Transfer section path (not object) for stable references
-                if self._section_path is not None:
-                    self._full_page._section_path = self._section_path
+            try:
+                self._full_page = self._loader(self.source_path)
+                self._lazy_loaded = True
+            except Exception as e:
+                emit_diagnostic(
+                    self,
+                    "error",
+                    "page_proxy_load_failed",
+                    source_path=str(self.source_path),
+                    error=str(e),
+                )
+                raise
 
-            # Apply any pending attributes that were set before loading
-            if hasattr(self, "_pending_output_path") and self._full_page:
-                self._full_page.output_path = self._pending_output_path
+        # Transfer site and section references to loaded page (outside lock)
+        if self._full_page:
+            if hasattr(self, "_site"):
+                self._full_page._site = self._site
+            # Transfer section path (not object) for stable references
+            if self._section_path is not None:
+                self._full_page._section_path = self._section_path
 
-            emit_diagnostic(self, "debug", "page_proxy_loaded", source_path=str(self.source_path))
-        except Exception as e:
-            emit_diagnostic(
-                self,
-                "error",
-                "page_proxy_load_failed",
-                source_path=str(self.source_path),
-                error=str(e),
-            )
-            raise
+        # Apply any pending attributes that were set before loading
+        if hasattr(self, "_pending_output_path") and self._full_page:
+            self._full_page.output_path = self._pending_output_path
+
+        emit_diagnostic(self, "debug", "page_proxy_loaded", source_path=str(self.source_path))
 
     # ============================================================================
     # Lazy Properties - Load full page on first access
