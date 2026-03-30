@@ -25,7 +25,6 @@ See Also:
 
 from __future__ import annotations
 
-import concurrent.futures
 from collections.abc import Callable
 from threading import Lock
 from typing import TYPE_CHECKING
@@ -301,71 +300,72 @@ class PostprocessOrchestrator:
         """
         errors = []
         completed_count = 0
-        lock = Lock()
 
-        try:
-            from bengal.utils.concurrency.executor import managed_executor
+        def _run_task(name_fn_tuple: tuple[str, Callable[[], None]]) -> str:
+            name, fn = name_fn_tuple
+            fn()
+            return name
 
-            with managed_executor(len(tasks), thread_name_prefix="Bengal-PostProcess") as executor:
-                futures = {executor.submit(task_fn): name for name, task_fn in tasks}
+        def _on_progress(completed: int, total: int) -> None:
+            nonlocal completed_count
+            if progress_manager:
+                completed_count = completed
+                progress_manager.update_phase(
+                    "postprocess", current=completed_count, current_item=""
+                )
 
-                for future in concurrent.futures.as_completed(futures):
-                    # Get task name outside try block (dictionary lookup is fast)
-                    task_name = futures[future]
-                    try:
-                        future.result(timeout=90)
-                        if progress_manager:
-                            # Minimize lock hold time - only update counter and progress
-                            with lock:
-                                completed_count += 1
-                                progress_manager.update_phase(
-                                    "postprocess", current=completed_count, current_item=task_name
-                                )
-                    except Exception as e:
-                        # Suppress interpreter shutdown errors - these are expected on Ctrl+C
-                        if is_shutdown_error(e):
-                            logger.debug("postprocess_shutdown", task=task_name)
-                            continue
+        from bengal.utils.concurrency.work_scope import WorkScope
 
-                        # Error handling outside lock
-                        error_msg = str(e)
-                        errors.append((task_name, error_msg))
+        with WorkScope("PostProcess", max_workers=len(tasks), on_progress=_on_progress) as scope:
+            results = scope.map(_run_task, tasks)
 
-                        # Import error handling utilities
-                        from bengal.errors import (
-                            BengalError,
-                            ErrorCode,
-                            ErrorContext,
-                            enrich_error,
-                            record_error,
-                        )
+        for r in results:
+            if r.ok:
+                task_name = r.value
+                if progress_manager:
+                    progress_manager.update_phase(
+                        "postprocess", current=completed_count, current_item=task_name
+                    )
+            else:
+                e = r.error
+                if is_shutdown_error(e):
+                    logger.debug("postprocess_shutdown")
+                    continue
 
-                        # Enrich error with context
-                        context = ErrorContext(
-                            operation=f"post-processing task: {task_name}",
-                            suggestion=f"Check {task_name} configuration and file permissions",
-                            original_error=e,
-                        )
-                        enriched = enrich_error(e, context, BengalError)
+                # Extract task name from the error if possible
+                task_name = "unknown"
+                error_msg = str(e)
+                errors.append((task_name, error_msg))
 
-                        # Log with error code
-                        logger.error(
-                            "postprocess_task_failed",
-                            task=task_name,
-                            error=str(enriched),
-                            error_type=type(e).__name__,
-                            error_code=ErrorCode.B008.value,
-                            suggestion=f"Check {task_name} configuration and file permissions",
-                        )
+                # Import error handling utilities
+                from bengal.errors import (
+                    BengalError,
+                    ErrorCode,
+                    ErrorContext,
+                    enrich_error,
+                    record_error,
+                )
 
-                        # Record in error session
-                        record_error(enriched, file_path=f"postprocess:{task_name}")
-        except RuntimeError as e:
-            # Handle graceful shutdown at executor level
-            if is_shutdown_error(e):
-                logger.debug("postprocess_executor_shutdown")
-                return
-            raise
+                # Enrich error with context
+                context = ErrorContext(
+                    operation=f"post-processing task: {task_name}",
+                    suggestion=f"Check {task_name} configuration and file permissions",
+                    original_error=e,
+                )
+                enriched = enrich_error(e, context, BengalError)
+
+                # Log with error code
+                logger.error(
+                    "postprocess_task_failed",
+                    task=task_name,
+                    error=str(enriched),
+                    error_type=type(e).__name__,
+                    error_code=ErrorCode.B008.value,
+                    suggestion=f"Check {task_name} configuration and file permissions",
+                )
+
+                # Record in error session
+                record_error(enriched, file_path=f"postprocess:{task_name}")
 
         # Report errors
         if errors and not progress_manager:

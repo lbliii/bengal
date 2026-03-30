@@ -49,7 +49,6 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
@@ -755,16 +754,14 @@ class BuildOrchestrator:
                 generated_page_cache.save()
 
         # Run cache saves in parallel
-        from bengal.utils.concurrency.executor import managed_executor
+        from bengal.utils.concurrency.work_scope import WorkScope
 
-        with managed_executor(2, thread_name_prefix="CacheSave") as executor:
-            futures = [
-                executor.submit(_save_main_cache),
-                executor.submit(_save_generated_cache),
-            ]
-            # Wait for all saves to complete (bounded)
-            for future in as_completed(futures):
-                future.result(timeout=60)
+        with WorkScope("CacheSave", max_workers=2, per_item_timeout=60.0) as scope:
+            results = scope.map(lambda fn: fn(), [_save_main_cache, _save_generated_cache])
+
+        for r in results:
+            if r.error:
+                raise r.error
 
         cache_duration_ms = (time.perf_counter() - cache_start) * 1000
         if cli is not None:

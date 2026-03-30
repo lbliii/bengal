@@ -22,7 +22,6 @@ from __future__ import annotations
 
 import asyncio
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -177,10 +176,8 @@ class LinkCheckOrchestrator:
         if self.check_internal:
             self.internal_checker.set_file_index(html_files)
 
-        # Pipeline: kick off external checks in a background thread while
-        # internal checking runs synchronously on the main thread.
-        external_future = None
-        external_executor = None
+        # Pipeline: run internal and external checks concurrently via WorkScope.
+        external_work_results = None
         if self.check_external and external_links:
 
             def _run_external() -> dict[str, LinkCheckResult]:
@@ -193,10 +190,10 @@ class LinkCheckOrchestrator:
                 finally:
                     loop.close()
 
-            external_executor = ThreadPoolExecutor(
-                max_workers=1, thread_name_prefix="linkcheck-ext"
-            )
-            external_future = external_executor.submit(_run_external)  # noqa: timeout on .result() below
+            from bengal.utils.concurrency.work_scope import WorkScope
+
+            with WorkScope("linkcheck-ext", max_workers=1, timeout=120.0) as scope:
+                external_work_results = scope.map(lambda _: _run_external(), [None])
 
         results: list[LinkCheckResult] = []
 
@@ -209,10 +206,11 @@ class LinkCheckOrchestrator:
                 broken=sum(1 for r in internal_results.values() if r.status == LinkStatus.BROKEN),
             )
 
-        if external_future is not None:
-            external_results = external_future.result(timeout=120)
-            if external_executor:
-                external_executor.shutdown(wait=False)
+        if external_work_results is not None:
+            ext_result = external_work_results[0]
+            if ext_result.error:
+                raise ext_result.error
+            external_results = ext_result.value
             results.extend(external_results.values())
             logger.info(
                 "external_links_checked",
@@ -270,28 +268,26 @@ class LinkCheckOrchestrator:
         html_files = list(output_dir.rglob("*.html"))
 
         # Parse files in parallel (I/O-bound: file reads + HTML parsing)
-        from bengal.utils.concurrency.executor import managed_executor
+        from bengal.utils.concurrency.work_scope import WorkScope
+
+        def _parse_with_path(html_file: Path) -> tuple[Path, list[str]]:
+            return html_file, _parse_file(html_file)
 
         file_links: list[tuple[Path, list[str]]] = []
-        with managed_executor(
-            max_workers=min(8, len(html_files) or 1), thread_name_prefix="linkextract"
-        ) as pool:
-            futures = {pool.submit(_parse_file, f): f for f in html_files}
-            for future in as_completed(futures):
-                html_file = futures[future]
-                try:
-                    links = future.result(timeout=90)
-                    file_links.append((html_file, links))
-                except Exception as e:
-                    from bengal.errors import ErrorCode
+        with WorkScope("linkextract", max_workers=min(8, len(html_files) or 1)) as scope:
+            results = scope.map(_parse_with_path, html_files)
+        for r in results:
+            if r.error:
+                from bengal.errors import ErrorCode
 
-                    logger.warning(
-                        "failed_to_parse_html",
-                        file=str(html_file),
-                        error=str(e),
-                        error_code=ErrorCode.V005.value,
-                        suggestion="Check HTML file for malformed content. Link check will skip this file.",
-                    )
+                logger.warning(
+                    "failed_to_parse_html",
+                    error=str(r.error),
+                    error_code=ErrorCode.V005.value,
+                    suggestion="Check HTML file for malformed content. Link check will skip this file.",
+                )
+            else:
+                file_links.append(r.value)
 
         # Classify extracted links
         for html_file, links in file_links:

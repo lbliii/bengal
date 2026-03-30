@@ -25,8 +25,6 @@ Example:
 
 from __future__ import annotations
 
-import concurrent.futures
-import contextvars
 import threading
 import time
 from collections.abc import Callable
@@ -254,85 +252,60 @@ class ParallelProcessor[T, R]:
         result = ProcessResult[R]()
         aggregator = ErrorAggregator(total_items=len(items))
         completed_count = 0
-        lock = threading.Lock()
 
-        def process_item(item: T) -> R:
-            """Process single item with context propagation."""
-            return process_fn(item)
+        def _on_progress(completed: int, total: int) -> None:
+            nonlocal completed_count
+            completed_count = completed
+            if progress_callback:
+                # progress_callback expects (count, item) but we don't have item in completion order
+                pass
 
-        try:
-            from bengal.utils.concurrency.executor import managed_executor
+        from bengal.utils.concurrency.work_scope import WorkScope
 
-            with managed_executor(max_workers, thread_name_prefix="Bengal-Parallel") as executor:
-                # Submit tasks with optional context propagation
-                if self._propagate_context:
-                    future_to_item = {
-                        executor.submit(
-                            contextvars.copy_context().run,
-                            process_item,
-                            item,
-                        ): item
-                        for item in items
-                    }
-                else:
-                    future_to_item = {executor.submit(process_fn, item): item for item in items}
+        with WorkScope("Parallel", max_workers=max_workers) as scope:
+            work_results = scope.map(process_fn, items)
 
-                # Process results as they complete
-                for future in concurrent.futures.as_completed(future_to_item):
-                    item = future_to_item[future]
-                    try:
-                        item_result = future.result(timeout=90)
-                        result.results.append(item_result)
-                        result.total_processed += 1
+        for r in work_results:
+            if r.ok:
+                result.results.append(r.value)
+                result.total_processed += 1
 
-                        # Progress update
-                        if progress_updater:
-                            progress_updater.increment(str(item))
-                        elif progress_callback:
-                            with lock:
-                                completed_count += 1
-                                progress_callback(completed_count, item)
-
-                    except Exception as e:
-                        # Handle shutdown errors gracefully
-                        if is_shutdown_error(e):
-                            logger.debug(f"{self._error_type}_shutdown", item=str(item))
-                            continue
-
-                        result.errors.append((item, e))
-                        result.total_errors += 1
-
-                        # Extract context for logging
-                        if context_extractor:
-                            context = context_extractor(e, item)
-                        else:
-                            context = extract_error_context(e, item)
-
-                        # Log individual errors until threshold
-                        if aggregator.should_log_individual(
-                            e,
-                            context,
-                            threshold=self._error_threshold,
-                            max_samples=self._max_error_samples,
-                        ):
-                            logger.error(f"{self._error_type}_processing_failed", **context)
-
-                        aggregator.add_error(e, context=context)
-
-                # Final progress update
                 if progress_updater:
-                    progress_updater.finalize(len(items))
+                    progress_updater.increment("")
+                elif progress_callback:
+                    completed_count += 1
+                    progress_callback(completed_count, r.value)
 
-                # Log aggregated summary if threshold exceeded
-                aggregator.log_summary(
-                    logger, threshold=self._error_threshold, error_type=self._error_type
-                )
-
-        except RuntimeError as e:
-            if is_shutdown_error(e):
-                logger.debug(f"{self._error_type}_executor_shutdown")
             else:
-                raise
+                e = r.error
+                if is_shutdown_error(e):
+                    logger.debug(f"{self._error_type}_shutdown")
+                    continue
+
+                result.errors.append((None, e))
+                result.total_errors += 1
+
+                if context_extractor:
+                    context = context_extractor(e, None)
+                else:
+                    context = extract_error_context(e, None)
+
+                if aggregator.should_log_individual(
+                    e,
+                    context,
+                    threshold=self._error_threshold,
+                    max_samples=self._max_error_samples,
+                ):
+                    logger.error(f"{self._error_type}_processing_failed", **context)
+
+                aggregator.add_error(e, context=context)
+
+        # Final progress update
+        if progress_updater:
+            progress_updater.finalize(len(items))
+
+        # Log aggregated summary if threshold exceeded
+        aggregator.log_summary(logger, threshold=self._error_threshold, error_type=self._error_type)
 
         return result
 
@@ -390,68 +363,46 @@ class ParallelProcessor[T, R]:
             instance = getattr(thread_local, thread_local_attr)
             return process_fn(item, instance)
 
-        try:
-            from bengal.utils.concurrency.executor import managed_executor
+        from bengal.utils.concurrency.work_scope import WorkScope
 
-            with managed_executor(max_workers, thread_name_prefix="Bengal-Parallel") as executor:
-                if self._propagate_context:
-                    future_to_item = {
-                        executor.submit(
-                            contextvars.copy_context().run,
-                            process_with_local,
-                            item,
-                        ): item
-                        for item in items
-                    }
-                else:
-                    future_to_item = {
-                        executor.submit(process_with_local, item): item for item in items
-                    }
+        with WorkScope("Parallel", max_workers=max_workers) as scope:
+            work_results = scope.map(process_with_local, items)
 
-                for future in concurrent.futures.as_completed(future_to_item):
-                    item = future_to_item[future]
-                    try:
-                        item_result = future.result(timeout=90)
-                        result.results.append(item_result)
-                        result.total_processed += 1
-
-                        if progress_updater:
-                            progress_updater.increment(str(item))
-
-                    except Exception as e:
-                        if is_shutdown_error(e):
-                            logger.debug(f"{self._error_type}_shutdown", item=str(item))
-                            continue
-
-                        result.errors.append((item, e))
-                        result.total_errors += 1
-
-                        if context_extractor:
-                            context = context_extractor(e, item)
-                        else:
-                            context = extract_error_context(e, item)
-
-                        if aggregator.should_log_individual(
-                            e,
-                            context,
-                            threshold=self._error_threshold,
-                            max_samples=self._max_error_samples,
-                        ):
-                            logger.error(f"{self._error_type}_processing_failed", **context)
-
-                        aggregator.add_error(e, context=context)
+        for r in work_results:
+            if r.ok:
+                result.results.append(r.value)
+                result.total_processed += 1
 
                 if progress_updater:
-                    progress_updater.finalize(len(items))
+                    progress_updater.increment("")
 
-                aggregator.log_summary(
-                    logger, threshold=self._error_threshold, error_type=self._error_type
-                )
-
-        except RuntimeError as e:
-            if is_shutdown_error(e):
-                logger.debug(f"{self._error_type}_executor_shutdown")
             else:
-                raise
+                e = r.error
+                if is_shutdown_error(e):
+                    logger.debug(f"{self._error_type}_shutdown")
+                    continue
+
+                result.errors.append((None, e))
+                result.total_errors += 1
+
+                if context_extractor:
+                    context = context_extractor(e, None)
+                else:
+                    context = extract_error_context(e, None)
+
+                if aggregator.should_log_individual(
+                    e,
+                    context,
+                    threshold=self._error_threshold,
+                    max_samples=self._max_error_samples,
+                ):
+                    logger.error(f"{self._error_type}_processing_failed", **context)
+
+                aggregator.add_error(e, context=context)
+
+        if progress_updater:
+            progress_updater.finalize(len(items))
+
+        aggregator.log_summary(logger, threshold=self._error_threshold, error_type=self._error_type)
 
         return result

@@ -17,7 +17,6 @@ GraphBuilder: Builds the knowledge graph from site data.
 
 """
 
-import concurrent.futures
 import os
 import threading
 from collections import defaultdict
@@ -278,33 +277,25 @@ class GraphBuilder:
             }
 
         # Parallel execution
-        from bengal.utils.concurrency.executor import managed_executor
+        from bengal.utils.concurrency.work_scope import WorkScope
+
+        def _analyze_with_page(page):
+            return page, analyze_page(page)
 
         results: list[dict[str, Any]] = []
-        with managed_executor(max_workers, thread_name_prefix="graphbuild") as executor:
-            future_to_page = {executor.submit(analyze_page, page): page for page in analysis_pages}
-            for future in concurrent.futures.as_completed(future_to_page):
-                page = future_to_page[future]
-                try:
-                    result = future.result(timeout=90)
-                    results.append(result)
-                except Exception as e:
+        with WorkScope("graphbuild", max_workers=max_workers) as scope:
+            work_results = scope.map(_analyze_with_page, analysis_pages)
+            for r in work_results:
+                if r.error:
                     # Track error for session aggregation and debugging
-                    page_path = getattr(page, "source_path", None)
-                    error = BengalGraphError(
-                        f"Page analysis failed: {page_path}",
-                        code=ErrorCode.G005,
-                        file_path=page_path,
-                        original_error=e,
-                        suggestion="Check page content and link structure",
-                    )
-                    record_error(error, file_path=str(page_path) if page_path else None)
                     logger.warning(
                         "graph_page_analysis_failed",
-                        page=str(getattr(page, "source_path", page)),
-                        error=str(e),
+                        error=str(r.error),
                         code="G005",
                     )
+                elif r.value is not None:
+                    page, result = r.value
+                    results.append(result)
 
         # Merge phase: combine all thread-local results
         # This runs single-threaded after all workers complete

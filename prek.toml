@@ -111,3 +111,12 @@ language = "system"
 files = "^tests/.*\\.py$"
 pass_filenames = true
 priority = 2
+
+[[repos.hooks]]
+id = "check-bare-threadpool"
+name = "Block bare ThreadPoolExecutor in bengal/"
+entry = "uv run python scripts/check_bare_threadpool.py"
+language = "system"
+files = "^bengal/.*\\.py$"
+pass_filenames = true
+priority = 2

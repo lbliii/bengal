@@ -12,7 +12,6 @@ All data access is from frozen snapshot (lock-free).
 from __future__ import annotations
 
 import time
-from concurrent.futures import as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -26,7 +25,6 @@ from bengal.snapshots.utils import (
     RenderProgressTracker,
     resolve_template_name,
 )
-from bengal.utils.concurrency import submit_with_context
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -250,12 +248,32 @@ class WaveScheduler:
             )
 
             # Render by template batch
-            from bengal.utils.concurrency.executor import managed_executor
+            from bengal.utils.concurrency.work_scope import WorkScope
 
-            with managed_executor(
+            def process_page(page: Page) -> Page:
+                try:
+                    run_page(
+                        page,
+                        site=self.site,
+                        quiet=self.quiet,
+                        stats=self.stats,
+                        build_context=self.build_context,
+                        changed_sources=None,
+                        block_cache=self._block_cache,
+                        highlight_cache=None,
+                        output_collector=self._output_collector,
+                        write_behind=self._write_behind,
+                        current_generation=None,
+                    )
+                except Exception as e:
+                    e.__page_source_path__ = page.source_path
+                    raise
+                return page
+
+            with WorkScope(
+                "Render",
                 max_workers=self.max_workers,
-                thread_name_prefix="Bengal-Render",
-            ) as executor:
+            ) as scope:
                 for template_idx, template_name in enumerate(sorted_templates):
                     batch_pages = template_to_pages[template_name]
                     if not batch_pages:
@@ -267,44 +285,22 @@ class WaveScheduler:
                     if scout:
                         scout._worker_wave = template_idx + 1
 
-                    def process_page(page: Page) -> Page:
-                        run_page(
-                            page,
-                            site=self.site,
-                            quiet=self.quiet,
-                            stats=self.stats,
-                            build_context=self.build_context,
-                            changed_sources=None,
-                            block_cache=self._block_cache,
-                            highlight_cache=None,
-                            output_collector=self._output_collector,
-                            write_behind=self._write_behind,
-                            current_generation=None,
-                        )
-                        return page
+                    # WorkScope propagates context automatically
+                    results = scope.map(process_page, batch_pages)
 
-                    # Submit all pages in this template batch (context propagation for asset_url)
-                    futures = {
-                        submit_with_context(executor, process_page, page): page
-                        for page in batch_pages
-                    }
-
-                    # Collect results and update progress
-                    token = self.build_context.cancellation_token if self.build_context else None
-                    for future in as_completed(futures):
-                        page = futures[future]
-                        try:
-                            if token:
-                                rendered_page = token.result(future, per_item_timeout=60.0)
-                            else:
-                                rendered_page = future.result(timeout=90)
+                    # Process results
+                    for r in results:
+                        if r.ok:
+                            rendered_page = r.value
                             stats.pages_rendered += 1
                             self._progress_tracker.increment(rendered_page)
-                        except Exception as e:
+                        else:
+                            e = r.error
                             if type(e).__name__ == "CancellationError":
                                 logger.warning("render_cancelled_wave")
                                 break
-                            stats.errors.append((page.source_path, e))
+                            source = getattr(e, "__page_source_path__", None)
+                            stats.errors.append((source, e))
 
                     batch_time = (time.perf_counter() - batch_start) * 1000
                     stats.template_batches[template_name] = len(batch_pages)
@@ -389,12 +385,32 @@ class WaveScheduler:
                 max_wave = max(waves.keys()) if waves else -1
                 waves[max_wave + 1] = orphan_pages
 
-            from bengal.utils.concurrency.executor import managed_executor
+            from bengal.utils.concurrency.work_scope import WorkScope
 
-            with managed_executor(
+            def process_page_with_pipeline(page: Page) -> Page:
+                try:
+                    run_page(
+                        page,
+                        site=self.site,
+                        quiet=self.quiet,
+                        stats=self.stats,
+                        build_context=self.build_context,
+                        changed_sources=None,
+                        block_cache=self._block_cache,
+                        highlight_cache=None,
+                        output_collector=self._output_collector,
+                        write_behind=self._write_behind,
+                        current_generation=None,
+                    )
+                except Exception as e:
+                    e.__page_source_path__ = page.source_path
+                    raise
+                return page
+
+            with WorkScope(
+                "Render",
                 max_workers=self.max_workers,
-                thread_name_prefix="Bengal-Render",
-            ) as executor:
+            ) as scope:
                 wave_num = 0
 
                 for wave_idx in sorted(waves.keys()):
@@ -406,42 +422,21 @@ class WaveScheduler:
                     if scout:
                         scout._worker_wave = wave_num
 
-                    def process_page_with_pipeline(page: Page) -> Page:
-                        run_page(
-                            page,
-                            site=self.site,
-                            quiet=self.quiet,
-                            stats=self.stats,
-                            build_context=self.build_context,
-                            changed_sources=None,
-                            block_cache=self._block_cache,
-                            highlight_cache=None,
-                            output_collector=self._output_collector,
-                            write_behind=self._write_behind,
-                            current_generation=None,
-                        )
-                        return page
+                    # WorkScope propagates context automatically
+                    results = scope.map(process_page_with_pipeline, wave_pages)
 
-                    futures = {
-                        submit_with_context(executor, process_page_with_pipeline, page): page
-                        for page in wave_pages
-                    }
-
-                    token = self.build_context.cancellation_token if self.build_context else None
-                    for future in as_completed(futures):
-                        page = futures[future]
-                        try:
-                            if token:
-                                rendered_page = token.result(future, per_item_timeout=60.0)
-                            else:
-                                rendered_page = future.result(timeout=90)
+                    for r in results:
+                        if r.ok:
+                            rendered_page = r.value
                             stats.pages_rendered += 1
                             self._progress_tracker.increment(rendered_page)
-                        except Exception as e:
+                        else:
+                            e = r.error
                             if type(e).__name__ == "CancellationError":
                                 logger.warning("render_cancelled_wave")
                                 break
-                            stats.errors.append((page.source_path, e))
+                            source = getattr(e, "__page_source_path__", None)
+                            stats.errors.append((source, e))
 
             # Final progress update to ensure 100%
             self._progress_tracker.finalize(total_pages)

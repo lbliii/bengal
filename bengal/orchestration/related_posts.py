@@ -36,7 +36,6 @@ bengal.orchestration.taxonomy: Provides taxonomy index used for matching
 
 from __future__ import annotations
 
-import concurrent.futures
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
@@ -247,34 +246,27 @@ class RelatedPostsOrchestrator:
 
         pages_with_related = 0
 
-        # Use managed_executor for safe shutdown on timeout/error
-        from bengal.utils.concurrency.executor import managed_executor
+        # Use WorkScope for safe shutdown on timeout/error
+        from bengal.utils.concurrency.work_scope import WorkScope
 
-        with managed_executor(max_workers, thread_name_prefix="Bengal-Related") as executor:
-            # Submit all tasks
-            future_to_page = {
-                executor.submit(
-                    self._find_related_posts, page, page_tags_map, tags_dict, limit
-                ): page
-                for page in pages
-            }
+        def _find_related_for_page(page):
+            related = self._find_related_posts(page, page_tags_map, tags_dict, limit)
+            return page, related
 
-            # Collect results as they complete
-            for future in concurrent.futures.as_completed(future_to_page):
-                page = future_to_page[future]
-                try:
-                    related_posts = future.result(timeout=90)
-                    page.related_posts = related_posts
-                    if related_posts:
-                        pages_with_related += 1
-                except Exception as e:
-                    # Log error but don't fail the build
-                    logger.error(
-                        "related_posts_computation_failed",
-                        page=str(page.source_path),
-                        error=str(e),
-                    )
-                    page.related_posts = []
+        with WorkScope("related-posts", max_workers=max_workers) as scope:
+            results = scope.map(_find_related_for_page, pages)
+
+        for r in results:
+            if r.error:
+                logger.error(
+                    "related_posts_computation_failed",
+                    error=str(r.error),
+                )
+            elif r.value is not None:
+                page, related_posts = r.value
+                page.related_posts = related_posts
+                if related_posts:
+                    pages_with_related += 1
 
         # Single finalization pass: clear generated pages' related_posts
         for page in self.site.pages:

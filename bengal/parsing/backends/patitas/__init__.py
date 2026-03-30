@@ -296,10 +296,20 @@ def parse_many(
     def _parse_one(source: str) -> str:
         return parse(source, highlight=highlight, delegate=delegate)
 
-    from bengal.utils.concurrency.executor import managed_executor
+    from bengal.utils.concurrency.work_scope import WorkScope
 
-    with managed_executor(max_workers=max_workers) as executor:
-        return list(executor.map(_parse_one, sources))
+    def _parse_indexed(item: tuple[int, str]) -> tuple[int, str]:
+        idx, source = item
+        return idx, _parse_one(source)
+
+    with WorkScope("patitas-parse", max_workers=max_workers) as scope:
+        results = scope.map(_parse_indexed, list(enumerate(sources)))
+    for r in results:
+        if r.error:
+            raise r.error
+    # Sort by original index to preserve submission order
+    ordered = sorted((r.value for r in results if r.value is not None), key=lambda x: x[0])
+    return [val for _, val in ordered]
 
 
 def parse_to_ast(

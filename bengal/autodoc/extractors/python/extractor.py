@@ -17,7 +17,6 @@ significant speedup (3-4x on multi-core machines).
 from __future__ import annotations
 
 import ast
-import concurrent.futures
 import multiprocessing
 import os
 import time
@@ -431,15 +430,14 @@ class PythonExtractor(Extractor):
                 )
                 return []
 
-        from bengal.utils.concurrency.executor import managed_executor
+        from bengal.utils.concurrency.work_scope import WorkScope
 
-        with managed_executor(max_workers, thread_name_prefix="autodoc") as executor:
-            future_to_file = {
-                executor.submit(extract_single_file, py_file): py_file for py_file in py_files
-            }
-            for future in concurrent.futures.as_completed(future_to_file):
-                file_elements = future.result(timeout=90)
-                elements.extend(file_elements)
+        with WorkScope("autodoc", max_workers=max_workers) as scope:
+            results = scope.map(extract_single_file, py_files)
+            for r in results:
+                if r.error:
+                    raise r.error
+                elements.extend(r.value)
 
         elapsed = time.perf_counter() - start_time
         files_per_second = len(py_files) / elapsed if elapsed > 0 else 0
