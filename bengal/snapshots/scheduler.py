@@ -12,7 +12,7 @@ All data access is from frozen snapshot (lock-free).
 from __future__ import annotations
 
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -250,14 +250,12 @@ class WaveScheduler:
             )
 
             # Render by template batch
-            # Manage executor manually to avoid shutdown(wait=True) hanging
-            # when a render thread is stuck (e.g., pytest-timeout fires
-            # KeyboardInterrupt but ThreadPoolExecutor.__exit__ blocks).
-            executor = ThreadPoolExecutor(
+            from bengal.utils.concurrency.executor import managed_executor
+
+            with managed_executor(
                 max_workers=self.max_workers,
                 thread_name_prefix="Bengal-Render",
-            )
-            try:
+            ) as executor:
                 for template_idx, template_name in enumerate(sorted_templates):
                     batch_pages = template_to_pages[template_name]
                     if not batch_pages:
@@ -311,14 +309,6 @@ class WaveScheduler:
                     batch_time = (time.perf_counter() - batch_start) * 1000
                     stats.template_batches[template_name] = len(batch_pages)
                     stats.batch_times_ms[template_name] = batch_time
-            except BaseException:
-                # Force-cancel remaining futures and shut down without waiting.
-                # Catches KeyboardInterrupt (pytest-timeout) and SystemExit
-                # to prevent hangs from ThreadPoolExecutor.shutdown(wait=True).
-                executor.shutdown(wait=False, cancel_futures=True)
-                raise
-            else:
-                executor.shutdown(wait=True)
 
             # Final progress update to ensure 100%
             self._progress_tracker.finalize(total_pages)
@@ -399,7 +389,9 @@ class WaveScheduler:
                 max_wave = max(waves.keys()) if waves else -1
                 waves[max_wave + 1] = orphan_pages
 
-            with ThreadPoolExecutor(
+            from bengal.utils.concurrency.executor import managed_executor
+
+            with managed_executor(
                 max_workers=self.max_workers,
                 thread_name_prefix="Bengal-Render",
             ) as executor:

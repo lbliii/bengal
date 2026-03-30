@@ -48,7 +48,6 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable, Sequence
-from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any, Literal
 
 # Core types from external patitas package (nodes, location, tokens, stringbuilder)
@@ -297,7 +296,9 @@ def parse_many(
     def _parse_one(source: str) -> str:
         return parse(source, highlight=highlight, delegate=delegate)
 
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+    from bengal.utils.concurrency.executor import managed_executor
+
+    with managed_executor(max_workers=max_workers) as executor:
         return list(executor.map(_parse_one, sources))
 
 
