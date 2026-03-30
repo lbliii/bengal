@@ -708,8 +708,10 @@ class TaxonomyOrchestrator:
 
         all_generated_pages = []
 
-        # Use ThreadPoolExecutor for parallel processing
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        # Use managed_executor for safe shutdown on timeout/error
+        from bengal.utils.concurrency.executor import managed_executor
+
+        with managed_executor(max_workers, thread_name_prefix="Bengal-Taxonomy") as executor:
             # Submit all tasks
             future_to_tag = {
                 executor.submit(self._create_tag_pages_for_lang, tag_slug, tag_data, lang): tag_slug

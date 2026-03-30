@@ -60,8 +60,10 @@ def managed_executor(
         max_workers=max_workers,
         thread_name_prefix=thread_name_prefix,
     )
+    clean_exit = False
     try:
         yield executor
+        clean_exit = True
     except KeyboardInterrupt, SystemExit:
         executor.shutdown(wait=False, cancel_futures=True)
         raise
@@ -70,10 +72,16 @@ def managed_executor(
             logger.debug("executor_shutdown_detected")
             executor.shutdown(wait=False, cancel_futures=True)
             return
-        executor.shutdown(wait=True)
         raise
-    else:
-        executor.shutdown(wait=True)
+    finally:
+        if clean_exit:
+            executor.shutdown(wait=True)
+        else:
+            # Any exception (TimeoutError, CancellationError, etc.):
+            # cancel pending futures and don't wait for hung threads.
+            # This prevents the 25-minute CI hang caused by
+            # ThreadPoolExecutor.__exit__ calling shutdown(wait=True).
+            executor.shutdown(wait=False, cancel_futures=True)
 
 
 class CancellationToken:
