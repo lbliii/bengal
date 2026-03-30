@@ -11,6 +11,7 @@ tests in their main thread.
 
 from __future__ import annotations
 
+import faulthandler
 import os
 import signal
 import sys
@@ -26,12 +27,24 @@ def _hard_build_timeout():
         return
 
     def _alarm_handler(signum, frame):
+        # Dump all thread stacks before raising — this is the only diagnostic
+        # we get from hung CI tests. Without it, we know a test hung but not why.
+        print("\n" + "=" * 72, file=sys.stderr, flush=True)
+        print("SIGALRM: integration test exceeded 110s hard timeout", file=sys.stderr, flush=True)
+        print("Dumping all thread stacks for deadlock diagnosis:", file=sys.stderr, flush=True)
+        print("=" * 72, file=sys.stderr, flush=True)
+        faulthandler.dump_traceback(file=sys.stderr, all_threads=True)
+        print("=" * 72, file=sys.stderr, flush=True)
         raise TimeoutError("SIGALRM: integration test exceeded 110s hard timeout")
 
     old_handler = signal.signal(signal.SIGALRM, _alarm_handler)
+    # Also set faulthandler to dump stacks at 105s — fires even if SIGALRM
+    # is blocked or the handler itself deadlocks.
+    faulthandler.dump_traceback_later(105, repeat=False, file=sys.stderr)
     signal.alarm(110)  # 110s — fires before the 120s pytest-timeout
     try:
         yield
     finally:
         signal.alarm(0)
+        faulthandler.cancel_dump_traceback_later()
         signal.signal(signal.SIGALRM, old_handler)

@@ -211,6 +211,7 @@ class ContentDiscovery:
         )
         self._executor = ThreadPoolExecutor(max_workers=max_workers)
 
+        clean_exit = False
         try:
             # Walk top-level items
             for item in sorted(self.content_dir.iterdir()):
@@ -229,9 +230,14 @@ class ContentDiscovery:
                     else None
                 )
                 self._process_top_level_item_surgical(item, cache, current_lang=current_lang)
+            clean_exit = True
         finally:
             if self._executor:
-                self._executor.shutdown(wait=True)
+                if clean_exit:
+                    self._executor.shutdown(wait=True)
+                else:
+                    # On error, don't block on hung threads
+                    self._executor.shutdown(wait=False, cancel_futures=True)
                 self._executor = None
 
         # Sort sections
@@ -619,7 +625,7 @@ class ContentDiscovery:
         for fut in futures:
 
             def get_page_result(f: Any = fut) -> Page:
-                return cast(Page, f.result())
+                return cast(Page, f.result(timeout=90))
 
             page = with_error_recovery(
                 get_page_result,

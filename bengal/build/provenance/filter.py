@@ -14,7 +14,7 @@ from __future__ import annotations
 import contextlib
 import os
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -207,14 +207,16 @@ class ProvenanceFilter:
         # Phase 2: Verify cache validity - parallel when many pages
         parallel_threshold = 100
         if len(pages_to_verify) >= parallel_threshold:
+            from bengal.utils.concurrency.executor import managed_executor
+
             max_workers = min(32, (os.cpu_count() or 1) + 4)
-            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            with managed_executor(max_workers, thread_name_prefix="provenance") as executor:
                 futures = [
                     executor.submit(self._verify_page_provenance, page, stored_hash)
                     for page, stored_hash in pages_to_verify
                 ]
                 for future in as_completed(futures):
-                    build, skip, tags, sections, paths = future.result()
+                    build, skip, tags, sections, paths = future.result(timeout=90)
                     if build is not None:
                         pages_to_build.append(build)
                         affected_tags.update(tags)

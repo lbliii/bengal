@@ -278,13 +278,15 @@ class GraphBuilder:
             }
 
         # Parallel execution
+        from bengal.utils.concurrency.executor import managed_executor
+
         results: list[dict[str, Any]] = []
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        with managed_executor(max_workers, thread_name_prefix="graphbuild") as executor:
             future_to_page = {executor.submit(analyze_page, page): page for page in analysis_pages}
             for future in concurrent.futures.as_completed(future_to_page):
                 page = future_to_page[future]
                 try:
-                    result = future.result()
+                    result = future.result(timeout=90)
                     results.append(result)
                 except Exception as e:
                     # Track error for session aggregation and debugging

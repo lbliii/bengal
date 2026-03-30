@@ -431,12 +431,14 @@ class PythonExtractor(Extractor):
                 )
                 return []
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        from bengal.utils.concurrency.executor import managed_executor
+
+        with managed_executor(max_workers, thread_name_prefix="autodoc") as executor:
             future_to_file = {
                 executor.submit(extract_single_file, py_file): py_file for py_file in py_files
             }
             for future in concurrent.futures.as_completed(future_to_file):
-                file_elements = future.result()
+                file_elements = future.result(timeout=90)
                 elements.extend(file_elements)
 
         elapsed = time.perf_counter() - start_time

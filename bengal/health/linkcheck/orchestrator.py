@@ -196,7 +196,7 @@ class LinkCheckOrchestrator:
             external_executor = ThreadPoolExecutor(
                 max_workers=1, thread_name_prefix="linkcheck-ext"
             )
-            external_future = external_executor.submit(_run_external)
+            external_future = external_executor.submit(_run_external)  # noqa: timeout on .result() below
 
         results: list[LinkCheckResult] = []
 
@@ -210,7 +210,7 @@ class LinkCheckOrchestrator:
             )
 
         if external_future is not None:
-            external_results = external_future.result()
+            external_results = external_future.result(timeout=120)
             if external_executor:
                 external_executor.shutdown(wait=False)
             results.extend(external_results.values())
@@ -270,13 +270,17 @@ class LinkCheckOrchestrator:
         html_files = list(output_dir.rglob("*.html"))
 
         # Parse files in parallel (I/O-bound: file reads + HTML parsing)
+        from bengal.utils.concurrency.executor import managed_executor
+
         file_links: list[tuple[Path, list[str]]] = []
-        with ThreadPoolExecutor(thread_name_prefix="linkextract") as pool:
+        with managed_executor(
+            max_workers=min(8, len(html_files) or 1), thread_name_prefix="linkextract"
+        ) as pool:
             futures = {pool.submit(_parse_file, f): f for f in html_files}
             for future in as_completed(futures):
                 html_file = futures[future]
                 try:
-                    links = future.result()
+                    links = future.result(timeout=90)
                     file_links.append((html_file, links))
                 except Exception as e:
                     from bengal.errors import ErrorCode

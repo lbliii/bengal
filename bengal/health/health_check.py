@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import os
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -632,7 +632,9 @@ class HealthCheck:
         # Use provided worker count or auto-detect
         max_workers = worker_count or self._get_optimal_workers(len(validators))
 
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        from bengal.utils.concurrency.executor import managed_executor
+
+        with managed_executor(max_workers, thread_name_prefix="healthcheck") as executor:
             # Submit all validators for parallel execution
             futures = {
                 executor.submit(
@@ -645,7 +647,7 @@ class HealthCheck:
             for future in as_completed(futures):
                 validator = futures[future]
                 try:
-                    validator_report = future.result()
+                    validator_report = future.result(timeout=90)
                     report.validator_reports.append(validator_report)
 
                     if verbose:
