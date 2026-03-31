@@ -125,11 +125,12 @@ class WorkScope:
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         if self._executor is not None:
-            if exc_type is not None or self._timed_out:
-                # Any exception or internal timeout: cancel pending and don't wait
-                self._executor.shutdown(wait=False, cancel_futures=True)
-            else:
-                self._executor.shutdown(wait=True)
+            # Always use wait=False: map() already consumed all futures via
+            # as_completed(), so no work remains.  shutdown(wait=True) only
+            # joins idle pool threads, and on free-threaded Python 3.14 that
+            # C-level join can block indefinitely (uninterruptible by
+            # _thread.interrupt_main / pytest-timeout).
+            self._executor.shutdown(wait=False, cancel_futures=True)
             self._executor = None
         return False
 

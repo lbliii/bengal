@@ -60,10 +60,8 @@ def managed_executor(
         max_workers=max_workers,
         thread_name_prefix=thread_name_prefix,
     )
-    clean_exit = False
     try:
         yield executor
-        clean_exit = True
     except KeyboardInterrupt, SystemExit:
         executor.shutdown(wait=False, cancel_futures=True)
         raise
@@ -74,14 +72,12 @@ def managed_executor(
             return
         raise
     finally:
-        if clean_exit:
-            executor.shutdown(wait=True)
-        else:
-            # Any exception (TimeoutError, CancellationError, etc.):
-            # cancel pending futures and don't wait for hung threads.
-            # This prevents the 25-minute CI hang caused by
-            # ThreadPoolExecutor.__exit__ calling shutdown(wait=True).
-            executor.shutdown(wait=False, cancel_futures=True)
+        # Always use wait=False: callers consume all futures via
+        # as_completed() before exiting the context manager, so no work
+        # remains.  shutdown(wait=True) only joins idle pool threads,
+        # and on free-threaded Python 3.14 that C-level join can block
+        # indefinitely (uninterruptible by pytest-timeout).
+        executor.shutdown(wait=False, cancel_futures=True)
 
 
 class CancellationToken:
