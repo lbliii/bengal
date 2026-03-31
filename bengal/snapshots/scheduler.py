@@ -11,6 +11,7 @@ All data access is from frozen snapshot (lock-free).
 
 from __future__ import annotations
 
+import threading
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -39,6 +40,12 @@ class RenderStats:
         self.errors: list[tuple[Path, Exception]] = []
         self.template_batches: dict[str, int] = {}  # template -> page count
         self.batch_times_ms: dict[str, float] = {}  # template -> render time
+        self._lock = threading.Lock()
+
+    def increment_rendered(self) -> None:
+        """Thread-safe increment of pages_rendered counter."""
+        with self._lock:
+            self.pages_rendered += 1
 
 
 class WaveScheduler:
@@ -268,6 +275,10 @@ class WaveScheduler:
                 except Exception as e:
                     e.__page_source_path__ = page.source_path  # type: ignore[attr-defined]
                     raise
+                # Update progress inline so the bar advances as pages render,
+                # not after the entire batch completes.
+                stats.increment_rendered()
+                self._progress_tracker.increment(page)
                 return page
 
             with WorkScope(
@@ -288,13 +299,9 @@ class WaveScheduler:
                     # WorkScope propagates context automatically
                     results = scope.map(process_page, batch_pages)
 
-                    # Process results
+                    # Process errors
                     for r in results:
-                        if r.ok:
-                            rendered_page = r.value
-                            stats.pages_rendered += 1
-                            self._progress_tracker.increment(rendered_page)
-                        else:
+                        if not r.ok:
                             e = r.error
                             if type(e).__name__ == "CancellationError":
                                 logger.warning("render_cancelled_wave")
@@ -405,6 +412,8 @@ class WaveScheduler:
                 except Exception as e:
                     e.__page_source_path__ = page.source_path  # type: ignore[attr-defined]
                     raise
+                stats.increment_rendered()
+                self._progress_tracker.increment(page)
                 return page
 
             with WorkScope(
@@ -426,11 +435,7 @@ class WaveScheduler:
                     results = scope.map(process_page_with_pipeline, wave_pages)
 
                     for r in results:
-                        if r.ok:
-                            rendered_page = r.value
-                            stats.pages_rendered += 1
-                            self._progress_tracker.increment(rendered_page)
-                        else:
+                        if not r.ok:
                             e = r.error
                             if type(e).__name__ == "CancellationError":
                                 logger.warning("render_cancelled_wave")

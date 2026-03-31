@@ -33,6 +33,7 @@ Related:
 
 from __future__ import annotations
 
+import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum
@@ -187,9 +188,8 @@ class LiveProgressManager:
             self.use_live = False
 
         # Throttle rendering to reduce overhead during very frequent updates.
-        # Default to ~2 Hz (500ms) for better performance (was 200ms/5Hz)
-        # This reduces Rich rendering overhead while still providing smooth progress feedback
-        min_interval_ms = self.live_config.get("min_interval_ms", 500)
+        # Default to ~5 Hz (200ms) — balances smooth feedback with Rich rendering overhead.
+        min_interval_ms = self.live_config.get("min_interval_ms", 200)
         try:
             self._min_render_interval_sec = max(0.0, float(min_interval_ms) / 1000.0)
         except Exception as e:
@@ -198,10 +198,15 @@ class LiveProgressManager:
                 min_interval_ms=min_interval_ms,
                 error=str(e),
                 error_type=type(e).__name__,
-                action="using_default_0_5_sec",
+                action="using_default_0_2_sec",
             )
-            self._min_render_interval_sec = 0.5
+            self._min_render_interval_sec = 0.2
         self._last_render_ts: float = 0.0
+
+        # Lock protecting phase state mutations and display updates.
+        # Required because worker threads call update_phase() directly
+        # (e.g., from WaveScheduler and _render_parallel_with_live_progress).
+        self._lock = threading.Lock()
 
         # Track last printed state for fallback
         self._last_fallback_phase: str | None = None
@@ -305,26 +310,27 @@ class LiveProgressManager:
         if phase_id not in self.phases:
             return
 
-        phase = self.phases[phase_id]
+        with self._lock:
+            phase = self.phases[phase_id]
 
-        if current is not None:
-            phase.current = current
+            if current is not None:
+                phase.current = current
 
-        if current_item is not None:
-            phase.current_item = current_item
-            # Add to recent items for theme-dev/dev profiles
-            max_recent = self.live_config.get("max_recent", 0)
-            if max_recent > 0:
-                phase.recent_items.append(current_item)
-                # Keep only last N items
-                phase.recent_items = phase.recent_items[-max_recent:]
+            if current_item is not None:
+                phase.current_item = current_item
+                # Add to recent items for theme-dev/dev profiles
+                max_recent = self.live_config.get("max_recent", 0)
+                if max_recent > 0:
+                    phase.recent_items.append(current_item)
+                    # Keep only last N items
+                    phase.recent_items = phase.recent_items[-max_recent:]
 
-        # Update metadata
-        phase.metadata.update(metadata)
+            # Update metadata
+            phase.metadata.update(metadata)
 
-        # Update elapsed time if phase is running
-        if phase.status == PhaseStatus.RUNNING and phase.start_time:
-            phase.elapsed_ms = (time.time() - phase.start_time) * 1000
+            # Update elapsed time if phase is running
+            if phase.status == PhaseStatus.RUNNING and phase.start_time:
+                phase.elapsed_ms = (time.time() - phase.start_time) * 1000
 
         # Frequent updates are throttled; no force here
         self._update_display()
@@ -368,13 +374,19 @@ class LiveProgressManager:
             self._update_display(force=True)
 
     def _update_display(self, force: bool = False) -> None:
-        """Update the live display or print fallback."""
+        """Update the live display or print fallback.
+
+        Thread-safe: uses self._lock to serialize the throttle check and
+        Rich Live.update() call so concurrent worker threads don't corrupt
+        progress state or interleave renders.
+        """
         if self.live:
-            now = time.time()
-            if not force and (now - self._last_render_ts) < self._min_render_interval_sec:
-                return
-            self.live.update(self._render())
-            self._last_render_ts = now
+            with self._lock:
+                now = time.time()
+                if not force and (now - self._last_render_ts) < self._min_render_interval_sec:
+                    return
+                self.live.update(self._render())
+                self._last_render_ts = now
         else:
             # Fallback for CI/non-TTY: print incremental updates
             self._print_fallback()

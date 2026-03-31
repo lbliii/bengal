@@ -667,11 +667,11 @@ class RenderOrchestrator(
         token = build_context.cancellation_token if build_context else None
 
         with _managed_executor(max_workers) as executor:
-            batch_size = max(max_workers * 2, 1)
+            submit_batch_size = max(max_workers * 2, 1)
             aggregator = ErrorAggregator(total_items=len(sorted_pages))
             threshold = 5
 
-            for batch in batched(sorted_pages, batch_size, strict=False):
+            for batch in batched(sorted_pages, submit_batch_size, strict=False):
                 future_to_page = {
                     executor.submit(
                         contextvars.copy_context().run,
