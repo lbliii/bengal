@@ -187,9 +187,8 @@ class LiveProgressManager:
             self.use_live = False
 
         # Throttle rendering to reduce overhead during very frequent updates.
-        # Default to ~2 Hz (500ms) for better performance (was 200ms/5Hz)
-        # This reduces Rich rendering overhead while still providing smooth progress feedback
-        min_interval_ms = self.live_config.get("min_interval_ms", 500)
+        # Default to ~5 Hz (200ms) — balances smooth feedback with Rich rendering overhead.
+        min_interval_ms = self.live_config.get("min_interval_ms", 200)
         try:
             self._min_render_interval_sec = max(0.0, float(min_interval_ms) / 1000.0)
         except Exception as e:
@@ -198,9 +197,9 @@ class LiveProgressManager:
                 min_interval_ms=min_interval_ms,
                 error=str(e),
                 error_type=type(e).__name__,
-                action="using_default_0_5_sec",
+                action="using_default_0_2_sec",
             )
-            self._min_render_interval_sec = 0.5
+            self._min_render_interval_sec = 0.2
         self._last_render_ts: float = 0.0
 
         # Track last printed state for fallback
