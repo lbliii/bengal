@@ -67,6 +67,7 @@ from bengal.utils.observability.logger import get_logger
 
 from . import content, finalization, initialization, parsing, rendering
 from .inputs import BuildInput
+from .options import BuildOptions  # noqa: TC001 — runtime re-export for health.py et al.
 
 logger = get_logger(__name__)
 
@@ -80,8 +81,6 @@ if TYPE_CHECKING:
     from bengal.output import CLIOutput
     from bengal.utils.observability.performance_collector import PerformanceCollector
     from bengal.utils.observability.profile import BuildProfile
-
-    from .options import BuildOptions
 
 
 def __getattr__(name: str) -> Any:
