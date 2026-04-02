@@ -639,6 +639,10 @@ class SchemaValidator:
                 )
             ]
 
+        # typing.Any is a type in Python 3.14+ but cannot be used with isinstance()
+        if expected is Any:
+            return value, []
+
         # Default: accept as-is if type matches
         # Handle generic types by checking if they are types before calling isinstance
         if isinstance(expected, type) and isinstance(value, expected):

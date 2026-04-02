@@ -54,10 +54,7 @@ For complete control, define your own dataclass:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from datetime import datetime
+from datetime import datetime  # noqa: TC003 — runtime import needed for get_type_hints()
 
 
 @dataclass
