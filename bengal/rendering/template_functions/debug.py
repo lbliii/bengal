@@ -54,8 +54,7 @@ def debug(var: Any, pretty: bool = True) -> str:
 
     if pretty:
         return pprint.pformat(var, indent=2, width=80)
-    else:
-        return str(var)
+    return str(var)
 
 
 def typeof(var: Any) -> str:

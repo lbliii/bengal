@@ -7,7 +7,7 @@ content-addressable storage.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -18,6 +18,9 @@ from bengal.utils.primitives.hashing import (
     hash_file_with_stat,
     hash_str,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestHashStr:

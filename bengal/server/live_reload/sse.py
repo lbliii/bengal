@@ -13,9 +13,12 @@ from __future__ import annotations
 
 import os
 import threading
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = get_logger(__name__)
 

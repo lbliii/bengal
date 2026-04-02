@@ -48,20 +48,20 @@ from __future__ import annotations
 
 import contextlib
 import re
-from collections.abc import Callable, Iterable
 from dataclasses import fields, is_dataclass
 from datetime import datetime
 from difflib import get_close_matches
 from enum import Enum
 from pathlib import Path
 from threading import Lock
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
 
-logger = get_logger(__name__)
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
 
-T = TypeVar("T")
+logger = get_logger(__name__)
 
 
 # =============================================================================

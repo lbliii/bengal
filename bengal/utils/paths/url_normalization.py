@@ -14,10 +14,6 @@ Design Principles:
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
 
 
 def normalize_url(url: str, ensure_trailing_slash: bool = True) -> str:

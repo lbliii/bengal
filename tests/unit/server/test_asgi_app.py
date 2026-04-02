@@ -6,11 +6,14 @@ SSE endpoint streams live reload events; static files served with HTML injection
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.server.asgi_app import create_bengal_dev_app
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 async def _noop_receive() -> dict:

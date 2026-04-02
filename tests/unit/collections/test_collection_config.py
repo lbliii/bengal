@@ -7,10 +7,13 @@ Tests collection definition API, configuration options, and error handling.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.collections import CollectionConfig, define_collection
+
+if TYPE_CHECKING:
+    from datetime import datetime
 
 # Test schemas
 

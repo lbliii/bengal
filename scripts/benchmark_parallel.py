@@ -248,7 +248,7 @@ console.log(result);
     # Scale based on size
     if size == "small":
         return code[: len(code) // 3]
-    elif size == "large":
+    if size == "large":
         return code * 5
     return code
 

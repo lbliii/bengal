@@ -185,14 +185,14 @@ class TemplateRenderError(BengalRenderingError):
         # Check both Jinja2 and Kida exception types
         if isinstance(error, (TemplateSyntaxError, KidaSyntaxError)):
             return "syntax"
-        elif isinstance(error, TemplateAssertionError):
+        if isinstance(error, TemplateAssertionError):
             # Filter errors during compilation
             if "filter" in error_str or "unknown filter" in error_str:
                 return "filter"
             return "syntax"
-        elif isinstance(error, (UndefinedError, KidaUndefinedError)):
+        if isinstance(error, (UndefinedError, KidaUndefinedError)):
             return "undefined"
-        elif isinstance(error, (TemplateRuntimeError, KidaRuntimeError)):
+        if isinstance(error, (TemplateRuntimeError, KidaRuntimeError)):
             return "runtime"
         # Fallback: In Jinja2 <3.0, or in some sandboxed/embedded environments,
         # TemplateAssertionError may not be raised for unknown filters; instead,
@@ -382,7 +382,7 @@ class TemplateRenderError(BengalRenderingError):
         if error_type == "filter":
             if "in_section" in error_str:
                 return "Bengal doesn't have 'in_section' filter. Check if the page is in a section using: {% if page.parent %}"
-            elif "is_ancestor" in error_str:
+            if "is_ancestor" in error_str:
                 return "Use page comparison instead: {% if page._path == other_page._path %}"
 
         elif error_type == "undefined":
@@ -394,7 +394,7 @@ class TemplateRenderError(BengalRenderingError):
                 return (
                     "Jinja2 doesn't support 'with' in include. Use {% set %} before {% include %}"
                 )
-            elif "default=" in error_str:
+            if "default=" in error_str:
                 return "The 'default' parameter in sort() is not supported. Remove it or use a custom filter."
 
         return None
@@ -478,14 +478,12 @@ class TemplateRenderError(BengalRenderingError):
                     f"Likely cause: {unique_suspects[0]} is None or not registered. "
                     f"Verify it's defined in template globals or context."
                 )
-            else:
-                formatted = ", ".join(unique_suspects[:3])
-                if len(unique_suspects) > 3:
-                    formatted += f" (and {len(unique_suspects) - 3} more)"
-                return (
-                    f"Suspected callables: {formatted}. "
-                    f"One of these is likely None or not registered."
-                )
+            formatted = ", ".join(unique_suspects[:3])
+            if len(unique_suspects) > 3:
+                formatted += f" (and {len(unique_suspects) - 3} more)"
+            return (
+                f"Suspected callables: {formatted}. One of these is likely None or not registered."
+            )
 
         return None
 

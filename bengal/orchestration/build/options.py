@@ -15,10 +15,11 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.utils.observability.profile import BuildProfile
 
 # Type aliases for phase callbacks (RFC: rfc-dashboard-api-integration)

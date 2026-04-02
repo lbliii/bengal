@@ -11,6 +11,7 @@ Usage:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 
@@ -21,6 +22,9 @@ from bengal.cli.helpers import (
     handle_cli_errors,
     load_site_from_cli,
 )
+
+if TYPE_CHECKING:
+    from bengal.build.provenance.types import InputRecord
 
 
 @click.group(name="provenance")
@@ -82,7 +86,6 @@ def lineage(page_path: str, source: str) -> None:
     cli.info(f"Inputs ({record.provenance.input_count}):")
 
     # Group by type
-    from bengal.build.provenance.types import InputRecord
 
     by_type: dict[str, list[InputRecord]] = {}
     for inp in record.provenance.inputs:

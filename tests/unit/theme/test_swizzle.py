@@ -1,11 +1,14 @@
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from click.testing import CliRunner
 
 from bengal.cli import main
 from bengal.core.site import Site
 from bengal.themes.swizzle import ModificationStatus, SwizzleManager
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _write(p: Path, text: str) -> None:

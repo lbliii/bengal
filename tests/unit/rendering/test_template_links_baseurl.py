@@ -1,10 +1,13 @@
-from pathlib import Path
-
-import pytest
+from typing import TYPE_CHECKING
 
 from bengal.core.site import Site
 from bengal.rendering.engines import create_engine
 from tests._testing.mocks import MockPage
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import pytest
 
 
 def test_baseurl_meta_and_nav_links(tmp_path: Path):

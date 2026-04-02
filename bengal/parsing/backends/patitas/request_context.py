@@ -19,16 +19,17 @@ RFC: rfc-contextvar-downstream-patterns.md
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from contextvars import Token
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.parsing.backends.patitas.utils.contextvar import ContextVarManager
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
+    from contextvars import Token
+    from pathlib import Path
+
     from bengal.core.page import Page
     from bengal.core.site import Site
 

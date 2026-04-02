@@ -250,9 +250,8 @@ def main():
     if passed == total:
         print("\n✓ All tests passed! Rich CLI enhancements are working correctly.")
         return 0
-    else:
-        print(f"\n✗ {total - passed} test(s) failed.")
-        return 1
+    print(f"\n✗ {total - passed} test(s) failed.")
+    return 1
 
 
 if __name__ == "__main__":

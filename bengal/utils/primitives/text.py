@@ -543,8 +543,7 @@ def humanize_bytes(size_bytes: int) -> str:
     # Use 1 decimal place for sizes >= 1KB, no decimals for bytes
     if unit_index == 0:
         return f"{int(size)} {units[unit_index]}"
-    else:
-        return f"{size:.1f} {units[unit_index]}"
+    return f"{size:.1f} {units[unit_index]}"
 
 
 def humanize_number(num: int) -> str:

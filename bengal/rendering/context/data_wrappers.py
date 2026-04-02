@@ -7,8 +7,10 @@ eliminating the need for defensive .get() calls in templates.
 
 from __future__ import annotations
 
-from collections.abc import ItemsView, Iterator, KeysView, ValuesView
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 
 
 class SmartDict:

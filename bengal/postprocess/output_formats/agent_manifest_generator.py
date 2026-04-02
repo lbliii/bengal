@@ -26,7 +26,6 @@ from __future__ import annotations
 import hashlib
 import json
 from datetime import datetime
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.postprocess.output_formats.utils import get_i18n_output_path, get_page_url
@@ -35,6 +34,8 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.section import Section
     from bengal.protocols import PageLike, SiteLike
 

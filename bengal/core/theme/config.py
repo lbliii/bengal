@@ -43,12 +43,14 @@ bengal.themes.config: ThemeConfig for theme.yaml loading
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.errors import BengalConfigError, ErrorCode
 from bengal.themes.utils import THEMES_ROOT, validate_enum_field
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass

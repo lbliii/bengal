@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.content.discovery.content_parser import ContentParser
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_parse_file_ipynb_branches_to_patitas(tmp_path: Path) -> None:

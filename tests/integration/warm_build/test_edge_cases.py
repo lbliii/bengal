@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import os
 import shutil
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -22,6 +22,9 @@ from tests.integration.warm_build.conftest import (
     WarmBuildTestSite,
     create_basic_site_structure,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestWarmBuildEdgeCases:

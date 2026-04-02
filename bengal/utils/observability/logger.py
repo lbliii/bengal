@@ -29,8 +29,10 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
-from typing import Any, TextIO, TypedDict
+from typing import TYPE_CHECKING, Any, TextIO, TypedDict
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class LogLevel(Enum):

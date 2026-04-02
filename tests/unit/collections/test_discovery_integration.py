@@ -8,13 +8,16 @@ collection schemas.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.collections import CollectionConfig, ContentValidationError, define_collection
 from bengal.content.discovery.content_discovery import ContentDiscovery
+
+if TYPE_CHECKING:
+    from datetime import datetime
+    from pathlib import Path
 
 # Test schemas
 

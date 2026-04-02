@@ -6,10 +6,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, cast
+from typing import TYPE_CHECKING, Literal, cast
 
 from bengal.core.output import OutputRecord, OutputType
-from bengal.orchestration.stats import ReloadHint
+
+if TYPE_CHECKING:
+    from bengal.orchestration.stats import ReloadHint
 
 
 @dataclass(frozen=True, slots=True)
@@ -27,7 +29,7 @@ class SerializedOutputRecord:
     def to_output_record(self) -> OutputRecord:
         """Convert to OutputRecord for reload decision logic."""
         output_type = OutputType(self.type_value)
-        phase = cast(Literal["render", "asset", "postprocess"], self.phase)
+        phase = cast("Literal['render', 'asset', 'postprocess']", self.phase)
         return OutputRecord(Path(self.path), output_type, phase)
 
     @classmethod

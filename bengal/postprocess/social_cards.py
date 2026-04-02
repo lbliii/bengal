@@ -45,7 +45,6 @@ from __future__ import annotations
 import hashlib
 import sys
 from dataclasses import dataclass
-from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any
 
@@ -55,6 +54,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.config.accessor import Config
     from bengal.core.output import OutputCollector
     from bengal.protocols import PageLike, SiteLike

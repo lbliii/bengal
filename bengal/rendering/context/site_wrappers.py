@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.rendering.context.data_wrappers import ParamsContext, SmartDict
 
 if TYPE_CHECKING:
+    from bengal.config.snapshot import ConfigSnapshot
     from bengal.core.theme import Theme
     from bengal.protocols import SiteLike
 
@@ -358,7 +359,6 @@ class ConfigContext:
     __slots__ = ("_config", "_nested_cache")
 
     def __init__(self, config: dict[str, Any] | Any):
-        from bengal.config.snapshot import ConfigSnapshot
 
         self._config: dict[str, Any] | ConfigSnapshot = config or {}
         self._nested_cache: dict[str, SmartDict] = {}

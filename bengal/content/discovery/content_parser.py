@@ -12,7 +12,6 @@ ContentParser: Parses content files with frontmatter.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import patitas
@@ -20,6 +19,8 @@ import patitas
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.collections import CollectionConfig
     from bengal.orchestration.build_context import BuildContext
 
@@ -216,16 +217,15 @@ class ContentParser:
 
             if self._strict_validation:
                 raise error
-            else:
-                logger.warning(
-                    "collection_validation_failed",
-                    path=str(file_path),
-                    collection=collection_name,
-                    errors=error_summary,
-                    action="continuing_with_original_metadata",
-                    code="N011",
-                )
-                return metadata
+            logger.warning(
+                "collection_validation_failed",
+                path=str(file_path),
+                collection=collection_name,
+                errors=error_summary,
+                action="continuing_with_original_metadata",
+                code="N011",
+            )
+            return metadata
 
         # Return validated data as dict (from schema instance)
         if result.data is not None:
@@ -233,7 +233,7 @@ class ContentParser:
 
             if not isinstance(result.data, type):
                 return dict(to_jsonable(result.data))
-            elif hasattr(result.data, "model_dump"):
+            if hasattr(result.data, "model_dump"):
                 return dict(result.data.model_dump())
 
         return metadata

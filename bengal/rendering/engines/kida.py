@@ -16,7 +16,6 @@ Features:
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from kida import Environment
@@ -38,6 +37,8 @@ from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
 from bengal.themes.utils import DEFAULT_THEME_PATH, THEMES_ROOT
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core import Site
     from bengal.rendering.template_profiler import TemplateProfiler
 

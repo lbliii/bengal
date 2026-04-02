@@ -30,7 +30,6 @@ Related:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.postprocess.output_formats.utils import get_i18n_output_path
@@ -38,6 +37,8 @@ from bengal.utils.io.atomic_write import atomic_write_text
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)

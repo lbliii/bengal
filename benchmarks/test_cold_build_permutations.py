@@ -29,9 +29,12 @@ Expected Insights:
 import random
 import shutil
 import subprocess
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def generate_test_site(num_pages: int, tmp_path: Path) -> Path:

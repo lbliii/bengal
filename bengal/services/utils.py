@@ -14,11 +14,9 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import MappingProxyType
-from typing import Any, TypeVar
+from typing import Any
 
 from bengal.utils.primitives.lru_cache import LRUCache
-
-T = TypeVar("T")
 
 # Thread-safe cache for bengal directory (replaces @lru_cache for free-threading)
 _bengal_dir_cache: LRUCache[str, Path] = LRUCache(maxsize=1, name="bengal_dir")
@@ -104,6 +102,6 @@ def freeze_value(item: Any) -> Any:
     """
     if isinstance(item, dict):
         return freeze_dict(item)
-    elif isinstance(item, list):
+    if isinstance(item, list):
         return tuple(freeze_value(i) for i in item)
     return item

@@ -16,9 +16,12 @@ Related:
 import json
 import subprocess
 import time
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _make_notebook(idx: int) -> dict:

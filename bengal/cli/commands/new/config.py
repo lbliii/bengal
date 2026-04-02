@@ -6,12 +6,14 @@ Creates the config/ directory structure with environment-aware configuration fil
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from bengal.output import CLIOutput
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from bengal.output import CLIOutput
 
 
 def create_config_directory(

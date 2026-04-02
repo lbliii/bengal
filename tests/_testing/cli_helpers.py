@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-import click
 from click.testing import CliRunner, Result
+
+if TYPE_CHECKING:
+    import click
 
 
 def run_command(

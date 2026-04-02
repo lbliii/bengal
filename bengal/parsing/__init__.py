@@ -127,9 +127,9 @@ def create_markdown_parser(engine: str | None = None) -> BaseMarkdownParser:
             stacklevel=2,
         )
         return PatitasParser()
-    elif engine == "patitas":
+    if engine == "patitas":
         return PatitasParser()
-    elif engine in ("python-markdown", "python_markdown", "markdown"):
+    if engine in ("python-markdown", "python_markdown", "markdown"):
         try:
             return PythonMarkdownParser()
         except ImportError:

@@ -21,7 +21,7 @@ See Also:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Literal, Protocol, TypedDict, runtime_checkable
+from typing import Literal, Protocol, TypedDict, runtime_checkable
 
 # Re-export shared build types from protocols
 from bengal.protocols.build import (
@@ -32,10 +32,6 @@ from bengal.protocols.build import (
     RenderContext,
     RenderResult,
 )
-
-if TYPE_CHECKING:
-    pass
-
 
 # =============================================================================
 # Last Build Stats (site-specific)

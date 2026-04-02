@@ -19,12 +19,16 @@ RFC: rfc-dashboard-api-integration
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
+from typing import TYPE_CHECKING
 
-from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.reactive import reactive
 from textual.widgets import Log, Static
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from textual.app import ComposeResult
 
 # Event type icons
 EVENT_ICONS: dict[str, str] = {

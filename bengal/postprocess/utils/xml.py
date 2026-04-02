@@ -22,7 +22,10 @@ Example:
 
 from __future__ import annotations
 
-import xml.etree.ElementTree as ET
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import xml.etree.ElementTree as ET
 
 
 def indent_xml(elem: ET.Element, level: int = 0) -> None:

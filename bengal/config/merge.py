@@ -103,7 +103,7 @@ def _copy_value(v: Any) -> Any:
 
 def _copy_dict(d: dict[str, Any]) -> dict[str, Any]:
     """Recursively copy dict. Deeply copies dictionaries and lists."""
-    return cast(dict[str, Any], _copy_value(d))
+    return cast("dict[str, Any]", _copy_value(d))
 
 
 def batch_deep_merge(configs: list[dict[str, Any]]) -> dict[str, Any]:

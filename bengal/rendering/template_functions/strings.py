@@ -371,9 +371,8 @@ def _convert_doctest_to_codeblocks(text: str) -> str:
             ):
                 doctest_buffer.append(line)
                 continue
-            else:
-                # End of doctest block
-                flush_doctest()
+            # End of doctest block
+            flush_doctest()
 
         result.append(line)
 
@@ -599,8 +598,7 @@ def excerpt(text: str, length: int = 200, respect_word_boundaries: bool = True) 
         # Find the last space before the limit
         excerpt_text = clean_text[:length].rsplit(" ", 1)[0]
         return excerpt_text + "..."
-    else:
-        return clean_text[:length] + "..."
+    return clean_text[:length] + "..."
 
 
 def _strip_leading_duplicate(text: str, prefix: str) -> str:

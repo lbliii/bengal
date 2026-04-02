@@ -9,11 +9,12 @@ section tree recursion, and navigation resolution.
 
 from __future__ import annotations
 
-from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.protocols import PageLike, SectionLike, SiteLike
 
 from bengal.config.utils import coerce_int

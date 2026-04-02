@@ -11,9 +11,12 @@ Usage:
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.services.utils import get_bengal_dir
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def get_theme_assets_dir(root_path: Path, theme_name: str | None) -> Path | None:

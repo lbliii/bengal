@@ -376,12 +376,9 @@ class SectionNavigationMixin:
             # /_versions/v3/docs/about/ → /docs/about/
             if rest:
                 return f"/{section_name}/" + "/".join(rest) + "/"
-            else:
-                return f"/{section_name}/"
-        else:
-            # Non-latest version: insert version after section
-            # /_versions/v1/docs/about/ → /docs/v1/about/
-            if rest:
-                return f"/{section_name}/{version_id}/" + "/".join(rest) + "/"
-            else:
-                return f"/{section_name}/{version_id}/"
+            return f"/{section_name}/"
+        # Non-latest version: insert version after section
+        # /_versions/v1/docs/about/ → /docs/v1/about/
+        if rest:
+            return f"/{section_name}/{version_id}/" + "/".join(rest) + "/"
+        return f"/{section_name}/{version_id}/"

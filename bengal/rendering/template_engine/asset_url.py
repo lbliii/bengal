@@ -13,14 +13,11 @@ Related Modules:
 from __future__ import annotations
 
 from pathlib import Path, PurePosixPath
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
-
-if TYPE_CHECKING:
-    pass
 
 logger = get_logger(__name__)
 
@@ -88,8 +85,7 @@ def compute_relative_asset_path(
         if depth > 0:
             relative_prefix = "/".join([".."] * depth)
             return f"{relative_prefix}/{asset_path}"
-        else:
-            return f"./{asset_path}"
+        return f"./{asset_path}"
     except ValueError, AttributeError:
         return None
 

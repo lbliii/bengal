@@ -39,10 +39,12 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from bengal.health.report import CheckResult, HealthReport
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.health.report import CheckResult, HealthReport
 
 logger = get_logger(__name__)
 
@@ -897,7 +899,7 @@ class AutoFixer:
                     if closing_depth == current_depth and nesting_depth == 0:
                         lines[i] = lines[i].replace(old_fence, new_fence, 1)
                         break
-                    elif closing_depth == current_depth:
+                    if closing_depth == current_depth:
                         nesting_depth -= 1
 
     def _suggest_link_fixes(self, validator_report: Any) -> list[FixAction]:

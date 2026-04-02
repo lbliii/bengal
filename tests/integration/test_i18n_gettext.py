@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import pytest
 
-from bengal.core.site import Site
 from bengal.i18n import load_catalog
 from bengal.i18n.catalog import clear_catalog_cache
+
+if TYPE_CHECKING:
+    from bengal.core.site import Site
 
 
 @pytest.mark.bengal(testroot="test-i18n-gettext")

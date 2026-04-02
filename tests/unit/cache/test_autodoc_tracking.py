@@ -7,9 +7,12 @@ selective incremental rebuilds of autodoc pages.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.cache.build_cache import BuildCache
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 DUMMY_HASH = "deadbeef"
 DUMMY_MTIME = 1.0

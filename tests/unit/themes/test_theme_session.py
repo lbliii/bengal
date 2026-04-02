@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.errors import BengalConfigError
 from bengal.errors.session import get_session, reset_session
 from bengal.themes.config import AppearanceConfig, ThemeConfig
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture(autouse=True)

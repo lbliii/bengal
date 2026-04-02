@@ -29,11 +29,13 @@ See Also:
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.parsing.ast.types import ASTNode, is_heading, is_link, is_text
 from bengal.utils.primitives.text import slugify_id
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 __all__ = [
     "extract_links_from_ast",

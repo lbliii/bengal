@@ -62,6 +62,7 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.core.output import OutputCollector
+    from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import SiteLike
 
@@ -303,7 +304,7 @@ class SpecialPagesGenerator:
 
             # Get normalized search config (handles both bool and dict)
             # Cast SiteConfig (TypedDict) to dict[str, Any] for compatibility
-            config_dict = cast(dict[str, Any], self.site.config)
+            config_dict = cast("dict[str, Any]", self.site.config)
             search_cfg = get_feature_config(config_dict, "search")
             if not search_cfg.get("enabled", True):
                 return False
@@ -326,9 +327,8 @@ class SpecialPagesGenerator:
                 template_engine = self.site.template_engine
             else:
                 # Cast SiteLike to Site for create_engine (which expects concrete Site)
-                from bengal.core.site import Site
 
-                site = cast(Site, self.site)
+                site = cast("Site", self.site)
                 template_engine = create_engine(site)
 
             try:
@@ -440,7 +440,7 @@ class SpecialPagesGenerator:
 
             # Get normalized graph config (handles both bool and dict)
             # Cast SiteConfig (TypedDict) to dict[str, Any] for compatibility
-            config_dict = cast(dict[str, Any], self.site.config)
+            config_dict = cast("dict[str, Any]", self.site.config)
             graph_cfg = get_feature_config(config_dict, "graph")
             if not graph_cfg.get("enabled", True):
                 return False

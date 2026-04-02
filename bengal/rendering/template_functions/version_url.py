@@ -217,9 +217,8 @@ def _construct_version_url(
                 if target_is_latest:
                     # Going to latest: /docs/guide/
                     return f"{section_prefix}/{rest}"
-                else:
-                    # Going to another older version: /docs/v2/guide/
-                    return f"{section_prefix}{target_prefix}/{rest}"
+                # Going to another older version: /docs/v2/guide/
+                return f"{section_prefix}{target_prefix}/{rest}"
         else:
             # Current is latest: /docs/guide/
             if current_url.startswith(f"{section_prefix}/"):
@@ -227,9 +226,8 @@ def _construct_version_url(
                 if target_is_latest:
                     # Already latest
                     return current_url
-                else:
-                    # Going to older version: /docs/v1/guide/
-                    return f"{section_prefix}{target_prefix}/{rest}"
+                # Going to older version: /docs/v1/guide/
+                return f"{section_prefix}{target_prefix}/{rest}"
 
     # URL not in a versioned section, return as-is
     return current_url
@@ -275,8 +273,7 @@ def _get_version_root_url(version_id: str, is_latest: bool, site: SiteLike) -> s
 
     if is_latest:
         return f"/{section}/"
-    else:
-        return f"/{section}/{version_id}/"
+    return f"/{section}/{version_id}/"
 
 
 # Module-level cache for version page index (keyed by id(site))

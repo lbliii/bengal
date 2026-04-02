@@ -7,8 +7,8 @@ including navigation, menus, and full template context.
 
 from __future__ import annotations
 
-from collections.abc import Generator
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -17,6 +17,9 @@ from bengal.autodoc.base import DocElement
 from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.rendering.pipeline.core import RenderingPipeline
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 
 @pytest.fixture

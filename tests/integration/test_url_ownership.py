@@ -7,12 +7,15 @@ and special pages in realistic build scenarios.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.core.site import Site
 from bengal.core.url_ownership import URLCollisionError
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

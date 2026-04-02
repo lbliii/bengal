@@ -43,7 +43,6 @@ Matches Bengal's steps directive exactly.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
@@ -59,6 +58,8 @@ from bengal.parsing.backends.patitas.directives.options import StyledOptions
 from bengal.utils.primitives.text import slugify_id
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from patitas.location import SourceLocation
     from patitas.nodes import Block
     from patitas.stringbuilder import StringBuilder
@@ -440,9 +441,8 @@ class StepsDirective:
             for child in children:
                 render_child_directive(child, sb)
             return sb.build()
-        else:
-            # Fallback: simple rendering for common node types
-            return self._simple_render_children(children)
+        # Fallback: simple rendering for common node types
+        return self._simple_render_children(children)
 
     def _simple_render_children(self, children: tuple) -> str:
         """Simple fallback renderer for step content."""

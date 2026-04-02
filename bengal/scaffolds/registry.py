@@ -24,7 +24,6 @@ Example:
 
 """
 
-import builtins
 import importlib
 import threading
 from pathlib import Path
@@ -36,6 +35,8 @@ from .base import SiteTemplate, TemplateFile
 from .utils import replace_date_placeholder
 
 if TYPE_CHECKING:
+    import builtins
+
     from bengal.cli.skeleton.schema import Component, Skeleton
 
 logger = get_logger(__name__)

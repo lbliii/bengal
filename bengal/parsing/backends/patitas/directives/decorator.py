@@ -18,10 +18,11 @@ Example (class):
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from patitas.nodes import Directive
     from patitas.stringbuilder import StringBuilder
 
@@ -100,36 +101,35 @@ def directive(
             func_or_class.options_class = effective_options
             func_or_class.preserves_raw_content = preserves_raw_content
             return func_or_class
-        else:
-            # Function decorator — wrap in class
-            render_func = func_or_class
-            # Capture closure variables for class attributes (avoids shadowing issues)
-            _names = names
-            _contract = contract
-            _preserves_raw = preserves_raw_content
+        # Function decorator — wrap in class
+        render_func = func_or_class
+        # Capture closure variables for class attributes (avoids shadowing issues)
+        _names = names
+        _contract = contract
+        _preserves_raw = preserves_raw_content
 
-            class GeneratedDirective:
-                names = _names
-                token_type = effective_token_type
-                contract = _contract
-                options_class = effective_options
-                preserves_raw_content = _preserves_raw
+        class GeneratedDirective:
+            names = _names
+            token_type = effective_token_type
+            contract = _contract
+            options_class = effective_options
+            preserves_raw_content = _preserves_raw
 
-                def parse(self, name, title, opts, content, children, location):
-                    return Directive(
-                        location=location,
-                        name=name,
-                        title=title,
-                        options=opts,
-                        children=tuple(children),
-                        raw_content=content if _preserves_raw else None,
-                    )
+            def parse(self, name, title, opts, content, children, location):
+                return Directive(
+                    location=location,
+                    name=name,
+                    title=title,
+                    options=opts,
+                    children=tuple(children),
+                    raw_content=content if _preserves_raw else None,
+                )
 
-                def render(self, node, rendered_children, sb):
-                    return render_func(node, rendered_children, sb)
+            def render(self, node, rendered_children, sb):
+                return render_func(node, rendered_children, sb)
 
-            GeneratedDirective.__name__ = f"{render_func.__name__}_directive"
-            GeneratedDirective.__qualname__ = f"{render_func.__qualname__}_directive"
-            return GeneratedDirective
+        GeneratedDirective.__name__ = f"{render_func.__name__}_directive"
+        GeneratedDirective.__qualname__ = f"{render_func.__qualname__}_directive"
+        return GeneratedDirective
 
     return decorator

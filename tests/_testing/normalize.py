@@ -94,10 +94,10 @@ def normalize_json(data: dict | list | Any) -> dict | list | Any:
         # Return sorted by keys
         return {k: normalized[k] for k in sorted(normalized.keys())}
 
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return [normalize_json(item) for item in data]
 
-    elif isinstance(data, str):
+    if isinstance(data, str):
         # Normalize paths in strings (Windows, Unix, UNC, file:// URLs)
         # Order matters: most specific patterns first
         normalized = re.sub(r'file:///[^\s"\'<>]*', "PATH", data)  # file:/// URLs
@@ -109,9 +109,8 @@ def normalize_json(data: dict | list | Any) -> dict | list | Any:
         )
         return normalized
 
-    else:
-        # Primitives (int, bool, None) pass through
-        return data
+    # Primitives (int, bool, None) pass through
+    return data
 
 
 def json_dumps_normalized(data: Any, **kwargs) -> str:

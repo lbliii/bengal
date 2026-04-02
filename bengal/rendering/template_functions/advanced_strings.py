@@ -223,10 +223,9 @@ def indent_text(text: str, spaces: int = 4, first_line: bool = True) -> str:
 
     if first_line:
         return "\n".join(indent + line for line in lines)
-    else:
-        if len(lines) == 0:
-            return text
-        return lines[0] + "\n" + "\n".join(indent + line for line in lines[1:])
+    if len(lines) == 0:
+        return text
+    return lines[0] + "\n" + "\n".join(indent + line for line in lines[1:])
 
 
 def softwrap_identifier(text: str) -> str:

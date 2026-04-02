@@ -232,21 +232,20 @@ class CrossReferencePlugin:
             if ref.startswith("!"):
                 # Target directive reference: [[!target-id]]
                 return self._resolve_target(ref[1:], link_text)
-            elif ref.startswith("#"):
+            if ref.startswith("#"):
                 # Heading anchor reference: [[#heading-name]]
                 return self._resolve_heading(ref, link_text)
-            elif ref.startswith("id:"):
+            if ref.startswith("id:"):
                 # Custom ID reference: [[id:my-page]]
                 return self._resolve_id(ref[3:], link_text)
-            elif ref.startswith("ext:"):
+            if ref.startswith("ext:"):
                 # External reference: [[ext:project:target]]
                 return self._resolve_external(ref[4:], link_text)
-            elif ":" in ref and not ref.startswith(("http:", "https:", "mailto:")):
+            if ":" in ref and not ref.startswith(("http:", "https:", "mailto:")):
                 # Cross-version reference: [[v2:docs/page]] or [[latest:docs/page]]
                 return self._resolve_version_link(ref, link_text)
-            else:
-                # Path reference: [[docs/page]]
-                return self._resolve_path(ref, link_text)
+            # Path reference: [[docs/page]]
+            return self._resolve_path(ref, link_text)
 
         return self.pattern.sub(replace_xref, text)
 
@@ -415,14 +414,13 @@ class CrossReferencePlugin:
         first_entry = anchor_entries[0]
         if len(first_entry) >= 3 or len(first_entry) >= 2:
             return (first_entry[0], first_entry[1])
-        else:
-            # Malformed entry
-            logger.debug(
-                "xref_malformed_anchor_entry",
-                ref=ref_id,
-                entry_length=len(first_entry),
-            )
-            return None
+        # Malformed entry
+        logger.debug(
+            "xref_malformed_anchor_entry",
+            ref=ref_id,
+            entry_length=len(first_entry),
+        )
+        return None
 
     def _resolve_heading(self, anchor: str, text: str | None = None) -> str:
         """

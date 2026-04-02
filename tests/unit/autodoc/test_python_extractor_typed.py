@@ -4,8 +4,8 @@ Integration tests for Python extractor typed_metadata output.
 
 from __future__ import annotations
 
-from pathlib import Path
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -17,6 +17,9 @@ from bengal.autodoc.models import (
     PythonFunctionMetadata,
     PythonModuleMetadata,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

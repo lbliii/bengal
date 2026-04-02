@@ -40,12 +40,13 @@ The ``collections.py`` file should define a ``collections`` dictionary:
 from __future__ import annotations
 
 import importlib.util
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.collections import CollectionConfig
 
 logger = get_logger(__name__)
@@ -277,7 +278,7 @@ def load_collections(
         )
 
         # Type assertion: collections dict contains CollectionConfig values
-        return cast(dict[str, CollectionConfig[Any]], collections)
+        return cast("dict[str, CollectionConfig[Any]]", collections)
 
     except Exception as e:
         from bengal.errors import BengalContentError, ErrorCode, record_error

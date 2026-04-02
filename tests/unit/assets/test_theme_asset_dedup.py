@@ -1,6 +1,9 @@
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.core.site import Site
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def write_file(path: Path, text: str = "x") -> None:

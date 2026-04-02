@@ -9,9 +9,12 @@ from outside the bengal.assets package.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.utils.paths.normalize import to_posix
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def discover_files(

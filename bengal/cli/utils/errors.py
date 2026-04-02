@@ -49,9 +49,8 @@ def should_show_traceback(
         if is_bengal_error:
             # For BengalError, show if not minimal/off
             return style_value not in ("off", "minimal")
-        else:
-            # For other errors, show if not off
-            return style_value != "off"
+        # For other errors, show if not off
+        return style_value != "off"
     except Exception:
         return False
 

@@ -17,12 +17,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.reactive import reactive
 from textual.widgets import Static, Tree
 
 if TYPE_CHECKING:
+    from textual.app import ComposeResult
+
     from bengal.core.page import Page
     from bengal.core.site import Site
 

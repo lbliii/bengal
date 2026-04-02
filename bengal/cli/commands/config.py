@@ -11,7 +11,7 @@ Provides introspection and management commands for Bengal configuration:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import click
 
@@ -28,7 +28,9 @@ from bengal.cli.helpers import (
 )
 from bengal.config.environment import detect_environment
 from bengal.config.unified_loader import ConfigLoadError, UnifiedConfigLoader
-from bengal.output import CLIOutput
+
+if TYPE_CHECKING:
+    from bengal.output import CLIOutput
 
 
 @click.group("config", cls=BengalGroup)

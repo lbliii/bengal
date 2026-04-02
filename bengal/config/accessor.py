@@ -106,17 +106,17 @@ class Config:
     @cached_property
     def site(self) -> SiteConfig:
         """Returns site section cast to SiteConfig protocol for IDE support."""
-        return cast(SiteConfig, ConfigSection(self._data.get("site", {}), "site"))
+        return cast("SiteConfig", ConfigSection(self._data.get("site", {}), "site"))
 
     @cached_property
     def build(self) -> BuildConfig:
         """Returns build section cast to BuildConfig protocol for IDE support."""
-        return cast(BuildConfig, ConfigSection(self._data.get("build", {}), "build"))
+        return cast("BuildConfig", ConfigSection(self._data.get("build", {}), "build"))
 
     @cached_property
     def dev(self) -> DevConfig:
         """Returns dev section cast to DevConfig protocol for IDE support."""
-        return cast(DevConfig, ConfigSection(self._data.get("dev", {}), "dev"))
+        return cast("DevConfig", ConfigSection(self._data.get("dev", {}), "dev"))
 
     @cached_property
     def theme(self) -> ConfigSection:

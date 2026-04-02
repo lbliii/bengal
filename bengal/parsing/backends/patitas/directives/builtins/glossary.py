@@ -44,7 +44,6 @@ HTML Output:
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
@@ -52,13 +51,16 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from bengal.utils.primitives.text import escape_html
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from patitas.location import SourceLocation
     from patitas.nodes import Block
     from patitas.stringbuilder import StringBuilder
+
+    from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 __all__ = ["GlossaryDirective"]
 

@@ -8,10 +8,12 @@ rather than being silently swallowed.
 from __future__ import annotations
 
 import logging
-
-import pytest
+from typing import TYPE_CHECKING
 
 from bengal.orchestration.stats import BuildStats
+
+if TYPE_CHECKING:
+    import pytest
 
 
 class TestBuildStatsWarningTracking:

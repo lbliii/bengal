@@ -4,10 +4,13 @@ Tests for incremental behavior of Directives validator analysis.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.health.validators.directives.analysis import DirectiveAnalyzer
 from bengal.orchestration.build_context import BuildContext
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_directive_analyzer_skips_unchanged_pages_in_incremental_mode(tmp_path: Path) -> None:

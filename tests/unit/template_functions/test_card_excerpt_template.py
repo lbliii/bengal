@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 
 pytest.importorskip("kida", reason="Template engine requires kida")
 
+from typing import TYPE_CHECKING
+
 from bengal.core.site import Site
 from bengal.rendering.template_engine import TemplateEngine
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_card_excerpt_filter_in_template(tmp_path: Path) -> None:

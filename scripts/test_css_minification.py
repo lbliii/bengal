@@ -56,9 +56,8 @@ def test_case(
             for issue in issues:
                 print(f"  - {issue}")
             return False
-        else:
-            print("\n✅ PASSED")
-            return True
+        print("\n✅ PASSED")
+        return True
     except Exception as e:
         print(f"\n❌ EXCEPTION: {type(e).__name__}: {e}")
         import traceback
@@ -279,9 +278,8 @@ def main():
     if passed < total:
         print("\n❌ Some tests failed - minification may have issues")
         return 1
-    else:
-        print("\n✅ All tests passed")
-        return 0
+    print("\n✅ All tests passed")
+    return 0
 
 
 if __name__ == "__main__":

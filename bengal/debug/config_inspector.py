@@ -101,10 +101,9 @@ class ConfigDiff:
         """
         if self.type == "added":
             return f"+ {self.path}: {self.new_value}"
-        elif self.type == "removed":
+        if self.type == "removed":
             return f"- {self.path}: {self.old_value}"
-        else:
-            return f"~ {self.path}: {self.old_value} → {self.new_value}"
+        return f"~ {self.path}: {self.old_value} → {self.new_value}"
 
 
 @dataclass
@@ -537,7 +536,7 @@ class ConfigInspector(DebugTool):
             origins = loader.origin_tracker.origins if loader.origin_tracker else {}
             return config, origins
 
-        elif source.startswith("env:"):
+        if source.startswith("env:"):
             env_name = source[4:]
             loader = UnifiedConfigLoader(track_origins=track_origins)
             config_obj = loader.load(site_root, environment=env_name)
@@ -545,13 +544,12 @@ class ConfigInspector(DebugTool):
             origins = loader.origin_tracker.origins if loader.origin_tracker else {}
             return config, origins
 
-        else:
-            # Treat as environment name
-            loader = UnifiedConfigLoader(track_origins=track_origins)
-            config_obj = loader.load(site_root, environment=source)
-            config = config_obj.raw  # Serialization needs actual dict
-            origins = loader.origin_tracker.origins if loader.origin_tracker else {}
-            return config, origins
+        # Treat as environment name
+        loader = UnifiedConfigLoader(track_origins=track_origins)
+        config_obj = loader.load(site_root, environment=source)
+        config = config_obj.raw  # Serialization needs actual dict
+        origins = loader.origin_tracker.origins if loader.origin_tracker else {}
+        return config, origins
 
     def _compute_diffs(
         self,

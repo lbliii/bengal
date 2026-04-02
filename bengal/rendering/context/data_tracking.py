@@ -24,12 +24,13 @@ RFC: rfc-incremental-build-dependency-gaps (Phase 1)
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.utils.primitives.dotdict import DotDict
 
 logger = get_logger(__name__)

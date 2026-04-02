@@ -452,11 +452,10 @@ class ValidatorReport:
         icons = get_icon_set(should_use_emoji())
         if self.error_count > 0:
             return icons.error
-        elif self.warning_count > 0:
+        if self.warning_count > 0:
             return icons.warning
-        elif self.suggestion_count > 0:
+        if self.suggestion_count > 0:
             return icons.tip
-        elif self.info_count > 0:
+        if self.info_count > 0:
             return icons.info
-        else:
-            return icons.success
+        return icons.success

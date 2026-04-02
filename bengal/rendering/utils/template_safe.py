@@ -5,9 +5,11 @@ Catches common template errors (TypeError, ValueError, AttributeError, KeyError)
 and returns a default instead of raising.
 """
 
-from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def template_safe[T](

@@ -12,12 +12,14 @@ Functions:
 from __future__ import annotations
 
 import importlib
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import click
 
 from bengal.cli.utils import get_cli_output
-from bengal.output import CLIOutput
+
+if TYPE_CHECKING:
+    from bengal.output import CLIOutput
 
 
 def load_cli_app(

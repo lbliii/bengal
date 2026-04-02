@@ -6,7 +6,7 @@ RFC: rfc-provenance-mtime-short-circuit
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
@@ -18,6 +18,9 @@ from bengal.build.provenance.types import (
     Provenance,
     ProvenanceRecord,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

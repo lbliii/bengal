@@ -16,14 +16,15 @@ parser/renderer instances with no shared state.
 
 from __future__ import annotations
 
-from typing import Any, ClassVar
-
-from patitas.nodes import Block, Document
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.config.defaults import get_default
 from bengal.parsing.backends.patitas import create_markdown, parse_to_ast, parse_to_document
 from bengal.parsing.base import BaseMarkdownParser
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from patitas.nodes import Block, Document
 
 logger = get_logger(__name__)
 

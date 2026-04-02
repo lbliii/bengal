@@ -18,11 +18,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from textual.reactive import var
-from textual.timer import Timer
 from textual.widgets import Static
 
 if TYPE_CHECKING:
-    pass
+    from textual.timer import Timer
 
 
 class BuildFlash(Static):

@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.protocols import PageLike
 else:
-    from bengal.protocols import PageLike
+    pass
 
 logger = get_logger(__name__)
 

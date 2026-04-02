@@ -7,14 +7,18 @@ Tests ProvenanceFilter for incremental filtering and thread safety.
 from __future__ import annotations
 
 import threading
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
 
 from bengal.build.provenance.filter import ProvenanceFilter, ProvenanceFilterResult
 from bengal.build.provenance.store import ProvenanceCache
-from bengal.build.provenance.types import ContentHash, Provenance
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from bengal.build.provenance.types import ContentHash, Provenance
 
 # =============================================================================
 # Fixtures

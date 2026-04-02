@@ -12,14 +12,15 @@ DirectoryWalker: Walks directories and yields content items.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.content.utils.constants import CONTENT_EXTENSIONS
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from pathlib import Path
+
     from bengal.protocols import SectionLike
 
 logger = get_logger(__name__)

@@ -12,13 +12,14 @@ share across threads during parallel rendering.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bengal.health.base import BaseValidator
 
 logger = get_logger(__name__)

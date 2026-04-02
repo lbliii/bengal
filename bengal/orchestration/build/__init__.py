@@ -67,7 +67,7 @@ from bengal.utils.observability.logger import get_logger
 
 from . import content, finalization, initialization, parsing, rendering
 from .inputs import BuildInput
-from .options import BuildOptions
+from .options import BuildOptions  # noqa: TC001 — runtime re-export for health.py et al.
 
 logger = get_logger(__name__)
 

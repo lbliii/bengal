@@ -25,17 +25,18 @@ See Also:
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from threading import Lock
 from typing import TYPE_CHECKING
 
 from bengal.orchestration.utils.errors import is_shutdown_error
-from bengal.protocols import ProgressReporter
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bengal.core.output import OutputCollector
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.types import ProgressManagerProtocol
+    from bengal.protocols import ProgressReporter
     from bengal.utils.observability.cli_progress import LiveProgressManager
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator

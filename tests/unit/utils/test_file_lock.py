@@ -9,7 +9,7 @@ from __future__ import annotations
 import os
 import threading
 import time
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -19,6 +19,9 @@ from bengal.utils.io.file_lock import (
     is_locked,
     remove_stale_lock,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestFileLock:

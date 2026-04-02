@@ -6,11 +6,14 @@ requests when fonts are already downloaded. Network-dependent methods
 remain untested by design (see TEST_COVERAGE.md).
 """
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.fonts.downloader import FontVariant, GoogleFontsDownloader
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestCheckCachedFonts:

@@ -8,12 +8,13 @@ per-build ephemeral state.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.asset import Asset
     from bengal.core.menu import MenuBuilder, MenuItem
     from bengal.core.page import Page

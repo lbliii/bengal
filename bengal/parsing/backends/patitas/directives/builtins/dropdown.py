@@ -45,7 +45,6 @@ Matches Bengal's dropdown directive exactly:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
@@ -59,6 +58,8 @@ from bengal.parsing.backends.patitas.directives.contracts import (
 from bengal.parsing.backends.patitas.directives.options import StyledOptions
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from patitas.location import SourceLocation
     from patitas.nodes import Block
     from patitas.stringbuilder import StringBuilder

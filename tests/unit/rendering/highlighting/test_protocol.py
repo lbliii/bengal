@@ -7,13 +7,8 @@ for type checking and runtime verification.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from bengal.rendering.highlighting import HighlightBackend
 from bengal.rendering.highlighting.rosettes import RosettesBackend
-
-if TYPE_CHECKING:
-    pass
 
 
 class TestHighlightBackendProtocol:

@@ -19,12 +19,13 @@ import contextlib
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
-from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.reactive import reactive
 from textual.widgets import DataTable, Static, TabbedContent, TabPane
 
 if TYPE_CHECKING:
+    from textual.app import ComposeResult
+
     from bengal.core.asset import Asset
     from bengal.core.site import Site
 
@@ -179,10 +180,9 @@ class AssetExplorer(Vertical):
             size = asset.source_path.stat().st_size
             if size < 1024:
                 return f"{size} B"
-            elif size < 1024 * 1024:
+            if size < 1024 * 1024:
                 return f"{size // 1024} KB"
-            else:
-                return f"{size // (1024 * 1024):.1f} MB"
+            return f"{size // (1024 * 1024):.1f} MB"
         except OSError:
             return "?"
 

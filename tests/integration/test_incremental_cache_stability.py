@@ -10,9 +10,12 @@ false full rebuilds due to cache invalidation bugs.
 from __future__ import annotations
 
 import time
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestIncrementalBuildStability:

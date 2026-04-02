@@ -11,8 +11,7 @@ import asyncio
 import contextlib
 import time
 from collections.abc import Callable
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
 from bengal.server.live_reload.sse import (
@@ -22,6 +21,9 @@ from bengal.server.live_reload.sse import (
 )
 from bengal.server.responses import get_rebuilding_badge_script
 from bengal.server.utils import find_html_injection_point, get_content_type
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # ASGI app type: async (scope, receive, send) -> None
 ASGIApp = Callable[..., Any]

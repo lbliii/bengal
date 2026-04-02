@@ -207,27 +207,26 @@ def humanize_days(days: int) -> str:
 
     if days < 0:
         return ""
-    elif days == 0:
+    if days == 0:
         return "today"
-    elif days == 1:
+    if days == 1:
         return "yesterday"
-    elif days < 7:
+    if days < 7:
         return f"{days} days ago"
-    elif days < 14:
+    if days < 14:
         return "1 week ago"
-    elif days < 30:
+    if days < 30:
         weeks = days // 7
         return f"{weeks} weeks ago"
-    elif days < 60:
+    if days < 60:
         return "1 month ago"
-    elif days < 365:
+    if days < 365:
         months = days // 30
         return f"{months} months ago"
-    elif days < 730:
+    if days < 730:
         return "1 year ago"
-    else:
-        years = days // 365
-        return f"{years} years ago"
+    years = days // 365
+    return f"{years} years ago"
 
 
 def date_add(
@@ -318,11 +317,11 @@ def date_diff(
 
     if unit == "days":
         return diff.days
-    elif unit == "hours":
+    if unit == "hours":
         return total_seconds // 3600
-    elif unit == "minutes":
+    if unit == "minutes":
         return total_seconds // 60
-    elif unit == "seconds":
+    if unit == "seconds":
         return total_seconds
 
     # Default to days

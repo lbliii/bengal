@@ -7,10 +7,13 @@ substring matches (which can cause broad patterns like "*/.*" to skip everything
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.autodoc.extractors.python import PythonExtractor
 from bengal.autodoc.extractors.python.skip_logic import should_skip_shadowed_module
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_exclude_pattern_hidden_glob_does_not_skip_normal_files(tmp_path: Path) -> None:

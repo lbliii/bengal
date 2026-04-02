@@ -10,11 +10,13 @@ Provides utilities for:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from bengal.autodoc.base import DocElement
 from bengal.autodoc.utils import apply_grouping
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.autodoc.base import DocElement
 
 logger = get_logger(__name__)
 
@@ -167,38 +169,31 @@ def get_output_path(
                     # Package is the group itself
                     path = Path(group_name)
                 return path / "_index.md"
-            else:
-                # Ungrouped: {qualified_name}/_index.md
-                module_path = remaining.replace(".", "/")
-                return Path(module_path) / "_index.md"
-        else:
-            # Regular modules get their own file
-            if group_name:
-                # Grouped: {group}/{remaining}.md
-                if remaining:
-                    return Path(group_name) / f"{remaining.replace('.', '/')}.md"
-                else:
-                    # Module is the group itself
-                    return Path(f"{group_name}.md")
-            else:
-                # Ungrouped: {qualified_name}.md
-                return Path(f"{remaining.replace('.', '/')}.md")
-    else:
-        # Classes/functions are part of module file
-        # Use the already-processed qualified_name (with strip_prefix applied)
-        parts = remaining.split(".") if group_name is None else qualified_name.split(".")
-        module_parts = parts[:-1] if len(parts) > 1 else parts
-
-        # If we have a group, the remaining is already module-relative
+            # Ungrouped: {qualified_name}/_index.md
+            module_path = remaining.replace(".", "/")
+            return Path(module_path) / "_index.md"
+        # Regular modules get their own file
         if group_name:
-            # Build path from remaining (minus class/function name)
-            if len(remaining.split(".")) > 1:
-                module_path = ".".join(remaining.split(".")[:-1])
-                return Path(group_name) / f"{module_path.replace('.', '/')}.md"
-            else:
-                # Class/function at group root
-                return Path(f"{group_name}.md")
-        else:
-            # No grouping - use qualified_name directly
-            module_path = ".".join(module_parts)
-            return Path(f"{module_path.replace('.', '/')}.md")
+            # Grouped: {group}/{remaining}.md
+            if remaining:
+                return Path(group_name) / f"{remaining.replace('.', '/')}.md"
+            # Module is the group itself
+            return Path(f"{group_name}.md")
+        # Ungrouped: {qualified_name}.md
+        return Path(f"{remaining.replace('.', '/')}.md")
+    # Classes/functions are part of module file
+    # Use the already-processed qualified_name (with strip_prefix applied)
+    parts = remaining.split(".") if group_name is None else qualified_name.split(".")
+    module_parts = parts[:-1] if len(parts) > 1 else parts
+
+    # If we have a group, the remaining is already module-relative
+    if group_name:
+        # Build path from remaining (minus class/function name)
+        if len(remaining.split(".")) > 1:
+            module_path = ".".join(remaining.split(".")[:-1])
+            return Path(group_name) / f"{module_path.replace('.', '/')}.md"
+        # Class/function at group root
+        return Path(f"{group_name}.md")
+    # No grouping - use qualified_name directly
+    module_path = ".".join(module_parts)
+    return Path(f"{module_path.replace('.', '/')}.md")

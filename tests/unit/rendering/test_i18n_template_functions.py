@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.core.site import Site
 from bengal.rendering.template_engine import TemplateEngine
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _write_i18n(tmp_path: Path, lang: str, content: str) -> None:

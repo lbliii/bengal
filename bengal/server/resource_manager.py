@@ -52,13 +52,15 @@ import signal
 import sys
 import threading
 import time
-from collections.abc import Callable
-from pathlib import Path
-from types import FrameType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.output import CLIOutput
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+    from types import FrameType
 
 logger = get_logger(__name__)
 

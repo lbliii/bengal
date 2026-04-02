@@ -41,11 +41,12 @@ bengal.cli.commands.validate: CLI command that consumes this service.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, Protocol
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bengal.protocols import TemplateEngineProtocol as TemplateEngine
 
 

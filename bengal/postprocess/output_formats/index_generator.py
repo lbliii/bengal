@@ -74,7 +74,6 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 from unittest.mock import Mock
 
@@ -90,11 +89,12 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import split_url_path
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.orchestration.build_context import AccumulatedPageData, BuildContext
     from bengal.protocols import PageLike, SiteLike
 else:
-    from bengal.orchestration.build_context import AccumulatedPageData, BuildContext
-    from bengal.protocols import PageLike, SiteLike
+    pass
 
 logger = get_logger(__name__)
 

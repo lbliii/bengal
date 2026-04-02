@@ -307,24 +307,23 @@ class OptionView:
                 envvar=meta.envvar,
                 typed_metadata=meta,
             )
-        else:
-            # Fall back to metadata dict
-            m = el.metadata or {}
-            flags = tuple(m.get("opts", ()))
-            return cls(
-                name=el.name,
-                flags=flags,
-                flags_str=", ".join(flags) if flags else el.name,
-                type=m.get("type_name", "STRING"),
-                description=m.get("help_text", el.description),
-                default=m.get("default"),
-                required=m.get("required", False),
-                is_flag=m.get("is_flag", False),
-                is_argument=m.get("param_type") == "argument",
-                multiple=m.get("multiple", False),
-                envvar=m.get("envvar"),
-                typed_metadata=None,
-            )
+        # Fall back to metadata dict
+        m = el.metadata or {}
+        flags = tuple(m.get("opts", ()))
+        return cls(
+            name=el.name,
+            flags=flags,
+            flags_str=", ".join(flags) if flags else el.name,
+            type=m.get("type_name", "STRING"),
+            description=m.get("help_text", el.description),
+            default=m.get("default"),
+            required=m.get("required", False),
+            is_flag=m.get("is_flag", False),
+            is_argument=m.get("param_type") == "argument",
+            multiple=m.get("multiple", False),
+            envvar=m.get("envvar"),
+            typed_metadata=None,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -385,20 +384,19 @@ class CommandView:
                 subcommand_count=len(subcommands),
                 typed_metadata=meta,
             )
-        else:
-            m = el.metadata or {}
-            return cls(
-                name=el.name,
-                description=el.description,
-                usage=m.get("usage", ""),
-                href=el.href or f"#{el.name}",
-                is_group=m.get("is_group", False),
-                is_hidden=m.get("is_hidden", False),
-                option_count=len(options),
-                argument_count=len(arguments),
-                subcommand_count=len(subcommands),
-                typed_metadata=None,
-            )
+        m = el.metadata or {}
+        return cls(
+            name=el.name,
+            description=el.description,
+            usage=m.get("usage", ""),
+            href=el.href or f"#{el.name}",
+            is_group=m.get("is_group", False),
+            is_hidden=m.get("is_hidden", False),
+            option_count=len(options),
+            argument_count=len(arguments),
+            subcommand_count=len(subcommands),
+            typed_metadata=None,
+        )
 
 
 # =============================================================================

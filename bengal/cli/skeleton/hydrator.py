@@ -24,14 +24,17 @@ print(f"Created {len(hydrator.created_files)} files")
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from bengal.cli.skeleton.schema import Component, Skeleton
 from bengal.utils.io.atomic_write import atomic_write_text
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from bengal.cli.skeleton.schema import Component, Skeleton
 
 logger = get_logger(__name__)
 

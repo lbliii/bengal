@@ -16,13 +16,8 @@ from __future__ import annotations
 
 from pathlib import Path
 from textwrap import dedent
-from typing import TYPE_CHECKING
 
 import pytest
-
-if TYPE_CHECKING:
-    pass
-
 
 # Skip if block cache not available
 pytest.importorskip("bengal.rendering.block_cache")

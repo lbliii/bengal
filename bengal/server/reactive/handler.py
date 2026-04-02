@@ -14,11 +14,10 @@ from typing import TYPE_CHECKING
 from patitas import parse_frontmatter
 
 from bengal.core.output import BuildOutputCollector
-from bengal.protocols import SiteLike
 from bengal.rendering.pipeline.core import RenderingPipeline
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike
+    from bengal.protocols import PageLike, SiteLike
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)

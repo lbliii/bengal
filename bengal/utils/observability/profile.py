@@ -172,7 +172,7 @@ class BuildProfile(Enum):
                     "max_recent": 0,
                 },
             }
-        elif self == BuildProfile.THEME_DEV:
+        if self == BuildProfile.THEME_DEV:
             return {
                 "show_phase_timing": True,
                 "track_memory": False,
@@ -200,26 +200,26 @@ class BuildProfile(Enum):
                     "max_recent": 3,
                 },
             }
-        else:  # DEVELOPER
-            return {
-                "show_phase_timing": True,
-                "track_memory": True,
-                "enable_debug_output": True,
-                "collect_metrics": True,
-                "health_checks": {
-                    # Everything
-                    "enabled": "all",
-                    "disabled": [],
-                },
-                "verbose_build_stats": True,
-                "verbose_console_logs": False,  # Full metrics, but no log spam (use --full-output if needed)
-                "live_progress": {
-                    "enabled": True,
-                    "show_recent_items": True,
-                    "show_metrics": True,
-                    "max_recent": 5,
-                },
-            }
+        # DEVELOPER
+        return {
+            "show_phase_timing": True,
+            "track_memory": True,
+            "enable_debug_output": True,
+            "collect_metrics": True,
+            "health_checks": {
+                # Everything
+                "enabled": "all",
+                "disabled": [],
+            },
+            "verbose_build_stats": True,
+            "verbose_console_logs": False,  # Full metrics, but no log spam (use --full-output if needed)
+            "live_progress": {
+                "enabled": True,
+                "show_recent_items": True,
+                "show_metrics": True,
+                "max_recent": 5,
+            },
+        }
 
     def __str__(self) -> str:
         """String representation of profile."""

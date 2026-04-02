@@ -8,19 +8,19 @@ from __future__ import annotations
 
 import csv
 import json
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from kida import Markup
 
 from bengal.errors import ErrorCode
-from bengal.protocols import SiteConfig
 from bengal.utils.io.file_io import load_data_file
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
 
 if TYPE_CHECKING:
-    from bengal.protocols import TemplateEnvironment
+    from pathlib import Path
+
+    from bengal.protocols import SiteConfig, TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -67,10 +67,9 @@ def _load_data(path: str, root_path: Path) -> dict[str, Any]:
 
     if suffix in (".yaml", ".yml"):
         return _load_yaml_data(file_path)
-    elif suffix == ".csv":
+    if suffix == ".csv":
         return _load_csv_data(file_path)
-    else:
-        return {"error": f"Unsupported file format: {suffix} (use .yaml, .yml, or .csv)"}
+    return {"error": f"Unsupported file format: {suffix} (use .yaml, .yml, or .csv)"}
 
 
 def _load_yaml_data(file_path: Path) -> dict[str, Any]:

@@ -21,15 +21,15 @@ Why float("inf")?
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterable
 
 # Standard default weight for unweighted items.
 # Using infinity ensures unweighted items always sort last.
 # DO NOT use 0 (sorts first) or 999999 (can be exceeded).
 DEFAULT_WEIGHT: float = float("inf")
-
-T = TypeVar("T")
 
 
 def weight_sort_key(

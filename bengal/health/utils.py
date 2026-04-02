@@ -19,11 +19,12 @@ Related:
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from bengal.protocols import SiteLike
 
 

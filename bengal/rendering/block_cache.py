@@ -45,15 +45,16 @@ RFC: block-level-incremental-builds
 
 from __future__ import annotations
 
-import builtins
 import hashlib
-from collections.abc import Iterator
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Literal
 
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    import builtins
+    from collections.abc import Iterator
+
     from bengal.rendering.engines.kida import KidaTemplateEngine
 
 logger = get_logger(__name__)

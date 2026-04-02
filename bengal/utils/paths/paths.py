@@ -21,10 +21,13 @@ See Also:
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 # Re-export from canonical location for backward compatibility
 from bengal.cache.paths import BengalPaths as BengalPaths
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 __all__ = ["BengalPaths", "LegacyBengalPaths"]
 

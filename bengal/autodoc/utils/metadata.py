@@ -523,7 +523,7 @@ def get_function_return_info(element: DocElement) -> dict[str, Any]:
             "type": returns.get("type"),
             "description": returns.get("description"),
         }
-    elif isinstance(returns, str):
+    if isinstance(returns, str):
         return {
             "type": returns,
             "description": None,

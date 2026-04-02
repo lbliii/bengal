@@ -8,13 +8,14 @@ Thread-safe: Protocols are type-only constructs, no runtime overhead.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Protocol
 
-from patitas.nodes import Block, Inline
-from patitas.stringbuilder import StringBuilder
-
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from patitas.nodes import Block, Inline
+    from patitas.stringbuilder import StringBuilder
+
     from bengal.cache.directive_cache import DirectiveCache
     from bengal.parsing.backends.patitas.protocols import LexerDelegate
     from bengal.parsing.backends.patitas.renderers.utils import HeadingInfo

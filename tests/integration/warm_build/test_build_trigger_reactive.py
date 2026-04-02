@@ -10,13 +10,16 @@ RFC: Reactive Dev Sequel (Phases 3, 5, 6, 7)
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.reactive import ReactiveContentHandler
-from tests.integration.warm_build.conftest import WarmBuildTestSite
+
+if TYPE_CHECKING:
+    from tests.integration.warm_build.conftest import WarmBuildTestSite
 
 
 class TestBuildTriggerReactivePath:

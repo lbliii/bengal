@@ -31,8 +31,10 @@ See Also:
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Coroutine
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Coroutine
 
 # Lazy uvloop detection - only check when first needed
 # This avoids ~200ms import overhead when uvloop is installed but not used

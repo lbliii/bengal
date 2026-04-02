@@ -45,7 +45,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from .base import ContentTypeStrategy
 from .strategies import (
     ApiReferenceStrategy,
     ArchiveStrategy,
@@ -62,6 +61,8 @@ from .strategies import (
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
     from bengal.protocols import SectionLike
+
+    from .base import ContentTypeStrategy
 
 
 #: Global registry mapping content type names to strategy instances.

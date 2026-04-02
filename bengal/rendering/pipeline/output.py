@@ -42,7 +42,6 @@ Related Modules:
 from __future__ import annotations
 
 import re
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.pipeline.thread_local import mark_dir_created
@@ -50,6 +49,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.output import OutputCollector
     from bengal.protocols import PageLike, SiteLike
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector

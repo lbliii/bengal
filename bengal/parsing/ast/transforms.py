@@ -26,9 +26,12 @@ See Also:
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
-from bengal.parsing.ast.types import ASTNode
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from bengal.parsing.ast.types import ASTNode
 
 
 def transform_links_in_ast(

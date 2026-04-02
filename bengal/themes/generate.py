@@ -38,11 +38,14 @@ bengal/themes/default/assets/css/tokens/: Generated CSS output
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.errors import BengalAssetError, ErrorCode
 from bengal.themes.tokens import BENGAL_PALETTE, PALETTE_VARIANTS
 from bengal.themes.utils import CLI_DASHBOARD_TCSS_PATH, DEFAULT_CSS_TOKENS_PATH
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def generate_web_css() -> str:

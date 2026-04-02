@@ -13,13 +13,16 @@ Benchmarks cover:
 Run with: pytest benchmarks/test_core_performance.py -v --benchmark-only
 """
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.nav_tree import NavTree, NavTreeCache
 from bengal.core.site import Site
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # --- Fixtures ---
 

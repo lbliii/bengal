@@ -39,9 +39,12 @@ import contextlib
 import os
 import signal
 import time
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.server.utils import get_icons
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class PIDManager:
@@ -165,10 +168,9 @@ class PIDManager:
             # Process exists - check if it's actually Bengal
             if PIDManager.is_bengal_process(pid):
                 return pid
-            else:
-                # PID file from non-Bengal process, safe to remove
-                pid_file.unlink()
-                return None
+            # PID file from non-Bengal process, safe to remove
+            pid_file.unlink()
+            return None
 
         except ValueError, OSError:
             # Invalid PID file or read error

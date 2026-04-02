@@ -30,11 +30,14 @@ import html as html_mod
 import re
 import threading
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
-from bengal.rendering.highlighting.cache import HighlightCache
 from bengal.rendering.highlighting.rosettes import RosettesBackend
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.code import parse_hl_lines
+
+if TYPE_CHECKING:
+    from bengal.rendering.highlighting.cache import HighlightCache
 
 # Pattern to extract line highlight syntax from code fence info string
 # Matches: python {5} or yaml {1,3,5} or js {1-3,5,7-9}

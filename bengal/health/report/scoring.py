@@ -67,9 +67,8 @@ def get_quality_rating(score: int) -> str:
     """
     if score >= 90:
         return "Excellent"
-    elif score >= 75:
+    if score >= 75:
         return "Good"
-    elif score >= 50:
+    if score >= 50:
         return "Fair"
-    else:
-        return "Needs Improvement"
+    return "Needs Improvement"

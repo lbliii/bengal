@@ -217,17 +217,16 @@ class PythonExtractor(Extractor):
             # Post-process single file (build index, synthesize inheritance)
             self._post_process_elements(elements)
             return elements
-        elif source.is_dir():
+        if source.is_dir():
             return self._extract_directory(source)
-        else:
-            from bengal.errors import BengalDiscoveryError, ErrorCode
+        from bengal.errors import BengalDiscoveryError, ErrorCode
 
-            raise BengalDiscoveryError(
-                f"Source must be a file or directory: {source}",
-                file_path=source if isinstance(source, Path) else None,
-                suggestion="Provide a valid file or directory path for autodoc extraction",
-                code=ErrorCode.D002,
-            )
+        raise BengalDiscoveryError(
+            f"Source must be a file or directory: {source}",
+            file_path=source if isinstance(source, Path) else None,
+            suggestion="Provide a valid file or directory path for autodoc extraction",
+            code=ErrorCode.D002,
+        )
 
     def _get_effective_config(self, module_name: str) -> dict[str, Any]:
         """
@@ -495,10 +494,7 @@ class PythonExtractor(Extractor):
         # Cache miss or reconstruction failed - parse AST normally
         source = file_path.read_text(encoding="utf-8")
 
-        try:
-            tree = ast.parse(source, filename=str(file_path))
-        except SyntaxError:
-            raise
+        tree = ast.parse(source, filename=str(file_path))
 
         # Extract module-level documentation
         module_element = self._extract_module(tree, file_path, source)

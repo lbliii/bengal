@@ -13,11 +13,14 @@ These tests verify that _read_file_safe handles:
 from __future__ import annotations
 
 import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.content.discovery.version_diff import VersionDiff, VersionDiffer
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

@@ -236,7 +236,6 @@ def format_memory(mb: float) -> str:
     """
     if mb < 1:
         return f"{mb * 1024:.1f} KB"
-    elif mb < 1024:
+    if mb < 1024:
         return f"{mb:.1f} MB"
-    else:
-        return f"{mb / 1024:.2f} GB"
+    return f"{mb / 1024:.2f} GB"

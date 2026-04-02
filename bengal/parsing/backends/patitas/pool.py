@@ -21,13 +21,14 @@ RFC: rfc-contextvar-downstream-patterns.md
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any
 
 from bengal.parsing.backends.patitas.utils.pool import ThreadLocalPool
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from patitas.parser import Parser
 
     from bengal.cache.directive_cache import DirectiveCache

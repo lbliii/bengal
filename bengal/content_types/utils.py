@@ -14,11 +14,12 @@ Functions:
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from bengal.protocols import PageLike, SectionLike
 
 

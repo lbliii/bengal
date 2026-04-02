@@ -788,10 +788,9 @@ class CLIOutput(DevServerOutputMixin):
 
         if rest:
             return f"{icon} {name_padded} {' '.join(rest)}"
-        else:
-            if getattr(self, "dev_server", False):
-                return f"{icon} {name_padded}".rstrip()
-            return f"{icon} {name_padded} Done"
+        if getattr(self, "dev_server", False):
+            return f"{icon} {name_padded}".rstrip()
+        return f"{icon} {name_padded} Done"
 
     def _now_ms(self) -> int:
         """Get current monotonic time in milliseconds for phase deduplication."""

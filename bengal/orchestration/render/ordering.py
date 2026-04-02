@@ -11,13 +11,14 @@ These are mixed into RenderOrchestrator via OrderingMixin.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.page import Page
     from bengal.core.site import Site
 

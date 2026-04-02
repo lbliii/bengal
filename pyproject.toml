@@ -126,18 +126,122 @@ select = [
     "C4",   # unnecessary comprehensions/list()/dict() calls
     "RUF",  # Ruff-specific (unused noqa, mutable class defaults, etc.)
     "PT",   # flake8-pytest-style - pytest best practices
+    "TCH",  # flake8-type-checking - move imports behind TYPE_CHECKING
+    "FBT",  # flake8-boolean-trap - boolean positional args
+    "T20",  # flake8-print - catch stray print() calls
+    "ARG",  # flake8-unused-arguments - unused function parameters
+    "RET",  # flake8-return - consistent return patterns
+    "TRY",  # tryceratops - exception handling patterns
+    "S",    # bandit - security checks
+    "ERA",  # eradicate - commented-out code detection
 ]
 ignore = [
     "E501",   # line too long - handled by formatter, manual review for long strings
     "RUF001", # ambiguous unicode in string (intentional × symbols, em-dashes)
     "RUF002", # ambiguous unicode in docstring (intentional typography)
     "RUF003", # ambiguous unicode in comment (intentional typography)
+    # FBT: boolean positional args — would require API-breaking signature changes across 800+ sites.
+    # Rules stay enabled for new code awareness; ignore existing violations.
+    "FBT001", # boolean type hint positional argument
+    "FBT002", # boolean default value positional argument
+    "FBT003", # boolean positional value in function call
+    # TRY: pragmatic exception patterns
+    "TRY003", # raise with long message — intentional for clear user-facing errors
+    "TRY203", # useless-try-except — intentional re-raise for CancelledError propagation
+    "TRY300", # try-consider-else — style preference, not a correctness issue
+    "TRY301", # raise-within-try — intentional re-raise patterns with logging
+    "TRY400", # logger.error vs logger.exception — project uses .error intentionally
+    # ARG: unused arguments common in interface/protocol/callback compliance
+    "ARG001", # unused-function-argument — callbacks/hooks have fixed signatures
+    "ARG002", # unused-method-argument — methods implement interfaces with fixed signatures
+    "ARG003", # unused-class-method-argument — factory methods with fixed signatures
+    "ARG005", # unused-lambda-argument — lambda callbacks with fixed signatures
+    # RET: style preferences
+    "RET504", # unnecessary-assign — intermediate vars aid debuggability
+    # S: false positives for a documentation site generator
+    "S105",   # hardcoded-password-string — false positives on config keys like "secret_key"
+    "S110",   # try-except-pass — intentional suppress patterns
+    "S311",   # non-cryptographic random — fine for non-security uses (shuffling, sampling)
+    "S324",   # insecure hash — MD5/SHA1 used for content hashing, not security
+    "S701",   # jinja2-autoescape-false — template engine controls escaping contextually
+    "S301",   # suspicious-pickle — used for build cache serialization
+    "S314",   # suspicious-xml — used for sitemap/feed generation
+    "S112",   # try-except-continue — intentional skip-and-continue patterns
+    "S101",   # assert — used as contract/invariant checks throughout
+    "S310",   # suspicious-url-open — URL fetching is core functionality
+    "S108",   # hardcoded-temp-file — /tmp paths in a build tool are fine
+    "S323",   # unverified-context — intentional for dev server
+    "S602",   # subprocess-popen-with-shell — controlled internal usage
+    "S603",   # subprocess-without-shell-equals-true — controlled invocations
+    "S607",   # start-process-with-partial-path — uses PATH lookup intentionally
+    "S608",   # hardcoded-sql — not actual SQL, pattern matching false positive
+    # ERA: commented-out code needs manual human review, not bulk auto-fix
+    "ERA001", # commented-out code detection
 ]
 
 # Per-file ignore rules
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]   # Allow unused imports in __init__ files
-"tests/**/*.py" = ["S101"] # Allow assert in tests
+"tests/**/*.py" = [
+    "S101",  # Allow assert in tests
+    "ARG",   # Unused args common in fixtures/mocks
+    "T201",  # Print in test helpers is fine
+    "S108",  # Hardcoded /tmp paths in tests are fine
+    "S311",  # Non-crypto random in tests is fine
+    "S105",  # Hardcoded "password" strings in test fixtures
+    "S603",  # Subprocess in tests is fine
+    "S607",  # Partial path in tests is fine
+    "TRY",   # Exception patterns in tests are intentionally varied
+]
+# CLI layer — print() is the primary output mechanism, callbacks have fixed signatures
+"bengal/cli/**/*.py" = ["T201", "ARG"]
+"bengal/__main__.py" = ["T201"]
+# Dev server / build output — print for output, callbacks have fixed signatures
+"bengal/server/**/*.py" = ["T201", "S108", "S603", "S607", "ARG"]
+"bengal/build/**/*.py" = ["T201"]
+"bengal/core/site/**/*.py" = ["T201"]
+# Rendering/template layer — print for output, callbacks have fixed signatures
+"bengal/rendering/**/*.py" = ["T201", "ARG"]
+# Scaffolds/init — print for user-facing scaffolding output
+"bengal/scaffolds/**/*.py" = ["T201", "S108"]
+# Analysis/debug/health tools — print for output, callbacks have fixed signatures
+"bengal/analysis/**/*.py" = ["T201", "ARG"]
+"bengal/debug/**/*.py" = ["T201"]
+"bengal/health/**/*.py" = ["T201", "ARG"]
+# Orchestration/output — print for build status, callbacks have fixed signatures
+"bengal/orchestration/**/*.py" = ["T201", "ARG"]
+"bengal/output/**/*.py" = ["T201", "ARG"]
+# Autodoc config — print for deprecation warnings
+"bengal/autodoc/**/*.py" = ["T201"]
+# Config validators — print for user-facing validation errors
+"bengal/config/**/*.py" = ["T201", "S108", "S603", "S607"]
+# Content layer — print for warnings, subprocess for git, URL handling
+"bengal/content/**/*.py" = ["T201", "S310", "S603", "S607"]
+# Theme generation — print for CLI output
+"bengal/themes/**/*.py" = ["T201"]
+# Utils — print for output, callbacks have fixed signatures, subprocess for tools
+"bengal/utils/**/*.py" = ["T201", "ARG", "S603", "S607"]
+# Notebooks — print is the output mechanism
+"site/**/*.ipynb" = ["T201"]
+# Cursor/audit scripts — standalone scripts
+".cursor/**/*.py" = ["T201", "S101", "S603", "S607"]
+# Assets/CLI — subprocess for external tools (npm, pip, etc.)
+"bengal/assets/**/*.py" = ["S603", "S607"]
+"bengal/cli/commands/upgrade/**/*.py" = ["S603", "S607"]
+"bengal/cli/commands/theme.py" = ["S603", "S607"]
+# Protocols — unused args are inherent to interface definitions
+"bengal/protocols/**/*.py" = ["ARG"]
+# Directive renderers/parsers — callback signatures dictated by framework
+"bengal/parsing/**/*.py" = ["ARG"]
+# Template functions — many accept standard args they don't all use
+"bengal/rendering/template_functions/**/*.py" = ["ARG"]
+# Services — interface compliance
+"bengal/services/**/*.py" = ["ARG"]
+# Postprocess — subprocess for external tools, callbacks have fixed signatures
+"bengal/postprocess/**/*.py" = ["S603", "S607", "ARG"]
+# Scripts and benchmarks
+"scripts/**/*.py" = ["T201", "S"]
+"benchmarks/**/*.py" = ["T201", "S101", "S603", "S607", "ARG"]
 # Jinja test functions use test_ prefix by convention (not pytest tests)
 "bengal/rendering/template_tests.py" = ["PT028"]
 # LRUCache.keys() returns list[K], not a dict - SIM118 false positive
@@ -162,30 +266,28 @@ python-version = "3.14"
 exclude = ["tests/roots/", "MagicMock/", "dist/", "build/"]
 
 [tool.ty.rules]
-# Relax rules that produce too many false positives or are overly strict
-# These are still checked but won't fail CI (warn instead of error)
-unresolved-import = "warn"               # Third-party stubs often incomplete
-unresolved-attribute = "warn"            # Dynamic attribute access patterns
-invalid-argument-type = "warn"           # Gradual typing - allow flexibility
-possibly-unresolved-reference = "ignore" # Too noisy with conditional imports
-
-# Relax additional rules that are too strict for large codebases
-call-non-callable = "warn"       # False positives with Protocol/dynamic types
-invalid-return-type = "warn"     # Gradual typing flexibility
-invalid-assignment = "warn"      # Allows incremental typing improvements
-invalid-type-arguments = "warn"  # Generics constraints too strict
-not-subscriptable = "warn"       # Protocol objects missing __getitem__
-invalid-method-override = "warn" # Liskov violations - review later
-unused-ignore-comment = "error"  # Enforce cleanup of stale type: ignore comments
-
-# Relax remaining rules to unblock CI - fix incrementally
-unresolved-reference = "warn"           # Missing imports - fix these properly
-unknown-argument = "warn"               # Wrong kwargs - needs investigation
+# === ERRORS: Correctness rules that catch real bugs ===
 missing-argument = "error"              # Enforce correct call signatures
 unsupported-operator = "error"          # Enforce valid type operations
 not-iterable = "error"                  # Enforce iterable before iteration
 too-many-positional-arguments = "error" # Enforce correct argument counts
 no-matching-overload = "error"          # Enforce matching overloads
+unused-ignore-comment = "error"         # Enforce cleanup of stale type: ignore comments
+# === TIGHTEN NEXT: promote to "error" as false positives decrease ===
+invalid-argument-type = "warn"          # 257 violations — gradual typing gaps + ty false positives
+unresolved-attribute = "warn"           # 333 violations — dynamic attribute patterns
+invalid-assignment = "warn"             # 65 violations — dynamic types + protocol patterns
+
+# === WARNINGS: Gradual typing — enforce incrementally ===
+unresolved-import = "warn"               # Third-party stubs often incomplete
+possibly-unresolved-reference = "ignore" # Too noisy with conditional imports
+call-non-callable = "warn"              # False positives with Protocol/dynamic types
+invalid-return-type = "warn"            # Gradual typing flexibility
+invalid-type-arguments = "warn"         # Generics constraints too strict
+not-subscriptable = "warn"              # Protocol objects missing __getitem__
+invalid-method-override = "warn"        # Liskov violations - review later
+unresolved-reference = "warn"           # Missing imports - fix incrementally
+unknown-argument = "warn"               # Wrong kwargs - needs investigation
 
 # Workspace overrides (kida, patitas, pounce, rosettes) live in b-stack/pyproject.toml.
 # CI and standalone installs use PyPI per dependencies above.

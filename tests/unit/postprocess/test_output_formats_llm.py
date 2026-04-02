@@ -8,10 +8,13 @@ This test suite ensures that LLM.txt files are always available and correctly fo
 - URLs and paths are correct for action-bar copy/share functionality
 """
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, Mock
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestPerPageLLMTextGeneration:

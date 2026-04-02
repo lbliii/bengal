@@ -294,17 +294,16 @@ class AsyncLinkChecker:
                         first_ref=refs[0] if refs else None,
                         ref_count=len(refs),
                     )
-                else:
-                    logger.debug("link_broken", url=url, status=status_code)
-                    return LinkCheckResult(
-                        url=url,
-                        kind=LinkKind.EXTERNAL,
-                        status=LinkStatus.BROKEN,
-                        status_code=status_code,
-                        reason=response.reason_phrase,
-                        first_ref=refs[0] if refs else None,
-                        ref_count=len(refs),
-                    )
+                logger.debug("link_broken", url=url, status=status_code)
+                return LinkCheckResult(
+                    url=url,
+                    kind=LinkKind.EXTERNAL,
+                    status=LinkStatus.BROKEN,
+                    status_code=status_code,
+                    reason=response.reason_phrase,
+                    first_ref=refs[0] if refs else None,
+                    ref_count=len(refs),
+                )
 
             except httpx.TimeoutException as e:
                 last_error = e

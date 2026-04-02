@@ -31,7 +31,6 @@ Matches Bengal's embed directives exactly for parity.
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
 from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
@@ -39,8 +38,6 @@ from urllib.parse import quote
 
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
-
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 
 def clean_soundcloud_path(url_path: str) -> str:
@@ -56,9 +53,13 @@ def clean_soundcloud_path(url_path: str) -> str:
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from patitas.location import SourceLocation
     from patitas.nodes import Block
     from patitas.stringbuilder import StringBuilder
+
+    from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 __all__ = [
     "CodePenDirective",
@@ -304,7 +305,7 @@ class CodePenDirective:
         parts = pen_ref.split("/")
         if len(parts) == 3 and parts[1] == "pen":
             return parts[0], parts[2]
-        elif len(parts) == 2:
+        if len(parts) == 2:
             return parts[0], parts[1]
         return "", ""
 

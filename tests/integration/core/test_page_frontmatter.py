@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.core.page import Page
 from bengal.core.page.frontmatter import Frontmatter
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_page_frontmatter_typed_access(tmp_path: Path) -> None:

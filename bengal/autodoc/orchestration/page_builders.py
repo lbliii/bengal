@@ -6,10 +6,8 @@ Creates virtual Page objects and handles rendering for autodoc elements.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
-from bengal.autodoc.base import DocElement
 from bengal.autodoc.hashing import compute_doc_content_hash
 from bengal.autodoc.orchestration.result import AutodocRunResult
 from bengal.autodoc.utils import (
@@ -26,6 +24,9 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from bengal.autodoc.base import DocElement
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
@@ -384,7 +385,7 @@ def find_parent_section(
         parts = element.qualified_name.split(".")
         section_path = f"{prefix}/" + "/".join(parts[:-1]) if len(parts) > 1 else prefix
         return sections.get(section_path) or sections.get(prefix) or default_section
-    elif doc_type == "cli":
+    if doc_type == "cli":
         parts = element.qualified_name.split(".")
         if len(parts) > 1:
             # Parent is everything except the last part
@@ -393,11 +394,11 @@ def find_parent_section(
             section_path = f"{prefix}/{parent_path}" if parent_path else prefix
             return sections.get(section_path) or sections.get(prefix) or default_section
         return sections.get(prefix) or default_section
-    elif doc_type == "openapi":
+    if doc_type == "openapi":
         # Note: openapi_overview doesn't get a page - root section index handles it
         if element.element_type == "openapi_schema":
             return sections.get(f"{prefix}/schemas") or sections.get(prefix) or default_section
-        elif element.element_type == "openapi_endpoint":
+        if element.element_type == "openapi_endpoint":
             tags = get_openapi_tags(element)
             if tags:
                 tag_section = sections.get(f"{prefix}/tags/{tags[0]}")
@@ -417,15 +418,14 @@ def get_element_metadata(
         url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
         # Python API docs use python-reference type for prose-constrained layout
         return "autodoc/python/module", url_path, "autodoc-python"
-    elif doc_type == "cli":
+    if doc_type == "cli":
         cli_path = resolve_cli_url_path(element.qualified_name)
         url_path = f"{prefix}/{cli_path}" if cli_path else prefix
 
         if element.element_type == "command-group":
             return "autodoc/cli/command-group", url_path, "autodoc-cli"
-        else:
-            return "autodoc/cli/command", url_path, "autodoc-cli"
-    elif doc_type == "openapi":
+        return "autodoc/cli/command", url_path, "autodoc-cli"
+    if doc_type == "openapi":
         # OpenAPI docs use autodoc/openapi templates
         # Note: openapi_overview doesn't get a page - root section index handles it
         if element.element_type == "openapi_schema":
@@ -435,7 +435,7 @@ def get_element_metadata(
                 f"{prefix}/schemas/{schema_name}",
                 "autodoc-rest",
             )
-        elif element.element_type == "openapi_endpoint":
+        if element.element_type == "openapi_endpoint":
             method = get_openapi_method(element).lower()
             path = path_to_slug(get_openapi_path(element))
             return (

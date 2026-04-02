@@ -184,9 +184,9 @@ class ExplanationReporter:
             if len(value) <= 5:
                 return f"[{', '.join(str(v) for v in value)}]"
             return f"[{', '.join(str(v) for v in value[:5])}, ... +{len(value) - 5} more]"
-        elif isinstance(value, dict):
+        if isinstance(value, dict):
             return f"{{...}} ({len(value)} keys)"
-        elif isinstance(value, str) and len(value) > 50:
+        if isinstance(value, str) and len(value) > 50:
             return f'"{value[:50]}..."'
         return repr(value)
 

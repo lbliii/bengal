@@ -10,14 +10,16 @@ These tests verify that Section.add_page correctly handles:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 from bengal.core.page import Page, PageProxy
 from bengal.core.page.page_core import PageCore
 from bengal.core.section import Section
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def make_page_core(source_path: str | Path, title: str, *, weight: int | None = None) -> PageCore:

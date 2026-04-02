@@ -57,16 +57,15 @@ See Also:
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any
 
 from bengal.protocols import Cacheable
 from bengal.utils.observability.logger import get_logger
 
-logger = get_logger(__name__)
+if TYPE_CHECKING:
+    from pathlib import Path
 
-# TypeVar bound to Cacheable for type-safe load operations
-T = TypeVar("T", bound=Cacheable)
+logger = get_logger(__name__)
 
 
 class CacheStore:
@@ -219,7 +218,7 @@ class CacheStore:
 
             logger.debug(f"Saved {len(entries)} entries to {self.cache_path} (version {version})")
 
-    def load(
+    def load[T: Cacheable](
         self,
         entry_type: type[T],
         expected_version: int = 1,

@@ -49,12 +49,13 @@ from __future__ import annotations
 import shutil
 import subprocess
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.version import GitVersionConfig, Version
 
 logger = get_logger(__name__)

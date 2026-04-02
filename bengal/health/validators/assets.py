@@ -13,13 +13,14 @@ from __future__ import annotations
 
 import itertools
 from collections import defaultdict
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import SiteLike
 

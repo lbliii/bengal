@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import hashlib
 import re
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -36,6 +35,8 @@ from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.site import Site
 
 

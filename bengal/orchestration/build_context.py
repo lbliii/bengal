@@ -27,15 +27,14 @@ See Also:
 from __future__ import annotations
 
 import uuid
-from collections.abc import Callable
 from dataclasses import dataclass, field
-from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any
 
-from bengal.rendering.assets import AssetManifestContext
-
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.cache.build_cache import BuildCache
     from bengal.core.asset import Asset
@@ -46,6 +45,7 @@ if TYPE_CHECKING:
     from bengal.output import CLIOutput
     from bengal.protocols import ProgressReporter
     from bengal.rendering.api_doc_enhancer import APIDocEnhancerProtocol
+    from bengal.rendering.assets import AssetManifestContext
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
     from bengal.services.data import DataService
     from bengal.services.query import QueryService

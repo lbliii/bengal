@@ -38,8 +38,7 @@ from __future__ import annotations
 
 from dataclasses import MISSING, dataclass, fields, is_dataclass
 from datetime import date, datetime
-from pathlib import Path
-from typing import Any, Protocol, cast, get_args, get_origin, get_type_hints
+from typing import TYPE_CHECKING, Any, Protocol, cast, get_args, get_origin, get_type_hints
 
 from bengal.collections.errors import ValidationError
 from bengal.protocols.capabilities import HasErrors
@@ -51,6 +50,9 @@ from bengal.utils.primitives.types import (
     is_union_type,
     type_display_name,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = get_logger(__name__)
 
@@ -286,7 +288,7 @@ class SchemaValidator:
             # Use getattr to avoid type checker error - we've already checked _is_pydantic
             if not self._is_pydantic:
                 raise TypeError("Schema is not a Pydantic model")
-            instance = cast(_HasModelValidate, self.schema).model_validate(data)
+            instance = cast("_HasModelValidate", self.schema).model_validate(data)
             return ValidationResult(
                 valid=True,
                 data=instance,
@@ -491,21 +493,20 @@ class SchemaValidator:
             if len(non_none_args) == 1:
                 # Simple Optional[X] - validate against X
                 return self._coerce_type(name, value, non_none_args[0], _depth=_depth)
-            else:
-                # Union of multiple types - try each until one succeeds
-                for arg in non_none_args:
-                    result, errors = self._coerce_type(name, value, arg, _depth=_depth)
-                    if not errors:
-                        return result, []
+            # Union of multiple types - try each until one succeeds
+            for arg in non_none_args:
+                result, errors = self._coerce_type(name, value, arg, _depth=_depth)
+                if not errors:
+                    return result, []
 
-                return value, [
-                    ValidationError(
-                        field=name,
-                        message=f"Value does not match any type in {type_display_name(expected)}",
-                        value=value,
-                        expected_type=type_display_name(expected),
-                    )
-                ]
+            return value, [
+                ValidationError(
+                    field=name,
+                    message=f"Value does not match any type in {type_display_name(expected)}",
+                    value=value,
+                    expected_type=type_display_name(expected),
+                )
+            ]
 
         # Handle list[X]
         if origin is list:
@@ -622,23 +623,25 @@ class SchemaValidator:
                 result = nested_validator._validate_dataclass(value, None, _depth=_depth + 1)
                 if result.valid:
                     return result.data, []
-                else:
-                    # Prefix field names with parent
-                    for error in result.errors:
-                        error.field = f"{name}.{error.field}"
-                    return value, result.errors
-            else:
-                # Not a dict - can't validate as nested dataclass
-                # Get type name safely
-                type_name = getattr(expected, "__name__", str(expected))
-                return value, [
-                    ValidationError(
-                        field=name,
-                        message=f"Expected dict for nested schema, got {type(value).__name__}",
-                        value=value,
-                        expected_type=type_name,
-                    )
-                ]
+                # Prefix field names with parent
+                for error in result.errors:
+                    error.field = f"{name}.{error.field}"
+                return value, result.errors
+            # Not a dict - can't validate as nested dataclass
+            # Get type name safely
+            type_name = getattr(expected, "__name__", str(expected))
+            return value, [
+                ValidationError(
+                    field=name,
+                    message=f"Expected dict for nested schema, got {type(value).__name__}",
+                    value=value,
+                    expected_type=type_name,
+                )
+            ]
+
+        # typing.Any is a type in Python 3.14+ but cannot be used with isinstance()
+        if expected is Any:
+            return value, []
 
         # Default: accept as-is if type matches
         # Handle generic types by checking if they are types before calling isinstance

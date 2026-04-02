@@ -8,10 +8,13 @@ intuitive method calls instead of verbose filter chains.
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.core.page import Page
 from bengal.core.section import Section
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestSectionRecentPages:

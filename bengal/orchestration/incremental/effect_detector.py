@@ -19,11 +19,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.effects import EffectTracer
 from bengal.effects.block_diff import BlockDiffService
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
+    from bengal.effects import EffectTracer
     from bengal.snapshots.types import SiteSnapshot
 
 

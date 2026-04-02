@@ -99,10 +99,10 @@ def parse_date(
             f"Could not parse date from: {value!r}. "
             "Use ISO 8601 format (YYYY-MM-DD) or common date formats."
         )
-    elif on_error == "return_original":
-        return cast(datetime | date_type | None, value)
-    else:  # 'return_none'
-        return None
+    if on_error == "return_original":
+        return cast("datetime | date_type | None", value)
+    # 'return_none'
+    return None
 
 
 def format_date_iso(date: DateLike) -> str:
@@ -215,20 +215,19 @@ def time_ago(date: DateLike, now: datetime | None = None) -> str:
 
     if seconds < 60:
         return "just now"
-    elif seconds < 3600:  # Less than 1 hour
+    if seconds < 3600:  # Less than 1 hour
         minutes = seconds // 60
         return f"{minutes} minute{'s' if minutes != 1 else ''} ago"
-    elif seconds < 86400:  # Less than 1 day
+    if seconds < 86400:  # Less than 1 day
         hours = seconds // 3600
         return f"{hours} hour{'s' if hours != 1 else ''} ago"
-    elif diff.days < 30:
+    if diff.days < 30:
         return f"{diff.days} day{'s' if diff.days != 1 else ''} ago"
-    elif diff.days < 365:
+    if diff.days < 365:
         months = diff.days // 30
         return f"{months} month{'s' if months != 1 else ''} ago"
-    else:
-        years = diff.days // 365
-        return f"{years} year{'s' if years != 1 else ''} ago"
+    years = diff.days // 365
+    return f"{years} year{'s' if years != 1 else ''} ago"
 
 
 def get_current_year() -> int:

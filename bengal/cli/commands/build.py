@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 
@@ -24,6 +25,9 @@ from bengal.orchestration.stats import (
     show_building_indicator,
 )
 from bengal.utils.observability.logger import close_all_loggers, print_all_summaries
+
+if TYPE_CHECKING:
+    from bengal.orchestration.build.results import IncrementalDecision
 
 
 @click.command(cls=BengalCommand)
@@ -429,7 +433,7 @@ def build(
                 cli.success(f"Built {len(discovered_versions)} versions")
                 return
 
-            elif build_version:
+            if build_version:
                 # Build specific version
                 cli.info(f"Looking for version {build_version}...")
 
@@ -680,7 +684,6 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
         cli: CLIOutput instance for formatted output
         dry_run: Whether this was a dry-run (preview) build
     """
-    from bengal.orchestration.build.results import IncrementalDecision
 
     decision: IncrementalDecision | None = getattr(stats, "incremental_decision", None)
     if decision is None:
@@ -802,8 +805,6 @@ def _print_explain_json(stats, *, dry_run: bool = False) -> None:
         dry_run: Whether this was a dry-run (preview) build
     """
     import json
-
-    from bengal.orchestration.build.results import IncrementalDecision
 
     decision: IncrementalDecision | None = getattr(stats, "incremental_decision", None)
 

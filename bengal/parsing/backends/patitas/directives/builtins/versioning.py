@@ -20,7 +20,6 @@ Matches Bengal's versioning directives exactly for parity.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
@@ -28,12 +27,14 @@ from typing import TYPE_CHECKING, ClassVar
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
-
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from patitas.location import SourceLocation
     from patitas.nodes import Block
     from patitas.stringbuilder import StringBuilder
+
+    from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 __all__ = ["ChangedDirective", "DeprecatedDirective", "SinceDirective"]
 

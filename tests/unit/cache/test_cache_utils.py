@@ -6,10 +6,13 @@ Tests clear_build_cache, clear_output_directory, and clear_template_cache utilit
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.cache.paths import BengalPaths
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestClearBuildCache:

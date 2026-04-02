@@ -14,11 +14,12 @@ RFC: Snapshot-Enabled v2 Opportunities
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.config.snapshot import ConfigSnapshot
     from bengal.core.nav_tree import NavTree
 

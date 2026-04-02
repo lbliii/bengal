@@ -10,9 +10,9 @@ from typing import TYPE_CHECKING
 
 from bengal.autodoc.utils import get_template_dir_for_type
 from bengal.core.page import Page
-from bengal.core.section import Section
 
 if TYPE_CHECKING:
+    from bengal.core.section import Section
     from bengal.core.site import Site
 
 

@@ -7,10 +7,13 @@ math content is parsed and rendered with correct HTML structure.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestMathFeature:

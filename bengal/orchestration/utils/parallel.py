@@ -27,7 +27,6 @@ from __future__ import annotations
 
 import threading
 import time
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -37,6 +36,8 @@ from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bengal.orchestration.types import ProgressManagerProtocol
 
 logger = get_logger(__name__)

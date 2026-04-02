@@ -5,10 +5,13 @@ Tests the versioning functionality that filters pages and subsections
 by their version attribute for multi-version documentation sites.
 """
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.core.page import Page
 from bengal.core.section import Section
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def make_page(

@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import re
 import threading
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any
 
 from bengal.protocols import SiteLike
@@ -35,6 +34,8 @@ from bengal.rendering.errors import TemplateRenderError
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats.models import BuildStats
     from bengal.protocols import PageLike, SectionLike, TemplateEngine

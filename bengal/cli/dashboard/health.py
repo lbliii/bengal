@@ -20,7 +20,6 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
@@ -36,6 +35,8 @@ from bengal.cli.dashboard.base import BengalDashboard
 from bengal.cli.dashboard.notifications import notify_health_issues
 
 if TYPE_CHECKING:
+    from textual.app import ComposeResult
+
     from bengal.core.site import Site
     from bengal.health.report import HealthReport
 

@@ -27,14 +27,12 @@ from __future__ import annotations
 import contextlib
 from collections.abc import Callable, Generator
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any
 
 import click
 
-F = TypeVar("F", bound=Callable[..., Any])
 
-
-def handle_cli_errors(
+def handle_cli_errors[F: Callable[..., Any]](
     show_art: bool = False,
     preserve_chain: bool = True,
     show_traceback: bool | None = None,
@@ -84,8 +82,7 @@ def handle_cli_errors(
 
                 if preserve_chain:
                     raise click.Abort() from e
-                else:
-                    raise click.Abort() from None
+                raise click.Abort() from None
 
         return wrapper  # type: ignore[return-value]
 

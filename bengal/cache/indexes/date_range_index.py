@@ -41,12 +41,13 @@ Related:
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.cache.query_index import QueryIndex
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.protocols import PageLike
 
 

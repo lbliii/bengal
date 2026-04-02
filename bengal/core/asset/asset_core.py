@@ -42,14 +42,19 @@ from __future__ import annotations
 import hashlib
 import shutil
 import threading
-from collections.abc import Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from bengal.assets.manifest import AssetManifest
 from bengal.core.asset.css_transforms import transform_css_nesting
 from bengal.core.diagnostics import emit as emit_diagnostic
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+
+    from PIL.Image import Image as PILImage
+
+    from bengal.assets.manifest import AssetManifest
 
 # Pillow C extensions are not thread-safe under free-threading (3.14t);
 # serialise all PIL operations with this lock so worker threads don't race.
@@ -293,7 +298,7 @@ class Asset:
                         if char == "\\" and i + 1 < len(css):
                             i += 2  # Skip escaped character
                             continue
-                        elif char == string_char:
+                        if char == string_char:
                             in_string = False
                             string_char = None
 
@@ -502,7 +507,6 @@ class Asset:
 
         try:
             from PIL import Image
-            from PIL.Image import Image as PILImage
 
             # Pillow C extensions are not thread-safe under free-threading (3.14t)
             with _pil_lock:

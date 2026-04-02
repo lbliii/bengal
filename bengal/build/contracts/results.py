@@ -7,12 +7,13 @@ with .merge() to compose detector outputs.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from bengal.build.contracts.keys import CacheKey
 
 

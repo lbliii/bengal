@@ -77,11 +77,12 @@ See Also
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from contextlib import contextmanager
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bengal.utils.observability.logger import BengalLogger
 
 

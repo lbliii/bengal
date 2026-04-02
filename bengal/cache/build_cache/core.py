@@ -32,7 +32,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.build.contracts.keys import CacheKey, content_key
@@ -47,7 +46,7 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
-    pass
+    from pathlib import Path
 
 logger = get_logger(__name__)
 
@@ -344,7 +343,7 @@ class BuildCache(
                                 "(hash, mtime, doc_hashes)."
                             )
                     else:
-                        raise ValueError(
+                        raise TypeError(
                             "Autodoc source metadata must be a 3-tuple (hash, mtime, doc_hashes)."
                         )
 

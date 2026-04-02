@@ -6,11 +6,14 @@ Tests that autodoc HTML page generation is validated correctly.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.health.validators.autodoc import AutodocValidator
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

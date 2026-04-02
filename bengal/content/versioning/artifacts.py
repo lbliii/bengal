@@ -16,10 +16,11 @@ from __future__ import annotations
 
 import html
 import json
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.version import VersionConfig
 
 

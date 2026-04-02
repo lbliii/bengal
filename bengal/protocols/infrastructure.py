@@ -22,19 +22,15 @@ See Also:
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, TypeVar, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+    from pathlib import Path
     from typing import Literal
 
     from bengal.content.sources.entry import ContentEntry
     from bengal.core.output.types import OutputRecord, OutputType
-
-
-# TypeVar for Cacheable
-T = TypeVar("T", bound="Cacheable")
 
 
 # =============================================================================
@@ -150,7 +146,7 @@ class Cacheable(Protocol):
         ...
 
     @classmethod
-    def from_cache_dict(cls: type[T], data: dict[str, Any]) -> T:
+    def from_cache_dict[T: "Cacheable"](cls: type[T], data: dict[str, Any]) -> T:
         """
         Deserialize from cache dictionary.
 

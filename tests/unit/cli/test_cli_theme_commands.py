@@ -1,10 +1,13 @@
 import sys
-from pathlib import Path
 from types import SimpleNamespace
+from typing import TYPE_CHECKING
 
 from click.testing import CliRunner
 
 from bengal.cli import main as cli_main
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _fake_theme(tmp_path: Path, slug: str = "acme"):

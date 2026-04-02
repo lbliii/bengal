@@ -6,10 +6,13 @@ Tests the theme-aware icon resolution system.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 from bengal.icons import resolver as icon_resolver
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestIconResolutionOrder:

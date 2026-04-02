@@ -19,9 +19,10 @@ Example:
 
 """
 
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
-from bengal.protocols import PageLike
+if TYPE_CHECKING:
+    from bengal.protocols import PageLike
 
 
 class _GraphLike(Protocol):

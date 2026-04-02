@@ -13,12 +13,14 @@ These tests ensure the memory-optimized build mode actually releases memory.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass

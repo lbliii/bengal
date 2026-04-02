@@ -33,13 +33,14 @@ bengal.orchestration.incremental: Full incremental logic
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.orchestration.incremental import IncrementalOrchestrator
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
     from bengal.core.site import Site
 
 

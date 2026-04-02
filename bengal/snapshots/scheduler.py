@@ -13,10 +13,11 @@ from __future__ import annotations
 
 import threading
 import time
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.page import Page
     from bengal.snapshots.scout import ScoutThread
     from bengal.snapshots.types import SiteSnapshot

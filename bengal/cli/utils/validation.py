@@ -24,14 +24,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from functools import wraps
-from typing import Any, TypeVar
+from typing import Any
 
 import click
 
-F = TypeVar("F", bound=Callable[..., Any])
 
-
-def validate_mutually_exclusive(
+def validate_mutually_exclusive[F: Callable[..., Any]](
     *flag_pairs: tuple[str, str],
     error_message: str | None = None,
 ) -> Callable[[F], F]:
@@ -70,7 +68,7 @@ def validate_mutually_exclusive(
     return decorator
 
 
-def validate_flag_conflicts(
+def validate_flag_conflicts[F: Callable[..., Any]](
     conflicts: dict[str, list[str]],
     error_message: str | None = None,
 ) -> Callable[[F], F]:
@@ -136,7 +134,6 @@ def _format_flag_list(flags: list[str]) -> str:
     """Format a list of flags for display in error messages."""
     if len(flags) == 1:
         return f"--{flags[0]}"
-    elif len(flags) == 2:
+    if len(flags) == 2:
         return f"--{flags[0]} or --{flags[1]}"
-    else:
-        return ", ".join(f"--{cf}" for cf in flags[:-1]) + f", or --{flags[-1]}"
+    return ", ".join(f"--{cf}" for cf in flags[:-1]) + f", or --{flags[-1]}"

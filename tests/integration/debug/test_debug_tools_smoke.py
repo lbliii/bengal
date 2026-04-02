@@ -7,7 +7,7 @@ crash on typical usage patterns.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -19,6 +19,9 @@ from bengal.debug import (
     IncrementalBuildDebugger,
     PageExplainer,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 try:
     from bengal.debug import ShortcodeSandbox

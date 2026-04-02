@@ -68,7 +68,6 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal import __version__
@@ -78,6 +77,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug, split_url_path
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.output import OutputCollector
     from bengal.protocols import PageLike, SiteLike
 

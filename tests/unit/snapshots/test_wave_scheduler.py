@@ -8,7 +8,7 @@ manifest (Plan: asset-manifest-context-refactor).
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,6 +22,9 @@ from bengal.rendering.assets import (
 from bengal.snapshots import create_site_snapshot
 from bengal.snapshots.scheduler import WaveScheduler
 from bengal.utils.observability.logger import reset_loggers
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.mark.bengal(testroot="test-basic")

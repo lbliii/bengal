@@ -23,11 +23,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Vertical
 from textual.reactive import reactive
-from textual.timer import Timer
 from textual.widgets import (
     DataTable,
     Footer,
@@ -55,6 +53,9 @@ from bengal.cli.dashboard.notifications import (
 from bengal.protocols import SiteLike
 
 if TYPE_CHECKING:
+    from textual.app import ComposeResult
+    from textual.timer import Timer
+
     from bengal.core.site import Site
 
 
@@ -325,7 +326,7 @@ class BengalServeDashboard(BengalDashboard):
         hours, minutes = divmod(minutes, 60)
         if hours:
             return f"{hours}h {minutes}m {seconds}s"
-        elif minutes:
+        if minutes:
             return f"{minutes}m {seconds}s"
         return f"{seconds}s"
 

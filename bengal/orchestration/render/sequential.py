@@ -10,7 +10,6 @@ Mixed into RenderOrchestrator via SequentialRenderMixin.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import ErrorAggregator, extract_error_context
@@ -18,6 +17,8 @@ from bengal.utils.concurrency.executor import CancellationError
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext

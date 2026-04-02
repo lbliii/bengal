@@ -36,11 +36,12 @@ See Also:
 
 from __future__ import annotations
 
-from datetime import datetime
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from datetime import datetime
+    from pathlib import Path
+
     from bengal.config.types import SiteConfig as SiteConfigType
     from bengal.core.page import Page
     from bengal.core.page.frontmatter import Frontmatter

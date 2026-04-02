@@ -11,7 +11,7 @@ See RFC: plan/active/rfc-template-function-improvements.md
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -27,6 +27,9 @@ from bengal.rendering.template_functions.navigation import (
 )
 from bengal.rendering.template_functions.strings import word_count
 from bengal.utils.io.file_io import write_text_file
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

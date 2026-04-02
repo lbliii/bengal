@@ -118,43 +118,41 @@ def format_field(key: str, value: Any) -> str:
     """Format a single frontmatter field."""
     if value is None:
         return f"{key}: null"
-    elif isinstance(value, bool):
+    if isinstance(value, bool):
         return f"{key}: {str(value).lower()}"
-    elif isinstance(value, (int, float)):
+    if isinstance(value, (int, float)):
         return f"{key}: {value}"
-    elif isinstance(value, str):
+    if isinstance(value, str):
         # Quote if contains special chars or starts with number
         if ":" in value or value.startswith(("0", "1", "2", "3", "4", "5", "6", "7", "8", "9")):
             return f'{key}: "{value}"'
         return f"{key}: {value}"
-    elif isinstance(value, list):
+    if isinstance(value, list):
         if not value:
             return f"{key}: []"
         # Format as inline list if short, multi-line if long
         if len(value) <= 3 and all(isinstance(v, str) and len(v) < 20 for v in value):
             items = ", ".join(format_value(v) for v in value)
             return f"{key}: [{items}]"
-        else:
-            lines = [f"{key}:"]
-            lines.extend(f"  - {format_value(item)}" for item in value)
-            return "\n".join(lines)
-    elif isinstance(value, dict):
+        lines = [f"{key}:"]
+        lines.extend(f"  - {format_value(item)}" for item in value)
+        return "\n".join(lines)
+    if isinstance(value, dict):
         lines = [f"{key}:"]
         lines.extend(f"  {k}: {format_value(v)}" for k, v in sorted(value.items()))
         return "\n".join(lines)
-    else:
-        return f"{key}: {format_value(value)}"
+    return f"{key}: {format_value(value)}"
 
 
 def format_value(value: Any) -> str:
     """Format a YAML value."""
     if value is None:
         return "null"
-    elif isinstance(value, bool):
+    if isinstance(value, bool):
         return str(value).lower()
-    elif isinstance(value, (int, float)):
+    if isinstance(value, (int, float)):
         return str(value)
-    elif isinstance(value, str):
+    if isinstance(value, str):
         # Quote if contains special chars
         if (
             ":" in value
@@ -163,13 +161,12 @@ def format_value(value: Any) -> str:
         ):
             return f'"{value}"'
         return value
-    elif isinstance(value, list):
+    if isinstance(value, list):
         return f"[{', '.join(format_value(v) for v in value)}]"
-    elif isinstance(value, dict):
+    if isinstance(value, dict):
         items = ", ".join(f"{k}: {format_value(v)}" for k, v in value.items())
         return f"{{{items}}}"
-    else:
-        return str(value)
+    return str(value)
 
 
 def update_file(file_path: Path) -> bool:

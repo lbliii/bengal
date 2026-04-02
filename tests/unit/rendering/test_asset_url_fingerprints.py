@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.core.theme import Theme
 from bengal.rendering.template_engine import TemplateEngine
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class DummySite:
@@ -26,10 +29,6 @@ class DummySite:
         if isinstance(site_section, dict) and site_section.get("baseurl"):
             return site_section.get("baseurl", "")
         return self.config.get("baseurl", "")
-        self._bengal_theme_chain_cache = None
-        self._bengal_template_metadata_cache = None
-        self._asset_manifest_fallbacks_global: set[str] = set()
-        self._asset_manifest_fallbacks_lock = None
 
     @property
     def theme_config(self) -> Theme:

@@ -10,10 +10,10 @@ import importlib
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.autodoc.base import DocElement
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from bengal.autodoc.base import DocElement
     from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)

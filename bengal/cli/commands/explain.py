@@ -219,8 +219,8 @@ def _convert_paths_to_strings(obj: Any) -> Any:
     """Recursively convert Path objects to strings for JSON serialization."""
     if isinstance(obj, Path):
         return str(obj)
-    elif isinstance(obj, dict):
+    if isinstance(obj, dict):
         return {k: _convert_paths_to_strings(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return [_convert_paths_to_strings(item) for item in obj]
     return obj
