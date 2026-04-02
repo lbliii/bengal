@@ -256,16 +256,16 @@ def update_snapshot(
     # Also check for template changes affecting pages
     for changed_path in changed_paths:
         if changed_path.suffix in (".html", ".jinja", ".j2"):
-            # Find pages using this template
+            # O(1) reverse lookup: template_name → dependent pages (direct + transitive)
             template_name = changed_path.name
-            for page_path, page_snap in old_pages_by_path.items():
-                if page_snap.template_name == template_name:
-                    affected_paths.add(page_path)
-                # Also check transitive dependencies
-                if template_name in old.template_dependency_graph:
-                    for dep_template in old.template_dependency_graph[template_name]:
-                        if page_snap.template_name == dep_template:
-                            affected_paths.add(page_path)
+            for page_snap in old.template_dependents.get(template_name, ()):
+                affected_paths.add(page_snap.source_path)
+            # Also check by full path for templates in subdirectories
+            # (template_dependents keys may include path components like "blog/single.html")
+            for name, template in old.templates.items():
+                if template.path == changed_path:
+                    for page_snap in old.template_dependents.get(name, ()):
+                        affected_paths.add(page_snap.source_path)
 
     # Create new page snapshots for affected pages only
     new_page_cache: dict[int, PageSnapshot] = {}

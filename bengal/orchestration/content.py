@@ -902,10 +902,9 @@ class ContentOrchestrator:
                             self.site.xref_index["by_anchor"][anchor_key] = []
                         # Check for collisions within the same version only
                         existing_entries = self.site.xref_index["by_anchor"][anchor_key]
-                        same_version_entry = (
-                            next((p, a, v) for p, a, v in existing_entries if v == page_version)
-                            if any(v == page_version for _, _, v in existing_entries)
-                            else None
+                        same_version_entry = next(
+                            ((p, a, v) for p, a, v in existing_entries if v == page_version),
+                            None,
                         )
                         if same_version_entry:
                             # Collision within same version - warn but keep existing (target directives will overwrite later)

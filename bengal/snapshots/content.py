@@ -247,10 +247,12 @@ def _snapshot_section_recursive(
 
 def _resolve_navigation(page_cache: dict[int, PageSnapshot], site: SiteLike) -> None:
     """Resolve next/prev navigation links."""
-    # Create mapping from source_path to page snapshot for lookup
-    pages_by_path: dict[Path, PageSnapshot] = {
-        page.source_path: page for page in page_cache.values()
-    }
+    # Create mapping from source_path to page snapshot and reverse id map
+    pages_by_path: dict[Path, PageSnapshot] = {}
+    id_by_path: dict[Path, int] = {}
+    for orig_id, page in page_cache.items():
+        pages_by_path[page.source_path] = page
+        id_by_path[page.source_path] = orig_id
 
     # Sort pages by source_path for consistent ordering
     sorted_paths = sorted(pages_by_path.keys())
@@ -265,11 +267,5 @@ def _resolve_navigation(page_cache: dict[int, PageSnapshot], site: SiteLike) -> 
 
         # Only update if navigation changed
         if page.next_page != next_page or page.prev_page != prev_page:
-            # Find original page in cache by source_path
-            for orig_id, orig_page in list(page_cache.items()):
-                if orig_page.source_path == path:
-                    # Update snapshot with navigation refs
-                    page_cache[orig_id] = update_frozen(
-                        page, next_page=next_page, prev_page=prev_page
-                    )
-                    break
+            orig_id = id_by_path[path]
+            page_cache[orig_id] = update_frozen(page, next_page=next_page, prev_page=prev_page)

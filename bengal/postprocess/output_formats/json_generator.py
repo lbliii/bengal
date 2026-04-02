@@ -79,6 +79,8 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+_SKIPPED_METADATA_KEYS = frozenset({"content", "html_content", "rendered_html", "_generated"})
+
 
 class PageJSONGenerator:
     """
@@ -261,7 +263,7 @@ class PageJSONGenerator:
         data["metadata"] = {}
         skipped_keys = []
         for k, v in page.metadata.items():
-            if k in ["content", "html_content", "rendered_html", "_generated"]:
+            if k in _SKIPPED_METADATA_KEYS:
                 continue
             # Only include JSON-serializable values
             try:

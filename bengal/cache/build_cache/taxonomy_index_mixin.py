@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from bengal.utils.primitives.text import normalize_taxonomy_slug
+
 
 class BuildTaxonomyIndex:
     """
@@ -110,8 +112,8 @@ class BuildTaxonomyIndex:
         # Get old tags for this page
         # Filter out None tags (YAML parses 'null' as None)
         old_tags = self.page_tags.get(page_path_str, set())
-        old_slugs = {str(tag).lower().replace(" ", "-") for tag in old_tags if tag is not None}
-        new_slugs = {str(tag).lower().replace(" ", "-") for tag in tags if tag is not None}
+        old_slugs = {normalize_taxonomy_slug(tag) for tag in old_tags if tag is not None}
+        new_slugs = {normalize_taxonomy_slug(tag) for tag in tags if tag is not None}
 
         # Find changes
         removed_slugs = old_slugs - new_slugs
