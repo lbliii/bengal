@@ -260,6 +260,12 @@ def update_snapshot(
             template_name = changed_path.name
             for page_snap in old.template_dependents.get(template_name, ()):
                 affected_paths.add(page_snap.source_path)
+            # Also check by full path for templates in subdirectories
+            # (template_dependents keys may include path components like "blog/single.html")
+            for name, template in old.templates.items():
+                if template.path == changed_path:
+                    for page_snap in old.template_dependents.get(name, ()):
+                        affected_paths.add(page_snap.source_path)
 
     # Create new page snapshots for affected pages only
     new_page_cache: dict[int, PageSnapshot] = {}
