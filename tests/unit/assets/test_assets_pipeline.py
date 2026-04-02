@@ -1,6 +1,9 @@
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.cache.paths import BengalPaths
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class DummySite:

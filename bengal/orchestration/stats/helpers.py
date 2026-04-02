@@ -16,11 +16,10 @@ def format_time(ms: float) -> str:
     """Format milliseconds for display."""
     if ms < 1:
         return f"{ms:.2f} ms"
-    elif ms < 1000:
+    if ms < 1000:
         return f"{int(ms)} ms"
-    else:
-        seconds = ms / 1000
-        return f"{seconds:.2f} s"
+    seconds = ms / 1000
+    return f"{seconds:.2f} s"
 
 
 def show_building_indicator(text: str = "Building") -> None:

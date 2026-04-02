@@ -476,8 +476,7 @@ def release_view_filter(item: Any) -> ReleaseView | None:
     try:
         if isinstance(item, dict):
             return ReleaseView.from_data(item)
-        else:
-            return ReleaseView.from_page(item)
+        return ReleaseView.from_page(item)
     except Exception:
         return None
 

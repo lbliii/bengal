@@ -12,12 +12,15 @@ See: plan/rfc-warm-build-test-expansion.md
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestWarmBuildCrossFeatures:

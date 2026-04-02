@@ -22,10 +22,12 @@ Usage:
 from __future__ import annotations
 
 import difflib
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def check_yaml_syntax(config_dir: Path, errors: list[str], warnings: list[str]) -> None:

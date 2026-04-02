@@ -18,7 +18,6 @@ Thread Safety:
 from __future__ import annotations
 
 import re
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -27,6 +26,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.xref import resolve_link_to_url_and_page
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bengal.protocols import PageLike, SiteLike, TemplateEngine
 
 logger = get_logger(__name__)

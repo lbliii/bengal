@@ -35,13 +35,13 @@ from bengal.autodoc.orchestration.section_builders import (
     create_python_sections,
 )
 from bengal.autodoc.utils import normalize_autodoc_config, slugify
-from bengal.core.page import Page
-from bengal.core.section import Section
 from bengal.errors import BengalCacheError, ErrorCode
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_dict
 
 if TYPE_CHECKING:
+    from bengal.core.page import Page
+    from bengal.core.section import Section
     from bengal.core.site import Site
 
 logger = get_logger(__name__)

@@ -32,9 +32,7 @@ from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
     from bengal.core.page import Page
-    from bengal.protocols import SiteLike, TemplateEnvironment
-else:
-    from bengal.protocols import PageLike as Page
+    from bengal.protocols import PageLike, SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
 
@@ -142,7 +140,7 @@ def _create_template_parser(site: SiteLike) -> Any:
         ):
             from bengal.rendering.external_refs import ExternalRefResolver
 
-            config_dict = cast(dict[str, Any], site.config)
+            config_dict = cast("dict[str, Any]", site.config)
             external_ref_resolver = ExternalRefResolver(config_dict)
 
         enable_method = getattr(parser, "enable_cross_references", None)
@@ -226,7 +224,7 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
                 if need_toc:
                     result = parser.parse_with_toc(page._source, metadata_with_excerpt)
                     parsed_content, toc = result[0], result[1]
-                    result_ext = cast(tuple[str, ...], result)
+                    result_ext = cast("tuple[str, ...]", result)
                     if len(result_ext) > 2:
                         page._excerpt = result_ext[2]
                     if len(result_ext) > 3:
@@ -249,7 +247,7 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
                     if callable(parse_method):
                         result = parse_method(page._source, metadata_for_parser, context)
                         parsed_content, toc = result[0], result[1]
-                        result_ext = cast(tuple[str, ...], result)
+                        result_ext = cast("tuple[str, ...]", result)
                         if len(result_ext) > 2:
                             page._excerpt = result_ext[2]
                         if len(result_ext) > 3:
@@ -272,7 +270,7 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
             if need_toc:
                 result = parser.parse_with_toc(page._source, metadata_with_excerpt)
                 parsed_content, toc = result[0], result[1]
-                result_ext = cast(tuple[str, ...], result)
+                result_ext = cast("tuple[str, ...]", result)
                 if len(result_ext) > 2:
                     page._excerpt = result_ext[2]
                 if len(result_ext) > 3:
@@ -340,7 +338,6 @@ def _build_lookup_maps_impl(site: SiteLike) -> dict[str, dict[str, Any]]:
     Returns:
         Dict with 'full', 'relative', and 'content_key' lookup maps
     """
-    from bengal.protocols import PageLike
 
     by_full_path: dict[str, PageLike] = {}
     by_content_relative: dict[str, PageLike] = {}

@@ -7,7 +7,6 @@ Tests DetectionContext and ChangeDetector protocol.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,10 +21,6 @@ from bengal.build.contracts.results import (
     RebuildReason,
     RebuildReasonCode,
 )
-
-if TYPE_CHECKING:
-    pass
-
 
 # =============================================================================
 # DetectionContext Tests

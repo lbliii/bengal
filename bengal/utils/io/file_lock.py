@@ -19,13 +19,15 @@ from __future__ import annotations
 import errno
 import sys
 import time
-from collections.abc import Generator
 from contextlib import contextmanager
-from pathlib import Path
-from typing import IO
+from typing import IO, TYPE_CHECKING
 
 from bengal.errors import BengalCacheError
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from pathlib import Path
 
 logger = get_logger(__name__)
 

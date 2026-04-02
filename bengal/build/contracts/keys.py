@@ -8,10 +8,12 @@ This ensures consistent lookup regardless of how paths arrive
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import NewType
+from typing import TYPE_CHECKING, NewType
 
 from bengal.utils.paths.normalize import to_posix
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Type-safe cache key - prevents accidental str mixing
 CacheKey = NewType("CacheKey", str)

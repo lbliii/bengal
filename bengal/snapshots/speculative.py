@@ -11,13 +11,15 @@ RFC: Snapshot-Enabled v2 Opportunities (Opportunity 3)
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from bengal.snapshots.types import (
-    PageSnapshot,
-    SiteSnapshot,
-)
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from bengal.snapshots.types import (
+        PageSnapshot,
+        SiteSnapshot,
+    )
 
 
 def predict_affected(
@@ -45,7 +47,7 @@ def predict_affected(
         # Content file -> likely just this page
         return {p for p in snapshot.pages if p.source_path == file_path}
 
-    elif suffix in (".html", ".jinja", ".j2"):
+    if suffix in (".html", ".jinja", ".j2"):
         # Template -> all pages using this template (use O(1) lookup)
         template_name = file_path.name
         direct = set(snapshot.template_groups.get(template_name, ()))
@@ -56,28 +58,26 @@ def predict_affected(
 
         return direct if direct else set(snapshot.pages)  # Conservative fallback
 
-    elif suffix in (".css", ".scss", ".sass", ".less"):
+    if suffix in (".css", ".scss", ".sass", ".less"):
         # CSS change -> could affect all pages (fingerprints change)
         return set(snapshot.pages)
 
-    elif suffix in (".js", ".ts", ".mjs"):
+    if suffix in (".js", ".ts", ".mjs"):
         # JS change -> could affect all pages
         return set(snapshot.pages)
 
-    elif suffix in (".yaml", ".yml", ".toml", ".json"):
+    if suffix in (".yaml", ".yml", ".toml", ".json"):
         # Data/config file -> could affect many pages
         if "data" in file_path.parts:
             return set(snapshot.pages)
-        else:
-            return set(snapshot.pages)
+        return set(snapshot.pages)
 
-    elif suffix in (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"):
+    if suffix in (".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"):
         # Image - usually no page rebuild needed unless fingerprinting
         return set()
 
-    else:
-        # Unknown -> conservative (all pages)
-        return set(snapshot.pages)
+    # Unknown -> conservative (all pages)
+    return set(snapshot.pages)
 
 
 class SpeculativeRenderer:

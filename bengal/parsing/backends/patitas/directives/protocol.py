@@ -24,10 +24,11 @@ Example:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from patitas.location import SourceLocation
     from patitas.nodes import Block, Directive
     from patitas.stringbuilder import StringBuilder

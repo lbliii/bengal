@@ -38,12 +38,10 @@ import contextvars
 import sys
 import threading
 from itertools import batched
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.errors import ErrorAggregator, extract_error_context
 from bengal.orchestration.utils.errors import is_shutdown_error
-from bengal.protocols import ProgressReporter
 from bengal.utils.concurrency.executor import CancellationError, managed_executor
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
@@ -74,11 +72,14 @@ logger = get_logger(__name__)
 
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
+    from bengal.protocols import ProgressReporter
     from bengal.utils.observability.cli_progress import LiveProgressManager
 
 

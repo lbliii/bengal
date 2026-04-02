@@ -25,8 +25,7 @@ import json
 import os
 import tempfile
 from compression import zstd
-from pathlib import Path
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.cache.version import (
     prepend_cache_header,
@@ -36,6 +35,9 @@ from bengal.errors.codes import ErrorCode
 from bengal.errors.exceptions import BengalCacheError
 from bengal.errors.session import record_error
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = get_logger(__name__)
 
@@ -164,7 +166,7 @@ def load_compressed(path: Path) -> dict[str, Any]:
         original_bytes=len(json_bytes),
     )
 
-    return cast(dict[str, Any], data)
+    return cast("dict[str, Any]", data)
 
 
 def detect_format(path: Path) -> str:
@@ -181,7 +183,7 @@ def detect_format(path: Path) -> str:
     name = path.name
     if name.endswith(".json.zst"):
         return "zstd"
-    elif name.endswith(".json"):
+    if name.endswith(".json"):
         return "json"
     return "unknown"
 
@@ -262,7 +264,7 @@ def load_auto(path: Path) -> dict[str, Any]:
                     file_path=json_path,
                     suggestion="Clear the cache with: rm -rf .bengal/cache/",
                 )
-            return cast(dict[str, Any], data)
+            return cast("dict[str, Any]", data)
 
     raise FileNotFoundError(f"Cache file not found: {path} (tried .json.zst and .json)")
 

@@ -31,11 +31,9 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, TypeVar
+from typing import Any
 
 import click
-
-F = TypeVar("F", bound=Callable[..., Any])
 
 
 @dataclass
@@ -97,7 +95,7 @@ class CommandMetadata:
         }
 
 
-def command_metadata(
+def command_metadata[F: Callable[..., Any]](
     category: str = "general",
     description: str = "",
     examples: list[str] | None = None,

@@ -6,11 +6,12 @@ Uses Pounce ASGI as the HTTP backend.
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
     from pounce.server import Server
 
 

@@ -43,7 +43,6 @@ Matches Bengal's tabs directive exactly.
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
 from dataclasses import dataclass
 from html import escape as html_escape
 from html import unescape as html_unescape
@@ -60,6 +59,8 @@ from bengal.parsing.backends.patitas.directives.options import StyledOptions
 from bengal.utils.primitives.text import slugify_id
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from patitas.location import SourceLocation
     from patitas.nodes import Block
     from patitas.stringbuilder import StringBuilder

@@ -6,13 +6,16 @@ Tests health/validators/rendering.py:
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from bengal.health.report import CheckStatus
 from bengal.health.validators.rendering import RenderingValidator
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

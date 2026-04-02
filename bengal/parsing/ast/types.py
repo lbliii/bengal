@@ -206,7 +206,7 @@ def get_heading_level(node: ASTNode) -> int | None:
 def get_node_text(node: ASTNode) -> str:
     """Extract text content from a node."""
     # Check runtime keys not in every TypedDict variant; use dict access to avoid invalid-key
-    mapping = cast(dict[str, object], node)
+    mapping = cast("dict[str, object]", node)
     for key in ("raw", "content", "code"):
         value = mapping.get(key)
         if isinstance(value, str):

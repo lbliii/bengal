@@ -26,14 +26,15 @@ RFC: rfc-contextvar-config-implementation.md
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
-from contextvars import Token
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Literal
 
 from bengal.parsing.backends.patitas.utils.contextvar import ContextVarManager
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator
+    from contextvars import Token
+
     from bengal.parsing.backends.patitas.directives.registry import DirectiveRegistry
     from bengal.parsing.backends.patitas.roles.registry import RoleRegistry
 

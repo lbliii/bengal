@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.assets.manifest import AssetManifest
 from bengal.rendering.assets import resolve_asset_url
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class DummySite:

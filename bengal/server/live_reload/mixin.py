@@ -6,9 +6,8 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass
-from io import BufferedIOBase
 from pathlib import Path
-from typing import ClassVar, Protocol
+from typing import TYPE_CHECKING, ClassVar, Protocol
 
 from bengal.errors import ErrorCode
 from bengal.utils.observability.logger import get_logger
@@ -16,6 +15,9 @@ from bengal.utils.observability.logger import get_logger
 from .injection import inject_live_reload_into_response
 from .script import LIVE_RELOAD_SCRIPT
 from .sse import _get_keepalive_interval, run_sse_loop
+
+if TYPE_CHECKING:
+    from io import BufferedIOBase
 
 logger = get_logger(__name__)
 

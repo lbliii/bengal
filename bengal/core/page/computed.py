@@ -33,7 +33,6 @@ See Also:
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, cast
 
@@ -43,6 +42,8 @@ from bengal.core.utils.text import strip_html, truncate_at_sentence, truncate_at
 _LEADING_H1 = re.compile(r"^#\s*[^\n]*\n", re.MULTILINE)
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from bengal.core.author import Author
     from bengal.core.page import Page
     from bengal.core.series import Series
@@ -86,7 +87,7 @@ def compute_meta_description(metadata: Mapping[str, Any], raw_content: str) -> s
     # Check metadata first (explicit description)
     description = metadata.get("description")
     if description:
-        return cast(str, description)
+        return cast("str", description)
 
     # Generate from raw content
     if not raw_content:

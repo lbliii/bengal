@@ -19,8 +19,7 @@ Functions:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
@@ -28,6 +27,9 @@ from bengal.config.environment import get_environment_file_candidates
 from bengal.config.utils import get_default_config
 from bengal.errors import BengalConfigError, ErrorCode, record_error
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = get_logger(__name__)
 

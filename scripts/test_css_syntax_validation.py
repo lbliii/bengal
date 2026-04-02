@@ -122,9 +122,8 @@ def test_real_world_patterns():
     if all_passed:
         print("✅ All tests passed!")
         return 0
-    else:
-        print("❌ Some tests failed")
-        return 1
+    print("❌ Some tests failed")
+    return 1
 
 
 if __name__ == "__main__":

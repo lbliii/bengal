@@ -50,7 +50,6 @@ See Also:
 
 from __future__ import annotations
 
-import builtins
 import copy
 import json
 import time
@@ -64,6 +63,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file, hash_str
 
 if TYPE_CHECKING:
+    import builtins
+
     from bengal.core.site import Site
 
 logger = get_logger(__name__)

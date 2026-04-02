@@ -49,7 +49,6 @@ bengal.orchestration.content: Content discovery and page creation
 from __future__ import annotations
 
 import threading
-from collections.abc import Mapping
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
@@ -60,6 +59,8 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.protocols import SiteLike
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from bengal.core.author import Author
     from bengal.core.section import Section
     from bengal.core.series import Series

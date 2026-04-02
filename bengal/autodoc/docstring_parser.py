@@ -128,16 +128,15 @@ def parse_docstring(docstring: str | None, style: str = "auto") -> ParsedDocstri
     # Parse based on detected style
     if style == "google":
         return GoogleDocstringParser().parse(docstring)
-    elif style == "numpy":
+    if style == "numpy":
         return NumpyDocstringParser().parse(docstring)
-    elif style == "sphinx":
+    if style == "sphinx":
         return SphinxDocstringParser().parse(docstring)
-    else:
-        # Plain docstring - just summary
-        result = ParsedDocstring()
-        result.summary = docstring.strip().split("\n")[0]
-        result.description = docstring.strip()
-        return result
+    # Plain docstring - just summary
+    result = ParsedDocstring()
+    result.summary = docstring.strip().split("\n")[0]
+    result.description = docstring.strip()
+    return result
 
 
 def detect_docstring_style(docstring: str) -> str:

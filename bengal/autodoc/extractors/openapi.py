@@ -157,7 +157,7 @@ class OpenAPIExtractor(Extractor):
         if element.element_type == "openapi_overview":
             return Path("index.md")
 
-        elif element.element_type == "openapi_endpoint":
+        if element.element_type == "openapi_endpoint":
             # Group by first tag if available, else 'default'
             tags = get_openapi_tags(element)
             tag = tags[0] if tags else "default"
@@ -175,7 +175,7 @@ class OpenAPIExtractor(Extractor):
 
             return Path(f"endpoints/{tag}/{name}.md")
 
-        elif element.element_type == "openapi_schema":
+        if element.element_type == "openapi_schema":
             return Path(f"schemas/{element.name}.md")
 
         return None

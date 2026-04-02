@@ -9,7 +9,7 @@ Thread-safe: all handlers are pure functions with no shared mutable state.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from patitas.nodes import (
     CodeSpan,
@@ -35,9 +35,6 @@ from bengal.parsing.backends.patitas.renderers.utils import (
     escape_html,
     escape_link_title,
 )
-
-if TYPE_CHECKING:
-    pass
 
 # Type alias for inline render handler
 InlineHandler = Callable[[Any, StringBuilder, Callable], None]

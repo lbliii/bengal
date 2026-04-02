@@ -14,7 +14,6 @@ Thread Safety:
 from __future__ import annotations
 
 import time
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.pipeline import RenderingPipeline
@@ -22,6 +21,8 @@ from bengal.rendering.pipeline import RenderingPipeline
 from .parallel import thread_local as _thread_local
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext

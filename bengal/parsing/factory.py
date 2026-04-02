@@ -7,11 +7,13 @@ Replaced BeautifulSoup4 for performance (~5-10x faster for text extraction).
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.parsing.backends.native_html import NativeHTMLParser
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = get_logger(__name__)
 

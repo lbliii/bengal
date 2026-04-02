@@ -16,13 +16,12 @@ from __future__ import annotations
 
 import time
 import tracemalloc
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
 if TYPE_CHECKING:
-    pass
+    from pathlib import Path
 
 
 def generate_large_site(

@@ -15,8 +15,10 @@ Plan: asset-manifest-context-refactor
 from __future__ import annotations
 
 import contextvars
-from concurrent.futures import Executor
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from concurrent.futures import Executor
 
 
 def submit_with_context(executor: Executor, fn: Any, *args: Any) -> Any:

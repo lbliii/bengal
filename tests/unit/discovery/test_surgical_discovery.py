@@ -11,8 +11,7 @@ These tests verify that surgical discovery (incremental builds with caching):
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,6 +19,9 @@ import pytest
 from bengal.content.discovery.content_discovery import ContentDiscovery
 from bengal.core.page import Page, PageProxy
 from bengal.core.page.page_core import PageCore
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 pytestmark = pytest.mark.parallel_unsafe
 

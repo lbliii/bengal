@@ -2,8 +2,11 @@
 Tests for i18n missing translation warnings.
 """
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestI18nMissingTranslationWarning:

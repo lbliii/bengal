@@ -41,7 +41,6 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.cache.utils import PersistentCacheMixin
@@ -50,6 +49,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.protocols import PageLike
 
 logger = get_logger(__name__)

@@ -24,10 +24,12 @@ from __future__ import annotations
 import os
 from abc import ABC, abstractmethod
 from collections import deque
-from collections.abc import Iterator
 from contextlib import contextmanager
 from threading import local
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 # Default pool size (configurable via subclass)
 _DEFAULT_POOL_SIZE = 8

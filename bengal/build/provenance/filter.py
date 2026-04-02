@@ -19,7 +19,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.build.contracts.keys import CacheKey, content_key
-from bengal.build.provenance.store import ProvenanceCache
 from bengal.build.provenance.types import (
     ContentHash,
     Provenance,
@@ -36,6 +35,7 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
+    from bengal.build.provenance.store import ProvenanceCache
     from bengal.core.asset import Asset
     from bengal.core.page import Page
     from bengal.core.site import Site

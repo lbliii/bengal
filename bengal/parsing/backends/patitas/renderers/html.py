@@ -25,7 +25,6 @@ Module Structure (RFC: rfc-code-health-improvements Phase 3):
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Sequence
 from typing import TYPE_CHECKING, Any, Literal
 
 from patitas.nodes import (
@@ -60,6 +59,8 @@ from bengal.parsing.backends.patitas.renderers.utils import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator, Sequence
+
     from bengal.cache.directive_cache import DirectiveCache
     from bengal.parsing.backends.patitas.protocols import LexerDelegate
 

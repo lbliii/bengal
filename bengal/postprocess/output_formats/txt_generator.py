@@ -72,6 +72,8 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
@@ -138,7 +140,6 @@ class PageTxtGenerator:
         Returns:
             Number of TXT files generated
         """
-        from pathlib import Path
 
         # Prepare all page data first
         page_items: list[tuple[Path, str]] = []

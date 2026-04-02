@@ -57,7 +57,10 @@ Related:
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Single source of truth for the state directory name
 STATE_DIR_NAME = ".bengal"

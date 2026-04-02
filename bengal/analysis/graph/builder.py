@@ -31,7 +31,7 @@ from bengal.utils.paths.url_normalization import clean_md_path
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteLike
 else:
-    from bengal.protocols import PageLike
+    pass
 
 logger = get_logger(__name__)
 
@@ -407,7 +407,7 @@ class GraphBuilder:
         if not isinstance(xref, dict):
             return None
 
-        xref_dict = cast(dict[str, Any], xref)
+        xref_dict = cast("dict[str, Any]", xref)
 
         # Try by ID
         if link.startswith("id:"):
@@ -450,16 +450,16 @@ class GraphBuilder:
         if not isinstance(taxonomies, dict):
             return
 
-        taxonomies_dict = cast(dict[str, Any], taxonomies)
+        taxonomies_dict = cast("dict[str, Any]", taxonomies)
 
         for taxonomy_dict in taxonomies_dict.values():
             if not isinstance(taxonomy_dict, dict):
                 continue
-            taxonomy_dict_typed = cast(dict[str, Any], taxonomy_dict)
+            taxonomy_dict_typed = cast("dict[str, Any]", taxonomy_dict)
             for term_data in taxonomy_dict_typed.values():
                 if not isinstance(term_data, dict):
                     continue
-                term_data_typed = cast(dict[str, Any], term_data)
+                term_data_typed = cast("dict[str, Any]", term_data)
                 pages = term_data_typed.get("pages", [])
                 if not isinstance(pages, list):
                     continue
@@ -513,7 +513,7 @@ class GraphBuilder:
         if not isinstance(menu, dict):
             return
 
-        menu_dict = cast(dict[str, Any], menu)
+        menu_dict = cast("dict[str, Any]", menu)
 
         for menu_items in menu_dict.values():
             for item in menu_items:

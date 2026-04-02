@@ -14,11 +14,12 @@ RFC: Snapshot-Enabled v2 Opportunities
 from __future__ import annotations
 
 import time
-from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.protocols import SiteLike

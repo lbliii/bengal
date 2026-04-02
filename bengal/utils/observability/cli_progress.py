@@ -37,8 +37,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from enum import Enum
-from types import TracebackType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.console import Console, Group, RenderableType
 from rich.live import Live
@@ -47,6 +46,9 @@ from rich.text import Text
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.observability.profile import BuildProfile
 from bengal.utils.observability.rich_console import get_console, should_use_rich
+
+if TYPE_CHECKING:
+    from types import TracebackType
 
 logger = get_logger(__name__)
 
@@ -118,8 +120,7 @@ class PhaseProgress:
         if self.elapsed_ms > 0:
             if self.elapsed_ms < 1000:
                 return f"{int(self.elapsed_ms)}ms"
-            else:
-                return f"{self.elapsed_ms / 1000:.1f}s"
+            return f"{self.elapsed_ms / 1000:.1f}s"
         return ""
 
 
@@ -395,10 +396,10 @@ class LiveProgressManager:
         """Render the progress display based on profile."""
         if self.profile == BuildProfile.WRITER:
             return self._render_writer()
-        elif self.profile == BuildProfile.THEME_DEV:
+        if self.profile == BuildProfile.THEME_DEV:
             return self._render_theme_dev()
-        else:  # DEVELOPER
-            return self._render_developer()
+        # DEVELOPER
+        return self._render_developer()
 
     def _render_writer(self) -> RenderableType:
         """
@@ -635,12 +636,11 @@ class LiveProgressManager:
         """
         if status == PhaseStatus.COMPLETE:
             return "✓"
-        elif status == PhaseStatus.RUNNING:
+        if status == PhaseStatus.RUNNING:
             return "●"
-        elif status == PhaseStatus.FAILED:
+        if status == PhaseStatus.FAILED:
             return "✗"
-        else:
-            return " "
+        return " "
 
     def _print_fallback(self) -> None:
         """

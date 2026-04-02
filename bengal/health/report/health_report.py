@@ -9,12 +9,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .formatting import format_normal, format_quiet, format_verbose
-from .models import ValidatorReport
 from .scoring import calculate_quality_score, get_quality_rating
 from .serialization import format_report_json
+
+if TYPE_CHECKING:
+    from .models import ValidatorReport
 
 
 @dataclass
@@ -159,7 +161,7 @@ class HealthReport:
                 quality_rating,
                 show_suggestions=show_suggestions,
             )
-        elif mode == "verbose":
+        if mode == "verbose":
             return format_verbose(
                 self.validator_reports,
                 self.total_errors,
@@ -168,16 +170,16 @@ class HealthReport:
                 quality_rating,
                 show_suggestions=show_suggestions,
             )
-        else:  # normal
-            return format_normal(
-                self.validator_reports,
-                self.total_errors,
-                self.total_warnings,
-                self.total_suggestions,
-                quality_score,
-                quality_rating,
-                show_suggestions=show_suggestions,
-            )
+        # normal
+        return format_normal(
+            self.validator_reports,
+            self.total_errors,
+            self.total_warnings,
+            self.total_suggestions,
+            quality_score,
+            quality_rating,
+            show_suggestions=show_suggestions,
+        )
 
     def format_json(self) -> dict[str, Any]:
         """

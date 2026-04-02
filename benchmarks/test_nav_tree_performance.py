@@ -8,12 +8,15 @@ Tests verify:
 - Overall render overhead is <1ms per page (target)
 """
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.core.nav_tree import NavTree, NavTreeCache
 from bengal.core.site import Site
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def create_test_site_with_pages(num_pages: int, tmp_path: Path) -> Site:

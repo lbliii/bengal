@@ -16,7 +16,6 @@ Usage:
 
 from __future__ import annotations
 
-from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
@@ -24,6 +23,8 @@ from unittest.mock import MagicMock
 import pytest
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator
+
     from textual.pilot import Pilot
 
     from bengal.cli.dashboard.app import BengalApp

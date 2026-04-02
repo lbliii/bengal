@@ -4,11 +4,14 @@ Note: Config is now nested (site.baseurl), and UnifiedConfigLoader returns
 a Config object with structured access. Access baseurl via config.site.baseurl.
 """
 
-from pathlib import Path
-
-import pytest
+from typing import TYPE_CHECKING
 
 from bengal.config import UnifiedConfigLoader
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import pytest
 
 
 def write_min_config(dir_path: Path, baseurl: str | None = None) -> Path:

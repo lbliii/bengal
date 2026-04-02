@@ -23,7 +23,7 @@ from bengal.analysis.utils.constants import DEFAULT_HUB_THRESHOLD, DEFAULT_LEAF_
 if TYPE_CHECKING:
     from bengal.protocols import PageLike
 else:
-    from bengal.protocols import PageLike
+    pass
 
 
 @dataclass

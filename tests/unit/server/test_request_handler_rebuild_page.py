@@ -9,9 +9,12 @@ module, and palette handling.
 from __future__ import annotations
 
 import threading
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.server.build_state import build_state
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestBuildInProgressState:

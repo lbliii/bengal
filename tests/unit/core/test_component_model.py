@@ -4,9 +4,12 @@ Tests for the Component Model (Identity/Mode/Data).
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.core.page import Page, PageCore
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestPageCoreComponentModel:

@@ -21,11 +21,12 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Iterable
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
+
     from bengal.core.site import Site
 
 

@@ -351,7 +351,7 @@ def load_yaml(
             data: dict[str, Any] = {}
         elif isinstance(data_raw, dict):
             # Type narrowing: ensure we return dict[str, Any]
-            data = cast(dict[str, Any], data_raw)
+            data = cast("dict[str, Any]", data_raw)
         else:
             # YAML can return non-dict types, but we expect dict
             data = {}
@@ -470,28 +470,27 @@ def load_data_file(
     # Route to appropriate loader based on file extension
     if suffix == ".json":
         result = load_json(file_path, on_error=on_error, caller=caller)
-        return cast(dict[str, Any] | None, result)
-    elif suffix in (".yaml", ".yml"):
+        return cast("dict[str, Any] | None", result)
+    if suffix in (".yaml", ".yml"):
         return load_yaml(file_path, on_error=on_error, caller=caller)
-    elif suffix == ".toml":
+    if suffix == ".toml":
         return load_toml(file_path, on_error=on_error, caller=caller)
-    else:
-        logger.warning(
-            "unsupported_format",
-            path=str(file_path),
-            suffix=suffix,
-            supported=[".json", ".yaml", ".yml", ".toml"],
-            caller=caller or "file_io",
+    logger.warning(
+        "unsupported_format",
+        path=str(file_path),
+        suffix=suffix,
+        supported=[".json", ".yaml", ".yml", ".toml"],
+        caller=caller or "file_io",
+    )
+
+    if on_error == "raise":
+        from bengal.errors import BengalError
+
+        raise BengalError(
+            f"Unsupported file format: {suffix}",
+            suggestion="Use .json, .yaml, .yml, or .toml file format",
         )
-
-        if on_error == "raise":
-            from bengal.errors import BengalError
-
-            raise BengalError(
-                f"Unsupported file format: {suffix}",
-                suggestion="Use .json, .yaml, .yml, or .toml file format",
-            )
-        return {} if on_error == "return_empty" else None
+    return {} if on_error == "return_empty" else None
 
 
 def write_text_file(

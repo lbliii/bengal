@@ -18,7 +18,6 @@ These tests use real Site objects and verify actual build behavior.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
@@ -31,6 +30,8 @@ from tests._testing.assertions import (
 )
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.site import Site
 
 

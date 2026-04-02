@@ -26,7 +26,6 @@ import shutil
 import tempfile
 import time
 from pathlib import Path
-from typing import TYPE_CHECKING
 
 import pytest
 
@@ -34,10 +33,6 @@ import pytest
 pytest.importorskip("hypothesis")
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
-
-if TYPE_CHECKING:
-    pass
-
 
 # =============================================================================
 # STRATEGIES

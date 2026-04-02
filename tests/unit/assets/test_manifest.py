@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.assets.manifest import AssetManifest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_manifest_roundtrip(tmp_path: Path) -> None:

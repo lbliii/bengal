@@ -36,7 +36,10 @@ Related:
 
 """
 
-from bengal.fonts.downloader import FontVariant
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from bengal.fonts.downloader import FontVariant
 
 
 class FontCSSGenerator:

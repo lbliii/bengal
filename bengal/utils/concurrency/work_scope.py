@@ -30,7 +30,7 @@ import time
 from concurrent.futures import Future
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
 
@@ -38,9 +38,6 @@ if TYPE_CHECKING:
     from collections.abc import Callable, Iterable
 
     from bengal.utils.concurrency.workers import WorkloadType
-
-T = TypeVar("T")
-R = TypeVar("R")
 
 logger = get_logger(__name__)
 
@@ -51,7 +48,7 @@ def _is_shutdown_error(e: Exception) -> bool:
 
 
 @dataclass(frozen=True, slots=True)
-class WorkResult(Generic[R]):  # noqa: UP046
+class WorkResult[R]:
     """Immutable result from a parallel work item.
 
     Attributes:
@@ -172,7 +169,7 @@ class WorkScope:
             )
         return self._executor
 
-    def map(
+    def map[T, R](
         self,
         fn: Callable[[T], R],
         items: Iterable[T],
@@ -207,7 +204,7 @@ class WorkScope:
 
         return self._map_parallel(fn, items_list, total)
 
-    def _map_sequential(
+    def _map_sequential[T, R](
         self,
         fn: Callable[[T], R],
         items: list[T],
@@ -236,7 +233,7 @@ class WorkScope:
                 self._on_progress(i + 1, total)
         return results
 
-    def _map_parallel(
+    def _map_parallel[T, R](
         self,
         fn: Callable[[T], R],
         items: list[T],

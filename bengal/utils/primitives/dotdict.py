@@ -7,8 +7,10 @@ Jinja2 template gotchas (like .items, .keys, .values accessing methods).
 
 from __future__ import annotations
 
-from collections.abc import ItemsView, Iterator, KeysView, ValuesView
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 
 
 class DotDict:
@@ -189,15 +191,15 @@ class DotDict:
 
     def keys(self) -> KeysView[str]:
         """Return dict keys."""
-        return cast(KeysView[str], self._data.keys())
+        return cast("KeysView[str]", self._data.keys())
 
     def values(self) -> ValuesView[Any]:
         """Return dict values."""
-        return cast(ValuesView[Any], self._data.values())
+        return cast("ValuesView[Any]", self._data.values())
 
     def items(self) -> ItemsView[str, Any]:
         """Return dict items - note this is the METHOD, not a field."""
-        return cast(ItemsView[str, Any], self._data.items())
+        return cast("ItemsView[str, Any]", self._data.items())
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> DotDict:
@@ -258,7 +260,6 @@ def wrap_data(data: Any) -> Any:
     """
     if isinstance(data, dict) and not isinstance(data, DotDict):
         return DotDict.from_dict(data)
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return [wrap_data(item) for item in data]
-    else:
-        return data
+    return data

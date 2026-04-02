@@ -44,14 +44,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from bengal.debug.base import DebugRegistry, DebugReport, DebugTool, Severity
 from bengal.debug.utils import classify_file, get_file_icon
 from bengal.utils.io.atomic_write import atomic_write_text
-
-if TYPE_CHECKING:
-    pass
 
 
 @dataclass

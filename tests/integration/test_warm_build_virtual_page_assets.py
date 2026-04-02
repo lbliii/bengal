@@ -16,12 +16,15 @@ from __future__ import annotations
 
 import re
 import shutil
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestIncrementalBuildAssetFingerprints:

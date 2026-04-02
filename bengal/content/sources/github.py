@@ -17,9 +17,8 @@ from __future__ import annotations
 import asyncio
 import os
 from base64 import b64decode
-from collections.abc import AsyncIterator
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 try:
     import aiohttp
@@ -34,6 +33,9 @@ from bengal.content.utils import parse_frontmatter
 from bengal.content.utils.http_errors import raise_http_error
 from bengal.content.utils.slugify import path_to_slug
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
 
 logger = get_logger(__name__)
 

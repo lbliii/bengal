@@ -254,7 +254,7 @@ class GraphVisualizer:
                                 rel_path = output_path.relative_to(self.site.output_dir)
                                 page_url = f"/{to_posix(rel_path)}".replace("/index.html", "/")
                             else:
-                                raise ValueError("output_path or output_dir is not a Path")
+                                raise TypeError("output_path or output_dir is not a Path")
                             if not page_url.endswith("/"):
                                 page_url += "/"
                             # Apply baseurl for fallback path (since we computed it manually)
@@ -360,12 +360,11 @@ class GraphVisualizer:
         # Return CSS variable names - JavaScript will resolve actual colors
         if connectivity.is_orphan:
             return "var(--graph-node-orphan)"
-        elif connectivity.is_hub:
+        if connectivity.is_hub:
             return "var(--graph-node-hub)"
-        elif page.metadata.get("_generated"):
+        if page.metadata.get("_generated"):
             return "var(--graph-node-generated)"
-        else:
-            return "var(--graph-node-regular)"
+        return "var(--graph-node-regular)"
 
     def generate_html(self, title: str | None = None) -> str:
         """

@@ -7,10 +7,13 @@ See: plan/drafted/rfc-theme-aware-icons.md
 
 from __future__ import annotations
 
-from pathlib import Path
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
-import pytest
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    import pytest
 
 
 class TestThemeCustomIcons:

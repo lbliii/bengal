@@ -12,7 +12,6 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from patitas.nodes import Block, Directive
 from patitas.stringbuilder import StringBuilder
 
 from bengal.parsing.backends.patitas.renderers.utils import escape_attr, escape_html
@@ -25,6 +24,8 @@ _DIRECTIVE_HREF = re.compile(r'<a\s+[^>]*href=["\']([^"\']+)["\']')
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
+    from patitas.nodes import Block, Directive
+
     from bengal.parsing.backends.patitas.renderers.protocols import HtmlRendererProtocol
 
 

@@ -209,7 +209,7 @@ class TestNavTree:
         def pages_for_version(version_id):
             if version_id == "v1":
                 return [page_v1]
-            elif version_id == "v2":
+            if version_id == "v2":
                 return [page_v2]
             return []
 

@@ -1,7 +1,7 @@
 """Tests for get_page template function used by tracks feature."""
 
 import threading
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -13,6 +13,9 @@ from bengal.rendering.template_functions.get_page import (
     register,
 )
 from bengal.utils.io.file_io import write_text_file
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

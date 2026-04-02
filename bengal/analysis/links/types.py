@@ -49,10 +49,6 @@ See Also:
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
 
 
 class LinkType(Enum):
@@ -236,12 +232,11 @@ class ConnectivityLevel(Enum):
         t = thresholds or DEFAULT_THRESHOLDS
         if score >= t["well_connected"]:
             return cls.WELL_CONNECTED
-        elif score >= t["adequately_linked"]:
+        if score >= t["adequately_linked"]:
             return cls.ADEQUATELY_LINKED
-        elif score >= t["lightly_linked"]:
+        if score >= t["lightly_linked"]:
             return cls.LIGHTLY_LINKED
-        else:
-            return cls.ISOLATED
+        return cls.ISOLATED
 
     @property
     def emoji(self) -> str:

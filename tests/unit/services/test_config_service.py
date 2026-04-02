@@ -8,11 +8,14 @@ the from_config factory method.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.services.config import ConfigService
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

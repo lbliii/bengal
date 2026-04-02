@@ -6,13 +6,15 @@ Provides validation methods for syntax, completeness, and performance.
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.health.report import CheckResult
 from bengal.utils.observability.logger import get_logger
 
 from .constants import MAX_TABS_PER_BLOCK
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = get_logger(__name__)
 

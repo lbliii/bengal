@@ -12,7 +12,10 @@ See: plan/rfc-warm-build-test-expansion.md
 
 from __future__ import annotations
 
-from tests.integration.warm_build.conftest import WarmBuildTestSite
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from tests.integration.warm_build.conftest import WarmBuildTestSite
 
 
 class TestWarmBuildDataFiles:

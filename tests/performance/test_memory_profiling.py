@@ -16,7 +16,7 @@ Key differences from old implementation:
 
 import gc
 import statistics
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -29,6 +29,9 @@ from bengal.utils.observability.logger import (
 )
 
 from .memory_test_helpers import MemoryProfiler, profile_memory
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

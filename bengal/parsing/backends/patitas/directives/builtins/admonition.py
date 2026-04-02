@@ -36,19 +36,21 @@ Matches Bengal's admonition directive exactly:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
 
 from patitas.nodes import Directive
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from bengal.parsing.backends.patitas.directives.options import AdmonitionOptions
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from patitas.location import SourceLocation
     from patitas.nodes import Block
     from patitas.stringbuilder import StringBuilder
+
+    from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 
 # All supported admonition types (matches Bengal)

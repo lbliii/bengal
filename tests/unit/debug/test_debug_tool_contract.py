@@ -7,12 +7,15 @@ and honor the DebugTool contract (site, cache, root_path attributes).
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
 
 from bengal.debug.base import DebugRegistry, DebugTool
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _has_shortcode_sandbox() -> bool:

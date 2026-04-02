@@ -47,7 +47,6 @@ bengal.rendering.template_functions.navigation: Template functions
 from __future__ import annotations
 
 import threading
-from collections.abc import Iterator
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -58,6 +57,8 @@ from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 from bengal.utils.primitives.lru_cache import LRUCache
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.protocols import PageLike, SectionLike, SiteLike
@@ -181,7 +182,7 @@ class NavTree:
                         existing.page = node.page
                     # Skip adding the page node (section already represents this URL)
                     continue
-                elif new_is_section and not existing_is_section:
+                if new_is_section and not existing_is_section:
                     # New is section, existing is page - section takes over
                     # Merge the page into the section node
                     if node.page is None:
@@ -189,19 +190,18 @@ class NavTree:
                     # Replace with section node
                     self._flat_nodes[url] = node
                     continue
-                else:
-                    # Both are same type (section+section or page+page) - real collision
-                    emit(
-                        self,
-                        "warning",
-                        "nav_url_collision",
-                        url=url,
-                        existing_id=existing.id,
-                        existing_type="section" if existing_is_section else "page",
-                        new_id=node.id,
-                        new_type="section" if new_is_section else "page",
-                        hint="Check for duplicate slugs or conflicting autodoc output",
-                    )
+                # Both are same type (section+section or page+page) - real collision
+                emit(
+                    self,
+                    "warning",
+                    "nav_url_collision",
+                    url=url,
+                    existing_id=existing.id,
+                    existing_type="section" if existing_is_section else "page",
+                    new_id=node.id,
+                    new_type="section" if new_is_section else "page",
+                    hint="Check for duplicate slugs or conflicting autodoc output",
+                )
             self._flat_nodes[url] = node
         self._urls = set(self._flat_nodes.keys())
 

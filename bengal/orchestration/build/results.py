@@ -15,13 +15,14 @@ See Also:
 
 from __future__ import annotations
 
-from collections.abc import ItemsView
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import ItemsView
+    from pathlib import Path
+
     from bengal.cache.build_cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.page import Page

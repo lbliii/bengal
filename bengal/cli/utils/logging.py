@@ -57,11 +57,10 @@ def get_log_level_for_profile(
     # Profile-based defaults
     if profile == BuildProfile.DEVELOPER:
         return LogLevel.DEBUG
-    elif profile == BuildProfile.THEME_DEV:
+    if profile == BuildProfile.THEME_DEV:
         return LogLevel.INFO
-    else:
-        # WRITER or no profile
-        return LogLevel.WARNING
+    # WRITER or no profile
+    return LogLevel.WARNING
 
 
 def configure_cli_logging(

@@ -19,8 +19,11 @@ import os
 import threading
 import time
 from collections import defaultdict
-from collections.abc import Iterator
 from contextlib import contextmanager
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 class RenderProfiler:

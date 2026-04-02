@@ -8,9 +8,12 @@ during extraction based on exclude patterns and common conventions.
 from __future__ import annotations
 
 import fnmatch
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = get_logger(__name__)
 

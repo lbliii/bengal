@@ -55,8 +55,7 @@ See Also:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.config.defaults import DEFAULTS
 from bengal.config.environment import detect_environment
@@ -74,6 +73,9 @@ from bengal.config.origin_tracker import ConfigWithOrigin
 from bengal.config.utils import get_default_config
 from bengal.errors import BengalConfigError, ErrorCode, format_suggestion
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = get_logger(__name__)
 

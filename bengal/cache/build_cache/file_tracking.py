@@ -18,14 +18,13 @@ Related Modules:
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
-    pass
+    from pathlib import Path
 
 logger = get_logger(__name__)
 

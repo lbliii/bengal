@@ -11,17 +11,17 @@ CacheChecker: Handles cache operations for the rendering pipeline.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from bengal.protocols import SiteLike
 from bengal.rendering.pipeline.output import format_html, write_output
 from bengal.rendering.pipeline.toc import extract_toc_structure
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.sentinel import is_missing
 
 if TYPE_CHECKING:
-    from bengal.protocols import PageLike
+    from pathlib import Path
+
+    from bengal.protocols import PageLike, SiteLike
     from bengal.rendering.renderer import Renderer
 
 logger = get_logger(__name__)
@@ -122,7 +122,7 @@ class CacheChecker:
 
         write_output(
             page,
-            cast(SiteLike, self.site),
+            cast("SiteLike", self.site),
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,
@@ -225,7 +225,7 @@ class CacheChecker:
 
         html_content = self.renderer.render_content(parsed_content)
         page.rendered_html = self.renderer.render_page(page, html_content)
-        page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
+        page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
 
         # Validate rendered HTML is not empty
         if not page.rendered_html:
@@ -245,7 +245,7 @@ class CacheChecker:
 
         write_output(
             page,
-            cast(SiteLike, self.site),
+            cast("SiteLike", self.site),
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,

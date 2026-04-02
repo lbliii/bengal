@@ -11,16 +11,18 @@ Provides:
 
 import shutil
 import tomllib
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 import tomli_w
 
 from bengal.core.site import Site
 from bengal.icons import resolver as icon_resolver
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def create_site_from_testroot(

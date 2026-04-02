@@ -43,10 +43,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, HealthReport, ValidatorReport
 
 if TYPE_CHECKING:
+    from bengal.health.base import BaseValidator
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import SiteLike
     from bengal.utils.observability.profile import BuildProfile
@@ -429,23 +429,20 @@ class HealthCheck:
                     return False
                 # Profile allows and config doesn't disable - run it
                 return True
-            else:
-                # Profile disables it - only run if config explicitly enables (True)
-                if config_explicit and config_value is True:
-                    # Config explicitly enables - override profile
-                    return True
-                else:
-                    # Profile disables and config doesn't override - skip
-                    if verbose:
-                        print(f"  Skipping {validator.name} (disabled by profile)")
-                    return False
-        else:
-            # No profile - use config/default
-            if not validator.is_enabled(self.site.config):
-                if verbose:
-                    print(f"  Skipping {validator.name} (disabled in config)")
-                return False
-            return True
+            # Profile disables it - only run if config explicitly enables (True)
+            if config_explicit and config_value is True:
+                # Config explicitly enables - override profile
+                return True
+            # Profile disables and config doesn't override - skip
+            if verbose:
+                print(f"  Skipping {validator.name} (disabled by profile)")
+            return False
+        # No profile - use config/default
+        if not validator.is_enabled(self.site.config):
+            if verbose:
+                print(f"  Skipping {validator.name} (disabled in config)")
+            return False
+        return True
 
     def _get_files_to_validate(
         self, context: list[Path] | None, incremental: bool, cache: Any
@@ -464,7 +461,7 @@ class HealthCheck:
         if context:
             # Explicit context provided - validate only these files
             return {Path(p) for p in context}
-        elif incremental and cache:
+        if incremental and cache:
             # Incremental mode - find changed files
             files_to_validate: set[Path] = set()
             for page in self.site.pages:

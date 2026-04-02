@@ -23,14 +23,16 @@ RFC: rfc-dashboard-api-integration
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
-from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.reactive import reactive
 from textual.widgets import Static
 
 from bengal.cli.dashboard.widgets.phase_plan import BuildPhase, BuildPhasePlan
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
 
 
 @dataclass

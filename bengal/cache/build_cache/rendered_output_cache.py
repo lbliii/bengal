@@ -22,14 +22,11 @@ import contextlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
 from bengal.utils.primitives.sentinel import MISSING
-
-if TYPE_CHECKING:
-    pass
 
 logger = get_logger(__name__)
 

@@ -44,12 +44,13 @@ from bengal.rendering.context import build_page_context
 from __future__ import annotations
 
 import threading
-from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
 from kida import Markup
 
 if TYPE_CHECKING:
+    from types import SimpleNamespace
+
     from bengal.orchestration.build_context import BuildContext as BuildContextType
 
 # Re-export all context classes

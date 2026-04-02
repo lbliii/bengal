@@ -22,12 +22,12 @@ from rich.segment import Segment
 from rich.style import Style as RichStyle
 from textual.reactive import reactive
 from textual.strip import Strip
-from textual.style import Style as TextualStyle
 from textual.visual import RenderOptions, Visual
 from textual.widget import Widget
 
 if TYPE_CHECKING:
     from textual.css.styles import RulesMap
+    from textual.style import Style as TextualStyle
 
 # Bengal color gradient (orange shades)
 BENGAL_COLORS = [

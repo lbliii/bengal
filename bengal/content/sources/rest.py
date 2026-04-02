@@ -10,8 +10,7 @@ Requires: pip install bengal[rest] (installs aiohttp)
 from __future__ import annotations
 
 import os
-from collections.abc import AsyncIterator
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 try:
     import aiohttp
@@ -22,6 +21,9 @@ from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.source import ContentSource
 from bengal.content.utils.http_errors import raise_http_error
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
 
 logger = get_logger(__name__)
 

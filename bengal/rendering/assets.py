@@ -432,8 +432,7 @@ def _resolve_file_protocol(asset_path: str, site: AssetSiteLike, page: Any = Non
             if depth > 0:
                 relative_prefix = "/".join([".."] * depth)
                 return f"{relative_prefix}/{asset_url_path}"
-            else:
-                return f"./{asset_url_path}"
+            return f"./{asset_url_path}"
         except ValueError, AttributeError:
             pass
 

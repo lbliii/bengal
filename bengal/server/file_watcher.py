@@ -36,16 +36,18 @@ Related:
 
 from __future__ import annotations
 
-import asyncio
 import os
 import sys
-from collections.abc import AsyncIterator, Callable
 from pathlib import Path
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
 import watchfiles
 
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    import asyncio
+    from collections.abc import AsyncIterator, Callable
 
 logger = get_logger(__name__)
 

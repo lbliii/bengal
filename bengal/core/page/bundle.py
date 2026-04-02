@@ -29,11 +29,13 @@ See Also:
 from __future__ import annotations
 
 import fnmatch
-from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from pathlib import Path
 
 # MIME type category mappings
 _TYPE_EXTENSIONS: dict[str, set[str]] = {
@@ -329,10 +331,9 @@ def get_bundle_type(source_path: Path) -> BundleType:
 
     if name == "index.md":
         return BundleType.LEAF
-    elif name == "_index.md":
+    if name == "_index.md":
         return BundleType.BRANCH
-    else:
-        return BundleType.NONE
+    return BundleType.NONE
 
 
 def is_leaf_bundle(source_path: Path) -> bool:

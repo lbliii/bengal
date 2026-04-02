@@ -5,13 +5,14 @@ Verifies that AST-based rendering produces equivalent output to legacy HTML pars
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
 if TYPE_CHECKING:
-    pass
+    from pathlib import Path
+
+    from bengal.parsing.ast.types import ASTNode
 
 
 class TestASTPipelineIntegration:
@@ -239,7 +240,6 @@ class TestASTWithDirectives:
 
     def test_ast_walk_with_raw_html(self, tmp_path: Path) -> None:
         """Verify walk_ast handles RawHTMLNode."""
-        from bengal.parsing.ast.types import ASTNode
         from bengal.parsing.ast.utils import walk_ast
 
         ast: list[ASTNode] = [

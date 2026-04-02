@@ -38,12 +38,12 @@ from bengal.utils.primitives.hashing import hash_file
 
 logger = get_logger(__name__)
 
+
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
-    from bengal.protocols import SiteLike
 
 
 def _detect_changed_data_files(

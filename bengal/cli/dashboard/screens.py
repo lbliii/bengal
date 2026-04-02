@@ -14,7 +14,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
@@ -23,6 +22,8 @@ from textual.widgets import Footer, Header, Log, Static
 from bengal.protocols.capabilities import has_action_rebuild, has_config_changed_signal
 
 if TYPE_CHECKING:
+    from textual.app import ComposeResult
+
     from bengal.core.site import Site
 
 

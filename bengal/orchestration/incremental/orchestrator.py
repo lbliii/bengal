@@ -416,7 +416,7 @@ class IncrementalOrchestrator:
                     # Also mark subsection pages
                     self._add_subsection_pages(section, cascade_rebuild)
                     break
-                elif hasattr(section, "pages") and page in section.pages:
+                if hasattr(section, "pages") and page in section.pages:
                     # Regular page with cascade in a section
                     for section_page in section.pages:
                         cascade_rebuild.add(section_page.source_path)

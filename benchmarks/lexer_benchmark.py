@@ -7,10 +7,6 @@ Run with: python -m benchmarks.lexer_benchmark
 from __future__ import annotations
 
 import time
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    pass
 
 
 def load_sample_code() -> str:

@@ -9,17 +9,19 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import click
 
 from bengal.cli.base import BengalGroup
 from bengal.cli.helpers import cli_progress, handle_cli_errors
 from bengal.cli.utils import configure_traceback, get_cli_output, load_site_from_cli
-from bengal.core.site import Site
 from bengal.errors.traceback import TracebackStyle
 from bengal.health.linkcheck.orchestrator import LinkCheckOrchestrator
-from bengal.output import CLIOutput
+
+if TYPE_CHECKING:
+    from bengal.core.site import Site
+    from bengal.output import CLIOutput
 
 
 @click.group("health", cls=BengalGroup, invoke_without_command=True)

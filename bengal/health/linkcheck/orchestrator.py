@@ -24,7 +24,6 @@ import asyncio
 import threading
 import time
 from html.parser import HTMLParser
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.health.linkcheck.async_checker import AsyncLinkChecker
@@ -38,6 +37,8 @@ from bengal.health.linkcheck.models import (
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)

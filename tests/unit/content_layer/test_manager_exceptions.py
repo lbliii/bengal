@@ -9,14 +9,16 @@ These tests verify that:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.manager import ContentLayerManager
 from bengal.content.sources.source import ContentSource
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class MockSource(ContentSource):

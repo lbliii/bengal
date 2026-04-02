@@ -21,12 +21,13 @@ See Also:
 
 from __future__ import annotations
 
-from collections.abc import Callable, MutableMapping
 from enum import Flag, auto
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, MutableMapping
+    from pathlib import Path
+
     from bengal.core import Site
     from bengal.rendering.engines.errors import TemplateError
 

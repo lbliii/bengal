@@ -7,10 +7,13 @@ notebook is copied to output for download links.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 _MINIMAL_NOTEBOOK = """{
   "cells": [

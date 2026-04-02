@@ -129,18 +129,17 @@ class CLIExtractor(Extractor):
         """
         if self.framework == "click":
             return self._extract_from_click(source)
-        elif self.framework == "argparse":
+        if self.framework == "argparse":
             return self._extract_from_argparse(source)
-        elif self.framework == "typer":
+        if self.framework == "typer":
             return self._extract_from_typer(source)
-        else:
-            from bengal.errors import BengalConfigError, ErrorCode
+        from bengal.errors import BengalConfigError, ErrorCode
 
-            raise BengalConfigError(
-                f"Unknown framework: {self.framework}",
-                suggestion="Set framework to 'click', 'argparse', or 'typer'",
-                code=ErrorCode.C003,
-            )
+        raise BengalConfigError(
+            f"Unknown framework: {self.framework}",
+            suggestion="Set framework to 'click', 'argparse', or 'typer'",
+            code=ErrorCode.C003,
+        )
 
     def _extract_from_click(self, cli: click.Group) -> list[DocElement]:
         """
@@ -646,7 +645,7 @@ class CLIExtractor(Extractor):
 
             if hasattr(typer.main, "get_group"):
                 return typer.main.get_group(typer_app)
-            elif hasattr(typer.main, "get_command"):
+            if hasattr(typer.main, "get_command"):
                 return typer.main.get_command(typer_app)
         except Exception as e:
             logger.debug(
@@ -683,7 +682,7 @@ class CLIExtractor(Extractor):
             # For nested groups, place an index under <qualified path>/
             parts = element.qualified_name.split(".")[1:]  # drop root cli name
             return Path("/".join(parts)) / "_index.md"
-        elif element.element_type == "command":
+        if element.element_type == "command":
             # Use the full qualified name (minus root) to preserve hierarchy
             # Examples:
             #   bengal.build            → build.md
@@ -695,6 +694,5 @@ class CLIExtractor(Extractor):
             if len(parts) > 1:
                 parts = parts[1:]
             return Path("/".join(parts)).with_suffix(".md")
-        else:
-            # Shouldn't happen, but fallback
-            return Path(f"{element.name}.md")
+        # Shouldn't happen, but fallback
+        return Path(f"{element.name}.md")

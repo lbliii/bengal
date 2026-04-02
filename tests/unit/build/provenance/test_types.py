@@ -7,7 +7,7 @@ Tests ContentHash, InputRecord, Provenance, and ProvenanceRecord.
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -21,6 +21,9 @@ from bengal.build.provenance.types import (
     hash_dict,
     hash_file,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # =============================================================================
 # hash_content Tests

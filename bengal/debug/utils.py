@@ -28,8 +28,10 @@ Example:
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 # =============================================================================
 # File Size Formatting
@@ -64,10 +66,9 @@ def format_bytes_human(size_bytes: int | None) -> str | None:
         return None
     if size_bytes < 1024:
         return f"{size_bytes} B"
-    elif size_bytes < 1024 * 1024:
+    if size_bytes < 1024 * 1024:
         return f"{size_bytes / 1024:.1f} KB"
-    else:
-        return f"{size_bytes / (1024 * 1024):.1f} MB"
+    return f"{size_bytes / (1024 * 1024):.1f} MB"
 
 
 # =============================================================================

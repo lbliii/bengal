@@ -16,13 +16,14 @@ Key Principles:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from bengal.services.utils import freeze_dict
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.snapshots.types import SiteSnapshot
 
 

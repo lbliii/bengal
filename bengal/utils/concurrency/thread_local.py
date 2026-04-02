@@ -33,10 +33,10 @@ from __future__ import annotations
 
 import inspect
 import threading
-from collections.abc import Callable
-from typing import TypeVar, cast
+from typing import TYPE_CHECKING, cast
 
-T = TypeVar("T")
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class ThreadLocalCache[T]:
@@ -103,7 +103,7 @@ class ThreadLocalCache[T]:
             instance = self._factory(key) if self._factory_accepts_key and key else self._factory()
             setattr(self._local, cache_key, instance)
 
-        return cast(T, getattr(self._local, cache_key))
+        return cast("T", getattr(self._local, cache_key))
 
     def clear(self, key: str | None = None) -> None:
         """

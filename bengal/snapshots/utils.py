@@ -16,10 +16,12 @@ import hashlib
 import threading
 import time
 from dataclasses import fields
-from pathlib import Path
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from bengal.protocols import PageLike
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Re-export PageLike for backwards compatibility
 __all__ = ["PageLike"]

@@ -31,11 +31,10 @@ Related Modules:
 from __future__ import annotations
 
 from enum import Enum, auto
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    pass
+    from pathlib import Path
 
 
 class OutputType(Enum):

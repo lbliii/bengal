@@ -25,13 +25,15 @@ See Also:
 from __future__ import annotations
 
 import tomllib
-from collections.abc import Iterable
-from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 from bengal.core.diagnostics import emit
 from bengal.core.theme.registry import get_theme_package
 from bengal.themes.utils import THEMES_ROOT
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
+    from pathlib import Path
 
 
 def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
@@ -44,7 +46,7 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
                 data = tomllib.load(f)
             if isinstance(data, dict):
                 extends = data.get("extends")
-                return cast(str | None, extends) if extends is not None else None
+                return cast("str | None", extends) if extends is not None else None
             return None
         except Exception as e:
             emit(

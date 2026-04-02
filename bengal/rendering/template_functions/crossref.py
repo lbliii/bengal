@@ -323,8 +323,7 @@ def relref(path: str, index: dict[str, Any], baseurl: str = "") -> str:
         # Handle absolute vs path-only base URLs
         if baseurl.startswith(("http://", "https://", "file://")):
             return f"{baseurl}{url}"
-        else:
-            base_path = "/" + baseurl.lstrip("/")
-            return f"{base_path}{url}"
+        base_path = "/" + baseurl.lstrip("/")
+        return f"{base_path}{url}"
 
     return url

@@ -6,13 +6,16 @@ Tests health/validators/output.py:
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
 
 from bengal.health.report import CheckStatus
 from bengal.health.validators.output import OutputValidator
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

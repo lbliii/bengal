@@ -152,13 +152,12 @@ def unwrap_optional(type_hint: Any) -> Any:
     if len(non_none_args) == 0:
         # Union[None] edge case - just return None type
         return type(None)
-    elif len(non_none_args) == 1:
+    if len(non_none_args) == 1:
         # Optional[X] -> X
         return non_none_args[0]
-    else:
-        # Union[A, B, None] -> Union[A, B]
-        # Reconstruct the Union without None using | operator
-        return reduce(lambda a, b: a | b, non_none_args)
+    # Union[A, B, None] -> Union[A, B]
+    # Reconstruct the Union without None using | operator
+    return reduce(lambda a, b: a | b, non_none_args)
 
 
 def type_display_name(type_hint: Any) -> str:

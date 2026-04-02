@@ -8,7 +8,7 @@ instead of crashing discovery with S003 errors.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -16,6 +16,9 @@ from bengal import __version__
 from bengal.cache.build_cache import BuildCache
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestAutodocCacheSelfHealing:

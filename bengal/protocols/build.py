@@ -30,10 +30,7 @@ Migration:
 from __future__ import annotations
 
 from enum import Enum
-from typing import TYPE_CHECKING, Literal, Protocol, TypedDict, runtime_checkable
-
-if TYPE_CHECKING:
-    pass
+from typing import Literal, Protocol, TypedDict, runtime_checkable
 
 
 class BuildPhase(Enum):

@@ -34,8 +34,7 @@ bengal/themes/default/theme.yaml: Example theme configuration
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
@@ -43,6 +42,9 @@ from bengal.errors import BengalConfigError, ErrorCode, record_error
 from bengal.themes.tokens import PALETTE_VARIANTS
 from bengal.themes.utils import validate_enum_field
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = get_logger(__name__)
 

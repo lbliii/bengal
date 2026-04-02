@@ -37,8 +37,11 @@ import argparse
 import ast
 import sys
 from collections import defaultdict
-from collections.abc import Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 # Define layer hierarchy (lower number = lower layer)
 LAYER_ORDER = {

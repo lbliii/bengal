@@ -24,7 +24,6 @@ See Also:
 from __future__ import annotations
 
 import json
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.orchestration.utils.i18n import get_i18n_config
@@ -34,6 +33,8 @@ from bengal.utils.primitives.hashing import hash_str
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.page import Page
     from bengal.core.site import Site
 

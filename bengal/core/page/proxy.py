@@ -17,7 +17,6 @@ Architecture:
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable, Mapping
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -26,12 +25,15 @@ from bengal.core.cascade import CascadeSnapshot, CascadeView
 from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
+
     from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
     from bengal.utils.pagination import Paginator
 
-from .page_core import PageCore
+    from .page_core import PageCore
+
 from .utils import normalize_tags
 
 # =============================================================================

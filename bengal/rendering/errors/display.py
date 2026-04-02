@@ -232,7 +232,7 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
         )
         return suggestions
 
-    elif error.error_type == "none_access":
+    if error.error_type == "none_access":
         # This is "argument of type 'NoneType' is not a container or iterable"
         suggestions.append(
             "[red bold]A variable is None![/red bold] This happens when using 'in' operator "
@@ -270,7 +270,7 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
         )
         return suggestions
 
-    elif error.error_type == "undefined":
+    if error.error_type == "undefined":
         var_name = _extract_variable_name(error.message)
 
         # ENHANCED: Detect unsafe dict access patterns

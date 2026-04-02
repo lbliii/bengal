@@ -30,8 +30,6 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from bengal.parsing.protocols import RichMarkdownParser
-from bengal.protocols import SiteLike
 from bengal.rendering.api_doc_enhancer import set_enhancer_for_render
 
 if TYPE_CHECKING:
@@ -39,7 +37,9 @@ if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
-    from bengal.protocols import PageLike
+    from bengal.parsing.protocols import RichMarkdownParser
+    from bengal.protocols import PageLike, SiteLike
+    from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
@@ -61,7 +61,6 @@ from bengal.rendering.pipeline.transforms import (
 from bengal.rendering.pipeline.unified_transform import (
     HybridHTMLTransformer,
 )
-from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 from bengal.rendering.renderer import Renderer
 from bengal.rendering.shortcodes import expand_shortcodes
 from bengal.utils.observability.logger import get_logger, truncate_error
@@ -205,7 +204,7 @@ class RenderingPipeline:
                     site._external_ref_resolvers.append(external_ref_resolver)
                     site.external_ref_resolver = external_ref_resolver
 
-            rich_parser = cast(RichMarkdownParser, self.parser)
+            rich_parser = cast("RichMarkdownParser", self.parser)
             rich_parser.enable_cross_references(
                 site.xref_index, version_config, cross_version_tracker, external_ref_resolver
             )
@@ -518,7 +517,7 @@ class RenderingPipeline:
             # BENGALESCAPED*ENDESC in the final highlighted HTML
             # fmt: off
             if hasattr(self.parser, "_var_plugin"):
-                rich_parser = cast(RichMarkdownParser, self.parser)
+                rich_parser = cast("RichMarkdownParser", self.parser)
                 if rich_parser._var_plugin and rich_parser._var_plugin.escaped_placeholders:
                     page.html_content = rich_parser._var_plugin.restore_placeholders(
                         page.html_content
@@ -584,7 +583,7 @@ class RenderingPipeline:
             if need_toc:
                 result = self.parser.parse_with_toc(source, metadata_with_source)
                 parsed_content, toc = result[0], result[1]
-                result_ext = cast(tuple[str, ...], result)
+                result_ext = cast("tuple[str, ...]", result)
                 if len(result_ext) > 2:
                     page._excerpt = result_ext[2]
                 if len(result_ext) > 3:
@@ -614,13 +613,13 @@ class RenderingPipeline:
             if hasattr(self.parser, "parse_with_toc_and_context") and hasattr(
                 self.parser, "parse_with_context"
             ):
-                rich_parser = cast(RichMarkdownParser, self.parser)
+                rich_parser = cast("RichMarkdownParser", self.parser)
                 if need_toc:
                     result = rich_parser.parse_with_toc_and_context(
                         source, metadata_for_parser, context
                     )
                     parsed_content, toc = result[0], result[1]
-                    result_ext = cast(tuple[str, ...], result)
+                    result_ext = cast("tuple[str, ...]", result)
                     if len(result_ext) > 2:
                         page._excerpt = result_ext[2]
                     if len(result_ext) > 3:
@@ -725,13 +724,13 @@ class RenderingPipeline:
                             page.rendered_html = self.renderer.render_page(page, html_content)
                         with _prof.step("format_html"):
                             page.rendered_html = format_html(
-                                page.rendered_html, page, cast(SiteLike, self.site)
+                                page.rendered_html, page, cast("SiteLike", self.site)
                             )
                     else:
                         html_content = self.renderer.render_content(page.html_content or "")
                         page.rendered_html = self.renderer.render_page(page, html_content)
                         page.rendered_html = format_html(
-                            page.rendered_html, page, cast(SiteLike, self.site)
+                            page.rendered_html, page, cast("SiteLike", self.site)
                         )
             else:
                 if _prof:
@@ -741,13 +740,13 @@ class RenderingPipeline:
                         page.rendered_html = self.renderer.render_page(page, html_content)
                     with _prof.step("format_html"):
                         page.rendered_html = format_html(
-                            page.rendered_html, page, cast(SiteLike, self.site)
+                            page.rendered_html, page, cast("SiteLike", self.site)
                         )
                 else:
                     html_content = self.renderer.render_content(page.html_content or "")
                     page.rendered_html = self.renderer.render_page(page, html_content)
                     page.rendered_html = format_html(
-                        page.rendered_html, page, cast(SiteLike, self.site)
+                        page.rendered_html, page, cast("SiteLike", self.site)
                     )
 
         # Get tracked assets from render-time tracking
@@ -765,7 +764,7 @@ class RenderingPipeline:
             with _prof.step("write_output"):
                 write_output(
                     page,
-                    cast(SiteLike, self.site),
+                    cast("SiteLike", self.site),
                     collector=self._output_collector,
                     write_behind=self._write_behind,
                     build_cache=self.build_cache,
@@ -773,7 +772,7 @@ class RenderingPipeline:
         else:
             write_output(
                 page,
-                cast(SiteLike, self.site),
+                cast("SiteLike", self.site),
                 collector=self._output_collector,
                 write_behind=self._write_behind,
                 build_cache=self.build_cache,
@@ -895,7 +894,7 @@ class RenderingPipeline:
                         break
 
         # Get cached global contexts (site/config are stateless wrappers)
-        global_contexts = _get_global_contexts(cast(SiteLike, self.site))
+        global_contexts = _get_global_contexts(cast("SiteLike", self.site))
 
         context: dict[str, Any] = {
             # Core objects with cached smart wrappers
@@ -942,7 +941,7 @@ class RenderingPipeline:
         """Write rendered page to output directory (backward compatibility wrapper)."""
         write_output(
             page,
-            cast(SiteLike, self.site),
+            cast("SiteLike", self.site),
             collector=self._output_collector,
             build_cache=self.build_cache,
         )

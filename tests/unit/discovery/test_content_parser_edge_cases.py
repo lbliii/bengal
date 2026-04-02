@@ -7,9 +7,12 @@ extract_body edge cases are covered by Patitas test_frontmatter.py.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.content.discovery.content_parser import ContentParser
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestContentParserParseFile:

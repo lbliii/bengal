@@ -134,11 +134,11 @@ class CodeIndex:
         """Check if a reference exists in the index."""
         if ref.ref_type == "function":
             return ref.name in self.functions
-        elif ref.ref_type == "class":
+        if ref.ref_type == "class":
             return ref.name in self.classes
-        elif ref.ref_type == "config":
+        if ref.ref_type == "config":
             return ref.name in self.config_options
-        elif ref.ref_type == "constant":
+        if ref.ref_type == "constant":
             return ref.name in self.constants
         return False
 

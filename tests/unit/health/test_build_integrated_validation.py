@@ -12,13 +12,9 @@ from __future__ import annotations
 
 from pathlib import Path
 from threading import Thread
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 from bengal.orchestration.build_context import BuildContext
-
-if TYPE_CHECKING:
-    pass
 
 
 class TestBuildContextContentCache:

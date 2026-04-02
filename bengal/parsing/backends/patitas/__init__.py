@@ -47,7 +47,6 @@ See Also:
 from __future__ import annotations
 
 import os
-from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Any, Literal
 
 # Core types from external patitas package (nodes, location, tokens, stringbuilder)
@@ -123,6 +122,8 @@ from bengal.parsing.backends.patitas.request_context import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
     from patitas.parser import Parser
 
     from bengal.parsing.backends.patitas.protocols import LexerDelegate

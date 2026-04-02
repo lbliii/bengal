@@ -14,10 +14,11 @@ from __future__ import annotations
 
 import sys
 import threading
-from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bengal.rendering.pipeline import RenderingPipeline
 
 # Thread-local storage for pipelines (reuse per thread, not per page!)

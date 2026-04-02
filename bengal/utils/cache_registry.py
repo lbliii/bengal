@@ -56,12 +56,15 @@ from __future__ import annotations
 
 import threading
 import time
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from graphlib import TopologicalSorter
+from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 logger = get_logger(__name__)
 

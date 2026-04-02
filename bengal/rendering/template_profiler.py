@@ -35,12 +35,13 @@ from __future__ import annotations
 import threading
 import time
 from collections import defaultdict
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from functools import wraps
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from kida import Template
 
 
@@ -261,11 +262,7 @@ class TemplateProfiler:
             self._active_renders.clear()
 
 
-P = ParamSpec("P")
-R = TypeVar("R")
-
-
-def profile_function(
+def profile_function[**P, R](
     profiler: TemplateProfiler, func_name: str
 ) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """

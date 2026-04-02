@@ -10,12 +10,15 @@ Tests:
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.server.file_watcher import (
     WatchfilesWatcher,
     create_watcher,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _noop_filter(p: Path) -> bool:

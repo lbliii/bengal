@@ -26,7 +26,6 @@ from patitas.nodes import (
     TableRow,
     ThematicBreak,
 )
-from patitas.stringbuilder import StringBuilder
 
 from bengal.parsing.backends.patitas.accumulator import get_metadata
 from bengal.parsing.backends.patitas.renderers.utils import (
@@ -37,6 +36,8 @@ from bengal.parsing.backends.patitas.renderers.utils import (
 from bengal.utils.primitives.code import HL_LINES_PATTERN, parse_hl_lines
 
 if TYPE_CHECKING:
+    from patitas.stringbuilder import StringBuilder
+
     from bengal.parsing.backends.patitas.renderers.protocols import HtmlRendererProtocol
 
 # Alias for internal use (maintains backward compatibility)

@@ -9,7 +9,7 @@ asset manifest resolution for better observability.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -23,6 +23,9 @@ from bengal.rendering.assets import (
     get_resolution_stats,
 )
 from bengal.utils.observability.logger import reset_loggers
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass

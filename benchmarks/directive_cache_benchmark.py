@@ -18,7 +18,10 @@ from __future__ import annotations
 
 import statistics
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from patitas.nodes import Directive
 
 # ============================================================================
 # Test content generation
@@ -148,7 +151,6 @@ def render_with_simulated_cache(content: str) -> tuple[str, dict[str, Any]]:
     This simulates what would happen if we wired up DirectiveCache
     by manually caching at the render level.
     """
-    from patitas.nodes import Directive
     from patitas.stringbuilder import StringBuilder
 
     from bengal.directives.cache import DirectiveCache

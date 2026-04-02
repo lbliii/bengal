@@ -20,12 +20,15 @@ RFC: rfc-contextvar-downstream-patterns.md
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from contextlib import contextmanager
-from contextvars import Token
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from bengal.parsing.backends.patitas.utils.contextvar import ContextVarManager
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from contextvars import Token
 
 __all__ = [
     "RenderMetadata",

@@ -38,13 +38,13 @@ See Also:
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.utils.url import apply_baseurl, get_baseurl, get_site_origin
 
 if TYPE_CHECKING:
+    from datetime import datetime
     from pathlib import Path
 
     from bengal.core.page.page_core import PageCore
@@ -432,7 +432,7 @@ class PageMetadataMixin:
         """
         if self.is_home:
             return "home"
-        elif self.is_section:
+        if self.is_section:
             return "section"
         return "page"
 

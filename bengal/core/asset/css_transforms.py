@@ -92,8 +92,7 @@ def transform_css_nesting(css: str) -> str:
 
         if nested_rules:
             return f"{selector}{{{remaining_content}}}\n" + "\n".join(nested_rules)
-        else:
-            return match.group(0)
+        return match.group(0)
 
     # Process iteratively to handle deeply nested cases
     for _ in range(10):

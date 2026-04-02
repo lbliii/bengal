@@ -13,11 +13,10 @@ from __future__ import annotations
 
 import fnmatch
 import re
-from collections.abc import AsyncIterator, Iterable
 from datetime import datetime
 from functools import cached_property
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.source import ContentSource
@@ -25,6 +24,9 @@ from bengal.content.utils import parse_frontmatter as _parse_frontmatter
 from bengal.content.utils.slugify import path_to_slug
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Iterable
 
 logger = get_logger(__name__)
 

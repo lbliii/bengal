@@ -223,9 +223,8 @@ class URLStrategy:
                 if rest:
                     return Path(section) / version_id / Path(*rest)
                 return Path(section) / version_id
-            else:
-                # Just _versions/v2/ → v2/
-                return Path(version_id)
+            # Just _versions/v2/ → v2/
+            return Path(version_id)
 
         # Content is in main content directory but has version set
         # (shouldn't normally happen, but handle gracefully)

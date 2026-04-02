@@ -15,12 +15,13 @@ Classes:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.utils.config import get_config_section, get_site_value
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.cache.paths import BengalPaths
     from bengal.config.accessor import Config
     from bengal.core.theme import Theme

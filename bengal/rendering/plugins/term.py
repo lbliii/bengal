@@ -6,10 +6,12 @@ Provides {term}`Word` syntax for linking to glossary terms.
 
 from __future__ import annotations
 
-import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.primitives.text import slugify
+
+if TYPE_CHECKING:
+    import re
 
 __all__ = ["TermPlugin"]
 

@@ -4,10 +4,13 @@ Tests for the Skeleton system (CLI).
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.cli.skeleton.hydrator import Hydrator
 from bengal.cli.skeleton.schema import Component, Skeleton
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestSkeletonSchema:

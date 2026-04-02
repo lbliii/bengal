@@ -10,14 +10,15 @@ Performance Optimizations:
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator, Iterator
-from datetime import datetime
 from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.primitives.hashing import hash_str
 
 if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Iterator
+    from datetime import datetime
+
     from bengal.content.sources.entry import ContentEntry
 
 

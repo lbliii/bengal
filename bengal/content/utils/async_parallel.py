@@ -11,10 +11,13 @@ Provides a unified pattern for fetching items in parallel with:
 from __future__ import annotations
 
 import asyncio
-from collections.abc import AsyncIterator, Awaitable, Callable
+from typing import TYPE_CHECKING
 
 from bengal.errors import BengalContentError, ErrorCode, record_error
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator, Awaitable, Callable
 
 logger = get_logger(__name__)
 

@@ -8,9 +8,12 @@ Tests the --explain and --dry-run CLI flags for debugging incremental builds.
 
 import json
 import time
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

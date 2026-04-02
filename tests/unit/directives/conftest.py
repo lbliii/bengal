@@ -6,11 +6,13 @@ Provides realistic mock state objects for testing directive parsing and renderin
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock
 
 import pytest
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class MockBlockState:

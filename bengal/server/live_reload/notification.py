@@ -6,12 +6,15 @@ from __future__ import annotations
 
 import json
 import os
-from collections.abc import Sequence
+from typing import TYPE_CHECKING
 
 from bengal.errors import ErrorCode
 from bengal.utils.observability.logger import get_logger
 
 from .sse import _reload_events_disabled, _state
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 logger = get_logger(__name__)
 

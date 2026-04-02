@@ -123,13 +123,13 @@ def pretty_print_config(config: dict[str, Any], title: str = "Configuration") ->
             import pprint
 
             print(f"\n{title}:\n")
-            pprint.pprint(config, width=100, compact=False)
+            pprint.pprint(config, width=100, compact=False)  # noqa: T203
             print()
     except ImportError:
         import pprint
 
         print(f"\n{title}:\n")
-        pprint.pprint(config, width=100, compact=False)
+        pprint.pprint(config, width=100, compact=False)  # noqa: T203
         print()
 
 

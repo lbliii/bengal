@@ -21,8 +21,11 @@ import ast
 import itertools
 import sys
 from collections import defaultdict
-from collections.abc import Iterator
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 
 def extract_imports(file_path: Path) -> Iterator[tuple[str, str, bool]]:

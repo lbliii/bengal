@@ -2,10 +2,13 @@
 Unit tests for SpecialPagesGenerator (404 + search page).
 """
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.core.url_ownership import URLRegistry
 from bengal.postprocess.special_pages import SpecialPagesGenerator
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class DummyTemplate:

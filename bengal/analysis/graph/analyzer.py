@@ -41,7 +41,7 @@ if TYPE_CHECKING:
     from bengal.analysis.results import PageLayers
     from bengal.protocols import PageLike
 else:
-    from bengal.protocols import PageLike
+    pass
 
 
 class GraphAnalyzer:

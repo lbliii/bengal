@@ -69,12 +69,11 @@ def phase_sections(
                         code=ErrorCode.D003,
                         suggestion="Review section validation errors above and fix section structure, or disable strict mode",
                     )
-                else:
-                    # Warn but continue in non-strict mode
-                    for error in section_errors[:3]:  # Show first 3
-                        cli.warning(str(error))
-                    if len(section_errors) > 3:
-                        cli.warning(f"... and {len(section_errors) - 3} more errors")
+                # Warn but continue in non-strict mode
+                for error in section_errors[:3]:  # Show first 3
+                    cli.warning(str(error))
+                if len(section_errors) > 3:
+                    cli.warning(f"... and {len(section_errors) - 3} more errors")
         else:
             orchestrator.logger.info("section_finalization_skipped", reason="no_affected_sections")
 

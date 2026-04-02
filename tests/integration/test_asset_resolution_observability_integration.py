@@ -10,7 +10,7 @@ Tests that:
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -18,6 +18,9 @@ from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
 from bengal.rendering.assets import clear_manifest_cache, get_resolution_stats
 from bengal.utils.observability.logger import reset_loggers
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture(scope="module")

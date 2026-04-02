@@ -22,12 +22,15 @@ from __future__ import annotations
 import concurrent.futures
 import threading
 import time
-from collections.abc import Generator
 from concurrent.futures import Future
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from contextlib import contextmanager
+from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
 
 logger = get_logger(__name__)
 

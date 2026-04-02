@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -12,6 +12,9 @@ from bengal.rendering.template_functions.get_page import (
     clear_get_page_cache,
 )
 from bengal.utils.io.file_io import write_text_file
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

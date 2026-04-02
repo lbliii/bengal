@@ -15,10 +15,12 @@ from __future__ import annotations
 
 import sys
 import time
-from collections.abc import Callable
 from contextvars import ContextVar
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 # =============================================================================
 # CURRENT IMPLEMENTATION (18 slots)

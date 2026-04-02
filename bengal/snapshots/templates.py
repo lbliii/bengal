@@ -72,7 +72,7 @@ def _get_template_partials(template_name: str, site: SiteLike) -> list[Path]:
                     # Type narrowing: get_template may not be callable
                     get_template_method = getattr(env, "get_template", None)
                     if not callable(get_template_method):
-                        raise AttributeError("get_template is not callable")
+                        raise AttributeError("get_template is not callable")  # noqa: TRY004 — AttributeError is correct here
                     template = get_template_method(template_name)
                     if hasattr(template, "_optimized_ast"):
                         ast = template._optimized_ast

@@ -37,12 +37,15 @@ import resource
 import shutil
 import subprocess
 import sys
-from collections.abc import Iterator
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
+    from pathlib import Path
 
 try:
     import psutil

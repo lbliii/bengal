@@ -6,8 +6,11 @@ Verifies that empty sites don't produce invalid XML.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestEmptySitemap:

@@ -35,16 +35,13 @@ from __future__ import annotations
 import functools
 import hashlib
 import threading
-from collections.abc import Callable
 from contextvars import ContextVar
-from typing import TYPE_CHECKING, Any, ParamSpec, TypeVar
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.orchestration.build_context import BuildContext
+    from collections.abc import Callable
 
-# Type variables for generic memoization
-P = ParamSpec("P")
-R = TypeVar("R")
+    from bengal.orchestration.build_context import BuildContext
 
 # ContextVar for build context (set by rendering phase)
 _build_context_var: ContextVar[BuildContext | None] = ContextVar("build_context", default=None)
@@ -124,7 +121,7 @@ def _hash_args(*args: Any, **kwargs: Any) -> str:
     return hashlib.sha256(key_str.encode()).hexdigest()[:16]
 
 
-def build_memoize(cache_key: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
+def build_memoize[**P, R](cache_key: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Decorator for build-scoped memoization.
 
@@ -174,7 +171,7 @@ def build_memoize(cache_key: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
     return decorator
 
 
-def site_scoped_memoize(cache_key: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
+def site_scoped_memoize[**P, R](cache_key: str) -> Callable[[Callable[P, R]], Callable[P, R]]:
     """
     Decorator for site-scoped memoization (ignores arguments).
 

@@ -35,12 +35,13 @@ import os
 import tempfile
 import threading
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from PIL import Image
 
 
@@ -383,11 +384,8 @@ class ImageProcessor:
 
         if params.anchor == "smart":
             return self._smart_crop(img, target)
-        else:
-            centering = self._anchor_to_centering(params.anchor)
-            return ImageOps.fit(
-                img, target, method=PILImage.Resampling.LANCZOS, centering=centering
-            )
+        centering = self._anchor_to_centering(params.anchor)
+        return ImageOps.fit(img, target, method=PILImage.Resampling.LANCZOS, centering=centering)
 
     def _fit(self, img: Image.Image, params: Any) -> Image.Image:
         """Resize to fit within dimensions.
@@ -428,17 +426,16 @@ class ImageProcessor:
             ratio = params.width / img.width
             new_height = int(img.height * ratio)
             return img.resize((params.width, new_height), PILImage.Resampling.LANCZOS)
-        elif params.height and not params.width:
+        if params.height and not params.width:
             # Height specified, calculate width
             ratio = params.height / img.height
             new_width = int(img.width * ratio)
             return img.resize((new_width, params.height), PILImage.Resampling.LANCZOS)
-        elif params.width and params.height:
+        if params.width and params.height:
             # Both specified - resize to exact dimensions
             return img.resize((params.width, params.height), PILImage.Resampling.LANCZOS)
-        else:
-            # No dimensions specified
-            return img
+        # No dimensions specified
+        return img
 
     def _apply_filters(self, img: Image.Image, params: Any) -> Image.Image:
         """Apply image filters.

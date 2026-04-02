@@ -11,13 +11,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from pathlib import Path
-from typing import Any, NewType
+from typing import TYPE_CHECKING, Any, NewType
 
 from bengal.build.contracts.keys import CacheKey
 from bengal.utils.primitives.hashing import hash_bytes, hash_str
 from bengal.utils.primitives.hashing import hash_dict as _hash_dict
 from bengal.utils.primitives.hashing import hash_file as _hash_file
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 # Type-safe content hash (prevents mixing with regular strings)
 ContentHash = NewType("ContentHash", str)

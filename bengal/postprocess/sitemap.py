@@ -292,6 +292,5 @@ class SitemapGenerator:
         # Latest version gets higher priority
         if version.latest:
             return "0.8"
-        else:
-            # Older versions get lower priority but still indexed
-            return "0.3"
+        # Older versions get lower priority but still indexed
+        return "0.3"

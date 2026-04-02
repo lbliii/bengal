@@ -273,8 +273,7 @@ class VersionResolver:
         # Build URL with version prefix
         if target_version.latest:
             return f"/{path}/"
-        else:
-            return f"/{target_version.id}/{path}/"
+        return f"/{target_version.id}/{path}/"
 
     def assign_version_to_page(
         self,

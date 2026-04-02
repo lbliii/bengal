@@ -38,7 +38,6 @@ from __future__ import annotations
 
 import contextlib
 import contextvars
-from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -46,7 +45,6 @@ from bengal.content.discovery.content_parser import ContentParser
 from bengal.content.discovery.directory_walker import DirectoryWalker
 from bengal.content.discovery.section_builder import SectionBuilder
 from bengal.core.page import Page, PageProxy
-from bengal.core.section import Section
 from bengal.utils.concurrency.executor import managed_executor
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
@@ -54,7 +52,10 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bengal.collections import CollectionConfig
+    from bengal.core.section import Section
     from bengal.orchestration.build_context import BuildContext
 
 
@@ -174,8 +175,7 @@ class ContentDiscovery:
         """
         if use_cache and cache:
             return self._discover_surgical(cache)
-        else:
-            return self._discover_full()
+        return self._discover_full()
 
     def _discover_surgical(self, cache: Any) -> tuple[list[Section], list[Page | PageProxy]]:
         """
@@ -628,7 +628,7 @@ class ContentDiscovery:
         for fut in futures:
 
             def get_page_result(f: Any = fut) -> Page:
-                return cast(Page, f.result(timeout=90))
+                return cast("Page", f.result(timeout=90))
 
             page = with_error_recovery(
                 get_page_result,

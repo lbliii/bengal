@@ -20,13 +20,15 @@ See Also:
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
+
+if TYPE_CHECKING:
+    import os
+    from pathlib import Path
 
 logger = get_logger(__name__)
 

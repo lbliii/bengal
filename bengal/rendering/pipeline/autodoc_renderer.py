@@ -145,7 +145,7 @@ class AutodocRenderer:
             self._render_autodoc_page(page)
             write_output(
                 page,
-                cast(SiteLike, self.site),
+                cast("SiteLike", self.site),
                 collector=self.output_collector,
                 write_behind=self.write_behind,
                 build_cache=self.build_cache,
@@ -169,16 +169,16 @@ class AutodocRenderer:
         if is_complete_page:
             # Use pre-rendered HTML directly (it's already a complete page)
             page.rendered_html = prerendered
-            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
+            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
         else:
             # Wrap content fragment with template
             html_content = self.renderer.render_content(page.html_content or "")
             page.rendered_html = self.renderer.render_page(page, html_content)
-            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
+            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
 
         write_output(
             page,
-            cast(SiteLike, self.site),
+            cast("SiteLike", self.site),
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,
@@ -236,7 +236,7 @@ class AutodocRenderer:
             page.html_content = page._prerendered_html
             page.toc = ""
             page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
-            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
+            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
             return
 
         # Render with full site context (same as regular pages)
@@ -303,7 +303,7 @@ class AutodocRenderer:
             page.toc = ""
             page._toc_items_cache = []  # Set private cache, not read-only property
             page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
-            page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
+            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
             return
 
         page._prerendered_html = html_content
@@ -311,7 +311,7 @@ class AutodocRenderer:
         page.toc = ""
         page._toc_items_cache = []  # Set private cache, not read-only property
         page.rendered_html = html_content
-        page.rendered_html = format_html(page.rendered_html, page, cast(SiteLike, self.site))
+        page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
 
     def _load_autodoc_template(self, template_name: str) -> Template:
         """Load autodoc template with proper error handling.
@@ -390,14 +390,14 @@ class AutodocRenderer:
                 prefix = autodoc_config.get("python", {}).get("output_prefix", "api")
                 url_path = f"{prefix}/{qualified_name.replace('.', '/')}"
                 return f"/{url_path}/"
-            elif doc_type == "cli":
+            if doc_type == "cli":
                 prefix = autodoc_config.get("cli", {}).get("output_prefix", "cli")
                 from bengal.autodoc.utils import resolve_cli_url_path
 
                 cli_path = resolve_cli_url_path(qualified_name)
                 url_path = f"{prefix}/{cli_path}" if cli_path else prefix
                 return f"/{url_path}/"
-            elif doc_type == "openapi":
+            if doc_type == "openapi":
                 prefix = autodoc_config.get("openapi", {}).get("output_prefix", "api")
                 if element_type == "openapi_endpoint":
                     from bengal.autodoc.utils import get_openapi_method, get_openapi_path
@@ -405,10 +405,9 @@ class AutodocRenderer:
                     method = get_openapi_method(elem).lower()
                     path = path_to_slug(get_openapi_path(elem))
                     return f"/{prefix}/endpoints/{method}-{path}/"
-                elif element_type == "openapi_schema":
+                if element_type == "openapi_schema":
                     return f"/{prefix}/schemas/{elem.name}/"
-                else:
-                    return f"/{prefix}/overview/"
+                return f"/{prefix}/overview/"
 
             # Fallback: infer from element_type
             if element_type in ["command", "command-group"]:
@@ -418,7 +417,7 @@ class AutodocRenderer:
                 cli_path = resolve_cli_url_path(qualified_name)
                 url_path = f"{prefix}/{cli_path}" if cli_path else prefix
                 return f"/{url_path}/"
-            elif element_type in ["class", "function", "method", "module"]:
+            if element_type in ["class", "function", "method", "module"]:
                 prefix = autodoc_config.get("python", {}).get("output_prefix", "api")
                 url_path = f"{prefix}/{qualified_name.replace('.', '/')}"
                 return f"/{url_path}/"

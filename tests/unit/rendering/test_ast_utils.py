@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from bengal.parsing.ast.types import ASTNode
+from typing import TYPE_CHECKING
+
 from bengal.parsing.ast.utils import (
     extract_links_from_ast,
     extract_plain_text,
@@ -10,6 +11,9 @@ from bengal.parsing.ast.utils import (
     generate_heading_id,
     walk_ast,
 )
+
+if TYPE_CHECKING:
+    from bengal.parsing.ast.types import ASTNode
 
 
 class TestWalkAST:

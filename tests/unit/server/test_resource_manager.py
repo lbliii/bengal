@@ -10,10 +10,13 @@ from __future__ import annotations
 import contextlib
 import signal
 import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 from bengal.server.resource_manager import ResourceManager
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestResourceManagerBasics:

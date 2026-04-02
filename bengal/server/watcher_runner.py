@@ -29,14 +29,16 @@ import asyncio
 import contextlib
 import threading
 import time
-from collections.abc import Callable
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.protocols import SiteLike
 from bengal.server.file_watcher import create_watcher
 from bengal.server.ignore_filter import IgnoreFilter
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
 
 logger = get_logger(__name__)
 

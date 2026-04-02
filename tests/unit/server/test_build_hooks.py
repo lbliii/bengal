@@ -14,7 +14,7 @@ Tests:
 from __future__ import annotations
 
 import sys
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -23,6 +23,9 @@ from bengal.server.build_hooks import (
     run_post_build_hooks,
     run_pre_build_hooks,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestRunHooks:

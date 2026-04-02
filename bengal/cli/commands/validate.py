@@ -184,8 +184,7 @@ def validate(
         if not context:
             cli.info("No changed files found - all files are up to date")
             return
-        else:
-            cli.info(f"Found {len(context)} changed file(s)")
+        cli.info(f"Found {len(context)} changed file(s)")
 
     # Load cache for incremental validation if not already loaded
     if (incremental or changed) and cache is None:
@@ -228,7 +227,7 @@ def validate(
         # Normal mode - exit with error code if there are errors
         if report.has_errors():
             raise click.ClickException(f"Validation failed: {report.total_errors} error(s) found")
-        elif report.has_warnings():
+        if report.has_warnings():
             cli.warning(f"Validation completed with {report.total_warnings} warning(s)")
         else:
             cli.success("Validation passed - no issues found")

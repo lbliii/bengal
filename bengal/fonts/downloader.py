@@ -37,8 +37,7 @@ Related:
 
 import re
 from dataclasses import dataclass
-from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from bengal.fonts.utils import (
     make_font_filename,
@@ -48,6 +47,9 @@ from bengal.fonts.utils import (
     urlopen_with_ssl_fallback,
 )
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = get_logger(__name__)
 

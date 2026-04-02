@@ -69,7 +69,6 @@ import contextlib
 import os
 from dataclasses import dataclass
 from enum import Enum
-from types import ModuleType
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
@@ -88,6 +87,8 @@ DEFAULT_SUPPRESS: tuple[str, ...] = ("click", "jinja2")
 
 
 if TYPE_CHECKING:
+    from types import ModuleType
+
     from bengal.errors.traceback.renderer import TracebackRenderer
 
 

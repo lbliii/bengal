@@ -7,10 +7,11 @@ reports.
 
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from .models import ValidatorReport
 
 

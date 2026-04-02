@@ -55,7 +55,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
@@ -68,7 +68,6 @@ from bengal.orchestration.stats import (
 )
 from bengal.output import CLIOutput
 from bengal.protocols import SiteLike
-from bengal.server.buffer_manager import BufferManager
 from bengal.server.build_executor import BuildExecutor, BuildResult
 from bengal.server.build_hooks import run_post_build_hooks, run_pre_build_hooks
 from bengal.server.build_state import build_state
@@ -80,12 +79,15 @@ from bengal.server.reload_controller import (
 from bengal.server.reload_controller import (
     controller as default_reload_controller,
 )
-from bengal.server.reload_protocols import ReloadNotifier
 from bengal.server.reload_types import BuildReloadInfo
 from bengal.server.utils import get_timestamp
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 from bengal.utils.stats_minimal import MinimalStats
+
+if TYPE_CHECKING:
+    from bengal.server.buffer_manager import BufferManager
+    from bengal.server.reload_protocols import ReloadNotifier
 
 logger = get_logger(__name__)
 

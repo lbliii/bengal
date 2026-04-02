@@ -6,11 +6,13 @@ Provides consistent profiling across all performance tests.
 
 import cProfile
 import pstats
-from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.paths.paths import BengalPaths
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class ProfileContext:

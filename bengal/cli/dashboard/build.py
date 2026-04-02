@@ -19,7 +19,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, ClassVar
 
-from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.reactive import reactive
@@ -30,6 +29,8 @@ from bengal.cli.dashboard.messages import BuildComplete
 from bengal.cli.dashboard.notifications import notify_build_complete
 
 if TYPE_CHECKING:
+    from textual.app import ComposeResult
+
     from bengal.core.site import Site
     from bengal.utils.observability.profile import BuildProfile
 

@@ -11,12 +11,14 @@ Related Modules:
 
 from __future__ import annotations
 
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.assets.manifest import AssetManifest, AssetManifestEntry
 from bengal.errors import ErrorCode
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = get_logger(__name__)
 

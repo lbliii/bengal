@@ -77,9 +77,8 @@ def get_cli_output(
             # Create new instance if none exists or if flags are provided
             _cli_output = CLIOutput(profile=profile, quiet=quiet, verbose=verbose)
         return _cli_output
-    else:
-        # Create isolated instance
-        return CLIOutput(profile=profile, quiet=quiet, verbose=verbose)
+    # Create isolated instance
+    return CLIOutput(profile=profile, quiet=quiet, verbose=verbose)
 
 
 def init_cli_output(

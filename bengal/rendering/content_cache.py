@@ -31,12 +31,13 @@ import hashlib
 import re
 import threading
 from dataclasses import dataclass
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.primitives.lru_cache import LRUCache
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.protocols import PageLike
 
 

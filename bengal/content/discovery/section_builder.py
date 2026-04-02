@@ -12,13 +12,14 @@ SectionBuilder: Creates and organizes Section hierarchies.
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.section import Section
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.page import Page, PageProxy
 
 logger = get_logger(__name__)

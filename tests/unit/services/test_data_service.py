@@ -4,8 +4,8 @@ Unit tests for DataService.
 RFC: Snapshot-Enabled v2 Opportunities (Opportunity 4: Service Extraction)
 """
 
-from pathlib import Path
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -15,6 +15,9 @@ from bengal.services.data import (
     get_data,
     load_data_directory,
 )
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestDataSnapshot:

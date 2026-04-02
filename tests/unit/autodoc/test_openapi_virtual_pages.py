@@ -4,10 +4,13 @@ Integration-style unit test for OpenAPI virtual page generation.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, Mock
 
 from bengal.autodoc.orchestration import VirtualAutodocOrchestrator
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def _make_mock_site(tmp_path: Path, spec_path: Path) -> MagicMock:

@@ -45,24 +45,18 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from datetime import datetime
 from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING, Any, Self, cast
 
 from bengal.config.utils import unwrap_config
-from bengal.core.asset import Asset
 from bengal.core.diagnostics import DiagnosticsSink
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.core.menu import MenuBuilder, MenuItem
-from bengal.core.page import Page
 from bengal.core.registry import ContentRegistry
-from bengal.core.section import Section
 from bengal.core.theme import Theme
 from bengal.core.url_ownership import URLRegistry
 from bengal.core.version import Version, VersionConfig
 from bengal.icons import resolver as icon_resolver
-from bengal.protocols.core import SiteLike
 from bengal.services.config import ConfigService
 
 from .accessors import SiteAccessorsMixin
@@ -74,14 +68,21 @@ from .lifecycle import SiteLifecycleMixin
 from .versioning import VersionService
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     from bengal.assets.manifest import AssetManifest
     from bengal.cache.paths import BengalPaths
     from bengal.cache.query_index_registry import QueryIndexRegistry
     from bengal.config.accessor import Config
+    from bengal.core.asset import Asset
     from bengal.core.cascade_snapshot import CascadeSnapshot
+    from bengal.core.menu import MenuBuilder, MenuItem
+    from bengal.core.page import Page
     from bengal.core.page_cache import PageCacheManager
+    from bengal.core.section import Section
     from bengal.orchestration.build_state import BuildState
     from bengal.parsing.base import BaseMarkdownParser
+    from bengal.protocols.core import SiteLike
     from bengal.utils.primitives.dotdict import DotDict
 
 
@@ -299,7 +300,7 @@ class Site(
 
         # Initialize theme-aware icon resolver for all icon consumers
         # (template functions, inline icon plugin, directives)
-        icon_resolver.initialize(cast(SiteLike, self))
+        icon_resolver.initialize(cast("SiteLike", self))
 
         # Access output_dir from build section (supports both Config and dict)
         output_dir_str: str | None = None
@@ -400,7 +401,7 @@ class Site(
                     from bengal.cache.query_index_registry import QueryIndexRegistry
 
                     self._query_registry = QueryIndexRegistry(
-                        cast(SiteLike, self), self.paths.indexes_dir
+                        cast("SiteLike", self), self.paths.indexes_dir
                     )
         return self._query_registry
 
@@ -556,7 +557,7 @@ class Site(
             get_version_target_url as _get_version_target_url,
         )
 
-        return _get_version_target_url(page, target_version, cast(SiteLike, self))
+        return _get_version_target_url(page, target_version, cast("SiteLike", self))
 
     def __repr__(self) -> str:
         pages = len(self.pages)

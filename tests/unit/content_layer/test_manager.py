@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -11,6 +11,9 @@ from bengal.content.sources.entry import ContentEntry
 from bengal.content.sources.manager import ContentLayerManager
 from bengal.content.sources.source import ContentSource
 from bengal.errors import BengalConfigError
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class MockSource(ContentSource):

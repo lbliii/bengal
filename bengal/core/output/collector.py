@@ -10,7 +10,6 @@ The OutputCollector protocol is defined in bengal.protocols.infrastructure.
 from __future__ import annotations
 
 from contextlib import suppress
-from pathlib import Path
 from threading import Lock
 from typing import TYPE_CHECKING
 
@@ -20,6 +19,7 @@ from bengal.protocols import OutputCollector
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
     from typing import Literal
 
 # Re-export for backwards compatibility

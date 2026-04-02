@@ -44,13 +44,14 @@ from __future__ import annotations
 import json
 import threading
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.orchestration.build.output_types import OutputType
 
 logger = get_logger(__name__)

@@ -55,9 +55,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Callable
-from pathlib import Path
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING
 
 from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
@@ -67,9 +65,10 @@ from bengal.utils.primitives.text import strip_html as _strip_html_base
 
 logger = get_logger(__name__)
 
-T = TypeVar("T")
-
 if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
+
     from bengal.protocols import PageLike, SiteLike
 
 

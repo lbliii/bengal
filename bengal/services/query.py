@@ -16,10 +16,11 @@ Key Principles:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.snapshots.types import PageSnapshot, SectionSnapshot, SiteSnapshot
 
 
@@ -259,6 +260,5 @@ def get_children_pages(
             for page in snapshot.pages
             if page.section and page.section.href.startswith(section_url)
         ]
-    else:
-        # Only direct children
-        return get_pages_by_section(snapshot, section_url)
+    # Only direct children
+    return get_pages_by_section(snapshot, section_url)

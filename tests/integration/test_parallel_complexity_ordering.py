@@ -6,11 +6,14 @@ the RenderOrchestrator and produces correct builds.
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.orchestration.build.options import BuildOptions
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

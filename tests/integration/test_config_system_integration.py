@@ -8,12 +8,15 @@ Tests verify:
 - Backward compatibility with single-file configs
 """
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 import yaml
 
 from bengal.core.site import Site
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @pytest.fixture

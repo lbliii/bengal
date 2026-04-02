@@ -48,10 +48,13 @@ import time
 from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TYPE_CHECKING
 
-from bengal.orchestration.stats import ReloadHint
 from bengal.server.reload_types import SerializedOutputRecord
 from bengal.utils.observability.logger import get_logger
+
+if TYPE_CHECKING:
+    from bengal.orchestration.stats import ReloadHint
 
 logger = get_logger(__name__)
 
@@ -241,15 +244,14 @@ def get_executor_type() -> str:
 
     if env_override == "thread":
         return "thread"
-    elif env_override == "process":
+    if env_override == "process":
         return "process"
-    else:  # auto
-        if is_free_threaded():
-            logger.debug("executor_auto_select", choice="thread", reason="free_threaded_python")
-            return "thread"
-        else:
-            logger.debug("executor_auto_select", choice="process", reason="gil_enabled")
-            return "process"
+    # auto
+    if is_free_threaded():
+        logger.debug("executor_auto_select", choice="thread", reason="free_threaded_python")
+        return "thread"
+    logger.debug("executor_auto_select", choice="process", reason="gil_enabled")
+    return "process"
 
 
 class BuildExecutor:

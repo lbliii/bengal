@@ -15,11 +15,14 @@ RFC: rfc-dashboard-api-integration
 from __future__ import annotations
 
 from datetime import datetime
+from typing import TYPE_CHECKING
 
-from textual.app import ComposeResult
 from textual.containers import Vertical
 from textual.reactive import reactive
 from textual.widgets import DataTable, Static
+
+if TYPE_CHECKING:
+    from textual.app import ComposeResult
 
 # Status code color categories
 STATUS_CATEGORIES: dict[int, str] = {
@@ -43,12 +46,11 @@ def get_status_icon(status_code: int) -> str:
     """Get icon for HTTP status code."""
     if 200 <= status_code < 300:
         return "✓"
-    elif 300 <= status_code < 400:
+    if 300 <= status_code < 400:
         return "→"
-    elif 400 <= status_code < 500:
+    if 400 <= status_code < 500:
         return "⚠"
-    else:
-        return "✗"
+    return "✗"
 
 
 class RequestLog(Vertical):

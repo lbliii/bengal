@@ -81,7 +81,7 @@ def detect_environment() -> str:
         context = os.getenv("CONTEXT", "").lower()
         if context == "production":
             return "production"
-        elif context in ("deploy-preview", "branch-deploy"):
+        if context in ("deploy-preview", "branch-deploy"):
             return "preview"
         # Fallback to production for Netlify
         return "production"
@@ -91,7 +91,7 @@ def detect_environment() -> str:
         vercel_env = os.getenv("VERCEL_ENV", "").lower()
         if vercel_env == "production":
             return "production"
-        elif vercel_env in ("preview", "development"):
+        if vercel_env in ("preview", "development"):
             return "preview"
         # Fallback to production for Vercel
         return "production"

@@ -9,12 +9,14 @@ Regression test for: kida adapter not resolving fingerprinted assets.
 from __future__ import annotations
 
 import json
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 from bengal.rendering.assets import resolve_asset_url
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class MockSite:

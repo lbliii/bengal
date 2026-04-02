@@ -54,16 +54,13 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from bengal.debug.base import DebugFinding, DebugRegistry, DebugReport, DebugTool, Severity
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.text import slugify
 
 logger = get_logger(__name__)
-
-if TYPE_CHECKING:
-    pass
 
 
 @dataclass
@@ -689,12 +686,11 @@ class ContentMigrator(DebugTool):
 
         if output_format == "netlify":
             return "\n".join(r.to_netlify() for r in redirects)
-        elif output_format == "nginx":
+        if output_format == "nginx":
             return "\n".join(r.to_nginx() for r in redirects)
-        elif output_format == "apache":
+        if output_format == "apache":
             return "\n".join(r.to_apache() for r in redirects)
-        else:
-            return "\n".join(str(r) for r in redirects)
+        return "\n".join(str(r) for r in redirects)
 
     def _find_structure_issues(self) -> list[DebugFinding]:
         """Find potential structure issues in content."""

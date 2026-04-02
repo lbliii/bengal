@@ -16,14 +16,11 @@ Press Enter to execute/navigate
 from __future__ import annotations
 
 from functools import partial
-from typing import TYPE_CHECKING, ClassVar
+from typing import ClassVar
 
 from textual.command import DiscoveryHit, Hit, Hits, Provider
 
 from bengal.protocols import SiteLike
-
-if TYPE_CHECKING:
-    pass
 
 
 class BengalCommandProvider(Provider):

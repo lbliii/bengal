@@ -20,7 +20,6 @@ with the source code in a collapsible details element.
 from __future__ import annotations
 
 import threading
-from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from html import escape as html_escape
 from typing import TYPE_CHECKING, ClassVar
@@ -28,13 +27,16 @@ from typing import TYPE_CHECKING, ClassVar
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
 
-from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from patitas.location import SourceLocation
     from patitas.nodes import Block
     from patitas.stringbuilder import StringBuilder
+
+    from bengal.parsing.backends.patitas.directives.contracts import DirectiveContract
 
 __all__ = ["MarimoDirective"]
 

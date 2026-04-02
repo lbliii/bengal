@@ -7,11 +7,14 @@ Tests the TemplateValidator class which delegates to template engine's validate(
 from __future__ import annotations
 
 from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from bengal.health.validators.templates import TemplateValidator, validate_templates
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 @dataclass

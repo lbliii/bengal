@@ -65,7 +65,6 @@ from __future__ import annotations
 
 import hashlib
 from datetime import datetime
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.postprocess.output_formats.utils import (
@@ -76,6 +75,8 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.protocols import PageLike, SiteConfig
 
 logger = get_logger(__name__)

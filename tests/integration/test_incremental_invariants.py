@@ -20,7 +20,6 @@ from __future__ import annotations
 import subprocess
 import sys
 import time
-from collections.abc import Generator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -28,6 +27,8 @@ from typing import TYPE_CHECKING
 import pytest
 
 if TYPE_CHECKING:
+    from collections.abc import Generator
+
     from bengal.core.site import Site
     from bengal.orchestration.stats.models import BuildStats
 

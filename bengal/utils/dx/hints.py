@@ -8,11 +8,14 @@ Hints are collected by context (build, serve, config) and filtered by opt-out.
 from __future__ import annotations
 
 import os
-from collections.abc import Callable
 from dataclasses import dataclass
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.utils.dx.detection import is_docker, is_kubernetes, is_wsl
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from pathlib import Path
 
 
 @dataclass(frozen=True, slots=True)

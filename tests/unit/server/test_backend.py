@@ -4,10 +4,13 @@ Tests for the server backend abstraction (PounceBackend).
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 from bengal.server.backend import PounceBackend, create_pounce_backend
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def test_create_pounce_backend_returns_backend(tmp_path: Path) -> None:

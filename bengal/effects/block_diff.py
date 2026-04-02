@@ -14,12 +14,13 @@ Key optimizations:
 """
 
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.effects.utils import extract_body_after_frontmatter
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.snapshots.types import PageSnapshot, SiteSnapshot
 
 
@@ -131,9 +132,8 @@ class BlockDiffService:
                     requires_rebuild=False,
                     reason="No changes (hash match)",
                 )
-            else:
-                # Metadata changed but content didn't
-                return self._analyze_metadata_change(old_page, new_page)
+            # Metadata changed but content didn't
+            return self._analyze_metadata_change(old_page, new_page)
 
         # Content changed - analyze the diff
         return self._analyze_content_change(old_page, new_page)

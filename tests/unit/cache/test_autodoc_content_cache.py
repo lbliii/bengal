@@ -7,11 +7,14 @@ Tests the AutodocContentCacheMixin for caching parsed module data to skip AST pa
 
 from __future__ import annotations
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from bengal.cache.build_cache.autodoc_content_cache import CachedModuleInfo
 from bengal.cache.build_cache.core import BuildCache
 from bengal.utils.primitives.hashing import hash_file
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestCachedModuleInfo:
