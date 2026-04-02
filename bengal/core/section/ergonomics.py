@@ -165,7 +165,7 @@ class SectionErgonomicsMixin:
         """
         tag_lower = tag.lower()
         return [
-            p for p in self.sorted_pages if tag_lower in [t.lower() for t in getattr(p, "tags", [])]
+            p for p in self.sorted_pages if tag_lower in {t.lower() for t in getattr(p, "tags", [])}
         ]
 
     def featured_posts(self, limit: int = 5) -> list[Page]:

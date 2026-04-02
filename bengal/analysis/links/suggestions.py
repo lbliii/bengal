@@ -45,6 +45,7 @@ from typing import TYPE_CHECKING
 from bengal.analysis.utils.indexing import build_category_index, build_tag_index
 from bengal.analysis.utils.pages import get_content_pages
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.text import normalize_taxonomy_slug
 
 if TYPE_CHECKING:
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
@@ -382,7 +383,7 @@ class LinkSuggestionEngine:
             tags = set()
             if hasattr(page, "tags") and page.tags:
                 # Filter None and convert to str for safety (YAML edge cases)
-                tags = {str(tag).lower().replace(" ", "-") for tag in page.tags if tag is not None}
+                tags = {normalize_taxonomy_slug(tag) for tag in page.tags if tag is not None}
             tag_map[page] = tags
         return tag_map
 
@@ -395,13 +396,11 @@ class LinkSuggestionEngine:
             categories_value = getattr(page, "categories", None)
             if category_value:
                 # Single category - convert to string for safety
-                categories = {str(category_value).lower().replace(" ", "-")}
+                categories = {normalize_taxonomy_slug(category_value)}
             elif categories_value:
                 # Multiple categories - filter None and convert to strings
                 categories = {
-                    str(cat).lower().replace(" ", "-")
-                    for cat in categories_value
-                    if cat is not None
+                    normalize_taxonomy_slug(cat) for cat in categories_value if cat is not None
                 }
             category_map[page] = categories
         return category_map

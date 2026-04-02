@@ -584,11 +584,14 @@ class IncrementalOrchestrator:
         pages_by_path = self.site.page_by_source_path
 
         pages_to_build: list[Page] = []
+        fallback_map: dict[Path, Page] | None = None
         for path in pages_to_rebuild:
             page = pages_by_path.get(path)
             if page is None:
-                # Fallback to scan when cache map isn't populated
-                page = next((p for p in self.site.pages if p.source_path == path), None)
+                # Build fallback dict once on first cache miss (avoids O(R*P) scan)
+                if fallback_map is None:
+                    fallback_map = {p.source_path: p for p in self.site.pages}
+                page = fallback_map.get(path)
             if page is not None:
                 pages_to_build.append(page)
 

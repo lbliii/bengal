@@ -40,6 +40,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.text import normalize_taxonomy_slug
 
 logger = get_logger(__name__)
 
@@ -302,7 +303,7 @@ class RelatedPostsOrchestrator:
                 # Convert tags to slugs for consistent matching (same as taxonomy)
                 # Filter out None tags (YAML parses 'null' as None)
                 page_tags[page] = {
-                    str(tag).lower().replace(" ", "-") for tag in page.tags if tag is not None
+                    normalize_taxonomy_slug(tag) for tag in page.tags if tag is not None
                 }
             else:
                 page_tags[page] = set()

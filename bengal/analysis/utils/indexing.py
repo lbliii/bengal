@@ -22,6 +22,8 @@ Example:
 
 from typing import TYPE_CHECKING
 
+from bengal.utils.primitives.text import normalize_taxonomy_slug
+
 if TYPE_CHECKING:
     from collections.abc import Callable
 
@@ -108,7 +110,7 @@ def build_tag_index[T](
             if tag is not None:
                 tag_str = str(tag)
                 if normalize:
-                    tag_str = tag_str.lower().replace(" ", "-")
+                    tag_str = normalize_taxonomy_slug(tag_str)
                 result.add(tag_str)
         return result
 
@@ -150,7 +152,7 @@ def build_category_index[T](
         if cat:
             cat_str = str(cat)
             if normalize:
-                cat_str = cat_str.lower().replace(" ", "-")
+                cat_str = normalize_taxonomy_slug(cat_str)
             result.add(cat_str)
 
         # Check multiple categories
@@ -160,7 +162,7 @@ def build_category_index[T](
                 if c is not None:
                     c_str = str(c)
                     if normalize:
-                        c_str = c_str.lower().replace(" ", "-")
+                        c_str = normalize_taxonomy_slug(c_str)
                     result.add(c_str)
 
         return result

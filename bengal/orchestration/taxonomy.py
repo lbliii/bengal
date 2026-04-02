@@ -68,6 +68,7 @@ from bengal.orchestration.utils.virtual_pages import (
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
+from bengal.utils.primitives.text import normalize_taxonomy_slug
 
 logger = get_logger(__name__)
 
@@ -342,7 +343,7 @@ class TaxonomyOrchestrator:
                 for tag in page.tags:
                     # Ensure tag is a string (YAML may parse numbers like 404 as int)
                     tag_str = str(tag)
-                    tag_key = tag_str.lower().replace(" ", "-")
+                    tag_key = normalize_taxonomy_slug(tag_str)
                     if tag_key not in self.site.taxonomies["tags"]:
                         self.site.taxonomies["tags"][tag_key] = {
                             "name": tag_str,
@@ -356,7 +357,7 @@ class TaxonomyOrchestrator:
                 category = page.metadata["category"]
                 # Ensure category is a string
                 category_str = str(category)
-                cat_key = category_str.lower().replace(" ", "-")
+                cat_key = normalize_taxonomy_slug(category_str)
                 if cat_key not in self.site.taxonomies["categories"]:
                     self.site.taxonomies["categories"][cat_key] = {
                         "name": category_str,
@@ -429,7 +430,7 @@ class TaxonomyOrchestrator:
                 if page.tags:
                     for tag in page.tags:
                         tag_str = str(tag)
-                        if tag_str.lower().replace(" ", "-") == tag_slug:
+                        if normalize_taxonomy_slug(tag_str) == tag_slug:
                             original_tag = tag_str
                             break
                 if original_tag:

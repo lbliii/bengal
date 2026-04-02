@@ -9,6 +9,7 @@ during snapshot creation.
 
 from __future__ import annotations
 
+from collections import deque
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING
@@ -49,10 +50,10 @@ def _compute_topological_waves(
     """
     waves: list[tuple[PageSnapshot, ...]] = []
     pages_in_sections: set[Path] = set()
-    queue = [root]
+    queue: deque[SectionSnapshot] = deque([root])
 
     while queue:
-        section = queue.pop(0)
+        section = queue.popleft()
 
         # All sorted_pages in section become one wave
         if section.sorted_pages:

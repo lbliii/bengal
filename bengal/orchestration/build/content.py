@@ -11,6 +11,8 @@ from __future__ import annotations
 import time
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.primitives.text import normalize_taxonomy_slug
+
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.generated_page_cache import GeneratedPageCache
@@ -133,7 +135,7 @@ def phase_taxonomies(
                 if page.tags:
                     for tag in page.tags:
                         if tag is not None:
-                            tag_slug = str(tag).lower().replace(" ", "-")
+                            tag_slug = normalize_taxonomy_slug(tag)
                             if tag_slug not in already_generated_tags:
                                 cascaded_tags.add(tag_slug)
                                 affected_tags.add(tag_slug)
@@ -476,7 +478,7 @@ def phase_update_pages_list(
             if page.tags:
                 for tag in page.tags:
                     if tag is not None:
-                        tag_slug = str(tag).lower().replace(" ", "-")
+                        tag_slug = normalize_taxonomy_slug(tag)
                         cascaded_tags.add(tag_slug)
 
         # Merge cascaded tags with affected_tags

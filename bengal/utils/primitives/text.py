@@ -103,6 +103,17 @@ def slugify(
     return text
 
 
+def normalize_taxonomy_slug(value: object) -> str:
+    """Normalize a tag or category to its canonical slug form.
+
+    Unlike :func:`slugify`, this preserves characters such as ``+`` and ``&``
+    that ``slugify`` would strip. It is the single source of truth for tag /
+    category identity across taxonomy collection, related-posts scoring,
+    cache indexing, and link-suggestion analysis.
+    """
+    return str(value).lower().replace(" ", "-")
+
+
 def slugify_id(text: str, default: str = "") -> str:
     """
     Convert text to ASCII-only slug suitable for HTML IDs.

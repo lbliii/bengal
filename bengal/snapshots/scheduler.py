@@ -200,10 +200,13 @@ class WaveScheduler:
         )
         template_engine = create_engine(self.site, profile=profile_templates)
 
+        # Resolve template names once for all pages (used for precompilation and grouping)
+        page_template_map: dict[Page, str] = {p: resolve_template_name(p) for p in pages_to_render}
+
         # Precompile templates used by pages we're about to render
         # This warms Kida's bytecode cache before parallel rendering begins
         if hasattr(template_engine, "precompile_templates"):
-            templates_to_precompile = {resolve_template_name(p) for p in pages_to_render}
+            templates_to_precompile = set(page_template_map.values())
 
             # Type guard: hasattr check ensures precompile_templates exists
             precompile_method = template_engine.precompile_templates
@@ -222,7 +225,7 @@ class WaveScheduler:
         scout.start()
 
         try:
-            # Group pages by template using snapshot's pre-computed groups
+            # Group pages by template using pre-computed template names
             template_to_pages: dict[str, list[Page]] = {}
 
             # Build attention lookup from snapshot
@@ -231,7 +234,7 @@ class WaveScheduler:
                 attention_by_path[page_snap.source_path] = page_snap.attention_score
 
             for page in pages_to_render:
-                template_name = resolve_template_name(page)
+                template_name = page_template_map[page]
                 if template_name not in template_to_pages:
                     template_to_pages[template_name] = []
                 template_to_pages[template_name].append(page)
