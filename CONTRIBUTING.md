@@ -191,6 +191,10 @@ raise BengalError(
 )
 ```
 
+## Changelog (B-Stack alignment)
+
+User-facing changes should eventually follow the shared **Towncrier** workflow documented in **[docs/b-stack-changelog-strategy.md](docs/b-stack-changelog-strategy.md)** so Bengal-ecosystem release notes stay consistent across packages. Until Towncrier is wired up in this repo, continue to update `changelog.md` / release notes as today’s process requires.
+
 ## Pull Request Process
 
 1. Create a feature branch: `git checkout -b feature/my-feature`
@@ -241,6 +245,7 @@ See **[Thread Safety Guide](THREAD_SAFETY.md)** for full patterns and lock order
 
 ## Resources
 
+- **[B-Stack changelog strategy](docs/b-stack-changelog-strategy.md)** — Towncrier fragments and shared release-note conventions
 - **[UV Quick Reference](UV_QUICK_REFERENCE.md)** — uv commands and troubleshooting
 - **[Type Checking Guide](TYPE_CHECKING_GUIDE.md)** — mypy patterns for Bengal
 - **[Thread Safety Guide](THREAD_SAFETY.md)** — Concurrency patterns and lock ordering
