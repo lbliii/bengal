@@ -36,8 +36,8 @@ from bengal.utils.observability.logger import get_logger
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.core.section import Section
     from bengal.protocols import PageLike, SiteLike
+    from bengal.protocols.core import SectionLike
 
 logger = get_logger(__name__)
 
@@ -146,7 +146,7 @@ class AgentManifestGenerator:
 
     def _build_sections(
         self,
-        sections: list[Section],
+        sections: list[SectionLike],
         page_by_href: dict[str, PageLike],
     ) -> list[dict[str, Any]]:
         """Recursively build section tree."""

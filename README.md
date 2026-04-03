@@ -6,7 +6,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Status: Alpha](https://img.shields.io/badge/status-alpha-orange.svg)](https://pypi.org/project/bengal/)
 
-**A Python static site generator for documentation, blogs, and product sites**
+**The documentation generator built on Python's free-threading future**
+
+Every layer — markdown parsing, syntax highlighting, templates, dev server — is pure Python, scales with your cores, and ships zero npm dependencies.
 
 ```bash
 pip install bengal
@@ -15,21 +17,18 @@ bengal new site mysite && cd mysite && bengal serve
 
 ---
 
-## What is Bengal?
+## Why Bengal?
 
-Bengal is a Python static site generator for documentation sites, blogs, knowledge bases,
-and product sites. It focuses on fast builds, strong defaults, and discovery-friendly
-output: sitemaps, feeds, canonical URLs, Open Graph tags, social cards, search indexes,
-and JSON/LLM exports.
+Bengal is a static site generator where the entire stack is Python you can read, debug, and extend. No JavaScript toolchains. No compiled C extensions in the critical path. Every library in the pipeline — [Patitas](https://github.com/lbliii/patitas) (markdown), [Rosettes](https://github.com/lbliii/rosettes) (syntax highlighting), [Kida](https://github.com/lbliii/kida) (templates), [Pounce](https://github.com/lbliii/pounce) (dev server) — is purpose-built for Python 3.14+ free-threading.
 
-**Why people pick it:**
+**What this gets you:**
 
-- **Search-friendly output** — Sitemap, RSS, canonical URLs, Open Graph tags, social cards, Content Signals
-- **Fast builds** — Parallel builds, incremental rebuilds, Zstandard-compressed caching
-- **Modern Python** — Python 3.14+ with free-threading support, fully typed
-- **Content workflows** — Native Jupyter `.ipynb` rendering, Binder/Colab links
-- **Batteries included** — Auto-generated API docs, content validation, site analysis
-- **Extensible** — Pluggable engines for templates, Markdown, and syntax highlighting
+- **Scales with cores** — Parallel builds with true thread parallelism on Python 3.14t. No GIL contention.
+- **AI-native output** — Generates [llms.txt](https://llmstxt.org/), agent manifests, per-page JSON, and [Content Signals](https://contentsignals.org/) so AI agents can discover, navigate, and respect your content policies.
+- **Sub-second rebuilds** — Provenance-based incremental builds with content-addressed hashing. Only changed pages rebuild.
+- **Python-native workflows** — Jupyter `.ipynb` rendering, autodoc for Python/CLI/OpenAPI, `pip install` and go.
+- **Batteries included** — Sitemap, RSS, social cards, search indexes, broken link detection, content validation.
+- **Extensible** — Pluggable engines for templates, Markdown, and syntax highlighting. 9 plugin extension points.
 
 ## Use Bengal For
 

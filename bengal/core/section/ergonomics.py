@@ -35,8 +35,8 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.section import Section
+    from bengal.protocols.core import PageLike
     from bengal.rendering.template_engine import TemplateEngine
 
 
@@ -63,20 +63,20 @@ class SectionErgonomicsMixin:
     # These are NOT defined here - they're declared for type checking only.
 
     name: str
-    pages: list[Page]
+    pages: list[PageLike]
     subsections: list[Section]
     metadata: dict[str, Any]
-    index_page: Page | None
+    index_page: PageLike | None
 
     # From other mixins - accessed via self but defined in other mixins
     # These are declared as properties to match the @cached_property definitions
     @property
-    def sorted_pages(self) -> list[Page]:
+    def sorted_pages(self) -> list[PageLike]:
         """Sorted pages - provided by SectionQueryMixin."""
         raise NotImplementedError
 
     @property
-    def regular_pages_recursive(self) -> list[Page]:
+    def regular_pages_recursive(self) -> list[PageLike]:
         """Recursive pages - provided by SectionQueryMixin."""
         raise NotImplementedError
 
@@ -90,7 +90,7 @@ class SectionErgonomicsMixin:
         """Section title - must be provided by host class."""
         raise NotImplementedError
 
-    def get_all_pages(self, recursive: bool = True) -> list[Page]:
+    def get_all_pages(self, recursive: bool = True) -> list[PageLike]:
         """Get all pages - must be provided by host class."""
         raise NotImplementedError
 
@@ -99,7 +99,7 @@ class SectionErgonomicsMixin:
     # =========================================================================
 
     @cached_property
-    def content_pages(self) -> list[Page]:
+    def content_pages(self) -> list[PageLike]:
         """
         Get content pages (regular pages excluding index).
 
@@ -122,7 +122,7 @@ class SectionErgonomicsMixin:
         # sorted_pages already excludes index files, so this is a semantic alias
         return self.sorted_pages
 
-    def recent_pages(self, limit: int = 10) -> list[Page]:
+    def recent_pages(self, limit: int = 10) -> list[PageLike]:
         """
         Get most recent pages by date.
 
@@ -144,7 +144,7 @@ class SectionErgonomicsMixin:
         dated_pages.sort(key=lambda p: p.date or datetime.min, reverse=True)
         return dated_pages[:limit]
 
-    def pages_with_tag(self, tag: str) -> list[Page]:
+    def pages_with_tag(self, tag: str) -> list[PageLike]:
         """
         Get pages containing a specific tag.
 
@@ -168,7 +168,7 @@ class SectionErgonomicsMixin:
             p for p in self.sorted_pages if tag_lower in {t.lower() for t in getattr(p, "tags", [])}
         ]
 
-    def featured_posts(self, limit: int = 5) -> list[Page]:
+    def featured_posts(self, limit: int = 5) -> list[PageLike]:
         """
         Get featured pages from this section.
 

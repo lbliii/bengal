@@ -42,10 +42,10 @@ from bengal.utils.paths.normalize import to_posix
 if TYPE_CHECKING:
     from bengal.cache import BuildCache
     from bengal.core.asset import Asset
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.effects.tracer import EffectTracer
     from bengal.orchestration.build.coordinator import CacheCoordinator
+    from bengal.protocols.core import PageLike
 
 logger = get_logger(__name__)
 
@@ -153,7 +153,7 @@ class IncrementalOrchestrator:
         verbose: bool = False,
         forced_changed_sources: set[Path] | None = None,
         nav_changed_sources: set[Path] | None = None,
-    ) -> tuple[list[Page], list[Asset], ChangeSummary]:
+    ) -> tuple[list[PageLike], list[Asset], ChangeSummary]:
         """
         Find pages/assets that need rebuilding (early phase - before taxonomy).
 
@@ -267,7 +267,7 @@ class IncrementalOrchestrator:
 
         return template_changes, affected_pages
 
-    def find_work(self, verbose: bool = False) -> tuple[list[Page], list[Asset], ChangeSummary]:
+    def find_work(self, verbose: bool = False) -> tuple[list[PageLike], list[Asset], ChangeSummary]:
         """
         Find pages/assets that need rebuilding (full phase - after taxonomy).
 
@@ -569,7 +569,7 @@ class IncrementalOrchestrator:
         self,
         pages_to_rebuild: set[Path],
         changed_paths: set[Path] | None = None,
-    ) -> tuple[list[Page], list[Asset]]:
+    ) -> tuple[list[PageLike], list[Asset]]:
         """
         Convert source paths to Page/Asset objects.
 
@@ -583,8 +583,8 @@ class IncrementalOrchestrator:
         """
         pages_by_path = self.site.page_by_source_path
 
-        pages_to_build: list[Page] = []
-        fallback_map: dict[Path, Page] | None = None
+        pages_to_build: list[PageLike] = []
+        fallback_map: dict[Path, PageLike] | None = None
         for path in pages_to_rebuild:
             page = pages_by_path.get(path)
             if page is None:
@@ -679,7 +679,7 @@ class IncrementalOrchestrator:
         if self.cache:
             cleanup_deleted_files(self.site, self.cache)
 
-    def save_cache(self, pages_built: list[Page], assets_processed: list[Asset]) -> None:
+    def save_cache(self, pages_built: list[PageLike], assets_processed: list[Asset]) -> None:
         """
         Update cache with processed files.
 

@@ -41,9 +41,9 @@ logger = get_logger(__name__)
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
-    from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
+    from bengal.protocols.core import PageLike
 
 
 def _detect_changed_data_files(
@@ -272,7 +272,7 @@ def _expand_forced_changed(
     forced_changed: set[Path],
     cache: BuildCache,
     site: SiteLike,
-    pages: list[Page],
+    pages: list[PageLike],
 ) -> tuple[set[Path], dict[str, list[str]]]:
     """
     Expand forced_changed set to include dependency-triggered rebuilds.
@@ -620,7 +620,7 @@ def phase_incremental_filter_provenance(
         # When content pages change, their taxonomy term pages need rebuilding.
         # Find taxonomy term pages that list any of the affected tags.
         if result.affected_tags and incremental:
-            taxonomy_pages_to_add: list[Page] = []
+            taxonomy_pages_to_add: list[PageLike] = []
             pages_to_build_sources = {p.source_path for p in result.pages_to_build}
 
             for page in pages_list:

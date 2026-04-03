@@ -28,7 +28,7 @@ The build executes 21 phases in sequence. Key phases include:
 - Phase 7: Taxonomy collection and page generation
 - Phase 9: Menu building
 - Phase 13: Asset processing
-- Phase 14: Page rendering (parallel or sequential)
+- Phase 14: PageLike rendering (parallel or sequential)
 - Phase 17: Post-processing (sitemap, RSS, output formats)
 - Phase 20: Health checks and validation
 
@@ -75,10 +75,10 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.cache.build_cache import BuildCache
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.output import CLIOutput
+    from bengal.protocols.core import PageLike
     from bengal.utils.observability.performance_collector import PerformanceCollector
     from bengal.utils.observability.profile import BuildProfile
 
@@ -106,7 +106,7 @@ class BuildOrchestrator:
         - ContentOrchestrator: Discovery and setup
         - TaxonomyOrchestrator: Taxonomies and dynamic pages
         - MenuOrchestrator: Navigation menus
-        - RenderOrchestrator: Page rendering
+        - RenderOrchestrator: PageLike rendering
         - AssetOrchestrator: Asset processing
         - PostprocessOrchestrator: Sitemap, RSS, validation
         - IncrementalOrchestrator: Change detection and caching

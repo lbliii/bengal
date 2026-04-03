@@ -20,7 +20,7 @@ Related Modules:
 - bengal.build.tracking: Dependency graph construction
 - bengal.orchestration.render.parallel: Parallel rendering utilities
 - bengal.orchestration.render.tracking: Active render tracking
-- bengal.orchestration.render.ordering: Page ordering strategies
+- bengal.orchestration.render.ordering: PageLike ordering strategies
 - bengal.orchestration.render.block_cache: Block cache management
 - bengal.orchestration.render.sequential: Sequential rendering
 
@@ -74,12 +74,12 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
     from bengal.protocols import ProgressReporter
+    from bengal.protocols.core import PageLike
     from bengal.utils.observability.cli_progress import LiveProgressManager
 
 
@@ -104,7 +104,7 @@ class RenderOrchestrator(
     free-threaded Python for true parallelism.
 
     Mixins:
-        OrderingMixin: Page ordering strategies (priority, complexity, track deps)
+        OrderingMixin: PageLike ordering strategies (priority, complexity, track deps)
         BlockCacheMixin: Site-wide template block caching (Kida only)
         SequentialRenderMixin: Sequential rendering with optional progress
 
@@ -169,7 +169,7 @@ class RenderOrchestrator(
 
     def process(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         parallel: bool = True,
         quiet: bool = False,
         stats: BuildStats | None = None,
@@ -213,7 +213,7 @@ class RenderOrchestrator(
 
     def _process_impl(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         parallel: bool,
         quiet: bool,
         stats: BuildStats | None,
@@ -327,7 +327,7 @@ class RenderOrchestrator(
 
     def _render_parallel(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
@@ -453,7 +453,7 @@ class RenderOrchestrator(
     def _render_with_snapshot(
         self,
         snapshot: Any,  # SiteSnapshot
-        pages: list[Page],
+        pages: list[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
@@ -518,7 +518,7 @@ class RenderOrchestrator(
 
     def _render_parallel_simple(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         build_context: BuildContext | None = None,
@@ -537,7 +537,7 @@ class RenderOrchestrator(
         # Capture current generation for staleness check
         current_gen = _get_current_generation()
 
-        def process_page_with_pipeline(page: Page) -> None:
+        def process_page_with_pipeline(page: PageLike) -> None:
             _process_page_with_pipeline(
                 page,
                 site=self.site,
@@ -592,7 +592,7 @@ class RenderOrchestrator(
 
     def _render_parallel_with_live_progress(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol,
@@ -620,7 +620,7 @@ class RenderOrchestrator(
         # Capture current generation for staleness check
         current_gen = _get_current_generation()
 
-        def process_page_with_pipeline(page: Page) -> None:
+        def process_page_with_pipeline(page: PageLike) -> None:
             """Process a page with a thread-local pipeline instance (thread-safe)."""
             nonlocal completed_count, last_update_time
 
@@ -714,7 +714,7 @@ class RenderOrchestrator(
 
     def _render_parallel_with_progress(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         build_context: BuildContext | None = None,
@@ -745,7 +745,7 @@ class RenderOrchestrator(
         # Capture current generation for staleness check
         current_gen = _get_current_generation()
 
-        def process_page_with_pipeline(page: Page) -> None:
+        def process_page_with_pipeline(page: PageLike) -> None:
             _process_page_with_pipeline(
                 page,
                 site=self.site,
@@ -813,7 +813,7 @@ class RenderOrchestrator(
 
                 aggregator.log_summary(logger, threshold=5, error_type="rendering")
 
-    def _set_output_paths_for_pages(self, pages: list[Page]) -> None:
+    def _set_output_paths_for_pages(self, pages: list[PageLike]) -> None:
         """
         Pre-set output paths for specific pages before rendering.
 

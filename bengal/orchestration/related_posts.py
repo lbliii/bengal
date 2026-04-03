@@ -26,7 +26,7 @@ Usage in Templates:
 {% endfor %}
 
 Related Modules:
-bengal.core.page: Page model with related_posts attribute
+bengal.core.page: PageLike model with related_posts attribute
 bengal.orchestration.build: Calls this during Phase 10
 
 See Also:
@@ -49,8 +49,8 @@ logger = get_logger(__name__)
 MIN_PAGES_FOR_PARALLEL = 50
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols.core import PageLike
 
 
 class RelatedPostsOrchestrator:
@@ -98,7 +98,7 @@ class RelatedPostsOrchestrator:
         self.site = site
 
     def build_index(
-        self, limit: int = 5, parallel: bool = True, affected_pages: list[Page] | None = None
+        self, limit: int = 5, parallel: bool = True, affected_pages: list[PageLike] | None = None
     ) -> None:
         """
         Compute related posts for pages using tag-based matching.
@@ -167,8 +167,8 @@ class RelatedPostsOrchestrator:
 
     def _build_sequential(
         self,
-        pages: list[Page],
-        page_tags_map: dict[Page, set[str]],
+        pages: list[PageLike],
+        page_tags_map: dict[PageLike, set[str]],
         tags_dict: dict[str, dict[str, Any]],
         limit: int,
     ) -> int:
@@ -201,8 +201,8 @@ class RelatedPostsOrchestrator:
 
     def _build_parallel(
         self,
-        pages: list[Page],
-        page_tags_map: dict[Page, set[str]],
+        pages: list[PageLike],
+        page_tags_map: dict[PageLike, set[str]],
         tags_dict: dict[str, dict[str, Any]],
         limit: int,
     ) -> int:
@@ -287,7 +287,7 @@ class RelatedPostsOrchestrator:
         for page in self.site.pages:
             page.related_posts = []
 
-    def _build_page_tags_map(self) -> dict[Page, set[str]]:
+    def _build_page_tags_map(self) -> dict[PageLike, set[str]]:
         """
         Build mapping of page -> set of tag slugs.
 
@@ -312,11 +312,11 @@ class RelatedPostsOrchestrator:
 
     def _find_related_posts(
         self,
-        page: Page,
-        page_tags_map: dict[Page, set[str]],
+        page: PageLike,
+        page_tags_map: dict[PageLike, set[str]],
         tags_dict: dict[str, dict[str, Any]],
         limit: int,
-    ) -> list[Page]:
+    ) -> list[PageLike]:
         """
         Find related posts for a single page using tag overlap scoring.
 
@@ -327,7 +327,7 @@ class RelatedPostsOrchestrator:
         4. Return top N pages sorted by score
 
         Args:
-            page: Page to find related posts for
+            page: PageLike to find related posts for
             page_tags_map: Pre-built page -> tags mapping (now uses pages directly)
             tags_dict: Taxonomy tags dictionary {slug: {pages: [...]}}
             limit: Maximum related posts to return

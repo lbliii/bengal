@@ -23,14 +23,14 @@ from .parallel import thread_local as _thread_local
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
+    from bengal.protocols.core import PageLike
 
 
 def process_page_with_pipeline(
-    page: Page,
+    page: PageLike,
     *,
     site: Site,
     quiet: bool,
@@ -47,7 +47,7 @@ def process_page_with_pipeline(
     Get or create thread-local pipeline, process page. Thread-safe.
 
     Args:
-        page: Page to render
+        page: PageLike to render
         site: Site instance
         quiet: Suppress per-page output
         stats: Build statistics tracker

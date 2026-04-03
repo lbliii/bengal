@@ -36,8 +36,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.core.page import Page
     from bengal.core.section import Section
+    from bengal.protocols.core import PageLike
 
 
 class SectionHierarchyMixin:
@@ -65,7 +65,7 @@ class SectionHierarchyMixin:
     parent: Section | None
     subsections: list[Section]
     metadata: dict[str, Any]
-    index_page: Page | None
+    index_page: PageLike | None
     _virtual: bool
     _relative_url_override: str | None
 

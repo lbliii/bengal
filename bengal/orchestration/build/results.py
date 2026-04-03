@@ -25,11 +25,10 @@ if TYPE_CHECKING:
 
     from bengal.cache.build_cache import BuildCache
     from bengal.core.asset import Asset
-    from bengal.core.page import Page
-    from bengal.core.section import Section
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.content import ContentOrchestrator
+    from bengal.protocols.core import PageLike, SectionLike
     from bengal.utils.observability.logger import BengalLogger
 
 
@@ -72,8 +71,8 @@ class DiscoveryPhaseOutput:
         assets_ms: Time spent on asset discovery (ms)
     """
 
-    pages: list[Page]
-    sections: list[Section]
+    pages: list[PageLike]
+    sections: list[SectionLike]
     assets: list[Asset]
     content_ms: float = 0.0
     assets_ms: float = 0.0
@@ -146,7 +145,7 @@ class IncrementalDecision:
 
     """
 
-    pages_to_build: list[Page]
+    pages_to_build: list[PageLike]
     pages_skipped_count: int
     rebuild_reasons: dict[str, RebuildReason] = field(default_factory=dict)
     skip_reasons: dict[str, SkipReasonCode] = field(default_factory=dict)
@@ -232,7 +231,7 @@ class FilterResult:
 
     """
 
-    pages_to_build: list[Page]
+    pages_to_build: list[PageLike]
     assets_to_process: list[Asset]
     affected_tags: set[str]
     changed_page_paths: set[Path]

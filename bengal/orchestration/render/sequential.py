@@ -19,11 +19,11 @@ from bengal.utils.observability.logger import get_logger
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.orchestration.stats import BuildStats
     from bengal.orchestration.types import ProgressManagerProtocol
+    from bengal.protocols.core import PageLike
     from bengal.utils.observability.cli_progress import LiveProgressManager
 
 logger = get_logger(__name__)
@@ -45,7 +45,7 @@ class SequentialRenderMixin:
 
     def _render_sequential(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
@@ -131,7 +131,7 @@ class SequentialRenderMixin:
 
     def _render_sequential_with_progress(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         build_context: BuildContext | None = None,

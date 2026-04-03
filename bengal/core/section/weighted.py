@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
+    from bengal.protocols.core import PageLike
 
 
 @dataclass
@@ -37,7 +37,7 @@ class WeightedPage:
 
     """
 
-    page: Page
+    page: PageLike
     weight: float = float("inf")
     title_lower: str = ""
 

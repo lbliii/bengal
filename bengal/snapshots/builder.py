@@ -20,9 +20,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.protocols import SiteLike
+    from bengal.protocols import PageLike, SiteLike
 
 from bengal.config.snapshot import ConfigSnapshot
 from bengal.snapshots.content import (
@@ -245,7 +244,7 @@ def update_snapshot(
     old_pages_by_path: dict[Path, PageSnapshot] = {p.source_path: p for p in old.pages}
 
     # Build mapping from source_path to mutable page
-    site_pages_by_path: dict[Path, Page] = {p.source_path: p for p in site.pages}
+    site_pages_by_path: dict[Path, PageLike] = {p.source_path: p for p in site.pages}
 
     # Identify affected pages (directly changed)
     affected_paths: set[Path] = set()

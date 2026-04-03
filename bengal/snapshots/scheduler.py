@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.core.page import Page
+    from bengal.protocols.core import PageLike
     from bengal.snapshots.scout import ScoutThread
     from bengal.snapshots.types import SiteSnapshot
 
@@ -92,7 +92,7 @@ class WaveScheduler:
         self._block_cache = block_cache
 
         # Create mapping from snapshot pages to actual pages
-        self._page_map: dict[Path, Page] = {}
+        self._page_map: dict[Path, PageLike] = {}
         for page in site.pages:
             self._page_map[page.source_path] = page
 
@@ -123,7 +123,7 @@ class WaveScheduler:
 
         return self._shared_context
 
-    def render_all(self, pages_to_build: list[Page]) -> RenderStats:
+    def render_all(self, pages_to_build: list[PageLike]) -> RenderStats:
         """
         Render pages using the configured strategy.
 
@@ -148,7 +148,7 @@ class WaveScheduler:
             # Clear memoization context
             set_build_context(None)
 
-    def _render_template_first(self, pages_to_build: list[Page]) -> RenderStats:
+    def _render_template_first(self, pages_to_build: list[PageLike]) -> RenderStats:
         """
         Render pages grouped by template for cache locality.
 
@@ -201,7 +201,9 @@ class WaveScheduler:
         template_engine = create_engine(self.site, profile=profile_templates)
 
         # Resolve template names once for all pages (used for precompilation and grouping)
-        page_template_map: dict[Page, str] = {p: resolve_template_name(p) for p in pages_to_render}
+        page_template_map: dict[PageLike, str] = {
+            p: resolve_template_name(p) for p in pages_to_render
+        }
 
         # Precompile templates used by pages we're about to render
         # This warms Kida's bytecode cache before parallel rendering begins
@@ -226,7 +228,7 @@ class WaveScheduler:
 
         try:
             # Group pages by template using pre-computed template names
-            template_to_pages: dict[str, list[Page]] = {}
+            template_to_pages: dict[str, list[PageLike]] = {}
 
             # Build attention lookup from snapshot
             attention_by_path: dict[Path, float] = {}
@@ -261,7 +263,7 @@ class WaveScheduler:
             # Render by template batch
             from bengal.utils.concurrency.work_scope import WorkScope
 
-            def process_page(page: Page) -> Page:
+            def process_page(page: PageLike) -> PageLike:
                 try:
                     run_page(
                         page,
@@ -330,7 +332,7 @@ class WaveScheduler:
 
         return stats
 
-    def _render_topological_waves(self, pages_to_build: list[Page]) -> RenderStats:
+    def _render_topological_waves(self, pages_to_build: list[PageLike]) -> RenderStats:
         """
         Render pages using topological waves (section order).
 
@@ -380,8 +382,8 @@ class WaveScheduler:
                 for page_snapshot in wave:
                     page_to_wave[page_snapshot.source_path] = wave_idx
 
-            waves: dict[int, list[Page]] = {}
-            orphan_pages: list[Page] = []
+            waves: dict[int, list[PageLike]] = {}
+            orphan_pages: list[PageLike] = []
 
             for page in pages_to_render:
                 wave_idx = page_to_wave.get(page.source_path)
@@ -398,7 +400,7 @@ class WaveScheduler:
 
             from bengal.utils.concurrency.work_scope import WorkScope
 
-            def process_page_with_pipeline(page: Page) -> Page:
+            def process_page_with_pipeline(page: PageLike) -> PageLike:
                 try:
                     run_page(
                         page,

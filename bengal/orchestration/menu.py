@@ -35,8 +35,8 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols.core import PageLike
 
 
 class MenuOrchestrator:
@@ -916,7 +916,7 @@ class MenuOrchestrator:
 
         # Pre-index pages by menu name in a single pass so the per-menu loop
         # below does not need to scan all pages once per menu × language.
-        _menu_pages: dict[str, list[Page]] = {}
+        _menu_pages: dict[str, list[PageLike]] = {}
         for _page in self.site.pages:
             _pm = _page.metadata.get("menu", {})
             if isinstance(_pm, dict):
@@ -1025,13 +1025,13 @@ class MenuOrchestrator:
 
         return True
 
-    def mark_active(self, current_page: Page) -> None:
+    def mark_active(self, current_page: PageLike) -> None:
         """
         Mark active menu items for the current page being rendered.
         Called during rendering for each page.
 
         Args:
-            current_page: Page currently being rendered
+            current_page: PageLike currently being rendered
         """
         # Use _path for comparison (menu items store site-relative paths)
         current_url = getattr(current_page, "_path", None) or "/"

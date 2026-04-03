@@ -44,9 +44,9 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.core.diagnostics import DiagnosticsSink
-    from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols.core import PageLike
 
 
 class SectionNavigationMixin:
@@ -73,7 +73,7 @@ class SectionNavigationMixin:
     parent: Section | None
     subsections: list[Section]
     metadata: dict[str, Any]
-    index_page: Page | None
+    index_page: PageLike | None
     _virtual: bool
     _relative_url_override: str | None
     _site: Site | None
@@ -82,7 +82,7 @@ class SectionNavigationMixin:
     # From other mixins - accessed via self but defined in other mixins.
     # Type declarations for static analysis (actual implementations in other mixins).
     if TYPE_CHECKING:
-        sorted_pages: list[Page]  # from SectionQueryMixin
+        sorted_pages: list[PageLike]  # from SectionQueryMixin
         sorted_subsections: list[Section]  # from SectionHierarchyMixin
 
     # =========================================================================
@@ -233,7 +233,7 @@ class SectionNavigationMixin:
     # VERSION-AWARE NAVIGATION
     # =========================================================================
 
-    def pages_for_version(self, version_id: str | None) -> list[Page]:
+    def pages_for_version(self, version_id: str | None) -> list[PageLike]:
         """
         Get pages matching the specified version.
 
