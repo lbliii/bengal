@@ -434,6 +434,7 @@ dist = { shell = "rm -rf dist/ && uv build && ls -la dist/", help = "Build distr
 publish = { cmd = "uv publish", help = "Publish to PyPI" }
 changelog = { cmd = "towncrier build --yes", help = "Compile changelog.d fragments into CHANGELOG.md" }
 changelog-draft = { cmd = "towncrier build --draft", help = "Preview changelog from fragments (stdout)" }
+changelog-check = { cmd = "towncrier check --compare-with origin/main", help = "Verify branch adds a fragment (vs main)" }
 release = { sequence = [
     "dist",
     "publish",

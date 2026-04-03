@@ -191,9 +191,16 @@ raise BengalError(
 )
 ```
 
-## Changelog (B-Stack alignment)
+## Changelog (Towncrier)
 
-User-facing changes should eventually follow the shared **Towncrier** workflow documented in **[docs/b-stack-changelog-strategy.md](docs/b-stack-changelog-strategy.md)** so Bengal-ecosystem release notes stay consistent across packages. Until Towncrier is wired up in this repo, continue to update `changelog.md` / release notes as today’s process requires.
+User-facing changes under `bengal/` should include a **news fragment** in `changelog.d/` so releases can compile `CHANGELOG.md` at the repo root. The b-stack-wide rules live in **[docs/b-stack-changelog-strategy.md](docs/b-stack-changelog-strategy.md)**.
+
+- **Add a fragment:** `changelog.d/<issue-or-branch>.<type>.md` — e.g. `123.added.md`, `+my-branch.fixed.md` (leading `+` when there is no issue number).
+- **Types:** `added`, `changed`, `deprecated`, `removed`, `fixed`, `security` (see `[tool.towncrier]` in `pyproject.toml`).
+- **Preview:** `poe changelog-draft` (stdout only).
+- **Compile (maintainers, usually before tagging):** `poe changelog` runs `towncrier build --yes`.
+- **Local check vs `main`:** `poe changelog-check`.
+- **Skip in CI:** Apply the **`skip-changelog`** label when no fragment fits (e.g. docs-only outside the package, or internal refactors with no release note).
 
 ## Pull Request Process
 

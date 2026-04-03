@@ -16,7 +16,7 @@ This document is the **canonical reference** for how Bengal-ecosystem Python pac
 | [kida](https://github.com/lbliii/kida) | `kida` |
 | [patitas](https://github.com/lbliii/patitas) | `patitas` |
 | [rosettes](https://github.com/lbliii/rosettes) | `rosettes` |
-| [bengal](https://github.com/lbliii/bengal) | `bengal` — standardize on **`CHANGELOG.md`** (capital) when adopting Towncrier; retire root `changelog.md` in the same migration |
+| [bengal](https://github.com/lbliii/bengal) | `bengal` — **Towncrier enabled** (`changelog.d/`, `CHANGELOG.md`, `poe changelog`) |
 | [chirp](https://github.com/lbliii/chirp) | `chirp` |
 | [pounce](https://github.com/lbliii/pounce) | `pounce` |
 | [chirp-ui](https://github.com/lbliii/chirp-ui) | `chirp_ui` (underscore matches import path) |
@@ -53,7 +53,7 @@ Each repo should mirror this structure; only **`package`**, **`package_dir`**, a
 ```toml
 [tool.towncrier]
 directory = "changelog.d"
-filename = "CHANGELOG.md"   # bengal: migrate from changelog.md once
+filename = "CHANGELOG.md"
 package = "<pypi-name>"     # e.g. bengal, chirp, kida
 package_dir = "src"
 title_format = "## [{version}] - {project_date}"

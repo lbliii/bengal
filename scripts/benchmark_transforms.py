@@ -116,7 +116,7 @@ minify: true
 </section>
 
 <footer>
-<p>See also: <a href="./changelog.md">Changelog</a> | <a href="/about/">About</a></p>
+<p>See also: <a href="./CHANGELOG.md">Changelog</a> | <a href="/about/">About</a></p>
 </footer>
 </article>
 """,

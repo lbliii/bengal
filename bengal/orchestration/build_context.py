@@ -264,7 +264,7 @@ class BuildContext:
 
     # Accumulated Asset Dependencies (Inline Asset Extraction)
     # Eliminates double iteration in phase_track_assets (saves ~5-6s on large sites)
-    # See: changelog.md (Inline Asset Extraction)
+    # See: CHANGELOG.md (Inline Asset Extraction)
     _accumulated_assets: list[tuple[Path, set[str]]] = field(default_factory=list, repr=False)
     _accumulated_assets_lock: Lock = field(default_factory=Lock, repr=False)
 
@@ -607,7 +607,7 @@ class BuildContext:
     # These methods enable asset dependencies to be accumulated during rendering
     # instead of being extracted in a separate phase, eliminating double iteration
     # and saving ~5-6s on large sites.
-    # See: changelog.md (Inline Asset Extraction)
+    # See: CHANGELOG.md (Inline Asset Extraction)
 
     def accumulate_page_assets(self, source_path: Path, assets: set[str]) -> None:
         """
