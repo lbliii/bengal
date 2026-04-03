@@ -1,0 +1,59 @@
+# Require a Towncrier fragment when the package or packaging metadata changes.
+# Skip: label `skip-changelog`, or PRs that only touch CHANGELOG.md (release compile).
+
+name: Changelog
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: changelog-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fragment:
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.14t"
+
+      - name: Sync dev dependencies
+        run: uv sync --group dev
+
+      - name: Verify news fragment
+        env:
+          SKIP: ${{ contains(join(github.event.pull_request.labels.*.name, ','), 'skip-changelog') }}
+        run: |
+          set -euo pipefail
+          if [ "${SKIP}" = "true" ]; then
+            echo "skip-changelog label present"
+            exit 0
+          fi
+          BASE="origin/${GITHUB_BASE_REF}"
+          git fetch origin "${GITHUB_BASE_REF}:refs/remotes/origin/${GITHUB_BASE_REF}" --depth=50 2>/dev/null || true
+          CHANGED=$(git diff --name-only "${BASE}" HEAD)
+          if echo "${CHANGED}" | grep -qE '^CHANGELOG\.md$|^changelog\.md$'; then
+            echo "Changelog file modified (release or rename) — fragment check skipped"
+            exit 0
+          fi
+          NEED=false
+          while IFS= read -r f; do
+            case "$f" in
+              bengal/*|pyproject.toml|uv.lock) NEED=true; break ;;
+            esac
+          done <<< "${CHANGED}"
+          if [ "${NEED}" = false ]; then
+            echo "No bengal/, pyproject.toml, or uv.lock changes — fragment not required"
+            exit 0
+          fi
+          uv run towncrier check --compare-with "${BASE}"
