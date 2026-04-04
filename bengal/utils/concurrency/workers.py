@@ -31,7 +31,6 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.protocols import PageLike
 
 
@@ -297,7 +296,7 @@ def estimate_page_weight(page: PageLike) -> float:
         - Autodoc flag: +1.0 bonus
 
     Args:
-        page: Page instance to estimate
+        page: PageLike instance to estimate
 
     Returns:
         Weight multiplier (1.0 = average, >1 = heavy, <1 = light).
@@ -336,7 +335,7 @@ def estimate_page_weight(page: PageLike) -> float:
     return min(weight, 5.0)  # Cap at 5x to avoid outlier distortion
 
 
-def order_by_complexity(pages: list[Page], *, descending: bool = True) -> list[Page]:
+def order_by_complexity(pages: list[PageLike], *, descending: bool = True) -> list[PageLike]:
     """
     Order pages by estimated complexity for optimal worker utilization.
 

@@ -52,10 +52,9 @@ if TYPE_CHECKING:
     from bengal.autodoc.orchestration.result import AutodocRunResult
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.page_discovery_cache import PageDiscoveryCache
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
-    from bengal.protocols import SectionLike
+    from bengal.protocols import PageLike, SectionLike
 
 logger = get_logger(__name__)
 
@@ -387,7 +386,7 @@ class ContentOrchestrator:
 
     def _discover_autodoc_content(
         self, cache: PageDiscoveryCache | None = None, build_cache: Any | None = None
-    ) -> tuple[list[Page], list[SectionLike]]:
+    ) -> tuple[list[PageLike], list[SectionLike]]:
         """
         Generate virtual autodoc pages if enabled.
 
@@ -851,9 +850,9 @@ class ContentOrchestrator:
         Thread-safe: Read-only after building, safe for parallel rendering
         """
         self.site.xref_index = {
-            "by_path": {},  # 'docs/getting-started' -> Page
+            "by_path": {},  # 'docs/getting-started' -> PageLike
             "by_slug": {},  # 'getting-started' -> [Pages]
-            "by_id": {},  # Custom IDs from frontmatter -> Page
+            "by_id": {},  # Custom IDs from frontmatter -> PageLike
             "by_heading": {},  # Heading text -> [(Page, anchor)]
             "by_anchor": {},  # Explicit anchor ID -> [(Page, anchor, version_id), ...] for [[#anchor]] resolution (version-scoped)
         }

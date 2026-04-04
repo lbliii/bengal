@@ -13,12 +13,7 @@ Site.for_testing(): Minimal instance for unit tests
 Site(root_path, config): Direct instantiation (advanced)
 
 Package Structure:
-accessors.py: SiteAccessorsMixin (config property delegates)
-cascade.py: SiteCascadeMixin (cascade snapshot access)
-config_normalized.py: SiteNormalizedConfigMixin (normalized config)
-discovery.py: SiteDiscoveryMixin (content/asset discovery)
 factory.py: Factory functions (from_config, for_testing)
-lifecycle.py: SiteLifecycleMixin (build, serve, clean, state reset)
 versioning.py: VersionService (version support, composed)
 
 Key Features:
@@ -43,6 +38,7 @@ bengal.cache.build_cache: Build state persistence
 
 from __future__ import annotations
 
+import dataclasses
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -59,12 +55,7 @@ from bengal.core.version import Version, VersionConfig
 from bengal.icons import resolver as icon_resolver
 from bengal.services.config import ConfigService
 
-from .accessors import SiteAccessorsMixin
-from .cascade import SiteCascadeMixin
-from .config_normalized import SiteNormalizedConfigMixin
-from .discovery import SiteDiscoveryMixin
 from .factory import for_testing, from_config
-from .lifecycle import SiteLifecycleMixin
 from .versioning import VersionService
 
 if TYPE_CHECKING:
@@ -77,12 +68,13 @@ if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.cascade_snapshot import CascadeSnapshot
     from bengal.core.menu import MenuBuilder, MenuItem
-    from bengal.core.page import Page
     from bengal.core.page_cache import PageCacheManager
-    from bengal.core.section import Section
+    from bengal.orchestration.build.inputs import BuildInput
+    from bengal.orchestration.build.options import BuildOptions
     from bengal.orchestration.build_state import BuildState
+    from bengal.orchestration.stats.models import BuildStats
     from bengal.parsing.base import BaseMarkdownParser
-    from bengal.protocols.core import SiteLike
+    from bengal.protocols.core import PageLike, SectionLike, SiteLike
     from bengal.utils.primitives.dotdict import DotDict
 
 
@@ -91,13 +83,7 @@ _print_lock = Lock()
 
 
 @dataclass
-class Site(
-    SiteAccessorsMixin,
-    SiteCascadeMixin,
-    SiteLifecycleMixin,
-    SiteNormalizedConfigMixin,
-    SiteDiscoveryMixin,
-):
+class Site:
     """
     Represents the entire website and orchestrates the build process.
 
@@ -142,8 +128,8 @@ class Site(
 
     root_path: Path
     config: Config | dict[str, Any] = field(default_factory=dict)
-    pages: list[Page] = field(default_factory=list)
-    sections: list[Section] = field(default_factory=list)
+    pages: list[PageLike] = field(default_factory=list)
+    sections: list[SectionLike] = field(default_factory=list)
     assets: list[Asset] = field(default_factory=list)
     theme: str | None = None
     output_dir: Path = field(default_factory=lambda: Path("public"))
@@ -206,7 +192,7 @@ class Site(
     # Menu metadata for dev server menu items (set by MenuOrchestrator)
     _dev_menu_metadata: dict[str, Any] | None = field(default=None, repr=False, init=False)
     # Page lookup maps for efficient page resolution (set by template functions)
-    _page_lookup_maps: dict[str, dict[str, Page]] | None = field(
+    _page_lookup_maps: dict[str, dict[str, PageLike]] | None = field(
         default=None, repr=False, init=False
     )
     # Last build stats for health check access (set by finalization phase)
@@ -380,6 +366,330 @@ class Site(
                     self._config_service = ConfigService.from_config(self.config, self.root_path)
         return self._config_service
 
+    # =========================================================================
+    # CASCADE SNAPSHOT (inlined from SiteCascadeMixin)
+    # =========================================================================
+
+    @property
+    def cascade(self) -> CascadeSnapshot:
+        """
+        Get the immutable cascade snapshot for this build.
+
+        Resolution order:
+            1. BuildState.cascade_snapshot (during builds — structurally fresh)
+            2. Local _cascade_snapshot (outside builds — tests, CLI)
+            3. Empty snapshot (graceful fallback)
+
+        Returns:
+            CascadeSnapshot instance (empty if not yet built)
+        """
+        if self._current_build_state is not None:
+            snapshot = self._current_build_state.cascade_snapshot
+            if snapshot is not None:
+                return snapshot
+
+        if self._cascade_snapshot is not None:
+            return self._cascade_snapshot
+
+        from bengal.core.cascade_snapshot import CascadeSnapshot
+
+        return CascadeSnapshot.empty()
+
+    def build_cascade_snapshot(self) -> None:
+        """
+        Build the immutable cascade snapshot from all sections.
+
+        Delegates to bengal.core.cascade_snapshot.build_cascade_from_content()
+        and stores the result on BuildState (primary) and _cascade_snapshot (fallback).
+        """
+        from bengal.core.cascade_snapshot import build_cascade_from_content
+
+        snapshot = build_cascade_from_content(self.root_path, self.sections, self.pages)
+        snapshot = dataclasses.replace(snapshot)  # New id for cache invalidation
+
+        if self._current_build_state is not None:
+            self._current_build_state.cascade_snapshot = snapshot
+
+        self._cascade_snapshot = snapshot
+
+    # =========================================================================
+    # CONFIG ACCESSORS (inlined from SiteAccessorsMixin)
+    # =========================================================================
+
+    @property
+    def paths(self) -> BengalPaths:
+        """Access to .bengal directory paths."""
+        return self.config_service.paths
+
+    @property
+    def title(self) -> str | None:
+        """Get site title from configuration."""
+        return self.config_service.title
+
+    @property
+    def description(self) -> str | None:
+        """Get site description, respecting runtime overrides."""
+        if self._description_override is not None:
+            return self._description_override
+        return self.config_service.description
+
+    @description.setter
+    def description(self, value: str | None) -> None:
+        """Allow runtime override of site description for generated outputs."""
+        self._description_override = value
+
+    @property
+    def baseurl(self) -> str | None:
+        """Get site baseurl from configuration."""
+        return self.config_service.baseurl
+
+    @property
+    def content_dir(self) -> Path:
+        """Get path to the content directory."""
+        return self.config_service.content_dir
+
+    @property
+    def author(self) -> str | None:
+        """Get site author from configuration."""
+        return self.config_service.author
+
+    @property
+    def favicon(self) -> str | None:
+        """Get favicon path from site config."""
+        return self.config_service.favicon
+
+    @property
+    def logo_image(self) -> str | None:
+        """Get logo image path from site config."""
+        return self.config_service.logo_image
+
+    @property
+    def logo_text(self) -> str | None:
+        """Get logo text from site config."""
+        return self.config_service.logo_text
+
+    @property
+    def params(self) -> dict[str, Any]:
+        """Site-level custom parameters from [params] config section."""
+        return self.config_service.params
+
+    @property
+    def logo(self) -> str:
+        """Logo URL from config (checks multiple locations)."""
+        return self.config_service.logo
+
+    @property
+    def config_hash(self) -> str:
+        """Get deterministic hash of the resolved configuration."""
+        return self.config_service.config_hash
+
+    @property
+    def theme_config(self) -> Theme:
+        """Get theme configuration object."""
+        if self._theme_obj is not None:
+            return self._theme_obj
+        return self.config_service.theme_config
+
+    @property
+    def assets_config(self) -> dict[str, Any]:
+        """Get the assets configuration section."""
+        return self.config_service.assets_config
+
+    @property
+    def build_config(self) -> dict[str, Any]:
+        """Get the build configuration section."""
+        return self.config_service.build_config
+
+    @property
+    def i18n_config(self) -> dict[str, Any]:
+        """Get the internationalization configuration section."""
+        return self.config_service.i18n_config
+
+    @property
+    def menu_config(self) -> dict[str, Any]:
+        """Get the menu configuration section."""
+        return self.config_service.menu_config
+
+    @property
+    def content_config(self) -> dict[str, Any]:
+        """Get the content configuration section."""
+        return self.config_service.content_config
+
+    @property
+    def output_config(self) -> dict[str, Any]:
+        """Get the output configuration section."""
+        return self.config_service.output_config
+
+    # =========================================================================
+    # NORMALIZED CONFIG (inlined from SiteNormalizedConfigMixin)
+    # =========================================================================
+
+    @property
+    def build_badge(self) -> dict[str, Any]:
+        """
+        Get normalized build badge configuration.
+
+        Handles all supported formats:
+        - None/False: disabled
+        - True: enabled with defaults
+        - dict: enabled with custom settings
+        """
+        _defaults = {
+            "dir_name": "bengal",
+            "label": "built in",
+            "label_color": "#555",
+            "message_color": "#4c1d95",
+        }
+        value = self.config.get("build_badge")
+
+        if value is None or value is False:
+            return {"enabled": False, **_defaults}
+        if value is True:
+            return {"enabled": True, **_defaults}
+        if isinstance(value, dict):
+            return {
+                "enabled": bool(value.get("enabled", True)),
+                "dir_name": str(value.get("dir_name", _defaults["dir_name"])),
+                "label": str(value.get("label", _defaults["label"])),
+                "label_color": str(value.get("label_color", _defaults["label_color"])),
+                "message_color": str(value.get("message_color", _defaults["message_color"])),
+            }
+        return {"enabled": False, **_defaults}
+
+    @property
+    def document_application(self) -> dict[str, Any]:
+        """
+        Get normalized document application configuration.
+
+        Enables modern browser-native features: View Transitions API,
+        Speculation Rules, native dialogs, CSS state machines.
+        """
+        from bengal.config.defaults import DEFAULTS
+
+        defaults = DEFAULTS["document_application"]
+        value = self.config.get("document_application", {})
+
+        if not isinstance(value, dict):
+            return {
+                "enabled": False,
+                "navigation": dict(defaults["navigation"]),
+                "speculation": dict(defaults["speculation"]),
+                "interactivity": dict(defaults["interactivity"]),
+                "features": {},
+            }
+
+        navigation = value.get("navigation", {})
+        speculation = value.get("speculation", {})
+        interactivity = value.get("interactivity", {})
+
+        return {
+            "enabled": bool(value.get("enabled", defaults["enabled"])),
+            "navigation": {
+                "view_transitions": navigation.get(
+                    "view_transitions", defaults["navigation"]["view_transitions"]
+                ),
+                "transition_style": navigation.get(
+                    "transition_style", defaults["navigation"]["transition_style"]
+                ),
+                "scroll_restoration": navigation.get(
+                    "scroll_restoration", defaults["navigation"]["scroll_restoration"]
+                ),
+            },
+            "speculation": {
+                "enabled": speculation.get("enabled", defaults["speculation"]["enabled"]),
+                "prerender": {
+                    "eagerness": speculation.get("prerender", {}).get(
+                        "eagerness", defaults["speculation"]["prerender"]["eagerness"]
+                    ),
+                    "patterns": speculation.get("prerender", {}).get(
+                        "patterns", defaults["speculation"]["prerender"]["patterns"]
+                    ),
+                },
+                "prefetch": {
+                    "eagerness": speculation.get("prefetch", {}).get(
+                        "eagerness", defaults["speculation"]["prefetch"]["eagerness"]
+                    ),
+                    "patterns": speculation.get("prefetch", {}).get(
+                        "patterns", defaults["speculation"]["prefetch"]["patterns"]
+                    ),
+                },
+                "auto_generate": speculation.get(
+                    "auto_generate", defaults["speculation"]["auto_generate"]
+                ),
+                "exclude_patterns": speculation.get(
+                    "exclude_patterns", defaults["speculation"]["exclude_patterns"]
+                ),
+            },
+            "interactivity": {
+                "tabs": interactivity.get("tabs", defaults["interactivity"]["tabs"]),
+                "accordions": interactivity.get(
+                    "accordions", defaults["interactivity"]["accordions"]
+                ),
+                "modals": interactivity.get("modals", defaults["interactivity"]["modals"]),
+                "tooltips": interactivity.get("tooltips", defaults["interactivity"]["tooltips"]),
+                "dropdowns": interactivity.get("dropdowns", defaults["interactivity"]["dropdowns"]),
+                "code_copy": interactivity.get("code_copy", defaults["interactivity"]["code_copy"]),
+            },
+            "features": {
+                "speculation_rules": True,
+                "view_transitions_meta": True,
+                **value.get("features", {}),
+            },
+        }
+
+    @property
+    def link_previews(self) -> dict[str, Any]:
+        """
+        Get normalized link previews configuration.
+
+        Provides Wikipedia-style hover cards for internal links.
+        """
+        from bengal.config.defaults import DEFAULTS
+
+        defaults = DEFAULTS["link_previews"]
+        value = self.config.get("link_previews", {})
+
+        if not isinstance(value, dict):
+            if value is False:
+                return {
+                    "enabled": False,
+                    "hover_delay": defaults["hover_delay"],
+                    "hide_delay": defaults["hide_delay"],
+                    "show_section": defaults["show_section"],
+                    "show_reading_time": defaults["show_reading_time"],
+                    "show_word_count": defaults["show_word_count"],
+                    "show_date": defaults["show_date"],
+                    "show_tags": defaults["show_tags"],
+                    "max_tags": defaults["max_tags"],
+                    "include_selectors": defaults["include_selectors"],
+                    "exclude_selectors": defaults["exclude_selectors"],
+                    "allowed_hosts": defaults["allowed_hosts"],
+                    "allowed_schemes": defaults["allowed_schemes"],
+                    "host_failure_threshold": defaults["host_failure_threshold"],
+                    "show_dead_links": defaults["show_dead_links"],
+                }
+            return dict(defaults)
+
+        return {
+            "enabled": bool(value.get("enabled", defaults["enabled"])),
+            "hover_delay": value.get("hover_delay", defaults["hover_delay"]),
+            "hide_delay": value.get("hide_delay", defaults["hide_delay"]),
+            "show_section": value.get("show_section", defaults["show_section"]),
+            "show_reading_time": value.get("show_reading_time", defaults["show_reading_time"]),
+            "show_word_count": value.get("show_word_count", defaults["show_word_count"]),
+            "show_date": value.get("show_date", defaults["show_date"]),
+            "show_tags": value.get("show_tags", defaults["show_tags"]),
+            "max_tags": value.get("max_tags", defaults["max_tags"]),
+            "include_selectors": value.get("include_selectors", defaults["include_selectors"]),
+            "exclude_selectors": value.get("exclude_selectors", defaults["exclude_selectors"]),
+            "allowed_hosts": value.get("allowed_hosts", defaults["allowed_hosts"]),
+            "allowed_schemes": value.get("allowed_schemes", defaults["allowed_schemes"]),
+            "host_failure_threshold": value.get(
+                "host_failure_threshold", defaults["host_failure_threshold"]
+            ),
+            "show_dead_links": value.get("show_dead_links", defaults["show_dead_links"]),
+        }
+
     def _compute_config_hash(self) -> None:
         """Compute and cache the configuration hash (backward compat)."""
         from bengal.config.hash import compute_config_hash
@@ -518,7 +828,7 @@ class Site(
     # =========================================================================
 
     def get_version_target_url(
-        self, page: Page | None, target_version: dict[str, Any] | None
+        self, page: PageLike | None, target_version: dict[str, Any] | None
     ) -> str:
         """
         Get the best URL for a page in the target version.
@@ -711,7 +1021,7 @@ class Site(
     # SECTION REGISTRY (inlined from SiteSectionRegistryMixin)
     # =========================================================================
 
-    def get_section_by_path(self, path: Path | str) -> Section | None:
+    def get_section_by_path(self, path: Path | str) -> SectionLike | None:
         """
         Look up a section by its path (O(1) operation).
 
@@ -746,7 +1056,7 @@ class Site(
 
         return section
 
-    def get_section_by_url(self, url: str) -> Section | None:
+    def get_section_by_url(self, url: str) -> SectionLike | None:
         """
         Look up a section by its relative URL (O(1) operation).
 
@@ -800,30 +1110,469 @@ class Site(
         )
 
     # =========================================================================
+    # CONTENT & ASSET DISCOVERY (inlined from SiteDiscoveryMixin)
+    # =========================================================================
+
+    def discover_content(self, content_dir: Path | None = None) -> None:
+        """
+        Discover all content (pages, sections) in the content directory.
+
+        Scans the content directory recursively, creating Page and Section
+        objects for all markdown files and organizing them into a hierarchy.
+
+        Args:
+            content_dir: Content directory path (defaults to root_path/content)
+        """
+        if content_dir is None:
+            content_dir = self.root_path / "content"
+
+        if not content_dir.exists():
+            emit_diagnostic(self, "warning", "content_dir_not_found", path=str(content_dir))
+            return
+
+        from bengal.collections import load_collections
+        from bengal.content.discovery.content_discovery import ContentDiscovery
+
+        collections = load_collections(self.root_path)
+
+        build_config = self.config.get("build", {}) if isinstance(self.config, dict) else {}
+        strict_validation = build_config.get("strict_collections", False)
+
+        discovery = ContentDiscovery(
+            content_dir,
+            site=self,
+            collections=collections,
+            strict_validation=strict_validation,
+        )
+        self.sections, self.pages = discovery.discover()
+
+        # MUST come before _setup_page_references (registry needed for lookups)
+        self.register_sections()
+        self._setup_page_references()
+        self._validate_page_section_references()
+        self._apply_cascades()
+        # Set output paths for all pages immediately after discovery
+        self._set_output_paths()
+        # Detect features for CSS optimization (mermaid, data_tables, etc.)
+        self._detect_features()
+
+    def _set_output_paths(self) -> None:
+        """
+        Set output paths for all discovered pages.
+
+        This must be called after discovery and cascade application but before
+        any code tries to access page.href (which depends on output_path).
+        """
+        from bengal.utils.paths.url_strategy import URLStrategy
+
+        for page in self.pages:
+            # Skip if already set (e.g., generated pages)
+            if page.output_path:
+                continue
+
+            # Compute output path using centralized strategy for regular pages
+            page.output_path = URLStrategy.compute_regular_page_output_path(
+                page, cast("SiteLike", self)
+            )
+
+            # Claim URL in registry for ownership enforcement
+            # Priority 100 = user content (highest priority)
+            if hasattr(self, "url_registry") and self.url_registry:
+                try:
+                    url = URLStrategy.url_from_output_path(page.output_path, cast("SiteLike", self))
+                    source = str(getattr(page, "source_path", page.title))
+                    version = getattr(page, "version", None)
+                    lang = getattr(page, "lang", None)
+                    self.url_registry.claim(
+                        url=url,
+                        owner="content",
+                        source=source,
+                        priority=100,  # User content always wins
+                        version=version,
+                        lang=lang,
+                    )
+                except Exception:
+                    # Don't fail discovery on registry errors (graceful degradation)
+                    pass
+
+    def _detect_features(self) -> None:
+        """
+        Detect CSS-requiring features in page content.
+
+        Scans page content for features like mermaid diagrams, data tables,
+        and graph visualizations. Populates site.features_detected for use
+        by the CSSOptimizer during asset processing.
+        """
+        from bengal.core.page.proxy import PageProxy
+        from bengal.orchestration.feature_detector import FeatureDetector
+
+        detector = FeatureDetector()
+
+        for page in self.pages:
+            # Skip PageProxy objects (they may not have content loaded)
+            if isinstance(page, PageProxy):
+                continue
+
+            # Detect features in page content
+            features = detector.detect_features_in_page(page)
+            # Prefer BuildState (fresh each build), fall back to Site field
+            _bs = getattr(self, "_current_build_state", None)
+            target = _bs.features_detected if _bs is not None else self.features_detected
+            target.update(features)
+
+        # Also check config for explicitly enabled features
+        config = self.config
+        _bs = getattr(self, "_current_build_state", None)
+        target = _bs.features_detected if _bs is not None else self.features_detected
+
+        # Search enabled?
+        if config.get("search", {}).get("enabled", False):
+            target.add("search")
+
+        # Graph enabled?
+        if config.get("graph", {}).get("enabled", False):
+            target.add("graph")
+
+    def discover_assets(self, assets_dir: Path | None = None) -> None:
+        """
+        Discover all assets in the assets directory and theme assets.
+
+        Scans both theme assets (from theme inheritance chain) and site assets
+        (from assets/ directory). Theme assets are discovered first (lower priority),
+        then site assets (higher priority, can override theme assets).
+
+        Args:
+            assets_dir: Assets directory path (defaults to root_path/assets)
+        """
+        from bengal.content.discovery.asset_discovery import AssetDiscovery
+        from bengal.services.theme import get_theme_assets_chain
+
+        self.assets = []
+
+        # Theme assets first (lower priority), then site assets (higher priority)
+        if self.theme:
+            for theme_dir in get_theme_assets_chain(self.root_path, self.theme):
+                if theme_dir and theme_dir.exists():
+                    theme_discovery = AssetDiscovery(theme_dir)
+                    self.assets.extend(theme_discovery.discover())
+
+        if assets_dir is None:
+            assets_dir = self.root_path / "assets"
+
+        if assets_dir.exists():
+            emit_diagnostic(self, "debug", "discovering_site_assets", path=str(assets_dir))
+            site_discovery = AssetDiscovery(assets_dir)
+            self.assets.extend(site_discovery.discover())
+        elif not self.assets:
+            emit_diagnostic(self, "warning", "assets_dir_not_found", path=str(assets_dir))
+
+        # Deduplicate by output path: later entries override earlier (site > child theme > parents)
+        if self.assets:
+            dedup: dict[str, Asset] = {}
+            order: list[str] = []
+            for asset in self.assets:
+                key = str(asset.output_path) if asset.output_path else str(asset.source_path.name)
+                if key in dedup:
+                    dedup[key] = asset
+                else:
+                    dedup[key] = asset
+                    order.append(key)
+            self.assets = [dedup[k] for k in order]
+
+    def _setup_page_references(self) -> None:
+        """
+        Set up page references for navigation (next, prev, parent, etc.).
+
+        Sets _site and _section references on all pages to enable navigation
+        properties. Must be called after content discovery and section registry
+        building, but before cascade application.
+        """
+        # Set site reference on all pages (including top-level pages not in sections)
+        for page in self.pages:
+            page._site = self
+
+        for section in self.sections:
+            # Set site reference on section
+            section._site = self
+
+            # Set section reference on the section's index page (if it has one)
+            if section.index_page:
+                section.index_page._section = section
+
+            # Set section reference on all pages in this section
+            for page in section.pages:
+                page._section = section
+
+            # Recursively set for subsections
+            self._setup_section_references(section)
+
+    def _setup_section_references(self, section: SectionLike) -> None:
+        """
+        Recursively set up references for a section and its subsections.
+
+        Args:
+            section: Section to set up references for (processes its subsections)
+        """
+        for subsection in section.subsections:
+            subsection._site = self
+
+            # Set section reference on the subsection's index page (if it has one)
+            if subsection.index_page:
+                subsection.index_page._section = subsection
+
+            # Set section reference on pages in subsection
+            for page in subsection.pages:
+                page._section = subsection
+
+            # Recurse into deeper subsections
+            self._setup_section_references(subsection)
+
+    def _validate_page_section_references(self) -> None:
+        """
+        Validate that pages in sections have correct _section references.
+
+        Logs warnings for pages that are in a section's pages list but have
+        _section = None, which would cause navigation to fall back to flat mode.
+        """
+        pages_without_section: list[tuple[PageLike, SectionLike]] = []
+
+        for section in self.sections:
+            pages_without_section.extend(
+                (page, section) for page in section.pages if page._section is None
+            )
+            # Check subsections recursively
+            self._validate_subsection_references(section, pages_without_section)
+
+        if pages_without_section:
+            # Log warning with samples (limit to 5 to avoid log spam)
+            sample_pages = [(str(p.source_path), s.name) for p, s in pages_without_section[:5]]
+            emit_diagnostic(
+                self,
+                "warning",
+                "pages_missing_section_reference",
+                count=len(pages_without_section),
+                samples=sample_pages,
+                note="These pages are in sections but have _section=None, navigation may be flat",
+            )
+
+    def _validate_subsection_references(
+        self, section: SectionLike, pages_without_section: list[tuple[PageLike, SectionLike]]
+    ) -> None:
+        """
+        Recursively validate page-section references in subsections.
+
+        Args:
+            section: Section to check subsections of
+            pages_without_section: List to append (page, expected_section) tuples to
+        """
+        for subsection in section.subsections:
+            pages_without_section.extend(
+                (page, subsection) for page in subsection.pages if page._section is None
+            )
+            # Recurse into deeper subsections
+            self._validate_subsection_references(subsection, pages_without_section)
+
+    def _apply_cascades(self) -> None:
+        """
+        Build cascade snapshot for view-based resolution.
+
+        Section _index.md files can define metadata that automatically applies to all
+        descendant pages. This allows setting common metadata (like type, version, or
+        visibility) at the section level rather than repeating it on every page.
+        """
+        # Build immutable cascade snapshot with pre-merged data for O(1) resolution
+        # Page/PageProxy.metadata property returns CascadeView using this snapshot
+        self.build_cascade_snapshot()
+
+    # =========================================================================
+    # LIFECYCLE (inlined from SiteLifecycleMixin)
+    # =========================================================================
+
+    def prepare_for_rebuild(self) -> None:
+        """
+        Reset content and derived-content state for a warm rebuild.
+
+        Called by BuildTrigger before each warm build to ensure clean state
+        while preserving config, theme, paths, and other immutable state.
+        """
+        self.pages = []
+        self.sections = []
+        self.assets = []
+
+        self.taxonomies = {}
+        self.menu = {}
+        self.menu_builders = {}
+        self.menu_localized = {}
+        self.menu_builders_localized = {}
+        self.xref_index = {}
+
+        self._cascade_snapshot = None
+
+        self.invalidate_page_caches()
+        self.invalidate_regular_pages_cache()
+        self.registry.clear()
+
+        from bengal.core.url_ownership import URLRegistry
+
+        self.url_registry = URLRegistry()
+        self.registry.url_ownership = self.url_registry
+
+        self._page_lookup_maps = None
+
+    def build(
+        self,
+        options: BuildOptions | BuildInput,
+    ) -> BuildStats:
+        """
+        Build the entire site. Delegates to BuildOrchestrator.
+
+        Args:
+            options: BuildOptions or BuildInput with all build configuration.
+
+        Returns:
+            BuildStats object with build statistics
+        """
+        from bengal.orchestration import BuildOrchestrator
+
+        orchestrator = BuildOrchestrator(self)
+        return orchestrator.build(options)
+
+    def serve(
+        self,
+        host: str = "localhost",
+        port: int = 5173,
+        watch: bool = True,
+        auto_port: bool = True,
+        open_browser: bool = False,
+        version_scope: str | None = None,
+    ) -> None:
+        """
+        Start a development server.
+
+        Args:
+            host: Server host
+            port: Server port
+            watch: Whether to watch for file changes and rebuild
+            auto_port: Whether to automatically find an available port
+            open_browser: Whether to automatically open the browser
+            version_scope: Focus rebuilds on a single version
+        """
+        from bengal.server.dev_server import DevServer
+
+        server = DevServer(
+            self,
+            host=host,
+            port=port,
+            watch=watch,
+            auto_port=auto_port,
+            open_browser=open_browser,
+            version_scope=version_scope,
+        )
+        server.start()
+
+    def clean(self) -> None:
+        """
+        Clean the output directory by removing all generated files.
+        """
+        if self.output_dir.exists():
+            emit_diagnostic(self, "debug", "cleaning_output_dir", path=str(self.output_dir))
+            self._rmtree_robust(self.output_dir)
+            emit_diagnostic(self, "debug", "output_dir_cleaned", path=str(self.output_dir))
+        else:
+            emit_diagnostic(self, "debug", "output_dir_does_not_exist", path=str(self.output_dir))
+
+    @staticmethod
+    def _rmtree_robust(path: Path, max_retries: int = 3) -> None:
+        """Remove directory tree with retry logic for transient filesystem errors."""
+        from bengal.utils.io.file_io import rmtree_robust
+
+        rmtree_robust(path, max_retries=max_retries, caller="site")
+
+    def reset_ephemeral_state(self) -> None:
+        """
+        Clear ephemeral/derived state that should not persist between builds.
+
+        For long-lived Site instances (e.g., dev server) to avoid stale
+        object references across rebuilds.
+        """
+        emit_diagnostic(self, "debug", "site_reset_ephemeral_state", site_root=str(self.root_path))
+
+        self.pages = []
+        self.sections = []
+        self.assets = []
+
+        self.taxonomies = {}
+        self.menu = {}
+        self.menu_builders = {}
+        self.menu_localized = {}
+        self.menu_builders_localized = {}
+
+        self.xref_index = {}
+
+        self.invalidate_page_caches()
+        self.registry.clear()
+
+        from bengal.core.url_ownership import URLRegistry
+
+        self.url_registry = URLRegistry()
+        self.registry.url_ownership = self.url_registry
+
+        self.__dict__.pop("indexes", None)
+
+        self._theme_obj = None
+        self._page_lookup_maps = None
+        self._bengal_theme_chain_cache = None
+        self._bengal_template_dirs_cache = None
+        self._bengal_template_metadata_cache = None
+        self._discovery_breakdown_ms = None
+        self._asset_manifest_fallbacks_global.clear()
+        self.features_detected.clear()
+
+        if hasattr(self, "_kida_asset_manifest_cache"):
+            delattr(self, "_kida_asset_manifest_cache")
+
+        from bengal.rendering.pipeline.thread_local import get_created_dirs
+
+        get_created_dirs().clear()
+
+        from bengal.rendering.assets import reset_asset_manifest
+
+        reset_asset_manifest()
+
+    @property
+    def build_state(self) -> BuildState | None:
+        """Current build state (None outside build context)."""
+        return self._current_build_state
+
+    def set_build_state(self, state: BuildState | None) -> None:
+        """Set current build state (called by BuildOrchestrator)."""
+        self._current_build_state = state
+
+    # =========================================================================
     # PAGE CACHES (delegated to PageCacheManager)
     # =========================================================================
 
     @property
-    def regular_pages(self) -> list[Page]:
+    def regular_pages(self) -> list[PageLike]:
         """Regular content pages (excludes generated taxonomy/archive pages)."""
         return self._page_cache.regular_pages
 
     @property
-    def generated_pages(self) -> list[Page]:
+    def generated_pages(self) -> list[PageLike]:
         """Generated pages (taxonomy, archive, pagination)."""
         return self._page_cache.generated_pages
 
     @property
-    def listable_pages(self) -> list[Page]:
+    def listable_pages(self) -> list[PageLike]:
         """Pages eligible for public listings (excludes hidden/draft)."""
         return self._page_cache.listable_pages
 
-    def get_page_path_map(self) -> dict[str, Page]:
+    def get_page_path_map(self) -> dict[str, PageLike]:
         """Cached string-keyed page lookup map for O(1) resolution."""
         return self._page_cache.get_page_path_map()
 
     @property
-    def page_by_source_path(self) -> dict[Path, Page]:
+    def page_by_source_path(self) -> dict[Path, PageLike]:
         """O(1) page lookup by source Path (shared across orchestrators)."""
         return self._page_cache.page_by_source_path
 

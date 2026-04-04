@@ -108,6 +108,10 @@ class TestLoggingIntegration:
         # Configure logging
         log_file = temp_site / "test.log"
         configure_logging(level=LogLevel.DEBUG, log_file=log_file, verbose=True)
+        # Suppress console output to avoid blocking on stdout pipe in CI
+        # (DEBUG + verbose generates thousands of Rich console.print() calls
+        # that can fill the pipe buffer under pytest-xdist + tee)
+        set_console_quiet(True)
 
         # Build site
         site = Site.from_config(temp_site)
@@ -202,6 +206,7 @@ class TestLoggingIntegration:
     def test_content_discovery_logging(self, temp_site):
         """Test that content discovery logs detailed information."""
         configure_logging(level=LogLevel.DEBUG, verbose=True)
+        set_console_quiet(True)
 
         # Build site
         site = Site.from_config(temp_site)
@@ -347,6 +352,7 @@ title: Invalid Page
 
         # Verbose mode
         configure_logging(level=LogLevel.DEBUG, verbose=True)
+        set_console_quiet(True)
         site2 = Site.from_config(temp_site)
         site2.build(BuildOptions(force_sequential=True))
 
@@ -420,6 +426,7 @@ class TestLoggingPerformance:
 
         # Build with verbose logging
         configure_logging(level=LogLevel.DEBUG, verbose=True)
+        set_console_quiet(True)
         site2 = Site.from_config(temp_site)
 
         start2 = time.time()

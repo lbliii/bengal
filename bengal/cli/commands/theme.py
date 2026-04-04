@@ -667,6 +667,147 @@ def install(name: str, force: bool) -> None:
             raise SystemExit(1) from None
 
 
+@theme.command("validate")
+@command_metadata(
+    category="theming",
+    description="Validate a theme directory for required files and structure",
+    examples=[
+        "bengal utils theme validate themes/my-theme",
+        "bengal utils theme validate bengal/themes/default",
+    ],
+    requires_site=False,
+    tags=["theming", "validation", "quality"],
+)
+@handle_cli_errors(show_art=False)
+@click.argument("theme_path", type=click.Path(exists=True, file_okay=False, dir_okay=True))
+def validate(theme_path: str) -> None:
+    """
+    Validate a theme directory for required files and structure.
+
+    Checks that a theme has the minimum required files, valid configuration,
+    and follows Bengal's theme contract.
+
+    Examples:
+        bengal theme validate themes/my-theme
+        bengal theme validate bengal/themes/default
+
+    See also:
+        bengal theme new - Create a new theme scaffold
+        bengal theme debug - Debug theme resolution
+
+    """
+    cli = get_cli_output()
+    root = Path(theme_path).resolve()
+    cli.header(f"Validating theme: {root.name}")
+
+    issues: list[str] = []
+    warnings: list[str] = []
+    passed: list[str] = []
+
+    # 1. Check for theme config file (theme.toml or theme.yaml)
+    has_toml = (root / "theme.toml").exists()
+    has_yaml = (root / "theme.yaml").exists()
+    if has_toml or has_yaml:
+        config_file = "theme.toml" if has_toml else "theme.yaml"
+        passed.append(f"Theme config found: {config_file}")
+
+        # Validate config loads successfully
+        if has_yaml:
+            try:
+                from bengal.themes.config import ThemeConfig
+
+                ThemeConfig.load(root)
+                passed.append("Theme config loads without errors")
+            except Exception as e:
+                issues.append(f"Theme config failed to load: {e}")
+        elif has_toml:
+            try:
+                import tomllib
+
+                with open(root / "theme.toml", "rb") as f:
+                    data = tomllib.load(f)
+                if "name" not in data:
+                    warnings.append("theme.toml missing 'name' field")
+                else:
+                    passed.append(f"Theme name: {data['name']}")
+                if "extends" in data:
+                    passed.append(f"Extends: {data['extends']}")
+            except Exception as e:
+                issues.append(f"theme.toml parse error: {e}")
+    else:
+        issues.append("Missing theme config (theme.toml or theme.yaml)")
+
+    # 2. Check for templates directory
+    templates_dir = root / "templates"
+    if templates_dir.exists():
+        passed.append("Templates directory exists")
+
+        # Check required templates
+        required_templates = {
+            "base.html": "Base layout (required for standalone themes)",
+            "page.html": "Generic page layout",
+            "home.html": "Homepage layout",
+        }
+        for tpl_name, description in required_templates.items():
+            # Search recursively — templates may be in subdirectories
+            matches = list(templates_dir.rglob(tpl_name))
+            if matches:
+                rel = matches[0].relative_to(templates_dir)
+                passed.append(f"Template found: {rel}")
+            else:
+                # For themes that extend another, missing templates are warnings not errors
+                if has_toml:
+                    try:
+                        import tomllib
+
+                        with open(root / "theme.toml", "rb") as f:
+                            data = tomllib.load(f)
+                        if data.get("extends"):
+                            warnings.append(
+                                f"Template missing: {tpl_name} ({description}) — may inherit from parent"
+                            )
+                            continue
+                    except Exception:
+                        pass
+                warnings.append(f"Template missing: {tpl_name} ({description})")
+
+        # Count total templates
+        html_files = list(templates_dir.rglob("*.html"))
+        passed.append(f"Total templates: {len(html_files)}")
+    else:
+        issues.append("Missing templates/ directory")
+
+    # 3. Check for assets
+    assets_dir = root / "assets"
+    if assets_dir.exists():
+        css_files = list(assets_dir.rglob("*.css"))
+        js_files = list(assets_dir.rglob("*.js"))
+        passed.append(f"Assets: {len(css_files)} CSS, {len(js_files)} JS files")
+        if not css_files:
+            warnings.append("No CSS files found in assets/")
+    else:
+        warnings.append("No assets/ directory — theme has no styles")
+
+    # Print results
+    cli.header("Results")
+    for p in passed:
+        cli.info(f"  ✓ {p}")
+    for w in warnings:
+        cli.warning(f"  ⚠ {w}")
+    for i in issues:
+        cli.error(f"  ✗ {i}")
+
+    # Summary
+    cli.info("")
+    if issues:
+        cli.error(f"Validation failed: {len(issues)} error(s), {len(warnings)} warning(s)")
+        raise SystemExit(1)
+    if warnings:
+        cli.warning(f"Validation passed with {len(warnings)} warning(s)")
+    else:
+        cli.success("✓ Validation passed")
+
+
 def _sanitize_slug(slug: str) -> str:
     slugified = re.sub(r"[^a-z0-9\-]", "-", slug.lower()).strip("-")
     slugified = re.sub(r"-+", "-", slugified)

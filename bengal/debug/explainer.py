@@ -57,7 +57,6 @@ from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
-    from bengal.core.page import Page
     from bengal.protocols import PageLike, SiteLike
     from bengal.protocols import TemplateEngine as TemplateEngineProtocol
 
@@ -183,7 +182,7 @@ class PageExplainer:
         search_path = Path(page_path)
 
         for page_like in self.site.pages:
-            page = cast("Page", page_like)  # Explainer needs concrete Page for introspection
+            page = cast("PageLike", page_like)
             # Exact match
             if page.source_path == search_path:
                 return page
@@ -211,7 +210,7 @@ class PageExplainer:
         have no source file on disk).
 
         Args:
-            page: Page to get source info for.
+            page: PageLike to get source info for.
 
         Returns:
             SourceInfo with file metadata.
@@ -263,7 +262,7 @@ class PageExplainer:
         Resolve the complete template inheritance chain.
 
         Args:
-            page: Page to resolve templates for
+            page: PageLike to resolve templates for
 
         Returns:
             List of TemplateInfo in inheritance order (child first)
@@ -308,7 +307,7 @@ class PageExplainer:
             4. Default "page.html"
 
         Args:
-            page: Page to get template name for.
+            page: PageLike to get template name for.
 
         Returns:
             Template filename (e.g., "post.html") or None.
@@ -446,7 +445,7 @@ class PageExplainer:
             - Cache-tracked dependencies (from build cache)
 
         Args:
-            page: Page to collect dependencies for.
+            page: PageLike to collect dependencies for.
 
         Returns:
             DependencyInfo with categorized dependency lists.
@@ -539,7 +538,7 @@ class PageExplainer:
         counting occurrences and tracking line numbers.
 
         Args:
-            page: Page to analyze.
+            page: PageLike to analyze.
 
         Returns:
             List of ShortcodeUsage, sorted by count (descending).
@@ -570,7 +569,7 @@ class PageExplainer:
         source or dependency changes, and what layers are cached.
 
         Args:
-            page: Page to check cache status for.
+            page: PageLike to check cache status for.
 
         Returns:
             CacheInfo with status (HIT/MISS/STALE/UNKNOWN) and reason.
@@ -638,7 +637,7 @@ class PageExplainer:
         (if the output has been written).
 
         Args:
-            page: Page to get output info for.
+            page: PageLike to get output info for.
 
         Returns:
             OutputInfo with path, URL, and optional size.
@@ -672,7 +671,7 @@ class PageExplainer:
             - Missing referenced images/assets
 
         Args:
-            page: Page to diagnose.
+            page: PageLike to diagnose.
 
         Returns:
             List of Issue instances describing found problems.

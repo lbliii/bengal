@@ -29,7 +29,7 @@ Related:
 - bengal/content/discovery/directory_walker.py: Directory walking logic
 - bengal/content/discovery/content_parser.py: Content file parsing
 - bengal/content/discovery/section_builder.py: Section building and sorting
-- bengal/core/page/: Page, PageProxy, and PageCore data models
+- bengal/core/page/: PageLike, PageProxy, and PageCore data models
 - bengal/core/section.py: Section data model
 
 """
@@ -55,8 +55,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from bengal.collections import CollectionConfig
-    from bengal.core.section import Section
     from bengal.orchestration.build_context import BuildContext
+    from bengal.protocols.core import PageLike, SectionLike
 
 
 class ContentDiscovery:
@@ -122,9 +122,9 @@ class ContentDiscovery:
         """
         self.content_dir = content_dir
         self.site = site
-        self.sections: list[Section] = []
-        self.pages: list[Page | PageProxy] = []
-        self.current_section: Section | None = None
+        self.sections: list[SectionLike] = []
+        self.pages: list[PageLike | PageProxy] = []
+        self.current_section: SectionLike | None = None
         self._strict_validation = strict_validation
         self._build_context = build_context
 
@@ -160,7 +160,7 @@ class ContentDiscovery:
         self,
         use_cache: bool = False,
         cache: Any | None = None,
-    ) -> tuple[list[Section], list[Page | PageProxy]]:
+    ) -> tuple[list[SectionLike], list[PageLike | PageProxy]]:
         """
         Discover all content in the content directory.
 
@@ -177,7 +177,9 @@ class ContentDiscovery:
             return self._discover_surgical(cache)
         return self._discover_full()
 
-    def _discover_surgical(self, cache: Any) -> tuple[list[Section], list[Page | PageProxy]]:
+    def _discover_surgical(
+        self, cache: Any
+    ) -> tuple[list[SectionLike], list[PageLike | PageProxy]]:
         """
         Surgical discovery - use cache to skip parsing unchanged files.
 
@@ -290,7 +292,11 @@ class ContentDiscovery:
             self._section_builder.add_section(section)
 
     def _walk_directory_surgical(
-        self, directory: Path, parent_section: Section, cache: Any, current_lang: str | None = None
+        self,
+        directory: Path,
+        parent_section: SectionLike,
+        cache: Any,
+        current_lang: str | None = None,
     ) -> None:
         """Recursively walk a directory surgically using cache."""
         if not directory.exists():
@@ -344,8 +350,8 @@ class ContentDiscovery:
         file_path: Path,
         cache: Any,
         current_lang: str | None = None,
-        section: Section | None = None,
-    ) -> Page | PageProxy | None:
+        section: SectionLike | None = None,
+    ) -> PageLike | PageProxy | None:
         """
         Create a Page object surgically: try cache first, then signal for full parse.
 
@@ -383,8 +389,8 @@ class ContentDiscovery:
                     # CACHE HIT: Create proxy immediately
                     def make_loader(
                         source_path: Path, lang: str | None, section_path: Path | None
-                    ) -> Callable[[Any], Page]:
-                        def loader(_: Any) -> Page:
+                    ) -> Callable[[Any], PageLike]:
+                        def loader(_: Any) -> PageLike:
                             sec = None
                             if section_path and self.site is not None:
                                 sec = self.site.get_section_by_path(section_path)
@@ -409,7 +415,7 @@ class ContentDiscovery:
         # CACHE MISS or CHANGE: Return None to signal caller should parse
         return None
 
-    def _discover_full(self) -> tuple[list[Section], list[Page | PageProxy]]:
+    def _discover_full(self) -> tuple[list[SectionLike], list[PageLike | PageProxy]]:
         """Full discovery - discover all pages completely."""
         logger.info("content_discovery_start", content_dir=str(self.content_dir))
 
@@ -544,9 +550,9 @@ class ContentDiscovery:
             and item.name in i18n_config.get("language_codes", [])
         )
 
-    def _process_top_level_item(self, item_path: Path, current_lang: str | None) -> list[Page]:
+    def _process_top_level_item(self, item_path: Path, current_lang: str | None) -> list[PageLike]:
         """Process a top-level item (file or directory)."""
-        produced_pages: list[Page] = []
+        produced_pages: list[PageLike] = []
         pending_pages: list[Any] = []
 
         if self._walker.should_skip_item(item_path):
@@ -579,7 +585,7 @@ class ContentDiscovery:
         return produced_pages
 
     def _walk_directory(
-        self, directory: Path, parent_section: Section, current_lang: str | None = None
+        self, directory: Path, parent_section: SectionLike, current_lang: str | None = None
     ) -> None:
         """Recursively walk a directory to discover content."""
         if not directory.exists():
@@ -619,15 +625,15 @@ class ContentDiscovery:
             pass  # Pages added in _resolve_page_futures
 
     def _resolve_page_futures(
-        self, futures: list[Any], section: Section | None = None
-    ) -> list[Page]:
+        self, futures: list[Any], section: SectionLike | None = None
+    ) -> list[PageLike]:
         """Resolve page creation futures and add to section/builder."""
         from bengal.errors import with_error_recovery
 
-        pages: list[Page] = []
+        pages: list[PageLike] = []
         for fut in futures:
 
-            def get_page_result(f: Any = fut) -> Page:
+            def get_page_result(f: Any = fut) -> PageLike:
                 return cast("Page", f.result(timeout=90))
 
             page = with_error_recovery(
@@ -646,8 +652,8 @@ class ContentDiscovery:
         return pages
 
     def _create_page(
-        self, file_path: Path, current_lang: str | None = None, section: Section | None = None
-    ) -> Page:
+        self, file_path: Path, current_lang: str | None = None, section: SectionLike | None = None
+    ) -> PageLike:
         """Create a Page object from a file with robust error handling."""
         try:
             content, metadata = self._parser.parse_file(file_path)
@@ -700,7 +706,7 @@ class ContentDiscovery:
             raise
 
     def _enrich_page_i18n(
-        self, page: Page, file_path: Path, current_lang: str | None, metadata: dict[str, Any]
+        self, page: PageLike, file_path: Path, current_lang: str | None, metadata: dict[str, Any]
     ) -> None:
         """Enrich page with i18n attributes."""
         try:
@@ -738,7 +744,7 @@ class ContentDiscovery:
                 error=str(e),
             )
 
-    def _enrich_page_versioning(self, page: Page, file_path: Path) -> None:
+    def _enrich_page_versioning(self, page: PageLike, file_path: Path) -> None:
         """Enrich page with versioning attributes."""
         if self.site is None or not getattr(self.site, "versioning_enabled", False):
             return

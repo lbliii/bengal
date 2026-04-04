@@ -62,10 +62,10 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from bengal.core.author import Author
-    from bengal.core.section import Section
     from bengal.core.series import Series
     from bengal.core.site import Site
     from bengal.parsing.ast.types import ASTNode
+    from bengal.protocols.core import SectionLike
     from bengal.utils.pagination import Paginator
 
 # Import PageOperationsMixin from rendering layer where it logically belongs.
@@ -207,7 +207,7 @@ class Page(
 
     # Cached resolved Section object for fast repeated access during template rendering.
     # NOTE: Cache is per-site-object + epoch + reference tuple and must be invalidated when those change.
-    _section_obj_cache: Section | object | None = field(default=None, repr=False, init=False)
+    _section_obj_cache: SectionLike | object | None = field(default=None, repr=False, init=False)
     _section_obj_cache_key: tuple[int, int, Path | None, str | None] | None = field(
         default=None, repr=False, init=False
     )
@@ -588,7 +588,7 @@ class Page(
         return format_path_for_display(path, base_path)
 
     @property
-    def _section(self) -> Section | None:
+    def _section(self) -> SectionLike | None:
         """
         Get the section this page belongs to (lazy lookup via path or URL).
 
@@ -700,7 +700,7 @@ class Page(
         return section
 
     @_section.setter
-    def _section(self, value: Section | None) -> None:
+    def _section(self, value: SectionLike | None) -> None:
         """
         Set the section this page belongs to (stores path or URL, not object).
 
@@ -779,12 +779,12 @@ class Page(
         return get_prev_in_section(self, self._section)
 
     @property
-    def parent(self) -> Section | None:
+    def parent(self) -> SectionLike | None:
         """Parent section of this page."""
         return self._section
 
     @property
-    def ancestors(self) -> list[Section]:
+    def ancestors(self) -> list[SectionLike]:
         """Ancestor sections from immediate parent to root."""
         from bengal.core.page.navigation import get_ancestors
 

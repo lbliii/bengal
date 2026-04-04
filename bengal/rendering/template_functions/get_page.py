@@ -8,7 +8,7 @@ Performance Optimizations:
    page render. Track pages call get_page() ~54 times per page; caching
    reduces this to ~9 actual lookups with 45 cache hits.
 
-2. Build-scoped lookup maps: Page lookup maps are cached per-build via
+2. Build-scoped lookup maps: PageLike lookup maps are cached per-build via
    BuildContext.get_cached(), avoiding map reconstruction for every page.
 
 3. Batch resolution: For pages with many get_page() calls (tracks, TOCs),
@@ -31,7 +31,6 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.protocols import PageLike, SiteLike, TemplateEnvironment
 
 logger = get_logger(__name__)
@@ -42,7 +41,7 @@ logger = get_logger(__name__)
 _render_cache = threading.local()
 
 
-def _get_render_cache() -> dict[str, Page | None]:
+def _get_render_cache() -> dict[str, PageLike | None]:
     """
     Get per-render cache for get_page() results (thread-safe).
 
@@ -150,7 +149,7 @@ def _create_template_parser(site: SiteLike) -> Any:
     return parser
 
 
-def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
+def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
     """
     Ensure a page is parsed if it hasn't been parsed yet.
 
@@ -158,7 +157,7 @@ def _ensure_page_parsed(page: Page, site: SiteLike) -> None:
     (e.g., track item pages) and need to be parsed on-demand.
 
     Args:
-        page: Page to parse if needed
+        page: PageLike to parse if needed
         site: Site instance for parser access
 
     """
@@ -329,7 +328,7 @@ def _build_lookup_maps_impl(site: SiteLike) -> dict[str, dict[str, Any]]:
 
     Creates three maps for O(1) page lookups:
     - 'full': content_key format (handles absolute/relative path mismatch)
-    - 'relative': Content-relative path (str) -> Page
+    - 'relative': Content-relative path (str) -> PageLike
     - 'content_key': Same as full (content_key format for path-variant lookups)
 
     Args:
@@ -375,8 +374,8 @@ def _build_lookup_maps(site: SiteLike) -> None:
     site-level caching for backwards compatibility.
 
     Creates two maps for O(1) page lookups:
-    - 'full': Full source path (str) -> Page
-    - 'relative': Content-relative path (str) -> Page
+    - 'full': Full source path (str) -> PageLike
+    - 'relative': Content-relative path (str) -> PageLike
 
     Args:
         site: Site instance to build maps on
@@ -432,7 +431,7 @@ def page_exists(path: str, site: SiteLike) -> bool:
     More efficient than get_page() when you only need existence.
 
     Args:
-        path: Page path (e.g., 'guides/setup.md' or 'guides/setup')
+        path: PageLike path (e.g., 'guides/setup.md' or 'guides/setup')
         site: Site instance
 
     Returns:
@@ -473,7 +472,7 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 
     env.globals["page_exists"] = page_exists_wrapper
 
-    def get_page(path: str) -> Page | None:
+    def get_page(path: str) -> PageLike | None:
         """
         Get a page by its relative path or slug.
 

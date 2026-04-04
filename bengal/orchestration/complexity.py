@@ -32,7 +32,6 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, TypedDict
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.protocols import PageLike
 
 __all__ = [
@@ -189,9 +188,9 @@ def get_cached_score(page: PageLike) -> int:
 
 
 def sort_by_complexity(
-    pages: list[Page],
+    pages: list[PageLike],
     descending: bool = True,
-) -> list[Page]:
+) -> list[PageLike]:
     """Sort pages by estimated rendering complexity.
 
     For parallel rendering, descending=True (heavy first) is optimal.
@@ -248,7 +247,7 @@ class ComplexityStats(TypedDict):
     bottom_5_scores: list[int]
 
 
-def get_complexity_stats(pages: list[Page]) -> ComplexityStats:
+def get_complexity_stats(pages: list[PageLike]) -> ComplexityStats:
     """Get complexity distribution statistics for logging.
 
     Useful for understanding build characteristics and validating

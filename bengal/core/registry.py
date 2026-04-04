@@ -42,8 +42,7 @@ from bengal.core.url_ownership import URLRegistry
 from bengal.errors import BengalError
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.section import Section
+    from bengal.protocols.core import PageLike, SectionLike
 
 
 @dataclass
@@ -70,12 +69,12 @@ class ContentRegistry:
     """
 
     # Path-based lookups (primary keys)
-    _pages_by_path: dict[Path, Page] = field(default_factory=dict)
-    _sections_by_path: dict[Path, Section] = field(default_factory=dict)
+    _pages_by_path: dict[Path, PageLike] = field(default_factory=dict)
+    _sections_by_path: dict[Path, SectionLike] = field(default_factory=dict)
 
     # URL-based lookups (for virtual content and link resolution)
-    _pages_by_url: dict[str, Page] = field(default_factory=dict)
-    _sections_by_url: dict[str, Section] = field(default_factory=dict)
+    _pages_by_url: dict[str, PageLike] = field(default_factory=dict)
+    _sections_by_url: dict[str, SectionLike] = field(default_factory=dict)
 
     # URL ownership (for collision detection)
     url_ownership: URLRegistry = field(default_factory=URLRegistry)
@@ -90,7 +89,7 @@ class ContentRegistry:
     # Used by Page._section to detect when section cache is stale
     _epoch: int = field(default=0, repr=False)
 
-    def get_page(self, path: Path) -> Page | None:
+    def get_page(self, path: Path) -> PageLike | None:
         """
         Get page by source path. O(1) lookup.
 
@@ -112,7 +111,7 @@ class ContentRegistry:
 
         return None
 
-    def get_page_by_url(self, url: str) -> Page | None:
+    def get_page_by_url(self, url: str) -> PageLike | None:
         """
         Get page by output URL. O(1) lookup.
 
@@ -124,7 +123,7 @@ class ContentRegistry:
         """
         return self._pages_by_url.get(url)
 
-    def get_section(self, path: Path) -> Section | None:
+    def get_section(self, path: Path) -> SectionLike | None:
         """
         Get section by directory path. O(1) lookup.
 
@@ -146,7 +145,7 @@ class ContentRegistry:
 
         return None
 
-    def get_section_by_url(self, url: str) -> Section | None:
+    def get_section_by_url(self, url: str) -> SectionLike | None:
         """
         Get section by URL (for virtual sections). O(1) lookup.
 
@@ -158,7 +157,7 @@ class ContentRegistry:
         """
         return self._sections_by_url.get(url)
 
-    def register_page(self, page: Page) -> None:
+    def register_page(self, page: PageLike) -> None:
         """
         Register a page. Raises if frozen.
 
@@ -183,12 +182,12 @@ class ContentRegistry:
         if page._path:
             self._pages_by_url[page._path] = page
 
-    def register_section(self, section: Section) -> None:
+    def register_section(self, section: SectionLike) -> None:
         """
         Register a section. Raises if frozen.
 
         Args:
-            section: Section to register
+            section: SectionLike to register
 
         Raises:
             BengalError: If registry is frozen
@@ -213,7 +212,7 @@ class ContentRegistry:
             normalized = self._normalize_path(section.path)
             self._sections_by_path[normalized] = section
 
-    def register_sections_recursive(self, section: Section) -> None:
+    def register_sections_recursive(self, section: SectionLike) -> None:
         """
         Register a section and all its subsections recursively.
 

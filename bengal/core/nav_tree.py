@@ -59,7 +59,6 @@ from bengal.utils.primitives.lru_cache import LRUCache
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.protocols import PageLike, SectionLike, SiteLike
 
@@ -83,7 +82,7 @@ class NavNode:
     icon: str | None = None
     weight: int = 0
     children: list[NavNode] = field(default_factory=list)
-    page: Page | None = None
+    page: PageLike | None = None
     section: SectionLike | None = None
 
     # State flags (populated by NavTreeContext)
@@ -221,7 +220,7 @@ class NavTree:
 
     def context(
         self,
-        page: Page,
+        page: PageLike,
         *,
         mark_active_trail: bool = True,
         root_node: NavNode | None = None,
@@ -410,7 +409,7 @@ class NavTreeContext:
     def __init__(
         self,
         tree: NavTree,
-        page: Page,
+        page: PageLike,
         *,
         mark_active_trail: bool = True,
         root_node: NavNode | None = None,

@@ -39,11 +39,11 @@ if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.output import OutputCollector
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.stats import BuildStats
     from bengal.output import CLIOutput
     from bengal.protocols import ProgressReporter
+    from bengal.protocols.core import PageLike
     from bengal.rendering.api_doc_enhancer import APIDocEnhancerProtocol
     from bengal.rendering.assets import AssetManifestContext
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
@@ -192,8 +192,8 @@ class BuildContext:
     profile_templates: bool = False  # Enable template profiling for performance analysis
 
     # Work items (determined during incremental filtering)
-    pages: list[Page] | None = None  # All discovered pages
-    pages_to_build: list[Page] | None = None  # Pages that need rendering
+    pages: list[PageLike] | None = None  # All discovered pages
+    pages_to_build: list[PageLike] | None = None  # Pages that need rendering
     assets: list[Asset] | None = None  # All discovered assets
     assets_to_process: list[Asset] | None = None  # Assets that need processing
 
@@ -617,7 +617,7 @@ class BuildContext:
         persistence. Eliminates redundant iteration in phase_track_assets.
 
         Args:
-            source_path: Page source path (key for asset map)
+            source_path: PageLike source path (key for asset map)
             assets: Set of asset URLs/paths referenced by the page
         """
         with self._accumulated_assets_lock:

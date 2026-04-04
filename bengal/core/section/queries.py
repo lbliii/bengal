@@ -37,8 +37,9 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.core.diagnostics import DiagnosticEvent
-    from bengal.core.page import Page, PageProxy
+    from bengal.core.page import PageProxy
     from bengal.core.section import Section
+    from bengal.protocols.core import PageLike
 
 
 class SectionQueryMixin:
@@ -63,10 +64,10 @@ class SectionQueryMixin:
 
     name: str
     path: Path | None
-    pages: list[Page]
+    pages: list[PageLike]
     subsections: list[Section]
     metadata: dict[str, Any]
-    index_page: Page | None
+    index_page: PageLike | None
 
     def _emit_diagnostic(self, event: DiagnosticEvent) -> None: ...
 
@@ -75,7 +76,7 @@ class SectionQueryMixin:
     # =========================================================================
 
     @cached_property
-    def regular_pages(self) -> list[Page]:
+    def regular_pages(self) -> list[PageLike]:
         """
         Get content pages in this section, excluding index (CACHED).
 
@@ -117,7 +118,7 @@ class SectionQueryMixin:
         return self.subsections
 
     @cached_property
-    def sorted_pages(self) -> list[Page]:
+    def sorted_pages(self) -> list[PageLike]:
         """
         Get pages sorted by weight (ascending), then by title (CACHED).
 
@@ -143,14 +144,14 @@ class SectionQueryMixin:
             {% endfor %}
         """
 
-        def is_index_page(p: Page) -> bool:
+        def is_index_page(p: PageLike) -> bool:
             return p.source_path.stem in ("_index", "index")
 
         non_index = [p for p in self.pages if not is_index_page(p)]
         return sorted_by_weight(non_index)
 
     @cached_property
-    def regular_pages_recursive(self) -> list[Page]:
+    def regular_pages_recursive(self) -> list[PageLike]:
         """
         Get all regular pages recursively (including from subsections) (CACHED).
 
@@ -176,7 +177,7 @@ class SectionQueryMixin:
     # PAGE MANAGEMENT METHODS
     # =========================================================================
 
-    def add_page(self, page: Page | PageProxy) -> None:
+    def add_page(self, page: PageLike | PageProxy) -> None:
         """
         Add a page to this section.
 
@@ -275,7 +276,7 @@ class SectionQueryMixin:
     # RECURSIVE RETRIEVAL
     # =========================================================================
 
-    def get_all_pages(self, recursive: bool = True) -> list[Page]:
+    def get_all_pages(self, recursive: bool = True) -> list[PageLike]:
         """
         Get all pages in this section.
 

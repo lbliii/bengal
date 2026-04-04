@@ -43,7 +43,6 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.config.accessor import Config
-    from bengal.core.page import Page
     from bengal.protocols import PageLike, SectionLike
 
 
@@ -91,7 +90,7 @@ class ContentTypeStrategy:
     default_template = "index.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list[Page]) -> list[Page]:
+    def sort_pages(self, pages: list[PageLike]) -> list[PageLike]:
         """
         Sort pages for display in list views.
 
@@ -118,7 +117,9 @@ class ContentTypeStrategy:
 
         return sorted(pages, key=weight_title_key)
 
-    def filter_display_pages(self, pages: list[Page], index_page: Page | None = None) -> list[Page]:
+    def filter_display_pages(
+        self, pages: list[PageLike], index_page: PageLike | None = None
+    ) -> list[PageLike]:
         """
         Filter which pages to show in list views.
 
@@ -192,7 +193,7 @@ class ContentTypeStrategy:
         template that exists, falling back to ``default_template`` if none found.
 
         Args:
-            page: Page to get template for. If None, returns ``default_template``
+            page: PageLike to get template for. If None, returns ``default_template``
                 for backward compatibility.
             template_engine: Template engine instance for checking template
                 existence. If None, skips existence checks and returns based

@@ -26,10 +26,10 @@ from bengal.utils.observability.logger import get_logger
 if TYPE_CHECKING:
     from bengal.cache import BuildCache
     from bengal.core.asset import Asset
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.effects.tracer import EffectTracer
     from bengal.orchestration.build.coordinator import CacheCoordinator
+    from bengal.protocols.core import PageLike
 
 logger = get_logger(__name__)
 
@@ -219,7 +219,7 @@ class CacheManager:
 
         return False
 
-    def save(self, pages_built: list[Page], assets_processed: list[Asset]) -> None:
+    def save(self, pages_built: list[PageLike], assets_processed: list[Asset]) -> None:
         """
         Update cache with processed files.
 

@@ -30,8 +30,8 @@ if TYPE_CHECKING:
     from contextvars import Token
     from pathlib import Path
 
-    from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols.core import PageLike
 
 __all__ = [
     "RequestContext",
@@ -66,7 +66,7 @@ class RequestContext:
     Attributes:
         source_file: Path to source file being processed
         source_content: Raw source content
-        page: Page object being rendered (optional)
+        page: PageLike object being rendered (optional)
         site: Site instance for configuration (optional)
         error_handler: Callback for error reporting
         strict_mode: If True, raise exceptions on errors
@@ -79,7 +79,7 @@ class RequestContext:
     source_content: str = ""
 
     # Page context (for rendering)
-    page: Page | None = None
+    page: PageLike | None = None
     site: Site | None = None
 
     # Error handling
@@ -187,7 +187,7 @@ def reset_request_context(token: Token[RequestContext | None] | None = None) -> 
 def request_context(
     source_file: Path | None = None,
     source_content: str = "",
-    page: Page | None = None,
+    page: PageLike | None = None,
     site: Site | None = None,
     error_handler: Callable[[Exception, str], None] | None = None,
     strict_mode: bool = False,
@@ -202,7 +202,7 @@ def request_context(
     Args:
         source_file: Path to source file being processed
         source_content: Raw source content
-        page: Page object being rendered
+        page: PageLike object being rendered
         site: Site instance for configuration
         error_handler: Callback for error reporting
         strict_mode: If True, raise exceptions on errors
