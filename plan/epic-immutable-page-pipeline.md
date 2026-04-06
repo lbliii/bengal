@@ -4,7 +4,7 @@
 **Created**: 2026-04-06
 **Target**: v0.4.x
 **Estimated Effort**: 60-80 hours
-**Dependencies**: Epic: Protocol Migration (Phase 1 complete), Epic: Architecture Audit Remediation (Sprint 1-2)
+**Dependencies**: Epic: Protocol Migration (Phase 1 in progress), Epic: Architecture Audit Remediation (Sprint 1-2)
 **Source**: Layered Review (2026-04-06), rfc-bengal-v2-architecture.md (Phase 3-4)
 
 ---
@@ -57,11 +57,11 @@ Stage 3 — Parse
   Embarrassingly parallel. Content loaded and parsed here.
 
 Stage 4 — Render
-  ParsedPage + SitePlan + Templates → OutputRecord(output_path, html, dependencies)
+  ParsedPage + SitePlan + Templates → RenderedPage(output_path, html, dependencies)
   Pure function. No mutation of any input.
 
 Stage 5 — Write
-  OutputRecord[] → disk
+  RenderedPage[] → disk
 ```
 
 ---
@@ -72,7 +72,7 @@ Stage 5 — Write
 |--------|-------|--------|------|---------------------|
 | **0** | Design: record types, `get_page()` solution, incremental strategy | 6-8h | Low | Yes (RFC only) |
 | **1** | Introduce ParsedPage; rendering reads it instead of mutating Page | 12-16h | Medium | Yes |
-| **2** | Introduce OutputRecord; eliminate `page.rendered_html` mutation | 8-10h | Medium | Yes |
+| **2** | Introduce RenderedPage; eliminate `page.rendered_html` mutation | 8-10h | Medium | Yes |
 | **3** | Decompose SitePlan; replace snapshot builder | 8-12h | Medium | Yes |
 | **4** | Introduce SourcePage; replace Page at discovery | 10-14h | High | Yes |
 | **5** | Delete PageProxy; cache stores typed records | 6-8h | Medium | Yes (after Sprint 4) |
@@ -88,10 +88,10 @@ Each sprint is a shippable PR. Later sprints can be deferred if earlier ones pro
 
 ### Task 0.1 — Define frozen record types
 
-Design `SourcePage`, `ParsedPage`, `OutputRecord` as frozen+slots dataclasses. Define exact field lists by auditing:
+Design `SourcePage`, `ParsedPage`, `RenderedPage` as frozen+slots dataclasses. Define exact field lists by auditing:
 - Which fields are available after discovery (→ SourcePage)
 - Which fields are available after parsing (→ ParsedPage)
-- Which fields are produced by rendering (→ OutputRecord)
+- Which fields are produced by rendering (→ RenderedPage)
 
 **Acceptance**: Type definitions written. Every current Page field mapped to exactly one record type.
 
@@ -121,7 +121,7 @@ Define how incremental builds reuse records:
 - SourcePage: reuse if file hash unchanged
 - SitePlan components: reuse if input SourcePages unchanged (hash of all source hashes)
 - ParsedPage: reuse if SourcePage hash + parser version unchanged
-- OutputRecord: reuse if ParsedPage hash + template hash unchanged
+- RenderedPage: reuse if ParsedPage hash + template hash unchanged
 
 **Acceptance**: Cache key definitions for each stage. Benchmark showing incremental builds stay under 200ms for 1-page change in 500-page site.
 
@@ -152,7 +152,7 @@ class ParsedPage:
     title: str
     html_content: str
     toc: str
-    toc_items: tuple[dict[str, Any], ...]
+    toc_items: tuple[TocItem, ...]  # TocItem is a frozen dataclass (level, id, text, children)
     excerpt: str
     meta_description: str
     metadata: MappingProxyType[str, Any]
@@ -187,19 +187,19 @@ When cache hits, `CacheChecker` constructs a `ParsedPage` from cached data inste
 Delete the dual-write from Task 1.2. Rendering no longer sets `page.html_content`, `page.toc`, `page._excerpt`, `page._meta_description`, `page._ast_cache`.
 
 **Files**: `bengal/rendering/pipeline/core.py`, `bengal/rendering/pipeline/autodoc_renderer.py`
-**Acceptance**: `grep -r 'page\.html_content\s*=' bengal/rendering/` returns zero hits. Full test suite passes.
+**Acceptance**: `rg 'page\.html_content\s*=' bengal/rendering/` returns zero hits. Full test suite passes.
 
 ---
 
-## Sprint 2: Introduce OutputRecord
+## Sprint 2: Introduce RenderedPage
 
-**Goal**: Rendering produces `OutputRecord` instead of mutating `page.rendered_html` and `page.output_path`.
+**Goal**: Rendering produces `RenderedPage` instead of mutating `page.rendered_html` and `page.output_path`.
 
-### Task 2.1 — Create OutputRecord frozen dataclass
+### Task 2.1 — Create RenderedPage frozen dataclass
 
 ```python
 @dataclass(frozen=True, slots=True)
-class OutputRecord:
+class RenderedPage:
     source_path: Path
     output_path: Path
     rendered_html: str
@@ -209,26 +209,26 @@ class OutputRecord:
 
 **Acceptance**: Type exists.
 
-### Task 2.2 — Renderer returns OutputRecord
+### Task 2.2 — Renderer returns RenderedPage
 
-Modify `Renderer.render_page()` to return `OutputRecord` instead of mutating `page.rendered_html` and `page.output_path`.
+Modify `Renderer.render_page()` to return `RenderedPage` instead of mutating `page.rendered_html` and `page.output_path`.
 
 **Files**: `bengal/rendering/renderer.py`, `bengal/rendering/pipeline/core.py`
-**Acceptance**: Render method returns OutputRecord. No Page mutation during rendering.
+**Acceptance**: Render method returns RenderedPage. No Page mutation during rendering.
 
-### Task 2.3 — Write phase consumes OutputRecord
+### Task 2.3 — Write phase consumes RenderedPage
 
-Modify `write_output()` and post-processing to accept `OutputRecord` instead of reading from Page.
+Modify `write_output()` and post-processing to accept `RenderedPage` instead of reading from Page.
 
 **Files**: `bengal/rendering/pipeline/output.py`, `bengal/orchestration/postprocess.py`
-**Acceptance**: Post-processing reads from OutputRecord. `grep -r 'page\.rendered_html' bengal/orchestration/` returns zero hits.
+**Acceptance**: Post-processing reads from RenderedPage. `rg 'page\.rendered_html' bengal/orchestration/` returns zero hits.
 
-### Task 2.4 — Wire OutputRecord through WaveScheduler
+### Task 2.4 — Wire RenderedPage through WaveScheduler
 
-`WaveScheduler` parallel rendering collects `OutputRecord` results from each worker thread instead of relying on in-place Page mutation.
+`WaveScheduler` parallel rendering collects `RenderedPage` results from each worker thread instead of relying on in-place Page mutation.
 
-**Files**: `bengal/snapshots/scheduler.py`, `bengal/orchestration/render.py`
-**Acceptance**: Parallel rendering returns `list[OutputRecord]`. No shared mutable state between threads.
+**Files**: `bengal/snapshots/scheduler.py`, `bengal/orchestration/render/orchestrator.py`, `bengal/orchestration/render/parallel.py`
+**Acceptance**: Parallel rendering returns `list[RenderedPage]`. No shared mutable state between threads.
 
 ---
 
@@ -359,7 +359,7 @@ For unchanged files, load `ParsedPage` from cache instead of creating PageProxy.
 
 Remove `bengal/core/page/proxy.py` (900 lines) and all references.
 
-**Acceptance**: `proxy.py` deleted. `grep -r 'PageProxy' bengal/` returns zero hits outside tests/comments. All tests pass.
+**Acceptance**: `proxy.py` deleted. `rg 'PageProxy' bengal/` returns zero hits outside tests/comments. All tests pass.
 
 ---
 
@@ -371,7 +371,7 @@ Remove `bengal/core/page/proxy.py` (900 lines) and all references.
 
 Search all 71 files that import Page. Convert remaining references to appropriate record types.
 
-**Acceptance**: `grep -r 'from bengal.core.page import Page' bengal/` returns zero hits.
+**Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
 ### Task 6.2 — Delete Page class and mixins
 
@@ -390,7 +390,7 @@ Update `PageLike` protocol to match the new record types. Or replace with a unio
 
 Remove `_init_lock`, `_warnings_lock`, `_load_lock`, all manual `_cache` fields, `update_frozen` helper (if no longer used).
 
-**Acceptance**: `grep -r '_init_lock\|_load_lock\|_cache' bengal/core/page/` returns zero hits.
+**Acceptance**: `rg '_init_lock\|_load_lock\|_cache' bengal/core/page/` returns zero hits.
 
 ### Task 6.5 — Update documentation and architecture docs
 
