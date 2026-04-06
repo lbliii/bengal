@@ -30,6 +30,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.core.records import ParsedPage
 from bengal.rendering.api_doc_enhancer import set_enhancer_for_render
 
 if TYPE_CHECKING:
@@ -449,13 +450,20 @@ class RenderingPipeline:
                     "link_extraction",
                 )
 
+        # Build immutable ParsedPage record (Epic: Immutable Page Pipeline, Sprint 1)
+        parsed_page = self._build_parsed_page(page)
+
         if _prof:
             with _prof.step("cache_parsed"):
-                self._cache_checker.cache_parsed_content(page, template, parser_version)
+                self._cache_checker.cache_parsed_content(
+                    page, template, parser_version, parsed_page=parsed_page
+                )
         else:
-            self._cache_checker.cache_parsed_content(page, template, parser_version)
+            self._cache_checker.cache_parsed_content(
+                page, template, parser_version, parsed_page=parsed_page
+            )
 
-        self._render_and_write(page, template, _prof=_prof)
+        self._render_and_write(page, template, _prof=_prof, parsed_page=parsed_page)
         if _prof:
             _prof.record_page()
 
@@ -686,8 +694,39 @@ class RenderingPipeline:
         if enhancer and enhancer.should_enhance(page_type):
             page.html_content = enhancer.enhance(page.html_content or "", page_type)
 
+    def _build_parsed_page(self, page: PageLike) -> ParsedPage:
+        """Construct a ParsedPage from current page state after parsing.
+
+        Called after _parse_content, _enhance_api_docs, and extract_links
+        have finished mutating the page.  The resulting frozen record
+        captures all parse-phase output for downstream rendering.
+        """
+        from bengal.rendering.pipeline.toc import extract_toc_structure
+
+        toc_items = tuple(extract_toc_structure(page.toc or ""))
+        links = tuple(getattr(page, "links", None) or ())
+
+        return ParsedPage(
+            html_content=page.html_content or "",
+            toc=page.toc or "",
+            toc_items=toc_items,
+            excerpt=getattr(page, "excerpt", "") or "",
+            meta_description=getattr(page, "meta_description", "")
+            or getattr(page, "description", "")
+            or "",
+            plain_text=page.plain_text,
+            word_count=getattr(page, "word_count", 0) or 0,
+            reading_time=getattr(page, "reading_time", 0) or 0,
+            links=links,
+            ast_cache=getattr(page, "_ast_cache", None),
+        )
+
     def _render_and_write(
-        self, page: PageLike, template: str, _prof: RenderProfiler | None = None
+        self,
+        page: PageLike,
+        template: str,
+        _prof: RenderProfiler | None = None,
+        parsed_page: ParsedPage | None = None,
     ) -> None:
         """Render template and write output.
 
@@ -702,6 +741,9 @@ class RenderingPipeline:
         # (they're driven by template logic and frontmatter, not content)
         if page.html_content is None:
             page.html_content = ""  # Ensure it's a string, not None
+
+        # Read source HTML from ParsedPage when available (Sprint 1: Immutable Pipeline)
+        source_html = parsed_page.html_content if parsed_page else (page.html_content or "")
 
         # RFC: rfc-build-performance-optimizations Phase 2
         # Track assets during rendering (render-time tracking)
@@ -719,32 +761,40 @@ class RenderingPipeline:
                 with effect_recorder:
                     if _prof:
                         with _prof.step("render_content"):
-                            html_content = self.renderer.render_content(page.html_content or "")
+                            html_content = self.renderer.render_content(source_html)
                         with _prof.step("render_template"):
-                            page.rendered_html = self.renderer.render_page(page, html_content)
+                            page.rendered_html = self.renderer.render_page(
+                                page, html_content, parsed_page=parsed_page
+                            )
                         with _prof.step("format_html"):
                             page.rendered_html = format_html(
                                 page.rendered_html, page, cast("SiteLike", self.site)
                             )
                     else:
-                        html_content = self.renderer.render_content(page.html_content or "")
-                        page.rendered_html = self.renderer.render_page(page, html_content)
+                        html_content = self.renderer.render_content(source_html)
+                        page.rendered_html = self.renderer.render_page(
+                            page, html_content, parsed_page=parsed_page
+                        )
                         page.rendered_html = format_html(
                             page.rendered_html, page, cast("SiteLike", self.site)
                         )
             else:
                 if _prof:
                     with _prof.step("render_content"):
-                        html_content = self.renderer.render_content(page.html_content or "")
+                        html_content = self.renderer.render_content(source_html)
                     with _prof.step("render_template"):
-                        page.rendered_html = self.renderer.render_page(page, html_content)
+                        page.rendered_html = self.renderer.render_page(
+                            page, html_content, parsed_page=parsed_page
+                        )
                     with _prof.step("format_html"):
                         page.rendered_html = format_html(
                             page.rendered_html, page, cast("SiteLike", self.site)
                         )
                 else:
-                    html_content = self.renderer.render_content(page.html_content or "")
-                    page.rendered_html = self.renderer.render_page(page, html_content)
+                    html_content = self.renderer.render_content(source_html)
+                    page.rendered_html = self.renderer.render_page(
+                        page, html_content, parsed_page=parsed_page
+                    )
                     page.rendered_html = format_html(
                         page.rendered_html, page, cast("SiteLike", self.site)
                     )

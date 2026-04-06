@@ -320,6 +320,7 @@ def build_page_context(
     snapshot: Any = None,  # SiteSnapshot (optional)
     lazy: bool = True,  # Enable lazy evaluation for expensive fields
     build_context: Any = None,  # BuildContext for O(1) section lookup
+    parsed_page: Any = None,  # ParsedPage for immutable pipeline (Sprint 1)
 ) -> dict[str, Any]:
     """
     Build complete template context for any page type.
@@ -435,21 +436,36 @@ def build_page_context(
     # Pre-computed content (marked safe)
     context["content"] = Markup(content) if content else Markup("")
     context["title"] = getattr(page, "title", "") or ""
-    context["toc"] = Markup(getattr(page, "toc", "") or "")
 
-    # toc_items - lazy if possible (parsing can be expensive)
-    if lazy:
-        context["toc_items"] = make_lazy(lambda: getattr(page, "toc_items", []) or [])
+    # When ParsedPage is available, read parse-phase fields from the
+    # immutable record instead of from the mutable Page object.
+    if parsed_page is not None:
+        context["toc"] = Markup(parsed_page.toc)
+        if lazy:
+            pp = parsed_page  # capture for closure
+            context["toc_items"] = make_lazy(lambda: list(pp.toc_items))
+        else:
+            context["toc_items"] = list(parsed_page.toc_items)
+        context["meta_desc"] = (
+            parsed_page.meta_description or getattr(page, "description", "") or ""
+        )
+        context["word_count"] = parsed_page.word_count
+        context["reading_time"] = parsed_page.reading_time
+        context["excerpt"] = parsed_page.excerpt
     else:
-        context["toc_items"] = getattr(page, "toc_items", []) or []
-
-    # Pre-computed metadata (cheap, always eager)
-    context["meta_desc"] = (
-        getattr(page, "meta_description", "") or getattr(page, "description", "") or ""
-    )
-    context["word_count"] = getattr(page, "word_count", 0) or 0
-    context["reading_time"] = getattr(page, "reading_time", 0) or 0
-    context["excerpt"] = getattr(page, "excerpt", "") or ""
+        context["toc"] = Markup(getattr(page, "toc", "") or "")
+        # toc_items - lazy if possible (parsing can be expensive)
+        if lazy:
+            context["toc_items"] = make_lazy(lambda: getattr(page, "toc_items", []) or [])
+        else:
+            context["toc_items"] = getattr(page, "toc_items", []) or []
+        # Pre-computed metadata (cheap, always eager)
+        context["meta_desc"] = (
+            getattr(page, "meta_description", "") or getattr(page, "description", "") or ""
+        )
+        context["word_count"] = getattr(page, "word_count", 0) or 0
+        context["reading_time"] = getattr(page, "reading_time", 0) or 0
+        context["excerpt"] = getattr(page, "excerpt", "") or ""
 
     # Versioning defaults
     context["current_version"] = None
