@@ -40,9 +40,9 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_dict
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols.core import PageLike
 
 logger = get_logger(__name__)
 
@@ -119,7 +119,7 @@ class VirtualAutodocOrchestrator:
 
     def generate_from_cache_payload(
         self, payload: dict[str, Any]
-    ) -> tuple[list[Page], list[Section], AutodocRunResult]:
+    ) -> tuple[list[PageLike], list[Section], AutodocRunResult]:
         """
         Rebuild autodoc virtual pages/sections from a cached extraction payload.
 
@@ -196,7 +196,7 @@ class VirtualAutodocOrchestrator:
         # Reuse the normal generation pipeline, but skip extraction.
         all_elements: list[DocElement] = []
         all_sections: dict[str, Section] = {}
-        all_pages: list[Page] = []
+        all_pages: list[PageLike] = []
 
         if (
             python_elements
@@ -457,7 +457,7 @@ class VirtualAutodocOrchestrator:
                         f"'{p2}' ({enabled_prefixes[p2]}). This may cause navigation issues.",
                     )
 
-    def generate(self) -> tuple[list[Page], list[Section], AutodocRunResult]:
+    def generate(self) -> tuple[list[PageLike], list[Section], AutodocRunResult]:
         """
         Generate documentation as virtual pages and sections for all enabled types.
 
@@ -479,7 +479,7 @@ class VirtualAutodocOrchestrator:
 
         all_elements: list[DocElement] = []
         all_sections: dict[str, Section] = {}
-        all_pages: list[Page] = []
+        all_pages: list[PageLike] = []
         self._last_extracted_elements = {}
 
         # 1. Extract Python documentation

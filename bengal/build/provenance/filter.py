@@ -37,8 +37,8 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from bengal.build.provenance.store import ProvenanceCache
     from bengal.core.asset import Asset
-    from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols.core import PageLike
 
 
 @dataclass
@@ -46,13 +46,13 @@ class ProvenanceFilterResult:
     """Result of provenance-based filtering."""
 
     # Pages that need to be built
-    pages_to_build: list[Page]
+    pages_to_build: list[PageLike]
 
     # Assets that need to be processed
     assets_to_process: list[Asset]
 
     # Pages that were skipped (cache hits)
-    pages_skipped: list[Page]
+    pages_skipped: list[PageLike]
 
     # Statistics
     total_pages: int = 0
@@ -131,7 +131,7 @@ class ProvenanceFilter:
 
     def filter(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         assets: list[Asset],
         incremental: bool = True,
         forced_changed: set[Path] | None = None,
@@ -177,14 +177,14 @@ class ProvenanceFilter:
 
         self._mtime_short_circuit_hits = 0
 
-        pages_to_build: list[Page] = []
-        pages_skipped: list[Page] = []
+        pages_to_build: list[PageLike] = []
+        pages_skipped: list[PageLike] = []
         affected_tags: set[str] = set()
         affected_sections: set[str] = set()
         changed_page_paths: set[Path] = set()
 
         # Phase 1: Quick classification - collect pages needing provenance check
-        pages_to_verify: list[tuple[Page, ContentHash]] = []
+        pages_to_verify: list[tuple[PageLike, ContentHash]] = []
         for page in pages:
             page_path = self._get_page_key(page)
 
@@ -259,7 +259,7 @@ class ProvenanceFilter:
             changed_page_paths=changed_page_paths,
         )
 
-    def _mtime_short_circuit(self, page: Page, stored_hash: ContentHash) -> bool:
+    def _mtime_short_circuit(self, page: PageLike, stored_hash: ContentHash) -> bool:
         """
         Try to skip verification via mtime check. Returns True if cache hit.
 
@@ -293,9 +293,9 @@ class ProvenanceFilter:
 
     def _verify_page_provenance(
         self,
-        page: Page,
+        page: PageLike,
         stored_hash: ContentHash,
-    ) -> tuple[Page | None, Page | None, set[str], set[str], set[Path]]:
+    ) -> tuple[PageLike | None, PageLike | None, set[str], set[str], set[Path]]:
         """
         Verify if cached provenance still matches. Thread-safe.
 
@@ -352,7 +352,7 @@ class ProvenanceFilter:
         paths.add(page.source_path)
         return (page, None, tags, sections, paths)
 
-    def record_build(self, page: Page, output_hash: ContentHash | None = None) -> None:
+    def record_build(self, page: PageLike, output_hash: ContentHash | None = None) -> None:
         """
         Record provenance after a page is built (thread-safe).
 
@@ -437,7 +437,7 @@ class ProvenanceFilter:
                 self._file_hashes[path] = computed
             return self._file_hashes[path]
 
-    def _get_cascade_sources(self, page: Page) -> list[Path]:
+    def _get_cascade_sources(self, page: PageLike) -> list[Path]:
         """
         Get all _index.md files that contribute cascade metadata to this page.
 
@@ -521,7 +521,7 @@ class ProvenanceFilter:
 
         return sources
 
-    def _compute_provenance_fast(self, page: Page) -> Provenance | None:
+    def _compute_provenance_fast(self, page: PageLike) -> Provenance | None:
         """
         Fast-path provenance computation for simple content pages.
 
@@ -583,7 +583,7 @@ class ProvenanceFilter:
                 self._computed_provenance[page_path] = provenance
             return self._computed_provenance[page_path]
 
-    def _compute_provenance(self, page: Page) -> Provenance:
+    def _compute_provenance(self, page: PageLike) -> Provenance:
         """Compute provenance for a page based on its inputs.
 
         Handles both real content pages and virtual pages:
@@ -718,7 +718,7 @@ class ProvenanceFilter:
                 self._computed_provenance[page_path] = provenance
             return self._computed_provenance[page_path]
 
-    def _get_page_key(self, page: Page) -> CacheKey:
+    def _get_page_key(self, page: PageLike) -> CacheKey:
         """Get canonical page key for cache lookups."""
         return content_key(page.source_path, self.site.root_path)
 
@@ -889,7 +889,7 @@ class ProvenanceFilter:
 
     def _collect_affected(
         self,
-        page: Page,
+        page: PageLike,
         affected_tags: set[str],
         affected_sections: set[str],
     ) -> None:

@@ -62,10 +62,10 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from bengal.core.author import Author
-    from bengal.core.section import Section
     from bengal.core.series import Series
     from bengal.core.site import Site
     from bengal.parsing.ast.types import ASTNode
+    from bengal.protocols.core import SectionLike
     from bengal.utils.pagination import Paginator
 
 # Import PageOperationsMixin from rendering layer where it logically belongs.
@@ -207,7 +207,7 @@ class Page(
 
     # Cached resolved Section object for fast repeated access during template rendering.
     # NOTE: Cache is per-site-object + epoch + reference tuple and must be invalidated when those change.
-    _section_obj_cache: Section | object | None = field(default=None, repr=False, init=False)
+    _section_obj_cache: SectionLike | object | None = field(default=None, repr=False, init=False)
     _section_obj_cache_key: tuple[int, int, Path | None, str | None] | None = field(
         default=None, repr=False, init=False
     )
@@ -226,7 +226,7 @@ class Page(
     # Private cache for lazy frontmatter property
     _frontmatter: Frontmatter | None = field(default=None, init=False, repr=False)
     # Lock for thread-safe lazy initialization of _frontmatter
-    _init_lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
+    _init_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
 
     # Cache for CascadeView (invalidated when site/section changes)
     _metadata_view_cache: CascadeView | None = field(default=None, init=False, repr=False)
@@ -312,14 +312,18 @@ class Page(
         if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
             return self._metadata_view_cache
 
-        # Create and cache new CascadeView
-        view = CascadeView.for_page(
-            frontmatter=self._raw_metadata,
-            section_path=section_path,
-            snapshot=cascade,
-        )
-        self._metadata_view_cache = view
-        self._metadata_view_cache_key = cache_key
+        with self._init_lock:
+            if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
+                return self._metadata_view_cache
+
+            # Create and cache new CascadeView
+            view = CascadeView.for_page(
+                frontmatter=self._raw_metadata,
+                section_path=section_path,
+                snapshot=cascade,
+            )
+            self._metadata_view_cache = view
+            self._metadata_view_cache_key = cache_key
         return view
 
     def _init_core_from_fields(self) -> None:
@@ -588,7 +592,7 @@ class Page(
         return format_path_for_display(path, base_path)
 
     @property
-    def _section(self) -> Section | None:
+    def _section(self) -> SectionLike | None:
         """
         Get the section this page belongs to (lazy lookup via path or URL).
 
@@ -645,13 +649,16 @@ class Page(
             cached = self._section_obj_cache
             return None if cached is self._SECTION_NOT_FOUND else cached
 
-        # Perform O(1) lookup via appropriate registry (but may be non-trivial due to normalization)
-        if self._section_path is not None:
-            # Regular section: path-based lookup
-            section = self._site.get_section_by_path(self._section_path)
-        else:
-            # Virtual section: URL-based lookup
-            section = self._site.get_section_by_url(self._section_url)
+        with self._init_lock:
+            if self._section_obj_cache_key == cache_key:
+                cached = self._section_obj_cache
+                return None if cached is self._SECTION_NOT_FOUND else cached
+
+            # Perform O(1) lookup via appropriate registry
+            if self._section_path is not None:
+                section = self._site.get_section_by_path(self._section_path)
+            else:
+                section = self._site.get_section_by_url(self._section_url)
 
         if section is None:
             # Counter-gated warning to prevent log spam (class-level counter)
@@ -695,12 +702,13 @@ class Page(
                     self._global_missing_section_warnings[warn_key] = count + 1
 
         # Cache both hits and misses (misses use a sentinel).
-        self._section_obj_cache_key = cache_key
-        self._section_obj_cache = section if section is not None else self._SECTION_NOT_FOUND
+        with self._init_lock:
+            self._section_obj_cache_key = cache_key
+            self._section_obj_cache = section if section is not None else self._SECTION_NOT_FOUND
         return section
 
     @_section.setter
-    def _section(self, value: Section | None) -> None:
+    def _section(self, value: SectionLike | None) -> None:
         """
         Set the section this page belongs to (stores path or URL, not object).
 
@@ -779,12 +787,12 @@ class Page(
         return get_prev_in_section(self, self._section)
 
     @property
-    def parent(self) -> Section | None:
+    def parent(self) -> SectionLike | None:
         """Parent section of this page."""
         return self._section
 
     @property
-    def ancestors(self) -> list[Section]:
+    def ancestors(self) -> list[SectionLike]:
         """Ancestor sections from immediate parent to root."""
         from bengal.core.page.navigation import get_ancestors
 

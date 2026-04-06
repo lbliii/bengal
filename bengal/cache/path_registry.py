@@ -30,7 +30,6 @@ from typing import TYPE_CHECKING
 from bengal.protocols import SiteConfig
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.protocols import PageLike
 
@@ -90,7 +89,7 @@ class PathRegistry:
           (e.g., "autodoc/mypackage/core/site.py")
 
         Args:
-            page: Page object to get canonical path for
+            page: PageLike object to get canonical path for
 
         Returns:
             Canonical path for use as cache key.
@@ -122,7 +121,7 @@ class PathRegistry:
         Convenience method that converts canonical_source to string.
 
         Args:
-            page: Page object to get cache key for
+            page: PageLike object to get cache key for
 
         Returns:
             String cache key for BuildCache lookups
@@ -160,12 +159,12 @@ class PathRegistry:
         """
         return self._generated_dir / taxonomy / term / "index.md"
 
-    def output_path(self, page: Page) -> Path:
+    def output_path(self, page: PageLike) -> Path:
         """
         Get the output path for a page.
 
         Args:
-            page: Page object to get output path for
+            page: PageLike object to get output path for
 
         Returns:
             Absolute path to the output HTML file

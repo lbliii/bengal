@@ -1,6 +1,6 @@
 ---
 title: About
-description: What Bengal is, where it fits, and which kinds of static sites it is designed to build
+description: A pure-Python documentation generator built on free-threading — every layer scales with your cores
 weight: 5
 layout: list
 menu:
@@ -11,42 +11,25 @@ icon: info
 
 # About
 
-Bengal is a Python static site generator for documentation sites, blogs, knowledge
-bases, and product sites. It transforms Markdown, notebooks, and structured content
-into fast websites with built-in SEO/discovery features and a Python-native workflow.
-
-## Use Cases
-
-- **Documentation Sites** — Technical docs with auto-generated API reference
-- **Blogs & Journals** — Personal writing with tags and categories
-- **Product & Marketing Sites** — Landing pages and portfolios
-- **Knowledge Bases** — Internal wikis with full-text search
+Bengal is a static site generator where the entire stack is Python you can read, debug, and extend. Every library in the pipeline — [Patitas](https://github.com/lbliii/patitas) (markdown), [Rosettes](https://github.com/lbliii/rosettes) (syntax highlighting), [Kida](https://github.com/lbliii/kida) (templates), [Pounce](https://github.com/lbliii/pounce) (dev server) — is purpose-built for Python 3.14+ [free-threading](./free-threading). No JavaScript toolchains. No compiled C extensions in the critical path. `pip install bengal` and go.
 
 ## Why Bengal?
 
 | Benefit | What It Means |
 |---------|---------------|
-| **Fast Builds** | Parallel + incremental builds. See [Benchmarks](./benchmarks) |
-| **Python-Native** | Python 3.14+ with free-threading (PEP 703). No Node.js |
-| **Auto API Docs** | AST-based docs from Python, CLI, and OpenAPI sources |
-| **SEO & Discovery** | Sitemap, RSS, canonical URLs, Open Graph tags, social cards, and search indexes |
-| **Batteries Included** | Development server, live reload, validation, search, and content analysis |
-| **Flexible Theming** | Theme inheritance, swizzling, 1,100+ CSS tokens |
-| **Content First** | MyST Markdown, YAML/TOML front matter, cascading config |
+| **Scales with cores** | True thread parallelism on Python 3.14t — no GIL contention. See [Benchmarks](./benchmarks) |
+| **AI-native output** | [llms.txt](https://llmstxt.org/), agent manifests, per-page JSON, [Content Signals](https://contentsignals.org/) — machines can discover and navigate your docs |
+| **Sub-second rebuilds** | Provenance-based incremental builds with content-addressed hashing |
+| **Python-native workflows** | Jupyter rendering, autodoc for Python/CLI/OpenAPI, `pip install` and go |
+| **Batteries included** | Sitemap, RSS, social cards, search indexes, broken link detection, validation |
+| **Extensible** | Pluggable engines, theme inheritance, swizzling, 9 plugin extension points |
 
-## Discovery Strategy
+## Use Cases
 
-Bengal is strongest when you publish pages that match how people actually search:
-
-- Installation and quickstart guides
-- Tutorials for specific use cases
-- Migration guides from other static site generators
-- Troubleshooting pages for concrete errors
-- Comparison pages for adjacent tools or approaches
-
-The generator already provides the technical pieces: metadata fields, canonical URLs,
-sitemap generation, feeds, social cards, search indexes, JSON output, and internal-link
-analysis. The remaining work is content strategy and better README/docs framing.
+- **Documentation Sites** — Versioned docs, API reference, search, and internal linking
+- **Blogs & Journals** — Tags, categories, feeds, related content, and social sharing
+- **Knowledge Bases** — Markdown-first publishing with validation and JSON search indexes
+- **Product & Marketing Sites** — Landing pages, content collections, and social cards
 
 ## Philosophy
 

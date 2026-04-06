@@ -26,7 +26,7 @@ Usage:
 
 Related:
 - `bengal.orchestration.render_orchestrator`: Uses for output path computation
-- `bengal.core.page`: Page objects passed to compute methods
+- `bengal.core.page`: PageLike objects passed to compute methods
 - `bengal.core.site`: Site object provides configuration and output directory
 - `bengal.utils.url_normalization`: URL validation and normalization utilities
 
@@ -38,8 +38,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.protocols import SectionLike, SiteLike
+    from bengal.protocols import PageLike, SectionLike, SiteLike
 
 
 class URLStrategy:
@@ -80,7 +79,7 @@ class URLStrategy:
 
     @staticmethod
     def compute_regular_page_output_path(
-        page: Page, site: SiteLike, pre_cascade: bool = False
+        page: PageLike, site: SiteLike, pre_cascade: bool = False
     ) -> Path:
         """
         Compute output path for a regular content page.
@@ -89,7 +88,7 @@ class URLStrategy:
         applying pretty URL rules, version prefixes, and i18n path strategies.
 
         Args:
-            page: Page object with `source_path` attribute set.
+            page: PageLike object with `source_path` attribute set.
             site: Site object providing `output_dir`, `config`, and version info.
             pre_cascade: If True, use the raw source path without any modifications
                          from frontmatter cascade. Used during early page discovery
@@ -162,7 +161,7 @@ class URLStrategy:
         return site.output_dir / output_rel_path
 
     @staticmethod
-    def _apply_version_path_transform(rel_path: Path, page: Page, site: SiteLike) -> Path:
+    def _apply_version_path_transform(rel_path: Path, page: PageLike, site: SiteLike) -> Path:
         """
         Transform versioned content path to output path structure.
 
@@ -175,7 +174,7 @@ class URLStrategy:
 
         Args:
             rel_path: Relative path from content directory
-            page: Page object (for version info)
+            page: PageLike object (for version info)
             site: Site object (for version config)
 
         Returns:
@@ -237,7 +236,7 @@ class URLStrategy:
 
         Args:
             section: Section to create archive for
-            page_num: Page number (1 for first page, 2+ for pagination)
+            page_num: PageLike number (1 for first page, 2+ for pagination)
             site: Site object (for output_dir)
 
         Returns:
@@ -269,7 +268,7 @@ class URLStrategy:
 
         Args:
             tag_slug: URL-safe tag identifier
-            page_num: Page number (1 for first page, 2+ for pagination)
+            page_num: PageLike number (1 for first page, 2+ for pagination)
             site: Site object (for output_dir)
 
         Returns:

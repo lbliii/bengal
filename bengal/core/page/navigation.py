@@ -5,7 +5,7 @@ Functions accept explicit parameters (page, site, section) instead of
 accessing them through mixin self-reference.
 
 Related Modules:
-- bengal.core.section: Section class with page containment
+- bengal.core.section: SectionLike class with page containment
 - bengal.rendering.template_functions.navigation: Template navigation helpers
 
 See Also:
@@ -19,9 +19,8 @@ from contextlib import suppress
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
-    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols.core import PageLike, SectionLike
 
 
 def _get_site_page_index(site: Site) -> dict:
@@ -40,7 +39,7 @@ def _get_site_page_index(site: Site) -> dict:
     return cached
 
 
-def _get_section_page_index(section: Section) -> dict:
+def _get_section_page_index(section: SectionLike) -> dict:
     """Return a lazily-built and cached page→index mapping for section.sorted_pages.
 
     sorted_pages is itself a @cached_property so the underlying list is stable;
@@ -55,7 +54,7 @@ def _get_section_page_index(section: Section) -> dict:
     return cached
 
 
-def get_next_page(page: Page, site: Site | None) -> Page | None:
+def get_next_page(page: PageLike, site: Site | None) -> PageLike | None:
     """Get the next page in the site's collection."""
     if not site or not hasattr(site, "pages"):
         return None
@@ -69,7 +68,7 @@ def get_next_page(page: Page, site: Site | None) -> Page | None:
     return None
 
 
-def get_prev_page(page: Page, site: Site | None) -> Page | None:
+def get_prev_page(page: PageLike, site: Site | None) -> PageLike | None:
     """Get the previous page in the site's collection."""
     if not site or not hasattr(site, "pages"):
         return None
@@ -83,7 +82,7 @@ def get_prev_page(page: Page, site: Site | None) -> Page | None:
     return None
 
 
-def get_next_in_section(page: Page, section: Section | None) -> Page | None:
+def get_next_in_section(page: PageLike, section: SectionLike | None) -> PageLike | None:
     """Get the next page within the same section, respecting weight order."""
     if not section or not hasattr(section, "sorted_pages"):
         return None
@@ -103,7 +102,7 @@ def get_next_in_section(page: Page, section: Section | None) -> Page | None:
     return None
 
 
-def get_prev_in_section(page: Page, section: Section | None) -> Page | None:
+def get_prev_in_section(page: PageLike, section: SectionLike | None) -> PageLike | None:
     """Get the previous page within the same section, respecting weight order."""
     if not section or not hasattr(section, "sorted_pages"):
         return None
@@ -123,9 +122,9 @@ def get_prev_in_section(page: Page, section: Section | None) -> Page | None:
     return None
 
 
-def get_ancestors(section: Section | None) -> list[Section]:
+def get_ancestors(section: SectionLike | None) -> list[SectionLike]:
     """Get all ancestor sections from immediate parent to root."""
-    result: list[Section] = []
+    result: list[SectionLike] = []
     current = section
     while current:
         result.append(current)

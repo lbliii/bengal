@@ -40,8 +40,8 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.version import Version, VersionConfig
+    from bengal.protocols.core import PageLike
 
 
 class VersionResolver:
@@ -277,7 +277,7 @@ class VersionResolver:
 
     def assign_version_to_page(
         self,
-        page: Page,
+        page: PageLike,
         source_path: Path,
     ) -> None:
         """
@@ -286,7 +286,7 @@ class VersionResolver:
         Updates page.core.version if the page belongs to a versioned section.
 
         Args:
-            page: Page to update
+            page: PageLike to update
             source_path: Source content path
         """
         version = self.get_version_for_path(source_path)

@@ -15,9 +15,9 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
+    from bengal.protocols.core import PageLike
 
 logger = get_logger(__name__)
 
@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 def phase_parse_content(
     orchestrator: BuildOrchestrator,
     cli: CLIOutput,
-    pages_to_build: list[Page],
+    pages_to_build: list[PageLike],
     parallel: bool = True,
     use_snapshot_cache: bool = True,
 ) -> int:
@@ -82,7 +82,7 @@ def phase_parse_content(
                 )
 
     # Parse pages that need parsing
-    def parse_page(page: Page) -> None:
+    def parse_page(page: PageLike) -> None:
         """Parse a single page's markdown content."""
         # Create thread-local pipeline if needed
         if not hasattr(thread_local, "pipeline"):

@@ -12,7 +12,7 @@ Key Concepts:
 - Dependency tracking: Track template and asset dependencies
 
 Related Modules:
-- bengal.orchestration.render: Page rendering orchestration
+- bengal.orchestration.render: PageLike rendering orchestration
 - bengal.orchestration.asset: Asset processing orchestration
 - bengal.build.tracking: Dependency graph construction
 
@@ -36,11 +36,11 @@ if TYPE_CHECKING:
 
     from bengal.core.asset import Asset
     from bengal.core.output import OutputCollector
-    from bengal.core.page import Page
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.orchestration.build_context import BuildContext
     from bengal.output import CLIOutput
     from bengal.protocols import ProgressReporter
+    from bengal.protocols.core import PageLike
     from bengal.utils.observability.cli_progress import LiveProgressManager
     from bengal.utils.observability.profile import BuildProfile
 
@@ -392,7 +392,7 @@ def phase_render(
     quiet: bool,
     verbose: bool,
     memory_optimized: bool,
-    pages_to_build: list[Page],
+    pages_to_build: list[PageLike],
     profile: BuildProfile,
     progress_manager: LiveProgressManager | None,
     reporter: ProgressReporter | None,
@@ -713,7 +713,7 @@ def phase_render(
 def phase_update_site_pages(
     orchestrator: BuildOrchestrator,
     incremental: bool,
-    pages_to_build: list[Page],
+    pages_to_build: list[PageLike],
     cli: CLIOutput | None = None,
 ) -> None:
     """

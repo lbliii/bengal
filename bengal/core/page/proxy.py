@@ -27,9 +27,8 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 if TYPE_CHECKING:
     from collections.abc import Callable, Mapping
 
-    from bengal.core.page import Page
-    from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols.core import PageLike, SectionLike
     from bengal.utils.pagination import Paginator
 
     from .page_core import PageCore
@@ -158,7 +157,7 @@ class PageProxy:
         self,
         source_path: Path,
         metadata: PageCore,  # Now explicitly PageCore (or PageMetadata alias)
-        loader: Callable[[Path], Page],
+        loader: Callable[[Path], PageLike],
     ):
         """
         Initialize PageProxy with PageCore metadata and loader.
@@ -172,15 +171,16 @@ class PageProxy:
         self.core = metadata  # Wrap PageCore directly (single source of truth!)
         self._loader = loader
         self._lazy_loaded = False
-        self._full_page: Page | None = None
+        self._full_page: PageLike | None = None
         self._load_lock = threading.Lock()
-        self._related_posts_cache: list[Page] | None = None
+        self._cache_lock = threading.Lock()
+        self._related_posts_cache: list[PageLike] | None = None
         self._site = None  # Site reference - set externally
 
         # Section index page caches (set during section finalization, avoid forcing load)
-        self._posts_cache: list[Page] | None = None
+        self._posts_cache: list[PageLike] | None = None
         self._subsections_cache: list[Any] | None = None
-        self._paginator_cache: Paginator[Page] | None = None
+        self._paginator_cache: Paginator[PageLike] | None = None
         self._page_num_cache: int | None = None
 
         # Path-based section reference (stable across rebuilds)
@@ -405,14 +405,18 @@ class PageProxy:
         if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
             return self._metadata_view_cache
 
-        # Create and cache new CascadeView
-        view = CascadeView.for_page(
-            frontmatter=self._raw_metadata,
-            section_path=section_path,
-            snapshot=cascade,
-        )
-        self._metadata_view_cache = view
-        self._metadata_view_cache_key = cache_key
+        with self._cache_lock:
+            if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
+                return self._metadata_view_cache
+
+            # Create and cache new CascadeView
+            view = CascadeView.for_page(
+                frontmatter=self._raw_metadata,
+                section_path=section_path,
+                snapshot=cascade,
+            )
+            self._metadata_view_cache = view
+            self._metadata_view_cache_key = cache_key
         return view
 
     def _build_raw_metadata_from_core(self) -> dict[str, Any]:
@@ -532,7 +536,7 @@ class PageProxy:
         # PageProxy paths are already relative from cache - no normalization needed
 
     @property
-    def related_posts(self) -> list[Page]:
+    def related_posts(self) -> list[PageLike]:
         """Get related posts (lazy-loaded)."""
         # If set on proxy without loading, return cached value
         if self._related_posts_cache is not None:
@@ -542,7 +546,7 @@ class PageProxy:
         return self._full_page.related_posts if self._full_page else []
 
     @related_posts.setter
-    def related_posts(self, value: list[Page]) -> None:
+    def related_posts(self, value: list[PageLike]) -> None:
         """Set related posts.
 
         In incremental mode, allow setting on proxy without forcing a full load.
@@ -562,7 +566,7 @@ class PageProxy:
     # which is critical for incremental builds where index pages may be PageProxy.
 
     @property
-    def _posts(self) -> list[Page] | None:
+    def _posts(self) -> list[PageLike] | None:
         """Get posts list for section index pages."""
         if self._posts_cache is not None:
             return self._posts_cache
@@ -571,7 +575,7 @@ class PageProxy:
         return None
 
     @_posts.setter
-    def _posts(self, value: list[Page] | None) -> None:
+    def _posts(self, value: list[PageLike] | None) -> None:
         """Set posts list for section index pages."""
         if not self._lazy_loaded and self._full_page is None:
             self._posts_cache = value
@@ -600,7 +604,7 @@ class PageProxy:
             self._full_page._subsections = value
 
     @property
-    def _paginator(self) -> Paginator[Page] | None:
+    def _paginator(self) -> Paginator[PageLike] | None:
         """Get paginator for section index pages."""
         if self._paginator_cache is not None:
             return self._paginator_cache
@@ -609,7 +613,7 @@ class PageProxy:
         return None
 
     @_paginator.setter
-    def _paginator(self, value: Paginator[Page] | None) -> None:
+    def _paginator(self, value: Paginator[PageLike] | None) -> None:
         """Set paginator for section index pages."""
         if not self._lazy_loaded and self._full_page is None:
             self._paginator_cache = value
@@ -670,7 +674,7 @@ class PageProxy:
     # ============================================================================
 
     @property
-    def parent(self) -> Section | None:
+    def parent(self) -> SectionLike | None:
         """
         Get the parent section of this page.
 
@@ -804,7 +808,7 @@ class PageProxy:
     # ============================================================================
 
     @property
-    def _section(self) -> Section | None:
+    def _section(self) -> SectionLike | None:
         """
         Get the section this page belongs to (lazy lookup via path).
 
@@ -829,7 +833,7 @@ class PageProxy:
         return self._site.get_section_by_path(self._section_path)
 
     @_section.setter
-    def _section(self, value: Section | None) -> None:
+    def _section(self, value: SectionLike | None) -> None:
         """
         Set the section this page belongs to (stores path, not object).
 
@@ -890,12 +894,12 @@ class PageProxy:
         }
 
     @classmethod
-    def from_page(cls, page: Page, metadata: PageCore) -> PageProxy:
+    def from_page(cls, page: PageLike, metadata: PageCore) -> PageProxy:
         """Create proxy from full page (for testing)."""
 
         # This is mainly for testing - normally you'd create from metadata
         # and load from disk, but we can create from an existing page too
-        def loader(source_path: Path) -> Page:
+        def loader(source_path: Path) -> PageLike:
             return page
 
         return cls(page.source_path, metadata, loader)

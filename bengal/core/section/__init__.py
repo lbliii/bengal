@@ -51,8 +51,8 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.core.diagnostics import DiagnosticEvent, DiagnosticsSink
-    from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols.core import PageLike
 
 from .ergonomics import SectionErgonomicsMixin
 from .hierarchy import SectionHierarchyMixin
@@ -106,10 +106,10 @@ class Section(
 
     name: str = "root"
     path: Path | None = field(default_factory=lambda: Path("."))
-    pages: list[Page] = field(default_factory=list)
+    pages: list[PageLike] = field(default_factory=list)
     subsections: list[Section] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
-    index_page: Page | None = None
+    index_page: PageLike | None = None
     parent: Section | None = None
 
     # Virtual section support (for API docs, generated content)

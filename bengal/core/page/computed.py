@@ -45,9 +45,9 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from bengal.core.author import Author
-    from bengal.core.page import Page
     from bengal.core.series import Series
     from bengal.core.site import Site
+    from bengal.protocols.core import PageLike
 
 
 def compute_word_count(raw_content: str) -> int:
@@ -282,7 +282,7 @@ def get_series_neighbor(
     metadata: Mapping[str, Any],
     site: Site | None,
     offset: int,
-) -> Page | None:
+) -> PageLike | None:
     """Get neighboring page in series by part offset.
 
     Args:

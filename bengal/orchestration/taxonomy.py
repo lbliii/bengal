@@ -23,7 +23,7 @@ The orchestrator builds site.taxonomies dict during collection:
     site.taxonomies['tags'][slug] = {
             'name': str,      # Display name (e.g., 'Python')
             'slug': str,      # URL slug (e.g., 'python')
-            'pages': list[Page]  # Pages with this tag
+            'pages': list[PageLike]  # Pages with this tag
     }
 
 Dynamic pages are generated pages with _generated=True metadata
@@ -81,7 +81,6 @@ MIN_TAGS_FOR_PARALLEL = 10
 if TYPE_CHECKING:
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.taxonomy_index import TaxonomyIndex
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import PageLike
@@ -123,7 +122,7 @@ class TaxonomyOrchestrator:
           them from being included if someone manually adds tags.
 
         Args:
-            page: Page to check
+            page: PageLike to check
 
         Returns:
             True if page should be included in taxonomies
@@ -184,7 +183,7 @@ class TaxonomyOrchestrator:
             )
 
     def collect_and_generate_incremental(
-        self, changed_pages: list[Page], cache: BuildCache
+        self, changed_pages: list[PageLike], cache: BuildCache
     ) -> set[str]:
         """
         Incrementally update taxonomies for changed pages only.
@@ -759,7 +758,7 @@ class TaxonomyOrchestrator:
 
         return len(all_generated_pages)
 
-    def _create_tag_index_page(self) -> Page:
+    def _create_tag_index_page(self) -> PageLike:
         """
         Create the main tags index page.
 
@@ -770,7 +769,7 @@ class TaxonomyOrchestrator:
         """
         return self._create_tag_index_page_for(self.site.taxonomies["tags"])
 
-    def _create_tag_index_page_for(self, tags: dict[str, Any]) -> Page:
+    def _create_tag_index_page_for(self, tags: dict[str, Any]) -> PageLike:
         """Create tag index page using virtual page utility."""
         spec = VirtualPageSpec(
             title="All Tags",
@@ -789,7 +788,7 @@ class TaxonomyOrchestrator:
             registry_priority=40,
         )
 
-    def _create_tag_pages(self, tag_slug: str, tag_data: dict[str, Any]) -> list[Page]:
+    def _create_tag_pages(self, tag_slug: str, tag_data: dict[str, Any]) -> list[PageLike]:
         """
         Create pages for an individual tag (with pagination if needed).
 
@@ -802,7 +801,7 @@ class TaxonomyOrchestrator:
         """
         from bengal.utils.pagination import Paginator
 
-        pages_to_create: list[Page] = []
+        pages_to_create: list[PageLike] = []
         per_page = self.site.config.get("pagination", {}).get("per_page", 10)
 
         # Filter out any ineligible pages (defensive check)
@@ -844,11 +843,11 @@ class TaxonomyOrchestrator:
 
     def _create_tag_pages_for_lang(
         self, tag_slug: str, tag_data: dict[str, Any], lang: str
-    ) -> list[Page]:
+    ) -> list[PageLike]:
         """Create tag pages for a specific language."""
         from bengal.utils.pagination import Paginator
 
-        pages_to_create: list[Page] = []
+        pages_to_create: list[PageLike] = []
         per_page = self.site.config.get("pagination", {}).get("per_page", 10)
 
         # Filter out any ineligible pages (defensive check)
@@ -887,7 +886,7 @@ class TaxonomyOrchestrator:
 
     def generate_tag_pages(
         self, tags: list[str], selective: bool = False, context: BuildContext | None = None
-    ) -> list[Page]:
+    ) -> list[PageLike]:
         """
         Generate pages for a list of tags.
 
@@ -908,7 +907,7 @@ class TaxonomyOrchestrator:
         if selective and self._is_test_mode():
             self.threshold = 0
 
-        all_pages: list[Page] = []
+        all_pages: list[PageLike] = []
         for tag_slug in tags:
             # Look up tag data from site.taxonomies
             tag_data = self.site.taxonomies.get("tags", {}).get(tag_slug)
