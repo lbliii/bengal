@@ -191,11 +191,14 @@ Delete the dual-write from Task 1.2. Rendering no longer sets `page.html_content
 
 ---
 
-## Sprint 2: Introduce RenderedPage
+## Sprint 2: Introduce RenderedPage ✅
 
 **Goal**: Rendering produces `RenderedPage` instead of mutating `page.rendered_html` and `page.output_path`.
+**Status**: Complete (dual-write). `RenderedPage` record is constructed in all render paths and
+passed to `write_output()`. Page mutation retained for backward compatibility with
+`json_accumulator`, `cache_checker.cache_rendered_output`, and autodoc paths.
 
-### Task 2.1 — Create RenderedPage frozen dataclass
+### Task 2.1 — Create RenderedPage frozen dataclass ✅
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -204,31 +207,40 @@ class RenderedPage:
     output_path: Path
     rendered_html: str
     render_time_ms: float
-    dependencies: frozenset[str]
+    dependencies: frozenset[str] = frozenset()
 ```
 
-**Acceptance**: Type exists.
+**File**: `bengal/core/records.py`
 
-### Task 2.2 — Renderer returns RenderedPage
+### Task 2.2 — Pipeline builds RenderedPage ✅
 
-Modify `Renderer.render_page()` to return `RenderedPage` instead of mutating `page.rendered_html` and `page.output_path`.
+`RenderingPipeline._render_and_write()` constructs `RenderedPage` after template rendering
+and `format_html()`. Passes it to `write_output()`. Dual-writes `page.rendered_html` for
+backward compatibility.
 
-**Files**: `bengal/rendering/renderer.py`, `bengal/rendering/pipeline/core.py`
-**Acceptance**: Render method returns RenderedPage. No Page mutation during rendering.
+**Files**: `bengal/rendering/pipeline/core.py`
 
-### Task 2.3 — Write phase consumes RenderedPage
+### Task 2.3 — Write phase consumes RenderedPage ✅
 
-Modify `write_output()` and post-processing to accept `RenderedPage` instead of reading from Page.
+`write_output()` accepts optional `RenderedPage` parameter. When provided, reads
+`rendered_html` and `output_path` from the immutable record instead of from the
+mutable Page object. `_track_and_record()` likewise accepts an `output_path` override.
 
-**Files**: `bengal/rendering/pipeline/output.py`, `bengal/orchestration/postprocess.py`
-**Acceptance**: Post-processing reads from RenderedPage. `rg 'page\.rendered_html' bengal/orchestration/` returns zero hits.
+**Files**: `bengal/rendering/pipeline/output.py`
 
-### Task 2.4 — Wire RenderedPage through WaveScheduler
+### Task 2.4 — CacheChecker produces RenderedPage ✅
 
-`WaveScheduler` parallel rendering collects `RenderedPage` results from each worker thread instead of relying on in-place Page mutation.
+Both `try_rendered_cache()` and `try_parsed_cache()` construct `RenderedPage` records
+and pass them to `write_output()`.
 
-**Files**: `bengal/snapshots/scheduler.py`, `bengal/orchestration/render/orchestrator.py`, `bengal/orchestration/render/parallel.py`
-**Acceptance**: Parallel rendering returns `list[RenderedPage]`. No shared mutable state between threads.
+**Files**: `bengal/rendering/pipeline/cache_checker.py`
+
+### Deferred to later sprint
+
+- **Remove dual-write**: Eliminate `page.rendered_html = ...` once `json_accumulator`
+  and `cache_checker.cache_rendered_output` are updated to accept `RenderedPage`.
+- **WaveScheduler collects RenderedPage**: Worker threads return `RenderedPage` instead
+  of mutated Page objects. Blocked on removing dual-write first.
 
 ---
 

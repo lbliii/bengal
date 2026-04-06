@@ -52,6 +52,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.core.output import OutputCollector
+    from bengal.core.records import RenderedPage
     from bengal.protocols import PageLike, SiteLike
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 
@@ -119,6 +120,7 @@ def write_output(
     collector: OutputCollector | None = None,
     write_behind: WriteBehindCollector | None = None,
     build_cache: Any = None,
+    rendered_page: RenderedPage | None = None,
 ) -> None:
     """
     Write rendered page to output directory.
@@ -132,6 +134,7 @@ def write_output(
     - Write-behind async I/O (when write_behind provided)
 
     RFC: rfc-path-to-200-pgs (Phase III - Write-Behind I/O)
+    Epic: Immutable Page Pipeline, Sprint 2 — reads from RenderedPage when provided.
 
     Args:
         page: Page with rendered content
@@ -139,34 +142,43 @@ def write_output(
         collector: Optional output collector for hot reload tracking
         write_behind: Optional write-behind collector for async writes
         build_cache: Optional BuildCache for direct cache access.
+        rendered_page: Optional RenderedPage record (Sprint 2: Immutable Pipeline).
+            When provided, rendered_html and output_path are read from this
+            record instead of the mutable Page object.
 
     """
+    # Sprint 2: Read from RenderedPage when available, fall back to page attrs
+    output_path = rendered_page.output_path if rendered_page else page.output_path
+    rendered_html = (
+        rendered_page.rendered_html if rendered_page else getattr(page, "rendered_html", None)
+    )
+
     # Ensure output_path is set
-    if page.output_path is None:
+    if output_path is None:
         return
 
     # Ensure rendered_html is set and non-empty (required for writing)
-    if not hasattr(page, "rendered_html") or not page.rendered_html:
+    if not rendered_html:
         logger.warning(
             "write_output_skipped_no_html",
             page=str(page.source_path),
-            output_path=str(page.output_path),
-            has_attr=hasattr(page, "rendered_html"),
-            is_none=not hasattr(page, "rendered_html") or page.rendered_html is None,
-            is_empty=hasattr(page, "rendered_html") and page.rendered_html == "",
+            output_path=str(output_path),
+            has_attr=rendered_page is not None or hasattr(page, "rendered_html"),
+            is_none=rendered_html is None,
+            is_empty=rendered_html == "" if rendered_html is not None else False,
         )
         return
 
     # Write-behind mode: queue for async write (RFC: rfc-path-to-200-pgs)
     if write_behind is not None:
-        write_behind.enqueue(page.output_path, page.rendered_html)
-        _copy_notebook_source(page)
-        _track_and_record(page, site, collector, build_cache=build_cache)
+        write_behind.enqueue(output_path, rendered_html)
+        _copy_notebook_source(page, output_path=output_path)
+        _track_and_record(page, site, collector, build_cache=build_cache, output_path=output_path)
         return
 
     # Synchronous write (original behavior)
     # Ensure parent directory exists (with caching to reduce syscalls)
-    parent_dir = page.output_path.parent
+    parent_dir = output_path.parent
 
     # Only create directory if not already done (thread-safe atomic check-and-add)
     if mark_dir_created(str(parent_dir)):
@@ -179,14 +191,14 @@ def write_output(
     try:
         if fast_writes:
             # Direct write (faster, but not crash-safe)
-            page.output_path.write_text(page.rendered_html, encoding="utf-8")
+            output_path.write_text(rendered_html, encoding="utf-8")
         else:
             # Atomic write (crash-safe, slightly slower)
             from bengal.utils.io.atomic_write import atomic_write_text
 
             atomic_write_text(
-                page.output_path,
-                page.rendered_html,
+                output_path,
+                rendered_html,
                 encoding="utf-8",
                 ensure_parent=False,  # parent dir already ensured above (cached)
             )
@@ -197,29 +209,30 @@ def write_output(
         parent_dir.mkdir(parents=True, exist_ok=True)
 
         if fast_writes:
-            page.output_path.write_text(page.rendered_html, encoding="utf-8")
+            output_path.write_text(rendered_html, encoding="utf-8")
         else:
             from bengal.utils.io.atomic_write import atomic_write_text
 
             atomic_write_text(
-                page.output_path,
-                page.rendered_html,
+                output_path,
+                rendered_html,
                 encoding="utf-8",
                 ensure_parent=False,
             )
 
     _copy_notebook_source(page)
-    _track_and_record(page, site, collector, build_cache=build_cache)
+    _track_and_record(page, site, collector, build_cache=build_cache, output_path=output_path)
 
 
-def _copy_notebook_source(page: PageLike) -> None:
+def _copy_notebook_source(page: PageLike, output_path: Path | None = None) -> None:
     """Copy notebook .ipynb to output directory for download link."""
-    if not page.output_path or not getattr(page, "source_path", None):
+    effective_output_path = output_path or page.output_path
+    if not effective_output_path or not getattr(page, "source_path", None):
         return
     src = page.source_path
     if not str(src).lower().endswith(".ipynb") or not src.exists():
         return
-    dest = page.output_path.parent / f"{src.stem}.ipynb"
+    dest = effective_output_path.parent / f"{src.stem}.ipynb"
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
         import shutil
@@ -239,6 +252,7 @@ def _track_and_record(
     site: SiteLike,
     collector: OutputCollector | None,
     build_cache: Any = None,
+    output_path: Path | None = None,
 ) -> None:
     """Track output mapping and record output (shared by sync and async paths).
 
@@ -247,8 +261,10 @@ def _track_and_record(
         site: Site instance
         collector: Optional output collector for hot reload
         build_cache: Optional BuildCache for direct cache access.
+        output_path: Optional override from RenderedPage (Sprint 2).
 
     """
+    effective_output_path = output_path or page.output_path
     cache = build_cache
 
     # Track source→output mapping for cleanup on deletion
@@ -257,15 +273,15 @@ def _track_and_record(
         cache
         and not page.metadata.get("_generated")
         and not page.metadata.get("is_autodoc")
-        and page.output_path
+        and effective_output_path
     ):
-        cache.track_output(page.source_path, page.output_path, site.output_dir)
+        cache.track_output(page.source_path, effective_output_path, site.output_dir)
 
     # Record output for hot reload tracking
-    if collector and page.output_path:
+    if collector and effective_output_path:
         from bengal.core.output import OutputType
 
-        collector.record(page.output_path, OutputType.HTML, phase="render")
+        collector.record(effective_output_path, OutputType.HTML, phase="render")
 
 
 def format_html(html: str, page: PageLike, site: SiteLike) -> str:

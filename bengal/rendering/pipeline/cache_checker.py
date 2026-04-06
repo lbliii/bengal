@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-from bengal.core.records import ParsedPage
+from bengal.core.records import ParsedPage, RenderedPage
 from bengal.rendering.pipeline.output import format_html, write_output
 from bengal.rendering.pipeline.toc import extract_toc_structure
 from bengal.utils.observability.logger import get_logger
@@ -104,13 +104,14 @@ class CacheChecker:
 
         # Pass output_dir for asset manifest validation
         output_dir = getattr(self.site, "output_dir", None)
-        rendered_html = cache.get_rendered_output(
+        cached_html = cache.get_rendered_output(
             page.source_path, template, page.metadata, output_dir=output_dir
         )
-        if not rendered_html or is_missing(rendered_html):
+        if not cached_html or is_missing(cached_html):
             return False
 
-        page.rendered_html = rendered_html
+        # Dual-write: set page.rendered_html for backward compatibility
+        page.rendered_html = cached_html
 
         if self.build_stats:
             self.build_stats.rendered_cache_hits += 1
@@ -121,12 +122,21 @@ class CacheChecker:
 
             page.output_path = determine_output_path(page, self.site)
 
+        # Sprint 2: Build RenderedPage from cached data
+        rendered_page = RenderedPage(
+            source_path=page.source_path,
+            output_path=page.output_path,
+            rendered_html=cached_html,
+            render_time_ms=0.0,
+        )
+
         write_output(
             page,
             cast("SiteLike", self.site),
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,
+            rendered_page=rendered_page,
         )
 
         return True
@@ -242,11 +252,14 @@ class CacheChecker:
         )
 
         html_content = self.renderer.render_content(parsed_content)
-        page.rendered_html = self.renderer.render_page(page, html_content, parsed_page=parsed_page)
-        page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
+        final_html = self.renderer.render_page(page, html_content, parsed_page=parsed_page)
+        final_html = format_html(final_html, page, cast("SiteLike", self.site))
+
+        # Dual-write: set page.rendered_html for backward compatibility
+        page.rendered_html = final_html
 
         # Validate rendered HTML is not empty
-        if not page.rendered_html:
+        if not final_html:
             logger.warning(
                 "rendered_html_empty_after_cache",
                 page=str(page.source_path),
@@ -261,12 +274,21 @@ class CacheChecker:
 
             page.output_path = determine_output_path(page, self.site)
 
+        # Sprint 2: Build RenderedPage from cache-rendered data
+        rendered_page = RenderedPage(
+            source_path=page.source_path,
+            output_path=page.output_path,
+            rendered_html=final_html,
+            render_time_ms=0.0,
+        )
+
         write_output(
             page,
             cast("SiteLike", self.site),
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,
+            rendered_page=rendered_page,
         )
 
         return True
