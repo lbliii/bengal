@@ -63,7 +63,7 @@ class PageContentMixin:
     _plain_text_cache: str | None
 
     # Lock from Page dataclass (thread-safe cache initialization)
-    _init_lock: threading.Lock
+    _init_lock: threading.RLock
 
     @property
     def content(self) -> str:

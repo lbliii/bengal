@@ -226,7 +226,7 @@ class Page(
     # Private cache for lazy frontmatter property
     _frontmatter: Frontmatter | None = field(default=None, init=False, repr=False)
     # Lock for thread-safe lazy initialization of _frontmatter
-    _init_lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
+    _init_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
 
     # Cache for CascadeView (invalidated when site/section changes)
     _metadata_view_cache: CascadeView | None = field(default=None, init=False, repr=False)

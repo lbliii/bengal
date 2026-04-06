@@ -75,7 +75,7 @@ class PageMetadataMixin:
     core: PageCore | None
     _site: Site | None
     _toc_items_cache: list[dict[str, Any]] | None
-    _init_lock: threading.Lock
+    _init_lock: threading.RLock
     # slug is defined as a property below - no declaration needed here
 
     @property
