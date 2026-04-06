@@ -27,6 +27,7 @@ See Also:
 from __future__ import annotations
 
 import re
+import time as _time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
@@ -741,8 +742,6 @@ class RenderingPipeline:
         write_output so the write phase reads from the immutable record.
         Dual-writes page.rendered_html for backward compatibility.
         """
-        import time as _time
-
         # Allow empty html_content - pages like home pages, section indexes, and
         # taxonomy pages may have no markdown body but should still render
         # (they're driven by template logic and frontmatter, not content)
