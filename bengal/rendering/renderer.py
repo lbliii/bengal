@@ -357,7 +357,12 @@ class Renderer:
 
         return result
 
-    def render_page(self, page: PageLike, content: str | None = None) -> str:
+    def render_page(
+        self,
+        page: PageLike,
+        content: str | None = None,
+        parsed_page: Any = None,
+    ) -> str:
         """
         Render a complete page with template.
 
@@ -416,6 +421,7 @@ class Renderer:
             content=content,
             snapshot=snapshot,
             build_context=self.build_context,  # PERF: O(1) section lookup
+            parsed_page=parsed_page,
         )
 
         # Inject cached blocks for KIDA templates (RFC: kida-template-introspection)

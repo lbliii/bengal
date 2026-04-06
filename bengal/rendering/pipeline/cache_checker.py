@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.core.records import ParsedPage
 from bengal.rendering.pipeline.output import format_html, write_output
 from bengal.rendering.pipeline.toc import extract_toc_structure
 from bengal.utils.observability.logger import get_logger
@@ -223,8 +224,25 @@ class CacheChecker:
                     error_type=type(e).__name__,
                 )
 
+        # Build immutable ParsedPage from cached data (Sprint 1: Immutable Pipeline)
+        toc_items_list = cached.get("toc_items", [])
+        if not toc_items_list:
+            toc_items_list = extract_toc_structure(toc)
+        parsed_page = ParsedPage(
+            html_content=html,
+            toc=toc,
+            toc_items=tuple(toc_items_list),
+            excerpt=cached.get("excerpt", "") or "",
+            meta_description=cached.get("meta_description", "") or "",
+            plain_text=page.plain_text,
+            word_count=getattr(page, "word_count", 0) or 0,
+            reading_time=getattr(page, "reading_time", 0) or 0,
+            links=tuple(getattr(page, "links", None) or ()),
+            ast_cache=cached.get("ast"),
+        )
+
         html_content = self.renderer.render_content(parsed_content)
-        page.rendered_html = self.renderer.render_page(page, html_content)
+        page.rendered_html = self.renderer.render_page(page, html_content, parsed_page=parsed_page)
         page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
 
         # Validate rendered HTML is not empty
@@ -253,7 +271,13 @@ class CacheChecker:
 
         return True
 
-    def cache_parsed_content(self, page: PageLike, template: str, parser_version: str) -> None:
+    def cache_parsed_content(
+        self,
+        page: PageLike,
+        template: str,
+        parser_version: str,
+        parsed_page: ParsedPage | None = None,
+    ) -> None:
         """
         Store parsed content in cache for next build.
 
@@ -261,27 +285,42 @@ class CacheChecker:
             page: Page with parsed content
             template: Template name used
             parser_version: Parser version used
+            parsed_page: Optional ParsedPage record to read from instead of page
         """
         if not self.build_cache or page.metadata.get("_generated"):
             return
 
         cache = self.build_cache
 
-        toc_items = extract_toc_structure(page.toc or "")
         md_cfg = self.site.config.get("markdown", {}) or {}
         ast_cache_cfg = md_cfg.get("ast_cache", {}) or {}
         persist_tokens = bool(ast_cache_cfg.get("persist_tokens", False))
-        cached_ast = getattr(page, "_ast_cache", None) if persist_tokens else None
-        cached_links = getattr(page, "links", None)
 
-        excerpt = getattr(page, "_excerpt", None) or ""
-        meta_description = getattr(page, "_meta_description", None) or ""
+        # Read from ParsedPage when available; fall back to page fields
+        if parsed_page is not None:
+            html_content = parsed_page.html_content
+            toc = parsed_page.toc
+            toc_items = list(parsed_page.toc_items)
+            links = list(parsed_page.links) if parsed_page.links else None
+            excerpt = parsed_page.excerpt
+            meta_description = parsed_page.meta_description
+            cached_ast = parsed_page.ast_cache if persist_tokens else None
+        else:
+            html_content = page.html_content
+            toc = page.toc
+            toc_items = extract_toc_structure(page.toc or "")
+            cached_links = getattr(page, "links", None)
+            links = cached_links if isinstance(cached_links, list) else None
+            excerpt = getattr(page, "_excerpt", None) or ""
+            meta_description = getattr(page, "_meta_description", None) or ""
+            cached_ast = getattr(page, "_ast_cache", None) if persist_tokens else None
+
         cache.store_parsed_content(
             page.source_path,
-            page.html_content,
-            page.toc,
+            html_content,
+            toc,
             toc_items,
-            cached_links if isinstance(cached_links, list) else None,
+            links,
             page.metadata,
             template,
             parser_version,
