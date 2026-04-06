@@ -243,11 +243,29 @@ class MockTemplateSnapshot:
 
 
 @dataclass
+class MockSchedule:
+    """Mock RenderSchedule for testing."""
+
+    templates: dict[str, MockTemplateSnapshot]
+
+
+@dataclass
 class MockSiteSnapshot:
     """Mock SiteSnapshot for testing."""
 
     pages: list[MockPageSnapshot]
-    templates: dict[str, MockTemplateSnapshot]
+    schedule: MockSchedule
+
+    @classmethod
+    def create(
+        cls,
+        pages: list[MockPageSnapshot] | None = None,
+        templates: dict[str, MockTemplateSnapshot] | None = None,
+    ) -> MockSiteSnapshot:
+        return cls(
+            pages=pages or [],
+            schedule=MockSchedule(templates=templates or {}),
+        )
 
 
 class TestSnapshotEffectBuilder:
@@ -255,14 +273,14 @@ class TestSnapshotEffectBuilder:
 
     def test_build_effects_empty_snapshot(self) -> None:
         """Builder handles empty snapshot."""
-        snapshot = MockSiteSnapshot(pages=[], templates={})
+        snapshot = MockSiteSnapshot.create(pages=[], templates={})
         tracer = SnapshotEffectBuilder.from_snapshot(snapshot)  # type: ignore[arg-type]
 
         assert len(tracer.effects) == 0
 
     def test_build_effects_single_page(self) -> None:
         """Builder creates effect for single page."""
-        snapshot = MockSiteSnapshot(
+        snapshot = MockSiteSnapshot.create(
             pages=[
                 MockPageSnapshot(
                     source_path=Path("content/page.md"),
@@ -286,7 +304,7 @@ class TestSnapshotEffectBuilder:
 
     def test_build_effects_multiple_pages(self) -> None:
         """Builder creates effects for multiple pages."""
-        snapshot = MockSiteSnapshot(
+        snapshot = MockSiteSnapshot.create(
             pages=[
                 MockPageSnapshot(
                     source_path=Path("content/a.md"),
@@ -313,7 +331,7 @@ class TestSnapshotEffectBuilder:
 
     def test_build_effects_includes_template_dependencies(self) -> None:
         """Builder includes template dependencies in effects."""
-        snapshot = MockSiteSnapshot(
+        snapshot = MockSiteSnapshot.create(
             pages=[
                 MockPageSnapshot(
                     source_path=Path("content/page.md"),
@@ -337,7 +355,7 @@ class TestSnapshotEffectBuilder:
 
     def test_build_effects_missing_template_in_registry(self) -> None:
         """Builder handles page with template not in registry."""
-        snapshot = MockSiteSnapshot(
+        snapshot = MockSiteSnapshot.create(
             pages=[
                 MockPageSnapshot(
                     source_path=Path("content/page.md"),
@@ -358,7 +376,7 @@ class TestSnapshotEffectBuilder:
 
     def test_from_snapshot_convenience_method(self) -> None:
         """from_snapshot class method works correctly."""
-        snapshot = MockSiteSnapshot(
+        snapshot = MockSiteSnapshot.create(
             pages=[
                 MockPageSnapshot(
                     source_path=Path("content/page.md"),
@@ -377,7 +395,7 @@ class TestSnapshotEffectBuilder:
 
     def test_builder_instance_method(self) -> None:
         """Builder instance build_effects method works."""
-        snapshot = MockSiteSnapshot(
+        snapshot = MockSiteSnapshot.create(
             pages=[
                 MockPageSnapshot(
                     source_path=Path("content/page.md"),

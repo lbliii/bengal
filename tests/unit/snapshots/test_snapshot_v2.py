@@ -274,14 +274,14 @@ class TestSnapshotV2Integration:
         build_site()
         snapshot = create_site_snapshot(site)
 
-        # templates should be a MappingProxyType
-        assert isinstance(snapshot.templates, MappingProxyType)
+        # templates should be a MappingProxyType (via schedule component)
+        assert isinstance(snapshot.schedule.templates, MappingProxyType)
 
         # template_dependency_graph should be populated
-        assert isinstance(snapshot.template_dependency_graph, MappingProxyType)
+        assert isinstance(snapshot.schedule.template_dependency_graph, MappingProxyType)
 
         # template_dependents should be populated
-        assert isinstance(snapshot.template_dependents, MappingProxyType)
+        assert isinstance(snapshot.schedule.template_dependents, MappingProxyType)
 
     def test_legacy_config_dict_still_works(self, site, build_site):
         """Test that legacy config dict access still works."""

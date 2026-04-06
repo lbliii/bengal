@@ -30,11 +30,29 @@ class MockTemplateSnapshot:
 
 
 @dataclass
+class MockSchedule:
+    """Mock RenderSchedule for testing."""
+
+    templates: dict[str, MockTemplateSnapshot]
+
+
+@dataclass
 class MockSiteSnapshot:
     """Mock SiteSnapshot for testing."""
 
     pages: list[MockPageSnapshot]
-    templates: dict[str, MockTemplateSnapshot]
+    schedule: MockSchedule
+
+    @classmethod
+    def create(
+        cls,
+        pages: list[MockPageSnapshot] | None = None,
+        templates: dict[str, MockTemplateSnapshot] | None = None,
+    ) -> MockSiteSnapshot:
+        return cls(
+            pages=pages or [],
+            schedule=MockSchedule(templates=templates or {}),
+        )
 
 
 class TestDiffResult:
@@ -74,7 +92,7 @@ class TestBlockDiffService:
 
     def test_fresh_build_all_pages_need_rebuild(self) -> None:
         """With no old snapshot, all pages need rebuild."""
-        new_snapshot = MockSiteSnapshot(
+        new_snapshot = MockSiteSnapshot.create(
             pages=[
                 MockPageSnapshot(
                     source_path=Path("content/page.md"),
@@ -100,8 +118,8 @@ class TestBlockDiffService:
             content="# Hello",
             metadata={"title": "Hello"},
         )
-        old_snapshot = MockSiteSnapshot(pages=[page], templates={})
-        new_snapshot = MockSiteSnapshot(pages=[page], templates={})
+        old_snapshot = MockSiteSnapshot.create(pages=[page], templates={})
+        new_snapshot = MockSiteSnapshot.create(pages=[page], templates={})
 
         service = BlockDiffService(old_snapshot, new_snapshot)  # type: ignore[arg-type]
         result = service.diff_page(Path("content/page.md"))
@@ -123,8 +141,8 @@ class TestBlockDiffService:
             content="# World",
             metadata={"title": "Hello"},
         )
-        old_snapshot = MockSiteSnapshot(pages=[old_page], templates={})
-        new_snapshot = MockSiteSnapshot(pages=[new_page], templates={})
+        old_snapshot = MockSiteSnapshot.create(pages=[old_page], templates={})
+        new_snapshot = MockSiteSnapshot.create(pages=[new_page], templates={})
 
         service = BlockDiffService(old_snapshot, new_snapshot)  # type: ignore[arg-type]
         result = service.diff_page(Path("content/page.md"))
@@ -146,8 +164,8 @@ class TestBlockDiffService:
             content="# Hello",
             metadata={"title": "New Title"},
         )
-        old_snapshot = MockSiteSnapshot(pages=[old_page], templates={})
-        new_snapshot = MockSiteSnapshot(pages=[new_page], templates={})
+        old_snapshot = MockSiteSnapshot.create(pages=[old_page], templates={})
+        new_snapshot = MockSiteSnapshot.create(pages=[new_page], templates={})
 
         service = BlockDiffService(old_snapshot, new_snapshot)  # type: ignore[arg-type]
         result = service.diff_page(Path("content/page.md"))
@@ -169,8 +187,8 @@ class TestBlockDiffService:
             content="# Hello",
             metadata={"title": "Hello", "_parsed_at": "2024-01-02"},
         )
-        old_snapshot = MockSiteSnapshot(pages=[old_page], templates={})
-        new_snapshot = MockSiteSnapshot(pages=[new_page], templates={})
+        old_snapshot = MockSiteSnapshot.create(pages=[old_page], templates={})
+        new_snapshot = MockSiteSnapshot.create(pages=[new_page], templates={})
 
         service = BlockDiffService(old_snapshot, new_snapshot)  # type: ignore[arg-type]
         result = service.diff_page(Path("content/page.md"))
@@ -186,8 +204,8 @@ class TestBlockDiffService:
             content="# Old",
             metadata={},
         )
-        old_snapshot = MockSiteSnapshot(pages=[old_page], templates={})
-        new_snapshot = MockSiteSnapshot(pages=[], templates={})
+        old_snapshot = MockSiteSnapshot.create(pages=[old_page], templates={})
+        new_snapshot = MockSiteSnapshot.create(pages=[], templates={})
 
         service = BlockDiffService(old_snapshot, new_snapshot)  # type: ignore[arg-type]
         result = service.diff_page(Path("content/old.md"))
@@ -209,8 +227,8 @@ class TestBlockDiffService:
             content="---\ntitle: New\n---\n# Hello",  # Same body, different frontmatter
             metadata={"title": "New"},
         )
-        old_snapshot = MockSiteSnapshot(pages=[old_page], templates={})
-        new_snapshot = MockSiteSnapshot(pages=[new_page], templates={})
+        old_snapshot = MockSiteSnapshot.create(pages=[old_page], templates={})
+        new_snapshot = MockSiteSnapshot.create(pages=[new_page], templates={})
 
         service = BlockDiffService(old_snapshot, new_snapshot)  # type: ignore[arg-type]
         result = service.diff_page(Path("content/page.md"))
@@ -225,7 +243,7 @@ class TestBlockDiffServiceTemplates:
 
     def test_template_change_unknown_blocks_rebuilds(self) -> None:
         """Template change with unknown blocks requires rebuild."""
-        new_snapshot = MockSiteSnapshot(pages=[], templates={})
+        new_snapshot = MockSiteSnapshot.create(pages=[], templates={})
         service = BlockDiffService(None, new_snapshot)  # type: ignore[arg-type]
 
         result = service.diff_template("page.html", changed_blocks=None)
@@ -235,7 +253,7 @@ class TestBlockDiffServiceTemplates:
 
     def test_site_scoped_blocks_no_rebuild(self) -> None:
         """Site-scoped block changes don't require page rebuilds."""
-        new_snapshot = MockSiteSnapshot(pages=[], templates={})
+        new_snapshot = MockSiteSnapshot.create(pages=[], templates={})
         service = BlockDiffService(None, new_snapshot)  # type: ignore[arg-type]
 
         result = service.diff_template(
@@ -249,7 +267,7 @@ class TestBlockDiffServiceTemplates:
 
     def test_page_scoped_blocks_require_rebuild(self) -> None:
         """Page-scoped block changes require rebuild."""
-        new_snapshot = MockSiteSnapshot(pages=[], templates={})
+        new_snapshot = MockSiteSnapshot.create(pages=[], templates={})
         service = BlockDiffService(None, new_snapshot)  # type: ignore[arg-type]
 
         result = service.diff_template(
@@ -262,7 +280,7 @@ class TestBlockDiffServiceTemplates:
 
     def test_mixed_blocks_require_rebuild(self) -> None:
         """Mixed site/page scoped blocks require rebuild."""
-        new_snapshot = MockSiteSnapshot(pages=[], templates={})
+        new_snapshot = MockSiteSnapshot.create(pages=[], templates={})
         service = BlockDiffService(None, new_snapshot)  # type: ignore[arg-type]
 
         result = service.diff_template(
@@ -290,8 +308,8 @@ class TestBlockDiffServiceAffectedPages:
             content="# New",
             metadata={},
         )
-        old_snapshot = MockSiteSnapshot(pages=[old_page], templates={})
-        new_snapshot = MockSiteSnapshot(pages=[new_page], templates={})
+        old_snapshot = MockSiteSnapshot.create(pages=[old_page], templates={})
+        new_snapshot = MockSiteSnapshot.create(pages=[new_page], templates={})
 
         service = BlockDiffService(old_snapshot, new_snapshot)  # type: ignore[arg-type]
         affected = service.get_affected_pages({Path("content/page.md")})
@@ -306,7 +324,7 @@ class TestBlockDiffServiceAffectedPages:
             content="# Hello",
             metadata={},
         )
-        snapshot = MockSiteSnapshot(pages=[page], templates={})
+        snapshot = MockSiteSnapshot.create(pages=[page], templates={})
 
         service = BlockDiffService(snapshot, snapshot)  # type: ignore[arg-type]
         affected = service.get_affected_pages({Path("content/other.md")})

@@ -378,7 +378,7 @@ class WaveScheduler:
 
         try:
             page_to_wave: dict[Path, int] = {}
-            for wave_idx, wave in enumerate(self.snapshot.topological_order):
+            for wave_idx, wave in enumerate(self.snapshot.schedule.topological_order):
                 for page_snapshot in wave:
                     page_to_wave[page_snapshot.source_path] = wave_idx
 

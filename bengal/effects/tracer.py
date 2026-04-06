@@ -420,8 +420,8 @@ class SnapshotEffectBuilder:
         for page in self._snapshot.pages:
             # Get template includes from template snapshot
             template_includes: frozenset[str] = frozenset()
-            if page.template_name in self._snapshot.templates:
-                template_snap = self._snapshot.templates[page.template_name]
+            if page.template_name in self._snapshot.schedule.templates:
+                template_snap = self._snapshot.schedule.templates[page.template_name]
                 template_includes = template_snap.all_dependencies
 
             # Create effect for this page

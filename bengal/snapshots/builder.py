@@ -42,9 +42,12 @@ from bengal.snapshots.templates import (
 )
 from bengal.snapshots.types import (
     NO_SECTION,
+    NavigationPlan,
     PageSnapshot,
+    RenderSchedule,
     SectionSnapshot,
     SiteSnapshot,
+    TaxonomyPlan,
     TemplateSnapshot,
 )
 from bengal.snapshots.utils import (
@@ -181,6 +184,27 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
     top_level_pages, top_level_sections = _compute_top_level_content(regular_pages, all_sections)
     tag_pages = _compute_tag_pages(taxonomies)
 
+    # Compose plan components (Sprint 3)
+    navigation = NavigationPlan(
+        menus=menus,
+        nav_trees=nav_trees,
+        top_level_pages=top_level_pages,
+        top_level_sections=top_level_sections,
+    )
+    taxonomy = TaxonomyPlan(
+        taxonomies=taxonomies,
+        tag_pages=tag_pages,
+    )
+    schedule = RenderSchedule(
+        topological_order=topological_order,
+        template_groups=template_groups,
+        attention_order=attention_order,
+        scout_hints=scout_hints,
+        templates=templates,
+        template_dependency_graph=template_dep_graph,
+        template_dependents=template_dependents,
+    )
+
     return SiteSnapshot(
         pages=all_pages,
         regular_pages=regular_pages,
@@ -189,23 +213,13 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
         config=MappingProxyType(config_dict),
         params=MappingProxyType(config_dict.get("params", {})),
         data=MappingProxyType(dict(site.data) if site.data else {}),
-        menus=menus,
-        taxonomies=taxonomies,
-        topological_order=topological_order,
-        template_groups=template_groups,
-        attention_order=attention_order,
-        scout_hints=scout_hints,
+        navigation=navigation,
+        taxonomy=taxonomy,
+        schedule=schedule,
         snapshot_time=time.time(),
         page_count=len(page_cache),
         section_count=len(section_cache),
-        templates=templates,
-        template_dependency_graph=template_dep_graph,
-        template_dependents=template_dependents,
         config_snapshot=config_snapshot,
-        nav_trees=nav_trees,
-        top_level_pages=top_level_pages,
-        top_level_sections=top_level_sections,
-        tag_pages=tag_pages,
     )
 
 
@@ -257,13 +271,13 @@ def update_snapshot(
         if changed_path.suffix in (".html", ".jinja", ".j2"):
             # O(1) reverse lookup: template_name → dependent pages (direct + transitive)
             template_name = changed_path.name
-            for page_snap in old.template_dependents.get(template_name, ()):
+            for page_snap in old.schedule.template_dependents.get(template_name, ()):
                 affected_paths.add(page_snap.source_path)
             # Also check by full path for templates in subdirectories
             # (template_dependents keys may include path components like "blog/single.html")
-            for name, template in old.templates.items():
+            for name, template in old.schedule.templates.items():
                 if template.path == changed_path:
-                    for page_snap in old.template_dependents.get(name, ()):
+                    for page_snap in old.schedule.template_dependents.get(name, ()):
                         affected_paths.add(page_snap.source_path)
 
     # Create new page snapshots for affected pages only
@@ -376,7 +390,7 @@ def update_snapshot(
     scout_hints = (
         _compute_scout_hints(topological_order, template_groups, site)
         if template_changed
-        else old.scout_hints
+        else old.schedule.scout_hints
     )
 
     # Reuse template snapshots if no template files changed
@@ -386,8 +400,8 @@ def update_snapshot(
         )
     else:
         # Update template_dependents with new page refs
-        templates = old.templates
-        template_dep_graph = old.template_dependency_graph
+        templates = old.schedule.templates
+        template_dep_graph = old.schedule.template_dependency_graph
         # Rebuild dependents with new page refs
         template_dependents = _rebuild_template_dependents(templates, template_groups)
 
@@ -413,6 +427,27 @@ def update_snapshot(
     )
     tag_pages = _compute_tag_pages(taxonomies)
 
+    # Compose plan components (Sprint 3)
+    navigation = NavigationPlan(
+        menus=menus,
+        nav_trees=nav_trees,
+        top_level_pages=top_level_pages,
+        top_level_sections=top_level_sections,
+    )
+    taxonomy = TaxonomyPlan(
+        taxonomies=taxonomies,
+        tag_pages=tag_pages,
+    )
+    schedule = RenderSchedule(
+        topological_order=topological_order,
+        template_groups=template_groups,
+        attention_order=attention_order,
+        scout_hints=scout_hints,
+        templates=templates,
+        template_dependency_graph=template_dep_graph,
+        template_dependents=template_dependents,
+    )
+
     return SiteSnapshot(
         pages=all_pages,
         regular_pages=regular_pages_inc,
@@ -421,23 +456,13 @@ def update_snapshot(
         config=old.config,  # Reuse (structural sharing)
         params=old.params,  # Reuse (structural sharing)
         data=old.data,  # Reuse (structural sharing)
-        menus=menus,
-        taxonomies=taxonomies,
-        topological_order=topological_order,
-        template_groups=template_groups,
-        attention_order=attention_order,
-        scout_hints=scout_hints,
+        navigation=navigation,
+        taxonomy=taxonomy,
+        schedule=schedule,
         snapshot_time=time.time(),
         page_count=len(new_page_cache),
         section_count=len(section_cache),
-        templates=templates,
-        template_dependency_graph=template_dep_graph,
-        template_dependents=template_dependents,
         config_snapshot=config_snapshot,
-        nav_trees=nav_trees,
-        top_level_pages=top_level_pages,
-        top_level_sections=top_level_sections,
-        tag_pages=tag_pages,
     )
 
 

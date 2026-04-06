@@ -196,11 +196,64 @@ class TemplateSnapshot:
 
 
 @dataclass(frozen=True, slots=True)
+class NavigationPlan:
+    """Pre-computed navigation structures for lock-free rendering.
+
+    Contains menus, navigation trees, and top-level content indexes.
+    Built at snapshot time so rendering threads never contend on locks.
+    """
+
+    menus: MappingProxyType[str, tuple[MenuItemSnapshot, ...]]
+    nav_trees: MappingProxyType[str, NavTree] = field(default_factory=lambda: MappingProxyType({}))
+    top_level_pages: tuple[PageSnapshot, ...] = ()
+    top_level_sections: tuple[SectionSnapshot, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class TaxonomyPlan:
+    """Pre-computed taxonomy structures.
+
+    Contains tag/category-to-page mappings and filtered tag page indexes.
+    """
+
+    taxonomies: MappingProxyType[str, MappingProxyType[str, tuple[PageSnapshot, ...]]]
+    tag_pages: MappingProxyType[str, tuple[PageSnapshot, ...]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+
+
+@dataclass(frozen=True, slots=True)
+class RenderSchedule:
+    """Pre-computed rendering schedule and template analysis.
+
+    Groups pages into topological waves and template batches for
+    cache-optimal parallel rendering. Includes template dependency
+    graph for O(1) incremental invalidation.
+    """
+
+    topological_order: tuple[tuple[PageSnapshot, ...], ...]
+    template_groups: MappingProxyType[str, tuple[PageSnapshot, ...]]
+    attention_order: tuple[PageSnapshot, ...]
+    scout_hints: tuple[ScoutHint, ...]
+    templates: MappingProxyType[str, TemplateSnapshot] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    template_dependency_graph: MappingProxyType[str, frozenset[str]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+    template_dependents: MappingProxyType[str, tuple[PageSnapshot, ...]] = field(
+        default_factory=lambda: MappingProxyType({})
+    )
+
+
+@dataclass(frozen=True, slots=True)
 class SiteSnapshot:
     """
     Immutable site snapshot - the complete render context.
 
     Created once after content discovery, used by all render phases.
+    Composed of focused plan types (NavigationPlan, TaxonomyPlan,
+    RenderSchedule) for organizational clarity.
     """
 
     # Content
@@ -210,62 +263,24 @@ class SiteSnapshot:
     root_section: SectionSnapshot
 
     # Configuration (immutable views)
-    # Legacy dict access - preserved for backward compatibility
     config: MappingProxyType[str, Any]
     params: MappingProxyType[str, Any]  # Site params shortcut
 
     # Data (from data/ directory)
     data: MappingProxyType[str, Any]
 
-    # Navigation
-    menus: MappingProxyType[str, tuple[MenuItemSnapshot, ...]]
-    taxonomies: MappingProxyType[str, MappingProxyType[str, tuple[PageSnapshot, ...]]]
-
-    # Pre-computed scheduling structures
-    topological_order: tuple[tuple[PageSnapshot, ...], ...]
-    template_groups: MappingProxyType[str, tuple[PageSnapshot, ...]]
-    attention_order: tuple[PageSnapshot, ...]
-    scout_hints: tuple[ScoutHint, ...]
+    # Decomposed plan components (Sprint 3)
+    navigation: NavigationPlan
+    taxonomy: TaxonomyPlan
+    schedule: RenderSchedule
 
     # Metadata (required fields - must come before defaults)
     snapshot_time: float  # time.time() when snapshot created
     page_count: int
     section_count: int
 
-    # Template snapshots with dependency graph (RFC: Snapshot-Enabled v2)
-    # O(1) template→page lookup for incremental builds
-    templates: MappingProxyType[str, TemplateSnapshot] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
-    # Reverse index: template_name → frozenset of dependent template names
-    template_dependency_graph: MappingProxyType[str, frozenset[str]] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
-    # Reverse index: template_name → pages that use it (directly or transitively)
-    template_dependents: MappingProxyType[str, tuple[PageSnapshot, ...]] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
-
     # Typed configuration snapshot (RFC: Snapshot-Enabled v2, Opportunity 6)
-    # Provides typed attribute access: config_snapshot.site.title
-    # None for backward compatibility - will be populated by snapshot builder
     config_snapshot: ConfigSnapshot | None = None
-
-    # Pre-computed navigation trees keyed by version_id ("__default__" for unversioned).
-    # Built at snapshot time from the fully-populated site, enabling lock-free
-    # O(1) lookups during parallel rendering and eliminating NavTreeCache locks.
-    nav_trees: MappingProxyType[str, NavTree] = field(default_factory=lambda: MappingProxyType({}))
-
-    # Pre-computed top-level content (eliminates Renderer._cache_lock).
-    # Pages and sections not nested in any parent section.
-    top_level_pages: tuple[PageSnapshot, ...] = ()
-    top_level_sections: tuple[SectionSnapshot, ...] = ()
-
-    # Pre-computed tag→pages mapping (eliminates Renderer._cache_lock).
-    # Maps tag slug to filtered, resolved page snapshots.
-    tag_pages: MappingProxyType[str, tuple[PageSnapshot, ...]] = field(
-        default_factory=lambda: MappingProxyType({})
-    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -290,3 +305,7 @@ class MenuItemSnapshot:
     page: PageSnapshot | None = None
     section: SectionSnapshot | None = None
     is_active: bool = False
+
+
+# Forward-compatible alias: SitePlan is the public name going forward.
+SitePlan = SiteSnapshot

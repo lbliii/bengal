@@ -42,7 +42,7 @@ class ScoutThread(threading.Thread):
 
     def run(self) -> None:
         """Warm caches following pre-computed hints."""
-        for hint in self.snapshot.scout_hints:
+        for hint in self.snapshot.schedule.scout_hints:
             if self._stop_event.is_set():
                 break
 

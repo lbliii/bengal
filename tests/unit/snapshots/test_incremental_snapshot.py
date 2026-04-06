@@ -21,7 +21,14 @@ from bengal.snapshots import (
     SpeculativeRenderer,
     predict_affected,
 )
-from bengal.snapshots.types import NO_SECTION, PageSnapshot, SiteSnapshot
+from bengal.snapshots.types import (
+    NO_SECTION,
+    NavigationPlan,
+    PageSnapshot,
+    RenderSchedule,
+    SiteSnapshot,
+    TaxonomyPlan,
+)
 
 # =============================================================================
 # predict_affected() Tests
@@ -74,18 +81,19 @@ class TestPredictAffected:
             config=MappingProxyType({}),
             params=MappingProxyType({}),
             data=MappingProxyType({}),
-            menus=MappingProxyType({}),
-            taxonomies=MappingProxyType({}),
-            topological_order=(),
-            template_groups=MappingProxyType({k: tuple(v) for k, v in template_groups.items()}),
-            attention_order=tuple(page_snapshots),
-            scout_hints=(),
+            navigation=NavigationPlan(menus=MappingProxyType({})),
+            taxonomy=TaxonomyPlan(
+                taxonomies=MappingProxyType({}),
+            ),
+            schedule=RenderSchedule(
+                topological_order=(),
+                template_groups=MappingProxyType({k: tuple(v) for k, v in template_groups.items()}),
+                attention_order=tuple(page_snapshots),
+                scout_hints=(),
+            ),
             snapshot_time=0.0,
             page_count=len(page_snapshots),
             section_count=0,
-            templates=MappingProxyType({}),
-            template_dependency_graph=MappingProxyType({}),
-            template_dependents=MappingProxyType({}),
         )
 
     def test_markdown_file_predicts_single_page(self):
@@ -178,12 +186,14 @@ class TestSpeculativeRenderer:
             config=MappingProxyType({}),
             params=MappingProxyType({}),
             data=MappingProxyType({}),
-            menus=MappingProxyType({}),
-            taxonomies=MappingProxyType({}),
-            topological_order=(),
-            template_groups=MappingProxyType({}),
-            attention_order=(),
-            scout_hints=(),
+            navigation=NavigationPlan(menus=MappingProxyType({})),
+            taxonomy=TaxonomyPlan(taxonomies=MappingProxyType({})),
+            schedule=RenderSchedule(
+                topological_order=(),
+                template_groups=MappingProxyType({}),
+                attention_order=(),
+                scout_hints=(),
+            ),
             snapshot_time=0.0,
             page_count=0,
             section_count=0,
@@ -297,12 +307,14 @@ class TestShadowModeValidator:
             config=MappingProxyType({}),
             params=MappingProxyType({}),
             data=MappingProxyType({}),
-            menus=MappingProxyType({}),
-            taxonomies=MappingProxyType({}),
-            topological_order=(),
-            template_groups=MappingProxyType({}),
-            attention_order=tuple(pages),
-            scout_hints=(),
+            navigation=NavigationPlan(menus=MappingProxyType({})),
+            taxonomy=TaxonomyPlan(taxonomies=MappingProxyType({})),
+            schedule=RenderSchedule(
+                topological_order=(),
+                template_groups=MappingProxyType({}),
+                attention_order=tuple(pages),
+                scout_hints=(),
+            ),
             snapshot_time=0.0,
             page_count=len(pages),
             section_count=0,

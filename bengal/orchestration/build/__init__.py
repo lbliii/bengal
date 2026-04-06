@@ -554,7 +554,7 @@ class BuildOrchestrator:
             # Install pre-computed NavTrees for lock-free lookups during rendering
             from bengal.core.nav_tree import NavTreeCache
 
-            NavTreeCache.set_precomputed(dict(site_snapshot.nav_trees))
+            NavTreeCache.set_precomputed(dict(site_snapshot.navigation.nav_trees))
 
             # Eagerly create global context wrappers (eliminates _context_lock
             # contention during parallel rendering — cache is populated before

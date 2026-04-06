@@ -147,10 +147,10 @@ class Renderer:
 
         # Fast path: use pre-computed snapshot data (lock-free)
         snapshot = getattr(self.build_context, "snapshot", None) if self.build_context else None
-        if snapshot is not None and snapshot.top_level_pages:
+        if snapshot is not None and snapshot.navigation.top_level_pages:
             self._top_level_cache = (
-                list(snapshot.top_level_pages),
-                list(snapshot.top_level_sections),
+                list(snapshot.navigation.top_level_pages),
+                list(snapshot.navigation.top_level_sections),
             )
             return self._top_level_cache
 
@@ -258,8 +258,8 @@ class Renderer:
         """
         # Fast path: use pre-computed snapshot data (lock-free)
         snapshot = getattr(self.build_context, "snapshot", None) if self.build_context else None
-        if snapshot is not None and snapshot.tag_pages:
-            return list(snapshot.tag_pages.get(tag_slug, ()))
+        if snapshot is not None and snapshot.taxonomy.tag_pages:
+            return list(snapshot.taxonomy.tag_pages.get(tag_slug, ()))
 
         # Check instance cache
         if self._tag_pages_cache is not None:

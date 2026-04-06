@@ -50,11 +50,11 @@ def predict_affected(
     if suffix in (".html", ".jinja", ".j2"):
         # Template -> all pages using this template (use O(1) lookup)
         template_name = file_path.name
-        direct = set(snapshot.template_groups.get(template_name, ()))
+        direct = set(snapshot.schedule.template_groups.get(template_name, ()))
 
         # Also check transitive dependents
-        if template_name in snapshot.template_dependents:
-            direct.update(snapshot.template_dependents[template_name])
+        if template_name in snapshot.schedule.template_dependents:
+            direct.update(snapshot.schedule.template_dependents[template_name])
 
         return direct if direct else set(snapshot.pages)  # Conservative fallback
 

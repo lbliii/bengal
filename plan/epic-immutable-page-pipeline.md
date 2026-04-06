@@ -244,54 +244,47 @@ and pass them to `write_output()`.
 
 ---
 
-## Sprint 3: Decompose SitePlan
+## Sprint 3: Decompose SitePlan ✅
 
 **Goal**: Replace monolithic `SiteSnapshot` with composed, focused plan types.
+**Status**: Complete. SiteSnapshot decomposed into NavigationPlan, TaxonomyPlan, and
+RenderSchedule. All consumers migrated. Flat fields removed. `SitePlan` alias added.
 
-### Task 3.1 — Extract NavigationPlan
+### Task 3.1 — Extract NavigationPlan ✅
 
-Move nav trees, prev/next resolution, active trail data from SiteSnapshot into a focused frozen type.
-
-**Files**: `bengal/snapshots/types.py`, `bengal/snapshots/builder.py`, `bengal/core/nav_tree.py`
-**Acceptance**: NavigationPlan type exists. Nav tree lookups work from NavigationPlan.
-
-### Task 3.2 — Extract TaxonomyPlan
-
-Move tag→pages, category→pages mappings into a focused frozen type.
+`NavigationPlan` frozen dataclass contains `menus`, `nav_trees`, `top_level_pages`,
+`top_level_sections`. Accessed via `snapshot.navigation.*`.
 
 **Files**: `bengal/snapshots/types.py`, `bengal/snapshots/builder.py`
-**Acceptance**: TaxonomyPlan type exists. Taxonomy lookups work from TaxonomyPlan.
 
-### Task 3.3 — Extract RenderSchedule
+### Task 3.2 — Extract TaxonomyPlan ✅
 
-Move template groups, topological waves, attention ordering into a focused frozen type.
+`TaxonomyPlan` frozen dataclass contains `taxonomies`, `tag_pages`.
+Accessed via `snapshot.taxonomy.*`.
 
-**Files**: `bengal/snapshots/types.py`, `bengal/snapshots/scheduler.py`
-**Acceptance**: RenderSchedule type exists. WaveScheduler consumes it.
+**Files**: `bengal/snapshots/types.py`, `bengal/snapshots/builder.py`
 
-### Task 3.4 — Extract CascadeMap
+### Task 3.3 — Extract RenderSchedule ✅
 
-Move pre-merged cascade data from CascadeSnapshot into a type that resolves at SourcePage creation time, not at template render time.
+`RenderSchedule` frozen dataclass contains `topological_order`, `template_groups`,
+`attention_order`, `scout_hints`, `templates`, `template_dependency_graph`,
+`template_dependents`. Accessed via `snapshot.schedule.*`.
 
-**Files**: `bengal/core/cascade/`, `bengal/snapshots/builder.py`
-**Acceptance**: CascadeMap replaces CascadeView. Cascade resolved eagerly into record metadata. CascadeView deleted.
+**Files**: `bengal/snapshots/types.py`, `bengal/snapshots/builder.py`
 
-### Task 3.5 — Compose SitePlan from components
+### Task 3.4 — Extract CascadeMap (deferred to Sprint 4)
 
-```python
-@dataclass(frozen=True, slots=True)
-class SitePlan:
-    navigation: NavigationPlan
-    taxonomies: TaxonomyPlan
-    schedule: RenderSchedule
-    cascade: CascadeMap
-    config: ConfigSnapshot
-    data: MappingProxyType[str, Any]
-```
+CascadeSnapshot and CascadeView are already well-designed separate frozen types.
+Eager cascade resolution into record metadata belongs to the SourcePage sprint.
 
-Replace all `SiteSnapshot` consumers with `SitePlan`.
+### Task 3.5 — Compose SitePlan from components ✅
 
-**Acceptance**: `SiteSnapshot` deleted. `SitePlan` used throughout. All tests pass.
+`SiteSnapshot` now composes `NavigationPlan`, `TaxonomyPlan`, and `RenderSchedule`
+as component fields. Cross-cutting fields (`pages`, `sections`, `config`, etc.) stay
+top-level. `SitePlan = SiteSnapshot` alias added for forward compatibility.
+
+**Consumers migrated**: `scheduler.py`, `scout.py`, `speculative.py`, `templates.py`,
+`renderer.py`, `build/__init__.py`, `tracer.py`, `block_diff.py`
 
 ---
 
