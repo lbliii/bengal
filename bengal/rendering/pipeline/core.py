@@ -30,7 +30,7 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from bengal.core.records import ParsedPage
+from bengal.core.records import ParsedPage, RenderedPage
 from bengal.rendering.api_doc_enhancer import set_enhancer_for_render
 
 if TYPE_CHECKING:
@@ -735,7 +735,14 @@ class RenderingPipeline:
 
         RFC: Snapshot-Enabled v2 Opportunities (Effect-Traced Builds)
         Optionally records effects for unified dependency tracking.
+
+        Epic: Immutable Page Pipeline, Sprint 2
+        Constructs a RenderedPage record after rendering. Passes it to
+        write_output so the write phase reads from the immutable record.
+        Dual-writes page.rendered_html for backward compatibility.
         """
+        import time as _time
+
         # Allow empty html_content - pages like home pages, section indexes, and
         # taxonomy pages may have no markdown body but should still render
         # (they're driven by template logic and frontmatter, not content)
@@ -755,6 +762,9 @@ class RenderingPipeline:
         effect_tracer = BuildEffectTracer.get_instance()
         effect_recorder = effect_tracer.record_page_render(page, template)
 
+        render_start = _time.perf_counter()
+        rendered_html = ""
+
         tracker = AssetTracker()
         with tracker:
             if effect_recorder:
@@ -763,44 +773,57 @@ class RenderingPipeline:
                         with _prof.step("render_content"):
                             html_content = self.renderer.render_content(source_html)
                         with _prof.step("render_template"):
-                            page.rendered_html = self.renderer.render_page(
+                            rendered_html = self.renderer.render_page(
                                 page, html_content, parsed_page=parsed_page
                             )
                         with _prof.step("format_html"):
-                            page.rendered_html = format_html(
-                                page.rendered_html, page, cast("SiteLike", self.site)
+                            rendered_html = format_html(
+                                rendered_html, page, cast("SiteLike", self.site)
                             )
                     else:
                         html_content = self.renderer.render_content(source_html)
-                        page.rendered_html = self.renderer.render_page(
+                        rendered_html = self.renderer.render_page(
                             page, html_content, parsed_page=parsed_page
                         )
-                        page.rendered_html = format_html(
-                            page.rendered_html, page, cast("SiteLike", self.site)
+                        rendered_html = format_html(
+                            rendered_html, page, cast("SiteLike", self.site)
                         )
             else:
                 if _prof:
                     with _prof.step("render_content"):
                         html_content = self.renderer.render_content(source_html)
                     with _prof.step("render_template"):
-                        page.rendered_html = self.renderer.render_page(
+                        rendered_html = self.renderer.render_page(
                             page, html_content, parsed_page=parsed_page
                         )
                     with _prof.step("format_html"):
-                        page.rendered_html = format_html(
-                            page.rendered_html, page, cast("SiteLike", self.site)
+                        rendered_html = format_html(
+                            rendered_html, page, cast("SiteLike", self.site)
                         )
                 else:
                     html_content = self.renderer.render_content(source_html)
-                    page.rendered_html = self.renderer.render_page(
+                    rendered_html = self.renderer.render_page(
                         page, html_content, parsed_page=parsed_page
                     )
-                    page.rendered_html = format_html(
-                        page.rendered_html, page, cast("SiteLike", self.site)
-                    )
+                    rendered_html = format_html(rendered_html, page, cast("SiteLike", self.site))
+
+        render_time_ms = (_time.perf_counter() - render_start) * 1000
+
+        # Dual-write: set page.rendered_html for backward compatibility
+        # (downstream code like json_accumulator, cache_checker still reads from page)
+        page.rendered_html = rendered_html
 
         # Get tracked assets from render-time tracking
         tracked_assets = tracker.get_assets()
+
+        # Sprint 2: Build immutable RenderedPage record
+        rendered_page = RenderedPage(
+            source_path=page.source_path,
+            output_path=page.output_path,
+            rendered_html=rendered_html,
+            render_time_ms=render_time_ms,
+            dependencies=frozenset(tracked_assets) if tracked_assets else frozenset(),
+        )
 
         # Store rendered output in cache
         if _prof:
@@ -818,6 +841,7 @@ class RenderingPipeline:
                     collector=self._output_collector,
                     write_behind=self._write_behind,
                     build_cache=self.build_cache,
+                    rendered_page=rendered_page,
                 )
         else:
             write_output(
@@ -826,6 +850,7 @@ class RenderingPipeline:
                 collector=self._output_collector,
                 write_behind=self._write_behind,
                 build_cache=self.build_cache,
+                rendered_page=rendered_page,
             )
 
         # Accumulate unified page data during rendering (JSON + search index)
