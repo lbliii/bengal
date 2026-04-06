@@ -55,6 +55,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from bengal.collections import CollectionConfig
+    from bengal.core.records import SourcePage
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols.core import PageLike, SectionLike
 
@@ -659,11 +660,17 @@ class ContentDiscovery:
             content, metadata = self._parser.parse_file(file_path)
             metadata = self._parser.validate_against_collection(file_path, metadata)
 
+            # Sprint 4: build immutable SourcePage first, then mutable Page
+            source_page = self._build_source_page(
+                file_path, content, metadata, current_lang, section
+            )
+
             page = Page(
                 source_path=file_path,
-                _raw_content=content,
-                _raw_metadata=metadata,
+                _raw_content=source_page.raw_content,
+                _raw_metadata=source_page.raw_metadata_dict(),
             )
+            page._source_page = source_page
 
             if self.site is not None:
                 page._site = self.site
@@ -704,6 +711,71 @@ class ContentDiscovery:
                 code="D002",
             )
             raise
+
+    def _build_source_page(
+        self,
+        file_path: Path,
+        content: str,
+        metadata: dict[str, Any],
+        current_lang: str | None,
+        section: SectionLike | None,
+    ) -> SourcePage:
+        """Build an immutable SourcePage record from parsed file data.
+
+        Constructs PageCore (replicating Page._init_core_from_fields logic)
+        and wraps metadata in a read-only MappingProxyType.
+        """
+        from types import MappingProxyType
+
+        from bengal.core.page.page_core import PageCore
+        from bengal.core.page.utils import normalize_tags, separate_standard_and_custom_fields
+        from bengal.core.records import SourcePage
+        from bengal.utils.primitives.dates import parse_date
+        from bengal.utils.primitives.hashing import hash_str
+
+        standard_fields, custom_props = separate_standard_and_custom_fields(metadata)
+
+        # Replicate slug computation from PageMetadataMixin.slug
+        slug = metadata.get("slug")
+        if slug is None:
+            slug = file_path.parent.name if file_path.stem == "_index" else file_path.stem
+
+        # Replicate variant normalization from Page._init_core_from_fields
+        variant = standard_fields.get("variant")
+        if not variant:
+            variant = standard_fields.get("layout") or custom_props.get("hero_style")
+
+        content_hash = hash_str(content) if content else None
+
+        core = PageCore(
+            source_path=str(file_path),
+            title=standard_fields.get("title", ""),
+            date=parse_date(standard_fields.get("date")),
+            tags=normalize_tags(metadata.get("tags")),
+            slug=slug,
+            weight=standard_fields.get("weight"),
+            lang=current_lang or metadata.get("lang"),
+            nav_title=standard_fields.get("nav_title"),
+            type=standard_fields.get("type"),
+            variant=variant,
+            description=standard_fields.get("description"),
+            props=custom_props,
+            section=str(section.path) if section and getattr(section, "path", None) else None,
+            file_hash=content_hash,
+            aliases=metadata.get("aliases", []),
+            version=metadata.get("version") or metadata.get("_version"),
+            cascade=metadata.get("cascade", {}),
+        )
+
+        return SourcePage(
+            core=core,
+            raw_content=content,
+            raw_metadata=MappingProxyType(metadata),
+            content_hash=content_hash,
+            is_virtual=False,
+            lang=current_lang or metadata.get("lang"),
+            translation_key=metadata.get("translation_key"),
+        )
 
     def _enrich_page_i18n(
         self, page: PageLike, file_path: Path, current_lang: str | None, metadata: dict[str, Any]

@@ -288,57 +288,65 @@ top-level. `SitePlan = SiteSnapshot` alias added for forward compatibility.
 
 ---
 
-## Sprint 4: Introduce SourcePage
+## Sprint 4: Introduce SourcePage ✅
 
-**Goal**: Discovery produces `SourcePage` instead of mutable `Page`. This is the highest-risk sprint.
+**Goal**: Discovery produces `SourcePage` alongside mutable `Page` (dual-write). This is the
+highest-risk sprint.
+**Status**: Complete (dual-write). `SourcePage` frozen record is constructed during content
+discovery and attached to `Page` via `_source_page` bridge field. Cache integration promotes
+`content_hash` to `file_hash` in cached PageCore entries. Dev server reconstructs SourcePage
+on file change. Orchestration phases continue mutating mutable Page (full migration deferred
+to Sprint 5-6).
 
-### Task 4.1 — Create SourcePage frozen dataclass
+### Task 4.1 — Create SourcePage frozen dataclass ✅
 
-Lightweight record: path + parsed frontmatter + content hash. No raw content loaded.
+`SourcePage` frozen dataclass composes `PageCore` (same contract as `Page.core`) plus
+discovery-specific fields: `raw_content`, `raw_metadata` (MappingProxyType), `content_hash`,
+`is_virtual`, `lang`, `translation_key`. Property delegates for `source_path` and `title`.
+`create_virtual_source_page()` factory function for virtual pages.
 
-```python
-@dataclass(frozen=True, slots=True)
-class SourcePage:
-    source_path: Path
-    title: str
-    slug: str
-    date: datetime | None
-    tags: tuple[str, ...]
-    metadata: MappingProxyType[str, Any]
-    content_hash: str
-    section_path: str
-    # ... remaining frontmatter fields from PageCore
-```
+**File**: `bengal/core/records.py`
 
-**Acceptance**: Type exists. All PageCore fields mapped.
+### Task 4.2 — ContentDiscovery produces SourcePage (dual-write) ✅
 
-### Task 4.2 — ContentDiscovery produces SourcePage
+`_create_page()` builds `SourcePage` first via `_build_source_page()`, then constructs
+mutable `Page` from it. `page._source_page = source_page` bridge field enables downstream
+read access. Cache-hit path (`_create_page_surgical()`) unchanged — PageProxy pages have
+`_source_page = None`.
 
-Modify discovery phase to produce `SourcePage` records instead of mutable `Page` objects.
+**Files**: `bengal/content/discovery/content_discovery.py`, `bengal/core/page/__init__.py`
 
-**Files**: `bengal/content/discovery/content_discovery.py`, `bengal/core/site/discovery.py`
-**Acceptance**: Discovery returns `list[SourcePage]`. No mutable Page created during discovery.
+### Task 4.3 — Cache integration reads SourcePage.core ✅
 
-### Task 4.3 — Orchestration phases consume SourcePage
+`phase_cache_metadata()` promotes `content_hash` from `SourcePage.core` to the normalized
+`PageCore` before caching via `dataclasses.replace()`. Cache entries now include `file_hash`
+populated at discovery time.
 
-Section finalization, taxonomy generation, menu building, related posts indexing — all currently mutate Page. Convert to consume `SourcePage` and produce plan components.
+**File**: `bengal/orchestration/build/initialization.py`
 
-**Files**: `bengal/orchestration/section.py`, `bengal/orchestration/taxonomy.py`, `bengal/orchestration/menu.py`, `bengal/orchestration/related_posts.py`
-**Acceptance**: No orchestration phase mutates page records.
+### Task 4.4 — Virtual page creation via factory functions ✅
 
-### Task 4.4 — Virtual page creation via factory functions
+`create_virtual_source_page()` factory defined in `bengal/core/records.py`. Existing
+`Page.create_virtual()` callers (taxonomy, autodoc, section) unchanged for Sprint 4 —
+they continue producing mutable Pages. Migration to `create_virtual_source_page()` deferred.
 
-Replace `Page.create_virtual()` with `SourcePage.create_virtual()` or factory functions that produce complete SourcePage records.
+### Task 4.5 — Dev server hot-reload reconstructs records ✅
 
-**Files**: `bengal/orchestration/taxonomy.py`, `bengal/autodoc/orchestration/page_builders.py`
-**Acceptance**: Virtual pages created as SourcePage. `Page.create_virtual()` deleted.
+`ReactiveContentHandler.handle_content_change()` reconstructs `SourcePage` via
+`dataclasses.replace()` when `_source_page` is present. Existing Page mutations kept
+for backward compatibility.
 
-### Task 4.5 — Dev server hot-reload reconstructs records
+**File**: `bengal/server/reactive/handler.py`
 
-Replace `page._raw_content = ...` mutation with record reconstruction: detect change → rebuild SourcePage → re-parse → re-render.
+### Deferred to later sprint
 
-**Files**: `bengal/server/reactive/handler.py`
-**Acceptance**: Dev server rebuilds via record reconstruction. No in-place mutation.
+- **Eliminate orchestration mutations**: Section finalization, taxonomy, related posts,
+  complexity estimation continue mutating mutable Page. Full migration to SourcePage-only
+  is Sprint 5-6 scope.
+- **Wire `create_virtual_source_page()` into callers**: Taxonomy, autodoc, and section
+  virtual page creation still uses `Page.create_virtual()`.
+- **Remove dual-write**: Eliminate Page construction from `_create_page()` once all
+  consumers read from SourcePage.
 
 ---
 
