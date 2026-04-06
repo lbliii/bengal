@@ -14,7 +14,14 @@ from bengal.services.query import (
     get_pages_by_tag,
     get_section,
 )
-from bengal.snapshots.types import PageSnapshot, SectionSnapshot, SiteSnapshot
+from bengal.snapshots.types import (
+    NavigationPlan,
+    PageSnapshot,
+    RenderSchedule,
+    SectionSnapshot,
+    SiteSnapshot,
+    TaxonomyPlan,
+)
 
 
 def make_section_snapshot(
@@ -98,12 +105,14 @@ def make_site_snapshot(
         config=MappingProxyType({}),
         params=MappingProxyType({}),
         data=MappingProxyType({}),
-        menus=MappingProxyType({}),
-        taxonomies=MappingProxyType({}),
-        topological_order=(),
-        template_groups=MappingProxyType({}),
-        attention_order=(),
-        scout_hints=(),
+        navigation=NavigationPlan(menus=MappingProxyType({})),
+        taxonomy=TaxonomyPlan(taxonomies=MappingProxyType({})),
+        schedule=RenderSchedule(
+            topological_order=(),
+            template_groups=MappingProxyType({}),
+            attention_order=(),
+            scout_hints=(),
+        ),
         snapshot_time=0.0,
         page_count=len(pages),
         section_count=len(sections),

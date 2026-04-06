@@ -96,12 +96,12 @@ def test_snapshot_topological_order(site, build_site):
 
     snapshot = create_site_snapshot(site)
 
-    assert snapshot.topological_order is not None
-    assert isinstance(snapshot.topological_order, tuple)
-    assert len(snapshot.topological_order) > 0
+    assert snapshot.schedule.topological_order is not None
+    assert isinstance(snapshot.schedule.topological_order, tuple)
+    assert len(snapshot.schedule.topological_order) > 0
 
     # Each wave should be a tuple of PageSnapshots
-    for wave in snapshot.topological_order:
+    for wave in snapshot.schedule.topological_order:
         assert isinstance(wave, tuple)
         assert len(wave) > 0
         for page_snap in wave:
@@ -115,14 +115,14 @@ def test_snapshot_template_groups(site, build_site):
 
     snapshot = create_site_snapshot(site)
 
-    assert snapshot.template_groups is not None
+    assert snapshot.schedule.template_groups is not None
     # template_groups is a MappingProxyType (immutable dict view)
     from types import MappingProxyType
 
-    assert isinstance(snapshot.template_groups, MappingProxyType)
+    assert isinstance(snapshot.schedule.template_groups, MappingProxyType)
 
     # Each group should be a tuple of PageSnapshots
-    for template_name, pages in snapshot.template_groups.items():
+    for template_name, pages in snapshot.schedule.template_groups.items():
         assert isinstance(template_name, str)
         assert isinstance(pages, tuple)
         assert len(pages) > 0
@@ -137,11 +137,11 @@ def test_snapshot_scout_hints(site, build_site):
 
     snapshot = create_site_snapshot(site)
 
-    assert snapshot.scout_hints is not None
-    assert isinstance(snapshot.scout_hints, tuple)
+    assert snapshot.schedule.scout_hints is not None
+    assert isinstance(snapshot.schedule.scout_hints, tuple)
 
     # Scout hints should have template paths
-    for hint in snapshot.scout_hints:
+    for hint in snapshot.schedule.scout_hints:
         assert hint.template_path is not None
         assert hint.priority >= 0
 
@@ -193,8 +193,8 @@ def test_snapshot_has_nav_trees(site, build_site):
 
     snapshot = create_site_snapshot(site)
 
-    assert hasattr(snapshot, "nav_trees")
-    assert isinstance(snapshot.nav_trees, MappingProxyType)
+    assert hasattr(snapshot.navigation, "nav_trees")
+    assert isinstance(snapshot.navigation.nav_trees, MappingProxyType)
 
 
 @pytest.mark.bengal(testroot="test-basic")
@@ -204,11 +204,11 @@ def test_snapshot_nav_trees_has_default_tree(site, build_site):
 
     snapshot = create_site_snapshot(site)
 
-    assert "__default__" in snapshot.nav_trees
+    assert "__default__" in snapshot.navigation.nav_trees
 
     from bengal.core.nav_tree import NavTree
 
-    tree = snapshot.nav_trees["__default__"]
+    tree = snapshot.navigation.nav_trees["__default__"]
     assert isinstance(tree, NavTree)
     assert tree.root is not None
 
@@ -221,7 +221,7 @@ def test_snapshot_nav_tree_matches_direct_build(site, build_site):
     snapshot = create_site_snapshot(site)
     fresh_tree = __import__("bengal.core.nav_tree", fromlist=["NavTree"]).NavTree.build(site)
 
-    snapshot_tree = snapshot.nav_trees["__default__"]
+    snapshot_tree = snapshot.navigation.nav_trees["__default__"]
 
     # Both should have the same top-level section URLs
     snapshot_urls = snapshot_tree.urls
@@ -241,12 +241,12 @@ def test_navtree_cache_uses_precomputed(site, build_site):
 
     # Install pre-computed trees
     NavTreeCache.invalidate()
-    NavTreeCache.set_precomputed(dict(snapshot.nav_trees))
+    NavTreeCache.set_precomputed(dict(snapshot.navigation.nav_trees))
 
     try:
         # get() should return the pre-computed tree (lock-free path)
         cached = NavTreeCache.get(site)
-        assert cached is snapshot.nav_trees["__default__"]
+        assert cached is snapshot.navigation.nav_trees["__default__"]
     finally:
         NavTreeCache.invalidate()
 
@@ -259,7 +259,7 @@ def test_navtree_cache_invalidate_clears_precomputed(site, build_site):
     from bengal.core.nav_tree import NavTreeCache
 
     snapshot = create_site_snapshot(site)
-    NavTreeCache.set_precomputed(dict(snapshot.nav_trees))
+    NavTreeCache.set_precomputed(dict(snapshot.navigation.nav_trees))
 
     # Invalidate should clear pre-computed
     NavTreeCache.invalidate()

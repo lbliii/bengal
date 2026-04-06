@@ -39,25 +39,34 @@ from bengal.snapshots.templates import (
 from bengal.snapshots.types import (
     NO_SECTION,
     MenuItemSnapshot,
+    NavigationPlan,
     PageSnapshot,
+    RenderSchedule,
     ScoutHint,
     SectionSnapshot,
+    SitePlan,
     SiteSnapshot,
+    TaxonomyPlan,
     TemplateSnapshot,
 )
 
 __all__ = [
     "NO_SECTION",
     "MenuItemSnapshot",
+    # Plan component types (Sprint 3)
+    "NavigationPlan",
     # Snapshot types
     "PageSnapshot",
+    "RenderSchedule",
     "ScoutHint",
     "ScoutThread",
     "SectionSnapshot",
     "ShadowModeValidator",
+    "SitePlan",
     "SiteSnapshot",
     # Speculative rendering
     "SpeculativeRenderer",
+    "TaxonomyPlan",
     "TemplateSnapshot",
     # Scheduling
     "WaveScheduler",

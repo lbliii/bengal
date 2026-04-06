@@ -280,8 +280,8 @@ class BlockDiffService:
                         if page.template_name == template_name:
                             affected.add(page_path)
                         # Also check template dependencies
-                        if template_name in self._new.templates:
-                            template_snap = self._new.templates[template_name]
+                        if template_name in self._new.schedule.templates:
+                            template_snap = self._new.schedule.templates[template_name]
                             if page.template_name in template_snap.all_dependencies:
                                 affected.add(page_path)
 

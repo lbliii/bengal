@@ -394,12 +394,12 @@ def pages_affected_by_template_change(
     template_name = template_path.name
 
     # Direct lookup in template_dependents
-    affected = set(snapshot.template_dependents.get(template_name, ()))
+    affected = set(snapshot.schedule.template_dependents.get(template_name, ()))
 
     # Also check by full path for templates in theme directories
-    for name, template in snapshot.templates.items():
+    for name, template in snapshot.schedule.templates.items():
         if template.path == template_path:
-            affected.update(snapshot.template_dependents.get(name, ()))
+            affected.update(snapshot.schedule.template_dependents.get(name, ()))
 
     return affected
 
