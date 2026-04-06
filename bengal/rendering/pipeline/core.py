@@ -710,8 +710,10 @@ class RenderingPipeline:
             html_content=page.html_content or "",
             toc=page.toc or "",
             toc_items=toc_items,
-            excerpt=getattr(page, "_excerpt", None) or "",
-            meta_description=getattr(page, "_meta_description", None) or "",
+            excerpt=getattr(page, "excerpt", "") or "",
+            meta_description=getattr(page, "meta_description", "")
+            or getattr(page, "description", "")
+            or "",
             plain_text=page.plain_text,
             word_count=getattr(page, "word_count", 0) or 0,
             reading_time=getattr(page, "reading_time", 0) or 0,
