@@ -312,14 +312,18 @@ class Page(
         if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
             return self._metadata_view_cache
 
-        # Create and cache new CascadeView
-        view = CascadeView.for_page(
-            frontmatter=self._raw_metadata,
-            section_path=section_path,
-            snapshot=cascade,
-        )
-        self._metadata_view_cache = view
-        self._metadata_view_cache_key = cache_key
+        with self._init_lock:
+            if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
+                return self._metadata_view_cache
+
+            # Create and cache new CascadeView
+            view = CascadeView.for_page(
+                frontmatter=self._raw_metadata,
+                section_path=section_path,
+                snapshot=cascade,
+            )
+            self._metadata_view_cache = view
+            self._metadata_view_cache_key = cache_key
         return view
 
     def _init_core_from_fields(self) -> None:
@@ -645,13 +649,16 @@ class Page(
             cached = self._section_obj_cache
             return None if cached is self._SECTION_NOT_FOUND else cached
 
-        # Perform O(1) lookup via appropriate registry (but may be non-trivial due to normalization)
-        if self._section_path is not None:
-            # Regular section: path-based lookup
-            section = self._site.get_section_by_path(self._section_path)
-        else:
-            # Virtual section: URL-based lookup
-            section = self._site.get_section_by_url(self._section_url)
+        with self._init_lock:
+            if self._section_obj_cache_key == cache_key:
+                cached = self._section_obj_cache
+                return None if cached is self._SECTION_NOT_FOUND else cached
+
+            # Perform O(1) lookup via appropriate registry
+            if self._section_path is not None:
+                section = self._site.get_section_by_path(self._section_path)
+            else:
+                section = self._site.get_section_by_url(self._section_url)
 
         if section is None:
             # Counter-gated warning to prevent log spam (class-level counter)
@@ -695,8 +702,9 @@ class Page(
                     self._global_missing_section_warnings[warn_key] = count + 1
 
         # Cache both hits and misses (misses use a sentinel).
-        self._section_obj_cache_key = cache_key
-        self._section_obj_cache = section if section is not None else self._SECTION_NOT_FOUND
+        with self._init_lock:
+            self._section_obj_cache_key = cache_key
+            self._section_obj_cache = section if section is not None else self._SECTION_NOT_FOUND
         return section
 
     @_section.setter

@@ -515,12 +515,14 @@ class NavNodeProxy:
         "_is_current_cached",
         "_is_expanded_cached",
         "_is_in_trail_cached",
+        "_lock",
         "_node",
     )
 
     def __init__(self, node: NavNode, context: NavTreeContext) -> None:
         self._node = node
         self._context = context
+        self._lock = threading.Lock()
         # Cached values - None means not yet computed
         self._href_cached: str | None = None
         self._is_current_cached: bool | None = None
@@ -543,36 +545,40 @@ class NavNodeProxy:
         if self._href_cached is not None:
             return self._href_cached
 
-        site_path = self._node._path  # NavNode stores site-relative path
+        with self._lock:
+            if self._href_cached is not None:
+                return self._href_cached
 
-        # Get site from page context
-        site = getattr(self._context.page, "_site", None)
-        if not site:
-            self._href_cached = site_path
-            return site_path
+            site_path = self._node._path  # NavNode stores site-relative path
 
-        # Get baseurl from site property - handles nested config structure
-        try:
-            baseurl = (site.baseurl or "").rstrip("/")
-        except Exception:
-            self._href_cached = site_path
-            return site_path
+            # Get site from page context
+            site = getattr(self._context.page, "_site", None)
+            if not site:
+                self._href_cached = site_path
+                return site_path
 
-        if not baseurl:
-            self._href_cached = site_path
-            return site_path
+            # Get baseurl from site property - handles nested config structure
+            try:
+                baseurl = (site.baseurl or "").rstrip("/")
+            except Exception:
+                self._href_cached = site_path
+                return site_path
 
-        # Ensure site_path starts with /
-        if not site_path.startswith("/"):
-            site_path = "/" + site_path
+            if not baseurl:
+                self._href_cached = site_path
+                return site_path
 
-        # Handle absolute baseurl (e.g., https://example.com/subpath)
-        if baseurl.startswith(("http://", "https://", "file://")):
-            self._href_cached = f"{baseurl}{site_path}"
-        else:
-            # Path-only baseurl (e.g., /bengal)
-            base_path = "/" + baseurl.lstrip("/")
-            self._href_cached = f"{base_path}{site_path}"
+            # Ensure site_path starts with /
+            if not site_path.startswith("/"):
+                site_path = "/" + site_path
+
+            # Handle absolute baseurl (e.g., https://example.com/subpath)
+            if baseurl.startswith(("http://", "https://", "file://")):
+                self._href_cached = f"{baseurl}{site_path}"
+            else:
+                # Path-only baseurl (e.g., /bengal)
+                base_path = "/" + baseurl.lstrip("/")
+                self._href_cached = f"{base_path}{site_path}"
 
         return self._href_cached
 
@@ -605,7 +611,10 @@ class NavNodeProxy:
         """True if this node is the current page (cached)."""
         if self._is_current_cached is not None:
             return self._is_current_cached
-        self._is_current_cached = self._context.is_current(self._node)
+        with self._lock:
+            if self._is_current_cached is not None:
+                return self._is_current_cached
+            self._is_current_cached = self._context.is_current(self._node)
         return self._is_current_cached
 
     @property
@@ -613,7 +622,10 @@ class NavNodeProxy:
         """True if this node is in the active trail (cached)."""
         if self._is_in_trail_cached is not None:
             return self._is_in_trail_cached
-        self._is_in_trail_cached = self._context.is_active(self._node)
+        with self._lock:
+            if self._is_in_trail_cached is not None:
+                return self._is_in_trail_cached
+            self._is_in_trail_cached = self._context.is_active(self._node)
         return self._is_in_trail_cached
 
     @property
@@ -621,7 +633,10 @@ class NavNodeProxy:
         """True if this node should be expanded (cached)."""
         if self._is_expanded_cached is not None:
             return self._is_expanded_cached
-        self._is_expanded_cached = self._context.is_expanded(self._node)
+        with self._lock:
+            if self._is_expanded_cached is not None:
+                return self._is_expanded_cached
+            self._is_expanded_cached = self._context.is_expanded(self._node)
         return self._is_expanded_cached
 
     @property
@@ -634,7 +649,12 @@ class NavNodeProxy:
         """Child nodes wrapped as proxies (cached)."""
         if self._children_cached is not None:
             return self._children_cached
-        self._children_cached = [self._context._wrap_node(child) for child in self._node.children]
+        with self._lock:
+            if self._children_cached is not None:
+                return self._children_cached
+            self._children_cached = [
+                self._context._wrap_node(child) for child in self._node.children
+            ]
         return self._children_cached
 
     def __getattr__(self, name: str) -> Any:

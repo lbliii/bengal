@@ -58,7 +58,10 @@ class PageCacheManager:
         """Regular content pages (excludes generated taxonomy/archive pages)."""
         if self._regular is not None:
             return self._regular
-        self._regular = [p for p in self._pages_fn() if not p.metadata.get("_generated")]
+        with self._lock:
+            if self._regular is not None:
+                return self._regular
+            self._regular = [p for p in self._pages_fn() if not p.metadata.get("_generated")]
         return self._regular
 
     @property
@@ -66,7 +69,10 @@ class PageCacheManager:
         """Generated pages (taxonomy, archive, pagination)."""
         if self._generated is not None:
             return self._generated
-        self._generated = [p for p in self._pages_fn() if p.metadata.get("_generated")]
+        with self._lock:
+            if self._generated is not None:
+                return self._generated
+            self._generated = [p for p in self._pages_fn() if p.metadata.get("_generated")]
         return self._generated
 
     @property
@@ -74,7 +80,10 @@ class PageCacheManager:
         """Pages eligible for public listings (excludes hidden/draft)."""
         if self._listable is not None:
             return self._listable
-        self._listable = [p for p in self._pages_fn() if p.in_listings]
+        with self._lock:
+            if self._listable is not None:
+                return self._listable
+            self._listable = [p for p in self._pages_fn() if p.in_listings]
         return self._listable
 
     def get_page_path_map(self) -> dict[str, PageLike]:

@@ -173,6 +173,7 @@ class PageProxy:
         self._lazy_loaded = False
         self._full_page: PageLike | None = None
         self._load_lock = threading.Lock()
+        self._cache_lock = threading.Lock()
         self._related_posts_cache: list[PageLike] | None = None
         self._site = None  # Site reference - set externally
 
@@ -404,14 +405,18 @@ class PageProxy:
         if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
             return self._metadata_view_cache
 
-        # Create and cache new CascadeView
-        view = CascadeView.for_page(
-            frontmatter=self._raw_metadata,
-            section_path=section_path,
-            snapshot=cascade,
-        )
-        self._metadata_view_cache = view
-        self._metadata_view_cache_key = cache_key
+        with self._cache_lock:
+            if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
+                return self._metadata_view_cache
+
+            # Create and cache new CascadeView
+            view = CascadeView.for_page(
+                frontmatter=self._raw_metadata,
+                section_path=section_path,
+                snapshot=cascade,
+            )
+            self._metadata_view_cache = view
+            self._metadata_view_cache_key = cache_key
         return view
 
     def _build_raw_metadata_from_core(self) -> dict[str, Any]:

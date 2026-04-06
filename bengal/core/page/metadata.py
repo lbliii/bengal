@@ -44,6 +44,7 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.utils.url import apply_baseurl, get_baseurl, get_site_origin
 
 if TYPE_CHECKING:
+    import threading
     from datetime import datetime
     from pathlib import Path
 
@@ -74,6 +75,7 @@ class PageMetadataMixin:
     core: PageCore | None
     _site: Site | None
     _toc_items_cache: list[dict[str, Any]] | None
+    _init_lock: threading.Lock
     # slug is defined as a property below - no declaration needed here
 
     @property
@@ -236,22 +238,27 @@ class PageMetadataMixin:
         if cached is not None:
             return cached
 
-        # Get site-relative path first
-        rel = self._path or "/"
+        with self._init_lock:
+            cached = self.__dict__.get("_href_cache")
+            if cached is not None:
+                return cached
 
-        # Best-effort baseurl lookup; remain robust if site/config is missing
-        try:
-            site = getattr(self, "_site", None)
-            baseurl = get_baseurl(site) if site else ""
-        except Exception as e:
-            emit_diagnostic(self, "debug", "page_baseurl_lookup_failed", error=str(e))
-            baseurl = ""
+            # Get site-relative path first
+            rel = self._path or "/"
 
-        result = apply_baseurl(rel, baseurl)
+            # Best-effort baseurl lookup; remain robust if site/config is missing
+            try:
+                site = getattr(self, "_site", None)
+                baseurl = get_baseurl(site) if site else ""
+            except Exception as e:
+                emit_diagnostic(self, "debug", "page_baseurl_lookup_failed", error=str(e))
+                baseurl = ""
 
-        # Only cache if _path was properly computed (has its own cache)
-        if "_path_cache" in self.__dict__:
-            self.__dict__["_href_cache"] = result
+            result = apply_baseurl(rel, baseurl)
+
+            # Only cache if _path was properly computed (has its own cache)
+            if "_path_cache" in self.__dict__:
+                self.__dict__["_href_cache"] = result
 
         return result
 
@@ -283,33 +290,38 @@ class PageMetadataMixin:
         if not self._site:
             return self._fallback_url()
 
-        try:
-            rel_path = self.output_path.relative_to(self._site.output_dir)
-        except ValueError:
-            emit_diagnostic(
-                self,
-                "debug",
-                "page_output_path_fallback",
-                output_path=str(self.output_path),
-                output_dir=str(self._site.output_dir),
-                page_source=str(getattr(self, "source_path", "unknown")),
-            )
-            return self._fallback_url()
+        with self._init_lock:
+            cached = self.__dict__.get("_path_cache")
+            if cached is not None:
+                return cached
 
-        url_parts = list(rel_path.parts)
-        if url_parts and url_parts[-1] == "index.html":
-            url_parts = url_parts[:-1]
-        elif url_parts and url_parts[-1].endswith(".html"):
-            url_parts[-1] = url_parts[-1][:-5]
+            try:
+                rel_path = self.output_path.relative_to(self._site.output_dir)
+            except ValueError:
+                emit_diagnostic(
+                    self,
+                    "debug",
+                    "page_output_path_fallback",
+                    output_path=str(self.output_path),
+                    output_dir=str(self._site.output_dir),
+                    page_source=str(getattr(self, "source_path", "unknown")),
+                )
+                return self._fallback_url()
 
-        if not url_parts:
-            url = "/"
-        else:
-            url = "/" + "/".join(url_parts)
-            if not url.endswith("/"):
-                url += "/"
+            url_parts = list(rel_path.parts)
+            if url_parts and url_parts[-1] == "index.html":
+                url_parts = url_parts[:-1]
+            elif url_parts and url_parts[-1].endswith(".html"):
+                url_parts[-1] = url_parts[-1][:-5]
 
-        self.__dict__["_path_cache"] = url
+            if not url_parts:
+                url = "/"
+            else:
+                url = "/" + "/".join(url_parts)
+                if not url.endswith("/"):
+                    url += "/"
+
+            self.__dict__["_path_cache"] = url
         return url
 
     @property
@@ -360,10 +372,11 @@ class PageMetadataMixin:
         # Only extract and cache if we haven't extracted yet AND toc exists
         # Don't cache empty results - toc might be set later during parsing
         if self._toc_items_cache is None and self.toc:
-            # Import here to avoid circular dependency
-            from bengal.rendering.pipeline import extract_toc_structure
+            with self._init_lock:
+                if self._toc_items_cache is None and self.toc:
+                    from bengal.rendering.pipeline import extract_toc_structure
 
-            self._toc_items_cache = extract_toc_structure(self.toc)
+                    self._toc_items_cache = extract_toc_structure(self.toc)
 
         # Return cached value if we have it, otherwise empty list
         # (but don't cache the empty list - allow re-evaluation when toc is set)

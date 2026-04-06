@@ -27,6 +27,8 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.utils.text import strip_html_and_normalize
 
 if TYPE_CHECKING:
+    import threading
+
     from bengal.parsing.ast.types import ASTNode
 
 
@@ -59,6 +61,9 @@ class PageContentMixin:
     _ast_cache: list[ASTNode] | dict[str, Any] | None
     _html_cache: str | None
     _plain_text_cache: str | None
+
+    # Lock from Page dataclass (thread-safe cache initialization)
+    _init_lock: threading.Lock
 
     @property
     def content(self) -> str:
@@ -132,8 +137,10 @@ class PageContentMixin:
 
         # If we have true AST, render from it (Phase 3)
         if hasattr(self, "_ast_cache") and self._ast_cache is not None:
-            html = self._render_ast_to_html()
-            if hasattr(self, "_html_cache"):
+            with self._init_lock:
+                if self._html_cache is not None:
+                    return self._html_cache
+                html = self._render_ast_to_html()
                 self._html_cache = html
             return html
 
@@ -158,29 +165,28 @@ class PageContentMixin:
         if hasattr(self, "_plain_text_cache") and self._plain_text_cache is not None:
             return self._plain_text_cache
 
-        # Prefer AST extraction (Phase 3) - faster and more accurate
-        if hasattr(self, "_ast_cache") and self._ast_cache:
-            from bengal.parsing.ast.utils import extract_plain_text
+        with self._init_lock:
+            if self._plain_text_cache is not None:
+                return self._plain_text_cache
 
-            ast_list = (
-                self._ast_cache["children"]
-                if isinstance(self._ast_cache, dict) and "children" in self._ast_cache
-                else self._ast_cache
-            )
-            text = extract_plain_text(ast_list) if isinstance(ast_list, list) else ""
-            if hasattr(self, "_plain_text_cache"):
-                self._plain_text_cache = text
-            return text
+            # Prefer AST extraction (Phase 3) - faster and more accurate
+            if hasattr(self, "_ast_cache") and self._ast_cache:
+                from bengal.parsing.ast.utils import extract_plain_text
 
-        # Fallback: Use HTML-based extraction (works correctly with directives)
-        html_content = getattr(self, "html_content", None) or ""
-        if html_content:
-            text = strip_html_and_normalize(html_content)
-        else:
-            # Fallback to raw content if no HTML available
-            text = self._raw_content if self._raw_content else ""
+                ast_list = (
+                    self._ast_cache["children"]
+                    if isinstance(self._ast_cache, dict) and "children" in self._ast_cache
+                    else self._ast_cache
+                )
+                text = extract_plain_text(ast_list) if isinstance(ast_list, list) else ""
+            else:
+                # Fallback: Use HTML-based extraction (works correctly with directives)
+                html_content = getattr(self, "html_content", None) or ""
+                if html_content:
+                    text = strip_html_and_normalize(html_content)
+                else:
+                    text = self._raw_content if self._raw_content else ""
 
-        if hasattr(self, "_plain_text_cache"):
             self._plain_text_cache = text
         return text
 
