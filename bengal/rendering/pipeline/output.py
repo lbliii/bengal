@@ -172,7 +172,7 @@ def write_output(
     # Write-behind mode: queue for async write (RFC: rfc-path-to-200-pgs)
     if write_behind is not None:
         write_behind.enqueue(output_path, rendered_html)
-        _copy_notebook_source(page)
+        _copy_notebook_source(page, output_path=output_path)
         _track_and_record(page, site, collector, build_cache=build_cache, output_path=output_path)
         return
 
@@ -224,14 +224,15 @@ def write_output(
     _track_and_record(page, site, collector, build_cache=build_cache, output_path=output_path)
 
 
-def _copy_notebook_source(page: PageLike) -> None:
+def _copy_notebook_source(page: PageLike, output_path: Path | None = None) -> None:
     """Copy notebook .ipynb to output directory for download link."""
-    if not page.output_path or not getattr(page, "source_path", None):
+    effective_output_path = output_path or page.output_path
+    if not effective_output_path or not getattr(page, "source_path", None):
         return
     src = page.source_path
     if not str(src).lower().endswith(".ipynb") or not src.exists():
         return
-    dest = page.output_path.parent / f"{src.stem}.ipynb"
+    dest = effective_output_path.parent / f"{src.stem}.ipynb"
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
         import shutil
