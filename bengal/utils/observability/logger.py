@@ -151,8 +151,10 @@ class BengalLogger:
         self.verbose = verbose
         self.quiet_console = quiet_console
 
-        # Phase tracking
-        self._phase_stack: list[tuple[str, float, dict[str, Any]]] = []
+        # Phase tracking — thread-local because phases are per-thread context.
+        # Without this, concurrent builds sharing a module-level logger corrupt
+        # the stack under free-threaded Python 3.14t.
+        self._phase_tls = threading.local()
         self._events: list[LogEvent] = []
 
         # File handle - properly closed in close() method
@@ -165,6 +167,15 @@ class BengalLogger:
             with suppress(Exception):
                 log_file.parent.mkdir(parents=True, exist_ok=True)
             self._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
+
+    @property
+    def _phase_stack(self) -> list[tuple[str, float, dict[str, Any]]]:
+        """Per-thread phase stack."""
+        stack = getattr(self._phase_tls, "stack", None)
+        if stack is None:
+            stack = []
+            self._phase_tls.stack = stack
+        return stack
 
     @contextmanager
     def phase(self, name: str, **context: Any) -> Any:
