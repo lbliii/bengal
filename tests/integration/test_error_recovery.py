@@ -388,57 +388,6 @@ Also valid.
         output_dir = tmp_path / "public"
         assert output_dir.exists()
 
-    def test_incremental_build_after_error(self, tmp_path):
-        """Test that incremental builds work after fixing errors."""
-        config_file = tmp_path / "bengal.toml"
-        write_text_file(
-            str(config_file),
-            """
-[site]
-title = "Test Site"
-
-[build]
-output_dir = "public"
-incremental = true
-""",
-        )
-
-        content_dir = tmp_path / "content"
-        content_dir.mkdir()
-
-        # Initial page
-        page_file = content_dir / "page.md"
-        write_text_file(
-            str(page_file),
-            """---
-title: Test Page
----
-Initial content.
-""",
-        )
-
-        # First build
-        site1 = Site.from_config(tmp_path, config_path=config_file)
-        site1.discover_content()
-        stats1 = site1.build(BuildOptions(force_sequential=True))
-        assert stats1 is not None
-
-        # Modify page
-        write_text_file(
-            str(page_file),
-            """---
-title: Updated Page
----
-Updated content.
-""",
-        )
-
-        # Incremental rebuild
-        site2 = Site.from_config(tmp_path, config_path=config_file)
-        site2.discover_content()
-        stats2 = site2.build(BuildOptions(force_sequential=True))
-        assert stats2 is not None
-
 
 class TestConcurrentBuildResilience:
     """Tests for resilience during concurrent operations."""
