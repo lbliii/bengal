@@ -325,7 +325,8 @@ class WaveScheduler:
         finally:
             if scout:
                 scout.stop()
-                scout.join(timeout=1.0)
+                # No join() — blocks indefinitely under ft-Python 3.14t.
+                # Scout is a daemon thread; stop() signals it to exit.
 
             if self._write_behind:
                 stats.files_written = self._write_behind.flush_and_close()
@@ -455,7 +456,8 @@ class WaveScheduler:
         finally:
             if scout:
                 scout.stop()
-                scout.join(timeout=5.0)
+                # No join() — blocks indefinitely under ft-Python 3.14t.
+                # Scout is a daemon thread; stop() signals it to exit.
 
             if self._write_behind:
                 stats.files_written = self._write_behind.flush_and_close()
