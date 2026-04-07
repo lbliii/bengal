@@ -1,62 +1,61 @@
-"""Integration test conftest: SIGALRM hard timeout for CI.
+"""Integration test conftest: watchdog hard timeout for CI.
 
 pytest-timeout's thread method cannot interrupt C-extension calls or lock
 acquisitions, so hung tests block the entire xdist worker until the CI job
-timeout (25 min) kills the runner. SIGALRM is delivered by the OS and can
-interrupt any blocking call.
+timeout (25 min) kills the runner.
 
-Only active on Linux CI where SIGALRM is available and xdist workers run
-tests in their main thread.
+Previous approaches using SIGALRM failed under free-threaded Python 3.14t:
+- The signal is never delivered when the main thread is stuck in certain
+  lock acquisitions or C-extension calls on the no-GIL build.
+- Even when delivered, faulthandler.dump_traceback(all_threads=True)
+  deadlocks while suspending threads.
 
-IMPORTANT: The SIGALRM handler must be minimal.  Under free-threaded Python
-3.14t, ``faulthandler.dump_traceback(all_threads=True)`` can deadlock while
-suspending threads, which prevents the ``raise TimeoutError`` from ever
-executing.  We rely on ``faulthandler.dump_traceback_later`` (separate C
-thread, best-effort) for diagnostics and keep the signal handler itself as
-lightweight as possible.
+The watchdog thread approach is more robust:
+- threading.Event.wait() fires reliably regardless of main-thread state.
+- os._exit() cannot be caught or blocked — it terminates the xdist worker.
+- --max-worker-restart=3 in CI restarts the killed worker and marks the
+  test as failed rather than hanging the entire shard for 25 minutes.
 """
 
 from __future__ import annotations
 
-import faulthandler
 import os
-import signal
 import sys
+import threading
 
 import pytest
+
+# Hard timeout in seconds — must fire before the 120s pytest-timeout
+# and well before the 25-minute CI job timeout.
+_WATCHDOG_TIMEOUT = 110
 
 
 @pytest.fixture(autouse=True)
 def _hard_build_timeout():
-    """SIGALRM hard timeout — kills tests even when thread timeout cannot."""
+    """Watchdog hard timeout — kills xdist worker when all else fails."""
     if sys.platform != "linux" or not os.environ.get("CI"):
         yield
         return
 
-    def _alarm_handler(signum, frame):
-        # Keep this handler minimal — do NOT call faulthandler.dump_traceback()
-        # here.  Under free-threaded Python 3.14t, dump_traceback(all_threads=True)
-        # can deadlock when suspending threads, which prevents the raise below
-        # from ever executing and hangs the entire xdist worker for 25 minutes.
-        #
-        # Diagnostics come from faulthandler.dump_traceback_later() set up below,
-        # which runs in a separate C thread (best-effort, may also hang under ft).
-        print(
-            "\nSIGALRM: integration test exceeded 110s hard timeout",
-            file=sys.stderr,
-            flush=True,
-        )
-        raise TimeoutError("SIGALRM: integration test exceeded 110s hard timeout")
+    done = threading.Event()
 
-    old_handler = signal.signal(signal.SIGALRM, _alarm_handler)
-    # Best-effort diagnostics: dump stacks at 105s from a separate C thread.
-    # Under free-threaded Python this may also deadlock, but it fires 5s before
-    # SIGALRM so in the common case we get stacks before the test is killed.
-    faulthandler.dump_traceback_later(105, repeat=False, file=sys.stderr)
-    signal.alarm(110)  # 110s — fires before the 120s pytest-timeout
+    def _watchdog():
+        if not done.wait(_WATCHDOG_TIMEOUT):
+            # Test exceeded hard timeout — dump what we can, then hard-exit.
+            # os._exit() bypasses all cleanup, exception handlers, and finally
+            # blocks.  The xdist coordinator sees the worker die and (with
+            # --max-worker-restart) spins up a replacement.
+            print(
+                f"\nWATCHDOG: integration test exceeded {_WATCHDOG_TIMEOUT}s "
+                f"hard timeout — killing xdist worker via os._exit(1)",
+                file=sys.stderr,
+                flush=True,
+            )
+            os._exit(1)
+
+    t = threading.Thread(target=_watchdog, name="test-watchdog", daemon=True)
+    t.start()
     try:
         yield
     finally:
-        signal.alarm(0)
-        faulthandler.cancel_dump_traceback_later()
-        signal.signal(signal.SIGALRM, old_handler)
+        done.set()  # Cancel the watchdog — test finished normally
