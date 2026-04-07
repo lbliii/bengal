@@ -452,8 +452,6 @@ def reset_bengal_state(request):
     # WriteBehindCollector spawns 8 daemon threads per build that poll forever
     # unless _shutdown is set. Without cleanup, threads accumulate across tests
     # (24 after 3 builds, 320+ across a full shard) and cause deadlocks.
-    import threading
-
     try:
         from bengal.rendering.pipeline.write_behind import (
             reset_writer_shutdown,
@@ -461,10 +459,11 @@ def reset_bengal_state(request):
         )
 
         shutdown_all_writers()
-        # Give threads time to see the signal and exit
-        for t in threading.enumerate():
-            if "WriteBehind" in t.name and t.is_alive():
-                t.join(timeout=1.0)
+        # Wait for threads to see the signal (they poll every 0.1s).
+        # Do NOT use thread.join() — blocks indefinitely under ft-Python 3.14t.
+        import time
+
+        time.sleep(0.2)
         reset_writer_shutdown()
     except ImportError:
         pass
