@@ -90,10 +90,11 @@ class ReactiveContentHandler:
 
             from bengal.utils.primitives.hashing import hash_str
 
-            new_hash = hash_str(body_content)
-            new_core = dc_replace(old_source.core, file_hash=new_hash)
+            file_hash = hash_str(raw_file)
+            content_hash = hash_str(body_content)
+            new_core = dc_replace(old_source.core, file_hash=file_hash)
             page._source_page = dc_replace(
-                old_source, core=new_core, raw_content=body_content, content_hash=new_hash
+                old_source, core=new_core, raw_content=body_content, content_hash=content_hash
             )
 
         # Existing mutable Page update (kept for backward compatibility)

@@ -126,7 +126,11 @@ class SourcePage:
     # ------------------------------------------------------------------
 
     def raw_metadata_dict(self) -> dict[str, Any]:
-        """Return a mutable copy of the frozen metadata."""
+        """Return a shallow mutable copy of the frozen metadata.
+
+        Only the top-level mapping is copied; nested mutable values remain
+        shared with ``raw_metadata`` and must not be mutated in place.
+        """
         return dict(self.raw_metadata)
 
 
@@ -179,4 +183,5 @@ def create_virtual_source_page(
         content_hash=None,
         is_virtual=True,
         lang=core.lang,
+        translation_key=meta.get("translation_key"),
     )

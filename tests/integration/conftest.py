@@ -21,6 +21,7 @@ The external watchdog process approach is the nuclear option:
 from __future__ import annotations
 
 import os
+import signal
 import subprocess
 import sys
 from typing import TYPE_CHECKING
@@ -58,7 +59,8 @@ def _stop_watchdog(proc: subprocess.Popen | None) -> None:
     if proc is None:
         return
     try:
-        proc.kill()  # SIGKILL the watchdog itself
+        # Kill the entire process group (bash + sleep child) to avoid orphan leaks
+        os.killpg(proc.pid, signal.SIGKILL)
         proc.wait(timeout=1)
     except ProcessLookupError, OSError, subprocess.TimeoutExpired:
         pass
