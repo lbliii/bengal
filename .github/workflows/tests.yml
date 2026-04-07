@@ -228,8 +228,9 @@ jobs:
         uv run pytest \
           --splits 6 --group ${{ matrix.group }} \
           --splitting-algorithm least_duration \
-          -n 1 -vv -ra --tb=short --maxfail=1 --durations=40 \
+          -n 1 -vv -ra --tb=short --maxfail=3 --durations=40 \
           --timeout=180 --timeout-method=thread \
+          --max-worker-restart=3 \
           tests/integration \
           --ignore=tests/integration/warm_build \
           -m "not slow and not performance and not stateful and not autodoc and not known_gap" \
