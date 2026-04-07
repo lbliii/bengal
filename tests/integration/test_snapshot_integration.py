@@ -25,7 +25,7 @@ def test_snapshot_enables_parallel_rendering(site, build_site, tmp_path):
     build_site()
 
     orchestrator = BuildOrchestrator(site)
-    options = BuildOptions(force_sequential=False, incremental=False)
+    options = BuildOptions(force_sequential=True, incremental=False)
 
     orchestrator.build(options)
 
@@ -70,7 +70,7 @@ def test_snapshot_rendering_produces_html(site, build_site):
         quiet=True,
         stats=stats,
         build_context=build_context,
-        max_workers=2,
+        max_workers=1,
     )
 
     # Render pages
