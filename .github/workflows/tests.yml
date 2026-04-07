@@ -14,9 +14,6 @@ concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   # Detect whether code paths changed — skip tests for docs-only PRs
   detect-changes:
@@ -25,7 +22,7 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           # For PRs the base SHA is fetched automatically; for pushes we only
           # need the previous commit.  Fall back to full clone only when the
@@ -72,10 +69,10 @@ jobs:
     if: needs.detect-changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v8
       with:
         python-version: "3.14t"
 
@@ -102,7 +99,7 @@ jobs:
         uv run pytest -n auto -q --tb=short --maxfail=5 --dist worksteal --max-worker-restart=3 --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
 
     - name: Upload coverage
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       with:
         files: coverage.xml
 
@@ -116,10 +113,10 @@ jobs:
         baseurl: ["/bengal", "https://example.com/sub"]
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v8
       with:
         python-version: "3.14t"
 
@@ -153,10 +150,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v8
       with:
         python-version: "3.14t"
 
@@ -200,10 +197,10 @@ jobs:
     # keeps wall time per shard well under the limit.
     timeout-minutes: 25
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v8
       with:
         python-version: "3.14t"
 
@@ -242,7 +239,7 @@ jobs:
 
     - name: Upload integration diagnostics
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: integration-diagnostics-group${{ matrix.group }}
         path: |
@@ -261,10 +258,10 @@ jobs:
         group: [1, 2]
     timeout-minutes: 20
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v8
       with:
         python-version: "3.14t"
 
@@ -302,7 +299,7 @@ jobs:
 
     - name: Upload warm-build diagnostics
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: warm-build-diagnostics-group${{ matrix.group }}
         path: |
@@ -316,10 +313,10 @@ jobs:
     if: ${{ !cancelled() && needs.fast-check.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v8
       with:
         python-version: "3.14t"
 
@@ -347,7 +344,7 @@ jobs:
 
     - name: Upload render output metrics
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: render-output-metrics-${{ github.sha }}
         path: |
@@ -360,10 +357,10 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v8
       with:
         python-version: "3.14t"
 
@@ -392,10 +389,10 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v8
       with:
         python-version: "3.14t"
 
@@ -424,10 +421,10 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v8
       with:
         python-version: "3.14t"
 
