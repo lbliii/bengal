@@ -171,6 +171,16 @@ class TestCreateVirtualSourcePage:
         )
         assert sp.core.section == "content/blog"
 
+    def test_virtual_lang_from_metadata(self):
+        """SourcePage.lang matches core.lang when lang comes from metadata, not arg."""
+        sp = create_virtual_source_page(
+            source_id="__virtual__/tags/python.md",
+            title="Python",
+            metadata={"lang": "fr"},
+        )
+        assert sp.core.lang == "fr"
+        assert sp.lang == "fr"
+
     def test_virtual_empty_content(self):
         sp = create_virtual_source_page(
             source_id="__virtual__/test.md",

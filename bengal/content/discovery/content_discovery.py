@@ -731,7 +731,7 @@ class ContentDiscovery:
         from bengal.core.page.utils import normalize_tags, separate_standard_and_custom_fields
         from bengal.core.records import SourcePage
         from bengal.utils.primitives.dates import parse_date
-        from bengal.utils.primitives.hashing import hash_str
+        from bengal.utils.primitives.hashing import hash_file, hash_str
 
         standard_fields, custom_props = separate_standard_and_custom_fields(metadata)
 
@@ -745,7 +745,15 @@ class ContentDiscovery:
         if not variant:
             variant = standard_fields.get("layout") or custom_props.get("hero_style")
 
-        content_hash = hash_str(content) if content else None
+        # content_hash: hash of the markdown body (frontmatter stripped)
+        content_hash = hash_str(content) if content else hash_str("")
+
+        # file_hash: hash of the full source file (frontmatter + body) for cache validation.
+        # Frontmatter-only edits must invalidate the cache, so we hash the whole file.
+        try:
+            file_hash = hash_file(file_path) if file_path.exists() else content_hash
+        except OSError:
+            file_hash = content_hash
 
         core = PageCore(
             source_path=str(file_path),
@@ -761,7 +769,7 @@ class ContentDiscovery:
             description=standard_fields.get("description"),
             props=custom_props,
             section=str(section.path) if section and getattr(section, "path", None) else None,
-            file_hash=content_hash,
+            file_hash=file_hash,
             aliases=metadata.get("aliases", []),
             version=metadata.get("version") or metadata.get("_version"),
             cascade=metadata.get("cascade", {}),

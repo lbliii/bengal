@@ -494,16 +494,10 @@ def phase_cache_metadata(orchestrator: BuildOrchestrator) -> None:
                 # Normalize paths to relative before caching (prevents absolute path leakage)
                 page.normalize_core_paths()
 
-                core_to_cache = page.core
-                # Sprint 4: SourcePage provides content_hash at discovery time.
-                # Promote it to the normalized core so cache entries include file_hash.
-                source_page = getattr(page, "_source_page", None)
-                if source_page is not None and source_page.content_hash and core_to_cache:
-                    from dataclasses import replace
-
-                    core_to_cache = replace(core_to_cache, file_hash=source_page.content_hash)
-
-                page_cache.add_metadata(core_to_cache)
+                # Sprint 4: SourcePage sets file_hash on PageCore at discovery time
+                # (full-file hash including frontmatter). normalize_core_paths()
+                # preserves it, so no promotion needed here.
+                page_cache.add_metadata(page.core)
 
             # Persist cache to disk
             page_cache.save_to_disk()

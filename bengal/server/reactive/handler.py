@@ -80,7 +80,8 @@ class ReactiveContentHandler:
         # full file would render YAML as markdown.
         _, body_content = parse_frontmatter(raw_file)
 
-        # Sprint 4: reconstruct immutable SourcePage record
+        # Sprint 4: reconstruct immutable SourcePage record.
+        # Uses dataclasses.replace() so new SourcePage fields are carried forward automatically.
         from bengal.core.records import SourcePage
 
         old_source = getattr(page, "_source_page", None)
@@ -91,14 +92,8 @@ class ReactiveContentHandler:
 
             new_hash = hash_str(body_content)
             new_core = dc_replace(old_source.core, file_hash=new_hash)
-            page._source_page = SourcePage(
-                core=new_core,
-                raw_content=body_content,
-                raw_metadata=old_source.raw_metadata,
-                content_hash=new_hash,
-                is_virtual=old_source.is_virtual,
-                lang=old_source.lang,
-                translation_key=old_source.translation_key,
+            page._source_page = dc_replace(
+                old_source, core=new_core, raw_content=body_content, content_hash=new_hash
             )
 
         # Existing mutable Page update (kept for backward compatibility)

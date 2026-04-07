@@ -79,8 +79,11 @@ class SourcePage:
     (Sprint 5+) content loading is deferred to the parse stage and
     ``raw_content`` becomes optional.
 
-    All container fields use immutable types so the record is safe to
-    share across threads without synchronization.
+    The record itself is frozen (field reassignment raises).  Composed
+    ``PageCore`` contains mutable containers (``tags``, ``props``,
+    ``cascade``) and ``raw_metadata`` is a shallow read-only view —
+    callers must not mutate nested values.  Full deep-freeze is deferred
+    to Sprint 6 when ``PageCore`` is replaced.
     """
 
     # Composed cache-compatible metadata (same contract as Page.core)
@@ -92,7 +95,9 @@ class SourcePage:
     # Read-only view of parsed frontmatter
     raw_metadata: MappingProxyType[str, Any]
 
-    # SHA-256 hex digest of source file content; None for virtual pages
+    # SHA-256 hex digest of the markdown body (frontmatter stripped).
+    # Distinct from ``PageCore.file_hash`` which covers the full source file.
+    # None for virtual pages.
     content_hash: str | None = None
 
     # True for generated pages (taxonomy, autodoc, archive)
@@ -173,5 +178,5 @@ def create_virtual_source_page(
         raw_metadata=MappingProxyType(meta),
         content_hash=None,
         is_virtual=True,
-        lang=lang,
+        lang=core.lang,
     )
