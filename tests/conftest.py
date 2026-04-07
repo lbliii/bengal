@@ -458,12 +458,7 @@ def reset_bengal_state(request):
             shutdown_all_writers,
         )
 
-        shutdown_all_writers()
-        # Wait for threads to see the signal (they poll every 0.1s).
-        # Do NOT use thread.join() — blocks indefinitely under ft-Python 3.14t.
-        import time
-
-        time.sleep(0.2)
+        shutdown_all_writers(timeout=5.0)
         reset_writer_shutdown()
     except ImportError:
         pass

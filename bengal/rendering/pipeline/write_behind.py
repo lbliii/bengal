@@ -40,6 +40,7 @@ import contextlib
 import itertools
 import os
 import threading
+import weakref
 from pathlib import Path
 from queue import Empty, Queue
 from typing import TYPE_CHECKING
@@ -59,9 +60,14 @@ _temp_file_counter = itertools.count()
 # Used by test teardown to stop leaked writer threads between tests.
 _global_shutdown = threading.Event()
 
+# Track all live collector instances so shutdown_all_writers() can wait
+# for their threads to exit (via _all_exited events) instead of sleeping.
+_live_collectors: list[weakref.ref] = []
+_live_collectors_lock = threading.Lock()
 
-def shutdown_all_writers() -> None:
-    """Signal all WriteBehindCollector threads to exit.
+
+def shutdown_all_writers(timeout: float = 5.0) -> None:
+    """Signal all WriteBehindCollector threads to exit and wait.
 
     Call this between tests to prevent thread accumulation.
     Each WriteBehindCollector spawns 8 daemon threads that poll forever
@@ -69,11 +75,19 @@ def shutdown_all_writers() -> None:
     across tests and cause deadlocks.
     """
     _global_shutdown.set()
+    # Wait for all tracked collectors' threads to exit
+    with _live_collectors_lock:
+        collectors = [ref() for ref in _live_collectors if ref() is not None]
+    for collector in collectors:
+        collector._all_exited.wait(timeout=timeout)
 
 
 def reset_writer_shutdown() -> None:
     """Clear the global shutdown so new collectors can start fresh."""
     _global_shutdown.clear()
+    # Prune dead references
+    with _live_collectors_lock:
+        _live_collectors[:] = [ref for ref in _live_collectors if ref() is not None]
 
 
 class WriteBehindCollector:
@@ -99,6 +113,7 @@ class WriteBehindCollector:
     """
 
     __slots__ = (
+        "__weakref__",
         "_all_exited",
         "_created_dirs",
         "_created_dirs_lock",
@@ -177,6 +192,10 @@ class WriteBehindCollector:
             )
             thread.start()
             self._writer_threads.append(thread)
+
+        # Register for global shutdown tracking
+        with _live_collectors_lock:
+            _live_collectors.append(weakref.ref(self))
 
     def __del__(self) -> None:
         """Safety net: signal shutdown so writer threads can exit."""
