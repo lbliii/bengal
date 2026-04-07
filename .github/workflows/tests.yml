@@ -88,7 +88,7 @@ jobs:
       run: uv sync --no-sources --group dev
 
     - name: Fast test suite (unit tests + coverage)
-      timeout-minutes: 20
+      timeout-minutes: 25
       env:
         CI: true
         BENGAL_CI_FAST: "1"
@@ -96,7 +96,7 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running fast test suite (unit tests only, excluding slow)..."
-        uv run pytest -n auto -q --tb=short --maxfail=5 --dist worksteal --max-worker-restart=3 --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
+        uv run pytest -n 4 -q --tb=short --maxfail=5 --dist worksteal --max-worker-restart=3 --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
 
     - name: Upload coverage
       uses: codecov/codecov-action@v6
