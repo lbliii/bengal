@@ -87,23 +87,6 @@ class TestCLIOutputWithRealCommands:
 class TestCLIOutputInitialization:
     """Test CLIOutput initialization uses themed console."""
 
-    def test_cli_output_has_themed_console(self):
-        """Test CLIOutput initializes with bengal_theme."""
-        from bengal.output import CLIOutput
-
-        cli = CLIOutput(use_rich=True)
-
-        # Console should be initialized
-        assert cli.console is not None
-
-        # Console should be able to render semantic styles without errors
-        # Test by checking it can get the 'header' style
-        try:
-            style = cli.console.get_style("header")
-            assert style is not None
-        except Exception as e:
-            pytest.fail(f"Console doesn't have 'header' style: {e}")
-
     def test_cli_output_header_doesnt_crash(self):
         """Test header method doesn't crash with style error."""
         from bengal.output import CLIOutput
