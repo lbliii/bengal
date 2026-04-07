@@ -81,11 +81,12 @@ class ReactiveContentHandler:
         _, body_content = parse_frontmatter(raw_file)
 
         # Sprint 4: reconstruct immutable SourcePage record
+        from bengal.core.records import SourcePage
+
         old_source = getattr(page, "_source_page", None)
-        if old_source is not None:
+        if isinstance(old_source, SourcePage):
             from dataclasses import replace as dc_replace
 
-            from bengal.core.records import SourcePage
             from bengal.utils.primitives.hashing import hash_str
 
             new_hash = hash_str(body_content)
