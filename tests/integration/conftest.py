@@ -7,6 +7,13 @@ interrupt any blocking call.
 
 Only active on Linux CI where SIGALRM is available and xdist workers run
 tests in their main thread.
+
+IMPORTANT: The SIGALRM handler must be minimal.  Under free-threaded Python
+3.14t, ``faulthandler.dump_traceback(all_threads=True)`` can deadlock while
+suspending threads, which prevents the ``raise TimeoutError`` from ever
+executing.  We rely on ``faulthandler.dump_traceback_later`` (separate C
+thread, best-effort) for diagnostics and keep the signal handler itself as
+lightweight as possible.
 """
 
 from __future__ import annotations
@@ -27,19 +34,24 @@ def _hard_build_timeout():
         return
 
     def _alarm_handler(signum, frame):
-        # Dump all thread stacks before raising — this is the only diagnostic
-        # we get from hung CI tests. Without it, we know a test hung but not why.
-        print("\n" + "=" * 72, file=sys.stderr, flush=True)
-        print("SIGALRM: integration test exceeded 110s hard timeout", file=sys.stderr, flush=True)
-        print("Dumping all thread stacks for deadlock diagnosis:", file=sys.stderr, flush=True)
-        print("=" * 72, file=sys.stderr, flush=True)
-        faulthandler.dump_traceback(file=sys.stderr, all_threads=True)
-        print("=" * 72, file=sys.stderr, flush=True)
+        # Keep this handler minimal — do NOT call faulthandler.dump_traceback()
+        # here.  Under free-threaded Python 3.14t, dump_traceback(all_threads=True)
+        # can deadlock when suspending threads, which prevents the raise below
+        # from ever executing and hangs the entire xdist worker for 25 minutes.
+        #
+        # Diagnostics come from faulthandler.dump_traceback_later() set up below,
+        # which runs in a separate C thread (best-effort, may also hang under ft).
+        print(
+            "\nSIGALRM: integration test exceeded 110s hard timeout",
+            file=sys.stderr,
+            flush=True,
+        )
         raise TimeoutError("SIGALRM: integration test exceeded 110s hard timeout")
 
     old_handler = signal.signal(signal.SIGALRM, _alarm_handler)
-    # Also set faulthandler to dump stacks at 105s — fires even if SIGALRM
-    # is blocked or the handler itself deadlocks.
+    # Best-effort diagnostics: dump stacks at 105s from a separate C thread.
+    # Under free-threaded Python this may also deadlock, but it fires 5s before
+    # SIGALRM so in the common case we get stacks before the test is killed.
     faulthandler.dump_traceback_later(105, repeat=False, file=sys.stderr)
     signal.alarm(110)  # 110s — fires before the 120s pytest-timeout
     try:
