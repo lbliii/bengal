@@ -16,7 +16,50 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from threading import Event, Thread
+from threading import Event, Lock, Thread
+
+
+def _run_threads_with_event(
+    threads: list[Thread],
+    *,
+    timeout: float = 30.0,
+) -> None:
+    """Start threads and wait for completion using an Event.
+
+    thread.join() can block indefinitely under free-threaded Python 3.14t
+    at the C level (pthread_join), even with a timeout argument. This helper
+    uses an atomic counter + Event to track thread exits reliably.
+    """
+    remaining = len(threads)
+    lock = Lock()
+    all_done = Event()
+
+    originals = {}
+    for t in threads:
+        originals[t] = t._target  # type: ignore[attr-defined]
+
+    def wrap(original, t):
+        def wrapper(*args, **kwargs):
+            nonlocal remaining
+            try:
+                original(*args, **kwargs)
+            finally:
+                with lock:
+                    remaining -= 1
+                    if remaining == 0:
+                        all_done.set()
+
+        t._target = wrapper  # type: ignore[attr-defined]
+
+    for t in threads:
+        wrap(originals[t], t)
+
+    for t in threads:
+        t.start()
+
+    assert all_done.wait(timeout=timeout), (
+        f"Threads did not complete within {timeout}s ({remaining} of {len(threads)} still running)"
+    )
 
 
 class TestConcurrentEffectRecording:
@@ -41,10 +84,7 @@ class TestConcurrentEffectRecording:
                 tracer.record(effect)
 
         threads = [Thread(target=record_effects, args=(i,)) for i in range(8)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=30)
+        _run_threads_with_event(threads, timeout=30)
 
         stats = tracer.get_statistics()
         assert stats["total_effects"] == 800, (
@@ -72,10 +112,7 @@ class TestConcurrentTaxonomyUpdates:
                 index.update_page_tags(page, tags)
 
         threads = [Thread(target=update_tags, args=(i,)) for i in range(8)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=30)
+        _run_threads_with_event(threads, timeout=30)
 
         # Verify consistency
         all_tags = index.get_all_tags()
@@ -99,7 +136,17 @@ class TestConcurrentRecordAndQuery:
 
         tracer = EffectTracer()
         stop_event = Event()
+        all_done = Event()
         errors: list[Exception] = []
+        remaining = 2
+        counter_lock = Lock()
+
+        def _mark_done() -> None:
+            nonlocal remaining
+            with counter_lock:
+                remaining -= 1
+                if remaining == 0:
+                    all_done.set()
 
         def record_loop() -> None:
             i = 0
@@ -119,6 +166,8 @@ class TestConcurrentRecordAndQuery:
                     i += 1
             except Exception as exc:
                 errors.append(exc)
+            finally:
+                _mark_done()
 
         def query_loop() -> None:
             try:
@@ -128,17 +177,20 @@ class TestConcurrentRecordAndQuery:
                     tracer.get_statistics()
             except Exception as exc:
                 errors.append(exc)
+            finally:
+                _mark_done()
 
-        recorder = Thread(target=record_loop)
-        querier = Thread(target=query_loop)
+        recorder = Thread(target=record_loop, daemon=True)
+        querier = Thread(target=query_loop, daemon=True)
         recorder.start()
         querier.start()
 
         time.sleep(0.5)  # Let them run under contention
         stop_event.set()
 
-        recorder.join(timeout=10)
-        querier.join(timeout=10)
+        assert all_done.wait(timeout=10), (
+            f"Threads did not complete within 10s ({remaining} still running)"
+        )
 
         assert not errors, f"Concurrent record/query errors: {errors}"
         # At least some effects should have been recorded
@@ -208,9 +260,6 @@ class TestTracerPersistenceRoundtrip:
                 errors.append(exc)
 
         threads = [Thread(target=save_worker, args=(i,)) for i in range(8)]
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join(timeout=30)
+        _run_threads_with_event(threads, timeout=30)
 
         assert not errors, f"Concurrent save errors: {errors}"
