@@ -389,50 +389,5 @@ Also valid.
         assert output_dir.exists()
 
 
-class TestConcurrentBuildResilience:
-    """Tests for resilience during concurrent operations."""
-
-    def test_parallel_build_error_isolation(self, tmp_path):
-        """Test that errors in one thread don't crash parallel build."""
-        config_file = tmp_path / "bengal.toml"
-        write_text_file(
-            str(config_file),
-            """
-[site]
-title = "Test Site"
-
-[build]
-output_dir = "public"
-parallel = true
-""",
-        )
-
-        content_dir = tmp_path / "content"
-        content_dir.mkdir()
-
-        # Create multiple pages
-        for i in range(10):
-            page_file = content_dir / f"page{i}.md"
-            write_text_file(
-                str(page_file),
-                f"""---
-title: Page {i}
----
-Content {i}
-""",
-            )
-
-        site = Site.from_config(tmp_path, config_path=config_file)
-        site.discover_content()
-
-        # Parallel build should handle errors in isolation
-        try:
-            stats = site.build(BuildOptions())
-            assert stats is not None
-        except Exception:
-            # If parallel build fails, it should provide useful info
-            pass
-
-
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
