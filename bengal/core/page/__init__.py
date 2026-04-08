@@ -62,6 +62,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from bengal.core.author import Author
+    from bengal.core.records import SourcePage
     from bengal.core.series import Series
     from bengal.core.site import Site
     from bengal.parsing.ast.types import ASTNode
@@ -261,6 +262,11 @@ class Page(
     _complexity_score: int | None = field(default=None, repr=False, init=False)
     # Cascade invalidation flag (set by provenance filter when provenance changes)
     _cascade_invalidated: bool = field(default=False, repr=False, init=False)
+
+    # Sprint 4 dual-write bridge: immutable SourcePage record from discovery.
+    # Set by ContentDiscovery._create_page(); None for cached/proxy pages.
+    # Removed in Sprint 6 when Page is deleted.
+    _source_page: SourcePage | None = field(default=None, repr=False, init=False)
 
     def __post_init__(self) -> None:
         """Initialize computed fields and PageCore."""

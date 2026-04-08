@@ -25,6 +25,13 @@ Performance Optimizations:
 - Pre-create directories to reduce lock contention
 - Atomic counter for temp file names (faster than uuid4)
 
+Free-threaded Python (3.14t) compatibility:
+- Does NOT use thread.join() for shutdown (C-level join can block
+  indefinitely under free-threaded builds).
+- Uses a threading.Event signaled by a countdown of exited threads
+  for reliable, bounded shutdown.
+- Sends one sentinel per writer thread (no relay pattern).
+
 """
 
 from __future__ import annotations
@@ -33,6 +40,7 @@ import contextlib
 import itertools
 import os
 import threading
+import weakref
 from pathlib import Path
 from queue import Empty, Queue
 from typing import TYPE_CHECKING
@@ -52,9 +60,14 @@ _temp_file_counter = itertools.count()
 # Used by test teardown to stop leaked writer threads between tests.
 _global_shutdown = threading.Event()
 
+# Track all live collector instances so shutdown_all_writers() can wait
+# for their threads to exit (via _all_exited events) instead of sleeping.
+_live_collectors: list[weakref.ref] = []
+_live_collectors_lock = threading.Lock()
 
-def shutdown_all_writers() -> None:
-    """Signal all WriteBehindCollector threads to exit.
+
+def shutdown_all_writers(timeout: float = 5.0) -> None:
+    """Signal all WriteBehindCollector threads to exit and wait.
 
     Call this between tests to prevent thread accumulation.
     Each WriteBehindCollector spawns 8 daemon threads that poll forever
@@ -62,11 +75,19 @@ def shutdown_all_writers() -> None:
     across tests and cause deadlocks.
     """
     _global_shutdown.set()
+    # Wait for all tracked collectors' threads to exit
+    with _live_collectors_lock:
+        collectors = [ref() for ref in _live_collectors if ref() is not None]
+    for collector in collectors:
+        collector._all_exited.wait(timeout=timeout)
 
 
 def reset_writer_shutdown() -> None:
     """Clear the global shutdown so new collectors can start fresh."""
     _global_shutdown.clear()
+    # Prune dead references
+    with _live_collectors_lock:
+        _live_collectors[:] = [ref for ref in _live_collectors if ref() is not None]
 
 
 class WriteBehindCollector:
@@ -92,9 +113,13 @@ class WriteBehindCollector:
     """
 
     __slots__ = (
+        "__weakref__",
+        "_all_exited",
         "_created_dirs",
         "_created_dirs_lock",
         "_error",
+        "_exited_count",
+        "_exited_lock",
         "_fast_writes",
         "_num_writers",
         "_queue",
@@ -126,6 +151,12 @@ class WriteBehindCollector:
         self._writes_lock = threading.Lock()
         self._created_dirs: set[str] = set()
         self._created_dirs_lock = threading.Lock()
+
+        # Thread exit tracking — avoids thread.join() which can block
+        # indefinitely under free-threaded Python 3.14t.
+        self._exited_count = 0
+        self._exited_lock = threading.Lock()
+        self._all_exited = threading.Event()
 
         # Use 8 writer threads by default for better SSD saturation
         cpu_count = os.cpu_count() or 8
@@ -162,12 +193,24 @@ class WriteBehindCollector:
             thread.start()
             self._writer_threads.append(thread)
 
+        # Register for global shutdown tracking
+        with _live_collectors_lock:
+            _live_collectors.append(weakref.ref(self))
+
     def __del__(self) -> None:
         """Safety net: signal shutdown so writer threads can exit."""
         if not self._shutdown.is_set():
             self._shutdown.set()
-            with contextlib.suppress(Exception):
-                self._queue.put_nowait(None)
+            for _ in self._writer_threads:
+                with contextlib.suppress(Exception):
+                    self._queue.put_nowait(None)
+
+    def _mark_thread_exited(self) -> None:
+        """Called by each writer thread on exit to track completion."""
+        with self._exited_lock:
+            self._exited_count += 1
+            if self._exited_count >= self._num_writers:
+                self._all_exited.set()
 
     def precreate_directories(self, paths: list[Path]) -> None:
         """Pre-create all unique parent directories in a single pass.
@@ -222,15 +265,12 @@ class WriteBehindCollector:
                     # Wait for item with timeout to check shutdown
                     item = self._queue.get(timeout=0.1)
                 except Empty:
-                    if (
-                        self._shutdown.is_set() or _global_shutdown.is_set()
-                    ) and self._queue.empty():
+                    if self._shutdown.is_set() or _global_shutdown.is_set():
                         break
                     continue
 
                 if item is None:
-                    # Explicit shutdown signal - put it back for other threads
-                    self._queue.put(None)
+                    # Dedicated sentinel for this thread — just exit
                     break
 
                 path, content = item
@@ -246,6 +286,8 @@ class WriteBehindCollector:
                 error=str(e),
                 error_type=type(e).__name__,
             )
+        finally:
+            self._mark_thread_exited()
 
     def _write_file(self, path: Path, content: str) -> None:
         """Write a single file to disk.
@@ -296,6 +338,9 @@ class WriteBehindCollector:
     def flush_and_close(self, timeout: float = 30.0) -> int:
         """Wait for all queued writes to complete.
 
+        Uses an event-based shutdown instead of thread.join() to avoid
+        C-level join deadlocks under free-threaded Python 3.14t.
+
         Args:
             timeout: Maximum seconds to wait
 
@@ -307,18 +352,15 @@ class WriteBehindCollector:
         """
         # Signal shutdown
         self._shutdown.set()
-        self._queue.put(None)  # Sentinel to wake up one thread, which propagates
 
-        # Wait for all threads
-        per_thread_timeout = timeout / max(len(self._writer_threads), 1)
-        timed_out = False
-        for thread in self._writer_threads:
-            thread.join(timeout=per_thread_timeout)
-            if thread.is_alive():
-                timed_out = True
+        # Send one sentinel per thread — no relay needed
+        for _ in self._writer_threads:
+            self._queue.put(None)
 
-        if timed_out:
-            alive_count = sum(1 for t in self._writer_threads if t.is_alive())
+        # Wait for all threads to exit via event (no thread.join())
+        if not self._all_exited.wait(timeout=timeout):
+            with self._exited_lock:
+                alive_count = self._num_writers - self._exited_count
             raise BengalRenderingError(
                 f"{alive_count} writer thread(s) did not complete within {timeout}s",
                 code=ErrorCode.R010,
@@ -333,7 +375,8 @@ class WriteBehindCollector:
                 suggestion="Check disk space and file permissions in output directory",
             ) from self._error
 
-        return self._writes_completed
+        with self._writes_lock:
+            return self._writes_completed
 
     @property
     def pending_count(self) -> int:
@@ -343,4 +386,5 @@ class WriteBehindCollector:
     @property
     def completed_count(self) -> int:
         """Number of writes completed."""
-        return self._writes_completed
+        with self._writes_lock:
+            return self._writes_completed

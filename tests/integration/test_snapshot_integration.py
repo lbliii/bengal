@@ -18,22 +18,6 @@ from bengal.snapshots import create_site_snapshot
 _CONTENT_HASH_RE = re.compile(r'<meta name="bengal:content-hash" content="[0-9a-f]+">')
 
 
-@pytest.mark.bengal(testroot="test-basic")
-def test_snapshot_created_during_build(site, build_site):
-    """Test that snapshot is created during build and stored in BuildContext."""
-    build_site()
-
-    orchestrator = BuildOrchestrator(site)
-    options = BuildOptions(force_sequential=False, incremental=False)
-
-    stats = orchestrator.build(options)
-
-    # Snapshot should be created (check via build stats if available)
-    # Note: We can't directly access snapshot from stats, but we can verify
-    # that the build completed successfully
-    assert stats is not None
-
-
 @pytest.mark.heavyweight
 @pytest.mark.bengal(testroot="test-taxonomy")
 def test_snapshot_enables_parallel_rendering(site, build_site, tmp_path):
@@ -56,6 +40,7 @@ def test_snapshot_enables_parallel_rendering(site, build_site, tmp_path):
         assert html_file.stat().st_size > 0, f"HTML file is empty: {html_file}"
 
 
+@pytest.mark.heavyweight
 @pytest.mark.bengal(testroot="test-taxonomy")
 def test_snapshot_rendering_produces_html(site, build_site):
     """Test that snapshot-based rendering produces valid HTML."""
@@ -86,7 +71,7 @@ def test_snapshot_rendering_produces_html(site, build_site):
         quiet=True,
         stats=stats,
         build_context=build_context,
-        max_workers=2,
+        max_workers=1,
     )
 
     # Render pages

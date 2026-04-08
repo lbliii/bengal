@@ -79,6 +79,25 @@ class ReactiveContentHandler:
         # ContentParser.parse_file which returns (body, metadata). Passing the
         # full file would render YAML as markdown.
         _, body_content = parse_frontmatter(raw_file)
+
+        # Sprint 4: reconstruct immutable SourcePage record.
+        # Uses dataclasses.replace() so new SourcePage fields are carried forward automatically.
+        from bengal.core.records import SourcePage
+
+        old_source = getattr(page, "_source_page", None)
+        if isinstance(old_source, SourcePage):
+            from dataclasses import replace as dc_replace
+
+            from bengal.utils.primitives.hashing import hash_str
+
+            file_hash = hash_str(raw_file)
+            content_hash = hash_str(body_content)
+            new_core = dc_replace(old_source.core, file_hash=file_hash)
+            page._source_page = dc_replace(
+                old_source, core=new_core, raw_content=body_content, content_hash=content_hash
+            )
+
+        # Existing mutable Page update (kept for backward compatibility)
         page._raw_content = body_content
         page.html_content = None
 

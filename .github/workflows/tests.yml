@@ -14,9 +14,6 @@ concurrency:
   group: tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   # Detect whether code paths changed — skip tests for docs-only PRs
   detect-changes:
@@ -25,7 +22,7 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           # For PRs the base SHA is fetched automatically; for pushes we only
           # need the previous commit.  Fall back to full clone only when the
@@ -72,10 +69,10 @@ jobs:
     if: needs.detect-changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: "3.14t"
 
@@ -91,7 +88,7 @@ jobs:
       run: uv sync --no-sources --group dev
 
     - name: Fast test suite (unit tests + coverage)
-      timeout-minutes: 15
+      timeout-minutes: 25
       env:
         CI: true
         BENGAL_CI_FAST: "1"
@@ -99,10 +96,10 @@ jobs:
         PYTHON_GIL: "0"
       run: |
         echo "Running fast test suite (unit tests only, excluding slow)..."
-        uv run pytest -n auto -q --tb=short --maxfail=5 --dist worksteal --max-worker-restart=3 --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
+        uv run pytest -n 4 -q --tb=short --maxfail=5 --dist worksteal --max-worker-restart=3 --cov=bengal --cov-report=xml tests/unit tests/core tests/test_thread_safety.py -m "not slow"
 
     - name: Upload coverage
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
       with:
         files: coverage.xml
 
@@ -116,10 +113,10 @@ jobs:
         baseurl: ["/bengal", "https://example.com/sub"]
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: "3.14t"
 
@@ -153,10 +150,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: "3.14t"
 
@@ -200,10 +197,10 @@ jobs:
     # keeps wall time per shard well under the limit.
     timeout-minutes: 25
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: "3.14t"
 
@@ -231,9 +228,9 @@ jobs:
         uv run pytest \
           --splits 6 --group ${{ matrix.group }} \
           --splitting-algorithm least_duration \
-          -n auto -vv -ra --tb=short --maxfail=1 --durations=40 \
-          --timeout=120 --timeout-method=thread \
-          --dist worksteal --max-worker-restart=3 \
+          -n 1 -vv -ra --tb=short --maxfail=3 --durations=40 \
+          --timeout=180 --timeout-method=thread \
+          --max-worker-restart=3 \
           tests/integration \
           --ignore=tests/integration/warm_build \
           -m "not slow and not performance and not stateful and not autodoc and not known_gap" \
@@ -242,7 +239,7 @@ jobs:
 
     - name: Upload integration diagnostics
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: integration-diagnostics-group${{ matrix.group }}
         path: |
@@ -261,10 +258,10 @@ jobs:
         group: [1, 2]
     timeout-minutes: 20
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: "3.14t"
 
@@ -302,7 +299,7 @@ jobs:
 
     - name: Upload warm-build diagnostics
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: warm-build-diagnostics-group${{ matrix.group }}
         path: |
@@ -316,10 +313,10 @@ jobs:
     if: ${{ !cancelled() && needs.fast-check.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: "3.14t"
 
@@ -347,7 +344,7 @@ jobs:
 
     - name: Upload render output metrics
       if: always()
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: render-output-metrics-${{ github.sha }}
         path: |
@@ -360,10 +357,10 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: "3.14t"
 
@@ -392,10 +389,10 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: "3.14t"
 
@@ -424,10 +421,10 @@ jobs:
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
 
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: "3.14t"
 

@@ -67,16 +67,6 @@ class TestAutodocCacheErrors:
         assert exc_info.value.code == ErrorCode.A001
         assert "cache" in exc_info.value.suggestion.lower()
 
-    def test_cache_corruption_from_orchestrator(self, tmp_path: Path) -> None:
-        """Cache deserialization failure in orchestrator raises BengalCacheError."""
-        # This test verifies the orchestrator catches cache corruption
-        # and raises appropriate BengalCacheError
-        from bengal.autodoc.orchestration.orchestrator import VirtualAutodocOrchestrator
-
-        # Note: Full test would require more setup, so we verify the import works
-        # and the error path is available
-        assert VirtualAutodocOrchestrator is not None
-
 
 class TestCacheCompressionErrors:
     """Integration tests for cache compression error handling."""

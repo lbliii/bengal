@@ -6,12 +6,109 @@ These tests ensure that LLM.txt files are:
 - Always available at expected URLs
 - Updated when pages change
 - Removed when pages are deleted
+
+Read-only tests share a single module-scoped build (TestLLMTextFullBuild,
+TestLLMTextURLAccessibility).  Tests that modify content use function-scoped
+fixtures (TestLLMTextIncrementalBuild).
 """
 
 import pytest
 
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
+
+# ---------------------------------------------------------------------------
+# Module-scoped fixture: one build shared by all read-only tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def llm_site(tmp_path_factory):
+    """Build a site with LLM.txt output once for all read-only tests."""
+    site_dir = tmp_path_factory.mktemp("llm_txt_site")
+
+    # Create directory structure
+    (site_dir / "content").mkdir()
+    (site_dir / "public").mkdir(exist_ok=True)
+
+    # Create test config with LLM.txt enabled
+    config_content = """
+[site]
+title = "Test Site"
+baseurl = "https://example.com"
+
+[output_formats]
+enabled = true
+per_page = ["llm_txt"]
+site_wide = ["llm_full"]
+
+[content_signals]
+ai_train = true
+"""
+    (site_dir / "bengal.toml").write_text(config_content)
+
+    # Create some test pages
+    page1 = """---
+title: "Getting Started"
+date: 2025-10-20
+tags: ["tutorial", "beginner"]
+---
+
+# Getting Started
+
+This is an introduction to the test site.
+
+## Installation
+
+Install using pip:
+
+```bash
+pip install test-package
+```
+
+## Usage
+
+Use it like this:
+
+```python
+import test_package
+test_package.run()
+```
+"""
+    (site_dir / "content" / "getting-started.md").write_text(page1)
+
+    page2 = """---
+title: "API Reference"
+date: 2025-10-21
+tags: ["api", "reference"]
+---
+
+# API Reference
+
+Complete API documentation.
+
+## Functions
+
+### run()
+
+Runs the main function.
+
+**Returns:** `None`
+"""
+    autodoc_dir = site_dir / "content" / "autodoc"
+    autodoc_dir.mkdir(parents=True, exist_ok=True)
+    (autodoc_dir / "python.md").write_text(page2)
+
+    # Build once
+    site = Site.from_config(site_dir)
+    site.build(BuildOptions(force_sequential=True))
+
+    return site
+
+
+# ---------------------------------------------------------------------------
+# Function-scoped fixture: fresh site for tests that modify content
+# ---------------------------------------------------------------------------
 
 
 @pytest.fixture
@@ -104,23 +201,17 @@ Runs the main function.
 class TestLLMTextFullBuild:
     """Test LLM.txt generation during full builds."""
 
-    def test_per_page_llm_txt_generated(self, test_site):
+    def test_per_page_llm_txt_generated(self, llm_site):
         """Test that each page gets an index.txt file."""
-        site = Site.from_config(test_site)
-        site.build(BuildOptions())
-
-        output_dir = site.output_dir
+        output_dir = llm_site.output_dir
 
         # Check per-page LLM.txt files exist
         assert (output_dir / "getting-started" / "index.txt").exists()
         assert (output_dir / "autodoc/python" / "index.txt").exists()
 
-    def test_site_wide_llm_full_generated(self, test_site):
+    def test_site_wide_llm_full_generated(self, llm_site):
         """Test that llm-full.txt is generated at site root."""
-        site = Site.from_config(test_site)
-        site.build(BuildOptions())
-
-        llm_full_path = site.output_dir / "llm-full.txt"
+        llm_full_path = llm_site.output_dir / "llm-full.txt"
         assert llm_full_path.exists(), "llm-full.txt should be at site root"
 
         content = llm_full_path.read_text()
@@ -128,12 +219,9 @@ class TestLLMTextFullBuild:
         assert "API Reference" in content
         assert "## Page 1/" in content or "## Page 2/" in content
 
-    def test_per_page_llm_txt_content_format(self, test_site):
+    def test_per_page_llm_txt_content_format(self, llm_site):
         """Test that per-page LLM.txt follows format specification."""
-        site = Site.from_config(test_site)
-        site.build(BuildOptions())
-
-        txt_path = site.output_dir / "getting-started" / "index.txt"
+        txt_path = llm_site.output_dir / "getting-started" / "index.txt"
         content = txt_path.read_text()
 
         # Format checks
@@ -149,12 +237,9 @@ class TestLLMTextFullBuild:
         assert "<p>" not in content
         assert "<h1>" not in content
 
-    def test_llm_txt_strips_code_blocks_properly(self, test_site):
+    def test_llm_txt_strips_code_blocks_properly(self, llm_site):
         """Test that code blocks are handled correctly in LLM.txt."""
-        site = Site.from_config(test_site)
-        site.build(BuildOptions())
-
-        txt_path = site.output_dir / "getting-started" / "index.txt"
+        txt_path = llm_site.output_dir / "getting-started" / "index.txt"
         content = txt_path.read_text()
 
         # Code content should be present
@@ -164,17 +249,14 @@ class TestLLMTextFullBuild:
         # But markdown code fence syntax should be removed
         # (The _strip_html function handles this)
 
-    def test_llm_txt_urls_are_correct(self, test_site):
+    def test_llm_txt_urls_are_correct(self, llm_site):
         """Test that LLM.txt files use correct URLs."""
-        site = Site.from_config(test_site)
-        site.build(BuildOptions())
-
         # Check getting-started
-        txt1 = (site.output_dir / "getting-started" / "index.txt").read_text()
+        txt1 = (llm_site.output_dir / "getting-started" / "index.txt").read_text()
         assert "URL: /getting-started/" in txt1
 
         # Check autodoc/python
-        txt2 = (site.output_dir / "autodoc/python" / "index.txt").read_text()
+        txt2 = (llm_site.output_dir / "autodoc/python" / "index.txt").read_text()
         assert "URL: /autodoc/python/" in txt2
 
 
@@ -284,12 +366,9 @@ Updated content for testing llm-full.txt regeneration.
 class TestLLMTextURLAccessibility:
     """Test that LLM.txt files are accessible at expected URLs."""
 
-    def test_index_txt_path_matches_url_pattern(self, test_site):
+    def test_index_txt_path_matches_url_pattern(self, llm_site):
         """Test that index.txt follows the same path pattern as index.html."""
-        site = Site.from_config(test_site)
-        site.build(BuildOptions())
-
-        output_dir = site.output_dir
+        output_dir = llm_site.output_dir
 
         # For /getting-started/ URL:
         # - HTML is at: getting-started/index.html
@@ -301,17 +380,14 @@ class TestLLMTextURLAccessibility:
         assert txt_path.exists()
         assert html_path.parent == txt_path.parent
 
-    def test_llm_txt_accessible_via_action_bar_url(self, test_site):
+    def test_llm_txt_accessible_via_action_bar_url(self, llm_site):
         """Test that LLM.txt is accessible via the action-bar URL pattern."""
-        site = Site.from_config(test_site)
-        site.build(BuildOptions())
-
         # Action-bar template uses: {{ page_url }}/index.txt
         # For page at /getting-started/, the URL would be:
         # /getting-started/index.txt
 
         # Verify file exists at that path
-        txt_path = site.output_dir / "getting-started" / "index.txt"
+        txt_path = llm_site.output_dir / "getting-started" / "index.txt"
         assert txt_path.exists()
 
         # Verify content is valid
