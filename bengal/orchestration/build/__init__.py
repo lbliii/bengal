@@ -668,7 +668,7 @@ class BuildOrchestrator:
                 progress_manager.complete_phase("rendering", elapsed_ms=rendering_elapsed_ms)
                 progress_manager.stop()
 
-        # Phase 15: Update Site Pages (replace proxies with rendered pages)
+        # Phase 15: Update Site Pages (replace cached pages with rendered pages)
         rendering.phase_update_site_pages(self, incremental, pages_to_build, cli=cli)
 
         # Phase 16: Track Asset Dependencies
