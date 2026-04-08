@@ -720,7 +720,7 @@ def phase_update_site_pages(
     Phase 15: Update Site Pages.
 
     Updates site.pages with freshly rendered pages (for incremental builds).
-    Replaces stale PageProxy objects with rendered Page objects.
+    Replaces cache-reconstructed pages with freshly rendered ones.
 
     Args:
         orchestrator: Build orchestrator instance
@@ -731,21 +731,10 @@ def phase_update_site_pages(
     if incremental and pages_to_build:
         start = time.perf_counter()
 
-        # Create a mapping of source_path -> rendered page.
-        # If a page is a PageProxy that was lazy-loaded during rendering,
-        # extract the full Page so that site.pages contains up-to-date
-        # metadata (title, date, tags) instead of stale cached values.
-        from bengal.core.page.proxy import PageProxy
+        # Create a mapping of source_path -> rendered page
+        rendered_map = {page.source_path: page for page in pages_to_build}
 
-        rendered_map = {}
-        for page in pages_to_build:
-            if isinstance(page, PageProxy) and page._lazy_loaded and page._full_page is not None:
-                rendered_map[page.source_path] = page._full_page
-            else:
-                rendered_map[page.source_path] = page
-
-        # Replace stale proxies with fresh pages, counting types in the same pass
-
+        # Replace cached pages with fresh pages, counting types in the same pass
         debug = orchestrator.logger.level.value <= 10  # DEBUG level
         updated_pages = []
         page_types: dict[str, int] = {}
@@ -754,7 +743,7 @@ def phase_update_site_pages(
                 # Use the freshly rendered page
                 updated_pages.append(rendered_map[page.source_path])
             else:
-                # Keep the existing page (proxy or unchanged)
+                # Keep the existing page (cached or unchanged)
                 updated_pages.append(page)
             if debug:
                 ptype = type(updated_pages[-1]).__name__
@@ -767,7 +756,7 @@ def phase_update_site_pages(
             orchestrator.logger.debug(
                 "site_pages_composition_before_postprocess",
                 fresh_pages=page_types.get("Page", 0),
-                cached_proxies=page_types.get("PageProxy", 0),
+                from_cache=sum(1 for p in updated_pages if getattr(p, "_from_cache", False)),
                 total_pages=len(orchestrator.site.pages),
             )
         else:

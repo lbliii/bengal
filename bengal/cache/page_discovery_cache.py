@@ -1,9 +1,10 @@
 """
-Page discovery cache for incremental builds with lazy loading.
+Page discovery cache for incremental builds.
 
 This module provides caching of page metadata (title, date, tags, section, slug)
 to enable skipping full content parsing for unchanged pages. Metadata is loaded
-from cache, with full content loaded lazily via PageProxy when accessed.
+from cache and combined with cached ParsedPage data to reconstruct full Page
+objects without disk I/O.
 
 Key Types:
 PageMetadata: Type alias for PageCore - the cacheable page metadata.
@@ -18,25 +19,17 @@ PageDiscoveryCache: Main cache class for storing/loading page metadata.
 
 Architecture:
 - Metadata: source_path → PageMetadata (minimal navigation data)
-- Lazy Loading: Full content via PageProxy when needed
 - Storage: .bengal/page_metadata.json (JSON format)
 - Validation: File hash comparison to detect stale entries
 
-Performance Impact:
-- Skip parsing: ~80ms saved per 100 unchanged pages
-- Memory efficient: Only metadata in memory until content accessed
-- Incremental: Only changed pages fully parsed
-
 Caching Flow:
 1. Discovery phase checks cache for existing metadata
-2. If valid (hash matches), use cached PageMetadata
+2. If valid (hash matches), use cached PageMetadata + ParsedPage
 3. If invalid/missing, parse file and cache new metadata
-4. Templates access metadata directly (fast)
-5. Content accessed lazily via PageProxy (when needed)
+4. Templates access reconstructed Page directly
 
 Related:
 - bengal.core.page.page_core: PageCore (= PageMetadata) definition
-- bengal.core.page.proxy: PageProxy for lazy loading
 - bengal.orchestration.incremental: Uses this cache for builds
 
 """

@@ -219,12 +219,61 @@ class ParsedContentCacheMixin:
 
         return cached
 
+    def get_parsed_page(self, file_path: Path) -> Any:
+        """Lightweight lookup returning a ``ParsedPage`` record if cached.
+
+        No validation is performed — the caller is responsible for ensuring
+        the cache entry is still fresh (e.g. via file fingerprints).  Returns
+        ``None`` when no entry exists.
+
+        This method is used by incremental discovery to reconstruct pages
+        from cache without re-parsing the source file.
+        """
+        from bengal.core.records import ParsedPage
+
+        key = self._cache_key(file_path)
+        entry = self.parsed_content.get(key)
+        if not entry:
+            return None
+        try:
+            return ParsedPage.from_cache_dict(entry)
+        except Exception:
+            logger.debug("parsed_page_reconstruction_failed", page=str(file_path))
+            return None
+
+    def store_parsed_page(
+        self,
+        file_path: Path,
+        parsed_page: Any,
+        metadata: dict[str, Any],
+        template: str,
+        parser_version: str,
+    ) -> None:
+        """Store a ``ParsedPage`` record in the parsed content cache.
+
+        Convenience wrapper around ``store_parsed_content()`` that reads
+        fields from the immutable ``ParsedPage`` record.
+        """
+        self.store_parsed_content(
+            file_path=file_path,
+            html=parsed_page.html_content,
+            toc=parsed_page.toc,
+            toc_items=list(parsed_page.toc_items),
+            links=list(parsed_page.links),
+            metadata=metadata,
+            template=template,
+            parser_version=parser_version,
+            ast=parsed_page.ast_cache,
+            excerpt=parsed_page.excerpt,
+            meta_description=parsed_page.meta_description,
+        )
+
     def get_excerpt_for_path(self, file_path: Path) -> str:
         """
         Lightweight excerpt lookup (no validation).
 
         Returns excerpt or meta_description from parsed_content cache.
-        Use for PageProxy.excerpt to avoid full page load on list views.
+        Use for lightweight excerpt access without full page load.
 
         Returns:
             Excerpt string, or '' if not found

@@ -2,7 +2,7 @@
 Comprehensive tests for href and _path properties.
 
 Tests the new unified URL model across all core classes:
-- Page, PageProxy
+- Page
 - Section
 - NavNode, NavNodeProxy
 - Asset
@@ -21,8 +21,6 @@ import pytest
 from bengal.core.asset.asset_core import Asset
 from bengal.core.nav_tree import NavNode, NavNodeProxy, NavTree, NavTreeContext
 from bengal.core.page import Page
-from bengal.core.page.page_core import PageCore
-from bengal.core.page.proxy import PageProxy
 from bengal.core.section import Section
 from bengal.core.site import Site
 
@@ -287,75 +285,6 @@ class TestAssetHrefPath:
         asset._site = site
 
         assert asset.absolute_href == asset.href
-
-
-class TestPageProxyHrefPath:
-    """Test PageProxy.href and PageProxy._path delegation."""
-
-    def test_pageproxy_delegates_to_page(self):
-        """Test PageProxy delegates href/_path to underlying page."""
-        site = Site(root_path=Path("/site"), config={"baseurl": "/bengal"})
-        site.output_dir = Path("/site/public")
-
-        page = Page(
-            source_path=Path("/content/docs/page.md"),
-            _raw_metadata={"title": "Page"},
-            output_path=Path("/site/public/docs/page/index.html"),
-        )
-        page._site = site
-
-        core = PageCore(
-            source_path=str(page.source_path),
-            title="Page",
-        )
-
-        def loader(path: Path) -> Page:
-            return page
-
-        proxy = PageProxy(
-            source_path=page.source_path,
-            metadata=core,
-            loader=loader,
-        )
-        proxy._site = site
-
-        # Proxy should delegate to page
-        assert proxy.href == page.href
-        assert proxy._path == page._path
-        assert proxy.absolute_href == page.absolute_href
-
-    def test_pageproxy_href_and_path(self):
-        """Test PageProxy href and _path properties."""
-        site = Site(root_path=Path("/site"), config={"baseurl": "/bengal"})
-        site.output_dir = Path("/site/public")
-
-        page = Page(
-            source_path=Path("/content/docs/page.md"),
-            _raw_metadata={"title": "Page"},
-            output_path=Path("/site/public/docs/page/index.html"),
-        )
-        page._site = site
-
-        core = PageCore(
-            source_path=str(page.source_path),
-            title="Page",
-        )
-
-        def loader(path: Path) -> Page:
-            return page
-
-        proxy = PageProxy(
-            source_path=page.source_path,
-            metadata=core,
-            loader=loader,
-        )
-        proxy._site = site
-
-        # PageProxy lazy-loads the full page when accessing href/_path
-        # Verify it delegates to the loaded page's href/_path
-        # (Same pattern as test_pageproxy_delegates_to_page above)
-        assert proxy.href == page.href
-        assert proxy._path == page._path
 
 
 class TestHrefPathConsistency:

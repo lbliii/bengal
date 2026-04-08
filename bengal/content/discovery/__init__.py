@@ -22,7 +22,7 @@ parsing large content directories. Content caching through BuildContext
 eliminates redundant disk I/O during health checks.
 
 Related:
-- bengal/core/page/: Page and PageProxy data models
+- bengal/core/page/: Page and PageCore data models
 - bengal/core/section.py: Section data model
 - bengal/content/versioning/: Version discovery and resolution
 - bengal/orchestration/: Build orchestration that uses discovery

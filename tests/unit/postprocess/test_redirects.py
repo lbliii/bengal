@@ -294,21 +294,14 @@ def test_page_core_serialization_includes_aliases():
     assert restored.aliases == ["/old/", "/another/"]
 
 
-def test_page_proxy_exposes_aliases():
-    """Test that PageProxy exposes aliases from PageCore."""
-    from bengal.core.page.page_core import PageCore
-    from bengal.core.page.proxy import PageProxy
+def test_page_exposes_aliases():
+    """Test that Page exposes aliases from frontmatter."""
+    from bengal.core.page import Page
 
-    core = PageCore(
-        source_path="content/test.md",
-        title="Test",
-        aliases=["/old/path/"],
-    )
-
-    proxy = PageProxy(
+    page = Page(
         source_path=Path("content/test.md"),
-        metadata=core,
-        loader=lambda x: None,  # Not needed for this test
+        _raw_content="",
+        _raw_metadata={"title": "Test", "aliases": ["/old/path/"]},
     )
 
-    assert proxy.aliases == ["/old/path/"]
+    assert page.aliases == ["/old/path/"]

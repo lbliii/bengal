@@ -98,10 +98,7 @@ def build_link_registry(site: SiteLike) -> LinkRegistry:
             paths.add(content_key(full, root))
 
         # Collect anchor IDs from toc_items (already computed during parsing).
-        # Skip unloaded PageProxy to avoid triggering expensive lazy loading
-        # (unchanged pages don't need anchor re-extraction).
-        is_unloaded_proxy = hasattr(page, "_lazy_loaded") and not page._lazy_loaded
-        toc_items = [] if is_unloaded_proxy else getattr(page, "toc_items", [])
+        toc_items = getattr(page, "toc_items", [])
         if toc_items and url:
             anchor_ids = frozenset(item["id"] for item in toc_items if "id" in item)
             if anchor_ids:

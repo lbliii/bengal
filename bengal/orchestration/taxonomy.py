@@ -214,17 +214,7 @@ class TaxonomyOrchestrator:
             if page.metadata.get("_generated"):
                 continue
 
-            # For changed pages that are PageProxy objects, the cached metadata
-            # contains OLD tags from the previous build.  Force-load the page
-            # from disk so we compare against the CURRENT frontmatter tags.
-            from bengal.core.page.proxy import PageProxy
-
-            if isinstance(page, PageProxy):
-                page._ensure_loaded()
-                actual_page = page._full_page if page._full_page else page
-                actual_tags = actual_page.tags
-            else:
-                actual_tags = page.tags
+            actual_tags = page.tags
 
             # Update cache and get affected tags
             new_tags = set(actual_tags) if actual_tags else set()

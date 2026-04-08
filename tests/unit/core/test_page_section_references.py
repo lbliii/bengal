@@ -1,5 +1,5 @@
 """
-Unit tests for Page/PageProxy path-based section references.
+Unit tests for Page path-based section references.
 
 Tests the _section property implementation that enables stable
 section references across rebuilds.
@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from bengal.core.page import Page, PageProxy
+from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 
@@ -119,60 +119,6 @@ def test_page_url_stable_across_rebuilds(temp_site):
     assert page._section == blog_recreated
 
 
-def test_proxy_url_without_forcing_load(temp_site):
-    """Test that PageProxy can access section without forcing full load."""
-    # Create section
-    blog = Section(
-        name="blog",
-        path=temp_site.root_path / "content" / "blog",
-        metadata={"title": "Blog"},
-        pages=[],
-        subsections=[],
-    )
-
-    temp_site.sections = [blog]
-    temp_site.register_sections()
-
-    # Create a page for the loader to return
-    def loader(source_path):
-        page = Page(
-            source_path=source_path,
-            _raw_content="Content from disk",
-            _raw_metadata={"title": "Post 1"},
-        )
-        page._site = temp_site
-        return page
-
-    # Create proxy with metadata
-    from bengal.cache.page_discovery_cache import PageMetadata
-
-    metadata = PageMetadata(
-        source_path=str(temp_site.root_path / "content" / "blog" / "post1.md"),
-        title="Post 1",
-        date=None,
-        tags=[],
-        slug="post-1",
-        section=str(blog.path),
-        weight=0,
-        lang=None,
-    )
-
-    proxy = PageProxy(
-        source_path=temp_site.root_path / "content" / "blog" / "post1.md",
-        metadata=metadata,
-        loader=loader,
-    )
-
-    proxy._site = temp_site
-    proxy._section = blog  # Sets _section_path
-
-    # Access section WITHOUT forcing load
-    assert proxy._lazy_loaded is False
-    section = proxy._section
-    assert section == blog
-    assert proxy._lazy_loaded is False  # Still not loaded!
-
-
 def test_section_setter_stores_path(temp_site):
     """Test that setting _section stores the path, not the object."""
     blog = Section(
@@ -245,61 +191,6 @@ def test_section_none_handling(temp_site):
 
     assert page._section_path is None
     assert page._section is None
-
-
-def test_proxy_section_property_delegate(temp_site):
-    """Test that PageProxy._section delegates to full page when loaded."""
-    blog = Section(
-        name="blog",
-        path=temp_site.root_path / "content" / "blog",
-        metadata={"title": "Blog"},
-        pages=[],
-        subsections=[],
-    )
-
-    temp_site.sections = [blog]
-    temp_site.register_sections()
-
-    def loader(source_path):
-        page = Page(
-            source_path=source_path,
-            _raw_content="Content from disk",
-            _raw_metadata={"title": "Post 1"},
-        )
-        page._site = temp_site
-        page._section = blog
-        return page
-
-    from bengal.cache.page_discovery_cache import PageMetadata
-
-    metadata = PageMetadata(
-        source_path=str(temp_site.root_path / "content" / "blog" / "post1.md"),
-        title="Post 1",
-        date=None,
-        tags=[],
-        slug="post-1",
-        section=str(blog.path),
-        weight=0,
-        lang=None,
-    )
-
-    proxy = PageProxy(
-        source_path=temp_site.root_path / "content" / "blog" / "post1.md",
-        metadata=metadata,
-        loader=loader,
-    )
-
-    proxy._site = temp_site
-    proxy._section = blog
-
-    # Force load by accessing content
-    _ = proxy.content
-
-    assert proxy._lazy_loaded is True
-
-    # Now _section should delegate to full page
-    assert proxy._section == blog
-    assert proxy._full_page._section == blog
 
 
 def test_page_parent_property_uses_section(temp_site):

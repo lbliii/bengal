@@ -40,8 +40,8 @@ def is_autodoc_page(page: PageLike | Any) -> bool:
     - Source path ends with "/api"
 
     Args:
-        page: Page object to check. Can be a Page, PageProxy, or any
-              object with metadata/frontmatter and content attributes.
+        page: Page object to check. Can be a Page or any object with
+              metadata/frontmatter and content attributes.
 
     Returns:
         True if page is autodoc-generated

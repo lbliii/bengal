@@ -46,6 +46,47 @@ class ParsedPage:
     links: tuple[str, ...]
     ast_cache: dict[str, Any] | list[Any] | None = None
 
+    def to_cache_dict(self) -> dict[str, Any]:
+        """Serialize to a cache-storable dict.
+
+        The returned dict is JSON-serializable and compatible with
+        ``ParsedContentCacheMixin.store_parsed_content()`` storage format.
+        """
+        return {
+            "html": self.html_content,
+            "toc": self.toc,
+            "toc_items": list(self.toc_items),
+            "excerpt": self.excerpt,
+            "meta_description": self.meta_description,
+            "plain_text": self.plain_text,
+            "word_count": self.word_count,
+            "reading_time": self.reading_time,
+            "links": list(self.links),
+            "ast": self.ast_cache,
+        }
+
+    @classmethod
+    def from_cache_dict(cls, data: dict[str, Any]) -> ParsedPage:
+        """Reconstruct a ``ParsedPage`` from a cache dict.
+
+        Accepts the dict format stored by ``ParsedContentCacheMixin``.
+        Missing fields fall back to safe defaults.
+        """
+        toc_items = data.get("toc_items", [])
+        links = data.get("links", [])
+        return cls(
+            html_content=data.get("html", ""),
+            toc=data.get("toc", ""),
+            toc_items=tuple(toc_items) if toc_items else (),
+            excerpt=data.get("excerpt", "") or "",
+            meta_description=data.get("meta_description", "") or "",
+            plain_text=data.get("plain_text", ""),
+            word_count=data.get("word_count", 0) or 0,
+            reading_time=data.get("reading_time", 0) or 0,
+            links=tuple(str(x) for x in links) if links else (),
+            ast_cache=data.get("ast"),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class RenderedPage:

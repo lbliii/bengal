@@ -7,7 +7,6 @@ content files and are the primary content unit in Bengal.
 
 Public API:
 Page: Content page with metadata, content, and rendering capabilities
-PageProxy: Lazy-loading proxy for incremental builds (wraps PageCore)
 
 Package Structure:
 page_core.py: PageCore dataclass (cacheable metadata)
@@ -17,7 +16,6 @@ computed.py: Free functions for computed properties (word count, reading time, e
 content.py: PageContentMixin (AST, TOC, excerpts)
 bundle.py: Free functions for bundle detection and resource access
 relationships.py: PageRelationshipsMixin (prev/next, related)
-proxy.py: PageProxy for lazy loading
 utils.py: Field separation utilities
 (PageOperationsMixin moved to bengal.rendering.page_operations)
 
@@ -31,8 +29,8 @@ Hashability: Pages are hashable by source_path, enabling set operations
 Virtual Pages: Pages without disk files (e.g., autodoc). Created via
     Page.create_virtual() for dynamically-generated content.
 
-PageCore: Cacheable subset of page metadata. Shared between Page,
-    PageProxy, and cache layer. Enables incremental builds.
+PageCore: Cacheable subset of page metadata. Shared between Page
+    and cache layer. Enables incremental builds.
 
 Build Lifecycle:
 1. Discovery: source_path, content, metadata available
@@ -79,7 +77,6 @@ from .content import PageContentMixin
 from .frontmatter import Frontmatter
 from .metadata import PageMetadataMixin
 from .page_core import PageCore
-from .proxy import PageProxy
 from .relationships import PageRelationshipsMixin
 from .utils import normalize_tags
 
@@ -166,7 +163,7 @@ class Page(
     # Required field (no default)
     source_path: Path
 
-    # PageCore: Cacheable metadata (single source of truth for Page/PageMetadata/PageProxy)
+    # PageCore: Cacheable metadata (single source of truth for Page/PageMetadata)
     # Auto-created in __post_init__ from Page fields
     core: PageCore | None = field(default=None, init=False)
 
@@ -262,6 +259,10 @@ class Page(
     _complexity_score: int | None = field(default=None, repr=False, init=False)
     # Cascade invalidation flag (set by provenance filter when provenance changes)
     _cascade_invalidated: bool = field(default=False, repr=False, init=False)
+
+    # Sprint 5: True when page was reconstructed from cache without disk I/O.
+    # Used for metrics/logging to distinguish cache-reconstructed pages.
+    _from_cache: bool = field(default=False, repr=False, init=False)
 
     # Sprint 4 dual-write bridge: immutable SourcePage record from discovery.
     # Set by ContentDiscovery._create_page(); None for cached/proxy pages.
@@ -371,7 +372,7 @@ class Page(
             aliases=standard_fields.get("aliases") or self.aliases or [],
             # Cascade data (from _index.md frontmatter)
             # Critical for incremental builds: without this, cascade data is lost
-            # when _index.md files are loaded from cache as PageProxy
+            # when _index.md files are loaded from cache
             cascade=self._raw_metadata.get("cascade", {}),
         )
 
@@ -935,7 +936,6 @@ __all__ = [
     "BundleType",
     "Frontmatter",
     "Page",
-    "PageProxy",
     "PageResource",
     "PageResources",
 ]

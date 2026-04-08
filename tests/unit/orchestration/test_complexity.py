@@ -210,8 +210,6 @@ class TestSortByComplexity:
         page = Mock()
         page.content = content
         page.name = name
-        # Ensure it's not a PageProxy
-        del page._full_page
         return page
 
     def test_heavy_pages_first(self):
@@ -243,20 +241,6 @@ class TestSortByComplexity:
 
         assert pages == original_order
         assert sorted_pages is not pages
-
-    def test_page_proxy_without_content(self):
-        """PageProxy with unloaded content is treated as light."""
-        # Simulate PageProxy with _full_page = None (not loaded)
-        proxy = Mock()
-        proxy._full_page = None
-        proxy.content = "this should not be accessed"
-
-        regular = self._make_page("```\n```\n" * 5, "regular")  # 5 code blocks
-
-        sorted_pages = sort_by_complexity([proxy, regular])
-
-        # Regular page (with content) should sort first
-        assert sorted_pages[0] is regular
 
     def test_ascending_order(self):
         """Can sort in ascending order (light first) if needed."""
@@ -290,7 +274,6 @@ class TestCachedScore:
         """Create a mock page with content."""
         page = Mock()
         page.content = content
-        del page._full_page
         return page
 
     def test_score_cached_on_page(self):
@@ -327,7 +310,6 @@ class TestComplexityStats:
         """Create a mock page with content."""
         page = Mock()
         page.content = content
-        del page._full_page
         return page
 
     def test_empty_pages(self):
@@ -403,7 +385,6 @@ class TestEdgeCases:
         """Handles None-ish content from getattr."""
         page = Mock()
         page.content = None
-        del page._full_page
 
         score = get_cached_score(page)
         assert score == 0
@@ -411,7 +392,6 @@ class TestEdgeCases:
     def test_page_without_content_attribute(self):
         """Handles pages missing content attribute."""
         page = Mock(spec=[])  # Empty spec = no attributes
-        del page._full_page
 
         score = get_cached_score(page)
         assert score == 0
