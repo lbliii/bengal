@@ -52,7 +52,7 @@ When `True`, Bengal spins up a `ThreadPoolExecutor` for page rendering.
 
 After content discovery, Bengal freezes the entire site into immutable dataclasses — `PageSnapshot`, `SectionSnapshot`, `SiteSnapshot`. `SiteSnapshot` is composed of focused plan types (`NavigationPlan`, `TaxonomyPlan`, `RenderSchedule`) for organizational clarity. During rendering, workers only read from snapshots. No locks in the hot path.
 
-Each pipeline stage also produces its own frozen record — `SourcePage` (discovery), `ParsedPage` (parsing), `RenderedPage` (rendering) — so data flows through the pipeline as immutable values.
+Each pipeline stage also produces its own frozen record — `SourcePage` (discovery), `ParsedPage` (parsing), `RenderedPage` (rendering) — so data flows through the pipeline as stable snapshot-style values. These records are frozen at the top level, but nested containers may still be mutable, so this is a shallow immutability boundary rather than a deep thread-safety guarantee by itself.
 
 ```python
 @dataclass(frozen=True, slots=True)

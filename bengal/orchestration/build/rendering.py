@@ -601,33 +601,39 @@ def phase_render(
                         progress_manager=progress_manager,
                         block_cache=block_cache,
                     )
-                    _render_stats = scheduler.render_all(pages_to_build)
-                    # RenderStats are for internal tracking only
-                    # BuildStats tracks timing via rendering_time_ms (set below)
-                    # Errors are handled by RenderingPipeline and tracked in BuildStats.errors_by_category
+                    try:
+                        _render_stats = scheduler.render_all(pages_to_build)
+                        # RenderStats are for internal tracking only
+                        # BuildStats tracks timing via rendering_time_ms (set below)
+                        # Errors are handled by RenderingPipeline and tracked in BuildStats.errors_by_category
 
-                    # Collect block cache stats (WaveScheduler path bypasses RenderOrchestrator)
-                    if block_cache is not None:
-                        block_cache_stats = block_cache.get_stats()
-                        if block_cache_stats:
-                            orchestrator.stats.block_cache_hits = block_cache_stats.get("hits", 0)
-                            orchestrator.stats.block_cache_misses = block_cache_stats.get(
-                                "misses", 0
-                            )
-                            orchestrator.stats.block_cache_site_blocks = block_cache_stats.get(
-                                "site_blocks_cached", 0
-                            )
-                            orchestrator.stats.block_cache_time_saved_ms = block_cache_stats.get(
-                                "time_saved_ms", 0.0
-                            )
-
-                    # Flush write-behind collector if enabled (same as RenderOrchestrator)
-                    if ctx.write_behind:
-                        try:
-                            written = ctx.write_behind.flush_and_close()
-                            orchestrator.logger.debug("write_behind_flushed", files_written=written)
-                        except Exception as e:
-                            orchestrator.logger.error("write_behind_flush_error", error=str(e))
+                        # Collect block cache stats (WaveScheduler path bypasses RenderOrchestrator)
+                        if block_cache is not None:
+                            block_cache_stats = block_cache.get_stats()
+                            if block_cache_stats:
+                                orchestrator.stats.block_cache_hits = block_cache_stats.get(
+                                    "hits", 0
+                                )
+                                orchestrator.stats.block_cache_misses = block_cache_stats.get(
+                                    "misses", 0
+                                )
+                                orchestrator.stats.block_cache_site_blocks = block_cache_stats.get(
+                                    "site_blocks_cached", 0
+                                )
+                                orchestrator.stats.block_cache_time_saved_ms = (
+                                    block_cache_stats.get("time_saved_ms", 0.0)
+                                )
+                    finally:
+                        # Flush write-behind collector if enabled.  Must be in finally
+                        # so drain threads are cleaned up even if render_all raises.
+                        if ctx.write_behind:
+                            try:
+                                written = ctx.write_behind.flush_and_close()
+                                orchestrator.logger.debug(
+                                    "write_behind_flushed", files_written=written
+                                )
+                            except Exception as e:
+                                orchestrator.logger.error("write_behind_flush_error", error=str(e))
                 else:
                     # Fallback to existing renderer (sequential or when snapshot unavailable)
                     orchestrator.render.process(
