@@ -50,7 +50,9 @@ When `True`, Bengal spins up a `ThreadPoolExecutor` for page rendering.
 
 ### Immutable Snapshots (Lock-Free)
 
-After content discovery, Bengal freezes the entire site into immutable dataclasses — `PageSnapshot`, `SectionSnapshot`, `SiteSnapshot`. During rendering, workers only read from snapshots. No locks in the hot path.
+After content discovery, Bengal freezes the entire site into immutable dataclasses — `PageSnapshot`, `SectionSnapshot`, `SiteSnapshot`. `SiteSnapshot` is composed of focused plan types (`NavigationPlan`, `TaxonomyPlan`, `RenderSchedule`) for organizational clarity. During rendering, workers only read from snapshots. No locks in the hot path.
+
+Each pipeline stage also produces its own frozen record — `SourcePage` (discovery), `ParsedPage` (parsing), `RenderedPage` (rendering) — so data flows through the pipeline as stable snapshot-style values. These records are frozen at the top level, but nested containers may still be mutable, so this is a shallow immutability boundary rather than a deep thread-safety guarantee by itself.
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -63,6 +65,15 @@ class PageSnapshot:
     section: SectionSnapshot | None = None
     next_page: PageSnapshot | None = None
     prev_page: PageSnapshot | None = None
+    ...
+
+@dataclass(frozen=True, slots=True)
+class SiteSnapshot:
+    pages: tuple[PageSnapshot, ...]
+    sections: tuple[SectionSnapshot, ...]
+    navigation: NavigationPlan      # Menus, nav trees
+    taxonomy: TaxonomyPlan          # Tag/category mappings
+    schedule: RenderSchedule        # Topological render order
     ...
 ```
 
@@ -150,6 +161,7 @@ The plugin system uses a builder→immutable pattern. `PluginRegistry` collects 
 | Parallel rendering, thread-local pipeline | [bengal/orchestration/render/parallel.py](https://github.com/lbliii/bengal/blob/main/bengal/orchestration/render/parallel.py) |
 | Context propagation to workers | [bengal/utils/concurrency/context_propagation.py](https://github.com/lbliii/bengal/blob/main/bengal/utils/concurrency/context_propagation.py) |
 | Immutable snapshots | [bengal/snapshots/types.py](https://github.com/lbliii/bengal/blob/main/bengal/snapshots/types.py) |
+| Pipeline records (SourcePage, ParsedPage, RenderedPage) | [bengal/core/records.py](https://github.com/lbliii/bengal/blob/main/bengal/core/records.py) |
 | Rendering (asset ContextVar) | [bengal/orchestration/build/rendering.py](https://github.com/lbliii/bengal/blob/main/bengal/orchestration/build/rendering.py) |
 | EffectTracer (lock-serialized) | [bengal/effects/tracer.py](https://github.com/lbliii/bengal/blob/main/bengal/effects/tracer.py) |
 | Thread-safe LRUCache | [bengal/utils/primitives/lru_cache.py](https://github.com/lbliii/bengal/blob/main/bengal/utils/primitives/lru_cache.py) |

@@ -261,7 +261,15 @@ class WaveScheduler:
             )
 
             # Render by template batch
+            # Capture current generation so stale thread-local pipelines
+            # (from a previous build) are recreated with the correct
+            # write_behind collector.  Without this, pipelines cached on
+            # reused threads still reference the OLD WriteBehindCollector
+            # whose drain threads have been shut down.
+            from bengal.orchestration.render.tracking import get_current_generation
             from bengal.utils.concurrency.work_scope import WorkScope
+
+            current_gen = get_current_generation()
 
             def process_page(page: PageLike) -> PageLike:
                 try:
@@ -276,7 +284,7 @@ class WaveScheduler:
                         highlight_cache=None,
                         output_collector=self._output_collector,
                         write_behind=self._write_behind,
-                        current_generation=None,
+                        current_generation=current_gen,
                     )
                 except Exception as e:
                     e.__page_source_path__ = page.source_path  # type: ignore[attr-defined]
@@ -328,8 +336,10 @@ class WaveScheduler:
                 # No join() — blocks indefinitely under ft-Python 3.14t.
                 # Scout is a daemon thread; stop() signals it to exit.
 
-            if self._write_behind:
-                stats.files_written = self._write_behind.flush_and_close()
+            # NOTE: Do NOT flush write_behind here. The caller (phase_render)
+            # owns the WriteBehindCollector lifecycle and flushes it after we
+            # return. Flushing here kills writer threads; the caller's second
+            # flush then finds dead threads and drops queued items.
 
         return stats
 
@@ -399,7 +409,15 @@ class WaveScheduler:
                 max_wave = max(waves.keys()) if waves else -1
                 waves[max_wave + 1] = orphan_pages
 
+            # Capture current generation so stale thread-local pipelines
+            # (from a previous build) are recreated with the correct
+            # write_behind collector.  Without this, pipelines cached on
+            # reused threads still reference the OLD WriteBehindCollector
+            # whose drain threads have been shut down.
+            from bengal.orchestration.render.tracking import get_current_generation
             from bengal.utils.concurrency.work_scope import WorkScope
+
+            current_gen = get_current_generation()
 
             def process_page_with_pipeline(page: PageLike) -> PageLike:
                 try:
@@ -414,7 +432,7 @@ class WaveScheduler:
                         highlight_cache=None,
                         output_collector=self._output_collector,
                         write_behind=self._write_behind,
-                        current_generation=None,
+                        current_generation=current_gen,
                     )
                 except Exception as e:
                     e.__page_source_path__ = page.source_path  # type: ignore[attr-defined]
@@ -459,7 +477,6 @@ class WaveScheduler:
                 # No join() — blocks indefinitely under ft-Python 3.14t.
                 # Scout is a daemon thread; stop() signals it to exit.
 
-            if self._write_behind:
-                stats.files_written = self._write_behind.flush_and_close()
+            # NOTE: Do NOT flush write_behind here — see _render_template_first.
 
         return stats

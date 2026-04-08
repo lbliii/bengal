@@ -84,7 +84,7 @@ flowchart LR
 |-------|----------|-------------|
 | 13 | `phase_assets` | Minify, optimize, fingerprint assets |
 | 14 | `phase_render` | Markdown → HTML, apply templates |
-| 15 | `phase_update_site_pages` | Replace stale PageProxy objects |
+| 15 | `phase_update_site_pages` | Replace cached pages with freshly rendered pages |
 | 16 | `phase_track_assets` | Persist page-to-assets mapping |
 
 ### Finalization (Phases 17-21)

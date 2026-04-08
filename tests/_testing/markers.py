@@ -115,6 +115,6 @@ def shared_site(request, tmp_path_factory, rootdir):
 
     site_dir = tmp_path_factory.mktemp(f"shared_{testroot}")
     site = create_site_from_testroot(testroot, rootdir, site_dir, confoverrides)
-    site.build(BuildOptions(force_sequential=True))
+    site.build(BuildOptions())
 
     return site

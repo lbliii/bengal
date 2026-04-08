@@ -56,7 +56,7 @@ flowchart TD
         direction TB
         P13["Phase 13: Asset Processing<br/>Minify, optimize, fingerprint assets"]
         P13 --> P14["Phase 14: Page Rendering<br/>Markdown → HTML → Templates"]
-        P14 --> P15["Phase 15: Update Site Pages<br/>Replace PageProxy with rendered Page"]
+        P14 --> P15["Phase 15: Update Site Pages<br/>Replace cached pages with rendered pages"]
         P15 --> P16["Phase 16: Track Asset Dependencies<br/>Cache page-to-assets mapping"]
     end
 

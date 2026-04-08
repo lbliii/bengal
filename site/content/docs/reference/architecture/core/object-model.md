@@ -49,13 +49,12 @@ Represents a single content page with source, metadata, rendered HTML, and navig
   - `navigation.py`: Next/prev/parent links
   - `relationships.py`: Section membership
   - `computed.py`: URL generation, TOC
-  - `operations.py`: Rendering logic
-  - `proxy.py`: Lazy-loading wrapper for incremental builds
+  - `content.py`: Content and rendering logic
 
 **PageCore Integration:**
 - Cacheable fields (title, date, tags, slug) stored in `page.core`
 - Property delegates provide direct access: `page.title` → `page.core.title`
-- Enables type-safe caching and lazy loading via `PageProxy`
+- Enables type-safe caching; pages are reconstructed from cache during incremental builds
 :::
 
 :::{tab-item} Section
@@ -107,19 +106,18 @@ Provides hierarchical navigation menus built from config + frontmatter.
 
 - **`Page`**: via `page.core` and property delegates
 - **`PageMetadata`**: a type alias of `PageCore` used by caches
-- **`PageProxy`**: wraps `PageCore` and lazy-loads only non-core fields
+- **`SourcePage`**: frozen record from discovery that composes `PageCore` for cache-compatible metadata
 
 Refer to:
 - `bengal/core/page/page_core.py`
 - `bengal/cache/page_discovery_cache.py`
-- `bengal/core/page/proxy.py`
+- `bengal/core/records.py`
 
 ::::{dropdown} Contributor notes: adding fields and deciding what belongs in PageCore
 When you add a cacheable field:
 
 1. Add it to `PageCore` (`bengal/core/page/page_core.py`)
 2. Add a property delegate to `Page` (`bengal/core/page/__init__.py`)
-3. Add a property delegate to `PageProxy` (`bengal/core/page/proxy.py`)
 
 Include fields that are stable, JSON-serializable, and useful without full content parsing. Keep build artifacts and parsed-content-derived fields out of `PageCore`.
 ::::
@@ -199,7 +197,6 @@ classDiagram
     }
 
     Page "1" *-- "1" PageCore : contains
-    PageProxy "1" *-- "1" PageCore : wraps
 
     class Section {
         +name: str

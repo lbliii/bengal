@@ -18,7 +18,7 @@ class TestConcurrentBuilds:
 
         def build_once(_):
             site = Site.from_config(site_root)
-            site.build(BuildOptions(force_sequential=True, incremental=False))
+            site.build(BuildOptions(incremental=False))
             return True
 
         with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
