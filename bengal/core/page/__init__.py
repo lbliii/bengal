@@ -261,8 +261,8 @@ class Page(
     _cascade_invalidated: bool = field(default=False, repr=False, init=False)
 
     # Sprint 5: True when page was reconstructed from cache without disk I/O.
-    # Used for metrics/logging to distinguish cache-reconstructed pages.
-    _from_cache: bool = field(default=False, repr=False, init=False)
+    # Used for metrics/logging and to skip wasteful re-initialization in __post_init__.
+    _from_cache: bool = field(default=False, repr=False)
 
     # Sprint 4 dual-write bridge: immutable SourcePage record from discovery.
     # Set by ContentDiscovery._create_page(); None for cached/proxy pages.
@@ -277,8 +277,10 @@ class Page(
             self.version = self._raw_metadata.get("version") or self._raw_metadata.get("_version")
             self.aliases = self._raw_metadata.get("aliases", [])
 
-        # Auto-create PageCore from Page fields
-        self._init_core_from_fields()
+        # Skip PageCore creation for cache-reconstructed pages — the caller
+        # assigns the cached core directly, avoiding a wasteful throwaway object.
+        if not self._from_cache:
+            self._init_core_from_fields()
 
     @property
     def metadata(self) -> Mapping[str, Any]:

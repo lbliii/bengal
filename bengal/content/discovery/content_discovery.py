@@ -430,52 +430,57 @@ class ContentDiscovery:
         if parsed_page is None:
             return None
 
-        raw_metadata = build_raw_metadata_from_core(core)
+        try:
+            raw_metadata = build_raw_metadata_from_core(core)
 
-        page = Page(
-            source_path=file_path,
-            _raw_content="",
-            _raw_metadata=raw_metadata,
-        )
+            # _from_cache=True tells __post_init__ to skip _init_core_from_fields()
+            # since we assign the cached core directly below.
+            page = Page(
+                source_path=file_path,
+                _raw_content="",
+                _raw_metadata=raw_metadata,
+                _from_cache=True,
+            )
 
-        # Populate parsed fields from immutable ParsedPage record
-        page.html_content = parsed_page.html_content
-        page.toc = parsed_page.toc
-        page._toc_items_cache = list(parsed_page.toc_items)
-        page.links = list(parsed_page.links)
-        page._excerpt = parsed_page.excerpt
-        page._meta_description = parsed_page.meta_description
-        page._plain_text_cache = parsed_page.plain_text
-        page._ast_cache = parsed_page.ast_cache
+            # Assign the cached PageCore directly as the single source of truth.
+            page.core = core
 
-        # Seed cached_property values from ParsedPage so they don't
-        # recompute from the empty _raw_content placeholder.
-        page.__dict__["word_count"] = parsed_page.word_count
-        page.__dict__["reading_time"] = parsed_page.reading_time
+            # Populate parsed fields from immutable ParsedPage record.
+            # AST is intentionally NOT loaded — it can be large and the rendering
+            # pipeline retrieves it from the build cache if needed.  The
+            # _plain_text_cache short-circuits any AST-based plain_text computation.
+            page.html_content = parsed_page.html_content
+            page.toc = parsed_page.toc
+            page._toc_items_cache = list(parsed_page.toc_items)
+            page.links = list(parsed_page.links)
+            page._excerpt = parsed_page.excerpt
+            page._meta_description = parsed_page.meta_description
+            page._plain_text_cache = parsed_page.plain_text
 
-        # Set site and section references
-        if self.site is not None:
-            page._site = self.site
-        if section is not None:
-            page._section_path = section.path
+            # Seed cached_property values from ParsedPage so they don't
+            # recompute from the empty _raw_content placeholder.
+            page.__dict__["word_count"] = parsed_page.word_count
+            page.__dict__["reading_time"] = parsed_page.reading_time
 
-        # i18n enrichment from cached core
-        if current_lang:
-            page.lang = current_lang
-        elif core.lang:
-            page.lang = core.lang
-        if hasattr(core, "translation_key") and core.translation_key:
-            page.translation_key = core.translation_key
+            # Set site and section references
+            if self.site is not None:
+                page._site = self.site
+            if section is not None:
+                page._section_path = section.path
 
-        # Assign the cached PageCore directly as the single source of truth
-        # instead of letting _init_core_from_fields() re-derive it from
-        # _raw_metadata (which could desync lang, section, etc.).
-        page.core = core
+            # i18n enrichment from cached core
+            if current_lang:
+                page.lang = current_lang
+            elif core.lang:
+                page.lang = core.lang
+            if hasattr(core, "translation_key") and core.translation_key:
+                page.translation_key = core.translation_key
 
-        # Mark as cache-reconstructed (Sprint 5 metrics)
-        page._from_cache = True
-
-        return page
+            return page
+        except Exception:
+            # Any failure during cache reconstruction falls through to full parse.
+            logger.debug("cache_reconstruction_failed", file=str(file_path))
+            return None
 
     def _discover_full(self) -> tuple[list[SectionLike], list[PageLike]]:
         """Full discovery - discover all pages completely."""
