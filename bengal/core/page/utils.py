@@ -188,9 +188,15 @@ def build_raw_metadata_from_core(core: Any) -> dict[str, Any]:
     Returns:
         Dict suitable for ``Page._raw_metadata``.
     """
-    raw_metadata: dict[str, Any] = {
-        "weight": core.weight if core.weight is not None else float("inf"),
-    }
+    raw_metadata: dict[str, Any] = {}
+    if core.weight is not None:
+        raw_metadata["weight"] = core.weight
+    if core.title:
+        raw_metadata["title"] = core.title
+    if core.description:
+        raw_metadata["description"] = core.description
+    if core.nav_title:
+        raw_metadata["nav_title"] = core.nav_title
     if core.tags:
         raw_metadata["tags"] = core.tags
     if core.date:
@@ -203,6 +209,10 @@ def build_raw_metadata_from_core(core: Any) -> dict[str, Any]:
         raw_metadata["type"] = core.type
     if core.variant:
         raw_metadata["variant"] = core.variant
+    if getattr(core, "aliases", None):
+        raw_metadata["aliases"] = core.aliases
+    if getattr(core, "version", None):
+        raw_metadata["version"] = core.version
     if core.props:
         raw_metadata.update(core.props)
     if core.cascade:

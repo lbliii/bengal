@@ -268,6 +268,15 @@ class ParsedContentCacheMixin:
             meta_description=parsed_page.meta_description,
         )
 
+        # Persist fields that ParsedPage serializes but store_parsed_content
+        # doesn't natively include, so incremental reconstruction can restore them.
+        key = self._cache_key(file_path)
+        entry = self.parsed_content.get(key)
+        if entry:
+            entry["plain_text"] = parsed_page.plain_text
+            entry["word_count"] = parsed_page.word_count
+            entry["reading_time"] = parsed_page.reading_time
+
     def get_excerpt_for_path(self, file_path: Path) -> str:
         """
         Lightweight excerpt lookup (no validation).

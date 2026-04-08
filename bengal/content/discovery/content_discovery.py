@@ -448,6 +448,11 @@ class ContentDiscovery:
         page._plain_text_cache = parsed_page.plain_text
         page._ast_cache = parsed_page.ast_cache
 
+        # Seed cached_property values from ParsedPage so they don't
+        # recompute from the empty _raw_content placeholder.
+        page.__dict__["word_count"] = parsed_page.word_count
+        page.__dict__["reading_time"] = parsed_page.reading_time
+
         # Set site and section references
         if self.site is not None:
             page._site = self.site
@@ -461,6 +466,11 @@ class ContentDiscovery:
             page.lang = core.lang
         if hasattr(core, "translation_key") and core.translation_key:
             page.translation_key = core.translation_key
+
+        # Assign the cached PageCore directly as the single source of truth
+        # instead of letting _init_core_from_fields() re-derive it from
+        # _raw_metadata (which could desync lang, section, etc.).
+        page.core = core
 
         # Mark as cache-reconstructed (Sprint 5 metrics)
         page._from_cache = True
