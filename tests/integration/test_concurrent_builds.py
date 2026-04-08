@@ -1,5 +1,4 @@
 import concurrent.futures
-import os
 from pathlib import Path
 
 import pytest
@@ -22,14 +21,8 @@ class TestConcurrentBuilds:
             site.build(BuildOptions(force_sequential=True, incremental=False))
             return True
 
-        # Scale down in CI: 6 concurrent builds under free-threaded Python
-        # spawn 48+ writer threads that deadlock on constrained runners.
-        ci_fast = os.environ.get("BENGAL_CI_FAST") == "1"
-        max_workers = 2 if ci_fast else 4
-        num_builds = 3 if ci_fast else 6
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as ex:
-            results = list(ex.map(build_once, range(num_builds)))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+            results = list(ex.map(build_once, range(6)))
 
         assert all(results)
         # cache existence is implementation-specific; assert build output instead
