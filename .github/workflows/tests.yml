@@ -224,6 +224,9 @@ jobs:
         PYTHONUNBUFFERED: "1"
       run: |
         echo "Running integration tests (group ${{ matrix.group }}/6)..."
+        # E2E-covered files are excluded below — they already run in the e2e job
+        # with -n auto. Re-running them here (-n 1, free-threaded) causes watchdog
+        # kills when class-scoped site builds exceed 110s on single-worker shards.
         set -o pipefail
         uv run pytest \
           --splits 6 --group ${{ matrix.group }} \
@@ -233,6 +236,11 @@ jobs:
           --max-worker-restart=3 \
           tests/integration \
           --ignore=tests/integration/warm_build \
+          --ignore=tests/integration/test_blog_scenarios.py \
+          --ignore=tests/integration/test_cli_smoke.py \
+          --ignore=tests/integration/test_documentation_builds.py \
+          --ignore=tests/integration/test_golden_output.py \
+          --ignore=tests/integration/test_full_site_url_consistency.py \
           -m "not slow and not performance and not stateful and not autodoc and not known_gap" \
           --junitxml=integration-results.xml \
           2>&1 | tee integration-tests.log
