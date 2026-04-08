@@ -547,7 +547,7 @@ Content for page {i}.""",
     site = Site.from_config(site_dir, config_path=config_path)
     site.discover_content()
     site.discover_assets()
-    _build_stats = site.build(BuildOptions(force_sequential=True))  # Sequential for consistency
+    _build_stats = site.build(BuildOptions())
 
     # Yield site, with optional param to copy for modification
     if hasattr(request, "param") and request.param == "modifiable":
