@@ -234,22 +234,17 @@ class CacheChecker:
                     error_type=type(e).__name__,
                 )
 
-        # Build immutable ParsedPage from cached data (Sprint 1: Immutable Pipeline)
-        toc_items_list = cached.get("toc_items", [])
-        if not toc_items_list:
-            toc_items_list = extract_toc_structure(toc)
-        parsed_page = ParsedPage(
-            html_content=html,
-            toc=toc,
-            toc_items=tuple(toc_items_list),
-            excerpt=cached.get("excerpt", "") or "",
-            meta_description=cached.get("meta_description", "") or "",
-            plain_text=page.plain_text,
-            word_count=getattr(page, "word_count", 0) or 0,
-            reading_time=getattr(page, "reading_time", 0) or 0,
-            links=tuple(getattr(page, "links", None) or ()),
-            ast_cache=cached.get("ast"),
-        )
+        # Build immutable ParsedPage from cached data (Sprint 1/5: Immutable Pipeline)
+        # Enrich cache dict with page-derived fields before reconstruction
+        enriched = dict(cached)
+        if not enriched.get("toc_items"):
+            enriched["toc_items"] = extract_toc_structure(toc)
+        enriched.setdefault("plain_text", page.plain_text)
+        enriched.setdefault("word_count", getattr(page, "word_count", 0) or 0)
+        enriched.setdefault("reading_time", getattr(page, "reading_time", 0) or 0)
+        if not enriched.get("links"):
+            enriched["links"] = list(getattr(page, "links", None) or ())
+        parsed_page = ParsedPage.from_cache_dict(enriched)
 
         html_content = self.renderer.render_content(parsed_content)
         final_html = self.renderer.render_page(page, html_content, parsed_page=parsed_page)

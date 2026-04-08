@@ -29,7 +29,7 @@ Related:
 - bengal/content/discovery/directory_walker.py: Directory walking logic
 - bengal/content/discovery/content_parser.py: Content file parsing
 - bengal/content/discovery/section_builder.py: Section building and sorting
-- bengal/core/page/: PageLike, PageProxy, and PageCore data models
+- bengal/core/page/: PageLike and PageCore data models
 - bengal/core/section.py: Section data model
 
 """
@@ -44,7 +44,7 @@ from typing import TYPE_CHECKING, Any, cast
 from bengal.content.discovery.content_parser import ContentParser
 from bengal.content.discovery.directory_walker import DirectoryWalker
 from bengal.content.discovery.section_builder import SectionBuilder
-from bengal.core.page import Page, PageProxy
+from bengal.core.page import Page
 from bengal.utils.concurrency.executor import managed_executor
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
@@ -52,8 +52,6 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
-
     from bengal.collections import CollectionConfig
     from bengal.core.records import SourcePage
     from bengal.orchestration.build_context import BuildContext
@@ -75,7 +73,7 @@ class ContentDiscovery:
         - Hidden files/directories are skipped except `_index.md` and versioning
           directories (`_versions/`, `_shared/`).
         - Parsing uses a ThreadPoolExecutor for concurrent file processing.
-        - Unchanged pages can be represented as PageProxy for incremental builds.
+        - Unchanged pages are reconstructed from cache for incremental builds.
         - Symlink loops are detected via inode tracking to prevent infinite recursion.
         - Content collections: When collections.py is present, frontmatter is
           validated against schemas during discovery (fail fast).
@@ -124,7 +122,7 @@ class ContentDiscovery:
         self.content_dir = content_dir
         self.site = site
         self.sections: list[SectionLike] = []
-        self.pages: list[PageLike | PageProxy] = []
+        self.pages: list[PageLike] = []
         self.current_section: SectionLike | None = None
         self._strict_validation = strict_validation
         self._build_context = build_context
@@ -161,33 +159,38 @@ class ContentDiscovery:
         self,
         use_cache: bool = False,
         cache: Any | None = None,
-    ) -> tuple[list[SectionLike], list[PageLike | PageProxy]]:
+        build_cache: Any | None = None,
+    ) -> tuple[list[SectionLike], list[PageLike]]:
         """
         Discover all content in the content directory.
 
-        Supports optional lazy loading with PageProxy for incremental builds.
+        Supports cache-based page reconstruction for incremental builds.
 
         Args:
-            use_cache: Whether to use PageDiscoveryCache for lazy loading
-            cache: PageDiscoveryCache instance (if use_cache=True)
+            use_cache: Whether to use caches for incremental discovery
+            cache: PageDiscoveryCache instance (required if use_cache=True)
+            build_cache: BuildCache instance for ParsedPage reconstruction
+                (optional; when provided, unchanged pages are reconstructed
+                from cache without disk I/O)
 
         Returns:
-            Tuple of (sections, pages) - pages may be Page or PageProxy instances
+            Tuple of (sections, pages)
         """
         if use_cache and cache:
-            return self._discover_surgical(cache)
+            return self._discover_surgical(cache, build_cache=build_cache)
         return self._discover_full()
 
     def _discover_surgical(
-        self, cache: Any
-    ) -> tuple[list[SectionLike], list[PageLike | PageProxy]]:
+        self, cache: Any, build_cache: Any | None = None
+    ) -> tuple[list[SectionLike], list[PageLike]]:
         """
         Surgical discovery - use cache to skip parsing unchanged files.
 
         This is the FAST path for incremental builds and hot reloads.
-        Instead of parsing all files and then converting to proxies,
-        it checks the cache during the walk and creates proxies immediately.
+        Unchanged pages are reconstructed from cache (ParsedPage + PageCore)
+        when build_cache is available, falling back to full parse otherwise.
         """
+        self._build_cache = build_cache
         logger.debug(
             "content_discovery_surgical_start",
             content_dir=str(self.content_dir),
@@ -237,6 +240,7 @@ class ContentDiscovery:
                     self._process_top_level_item_surgical(item, cache, current_lang=current_lang)
             finally:
                 self._executor = None
+                self._build_cache = None
 
         # Sort sections
         self._section_builder.sort_all_sections()
@@ -246,12 +250,12 @@ class ContentDiscovery:
         self.pages = self._section_builder.pages
 
         # Log metrics
-        proxy_count = sum(1 for p in self.pages if isinstance(p, PageProxy))
+        cache_count = sum(1 for p in self.pages if getattr(p, "_from_cache", False))
         logger.info(
             "content_discovery_surgical_complete",
             total_pages=len(self.pages),
-            proxies=proxy_count,
-            full_pages=len(self.pages) - proxy_count,
+            from_cache=cache_count,
+            full_pages=len(self.pages) - cache_count,
         )
 
         return self.sections, self.pages
@@ -266,7 +270,7 @@ class ContentDiscovery:
         if item_path.is_file() and self._walker.is_content_file(item_path):
             page = self._create_page_surgical(item_path, cache, current_lang=current_lang)
             if page is not None:
-                # Cache hit: got a PageProxy
+                # Cache hit: got a Page from cache
                 self._section_builder.pages.append(page)
             elif self._executor:
                 # Cache miss: submit to executor
@@ -317,7 +321,7 @@ class ContentDiscovery:
                     item, cache, current_lang=current_lang, section=parent_section
                 )
                 if page is not None:
-                    # Cache hit: got a PageProxy, add it directly
+                    # Cache hit: got a Page from cache, add it directly
                     parent_section.add_page(page)
                     self._section_builder.pages.append(page)
                 elif self._executor:
@@ -352,12 +356,15 @@ class ContentDiscovery:
         cache: Any,
         current_lang: str | None = None,
         section: SectionLike | None = None,
-    ) -> PageLike | PageProxy | None:
+    ) -> PageLike | None:
         """
         Create a Page object surgically: try cache first, then signal for full parse.
 
+        Sprint 5: Reconstructs a full Page from cached PageCore + ParsedPage.
+        Unchanged pages become real Page objects reconstructed from cache.
+
         Returns:
-            PageProxy on cache hit (use directly)
+            Page on cache hit (use directly)
             None on cache miss (caller should parse via executor or synchronously)
         """
         # Check cache
@@ -369,7 +376,6 @@ class ContentDiscovery:
         cached_metadata = cache.get_metadata(cache_lookup_path)
 
         if cached_metadata:
-            # Validate cache entry using mtime (fastest disk check)
             try:
                 # Check if this file is explicitly marked as changed in the orchestrator
                 options = getattr(self.site, "_last_build_options", None) if self.site else None
@@ -377,7 +383,6 @@ class ContentDiscovery:
 
                 is_explicitly_changed = False
                 if changed_sources:
-                    # Normalize paths for comparison
                     try:
                         resolved_file = file_path.resolve()
                         is_explicitly_changed = any(
@@ -387,36 +392,97 @@ class ContentDiscovery:
                         is_explicitly_changed = file_path in changed_sources
 
                 if not is_explicitly_changed:
-                    # CACHE HIT: Create proxy immediately
-                    def make_loader(
-                        source_path: Path, lang: str | None, section_path: Path | None
-                    ) -> Callable[[Any], PageLike]:
-                        def loader(_: Any) -> PageLike:
-                            sec = None
-                            if section_path and self.site is not None:
-                                sec = self.site.get_section_by_path(section_path)
-                            return self._create_page(source_path, current_lang=lang, section=sec)
-
-                        return loader
-
-                    proxy = PageProxy(
-                        source_path=file_path,
-                        metadata=cached_metadata,
-                        loader=make_loader(
-                            file_path, current_lang, section.path if section else None
-                        ),
-                    )
-                    if section:
-                        proxy._section = section
-                    proxy._site = self.site
-                    return proxy
+                    # CACHE HIT: Reconstruct full Page from cache (Sprint 5)
+                    build_cache = getattr(self, "_build_cache", None)
+                    if build_cache is not None:
+                        page = self._create_page_from_cache(
+                            file_path,
+                            cached_metadata,
+                            build_cache,
+                            current_lang=current_lang,
+                            section=section,
+                        )
+                        if page is not None:
+                            return page
+                    # No build_cache or no parsed entry — fall through to full parse
             except OSError, PermissionError:
                 pass  # Fall through to return None (cache miss)
 
         # CACHE MISS or CHANGE: Return None to signal caller should parse
         return None
 
-    def _discover_full(self) -> tuple[list[SectionLike], list[PageLike | PageProxy]]:
+    def _create_page_from_cache(
+        self,
+        file_path: Path,
+        core: Any,
+        build_cache: Any,
+        current_lang: str | None = None,
+        section: Any | None = None,
+    ) -> PageLike | None:
+        """Reconstruct a fully-populated Page from cached metadata + ParsedPage.
+
+        Returns None if the build cache has no parsed entry for this page,
+        causing the caller to fall through to full parse.
+        """
+        from bengal.core.page.utils import build_raw_metadata_from_core
+
+        parsed_page = build_cache.get_parsed_page(file_path)
+        if parsed_page is None:
+            return None
+
+        try:
+            raw_metadata = build_raw_metadata_from_core(core)
+
+            # _from_cache=True tells __post_init__ to skip _init_core_from_fields()
+            # since we assign the cached core directly below.
+            page = Page(
+                source_path=file_path,
+                _raw_content="",
+                _raw_metadata=raw_metadata,
+                _from_cache=True,
+            )
+
+            # Assign the cached PageCore directly as the single source of truth.
+            page.core = core
+
+            # Populate parsed fields from immutable ParsedPage record.
+            # AST is intentionally NOT loaded — it can be large and the rendering
+            # pipeline retrieves it from the build cache if needed.  The
+            # _plain_text_cache short-circuits any AST-based plain_text computation.
+            page.html_content = parsed_page.html_content
+            page.toc = parsed_page.toc
+            page._toc_items_cache = list(parsed_page.toc_items)
+            page.links = list(parsed_page.links)
+            page._excerpt = parsed_page.excerpt
+            page._meta_description = parsed_page.meta_description
+            page._plain_text_cache = parsed_page.plain_text
+
+            # Seed cached_property values from ParsedPage so they don't
+            # recompute from the empty _raw_content placeholder.
+            page.__dict__["word_count"] = parsed_page.word_count
+            page.__dict__["reading_time"] = parsed_page.reading_time
+
+            # Set site and section references
+            if self.site is not None:
+                page._site = self.site
+            if section is not None:
+                page._section_path = section.path
+
+            # i18n enrichment from cached core
+            if current_lang:
+                page.lang = current_lang
+            elif core.lang:
+                page.lang = core.lang
+            if hasattr(core, "translation_key") and core.translation_key:
+                page.translation_key = core.translation_key
+
+            return page
+        except Exception:
+            # Any failure during cache reconstruction falls through to full parse.
+            logger.debug("cache_reconstruction_failed", file=str(file_path))
+            return None
+
+    def _discover_full(self) -> tuple[list[SectionLike], list[PageLike]]:
         """Full discovery - discover all pages completely."""
         logger.info("content_discovery_start", content_dir=str(self.content_dir))
 

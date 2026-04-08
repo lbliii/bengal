@@ -265,7 +265,7 @@ def _shortcodes_used_in_content(content: str) -> frozenset[str]:
 
 def has_shortcode(page: PageLike, name: str) -> bool:
     """Return True if page content uses the given shortcode."""
-    # Page/PageProxy use _source or _raw_content; protocol has no raw_content
+    # Page uses _source or _raw_content; protocol has no raw_content
     source = getattr(page, "_source", None) or getattr(page, "_raw_content", "")
     return name in _shortcodes_used_in_content(str(source or ""))
 

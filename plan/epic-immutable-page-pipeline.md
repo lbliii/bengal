@@ -350,29 +350,45 @@ for backward compatibility.
 
 ---
 
-## Sprint 5: Delete PageProxy
+## Sprint 5: Delete PageProxy ✅
 
 **Goal**: Cache stores `ParsedPage` records. No proxy needed.
+**Status**: Complete. `ParsedPage` serialization formalized with `to_cache_dict()`/`from_cache_dict()`.
+Incremental discovery reconstructs full `Page` objects from cached `PageCore` + `ParsedPage`
+instead of creating `PageProxy`. `proxy.py` (906 lines) deleted along with all references
+across 22 production files and 9 test files. `build_raw_metadata_from_core()` utility
+extracted to `bengal/core/page/utils.py`. Page gets `_from_cache` flag for metrics.
 
-### Task 5.1 — Cache serialization for ParsedPage
+### Task 5.1 — Cache serialization for ParsedPage ✅
 
-Extend BuildCache to serialize/deserialize `ParsedPage` records (content, toc, metadata).
+Added `to_cache_dict()` and `from_cache_dict()` to `ParsedPage` in `bengal/core/records.py`.
+Added `get_parsed_page()` and `store_parsed_page()` to `ParsedContentCacheMixin`.
+Refactored `CacheChecker.try_parsed_cache()` to use `ParsedPage.from_cache_dict()`.
 
-**Files**: `bengal/cache/`, `bengal/rendering/pipeline/cache_checker.py`
-**Acceptance**: ParsedPage round-trips through cache correctly.
+**Files**: `bengal/core/records.py`, `bengal/cache/build_cache/parsed_content_cache.py`,
+`bengal/rendering/pipeline/cache_checker.py`
 
-### Task 5.2 — Incremental discovery loads cached ParsedPage
+### Task 5.2 — Incremental discovery loads cached ParsedPage ✅
 
-For unchanged files, load `ParsedPage` from cache instead of creating PageProxy.
+Threaded `build_cache` parameter from orchestration through `discover()` →
+`_discover_surgical()` → `_create_page_surgical()`. New `_create_page_from_cache()`
+method constructs a fully-populated `Page` from `PageCore` + `ParsedPage` with zero
+disk I/O. Falls through to full parse when parsed cache misses.
 
-**Files**: `bengal/content/discovery/content_discovery.py`, `bengal/orchestration/incremental/`
-**Acceptance**: Unchanged pages use cached ParsedPage. No PageProxy created.
+**Files**: `bengal/content/discovery/content_discovery.py`, `bengal/orchestration/content.py`,
+`bengal/core/page/__init__.py`, `bengal/core/page/utils.py`
 
-### Task 5.3 — Delete PageProxy
+### Task 5.3 — Delete PageProxy ✅
 
-Remove `bengal/core/page/proxy.py` (900 lines) and all references.
+Deleted `bengal/core/page/proxy.py` (906 lines). Removed all `isinstance(page, PageProxy)`
+checks (8 sites) and imports (19 files). Updated `phase_update_site_pages()`,
+`incremental_update_taxonomies()`, and feature detection to work without proxy.
 
-**Acceptance**: `proxy.py` deleted. `rg 'PageProxy' bengal/` returns zero hits outside tests/comments. All tests pass.
+### Deferred to later sprint
+
+- **Remove dual-write**: `page.rendered_html = ...` still set for `json_accumulator`
+  and `cache_checker.cache_rendered_output`. Blocked on Sprint 6 (delete Page).
+- **Wire `create_virtual_source_page()` into callers**: Still uses `Page.create_virtual()`.
 
 ---
 

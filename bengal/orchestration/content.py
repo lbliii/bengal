@@ -8,7 +8,7 @@ for populating the Site with all content before rendering.
 Key Responsibilities:
 Content Discovery
     Discovers pages and sections from the content/ directory, supports
-    lazy loading with PageProxy for incremental builds
+    cache-based reconstruction for incremental builds
 Asset Discovery
     Discovers site and theme assets from assets/ directories
 Page References
@@ -120,7 +120,7 @@ class ContentOrchestrator:
         """
         Discover all content (pages, sections) in the content directory.
 
-        Supports optional lazy loading with PageProxy for incremental builds.
+        Supports cache-based page reconstruction for incremental builds.
         When build_context is provided, raw file content is cached for later
         use by validators (build-integrated validation).
 
@@ -202,23 +202,22 @@ class ContentOrchestrator:
         # Use lazy loading if incremental build with cache
         use_cache = incremental and cache is not None
         t0 = time.perf_counter()
-        self.site.sections, self.site.pages = discovery.discover(use_cache=use_cache, cache=cache)
+        self.site.sections, self.site.pages = discovery.discover(
+            use_cache=use_cache, cache=cache, build_cache=build_cache
+        )
         breakdown_ms["content_discovery"] = (time.perf_counter() - t0) * 1000
 
         # Note: Autodoc synthetic pages disabled - using traditional Markdown generation
 
-        # Track how many pages are proxies (for logging)
-        from bengal.core.page.proxy import PageProxy
-
-        proxy_count = sum(1 for p in self.site.pages if isinstance(p, PageProxy))
-        full_page_count = len(self.site.pages) - proxy_count
+        # Track how many pages were reconstructed from cache (for logging)
+        cache_count = sum(1 for p in self.site.pages if getattr(p, "_from_cache", False))
 
         logger.debug(
             "raw_content_discovered",
             pages=len(self.site.pages),
             sections=len(self.site.sections),
-            proxies=proxy_count,
-            full_pages=full_page_count,
+            from_cache=cache_count,
+            full_pages=len(self.site.pages) - cache_count,
         )
 
         # Integrate virtual autodoc pages if enabled
@@ -793,7 +792,7 @@ class ContentOrchestrator:
             No mutation of page.metadata needed - resolution happens on access.
         """
         # Build immutable cascade snapshot with pre-merged data for O(1) resolution
-        # Page/PageProxy.metadata property returns CascadeView using this snapshot
+        # Page.metadata property returns CascadeView using this snapshot
         self.site.build_cascade_snapshot()
         logger.debug(
             "cascade_snapshot_built",
@@ -1029,13 +1028,6 @@ class ContentOrchestrator:
         detector = FeatureDetector()
 
         for page in self.site.pages:
-            # Skip PageProxy objects (they may not have content loaded)
-            # They'll be detected during rendering if accessed
-            from bengal.core.page.proxy import PageProxy
-
-            if isinstance(page, PageProxy):
-                continue
-
             # Detect features in page content
             features = detector.detect_features_in_page(page)
             # Prefer BuildState (fresh each build), fall back to Site field

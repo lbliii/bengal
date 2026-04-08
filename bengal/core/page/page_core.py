@@ -1,22 +1,19 @@
 """
-PageCore - Cacheable page metadata shared between Page, PageMetadata, and PageProxy.
+PageCore - Cacheable page metadata shared between Page and PageMetadata.
 
 This module defines PageCore, the single source of truth for all cacheable page
 metadata. Any field added to PageCore automatically becomes available in:
 
 - Page: via page.core.field or @property delegate (e.g., page.title)
 - PageMetadata: IS PageCore (type alias in cache/page_discovery_cache.py)
-- PageProxy: via proxy.field property (no lazy load needed for core fields)
 
 This design prevents cache bugs by making it impossible to have mismatched field
-definitions between Page, PageMetadata, and PageProxy. The compiler enforces that
-all three representations stay in sync.
+definitions between Page and PageMetadata.
 
 Architecture:
 PageCore = Cacheable fields only (title, date, tags, etc.)
 Page = PageCore + non-cacheable fields (content, rendered_html, toc, etc.)
 PageMetadata = PageCore (type alias for caching)
-PageProxy = Wraps PageCore (lazy loads only non-core fields)
 
 What Goes in PageCore?
 ✅ DO include if:
@@ -69,13 +66,11 @@ import json
     json_str = json.dumps(asdict(metadata), default=str)
 
 # Loading from cache
-from bengal.core.page.proxy import PageProxy
-
     loaded_core = PageCore(**json.loads(json_str))
-    proxy = PageProxy(core=loaded_core, loader=load_page_fn)
+    # Use loaded_core directly or pass to Page constructor
 
-# Accessing cached fields (no lazy load)
-assert proxy.title == "My Post"  # Direct from core
+# Accessing cached fields
+assert loaded_core.title == "My Post"  # Direct from core
 
 Adding New Fields:
 When adding a new cacheable field:
@@ -91,17 +86,9 @@ When adding a new cacheable field:
     def author(self) -> str | None:
         return self.core.author
 
-3. Add @property delegate to PageProxy (bengal/core/page/proxy.py):
-    @property
-    def author(self) -> str | None:
-        return self._core.author
-
-That's it! Field is now available in Page, PageMetadata, and PageProxy.
-The compiler will catch any missing implementations.
+That's it! Field is now available in Page and PageMetadata.
 
 See Also:
-- architecture/object-model.md - PageProxy & Cache Contract section
-- plan/active/rfc-cache-proxy-contract.md - Design rationale
 - CONTRIBUTING.md - Guidelines for adding fields
 
 """
@@ -121,7 +108,7 @@ logger = get_logger(__name__)
 @dataclass(frozen=True, slots=True)
 class PageCore(Cacheable):
     """
-    Cacheable page metadata shared between Page, PageMetadata, and PageProxy.
+    Cacheable page metadata shared between Page and PageMetadata.
 
     This is the single source of truth for all cacheable page data. All fields
     here can be serialized to JSON and stored in .bengal/page_metadata.json for
@@ -184,15 +171,14 @@ class PageCore(Cacheable):
 
         Convert at boundaries:
         - Input: Path → str when creating PageCore (Page.__post_init__)
-        - Output: str → Path when using paths (PageProxy, lookups)
+        - Output: str → Path when using paths (lookups)
 
     Cache Lifecycle:
         1. Page created with PageCore during discovery
         2. PageCore serialized to JSON and saved to cache
         3. On incremental rebuild, PageCore loaded from cache
-        4. PageProxy wraps PageCore for lazy loading
-        5. Templates access fields via proxy properties (no load)
-        6. Full page loaded only if non-core field accessed
+        4. Cache-reconstructed pages use PageCore for metadata
+        5. Templates access fields via Page properties
 
     Performance:
         - PageCore is ~500 bytes per page (10 fields × ~50 bytes each)
@@ -238,7 +224,7 @@ class PageCore(Cacheable):
     # This stores the cascade block that should apply to child pages.
     # Only populated for _index.md files; regular pages don't define cascade.
     # Essential for incremental builds: without this, cascade data is lost when
-    # _index.md files are loaded from cache as PageProxy.
+    # _index.md files are loaded from cache.
     cascade: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:

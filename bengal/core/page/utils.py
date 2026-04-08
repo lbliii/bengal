@@ -175,6 +175,51 @@ def separate_standard_and_custom_fields(
     return standard_fields, custom_props
 
 
+def build_raw_metadata_from_core(core: Any) -> dict[str, Any]:
+    """Build a raw frontmatter dict from a ``PageCore`` instance.
+
+    Reconstructs the metadata dict that ``CascadeView`` reads from.
+    Used when creating a Page from cached data without reading the
+    source file from disk.
+
+    Args:
+        core: A ``PageCore`` (or compatible) instance.
+
+    Returns:
+        Dict suitable for ``Page._raw_metadata``.
+    """
+    raw_metadata: dict[str, Any] = {}
+    if core.weight is not None:
+        raw_metadata["weight"] = core.weight
+    if core.title:
+        raw_metadata["title"] = core.title
+    if core.description:
+        raw_metadata["description"] = core.description
+    if core.nav_title:
+        raw_metadata["nav_title"] = core.nav_title
+    if core.tags:
+        raw_metadata["tags"] = core.tags
+    if core.date:
+        raw_metadata["date"] = core.date
+    if core.slug:
+        raw_metadata["slug"] = core.slug
+    if core.lang:
+        raw_metadata["lang"] = core.lang
+    if core.type:
+        raw_metadata["type"] = core.type
+    if core.variant:
+        raw_metadata["variant"] = core.variant
+    if getattr(core, "aliases", None):
+        raw_metadata["aliases"] = core.aliases
+    if getattr(core, "version", None):
+        raw_metadata["version"] = core.version
+    if core.props:
+        raw_metadata.update(core.props)
+    if core.cascade:
+        raw_metadata["cascade"] = core.cascade
+    return raw_metadata
+
+
 def create_synthetic_page(
     title: str,
     description: str,

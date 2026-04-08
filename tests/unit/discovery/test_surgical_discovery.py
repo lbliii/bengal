@@ -2,7 +2,7 @@
 Tests for surgical discovery cache handling.
 
 These tests verify that surgical discovery (incremental builds with caching):
-- Returns PageProxy on cache hit
+- Returns a cache-reconstructed Page on cache hit (with build_cache)
 - Returns None on cache miss (signaling caller to parse)
 - Doesn't double-parse pages
 - Handles executor vs non-executor paths correctly
@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from bengal.content.discovery.content_discovery import ContentDiscovery
-from bengal.core.page import Page, PageProxy
+from bengal.core.page import Page
 from bengal.core.page.page_core import PageCore
 
 if TYPE_CHECKING:
@@ -33,6 +33,43 @@ def make_page_core(source_path: str | Path, title: str, *, weight: int | None = 
         title=title,
         weight=weight,
     )
+
+
+def make_mock_build_cache(parsed_pages: dict | None = None) -> MagicMock:
+    """Helper to create a mock BuildCache with optional parsed page data."""
+    build_cache = MagicMock()
+
+    if parsed_pages is None:
+        # Default: return None for all pages (no parsed cache)
+        build_cache.get_parsed_page.return_value = None
+    else:
+
+        def get_parsed_page(file_path: Any) -> Any:
+            from bengal.core.records import ParsedPage
+
+            key = str(file_path)
+            for k, v in parsed_pages.items():
+                if str(k) in key or key in str(k):
+                    return ParsedPage.from_cache_dict(v)
+            return None
+
+        build_cache.get_parsed_page.side_effect = get_parsed_page
+
+    return build_cache
+
+
+CACHED_PARSED_DATA = {
+    "html": "<p>cached content</p>",
+    "toc": "",
+    "toc_items": [],
+    "excerpt": "cached content",
+    "meta_description": "",
+    "plain_text": "cached content",
+    "word_count": 2,
+    "reading_time": 1,
+    "links": [],
+    "ast": None,
+}
 
 
 @pytest.fixture
@@ -66,53 +103,90 @@ def mock_cache() -> MagicMock:
 class TestSurgicalDiscoveryCacheHit:
     """Tests for cache hit scenarios in surgical discovery."""
 
-    def test_cache_hit_returns_page_proxy(self, content_dir: Path, mock_cache: MagicMock) -> None:
-        """When cache has metadata, should return PageProxy without parsing."""
+    def test_cache_hit_with_build_cache_returns_page(
+        self, content_dir: Path, mock_cache: MagicMock
+    ) -> None:
+        """When both metadata and parsed caches hit, should return a Page."""
         file_path = content_dir / "docs" / "getting-started.md"
         mock_cache.get_metadata.return_value = make_page_core(file_path, "Cached Title", weight=1)
+        build_cache = make_mock_build_cache({"getting-started": CACHED_PARSED_DATA})
 
         discovery = ContentDiscovery(content_dir)
+        discovery._build_cache = build_cache
 
         result = discovery._create_page_surgical(file_path, mock_cache)
 
         assert result is not None
-        assert isinstance(result, PageProxy)
-        assert result.title == "Cached Title"
+        assert isinstance(result, Page)
+        assert result._from_cache is True
+        assert result.html_content == "<p>cached content</p>"
 
     def test_cache_hit_does_not_read_file(self, content_dir: Path, mock_cache: MagicMock) -> None:
         """Cache hit should not read the file from disk."""
         file_path = content_dir / "docs" / "getting-started.md"
         mock_cache.get_metadata.return_value = make_page_core(file_path, "Cached")
+        build_cache = make_mock_build_cache({"getting-started": CACHED_PARSED_DATA})
 
         discovery = ContentDiscovery(content_dir)
+        discovery._build_cache = build_cache
 
         with patch("builtins.open") as mock_open:
             result = discovery._create_page_surgical(file_path, mock_cache)
 
             # File should not be opened for reading
             mock_open.assert_not_called()
-            assert isinstance(result, PageProxy)
+            assert isinstance(result, Page)
 
     def test_cache_hit_preserves_section_reference(
         self, content_dir: Path, mock_cache: MagicMock
     ) -> None:
-        """PageProxy from cache hit should have section set by discovery."""
+        """Page from cache hit should have section path set by discovery."""
         file_path = content_dir / "docs" / "getting-started.md"
-        str(content_dir / "docs")
         mock_cache.get_metadata.return_value = make_page_core(file_path, "Test")
+        build_cache = make_mock_build_cache({"getting-started": CACHED_PARSED_DATA})
 
         from bengal.core.section import Section
 
         section = Section(name="docs", path=content_dir / "docs")
 
         discovery = ContentDiscovery(content_dir)
+        discovery._build_cache = build_cache
 
         result = discovery._create_page_surgical(file_path, mock_cache, section=section)
 
         assert result is not None
-        assert isinstance(result, PageProxy)
-        # Section is set as the section object by discovery
-        assert result._section is section or result._section_path is not None
+        assert isinstance(result, Page)
+        assert result._section_path is not None
+
+    def test_cache_hit_without_build_cache_returns_none(
+        self, content_dir: Path, mock_cache: MagicMock
+    ) -> None:
+        """Without build_cache, cache hit should return None (full parse needed)."""
+        file_path = content_dir / "docs" / "getting-started.md"
+        mock_cache.get_metadata.return_value = make_page_core(file_path, "Cached")
+
+        discovery = ContentDiscovery(content_dir)
+        # No _build_cache set
+
+        result = discovery._create_page_surgical(file_path, mock_cache)
+
+        # Without build_cache, falls through to None
+        assert result is None
+
+    def test_cache_hit_without_parsed_page_returns_none(
+        self, content_dir: Path, mock_cache: MagicMock
+    ) -> None:
+        """When metadata cached but no parsed page, should return None."""
+        file_path = content_dir / "docs" / "getting-started.md"
+        mock_cache.get_metadata.return_value = make_page_core(file_path, "Cached")
+        build_cache = make_mock_build_cache()  # Returns None for all pages
+
+        discovery = ContentDiscovery(content_dir)
+        discovery._build_cache = build_cache
+
+        result = discovery._create_page_surgical(file_path, mock_cache)
+
+        assert result is None
 
 
 class TestSurgicalDiscoveryCacheMiss:
@@ -194,6 +268,8 @@ class TestSurgicalDiscoveryNoDoubleParsing:
 
         mock_cache.get_metadata.side_effect = get_metadata
 
+        build_cache = make_mock_build_cache({"getting-started": CACHED_PARSED_DATA})
+
         discovery = ContentDiscovery(content_dir)
 
         # Track parsing
@@ -209,7 +285,7 @@ class TestSurgicalDiscoveryNoDoubleParsing:
             return original_create_page(file_path, current_lang, section)
 
         with patch.object(discovery, "_create_page", side_effect=tracking_create_page):
-            _sections, _pages = discovery._discover_surgical(mock_cache)
+            _sections, _pages = discovery._discover_surgical(mock_cache, build_cache=build_cache)
 
         # getting-started should NOT be in parsed_files (cache hit)
         assert not any("getting-started" in str(f) for f in parsed_files)
@@ -245,27 +321,3 @@ class TestSurgicalDiscoveryExplicitlyChangedFiles:
             assert result is None
         finally:
             discovery._executor.shutdown(wait=True)
-
-
-class TestSurgicalDiscoveryPageProxyLoader:
-    """Tests for PageProxy lazy loading behavior."""
-
-    def test_page_proxy_loader_creates_full_page(
-        self, content_dir: Path, mock_cache: MagicMock
-    ) -> None:
-        """PageProxy loader should create a full Page when called."""
-        file_path = content_dir / "docs" / "getting-started.md"
-        mock_cache.get_metadata.return_value = make_page_core(file_path, "Cached")
-
-        discovery = ContentDiscovery(content_dir)
-
-        proxy = discovery._create_page_surgical(file_path, mock_cache)
-
-        assert isinstance(proxy, PageProxy)
-
-        # Force load by accessing content (triggers _ensure_loaded)
-        proxy._ensure_loaded()
-        full_page = proxy._full_page
-
-        assert isinstance(full_page, Page)
-        assert full_page.title == "Getting Started"  # From actual file, not cache

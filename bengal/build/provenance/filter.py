@@ -455,7 +455,6 @@ class ProvenanceFilter:
         section = getattr(page, "_section", None)
 
         # Fallback: If _section is None but we have a section path in page.core, look it up
-        # This handles PageProxy objects that may not have _section set properly
         if section is None:
             core = getattr(page, "core", None)
             if core is not None:

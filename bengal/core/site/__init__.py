@@ -1203,16 +1203,11 @@ class Site:
         and graph visualizations. Populates site.features_detected for use
         by the CSSOptimizer during asset processing.
         """
-        from bengal.core.page.proxy import PageProxy
         from bengal.orchestration.feature_detector import FeatureDetector
 
         detector = FeatureDetector()
 
         for page in self.pages:
-            # Skip PageProxy objects (they may not have content loaded)
-            if isinstance(page, PageProxy):
-                continue
-
             # Detect features in page content
             features = detector.detect_features_in_page(page)
             # Prefer BuildState (fresh each build), fall back to Site field
@@ -1381,7 +1376,7 @@ class Site:
         visibility) at the section level rather than repeating it on every page.
         """
         # Build immutable cascade snapshot with pre-merged data for O(1) resolution
-        # Page/PageProxy.metadata property returns CascadeView using this snapshot
+        # Page.metadata property returns CascadeView using this snapshot
         self.build_cascade_snapshot()
 
     # =========================================================================

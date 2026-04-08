@@ -145,20 +145,7 @@ def estimate_complexity(content: str) -> ComplexityScore:
 
 
 def _get_content_safe(page: PageLike) -> str:
-    """Get page content without triggering lazy loads on PageProxy.
-
-    For PageProxy instances where content isn't loaded, returns empty
-    string (treated as unknown/light complexity). This avoids disk I/O
-    during sorting, which would negate the optimization benefits.
-
-    For regular Page instances, content is always available.
-
-    """
-    # Check for PageProxy with unloaded content
-    if hasattr(page, "_full_page") and page._full_page is None:
-        # PageProxy without loaded content - treat as light
-        return ""
-
+    """Get page content safely, returning empty string if unavailable."""
     return getattr(page, "content", "") or ""
 
 
@@ -212,10 +199,6 @@ def sort_by_complexity(
         - Estimation: ~0.01ms per page
         - Sorting: O(n log n) with Timsort
         - Total for 1000 pages: ~10-20ms
-
-    Note:
-        PageProxy instances with unloaded content are treated as light
-        pages to avoid triggering disk I/O during sorting.
 
     Example:
             >>> sorted_pages = sort_by_complexity(pages)

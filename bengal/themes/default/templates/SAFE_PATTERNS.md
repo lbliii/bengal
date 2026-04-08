@@ -260,7 +260,7 @@ For `params.author_links`, `params.quick_links`, or similar list-of-dicts:
 
 ### Why Defense-in-Depth
 
-Bengal normalizes `tags` at the data layer (Page, PageProxy). Template guards add a second layer of protection when loading from cache or when other frontmatter collections are malformed. This follows the same pattern used for autodoc template hardening.
+Bengal normalizes `tags` at the data layer (Page). Template guards add a second layer of protection when loading from cache or when other frontmatter collections are malformed. This follows the same pattern used for autodoc template hardening.
 
 ---
 
