@@ -59,6 +59,7 @@ bengal.content.discovery.git_version_adapter: Git branch/tag discovery
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -290,6 +291,7 @@ class VersionConfig:
 
     # Computed caches
     _version_map: dict[str, Version] = field(default_factory=dict, repr=False)
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def __post_init__(self) -> None:
         """Build lookup caches."""
@@ -318,12 +320,13 @@ class VersionConfig:
         Args:
             version: Version discovered from git branches/tags
         """
-        self.versions.append(version)
-        self._version_map[version.id] = version
+        with self._lock:
+            self.versions.append(version)
+            self._version_map[version.id] = version
 
-        # Update latest alias if this is the latest version
-        if version.latest and "latest" not in self.aliases:
-            self.aliases["latest"] = version.id
+            # Update latest alias if this is the latest version
+            if version.latest and "latest" not in self.aliases:
+                self.aliases["latest"] = version.id
 
     @property
     def latest_version(self) -> Version | None:
@@ -333,10 +336,11 @@ class VersionConfig:
         Returns:
             Version marked as latest, or first version, or None
         """
-        for v in self.versions:
-            if v.latest:
-                return v
-        return self.versions[0] if self.versions else None
+        with self._lock:
+            for v in self.versions:
+                if v.latest:
+                    return v
+            return self.versions[0] if self.versions else None
 
     def get_version(self, version_id: str) -> Version | None:
         """
@@ -348,7 +352,8 @@ class VersionConfig:
         Returns:
             Version object or None if not found
         """
-        return self._version_map.get(version_id)
+        with self._lock:
+            return self._version_map.get(version_id)
 
     def resolve_alias(self, alias: str) -> str | None:
         """
@@ -360,7 +365,8 @@ class VersionConfig:
         Returns:
             Version id or None if alias not found
         """
-        return self.aliases.get(alias)
+        with self._lock:
+            return self.aliases.get(alias)
 
     def get_version_or_alias(self, id_or_alias: str) -> Version | None:
         """
@@ -417,7 +423,8 @@ class VersionConfig:
             parts = path_str.split("_versions/")
             if len(parts) > 1:
                 version_id = parts[1].split("/")[0]
-                return self.get_version(version_id)
+                if version_id:
+                    return self.get_version(version_id)
 
         # Check if in versioned section (latest version)
         for section in self.sections:

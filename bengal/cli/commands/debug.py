@@ -402,12 +402,6 @@ def deps(
     help="Show what would be done without making changes",
 )
 @click.option(
-    "--generate-redirects",
-    "redirect_format",
-    type=click.Choice(["netlify", "nginx", "apache"]),
-    help="Generate redirect rules for moves",
-)
-@click.option(
     "--traceback",
     type=click.Choice([s.value for s in TracebackStyle]),
     hidden=True,
@@ -417,7 +411,6 @@ def migrate(
     move: tuple[str, str] | None,
     execute: bool,
     dry_run: bool,
-    _redirect_format: str | None,  # TODO: implement redirect generation
     traceback: str | None,
 ) -> None:
     """
@@ -460,10 +453,7 @@ def migrate(
         cli.console.print(preview.format_summary())
 
         if execute and preview.can_proceed:
-            if not dry_run:
-                actions = migrator.execute_move(preview, dry_run=dry_run)
-            else:
-                actions = migrator.execute_move(preview, dry_run=True)
+            actions = migrator.execute_move(preview, dry_run=dry_run)
 
             cli.blank()
             cli.info("Actions:" if dry_run else "Executed:")

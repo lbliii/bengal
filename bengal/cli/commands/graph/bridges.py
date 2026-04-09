@@ -10,11 +10,11 @@ import click
 from bengal.cli.base import BengalCommand
 from bengal.cli.helpers import (
     command_metadata,
-    get_cli_output,
     handle_cli_errors,
-    load_site_from_cli,
 )
-from bengal.utils.observability.logger import LogLevel, close_all_loggers, configure_logging
+from bengal.utils.observability.logger import close_all_loggers
+
+from .common import load_graph, page_incoming, page_outgoing
 
 
 @click.command(cls=BengalCommand)
@@ -78,25 +78,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
         bengal bridges --format json > bridges.json
 
     """
-    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-
-    cli = get_cli_output()
-    configure_logging(level=LogLevel.WARNING)
-
-    # Load site using helper
-    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
-
-    # Discover content
-    cli.info("🔍 Discovering site content...")
-    from bengal.orchestration.content import ContentOrchestrator
-
-    content_orch = ContentOrchestrator(site)
-    content_orch.discover()
-
-    # Build knowledge graph
-    cli.info(f"📊 Building knowledge graph from {len(site.pages)} pages...")
-    graph_obj = KnowledgeGraph(site)
-    graph_obj.build()
+    cli, _site, graph_obj = load_graph(source, config)
 
     # Analyze paths
     cli.info("🌉 Analyzing navigation paths...")
@@ -113,8 +95,8 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             writer.writerow(["Rank", "Title", "URL", "Betweenness", "Incoming", "Outgoing"])
             bridges_list = results.get_top_bridges(top_n)
             for i, (page, score) in enumerate(bridges_list, 1):
-                incoming = graph_obj.incoming_refs.get(page, 0)
-                outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+                incoming = page_incoming(graph_obj, page)
+                outgoing = page_outgoing(graph_obj, page)
                 url = getattr(page, "url_path", str(page.source_path))
                 writer.writerow([i, page.title, url, f"{score:.10f}", incoming, outgoing])
 
@@ -124,7 +106,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             writer.writerow(["Rank", "Title", "URL", "Closeness", "Outgoing"])
             accessible = results.get_most_accessible(top_n)
             for i, (page, score) in enumerate(accessible, 1):
-                outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+                outgoing = page_outgoing(graph_obj, page)
                 url = getattr(page, "url_path", str(page.source_path))
                 writer.writerow([i, page.title, url, f"{score:.10f}", outgoing])
 
@@ -143,7 +125,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                     "title": page.title,
                     "url": getattr(page, "href", str(page.source_path)),
                     "betweenness": score,
-                    "incoming_refs": graph_obj.incoming_refs.get(page, 0),
+                    "incoming_refs": page_incoming(graph_obj, page),
                 }
                 for page, score in bridges_list
             ]
@@ -155,7 +137,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                     "title": page.title,
                     "url": getattr(page, "href", str(page.source_path)),
                     "closeness": score,
-                    "outgoing_refs": len(graph_obj.outgoing_refs.get(page, set())),
+                    "outgoing_refs": page_outgoing(graph_obj, page),
                 }
                 for page, score in accessible
             ]
@@ -177,8 +159,8 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             cli.info("-" * 60)
             bridges_list = results.get_top_bridges(top_n)
             for i, (page, score) in enumerate(bridges_list, 1):
-                incoming = graph_obj.incoming_refs.get(page, 0)
-                outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+                incoming = page_incoming(graph_obj, page)
+                outgoing = page_outgoing(graph_obj, page)
                 cli.info(f"{i:3d}. {page.title}")
                 cli.info(f"     Betweenness: {score:.6f} | {incoming} in, {outgoing} out")
 
@@ -187,7 +169,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
             cli.info("-" * 60)
             accessible = results.get_most_accessible(top_n)
             for i, (page, score) in enumerate(accessible, 1):
-                outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+                outgoing = page_outgoing(graph_obj, page)
                 cli.info(f"{i:3d}. {page.title}")
                 cli.info(f"     Closeness: {score:.6f} | Can reach {outgoing} pages")
 
@@ -212,8 +194,8 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                 if len(title) > 48:
                     title = title[:45] + "..."
 
-                incoming = graph_obj.incoming_refs.get(page, 0)
-                outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+                incoming = page_incoming(graph_obj, page)
+                outgoing = page_outgoing(graph_obj, page)
 
                 cli.info(f"{i:<6} {title:<50} {score:.10f}  {incoming:<5} {outgoing:<5}")
 
@@ -229,7 +211,7 @@ def bridges(top_n: int, metric: str, format: str, config: str, source: str) -> N
                 if len(title) > 48:
                     title = title[:45] + "..."
 
-                outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+                outgoing = page_outgoing(graph_obj, page)
 
                 cli.info(f"{i:<6} {title:<50} {score:.10f}  {outgoing:<5}")
 

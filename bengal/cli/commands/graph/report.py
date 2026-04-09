@@ -11,11 +11,13 @@ import click
 from bengal.cli.base import BengalCommand
 from bengal.cli.helpers import (
     command_metadata,
-    get_cli_output,
     handle_cli_errors,
-    load_site_from_cli,
 )
-from bengal.utils.observability.logger import LogLevel, close_all_loggers, configure_logging
+from bengal.utils.observability.logger import close_all_loggers, get_logger
+
+from .common import load_graph
+
+logger = get_logger(__name__)
 
 
 @click.command("report", cls=BengalCommand)
@@ -102,29 +104,9 @@ def report(
         bengal graph report --format json > report.json
 
     """
-    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-
-    cli = get_cli_output()
-    configure_logging(level=LogLevel.WARNING)
-
-    # Load site using helper
-    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
+    cli, site, graph_obj = load_graph(source, config, quiet=brief)
 
     try:
-        if not brief:
-            cli.info("🔍 Discovering site content...")
-
-        from bengal.orchestration.content import ContentOrchestrator
-
-        content_orch = ContentOrchestrator(site)
-        content_orch.discover()
-
-        if not brief:
-            cli.info(f"📊 Analyzing {len(site.pages)} pages...")
-
-        graph_obj = KnowledgeGraph(site)
-        graph_obj.build()
-
         # Gather analysis data
         metrics = graph_obj.get_metrics()
         connectivity_report = graph_obj.get_connectivity_report()
@@ -133,12 +115,14 @@ def report(
         try:
             bridges = graph_obj.get_bridges()[:5]  # Top 5 bridges
         except Exception:
+            logger.debug("Bridge analysis failed; skipping", exc_info=True)
             bridges = []
 
         try:
             communities = graph_obj.get_communities()
             community_count = len(communities) if communities else 0
         except Exception:
+            logger.debug("Community detection failed; skipping", exc_info=True)
             community_count = 0
 
         # Calculate connectivity stats

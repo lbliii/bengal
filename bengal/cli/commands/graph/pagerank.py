@@ -9,11 +9,11 @@ import click
 from bengal.cli.base import BengalCommand
 from bengal.cli.helpers import (
     command_metadata,
-    get_cli_output,
     handle_cli_errors,
-    load_site_from_cli,
 )
-from bengal.utils.observability.logger import LogLevel, close_all_loggers, configure_logging
+from bengal.utils.observability.logger import close_all_loggers
+
+from .common import load_graph, page_incoming, page_outgoing
 
 
 @click.command(cls=BengalCommand)
@@ -70,46 +70,15 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         bengal pagerank --format json > pagerank.json
 
     """
-    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-
-    cli = get_cli_output()
-    configure_logging(level=LogLevel.WARNING)
-
-    # Validate damping factor
+    # Validate damping factor before loading site
     if not 0 < damping < 1:
-        cli.error(f"Damping factor must be between 0 and 1, got {damping}")
-        raise click.Abort()
+        msg = f"Damping factor must be between 0 and 1, got {damping}"
+        raise click.BadParameter(msg, param_hint="'--damping'")
 
-    # Load site using helper
-    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
+    cli, _site, graph_obj = load_graph(source, config)
 
-    # Discover content and compute PageRank with status indicator
-    if cli.use_rich:
-        with cli.console.status("[info]Discovering site content...", spinner="dots") as status:
-            from bengal.orchestration.content import ContentOrchestrator
-
-            content_orch = ContentOrchestrator(site)
-            content_orch.discover()
-
-            status.update(f"[info]Building knowledge graph from {len(site.pages)} pages...")
-            graph_obj = KnowledgeGraph(site)
-            graph_obj.build()
-
-            status.update(f"[info]Computing PageRank (damping={damping})...")
-            results = graph_obj.compute_pagerank(damping=damping)
-    else:
-        cli.info("🔍 Discovering site content...")
-        from bengal.orchestration.content import ContentOrchestrator
-
-        content_orch = ContentOrchestrator(site)
-        content_orch.discover()
-
-        cli.info(f"📊 Building knowledge graph from {len(site.pages)} pages...")
-        graph_obj = KnowledgeGraph(site)
-        graph_obj.build()
-
-        cli.info(f"🏆 Computing PageRank (damping={damping})...")
-        results = graph_obj.compute_pagerank(damping=damping)
+    cli.info(f"🏆 Computing PageRank (damping={damping})...")
+    results = graph_obj.compute_pagerank(damping=damping)
 
     # Get top pages
     top_pages = results.get_top_pages(top_n)
@@ -126,8 +95,8 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         )
 
         for i, (page, score) in enumerate(top_pages, 1):
-            incoming = graph_obj.incoming_refs.get(page, 0)
-            outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+            incoming = page_incoming(graph_obj, page)
+            outgoing = page_outgoing(graph_obj, page)
             url = getattr(page, "url_path", str(page.source_path))
             writer.writerow([i, page.title, url, f"{score:.8f}", incoming, outgoing])
 
@@ -144,8 +113,8 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
                     "title": page.title,
                     "url": getattr(page, "href", str(page.source_path)),
                     "score": score,
-                    "incoming_refs": graph_obj.incoming_refs.get(page, 0),
-                    "outgoing_refs": len(graph_obj.outgoing_refs.get(page, set())),
+                    "incoming_refs": page_incoming(graph_obj, page),
+                    "outgoing_refs": page_outgoing(graph_obj, page),
                 }
                 for i, (page, score) in enumerate(top_pages)
             ],
@@ -167,8 +136,8 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         cli.info("-" * 60)
 
         for i, (page, score) in enumerate(top_pages, 1):
-            incoming = graph_obj.incoming_refs.get(page, 0)
-            outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+            incoming = page_incoming(graph_obj, page)
+            outgoing = page_outgoing(graph_obj, page)
             cli.info(f"{i:3d}. {page.title:<40} Score: {score:.6f}")
             cli.info(f"     {incoming} incoming, {outgoing} outgoing links")
 
@@ -185,8 +154,8 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         cli.info("-" * 100)
 
         for i, (page, score) in enumerate(top_pages, 1):
-            incoming = graph_obj.incoming_refs.get(page, 0)
-            outgoing = len(graph_obj.outgoing_refs.get(page, set()))
+            incoming = page_incoming(graph_obj, page)
+            outgoing = page_outgoing(graph_obj, page)
 
             # Truncate title if too long
             title = page.title

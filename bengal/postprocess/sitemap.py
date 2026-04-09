@@ -150,7 +150,7 @@ class SitemapGenerator:
             # Add hreflang alternates when translation_key present
             try:
                 if getattr(page, "translation_key", None):
-                    key = page.translation_key
+                    key: str = page.translation_key  # type: ignore[assignment]
                     # Collect alternates using pre-built index: O(1) lookup
                     seen = set()
                     for p in translation_index.get(key, []):

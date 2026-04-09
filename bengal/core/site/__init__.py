@@ -1571,6 +1571,20 @@ class Site:
         """O(1) page lookup by source Path (shared across orchestrators)."""
         return self._page_cache.page_by_source_path
 
+    @property
+    def root_section(self) -> SectionLike:
+        """Root section of the content tree (first parentless section)."""
+        for section in self.sections:
+            if section.parent is None:
+                return section
+        # Fallback: find sections that aren't children of other sections
+        child_ids = {id(sub) for s in self.sections for sub in s.subsections}
+        for section in self.sections:
+            if id(section) not in child_ids:
+                return section
+        msg = "No root section found — site has no sections"
+        raise ValueError(msg)
+
     def invalidate_page_caches(self) -> None:
         """Clear all page caches. Call after adding/removing pages."""
         self._page_cache.invalidate()

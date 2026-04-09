@@ -140,6 +140,7 @@ dependencies = [
     { name = "rosettes" },
     { name = "textual" },
     { name = "textual-serve" },
+    { name = "tomli-w" },
     { name = "uvloop", marker = "sys_platform != 'win32'" },
     { name = "watchfiles" },
 ]
@@ -201,7 +202,6 @@ dev = [
     { name = "pytest-xdist" },
     { name = "radon" },
     { name = "ruff" },
-    { name = "tomli-w" },
     { name = "ty" },
     { name = "types-jinja2" },
     { name = "types-markdown" },
@@ -241,6 +241,7 @@ requires-dist = [
     { name = "smartcrop", marker = "extra == 'smartcrop'", specifier = ">=0.3" },
     { name = "textual", specifier = ">=0.96" },
     { name = "textual-serve", specifier = ">=0.1.0" },
+    { name = "tomli-w", specifier = ">=1.0.0" },
     { name = "uvloop", marker = "sys_platform != 'win32'", specifier = ">=0.21.0" },
     { name = "watchfiles", specifier = ">=0.20" },
 ]
@@ -267,7 +268,6 @@ dev = [
     { name = "pytest-xdist", specifier = ">=3.3.0" },
     { name = "radon", specifier = ">=6.0.1" },
     { name = "ruff", specifier = ">=0.15.1" },
-    { name = "tomli-w", specifier = ">=1.0.0" },
     { name = "ty", specifier = ">=0.0.11" },
     { name = "types-jinja2", specifier = ">=2.11.0" },
     { name = "types-markdown", specifier = ">=3.5.0" },

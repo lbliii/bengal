@@ -9,11 +9,11 @@ import click
 from bengal.cli.base import BengalCommand
 from bengal.cli.helpers import (
     command_metadata,
-    get_cli_output,
     handle_cli_errors,
-    load_site_from_cli,
 )
-from bengal.utils.observability.logger import LogLevel, close_all_loggers, configure_logging
+from bengal.utils.observability.logger import close_all_loggers
+
+from .common import load_graph
 
 
 @click.command("orphans", cls=BengalCommand)
@@ -100,29 +100,9 @@ def orphans(
         bengal graph orphans --format json > orphans.json
 
     """
-    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-
-    cli = get_cli_output()
-    configure_logging(level=LogLevel.WARNING)
-
-    # Load site using helper
-    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
+    cli, _site, graph_obj = load_graph(source, config, quiet=(format == "paths"))
 
     try:
-        if format != "paths":
-            cli.info("🔍 Discovering site content...")
-
-        from bengal.orchestration.content import ContentOrchestrator
-
-        content_orch = ContentOrchestrator(site)
-        content_orch.discover()
-
-        if format != "paths":
-            cli.info(f"📊 Analyzing {len(site.pages)} pages...")
-
-        graph_obj = KnowledgeGraph(site)
-        graph_obj.build()
-
         # Get connectivity report
         report = graph_obj.get_connectivity_report()
 

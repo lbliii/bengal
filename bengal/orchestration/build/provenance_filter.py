@@ -32,9 +32,11 @@ from bengal.orchestration.build.results import (
     RebuildReasonCode,
     SkipReasonCode,
 )
-from bengal.protocols import SiteLike
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
+
+if TYPE_CHECKING:
+    from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
 
@@ -123,8 +125,9 @@ def _detect_changed_templates(
 
     # Also check theme templates if theme is set
     theme_templates_dirs = []
-    if isinstance(site, SiteLike) and site.theme_path:
-        theme_templates = site.theme_path / "templates"
+    _theme_path = getattr(site, "theme_path", None)
+    if _theme_path:
+        theme_templates = _theme_path / "templates"
         if theme_templates.exists():
             theme_templates_dirs.append(theme_templates)
 
@@ -313,11 +316,8 @@ def _expand_forced_changed(
     if changed_templates:
         # Resolve template names relative to template dirs (matches determine_template() format)
         templates_dir = site.root_path / "templates"
-        theme_templates_dir = (
-            site.theme_path / "templates"
-            if isinstance(site, SiteLike) and site.theme_path
-            else None
-        )
+        _theme_path = getattr(site, "theme_path", None)
+        theme_templates_dir = _theme_path / "templates" if _theme_path else None
 
         def _template_rel_name(tpl_path: Path) -> str:
             """Get template name relative to its templates dir (POSIX separators)."""
