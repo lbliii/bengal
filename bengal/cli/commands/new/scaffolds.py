@@ -6,14 +6,17 @@ Provides CLI commands for creating new content and template scaffolds.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 
 from bengal.cli.helpers import command_metadata, get_cli_output, handle_cli_errors
 from bengal.utils.io.atomic_write import atomic_write_text
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 from .site import slugify
 
