@@ -238,6 +238,8 @@ def create_default_registry() -> DirectiveRegistry:
         DropdownDirective,
         # Misc
         ExampleLabelDirective,
+        # Excerpt
+        ExcerptBreakDirective,
         FigureDirective,
         GalleryDirective,
         # Developer embeds
@@ -340,6 +342,9 @@ def create_default_registry() -> DirectiveRegistry:
     # File I/O
     builder.register(IncludeDirective())
     builder.register(LiteralIncludeDirective())
+
+    # Excerpt
+    builder.register(ExcerptBreakDirective())
 
     # Misc
     builder.register(ExampleLabelDirective())

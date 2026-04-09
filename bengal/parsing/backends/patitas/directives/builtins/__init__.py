@@ -53,6 +53,9 @@ from bengal.parsing.backends.patitas.directives.builtins.embed import (
     SpotifyDirective,
     StackBlitzDirective,
 )
+from bengal.parsing.backends.patitas.directives.builtins.excerpt_break import (
+    ExcerptBreakDirective,
+)
 from bengal.parsing.backends.patitas.directives.builtins.glossary import (
     GlossaryDirective,
 )
@@ -143,6 +146,8 @@ __all__ = [
     # Dropdown
     "DropdownDirective",
     "ExampleLabelDirective",
+    # Excerpt
+    "ExcerptBreakDirective",
     "FigureDirective",
     "GalleryDirective",
     "GistDirective",
