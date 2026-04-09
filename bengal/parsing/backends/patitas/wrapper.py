@@ -16,6 +16,7 @@ parser/renderer instances with no shared state.
 
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.config.defaults import get_default
@@ -191,7 +192,7 @@ class PatitasParser(BaseMarkdownParser):
             excerpt_blocks = _slice_blocks_at_excerpt_break(ast)
             if excerpt_blocks is not None:
                 excerpt = extract_excerpt(
-                    excerpt_blocks, content, excerpt_as_html=True, max_chars=999_999
+                    excerpt_blocks, content, excerpt_as_html=True, max_chars=sys.maxsize
                 )
             else:
                 max_chars = metadata.get(
@@ -333,7 +334,7 @@ class PatitasParser(BaseMarkdownParser):
                 excerpt_blocks = _slice_blocks_at_excerpt_break(ast)
                 if excerpt_blocks is not None:
                     excerpt = extract_excerpt(
-                        excerpt_blocks, content, excerpt_as_html=True, max_chars=999_999
+                        excerpt_blocks, content, excerpt_as_html=True, max_chars=sys.maxsize
                     )
                 else:
                     # Per-article override: pipeline sets metadata._excerpt_length
