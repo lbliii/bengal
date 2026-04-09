@@ -336,10 +336,11 @@ class VersionConfig:
         Returns:
             Version marked as latest, or first version, or None
         """
-        for v in self.versions:
-            if v.latest:
-                return v
-        return self.versions[0] if self.versions else None
+        with self._lock:
+            for v in self.versions:
+                if v.latest:
+                    return v
+            return self.versions[0] if self.versions else None
 
     def get_version(self, version_id: str) -> Version | None:
         """
@@ -351,7 +352,8 @@ class VersionConfig:
         Returns:
             Version object or None if not found
         """
-        return self._version_map.get(version_id)
+        with self._lock:
+            return self._version_map.get(version_id)
 
     def resolve_alias(self, alias: str) -> str | None:
         """
@@ -363,7 +365,8 @@ class VersionConfig:
         Returns:
             Version id or None if alias not found
         """
-        return self.aliases.get(alias)
+        with self._lock:
+            return self.aliases.get(alias)
 
     def get_version_or_alias(self, id_or_alias: str) -> Version | None:
         """

@@ -9,7 +9,6 @@ import click
 from bengal.cli.base import BengalCommand
 from bengal.cli.helpers import (
     command_metadata,
-    get_cli_output,
     handle_cli_errors,
 )
 from bengal.utils.observability.logger import close_all_loggers
@@ -71,12 +70,10 @@ def pagerank(top_n: int, damping: float, format: str, config: str, source: str) 
         bengal pagerank --format json > pagerank.json
 
     """
-    cli = get_cli_output()
-
-    # Validate damping factor
+    # Validate damping factor before loading site
     if not 0 < damping < 1:
-        cli.error(f"Damping factor must be between 0 and 1, got {damping}")
-        raise click.Abort()
+        msg = f"Damping factor must be between 0 and 1, got {damping}"
+        raise click.BadParameter(msg, param_hint="'--damping'")
 
     cli, _site, graph_obj = load_graph(source, config)
 

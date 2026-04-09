@@ -55,9 +55,9 @@ def load_graph(
     return cli, site, graph_obj
 
 
-def page_incoming(graph: Any, page: Any) -> int:
-    """Get incoming ref count for a page."""
-    return graph.incoming_refs.get(page, 0)
+def page_incoming(graph: Any, page: Any) -> float:
+    """Get incoming ref score for a page."""
+    return graph.incoming_refs.get(page, 0.0)
 
 
 def page_outgoing(graph: Any, page: Any) -> int:
