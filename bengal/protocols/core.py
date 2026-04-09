@@ -43,7 +43,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.config.types import SiteConfig as SiteConfigType
-    from bengal.core.page import Page
     from bengal.core.page.frontmatter import Frontmatter
     from bengal.core.theme import Theme
     from bengal.core.version import VersionConfig
@@ -223,6 +222,13 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
     """
 
     rendered_html: str  # Mutable build artifact, set during rendering
+    html_content: str | None  # HTML from Markdown parsing (before template rendering)
+    links: list[str]  # Internal/external links found in content
+    version: str | None  # Version label for versioned content
+    lang: str | None  # Language code for i18n content
+    translation_key: str | None  # Key linking translated variants of a page
+    render_time_ms: float  # Per-page render time, set during rendering
+    related_posts: list[PageLike]  # Pre-computed related pages
 
     _prerendered_html: str | None  # Pre-rendered HTML (autodoc, etc.), set before render
 
@@ -510,7 +516,7 @@ class SiteLike(SiteConfig, SiteContent, Protocol):
 
     # Internal caches (set by template functions)
     _template_parser: BaseMarkdownParser | None
-    _page_lookup_maps: dict[str, dict[str, Page]] | None
+    _page_lookup_maps: dict[str, dict[str, PageLike]] | None
 
 
 # =============================================================================

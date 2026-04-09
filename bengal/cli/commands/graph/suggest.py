@@ -9,11 +9,11 @@ import click
 from bengal.cli.base import BengalCommand
 from bengal.cli.helpers import (
     command_metadata,
-    get_cli_output,
     handle_cli_errors,
-    load_site_from_cli,
 )
-from bengal.utils.observability.logger import LogLevel, close_all_loggers, configure_logging
+from bengal.utils.observability.logger import close_all_loggers
+
+from .common import load_graph
 
 
 @click.command(cls=BengalCommand)
@@ -76,25 +76,9 @@ def suggest(top_n: int, min_score: float, format: str, config: str, source: str)
         bengal suggest --format markdown > TODO.md
 
     """
-    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-
-    cli = get_cli_output()
-    configure_logging(level=LogLevel.WARNING)
-
-    # Load site using helper
-    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
+    cli, _site, graph_obj = load_graph(source, config)
 
     try:
-        cli.info("🔍 Discovering site content...")
-        from bengal.orchestration.content import ContentOrchestrator
-
-        content_orch = ContentOrchestrator(site)
-        content_orch.discover()
-
-        cli.header(f"Building knowledge graph from {len(site.pages)} pages...")
-        graph_obj = KnowledgeGraph(site)
-        graph_obj.build()
-
         cli.info("💡 Generating link suggestions...")
         results = graph_obj.suggest_links(min_score=min_score)
 

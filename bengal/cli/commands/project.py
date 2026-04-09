@@ -468,22 +468,11 @@ def config(key: str, value: str, set_value: bool, list_all: bool) -> None:
             current[parts[-1]] = value
 
         # Write back
-        from bengal.utils.io.atomic_write import atomic_write_text
+        import tomli_w
 
-        # Format TOML (simple, not perfect)
-        toml_lines = []
-        for section, section_config in config.items():
-            toml_lines.append(f"[{section}]")
-            for k, v in section_config.items():
-                if isinstance(v, bool):
-                    toml_lines.append(f"{k} = {'true' if v else 'false'}")
-                elif isinstance(v, int | float):
-                    toml_lines.append(f"{k} = {v}")
-                else:
-                    toml_lines.append(f'{k} = "{v}"')
-            toml_lines.append("")
+        from bengal.utils.io.atomic_write import atomic_write_bytes
 
-        atomic_write_text(config_path, "\n".join(toml_lines))
+        atomic_write_bytes(config_path, tomli_w.dumps(config).encode())
 
         cli.success(f"✓ Set {key} = {value}")
         cli.blank()

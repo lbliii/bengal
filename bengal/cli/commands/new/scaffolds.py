@@ -84,6 +84,53 @@ Your content goes here.
     cli.blank()
 
 
+def _create_template_scaffold(
+    kind: str,
+    name: str | None,
+    subdir: str,
+    content_fn: callable,
+    hint_fn: callable,
+) -> None:
+    """
+    Shared logic for creating layout and partial template scaffolds.
+
+    Args:
+        kind: Human-readable kind ("layout" or "partial").
+        name: Name argument from CLI (may be None for interactive prompt).
+        subdir: Subdirectory under templates/ (e.g., "layouts", "partials").
+        content_fn: Callable(slug) -> str that returns file content.
+        hint_fn: Callable(slug) -> str that returns the usage hint line.
+    """
+    cli = get_cli_output()
+
+    templates_dir = Path("templates")
+    if not templates_dir.exists():
+        cli.error("Not in a Bengal site directory!")
+        raise click.Abort()
+
+    if not name:
+        name = cli.prompt(f"Enter {kind} name")
+        if not name:
+            cli.warning("✨ Cancelled.")
+            raise click.Abort()
+
+    slug = slugify(name)
+    target_dir = templates_dir / subdir
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target_path = target_dir / f"{slug}.html"
+
+    if target_path.exists():
+        cli.error(f"{kind.title()} {target_path} already exists!")
+        raise click.Abort()
+
+    atomic_write_text(target_path, content_fn(slug))
+
+    cli.blank()
+    cli.success(f"✨ Created new {kind}: {target_path}")
+    cli.info(f"   └─ {hint_fn(slug)}")
+    cli.blank()
+
+
 @click.command("layout")
 @command_metadata(
     category="templates",
@@ -109,44 +156,15 @@ def layout_command(name: str) -> None:
         bengal new theme - Create a theme scaffold
 
     """
-    cli = get_cli_output()
-
-    # Ensure we're in a Bengal site
-    templates_dir = Path("templates")
-    if not templates_dir.exists():
-        cli.error("Not in a Bengal site directory!")
-        raise click.Abort()
-
-    if not name:
-        name = cli.prompt("Enter layout name")
-        if not name:
-            cli.warning("✨ Cancelled.")
-            raise click.Abort()
-
-    # Slugify the name for filename
-    slug = slugify(name)
-    layout_dir = templates_dir / "layouts"
-    layout_dir.mkdir(parents=True, exist_ok=True)
-    layout_path = layout_dir / f"{slug}.html"
-
-    if layout_path.exists():
-        cli.error(f"Layout {layout_path} already exists!")
-        raise click.Abort()
-
-    # Create layout template
-    layout_content = """{% extends "base.html" %}
-
-{% block content %}
-{# Your layout content here #}
-{{ page.content | safe }}
-{% endblock %}
-"""
-    atomic_write_text(layout_path, layout_content)
-
-    cli.blank()
-    cli.success(f"✨ Created new layout: {layout_path}")
-    cli.info(f"   └─ Extend this in pages with: layout: {slug}")
-    cli.blank()
+    _create_template_scaffold(
+        kind="layout",
+        name=name,
+        subdir="layouts",
+        content_fn=lambda slug: (
+            '{% extends "base.html" %}\n\n{% block content %}\n{# Your layout content here #}\n{{ page.content | safe }}\n{% endblock %}\n'
+        ),
+        hint_fn=lambda slug: f"Extend this in pages with: layout: {slug}",
+    )
 
 
 @click.command("partial")
@@ -174,44 +192,15 @@ def partial_command(name: str) -> None:
         bengal new theme - Create a theme scaffold
 
     """
-    cli = get_cli_output()
-
-    # Ensure we're in a Bengal site
-    templates_dir = Path("templates")
-    if not templates_dir.exists():
-        cli.error("Not in a Bengal site directory!")
-        raise click.Abort()
-
-    if not name:
-        name = cli.prompt("Enter partial name")
-        if not name:
-            cli.warning("✨ Cancelled.")
-            raise click.Abort()
-
-    # Slugify the name for filename
-    slug = slugify(name)
-    partial_dir = templates_dir / "partials"
-    partial_dir.mkdir(parents=True, exist_ok=True)
-    partial_path = partial_dir / f"{slug}.html"
-
-    if partial_path.exists():
-        cli.error(f"Partial {partial_path} already exists!")
-        raise click.Abort()
-
-    # Create partial template
-    partial_content = f"""{{# Partial: {slug} #}}
-{{# Include in templates with: {{% include "partials/{slug}.html" %}} #}}
-
-<div class="partial partial-{slug}">
-  {{# Your partial content here #}}
-</div>
-"""
-    atomic_write_text(partial_path, partial_content)
-
-    cli.blank()
-    cli.success(f"✨ Created new partial: {partial_path}")
-    cli.info(f'   └─ Include in templates with: {{% include "partials/{slug}.html" %}}')
-    cli.blank()
+    _create_template_scaffold(
+        kind="partial",
+        name=name,
+        subdir="partials",
+        content_fn=lambda slug: (
+            f'{{# Partial: {slug} #}}\n{{# Include in templates with: {{% include "partials/{slug}.html" %}} #}}\n\n<div class="partial partial-{slug}">\n  {{# Your partial content here #}}\n</div>\n'
+        ),
+        hint_fn=lambda slug: f'Include in templates with: {{% include "partials/{slug}.html" %}}',
+    )
 
 
 @click.command("theme")

@@ -83,9 +83,10 @@ def get_reserved_namespaces(site_config: dict[str, Any] | None = None) -> dict[s
         autodoc_config = site_config.get("autodoc", {})
         if isinstance(autodoc_config, dict):
             # Check each autodoc type for output_prefix
-            for autodoc_type in ["python", "openapi", "cli"]:
-                type_config = autodoc_config.get(autodoc_type, {})
-                if isinstance(type_config, dict) and type_config.get("enabled"):
+            for autodoc_type, type_config in autodoc_config.items():
+                if not isinstance(type_config, dict):
+                    continue
+                if type_config.get("enabled"):
                     prefix = type_config.get("output_prefix", "")
                     if prefix:
                         # Extract first segment as namespace (e.g., "api/python" -> "api")

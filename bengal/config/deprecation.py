@@ -36,6 +36,7 @@ See Also:
 
 from __future__ import annotations
 
+import copy
 from typing import Any
 
 from bengal.errors import BengalConfigError, ErrorCode, record_error
@@ -187,7 +188,7 @@ def migrate_deprecated_keys(config: dict[str, Any], in_place: bool = False) -> d
 
     """
     if not in_place:
-        config = config.copy()
+        config = copy.deepcopy(config)
 
     from bengal.config.merge import get_nested_key, set_nested_key
 

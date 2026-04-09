@@ -10,14 +10,13 @@ import click
 from bengal.cli.base import BengalCommand, BengalGroup
 from bengal.cli.helpers import (
     command_metadata,
-    get_cli_output,
     handle_cli_errors,
-    load_site_from_cli,
 )
 from bengal.utils.io.atomic_write import atomic_write_text
-from bengal.utils.observability.logger import LogLevel, close_all_loggers, configure_logging
+from bengal.utils.observability.logger import close_all_loggers
 
 from .bridges import bridges
+from .common import load_graph
 from .communities import communities
 from .orphans import orphans
 from .pagerank import pagerank
@@ -65,57 +64,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
     Analyze site structure and connectivity.
 
     """
-    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-
-    # Configure minimal logging
-    configure_logging(level=LogLevel.WARNING)
-
-    # Load site using helper
-    cli = get_cli_output()
-    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
-
-    # We need to discover content to analyze it
-    # This also builds the xref_index for link analysis
-    try:
-        from bengal.utils.observability.rich_console import get_console, should_use_rich
-
-        if should_use_rich():
-            console = get_console()
-
-            with console.status(
-                "[bold green]Discovering site content...", spinner="dots"
-            ) as status:
-                from bengal.orchestration.content import ContentOrchestrator
-
-                content_orch = ContentOrchestrator(site)
-                content_orch.discover()
-
-                # Build knowledge graph
-                status.update(f"[bold green]Analyzing {len(site.pages)} pages...")
-                graph_obj = KnowledgeGraph(site)
-                graph_obj.build()
-        else:
-            # Fallback to simple messages
-            cli.info("🔍 Discovering site content...")
-            from bengal.orchestration.content import ContentOrchestrator
-
-            content_orch = ContentOrchestrator(site)
-            content_orch.discover()
-
-            cli.info(f"📊 Analyzing {len(site.pages)} pages...")
-            graph_obj = KnowledgeGraph(site)
-            graph_obj.build()
-    except ImportError:
-        # Rich not available, use simple messages
-        cli.info("🔍 Discovering site content...")
-        from bengal.orchestration.content import ContentOrchestrator
-
-        content_orch = ContentOrchestrator(site)
-        content_orch.discover()
-
-        cli.info(f"📊 Analyzing {len(site.pages)} pages...")
-        graph_obj = KnowledgeGraph(site)
-        graph_obj.build()
+    cli, site, graph_obj = load_graph(source, config)
 
     # Show tree visualization if requested
     if tree:
@@ -125,7 +74,7 @@ def analyze(show_stats: bool, tree: bool, output: str, config: str, source: str)
             from bengal.utils.observability.rich_console import get_console, should_use_rich
 
             if should_use_rich():
-                console = get_console()
+                get_console()  # ensure Rich console is initialized
                 cli.blank()
 
                 # Create tree visualization

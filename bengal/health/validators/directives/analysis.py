@@ -53,28 +53,6 @@ class CodeBlockRange:
     fence_depth: int
 
 
-@dataclass(frozen=True, slots=True)
-class ColonDirectiveRange:
-    """
-    Represents a colon directive's line range for O(1) containment checks.
-
-    Used by DirectiveAnalyzer to pre-compute colon directive boundaries in a
-    single O(L) pass, enabling O(R) lookups instead of O(L) per-position checks.
-
-    Attributes:
-        start_line: Opening fence line number (1-indexed)
-        end_line: Closing fence line number (1-indexed)
-        fence_depth: Number of colon characters (3+)
-        directive_type: Directive name (e.g., "note", "warning")
-
-    """
-
-    start_line: int
-    end_line: int
-    fence_depth: int
-    directive_type: str
-
-
 if TYPE_CHECKING:
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import SiteLike
@@ -340,62 +318,7 @@ class DirectiveAnalyzer:
 
         return sorted(ranges, key=lambda r: r.start_line)
 
-    def _build_colon_directive_index(self, lines: list[str]) -> list[ColonDirectiveRange]:
-        """
-        Build index of colon directive ranges in single O(L) pass.
-
-        Scans all lines once, tracking directive opens/closes with a stack.
-        Resulting ranges enable O(R) containment checks instead of O(L) per-position.
-
-        Args:
-            lines: List of content lines (from content.split("\\n"))
-
-        Returns:
-            List of ColonDirectiveRange objects sorted by start_line.
-
-        Complexity:
-            Time: O(L) where L = number of lines
-            Space: O(R) where R = number of directives (typically << L)
-        """
-        ranges: list[ColonDirectiveRange] = []
-        # Stack: (start_line, fence_depth, directive_type)
-        stack: list[tuple[int, int, str]] = []
-
-        colon_open_pattern = re.compile(r"^(\s*)(:{3,})\{(\w+(?:-\w+)?)\}")
-        colon_close_pattern = re.compile(r"^(\s*)(:{3,})\s*$")
-
-        for i, line in enumerate(lines, 1):
-            # Check indent - skip if 4+ spaces
-            stripped = line.lstrip()
-            indent = len(line) - len(stripped)
-            if indent >= 4:
-                continue
-
-            # Check for opening directive
-            open_match = colon_open_pattern.match(line)
-            if open_match:
-                fence_depth = len(open_match.group(2))
-                directive_type = open_match.group(3)
-                stack.append((i, fence_depth, directive_type))
-                continue
-
-            # Check for closing fence
-            close_match = colon_close_pattern.match(line)
-            if close_match and stack:
-                close_depth = len(close_match.group(2))
-                # Find matching opener with same depth
-                for j in range(len(stack) - 1, -1, -1):
-                    start, s_depth, s_type = stack[j]
-                    if s_depth == close_depth:
-                        stack.pop(j)
-                        ranges.append(ColonDirectiveRange(start, i, s_depth, s_type))
-                        break
-
-        return sorted(ranges, key=lambda r: r.start_line)
-
-    def _is_line_inside_ranges(
-        self, line_number: int, ranges: list[CodeBlockRange] | list[ColonDirectiveRange]
-    ) -> bool:
+    def _is_line_inside_ranges(self, line_number: int, ranges: list[CodeBlockRange]) -> bool:
         """
         Check if a line is inside any of the given ranges.
 
@@ -413,86 +336,6 @@ class DirectiveAnalyzer:
             Time: O(R) where R = number of ranges
         """
         return any(r.start_line < line_number < r.end_line for r in ranges)
-
-    def _check_code_block_nesting(self, content: str, file_path: Path) -> list[dict[str, Any]]:
-        """
-        Check for markdown code blocks that contain nested code blocks with the same fence length.
-
-        Optimized: Pre-computes colon directive ranges in O(L), then uses O(R) lookups
-        instead of O(L) per-line checks. Total complexity: O(L) instead of O(L²).
-
-        Returns:
-            List of warning dictionaries
-        """
-        warnings = []
-        lines = content.split("\n")
-
-        # Pre-compute colon directive ranges once: O(L)
-        colon_ranges = self._build_colon_directive_index(lines)
-
-        code_block_pattern = re.compile(r"^(\s*)(`{3,})(\w*)(?::[^\s]*)?\s*$")
-        directive_pattern = re.compile(r"^(\s*)(`{3,})\{([^}]+)\}")
-        stack: list[tuple[int, int, str]] = []
-        directive_stack: list[int] = []
-
-        for i, line in enumerate(lines, 1):
-            directive_match = directive_pattern.match(line)
-            if directive_match:
-                directive_fence_length = len(directive_match.group(2))
-                directive_stack.append(directive_fence_length)
-                continue
-
-            match = code_block_pattern.match(line)
-            if match:
-                indent = len(match.group(1))
-                fence_marker = match.group(2)
-                language = match.group(3)
-                fence_length = len(fence_marker)
-
-                if not language and directive_stack and fence_length == directive_stack[-1]:
-                    directive_stack.pop()
-                    continue
-
-                if indent >= 4:
-                    continue
-
-                # O(R) lookup via pre-computed ranges
-                if self._is_line_inside_ranges(i, colon_ranges):
-                    continue
-
-                if not language:
-                    if stack:
-                        top_line, top_length, top_lang = stack[-1]
-                        if fence_length == top_length or fence_length > top_length:
-                            stack.pop()
-                            continue
-                    continue
-
-                if stack:
-                    top_line, top_length, top_lang = stack[-1]
-                    if language and fence_length == top_length:
-                        warnings.append(
-                            {
-                                "page": file_path,
-                                "line": top_line,  # Outer directive line (for context display)
-                                "inner_line": i,  # Inner conflicting line
-                                "type": "structure",
-                                "warning": (
-                                    f"Outer directive at line {top_line} uses {fence_length} backticks but "
-                                    f"inner code block at line {i} also uses {fence_length}. "
-                                    f"Use {fence_length + 1}+ backticks for outer (e.g., ````{top_lang or 'markdown'}`)."
-                                ),
-                            }
-                        )
-                        stack.append((i, fence_length, language))
-                    elif fence_length < top_length:
-                        stack.append((i, fence_length, language))
-                    else:
-                        stack.append((i, fence_length, language))
-                else:
-                    stack.append((i, fence_length, language))
-
-        return warnings
 
     def _is_inside_inline_code_fast(self, line: str) -> bool:
         """
@@ -674,54 +517,3 @@ class DirectiveAnalyzer:
 
         if not content.strip():
             directive["completeness_error"] = "Dropdown directive has no content"
-
-    def _check_fence_nesting(self, directive: dict[str, Any]) -> None:
-        """Check for fence nesting issues."""
-        content = directive["content"]
-        fence_depth = directive["fence_depth"]
-        fence_type = directive.get("fence_type", "colon")
-        directive_line = directive["line_number"]
-
-        if fence_type == "colon":
-            return
-
-        if fence_type == "backtick" and fence_depth == 3:
-            code_block_pattern = r"^(`{3,}|~{3,})[a-zA-Z0-9_-]*\s*$"
-            lines = content.split("\n")
-            inner_line_offset = None
-            for idx, line in enumerate(lines):
-                match = re.match(code_block_pattern, line.strip())
-                if match:
-                    fence_marker = match.group(1)
-                    if fence_marker.startswith("`") and len(fence_marker) == 3:
-                        inner_line_offset = idx
-                        break
-
-            if inner_line_offset is not None:
-                # Calculate actual line number in source file
-                # directive_line is where the directive starts, content starts after opening fence
-                inner_line = directive_line + inner_line_offset + 1  # +1 for the opening fence line
-                directive["fence_nesting_warning"] = (
-                    f"Outer directive at line {directive_line} uses ``` but inner code block "
-                    f"at line {inner_line} also uses ```. Use 4+ backticks for outer."
-                )
-                directive["inner_conflict_line"] = inner_line
-                return
-
-        directive_type = directive["type"]
-        if directive_type in ("tabs", "code-tabs", "code_tabs"):
-            # Count tabs - for tabs directive use markers, for code-tabs use code blocks
-            if directive_type in ("code-tabs", "code_tabs"):
-                # V2 syntax: count code blocks with language tags
-                tab_count = len(re.findall(r"^```\w+", content, re.MULTILINE))
-            else:
-                # Regular tabs: Accept both "### Tab: Title" and "### Title" formats
-                tab_count = len(re.findall(r"^### (?:Tab: )?", content, re.MULTILINE))
-
-            content_lines = len([line for line in content.split("\n") if line.strip()])
-
-            if tab_count > 0 and content_lines < (tab_count * 3):
-                directive["fence_nesting_warning"] = (
-                    f"Directive content appears incomplete ({content_lines} lines, {tab_count} tabs). "
-                    f"If tabs contain code blocks, use 4+ backticks (````) for the directive fence."
-                )

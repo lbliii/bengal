@@ -59,6 +59,7 @@ bengal.content.discovery.git_version_adapter: Git branch/tag discovery
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -290,6 +291,7 @@ class VersionConfig:
 
     # Computed caches
     _version_map: dict[str, Version] = field(default_factory=dict, repr=False)
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def __post_init__(self) -> None:
         """Build lookup caches."""
@@ -318,12 +320,13 @@ class VersionConfig:
         Args:
             version: Version discovered from git branches/tags
         """
-        self.versions.append(version)
-        self._version_map[version.id] = version
+        with self._lock:
+            self.versions.append(version)
+            self._version_map[version.id] = version
 
-        # Update latest alias if this is the latest version
-        if version.latest and "latest" not in self.aliases:
-            self.aliases["latest"] = version.id
+            # Update latest alias if this is the latest version
+            if version.latest and "latest" not in self.aliases:
+                self.aliases["latest"] = version.id
 
     @property
     def latest_version(self) -> Version | None:
@@ -417,7 +420,8 @@ class VersionConfig:
             parts = path_str.split("_versions/")
             if len(parts) > 1:
                 version_id = parts[1].split("/")[0]
-                return self.get_version(version_id)
+                if version_id:
+                    return self.get_version(version_id)
 
         # Check if in versioned section (latest version)
         for section in self.sections:

@@ -10,11 +10,11 @@ import click
 from bengal.cli.base import BengalCommand
 from bengal.cli.helpers import (
     command_metadata,
-    get_cli_output,
     handle_cli_errors,
-    load_site_from_cli,
 )
-from bengal.utils.observability.logger import LogLevel, close_all_loggers, configure_logging
+from bengal.utils.observability.logger import close_all_loggers
+
+from .common import load_graph, page_incoming
 
 
 @click.command(cls=BengalCommand)
@@ -84,25 +84,7 @@ def communities(
         bengal communities --format json > communities.json
 
     """
-    from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-
-    cli = get_cli_output()
-    configure_logging(level=LogLevel.WARNING)
-
-    # Load site using helper
-    site = load_site_from_cli(source=source, config=config, environment=None, profile=None, cli=cli)
-
-    # Discover content
-    cli.info("🔍 Discovering site content...")
-    from bengal.orchestration.content import ContentOrchestrator
-
-    content_orch = ContentOrchestrator(site)
-    content_orch.discover()
-
-    # Build knowledge graph
-    cli.info(f"📊 Building knowledge graph from {len(site.pages)} pages...")
-    graph_obj = KnowledgeGraph(site)
-    graph_obj.build()
+    cli, _site, graph_obj = load_graph(source, config)
 
     # Detect communities
     cli.info(f"🔍 Detecting communities (resolution={resolution})...")
@@ -127,9 +109,7 @@ def communities(
         writer.writerow(["Community ID", "Size", "Top Pages", "Incoming Refs"])
 
         for community in communities_to_show:
-            pages_with_refs = [
-                (page, graph_obj.incoming_refs.get(page, 0)) for page in community.pages
-            ]
+            pages_with_refs = [(page, page_incoming(graph_obj, page)) for page in community.pages]
             pages_with_refs.sort(key=lambda x: x[1], reverse=True)
             top_pages = ", ".join(p.title for p, _ in pages_with_refs[:5])
             writer.writerow([community.id, community.size, top_pages, ""])
@@ -146,9 +126,7 @@ def communities(
 
         for community in communities_to_show:
             # Get top pages by incoming links
-            pages_with_refs = [
-                (page, graph_obj.incoming_refs.get(page, 0)) for page in community.pages
-            ]
+            pages_with_refs = [(page, page_incoming(graph_obj, page)) for page in community.pages]
             pages_with_refs.sort(key=lambda x: x[1], reverse=True)
 
             data["communities"].append(
@@ -185,9 +163,7 @@ def communities(
             cli.info(f"  Size: {community.size} pages")
 
             # Show top pages
-            pages_with_refs = [
-                (page, graph_obj.incoming_refs.get(page, 0)) for page in community.pages
-            ]
+            pages_with_refs = [(page, page_incoming(graph_obj, page)) for page in community.pages]
             pages_with_refs.sort(key=lambda x: x[1], reverse=True)
 
             cli.info("  Top pages:")
@@ -207,9 +183,7 @@ def communities(
 
         for community in communities_to_show:
             # Get top 3 pages by incoming links
-            pages_with_refs = [
-                (page, graph_obj.incoming_refs.get(page, 0)) for page in community.pages
-            ]
+            pages_with_refs = [(page, page_incoming(graph_obj, page)) for page in community.pages]
             pages_with_refs.sort(key=lambda x: x[1], reverse=True)
 
             top_page_titles = ", ".join(
