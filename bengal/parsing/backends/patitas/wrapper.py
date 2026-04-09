@@ -16,6 +16,7 @@ parser/renderer instances with no shared state.
 
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.config.defaults import get_default
@@ -27,6 +28,22 @@ if TYPE_CHECKING:
     from patitas.nodes import Block, Document
 
 logger = get_logger(__name__)
+
+
+def _slice_blocks_at_excerpt_break(
+    blocks: tuple[Block, ...] | Document,
+) -> tuple[Block, ...] | None:
+    """Find an excerpt-break directive and return blocks before it.
+
+    Returns None if no excerpt-break is found (caller falls through to default).
+    """
+    from patitas.nodes import Directive, Document
+
+    children = blocks.children if isinstance(blocks, Document) else blocks
+    for i, block in enumerate(children):
+        if isinstance(block, Directive) and block.name == "excerpt-break":
+            return children[:i]
+    return None
 
 
 class PatitasParser(BaseMarkdownParser):
@@ -171,8 +188,17 @@ class PatitasParser(BaseMarkdownParser):
         try:
             from patitas import extract_excerpt, extract_meta_description
 
-            max_chars = metadata.get("_excerpt_length", get_default("content", "excerpt_length"))
-            excerpt = extract_excerpt(ast, content, excerpt_as_html=True, max_chars=max_chars)
+            # If author placed :::{excerpt-break}, use only blocks above it
+            excerpt_blocks = _slice_blocks_at_excerpt_break(ast)
+            if excerpt_blocks is not None:
+                excerpt = extract_excerpt(
+                    excerpt_blocks, content, excerpt_as_html=True, max_chars=sys.maxsize
+                )
+            else:
+                max_chars = metadata.get(
+                    "_excerpt_length", get_default("content", "excerpt_length")
+                )
+                excerpt = extract_excerpt(ast, content, excerpt_as_html=True, max_chars=max_chars)
             meta_desc = (
                 extract_meta_description(ast, content)
                 if not metadata.get("description")
@@ -304,13 +330,22 @@ class PatitasParser(BaseMarkdownParser):
             try:
                 from patitas import extract_excerpt, extract_meta_description
 
-                # Per-article override: pipeline sets metadata._excerpt_length
-                content_cfg = context.get("config", {}).get("content", {}) or {}
-                max_chars = metadata.get(
-                    "_excerpt_length",
-                    content_cfg.get("excerpt_length", get_default("content", "excerpt_length")),
-                )
-                excerpt = extract_excerpt(ast, content, excerpt_as_html=True, max_chars=max_chars)
+                # If author placed :::{excerpt-break}, use only blocks above it
+                excerpt_blocks = _slice_blocks_at_excerpt_break(ast)
+                if excerpt_blocks is not None:
+                    excerpt = extract_excerpt(
+                        excerpt_blocks, content, excerpt_as_html=True, max_chars=sys.maxsize
+                    )
+                else:
+                    # Per-article override: pipeline sets metadata._excerpt_length
+                    content_cfg = context.get("config", {}).get("content", {}) or {}
+                    max_chars = metadata.get(
+                        "_excerpt_length",
+                        content_cfg.get("excerpt_length", get_default("content", "excerpt_length")),
+                    )
+                    excerpt = extract_excerpt(
+                        ast, content, excerpt_as_html=True, max_chars=max_chars
+                    )
                 meta_desc = (
                     extract_meta_description(ast, content)
                     if not metadata.get("description")
