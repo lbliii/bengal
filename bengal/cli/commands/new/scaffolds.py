@@ -6,6 +6,7 @@ Provides CLI commands for creating new content and template scaffolds.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
@@ -88,8 +89,8 @@ def _create_template_scaffold(
     kind: str,
     name: str | None,
     subdir: str,
-    content_fn: callable,
-    hint_fn: callable,
+    content_fn: Callable[[str], str],
+    hint_fn: Callable[[str], str],
 ) -> None:
     """
     Shared logic for creating layout and partial template scaffolds.

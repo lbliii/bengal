@@ -710,7 +710,7 @@ def configure_logging(
                     logger._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
 
 
-def get_logger(name: str) -> BengalLogger:
+def get_logger(name: str) -> LazyLogger:
     """
     Get a logger proxy for the given name.
 
