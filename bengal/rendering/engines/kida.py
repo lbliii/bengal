@@ -43,6 +43,157 @@ if TYPE_CHECKING:
     from bengal.core import Site
     from bengal.rendering.template_profiler import TemplateProfiler
 
+# Filters whose output depends only on their inputs (no site/page/I/O/time).
+# Kida's partial evaluator can fold these at compile time when all arguments
+# are constants from static_context.
+_PURE_FILTERS: set[str] = {
+    # strings.py
+    "truncatewords",
+    "truncatewords_html",
+    "slugify",
+    "markdownify",
+    "strip_html",
+    "plainify",
+    "truncate_chars",
+    "replace_regex",
+    "pluralize",
+    "reading_time",
+    "word_count",
+    "wordcount",
+    "excerpt",
+    "excerpt_for_card",
+    "card_excerpt",
+    "card_excerpt_html",
+    "strip_whitespace",
+    "get",
+    "first_sentence",
+    "filesize",
+    "split",
+    "base64_encode",
+    "base64_decode",
+    # advanced_strings.py
+    "camelize",
+    "underscore",
+    "titleize",
+    "wrap",
+    "indent",
+    "softwrap_ident",
+    "last_segment",
+    "regex_search",
+    "regex_findall",
+    "trim_prefix",
+    "trim_suffix",
+    "has_prefix",
+    "has_suffix",
+    "contains",
+    "to_sentence",
+    # math_functions.py
+    "percentage",
+    "times",
+    "divided_by",
+    "ceil",
+    "floor",
+    "round",
+    "coerce_int",
+    # collections.py
+    "where",
+    "where_not",
+    "group_by",
+    "sort_by",
+    "limit",
+    "offset",
+    "uniq",
+    "flatten",
+    "first",
+    "last",
+    "reverse",
+    "union",
+    "intersect",
+    "complement",
+    "group_by_year",
+    "group_by_month",
+    "archive_years",
+    # advanced_collections.py
+    "chunk",
+    # dates.py (deterministic subset — excludes time_ago/days_ago/months_ago)
+    "date_iso",
+    "date_rfc822",
+    "month_name",
+    "humanize_days",
+    "date_add",
+    "date_diff",
+    # data.py
+    "jsonify",
+    "merge",
+    "has_key",
+    "get_nested",
+    "keys",
+    "values",
+    "items",
+    # content.py
+    "safe_html",
+    "html_escape",
+    "html_unescape",
+    "nl2br",
+    "smartquotes",
+    "emojify",
+    "extract_content",
+    "demote_headings",
+    "prefix_heading_ids",
+    "urlize",
+    "highlight",
+    # seo.py
+    "meta_description",
+    "meta_keywords",
+    # pagination_helpers.py
+    "paginate",
+    # images.py
+    "image_srcset",
+    "image_alt",
+    # urls.py (deterministic subset — excludes absolute_url/href)
+    "url_encode",
+    "url_decode",
+    "url_parse",
+    "url_param",
+    "url_query",
+    # debug.py
+    "debug",
+    "typeof",
+    "inspect",
+    # autodoc.py
+    "get_params",
+    "param_count",
+    "return_type",
+    "get_return_info",
+    "get_element_stats",
+    "children_by_type",
+    "public_only",
+    "private_only",
+    "is_autodoc_page",
+    "members",
+    "commands",
+    "options",
+    "member_view",
+    "option_view",
+    "command_view",
+    # openapi.py
+    "highlight_path_params",
+    "method_color_class",
+    "status_code_class",
+    "endpoints",
+    "schemas",
+    # changelog.py
+    "releases",
+    "release_view",
+    # taxonomies.py (deterministic subset)
+    "has_tag",
+    "tag_accent_index",
+    # blog.py (deterministic subset)
+    "posts",
+    "post_view",
+    "featured_posts",
+}
+
 
 class KidaTemplateEngine:
     """Bengal integration for Kida template engine.
@@ -133,6 +284,16 @@ class KidaTemplateEngine:
         if "max_include_depth" in kida_config:
             env_kwargs["max_include_depth"] = kida_config["max_include_depth"]
 
+        # Compile-time optimization (kida 0.4.0+)
+        # Kida's partial evaluator can fold constant expressions when given
+        # static_context, but currently folds dict/list values into AST
+        # Constant nodes which Python's compile() rejects (only scalars are
+        # valid constant types).  Blocked on kida fix — see:
+        # https://github.com/lbliii/kida/issues/68
+        #
+        # Once fixed, uncomment to enable config-branch elimination:
+        # static_context = {"config": site.config}
+
         # Create Kida environment
         # Note: strict mode (UndefinedError for undefined vars) is always enabled
         self._env = Environment(
@@ -145,6 +306,8 @@ class KidaTemplateEngine:
             # Fragment caching for {% cache "key" %}...{% end %} blocks
             fragment_cache_size=fragment_cache_size,
             fragment_ttl=fragment_ttl,
+            # Compile-time optimization: pure filter declarations (kida 0.4.0+)
+            pure_filters=_PURE_FILTERS,
             **env_kwargs,
         )
 
@@ -470,10 +633,16 @@ class KidaTemplateEngine:
         Returns:
             Rendered HTML string
         """
+        import warnings
+
         from kida.environment.exceptions import UndefinedError
 
         try:
-            tmpl = self._env.from_string(template)
+            # Dynamic strings bypass bytecode cache intentionally — suppress the
+            # kida 0.4.0 UserWarning about from_string() without name=.
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", message="from_string.*bypasses bytecode cache")
+                tmpl = self._env.from_string(template)
 
             # Get page-aware functions (t, current_lang, etc.)
             # Instead of mutating env.globals (not thread-safe), we pass them in context
