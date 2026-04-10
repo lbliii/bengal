@@ -94,7 +94,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   gap: 0.125rem;
   opacity: 1;
   transform: none;
-  padding-left: 0;
+  padding-inline-start: 0;
   margin-top: 0;
 }
 
@@ -189,14 +189,14 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   grid-area: toggle;
   justify-self: end;
   padding: 0.25rem;
-  padding-right: 0.125rem;
+  padding-inline-end: 0.125rem;
 }
 
 /* Grid area: Icon */
 .docs-nav-group:not(.docs-nav-group--root):not(.docs-nav-group--leaf) > .docs-nav-icon {
   grid-area: icon;
   padding: 0.25rem;
-  padding-left: 0.125rem;
+  padding-inline-start: 0.125rem;
 }
 
 /* Grid area: Link text */
@@ -386,7 +386,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   display: none;
   flex-direction: column;
   gap: 0.125rem;
-  padding-left: 0.375rem;
+  padding-inline-start: 0.375rem;
   margin-top: 0.25rem;
   opacity: 0;
   transform: translate3d(0, -8px, 0);
@@ -491,7 +491,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 
 /* Nested sections */
 .docs-nav-group .docs-nav-group {
-  margin-left: 0.25rem;
+  margin-inline-start: 0.25rem;
 }
 /* ============================================================================
    ALIGNED TEXT - Clean left alignment now that caret is on the right
@@ -502,12 +502,12 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
 
 /* Single pages (direct children of group-items) - align with icon position */
 .docs-nav-group-items > .docs-nav-link {
-  margin-left: 0.25rem;
+  margin-inline-start: 0.25rem;
 }
 
 /* Leaf section links align with directory text at same level */
 .docs-nav-group--leaf > .docs-nav-link {
-  margin-left: 0.25rem;
+  margin-inline-start: 0.25rem;
 }
 
 /* ============================================================================
@@ -776,7 +776,7 @@ html:not([data-devtools-open]) .docs-nav-tree > * {
   min-width: 20px;
   height: 20px;
   flex-shrink: 0;
-  margin-left: 0.125rem; /* Tiny gap from accent bar ::after */
+  margin-inline-start: 0.125rem; /* Tiny gap from accent bar ::after */
   color: var(--color-text-tertiary);
   transition: color var(--transition-fast), filter var(--transition-fast), transform var(--transition-fast);
 }

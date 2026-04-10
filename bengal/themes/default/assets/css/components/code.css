@@ -819,11 +819,11 @@ pre code {
 .rosettes .hll {
   display: block;
   background: var(--syntax-bg-highlight);
-  margin-left: calc(-1 * var(--space-4));
-  margin-right: calc(-1 * var(--space-6));
-  padding-left: calc(var(--space-4) - 3px);
-  padding-right: var(--space-6);
-  border-left: 3px solid var(--color-primary);
+  margin-inline-start: calc(-1 * var(--space-4));
+  margin-inline-end: calc(-1 * var(--space-6));
+  padding-inline-start: calc(var(--space-4) - 3px);
+  padding-inline-end: var(--space-6);
+  border-inline-start: 3px solid var(--color-primary);
 }
 
 /* ============================================
@@ -992,7 +992,7 @@ pre code {
   position: absolute;
   /* Offset by table's margin-block-start (1.5rem) plus padding inside */
   top: calc(1.5rem + var(--space-2));
-  right: var(--space-2);
+  inset-inline-end: var(--space-2);
   z-index: 10;
 }
 
@@ -1053,7 +1053,7 @@ pre code {
   font-size: var(--text-xs);
   line-height: var(--line-height-relaxed);
   color: var(--color-text-muted);
-  text-align: right;
+  text-align: end;
   user-select: none;
 }
 
@@ -1074,7 +1074,7 @@ pre code {
 .highlight td.code pre {
   width: 100%;
   padding: var(--space-6);
-  padding-left: var(--space-4);
+  padding-inline-start: var(--space-4);
   overflow-x: auto;
 }
 
@@ -1100,7 +1100,7 @@ pre code {
   }
 
   .highlight td.code pre {
-    padding-left: var(--space-6);
+    padding-inline-start: var(--space-6);
   }
 }
 
@@ -1138,18 +1138,18 @@ div.highlight>pre {
       var(--color-primary) 3px,
       color-mix(in srgb, var(--color-primary) 12%, transparent) 3px);
   /* Extend highlight beyond code cell padding */
-  margin-left: calc(-1 * var(--space-4));
-  margin-right: calc(-1 * var(--space-6));
-  padding-left: calc(var(--space-4) - 3px);
-  padding-right: var(--space-6);
+  margin-inline-start: calc(-1 * var(--space-4));
+  margin-inline-end: calc(-1 * var(--space-6));
+  padding-inline-start: calc(var(--space-4) - 3px);
+  padding-inline-end: var(--space-6);
 }
 
 /* Table layout: same treatment */
 .highlight td.code .hll {
-  margin-left: calc(-1 * var(--space-4));
-  margin-right: calc(-1 * var(--space-6));
-  padding-left: calc(var(--space-4) - 3px);
-  padding-right: var(--space-6);
+  margin-inline-start: calc(-1 * var(--space-4));
+  margin-inline-end: calc(-1 * var(--space-6));
+  padding-inline-start: calc(var(--space-4) - 3px);
+  padding-inline-end: var(--space-6);
 }
 
 /* Dark mode: more visible highlight */
@@ -1162,9 +1162,9 @@ div.highlight>pre {
 /* Legacy Pygments linenos support */
 .highlight .linenos:not(td) {
   display: inline-block;
-  padding-right: var(--space-4);
-  margin-right: var(--space-4);
-  border-right: 1px solid var(--color-border);
+  padding-inline-end: var(--space-4);
+  margin-inline-end: var(--space-4);
+  border-inline-end: 1px solid var(--color-border);
   color: var(--color-text-muted);
   user-select: none;
 }

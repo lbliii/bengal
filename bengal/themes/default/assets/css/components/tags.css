@@ -253,7 +253,7 @@
 .tag-page .tag-icon {
   color: var(--color-primary);
   font-weight: var(--weight-bold);
-  margin-right: var(--space-2);
+  margin-inline-end: var(--space-2);
 }
 
 .tag-page .tag-nav {
@@ -293,12 +293,12 @@
   touch-action: manipulation;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  border-left: 3px solid var(--tag-accent, var(--color-primary));
+  border-inline-start: 3px solid var(--tag-accent, var(--color-primary));
 }
 
 .tag-card.gradient-border {
   border: none;
-  border-left: 3px solid var(--tag-accent, var(--color-primary));
+  border-inline-start: 3px solid var(--tag-accent, var(--color-primary));
 }
 
 .tag-card.fluid-combined {
@@ -414,7 +414,7 @@
 
 .tag-nav-count {
   display: inline-block;
-  margin-left: var(--space-1);
+  margin-inline-start: var(--space-1);
   font-size: var(--text-xs);
   color: var(--color-text-muted);
   font-weight: var(--weight-normal);

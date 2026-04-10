@@ -36,8 +36,8 @@
     font-size: var(--text-xl);
     line-height: 1.6;
     max-width: 700px;
-    margin-left: auto;
-    margin-right: auto;
+    margin-inline-start: auto;
+    margin-inline-end: auto;
 }
 
 .tracks-intro {
@@ -45,8 +45,8 @@
     line-height: 1.7;
     color: var(--color-text-secondary);
     max-width: 800px;
-    margin-left: auto;
-    margin-right: auto;
+    margin-inline-start: auto;
+    margin-inline-end: auto;
 }
 
 /* Tracks Grid */
@@ -348,7 +348,7 @@
 
 .track-preview-more {
     margin-top: var(--space-1);
-    padding-left: calc(20px + var(--space-2));
+    padding-inline-start: calc(20px + var(--space-2));
 }
 
 .track-preview-more-text {
@@ -596,7 +596,7 @@
 
 /* Compact header variant */
 .tracks-header--compact {
-    text-align: left;
+    text-align: start;
     margin-bottom: var(--space-6);
     padding-bottom: var(--space-4);
     border-bottom: 1px solid var(--color-border);
@@ -633,7 +633,7 @@
 
     .track-card-count {
         order: 3;
-        margin-left: calc(32px + var(--space-3));
+        margin-inline-start: calc(32px + var(--space-3));
     }
 
     .track-preview-chip {
@@ -648,7 +648,7 @@
     }
 
     .track-card-count {
-        margin-left: calc(28px + var(--space-3));
+        margin-inline-start: calc(28px + var(--space-3));
     }
 
     .track-preview-chips {
@@ -932,13 +932,13 @@
 
 .track-syllabus-item {
     transition: background-color 0.2s ease, transform 0.1s ease;
-    border-left: 3px solid transparent;
+    border-inline-start: 3px solid transparent;
     text-decoration: none;
 }
 
 .track-syllabus-item:hover:not(.disabled) {
     background: var(--color-surface-elevated);
-    border-left-color: var(--color-primary);
+    border-inline-start-color: var(--color-primary);
     transform: translateX(2px);
 }
 
@@ -1278,7 +1278,7 @@
     justify-content: center;
     width: 28px;
     height: 28px;
-    margin-left: auto;
+    margin-inline-start: auto;
     padding: 0;
     background: transparent;
     border: none;
@@ -1531,7 +1531,7 @@
 
 @media (max-width: 767.98px) {
     .track-header {
-        text-align: left;
+        text-align: start;
         padding-bottom: var(--space-4);
     }
 
@@ -1635,7 +1635,7 @@
 .track-syllabus-item:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
-    border-left-color: var(--color-primary);
+    border-inline-start-color: var(--color-primary);
 }
 
 .track-navigation .btn:focus-visible,

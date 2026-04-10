@@ -67,8 +67,8 @@
 /* Content Width */
 .content-width {
   max-width: var(--content-width);
-  margin-left: auto;
-  margin-right: auto;
+  margin-inline-start: auto;
+  margin-inline-end: auto;
 }
 
 /* Display */
@@ -231,9 +231,10 @@
   margin: auto;
 }
 
+/* Class name .mx-auto is historical; uses logical properties for RTL support */
 .mx-auto {
-  margin-left: auto;
-  margin-right: auto;
+  margin-inline-start: auto;
+  margin-inline-end: auto;
 }
 
 .my-auto {
@@ -370,34 +371,35 @@
   padding: var(--space-12);
 }
 
+/* Class names .px-* are historical; use logical properties for RTL support */
 .px-2 {
-  padding-left: var(--space-2);
-  padding-right: var(--space-2);
+  padding-inline-start: var(--space-2);
+  padding-inline-end: var(--space-2);
 }
 
 .px-3 {
-  padding-left: var(--space-3);
-  padding-right: var(--space-3);
+  padding-inline-start: var(--space-3);
+  padding-inline-end: var(--space-3);
 }
 
 .px-4 {
-  padding-left: var(--space-4);
-  padding-right: var(--space-4);
+  padding-inline-start: var(--space-4);
+  padding-inline-end: var(--space-4);
 }
 
 .px-5 {
-  padding-left: var(--space-5);
-  padding-right: var(--space-5);
+  padding-inline-start: var(--space-5);
+  padding-inline-end: var(--space-5);
 }
 
 .px-6 {
-  padding-left: var(--space-6);
-  padding-right: var(--space-6);
+  padding-inline-start: var(--space-6);
+  padding-inline-end: var(--space-6);
 }
 
 .px-8 {
-  padding-left: var(--space-8);
-  padding-right: var(--space-8);
+  padding-inline-start: var(--space-8);
+  padding-inline-end: var(--space-8);
 }
 
 .py-2 {
@@ -513,12 +515,13 @@
   border-bottom: 1px solid var(--color-border);
 }
 
+/* Class names .border-l/.border-r are historical; use logical properties for RTL support */
 .border-l {
-  border-left: 1px solid var(--color-border);
+  border-inline-start: 1px solid var(--color-border);
 }
 
 .border-r {
-  border-right: 1px solid var(--color-border);
+  border-inline-end: 1px solid var(--color-border);
 }
 
 /* Border Radius */
@@ -683,8 +686,9 @@
   top: 0;
 }
 
+/* Class names .right-0/.left-0 are historical; use logical properties for RTL support */
 .right-0 {
-  right: 0;
+  inset-inline-end: 0;
 }
 
 .bottom-0 {
@@ -692,7 +696,7 @@
 }
 
 .left-0 {
-  left: 0;
+  inset-inline-start: 0;
 }
 
 /* ============================================

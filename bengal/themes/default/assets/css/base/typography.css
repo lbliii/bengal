@@ -254,8 +254,8 @@ a {
   width: 0.75em;
   height: 0.75em;
   /* Tight left margin, no right margin - icon hugs text */
-  margin-left: 0.2em;
-  margin-right: 0;
+  margin-inline-start: 0.2em;
+  margin-inline-end: 0;
   /* Flex-shrink prevents icon from being squished */
   flex-shrink: 0;
   /* Icon styling via mask */
@@ -302,14 +302,14 @@ a {
 .prose table a[target="_blank"][href^="http"]::after {
   width: 0.65em;
   height: 0.65em;
-  margin-left: 0.15em;
+  margin-inline-start: 0.15em;
 }
 
 /* Links containing inline code - adjust spacing */
 .prose a[data-external="true"]:has(code)::after,
 .prose a[rel*="external"]:has(code)::after,
 .prose a[target="_blank"][href^="http"]:has(code)::after {
-  margin-left: 0.3em;
+  margin-inline-start: 0.3em;
 }
 
 /* Tab/Accordion navigation links - never show external icon */
@@ -692,7 +692,7 @@ thead {
 
 th {
   padding: var(--space-3) var(--space-5);  /* More horizontal breathing room */
-  text-align: left;
+  text-align: start;
   font-size: var(--text-caption);  /* Smaller than body */
   font-weight: var(--weight-semibold);
   text-transform: uppercase;
@@ -725,7 +725,7 @@ dt {
 }
 
 dd {
-  margin-left: var(--space-6);
+  margin-inline-start: var(--space-6);
   margin-top: var(--space-2);
   color: var(--color-text-secondary);
 }
@@ -781,9 +781,9 @@ dd {
 .leading-loose { line-height: var(--leading-loose); }
 
 /* Text Alignment */
-.text-left { text-align: left; }
+.text-left { text-align: start; }
 .text-center { text-align: center; }
-.text-right { text-align: right; }
+.text-right { text-align: end; }
 .text-justify { text-align: justify; }
 
 /* Text Transform */

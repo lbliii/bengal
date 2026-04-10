@@ -138,7 +138,7 @@ select:focus-visible {
   outline: 2px solid var(--color-border-focus);
   outline-offset: -2px;
   background-color: var(--color-bg-tertiary);
-  border-left-color: var(--color-border-focus);
+  border-inline-start-color: var(--color-border-focus);
 }
 
 /* ============================================

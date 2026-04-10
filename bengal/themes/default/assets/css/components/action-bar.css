@@ -592,7 +592,7 @@
   cursor: pointer;
   transition: background 0.15s ease;
   width: 100%;
-  text-align: left;
+  text-align: start;
 }
 
 .action-bar-share-item:hover {

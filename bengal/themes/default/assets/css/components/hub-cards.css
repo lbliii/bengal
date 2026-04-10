@@ -64,8 +64,8 @@
   color: var(--color-text-secondary);
   margin: 0 0 var(--space-6);
   max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-inline-start: auto;
+  margin-inline-end: auto;
 }
 
 .hub-hero__intro {
@@ -73,8 +73,8 @@
   line-height: 1.7;
   color: var(--color-text-secondary);
   max-width: 800px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-inline-start: auto;
+  margin-inline-end: auto;
 }
 
 /* Stats Bar */
@@ -372,11 +372,11 @@
 }
 
 .hub-preview__more--numbered {
-  padding-left: calc(20px + var(--space-2));
+  padding-inline-start: calc(20px + var(--space-2));
 }
 
 .hub-preview__more--bulleted {
-  padding-left: calc(6px + var(--space-2));
+  padding-inline-start: calc(6px + var(--space-2));
 }
 
 .hub-preview__more-text {

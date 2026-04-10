@@ -10,13 +10,13 @@
 .row {
   display: flex;
   flex-wrap: wrap;
-  margin-left: calc(var(--space-4) * -1);
-  margin-right: calc(var(--space-4) * -1);
+  margin-inline-start: calc(var(--space-4) * -1);
+  margin-inline-end: calc(var(--space-4) * -1);
 }
 
 .row > * {
-  padding-left: var(--space-4);
-  padding-right: var(--space-4);
+  padding-inline-start: var(--space-4);
+  padding-inline-end: var(--space-4);
 }
 
 /* Column Sizes */

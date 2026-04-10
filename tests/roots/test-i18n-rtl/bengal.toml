@@ -1,0 +1,21 @@
+[site]
+title = "Test i18n RTL Site"
+baseurl = "/"
+description = "Test site for RTL layout verification"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[markdown]
+parser = "patitas"
+
+[i18n]
+default_language = "en"
+strategy = "prefix"
+content_structure = "dir"
+languages = [
+    { code = "en", name = "English", weight = 1 },
+    { code = "ar", name = "العربية", weight = 2, rtl = true },
+]

@@ -155,7 +155,7 @@ Revisit if: cache server, standalone record use cases, or generic template engin
 
 ---
 
-## Sprint 1: Plural Forms + Config Schema
+## Sprint 1: Plural Forms + Config Schema ✅ COMPLETE
 
 **Goal**: Wire `ngettext()` to templates so quantity strings work in all languages. Complete the config schema so type checkers cover all i18n options.
 
@@ -343,3 +343,4 @@ How to contribute translations: PO file conventions, testing translations locall
 |------|--------|
 | 2026-04-09 | Initial draft from codebase exploration |
 | 2026-04-09 | Sprint 0 complete: Option B for locale threading (no record changes), 497 CSS physical properties audited, 12 config keys mapped. Sprint 1 Task 1.3 skipped. |
+| 2026-04-09 | Sprint 1 complete: `nt()` wired through Kida + generic adapters (5 tests). I18nConfig expanded 3→7 fields + LanguageConfig TypedDict (6 fields). All 38 i18n tests + 358 config tests pass. |
