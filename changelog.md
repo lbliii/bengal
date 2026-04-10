@@ -1,5 +1,41 @@
 ## [Unreleased]
 
+## 0.3.0 - 2026-04-09
+
+### Immutable Page Pipeline
+- **core**: add SourcePage frozen record for immutable discovery pipeline (#199)
+- **rendering**: add ParsedPage frozen record for immutable rendering pipeline (#196)
+- **rendering**: add RenderedPage frozen record for immutable rendering pipeline (#197)
+- **orchestration**: decompose SiteSnapshot into NavigationPlan, TaxonomyPlan, RenderSchedule (#198)
+- **core**: delete PageProxy (906 lines), reconstruct pages from cache with zero disk I/O (#200)
+
+### Architecture
+- **concurrency**: add WorkScope structured concurrency, migrate all executor sites (#189)
+- **core**: eliminate Site mixin hierarchy, migrate to protocol types (#194)
+- **cli**: CLI feature maturity audit — fix bugs, add missing commands, wire sources (#187)
+
+### Performance
+- **perf**: eliminate O(n²) hotspots, consolidate taxonomy slug normalization (#192)
+- **refactor**: stale code refresh — ~50 files audited, 205 lines dead code removed, ty diagnostics 837 → 715 (#203)
+
+### Features
+- **directives**: add excerpt-break directive for author-controlled excerpts (#202)
+
+### Fixes
+- **rendering**: render progress bar stuck at 0% during WaveScheduler rendering (#190)
+- **metrics**: accurate render metrics, per-page timing, and regression detection (#184)
+- **rendering**: xref pipe placeholder surviving Patitas escape_html (#182)
+- **rendering**: add missing error codes to Kida rendering engine exception handlers
+- **tests**: fix contextvar test — tuple context manager protocol error
+- **orchestration**: gate WriteBehindCollector on parallel builds to prevent sequential deadlocks (#201)
+- **ci**: replace SIGALRM with watchdog thread for CI test timeouts (#199)
+
+### Tooling
+- **lint**: add 8 ruff rule sets, tighten ty config, migrate to PEP 695 generics (#191)
+- **ci**: flatten test pipeline and deduplicate coverage (#185, #186)
+- **deps**: bump deps, fix ty 0.0.26 errors, add Renovate config (#183)
+- **docs**: remove stale PageProxy refs, document frozen records (#201)
+
 ## 0.2.7 - 2026-03-25
 
 ### Plugin System
