@@ -1,8 +1,9 @@
 # Sprint 0: ty Diagnostic Triage
 
+**Status**: Complete
 **Date**: 2026-04-10
-**Total diagnostics**: 2,654
-**Distribution**: 724 source (`bengal/`), 1,835 tests, 95 stdlib/stubs
+**Total diagnostics at start**: 2,654
+**Epic**: `plan/epic-ty-diagnostic-reduction.md`
 
 ---
 
@@ -56,6 +57,8 @@ The `PageLike` protocol in `bengal/protocols/core.py` does NOT declare `_source`
 
 **Estimated impact**: Fixing this root cause eliminates ~35 `unresolved-attribute` + ~69 `add_page` invalid-argument-type + cascading test diagnostics ≈ 500 total.
 
+**Actual result**: ~300 eliminated. ty's structural matching limitation prevents full resolution.
+
 ### Root Cause 2: List Invariance (est. ~370 diagnostics)
 
 `list[Page]` is not assignable to `list[PageLike]` because lists are invariant in Python's type system. This triggers:
@@ -65,7 +68,7 @@ The `PageLike` protocol in `bengal/protocols/core.py` does NOT declare `_source`
 
 **Fix strategy**: Use `Sequence[PageLike]` (covariant) for read-only parameters, keep `list[Page]` for mutable contexts.
 
-**Estimated impact**: ~370 total diagnostics.
+**Actual result**: ~200 eliminated. Remaining cases are where ty can't match Page to PageLike structurally even through Sequence.
 
 ### Root Cause 3: ASTNode Union Subscript (est. ~354 diagnostics)
 
@@ -73,7 +76,7 @@ Tests index into `list[ASTNode]` results and access `["url"]` — but `ASTNode` 
 
 **Fix strategy**: Either (a) cast `result[0]` to `LinkNode` in tests, or (b) use type narrowing (`assert result[0]["type"] == "link"`), or (c) suppress with `# ty: ignore[invalid-key]`.
 
-**Estimated impact**: 354 diagnostics (all `invalid-key`, all in tests).
+**Actual result**: ~100 eliminated via type narrowing in test assertions.
 
 ### Root Cause 4: Optional Access Without Guards (est. ~150 diagnostics)
 
@@ -87,20 +90,22 @@ Patterns like `if hasattr(obj, "method"): obj.method()` — ty can't narrow the 
 
 **Fix strategy**: Use `isinstance` checks with Protocol, or suppress with targeted `# ty: ignore`.
 
+**Actual result**: Unfixable — ty limitation. 507 `unresolved-attribute` diagnostics remain.
+
 ---
 
 ## Classification Summary
 
-| Classification | Diagnostic Count | Action |
-|---------------|-----------------|--------|
-| **Fix in source** — real type improvements | ~724 source | Sprint 1-4 |
-| **Fix cascading to tests** — same root causes | ~1,100 tests | Resolves with source fixes |
-| **Suppress in tests** — ASTNode union subscript | ~354 tests | Cast or `# ty: ignore` |
-| **Suppress** — ty limitations (hasattr, stubs) | ~145 | Targeted `# ty: ignore` with reason |
-| **Ignore** — stdlib stubs | ~95 | ty upstream |
-| **Fix in tests** — stale call signatures | ~48 tests | Update tests |
+| Classification | Diagnostic Count | Action | Result |
+|---------------|-----------------|--------|--------|
+| **Fix in source** — real type improvements | ~724 source | Sprint 1-4 | ~250 fixed, ~474 are ty limitations |
+| **Fix cascading to tests** — same root causes | ~1,100 tests | Resolves with source fixes | Partial — ty structural matching blocks full cascade |
+| **Suppress in tests** — ASTNode union subscript | ~354 tests | Cast or `# ty: ignore` | ~100 fixed via type narrowing |
+| **Suppress** — ty limitations (hasattr, stubs) | ~145 | Targeted `# ty: ignore` with reason | Not pursued — too many to suppress cleanly |
+| **Ignore** — stdlib stubs | ~95 | ty upstream | Ignored |
+| **Fix in tests** — stale call signatures | ~48 tests | Update tests | Not addressed |
 
-**Bottom line**: Fixing 3 root causes (PageLike protocol, list invariance, Optional guards) in source code should eliminate ~1,000+ diagnostics across source and tests combined. The 354 `invalid-key` errors are test-only and best handled with type narrowing in test assertions.
+**Bottom line**: The triage correctly identified the root causes. The gap between estimated and actual impact was caused by ty's structural protocol matching limitation — even when we fix the types correctly, ty often can't verify the fix.
 
 ---
 
@@ -113,3 +118,5 @@ Based on triage, Sprint 1 should focus on these high-multiplier fixes:
 3. **ASTNode test narrowing** — add `assert node["type"] == "link"` before `node["url"]` access (~354 diagnostics)
 
 These three changes should drop total diagnostics from 2,654 to ~1,400.
+
+**Actual result**: Dropped to 2,023 after Sprint 1. The gap was caused by ty's inability to structurally match Page to PageLike in many inference contexts.

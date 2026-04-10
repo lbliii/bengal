@@ -1,9 +1,15 @@
 # Plan: Protocol-Driven Typing for ty Compliance
 
 **RFC**: `plan/rfc-protocol-driven-typing.md`  
-**Status**: Ready  
-**Created**: 2026-01-17  
+**Status**: Partially Complete — Phase 1 done, Phase 2 partially done, Phases 3-7 deferred (low ROI)
+**Created**: 2026-01-17
+**Updated**: 2026-04-10
 **Estimated Effort**: 10-12 hours
+**Note**: Phase 1 (protocol extensions) and Phase 2 (Sequence covariance, config widening) were
+  completed as part of `epic-ty-diagnostic-reduction.md` (PR #208). Phases 3-7 (stale ignores,
+  __file__ guards, async overrides, TypeGuards, Self-type fixes) remain but offer diminishing returns
+  — the remaining diagnostics are ty structural matching limitations, not missing annotations.
+  Re-evaluate when ty improves hasattr narrowing and @contextmanager inference.
 
 ---
 

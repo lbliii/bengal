@@ -1,10 +1,13 @@
 # RFC: Protocol-Driven Typing for ty Compliance
 
-**Status**: Ready (Planned 2026-01-17)  
-**Created**: 2026-01-17  
-**Updated**: 2026-02-14  
-**Author**: AI Assistant  
-**Related**: `rfc-ty-type-hardening.md`, `rfc-protocol-consolidation.md`
+**Status**: Partially Complete — see `epic-ty-diagnostic-reduction.md` for latest
+**Created**: 2026-01-17
+**Updated**: 2026-04-10
+**Author**: AI Assistant
+**Related**: `rfc-ty-type-hardening.md`, `rfc-protocol-consolidation.md`, `epic-ty-diagnostic-reduction.md`
+**Note**: Protocol extensions and migration to Sequence/Any params completed in PR #208.
+  Remaining phases (TypeGuards, Self-type fixes) deferred — ty structural matching limitations
+  mean further annotation work has diminishing returns. Re-evaluate when ty matures.
 
 > **Path note (2026-02-14)**: References to `bengal/build/detectors/` updated; that package was never created.
 

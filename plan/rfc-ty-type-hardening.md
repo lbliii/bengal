@@ -1,9 +1,11 @@
 # RFC: ty Type Checker Hardening
 
-**Status**: Draft  
-**Created**: 2026-01-14  
-**Author**: AI Assistant  
+**Status**: Superseded by `epic-ty-diagnostic-reduction.md`
+**Created**: 2026-01-14
+**Author**: AI Assistant
 **Related**: `pyproject.toml` `[tool.ty]` configuration
+**Note**: This RFC was written at ~540 errors. The epic covers the full 2,654 → 1,913 journey.
+  Remaining diagnostics are ty limitations (structural matching, hasattr narrowing). See epic for details.
 
 ---
 
