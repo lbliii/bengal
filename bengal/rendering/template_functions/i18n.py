@@ -380,9 +380,21 @@ def _make_nt(
         if cat:
             result = cat.ngettext(singular, plural, n)
             if result not in (singular, plural):
+                # Catalog had a real translation — use it
                 return format_params(result, merged)
+            # Catalog returned original msgid (no translation found) —
+            # still format params so {n} gets replaced, then try fallback
+            # below if enabled
 
-        # Fallback: simple English-style plural selection
+        # Fallback to default language catalog when fallback_to_default is enabled
+        if use_lang != default_lang and i18n_cfg.get("fallback_to_default", True):
+            cat_def = load_catalog_for_lang(default_lang)
+            if cat_def:
+                result = cat_def.ngettext(singular, plural, n)
+                if result not in (singular, plural):
+                    return format_params(result, merged)
+
+        # Fallback: simple English-style plural selection, always formatted
         form = singular if n == 1 else plural
         return format_params(form, merged)
 

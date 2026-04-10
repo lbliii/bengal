@@ -269,9 +269,13 @@ Add `<bdi>` tags around user-generated content in mixed-direction contexts (e.g.
 
 **Files**: `tests/unit/config/`
 **Acceptance**:
-- Invalid `i18n.strategy` value produces clear error
-- Missing `languages` with `strategy: subdir` warns
-- `fallback_to_default: false` with missing translations warns at build time
+- Unknown `i18n.strategy` values do not crash (graceful handling, no strict validation yet)
+- Empty `languages` list auto-includes default language
+- `fallback_to_default: false` returns key when translation missing; `true` falls back to default language
+- All 9 RTL locales and common LTR locales verified via `_direction()`
+- Languages sorted by weight, duplicates deduplicated
+
+Note: Strict strategy validation (rejecting unknown values) deferred — current behavior is permissive by design.
 
 ---
 

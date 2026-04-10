@@ -259,16 +259,10 @@ class TestNtEdgeCases:
 
     def test_nt_n_zero_uses_plural(self, tmp_path: Path) -> None:
         """n=0 should use plural form (English rules: 0 != 1)."""
-        _, engine, page = self._make_site(tmp_path)
+        site, engine, page = self._make_site(tmp_path)
         html = engine.render_string(
             "{{ nt('1 item', '{n} items', 0) }}",
-            {
-                "page": page,
-                "site": Site(
-                    root_path=tmp_path,
-                    config={"i18n": {"default_language": "en", "languages": [{"code": "en"}]}},
-                ),
-            },
+            {"page": page, "site": site},
         )
         assert "0 items" in html
 

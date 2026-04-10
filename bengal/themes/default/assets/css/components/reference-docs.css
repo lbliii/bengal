@@ -65,8 +65,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     direction: rtl;
-    /* Truncate from left (shows filename at end) */
-    text-align: start;
+    /* Truncate from left (shows filename at end) — physical left required
+       because direction:rtl is a truncation hack, not a layout direction */
+    text-align: left;
     min-width: 0;
     /* Allow shrinking */
     flex: 1;
@@ -427,8 +428,9 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     direction: rtl;
-    /* Truncate from left (shows filename at end) */
-    text-align: start;
+    /* Truncate from left (shows filename at end) — physical left required
+       because direction:rtl is a truncation hack, not a layout direction */
+    text-align: left;
     min-width: 0;
     /* Allow shrinking */
     flex: 1;
