@@ -147,7 +147,7 @@ jobs:
         fi
 
     - name: Upload mutation report
-      uses: actions/upload-artifact@v5
+      uses: actions/upload-artifact@v7
       with:
         name: mutation-report
         path: mutation-report.md
