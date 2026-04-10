@@ -92,6 +92,16 @@ HELPER: Render a menu item (desktop/mobile)
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
+    {# AI/Agent discovery — early in <head> for fast detection #}
+    {% if _per_page_md and page.href is defined and page.href is string %}
+    {% let _href_early = page.href %}
+    {% let _md_url_early = _href_early | replace('.html', '.md') if _href_early.endswith('.html') else (_href_early ~ 'index.md' if _href_early.endswith('/') else _href_early ~ '/index.md') %}
+    <link rel="alternate" type="text/markdown" href="{{ _md_url_early }}">
+    {% end %}
+    {% if 'llms_txt' in (config.output_formats.site_wide ?? []) %}
+    <link rel="help" type="text/markdown" href="{{ '/llms.txt' | absolute_url }}" title="LLM-friendly site overview">
+    {% end %}
+
     {# Document Application: View Transitions meta tag #}
     {% if _view_transitions %}
     <meta name="view-transition" content="same-origin">
@@ -191,13 +201,6 @@ HELPER: Render a menu item (desktop/mobile)
     <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
     {% end %}
 
-    {# Markdown alternate for AI agent content negotiation #}
-    {% if _per_page_md and page.href is defined and page.href is string %}
-    {% let _href = page.href %}
-    {% let _md_url = _href | replace('.html', '.md') if _href.endswith('.html') else (_href ~ 'index.md' if _href.endswith('/') else _href ~ '/index.md') %}
-    <link rel="alternate" type="text/markdown" href="{{ _md_url }}">
-    {% end %}
-
     {# Favicon, preconnect, fonts, stylesheets — site-stable, same for every page in a build #}
     {% cache 'base-head-assets-' ~ (bengal.build.timestamp ?? '') %}
     {# Favicon - use let for safer nil handling #}
@@ -280,40 +283,6 @@ HELPER: Render a menu item (desktop/mobile)
     </script>
     {% end %}{# /cache base-theme-init #}
 
-    {# Speculation Rules — site-stable, same for every page in a build #}
-    {% cache 'base-speculation-' ~ (bengal.build.timestamp ?? '') %}
-    {% with _doc_app.speculation as speculation %}
-    {% if _doc_app.enabled and speculation.enabled and (_doc_app.features?.speculation_rules ?? true) %}
-    <script type="speculationrules">
-    {
-      "prerender": [
-        {
-          "where": {
-            "and": [
-              { "href_matches": "{{ speculation.prerender.patterns | join('", "') }}" },
-              { "not": { "selector_matches": "[data-external], [target=_blank], .external" } }
-            ]
-          },
-          "eagerness": "{{ speculation.prerender.eagerness }}"
-        }
-      ],
-      "prefetch": [
-        {
-          "where": {
-            "and": [
-              { "href_matches": "{{ speculation.prefetch.patterns | join('", "') }}" },
-              { "not": { "selector_matches": "[data-external], [target=_blank], .external" } }
-            ]
-          },
-          "eagerness": "{{ speculation.prefetch.eagerness }}"
-        }
-      ]
-    }
-    </script>
-    {% end %}
-    {% end %}
-    {% end %}{# /cache base-speculation #}
-
     {% block extra_head %}{% end %}
     {% cache 'base-meta-generator-' ~ (bengal.build.timestamp ?? '') %}
     {% include 'partials/meta-generator.html' %}
@@ -321,15 +290,6 @@ HELPER: Render a menu item (desktop/mobile)
     {% include 'partials/article-jsonld.html' %}
     {% include 'partials/product-jsonld.html' %}
 
-    {% if config.expose_metadata_json %}
-    <script id="bengal-bootstrap" type="application/json">{{ bengal | tojson }}</script>
-    <script>
-        (function () {
-            var el = document.getElementById('bengal-bootstrap');
-            if (el) { window.__BENGAL__ = JSON.parse(el.textContent || '{}'); }
-        })();
-    </script>
-    {% end %}
 </head>
 
 <body data-type="{{ page.type }}" data-variant="{{ page.variant or '' }}"
@@ -593,6 +553,51 @@ HELPER: Render a menu item (desktop/mobile)
     {% end %}
 
     {% block extra_js %}{% end %}
+
+    {# Speculation Rules — moved after content for faster content-start position #}
+    {% cache 'base-speculation-' ~ (bengal.build.timestamp ?? '') %}
+    {% with _doc_app.speculation as speculation %}
+    {% if _doc_app.enabled and speculation.enabled and (_doc_app.features?.speculation_rules ?? true) %}
+    <script type="speculationrules">
+    {
+      "prerender": [
+        {
+          "where": {
+            "and": [
+              { "href_matches": "{{ speculation.prerender.patterns | join('", "') }}" },
+              { "not": { "selector_matches": "[data-external], [target=_blank], .external" } }
+            ]
+          },
+          "eagerness": "{{ speculation.prerender.eagerness }}"
+        }
+      ],
+      "prefetch": [
+        {
+          "where": {
+            "and": [
+              { "href_matches": "{{ speculation.prefetch.patterns | join('", "') }}" },
+              { "not": { "selector_matches": "[data-external], [target=_blank], .external" } }
+            ]
+          },
+          "eagerness": "{{ speculation.prefetch.eagerness }}"
+        }
+      ]
+    }
+    </script>
+    {% end %}
+    {% end %}
+    {% end %}{# /cache base-speculation #}
+
+    {# Bootstrap metadata — moved after content for faster content-start position #}
+    {% if config.expose_metadata_json %}
+    <script id="bengal-bootstrap" type="application/json">{{ bengal | tojson }}</script>
+    <script>
+        (function () {
+            var el = document.getElementById('bengal-bootstrap');
+            if (el) { window.__BENGAL__ = JSON.parse(el.textContent || '{}'); }
+        })();
+    </script>
+    {% end %}
 
     {% block site_dialogs %}
     {% if 'navigation.back_to_top' in theme.features %}<button class="back-to-top" aria-label="Scroll to top">{{

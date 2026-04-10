@@ -117,8 +117,10 @@ class PageMarkdownGenerator:
     def _page_to_markdown(self, page: PageLike) -> str:
         """Convert a page to its markdown output format.
 
-        Uses the page's raw markdown source content. Falls back to
-        plain_text if raw source is unavailable.
+        Uses the page's raw markdown source content when it provides good
+        coverage of the rendered HTML content. Falls back to plain_text
+        when raw content is incomplete (e.g., shortcodes or includes
+        expanded significant additional content during rendering).
 
         Args:
             page: Page to convert.
@@ -147,25 +149,53 @@ class PageMarkdownGenerator:
         lines.append("---")
         lines.append("")
 
-        # Raw markdown content (preferred) or plain text fallback
-        raw = getattr(page, "_raw_content", None) or ""
-        if raw:
-            content = raw.strip()
-            # Only strip leading H1 if it duplicates the title we already wrote
-            if content.startswith("# "):
-                first_line_end = content.find("\n")
-                h1_text = (
-                    content[2:first_line_end].strip()
-                    if first_line_end != -1
-                    else content[2:].strip()
-                )
-                if h1_text == page.title:
-                    content = content[first_line_end:].lstrip("\n") if first_line_end != -1 else ""
-        else:
-            # Fallback to plain text
-            content = getattr(page, "plain_text", "") or ""
-
+        content = self._get_best_content(page)
         lines.append(content)
         lines.append("")
 
         return "\n".join(lines)
+
+    def _get_best_content(self, page: PageLike) -> str:
+        """Select the best content source for markdown parity.
+
+        Prefers raw markdown (preserves formatting), but falls back to
+        plain_text when raw content is significantly shorter than the
+        rendered output — indicating shortcodes, includes, or directives
+        expanded substantial content during rendering.
+
+        Args:
+            page: Page to get content for.
+
+        Returns:
+            Best available content string.
+        """
+        raw = getattr(page, "_raw_content", None) or ""
+        plain = getattr(page, "plain_text", "") or ""
+
+        if not raw:
+            return plain
+
+        content = raw.strip()
+
+        # Strip leading H1 if it duplicates the title we already wrote
+        if content.startswith("# "):
+            first_line_end = content.find("\n")
+            h1_text = (
+                content[2:first_line_end].strip() if first_line_end != -1 else content[2:].strip()
+            )
+            if h1_text == page.title:
+                content = content[first_line_end:].lstrip("\n") if first_line_end != -1 else ""
+
+        # Check content parity: if plain_text is significantly longer
+        # than raw content, shortcodes/includes added substantial content.
+        # Use plain_text for better parity with the rendered HTML.
+        raw_len = len(content)
+        plain_len = len(plain)
+        if plain_len > 0 and raw_len > 0:
+            coverage = raw_len / plain_len
+            if coverage < 0.75:
+                # Raw markdown covers <75% of rendered content — fall back
+                # to plain text for better parity with HTML output
+                return plain
+
+        return content
