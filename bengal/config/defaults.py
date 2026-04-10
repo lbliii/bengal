@@ -339,7 +339,7 @@ DEFAULTS: dict[str, Any] = {
     # -------------------------------------------------------------------------
     "output_formats": {
         "enabled": True,
-        "per_page": ["json"],
+        "per_page": ["json", "llm_txt", "markdown"],
         "site_wide": ["index_json", "llms_txt", "changelog", "agent_manifest"],
         "options": {
             "excerpt_length": 200,

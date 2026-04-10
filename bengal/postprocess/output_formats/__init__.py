@@ -195,7 +195,7 @@ class OutputFormatsGenerator:
         """Return default configuration."""
         return {
             "enabled": True,
-            "per_page": ["json", "llm_txt"],  # JSON + LLM text by default
+            "per_page": ["json", "llm_txt", "markdown"],  # JSON + LLM text + Markdown by default
             "site_wide": [
                 "index_json",
                 "llm_full",
