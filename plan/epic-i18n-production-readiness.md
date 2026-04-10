@@ -1,6 +1,6 @@
 # Epic: i18n Production Readiness — Close the 2.2-Point Gap
 
-**Status**: Draft
+**Status**: Complete
 **Created**: 2026-04-09
 **Target**: v0.4.x
 **Estimated Effort**: 40-55 hours
@@ -275,7 +275,7 @@ Add `<bdi>` tags around user-generated content in mixed-direction contexts (e.g.
 
 ---
 
-## Sprint 5: Documentation
+## Sprint 5: Documentation ✅ COMPLETE
 
 **Goal**: A new user can set up a bilingual site (including RTL) following only the docs.
 
@@ -347,3 +347,4 @@ How to contribute translations: PO file conventions, testing translations locall
 | 2026-04-09 | Sprint 2 complete: 39 CSS files migrated to logical properties (497→0 physical directional props in theme). `dir` attribute already wired in base.html. `test-i18n-rtl` test root + 10 integration tests created. |
 | 2026-04-09 | Sprint 3 complete: `<bdi>` tags added to docs-nav, action-bar, base.html, navigation-components. RTL breadcrumb separator (‹) and nav arrow flip (scaleX(-1)) CSS added. 5 bidi isolation tests pass. Total: 15 RTL integration tests. |
 | 2026-04-09 | Sprint 4 complete: 13 plural edge case tests (TestNtEdgeCases + TestCatalogNgettext), 5 RTL integration expansion tests (TestRTLTemplateIntegration), 16 config validation tests (test_i18n_config.py). Total: 59 tests across 3 files, all passing. |
+| 2026-04-09 | Sprint 5 complete: Updated all 4 i18n docs (i18n.md, quickstart.md, rtl.md, translator-guide.md) + section _index.md. Added: nt() and direction() to template functions reference, fallback_to_default/rtl/content_structure to config reference, bdi isolation and CSS logical properties to RTL guide, plural form workflow with PO examples for 2/3/6-form languages to translator guide. Epic complete. |

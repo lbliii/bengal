@@ -106,8 +106,14 @@ In Kida or Jinja templates:
 {# Override language #}
 {{ t("About", lang="es") }}
 
-{# Current locale #}
-<html lang="{{ current_lang() }}">
+{# Plural-aware translation #}
+{{ nt("1 item", "{n} items", count) }}
+
+{# Plural with extra params #}
+{{ nt("1 {thing}", "{n} {thing}s", count, {"thing": "file"}) }}
+
+{# Current locale and text direction #}
+<html lang="{{ current_lang() }}" dir="{{ direction() }}">
 ```
 
 ## Next Steps
