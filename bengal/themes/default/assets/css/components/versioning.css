@@ -147,7 +147,7 @@
   background-color: var(--color-info-bg);
   color: var(--color-info-text);
   border: 1px solid var(--color-info-border);
-  border-left: 3px solid var(--color-info);
+  border-inline-start: 3px solid var(--color-info);
 }
 
 .version-banner--warning {
@@ -155,7 +155,7 @@
   background-color: var(--color-warning-bg);
   color: var(--color-warning-text);
   border: 1px solid var(--color-warning-border);
-  border-left: 3px solid var(--color-warning);
+  border-inline-start: 3px solid var(--color-warning);
 }
 
 .version-banner--danger {
@@ -163,7 +163,7 @@
   background-color: var(--color-error-bg);
   color: var(--color-error-text);
   border: 1px solid var(--color-error-border);
-  border-left: 3px solid var(--color-error);
+  border-inline-start: 3px solid var(--color-error);
 }
 
 .version-banner__content {
@@ -506,7 +506,7 @@
     align-items: flex-start;
     gap: var(--space-2);
     position: relative;
-    padding-right: var(--space-10);
+    padding-inline-end: var(--space-10);
   }
 
   .version-banner__dismiss {
@@ -539,7 +539,7 @@
     animation: none;
     box-shadow: none;
     border: 1px solid var(--version-color, var(--color-border));
-    border-left-width: 3px;
+    border-inline-start-width: 3px;
     page-break-inside: avoid;
   }
 
@@ -555,7 +555,7 @@
   .version-banner {
     box-shadow: none;
     border: 1px solid var(--version-banner-color, var(--color-border));
-    border-left-width: 3px;
+    border-inline-start-width: 3px;
     page-break-inside: avoid;
   }
 

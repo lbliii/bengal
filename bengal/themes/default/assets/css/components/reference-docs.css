@@ -65,7 +65,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     direction: rtl;
-    /* Truncate from left (shows filename at end) */
+    /* Truncate from left (shows filename at end) — physical left required
+       because direction:rtl is a truncation hack, not a layout direction */
     text-align: left;
     min-width: 0;
     /* Allow shrinking */
@@ -202,8 +203,8 @@
 
 .api-item:hover {
     background: var(--color-bg-secondary);
-    border-left: 3px solid var(--color-primary);
-    padding-left: calc(1rem - 3px);
+    border-inline-start: 3px solid var(--color-primary);
+    padding-inline-start: calc(1rem - 3px);
 }
 
 .api-item-icon {
@@ -246,7 +247,7 @@
 
 .api-item-meta {
     display: inline-flex;
-    margin-left: 0.5rem;
+    margin-inline-start: 0.5rem;
     gap: 0.5rem;
     font-size: var(--text-xs);
     color: var(--color-text-muted);
@@ -427,7 +428,8 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     direction: rtl;
-    /* Truncate from left (shows filename at end) */
+    /* Truncate from left (shows filename at end) — physical left required
+       because direction:rtl is a truncation hack, not a layout direction */
     text-align: left;
     min-width: 0;
     /* Allow shrinking */
@@ -532,8 +534,8 @@
 
 .cli-item:hover {
     background: var(--color-bg-secondary);
-    border-left: 3px solid var(--color-primary);
-    padding-left: calc(1rem - 3px);
+    border-inline-start: 3px solid var(--color-primary);
+    padding-inline-start: calc(1rem - 3px);
 }
 
 .cli-item-icon {
@@ -576,7 +578,7 @@
 
 .cli-item-meta {
     display: inline-flex;
-    margin-left: 0.5rem;
+    margin-inline-start: 0.5rem;
     gap: 0.5rem;
     font-size: var(--text-xs);
     color: var(--color-text-muted);
@@ -833,6 +835,6 @@
 
     .api-item:hover,
     .cli-item:hover {
-        padding-left: calc(0.75rem - 3px);
+        padding-inline-start: calc(0.75rem - 3px);
     }
 }

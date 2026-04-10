@@ -42,8 +42,8 @@
    ============================================================================= */
 
 .figure.align-left {
-  margin-right: auto;
-  text-align: left;
+  margin-inline-end: auto;
+  text-align: start;
 }
 
 .figure.align-center {
@@ -52,22 +52,22 @@
 }
 
 .figure.align-right {
-  margin-left: auto;
-  text-align: right;
+  margin-inline-start: auto;
+  text-align: end;
 }
 
 /* Float variants for inline figures */
 @media (min-width: 768px) {
   .figure.float-left {
-    float: left;
-    margin-right: var(--spacing-4, 1rem);
+    float: inline-start;
+    margin-inline-end: var(--spacing-4, 1rem);
     margin-bottom: var(--spacing-2, 0.5rem);
     max-width: 50%;
   }
 
   .figure.float-right {
-    float: right;
-    margin-left: var(--spacing-4, 1rem);
+    float: inline-end;
+    margin-inline-start: var(--spacing-4, 1rem);
     margin-bottom: var(--spacing-2, 0.5rem);
     max-width: 50%;
   }
@@ -90,11 +90,11 @@
 }
 
 .figure.align-left figcaption {
-  text-align: left;
+  text-align: start;
 }
 
 .figure.align-right figcaption {
-  text-align: right;
+  text-align: end;
 }
 
 /* =============================================================================

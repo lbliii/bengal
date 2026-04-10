@@ -123,3 +123,9 @@
     font-size: 0.875rem;
   }
 }
+
+/* RTL: Flip navigation arrows */
+[dir="rtl"] .nav-arrow {
+  display: inline-block;
+  transform: scaleX(-1);
+}

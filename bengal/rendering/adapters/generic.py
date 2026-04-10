@@ -31,11 +31,13 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
     from bengal.rendering.template_functions.i18n import (
         _current_lang,
         _languages,
+        _make_nt,
         _make_t,
     )
 
     # Create base translator (closure over site)
     base_translate = _make_t(site)
+    base_ntranslate = _make_nt(site)
 
     def t(
         key: str,
@@ -55,6 +57,19 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
             default: Default value if key not found
         """
         return base_translate(key, params, lang, default)
+
+    def nt(
+        singular: str,
+        plural: str,
+        n: int,
+        params: dict[str, Any] | None = None,
+        lang: str | None = None,
+    ) -> str:
+        """Translate with plural form using site default language.
+
+        Note: This generic adapter cannot access page context.
+        """
+        return base_ntranslate(singular, plural, n, params, lang)
 
     def current_lang() -> str | None:
         """Get current language from site default.
@@ -87,6 +102,7 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
         env.globals.update(
             {
                 "t": t,
+                "nt": nt,
                 "current_lang": current_lang,
                 "languages": languages,
                 "tag_url": tag_url,

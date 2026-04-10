@@ -30,7 +30,7 @@
 .marimo-cell table td {
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--border-color, #ddd);
-    text-align: left;
+    text-align: start;
 }
 
 .marimo-cell table th {
@@ -58,7 +58,7 @@
 /* Marimo error display */
 .marimo-error {
     background: #fee;
-    border-left: 4px solid #c33;
+    border-inline-start: 4px solid #c33;
     padding: 1rem;
     margin: 1rem 0;
     border-radius: 4px;
@@ -124,7 +124,7 @@
 
     .marimo-error {
         background: #4a1a1a;
-        border-left-color: #e55;
+        border-inline-start-color: #e55;
     }
 
     .marimo-error .admonition-title {

@@ -191,12 +191,16 @@
   /* Allow items to shrink if needed */
 }
 
-/* Separator (›) */
+/* Separator (›) — flips in RTL */
 .action-bar-breadcrumbs li:not(:last-child)::after {
   content: '›';
   color: var(--color-text-tertiary);
   font-size: 1rem;
   opacity: 0.5;
+}
+
+[dir="rtl"] .action-bar-breadcrumbs li:not(:last-child)::after {
+  content: '‹';
 }
 
 .action-bar-breadcrumb-link {
@@ -592,7 +596,7 @@
   cursor: pointer;
   transition: background 0.15s ease;
   width: 100%;
-  text-align: left;
+  text-align: start;
 }
 
 .action-bar-share-item:hover {

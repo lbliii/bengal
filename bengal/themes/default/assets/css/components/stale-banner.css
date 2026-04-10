@@ -20,7 +20,7 @@
 
   background: color-mix(in srgb, var(--banner-color) 8%, var(--color-bg-primary));
   border: 1px solid color-mix(in srgb, var(--banner-color) 25%, transparent);
-  border-left: 3px solid var(--banner-color);
+  border-inline-start: 3px solid var(--banner-color);
   border-radius: var(--radius-md);
 
   font-size: var(--text-sm);

@@ -243,7 +243,7 @@
 
 .page-hero__actions {
   flex-shrink: 0;
-  margin-left: auto; /* Always push to right, even when breadcrumbs are absent */
+  margin-inline-start: auto; /* Always push to end, even when breadcrumbs are absent */
 }
 
 .page-hero__share {
@@ -427,7 +427,7 @@
   cursor: pointer;
   transition: background 0.15s ease;
   width: 100%;
-  text-align: left;
+  text-align: start;
 }
 
 .page-hero__share-item:hover {
@@ -892,7 +892,7 @@
 .page-hero--api .page-hero__description--prose ul,
 .page-hero--api .page-hero__description--prose ol {
   margin: var(--space-2) 0;
-  padding-left: var(--space-5);
+  padding-inline-start: var(--space-5);
 }
 
 .page-hero--api .page-hero__description--prose li {

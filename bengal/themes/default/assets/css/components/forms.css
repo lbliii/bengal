@@ -244,7 +244,7 @@
 }
 
 .form-group:has(.form-icon) .form-input {
-  padding-left: 2.75rem;
+  padding-inline-start: 2.75rem;
 }
 
 /* ============================================
@@ -267,7 +267,7 @@
 }
 
 .form-group:has(.error-icon) .form-input {
-  padding-right: 2.75rem;
+  padding-inline-end: 2.75rem;
 }
 
 /* ============================================

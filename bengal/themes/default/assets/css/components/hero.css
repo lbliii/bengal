@@ -156,7 +156,7 @@
 
 /* Left-aligned Hero */
 .hero--left {
-  text-align: left;
+  text-align: start;
 }
 
 .hero--left .hero__actions {
@@ -256,7 +256,7 @@
 
 /* Left-aligned section header */
 .section-header--left {
-  text-align: left;
+  text-align: start;
 }
 
 .section-header--left .section-header__subtitle {

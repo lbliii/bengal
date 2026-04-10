@@ -40,11 +40,13 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
         _current_lang,
         _direction,
         _languages,
+        _make_nt,
         _make_t,
     )
 
     # Create base translator (closure over site)
     base_translate = _make_t(site)
+    base_ntranslate = _make_nt(site)
 
     # Static functions (don't need page context or have sensible defaults)
     def languages() -> list[dict[str, Any]]:
@@ -75,6 +77,17 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
             use_lang = lang or getattr(page, "lang", None)
             return base_translate(key, params, use_lang, default)
 
+        def nt(
+            singular: str,
+            plural: str,
+            n: int,
+            params: dict[str, Any] | None = None,
+            lang: str | None = None,
+        ) -> str:
+            """Translate with plural form using page context for language detection."""
+            use_lang = lang or getattr(page, "lang", None)
+            return base_ntranslate(singular, plural, n, params, use_lang)
+
         def current_lang() -> str | None:
             """Get current language from page or site default."""
             return _current_lang(site, page)
@@ -97,6 +110,7 @@ def register_context_functions(env: Any, site: SiteLike) -> None:
 
         return {
             "t": t,
+            "nt": nt,
             "current_lang": current_lang,
             "direction": direction,
             "tag_url": tag_url,

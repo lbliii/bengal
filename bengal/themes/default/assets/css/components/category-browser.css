@@ -216,7 +216,7 @@
   font-size: var(--text-xs);
   color: var(--color-text-tertiary);
   flex-shrink: 0;
-  margin-left: var(--space-2);
+  margin-inline-start: var(--space-2);
 }
 
 .view-all {

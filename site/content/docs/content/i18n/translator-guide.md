@@ -79,13 +79,62 @@ bengal i18n status
 
 ## Plural Forms
 
-For strings with counts (e.g. "1 item" vs "5 items"):
+Bengal supports plural-aware translation through the `nt()` template function.
 
-```po
-msgid "%d item"
-msgid_plural "%d items"
-msgstr[0] "%d elemento"
-msgstr[1] "%d elementos"
+### Using nt() in Templates
+
+```kida
+{# Basic plural — {n} is automatically replaced with the count #}
+{{ nt('1 item', '{n} items', count) }}
+
+{# With extra parameters #}
+{{ nt('1 {thing}', '{n} {thing}s', count, {'thing': 'file'}) }}
 ```
 
-The plural rule depends on the language. See [Unicode CLDR](https://unicode-org.github.io/cldr-staging/charts/43/supplemental/language_plural_rules.html) for rules.
+When no gettext catalog is loaded, `nt()` uses English-style selection (singular when n=1, plural otherwise). With a catalog, it uses `ngettext()` for correct plural rules.
+
+### PO File Plural Entries
+
+For languages with complex plural rules, use `msgid_plural` and indexed `msgstr`:
+
+```po
+# Spanish (2 forms: singular, plural)
+msgid "1 item"
+msgid_plural "{n} items"
+msgstr[0] "1 elemento"
+msgstr[1] "{n} elementos"
+```
+
+```po
+# Polish (3 forms: singular, few, many)
+msgid "1 item"
+msgid_plural "{n} items"
+msgstr[0] "1 element"
+msgstr[1] "{n} elementy"
+msgstr[2] "{n} elementów"
+```
+
+```po
+# Arabic (6 forms: zero, one, two, few, many, other)
+msgid "1 item"
+msgid_plural "{n} items"
+msgstr[0] "لا عناصر"
+msgstr[1] "عنصر واحد"
+msgstr[2] "عنصران"
+msgstr[3] "{n} عناصر"
+msgstr[4] "{n} عنصرًا"
+msgstr[5] "{n} عنصر"
+```
+
+### Plural Rules Reference
+
+The correct number of forms depends on the language:
+
+| Language | Forms | Rule |
+|----------|-------|------|
+| English, Spanish, French | 2 | n == 1 ? singular : plural |
+| Polish, Czech, Russian | 3 | Complex (singular, few, many) |
+| Arabic | 6 | Complex (zero through other) |
+| Japanese, Chinese, Korean | 1 | No plural distinction |
+
+See [Unicode CLDR Plural Rules](https://unicode-org.github.io/cldr-staging/charts/43/supplemental/language_plural_rules.html) for the full reference.

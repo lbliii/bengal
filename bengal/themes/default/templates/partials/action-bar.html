@@ -36,8 +36,8 @@ BREADCRUMB ITEM HELPER
 <li{{ ' aria-current="page"' | safe if is_current else '' }}>
     {% if is_current %}
     <span class="action-bar-breadcrumb-current-wrapper">
-        <span class="action-bar-breadcrumb-current" title="{{ item_title }}">{{ item_title | truncate(20, true, '…')
-            }}</span>
+        <span class="action-bar-breadcrumb-current" title="{{ item_title }}"><bdi>{{ item_title | truncate(20, true, '…')
+            }}</bdi></span>
         {% if has_metadata %}
         <button class="action-bar-meta-toggle" popovertarget="action-bar-metadata-popover"
             aria-label="Toggle page metadata" title="Show page details">
@@ -46,8 +46,8 @@ BREADCRUMB ITEM HELPER
         {% end %}
     </span>
     {% else %}
-    <a href="{{ item_href | absolute_url }}" class="action-bar-breadcrumb-link" title="{{ item_title }}">{{ item_title |
-        truncate(28, true, '…') }}</a>
+    <a href="{{ item_href | absolute_url }}" class="action-bar-breadcrumb-link" title="{{ item_title }}"><bdi>{{ item_title |
+        truncate(28, true, '…') }}</bdi></a>
     {% end %}
     </li>
     {% end %}

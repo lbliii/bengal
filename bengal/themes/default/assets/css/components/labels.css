@@ -42,8 +42,8 @@
 .example-label.featured {
   font-size: var(--text-base);
   color: var(--color-success);
-  border-left: 3px solid var(--color-success);
-  padding-left: var(--space-3);
+  border-inline-start: 3px solid var(--color-success);
+  padding-inline-start: var(--space-3);
   text-transform: none;
   letter-spacing: normal;
 }
@@ -66,7 +66,7 @@
 /* When example-label is followed by a code block, add subtle connection */
 .example-label + pre,
 .example-label + .code-block-wrapper {
-  border-left: 3px solid var(--color-success-light);
+  border-inline-start: 3px solid var(--color-success-light);
   margin-top: 0;
 }
 
@@ -124,7 +124,7 @@
 
 [data-theme="dark"] .example-label + pre,
 [data-theme="dark"] .example-label + .code-block-wrapper {
-  border-left-color: var(--color-success);
+  border-inline-start-color: var(--color-success);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -154,6 +154,6 @@
   }
 
   .example-label + pre {
-    border-left: 2px solid #666;
+    border-inline-start: 2px solid #666;
   }
 }

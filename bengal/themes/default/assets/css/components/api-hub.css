@@ -71,8 +71,8 @@
   color: var(--color-text-secondary);
   margin: 0 0 var(--space-6);
   max-width: 600px;
-  margin-left: auto;
-  margin-right: auto;
+  margin-inline-start: auto;
+  margin-inline-end: auto;
 }
 
 /* Stats - extends hub-stat */
@@ -344,7 +344,7 @@
 
 .api-hub-tile__preview-more {
   margin-top: var(--space-1);
-  padding-left: calc(6px + var(--space-2));
+  padding-inline-start: calc(6px + var(--space-2));
 }
 
 .api-hub-tile__preview-more-text {
@@ -489,8 +489,8 @@
   .api-hub-tile__header,
   .api-hub-tile__content,
   .api-hub-tile__footer {
-    padding-left: var(--space-4);
-    padding-right: var(--space-4);
+    padding-inline-start: var(--space-4);
+    padding-inline-end: var(--space-4);
   }
 }
 

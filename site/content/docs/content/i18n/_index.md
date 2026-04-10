@@ -8,7 +8,7 @@ card_color: green
 ---
 # Internationalization
 
-Bengal supports multi-language sites with directory-based content, gettext PO/MO translation files, and RTL (right-to-left) layout for Arabic and Hebrew.
+Bengal supports multi-language sites with directory-based content, gettext PO/MO translation files, plural-aware translations via `nt()`, and full RTL (right-to-left) layout support for Arabic, Hebrew, and other bidirectional languages.
 
 ## Quick Start
 
