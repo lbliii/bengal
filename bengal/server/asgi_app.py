@@ -84,10 +84,10 @@ def create_bengal_dev_app(
         serving_dir = _resolve_dir()
 
         if method == "GET":
-            # Content negotiation: serve .md when Accept: text/markdown
+            # Content negotiation: serve .md when Accept prefers text/markdown
             headers = dict(scope.get("headers", []))
             accept = (headers.get(b"accept", b"")).decode("utf-8", errors="replace")
-            if "text/markdown" in accept:
+            if "text/markdown" in accept and _prefers_markdown(accept):
                 served = await _serve_markdown_negotiated(send, output_dir=serving_dir, path=path)
                 if served:
                     return
@@ -106,6 +106,47 @@ def create_bengal_dev_app(
     if request_callback is not None:
         return _request_logging_middleware(app, request_callback)
     return app
+
+
+def _prefers_markdown(accept: str) -> bool:
+    """Check if Accept header prefers text/markdown over text/html.
+
+    Parses q-values per RFC 9110. Returns True only when text/markdown
+    is explicitly listed with q > 0 and its quality is >= text/html's.
+    """
+    md_q = -1.0
+    html_q = -1.0
+
+    for part in accept.split(","):
+        part = part.strip()
+        if not part:
+            continue
+
+        # Split "type/subtype;q=0.8;other=x" into media type and params
+        segments = part.split(";")
+        media = segments[0].strip().lower()
+
+        # Extract q-value (default 1.0 per RFC 9110)
+        q = 1.0
+        for seg in segments[1:]:
+            seg = seg.strip()
+            if seg.startswith("q="):
+                try:
+                    q = float(seg[2:])
+                except ValueError:
+                    q = 0.0
+                break
+
+        if media == "text/markdown":
+            md_q = q
+        elif media == "text/html":
+            html_q = q
+
+    # Only negotiate if markdown was explicitly requested with q > 0
+    # and is preferred over (or equal to) HTML
+    if md_q <= 0:
+        return False
+    return not (html_q >= 0 and html_q > md_q)
 
 
 def _is_document_request(path: str) -> bool:

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bengal.server.asgi_app import create_bengal_dev_app
+from bengal.server.asgi_app import _prefers_markdown, create_bengal_dev_app
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -352,3 +352,126 @@ async def test_callable_output_dir_resolves_per_request(tmp_path: Path) -> None:
     await app(scope=scope, receive=_noop_receive, send=send2)
     body_b = sent2[1]["body"]
     assert b"buffer-b" in body_b
+
+
+# ---------------------------------------------------------------------------
+# Accept header parsing (_prefers_markdown)
+# ---------------------------------------------------------------------------
+
+
+class TestPrefersMarkdown:
+    """Test Accept header q-value parsing for content negotiation."""
+
+    def test_explicit_markdown_only(self):
+        assert _prefers_markdown("text/markdown") is True
+
+    def test_markdown_with_html_lower_q(self):
+        assert _prefers_markdown("text/markdown, text/html;q=0.5") is True
+
+    def test_html_preferred_over_markdown(self):
+        assert _prefers_markdown("text/html, text/markdown;q=0.5") is False
+
+    def test_markdown_with_q_zero(self):
+        assert _prefers_markdown("text/markdown;q=0") is False
+
+    def test_equal_q_values(self):
+        assert _prefers_markdown("text/html;q=0.9, text/markdown;q=0.9") is True
+
+    def test_no_markdown_in_accept(self):
+        assert _prefers_markdown("text/html, application/json") is False
+
+    def test_wildcard_does_not_trigger(self):
+        assert _prefers_markdown("*/*") is False
+
+    def test_empty_accept(self):
+        assert _prefers_markdown("") is False
+
+
+# ---------------------------------------------------------------------------
+# Content negotiation integration tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_content_negotiation_serves_markdown(tmp_path: Path) -> None:
+    """Accept: text/markdown serves the .md file when available."""
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "index.html").write_text("<html><body>HTML</body></html>")
+    (docs / "index.md").write_text("# Docs\n\nMarkdown content.")
+
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={
+            "type": "http",
+            "method": "GET",
+            "path": "/docs/",
+            "headers": [(b"accept", b"text/markdown")],
+        },
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200
+    assert any(h[0] == b"content-type" and b"text/markdown" in h[1] for h in sent[0]["headers"])
+    assert b"Markdown content." in sent[1]["body"]
+
+
+@pytest.mark.asyncio
+async def test_content_negotiation_falls_through_when_no_md(tmp_path: Path) -> None:
+    """Accept: text/markdown falls through to HTML when no .md file exists."""
+    (tmp_path / "index.html").write_text("<html><body>HTML only</body></html>")
+
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={
+            "type": "http",
+            "method": "GET",
+            "path": "/",
+            "headers": [(b"accept", b"text/markdown")],
+        },
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200
+    assert b"HTML only" in sent[1]["body"]
+
+
+@pytest.mark.asyncio
+async def test_content_negotiation_respects_q_values(tmp_path: Path) -> None:
+    """HTML preferred (higher q) — should serve HTML, not markdown."""
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "index.html").write_text("<html><body>HTML</body></html>")
+    (docs / "index.md").write_text("# Docs\n\nMarkdown.")
+
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={
+            "type": "http",
+            "method": "GET",
+            "path": "/docs/",
+            "headers": [(b"accept", b"text/html, text/markdown;q=0.5")],
+        },
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200
+    assert b"HTML" in sent[1]["body"]
