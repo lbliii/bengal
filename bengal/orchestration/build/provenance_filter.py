@@ -942,6 +942,8 @@ def record_all_page_builds(
     if not hasattr(orchestrator, "_provenance_filter"):
         return
     pf = orchestrator._provenance_filter
+    if pf is None:
+        return
 
     # Parallelize when many pages (full rebuild) - provenance computation is I/O bound
     use_parallel = parallel and len(pages) > 50
@@ -965,5 +967,5 @@ def save_provenance_cache(orchestrator: BuildOrchestrator) -> None:
 
     Call this at the end of the build to persist provenance data.
     """
-    if hasattr(orchestrator, "_provenance_filter"):
+    if hasattr(orchestrator, "_provenance_filter") and orchestrator._provenance_filter is not None:
         orchestrator._provenance_filter.save()

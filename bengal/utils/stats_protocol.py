@@ -114,20 +114,6 @@ class DisplayableStats(CoreStats, Protocol):
     assets_time_ms: float
     postprocess_time_ms: float
     health_check_time_ms: float
-    fonts_time_ms: float
-    menu_time_ms: float
-    related_posts_time_ms: float
-
-    # Render percentiles
-    render_p50_ms: float
-    render_p95_ms: float
-    render_p99_ms: float
-    slowest_pages: list[Any]
-    regression_pct: float | None
-    cache_effectiveness_pct: float | None
-
-    # Autodoc
-    autodoc_pages: int
 
     # Error tracking
     @property
