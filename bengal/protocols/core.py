@@ -248,11 +248,11 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
     _toc_items_cache: list[Any] | None  # Cached TOC items from parsing
     _ast_cache: Any  # Cached AST from parsing
     _directive_links: list[str] | None  # Links collected from directives
-    _autodoc_fallback_template: str | None  # Autodoc fallback template name
+    _autodoc_fallback_template: bool  # Whether to use autodoc fallback template
     _posts: list[Any] | None  # Related posts for section index pages
     _subsections: list[Any] | None  # Subsections for section index pages
     _paginator: Any  # Paginator for paginated pages
-    _page_num: int  # Page number for paginated pages
+    _page_num: int | None  # Page number for paginated pages (None if not paginated)
 
     @property
     def _source(self) -> str:

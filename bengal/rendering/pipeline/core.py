@@ -818,7 +818,7 @@ class RenderingPipeline:
         # Sprint 2: Build immutable RenderedPage record
         rendered_page = RenderedPage(
             source_path=page.source_path,
-            output_path=page.output_path or page.source_path,
+            output_path=page.output_path,  # must be set by determine_output_path before render
             rendered_html=rendered_html,
             render_time_ms=render_time_ms,
             dependencies=frozenset(tracked_assets) if tracked_assets else frozenset(),

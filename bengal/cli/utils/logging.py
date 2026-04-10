@@ -42,7 +42,7 @@ def get_log_level_for_profile(
         verbose: Whether verbose mode is enabled
 
     Returns:
-        Log level string (DEBUG, INFO, WARNING, ERROR)
+        LogLevel enum value (DEBUG, INFO, WARNING, ERROR)
 
     """
     from bengal.utils.observability.logger import LogLevel
