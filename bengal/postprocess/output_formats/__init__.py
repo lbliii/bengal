@@ -36,6 +36,7 @@ from bengal.postprocess.output_formats.json_generator import PageJSONGenerator
 from bengal.postprocess.output_formats.llm_generator import SiteLlmTxtGenerator
 from bengal.postprocess.output_formats.llms_txt_generator import SiteLlmsTxtGenerator
 from bengal.postprocess.output_formats.lunr_index_generator import LunrIndexGenerator
+from bengal.postprocess.output_formats.md_generator import PageMarkdownGenerator
 from bengal.postprocess.output_formats.txt_generator import PageTxtGenerator
 from bengal.postprocess.utils import get_section_name
 from bengal.utils.observability.logger import get_logger
@@ -51,6 +52,7 @@ __all__ = [
     "LunrIndexGenerator",
     "OutputFormatsGenerator",
     "PageJSONGenerator",
+    "PageMarkdownGenerator",
     "PageTxtGenerator",
     "SiteIndexGenerator",
     "SiteLlmTxtGenerator",
@@ -193,7 +195,7 @@ class OutputFormatsGenerator:
         """Return default configuration."""
         return {
             "enabled": True,
-            "per_page": ["json", "llm_txt"],  # JSON + LLM text by default
+            "per_page": ["json", "llm_txt", "markdown"],  # JSON + LLM text + Markdown by default
             "site_wide": [
                 "index_json",
                 "llm_full",
@@ -309,6 +311,12 @@ class OutputFormatsGenerator:
             count = txt_gen.generate(ai_input_pages)
             generated.append(f"LLM text ({count} files)")
             logger.debug("generated_page_txt", file_count=count)
+
+        if "markdown" in per_page:
+            md_gen = PageMarkdownGenerator(self.site)
+            count = md_gen.generate(ai_input_pages)
+            generated.append(f"Markdown ({count} files)")
+            logger.debug("generated_page_markdown", file_count=count)
 
         # Site-wide outputs
         if "index_json" in site_wide:

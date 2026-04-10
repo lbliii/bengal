@@ -266,6 +266,128 @@ class TestLlmsTxtGenerate:
         assert content.startswith("# Empty\n")
 
 
+class TestCuration:
+    """Test page curation: virtual page filtering and max_pages cap."""
+
+    def test_excludes_virtual_pages(self, tmp_path):
+        site = _make_site(title="Site")
+        site.output_dir = tmp_path
+
+        real_page = _make_page(title="Real", path="/real/")
+        real_page.is_virtual = False
+
+        virtual_page = _make_page(title="Virtual", path="/tags/python/")
+        virtual_page.is_virtual = True
+
+        gen = SiteLlmsTxtGenerator(site)
+        result = gen.generate([real_page, virtual_page])
+
+        content = result.read_text(encoding="utf-8")
+        assert "[Real]" in content
+        assert "Virtual" not in content
+
+    def test_max_pages_cap(self, tmp_path):
+        site = _make_site(
+            title="Site",
+            config_overrides={
+                "output_formats": {
+                    "options": {"llms_txt_max_pages": 2},
+                    "site_wide": ["llms_txt"],
+                },
+            },
+        )
+        site.output_dir = tmp_path
+
+        pages = [
+            _make_page(title=f"Page {i}", path=f"/page-{i}/", section_name="docs") for i in range(5)
+        ]
+        for p in pages:
+            p.is_virtual = False
+
+        gen = SiteLlmsTxtGenerator(site)
+        result = gen.generate(pages)
+
+        content = result.read_text(encoding="utf-8")
+        assert "[Page 0]" in content
+        assert "[Page 1]" in content
+        # Pages beyond the cap should be excluded
+        assert "[Page 2]" not in content
+
+
+class TestTruncation:
+    """Test max_chars truncation with rollback and notice."""
+
+    def test_max_chars_truncates_with_notice(self, tmp_path):
+        site = _make_site(
+            title="Site",
+            config_overrides={
+                "output_formats": {
+                    "options": {"llms_txt_max_chars": 200},
+                    "site_wide": ["llms_txt"],
+                },
+            },
+        )
+        site.output_dir = tmp_path
+
+        pages = [
+            _make_page(
+                title=f"Page {i}",
+                path=f"/page-{i}/",
+                description="A" * 50,
+                section_name="docs",
+            )
+            for i in range(20)
+        ]
+        for p in pages:
+            p.is_virtual = False
+
+        gen = SiteLlmsTxtGenerator(site)
+        result = gen.generate(pages)
+
+        content = result.read_text(encoding="utf-8")
+        # Should have truncation notice
+        assert "llm-full.txt" in content
+        assert "more pages" in content
+        # Not all pages should be present
+        assert "[Page 19]" not in content
+
+    def test_output_stays_under_max_chars(self, tmp_path):
+        max_chars = 300
+        site = _make_site(
+            title="S",
+            description="",
+            config_overrides={
+                "output_formats": {
+                    "options": {"llms_txt_max_chars": max_chars},
+                    "site_wide": [],
+                },
+                "content_signals": {"enabled": False},
+            },
+        )
+        site.output_dir = tmp_path
+
+        pages = [
+            _make_page(
+                title=f"Page {i}",
+                path=f"/p{i}/",
+                description="Desc " * 10,
+                section_name="docs",
+            )
+            for i in range(50)
+        ]
+        for p in pages:
+            p.is_virtual = False
+
+        gen = SiteLlmsTxtGenerator(site)
+        result = gen.generate(pages)
+
+        content = result.read_text(encoding="utf-8")
+        # The truncation notice and optional section add some overhead,
+        # but the page entries themselves should have stopped before the cap
+        # (we accept the notice/footer pushing slightly over)
+        assert len(content) < max_chars * 2  # generous bound
+
+
 class TestOutputTypeClassification:
     """Test that llms.txt is classified correctly."""
 

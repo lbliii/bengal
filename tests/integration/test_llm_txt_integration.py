@@ -226,7 +226,8 @@ class TestLLMTextFullBuild:
 
         # Format checks
         assert content.startswith("# Getting Started")
-        assert "URL: /getting-started/" in content
+        # URL includes baseurl (page.href); site config sets baseurl = "https://example.com"
+        assert "URL: https://example.com/getting-started/" in content
         assert "Tags: tutorial, beginner" in content
         assert "This is an introduction" in content
         assert "Metadata:" in content
@@ -250,14 +251,14 @@ class TestLLMTextFullBuild:
         # (The _strip_html function handles this)
 
     def test_llm_txt_urls_are_correct(self, llm_site):
-        """Test that LLM.txt files use correct URLs."""
-        # Check getting-started
+        """Test that LLM.txt files use correct URLs (includes baseurl)."""
+        # Check getting-started — site config sets baseurl = "https://example.com"
         txt1 = (llm_site.output_dir / "getting-started" / "index.txt").read_text()
-        assert "URL: /getting-started/" in txt1
+        assert "URL: https://example.com/getting-started/" in txt1
 
         # Check autodoc/python
         txt2 = (llm_site.output_dir / "autodoc/python" / "index.txt").read_text()
-        assert "URL: /autodoc/python/" in txt2
+        assert "URL: https://example.com/autodoc/python/" in txt2
 
 
 class TestLLMTextIncrementalBuild:
@@ -439,7 +440,8 @@ How to install.
 
         content = txt_path.read_text()
         assert "Installation Guide" in content
-        assert "URL: /docs/guides/install/" in content
+        # URL includes baseurl via page.href; check the path portion
+        assert "/docs/guides/install/" in content
 
 
 class TestLLMTextDisabled:

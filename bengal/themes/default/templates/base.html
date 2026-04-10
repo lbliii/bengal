@@ -24,6 +24,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _doc_app = site.document_application %}
 {% let _link_previews = site.link_previews %}
 {% let _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
+{% let _per_page_md = 'markdown' in (config.output_formats.per_page ?? []) %}
 
 {# Derived values #}
 {% let _main_menu = get_menu_lang('main', _current_lang) %}
@@ -190,6 +191,13 @@ HELPER: Render a menu item (desktop/mobile)
     <link rel="alternate" hreflang="{{ alt.hreflang }}" href="{{ alt.href }}">
     {% end %}
 
+    {# Markdown alternate for AI agent content negotiation #}
+    {% if _per_page_md and page.href is defined and page.href is string %}
+    {% let _href = page.href %}
+    {% let _md_url = _href | replace('.html', '.md') if _href.endswith('.html') else (_href ~ 'index.md' if _href.endswith('/') else _href ~ '/index.md') %}
+    <link rel="alternate" type="text/markdown" href="{{ _md_url }}">
+    {% end %}
+
     {# Favicon, preconnect, fonts, stylesheets — site-stable, same for every page in a build #}
     {% cache 'base-head-assets-' ~ (bengal.build.timestamp ?? '') %}
     {# Favicon - use let for safer nil handling #}
@@ -331,7 +339,71 @@ HELPER: Render a menu item (desktop/mobile)
     <a href="#main-content" class="skip-link">Skip to main content</a>
     {% end %}
 
-    {# Search Modal Block #}
+    {# Header #}
+    {% let _header_sticky = theme.header_sticky ?? true %}
+    {% let _header_nav_position = theme.header_nav_position ?? 'left' %}
+    <header role="banner" class="header-appshell" data-sticky="{{ _header_sticky | lower }}">
+        <nav role="navigation" aria-label="Main navigation">
+            <div class="header-nav-content" data-nav-position="{{ _header_nav_position }}">
+                <a href="{{ '/' | absolute_url }}" class="logo">
+                    {% match site.logo, site.logo_text %}
+                    {% case logo, _ if logo %}<img src="{{ logo | absolute_url }}" alt="{{ _site_title }}"
+                        class="brand-image" />
+                    {% case _, text if text %}<span class="brand-text">{{ text }}</span>
+                    {% case _ %}<span class="brand-text">{{ _site_title }}</span>
+                    {% end %}
+                </a>
+
+                {% if _main_menu or _auto_nav %}
+                {% spaceless %}
+                <ul class="nav-main hidden-mobile">
+                    {% for item in _main_menu %}{{ render_menu_item(item) }}{% end %}
+                    {% if _auto_nav %}
+                    <li class="{{ ['active' if _page_url == '/'] | classes }}"><a href="{{ '/' | absolute_url }}">Home</a>
+                    </li>
+                    {% for item in _auto_nav %}
+                    <li
+                        class="{{ ['active' if (_page_url is string and item._path is string and _page_url.startswith(item._path) and item._path != '/')] | classes }}">
+                        <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
+                    </li>
+                    {% end %}
+                    {% end %}
+                    {% with site.params.repo_url as repo_url %}
+                    {% if repo_url and not (site._dev_menu_metadata?.github_bundled ?? false) %}
+                    <li><a href="{{ repo_url }}" target="_blank" rel="noopener" aria-label="GitHub">{{
+                            icon('github-logo', size=16) }} <span>GitHub</span></a></li>
+                    {% end %}
+                    {% end %}
+                    {% block nav_items %}{% end %}
+                </ul>
+                {% end %}
+                {% end %}
+
+                <div class="header-actions hidden-mobile">
+                    {% with config.search.ui as ui %}
+                    {% if ui.modal ?? false %}
+                    <button type="button" class="nav-search-trigger" id="nav-search-trigger" title="Search (⌘K)">{{
+                        icon('magnifying-glass', size=16) }} <span>Search</span> <kbd
+                            class="nav-search-shortcut">⌘K</kbd></button>
+                    {% else %}
+                    <a href="{{ '/search/' | absolute_url }}" class="nav-search-trigger" title="Search (⌘K)">{{
+                        icon('magnifying-glass', size=16) }} <span>Search</span></a>
+                    {% end %}
+                    {% end %}
+                    {% cache 'base-theme-ctrl-d-' ~ _current_lang ~ '-' ~ (bengal.build.timestamp ?? '') %}{% with theme_menu_id='theme-menu-desktop' %}{% include 'partials/theme-controls.html' %}{% end %}{% end %}{# /cache base-theme-ctrl-d #}
+                </div>
+
+                <button class="mobile-nav-toggle visible-mobile" aria-label="Open menu"
+                    onclick="document.getElementById('mobile-nav-dialog').showModal()">
+                    {{ icon('list', size=24) }}
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <main id="main-content" role="main">{% block content %}{% end %}</main>
+
+    {# Search Modal Block — placed after <main> so content starts early in DOM #}
     {% block site_search_modal %}
     {% cache 'base-search-modal-' ~ _current_lang ~ '-' ~ (bengal.build.timestamp ?? '') %}
     {% with config.search.ui as ui %}
@@ -398,69 +470,7 @@ HELPER: Render a menu item (desktop/mobile)
     {% end %}{# /cache base-search-modal #}
     {% end %}
 
-    {# Header #}
-    {% let _header_sticky = theme.header_sticky ?? true %}
-    {% let _header_nav_position = theme.header_nav_position ?? 'left' %}
-    <header role="banner" class="header-appshell" data-sticky="{{ _header_sticky | lower }}">
-        <nav role="navigation" aria-label="Main navigation">
-            <div class="header-nav-content" data-nav-position="{{ _header_nav_position }}">
-                <a href="{{ '/' | absolute_url }}" class="logo">
-                    {% match site.logo, site.logo_text %}
-                    {% case logo, _ if logo %}<img src="{{ logo | absolute_url }}" alt="{{ _site_title }}"
-                        class="brand-image" />
-                    {% case _, text if text %}<span class="brand-text">{{ text }}</span>
-                    {% case _ %}<span class="brand-text">{{ _site_title }}</span>
-                    {% end %}
-                </a>
-
-                {% if _main_menu or _auto_nav %}
-                {% spaceless %}
-                <ul class="nav-main hidden-mobile">
-                    {% for item in _main_menu %}{{ render_menu_item(item) }}{% end %}
-                    {% if _auto_nav %}
-                    <li class="{{ ['active' if _page_url == '/'] | classes }}"><a href="{{ '/' | absolute_url }}">Home</a>
-                    </li>
-                    {% for item in _auto_nav %}
-                    <li
-                        class="{{ ['active' if (_page_url is string and item._path is string and _page_url.startswith(item._path) and item._path != '/')] | classes }}">
-                        <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
-                    </li>
-                    {% end %}
-                    {% end %}
-                    {% with site.params.repo_url as repo_url %}
-                    {% if repo_url and not (site._dev_menu_metadata?.github_bundled ?? false) %}
-                    <li><a href="{{ repo_url }}" target="_blank" rel="noopener" aria-label="GitHub">{{
-                            icon('github-logo', size=16) }} <span>GitHub</span></a></li>
-                    {% end %}
-                    {% end %}
-                    {% block nav_items %}{% end %}
-                </ul>
-                {% end %}
-                {% end %}
-
-                <div class="header-actions hidden-mobile">
-                    {% with config.search.ui as ui %}
-                    {% if ui.modal ?? false %}
-                    <button type="button" class="nav-search-trigger" id="nav-search-trigger" title="Search (⌘K)">{{
-                        icon('magnifying-glass', size=16) }} <span>Search</span> <kbd
-                            class="nav-search-shortcut">⌘K</kbd></button>
-                    {% else %}
-                    <a href="{{ '/search/' | absolute_url }}" class="nav-search-trigger" title="Search (⌘K)">{{
-                        icon('magnifying-glass', size=16) }} <span>Search</span></a>
-                    {% end %}
-                    {% end %}
-                    {% cache 'base-theme-ctrl-d-' ~ _current_lang ~ '-' ~ (bengal.build.timestamp ?? '') %}{% with theme_menu_id='theme-menu-desktop' %}{% include 'partials/theme-controls.html' %}{% end %}{% end %}{# /cache base-theme-ctrl-d #}
-                </div>
-
-                <button class="mobile-nav-toggle visible-mobile" aria-label="Open menu"
-                    onclick="document.getElementById('mobile-nav-dialog').showModal()">
-                    {{ icon('list', size=24) }}
-                </button>
-            </div>
-        </nav>
-    </header>
-
-    {# Mobile Navigation #}
+    {# Mobile Navigation — placed after <main> so content starts early in DOM #}
     <dialog id="mobile-nav-dialog" class="mobile-nav-dialog" aria-label="Mobile navigation">
         <form method="dialog" class="mobile-nav-header">
             <span class="logo">
@@ -505,8 +515,6 @@ HELPER: Render a menu item (desktop/mobile)
         <div class="mobile-nav-footer">{% cache 'base-theme-ctrl-m-' ~ _current_lang ~ '-' ~ (bengal.build.timestamp ?? '') %}{% with theme_menu_id='theme-menu-mobile' %}{% include
             'partials/theme-controls.html' %}{% end %}{% end %}{# /cache base-theme-ctrl-m #}</div>
     </dialog>
-
-    <main id="main-content" role="main">{% block content %}{% end %}</main>
 
     {# Footer #}
     {% block site_footer %}

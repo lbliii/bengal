@@ -68,7 +68,7 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from bengal.postprocess.output_formats.utils import (
-    get_page_relative_url,
+    get_page_url,
 )
 from bengal.postprocess.utils import get_section_name, tags_to_list
 from bengal.utils.io.atomic_write import AtomicFile
@@ -197,7 +197,7 @@ class SiteLlmTxtGenerator:
                 f.write(f"\n## Page {idx}/{len(pages)}: {page.title}\n\n")
 
                 # Page metadata
-                url = get_page_relative_url(page, self.site)
+                url = get_page_url(page, self.site)
                 f.write(f"URL: {url}\n")
 
                 section_name = get_section_name(page)
