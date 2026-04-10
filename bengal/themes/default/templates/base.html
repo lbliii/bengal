@@ -192,8 +192,9 @@ HELPER: Render a menu item (desktop/mobile)
     {% end %}
 
     {# Markdown alternate for AI agent content negotiation #}
-    {% if _per_page_md %}
-    {% let _md_url = page.href | replace('.html', '.md') if page.href.endswith('.html') else (page.href ~ 'index.md' if page.href.endswith('/') else page.href ~ '/index.md') %}
+    {% if _per_page_md and page.href is defined and page.href is string %}
+    {% let _href = page.href %}
+    {% let _md_url = _href | replace('.html', '.md') if _href.endswith('.html') else (_href ~ 'index.md' if _href.endswith('/') else _href ~ '/index.md') %}
     <link rel="alternate" type="text/markdown" href="{{ _md_url }}">
     {% end %}
 
