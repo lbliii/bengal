@@ -63,8 +63,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.postprocess.output_formats.utils import (
-    get_page_relative_url,
     get_page_txt_path,
+    get_page_url,
     parallel_write_files,
 )
 from bengal.postprocess.utils import get_section_name, tags_to_list
@@ -181,7 +181,7 @@ class PageTxtGenerator:
         lines.append(f"# {page.title}\n")
 
         # Metadata
-        url = get_page_relative_url(page, self.site)
+        url = get_page_url(page, self.site)
         lines.append(f"URL: {url}")
 
         section_name = get_section_name(page)

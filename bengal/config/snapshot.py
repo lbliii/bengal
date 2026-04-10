@@ -199,6 +199,7 @@ class FeaturesSection:
     search: bool = True
     json: bool = True
     llm_txt: bool = True
+    markdown: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -430,6 +431,7 @@ class ConfigSnapshot:
                 search=bool(features_data.get("search", True)),
                 json=bool(features_data.get("json", True)),
                 llm_txt=bool(features_data.get("llm_txt", True)),
+                markdown=bool(features_data.get("markdown", False)),
             )
         else:
             features_section = FeaturesSection()

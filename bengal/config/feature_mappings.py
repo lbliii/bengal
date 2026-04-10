@@ -70,6 +70,9 @@ FEATURE_MAPPINGS: dict[str, dict[str, Any]] = {
     "llm_txt": {
         "output_formats.per_page": ["llm_txt"],
     },
+    "markdown": {
+        "output_formats.per_page": ["markdown"],
+    },
     "validate_links": {
         "validate_links": True,
         "health.linkcheck.enabled": True,

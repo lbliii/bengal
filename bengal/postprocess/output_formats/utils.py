@@ -12,9 +12,8 @@ Text Processing:
     - generate_excerpt: Create truncated preview text
 
 URL Handling:
-    - get_page_relative_url: Get URL without baseurl (for objectID)
-    - get_page_public_url: Get full URL with baseurl
-    - get_page_url: Alias for get_page_public_url
+    - get_page_relative_url: Get URL without baseurl (for objectID/search index)
+    - get_page_url: Get full public URL with baseurl
     - normalize_url: Normalize URL for consistent comparison
 
 Path Resolution:
@@ -142,25 +141,9 @@ def get_page_relative_url(page: PageLike, site: SiteLike) -> str:
     return page._path
 
 
-def get_page_public_url(page: PageLike, site: SiteLike) -> str:
-    """
-    Get the page's public URL including baseurl.
-
-    Args:
-        page: Page to get URL for
-        site: Site instance
-
-    Returns:
-        Full public URL including baseurl
-
-    """
-    # page.href already includes baseurl
-    return page.href
-
-
 def get_page_url(page: PageLike, site: SiteLike) -> str:
     """
-    Get the public URL for a page.
+    Get the public URL for a page (includes baseurl).
 
     Args:
         page: Page to get URL for
@@ -172,60 +155,50 @@ def get_page_url(page: PageLike, site: SiteLike) -> str:
     """
     # page.href already includes baseurl
     return page.href
+
+
+def get_page_output_path(page: PageLike, ext: str) -> Path | None:
+    """
+    Get the output path for a page's companion file with the given extension.
+
+    For index.html pages, returns index.{ext} in the same directory.
+    For other pages (page.html), returns page.{ext} with suffix swapped.
+
+    Args:
+        page: Page to get output path for
+        ext: File extension without dot (e.g., "json", "txt", "md")
+
+    Returns:
+        Path for the companion file, or None if output_path not available
+
+    """
+    output_path = getattr(page, "output_path", None)
+    if not output_path:
+        return None
+
+    # Handle invalid output paths (e.g., Path('.'))
+    if str(output_path) in (".", "..") or output_path.name == "":
+        return None
+
+    if output_path.name == "index.html":
+        return output_path.parent / f"index.{ext}"
+
+    return output_path.with_suffix(f".{ext}")
 
 
 def get_page_json_path(page: PageLike) -> Path | None:
-    """
-    Get the output path for a page's JSON file.
-
-    Args:
-        page: Page to get JSON path for
-
-    Returns:
-        Path for the JSON file, or None if output_path not available
-
-    """
-    output_path = getattr(page, "output_path", None)
-    if not output_path:
-        return None
-
-    # Handle invalid output paths (e.g., Path('.'))
-    if str(output_path) in (".", "..") or output_path.name == "":
-        return None
-
-    # If output is index.html, put index.json next to it
-    if output_path.name == "index.html":
-        return output_path.parent / "index.json"
-
-    # If output is page.html, put page.json next to it
-    return output_path.with_suffix(".json")
+    """Get the output path for a page's JSON file."""
+    return get_page_output_path(page, "json")
 
 
 def get_page_txt_path(page: PageLike) -> Path | None:
-    """
-    Get the output path for a page's TXT file.
+    """Get the output path for a page's TXT file."""
+    return get_page_output_path(page, "txt")
 
-    Args:
-        page: Page to get TXT path for
 
-    Returns:
-        Path for the TXT file, or None if output_path not available
-
-    """
-    output_path = getattr(page, "output_path", None)
-    if not output_path:
-        return None
-
-    # Handle invalid output paths (e.g., Path('.'))
-    if str(output_path) in (".", "..") or output_path.name == "":
-        return None
-
-    # If output is index.html, put index.txt next to it
-    if output_path.name == "index.html":
-        return output_path.parent / "index.txt"
-
-    # If output is page.html, put page.txt next to it
-    return output_path.with_suffix(".txt")
+def get_page_md_path(page: PageLike) -> Path | None:
+    """Get the output path for a page's Markdown file."""
+    return get_page_output_path(page, "md")
 
 
 def normalize_url(url: str) -> str:
