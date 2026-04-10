@@ -42,7 +42,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.config.accessor import Config
+    from collections.abc import Sequence
+
     from bengal.protocols import PageLike, SectionLike
 
 
@@ -90,7 +91,7 @@ class ContentTypeStrategy:
     default_template = "index.html"
     allows_pagination = False
 
-    def sort_pages(self, pages: list[PageLike]) -> list[PageLike]:
+    def sort_pages(self, pages: Sequence[PageLike]) -> list[PageLike]:
         """
         Sort pages for display in list views.
 
@@ -118,7 +119,7 @@ class ContentTypeStrategy:
         return sorted(pages, key=weight_title_key)
 
     def filter_display_pages(
-        self, pages: list[PageLike], index_page: PageLike | None = None
+        self, pages: Sequence[PageLike], index_page: PageLike | None = None
     ) -> list[PageLike]:
         """
         Filter which pages to show in list views.
@@ -148,7 +149,7 @@ class ContentTypeStrategy:
             return [p for p in pages if p != index_page]
         return list(pages)
 
-    def should_paginate(self, page_count: int, config: Config | dict[str, Any]) -> bool:
+    def should_paginate(self, page_count: int, config: Any) -> bool:
         """
         Determine if this content type should use pagination.
 

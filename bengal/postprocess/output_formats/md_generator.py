@@ -58,6 +58,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.protocols import PageLike, SiteLike
@@ -78,7 +79,7 @@ class PageMarkdownGenerator:
     def __init__(self, site: SiteLike) -> None:
         self.site = site
 
-    def generate(self, pages: list[PageLike]) -> int:
+    def generate(self, pages: Sequence[PageLike]) -> int:
         """Generate .md files for all pages.
 
         Args:

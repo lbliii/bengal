@@ -42,6 +42,9 @@ class TemplateRenderError(BengalRenderingError):
 
     """
 
+    _show_traceback: bool
+    _original_exception: Exception | None
+
     def __init__(
         self,
         error_type: str,

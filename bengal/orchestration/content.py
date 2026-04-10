@@ -43,7 +43,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.build.contracts.keys import xref_path_key
 from bengal.utils.observability.logger import get_logger
@@ -512,7 +512,7 @@ class ContentOrchestrator:
                                 pages=len(pages),
                                 sections=len(sections),
                             )
-                            return pages, sections
+                            return pages, cast("list[SectionLike]", sections)
                         except (TypeError, KeyError, ValueError) as e:
                             # Cache payload is malformed - invalidate and fall back to re-extraction
                             logger.warning(
@@ -616,7 +616,7 @@ class ContentOrchestrator:
                             error_type=type(e).__name__,
                         )
 
-            return pages, sections
+            return pages, cast("list[SectionLike]", sections)
 
         except ImportError as e:
             logger.debug("autodoc_import_failed", error=str(e))

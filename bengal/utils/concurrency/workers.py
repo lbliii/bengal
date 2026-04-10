@@ -31,6 +31,8 @@ from enum import Enum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.protocols import PageLike
 
 
@@ -335,7 +337,7 @@ def estimate_page_weight(page: PageLike) -> float:
     return min(weight, 5.0)  # Cap at 5x to avoid outlier distortion
 
 
-def order_by_complexity(pages: list[PageLike], *, descending: bool = True) -> list[PageLike]:
+def order_by_complexity(pages: Sequence[PageLike], *, descending: bool = True) -> list[PageLike]:
     """
     Order pages by estimated complexity for optimal worker utilization.
 

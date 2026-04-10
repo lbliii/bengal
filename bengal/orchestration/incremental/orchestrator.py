@@ -40,6 +40,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.site import Site
@@ -679,7 +681,7 @@ class IncrementalOrchestrator:
         if self.cache:
             cleanup_deleted_files(self.site, self.cache)
 
-    def save_cache(self, pages_built: list[PageLike], assets_processed: list[Asset]) -> None:
+    def save_cache(self, pages_built: Sequence[PageLike], assets_processed: list[Asset]) -> None:
         """
         Update cache with processed files.
 

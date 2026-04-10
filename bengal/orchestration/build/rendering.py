@@ -32,6 +32,7 @@ from bengal.rendering.pipeline.profiler import RenderProfiler
 from bengal.rendering.pipeline.profiler import is_enabled as _profiling_enabled
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.core.asset import Asset
@@ -392,7 +393,7 @@ def phase_render(
     quiet: bool,
     verbose: bool,
     memory_optimized: bool,
-    pages_to_build: list[PageLike],
+    pages_to_build: Sequence[PageLike],
     profile: BuildProfile,
     progress_manager: LiveProgressManager | None,
     reporter: ProgressReporter | None,
@@ -719,7 +720,7 @@ def phase_render(
 def phase_update_site_pages(
     orchestrator: BuildOrchestrator,
     incremental: bool,
-    pages_to_build: list[PageLike],
+    pages_to_build: Sequence[PageLike],
     cli: CLIOutput | None = None,
 ) -> None:
     """

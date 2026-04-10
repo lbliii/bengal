@@ -56,7 +56,7 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.protocols import SectionLike
+    from bengal.protocols import PageLike, SectionLike
 
 
 class SectionOrchestrator:
@@ -306,7 +306,7 @@ class SectionOrchestrator:
         strategy = get_strategy(content_type)
         return strategy.get_template()
 
-    def _prepare_posts_list(self, section: SectionLike, content_type: str) -> list[Page]:
+    def _prepare_posts_list(self, section: SectionLike, content_type: str) -> list[PageLike]:
         """
         Prepare the posts list for a section using content type strategy.
 

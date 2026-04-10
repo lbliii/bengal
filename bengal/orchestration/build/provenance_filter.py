@@ -36,6 +36,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
@@ -275,7 +277,7 @@ def _expand_forced_changed(
     forced_changed: set[Path],
     cache: BuildCache,
     site: SiteLike,
-    pages: list[PageLike],
+    pages: Sequence[PageLike],
 ) -> tuple[set[Path], dict[str, list[str]]]:
     """
     Expand forced_changed set to include dependency-triggered rebuilds.
@@ -940,6 +942,8 @@ def record_all_page_builds(
     if not hasattr(orchestrator, "_provenance_filter"):
         return
     pf = orchestrator._provenance_filter
+    if pf is None:
+        return
 
     # Parallelize when many pages (full rebuild) - provenance computation is I/O bound
     use_parallel = parallel and len(pages) > 50
@@ -963,5 +967,5 @@ def save_provenance_cache(orchestrator: BuildOrchestrator) -> None:
 
     Call this at the end of the build to persist provenance data.
     """
-    if hasattr(orchestrator, "_provenance_filter"):
+    if hasattr(orchestrator, "_provenance_filter") and orchestrator._provenance_filter is not None:
         orchestrator._provenance_filter.save()

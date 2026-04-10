@@ -17,6 +17,7 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.core.site import Site
@@ -58,7 +59,9 @@ class OrderingMixin:
         """Check if track dependency ordering is enabled."""
         return self.site.config.get("build", {}).get("track_dependency_ordering", True)
 
-    def _maybe_sort_by_complexity(self, pages: list[PageLike], max_workers: int) -> list[PageLike]:
+    def _maybe_sort_by_complexity(
+        self, pages: Sequence[PageLike], max_workers: int
+    ) -> list[PageLike]:
         """Sort pages by complexity if enabled and beneficial.
 
         When track_dependency_ordering is also enabled, preserves partition order
@@ -72,10 +75,10 @@ class OrderingMixin:
         Heavy pages are sorted first within each partition to minimize stragglers.
         """
         if not self._should_use_complexity_ordering():
-            return pages
+            return list(pages)
 
         if len(pages) <= max_workers:
-            return pages
+            return list(pages)
 
         from bengal.orchestration.complexity import (
             ComplexityStats,
@@ -144,7 +147,7 @@ class OrderingMixin:
                     paths.add(_normalize_content_path(item))
         return paths if paths else None
 
-    def _get_track_item_paths_for_pages(self, pages: list[PageLike]) -> set[str]:
+    def _get_track_item_paths_for_pages(self, pages: Sequence[PageLike]) -> set[str]:
         """Get track item paths for tracks that have a page in the given list."""
         tracks_data = getattr(self.site.data, "tracks", None)
         if not tracks_data or not isinstance(tracks_data, dict):
@@ -181,7 +184,7 @@ class OrderingMixin:
         return result
 
     def _partition_by_track(
-        self, pages: list[PageLike], track_item_paths: set[str]
+        self, pages: Sequence[PageLike], track_item_paths: set[str]
     ) -> tuple[list[PageLike], list[PageLike], list[PageLike]]:
         """Partition pages into track_items, track_pages, other."""
         content_root = self.site.root_path / "content"
@@ -214,7 +217,7 @@ class OrderingMixin:
 
         return track_items, track_pages, other
 
-    def _track_dependency_sort(self, pages: list[PageLike]) -> list[PageLike]:
+    def _track_dependency_sort(self, pages: Sequence[PageLike]) -> list[PageLike]:
         """
         Sort pages so track items are rendered before track pages that embed them.
 
@@ -225,17 +228,17 @@ class OrderingMixin:
             Pages reordered: track_items first, then track_pages, then other.
         """
         if not self._should_use_track_dependency_ordering():
-            return pages
+            return list(pages)
         track_item_paths = self._get_track_item_paths()
         if not track_item_paths:
-            return pages
+            return list(pages)
         track_items, track_pages, other = self._partition_by_track(pages, track_item_paths)
         if track_items or track_pages:
             return track_items + track_pages + other
-        return pages
+        return list(pages)
 
     def _priority_sort(
-        self, pages: list[PageLike], changed_sources: set[Path] | None
+        self, pages: Sequence[PageLike], changed_sources: set[Path] | None
     ) -> list[PageLike]:
         """
         Sort pages so that explicitly changed files are at the front.
@@ -248,7 +251,7 @@ class OrderingMixin:
             Prioritized list of pages
         """
         if not changed_sources:
-            return pages
+            return list(pages)
 
         priority_pages: list[PageLike] = []
         normal_pages: list[PageLike] = []
@@ -283,7 +286,7 @@ class OrderingMixin:
                 normal_pages.append(page)
 
         if not priority_pages:
-            return pages
+            return list(pages)
 
         if self._should_use_track_dependency_ordering():
             track_item_paths = self._get_track_item_paths()

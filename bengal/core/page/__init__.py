@@ -50,7 +50,7 @@ import threading
 from dataclasses import dataclass, field
 from functools import cached_property
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from bengal.core.cascade import CascadeSnapshot, CascadeView
 from bengal.core.diagnostics import emit as emit_diagnostic
@@ -64,7 +64,7 @@ if TYPE_CHECKING:
     from bengal.core.series import Series
     from bengal.core.site import Site
     from bengal.parsing.ast.types import ASTNode
-    from bengal.protocols.core import SectionLike
+    from bengal.protocols.core import PageLike, SectionLike
     from bengal.utils.pagination import Paginator
 
 # Import PageOperationsMixin from rendering layer where it logically belongs.
@@ -656,18 +656,22 @@ class Page(
         cache_key = (id(self._site), epoch, self._section_path, self._section_url)
         if self._section_obj_cache_key == cache_key:
             cached = self._section_obj_cache
-            return None if cached is self._SECTION_NOT_FOUND else cached
+            return None if cached is self._SECTION_NOT_FOUND else cast("SectionLike | None", cached)
 
         with self._init_lock:
             if self._section_obj_cache_key == cache_key:
                 cached = self._section_obj_cache
-                return None if cached is self._SECTION_NOT_FOUND else cached
+                return (
+                    None
+                    if cached is self._SECTION_NOT_FOUND
+                    else cast("SectionLike | None", cached)
+                )
 
             # Perform O(1) lookup via appropriate registry
             if self._section_path is not None:
                 section = self._site.get_section_by_path(self._section_path)
             else:
-                section = self._site.get_section_by_url(self._section_url)
+                section = self._site.get_section_by_url(self._section_url or "")
 
         if section is None:
             # Counter-gated warning to prevent log spam (class-level counter)
@@ -768,28 +772,28 @@ class Page(
     # ------------------------------------------------------------------
 
     @property
-    def next(self) -> Page | None:
+    def next(self) -> PageLike | None:
         """Next page in site collection."""
         from bengal.core.page.navigation import get_next_page
 
         return get_next_page(self, self._site)
 
     @property
-    def prev(self) -> Page | None:
+    def prev(self) -> PageLike | None:
         """Previous page in site collection."""
         from bengal.core.page.navigation import get_prev_page
 
         return get_prev_page(self, self._site)
 
     @property
-    def next_in_section(self) -> Page | None:
+    def next_in_section(self) -> PageLike | None:
         """Next page in current section."""
         from bengal.core.page.navigation import get_next_in_section
 
         return get_next_in_section(self, self._section)
 
     @property
-    def prev_in_section(self) -> Page | None:
+    def prev_in_section(self) -> PageLike | None:
         """Previous page in current section."""
         from bengal.core.page.navigation import get_prev_in_section
 
@@ -862,7 +866,7 @@ class Page(
         """SEO-friendly meta description (max 160 chars)."""
         # Prefer AST-extracted meta description set by pipeline (Patitas parse-once path)
         if getattr(self, "_meta_description", None) is not None:
-            return self._meta_description
+            return self._meta_description or ""
         from bengal.core.page.computed import compute_meta_description
 
         return compute_meta_description(self.metadata, self._raw_content)
@@ -879,7 +883,7 @@ class Page(
         """Content excerpt for listings (max 250 chars)."""
         # Prefer AST-extracted excerpt set by pipeline (Patitas parse-once path)
         if getattr(self, "_excerpt", None) is not None:
-            return self._excerpt
+            return self._excerpt or ""
         from bengal.core.page.computed import compute_excerpt
 
         return compute_excerpt(self._raw_content)
@@ -920,14 +924,14 @@ class Page(
         return get_series_info(self.metadata)
 
     @cached_property
-    def prev_in_series(self) -> Page | None:
+    def prev_in_series(self) -> PageLike | None:
         """Previous page in series."""
         from bengal.core.page.computed import get_series_neighbor
 
         return get_series_neighbor(self.metadata, self._site, -1)
 
     @cached_property
-    def next_in_series(self) -> Page | None:
+    def next_in_series(self) -> PageLike | None:
         """Next page in series."""
         from bengal.core.page.computed import get_series_neighbor
 

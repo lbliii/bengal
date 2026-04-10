@@ -158,7 +158,7 @@ class Site:
     _version_service: VersionService | None = field(default=None, repr=False, init=False)
 
     # Page cache manager (lazy caches over self.pages, extracted to PageCacheManager)
-    _page_cache: PageCacheManager | None = field(default=None, repr=False, init=False)
+    _page_cache: PageCacheManager = field(default=None, repr=False, init=False)  # type: ignore[assignment]  # set in __post_init__
     _theme_obj: Theme | None = field(default=None, repr=False, init=False)
     _query_registry: QueryIndexRegistry | None = field(default=None, repr=False, init=False)
 

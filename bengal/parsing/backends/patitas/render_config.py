@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING, Literal
 from bengal.parsing.backends.patitas.utils.contextvar import ContextVarManager
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Generator
     from contextvars import Token
 
     from bengal.parsing.backends.patitas.directives.registry import DirectiveRegistry
@@ -133,7 +133,7 @@ def reset_render_config(token: Token[RenderConfig | None] | None = None) -> None
     _manager.reset(token)
 
 
-def render_config_context(config: RenderConfig) -> Iterator[RenderConfig]:
+def render_config_context(config: RenderConfig) -> Generator[RenderConfig]:
     """Context manager for scoped render configuration.
 
     Properly restores previous config on exit (supports nesting).

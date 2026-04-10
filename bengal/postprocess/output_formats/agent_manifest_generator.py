@@ -34,6 +34,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.protocols import PageLike, SiteLike
@@ -48,7 +49,7 @@ class AgentManifestGenerator:
     def __init__(self, site: SiteLike) -> None:
         self.site = site
 
-    def generate(self, pages: list[PageLike]) -> Path:
+    def generate(self, pages: Sequence[PageLike]) -> Path:
         """Generate agent.json at site root.
 
         Args:
@@ -116,7 +117,7 @@ class AgentManifestGenerator:
 
     def _get_root_pages(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         page_by_href: dict[str, PageLike],
     ) -> list[dict[str, Any]]:
         """Get pages with no section (root-level)."""
@@ -146,7 +147,7 @@ class AgentManifestGenerator:
 
     def _build_sections(
         self,
-        sections: list[SectionLike],
+        sections: Sequence[SectionLike],
         page_by_href: dict[str, PageLike],
     ) -> list[dict[str, Any]]:
         """Recursively build section tree."""

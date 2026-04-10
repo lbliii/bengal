@@ -72,6 +72,7 @@ logger = get_logger(__name__)
 
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.core.site import Site
@@ -169,7 +170,7 @@ class RenderOrchestrator(
 
     def process(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         parallel: bool = True,
         quiet: bool = False,
         stats: BuildStats | None = None,
@@ -213,7 +214,7 @@ class RenderOrchestrator(
 
     def _process_impl(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         parallel: bool,
         quiet: bool,
         stats: BuildStats | None,
@@ -320,7 +321,7 @@ class RenderOrchestrator(
 
     def _render_parallel(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
@@ -446,7 +447,7 @@ class RenderOrchestrator(
     def _render_with_snapshot(
         self,
         snapshot: Any,  # SiteSnapshot
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
@@ -511,7 +512,7 @@ class RenderOrchestrator(
 
     def _render_parallel_simple(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         build_context: BuildContext | None = None,
@@ -585,7 +586,7 @@ class RenderOrchestrator(
 
     def _render_parallel_with_live_progress(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol,
@@ -707,7 +708,7 @@ class RenderOrchestrator(
 
     def _render_parallel_with_progress(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         build_context: BuildContext | None = None,
@@ -806,7 +807,7 @@ class RenderOrchestrator(
 
                 aggregator.log_summary(logger, threshold=5, error_type="rendering")
 
-    def _set_output_paths_for_pages(self, pages: list[PageLike]) -> None:
+    def _set_output_paths_for_pages(self, pages: Sequence[PageLike]) -> None:
         """
         Pre-set output paths for specific pages before rendering.
 

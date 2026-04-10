@@ -45,24 +45,23 @@ class AssetExtractorParser(HTMLParser):
 
         if tag == "img":
             # Extract src and srcset
-            if attrs_dict.get("src"):
-                self.assets.add(attrs_dict["src"])
-            if attrs_dict.get("srcset"):
+            if src := attrs_dict.get("src"):
+                self.assets.add(src)
+            if srcset := attrs_dict.get("srcset"):
                 # srcset can contain multiple URLs: "url1 1x, url2 2x"
-                for item in attrs_dict["srcset"].split(","):
+                for item in srcset.split(","):
                     url = item.strip().split()[0]
                     if url:
                         self.assets.add(url)
 
         elif tag == "script":
             # Extract script src
-            if attrs_dict.get("src"):
-                self.assets.add(attrs_dict["src"])
+            if src := attrs_dict.get("src"):
+                self.assets.add(src)
 
         elif tag == "link":
             # Extract link href (stylesheets, fonts, etc.)
-            if attrs_dict.get("href"):
-                href = attrs_dict["href"]
+            if href := attrs_dict.get("href"):
                 rel_value = attrs_dict.get("rel", "")
                 if rel_value is not None:
                     rel = rel_value.lower()
@@ -72,18 +71,18 @@ class AssetExtractorParser(HTMLParser):
 
         elif tag == "source":
             # Extract srcset from picture/video sources
-            if attrs_dict.get("srcset"):
-                for item in attrs_dict["srcset"].split(","):
+            if srcset := attrs_dict.get("srcset"):
+                for item in srcset.split(","):
                     url = item.strip().split()[0]
                     if url:
                         self.assets.add(url)
-            if attrs_dict.get("src"):
-                self.assets.add(attrs_dict["src"])
+            if src := attrs_dict.get("src"):
+                self.assets.add(src)
 
         elif tag == "iframe":
             # Extract iframe src
-            if attrs_dict.get("src"):
-                self.assets.add(attrs_dict["src"])
+            if src := attrs_dict.get("src"):
+                self.assets.add(src)
 
         elif tag == "style":
             # Mark that we're in a style tag (for parsing @import)

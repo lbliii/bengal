@@ -21,6 +21,8 @@ from typing import TYPE_CHECKING
 from bengal.analysis.utils.constants import DEFAULT_HUB_THRESHOLD, DEFAULT_LEAF_THRESHOLD
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.protocols import PageLike
 else:
     pass
@@ -104,7 +106,7 @@ class MetricsCalculator:
         self,
         incoming_refs: dict[PageLike, float],
         outgoing_refs: dict[PageLike, set[PageLike]],
-        analysis_pages: list[PageLike],
+        analysis_pages: Sequence[PageLike],
         hub_threshold: int = DEFAULT_HUB_THRESHOLD,
         leaf_threshold: int = DEFAULT_LEAF_THRESHOLD,
     ):

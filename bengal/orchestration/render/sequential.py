@@ -17,6 +17,7 @@ from bengal.utils.concurrency.executor import CancellationError
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.core.site import Site
@@ -45,7 +46,7 @@ class SequentialRenderMixin:
 
     def _render_sequential(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         progress_manager: LiveProgressManager | ProgressManagerProtocol | None = None,
@@ -131,7 +132,7 @@ class SequentialRenderMixin:
 
     def _render_sequential_with_progress(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         quiet: bool,
         stats: BuildStats | None,
         build_context: BuildContext | None = None,

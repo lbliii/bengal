@@ -38,6 +38,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.protocols import PageLike, SiteLike
@@ -51,7 +52,7 @@ class ChangelogGenerator:
     def __init__(self, site: SiteLike) -> None:
         self.site = site
 
-    def generate(self, pages: list[PageLike]) -> Path | None:
+    def generate(self, pages: Sequence[PageLike]) -> Path | None:
         """Generate changelog.json at site root.
 
         Args:

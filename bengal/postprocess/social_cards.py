@@ -54,9 +54,9 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
-    from bengal.config.accessor import Config
     from bengal.core.output import OutputCollector
     from bengal.protocols import PageLike, SiteLike
 
@@ -112,7 +112,7 @@ class SocialCardConfig:
     cache: bool = True
 
 
-def parse_social_cards_config(config: Config | dict[str, Any]) -> SocialCardConfig:
+def parse_social_cards_config(config: Any) -> SocialCardConfig:
     """
     Parse [social_cards] section from bengal.toml.
 
@@ -778,7 +778,7 @@ class SocialCardGenerator:
 
         return output_path
 
-    def generate_all(self, pages: list[PageLike], output_dir: Path) -> tuple[int, int]:
+    def generate_all(self, pages: Sequence[PageLike], output_dir: Path) -> tuple[int, int]:
         """
         Generate social cards for all pages.
 

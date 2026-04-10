@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.orchestration.build import BuildOrchestrator
     from bengal.output import CLIOutput
     from bengal.protocols.core import PageLike
@@ -25,7 +27,7 @@ logger = get_logger(__name__)
 def phase_parse_content(
     orchestrator: BuildOrchestrator,
     cli: CLIOutput,
-    pages_to_build: list[PageLike],
+    pages_to_build: Sequence[PageLike],
     parallel: bool = True,
     use_snapshot_cache: bool = True,
 ) -> int:

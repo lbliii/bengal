@@ -61,6 +61,8 @@ from bengal.analysis.utils.traversal import bfs_path, bfs_predecessors
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.protocols import PageLike
 
@@ -291,7 +293,7 @@ class PathAnalyzer:
 
     def _compute_betweenness_centrality(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         use_approximate: bool,
         progress_callback: ProgressCallback | None = None,
     ) -> dict[PageLike, float]:
@@ -363,7 +365,7 @@ class PathAnalyzer:
 
     def _compute_closeness_centrality(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         use_approximate: bool,
         progress_callback: ProgressCallback | None = None,
     ) -> tuple[dict[PageLike, float], float, int]:
@@ -452,7 +454,7 @@ class PathAnalyzer:
 
         return closeness, avg_path_length, diameter
 
-    def _bfs_distances(self, source: PageLike, pages: list[PageLike]) -> dict[PageLike, int]:
+    def _bfs_distances(self, source: PageLike, pages: Sequence[PageLike]) -> dict[PageLike, int]:
         """Compute shortest path distances from source to all other pages."""
         return _bfs_distances_util(self.graph.outgoing_refs, source, pages)
 

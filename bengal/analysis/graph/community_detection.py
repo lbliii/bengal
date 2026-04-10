@@ -49,6 +49,8 @@ from bengal.analysis.utils.pages import get_content_pages
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.protocols import PageLike
 
@@ -280,7 +282,7 @@ class LouvainCommunityDetector:
             communities=communities, modularity=best_modularity, iterations=iteration
         )
 
-    def _build_edge_weights(self, pages: list[PageLike]) -> dict[frozenset[PageLike], float]:
+    def _build_edge_weights(self, pages: Sequence[PageLike]) -> dict[frozenset[PageLike], float]:
         """
         Build edge weights from the graph.
 
@@ -298,7 +300,7 @@ class LouvainCommunityDetector:
         return edge_weights
 
     def _compute_node_degrees(
-        self, pages: list[PageLike], edge_weights: dict[frozenset[PageLike], float]
+        self, pages: Sequence[PageLike], edge_weights: dict[frozenset[PageLike], float]
     ) -> dict[PageLike, float]:
         """Compute weighted degree for each node."""
         node_degrees: dict[PageLike, float] = defaultdict(float)

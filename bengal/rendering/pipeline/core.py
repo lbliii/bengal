@@ -818,7 +818,7 @@ class RenderingPipeline:
         # Sprint 2: Build immutable RenderedPage record
         rendered_page = RenderedPage(
             source_path=page.source_path,
-            output_path=page.output_path,
+            output_path=page.output_path,  # must be set by determine_output_path before render
             rendered_html=rendered_html,
             render_time_ms=render_time_ms,
             dependencies=frozenset(tracked_assets) if tracked_assets else frozenset(),
@@ -916,6 +916,7 @@ class RenderingPipeline:
 
                 if getattr(self, "_manifest_reverse", None) and raw_assets:
                     reverse = self._manifest_reverse
+                    assert reverse is not None  # guarded by truthiness check above
                     normalized: set[str] = set()
                     for url in raw_assets:
                         path = urlparse(url).path.lstrip("/") if "://" in url else url.lstrip("/")

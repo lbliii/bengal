@@ -156,6 +156,23 @@ class TemplateRenderer(Protocol):
         """
         ...
 
+    def render(
+        self,
+        template_name: str,
+        context: dict[str, Any],
+    ) -> str:
+        """
+        Render a named template (alias for render_template).
+
+        Args:
+            template_name: Template identifier
+            context: Variables available to the template
+
+        Returns:
+            Rendered HTML string
+        """
+        ...
+
     def render_string(
         self,
         template: str,
@@ -314,6 +331,11 @@ class TemplateEngine(TemplateRenderer, TemplateIntrospector, TemplateValidator, 
         """
         ...
 
+    @property
+    def env(self) -> Any:
+        """Access to underlying template environment (engine-specific)."""
+        ...
+
     def precompile_templates(self, template_names: list[str] | None = None) -> int:
         """
         Optional: Pre-compile templates to warm the cache.
@@ -333,6 +355,10 @@ class TemplateEngine(TemplateRenderer, TemplateIntrospector, TemplateValidator, 
             This is an optional method. Engines that don't support it
             should not implement it. Callers should use hasattr() to check.
         """
+        ...
+
+    def validate_templates(self, include_patterns: list[str] | None = None) -> list[Any]:
+        """Validate templates, optionally filtering by glob patterns."""
         ...
 
 

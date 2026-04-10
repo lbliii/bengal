@@ -118,12 +118,12 @@ class SiteContext:
         if hasattr(config, "site"):
             site_config = config.site
             if hasattr(site_config, "title"):
-                return site_config.title or ""
+                return str(site_config.title or "")
         # Fall back to dict access
         site_section = config.get("site", {})
         if isinstance(site_section, dict):
-            return site_section.get("title", "") or ""
-        return config.get("title", "") or ""
+            return str(site_section.get("title", "") or "")
+        return str(config.get("title", "") or "")
 
     @property
     def description(self) -> str:
@@ -133,12 +133,12 @@ class SiteContext:
         if hasattr(config, "site"):
             site_config = config.site
             if hasattr(site_config, "description"):
-                return site_config.description or ""
+                return str(site_config.description or "")
         # Fall back to dict access
         site_section = config.get("site", {})
         if isinstance(site_section, dict):
-            return site_section.get("description", "") or ""
-        return config.get("description", "") or ""
+            return str(site_section.get("description", "") or "")
+        return str(config.get("description", "") or "")
 
     @property
     def baseurl(self) -> str:
@@ -148,28 +148,28 @@ class SiteContext:
         if hasattr(config, "site"):
             site_config = config.site
             if hasattr(site_config, "baseurl"):
-                return site_config.baseurl or ""
+                return str(site_config.baseurl or "")
         # Fall back to dict access
         site_section = config.get("site", {})
         if isinstance(site_section, dict):
-            return site_section.get("baseurl", "") or ""
-        return config.get("baseurl", "") or ""
+            return str(site_section.get("baseurl", "") or "")
+        return str(config.get("baseurl", "") or "")
 
     @property
     def author(self) -> str:
-        return self._site.config.get("author", "") or ""
+        return str(self._site.config.get("author", "") or "")
 
     @property
     def logo(self) -> str:
         """Get logo image URL from various config locations."""
         cfg = self._site.config
-        return cfg.get("logo_image", "") or cfg.get("site", {}).get("logo_image", "") or ""
+        return str(cfg.get("logo_image", "") or cfg.get("site", {}).get("logo_image", "") or "")
 
     @property
     def logo_text(self) -> str:
         """Get logo text from various config locations."""
         cfg = self._site.config
-        return cfg.get("logo_text", "") or cfg.get("site", {}).get("logo_text", "") or ""
+        return str(cfg.get("logo_text", "") or cfg.get("site", {}).get("logo_text", "") or "")
 
     @property
     def params(self) -> ParamsContext:

@@ -35,7 +35,7 @@ from typing import Any, Protocol, TypeGuard, runtime_checkable
 class HasClearTemplateCache(Protocol):
     """Protocol for objects with clear_template_cache method."""
 
-    def clear_template_cache(self, names: list[str]) -> None:
+    def clear_template_cache(self, names: list[str] | None = None) -> None:
         """Clear cached templates by name."""
         ...
 

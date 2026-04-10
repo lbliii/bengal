@@ -48,6 +48,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.text import normalize_taxonomy_slug
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.protocols import PageLike
 
@@ -232,7 +234,7 @@ class LinkSuggestionEngine:
     def _generate_suggestions_for_page(
         self,
         source: PageLike,
-        all_pages: list[PageLike],
+        all_pages: Sequence[PageLike],
         page_tags: dict[PageLike, set[str]],
         page_categories: dict[PageLike, set[str]],
         pagerank_scores: dict[PageLike, float],
@@ -376,7 +378,7 @@ class LinkSuggestionEngine:
 
         return score, reasons
 
-    def _build_tag_map(self, pages: list[PageLike]) -> dict[PageLike, set[str]]:
+    def _build_tag_map(self, pages: Sequence[PageLike]) -> dict[PageLike, set[str]]:
         """Build mapping of page -> set of tags."""
         tag_map = {}
         for page in pages:
@@ -387,7 +389,7 @@ class LinkSuggestionEngine:
             tag_map[page] = tags
         return tag_map
 
-    def _build_category_map(self, pages: list[PageLike]) -> dict[PageLike, set[str]]:
+    def _build_category_map(self, pages: Sequence[PageLike]) -> dict[PageLike, set[str]]:
         """Build mapping of page -> set of categories."""
         category_map = {}
         for page in pages:

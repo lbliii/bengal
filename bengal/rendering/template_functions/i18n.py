@@ -206,7 +206,7 @@ def _languages(site: SiteLike) -> list[LanguageInfo]:
     return normalized
 
 
-def _make_t(site: SiteLike) -> Callable[[str, dict[str, Any] | None, str | None, str | None], str]:
+def _make_t(site: SiteLike) -> Callable[..., str]:
     cache: dict[str, dict[str, Any]] = {}
     catalog_cache: dict[str, Any] = {}  # lang -> Catalog | None
     i18n_dir = site.root_path / "i18n"

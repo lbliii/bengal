@@ -72,6 +72,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.protocols import PageLike, SiteLike
@@ -130,7 +131,7 @@ class PageTxtGenerator:
         self.site = site
         self.separator_width = separator_width
 
-    def generate(self, pages: list[PageLike]) -> int:
+    def generate(self, pages: Sequence[PageLike]) -> int:
         """
         Generate TXT files for all pages.
 

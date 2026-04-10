@@ -75,6 +75,9 @@ class Renderable(Protocol):
         """Rendered table of contents HTML."""
         ...
 
+    @toc.setter
+    def toc(self, value: str) -> None: ...
+
     @property
     def toc_items(self) -> list[Any]:
         """Structured table of contents items."""
@@ -111,6 +114,9 @@ class Navigable(Protocol):
     def output_path(self) -> Path | None:
         """Path where the rendered page will be written."""
         ...
+
+    @output_path.setter
+    def output_path(self, value: Path | None) -> None: ...
 
     @property
     def slug(self) -> str:
@@ -194,6 +200,11 @@ class Summarizable(Protocol):
         """Page type (e.g., 'page', 'post', 'api')."""
         ...
 
+    @property
+    def in_listings(self) -> bool:
+        """Whether this page appears in public listings."""
+        ...
+
 
 # =============================================================================
 # Composite Page Protocol
@@ -230,7 +241,50 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
     render_time_ms: float  # Per-page render time, set during rendering
     related_posts: list[PageLike]  # Pre-computed related pages
 
+    _site: Any  # Site reference (set during setup_references)
     _prerendered_html: str | None  # Pre-rendered HTML (autodoc, etc.), set before render
+    _excerpt: str | None  # AST-extracted excerpt (set by pipeline)
+    _meta_description: str | None  # AST-extracted meta description (set by pipeline)
+    _toc_items_cache: list[Any] | None  # Cached TOC items from parsing
+    _ast_cache: Any  # Cached AST from parsing
+    _directive_links: list[str] | None  # Links collected from directives
+    _autodoc_fallback_template: bool  # Whether to use autodoc fallback template
+    _posts: list[Any] | None  # Related posts for section index pages
+    _subsections: list[Any] | None  # Subsections for section index pages
+    _paginator: Any  # Paginator for paginated pages
+    _page_num: int | None  # Page number for paginated pages (None if not paginated)
+
+    @property
+    def _source(self) -> str:
+        """Raw markdown source content."""
+        ...
+
+    @property
+    def _section(self) -> SectionLike | None:
+        """Section this page belongs to (lazy lookup)."""
+        ...
+
+    @_section.setter
+    def _section(self, value: SectionLike | None) -> None: ...
+
+    @property
+    def _path(self) -> str:
+        """Internal site-relative path (no baseurl)."""
+        ...
+
+    @property
+    def plain_text(self) -> str:
+        """Plain text extracted from content (for search/LLM)."""
+        ...
+
+    @property
+    def name(self) -> str:
+        """Page name (filename without extension)."""
+        ...
+
+    def extract_links(self, *, plugin_links: list[str] | None = None) -> list[str]:
+        """Extract all links from page content."""
+        ...
 
     def HasShortcode(self, name: str) -> bool:
         """Return True if page content uses the given shortcode."""
@@ -266,6 +320,8 @@ class SectionLike(Protocol):
     """
 
     # --- Identity ---
+
+    _site: Any  # Site reference (set during setup_references)
 
     @property
     def name(self) -> str:
@@ -307,6 +363,14 @@ class SectionLike(Protocol):
     @property
     def index_page(self) -> PageLike | None:
         """Index page for this section (_index.md or index.md)."""
+        ...
+
+    @index_page.setter
+    def index_page(self, value: PageLike | None) -> None: ...
+
+    @property
+    def sorted_pages(self) -> list[PageLike]:
+        """Pages sorted by weight/date for navigation."""
         ...
 
     # --- Metadata & Navigation ---
@@ -517,6 +581,12 @@ class SiteLike(SiteConfig, SiteContent, Protocol):
     # Internal caches (set by template functions)
     _template_parser: BaseMarkdownParser | None
     _page_lookup_maps: dict[str, dict[str, PageLike]] | None
+    _dev_menu_metadata: dict[str, Any] | None
+    _bengal_template_metadata_cache: dict[str, Any] | None
+
+    def get_version(self, version_id: str) -> Any:
+        """Get a specific documentation version by ID."""
+        ...
 
 
 # =============================================================================

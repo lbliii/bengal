@@ -215,7 +215,7 @@ class Renderer:
         return NO_SECTION
 
     def _to_section_snapshots(
-        self, sections: list[SectionLike | SectionSnapshot], snapshot: SiteSnapshot | None
+        self, sections: Sequence[SectionLike | SectionSnapshot], snapshot: SiteSnapshot | None
     ) -> list[SectionSnapshot]:
         """
         Convert a list of mutable Sections to SectionSnapshots.
@@ -238,7 +238,7 @@ class Renderer:
                 result.append(snap)
         return result
 
-    def _get_resolved_tag_pages(self, tag_slug: str) -> Sequence[PageLike]:
+    def _get_resolved_tag_pages(self, tag_slug: str) -> list[PageLike]:
         """
         Get resolved and filtered pages for a tag (cached).
 
