@@ -50,9 +50,9 @@ HELPER: Render a menu item (desktop/mobile)
     {# Mobile: Split button pattern - link + chevron toggle #}
     <div class="mobile-nav-item-row">
         {% if item.href == '#' %}
-        <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name }}</span>
+        <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true"><bdi>{{ item.name }}</bdi></span>
         {% else %}
-        <a href="{{ item.href | absolute_url }}" {{ 'aria-current="page"' | safe if is_active else '' }}>{{ item.name }}</a>
+        <a href="{{ item.href | absolute_url }}" {{ 'aria-current="page"' | safe if is_active else '' }}><bdi>{{ item.name }}</bdi></a>
         {% end %}
         <button type="button" class="mobile-nav-toggle-submenu" aria-label="Toggle {{ item.name }} submenu" aria-expanded="false">
             {{ icon('caret-down', size=16) }}
@@ -60,10 +60,10 @@ HELPER: Render a menu item (desktop/mobile)
     </div>
     {% elif has_children and item.href == '#' %}
     {# Desktop: Non-navigable dropdown trigger #}
-    <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true">{{ item.name }}</span>
+    <span class="nav-dropdown-trigger" tabindex="0" role="button" aria-haspopup="true"><bdi>{{ item.name }}</bdi></span>
     {% else %}
     {# Regular navigation link #}
-    <a href="{{ item.href | absolute_url }}" {{ 'aria-current="page"' | safe if is_active else '' }}>{{ item.name }}</a>
+    <a href="{{ item.href | absolute_url }}" {{ 'aria-current="page"' | safe if is_active else '' }}><bdi>{{ item.name }}</bdi></a>
     {% end %}
 
     {% if has_children %}
@@ -74,7 +74,7 @@ HELPER: Render a menu item (desktop/mobile)
                 {% with child.icon as icon_name %}
                 {% if icon_name %}<span class="submenu-icon">{{ icon(icon_name, size=16) }}</span>{% end %}
                 {% end %}
-                <span class="submenu-text">{{ child.name }}</span>
+                <span class="submenu-text"><bdi>{{ child.name }}</bdi></span>
             </a>
         </li>
         {% end %}

@@ -140,6 +140,57 @@ class TestRTLTemplateRendering:
         assert "3 items" in html
 
 
+class TestBidiIsolation:
+    """Test that navigation templates use <bdi> for mixed-direction text isolation."""
+
+    def test_bdi_in_breadcrumbs(self) -> None:
+        """Breadcrumb template should wrap titles in <bdi>."""
+        from pathlib import Path
+
+        template = Path("bengal/themes/default/templates/partials/action-bar.html").read_text(
+            encoding="utf-8"
+        )
+        assert "<bdi>" in template, "Breadcrumb template should contain <bdi> tags"
+
+    def test_bdi_in_docs_nav(self) -> None:
+        """Docs nav template should wrap titles in <bdi>."""
+        from pathlib import Path
+
+        template = Path("bengal/themes/default/templates/partials/docs-nav.html").read_text(
+            encoding="utf-8"
+        )
+        assert template.count("<bdi>") >= 4, (
+            "Docs nav should have <bdi> in group title, group link, and leaf nodes"
+        )
+
+    def test_bdi_in_base_menu(self) -> None:
+        """Base template menu should wrap item names in <bdi>."""
+        from pathlib import Path
+
+        template = Path("bengal/themes/default/templates/base.html").read_text(encoding="utf-8")
+        assert "<bdi>{{ item.name }}</bdi>" in template or "<bdi>{{ child.name }}</bdi>" in template
+
+    def test_breadcrumb_separator_rtl_rule(self) -> None:
+        """Breadcrumb CSS should have RTL separator override."""
+        from pathlib import Path
+
+        css = Path("bengal/themes/default/assets/css/components/action-bar.css").read_text(
+            encoding="utf-8"
+        )
+        assert '[dir="rtl"]' in css, "action-bar.css should have RTL-specific rules"
+        assert "‹" in css, "RTL breadcrumb separator should use ‹ instead of ›"
+
+    def test_nav_arrow_rtl_flip(self) -> None:
+        """Navigation CSS should flip arrows in RTL."""
+        from pathlib import Path
+
+        css = Path("bengal/themes/default/assets/css/components/navigation.css").read_text(
+            encoding="utf-8"
+        )
+        assert ".nav-arrow" in css, "navigation.css should style .nav-arrow"
+        assert "scaleX(-1)" in css, "RTL arrow flip should use scaleX(-1)"
+
+
 class TestCSSLogicalProperties:
     """Verify the default theme uses CSS logical properties (no physical directional)."""
 
