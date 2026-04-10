@@ -84,6 +84,14 @@ def create_bengal_dev_app(
         serving_dir = _resolve_dir()
 
         if method == "GET":
+            # Content negotiation: serve .md when Accept: text/markdown
+            headers = dict(scope.get("headers", []))
+            accept = (headers.get(b"accept", b"")).decode("utf-8", errors="replace")
+            if "text/markdown" in accept:
+                served = await _serve_markdown_negotiated(send, output_dir=serving_dir, path=path)
+                if served:
+                    return
+
             await _serve_static(
                 send,
                 output_dir=serving_dir,
@@ -208,6 +216,54 @@ def _resolve_file_path(output_dir: Path, path: str) -> Path | None:
     except ValueError:
         return None
     return full
+
+
+async def _serve_markdown_negotiated(
+    send: Any,
+    *,
+    output_dir: Path,
+    path: str,
+) -> bool:
+    """Serve .md file when client sends Accept: text/markdown.
+
+    Resolves the corresponding .md file for HTML paths (e.g.,
+    /docs/getting-started/ → /docs/getting-started/index.md).
+
+    Returns True if a markdown file was served, False to fall through.
+    """
+    if not _is_html_path(path):
+        return False
+
+    resolved = _resolve_file_path(output_dir, path)
+    if resolved is None:
+        return False
+
+    # For directory paths, resolved points to index.html — find index.md
+    if resolved.is_dir():
+        md_path = resolved / "index.md"
+    elif resolved.suffix in (".html", ".htm"):
+        md_path = resolved.with_suffix(".md")
+    else:
+        md_path = resolved.parent / "index.md"
+
+    if not md_path.is_file():
+        return False
+
+    content = await asyncio.to_thread(md_path.read_bytes)
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 200,
+            "headers": [
+                [b"content-type", b"text/markdown; charset=utf-8"],
+                [b"content-length", str(len(content)).encode()],
+                [b"cache-control", b"no-store, no-cache, must-revalidate, max-age=0"],
+                [b"vary", b"Accept"],
+            ],
+        }
+    )
+    await send({"type": "http.response.body", "body": content})
+    return True
 
 
 async def _serve_static(
