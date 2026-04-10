@@ -481,23 +481,22 @@ print("test")
 ```
 """
 
-        # Layer 1-2: Configuration and request context
-        with (  # noqa: SIM117 — can't merge: `as meta` would bind to tuple
+        # Layer 1-3: Configuration, request context, metadata
+        with (
             parse_config_context(ParseConfig()),
             render_config_context(RenderConfig()),
             request_context(
                 source_file=Path("/test.md"),
                 source_content=source,
             ),
+            metadata_context() as meta,
         ):
-            # Layer 3: Metadata (separate block — metadata_context needs `as`)
-            with metadata_context() as meta:
-                # Layer 4: Pooled instances
-                with ParserPool.acquire(source) as parser:
-                    ast = parser.parse()
+            # Layer 4: Pooled instances
+            with ParserPool.acquire(source) as parser:
+                ast = parser.parse()
 
-                with RendererPool.acquire(source) as renderer:
-                    html = renderer.render(ast)
+            with RendererPool.acquire(source) as renderer:
+                html = renderer.render(ast)
 
                 # Verify all contexts worked
                 assert "<h1" in html
