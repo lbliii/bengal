@@ -188,25 +188,32 @@ class SiteLlmsTxtGenerator:
         total_pages = sum(len(sp) for _, sp in sections)
         pages_rendered = 0
         truncated = False
+        # Track running character count to avoid O(n²) join on every entry
+        # +1 per line accounts for the newline separator in the final join
+        char_count = sum(len(line) + 1 for line in lines)
 
         for section_name, section_pages in sections:
             display_name = self._format_section_name(section_name)
-            lines.append(f"## {display_name}")
+            header_line = f"## {display_name}"
+            lines.append(header_line)
             lines.append("")
+            char_count += len(header_line) + 1 + 1  # header + newline + empty line
             for page in section_pages:
                 url = get_page_url(page, self.site)
                 desc = page.description
-                if desc:
-                    lines.append(f"- [{page.title}]({url}): {desc}")
-                else:
-                    lines.append(f"- [{page.title}]({url})")
-                pages_rendered += 1
+                entry = f"- [{page.title}]({url}): {desc}" if desc else f"- [{page.title}]({url})"
+                entry_chars = len(entry) + 1  # +1 for newline
 
-                # Check character budget after each section
-                if self.max_chars and len("\n".join(lines)) > self.max_chars:
+                # Check character budget before appending
+                if self.max_chars and char_count + entry_chars > self.max_chars:
                     truncated = True
                     break
+
+                lines.append(entry)
+                char_count += entry_chars
+                pages_rendered += 1
             lines.append("")
+            char_count += 1  # empty line
 
             if truncated:
                 break

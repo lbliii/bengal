@@ -14,6 +14,7 @@ Supported Features:
 - ``search``: Site search functionality
 - ``json``: Per-page JSON output
 - ``llm_txt``: LLM-friendly text output
+- ``markdown``: Per-page Markdown output for AI agent URL support
 - ``validate_links``: Link validation during build
 - ``minify_assets``: Asset minification
 - ``minify_html``: HTML output minification

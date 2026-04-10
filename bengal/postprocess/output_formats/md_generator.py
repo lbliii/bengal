@@ -150,11 +150,17 @@ class PageMarkdownGenerator:
         # Raw markdown content (preferred) or plain text fallback
         raw = getattr(page, "_raw_content", None) or ""
         if raw:
-            # Strip leading H1 if it duplicates the title we already wrote
             content = raw.strip()
+            # Only strip leading H1 if it duplicates the title we already wrote
             if content.startswith("# "):
                 first_line_end = content.find("\n")
-                content = content[first_line_end:].lstrip("\n") if first_line_end != -1 else ""
+                h1_text = (
+                    content[2:first_line_end].strip()
+                    if first_line_end != -1
+                    else content[2:].strip()
+                )
+                if h1_text == page.title:
+                    content = content[first_line_end:].lstrip("\n") if first_line_end != -1 else ""
         else:
             # Fallback to plain text
             content = getattr(page, "plain_text", "") or ""
