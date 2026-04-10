@@ -31,6 +31,7 @@ from kida.environment import (
 )
 
 from bengal.errors import BengalRenderingError
+from bengal.errors.codes import ErrorCode
 from bengal.protocols import EngineCapability, TemplateEngineProtocol
 from bengal.protocols.capabilities import has_clear_template_cache
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
@@ -383,6 +384,7 @@ class KidaTemplateEngine:
                 msg = f"Template syntax error in '{name}': {e}"
             raise BengalRenderingError(
                 message=msg,
+                code=ErrorCode.R002,
                 original_error=e,
                 file_path=getattr(e, "filename", None),
                 line_number=getattr(e, "lineno", None),
@@ -414,6 +416,7 @@ class KidaTemplateEngine:
                         f"Call stack:\n{context_str}\n"
                         f"Check that all filters and template functions are properly registered."
                     ),
+                    code=ErrorCode.R008,
                     original_error=e,
                 ) from e
             if "_undefined" in error_str and "not callable" in error_str:
@@ -423,12 +426,14 @@ class KidaTemplateEngine:
                         "Undefined. Check that the imported template defines the macro. "
                         "If this occurs during parallel builds, try --no-parallel."
                     ),
+                    code=ErrorCode.R006,
                     original_error=e,
                     suggestion="Check that the imported template defines the macro. "
                     "If this occurs during parallel builds, try --no-parallel.",
                 ) from e
             raise BengalRenderingError(
                 message=f"Template render error in '{name}': {e}",
+                code=ErrorCode.R010,
                 original_error=e,
                 file_path=getattr(e, "filename", None),
                 line_number=getattr(e, "lineno", None),
@@ -441,6 +446,7 @@ class KidaTemplateEngine:
                 msg = f"Template render error in '{name}': {e}"
             raise BengalRenderingError(
                 message=msg,
+                code=ErrorCode.R010,
                 original_error=e,
                 file_path=getattr(e, "filename", None),
                 line_number=getattr(e, "lineno", None),
@@ -495,6 +501,7 @@ class KidaTemplateEngine:
                 msg = f"Template string render error: {e}"
             raise BengalRenderingError(
                 message=msg,
+                code=ErrorCode.R003,
                 original_error=e,
                 file_path=getattr(e, "filename", None),
                 line_number=getattr(e, "lineno", None),
@@ -507,6 +514,7 @@ class KidaTemplateEngine:
                 msg = f"Template string render error: {e}"
             raise BengalRenderingError(
                 message=msg,
+                code=ErrorCode.R010,
                 original_error=e,
                 file_path=getattr(e, "filename", None),
                 line_number=getattr(e, "lineno", None),

@@ -489,8 +489,8 @@ print("test")
                 source_file=Path("/test.md"),
                 source_content=source,
             ),
-            metadata_context(),
-        ) as meta:
+            metadata_context() as meta,
+        ):
             # Layer 4: Pooled instances
             with ParserPool.acquire(source) as parser:
                 ast = parser.parse()
@@ -498,10 +498,10 @@ print("test")
             with RendererPool.acquire(source) as renderer:
                 html = renderer.render(ast)
 
-            # Verify all contexts worked
-            assert "<h1" in html
-            assert meta.has_code_blocks is True
-            assert "https://example.com" in meta.external_links
+                # Verify all contexts worked
+                assert "<h1" in html
+                assert meta.has_code_blocks is True
+                assert "https://example.com" in meta.external_links
 
 
 class TestPoolPerformance:
