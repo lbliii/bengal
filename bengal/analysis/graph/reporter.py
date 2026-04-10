@@ -37,6 +37,8 @@ from bengal.analysis.utils.validation import require_built
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
     from bengal.protocols import PageLike
 else:
@@ -391,7 +393,7 @@ class GraphReporter:
         return insights
 
     @staticmethod
-    def _find_homepage(analysis_pages: list[PageLike]) -> PageLike | None:
+    def _find_homepage(analysis_pages: Sequence[PageLike]) -> PageLike | None:
         """Find the homepage from a list of pages."""
         for page in analysis_pages:
             # Type narrowing: slug may not be on PageLike protocol

@@ -32,7 +32,7 @@ from typing import TYPE_CHECKING
 from bengal.parsing.backends.patitas.utils.contextvar import ContextVarManager
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Iterator
+    from collections.abc import Callable, Generator
     from contextvars import Token
 
     from bengal.parsing.backends.patitas.directives.registry import DirectiveRegistry
@@ -122,7 +122,7 @@ def reset_parse_config(token: Token[ParseConfig | None] | None = None) -> None:
     _manager.reset(token)
 
 
-def parse_config_context(config: ParseConfig) -> Iterator[ParseConfig]:
+def parse_config_context(config: ParseConfig) -> Generator[ParseConfig]:
     """Context manager for scoped parse configuration.
 
     Properly restores previous config on exit (supports nesting).

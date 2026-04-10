@@ -13,7 +13,7 @@ from __future__ import annotations
 from typing import Any
 
 
-def normalize_autodoc_config(site_config: dict[str, Any]) -> dict[str, Any]:
+def normalize_autodoc_config(site_config: Any) -> dict[str, Any]:
     """
     Normalize github repo/branch for autodoc template consumption.
 

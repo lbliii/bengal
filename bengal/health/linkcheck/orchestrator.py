@@ -223,7 +223,7 @@ class LinkCheckOrchestrator:
             if external_thread.is_alive():
                 logger.warning(
                     "external_link_check_timeout",
-                    message="External link check timed out after 130s",
+                    msg="External link check timed out after 130s",
                 )
             elif external_exc is not None:
                 raise external_exc

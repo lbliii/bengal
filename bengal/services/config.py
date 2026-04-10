@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from bengal.cache.paths import BengalPaths
-    from bengal.config.accessor import Config
     from bengal.core.theme import Theme
 
 
@@ -50,14 +49,14 @@ class ConfigService:
         >>> svc.config_hash # "a1b2c3d4e5f6g7h8"
     """
 
-    config: Config | dict[str, Any]
+    config: Any
     root_path: Path
     paths: BengalPaths
     config_hash: str
     theme_obj: Theme | None = None
 
     @classmethod
-    def from_config(cls, config: Config | dict[str, Any], root_path: Path) -> ConfigService:
+    def from_config(cls, config: Any, root_path: Path) -> ConfigService:
         """
         Construct ConfigService from config and root_path.
 

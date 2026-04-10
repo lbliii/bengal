@@ -13,12 +13,8 @@ from bengal.health.report import CheckResult
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
 if TYPE_CHECKING:
-    from bengal.config.accessor import Config
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import SiteLike
-
-# Type for config that supports dict-like access
-ConfigLike = "Config | dict[str, Any]"
 
 
 class ConfigValidatorWrapper(BaseValidator):
@@ -53,7 +49,7 @@ class ConfigValidatorWrapper(BaseValidator):
 
         return results
 
-    def _check_essential_fields(self, config: Config | dict[str, Any]) -> list[CheckResult]:
+    def _check_essential_fields(self, config: Any) -> list[CheckResult]:
         """Check that essential config fields are present."""
         results = []
 
@@ -74,7 +70,7 @@ class ConfigValidatorWrapper(BaseValidator):
 
         return results
 
-    def _check_common_issues(self, config: Config | dict[str, Any]) -> list[CheckResult]:
+    def _check_common_issues(self, config: Any) -> list[CheckResult]:
         """Check for common configuration issues."""
         results = []
 
@@ -137,7 +133,7 @@ class ConfigValidatorWrapper(BaseValidator):
 
         return results
 
-    def _check_baseurl_issues(self, config: dict[str, Any]) -> list[CheckResult]:
+    def _check_baseurl_issues(self, config: Any) -> list[CheckResult]:
         """Check for common baseurl configuration issues.
 
         Common problems:

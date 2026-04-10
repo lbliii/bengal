@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from bengal.utils.observability.logger import LogLevel
     from bengal.utils.observability.profile import BuildProfile
 
 
@@ -23,7 +24,7 @@ def get_log_level_for_profile(
     profile: BuildProfile | None,
     debug: bool = False,
     verbose: bool = False,
-) -> str:
+) -> LogLevel:
     """
     Determine appropriate log level based on profile and flags.
 

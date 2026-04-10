@@ -47,6 +47,8 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.query_index import QueryIndex
     from bengal.protocols import PageLike, SiteContent
@@ -131,7 +133,7 @@ class QueryIndexRegistry:
 
     def build_all(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         build_cache: BuildCache,
         skip_generated: bool = True,
     ) -> None:
@@ -172,7 +174,7 @@ class QueryIndexRegistry:
 
     def update_incremental(
         self,
-        changed_pages: list[PageLike],
+        changed_pages: Sequence[PageLike],
         build_cache: BuildCache,
         skip_generated: bool = True,
     ) -> dict[str, set[str]]:

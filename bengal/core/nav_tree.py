@@ -59,7 +59,6 @@ from bengal.utils.primitives.lru_cache import LRUCache
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    from bengal.core.site import Site
     from bengal.protocols import PageLike, SectionLike, SiteLike
 
 
@@ -717,7 +716,7 @@ class NavTreeCache:
     _cache: LRUCache[str, NavTree] = LRUCache(maxsize=20, name="nav_tree")
     _lock = threading.Lock()
     _build_locks = PerKeyLockManager()  # Per-version build serialization
-    _site: Site | None = None
+    _site: SiteLike | None = None
     # Pre-computed trees from SiteSnapshot — lock-free fast path
     _precomputed: ClassVar[dict[str, NavTree]] = {}
 

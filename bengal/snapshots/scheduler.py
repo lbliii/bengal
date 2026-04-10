@@ -16,6 +16,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.protocols.core import PageLike
@@ -123,7 +124,7 @@ class WaveScheduler:
 
         return self._shared_context
 
-    def render_all(self, pages_to_build: list[PageLike]) -> RenderStats:
+    def render_all(self, pages_to_build: Sequence[PageLike]) -> RenderStats:
         """
         Render pages using the configured strategy.
 
@@ -148,7 +149,7 @@ class WaveScheduler:
             # Clear memoization context
             set_build_context(None)
 
-    def _render_template_first(self, pages_to_build: list[PageLike]) -> RenderStats:
+    def _render_template_first(self, pages_to_build: Sequence[PageLike]) -> RenderStats:
         """
         Render pages grouped by template for cache locality.
 
@@ -343,7 +344,7 @@ class WaveScheduler:
 
         return stats
 
-    def _render_topological_waves(self, pages_to_build: list[PageLike]) -> RenderStats:
+    def _render_topological_waves(self, pages_to_build: Sequence[PageLike]) -> RenderStats:
         """
         Render pages using topological waves (section order).
 

@@ -35,6 +35,8 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.build.provenance.store import ProvenanceCache
     from bengal.core.asset import Asset
     from bengal.core.site import Site
@@ -131,8 +133,8 @@ class ProvenanceFilter:
 
     def filter(
         self,
-        pages: list[PageLike],
-        assets: list[Asset],
+        pages: Sequence[PageLike],
+        assets: Sequence[Asset],
         incremental: bool = True,
         forced_changed: set[Path] | None = None,
     ) -> ProvenanceFilterResult:

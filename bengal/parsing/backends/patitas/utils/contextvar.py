@@ -37,7 +37,7 @@ from contextvars import ContextVar, Token
 from typing import TYPE_CHECKING, overload
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 
 class ContextVarManager[T]:
@@ -151,7 +151,7 @@ class ContextVarManager[T]:
             self._var.set(self._default)
 
     @contextmanager
-    def context(self, value: T) -> Iterator[T]:
+    def context(self, value: T) -> Generator[T]:
         """Context manager for scoped value.
 
         Properly restores previous value on exit (supports nesting).

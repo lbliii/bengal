@@ -36,6 +36,8 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
@@ -275,7 +277,7 @@ def _expand_forced_changed(
     forced_changed: set[Path],
     cache: BuildCache,
     site: SiteLike,
-    pages: list[PageLike],
+    pages: Sequence[PageLike],
 ) -> tuple[set[Path], dict[str, list[str]]]:
     """
     Expand forced_changed set to include dependency-triggered rebuilds.

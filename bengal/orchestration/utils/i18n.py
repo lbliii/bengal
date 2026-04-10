@@ -52,7 +52,7 @@ class I18nConfig:
         return len(self.languages)
 
 
-def get_i18n_config(site_config: dict[str, Any]) -> I18nConfig:
+def get_i18n_config(site_config: Any) -> I18nConfig:
     """
     Extract i18n configuration from site config.
 

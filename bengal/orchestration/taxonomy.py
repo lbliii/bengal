@@ -79,6 +79,8 @@ logger = get_logger(__name__)
 MIN_TAGS_FOR_PARALLEL = 10
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.cache.build_cache import BuildCache
     from bengal.cache.taxonomy_index import TaxonomyIndex
     from bengal.core.site import Site
@@ -183,7 +185,7 @@ class TaxonomyOrchestrator:
             )
 
     def collect_and_generate_incremental(
-        self, changed_pages: list[PageLike], cache: BuildCache
+        self, changed_pages: Sequence[PageLike], cache: BuildCache
     ) -> set[str]:
         """
         Incrementally update taxonomies for changed pages only.
@@ -724,6 +726,7 @@ class TaxonomyOrchestrator:
                 all_generated_pages.extend(tag_pages)
             else:
                 e = r.error
+                assert e is not None  # guaranteed by not r.ok
                 if is_shutdown_error(e):
                     logger.debug("taxonomy_shutdown")
                     continue

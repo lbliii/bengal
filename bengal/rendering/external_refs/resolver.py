@@ -29,12 +29,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from threading import Thread
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from bengal.utils.observability.logger import get_logger
-
-if TYPE_CHECKING:
-    from bengal.config.accessor import Config
 
 logger = get_logger(__name__)
 
@@ -82,7 +79,7 @@ class ExternalRefResolver:
 
     """
 
-    config: Config | dict[str, Any]
+    config: Any
     templates: dict[str, str] = field(default_factory=dict)
     indexes: dict[str, dict[str, ExternalRefEntry]] = field(default_factory=dict)
     unresolved: list[UnresolvedRef] = field(default_factory=list)

@@ -275,9 +275,9 @@ too-many-positional-arguments = "error" # Enforce correct argument counts
 no-matching-overload = "error"          # Enforce matching overloads
 unused-ignore-comment = "error"         # Enforce cleanup of stale type: ignore comments
 # === TIGHTEN NEXT: promote to "error" as false positives decrease ===
-invalid-argument-type = "warn"          # 257 violations — gradual typing gaps + ty false positives
-unresolved-attribute = "warn"           # 333 violations — dynamic attribute patterns
-invalid-assignment = "warn"             # 65 violations — dynamic types + protocol patterns
+invalid-argument-type = "warn"          # 852 violations — PageLike structural matching + list invariance (2026-04-10)
+unresolved-attribute = "warn"           # 507 violations — hasattr narrowing + mixin Self + Optional access (2026-04-10)
+invalid-assignment = "warn"             # 298 violations — list invariance + read-only protocol attrs (2026-04-10)
 
 # === WARNINGS: Gradual typing — enforce incrementally ===
 unresolved-import = "warn"               # Third-party stubs often incomplete

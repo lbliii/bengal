@@ -44,6 +44,7 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.core.site import Site
@@ -111,7 +112,7 @@ class StreamingRenderOrchestrator:
 
     def process(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         parallel: bool = True,
         quiet: bool = False,
         stats: BuildStats | None = None,
@@ -352,7 +353,7 @@ class StreamingRenderOrchestrator:
     def _render_batches(
         self,
         renderer: RenderOrchestrator,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         batch_size: int,
         parallel: bool,
         quiet: bool,

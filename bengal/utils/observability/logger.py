@@ -29,7 +29,7 @@ from contextlib import contextmanager
 from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, TextIO, TypedDict
+from typing import TYPE_CHECKING, Any, TextIO, TypedDict, cast
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -710,7 +710,9 @@ def configure_logging(
                     logger._file_handle = open(log_file, "a", encoding="utf-8")  # noqa: SIM115
 
 
-def get_logger(name: str) -> LazyLogger:
+def get_logger(
+    name: str,
+) -> BengalLogger:  # Returns LazyLogger proxy; typed as BengalLogger for consumers
     """
     Get a logger proxy for the given name.
 
@@ -736,12 +738,12 @@ def get_logger(name: str) -> LazyLogger:
     # Use .get() to avoid KeyError if reset_loggers() clears dict concurrently
     cached = _lazy_loggers.get(name)
     if cached is not None:
-        return cached
+        return cast("BengalLogger", cached)
     # Slow path: acquire lock and double-check
     with _logger_lock:
         if name not in _lazy_loggers:
             _lazy_loggers[name] = LazyLogger(name)
-        return _lazy_loggers[name]
+        return cast("BengalLogger", _lazy_loggers[name])
 
 
 def set_console_quiet(quiet: bool = True) -> None:

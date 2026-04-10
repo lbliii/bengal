@@ -430,6 +430,7 @@ class AssetOrchestrator:
                 )
             else:
                 e = r.error
+                assert e is not None  # guaranteed by not r.ok
                 if is_shutdown_error(e):
                     logger.debug("asset_shutdown")
                     continue

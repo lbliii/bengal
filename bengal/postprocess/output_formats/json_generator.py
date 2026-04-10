@@ -73,6 +73,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.protocols import PageLike, SiteLike
@@ -147,7 +148,7 @@ class PageJSONGenerator:
 
     def generate(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         accumulated_json: list[tuple[Any, dict[str, Any]]] | None = None,
     ) -> int:
         """

@@ -266,7 +266,7 @@ def _merge_autodoc_config(
     return default_config
 
 
-def get_python_config(config: dict[str, Any]) -> dict[str, Any]:
+def get_python_config(config: Any) -> dict[str, Any]:
     """
     Extract Python autodoc configuration from full autodoc config.
 
@@ -280,7 +280,7 @@ def get_python_config(config: dict[str, Any]) -> dict[str, Any]:
     return config.get("python", {})
 
 
-def get_openapi_config(config: dict[str, Any]) -> dict[str, Any]:
+def get_openapi_config(config: Any) -> dict[str, Any]:
     """
     Extract OpenAPI autodoc configuration from full autodoc config.
 
@@ -294,7 +294,7 @@ def get_openapi_config(config: dict[str, Any]) -> dict[str, Any]:
     return config.get("openapi", {})
 
 
-def get_cli_config(config: dict[str, Any]) -> dict[str, Any]:
+def get_cli_config(config: Any) -> dict[str, Any]:
     """
     Extract CLI autodoc configuration from full autodoc config.
 
@@ -308,7 +308,7 @@ def get_cli_config(config: dict[str, Any]) -> dict[str, Any]:
     return config.get("cli", {})
 
 
-def get_grouping_config(config: dict[str, Any]) -> dict[str, Any]:
+def get_grouping_config(config: Any) -> dict[str, Any]:
     """
     Get grouping configuration from Python autodoc config.
 

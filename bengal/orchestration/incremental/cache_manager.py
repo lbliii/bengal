@@ -24,6 +24,8 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.cache import BuildCache
     from bengal.core.asset import Asset
     from bengal.core.site import Site
@@ -219,7 +221,7 @@ class CacheManager:
 
         return False
 
-    def save(self, pages_built: list[PageLike], assets_processed: list[Asset]) -> None:
+    def save(self, pages_built: Sequence[PageLike], assets_processed: list[Asset]) -> None:
         """
         Update cache with processed files.
 

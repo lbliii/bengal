@@ -67,6 +67,7 @@ from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.protocols import PageLike, SiteLike
@@ -106,7 +107,7 @@ class SiteLlmsTxtGenerator:
             if getattr(s, "name", "")
         }
 
-    def generate(self, pages: list[PageLike]) -> Path:
+    def generate(self, pages: Sequence[PageLike]) -> Path:
         """Generate llms.txt at the site root.
 
         Args:
@@ -133,7 +134,7 @@ class SiteLlmsTxtGenerator:
         )
         return output_path
 
-    def _curate_pages(self, pages: list[PageLike]) -> list[PageLike]:
+    def _curate_pages(self, pages: Sequence[PageLike]) -> list[PageLike]:
         """Filter pages to include only high-value navigation entries.
 
         Excludes:
@@ -172,7 +173,7 @@ class SiteLlmsTxtGenerator:
 
         return curated
 
-    def _render(self, pages: list[PageLike]) -> str:
+    def _render(self, pages: Sequence[PageLike]) -> str:
         lines: list[str] = []
 
         title = self.site.title or "Site"
@@ -231,7 +232,7 @@ class SiteLlmsTxtGenerator:
 
         return "\n".join(lines)
 
-    def _group_by_section(self, pages: list[PageLike]) -> list[tuple[str, list[PageLike]]]:
+    def _group_by_section(self, pages: Sequence[PageLike]) -> list[tuple[str, list[PageLike]]]:
         """Group pages by their top-level section, preserving weight order.
 
         Root-level pages (no section) are collected under a synthetic

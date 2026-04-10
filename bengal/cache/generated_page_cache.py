@@ -49,6 +49,7 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
     from pathlib import Path
 
     from bengal.protocols import PageLike
@@ -229,7 +230,7 @@ class GeneratedPageCache(PersistentCacheMixin):
 
     def compute_member_hash(
         self,
-        member_pages: list[PageLike],
+        member_pages: Sequence[PageLike],
         content_cache: dict[str, str],
     ) -> str:
         """
@@ -266,7 +267,7 @@ class GeneratedPageCache(PersistentCacheMixin):
         self,
         page_type: str,
         page_id: str,
-        member_pages: list[PageLike],
+        member_pages: Sequence[PageLike],
         content_cache: dict[str, str],
         template_hash: str = "",
     ) -> bool:
@@ -325,7 +326,7 @@ class GeneratedPageCache(PersistentCacheMixin):
         self,
         page_type: str,
         page_id: str,
-        member_pages: list[PageLike],
+        member_pages: Sequence[PageLike],
         content_cache: dict[str, str],
         rendered_html: str,
         generation_time_ms: int,

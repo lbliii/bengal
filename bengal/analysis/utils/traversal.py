@@ -14,13 +14,19 @@ Example:
 
 """
 
+from __future__ import annotations
+
 from collections import deque
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from collections.abc import Collection
 
 
 def bfs_distances[T](
     outgoing_refs: dict[T, set[T]],
     source: T,
-    targets: set[T] | list[T] | None = None,
+    targets: Collection[T] | None = None,
 ) -> dict[T, int]:
     """
     Compute shortest path distances from source to all reachable nodes.

@@ -36,7 +36,7 @@ from contextvars import ContextVar, Token
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator
+    from collections.abc import Generator
 
 
 class ContextVarManager[T]:
@@ -128,7 +128,7 @@ class ContextVarManager[T]:
             self._var.set(None)
 
     @contextmanager
-    def __call__(self, value: T) -> Iterator[T]:
+    def __call__(self, value: T) -> Generator[T]:
         """
         Context manager for scoped value usage.
 

@@ -49,6 +49,8 @@ logger = get_logger(__name__)
 MIN_PAGES_FOR_PARALLEL = 50
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.core.site import Site
     from bengal.protocols.core import PageLike
 
@@ -98,7 +100,10 @@ class RelatedPostsOrchestrator:
         self.site = site
 
     def build_index(
-        self, limit: int = 5, parallel: bool = True, affected_pages: list[PageLike] | None = None
+        self,
+        limit: int = 5,
+        parallel: bool = True,
+        affected_pages: Sequence[PageLike] | None = None,
     ) -> None:
         """
         Compute related posts for pages using tag-based matching.
@@ -167,7 +172,7 @@ class RelatedPostsOrchestrator:
 
     def _build_sequential(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         page_tags_map: dict[PageLike, set[str]],
         tags_dict: dict[str, dict[str, Any]],
         limit: int,
@@ -201,7 +206,7 @@ class RelatedPostsOrchestrator:
 
     def _build_parallel(
         self,
-        pages: list[PageLike],
+        pages: Sequence[PageLike],
         page_tags_map: dict[PageLike, set[str]],
         tags_dict: dict[str, dict[str, Any]],
         limit: int,

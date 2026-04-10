@@ -70,7 +70,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
 
     from bengal.protocols import SectionLike
 
@@ -364,7 +364,7 @@ class CascadeSnapshot:
     def build(
         cls,
         content_dir: Path,
-        sections: list[SectionLike],
+        sections: Sequence[SectionLike],
         root_cascade: dict[str, Any] | None = None,
     ) -> CascadeSnapshot:
         """
