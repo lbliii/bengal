@@ -185,7 +185,7 @@ ParsedPage use case exists. Deferring to avoid unnecessary record churn.
 
 ---
 
-## Sprint 2: RTL Layout Foundation
+## Sprint 2: RTL Layout Foundation ✅ COMPLETE
 
 **Goal**: Arabic/Hebrew sites render with correct reading direction, spacing, and navigation.
 
@@ -220,7 +220,7 @@ Minimal fixture with Arabic content for RTL testing.
 
 ---
 
-## Sprint 3: RTL Navigation + Bidirectional Text
+## Sprint 3: RTL Navigation + Bidirectional Text ✅ COMPLETE
 
 **Goal**: Menu, breadcrumbs, sidebar, and mixed-direction content handle RTL correctly.
 
@@ -245,7 +245,7 @@ Add `<bdi>` tags around user-generated content in mixed-direction contexts (e.g.
 
 ---
 
-## Sprint 4: Test Hardening
+## Sprint 4: Test Hardening ✅ COMPLETE
 
 **Goal**: Close coverage gaps and establish regression baselines.
 
@@ -344,3 +344,6 @@ How to contribute translations: PO file conventions, testing translations locall
 | 2026-04-09 | Initial draft from codebase exploration |
 | 2026-04-09 | Sprint 0 complete: Option B for locale threading (no record changes), 497 CSS physical properties audited, 12 config keys mapped. Sprint 1 Task 1.3 skipped. |
 | 2026-04-09 | Sprint 1 complete: `nt()` wired through Kida + generic adapters (5 tests). I18nConfig expanded 3→7 fields + LanguageConfig TypedDict (6 fields). All 38 i18n tests + 358 config tests pass. |
+| 2026-04-09 | Sprint 2 complete: 39 CSS files migrated to logical properties (497→0 physical directional props in theme). `dir` attribute already wired in base.html. `test-i18n-rtl` test root + 10 integration tests created. |
+| 2026-04-09 | Sprint 3 complete: `<bdi>` tags added to docs-nav, action-bar, base.html, navigation-components. RTL breadcrumb separator (‹) and nav arrow flip (scaleX(-1)) CSS added. 5 bidi isolation tests pass. Total: 15 RTL integration tests. |
+| 2026-04-09 | Sprint 4 complete: 13 plural edge case tests (TestNtEdgeCases + TestCatalogNgettext), 5 RTL integration expansion tests (TestRTLTemplateIntegration), 16 config validation tests (test_i18n_config.py). Total: 59 tests across 3 files, all passing. |

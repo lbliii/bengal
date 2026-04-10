@@ -191,6 +191,144 @@ class TestBidiIsolation:
         assert "scaleX(-1)" in css, "RTL arrow flip should use scaleX(-1)"
 
 
+class TestRTLTemplateIntegration:
+    """E2E tests for RTL template rendering with the template engine."""
+
+    def test_multiple_rtl_locales(self, tmp_path) -> None:
+        """All known RTL locales produce dir='rtl' through the template engine."""
+        rtl_codes = ["ar", "he", "fa", "ur"]
+        config = {
+            "i18n": {
+                "strategy": "prefix",
+                "default_language": "en",
+                "languages": [{"code": c} for c in ["en", *rtl_codes]],
+            }
+        }
+        site = Site(root_path=tmp_path, config=config)
+        engine = TemplateEngine(site)
+
+        for code in rtl_codes:
+
+            class P:
+                lang = code
+
+            html = engine.render_string(
+                "{{ direction() }}",
+                {"page": P(), "site": site},
+            )
+            assert html.strip() == "rtl", f"{code} should produce dir=rtl"
+
+    def test_mixed_direction_page_sequence(self, tmp_path) -> None:
+        """Rendering alternating LTR/RTL pages produces correct direction each time."""
+        config = {
+            "i18n": {
+                "strategy": "prefix",
+                "default_language": "en",
+                "languages": [{"code": "en"}, {"code": "ar"}],
+            }
+        }
+        site = Site(root_path=tmp_path, config=config)
+        engine = TemplateEngine(site)
+
+        class EnPage:
+            lang = "en"
+
+        class ArPage:
+            lang = "ar"
+
+        # Alternate renders — ensures no stale state
+        for page, expected in [
+            (EnPage(), "ltr"),
+            (ArPage(), "rtl"),
+            (EnPage(), "ltr"),
+            (ArPage(), "rtl"),
+        ]:
+            html = engine.render_string("{{ direction() }}", {"page": page, "site": site})
+            assert html.strip() == expected
+
+    def test_full_html_skeleton_rtl(self, tmp_path) -> None:
+        """Complete HTML skeleton renders with all RTL attributes."""
+        config = {
+            "i18n": {
+                "strategy": "prefix",
+                "default_language": "en",
+                "languages": [{"code": "en"}, {"code": "ar"}],
+            }
+        }
+        site = Site(root_path=tmp_path, config=config)
+        engine = TemplateEngine(site)
+
+        class ArPage:
+            lang = "ar"
+            title = "مرحبا"
+
+        template = (
+            "<!DOCTYPE html>\n"
+            '<html lang="{{ current_lang() }}" dir="{{ direction() }}">\n'
+            "<head><title>{{ page.title }}</title></head>\n"
+            '<body>{{ nt("1 item", "{n} items", 5) }}</body>\n'
+            "</html>"
+        )
+        html = engine.render_string(template, {"page": ArPage(), "site": site})
+        assert 'lang="ar"' in html
+        assert 'dir="rtl"' in html
+        assert "مرحبا" in html
+        assert "5 items" in html
+
+    def test_languages_list_in_template(self, tmp_path) -> None:
+        """languages() template function returns all configured languages."""
+        config = {
+            "i18n": {
+                "strategy": "prefix",
+                "default_language": "en",
+                "languages": [
+                    {"code": "en", "name": "English"},
+                    {"code": "ar", "name": "العربية"},
+                    {"code": "he", "name": "עברית"},
+                ],
+            }
+        }
+        site = Site(root_path=tmp_path, config=config)
+        engine = TemplateEngine(site)
+
+        class P:
+            lang = "en"
+
+        html = engine.render_string(
+            "{% for l in languages() %}{{ l.code }},{% end %}",
+            {"page": P(), "site": site},
+        )
+        assert "en," in html
+        assert "ar," in html
+        assert "he," in html
+
+    def test_t_function_in_rtl_context(self, tmp_path) -> None:
+        """t() translation works correctly with Arabic page context."""
+        config = {
+            "i18n": {
+                "strategy": "prefix",
+                "default_language": "en",
+                "languages": [{"code": "en"}, {"code": "ar"}],
+            }
+        }
+        # Write Arabic i18n file
+        i18n_dir = tmp_path / "i18n"
+        i18n_dir.mkdir(parents=True, exist_ok=True)
+        (i18n_dir / "ar.yaml").write_text('nav:\n  home: "الرئيسية"', encoding="utf-8")
+
+        site = Site(root_path=tmp_path, config=config)
+        engine = TemplateEngine(site)
+
+        class ArPage:
+            lang = "ar"
+
+        html = engine.render_string(
+            "{{ t('nav.home') }}",
+            {"page": ArPage(), "site": site},
+        )
+        assert "الرئيسية" in html
+
+
 class TestCSSLogicalProperties:
     """Verify the default theme uses CSS logical properties (no physical directional)."""
 

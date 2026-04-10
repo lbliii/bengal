@@ -236,6 +236,157 @@ def test_nt_respects_page_lang(tmp_path: Path) -> None:
     assert "2 items" in html
 
 
+class TestNtEdgeCases:
+    """Edge cases for plural-aware translation via nt()."""
+
+    def _make_site(self, tmp_path: Path, lang: str = "en") -> tuple:
+        """Helper: create site + engine + page stub for nt() tests."""
+        config = {
+            "i18n": {
+                "strategy": "prefix",
+                "default_language": "en",
+                "languages": [{"code": "en"}, {"code": lang}],
+            }
+        }
+        site = Site(root_path=tmp_path, config=config)
+        engine = TemplateEngine(site)
+
+        class P:
+            pass
+
+        P.lang = lang
+        return site, engine, P()
+
+    def test_nt_n_zero_uses_plural(self, tmp_path: Path) -> None:
+        """n=0 should use plural form (English rules: 0 != 1)."""
+        _, engine, page = self._make_site(tmp_path)
+        html = engine.render_string(
+            "{{ nt('1 item', '{n} items', 0) }}",
+            {
+                "page": page,
+                "site": Site(
+                    root_path=tmp_path,
+                    config={"i18n": {"default_language": "en", "languages": [{"code": "en"}]}},
+                ),
+            },
+        )
+        assert "0 items" in html
+
+    def test_nt_n_one_uses_singular(self, tmp_path: Path) -> None:
+        """n=1 should use singular form."""
+        site, engine, page = self._make_site(tmp_path)
+        html = engine.render_string(
+            "{{ nt('1 item', '{n} items', 1) }}",
+            {"page": page, "site": site},
+        )
+        assert "1 item" in html
+        assert "items" not in html
+
+    def test_nt_n_two(self, tmp_path: Path) -> None:
+        """n=2 should use plural form."""
+        site, engine, page = self._make_site(tmp_path)
+        html = engine.render_string(
+            "{{ nt('1 item', '{n} items', 2) }}",
+            {"page": page, "site": site},
+        )
+        assert "2 items" in html
+
+    def test_nt_n_large(self, tmp_path: Path) -> None:
+        """n=21 should use plural form (relevant for Slavic languages)."""
+        site, engine, page = self._make_site(tmp_path)
+        html = engine.render_string(
+            "{{ nt('1 item', '{n} items', 21) }}",
+            {"page": page, "site": site},
+        )
+        assert "21 items" in html
+
+    def test_nt_negative_n(self, tmp_path: Path) -> None:
+        """Negative n should use plural form (not 1)."""
+        site, engine, page = self._make_site(tmp_path)
+        html = engine.render_string(
+            "{{ nt('1 item', '{n} items', -1) }}",
+            {"page": page, "site": site},
+        )
+        assert "-1 items" in html
+
+    def test_nt_no_params_no_placeholders(self, tmp_path: Path) -> None:
+        """nt() with static strings (no {n}) works fine."""
+        site, engine, page = self._make_site(tmp_path)
+        html = engine.render_string(
+            "{{ nt('one apple', 'several apples', 5) }}",
+            {"page": page, "site": site},
+        )
+        assert "several apples" in html
+
+    def test_nt_missing_catalog_falls_back(self, tmp_path: Path) -> None:
+        """When no gettext catalog exists, nt() uses English-style fallback."""
+        site, engine, page = self._make_site(tmp_path, lang="ja")
+        html = engine.render_string(
+            "{{ nt('1 item', '{n} items', 3) }}",
+            {"page": page, "site": site},
+        )
+        assert "3 items" in html
+
+    def test_nt_format_error_returns_raw(self, tmp_path: Path) -> None:
+        """Bad format params don't crash — return unformatted string."""
+        site, engine, page = self._make_site(tmp_path)
+        html = engine.render_string(
+            "{{ nt('1 item', '{n} {missing} items', 2) }}",
+            {"page": page, "site": site},
+        )
+        # Should not crash; returns something (either formatted partially or raw)
+        assert html is not None
+        assert len(html.strip()) > 0
+
+
+class TestCatalogNgettext:
+    """Direct tests for Catalog.ngettext() plural form selection."""
+
+    def test_default_plural_fn_singular(self) -> None:
+        """Default plural function: n=1 → index 0 (singular)."""
+        from bengal.i18n.catalog import Catalog
+
+        cat = Catalog()
+        assert cat.ngettext("apple", "apples", 1) == "apple"
+
+    def test_default_plural_fn_plural(self) -> None:
+        """Default plural function: n!=1 → index 1 (plural)."""
+        from bengal.i18n.catalog import Catalog
+
+        cat = Catalog()
+        assert cat.ngettext("apple", "apples", 0) == "apples"
+        assert cat.ngettext("apple", "apples", 2) == "apples"
+        assert cat.ngettext("apple", "apples", 5) == "apples"
+
+    def test_custom_plural_fn(self) -> None:
+        """Custom plural function for 3-form language (e.g. Polish-style)."""
+        from bengal.i18n.catalog import Catalog
+
+        # Polish: n==1 → 0, n%10 in (2,3,4) and n%100 not in (12,13,14) → 1, else → 2
+        # Simplified: just test that custom fn index is respected
+        cat = Catalog(plural_fn=lambda n: 0 if n == 1 else 1)
+        assert cat.ngettext("1 plik", "{n} pliki", 1) == "1 plik"
+        assert cat.ngettext("1 plik", "{n} pliki", 5) == "{n} pliki"
+
+    def test_plural_fn_out_of_range_falls_back(self) -> None:
+        """If plural_fn returns index >= len(forms), use last form."""
+        from bengal.i18n.catalog import Catalog
+
+        # Return index 5 — way beyond the 2-element forms list
+        cat = Catalog(plural_fn=lambda n: 5)
+        result = cat.ngettext("apple", "apples", 3)
+        assert result == "apples"  # Falls back to last form
+
+    def test_ngettext_with_fallback_dict(self) -> None:
+        """Catalog with fallback dict still uses plural_fn for ngettext."""
+        from bengal.i18n.catalog import Catalog
+
+        cat = Catalog(fallback={"hello": "hola"})
+        # ngettext doesn't use fallback dict — uses forms + plural_fn
+        assert cat.ngettext("1 thing", "{n} things", 1) == "1 thing"
+        assert cat.ngettext("1 thing", "{n} things", 2) == "{n} things"
+
+
 def test_alternate_links(tmp_path: Path) -> None:
     # Build a minimal site with two translated pages
     config = {
