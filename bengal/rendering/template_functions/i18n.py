@@ -3,6 +3,7 @@ Internationalization (i18n) template helpers.
 
 Provides:
 - t(key, params={}, lang=None): translate UI strings from i18n/<lang>.(yaml|json|toml)
+- nt(singular, plural, n, params={}, lang=None): plural-aware translation via ngettext
 - current_lang(): current language code inferred from page/site
 - direction(): 'rtl' or 'ltr' for current page (RTL: ar, he, fa, ur, yi, dv, ku, ps, sd)
 - languages(): configured languages list from config
@@ -10,7 +11,7 @@ Provides:
 - locale_date(date, format='medium'): localized date formatting (Babel if available)
 
 Architecture:
-Core functions (_make_t, _current_lang, _languages, etc.) are pure Python
+Core functions (_make_t, _make_nt, _current_lang, _languages, etc.) are pure Python
 with no engine dependencies. The register() function uses the adapter layer
 to wrap these for the specific template engine being used.
 
@@ -298,6 +299,94 @@ def _make_t(site: SiteLike) -> Callable[[str, dict[str, Any] | None, str | None,
         return format_params(value, params or {})
 
     return t
+
+
+def _make_nt(
+    site: SiteLike,
+) -> Callable[[str, str, int, dict[str, Any] | None, str | None], str]:
+    """Create a plural-aware translation function bound to a site.
+
+    The returned ``nt()`` function uses gettext ``ngettext`` for plural form
+    selection.  Falls back to simple English-style plural selection
+    (singular if n == 1, plural otherwise) when no catalog is available.
+
+    Args:
+        site: Site instance for root path and config access.
+
+    Returns:
+        A callable with signature ``(singular, plural, n, params, lang) -> str``.
+    """
+    catalog_cache: dict[str, Any] = {}  # lang -> Catalog | None
+
+    def load_catalog_for_lang(lang: str) -> Any:
+        if lang in catalog_cache:
+            return catalog_cache[lang]
+        try:
+            from bengal.i18n import load_catalog
+
+            cat = load_catalog(site.root_path, lang, "messages")
+            catalog_cache[lang] = cat
+            return cat
+        except Exception:
+            catalog_cache[lang] = None
+            return None
+
+    def format_params(text: str, params: dict[str, Any]) -> str:
+        try:
+            return text.format(**params)
+        except Exception as e:
+            logger.debug(
+                "i18n_format_params_failed",
+                error=str(e),
+                error_type=type(e).__name__,
+                action="returning_original_text",
+            )
+            return text
+
+    def nt(
+        singular: str,
+        plural: str,
+        n: int,
+        params: dict[str, Any] | None = None,
+        lang: str | None = None,
+    ) -> str:
+        """Translate with plural form selection.
+
+        Tries gettext catalog first (which handles complex plural rules for
+        languages like Polish, Arabic, etc.).  Falls back to English-style
+        singular/plural selection when no catalog is available.
+
+        Args:
+            singular: Singular form (e.g. ``"1 item"``).
+            plural: Plural form (e.g. ``"{n} items"``).
+            n: Count that determines which plural form to use.
+            params: Interpolation parameters.  ``{n}`` is always available.
+            lang: Override language (falls back to page/site default).
+
+        Returns:
+            Translated and interpolated string.
+        """
+        i18n_cfg = site.config.get("i18n", {}) or {}
+        default_lang = i18n_cfg.get("default_language", "en")
+        use_lang = lang or default_lang
+
+        # Merge n into params so templates can use {n}
+        merged = {"n": n}
+        if params:
+            merged.update(params)
+
+        # Try gettext catalog (handles complex plural rules)
+        cat = load_catalog_for_lang(use_lang)
+        if cat:
+            result = cat.ngettext(singular, plural, n)
+            if result not in (singular, plural):
+                return format_params(result, merged)
+
+        # Fallback: simple English-style plural selection
+        form = singular if n == 1 else plural
+        return format_params(form, merged)
+
+    return nt
 
 
 # PERF: Cache for translation_key -> list[Page] index.

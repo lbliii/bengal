@@ -218,12 +218,27 @@ class GraphConfig(TypedDict, total=False):
 # =============================================================================
 
 
+class LanguageConfig(TypedDict, total=False):
+    """Per-language configuration within i18n.languages."""
+
+    code: str  # Language code (e.g., "en", "es", "ar") — required
+    name: str  # Display name (e.g., "English", "Español")
+    hreflang: str  # hreflang attribute value (usually same as code)
+    weight: int  # Sort weight for ordering (lower = earlier)
+    baseurl: str  # Base URL for this language (optional)
+    rtl: bool  # Override RTL auto-detection for this language
+
+
 class I18nConfig(TypedDict, total=False):
     """Internationalization configuration."""
 
     strategy: str | None
     default_language: str
     default_in_subdir: bool
+    languages: list[str | LanguageConfig]
+    fallback_to_default: bool
+    share_taxonomies: bool
+    content_structure: str
 
 
 # =============================================================================

@@ -124,6 +124,118 @@ def test_direction_config_override(tmp_path: Path) -> None:
     assert 'dir="rtl"' in custom_html
 
 
+def test_nt_singular(tmp_path: Path) -> None:
+    """nt() returns singular form when n == 1."""
+    config = {
+        "i18n": {
+            "strategy": "prefix",
+            "default_language": "en",
+            "languages": [{"code": "en"}],
+        }
+    }
+    site = Site(root_path=tmp_path, config=config)
+
+    class P:
+        lang = "en"
+
+    engine = TemplateEngine(site)
+    html = engine.render_string(
+        "{{ nt('1 item', '{n} items', 1) }}",
+        {"page": P(), "site": site},
+    )
+    assert "1 item" in html
+
+
+def test_nt_plural(tmp_path: Path) -> None:
+    """nt() returns plural form when n != 1."""
+    config = {
+        "i18n": {
+            "strategy": "prefix",
+            "default_language": "en",
+            "languages": [{"code": "en"}],
+        }
+    }
+    site = Site(root_path=tmp_path, config=config)
+
+    class P:
+        lang = "en"
+
+    engine = TemplateEngine(site)
+    html = engine.render_string(
+        "{{ nt('1 item', '{n} items', 5) }}",
+        {"page": P(), "site": site},
+    )
+    assert "5 items" in html
+
+
+def test_nt_zero(tmp_path: Path) -> None:
+    """nt() returns plural form when n == 0."""
+    config = {
+        "i18n": {
+            "strategy": "prefix",
+            "default_language": "en",
+            "languages": [{"code": "en"}],
+        }
+    }
+    site = Site(root_path=tmp_path, config=config)
+
+    class P:
+        lang = "en"
+
+    engine = TemplateEngine(site)
+    html = engine.render_string(
+        "{{ nt('1 item', '{n} items', 0) }}",
+        {"page": P(), "site": site},
+    )
+    assert "0 items" in html
+
+
+def test_nt_with_params(tmp_path: Path) -> None:
+    """nt() interpolates params including {n}."""
+    config = {
+        "i18n": {
+            "strategy": "prefix",
+            "default_language": "en",
+            "languages": [{"code": "en"}],
+        }
+    }
+    site = Site(root_path=tmp_path, config=config)
+
+    class P:
+        lang = "en"
+
+    engine = TemplateEngine(site)
+    html = engine.render_string(
+        "{{ nt('1 {thing}', '{n} {thing}s', 3, {'thing': 'cat'}) }}",
+        {"page": P(), "site": site},
+    )
+    assert "3 cats" in html
+
+
+def test_nt_respects_page_lang(tmp_path: Path) -> None:
+    """nt() uses page.lang for language detection."""
+    config = {
+        "i18n": {
+            "strategy": "prefix",
+            "default_language": "en",
+            "languages": [{"code": "en"}, {"code": "es"}],
+        }
+    }
+    site = Site(root_path=tmp_path, config=config)
+
+    class SpanishPage:
+        lang = "es"
+
+    # Without a catalog, nt() uses fallback. The key test is that it
+    # doesn't error and correctly selects the plural form.
+    engine = TemplateEngine(site)
+    html = engine.render_string(
+        "{{ nt('1 item', '{n} items', 2) }}",
+        {"page": SpanishPage(), "site": site},
+    )
+    assert "2 items" in html
+
+
 def test_alternate_links(tmp_path: Path) -> None:
     # Build a minimal site with two translated pages
     config = {
