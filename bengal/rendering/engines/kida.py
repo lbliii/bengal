@@ -284,15 +284,18 @@ class KidaTemplateEngine:
         if "max_include_depth" in kida_config:
             env_kwargs["max_include_depth"] = kida_config["max_include_depth"]
 
-        # Compile-time optimization (kida 0.4.0+)
-        # Kida's partial evaluator can fold constant expressions when given
-        # static_context, but currently folds dict/list values into AST
-        # Constant nodes which Python's compile() rejects (only scalars are
-        # valid constant types).  Blocked on kida fix — see:
-        # https://github.com/lbliii/kida/issues/68
+        # Compile-time optimization (kida 0.4.1+)
+        # Pass site config as static_context so the partial evaluator can fold
+        # constant expressions like {% if config.fonts %} at compile time.
+        # The evaluator eliminates dead branches and resolves scalar constants,
+        # reducing work on every page render.
         #
-        # Once fixed, uncomment to enable config-branch elimination:
-        # static_context = {"config": site.config}
+        # Disabled by default — kida's partial evaluator loses loop variable
+        # bindings in complex templates when static_context is active (kida#78).
+        # Enable with kida.static_context: true once the fix lands.
+        static_context: dict[str, Any] | None = None
+        if kida_config.get("static_context", False):
+            static_context = {"config": site.config}
 
         # Create Kida environment
         # Note: strict mode (UndefinedError for undefined vars) is always enabled
@@ -306,7 +309,8 @@ class KidaTemplateEngine:
             # Fragment caching for {% cache "key" %}...{% end %} blocks
             fragment_cache_size=fragment_cache_size,
             fragment_ttl=fragment_ttl,
-            # Compile-time optimization: pure filter declarations (kida 0.4.0+)
+            # Compile-time optimization (kida 0.4.1+)
+            static_context=static_context,
             pure_filters=_PURE_FILTERS,
             **env_kwargs,
         )
