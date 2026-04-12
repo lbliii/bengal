@@ -175,8 +175,12 @@ class DirectiveRendererMixin:
         1. The handler exposes get_template_context() returning a dict
         2. The site has a _directive_template_renderer callable
 
-        Theme authors override directives by placing templates at
-        templates/directives/{name}.html in their theme directory.
+        Template lookup order (most specific wins):
+        1. directives/{name}.html    — per-type override (e.g., note.html)
+        2. directives/{token_type}.html — handler-level (e.g., admonition.html)
+
+        This lets theme authors override all admonitions with admonition.html
+        or target a single type with note.html.
         """
         if not hasattr(handler, "get_template_context"):
             return None
@@ -190,7 +194,13 @@ class DirectiveRendererMixin:
         if ctx is None:
             return None
 
-        return renderer(node.name, ctx)
+        # Try per-type template first (e.g., directives/note.html),
+        # then fall back to handler-level (e.g., directives/admonition.html)
+        token_type = getattr(handler, "token_type", None)
+        result = renderer(node.name, ctx)
+        if result is None and token_type and token_type != node.name:
+            result = renderer(token_type, ctx)
+        return result
 
     def _collect_directive_links(self: HtmlRendererProtocol, html: str) -> None:
         """Extract hrefs from directive output and add to links collector.

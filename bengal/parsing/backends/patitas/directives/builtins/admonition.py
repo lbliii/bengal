@@ -206,15 +206,17 @@ class AdmonitionDirective:
     ) -> dict[str, Any]:
         """Return template context for theme-overridable rendering.
 
-        Theme authors can override admonition HTML by placing a template at
-        templates/directives/admonition.html. The template receives:
+        Theme authors override admonition HTML by placing a template at
+        templates/directives/admonition.html (all types) or
+        templates/directives/note.html (single type). The template receives:
+
             name: Admonition type (note, warning, tip, etc.)
-            title: Display title (escaped)
-            css_class: Full CSS class string (type + extra)
+            title: Display title (plain text — use |e in templates)
+            css_class: Full CSS class string (type + user :class:)
             icon_name: Icon identifier
-            icon_html: Pre-rendered SVG icon HTML (safe)
+            icon_html: Pre-rendered SVG icon markup (use |safe)
             extra_class: User-specified :class: value
-            children: Pre-rendered child content HTML (safe)
+            children: Pre-rendered child content HTML (use |safe)
         """
         return self._build_context(node, rendered_children)
 

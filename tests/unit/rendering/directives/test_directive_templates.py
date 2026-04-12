@@ -114,19 +114,16 @@ class TestDirectiveTemplateRendering:
         site._directive_template_renderer = renderer
         return site
 
-    def test_template_override_used(self):
-        """When a template exists, its output replaces handler.render()."""
+    def test_handler_without_site_renders_normally(self):
+        """Without site._directive_template_renderer, handler.render() is used."""
         from bengal.parsing.backends.patitas.wrapper import PatitasParser
 
         parser = PatitasParser(enable_highlighting=False)
 
-        # Render a note without template override
-        html_default = parser.parse(":::{note}\nHello\n:::", {})
-        assert "admonition" in html_default
-
-        # Verify get_template_context exists on the handler
-        handler = AdmonitionDirective()
-        assert hasattr(handler, "get_template_context")
+        # No site attached → no template renderer → handler.render() used
+        html = parser.parse(":::{note}\nHello\n:::", {})
+        assert 'class="admonition note"' in html
+        assert "Hello" in html
 
     def test_render_produces_same_output_as_handler(self):
         """get_template_context + render() should produce equivalent HTML."""
@@ -268,7 +265,7 @@ class TestDirectiveTemplateRendering:
         site._directive_template_renderer.assert_not_called()
 
     def test_try_template_render_renderer_returns_none(self):
-        """If renderer returns None (template not found), fall back."""
+        """If renderer returns None for both name and token_type, fall back."""
         from bengal.parsing.backends.patitas.renderers.directives import (
             DirectiveRendererMixin,
         )
@@ -280,23 +277,85 @@ class TestDirectiveTemplateRendering:
 
         handler = MagicMock()
         handler.get_template_context.return_value = {"key": "val"}
+        handler.token_type = "widget"
 
         node = MagicMock()
         node.name = "test"
 
         result = mixin._try_template_render(node, "", handler, {})
         assert result is None
+        # Should try both name and token_type
+        assert site._directive_template_renderer.call_count == 2
+        site._directive_template_renderer.assert_any_call("test", {"key": "val"})
+        site._directive_template_renderer.assert_any_call("widget", {"key": "val"})
+
+    def test_try_template_render_falls_back_to_token_type(self):
+        """When name lookup misses, token_type lookup is tried."""
+        from bengal.parsing.backends.patitas.renderers.directives import (
+            DirectiveRendererMixin,
+        )
+
+        mixin = DirectiveRendererMixin()
+        site = MagicMock()
+
+        # Return None for "note" (name), return HTML for "admonition" (token_type)
+        def renderer(name, ctx):
+            if name == "admonition":
+                return "<div>from token_type</div>"
+            return None
+
+        site._directive_template_renderer = renderer
+        mixin._site = site  # type: ignore[attr-defined]
+
+        handler = MagicMock()
+        handler.get_template_context.return_value = {"title": "Note"}
+        handler.token_type = "admonition"
+
+        node = MagicMock()
+        node.name = "note"
+
+        result = mixin._try_template_render(node, "", handler, {})
+        assert result == "<div>from token_type</div>"
+
+    def test_try_template_render_name_takes_priority(self):
+        """Per-type template (name) wins over handler-level (token_type)."""
+        from bengal.parsing.backends.patitas.renderers.directives import (
+            DirectiveRendererMixin,
+        )
+
+        mixin = DirectiveRendererMixin()
+        site = MagicMock()
+
+        def renderer(name, ctx):
+            if name == "note":
+                return "<div>per-type override</div>"
+            if name == "admonition":
+                return "<div>handler-level</div>"
+            return None
+
+        site._directive_template_renderer = renderer
+        mixin._site = site  # type: ignore[attr-defined]
+
+        handler = MagicMock()
+        handler.get_template_context.return_value = {"title": "Note"}
+        handler.token_type = "admonition"
+
+        node = MagicMock()
+        node.name = "note"
+
+        result = mixin._try_template_render(node, "", handler, {})
+        assert result == "<div>per-type override</div>"
 
 
 class TestEndToEndTemplateOverride:
     """End-to-end test: Kida template override replaces handler.render() output."""
 
-    def test_template_override_replaces_handler_output(self, tmp_path):
-        """A custom directive template produces different HTML than the handler."""
-
+    def _render_with_templates(self, tmp_path, source: str) -> str:
+        """Helper: parse markdown through the full pipeline with directive templates."""
         from kida import Environment
         from kida.environment import FileSystemLoader
 
+        from bengal.parsing.backends.patitas import Markdown
         from bengal.parsing.backends.patitas.directives.builtins.admonition import (
             AdmonitionDirective,
         )
@@ -309,16 +368,6 @@ class TestEndToEndTemplateOverride:
         )
         from bengal.parsing.backends.patitas.renderers.html import HtmlRenderer
 
-        # Create a custom admonition template
-        directives_dir = tmp_path / "directives"
-        directives_dir.mkdir()
-        (directives_dir / "note.html").write_text(
-            '<aside class="themed-note" data-type="{{ name }}">'
-            "<strong>{{ title|e }}</strong>"
-            "{{ children|safe }}"
-            "</aside>\n"
-        )
-
         env = Environment(loader=FileSystemLoader([str(tmp_path)]))
 
         def renderer(name: str, context: dict[str, Any]) -> str | None:
@@ -328,23 +377,14 @@ class TestEndToEndTemplateOverride:
                 return None
             return template.render(context)
 
-        # Build a registry with the admonition handler
         builder = DirectiveRegistryBuilder()
         builder.register(AdmonitionDirective())
         registry = builder.build()
 
-        # Create a mock site with the template renderer
         site = MagicMock()
         site._directive_template_renderer = renderer
 
-        # Parse markdown with a note directive
-        source = ":::{note} Important\nSome content here.\n:::\n"
-
-        from bengal.parsing.backends.patitas import Markdown
-
         md = Markdown(plugins=[], highlight=False, highlight_style="semantic")
-
-        # Override the registry to use our built registry
         config = RenderConfig(
             highlight=False,
             highlight_style="semantic",
@@ -354,15 +394,52 @@ class TestEndToEndTemplateOverride:
         with render_config_context(config):
             ast = md._parse_to_ast(source)
             html_renderer = HtmlRenderer(source, site=site)
-            html = html_renderer.render(ast)
+            return html_renderer.render(ast)
 
-        # The themed template should have been used
+    def test_token_type_template_overrides_all_types(self, tmp_path):
+        """A handler-level template (admonition.html) overrides all admonition types."""
+        directives_dir = tmp_path / "directives"
+        directives_dir.mkdir()
+        # Template keyed by token_type, not name
+        (directives_dir / "admonition.html").write_text(
+            '<aside class="themed-{{ name }}">'
+            "<strong>{{ title|e }}</strong>"
+            "{{ children|safe }}"
+            "</aside>\n"
+        )
+
+        html = self._render_with_templates(tmp_path, ":::{note} Important\nContent.\n:::\n")
+
         assert "themed-note" in html
-        assert 'data-type="note"' in html
         assert "<strong>Important</strong>" in html
-        assert "Some content here." in html
-        # The default handler output should NOT be present
+        assert "Content." in html
         assert 'class="admonition note"' not in html
+
+        # Same template works for warning too
+        html2 = self._render_with_templates(tmp_path, ":::{warning} Careful\nBody.\n:::\n")
+        assert "themed-warning" in html2
+        assert "<strong>Careful</strong>" in html2
+
+    def test_per_type_template_takes_priority(self, tmp_path):
+        """A per-type template (note.html) wins over handler-level (admonition.html)."""
+        directives_dir = tmp_path / "directives"
+        directives_dir.mkdir()
+        (directives_dir / "admonition.html").write_text(
+            '<div class="generic-admonition">{{ children|safe }}</div>\n'
+        )
+        (directives_dir / "note.html").write_text(
+            '<div class="special-note">{{ children|safe }}</div>\n'
+        )
+
+        # note should use note.html (more specific)
+        html_note = self._render_with_templates(tmp_path, ":::{note}\nHi\n:::\n")
+        assert "special-note" in html_note
+        assert "generic-admonition" not in html_note
+
+        # warning should use admonition.html (handler-level fallback)
+        html_warn = self._render_with_templates(tmp_path, ":::{warning}\nWatch out\n:::\n")
+        assert "generic-admonition" in html_warn
+        assert "special-note" not in html_warn
 
     def test_fallback_when_no_template(self, tmp_path):
         """Without a template, handler.render() output is used."""
@@ -420,75 +497,69 @@ class TestEndToEndTemplateOverride:
 
 
 class TestKidaDirectiveTemplateRenderer:
-    """Tests for KidaTemplateEngine._create_directive_template_renderer()."""
+    """Tests for KidaTemplateEngine._create_directive_template_renderer().
 
-    @pytest.fixture
-    def tmp_site(self, tmp_path):
-        """Create a minimal mock site with template dirs."""
-        site = MagicMock()
-        site.root_path = tmp_path
-        site.config = {"development": {"auto_reload": False}}
-        site.theme = MagicMock()
-        site.theme.name = "default"
-        return site
+    Tests the real _create_directive_template_renderer method by constructing
+    a KidaTemplateEngine-equivalent renderer from a Kida Environment.
+    """
 
-    def test_renderer_returns_none_for_missing_template(self, tmp_path):
-        """Renderer returns None when template doesn't exist."""
+    def _make_renderer(self, tmp_path):
+        """Build the same renderer KidaTemplateEngine._create_directive_template_renderer creates."""
         from kida import Environment
         from kida.environment import FileSystemLoader
+        from kida.environment import TemplateNotFoundError as KidaTemplateNotFoundError
 
         env = Environment(loader=FileSystemLoader([str(tmp_path)]))
 
-        def renderer(name: str, context: dict[str, Any]) -> str | None:
+        def render_directive_template(name: str, context: dict[str, Any]) -> str | None:
+            template_name = f"directives/{name}.html"
             try:
-                template = env.get_template(f"directives/{name}.html")
-            except Exception:
+                template = env.get_template(template_name)
+            except KidaTemplateNotFoundError:
                 return None
             return template.render(context)
 
+        return render_directive_template
+
+    def test_renderer_returns_none_for_missing_template(self, tmp_path):
+        """Renderer returns None when template doesn't exist."""
+        renderer = self._make_renderer(tmp_path)
         assert renderer("nonexistent", {}) is None
 
     def test_renderer_renders_template(self, tmp_path):
         """Renderer renders a directive template when it exists."""
-        from kida import Environment
-        from kida.environment import FileSystemLoader
-
-        # Create a directive template
         directives_dir = tmp_path / "directives"
         directives_dir.mkdir()
         (directives_dir / "note.html").write_text(
             '<div class="custom-note">{{ title }}: {{ children|safe }}</div>'
         )
 
-        env = Environment(loader=FileSystemLoader([str(tmp_path)]))
-
-        def renderer(name: str, context: dict[str, Any]) -> str | None:
-            try:
-                template = env.get_template(f"directives/{name}.html")
-            except Exception:
-                return None
-            return template.render(context)
-
+        renderer = self._make_renderer(tmp_path)
         result = renderer("note", {"title": "Note", "children": "<p>hi</p>"})
         assert result == '<div class="custom-note">Note: <p>hi</p></div>'
 
     def test_renderer_returns_none_for_other_directives(self, tmp_path):
         """Only directives with templates are overridden."""
-        from kida import Environment
-        from kida.environment import FileSystemLoader
-
         directives_dir = tmp_path / "directives"
         directives_dir.mkdir()
         (directives_dir / "note.html").write_text("<div>{{ title }}</div>")
 
-        env = Environment(loader=FileSystemLoader([str(tmp_path)]))
-
-        def renderer(name: str, context: dict[str, Any]) -> str | None:
-            try:
-                template = env.get_template(f"directives/{name}.html")
-            except Exception:
-                return None
-            return template.render(context)
-
+        renderer = self._make_renderer(tmp_path)
         assert renderer("note", {"title": "Note"}) is not None
         assert renderer("warning", {"title": "Warning"}) is None
+
+    def test_renderer_catches_only_template_not_found(self, tmp_path):
+        """Renderer returns None for missing templates but propagates other errors."""
+        directives_dir = tmp_path / "directives"
+        directives_dir.mkdir()
+        # Template with a syntax error
+        (directives_dir / "broken.html").write_text("{{ undefined_func() }}")
+
+        renderer = self._make_renderer(tmp_path)
+        # Missing template → None
+        assert renderer("missing", {}) is None
+        # Broken template → propagates error (not silently swallowed)
+        from kida.environment import UndefinedError
+
+        with pytest.raises(UndefinedError):
+            renderer("broken", {})

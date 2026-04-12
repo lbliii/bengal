@@ -51,11 +51,13 @@ class DirectiveHandler(Protocol):
 
     Template Overrides:
         Handlers may optionally implement get_template_context() to enable
-        theme-overridable rendering. When present, the renderer tries a Kida
-        template at templates/directives/{name}.html before falling back to
-        render(). The method returns a dict of template variables with all
-        derived values pre-computed (CSS classes, icons, etc.), so theme
-        authors get a stable API contract without reimplementing Python logic.
+        theme-overridable rendering. When present, the renderer tries Kida
+        templates in order: directives/{name}.html (per-type, e.g., note.html)
+        then directives/{token_type}.html (handler-level, e.g., admonition.html),
+        falling back to render() if neither exists. The method returns a dict
+        of template variables with all derived values pre-computed (CSS classes,
+        icons, etc.), so theme authors get a stable API contract without
+        reimplementing Python logic.
 
     Thread Safety:
         Handlers must be stateless. All mutable state must be in the AST
@@ -127,8 +129,9 @@ class DirectiveHandler(Protocol):
         Append HTML output to the StringBuilder.
 
         If the handler also implements get_template_context(), the renderer
-        will first try to render via a Kida template at directives/{name}.html.
-        This method serves as the fallback when no template override exists.
+        will first try Kida templates (directives/{name}.html, then
+        directives/{token_type}.html). This method serves as the fallback
+        when no template override exists.
 
         Args:
             node: The Directive AST node to render

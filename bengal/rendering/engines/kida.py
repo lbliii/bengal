@@ -599,8 +599,12 @@ class KidaTemplateEngine:
         - Renders it with the given context dict
         - Returns None if no template is found (caller falls back to handler.render())
 
+        The caller (_try_template_render) handles the two-step lookup:
+        first directives/{node.name}.html, then directives/{token_type}.html.
+        This function is called once per lookup attempt.
+
         Template search order follows the existing loader hierarchy:
-        site templates → theme chain → provider libraries → default theme.
+        site templates → theme chain → default theme → provider libraries.
         Theme authors override by placing directives/{name}.html in their theme.
         """
         env = self._env
