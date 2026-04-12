@@ -114,16 +114,9 @@ def test_cli_build_flag_overrides_pipeline(tmp_path: Path, monkeypatch):
     monkeypatch.setattr(Site, "from_config", staticmethod(fake_from_config))
 
     # Act: invoke build command with --assets-pipeline flag
-    from click.testing import CliRunner
+    from bengal.cli import cli
 
-    from bengal.cli import main
-
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["site", "build", str(tmp_path), "--assets-pipeline", "--quiet"],
-        catch_exceptions=False,
-    )
+    result = cli.invoke(["build", "--source", str(tmp_path), "--assets-pipeline", "--quiet"])
 
     # Assert: command succeeded
     assert result.exit_code == 0
