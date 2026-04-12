@@ -204,20 +204,29 @@ class _ProviderEnvShim:
     that libraries like chirp_ui expect (Flask-style registration).
     """
 
-    __slots__ = ("_builtin_filters", "_builtin_globals", "_env", "_package", "_provider_names")
+    __slots__ = (
+        "_builtin_filters",
+        "_builtin_globals",
+        "_env",
+        "_filter_owners",
+        "_global_owners",
+        "_package",
+    )
 
     def __init__(
         self,
         env: Environment,
         builtin_filters: frozenset[str],
         builtin_globals: frozenset[str],
-        provider_names: dict[str, str],
+        filter_owners: dict[str, str],
+        global_owners: dict[str, str],
         package: str,
     ) -> None:
         self._env = env
         self._builtin_filters = builtin_filters
         self._builtin_globals = builtin_globals
-        self._provider_names = provider_names
+        self._filter_owners = filter_owners
+        self._global_owners = global_owners
         self._package = package
 
     def _check_collision(self, name: str, kind: str) -> None:
@@ -229,10 +238,11 @@ class _ProviderEnvShim:
                 f"Theme library '{self._package}': {kind} '{name}' collides with a Bengal built-in"
             )
             raise BengalConfigError(msg)
-        if name in self._provider_names:
+        owners = self._filter_owners if kind == "filter" else self._global_owners
+        if name in owners:
             msg = (
                 f"Theme library '{self._package}': {kind} '{name}' "
-                f"collides with library '{self._provider_names[name]}'"
+                f"collides with library '{owners[name]}'"
             )
             raise BengalConfigError(msg)
 
@@ -243,7 +253,7 @@ class _ProviderEnvShim:
             filter_name = name or fn.__name__
             self._check_collision(filter_name, "filter")
             self._env.filters[filter_name] = fn
-            self._provider_names[filter_name] = self._package
+            self._filter_owners[filter_name] = self._package
             return fn
 
         return decorator
@@ -255,7 +265,7 @@ class _ProviderEnvShim:
             global_name = name or fn.__name__
             self._check_collision(global_name, "global")
             self._env.globals[global_name] = fn
-            self._provider_names[global_name] = self._package
+            self._global_owners[global_name] = self._package
             return fn
 
         return decorator
@@ -265,14 +275,14 @@ class _ProviderEnvShim:
         filter_name = name or fn.__name__
         self._check_collision(filter_name, "filter")
         self._env.filters[filter_name] = fn
-        self._provider_names[filter_name] = self._package
+        self._filter_owners[filter_name] = self._package
 
     def add_template_global(self, fn, name: str | None = None) -> None:
         """Direct global registration (non-decorator style)."""
         global_name = name or fn.__name__
         self._check_collision(global_name, "global")
         self._env.globals[global_name] = fn
-        self._provider_names[global_name] = self._package
+        self._global_owners[global_name] = self._package
 
 
 class KidaTemplateEngine:
@@ -550,14 +560,20 @@ class KidaTemplateEngine:
 
         builtin_filters = frozenset(self._env.filters.keys())
         builtin_globals = frozenset(self._env.globals.keys())
-        provider_names: dict[str, str] = {}  # name -> owning package
+        filter_owners: dict[str, str] = {}  # filter name -> owning package
+        global_owners: dict[str, str] = {}  # global name -> owning package
 
         for provider in self._providers:
             if provider.register_env is None:
                 continue
 
             shim = _ProviderEnvShim(
-                self._env, builtin_filters, builtin_globals, provider_names, provider.package
+                self._env,
+                builtin_filters,
+                builtin_globals,
+                filter_owners,
+                global_owners,
+                provider.package,
             )
             try:
                 provider.register_env(shim)

@@ -25,7 +25,7 @@ See Also:
 from __future__ import annotations
 
 import tomllib
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit
 from bengal.core.theme.registry import get_theme_package
@@ -115,7 +115,7 @@ def _try_load_toml(path: Path, theme_name: str) -> dict[str, Any] | None:
 def _parse_manifest(data: dict[str, Any]) -> _ThemeManifest:
     """Extract extends and libraries from raw TOML data."""
     extends_raw = data.get("extends")
-    extends = cast("str | None", extends_raw) if extends_raw is not None else None
+    extends = str(extends_raw) if extends_raw else None
 
     libraries_raw = data.get("libraries")
     libraries: list[str] = []

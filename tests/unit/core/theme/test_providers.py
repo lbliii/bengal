@@ -275,7 +275,7 @@ class TestProviderEnvShim:
         builtin_filters = frozenset(env.filters.keys())
         builtin_globals = frozenset(env.globals.keys())
 
-        shim = _ProviderEnvShim(env, builtin_filters, builtin_globals, {}, "test_lib")
+        shim = _ProviderEnvShim(env, builtin_filters, builtin_globals, {}, {}, "test_lib")
 
         with pytest.raises(BengalConfigError, match="collides with a Bengal built-in"):
             shim.add_template_filter(lambda x: x, name="url")
@@ -288,9 +288,9 @@ class TestProviderEnvShim:
         from bengal.rendering.engines.kida import _ProviderEnvShim
 
         env = Environment(loader=FileSystemLoader([]))
-        provider_names: dict[str, str] = {"shared_filter": "lib_a"}
+        filter_owners: dict[str, str] = {"shared_filter": "lib_a"}
 
-        shim = _ProviderEnvShim(env, frozenset(), frozenset(), provider_names, "lib_b")
+        shim = _ProviderEnvShim(env, frozenset(), frozenset(), filter_owners, {}, "lib_b")
 
         with pytest.raises(BengalConfigError, match="collides with library 'lib_a'"):
             shim.add_template_filter(lambda x: x, name="shared_filter")
@@ -302,13 +302,13 @@ class TestProviderEnvShim:
         from bengal.rendering.engines.kida import _ProviderEnvShim
 
         env = Environment(loader=FileSystemLoader([]))
-        provider_names: dict[str, str] = {}
+        filter_owners: dict[str, str] = {}
 
-        shim = _ProviderEnvShim(env, frozenset(), frozenset(), provider_names, "my_lib")
+        shim = _ProviderEnvShim(env, frozenset(), frozenset(), filter_owners, {}, "my_lib")
         shim.add_template_filter(lambda x: x.upper(), name="shout")
 
         assert "shout" in env.filters
-        assert provider_names["shout"] == "my_lib"
+        assert filter_owners["shout"] == "my_lib"
 
     def test_decorator_style_registration(self):
         from kida import Environment
@@ -317,7 +317,7 @@ class TestProviderEnvShim:
         from bengal.rendering.engines.kida import _ProviderEnvShim
 
         env = Environment(loader=FileSystemLoader([]))
-        shim = _ProviderEnvShim(env, frozenset(), frozenset(), {}, "my_lib")
+        shim = _ProviderEnvShim(env, frozenset(), frozenset(), {}, {}, "my_lib")
 
         @shim.template_filter("yell")
         def yell(x):
@@ -336,7 +336,27 @@ class TestProviderEnvShim:
         env.globals["range"] = range
         builtin_globals = frozenset(env.globals.keys())
 
-        shim = _ProviderEnvShim(env, frozenset(), builtin_globals, {}, "bad_lib")
+        shim = _ProviderEnvShim(env, frozenset(), builtin_globals, {}, {}, "bad_lib")
 
         with pytest.raises(BengalConfigError, match="collides with a Bengal built-in"):
             shim.add_template_global(lambda: 42, name="range")
+
+    def test_same_name_filter_and_global_no_collision(self):
+        """A filter and global with the same name should NOT collide."""
+        from kida import Environment
+        from kida.environment import FileSystemLoader
+
+        from bengal.rendering.engines.kida import _ProviderEnvShim
+
+        env = Environment(loader=FileSystemLoader([]))
+        filter_owners: dict[str, str] = {}
+        global_owners: dict[str, str] = {}
+
+        shim = _ProviderEnvShim(
+            env, frozenset(), frozenset(), filter_owners, global_owners, "lib_a"
+        )
+        shim.add_template_filter(lambda x: x, name="foo")
+        shim.add_template_global(lambda: 42, name="foo")
+
+        assert filter_owners["foo"] == "lib_a"
+        assert global_owners["foo"] == "lib_a"

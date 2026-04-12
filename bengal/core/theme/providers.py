@@ -86,7 +86,19 @@ def resolve_provider(package_name: str) -> ThemeLibraryProvider:
         raise BengalConfigError(msg) from e
 
     loader = _probe_hook(package_name, module, "get_loader")
-    asset_root = _probe_hook(package_name, module, "static_path")
+    asset_root_raw = _probe_hook(package_name, module, "static_path")
+    asset_root: Path | None = None
+    if asset_root_raw is not None:
+        from pathlib import Path as _Path
+
+        try:
+            asset_root = _Path(asset_root_raw)
+        except TypeError as e:
+            msg = (
+                f"Theme library '{package_name}': static_path() returned "
+                f"{type(asset_root_raw).__name__}, expected a path-like object"
+            )
+            raise BengalConfigError(msg) from e
     register_filters_fn = getattr(module, "register_filters", None)
 
     register_env: Callable[[Any], None] | None = None
