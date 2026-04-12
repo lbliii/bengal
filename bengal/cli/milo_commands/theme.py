@@ -262,16 +262,15 @@ def theme_debug(
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
 
-    from bengal.themes import resolve_theme_chain
+    from bengal.core.theme import resolve_theme_chain
 
-    chain = resolve_theme_chain(site)
+    active_theme = site.config.get("theme", "default") if hasattr(site.config, "get") else "default"
+    chain = resolve_theme_chain(site.root_path, active_theme)
 
     cli.render_write(
         "item_list.kida",
         title="Theme Chain",
-        items=[
-            {"name": f"{i + 1}. {t.slug}", "description": str(t.path)} for i, t in enumerate(chain)
-        ],
+        items=[{"name": f"{i + 1}. {name}", "description": ""} for i, name in enumerate(chain)],
     )
 
     if template_val:
@@ -291,7 +290,7 @@ def theme_debug(
             items=resolution_items,
         )
 
-    return {"chain": [{"slug": t.slug, "path": str(t.path)} for t in chain]}
+    return {"chain": [{"slug": name, "path": ""} for name in chain]}
 
 
 # --- Absorbed from shortcodes ---

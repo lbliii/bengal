@@ -29,16 +29,86 @@ def new_site(
     ] = "",
 ) -> dict:
     """Create a new Bengal site with optional structure initialization."""
-    from bengal.cli.commands.new.site import create_site
+    from pathlib import Path
 
-    create_site(
-        name=name or None,
-        theme=theme,
-        template=template,
-        no_init=no_init,
-        init_preset=init_preset or None,
+    from bengal.cli.utils import get_cli_output
+    from bengal.scaffolds import get_template
+    from bengal.utils.io.atomic_write import atomic_write_text
+    from bengal.utils.primitives.text import slugify
+
+    cli = get_cli_output()
+
+    if not name:
+        name = cli.prompt("Enter site name")
+        if not name:
+            cli.warning("Cancelled.")
+            raise SystemExit(1)
+
+    site_title = name.strip()
+    slug = slugify(site_title)
+    if not slug:
+        cli.error("Site name must contain at least one alphanumeric character!")
+        raise SystemExit(1)
+
+    site_path = Path(slug)
+    if site_path.exists():
+        cli.error(f"Directory {slug} already exists!")
+        raise SystemExit(1)
+
+    # Use init_preset as template if provided
+    effective_template = init_preset if init_preset else template
+    site_template = get_template(effective_template)
+    if site_template is None:
+        cli.error(f"Template '{effective_template}' not found")
+        raise SystemExit(1)
+
+    # Create directory structure
+    site_path.mkdir(parents=True)
+    (site_path / "content").mkdir()
+    (site_path / "assets" / "css").mkdir(parents=True)
+    (site_path / "assets" / "js").mkdir()
+    (site_path / "assets" / "images").mkdir()
+    (site_path / "templates").mkdir()
+    for d in site_template.additional_dirs:
+        (site_path / d).mkdir(parents=True, exist_ok=True)
+
+    # Create config directory
+    config_dir = site_path / "config" / "_default"
+    config_dir.mkdir(parents=True)
+    atomic_write_text(
+        config_dir / "site.yaml",
+        f"title: {site_title}\nbaseurl: https://example.com\ntheme: {theme}\n",
     )
-    return {"name": name or None, "theme": theme, "template": template}
+
+    # Create .gitignore
+    atomic_write_text(
+        site_path / ".gitignore",
+        "# Bengal build outputs\npublic/\n\n# Bengal cache\n.bengal/\n\n# Python\n__pycache__/\n*.py[cod]\n\n# IDE\n.vscode/\n.idea/\n\n# OS\n.DS_Store\n",
+    )
+
+    # Write template files
+    files_created = 0
+    for tf in site_template.files:
+        base_dir = site_path / tf.target_dir
+        base_dir.mkdir(parents=True, exist_ok=True)
+        file_path = base_dir / tf.relative_path
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        atomic_write_text(file_path, tf.content)
+        files_created += 1
+
+    cli.render_write(
+        "scaffold_result.kida",
+        title=f"Site: {site_title}",
+        entries=[
+            {"name": slug, "note": site_template.description},
+            {"name": "config/", "note": "site.yaml"},
+            {"name": "content/", "note": f"{files_created} files"},
+        ],
+        steps=[f"cd {slug}", "bengal serve"],
+        summary="Site created successfully!",
+    )
+
+    return {"name": site_title, "slug": slug, "template": effective_template}
 
 
 # ---------------------------------------------------------------------------

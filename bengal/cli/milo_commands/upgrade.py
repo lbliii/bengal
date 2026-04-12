@@ -15,8 +15,8 @@ def upgrade(
 ) -> dict:
     """Check for and install Bengal updates."""
     from bengal import __version__
-    from bengal.cli.commands.upgrade.check import fetch_latest_version
-    from bengal.cli.commands.upgrade.installers import detect_installer
+    from bengal.cli.helpers.upgrade_check import fetch_latest_version
+    from bengal.cli.helpers.upgrade_installers import detect_installer
     from bengal.cli.utils import get_cli_output
 
     cli = get_cli_output()
