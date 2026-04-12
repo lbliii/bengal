@@ -191,6 +191,17 @@ raise BengalError(
 )
 ```
 
+## Changelog (Towncrier)
+
+User-facing changes under `bengal/` should include a **news fragment** in `changelog.d/` so releases can compile `CHANGELOG.md` at the repo root. The b-stack-wide rules live in **[docs/b-stack-changelog-strategy.md](docs/b-stack-changelog-strategy.md)**.
+
+- **Add a fragment:** `changelog.d/<issue-or-branch>.<type>.md` — e.g. `123.added.md`, `+my-branch.fixed.md` (leading `+` when there is no issue number).
+- **Types:** `added`, `changed`, `deprecated`, `removed`, `fixed`, `security` (see `[tool.towncrier]` in `pyproject.toml`).
+- **Preview:** `poe changelog-draft` (stdout only).
+- **Compile (maintainers, usually before tagging):** `poe changelog` runs `towncrier build --yes`.
+- **Local check vs `main`:** `poe changelog-check`.
+- **Skip in CI:** Apply the **`skip-changelog`** label when no fragment fits (e.g. docs-only outside the package, or internal refactors with no release note).
+
 ## Pull Request Process
 
 1. Create a feature branch: `git checkout -b feature/my-feature`
@@ -241,6 +252,7 @@ See **[Thread Safety Guide](THREAD_SAFETY.md)** for full patterns and lock order
 
 ## Resources
 
+- **[B-Stack changelog strategy](docs/b-stack-changelog-strategy.md)** — Towncrier fragments and shared release-note conventions
 - **[UV Quick Reference](UV_QUICK_REFERENCE.md)** — uv commands and troubleshooting
 - **[Type Checking Guide](TYPE_CHECKING_GUIDE.md)** — mypy patterns for Bengal
 - **[Thread Safety Guide](THREAD_SAFETY.md)** — Concurrency patterns and lock ordering
