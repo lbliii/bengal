@@ -129,6 +129,15 @@ class DirectiveRendererMixin:
             if "current_page_dir" in sig.parameters:
                 kwargs["current_page_dir"] = self._compute_current_page_dir()
 
+            # Try template rendering path if handler supports it
+            result = self._try_template_render(node, rendered_children, handler, kwargs)
+            if result is not None:
+                if cache_key and self._directive_cache:
+                    self._directive_cache.put("directive_html", cache_key, result)
+                self._collect_directive_links(result)
+                sb.append(result)
+                return
+
             handler.render(node, rendered_children, result_sb, **kwargs)
             result = result_sb.build()
             if cache_key and self._directive_cache:
@@ -149,6 +158,39 @@ class DirectiveRendererMixin:
             self._directive_cache.put("directive_html", cache_key, result)
         self._collect_directive_links(result)
         sb.append(result)
+
+    def _try_template_render(
+        self: HtmlRendererProtocol,
+        node: Directive,
+        rendered_children: str,
+        handler: Any,
+        kwargs: dict[str, Any],
+    ) -> str | None:
+        """Try rendering a directive via a Kida template override.
+
+        Returns the rendered HTML string if a template was found, or None
+        to fall back to handler.render().
+
+        Template rendering requires both:
+        1. The handler exposes get_template_context() returning a dict
+        2. The site has a _directive_template_renderer callable
+
+        Theme authors override directives by placing templates at
+        templates/directives/{name}.html in their theme directory.
+        """
+        if not hasattr(handler, "get_template_context"):
+            return None
+
+        site = getattr(self, "_site", None)
+        renderer = getattr(site, "_directive_template_renderer", None) if site else None
+        if renderer is None:
+            return None
+
+        ctx = handler.get_template_context(node, rendered_children, **kwargs)
+        if ctx is None:
+            return None
+
+        return renderer(node.name, ctx)
 
     def _collect_directive_links(self: HtmlRendererProtocol, html: str) -> None:
         """Extract hrefs from directive output and add to links collector.
