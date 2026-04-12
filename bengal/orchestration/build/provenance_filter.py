@@ -181,8 +181,9 @@ def _get_pages_for_data_file(
     """
     Find pages that depend on a data file.
 
-    Queries the cache's dependency graph for pages that have recorded
-    a dependency on the given data file.
+    Queries the EffectTracer (loaded from effects.json) for pages whose
+    rendering recorded a dependency on the given data file.  Falls back
+    to the BuildCache dependency graph when no tracer is available.
 
     Args:
         cache: BuildCache with dependency tracking
@@ -191,12 +192,37 @@ def _get_pages_for_data_file(
     Returns:
         Set of page source paths that depend on this data file
     """
-    dep_key = cache._cache_key(data_file)
     pages: set[Path] = set()
 
-    for page_str, deps in cache.dependencies.items():
-        if dep_key in deps:
-            pages.add(Path(page_str))
+    # Primary: query EffectTracer for data file dependencies.
+    # During rendering, TrackedData records data file access via
+    # record_data_file_access() → EffectContext.data_files → Effect.depends_on.
+    # The tracer is loaded from effects.json on incremental builds.
+    # Note: we check for tracer effects (not bet.enabled) because enabled
+    # controls recording of new effects, not reading persisted ones.
+    from bengal.effects.render_integration import BuildEffectTracer
+
+    bet = BuildEffectTracer.get_instance()
+    tracer = bet.tracer
+    if tracer.effects:
+        for effect in tracer.effects:
+            if effect.operation != "render_page":
+                continue
+            if data_file not in effect.depends_on:
+                continue
+            # Extract the page's source path from metadata rather than
+            # scanning depends_on for .md files, which would incorrectly
+            # include cascade sources (_index.md parents).
+            source = effect.metadata.get("source_path")
+            if source:
+                pages.add(Path(source))
+
+    # Fallback: check BuildCache dependency graph (for backward compat)
+    if not pages:
+        dep_key = cache._cache_key(data_file)
+        for page_str, deps in cache.dependencies.items():
+            if dep_key in deps:
+                pages.add(Path(page_str))
 
     return pages
 

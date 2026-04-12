@@ -1,8 +1,8 @@
 # Epic: Protocol Migration — v0.2.x
 
-**Status**: In Progress  
+**Status**: In Progress (Sprint 1 complete, Sprint 2+ stale — adoption metrics need re-measurement)  
 **Created**: 2026-02-06  
-**Updated**: 2026-02-06  
+**Updated**: 2026-04-12  
 **Target**: v0.2.0  
 **Phase**: 1 of 4 (v2 Architecture Roadmap)  
 **Estimated Effort**: 8-12 hours remaining (Sprint 1 complete, Sprint 2 partially complete)  
