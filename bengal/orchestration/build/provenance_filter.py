@@ -198,16 +198,24 @@ def _get_pages_for_data_file(
     # During rendering, TrackedData records data file access via
     # record_data_file_access() → EffectContext.data_files → Effect.depends_on.
     # The tracer is loaded from effects.json on incremental builds.
+    # Note: we check for tracer effects (not bet.enabled) because enabled
+    # controls recording of new effects, not reading persisted ones.
     from bengal.effects.render_integration import BuildEffectTracer
 
     bet = BuildEffectTracer.get_instance()
-    if bet.enabled:
-        tracer = bet.tracer
+    tracer = bet.tracer
+    if tracer.effects:
         for effect in tracer.effects:
-            if data_file in effect.depends_on:
-                for dep in effect.depends_on:
-                    if isinstance(dep, Path) and dep.suffix == ".md":
-                        pages.add(dep)
+            if effect.operation != "render_page":
+                continue
+            if data_file not in effect.depends_on:
+                continue
+            # Extract the page's source path from metadata rather than
+            # scanning depends_on for .md files, which would incorrectly
+            # include cascade sources (_index.md parents).
+            source = effect.metadata.get("source_path")
+            if source:
+                pages.add(Path(source))
 
     # Fallback: check BuildCache dependency graph (for backward compat)
     if not pages:

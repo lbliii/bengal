@@ -148,7 +148,11 @@ class Effect:
             depends_on=frozenset(deps),
             invalidates=frozenset({f"page:{page_href}"}),
             operation="render_page",
-            metadata={"href": page_href, "template": template_name},
+            metadata={
+                "href": page_href,
+                "template": template_name,
+                "source_path": str(source_path),
+            },
         )
 
     @classmethod

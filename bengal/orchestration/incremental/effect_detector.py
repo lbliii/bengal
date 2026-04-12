@@ -156,12 +156,16 @@ class EffectBasedDetector:
         """Get pages affected by a data file change."""
         pages: set[Path] = set()
 
-        # Check EffectTracer for pages using this data file
+        # Check EffectTracer for render_page effects using this data file.
+        # Use metadata["source_path"] to identify the page rather than
+        # scanning depends_on for .md files (which includes cascade sources).
         for effect in self.tracer.effects:
+            if effect.operation != "render_page":
+                continue
             if data_path in effect.depends_on:
-                for dep in effect.depends_on:
-                    if isinstance(dep, Path) and dep.suffix == ".md":
-                        pages.add(dep)
+                source = effect.metadata.get("source_path")
+                if source:
+                    pages.add(Path(source))
 
         return pages
 
