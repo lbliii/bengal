@@ -72,3 +72,7 @@ flowchart TB
 | **⌾⌾⌾** | [Rosettes](https://github.com/lbliii/rosettes) | Syntax highlighter | [Docs](https://lbliii.github.io/rosettes/) |
 
 Python-native. Free-threading ready. No npm required.
+
+## Release notes
+
+Packages in this stack share a **Towncrier**-based changelog workflow so release notes use the same section names, fragment discipline, and tone—part of a consistent Bengal experience for downstream users. The canonical policy lives in the Bengal repository: [B-Stack changelog strategy](https://github.com/lbliii/bengal/blob/main/docs/b-stack-changelog-strategy.md).

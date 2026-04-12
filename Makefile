@@ -9,7 +9,7 @@
 PYTHON_VERSION ?= 3.14t
 VENV_DIR ?= .venv
 
-.PHONY: all help setup install run build serve clean test shell ty deploy-test dist publish release gh-release
+.PHONY: all help setup install run build serve clean test shell ty deploy-test dist publish release gh-release changelog changelog-draft changelog-check
 
 all: help
 
@@ -29,7 +29,10 @@ help:
 	@echo "  make ty        - Run ty type checker (fast, Rust-based)"
 	@echo "  make dist     - Build distribution packages"
 	@echo "  make publish  - Publish to PyPI (uses .env for token)"
-	@echo "  make release  - Build and publish in one step"
+	@echo "  make changelog - Compile changelog.d fragments into CHANGELOG.md"
+	@echo "  make changelog-draft - Preview changelog from fragments (stdout)"
+	@echo "  make changelog-check - Verify branch adds a fragment (vs main)"
+	@echo "  make release  - Compile changelog, build, and publish"
 	@echo "  make gh-release - Create GitHub release (triggers PyPI via workflow), uses site release notes"
 	@echo "  make clean    - Remove venv, build artifacts, and site output"
 	@echo "  make shell    - Start a shell with the environment activated"
@@ -80,6 +83,16 @@ ty:
 # Build & Release
 # =============================================================================
 
+changelog:
+	@echo "Compiling changelog from fragments..."
+	uv run towncrier build --yes
+
+changelog-draft:
+	uv run towncrier build --draft
+
+changelog-check:
+	uv run towncrier check --compare-with origin/main
+
 dist:
 	@echo "Building distribution packages..."
 	rm -rf dist/
@@ -96,7 +109,7 @@ publish:
 		uv publish; \
 	fi
 
-release: dist publish
+release: changelog dist publish
 	@echo "✓ Release complete"
 
 # Create GitHub release from site release notes; triggers python-publish workflow → PyPI
