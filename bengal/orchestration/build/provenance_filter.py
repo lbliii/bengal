@@ -760,6 +760,7 @@ def phase_incremental_filter_provenance(
         # Check if output directory is missing
         output_dir = site.output_dir
         output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
+        asset_integrity = inspect_asset_outputs(output_dir)
         output_assets_missing = not asset_integrity.is_complete
 
         if (output_html_missing or output_assets_missing) and site.pages:
