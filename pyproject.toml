@@ -441,9 +441,10 @@ changelog = { cmd = "towncrier build --yes", help = "Compile changelog.d fragmen
 changelog-draft = { cmd = "towncrier build --draft", help = "Preview changelog from fragments (stdout)" }
 changelog-check = { cmd = "towncrier check --compare-with origin/main", help = "Verify branch adds a fragment (vs main)" }
 release = { sequence = [
+    "changelog",
     "dist",
     "publish",
-], help = "Build and publish in one step" }
+], help = "Compile changelog, build, and publish" }
 
 # Code Quality Analysis
 deadcode = { cmd = "ruff check . --select F401,F841 --statistics", help = "Find unused imports/variables" }
