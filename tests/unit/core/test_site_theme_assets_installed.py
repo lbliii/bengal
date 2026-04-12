@@ -2,10 +2,11 @@ from unittest.mock import Mock
 
 from bengal.core.site import Site
 from bengal.services.theme import get_theme_assets_chain
+from bengal.services.utils import get_bundled_themes_dir
 
 
 def test_site_assets_include_installed_theme(tmp_path, monkeypatch):
-    """Test Site includes assets from installed theme - using Mock objects"""
+    """Theme asset chain includes assets from installed themes."""
     site_root = tmp_path / "site"
     (site_root / "content").mkdir(parents=True)
     (site_root / "bengal.toml").write_text('[site]\nname="t"\ntheme="acme"\n', encoding="utf-8")
@@ -44,3 +45,44 @@ def test_site_assets_include_installed_theme(tmp_path, monkeypatch):
 
     # Should include the mock theme assets directory
     assert any("mock_theme_acme" in p and "assets" in p for p in paths)
+
+
+def test_installed_theme_extending_default_includes_default_assets(tmp_path, monkeypatch):
+    """Installed child themes inherit bundled default assets."""
+    site_root = tmp_path / "site"
+    (site_root / "content").mkdir(parents=True)
+    (site_root / "bengal.toml").write_text('[site]\nname="t"\ntheme="acme"\n', encoding="utf-8")
+
+    theme_root = tmp_path / "mock_theme_acme"
+    (theme_root / "assets" / "css").mkdir(parents=True)
+    (theme_root / "assets" / "css" / "style.css").write_text("body{}", encoding="utf-8")
+    (theme_root / "theme.toml").write_text(
+        'name="acme"\nextends="default"\n',
+        encoding="utf-8",
+    )
+
+    mock_pkg = Mock()
+    mock_pkg.slug = "acme"
+    mock_pkg.package = "bengal_themes.acme"
+    mock_pkg.distribution = "bengal-theme-acme"
+    mock_pkg.version = "1.0.0"
+    mock_pkg.assets_exists.return_value = True
+    mock_pkg.resolve_resource_path = lambda resource: (
+        theme_root / resource if (theme_root / resource).exists() else None
+    )
+
+    import bengal.core.theme.registry
+
+    monkeypatch.setattr(
+        bengal.core.theme.registry,
+        "get_installed_themes",
+        lambda: {"acme": mock_pkg},
+    )
+
+    site = Site.from_config(site_root)
+    dirs = get_theme_assets_chain(site.root_path, site.theme)
+    default_assets = get_bundled_themes_dir() / "default" / "assets"
+
+    assert default_assets in dirs
+    assert theme_root / "assets" in dirs
+    assert dirs.index(default_assets) < dirs.index(theme_root / "assets")
