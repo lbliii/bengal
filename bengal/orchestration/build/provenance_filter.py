@@ -181,8 +181,9 @@ def _get_pages_for_data_file(
     """
     Find pages that depend on a data file.
 
-    Queries the cache's dependency graph for pages that have recorded
-    a dependency on the given data file.
+    Queries the EffectTracer (loaded from effects.json) for pages whose
+    rendering recorded a dependency on the given data file.  Falls back
+    to the BuildCache dependency graph when no tracer is available.
 
     Args:
         cache: BuildCache with dependency tracking
@@ -191,12 +192,29 @@ def _get_pages_for_data_file(
     Returns:
         Set of page source paths that depend on this data file
     """
-    dep_key = cache._cache_key(data_file)
     pages: set[Path] = set()
 
-    for page_str, deps in cache.dependencies.items():
-        if dep_key in deps:
-            pages.add(Path(page_str))
+    # Primary: query EffectTracer for data file dependencies.
+    # During rendering, TrackedData records data file access via
+    # record_data_file_access() → EffectContext.data_files → Effect.depends_on.
+    # The tracer is loaded from effects.json on incremental builds.
+    from bengal.effects.render_integration import BuildEffectTracer
+
+    bet = BuildEffectTracer.get_instance()
+    if bet.enabled:
+        tracer = bet.tracer
+        for effect in tracer.effects:
+            if data_file in effect.depends_on:
+                for dep in effect.depends_on:
+                    if isinstance(dep, Path) and dep.suffix == ".md":
+                        pages.add(dep)
+
+    # Fallback: check BuildCache dependency graph (for backward compat)
+    if not pages:
+        dep_key = cache._cache_key(data_file)
+        for page_str, deps in cache.dependencies.items():
+            if dep_key in deps:
+                pages.add(Path(page_str))
 
     return pages
 

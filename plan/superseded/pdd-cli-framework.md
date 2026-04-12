@@ -1,9 +1,11 @@
 # Product Design Document: CLI Framework for the b-stack
 
-**Status**: Draft  
+**Status**: Superseded — milo-cli adopted in PR #215 (2026-04-11)  
 **Created**: 2026-02-14  
 **Type**: Product Design  
 **Scope**: New package (standalone, b-stack integrated)
+
+> **Resolution (2026-04-12)**: Rather than building a new CLI framework from scratch, Bengal adopted **milo-cli** as its CLI framework (commit b4ba624e9). milo-cli satisfies the core requirements outlined here — type-safe, structured output, MCP server support, llms.txt generation — while avoiding the maintenance burden of a custom framework. This PDD remains as historical design rationale.
 
 ---
 

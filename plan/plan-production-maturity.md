@@ -79,9 +79,9 @@
 
 ---
 
-## Phase 1: Internationalization (J12: 2.8 → 5.0)
+## Phase 1: Internationalization (J12: 2.8 → 5.0) ✅ COMPLETE
 
-*Biggest single gap. Blocks international adoption entirely. No other journey depends on this, so it can run in parallel with Phase 0.*
+*Completed 2026-04-09 via epic-i18n-production-readiness.md (PR #205). Maturity score achieved: 5.0. Full PO/MO workflow, plural forms, RTL layout, extraction CLI all shipped.*
 
 ### 1A. Translation File Format
 

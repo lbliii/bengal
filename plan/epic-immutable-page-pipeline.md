@@ -1,7 +1,8 @@
 # Epic: Immutable Page Pipeline — Snapshots All The Way Down
 
-**Status**: Draft
+**Status**: In Progress — Sprints 0-5 Complete, Sprint 6 Pending
 **Created**: 2026-04-06
+**Updated**: 2026-04-12
 **Target**: v0.4.x
 **Estimated Effort**: 60-80 hours
 **Dependencies**: Epic: Protocol Migration (Phase 1 in progress), Epic: Architecture Audit Remediation (Sprint 1-2)
@@ -70,13 +71,13 @@ Stage 5 — Write
 
 | Sprint | Focus | Effort | Risk | Ships Independently? |
 |--------|-------|--------|------|---------------------|
-| **0** | Design: record types, `get_page()` solution, incremental strategy | 6-8h | Low | Yes (RFC only) |
-| **1** | Introduce ParsedPage; rendering reads it instead of mutating Page | 12-16h | Medium | Yes |
-| **2** | Introduce RenderedPage; eliminate `page.rendered_html` mutation | 8-10h | Medium | Yes |
-| **3** | Decompose SitePlan; replace snapshot builder | 8-12h | Medium | Yes |
-| **4** | Introduce SourcePage; replace Page at discovery | 10-14h | High | Yes |
-| **5** | Delete PageProxy; cache stores typed records | 6-8h | Medium | Yes (after Sprint 4) |
-| **6** | Delete Page class; cleanup, final migration | 6-8h | Low | Yes (after Sprint 5) |
+| **0** | Design: record types, `get_page()` solution, incremental strategy | 6-8h | Low | ✅ COMPLETE |
+| **1** | Introduce ParsedPage; rendering reads it instead of mutating Page | 12-16h | Medium | ✅ COMPLETE (PR #196-197) |
+| **2** | Introduce RenderedPage; eliminate `page.rendered_html` mutation | 8-10h | Medium | ✅ COMPLETE (PR #198) |
+| **3** | Decompose SitePlan; replace snapshot builder | 8-12h | Medium | ✅ COMPLETE (PR #198) |
+| **4** | Introduce SourcePage; replace Page at discovery | 10-14h | High | ✅ COMPLETE (PR #199) |
+| **5** | Delete PageProxy; cache stores typed records | 6-8h | Medium | ✅ COMPLETE (PR #200) |
+| **6** | Delete Page class; cleanup, final migration | 6-8h | Low | Pending |
 
 Each sprint is a shippable PR. Later sprints can be deferred if earlier ones prove the model wrong.
 

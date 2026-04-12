@@ -1,9 +1,15 @@
 # RFC: Incremental Build Dependency Gaps
 
-## Status: Stale — Architecture Evolved
+## Status: Complete
 ## Created: 2026-01-13
-## Updated: 2026-02-14
-## Implemented: Partial (see Implementation Status below)
+## Updated: 2026-04-12
+## Implemented: Yes — all gaps resolved
+
+> **Resolved (2026-04-12)**: All integration gaps are fixed and xfail markers removed.
+> - **Gap 1 (data file deps)**: Fixed `_get_pages_for_data_file()` in `provenance_filter.py` to query `EffectTracer` (loaded from `effects.json`) instead of the empty `BuildCache.dependencies` dict. Data file → page deps were recorded in the Effect system but never queried.
+> - **Gap 2 (taxonomy metadata)**: Already working — `_expand_forced_changed()` and taxonomy rebuild logic handle this correctly.
+> - **Gap 3 (sitemap)**: Already working — sitemap regenerated on incremental builds.
+> - **Gap 4 (cascade propagation)**: Already working — `_detect_cascade_changes()` in orchestrator handles this.
 
 > **Architecture note (2026-02-14)**: This RFC references `bengal/build/tracking/` which was never created. The codebase uses `bengal/orchestration/build/coordinator.py` (CacheCoordinator) and `bengal/orchestration/incremental/` (EffectBasedDetector). Re-verify paths before implementing remaining work.
 
