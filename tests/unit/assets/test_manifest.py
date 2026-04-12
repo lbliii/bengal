@@ -82,3 +82,35 @@ def test_inspect_asset_outputs_accepts_complete_manifest_outputs(tmp_path: Path)
     integrity = inspect_asset_outputs(tmp_path)
     assert integrity.is_complete is True
     assert integrity.missing_count == 0
+
+
+def test_inspect_asset_outputs_nonexistent_dir(tmp_path: Path) -> None:
+    """Non-existent output directory is reported as incomplete."""
+    integrity = inspect_asset_outputs(tmp_path / "does_not_exist")
+    assert integrity.output_dir_exists is False
+    assert integrity.manifest_present is False
+    assert integrity.total_entries == 0
+    assert integrity.missing_count == 0
+    assert integrity.is_complete is False
+
+
+def test_inspect_asset_outputs_corrupted_manifest_treated_as_absent(tmp_path: Path) -> None:
+    """Corrupted manifest JSON is treated as absent."""
+    (tmp_path / "asset-manifest.json").write_text("{not json", encoding="utf-8")
+    integrity = inspect_asset_outputs(tmp_path)
+    assert integrity.output_dir_exists is True
+    assert integrity.manifest_present is False
+    assert integrity.total_entries == 0
+    assert integrity.is_complete is False
+
+
+def test_inspect_asset_outputs_empty_manifest_is_complete(tmp_path: Path) -> None:
+    """Valid manifest with zero entries is treated as complete."""
+    manifest = AssetManifest()
+    manifest.write(tmp_path / "asset-manifest.json")
+    integrity = inspect_asset_outputs(tmp_path)
+    assert integrity.output_dir_exists is True
+    assert integrity.manifest_present is True
+    assert integrity.total_entries == 0
+    assert integrity.missing_count == 0
+    assert integrity.is_complete is True
