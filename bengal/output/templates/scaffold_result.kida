@@ -1,0 +1,26 @@
+{#- Post-creation scaffold result with file tree and next steps.
+
+    Usage from CLIOutput:
+        cli.render_write("scaffold_result.kida",
+            title="Creating new theme: my-theme",
+            entries=[{"name": "templates/", "note": "3 files"}, ...],
+            steps=["cd my-site", "bengal serve"],
+            summary="Theme created successfully!",
+        )
+
+    Variables:
+        title: Header text
+        entries: List of {name, note?} for file tree
+        steps: List of step strings for next steps
+        summary: Success message (optional)
+-#}
+{% from "_bengal.kida" import bengal_header, file_tree %}
+{% from "components/_defs.kida" import status_line, next_steps %}
+{{ bengal_header(title) }}
+{{ file_tree(entries) }}
+{%- if summary | default(false) %}
+{{ status_line("success", summary) }}
+{%- endif -%}
+{%- if steps | default(false) %}
+{{ next_steps(steps) }}
+{%- endif -%}

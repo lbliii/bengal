@@ -1,0 +1,36 @@
+{#- Dependency and site structure visualization.
+
+    Usage from CLIOutput:
+        cli.render_write("graph_view.kida", mode="tree",
+            title="Dependency Tree",
+            data={"index.md": {"about.md": {}, "blog/": {"post-1.md": {}}}})
+
+        cli.render_write("graph_view.kida", mode="blast",
+            file="templates/base.html",
+            affected=["index.md", "about.md", "blog/post-1.md"],
+            count=3)
+
+    Variables:
+        mode: "tree" or "blast"
+        title: Header (optional)
+        data: Nested dict for tree mode
+        file, affected, count: For blast radius mode
+-#}
+{% from "_bengal.kida" import bengal_header %}
+{% from "components/_defs.kida" import status_line, kv_pair %}
+{%- if title %}
+{{ bengal_header(title) }}
+{% endif -%}
+{%- if mode == "blast" %}
+{{ kv_pair("If changed", file) }}
+{{ kv_pair("Pages affected", count | string) }}
+
+{%- for page in affected[:20] %}
+  {{ icons.dot | yellow }} {{ page }}
+{%- endfor -%}
+{%- if affected | length > 20 %}
+  {{ ("... and " ~ ((affected | length) - 20) | string ~ " more") | dim }}
+{%- endif -%}
+{%- elif mode == "tree" %}
+{{ data | tree }}
+{%- endif -%}

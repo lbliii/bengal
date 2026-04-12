@@ -1,0 +1,40 @@
+{#- Build report with pipeline phases, metrics, and rebuild reasons.
+
+    Usage from CLIOutput:
+        cli.render_write("build_report.kida",
+            phases=[
+                {"name": "Parse", "status": "completed", "elapsed": 0.042},
+                {"name": "Render", "status": "completed", "elapsed": 0.089},
+            ],
+            metrics=[
+                {"label": "Pages", "value": "47"},
+                {"label": "Output", "value": "public/"},
+            ],
+            rebuild_reasons=[
+                {"reason": "content_changed", "count": 3, "pages": "about.md, index.md, blog/..."},
+            ],
+        )
+
+    Variables:
+        phases: List of {name, status, elapsed, error?} for pipeline_progress
+        metrics: List of {label, value} for kv display
+        rebuild_reasons: List of {reason, count, pages} for rebuild table (optional)
+        status: Overall status — "completed", "running", "failed"
+        progress: Float 0-1 for progress bar
+        elapsed: Total elapsed seconds
+-#}
+{% from "components/_defs.kida" import pipeline_progress, kv_list, status_line %}
+{%- if phases -%}
+{{ pipeline_progress({"phases": phases, "status": status | default("completed"), "progress": progress | default(1.0), "elapsed": elapsed | default(0)}) }}
+{%- endif %}
+{%- if metrics %}
+
+{{ kv_list(metrics) }}
+{%- endif -%}
+{%- if rebuild_reasons | default(none) %}
+
+{{ "Rebuild reasons" | yellow | bold }}:
+{%- for r in rebuild_reasons %}
+  {{ r.reason | bold }}{{ " " * ([25 - (r.reason | length), 1] | max) }}{{ r.count | string | dim }}  {{ r.pages | dim }}
+{%- endfor -%}
+{%- endif -%}

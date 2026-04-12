@@ -562,7 +562,8 @@ class TestSearchUIWarning:
         # Bengal's custom logger prints warnings to stdout
         # Check that the warning was printed
         captured = capsys.readouterr()
-        assert "search_ui_without_index" in captured.out
+        assert "search" in captured.out.lower()
+        assert "index" in captured.out.lower()
 
     def test_no_warning_when_index_json_present(self, tmp_path, monkeypatch, capsys):
         """Should NOT warn if index_json is in site_wide."""

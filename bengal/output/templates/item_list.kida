@@ -1,0 +1,29 @@
+{#- Styled list of items with optional description/metadata.
+
+    Usage from CLIOutput:
+        cli.render_write("item_list.kida", title="Available Themes", items=[
+            {"name": "default", "description": "Default theme"},
+            {"name": "dark", "description": "Dark mode theme"},
+        ])
+
+    Variables:
+        title: Section heading (optional)
+        items: List of {name, description} dicts — or list of {term, description} for def_list
+        mode: "simple" (name + desc inline), "def" (definition list), "table" (table view)
+        headers: Column headers for table mode (optional)
+        table_data: Row data for table mode (list of lists)
+-#}
+{% from "components/_defs.kida" import section, def_list %}
+{%- if title | default(false) %}
+{{ section(title) }}
+{%- endif %}
+{%- set display_mode = mode | default("simple") -%}
+{%- if display_mode == "table" and table_data | default(false) -%}
+{{ table_data | table(headers=headers, border="light") }}
+{%- elif display_mode == "def" -%}
+{{ def_list(items) }}
+{%- else -%}
+{%- for item in items %}
+  {{ item.name | green | bold }}{% if item.description %}  {{ item.description | dim }}{% endif %}
+{%- endfor %}
+{%- endif -%}

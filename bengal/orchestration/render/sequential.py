@@ -12,8 +12,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from bengal.errors import ErrorAggregator, extract_error_context
-from bengal.utils.concurrency.executor import CancellationError
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -100,59 +98,6 @@ class SequentialRenderMixin:
             progress_manager.update_phase("rendering", current=len(pages), current_item="")
             return
 
-        try:
-            from bengal.utils.observability.rich_console import (
-                is_live_display_active,
-                should_use_rich,
-            )
-
-            use_rich = (
-                should_use_rich() and not quiet and len(pages) > 5 and not is_live_display_active()
-            )
-        except ImportError:
-            use_rich = False
-
-        if use_rich:
-            self._render_sequential_with_progress(pages, quiet, stats, build_context)
-        else:
-            pipeline = RenderingPipeline(
-                self.site,
-                quiet=quiet,
-                build_stats=stats,
-                build_context=build_context,
-                changed_sources=changed_sources,
-                block_cache=self._block_cache,
-                highlight_cache=self._highlight_cache,
-            )
-            for i, page in enumerate(pages):
-                if token and token.is_cancelled:
-                    logger.warning("render_cancelled_sequential", pages_completed=i)
-                    break
-                pipeline.process_page(page)
-
-    def _render_sequential_with_progress(
-        self,
-        pages: Sequence[PageLike],
-        quiet: bool,
-        stats: BuildStats | None,
-        build_context: BuildContext | None = None,
-        changed_sources: set[Path] | None = None,
-    ) -> None:
-        """Render pages sequentially with rich progress bar."""
-        from rich.progress import (
-            BarColumn,
-            Progress,
-            SpinnerColumn,
-            TaskProgressColumn,
-            TextColumn,
-            TimeElapsedColumn,
-        )
-
-        from bengal.rendering.pipeline import RenderingPipeline
-        from bengal.utils.observability.rich_console import get_console
-
-        token = build_context.cancellation_token if build_context else None
-        console = get_console()
         pipeline = RenderingPipeline(
             self.site,
             quiet=quiet,
@@ -162,42 +107,8 @@ class SequentialRenderMixin:
             block_cache=self._block_cache,
             highlight_cache=self._highlight_cache,
         )
-
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[bold blue]{task.description}"),
-            BarColumn(complete_style="green", finished_style="green"),
-            TaskProgressColumn(),
-            TextColumn("•"),
-            TextColumn("{task.completed}/{task.total} pages"),
-            TextColumn("•"),
-            TimeElapsedColumn(),
-            console=console,
-            transient=False,
-        ) as progress:
-            task = progress.add_task("[cyan]Rendering pages...", total=len(pages))
-
-            aggregator = ErrorAggregator(total_items=len(pages))
-            threshold = 5
-
-            for page in pages:
-                if token and token.is_cancelled:
-                    logger.warning("render_cancelled_sequential", pages_completed=task.completed)
-                    break
-                try:
-                    pipeline.process_page(page)
-                except CancellationError:
-                    logger.warning("render_cancelled_sequential")
-                    break
-                except Exception as e:
-                    context = extract_error_context(e, page)
-
-                    if aggregator.should_log_individual(
-                        e, context, threshold=threshold, max_samples=3
-                    ):
-                        logger.error("page_rendering_error", **context)
-
-                    aggregator.add_error(e, context=context)
-                progress.update(task, advance=1)
-
-            aggregator.log_summary(logger, threshold=threshold, error_type="rendering")
+        for i, page in enumerate(pages):
+            if token and token.is_cancelled:
+                logger.warning("render_cancelled_sequential", pages_completed=i)
+                break
+            pipeline.process_page(page)

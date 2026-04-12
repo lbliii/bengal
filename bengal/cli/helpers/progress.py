@@ -62,9 +62,13 @@ def cli_progress(
     if cli is None:
         cli = get_cli_output()
 
-    # Disable progress if quiet mode or not a TTY
-    if not enabled or cli.quiet or not cli.use_rich or not cli.console.is_terminal:
-        # Return a no-op update function
+    import sys
+
+    from bengal.utils.observability.terminal import is_interactive_terminal
+
+    # Disable progress if quiet mode or not interactive
+    if not enabled or cli.quiet or not is_interactive_terminal():
+
         def noop_update(
             current: int | None = None, item: str | None = None, advance: int | None = None
         ) -> None:
@@ -73,43 +77,32 @@ def cli_progress(
         yield noop_update
         return
 
-    from rich.progress import (
-        BarColumn,
-        Progress,
-        SpinnerColumn,
-        TaskProgressColumn,
-        TextColumn,
-        TimeElapsedColumn,
-    )
+    # Simple print-based progress
+    _current = 0
 
-    with Progress(
-        SpinnerColumn(),
-        TextColumn("[bold blue]{task.description}"),
-        BarColumn(complete_style="green", finished_style="green"),
-        TaskProgressColumn(),
-        TextColumn("•"),
-        TextColumn("{task.completed}/{task.total}" if total else ""),
-        TextColumn("•"),
-        TimeElapsedColumn(),
-        console=cli.console,
-        transient=False,
-    ) as progress:
-        task = progress.add_task(f"[cyan]{description}", total=total)
+    def update(
+        current: int | None = None, item: str | None = None, advance: int | None = None
+    ) -> None:
+        """Update progress."""
+        nonlocal _current
+        if current is not None:
+            _current = current
+        elif advance is not None:
+            _current += advance
+        else:
+            _current += 1
 
-        def update(
-            current: int | None = None, item: str | None = None, advance: int | None = None
-        ) -> None:
-            """Update progress."""
-            if current is not None:
-                progress.update(task, completed=current)
-            elif advance is not None:
-                progress.update(task, advance=advance)
-            elif total:
-                progress.update(task, advance=1)
-            else:
-                progress.update(task, advance=1)
+        if total:
+            sys.stdout.write(f"\r  {description} {_current}/{total}")
+        else:
+            sys.stdout.write(f"\r  {description} {_current}")
+        sys.stdout.flush()
 
-        yield update
+    sys.stdout.write(f"  {description}...")
+    sys.stdout.flush()
+    yield update
+    sys.stdout.write("\n")
+    sys.stdout.flush()
 
 
 def simple_progress(

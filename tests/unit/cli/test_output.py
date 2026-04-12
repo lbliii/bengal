@@ -54,17 +54,16 @@ class TestCLIOutputInit:
         cli = CLIOutput(use_rich=False)
 
         assert cli.use_rich is False
-        # Console is always created for type safety (never None)
-        # When use_rich=False, Rich features are bypassed but console exists
-        assert cli.console is not None
+        # Rich removed — console is None, output uses kida/ANSI directly
+        assert cli.console is None
 
     def test_init_with_use_rich_true(self):
-        """Test CLIOutput can force rich output."""
+        """Test CLIOutput can force rich output (maps to use_color)."""
         cli = CLIOutput(use_rich=True)
 
         assert cli.use_rich is True
-        # Console should be set when use_rich is True
-        assert cli.console is not None
+        # Rich removed — console is None, use_rich maps to use_color
+        assert cli.console is None
 
 
 class TestCLIOutputMethods:

@@ -96,30 +96,11 @@ class FullTracebackRenderer(TracebackRenderer):
     """
     Full traceback renderer with local variables.
 
-    Uses Rich's ``print_exception()`` with ``show_locals=True`` for
-    complete debugging information. Falls back to standard Python
-    traceback if Rich is unavailable.
+    Uses standard Python traceback display.
 
     """
 
     def display_exception(self, error: BaseException) -> None:
-        # Prefer Rich pretty exception if available and active
-        try:
-            from bengal.utils.observability.rich_console import get_console, should_use_rich
-
-            if should_use_rich():
-                console = get_console()
-                console.print_exception(show_locals=True, width=None)
-                return
-        except Exception as e:
-            logger.debug(
-                "traceback_renderer_rich_display_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="falling_back_to_standard",
-            )
-
-        # Fallback to standard Python
         _traceback.print_exc()
 
 

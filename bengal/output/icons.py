@@ -58,10 +58,10 @@ class IconSet:
 
     # Status indicators
     success: str = "✓"
-    warning: str = "!"
-    error: str = "x"
-    info: str = "-"
-    tip: str = "*"
+    warning: str = "▲"
+    error: str = "✗"
+    info: str = "·"
+    tip: str = "→"
 
     # Navigation
     arrow: str = "↪"

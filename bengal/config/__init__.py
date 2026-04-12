@@ -106,31 +106,12 @@ class ConfigLoader(UnifiedConfigLoader):
 
 
 def pretty_print_config(config: dict[str, Any], title: str = "Configuration") -> None:
-    """Pretty print configuration using Rich formatting (pprint fallback)."""
-    try:
-        from rich.pretty import pprint as rich_pprint
+    """Pretty print configuration."""
+    import pprint
 
-        from bengal.utils.observability.rich_console import get_console, should_use_rich
-
-        if should_use_rich():
-            console = get_console()
-            console.print()
-            console.print(f"[bold cyan]{title}[/bold cyan]")
-            console.print()
-            rich_pprint(config, console=console, expand_all=True)
-            console.print()
-        else:
-            import pprint
-
-            print(f"\n{title}:\n")
-            pprint.pprint(config, width=100, compact=False)  # noqa: T203
-            print()
-    except ImportError:
-        import pprint
-
-        print(f"\n{title}:\n")
-        pprint.pprint(config, width=100, compact=False)  # noqa: T203
-        print()
+    print(f"\n{title}:\n")
+    pprint.pprint(config, width=100, compact=False)  # noqa: T203
+    print()
 
 
 __all__ = [

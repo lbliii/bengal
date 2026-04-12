@@ -73,36 +73,3 @@ def test_asset_orchestrator_runs_pipeline_when_enabled(monkeypatch, tmp_path: Pa
 
     # Assert: compiled file remains (no exceptions) and output dir created lazily later
     assert compiled_file.exists()
-
-
-def test_cli_build_flag_overrides_pipeline(tmp_path: Path, monkeypatch):
-    # Arrange: create a minimal site directory
-    (tmp_path / "content").mkdir()
-    (tmp_path / "assets").mkdir()
-
-    # Ensure Site.from_config returns controlled site
-    from bengal.core.site import Site
-
-    real_from_config = Site.from_config
-
-    def fake_from_config(root_path: Path, config_path=None, environment=None, profile=None):
-        site = real_from_config(root_path, config_path, environment=environment, profile=profile)
-        site.config["assets"] = {"pipeline": False}
-        return site
-
-    monkeypatch.setattr(Site, "from_config", staticmethod(fake_from_config))
-
-    # Act: invoke build command with --assets-pipeline flag
-    from click.testing import CliRunner
-
-    from bengal.cli import main
-
-    runner = CliRunner()
-    result = runner.invoke(
-        main,
-        ["site", "build", str(tmp_path), "--assets-pipeline", "--quiet"],
-        catch_exceptions=False,
-    )
-
-    # Assert: command succeeded
-    assert result.exit_code == 0

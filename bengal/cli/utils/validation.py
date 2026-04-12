@@ -11,9 +11,6 @@ Functions:
     validate_flag_conflicts: Validate one-to-many flag conflicts
 
 Example:
-    @click.command()
-    @click.option("--quiet", is_flag=True)
-    @click.option("--verbose", is_flag=True)
     @validate_mutually_exclusive(("quiet", "verbose"))
     def my_command(quiet, verbose):
         pass
@@ -22,11 +19,10 @@ Example:
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
-
-import click
 
 
 def validate_mutually_exclusive[F: Callable[..., Any]](
@@ -60,7 +56,10 @@ def validate_mutually_exclusive[F: Callable[..., Any]](
                         msg = error_message.format(flag1=flag1, flag2=flag2)
                     else:
                         msg = f"--{flag1} and --{flag2} cannot be used together"
-                    raise click.UsageError(msg)
+                    from bengal.cli.utils.output import get_cli_output
+
+                    get_cli_output().error(msg)
+                    sys.exit(2)
             return func(*args, **kwargs)
 
         return wrapper  # type: ignore[return-value]
@@ -122,7 +121,10 @@ def validate_flag_conflicts[F: Callable[..., Any]](
                             # Build error message listing all possible conflicts
                             others_str = _format_flag_list(user_conflicting_flags)
                             msg = f"--{user_flag} cannot be used with {others_str}"
-                        raise click.UsageError(msg)
+                        from bengal.cli.utils.output import get_cli_output
+
+                        get_cli_output().error(msg)
+                        sys.exit(2)
             return func(*args, **kwargs)
 
         return wrapper  # type: ignore[return-value]

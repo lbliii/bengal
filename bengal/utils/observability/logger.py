@@ -65,23 +65,42 @@ class LogEvent:
         """Convert to dictionary for JSON serialization."""
         return {k: v for k, v in asdict(self).items() if v is not None}
 
-    def format_console(self, verbose: bool = False) -> str:
-        """Format for console output using Rich markup."""
+    def format_console(self, verbose: bool = False, use_color: bool = True) -> str:
+        """Format for console output using ANSI codes."""
+        import os
+
+        if os.environ.get("NO_COLOR"):
+            use_color = False
+
         indent = "  " * self.phase_depth
 
-        # Level colors and indicators
-        level_config = {
-            "DEBUG": ("cyan", "·", ""),
-            "INFO": ("green", "·", ""),
-            "WARNING": ("yellow", "!", "Warning:"),
-            "ERROR": ("red", "x", "Error:"),
-            "CRITICAL": ("magenta", "x", "Critical:"),
+        # ANSI SGR codes for level colors
+        _RESET = "\033[0m"
+        _DIM = "\033[2m"
+        _BOLD = "\033[1m"
+        _COLORS = {
+            "DEBUG": "\033[36m",  # cyan
+            "INFO": "\033[32m",  # green
+            "WARNING": "\033[33m",  # yellow
+            "ERROR": "\033[31m",  # red
+            "CRITICAL": "\033[35m",  # magenta
+        }
+        _ICONS = {
+            "DEBUG": "·",
+            "INFO": "·",
+            "WARNING": "!",
+            "ERROR": "x",
+            "CRITICAL": "x",
         }
 
-        style, icon, label = level_config.get(self.level, ("white", "·", ""))
+        color = _COLORS.get(self.level, "") if use_color else ""
+        reset = _RESET if use_color else ""
+        dim = _DIM if use_color else ""
+        bold = _BOLD if use_color else ""
+        icon = _ICONS.get(self.level, "·")
 
         # Phase markers
-        phase_marker = f" [bold]\\[{self.phase}][/bold]" if self.phase else ""
+        phase_marker = f" {bold}[{self.phase}]{reset}" if self.phase else ""
 
         # Timing and memory
         metrics = []
@@ -95,26 +114,78 @@ class LogEvent:
         if self.peak_memory_mb is not None:
             metrics.append(f"peak:{self.peak_memory_mb:.1f}MB")
 
-        metrics_str = f" [dim]({', '.join(metrics)})[/dim]" if metrics else ""
+        metrics_str = f" {dim}({', '.join(metrics)}){reset}" if metrics else ""
 
-        # Build prefix with label for warnings/errors
-        label_str = f" {label}" if label else ""
-        base = f"{indent}[{style}]{icon}{label_str}[/{style}]{phase_marker} {self.message}{metrics_str}"
+        # Build human-readable message from context
+        message = self._format_message()
 
-        # Always show context for warnings and errors (actionable issues)
-        # In verbose mode, show context for all levels
-        show_context = verbose or self.level in ("WARNING", "ERROR", "CRITICAL")
+        base = f"{indent}{color}{icon}{reset}{phase_marker} {message}{metrics_str}"
 
-        if show_context and self.context:
-            context_str = " " + " ".join(f"{k}={v}" for k, v in self.context.items())
-            base += f" [{style}]{context_str}[/{style}]"
+        # Add hint/suggestion as follow-up lines
+        extra_lines = self._format_extra_lines(indent, dim, reset)
+        if extra_lines:
+            base += extra_lines
 
+        # In verbose mode, also show raw context and timestamp
         if verbose:
-            # Add timestamp in verbose mode
-            time_str = self.timestamp.split("T")[1].split(".")[0]  # HH:MM:SS
-            base = f"[dim]{time_str}[/dim] {base}"
+            remaining = self._remaining_context()
+            if remaining:
+                context_str = " " + " ".join(f"{k}={v}" for k, v in remaining.items())
+                base += f"\n{indent}  {color}{context_str}{reset}"
+            time_str = self.timestamp.split("T")[1].split(".")[0]
+            base = f"{dim}{time_str}{reset} {base}"
 
         return base
+
+    def _format_message(self) -> str:
+        """Build a human-readable message from event type and context."""
+        ctx = self.context
+        msg = self.message
+
+        # Known warning/error patterns → readable messages
+        _MESSAGES: dict[str, str] = {
+            "subdirectory_site_detected": "Using subdirectory '{subdirectory}/' (Bengal site with content)",
+            "icon_not_found": "Icon not found: {icon}",
+            "found_broken_links": "{total_broken} broken internal link(s) across {pages_affected} page(s)",
+            "url_collision": "URL collision: {url}",
+            "url_collision_detected": "URL collision: {url}",
+        }
+
+        template = _MESSAGES.get(msg)
+        if template:
+            try:
+                return template.format_map(ctx)
+            except KeyError, IndexError:
+                pass
+
+        # If the message is an underscore-separated event code, humanize it
+        if "_" in msg and msg == msg.lower() and not msg.startswith("/"):
+            readable = msg.replace("_", " ").capitalize()
+            # Append first meaningful context value if short
+            for key in ("name", "file", "path", "url", "icon"):
+                if key in ctx:
+                    readable += f": {ctx[key]}"
+                    break
+            return readable
+
+        return msg
+
+    def _format_extra_lines(self, indent: str, dim: str, reset: str) -> str:
+        """Format hint/suggestion as indented follow-up lines."""
+        ctx = self.context
+        lines = []
+
+        if "hint" in ctx:
+            lines.append(f"\n{indent}     {dim}Hint: {ctx['hint']}{reset}")
+        if "suggestion" in ctx:
+            lines.append(f"\n{indent}     {dim}{ctx['suggestion']}{reset}")
+
+        return "".join(lines)
+
+    def _remaining_context(self) -> dict[str, Any]:
+        """Get context keys not already used in message/extras."""
+        skip = {"hint", "suggestion", "error_code"}
+        return {k: v for k, v in self.context.items() if k not in skip}
 
 
 class BengalLogger:
@@ -361,13 +432,14 @@ class BengalLogger:
 
         return "\n".join(enhanced)
 
-    def _emit(self, level: LogLevel, message: str, **context: Any) -> None:
+    def _emit(self, level: LogLevel, message: str, _console: bool = True, **context: Any) -> None:
         """
         Emit a log event.
 
         Args:
             level: Log level
             message: Human-readable message
+            _console: If False, skip console output (log to file only)
             **context: Additional context data
         """
         # Check if we should emit based on level
@@ -408,26 +480,18 @@ class BengalLogger:
         # Store event
         self._events.append(event)
 
-        # Output to console (unless suppressed for live progress)
+        # Output to console (unless suppressed for live progress or by _console=False)
         # Always show WARNING and above, even if quiet_console is True
-        show_console = not self.quiet_console or level.value >= LogLevel.WARNING.value
+        show_console = _console and (
+            not self.quiet_console or level.value >= LogLevel.WARNING.value
+        )
 
         if show_console:
-            try:
-                # Use Rich console for markup rendering
-                from bengal.utils.observability.rich_console import get_console
+            import sys
 
-                console = get_console()
-                console.print(event.format_console(verbose=self.verbose))
-            except ImportError:
-                # Fallback to plain print if Rich not available
-                # Strip markup for plain output
-                message = event.format_console(verbose=self.verbose)
-                # Simple markup stripping (remove [style]...[/style])
-                import re
-
-                message = re.sub(r"\[/?[^\]]+\]", "", message)
-                print(message)
+            formatted = event.format_console(verbose=self.verbose)
+            sys.stdout.write(formatted + "\n")
+            sys.stdout.flush()
 
         # Output to file (JSON format)
         if self._file_handle:
@@ -479,37 +543,18 @@ class BengalLogger:
         if not timings:
             return
 
-        try:
-            from bengal.utils.observability.rich_console import get_console
+        print("\n" + "=" * 60)
+        print("Build Phase Timings:")
+        print("=" * 60)
 
-            console = get_console()
+        total = sum(timings.values())
+        for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
+            percentage = (duration / total * 100) if total > 0 else 0
+            print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
 
-            console.print("\n" + "=" * 60)
-            console.print("Build Phase Timings:")
-            console.print("=" * 60)
-
-            total = sum(timings.values())
-            for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
-                percentage = (duration / total * 100) if total > 0 else 0
-                console.print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
-
-            console.print("-" * 60)
-            console.print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
-            console.print("=" * 60)
-        except ImportError:
-            # Fallback to plain print
-            print("\n" + "=" * 60)
-            print("Build Phase Timings:")
-            print("=" * 60)
-
-            total = sum(timings.values())
-            for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
-                percentage = (duration / total * 100) if total > 0 else 0
-                print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
-
-            print("-" * 60)
-            console.print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
-            print("=" * 60)
+        print("-" * 60)
+        print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
+        print("=" * 60)
 
     def close(self) -> None:
         """Close log file handle."""
@@ -825,68 +870,30 @@ def print_all_summaries() -> None:
     if not timings:
         return
 
-    try:
-        from bengal.utils.observability.rich_console import get_console
+    print("\n" + "=" * 70)
+    print("Build Phase Performance:")
+    print("=" * 70)
 
-        console = get_console()
+    total_time = sum(timings.values())
+    for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
+        duration = timings[phase]
+        percentage = (duration / total_time * 100) if total_time > 0 else 0
 
-        console.print("\n" + "=" * 70)
-        console.print("[bold cyan]Build Phase Performance:[/bold cyan]")
-        console.print("=" * 70)
+        line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
 
-        # Show timing + memory
-        total_time = sum(timings.values())
-        for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
-            duration = timings[phase]
-            percentage = (duration / total_time * 100) if total_time > 0 else 0
+        if phase in memory_deltas:
+            mem_delta = memory_deltas[phase]
+            line += f"  Δ{mem_delta:+7.1f}MB"
+        if phase in peak_memories:
+            peak = peak_memories[phase]
+            line += f"  peak:{peak:7.1f}MB"
 
-            line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
+        print(line)
 
-            # Add memory if available
-            if phase in memory_deltas:
-                mem_delta = memory_deltas[phase]
-                line += f"  Δ{mem_delta:+7.1f}MB"
-            if phase in peak_memories:
-                peak = peak_memories[phase]
-                line += f"  peak:{peak:7.1f}MB"
-
-            console.print(line)
-
-        console.print("-" * 70)
-        total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
-        if memory_deltas:
-            total_mem = sum(memory_deltas.values())
-            total_line += f"  Δ{total_mem:+7.1f}MB"
-        console.print(total_line)
-        console.print("=" * 70)
-    except ImportError:
-        # Fallback to plain print
-        print("\n" + "=" * 70)
-        print("Build Phase Performance:")
-        print("=" * 70)
-
-        # Show timing + memory
-        total_time = sum(timings.values())
-        for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
-            duration = timings[phase]
-            percentage = (duration / total_time * 100) if total_time > 0 else 0
-
-            line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
-
-            # Add memory if available
-            if phase in memory_deltas:
-                mem_delta = memory_deltas[phase]
-                line += f"  Δ{mem_delta:+7.1f}MB"
-            if phase in peak_memories:
-                peak = peak_memories[phase]
-                line += f"  peak:{peak:7.1f}MB"
-
-            print(line)
-
-        print("-" * 70)
-        total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
-        if memory_deltas:
-            total_mem = sum(memory_deltas.values())
-            total_line += f"  Δ{total_mem:+7.1f}MB"
-        print(total_line)
-        print("=" * 70)
+    print("-" * 70)
+    total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
+    if memory_deltas:
+        total_mem = sum(memory_deltas.values())
+        total_line += f"  Δ{total_mem:+7.1f}MB"
+    print(total_line)
+    print("=" * 70)
