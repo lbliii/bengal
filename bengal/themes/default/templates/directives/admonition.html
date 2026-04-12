@@ -1,0 +1,22 @@
+{#- Default admonition template — reproduces Bengal's built-in HTML structure.
+
+Theme authors: override this file in your theme's templates/directives/ directory
+to customize admonition rendering. Available context variables:
+
+  name        — admonition type (note, warning, tip, danger, etc.)
+  title       — display title (already escaped)
+  css_class   — full CSS class string (type + user :class:)
+  icon_name   — icon identifier for the admonition type
+  icon_html   — pre-rendered SVG icon markup (safe HTML)
+  extra_class — raw user-specified :class: value
+  children    — pre-rendered child content (safe HTML)
+-#}
+<div class="admonition {{ css_class|e }}">
+  <p class="admonition-title">
+    {%- if icon_html %}
+    <span class="admonition-icon-wrapper">{{ icon_html|safe }}</span><span class="admonition-title-text">{{ title|e }}</span>
+    {%- else %}
+    {{ title|e }}
+    {%- endif %}
+  </p>
+{{ children|safe }}</div>

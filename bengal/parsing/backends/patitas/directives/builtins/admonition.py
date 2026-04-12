@@ -37,7 +37,7 @@ Matches Bengal's admonition directive exactly:
 from __future__ import annotations
 
 from html import escape as html_escape
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from patitas.nodes import Directive
 
@@ -166,6 +166,60 @@ class AdmonitionDirective:
             children=tuple(children),
         )
 
+    def _build_context(
+        self,
+        node: Directive[AdmonitionOptions],
+        rendered_children: str,
+    ) -> dict[str, Any]:
+        """Build template context for admonition rendering.
+
+        Computes all derived values (CSS classes, icon HTML, title HTML)
+        from the directive node. Used by both render() and get_template_context().
+        """
+        opts = node.options
+        admon_type = node.name
+        title = node.title or admon_type.capitalize()
+
+        css_class = TYPE_TO_CSS.get(admon_type, "note")
+        extra_class = opts.class_ or ""
+        if extra_class:
+            css_class = f"{css_class} {extra_class}"
+
+        icon_name = TYPE_TO_ICON.get(admon_type, "info")
+        icon_html = _render_admonition_icon(icon_name)
+
+        return {
+            "name": admon_type,
+            "title": title,
+            "css_class": css_class,
+            "icon_name": icon_name,
+            "icon_html": icon_html,
+            "extra_class": extra_class,
+            "children": rendered_children,
+        }
+
+    def get_template_context(
+        self,
+        node: Directive[AdmonitionOptions],
+        rendered_children: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Return template context for theme-overridable rendering.
+
+        Theme authors override admonition HTML by placing a template at
+        templates/directives/admonition.html (all types) or
+        templates/directives/note.html (single type). The template receives:
+
+            name: Admonition type (note, warning, tip, etc.)
+            title: Display title (plain text — use |e in templates)
+            css_class: Full CSS class string (type + user :class:)
+            icon_name: Icon identifier
+            icon_html: Pre-rendered SVG icon markup (use |safe)
+            extra_class: User-specified :class: value
+            children: Pre-rendered child content HTML (use |safe)
+        """
+        return self._build_context(node, rendered_children)
+
     def render(
         self,
         node: Directive[AdmonitionOptions],
@@ -175,30 +229,19 @@ class AdmonitionDirective:
         """Render admonition to HTML.
 
         Produces HTML matching Bengal's admonition directive exactly,
-        including icon wrapper structure.
+        including icon wrapper structure. Used as fallback when no
+        template override exists.
 
         Args:
             node: Directive AST node
             rendered_children: Pre-rendered child content
             sb: StringBuilder for output
         """
-        opts = node.options  # Direct typed access!
-        admon_type = node.name  # Type is in node.name
-        title = node.title or admon_type.capitalize()
+        ctx = self._build_context(node, rendered_children)
+        title = ctx["title"]
+        css_class = ctx["css_class"]
+        icon_html = ctx["icon_html"]
 
-        # Get CSS class for type (caution → warning)
-        css_class = TYPE_TO_CSS.get(admon_type, "note")
-
-        # Add extra class if specified
-        extra_class = opts.class_ or ""
-        if extra_class:
-            css_class = f"{css_class} {extra_class}"
-
-        # Render icon
-        icon_name = TYPE_TO_ICON.get(admon_type, "info")
-        icon_html = _render_admonition_icon(icon_name)
-
-        # Build title with icon (matching Bengal's structure)
         if icon_html:
             title_html = (
                 f'<span class="admonition-icon-wrapper">{icon_html}</span>'
@@ -207,7 +250,6 @@ class AdmonitionDirective:
         else:
             title_html = html_escape(title)
 
-        # Output HTML (matching Bengal's exact structure)
         sb.append(f'<div class="admonition {html_escape(css_class)}">\n')
         sb.append(f'  <p class="admonition-title">{title_html}</p>\n')
         sb.append(rendered_children)

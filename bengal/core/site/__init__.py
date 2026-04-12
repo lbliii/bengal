@@ -1251,6 +1251,9 @@ class Site:
                     theme_discovery = AssetDiscovery(theme_dir)
                     self.assets.extend(theme_discovery.discover())
 
+        # Theme library provider assets (between theme and site priority)
+        self._discover_provider_assets()
+
         if assets_dir is None:
             assets_dir = self.root_path / "assets"
 
@@ -1273,6 +1276,35 @@ class Site:
                     dedup[key] = asset
                     order.append(key)
             self.assets = [dedup[k] for k in order]
+
+    def _discover_provider_assets(self) -> None:
+        """Discover assets from theme library providers.
+
+        Provider assets are namespaced under their package prefix so they
+        don't collide with theme-owned assets. For example, chirp_ui assets
+        appear as chirp_ui/chirpui.css in the output.
+        """
+        from bengal.content.discovery.asset_discovery import AssetDiscovery
+        from bengal.core.theme.providers import get_provider_asset_dirs, resolve_theme_providers
+        from bengal.core.theme.resolution import resolve_theme_chain
+
+        if not self.theme:
+            return
+
+        theme_chain = resolve_theme_chain(self.root_path, self.theme)
+        providers = resolve_theme_providers(self.root_path, theme_chain)
+        if not providers:
+            return
+
+        for prefix, asset_root in get_provider_asset_dirs(providers):
+            discovery = AssetDiscovery(asset_root)
+            for asset in discovery.discover():
+                # Namespace the output path under the provider prefix
+                if asset.output_path:
+                    from pathlib import Path as _Path
+
+                    asset.output_path = _Path(prefix) / asset.output_path
+                self.assets.append(asset)
 
     def _setup_page_references(self) -> None:
         """

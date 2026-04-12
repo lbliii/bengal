@@ -25,7 +25,7 @@ See Also:
 from __future__ import annotations
 
 import tomllib
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any
 
 from bengal.core.diagnostics import emit
 from bengal.core.theme.registry import get_theme_package
@@ -36,28 +36,35 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
-    """Read theme.toml for 'extends' from site, installed, or bundled theme path."""
+class _ThemeManifest:
+    """Parsed theme.toml contents."""
+
+    __slots__ = ("extends", "libraries")
+
+    def __init__(self, extends: str | None, libraries: list[str]) -> None:
+        self.extends = extends
+        self.libraries = libraries
+
+
+def _read_theme_manifest(site_root: Path, theme_name: str) -> _ThemeManifest:
+    """Read theme.toml from site, installed, or bundled theme path.
+
+    Returns a _ThemeManifest with extends and libraries fields.
+    Missing or unreadable manifests produce an empty manifest (extends=None,
+    libraries=[]).
+    """
+    data = _load_theme_toml(site_root, theme_name)
+    if data is None:
+        return _ThemeManifest(extends=None, libraries=[])
+    return _parse_manifest(data)
+
+
+def _load_theme_toml(site_root: Path, theme_name: str) -> dict[str, Any] | None:
+    """Locate and load theme.toml, returning raw dict or None."""
     # Site theme manifest
     site_manifest = site_root / "themes" / theme_name / "theme.toml"
     if site_manifest.exists():
-        try:
-            with open(site_manifest, "rb") as f:
-                data = tomllib.load(f)
-            if isinstance(data, dict):
-                extends = data.get("extends")
-                return cast("str | None", extends) if extends is not None else None
-            return None
-        except Exception as e:
-            emit(
-                None,
-                "debug",
-                "theme_manifest_read_failed",
-                theme=theme_name,
-                path=str(site_manifest),
-                error=str(e),
-                error_type=type(e).__name__,
-            )
+        return _try_load_toml(site_manifest, theme_name)
 
     # Installed theme manifest
     try:
@@ -65,21 +72,7 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
         if pkg:
             manifest_path = pkg.resolve_resource_path("theme.toml")
             if manifest_path and manifest_path.exists():
-                try:
-                    with open(manifest_path, "rb") as f:
-                        data = tomllib.load(f)
-                    extends_val = data.get("extends")
-                    return str(extends_val) if extends_val else None
-                except Exception as e:
-                    emit(
-                        None,
-                        "debug",
-                        "theme_manifest_read_failed",
-                        theme=theme_name,
-                        path=str(manifest_path),
-                        error=str(e),
-                        error_type=type(e).__name__,
-                    )
+                return _try_load_toml(manifest_path, theme_name)
     except Exception as e:
         emit(
             None,
@@ -93,23 +86,48 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
     # Bundled theme manifest
     bundled_manifest = THEMES_ROOT / theme_name / "theme.toml"
     if bundled_manifest.exists():
-        try:
-            with open(bundled_manifest, "rb") as f:
-                data = tomllib.load(f)
-            extends_val = data.get("extends")
-            return str(extends_val) if extends_val else None
-        except Exception as e:
-            emit(
-                None,
-                "debug",
-                "theme_manifest_read_failed",
-                theme=theme_name,
-                path=str(bundled_manifest),
-                error=str(e),
-                error_type=type(e).__name__,
-            )
+        return _try_load_toml(bundled_manifest, theme_name)
 
     return None
+
+
+def _try_load_toml(path: Path, theme_name: str) -> dict[str, Any] | None:
+    """Load a TOML file, returning the dict or None on failure."""
+    try:
+        with open(path, "rb") as f:
+            data = tomllib.load(f)
+        if isinstance(data, dict):
+            return data
+        return None
+    except Exception as e:
+        emit(
+            None,
+            "debug",
+            "theme_manifest_read_failed",
+            theme=theme_name,
+            path=str(path),
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        return None
+
+
+def _parse_manifest(data: dict[str, Any]) -> _ThemeManifest:
+    """Extract extends and libraries from raw TOML data."""
+    extends_raw = data.get("extends")
+    extends = str(extends_raw) if extends_raw else None
+
+    libraries_raw = data.get("libraries")
+    libraries: list[str] = []
+    if isinstance(libraries_raw, list):
+        libraries = [str(lib) for lib in libraries_raw if lib]
+
+    return _ThemeManifest(extends=extends, libraries=libraries)
+
+
+def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
+    """Read theme.toml for 'extends' from site, installed, or bundled theme path."""
+    return _read_theme_manifest(site_root, theme_name).extends
 
 
 def _build_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:
