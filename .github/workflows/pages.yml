@@ -59,7 +59,7 @@ jobs:
 
       - name: Build site
         working-directory: site
-        run: uv run bengal site build --environment production --clean-output
+        run: uv run bengal build --environment production --clean-output
         env:
           PYTHON_GIL: "0"
 

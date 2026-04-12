@@ -565,7 +565,7 @@ jobs:
 
       - name: Build site
         working-directory: site
-        run: uv run bengal site build --environment production
+        run: uv run bengal build --environment production
 
       # ... deploy steps
 ```

@@ -420,7 +420,7 @@ Use this checklist when creating new templates:
 
 3. **Test in serve mode:**
    ```bash
-   bengal site serve  # Catches template errors in dev
+   bengal serve  # Catches template errors in dev
    ```
 
 ### Common Test Cases

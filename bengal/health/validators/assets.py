@@ -114,7 +114,7 @@ class AssetValidator(BaseValidator):
                         "Theme CSS was not copied to output. Possible causes:\n"
                         "  1. Theme assets not discovered (check theme config)\n"
                         "  2. AssetDiscovery skipping files incorrectly\n"
-                        "  3. Build cache/output mismatch (try: bengal site clean --cache)"
+                        "  3. Build cache/output mismatch (try: bengal clean --cache)"
                     ),
                 )
             )
@@ -139,7 +139,7 @@ class AssetValidator(BaseValidator):
                         "Theme JavaScript was not copied to output. Possible causes:\n"
                         "  1. Theme assets not discovered (check theme config)\n"
                         "  2. AssetDiscovery skipping files incorrectly\n"
-                        "  3. Build cache/output mismatch (try: bengal site clean --cache)"
+                        "  3. Build cache/output mismatch (try: bengal clean --cache)"
                     ),
                 )
             )
@@ -193,7 +193,7 @@ class AssetValidator(BaseValidator):
                     recommendation=(
                         "Empty CSS files are included in HTML but provide no styles. "
                         "This usually means asset copying or bundling failed.\n"
-                        "  Try: bengal site clean --cache"
+                        "  Try: bengal clean --cache"
                     ),
                     details=empty_css[:5],
                 )
@@ -208,7 +208,7 @@ class AssetValidator(BaseValidator):
                     recommendation=(
                         "Empty JS files are included in HTML but do nothing. "
                         "This usually means asset copying or bundling failed.\n"
-                        "  Try: bengal site clean --cache"
+                        "  Try: bengal clean --cache"
                     ),
                     details=empty_js[:5],
                 )
