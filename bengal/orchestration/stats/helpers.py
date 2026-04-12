@@ -30,8 +30,6 @@ def show_building_indicator(text: str = "Building") -> None:
 def show_error(message: str, show_art: bool = True) -> None:
     """Show an error message with mouse emoji (errors that Bengal needs to catch!)."""
     cli = CLIOutput()
-
-    # Use the nice themed error header with mouse
     cli.error_header(message, mouse=show_art)
 
 
@@ -42,13 +40,12 @@ def show_welcome() -> None:
 
 
 def show_clean_success(output_dir: str) -> None:
-    """Show clean success message using CLI output system.
+    """Show clean success message.
 
     Note: This is now only used for --force mode (when there's no prompt).
     Regular clean uses inline success message after prompt confirmation.
 
     """
-    # Create CLI output instance (simple, no profile needed for clean)
     cli = CLIOutput(quiet=False, verbose=False)
 
     cli.blank()
@@ -63,11 +60,6 @@ def display_template_errors(stats: BuildStats) -> None:
     """
     Display all collected template errors cleanly after build completes.
 
-    This function is called after rendering finishes to show all errors
-    in a clean, non-interleaved format. Errors are collected during
-    rendering via build_stats.add_template_error() and deduplicated
-    via the ErrorDeduplicator.
-
     Args:
         stats: Build statistics with template errors
 
@@ -80,22 +72,14 @@ def display_template_errors(stats: BuildStats) -> None:
     cli = CLIOutput()
     error_count = len(stats.template_errors)
 
-    # Use mouse emoji error header
     cli.error_header(f"❌ Template Errors ({error_count})")
 
     for i, error in enumerate(stats.template_errors, 1):
-        if cli.use_rich:
-            cli.console.print(f"[error]Error {i}/{error_count}:[/error]")
-        else:
-            cli.error(f"Error {i}/{error_count}:")
-
+        cli.error(f"Error {i}/{error_count}:")
         display_template_error(error, use_color=True)
 
         if i < error_count:
-            if cli.use_rich:
-                cli.console.print("[info]" + "─" * 80 + "[/info]")
-            else:
-                cli.info("─" * 80)
+            cli.info("─" * 80)
 
     # Show summary of suppressed duplicate errors (if any)
     dedup = stats.get_error_deduplicator()

@@ -1,0 +1,10 @@
+{#- Syntax-highlighted JSON or YAML output.
+
+    Usage from CLIOutput:
+        cli.render_write("json_output.kida", data=json_string, language="json")
+
+    Variables:
+        data: Pre-formatted string (json.dumps or yaml.dump output)
+        language: "json" or "yaml" (default: "json")
+-#}
+{{ data | syntax(language | default("json")) }}

@@ -5,8 +5,6 @@ Provides a centralized function for loading Bengal sites from CLI
 context, with intelligent error handling, directory structure validation,
 and detection of common mistakes like running from the wrong directory.
 
-Moved from bengal/cli/helpers/site_loader.py to consolidate CLI utilities.
-
 Functions:
     load_site_from_cli: Load a Site with CLI-friendly error handling
 
@@ -23,8 +21,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
-
-import click
 
 if TYPE_CHECKING:
     from bengal.core.site import Site
@@ -189,19 +185,19 @@ def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> Path | None:
             cli.warning(f"  {i}. {subdir.name}/ ({count} markdown files)")
         cli.blank()
 
-        choices = [str(i) for i in range(1, len(candidates) + 1)]
-        default = str(max(range(len(candidates)), key=lambda j: candidates[j][1]) + 1)
+        default_idx = str(max(range(len(candidates)), key=lambda j: candidates[j][1]) + 1)
         try:
-            choice = click.prompt(
+            choice = cli.prompt(
                 "Which site to use?",
-                type=click.Choice(choices),
-                default=default,
-                show_choices=False,
+                default=default_idx,
             )
-            subdir = candidates[int(choice) - 1][0]
+            idx = int(choice) - 1
+            if idx < 0 or idx >= len(candidates):
+                idx = int(default_idx) - 1
+            subdir = candidates[idx][0]
             subdir_md_count = _count_markdown_files(subdir / "content")
-        except click.Abort, EOFError, KeyboardInterrupt:
-            raise click.Abort() from None
+        except EOFError, KeyboardInterrupt, ValueError:
+            sys.exit(1)
     else:
         subdir, subdir_md_count = max(candidates, key=lambda c: c[1])
 
@@ -214,6 +210,7 @@ def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> Path | None:
 
         logger.warning(
             "subdirectory_site_detected",
+            _console=False,
             current=root_path.name,
             subdirectory=subdir_name,
             hint=f"cd {subdir_name} && bengal serve",
@@ -228,6 +225,7 @@ def _check_subdirectory_site(root_path: Path, cli: CLIOutput) -> Path | None:
 
         logger.warning(
             "larger_subdirectory_site_detected",
+            _console=False,
             current=root_path.name,
             current_md_count=current_md_count,
             subdirectory=subdir_name,
@@ -259,13 +257,7 @@ def load_site_from_cli(
         Site instance
 
     Raises:
-        click.Abort: If site loading fails
-
-    Example:
-        @click.command()
-        def my_command(source: str, config: str | None):
-            site = load_site_from_cli(source, config)
-            # ... use site ...
+        SystemExit: If site loading fails
 
     """
     from bengal.cli.utils.output import get_cli_output
@@ -282,7 +274,7 @@ def load_site_from_cli(
 
     if not root_path.exists():
         cli.error(f"Source directory does not exist: {root_path}")
-        raise click.Abort()
+        sys.exit(1)
 
     # Check for common directory structure mistakes
     _check_parent_project_conflict(root_path, cli)
@@ -300,7 +292,7 @@ def load_site_from_cli(
 
     if config_path and not config_path.exists():
         cli.error(f"Config file does not exist: {config_path}")
-        raise click.Abort()
+        sys.exit(1)
 
     try:
         site = Site.from_config(
@@ -309,4 +301,4 @@ def load_site_from_cli(
         return site
     except Exception as e:
         cli.error(f"Failed to load site from {root_path}: {e}")
-        raise click.Abort() from e
+        sys.exit(1)

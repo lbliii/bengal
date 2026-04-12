@@ -34,21 +34,18 @@ class TestDisplayBengalError:
             suggestion="Check templates/ directory",
         )
 
-        # Mock CLIOutput
         cli = MagicMock()
         cli.icons = MagicMock()
         cli.icons.error = "x"
-        cli.use_rich = False
-        cli.console = MagicMock()
+        cli.icons.dot = "•"
 
         display_bengal_error(error, cli)
 
-        # Should have printed code, message, file path, suggestion, and docs URL
-        assert cli.console.print.called
-        calls = [str(call) for call in cli.console.print.call_args_list]
-        call_str = " ".join(calls)
-        assert "R001" in call_str
-        assert "Rendering" in call_str
+        # Should have called error() with code and info() with details
+        error_calls = [str(call) for call in cli.error.call_args_list]
+        error_str = " ".join(error_calls)
+        assert "R001" in error_str
+        assert "Rendering" in error_str
 
     def test_display_error_without_code(self) -> None:
         """Test displaying error without error code."""
@@ -60,13 +57,12 @@ class TestDisplayBengalError:
         cli = MagicMock()
         cli.icons = MagicMock()
         cli.icons.error = "x"
-        cli.use_rich = False
-        cli.console = MagicMock()
+        cli.icons.dot = "•"
 
         display_bengal_error(error, cli)
 
-        # Should still display but without code
-        assert cli.console.print.called
+        # Should still display via error() and info()
+        assert cli.error.called or cli.info.called
 
     def test_display_error_with_related_files(self) -> None:
         """Test displaying error with related files."""
@@ -74,7 +70,6 @@ class TestDisplayBengalError:
             "Template error",
             code=ErrorCode.R002,
         )
-        # Add related files
         error.related_files = [
             MagicMock(__str__=lambda self: "templates/base.html"),
             MagicMock(__str__=lambda self: "templates/page.html"),
@@ -83,13 +78,12 @@ class TestDisplayBengalError:
         cli = MagicMock()
         cli.icons = MagicMock()
         cli.icons.error = "x"
-        cli.use_rich = False
-        cli.console = MagicMock()
+        cli.icons.dot = "•"
 
         display_bengal_error(error, cli)
 
-        calls = [str(call) for call in cli.console.print.call_args_list]
-        call_str = " ".join(calls)
+        info_calls = [str(call) for call in cli.info.call_args_list]
+        call_str = " ".join(info_calls)
         assert "Related" in call_str
 
     def test_display_error_with_line_number(self) -> None:
@@ -104,13 +98,12 @@ class TestDisplayBengalError:
         cli = MagicMock()
         cli.icons = MagicMock()
         cli.icons.error = "x"
-        cli.use_rich = False
-        cli.console = MagicMock()
+        cli.icons.dot = "•"
 
         display_bengal_error(error, cli)
 
-        calls = [str(call) for call in cli.console.print.call_args_list]
-        call_str = " ".join(calls)
+        info_calls = [str(call) for call in cli.info.call_args_list]
+        call_str = " ".join(info_calls)
         assert "content/post.md:5" in call_str
 
 

@@ -1,0 +1,4 @@
+{% for header in headers %}{{ header }}{% if not loop.last %} │ {% endif %}{% endfor %}
+{{ "─" * total_width }}
+{% for row in rows %}{% for header in headers %}{{ row[header] | default("") }}{% if not loop.last %} │ {% endif %}{% endfor %}
+{% endfor %}

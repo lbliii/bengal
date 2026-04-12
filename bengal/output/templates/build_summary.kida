@@ -1,0 +1,120 @@
+{#- Build summary — success/failure display after build completes.
+
+    Usage:
+        cli.render_write("build_summary.kida", **context)
+
+    Variables:
+        skipped: bool — build was skipped (no changes)
+        has_errors: bool — build completed with errors
+        has_warnings: bool — build completed with warnings
+
+        # Success line
+        total_pages: int
+        breakdown: str — e.g. "42+5" or "42+5+3 autodoc"
+        build_time: str — formatted time e.g. "1.23 s"
+        mode: str — e.g. "parallel", "incremental+parallel"
+        pages_per_sec: float — throughput
+
+        # Content metrics (optional)
+        content_parts: list[str] — e.g. ["12 sections", "4 assets"]
+
+        # Phase breakdown (optional)
+        phases: list[str] — e.g. ["Render 89ms", "Assets 12ms"]
+
+        # Render distribution (optional)
+        render_dist: str — e.g. "P50 2ms | P95 8ms | Slowest: index.md (12ms)"
+
+        # Regression (optional)
+        regression: str|none — e.g. "+42% vs last"
+        regression_positive: bool — True if slower
+
+        # Cache stats (optional)
+        cache_line: str|none — e.g. "Parsed: 10 hits, 2 misses | ..."
+
+        # Output dir (optional)
+        output_dir: str|none
+
+        # Error summary (simple mode)
+        error_count: int
+        warning_count: int
+
+        # Warnings detail
+        warning_groups: list[{type_name, warnings: [{short_path, message}]}]
+
+        # Error report lines (optional)
+        error_lines: list[{text, level}] — pre-formatted error report lines
+-#}
+{% from "_bengal.kida" import bengal_header, error_header %}
+
+{%- if skipped -%}
+
+{{ icons.check | green }} {{ "No changes detected — build skipped!" | dim }}
+
+{%- elif has_errors and not total_pages -%}
+
+{{ error_header("Build Failed") }}
+
+{%- elif has_errors -%}
+{#- Built with errors -#}
+{{ (icons.dot | yellow) }} {{ ("ᓚᘏᗢ" | fg("#FF9D00") | bold) }}  {{ ("Built with " ~ (error_count | string) ~ " error(s), " ~ (warning_count | string) ~ " warning(s)") | yellow }}
+
+{%- elif has_warnings -%}
+{#- Built with warnings -#}
+{{ (icons.dot | yellow) }} {{ ("ᓚᘏᗢ" | fg("#FF9D00") | bold) }}  {{ ("Built " ~ (total_pages | string) ~ " pages in " ~ build_time ~ " (" ~ mode ~ ") with warnings") | yellow }}
+   {{ content_parts | join(", ") | dim }}
+{%- if phases %}
+   {{ phases | join(", ") | dim }}
+{%- endif -%}
+
+{%- else -%}
+{#- Clean success -#}
+{{ (icons.check | green) }} {{ ("ᓚᘏᗢ" | fg("#FF9D00") | bold) }}  {{ ("Built " ~ (total_pages | string) ~ " pages") | green }} {{ ("(" ~ breakdown ~ ")") | dim }} in {{ build_time | fg("#F1C40F") | bold }} {{ ("(" ~ mode ~ ")") | dim }} │ {{ (pages_per_sec | round(1) | string) | fg("#F1C40F") | bold }} {{ "pages/sec" | dim }}
+   {{ content_parts | join(", ") | dim }}
+{%- if phases %}
+   {{ phases | join(", ") | dim }}
+{%- endif -%}
+{%- if render_dist %}
+   {{ ("Render/page: " ~ render_dist) | dim }}
+{%- endif -%}
+{%- endif -%}
+
+{%- if regression | default(none) %}
+   {{ regression | fg("yellow" if regression_positive | default(false) else "green") }}
+{%- endif -%}
+{%- if cache_line | default(none) %}
+   {{ cache_line | dim }}
+{%- endif -%}
+{%- if output_dir | default(none) %}
+   {{ "↪" | dim }} {{ output_dir | dim }}
+{%- endif -%}
+
+{%- if error_lines | default(none) %}
+
+{%- for line in error_lines %}
+{%- if line.level == "error" %}
+   {{ line.text | red }}
+{%- elif line.level == "warning" %}
+   {{ line.text | yellow }}
+{%- elif line.level == "header" %}
+   {{ line.text | bold }}
+{%- elif line.level == "dim" %}
+   {{ line.text | dim }}
+{%- else %}
+   {{ line.text }}
+{%- endif -%}
+{%- endfor %}
+{%- endif -%}
+
+{%- if warning_groups | default(none) %}
+
+{{ error_header("Build completed with warnings (" ~ (warning_count | string) ~ ")") }}
+{%- for group in warning_groups %}
+   {{ (group.type_name ~ " (" ~ (group.warnings | length | string) ~ "):") | bold }}
+{%- for w in group.warnings %}
+{%- set prefix = "└─" if loop.last else "├─" %}
+   {{ prefix | dim }} {{ w.short_path | yellow }}
+{%- set msg_prefix = "   " if loop.last else "│  " %}
+   {{ msg_prefix | dim }}{{ "└─" | dim }} {{ w.message | red }}
+{%- endfor %}
+{%- endfor %}
+{%- endif -%}

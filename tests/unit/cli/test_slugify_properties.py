@@ -13,7 +13,7 @@ import pytest
 from hypothesis import assume, given
 from hypothesis import strategies as st
 
-from bengal.cli.commands.new import slugify
+from bengal.utils.primitives.text import slugify
 
 
 class TestSlugifyProperties:

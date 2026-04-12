@@ -1,0 +1,42 @@
+{#- Dev server HTTP request log and status display.
+
+    Usage from CLIOutput:
+        cli.render_write("server_dashboard.kida", mode="request",
+            timestamp="12:34:56", method="GET", status="200", path="/index.html")
+
+        cli.render_write("server_dashboard.kida", mode="header")
+
+        cli.render_write("server_dashboard.kida", mode="file_change",
+            file_name="index.md", timestamp="12:34:56")
+
+        cli.render_write("server_dashboard.kida", mode="url",
+            host="localhost", port=5173)
+
+    Variables:
+        mode: "request", "header", "file_change", "url", "separator"
+        timestamp, method, status, path, is_asset: for request mode
+        file_name: for file_change mode
+        host, port: for url mode
+-#}
+{%- if mode == "header" -%}
+  {{ ("TIME" | pad(8) ~ " │ " ~ "METHOD" | pad(6) ~ " │ " ~ "STA" | pad(3) ~ " │ PATH") | dim }}
+  {{ (("─" * 8) ~ "─┼─" ~ ("─" * 6) ~ "─┼─" ~ ("─" * 3) ~ "─┼─" ~ ("─" * 60)) | dim }}
+{%- elif mode == "request" -%}
+{%- set status_color = "green" if status[:1] == "2" else ("red" if status[:1] == "4" else "yellow") -%}
+{%- set method_color = "cyan" if method == "GET" else ("green" if method == "POST" else "yellow") -%}
+{%- set indicator = "" -%}
+{%- if not is_asset -%}
+{%- set indicator = (icons.info ~ " ") if status[:1] == "2" else ((icons.cross ~ " ") if status[:1] == "4" else "") -%}
+{%- endif -%}
+  {{ timestamp }} │ {{ method | pad(6) | fg(method_color) }} │ {{ status | pad(3) | fg(status_color) }} │ {{ indicator }}{{ path | truncate(60) }}
+{%- elif mode == "file_change" -%}
+  {{ ("─" * 78) | dim }}
+  {{ timestamp }} │ {{ "📝 File changed:" | yellow }} {{ file_name }}
+  {{ ("─" * 78) | dim }}
+{%- elif mode == "url" -%}
+
+  {{ "➜" | cyan }}  Local: {{ ("http://" ~ host ~ ":" ~ (port | string) ~ "/") | bold }}
+
+{%- elif mode == "separator" -%}
+  {{ ("─" * 78) | dim }}
+{%- endif -%}

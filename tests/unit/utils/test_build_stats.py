@@ -320,8 +320,8 @@ class TestDisplayFunctions:
 
         display_simple_build_stats(stats)
 
-        # Should indicate build was skipped
-        mock_cli.info.assert_called()
+        # Should render the build summary template
+        mock_cli.render_write.assert_called()
 
     @patch("bengal.orchestration.stats.display.CLIOutput")
     def test_display_build_stats_handles_skipped(self, mock_cli_class: MagicMock) -> None:
@@ -334,7 +334,7 @@ class TestDisplayFunctions:
 
         display_build_stats(stats)
 
-        mock_cli.info.assert_called()
+        mock_cli.render_write.assert_called()
 
     def test_show_building_indicator_does_nothing(self) -> None:
         """Test show_building_indicator does nothing (header shown elsewhere)."""

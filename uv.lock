@@ -131,6 +131,7 @@ dependencies = [
     { name = "httpx" },
     { name = "jsmin" },
     { name = "kida-templates" },
+    { name = "milo-cli" },
     { name = "packaging" },
     { name = "patitas" },
     { name = "pillow" },
@@ -223,8 +224,9 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.7" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "jsmin", specifier = ">=3.0.1" },
-    { name = "kida-templates", specifier = ">=0.3.0" },
+    { name = "kida-templates", specifier = ">=0.4.0" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
+    { name = "milo-cli", editable = "../../milo-cli/yeosu" },
     { name = "packaging", specifier = ">=23.0" },
     { name = "patitas", specifier = ">=0.3.5" },
     { name = "pillow", specifier = ">=10.0.0" },
@@ -537,11 +539,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/5e/73/e01e4c5e11ad0494f
 
 [[package]]
 name = "kida-templates"
-version = "0.3.0"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/58/5f/db79a39557baf6f7ae640a196d371f3236e6610907d585c933c836fd1080/kida_templates-0.3.0.tar.gz", hash = "sha256:b55329bbacb897ec3edc24870e53ec357fe85968ddafffb0d449445b1bca1c2a", size = 432714, upload-time = "2026-03-26T18:20:22.239Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3c/16/161c1b1ea6937dcf368734b31646a0c61d942ea4a5eb3954a06a376fb27e/kida_templates-0.4.0.tar.gz", hash = "sha256:a43e28d0f48640ddbd0cbf246c0126e3f5743060ae9480f3ecfaccb772cb472b", size = 485457, upload-time = "2026-04-10T17:12:11.921Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/1b/be/f7b5e3ea54e8218635ade989a833a70c15f48be159a17da6e1b4667ee967/kida_templates-0.3.0-py3-none-any.whl", hash = "sha256:189ed69ff181876faa238875801a3704bbe60db49efff47828430d84008f3e6d", size = 325542, upload-time = "2026-03-26T18:20:20.597Z" },
+    { url = "https://files.pythonhosted.org/packages/4d/9d/6f0ff0a0588bf7170397d1096e156aab2ac4eaece1d8b756a59bffd0f8ac/kida_templates-0.4.0-py3-none-any.whl", hash = "sha256:78e12593561872c84af366de0ad9fccd15350df8b6381f1d5433b31fd9f0db46", size = 363741, upload-time = "2026-04-10T17:12:10.132Z" },
 ]
 
 [[package]]
@@ -652,6 +654,37 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d6/54/cfe61301667036ec958cb99bd3efefba235e65cdeb9c84d24a8293ba1d90/mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba", size = 8729, upload-time = "2022-08-14T12:40:10.846Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b3/38/89ba8ad64ae25be8de66a6d463314cf1eb366222074cfda9ee839c56a4b4/mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8", size = 9979, upload-time = "2022-08-14T12:40:09.779Z" },
+]
+
+[[package]]
+name = "milo-cli"
+version = "0.2.1"
+source = { editable = "../../milo-cli/yeosu" }
+dependencies = [
+    { name = "kida-templates" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "bengal", marker = "extra == 'docs'", specifier = ">=0.2.6" },
+    { name = "kida-templates", specifier = ">=0.4.0" },
+    { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0" },
+    { name = "watchfiles", marker = "extra == 'watch'", specifier = ">=1.0" },
+]
+provides-extras = ["docs", "yaml", "watch"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "hypothesis", specifier = ">=6.100.0" },
+    { name = "pre-commit", specifier = ">=4.0.0" },
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-benchmark", specifier = ">=4.0.0" },
+    { name = "pytest-cov", specifier = ">=4.0" },
+    { name = "pytest-timeout", specifier = ">=2.3.0" },
+    { name = "pytest-xdist", specifier = ">=3.3.0" },
+    { name = "ruff", specifier = ">=0.15.1" },
+    { name = "towncrier", specifier = ">=24.0" },
+    { name = "ty", specifier = ">=0.0.11" },
 ]
 
 [[package]]

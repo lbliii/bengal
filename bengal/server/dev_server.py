@@ -907,17 +907,8 @@ class DevServer:
 
             self._print_stale_process_panel(stale_pid, pid_file, is_holding_port)
 
-            # Try to import click for confirmation, fall back to input
-            try:
-                import click
-
-                if click.confirm("  Kill stale process?", default=True):
-                    should_kill = True
-                else:
-                    should_kill = False
-            except ImportError:
-                response = input("  Kill stale process? [Y/n]: ").strip().lower()
-                should_kill = response in ("", "y", "yes")
+            response = input("  Kill stale process? [Y/n]: ").strip().lower()
+            should_kill = response in ("", "y", "yes")
 
             if should_kill:
                 if PIDManager.kill_stale_process(stale_pid):

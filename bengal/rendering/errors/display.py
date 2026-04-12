@@ -7,7 +7,7 @@ with syntax highlighting (via Rich if available) or plain text fallback.
 Functions:
     display_template_error: Main entry point for displaying errors
     _display_template_error_rich: Rich-based display with syntax highlighting
-    _display_template_error_click: Click-based fallback display
+    _display_template_error_plain: Plain text fallback display
 
 Helper Functions:
     _generate_enhanced_suggestions: Context-aware suggestion generation
@@ -42,10 +42,10 @@ def display_template_error(error: TemplateRenderError, use_color: bool = True) -
             _display_template_error_rich(error)
             return
     except ImportError:
-        pass  # Fall back to click
+        pass  # Fall back to plain text
 
-    # Fallback to click-based display
-    _display_template_error_click(error, use_color)
+    # Fallback to plain text display
+    _display_template_error_plain(error)
 
 
 def _display_template_error_rich(error: TemplateRenderError) -> None:
@@ -389,11 +389,12 @@ def _extract_dict_attribute(error_message: str) -> str | None:
     return None
 
 
-def _display_template_error_click(error: TemplateRenderError, use_color: bool = True) -> None:
-    """Fallback display using click (original implementation)."""
-    import click
+def _display_template_error_plain(error: TemplateRenderError) -> None:
+    """Plain-text fallback display (no Rich)."""
+    import sys
 
-    # Header
+    out = sys.stdout
+
     error_type_names = {
         "syntax": "Template Syntax Error",
         "filter": "Unknown Filter",
@@ -405,75 +406,59 @@ def _display_template_error_click(error: TemplateRenderError, use_color: bool = 
     }
 
     header = error_type_names.get(error.error_type, "Template Error")
-    click.echo(click.style(f"\n⚠️  {header}", fg="red", bold=True))
+    print(f"\n  {header}", file=out)
 
-    # File and line
     ctx = error.template_context
     if ctx.template_path:
-        click.echo(click.style("\n  File: ", fg="cyan") + str(ctx.template_path))
+        print(f"\n  File: {ctx.template_path}", file=out)
     else:
-        click.echo(click.style("\n  Template: ", fg="cyan") + ctx.template_name)
+        print(f"\n  Template: {ctx.template_name}", file=out)
 
     if ctx.line_number:
-        click.echo(click.style("  Line: ", fg="cyan") + str(ctx.line_number))
+        print(f"  Line: {ctx.line_number}", file=out)
 
-    # Source code context
     if ctx.surrounding_lines:
-        click.echo(click.style("\n  Code:", fg="cyan"))
+        print("\n  Code:", file=out)
         for line_num, line_content in ctx.surrounding_lines:
             is_error_line = line_num == ctx.line_number
             prefix = ">" if is_error_line else " "
-            if is_error_line:
-                styled_line = click.style(line_content, fg="red", bold=True)
-            else:
-                styled_line = click.style(line_content, fg="white")
+            print(f"  {prefix} {line_num:4d} | {line_content}", file=out)
 
-            click.echo(click.style(f"  {prefix} {line_num:4d} | ", fg="cyan") + styled_line)
-
-            # Add pointer to error location
             if is_error_line and ctx.source_line:
-                # Simple pointer (could be enhanced with column info)
                 pointer = " " * (len(f"  {prefix} {line_num:4d} | ")) + "^" * min(
                     len(ctx.source_line.strip()), 40
                 )
-                click.echo(click.style(pointer, fg="red", bold=True))
+                print(pointer, file=out)
 
-    # Error message
-    click.echo(click.style("\n  Error: ", fg="red", bold=True) + error.message)
+    print(f"\n  Error: {error.message}", file=out)
 
-    # Suggestion
     suggestion = getattr(error, "suggestion", None)
     if suggestion:
-        click.echo(click.style("\n  Suggestion: ", fg="yellow", bold=True) + suggestion)
+        print(f"\n  Suggestion: {suggestion}", file=out)
 
-    # Alternatives
     available_alternatives = getattr(error, "available_alternatives", None) or []
     if available_alternatives:
-        click.echo(
-            click.style("\n  Did you mean: ", fg="yellow", bold=True)
-            + ", ".join(f"'{alt}'" for alt in available_alternatives)
+        print(
+            f"\n  Did you mean: {', '.join(f'{alt!r}' for alt in available_alternatives)}", file=out
         )
 
-    # Inclusion chain
     inclusion_chain = getattr(error, "inclusion_chain", None)
     if inclusion_chain:
-        click.echo(click.style("\n  Template Chain:", fg="cyan"))
+        print("\n  Template Chain:", file=out)
         for line in str(inclusion_chain).split("\n"):
-            click.echo(f"  {line}")
+            print(f"  {line}", file=out)
 
-    # Page source
     page_source = getattr(error, "page_source", None)
     if page_source:
-        click.echo(click.style("\n  Used by page: ", fg="cyan") + str(page_source))
+        print(f"\n  Used by page: {page_source}", file=out)
 
-    # Template search paths
     search_paths = getattr(error, "search_paths", None) or []
     if search_paths:
-        click.echo(click.style("\n  🔍 Template Search Paths:", fg="cyan", bold=True))
+        print("\n  Template Search Paths:", file=out)
         for i, search_path in enumerate(search_paths, 1):
             found_marker = ""
             if ctx.template_path and ctx.template_path.is_relative_to(search_path):
-                found_marker = click.style(" ← found here", fg="green")
-            click.echo(f"     {i}. {search_path}{found_marker}")
+                found_marker = " <-- found here"
+            print(f"     {i}. {search_path}{found_marker}", file=out)
 
-    click.echo()
+    print(file=out)

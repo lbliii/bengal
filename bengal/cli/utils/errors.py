@@ -102,7 +102,7 @@ def handle_exception(
             do_something()
         except Exception as e:
             handle_exception(e, cli, operation="building site")
-            raise click.Abort() from e
+            raise SystemExit(1) from e
 
     """
     from bengal.errors import BengalError
@@ -146,15 +146,12 @@ def _handle_generic_error(
         else:
             cli.error_header("Error")
 
-        cli.console.print(f"  {message}")
+        cli.info(f"  {message}")
 
         if suggestion:
-            cli.console.print()
-            if cli.use_rich:
-                cli.console.print(f"  [bold cyan]Tip:[/bold cyan] {suggestion}")
-            else:
-                cli.console.print(f"  Tip: {suggestion}")
-        cli.console.print()
+            cli.blank()
+            cli.info(f"  Tip: {suggestion}")
+        cli.blank()
     else:
         # Generic error formatting
         error_msg = str(exception) or type(exception).__name__

@@ -3,40 +3,21 @@ Development server specific CLI output methods.
 
 This module provides a mixin class with output methods specifically designed
 for the Bengal development server. These methods handle request logging,
-file change notifications, and server status display.
-
-Features:
-- HTTP request logging with colorized status codes and methods
-- File change notifications with timestamps
-- Server URL display
-- Table-style request log headers
-
-Architecture:
-DevServerOutputMixin is mixed into CLIOutput to provide dev server
-functionality without bloating the core output class. It expects
-certain attributes (use_rich, console) to be defined by CLIOutput.
+file change notifications, and server status display — all rendered through
+kida templates.
 
 Related:
 - bengal/output/core.py: Main CLIOutput class that uses this mixin
-- bengal/output/colors.py: Color utilities for HTTP status/method
+- bengal/output/templates/server_dashboard.kida: kida template for all modes
 - bengal/cli/commands/serve.py: Dev server command that uses these methods
 
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-import click
-
-from bengal.output.colors import (
-    get_method_color_code,
-    get_method_style,
-    get_status_color_code,
-    get_status_style,
-)
 from bengal.output.enums import MessageLevel
-from bengal.output.utils import ANSI
 
 if TYPE_CHECKING:
     from rich.console import Console
@@ -46,14 +27,13 @@ class DevServerOutputMixin:
     """
     Mixin providing development server specific output methods.
 
-    This mixin adds HTTP request logging, file change notifications,
-    and server status display methods to CLIOutput. It is designed
-    to be mixed into CLIOutput and relies on attributes defined there.
+    All output is rendered through the server_dashboard.kida template.
 
     Required Attributes (from CLIOutput):
         use_rich: Whether to use Rich console output
         console: Rich Console instance for styled output
         should_show: Method to check message visibility based on level
+        render_write: Method to render kida templates to stdout
 
     """
 
@@ -65,31 +45,15 @@ class DevServerOutputMixin:
         """Check if message should be shown based on level and settings."""
         raise NotImplementedError("should_show must be provided by CLIOutput")
 
+    def render_write(self, template_name: str, **context: Any) -> None:
+        """Render a kida template and write to stdout."""
+        raise NotImplementedError("render_write must be provided by CLIOutput")
+
     def separator(self, width: int = 78, style: str = "dim") -> None:
-        """
-        Print a horizontal separator line.
-
-        Outputs a line of box-drawing characters (─) to visually separate
-        content sections in the terminal.
-
-        Args:
-            width: Character width of the separator line (default: 78)
-            style: Rich style name to apply (default: "dim" for subtle appearance)
-
-        Example:
-            >>> cli.separator()
-            ────────────────────────────────────────
-        """
+        """Print a horizontal separator line."""
         if not self.should_show(MessageLevel.INFO):
             return
-
-        line = "─" * width
-
-        if self.use_rich:
-            self.console.print(f"  [{style}]{line}[/{style}]")
-        else:
-            # ANSI dim for fallback
-            click.echo(f"  {ANSI.DIM}{line}{ANSI.RESET}")
+        self.render_write("server_dashboard.kida", mode="separator")
 
     def file_change_notice(self, file_name: str, timestamp: str | None = None) -> None:
         """
@@ -99,10 +63,6 @@ class DevServerOutputMixin:
             file_name: Name of the changed file (or summary like "file.md (+3 more)")
             timestamp: Optional timestamp string (defaults to current time HH:MM:SS)
 
-        Example:
-            ────────────────────────────────────────
-            12:34:56 │ 📝 File changed: index.md
-            ────────────────────────────────────────
         """
         if not self.should_show(MessageLevel.INFO):
             return
@@ -112,13 +72,12 @@ class DevServerOutputMixin:
 
             timestamp = datetime.now().strftime("%H:%M:%S")
 
-        self.separator()
-        if self.use_rich:
-            self.console.print(f"  {timestamp} │ [warning]📝 File changed:[/warning] {file_name}")
-        else:
-            click.echo(f"  {timestamp} │ {ANSI.YELLOW}📝 File changed:{ANSI.RESET} {file_name}")
-        self.separator()
-        click.echo()  # Blank line after
+        self.render_write(
+            "server_dashboard.kida",
+            mode="file_change",
+            file_name=file_name,
+            timestamp=timestamp,
+        )
 
     def server_url_inline(self, host: str, port: int) -> None:
         """
@@ -128,36 +87,17 @@ class DevServerOutputMixin:
             host: Server host
             port: Server port
 
-        Example:
-            ➜  Local: http://localhost:5173/
         """
         if not self.should_show(MessageLevel.INFO):
             return
 
-        url = f"http://{host}:{port}/"
-
-        if self.use_rich:
-            self.console.print(f"\n  [cyan]➜[/cyan]  Local: [bold]{url}[/bold]\n")
-        else:
-            click.echo(f"\n  {ANSI.CYAN}➜{ANSI.RESET}  Local: {ANSI.BOLD}{url}{ANSI.RESET}\n")
+        self.render_write("server_dashboard.kida", mode="url", host=host, port=port)
 
     def request_log_header(self) -> None:
-        """
-        Print table header for HTTP request logging.
-
-        Example:
-            TIME     │ METHOD │ STA │ PATH
-            ─────────┼────────┼─────┼──────────────────────
-        """
+        """Print table header for HTTP request logging."""
         if not self.should_show(MessageLevel.INFO):
             return
-
-        if self.use_rich:
-            self.console.print(f"  [dim]{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH[/dim]")
-            self.console.print(f"  [dim]{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}[/dim]")
-        else:
-            click.echo(f"  {ANSI.DIM}{'TIME':8} │ {'METHOD':6} │ {'STATUS':3} │ PATH{ANSI.RESET}")
-            click.echo(f"  {ANSI.DIM}{'─' * 8}─┼─{'─' * 6}─┼─{'─' * 3}─┼─{'─' * 60}{ANSI.RESET}")
+        self.render_write("server_dashboard.kida", mode="header")
 
     def http_request(
         self,
@@ -170,11 +110,6 @@ class DevServerOutputMixin:
         """
         Print a formatted HTTP request log line.
 
-        Outputs a table-formatted log entry with colorized status code
-        and method. Non-asset requests show status indicators (success/error
-        icons), while asset requests are displayed without icons to reduce
-        visual noise.
-
         Args:
             timestamp: Request timestamp in HH:MM:SS format
             method: HTTP method (GET, POST, PUT, DELETE, PATCH)
@@ -182,48 +117,16 @@ class DevServerOutputMixin:
             path: Request path (truncated if > 60 characters)
             is_asset: If True, suppress status indicator icons
 
-        Example:
-            >>> cli.http_request("12:34:56", "GET", "200", "/index.html")
-            12:34:56 │ GET    │ 200 │ - /index.html
-
-            >>> cli.http_request("12:34:57", "GET", "404", "/missing.html")
-            12:34:57 │ GET    │ 404 │ x /missing.html
         """
         if not self.should_show(MessageLevel.INFO):
             return
 
-        # Truncate long paths
-        display_path = path
-        if len(path) > 60:
-            display_path = path[:57] + "..."
-
-        # Add indicator icon
-        from bengal.output.icons import get_icon_set
-        from bengal.utils.observability.rich_console import should_use_emoji
-
-        icons = get_icon_set(should_use_emoji())
-        indicator = ""
-        if not is_asset:
-            if status_code.startswith("2"):
-                indicator = f"{icons.info} "  # Page load
-            elif status_code.startswith("4"):
-                indicator = f"{icons.error} "  # Error
-
-        # Color codes for status
-        status_color_code = get_status_color_code(status_code)
-        method_color_code = get_method_color_code(method)
-
-        if self.use_rich:
-            # Use Rich markup for colors
-            status_style = get_status_style(status_code)
-            method_style = get_method_style(method)
-            self.console.print(
-                f"  {timestamp} │ [{method_style}]{method:6}[/{method_style}] │ "
-                f"[{status_style}]{status_code:3}[/{status_style}] │ {indicator}{display_path}"
-            )
-        else:
-            # Use ANSI codes for fallback
-            print(
-                f"  {timestamp} │ {method_color_code}{method:6}{ANSI.RESET} │ "
-                f"{status_color_code}{status_code:3}{ANSI.RESET} │ {indicator}{display_path}"
-            )
+        self.render_write(
+            "server_dashboard.kida",
+            mode="request",
+            timestamp=timestamp,
+            method=method,
+            status=status_code,
+            path=path,
+            is_asset=is_asset,
+        )

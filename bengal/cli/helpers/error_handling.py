@@ -3,7 +3,7 @@ Unified error handling for CLI commands.
 
 Provides decorators and context managers for consistent error handling
 across all Bengal CLI commands, including formatted error output,
-traceback display control, and proper Click abort handling.
+traceback display control, and proper abort handling.
 
 .. note::
     Error handling logic has been consolidated into :mod:`bengal.cli.utils.errors`.
@@ -14,7 +14,6 @@ Functions:
     cli_error_context: Context manager for operation-level error handling
 
 Example:
-    @click.command()
     @handle_cli_errors(show_art=True)
     def my_command():
         with cli_error_context("loading configuration"):
@@ -28,8 +27,6 @@ import contextlib
 from collections.abc import Callable, Generator
 from functools import wraps
 from typing import Any
-
-import click
 
 
 def handle_cli_errors[F: Callable[..., Any]](
@@ -46,7 +43,6 @@ def handle_cli_errors[F: Callable[..., Any]](
         show_traceback: Whether to show traceback (None = auto-detect from config)
 
     Example:
-        @click.command()
         @handle_cli_errors()
         def my_command():
             # ... command logic ...
@@ -59,12 +55,7 @@ def handle_cli_errors[F: Callable[..., Any]](
         def wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
                 return func(*args, **kwargs)
-            except click.Abort:
-                # Re-raise click.Abort as-is (user cancellation or explicit abort)
-                raise
-            except click.ClickException:
-                # Click-specific exceptions (UsageError, BadParameter, etc.)
-                # These are already formatted by Click, just re-raise
+            except SystemExit, KeyboardInterrupt:
                 raise
             except Exception as e:
                 # Delegate to consolidated error handling
@@ -81,8 +72,8 @@ def handle_cli_errors[F: Callable[..., Any]](
                 )
 
                 if preserve_chain:
-                    raise click.Abort() from e
-                raise click.Abort() from None
+                    raise SystemExit(1) from e
+                raise SystemExit(1) from None
 
         return wrapper  # type: ignore[return-value]
 
@@ -111,9 +102,7 @@ def cli_error_context(
     """
     try:
         yield
-    except click.Abort:
-        raise
-    except click.ClickException:
+    except SystemExit, KeyboardInterrupt:
         raise
     except Exception as e:
         # Delegate to consolidated error handling
@@ -129,4 +118,4 @@ def cli_error_context(
             show_traceback=show_traceback,
         )
 
-        raise click.Abort() from e
+        raise SystemExit(1) from e

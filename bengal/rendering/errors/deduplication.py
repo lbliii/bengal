@@ -128,17 +128,15 @@ class ErrorDeduplicator:
         except ImportError:
             pass
 
-        # Fallback to click
-        import click
-
-        click.echo()
-        click.secho(f"⚠️  {suppressed} similar error(s) suppressed", fg="yellow", bold=True)
+        # Plain text fallback
+        print()
+        print(f"  {suppressed} similar error(s) suppressed")
         for key, pages in self.seen_errors.items():
             if len(pages) > self.max_display_per_error:
                 template, line, error_type = key.file_path, key.line, key.category
                 extra = len(pages) - self.max_display_per_error
-                click.echo(f"   • {template}:{line} ({error_type}): +{extra} more page(s)")
-        click.echo()
+                print(f"   • {template}:{line} ({error_type}): +{extra} more page(s)")
+        print()
 
     def reset(self) -> None:
         """Reset the deduplicator for a new build."""
