@@ -425,24 +425,7 @@ class RenderOrchestrator(
             )
             return
 
-        # Try to use rich progress if available (but not if Live display already active)
-        try:
-            from bengal.utils.observability.rich_console import (
-                is_live_display_active,
-                should_use_rich,
-            )
-
-            # Don't create Progress if there's already a Live display (e.g., LiveProgressManager)
-            use_rich = (
-                should_use_rich() and not quiet and len(pages) > 5 and not is_live_display_active()
-            )
-        except ImportError:
-            use_rich = False
-
-        if use_rich:
-            self._render_parallel_with_progress(pages, quiet, stats, build_context, changed_sources)
-        else:
-            self._render_parallel_simple(pages, quiet, stats, build_context, changed_sources)
+        self._render_parallel_simple(pages, quiet, stats, build_context, changed_sources)
 
     def _render_with_snapshot(
         self,
@@ -705,107 +688,6 @@ class RenderOrchestrator(
                     current_item="",
                     threads=max_workers,
                 )
-
-    def _render_parallel_with_progress(
-        self,
-        pages: Sequence[PageLike],
-        quiet: bool,
-        stats: BuildStats | None,
-        build_context: BuildContext | None = None,
-        changed_sources: set[Path] | None = None,
-    ) -> None:
-        """Render pages in parallel with rich progress bar."""
-        from rich.progress import (
-            BarColumn,
-            Progress,
-            SpinnerColumn,
-            TaskProgressColumn,
-            TextColumn,
-            TimeElapsedColumn,
-        )
-
-        from bengal.utils.observability.rich_console import get_console
-
-        console = get_console()
-        max_workers = get_optimal_workers(
-            len(pages),
-            workload_type=WorkloadType.MIXED,
-            config_override=self._get_max_workers(),
-        )
-
-        # Sort heavy pages first to avoid straggler workers (LPT scheduling)
-        sorted_pages = self._maybe_sort_by_complexity(pages, max_workers)
-
-        # Capture current generation for staleness check
-        current_gen = _get_current_generation()
-
-        def process_page_with_pipeline(page: PageLike) -> None:
-            _process_page_with_pipeline(
-                page,
-                site=self.site,
-                quiet=quiet,
-                stats=stats,
-                build_context=build_context,
-                changed_sources=changed_sources,
-                block_cache=self._block_cache,
-                highlight_cache=self._highlight_cache,
-                output_collector=build_context.output_collector if build_context else None,
-                current_generation=current_gen,
-            )
-
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[bold blue]{task.description}"),
-            BarColumn(complete_style="green", finished_style="green"),
-            TaskProgressColumn(),
-            TextColumn("•"),
-            TextColumn("{task.completed}/{task.total} pages"),
-            TextColumn("•"),
-            TimeElapsedColumn(),
-            console=console,
-            transient=False,
-        ) as progress:
-            task = progress.add_task("[cyan]Rendering pages...", total=len(sorted_pages))
-
-            token = build_context.cancellation_token if build_context else None
-
-            with _managed_executor(max_workers) as executor:
-                batch_size = max(max_workers * 2, 1)
-                aggregator = ErrorAggregator(total_items=len(sorted_pages))
-                threshold = 5
-
-                for batch in batched(sorted_pages, batch_size, strict=False):
-                    future_to_page = {
-                        executor.submit(
-                            contextvars.copy_context().run,
-                            process_page_with_pipeline,
-                            page,
-                        ): page
-                        for page in batch
-                    }
-                    for future in concurrent.futures.as_completed(future_to_page):
-                        page = future_to_page[future]
-                        try:
-                            if token:
-                                token.result(future, per_item_timeout=60.0)
-                            else:
-                                future.result(timeout=90)
-                        except CancellationError:
-                            logger.warning("render_cancelled")
-                            break
-                        except Exception as e:
-                            if is_shutdown_error(e):
-                                logger.debug("render_shutdown")
-                                continue
-                            context = extract_error_context(e, page)
-                            if aggregator.should_log_individual(
-                                e, context, threshold=threshold, max_samples=3
-                            ):
-                                logger.error("page_rendering_error", **context)
-                            aggregator.add_error(e, context=context)
-                        progress.update(task, advance=1)
-
-                aggregator.log_summary(logger, threshold=5, error_type="rendering")
 
     def _set_output_paths_for_pages(self, pages: Sequence[PageLike]) -> None:
         """

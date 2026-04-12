@@ -712,44 +712,8 @@ class ContentOrchestrator:
                 )
                 return
 
-        from bengal.content.discovery.asset_discovery import AssetDiscovery
-
-        self.site.assets = []
-        theme_asset_count = 0
-        site_asset_count = 0
-
-        # Discover theme assets first (lower priority)
-        if self.site.theme:
-            theme_assets_dir = self._get_theme_assets_dir()
-            if theme_assets_dir and theme_assets_dir.exists():
-                logger.debug(
-                    "discovering_theme_assets", theme=self.site.theme, path=str(theme_assets_dir)
-                )
-                theme_discovery = AssetDiscovery(theme_assets_dir)
-                theme_assets = theme_discovery.discover()
-                self.site.assets.extend(theme_assets)
-                theme_asset_count = len(theme_assets)
-
-        # Discover site assets (higher priority, can override theme assets)
-        if assets_dir is None:
-            assets_dir = self.site.root_path / "assets"
-
-        if assets_dir.exists():
-            logger.debug("discovering_site_assets", path=str(assets_dir))
-            site_discovery = AssetDiscovery(assets_dir)
-            site_assets = site_discovery.discover()
-            self.site.assets.extend(site_assets)
-            site_asset_count = len(site_assets)
-        elif not self.site.assets:
-            # Only warn if we have no theme assets either
-            logger.warning("assets_dir_not_found", path=str(assets_dir))
-
-        logger.debug(
-            "assets_discovered",
-            theme_assets=theme_asset_count,
-            site_assets=site_asset_count,
-            total=len(self.site.assets),
-        )
+        self.site.discover_assets(assets_dir=assets_dir)
+        logger.debug("assets_discovered", total=len(self.site.assets))
 
     def _setup_page_references(self) -> None:
         """
@@ -1047,14 +1011,3 @@ class ContentOrchestrator:
         # Graph enabled?
         if config.get("graph", {}).get("enabled", False):
             target.add("graph")
-
-    def _get_theme_assets_dir(self) -> Path | None:
-        """
-        Get the assets directory for the current theme.
-
-        Returns:
-            Path to theme assets or None if not found
-        """
-        from bengal.services.theme import get_theme_assets_dir
-
-        return get_theme_assets_dir(self.site.root_path, self.site.theme)

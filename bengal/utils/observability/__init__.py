@@ -68,15 +68,20 @@ from bengal.utils.observability.progress import (
     NoopReporter,
     ProgressReporter,
 )
+
+# Backward-compatible aliases from rich_console
 from bengal.utils.observability.rich_console import (
-    PALETTE,
     bengal_theme,
-    detect_environment,
     get_console,
     is_live_display_active,
     reset_console,
-    should_use_emoji,
     should_use_rich,
+)
+from bengal.utils.observability.terminal import (
+    PALETTE,
+    detect_environment,
+    is_interactive_terminal,
+    should_use_emoji,
 )
 
 __all__ = [
@@ -115,6 +120,7 @@ __all__ = [
     "get_current_profile",
     "get_enabled_health_checks",
     "get_logger",
+    "is_interactive_terminal",
     "is_live_display_active",
     "is_validator_enabled",
     "print_all_summaries",

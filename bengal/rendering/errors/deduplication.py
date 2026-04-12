@@ -104,41 +104,16 @@ class ErrorDeduplicator:
         if suppressed == 0:
             return
 
-        try:
-            from bengal.utils.observability.rich_console import get_console, should_use_rich
+        import sys
 
-            if should_use_rich():
-                console = get_console()
-                console.print()
-                console.print(
-                    f"[yellow bold]⚠️  {suppressed} similar error(s) suppressed[/yellow bold]"
-                )
-
-                # Show summary of each unique error
-                for key, pages in self.seen_errors.items():
-                    if len(pages) > self.max_display_per_error:
-                        template, line, error_type = key.file_path, key.line, key.category
-                        extra = len(pages) - self.max_display_per_error
-                        console.print(
-                            f"   • [dim]{template}:{line}[/dim] ({error_type}): "
-                            f"[yellow]+{extra} more page(s)[/yellow]"
-                        )
-                console.print()
-                return
-        except ImportError:
-            pass
-
-        # Fallback to click
-        import click
-
-        click.echo()
-        click.secho(f"⚠️  {suppressed} similar error(s) suppressed", fg="yellow", bold=True)
+        sys.stdout.write(f"\n  ▲ {suppressed} similar error(s) suppressed\n")
         for key, pages in self.seen_errors.items():
             if len(pages) > self.max_display_per_error:
                 template, line, error_type = key.file_path, key.line, key.category
                 extra = len(pages) - self.max_display_per_error
-                click.echo(f"   • {template}:{line} ({error_type}): +{extra} more page(s)")
-        click.echo()
+                sys.stdout.write(f"   · {template}:{line} ({error_type}): +{extra} more page(s)\n")
+        sys.stdout.write("\n")
+        sys.stdout.flush()
 
     def reset(self) -> None:
         """Reset the deduplicator for a new build."""

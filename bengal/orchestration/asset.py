@@ -220,6 +220,7 @@ class AssetOrchestrator:
             logger.warning("asset_pipeline_failed", error=str(e))
 
         if not assets:
+            self._write_asset_manifest([])
             logger.info("asset_processing_skipped", reason="no_assets")
             return
 

@@ -246,7 +246,7 @@ class PerformanceAdvisor:
 
         Args:
             stats: Build statistics to analyze
-            environment: Environment info from rich_console.detect_environment()
+            environment: Environment info from terminal.detect_environment()
         """
         self.stats = stats
         self.environment = environment or {}

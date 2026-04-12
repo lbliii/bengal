@@ -39,7 +39,8 @@ def test_basic_logging(logger, capsys):
     logger.info("test_message", key="value")
 
     captured = capsys.readouterr()
-    assert "test_message" in captured.out
+    # Logger humanizes underscore-separated event codes
+    assert "Test message" in captured.out
 
     events = logger.get_events()
     assert len(events) == 1

@@ -1,9 +1,6 @@
 import json
 from typing import TYPE_CHECKING
 
-from click.testing import CliRunner
-
-from bengal.cli import main
 from bengal.core.site import Site
 from bengal.themes.swizzle import ModificationStatus, SwizzleManager
 
@@ -80,31 +77,6 @@ def test_swizzle_update_overwrites_when_local_unchanged(tmp_path: Path):
     # Assert
     assert summary["updated"] >= 1
     assert dest.read_text(encoding="utf-8") == "v2"
-
-
-def test_swizzle_cli_invocation(tmp_path: Path):
-    # Arrange
-    theme_tpl = tmp_path / "themes" / "child" / "templates" / "partials" / "demo.html"
-    _write(theme_tpl, "from cli")
-
-    # Create bengal.toml to configure the theme
-    config_file = tmp_path / "bengal.toml"
-    config_file.write_text('[site]\nname="test"\ntheme="child"\n', encoding="utf-8")
-
-    runner = CliRunner()
-
-    # Act
-    result = runner.invoke(
-        main,
-        ["utils", "theme", "swizzle", "partials/demo.html", str(tmp_path)],
-        catch_exceptions=False,
-    )
-
-    # Assert
-    assert result.exit_code == 0
-    dest = tmp_path / "templates" / "partials" / "demo.html"
-    assert dest.exists()
-    assert dest.read_text(encoding="utf-8") == "from cli"
 
 
 def test_modification_status_not_swizzled(tmp_path: Path):

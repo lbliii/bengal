@@ -231,7 +231,7 @@ def get_icons() -> IconSet:
 
     """
     from bengal.output.icons import get_icon_set
-    from bengal.utils.observability.rich_console import should_use_emoji
+    from bengal.utils.observability.terminal import should_use_emoji
 
     return get_icon_set(should_use_emoji())
 

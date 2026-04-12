@@ -219,8 +219,8 @@ class TestDisplayBengalError:
 
         display_bengal_error(error, mock_cli)
 
-        # Check that console.print was called with error code
-        calls = mock_cli.console.print.call_args_list
+        # Check that error() was called with error code
+        calls = mock_cli.error.call_args_list
         output = " ".join(str(call) for call in calls)
         assert "R001" in output
 
@@ -240,7 +240,7 @@ class TestDisplayBengalError:
 
         display_bengal_error(error, mock_cli)
 
-        calls = mock_cli.console.print.call_args_list
+        calls = mock_cli.info.call_args_list
         output = " ".join(str(call) for call in calls)
         assert "content/post.md" in output
         assert "42" in output
@@ -259,7 +259,7 @@ class TestDisplayBengalError:
 
         display_bengal_error(error, mock_cli)
 
-        calls = mock_cli.console.print.call_args_list
+        calls = mock_cli.info.call_args_list
         output = " ".join(str(call) for call in calls)
         assert "Check templates/" in output
 
@@ -276,6 +276,6 @@ class TestDisplayBengalError:
         display_bengal_error(error, mock_cli)
 
         # Should still display the message
-        calls = mock_cli.console.print.call_args_list
+        calls = mock_cli.info.call_args_list
         output = " ".join(str(call) for call in calls)
         assert "Simple error" in output
