@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any
 from kida import Environment
 from kida.bytecode_cache import BytecodeCache
 from kida.environment import (
+    ChoiceLoader,
     FileSystemLoader,
 )
 from kida.environment import (
@@ -195,6 +196,85 @@ _PURE_FILTERS: set[str] = {
 }
 
 
+class _ProviderEnvShim:
+    """Adapter that lets library register_filters() calls set env.filters/globals.
+
+    Detects collisions with Bengal built-ins and other providers.
+    Implements the minimal template_filter()/template_global() decorator API
+    that libraries like chirp_ui expect (Flask-style registration).
+    """
+
+    __slots__ = ("_builtin_filters", "_builtin_globals", "_env", "_package", "_provider_names")
+
+    def __init__(
+        self,
+        env: Environment,
+        builtin_filters: frozenset[str],
+        builtin_globals: frozenset[str],
+        provider_names: dict[str, str],
+        package: str,
+    ) -> None:
+        self._env = env
+        self._builtin_filters = builtin_filters
+        self._builtin_globals = builtin_globals
+        self._provider_names = provider_names
+        self._package = package
+
+    def _check_collision(self, name: str, kind: str) -> None:
+        from bengal.errors.exceptions import BengalConfigError
+
+        builtins = self._builtin_filters if kind == "filter" else self._builtin_globals
+        if name in builtins:
+            msg = (
+                f"Theme library '{self._package}': {kind} '{name}' collides with a Bengal built-in"
+            )
+            raise BengalConfigError(msg)
+        if name in self._provider_names:
+            msg = (
+                f"Theme library '{self._package}': {kind} '{name}' "
+                f"collides with library '{self._provider_names[name]}'"
+            )
+            raise BengalConfigError(msg)
+
+    def template_filter(self, name: str | None = None):
+        """Decorator-style filter registration (Flask-compatible)."""
+
+        def decorator(fn):
+            filter_name = name or fn.__name__
+            self._check_collision(filter_name, "filter")
+            self._env.filters[filter_name] = fn
+            self._provider_names[filter_name] = self._package
+            return fn
+
+        return decorator
+
+    def template_global(self, name: str | None = None):
+        """Decorator-style global registration (Flask-compatible)."""
+
+        def decorator(fn):
+            global_name = name or fn.__name__
+            self._check_collision(global_name, "global")
+            self._env.globals[global_name] = fn
+            self._provider_names[global_name] = self._package
+            return fn
+
+        return decorator
+
+    def add_template_filter(self, fn, name: str | None = None) -> None:
+        """Direct filter registration (non-decorator style)."""
+        filter_name = name or fn.__name__
+        self._check_collision(filter_name, "filter")
+        self._env.filters[filter_name] = fn
+        self._provider_names[filter_name] = self._package
+
+    def add_template_global(self, fn, name: str | None = None) -> None:
+        """Direct global registration (non-decorator style)."""
+        global_name = name or fn.__name__
+        self._check_collision(global_name, "global")
+        self._env.globals[global_name] = fn
+        self._provider_names[global_name] = self._package
+
+
 class KidaTemplateEngine:
     """Bengal integration for Kida template engine.
 
@@ -214,6 +294,7 @@ class KidaTemplateEngine:
         "_menu_dict_cache",
         "_profile",
         "_profiler",
+        "_providers",
         "site",
         "template_dirs",
     )
@@ -251,6 +332,7 @@ class KidaTemplateEngine:
 
         self.site = site
         self.template_dirs = self._build_template_dirs()
+        self._providers = self._resolve_providers()
 
         # Legacy dependency tracking removed — EffectTracer handles this now
 
@@ -300,7 +382,7 @@ class KidaTemplateEngine:
         # Create Kida environment
         # Note: strict mode (UndefinedError for undefined vars) is always enabled
         self._env = Environment(
-            loader=FileSystemLoader(self.template_dirs),
+            loader=self._build_loader(),
             autoescape=self._select_autoescape,
             auto_reload=site.config.get("development", {}).get("auto_reload", True),
             bytecode_cache=bytecode_cache,
@@ -370,6 +452,28 @@ class KidaTemplateEngine:
 
         return dirs
 
+    def _resolve_providers(self) -> tuple:
+        """Resolve theme library providers from the theme chain."""
+        from bengal.core.theme.providers import resolve_theme_providers
+        from bengal.rendering.template_engine.environment import resolve_theme_chain
+
+        theme_chain = resolve_theme_chain(self.site.theme, self.site)
+        return resolve_theme_providers(self.site.root_path, theme_chain)
+
+    def _build_loader(self) -> FileSystemLoader | ChoiceLoader:
+        """Build the template loader, incorporating provider loaders if present.
+
+        When no providers declare loaders, returns a plain FileSystemLoader
+        (zero overhead). When providers are present, returns a ChoiceLoader:
+            1. FileSystemLoader(template_dirs)  — site + theme chain + default
+            2. *provider.loader for each provider  — library templates
+        """
+        fs_loader = FileSystemLoader(self.template_dirs)
+        provider_loaders = [p.loader for p in self._providers if p.loader is not None]
+        if not provider_loaders:
+            return fs_loader
+        return ChoiceLoader([fs_loader, *provider_loaders])
+
     def _select_autoescape(self, name: str | None) -> bool:
         """Determine autoescape based on file extension."""
         if name is None:
@@ -428,6 +532,40 @@ class KidaTemplateEngine:
         self._env.globals["get_menu"] = self._get_menu
         self._env.globals["get_menu_lang"] = self._get_menu_lang
         self._env.globals["url_for"] = self._url_for
+
+        # === Step 4: Theme library provider filters/globals ===
+        self._register_provider_extensions()
+
+    def _register_provider_extensions(self) -> None:
+        """Register filters/globals from theme library providers.
+
+        Captures Bengal's built-in names before registration so collisions
+        can be detected. Provider names that collide with built-ins or
+        other providers produce a BengalConfigError.
+        """
+        if not self._providers:
+            return
+
+        from bengal.errors.exceptions import BengalConfigError
+
+        builtin_filters = frozenset(self._env.filters.keys())
+        builtin_globals = frozenset(self._env.globals.keys())
+        provider_names: dict[str, str] = {}  # name -> owning package
+
+        for provider in self._providers:
+            if provider.register_env is None:
+                continue
+
+            shim = _ProviderEnvShim(
+                self._env, builtin_filters, builtin_globals, provider_names, provider.package
+            )
+            try:
+                provider.register_env(shim)
+            except BengalConfigError:
+                raise
+            except Exception as e:
+                msg = f"Theme library '{provider.package}': register_filters() failed: {e}"
+                raise BengalConfigError(msg) from e
 
     def _get_menu(self, menu_name: str = "main") -> list[dict]:
         """Get menu items as dicts (cached)."""
