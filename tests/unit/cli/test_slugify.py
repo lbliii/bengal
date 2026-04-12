@@ -4,7 +4,7 @@ Test page name slugification.
 
 import pytest
 
-from bengal.cli.commands.new import slugify
+from bengal.utils.primitives.text import slugify
 
 
 class TestSlugify:

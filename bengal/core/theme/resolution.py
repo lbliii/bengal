@@ -130,25 +130,15 @@ def _read_theme_extends(site_root: Path, theme_name: str) -> str | None:
     return _read_theme_manifest(site_root, theme_name).extends
 
 
-def resolve_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:
-    """
-    Resolve theme inheritance chain starting from the active theme.
-
-    Order: child first → parent → ... (does not duplicate 'default').
-
-    When active_theme is "default" (or None), returns ["default"] so that
-    the bundled default theme assets are discovered. For child themes that
-    extend "default", filters out "default" since it's added as a fallback
-    separately in template loaders.
-
-    """
+def _build_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:
+    """Build the raw theme inheritance chain without special-case filtering."""
     chain: list[str] = []
     visited: set[str] = set()
     current = active_theme or "default"
     depth = 0
-    MAX_DEPTH = 5
+    max_depth = 5
 
-    while current and current not in visited and depth < MAX_DEPTH:
+    while current and current not in visited and depth < max_depth:
         visited.add(current)
         chain.append(current)
         extends = _read_theme_extends(site_root, current)
@@ -157,12 +147,41 @@ def resolve_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:
         current = extends
         depth += 1
 
-    # When active_theme is "default" itself, keep it so assets are discovered.
-    # For child themes extending default, filter out "default" since the caller
-    # adds it as a fallback separately.
+    return chain
+
+
+def resolve_theme_chain(site_root: Path, active_theme: str | None) -> list[str]:
+    """
+    Resolve theme inheritance chain starting from the active theme.
+
+    Order: child first → parent → ... (does not duplicate 'default').
+
+    When active_theme is "default" (or None), returns ["default"] so template
+    loaders can resolve the bundled default theme directly. For child themes
+    that extend "default", filters out "default" since template loaders add
+    it as a fallback separately.
+
+    """
+    chain = _build_theme_chain(site_root, active_theme)
+
+    # When active_theme is "default" itself, keep it so template loaders can
+    # resolve the bundled default theme directly. For child themes extending
+    # default, filter out "default" since template loaders add it separately.
     if (active_theme or "default") == "default":
         return chain
     return [t for t in chain if t != "default"]
+
+
+def resolve_theme_asset_chain(site_root: Path, active_theme: str | None) -> list[str]:
+    """
+    Resolve theme inheritance chain for asset discovery.
+
+    Order: child first → parent → ... including `default` when inherited.
+
+    Unlike `resolve_theme_chain()`, this helper preserves `default` for child
+    themes because asset discovery does not add a separate fallback pass.
+    """
+    return _build_theme_chain(site_root, active_theme)
 
 
 def resolve_theme_templates_path(

@@ -1,0 +1,42 @@
+{#- Error display with themed border, details, and hints.
+
+    Usage from CLIOutput:
+        cli.render_write("error_panel.kida",
+            title="Build failed",
+            message="Template rendering error in base.html",
+            details=["Line 42: Undefined variable 'nav'", "Template: templates/base.html"],
+            hints=["Check variable names in your template", "Run: bengal theme debug"],
+            suggestions=["Did you mean: navigation?"],
+        )
+
+    Variables:
+        title: Error header text
+        message: Main error message
+        details: List of detail strings (optional)
+        hints: List of hint strings (optional)
+        suggestions: List of "did you mean" suggestions (optional)
+-#}
+{% from "_bengal.kida" import error_header %}
+{% from "components/_defs.kida" import status_line, next_steps %}
+{{ error_header(title | default("Error")) }}
+{%- if message %}
+{{ status_line("error", message) }}
+{%- endif -%}
+{%- if details | default(none) %}
+{%- for d in details %}
+  {{ d | dim }}
+{%- endfor -%}
+{%- endif -%}
+{%- if suggestions | default(none) %}
+
+{%- for s in suggestions %}
+  {{ icons.arrow_r | cyan }} {{ s }}
+{%- endfor -%}
+{%- endif -%}
+{%- if hints | default(none) %}
+
+{{ "Hints" | yellow | bold }}:
+{%- for h in hints %}
+  {{ icons.info | cyan }} {{ h }}
+{%- endfor -%}
+{%- endif -%}

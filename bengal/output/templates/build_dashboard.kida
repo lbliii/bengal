@@ -1,0 +1,120 @@
+{#- Build dashboard — comprehensive post-build metrics display.
+
+    Usage:
+        cli.render_write("build_dashboard.kida", **context)
+
+    Variables:
+        grade_letter: str — e.g. "A"
+        grade_score: int — e.g. 92
+        grade_summary: str — description
+        throughput: float — pages/sec
+        render_dist: str|none — "P50 2ms | P95 8ms | Max 12ms"
+        bottleneck: str|none — e.g. "Rendering"
+        regression: str|none — e.g. "+42% vs last"
+        regression_positive: bool
+
+        content: list[{label, value}] — content stats
+        timing: list[{name, time_str, pct}] — phase breakdown
+        total_time: str — e.g. "1.23s"
+        slowest: list[{name, ms}] — slowest pages
+
+        cache: list[{label, value}]|none — cache stats
+        cache_effectiveness: str|none — e.g. "saved 42% of render time"
+
+        suggestions: list[{marker, title, description, impact, action, config}]|none
+
+        output_dir: str|none
+        errors: list[{text, level}]|none
+-#}
+{% from "_bengal.kida" import bengal_header, error_header, timing_bar %}
+{% from "components/_defs.kida" import section, kv_list, status_line, summary_box, panel, next_steps %}
+
+{{ bengal_header("Build Complete!") }}
+
+{#- ── Performance Grade ───────────────────────────────── -#}
+{%- capture grade_content -%}
+{{ grade_letter | bold }}  {{ (grade_score | string ~ "/100") | dim }}  {{ grade_summary | dim }}
+{%- if throughput %}
+{{ ("Throughput: " ~ (throughput | round(1) | string) ~ " pages/sec") | cyan }}
+{%- endif -%}
+{%- if render_dist %}
+{{ render_dist | dim }}
+{%- endif -%}
+{%- if bottleneck %}
+{{ ("Bottleneck: " ~ bottleneck) | yellow }}
+{%- endif -%}
+{%- if regression %}
+{{ regression | fg("yellow" if regression_positive | default(false) else "green") }}
+{%- endif -%}
+{%- endcapture -%}
+{{ panel(grade_content | trim, title="Performance") }}
+
+{#- ── Content Statistics ──────────────────────────────── -#}
+
+{{ section("Content") }}
+{{ kv_list(content) }}
+
+{#- ── Phase Breakdown ─────────────────────────────────── -#}
+{%- if timing %}
+
+{{ section("Phase Breakdown") }}
+{%- for phase in timing %}
+{{ timing_bar(phase.name, phase.time_str, phase.pct) }}
+{%- endfor %}
+   {{ "Total" | pad(15) | bold }} {{ total_time | pad(8) | bold }}
+{%- endif -%}
+
+{#- ── Slowest Pages ──────────────────────────────────── -#}
+{%- if slowest %}
+
+   {{ "Slowest:" | dim }}
+{%- for page in slowest %}
+   {{ page.name | dim }}  {{ (page.ms | round(0) | int | string ~ "ms") | dim }}
+{%- endfor -%}
+{%- endif -%}
+
+{#- ── Cache Statistics ────────────────────────────────── -#}
+{%- if cache %}
+
+{{ section("Cache") }}
+{{ kv_list(cache) }}
+{%- if cache_effectiveness %}
+   {{ cache_effectiveness | cyan }}
+{%- endif -%}
+{%- endif -%}
+
+{#- ── Suggestions ─────────────────────────────────────── -#}
+{%- if suggestions %}
+
+{{ section("Suggestions") }}
+{%- for s in suggestions %}
+   {{ s.marker | bold }} {{ (loop.index | string ~ ". " ~ s.title) | bold }}
+     {{ s.description | dim }}
+     {{ ("Impact: " ~ s.impact) | green }}
+     {{ ("Action: " ~ s.action) | cyan }}
+{%- if s.config %}
+     {{ s.config | dim | italic }}
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+
+{#- ── Errors ──────────────────────────────────────────── -#}
+{%- if errors %}
+
+{{ error_header("Errors & Warnings") }}
+{%- for line in errors %}
+{%- if line.level == "error" %}
+   {{ line.text | red }}
+{%- elif line.level == "warning" %}
+   {{ line.text | yellow }}
+{%- else %}
+   {{ line.text }}
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+
+{#- ── Output ──────────────────────────────────────────── -#}
+{%- if output_dir %}
+
+   {{ "Output:" | bold }} {{ output_dir | dim }}
+{%- endif -%}

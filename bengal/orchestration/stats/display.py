@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.orchestration.stats.helpers import format_time
-from bengal.orchestration.stats.warnings import display_warnings
 from bengal.output import CLIOutput
 
 if TYPE_CHECKING:
@@ -16,156 +15,8 @@ if TYPE_CHECKING:
     from bengal.utils.stats_protocol import DisplayableStats
 
 
-def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None) -> None:
-    """
-    Display simple build statistics for writers.
-
-    Clean, minimal output focused on success/failure and critical issues only.
-    Perfect for content authors who just want to know "did it work?"
-
-    Args:
-        stats: Build statistics to display
-        output_dir: Output directory path to display
-
-    """
-    cli = CLIOutput()
-
-    if stats.skipped:
-        cli.blank()
-        cli.info("✨ No changes detected - build skipped!")
-        return
-
-    # Success indicator
-    error_summary = stats.get_error_summary()
-    if not stats.has_errors:
-        build_time_s = stats.build_time_ms / 1000
-        cli.blank()
-        total = stats.total_pages
-        if getattr(stats, "autodoc_pages", 0) > 0:
-            cli.success(
-                f"Built {total} pages ({stats.regular_pages}+{stats.generated_pages}+"
-                f"{stats.autodoc_pages} autodoc) in {build_time_s:.1f}s"
-            )
-        else:
-            cli.success(f"Built {total} pages in {build_time_s:.1f}s")
-    else:
-        cli.blank()
-        cli.warning(
-            f"Built with {error_summary['total_errors']} error(s), {error_summary['total_warnings']} warning(s)"
-        )
-
-    # Regression nudge for writers (only when significantly slower)
-    if stats.regression_pct is not None and stats.regression_pct > 30:
-        cli.warning(f"Slower than usual (+{stats.regression_pct:.0f}%)")
-
-    # Show errors using new error reporter
-    if stats.has_errors:
-        from bengal.errors import format_error_report
-
-        error_report = format_error_report(stats, verbose=False)
-        if error_report != "✅ No errors or warnings":
-            cli.error_header("Errors:")
-            # Split report into lines and display
-            for line in error_report.split("\n"):
-                if line.strip():
-                    if line.startswith("  ❌"):
-                        if cli.use_rich:
-                            cli.console.print(f"   [error]{line[4:].strip()}[/error]")
-                        else:
-                            cli.error(f"   {line[4:].strip()}")
-                    elif line.startswith("  ⚠️"):
-                        if cli.use_rich:
-                            cli.console.print(f"   [warning]{line[4:].strip()}[/warning]")
-                        else:
-                            cli.warning(f"   {line[4:].strip()}")
-                    elif line.endswith(":"):
-                        if cli.use_rich:
-                            cli.console.print(f"   [header]{line}[/header]")
-                        else:
-                            cli.info(f"   {line}")
-                    else:
-                        cli.info(f"   {line}")
-            cli.blank()
-
-    # Show link validation warnings if any
-    link_warnings = [w for w in stats.warnings if w.warning_type == "link"]
-    if link_warnings:
-        cli.warning(f"⚠️  {len(link_warnings)} broken link(s) found:")
-        for warning in link_warnings[:5]:  # Show first 5
-            if cli.use_rich:
-                cli.console.print(
-                    f"   • [warning]{warning.short_path}[/warning] → {warning.message}"
-                )
-            else:
-                cli.info(f"   • {warning.short_path} → {warning.message}")
-        if len(link_warnings) > 5:
-            remaining = len(link_warnings) - 5
-            cli.info(f"   ... and {remaining} more")
-        cli.blank()
-
-    # Output location
-    if output_dir:
-        cli.path(output_dir, label="Output")
-
-
-def display_build_stats(
-    stats: DisplayableStats, show_art: bool = True, output_dir: str | None = None
-) -> None:
-    """
-    Display build statistics in a colorful table.
-
-    Args:
-        stats: Build statistics to display
-        show_art: Whether to show ASCII art
-        output_dir: Output directory path to display
-
-    """
-    cli = CLIOutput()
-
-    if stats.skipped:
-        cli.blank()
-        cli.info("✨ No changes detected - build skipped!")
-        return
-
-    # Display errors and warnings
-    if stats.has_errors or stats.warnings:
-        from bengal.errors import format_error_report
-
-        error_report = format_error_report(stats, verbose=True)
-        if error_report != "✅ No errors or warnings":
-            cli.blank()
-            cli.error_header("Build Errors & Warnings")
-            # Display formatted error report
-            for line in error_report.split("\n"):
-                if line.strip():
-                    if line.startswith("  ❌"):
-                        if cli.use_rich:
-                            cli.console.print(f"   [error]{line[4:].strip()}[/error]")
-                        else:
-                            cli.error(f"   {line[4:].strip()}")
-                    elif line.startswith("  ⚠️"):
-                        if cli.use_rich:
-                            cli.console.print(f"   [warning]{line[4:].strip()}[/warning]")
-                        else:
-                            cli.warning(f"   {line[4:].strip()}")
-                    elif line.endswith(":") and not line.startswith(" "):
-                        if cli.use_rich:
-                            cli.console.print(f"   [header]{line}[/header]")
-                        else:
-                            cli.info(f"   {line}")
-                    elif line.startswith("     "):  # Indented details
-                        if cli.use_rich:
-                            cli.console.print(f"   [dim]{line.strip()}[/dim]")
-                        else:
-                            cli.info(f"   {line.strip()}")
-                    else:
-                        cli.info(f"   {line}")
-            cli.blank()
-
-    # Also display warnings using existing function
-    if stats.warnings and not stats.has_errors:
-        display_warnings(stats)
-
+def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> dict:
+    """Build the template context dict from stats."""
     # Build mode
     mode_parts = []
     if stats.incremental:
@@ -174,11 +25,11 @@ def display_build_stats(
         mode_parts.append("parallel")
     mode_text = "+".join(mode_parts) if mode_parts else "sequential"
 
-    # Throughput - use rendering time for accurate per-page speed
+    # Throughput
     render_ms = stats.rendering_time_ms if stats.rendering_time_ms > 0 else stats.build_time_ms
     pages_per_sec = (stats.total_pages / render_ms) * 1000 if render_ms > 0 else 0
 
-    # Phase breakdown - collect non-zero phases
+    # Phase breakdown — collect non-zero phases
     phases = []
     if stats.fonts_time_ms > 0:
         phases.append(f"Fonts {format_time(stats.fonts_time_ms)}")
@@ -197,104 +48,216 @@ def display_build_stats(
     if stats.health_check_time_ms > 0:
         phases.append(f"Health {format_time(stats.health_check_time_ms)}")
 
-    # Build main summary line
-    total_time_str = format_time(stats.build_time_ms)
-    has_warnings = len(stats.warnings) > 0
+    # Breakdown string
+    breakdown = f"{stats.regular_pages}+{stats.generated_pages}"
+    if getattr(stats, "autodoc_pages", 0) > 0:
+        breakdown += f"+{stats.autodoc_pages} autodoc"
 
-    cli.blank()
-    if has_warnings:
-        if cli.use_rich:
-            cli.console.print(
-                f"[warning]{cli.icons.warning}[/warning] [bengal]ᓚᘏᗢ[/bengal]  "
-                f"[warning]Built {stats.total_pages} pages in {total_time_str} ({mode_text}) with warnings[/warning]"
-            )
-        else:
-            cli.warning(
-                f"{cli.icons.warning} ᓚᘏᗢ  Built {stats.total_pages} pages in {total_time_str} ({mode_text}) with warnings"
-            )
-    else:
-        breakdown = f"{stats.regular_pages}+{stats.generated_pages}"
-        if getattr(stats, "autodoc_pages", 0) > 0:
-            breakdown += f"+{stats.autodoc_pages} autodoc"
-        if cli.use_rich:
-            cli.console.print(
-                f"[success]{cli.icons.success}[/success] [bengal]ᓚᘏᗢ[/bengal]  "
-                f"[success]Built {stats.total_pages} pages[/success] "
-                f"({breakdown}) in [highlight]{total_time_str}[/highlight] "
-                f"({mode_text}) | [highlight]{pages_per_sec:.1f}[/highlight] pages/sec"
-            )
-        else:
-            cli.success(
-                f"ᓚᘏᗢ  Built {stats.total_pages} pages ({breakdown}) "
-                f"in {total_time_str} ({mode_text}) | {pages_per_sec:.1f} pages/sec"
-            )
-
-    # Content line
+    # Content parts
     content_parts = [f"{stats.total_sections} sections", f"{stats.total_assets} assets"]
     if stats.taxonomies_count > 0:
         content_parts.append(f"{stats.taxonomies_count} taxonomies")
     if stats.total_directives > 0:
         content_parts.append(f"{stats.total_directives} directives")
 
-    if cli.use_rich:
-        cli.console.print(f"   [dim]{', '.join(content_parts)}[/dim]")
-    else:
-        cli.info(f"   {', '.join(content_parts)}")
-
-    # Phase breakdown line (only show top 3-4 phases)
-    if phases:
-        phase_str = ", ".join(phases[:4])
-        if cli.use_rich:
-            cli.console.print(f"   [dim]{phase_str}[/dim]")
-        else:
-            cli.info(f"   {phase_str}")
-
-    # Per-page render time distribution
+    # Render distribution
+    render_dist = None
     if stats.render_p50_ms > 0:
-        render_dist = (
-            f"   Render/page: P50 {stats.render_p50_ms:.0f}ms | P95 {stats.render_p95_ms:.0f}ms"
-        )
+        render_dist = f"P50 {stats.render_p50_ms:.0f}ms | P95 {stats.render_p95_ms:.0f}ms"
         if stats.slowest_pages:
             slowest_path, slowest_ms = stats.slowest_pages[0]
-            # Show just the filename for brevity
             short_path = Path(slowest_path).name if "/" in slowest_path else slowest_path
             render_dist += f" | Slowest: {short_path} ({slowest_ms:.0f}ms)"
-        if cli.use_rich:
-            cli.console.print(f"[dim]{render_dist}[/dim]")
-        else:
-            cli.info(render_dist)
 
-    # Regression vs previous build
+    # Regression
+    regression = None
+    regression_positive = False
     if stats.regression_pct is not None and abs(stats.regression_pct) > 10:
         sign = "+" if stats.regression_pct > 0 else ""
-        regression_str = f"   Build: {sign}{stats.regression_pct:.0f}% vs last"
-        if cli.use_rich:
-            style = "yellow" if stats.regression_pct > 0 else "green"
-            cli.console.print(f"[{style}]{regression_str}[/{style}]")
-        else:
-            cli.info(regression_str)
+        regression = f"Build: {sign}{stats.regression_pct:.0f}% vs last"
+        regression_positive = stats.regression_pct > 0
 
-    # Parse/render cache stats (when any hits)
+    # Cache stats
+    cache_line = None
     parsed_hits = getattr(stats, "parsed_cache_hits", 0)
     rendered_hits = getattr(stats, "rendered_cache_hits", 0)
     parsed_misses = getattr(stats, "parsed_cache_misses", 0)
     if parsed_hits > 0 or rendered_hits > 0:
-        cache_str = (
+        cache_line = (
             f"Parsed: {parsed_hits} hits, {parsed_misses} misses | Rendered: {rendered_hits} hits"
         )
         effectiveness = stats.cache_effectiveness_pct
         if effectiveness is not None:
-            cache_str += f" | Cache saved {effectiveness:.0f}% of render time"
-        if cli.use_rich:
-            cli.console.print(f"   [dim]{cache_str}[/dim]")
-        else:
-            cli.info(f"   {cache_str}")
+            cache_line += f" | Cache saved {effectiveness:.0f}% of render time"
 
-    # Output location
-    if output_dir:
-        if cli.use_rich:
-            cli.console.print(f"   [dim]↪ {output_dir}[/dim]")
-        else:
-            cli.info(f"   ↪ {output_dir}")
+    # Error summary
+    error_summary = stats.get_error_summary() if hasattr(stats, "get_error_summary") else {}
 
+    return {
+        "skipped": stats.skipped,
+        "has_errors": stats.has_errors,
+        "has_warnings": len(stats.warnings) > 0,
+        "total_pages": stats.total_pages,
+        "breakdown": breakdown,
+        "build_time": format_time(stats.build_time_ms),
+        "mode": mode_text,
+        "pages_per_sec": pages_per_sec,
+        "content_parts": content_parts,
+        "phases": phases[:4],
+        "render_dist": render_dist,
+        "regression": regression,
+        "regression_positive": regression_positive,
+        "cache_line": cache_line,
+        "output_dir": output_dir,
+        "error_count": error_summary.get("total_errors", 0),
+        # get_error_summary().total_warnings already includes len(stats.warnings)
+        "warning_count": error_summary.get("total_warnings", 0)
+        if error_summary
+        else len(stats.warnings),
+    }
+
+
+def _build_warning_groups(stats: DisplayableStats) -> list[dict]:
+    """Build warning group data for the template."""
+    if not stats.warnings:
+        return []
+
+    type_names = {
+        "jinja2": "Jinja2 Template Errors",
+        "kida": "Kida Template Errors",
+        "template": "Template Syntax Errors",
+        "preprocessing": "Pre-processing Errors",
+        "link": "Link Validation Warnings",
+        "other": "Other Warnings",
+    }
+
+    grouped = stats.warnings_by_type
+    groups = []
+    for warning_type, type_warnings in grouped.items():
+        type_name = type_names.get(warning_type, warning_type.title())
+        groups.append(
+            {
+                "type_name": type_name,
+                "warnings": [
+                    {"short_path": w.short_path, "message": w.message} for w in type_warnings
+                ],
+            }
+        )
+    return groups
+
+
+def _build_error_lines(stats: DisplayableStats, verbose: bool = False) -> list[dict]:
+    """Build structured error lines from the error report."""
+    if not stats.has_errors and not stats.warnings:
+        return []
+
+    from bengal.errors import format_error_report
+
+    error_report = format_error_report(stats, verbose=verbose)
+    if error_report == "✅ No errors or warnings":
+        return []
+
+    lines = []
+    for line in error_report.split("\n"):
+        if not line.strip():
+            continue
+        if line.startswith("  ❌"):
+            lines.append({"text": line[4:].strip(), "level": "error"})
+        elif line.startswith("  ⚠️"):
+            lines.append({"text": line[4:].strip(), "level": "warning"})
+        elif line.endswith(":") and not line.startswith(" "):
+            lines.append({"text": line, "level": "header"})
+        elif line.startswith("     "):
+            lines.append({"text": line.strip(), "level": "dim"})
+        else:
+            lines.append({"text": line, "level": "info"})
+    return lines
+
+
+def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None) -> None:
+    """
+    Display simple build statistics for writers.
+
+    Clean, minimal output focused on success/failure and critical issues only.
+
+    Args:
+        stats: Build statistics to display
+        output_dir: Output directory path to display
+
+    """
+    cli = CLIOutput()
+
+    if stats.skipped:
+        cli.blank()
+        cli.render_write("build_summary.kida", skipped=True)
+        cli.blank()
+        return
+
+    ctx = _build_context(stats, output_dir)
+
+    # For simple mode, add error lines (non-verbose) if errors exist
+    if stats.has_errors:
+        ctx["error_lines"] = _build_error_lines(stats, verbose=False)
+
+    # Link warnings for simple mode
+    link_warnings = [w for w in stats.warnings if w.warning_type == "link"]
+    if link_warnings:
+        link_lines = [
+            {"text": f"⚠️  {len(link_warnings)} broken link(s) found:", "level": "warning"}
+        ]
+        link_lines.extend(
+            {"text": f"• {w.short_path} → {w.message}", "level": "info"} for w in link_warnings[:5]
+        )
+        if len(link_warnings) > 5:
+            link_lines.append({"text": f"... and {len(link_warnings) - 5} more", "level": "dim"})
+        ctx.setdefault("error_lines", []).extend(link_lines)
+
+    # Regression nudge for writers (only when significantly slower)
+    if stats.regression_pct is not None and stats.regression_pct > 30:
+        sign = "+" if stats.regression_pct > 0 else ""
+        ctx["regression"] = f"Slower than usual ({sign}{stats.regression_pct:.0f}%)"
+        ctx["regression_positive"] = True
+
+    # Simple mode: strip detailed lines (phases, render dist, cache)
+    ctx["phases"] = []
+    ctx["render_dist"] = None
+    ctx["cache_line"] = None
+
+    cli.blank()
+    cli.render_write("build_summary.kida", **ctx)
+    cli.blank()
+
+
+def display_build_stats(
+    stats: DisplayableStats, show_art: bool = True, output_dir: str | None = None
+) -> None:
+    """
+    Display build statistics.
+
+    Args:
+        stats: Build statistics to display
+        show_art: Whether to show ASCII art
+        output_dir: Output directory path to display
+
+    """
+    cli = CLIOutput()
+
+    if stats.skipped:
+        cli.blank()
+        cli.render_write("build_summary.kida", skipped=True)
+        cli.blank()
+        return
+
+    ctx = _build_context(stats, output_dir)
+
+    # Error lines only when actual errors exist (not just warnings)
+    if stats.has_errors:
+        ctx["error_lines"] = _build_error_lines(stats, verbose=True)
+
+    # Warning groups for warnings (shown separately from error lines)
+    if stats.warnings:
+        ctx["warning_groups"] = _build_warning_groups(stats)
+
+    cli.blank()
+    cli.render_write("build_summary.kida", **ctx)
     cli.blank()

@@ -70,6 +70,7 @@ from pathlib import Path
 from typing import Any
 from urllib.request import Request, urlopen
 
+from bengal.assets.manifest import inspect_asset_outputs
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
@@ -420,14 +421,37 @@ class DevServer:
 
         # Check for index.html as a proxy for "has content"
         index_file = output_dir / "index.html"
-        if index_file.exists():
-            return True
-
-        # Also check for any HTML files
         try:
-            return any(output_dir.rglob("*.html"))
+            has_html = index_file.exists() or any(output_dir.rglob("*.html"))
         except Exception:
             return False
+
+        if not has_html:
+            logger.debug(
+                "cached_output_rejected",
+                reason="no_html_output",
+                output_dir=str(output_dir),
+            )
+            return False
+
+        asset_integrity = inspect_asset_outputs(output_dir)
+        if not asset_integrity.is_complete:
+            logger.debug(
+                "cached_output_rejected",
+                reason=(
+                    "no_asset_manifest"
+                    if not asset_integrity.manifest_present
+                    else "asset_output_incomplete"
+                ),
+                output_dir=str(output_dir),
+                manifest_present=asset_integrity.manifest_present,
+                manifest_entries=asset_integrity.total_entries,
+                missing_outputs=asset_integrity.missing_count,
+                missing_output_samples=list(asset_integrity.missing_outputs),
+            )
+            return False
+
+        return True
 
     def _run_validation_build(self, profile: Any, port: int) -> None:
         """
@@ -907,17 +931,8 @@ class DevServer:
 
             self._print_stale_process_panel(stale_pid, pid_file, is_holding_port)
 
-            # Try to import click for confirmation, fall back to input
-            try:
-                import click
-
-                if click.confirm("  Kill stale process?", default=True):
-                    should_kill = True
-                else:
-                    should_kill = False
-            except ImportError:
-                response = input("  Kill stale process? [Y/n]: ").strip().lower()
-                should_kill = response in ("", "y", "yes")
+            response = input("  Kill stale process? [Y/n]: ").strip().lower()
+            should_kill = response in ("", "y", "yes")
 
             if should_kill:
                 if PIDManager.kill_stale_process(stale_pid):
@@ -1036,10 +1051,8 @@ class DevServer:
 
     def _print_server_error(self, exc: BaseException, port: int) -> None:
         """Print a friendly error message for server startup failures (no traceback)."""
-        from rich.console import Console
-        from rich.panel import Panel
+        import sys
 
-        console = Console()
         icons = get_icons()
 
         if isinstance(exc, OSError):
@@ -1048,141 +1061,99 @@ class DevServer:
                 getattr(err, "errno", None) == errno.EADDRINUSE
                 or "already in use" in str(err).lower()
             ):
-                msg = (
-                    f"{icons.error} Port {self.host}:{port} is already in use.\n\n"
-                    "To fix:\n"
-                    f"  1. Stop the process: [dim]lsof -ti:{port} | xargs kill[/dim]\n"
-                    f"  2. Use another port: [dim]bengal serve --port {port + 1}[/dim]"
-                )
+                lines = [
+                    f"{icons.error} Port {self.host}:{port} is already in use.",
+                    "",
+                    "To fix:",
+                    f"  1. Stop the process: lsof -ti:{port} | xargs kill",
+                    f"  2. Use another port: bengal serve --port {port + 1}",
+                ]
             elif getattr(err, "errno", None) == errno.EACCES:
-                msg = (
-                    f"{icons.error} Permission denied binding to {self.host}:{port}.\n\n"
-                    "Try a port > 1024 or run with elevated permissions."
-                )
+                lines = [
+                    f"{icons.error} Permission denied binding to {self.host}:{port}.",
+                    "",
+                    "Try a port > 1024 or run with elevated permissions.",
+                ]
             else:
-                msg = f"{icons.error} {err}"
+                lines = [f"{icons.error} {err}"]
         else:
-            msg = f"{icons.error} Server failed to start: {exc}"
+            lines = [f"{icons.error} Server failed to start: {exc}"]
 
-        console.print(Panel(msg, title="[red]Server Error[/red]", border_style="red"))
+        sys.stderr.write("\n".join(lines) + "\n")
+        sys.stderr.flush()
 
     def _print_stale_process_panel(
         self, stale_pid: int, pid_file: Path, is_holding_port: bool
     ) -> None:
-        """Print a friendly panel for stale process detection."""
-        from rich.console import Console
-        from rich.panel import Panel
+        """Print a friendly message for stale process detection."""
+        import sys
 
-        console = Console()
         icons = get_icons()
 
         lines = [
             f"{icons.warning} Found stale Bengal server process (PID {stale_pid})",
-            "",
         ]
         if is_holding_port:
             lines.append(f"   This process is holding port {self.port}")
-            lines.append("")
         lines.extend(
             [
                 f"   PID file: {pid_file}",
                 "",
                 "To recover:",
-                f"   [dim]kill {stale_pid}[/dim]",
+                f"   kill {stale_pid}",
                 "",
                 "Or remove stale PID file and kill manually:",
-                f"   [dim]rm {pid_file}[/dim]",
-                f"   [dim]lsof -nP -iTCP:{self.port} -sTCP:LISTEN -t | xargs kill[/dim]",
+                f"   rm {pid_file}",
+                f"   lsof -nP -iTCP:{self.port} -sTCP:LISTEN -t | xargs kill",
             ]
         )
 
-        console.print(
-            Panel("\n".join(lines), title="[yellow]Stale Process[/yellow]", border_style="yellow")
-        )
+        sys.stderr.write("\n".join(lines) + "\n")
+        sys.stderr.flush()
 
     def _print_startup_message(self, port: int, serve_first: bool = False) -> None:
-        """
-        Print server startup message using Rich for stable borders.
+        """Print server startup message."""
+        import sys
 
-        Displays a beautiful panel with:
-        - Server URL
-        - Output directory being served
-        - File watching status
-        - Serve-first status (if applicable)
-        - Shutdown instructions
-
-        Args:
-            port: Port number the server is listening on
-            serve_first: Whether server started in serve-first mode
-        """
-        from rich.console import Console
-        from rich.panel import Panel
-
-        console = Console()
-
-        # Build message content
-        lines = []
-        lines.append("")  # Blank line for spacing
-
-        # Server info
+        icons = get_icons()
         url = f"http://{self.host}:{port}/"
-        lines.append(f"   [cyan]➜[/cyan]  Local:   [bold]{url}[/bold]")
 
-        # Serving path (relative to project root for cleaner display)
         try:
             serving_path = str(self.site.output_dir.relative_to(self.site.root_path))
         except ValueError:
-            # Fall back to full path if not relative to root
             serving_path = str(self.site.output_dir)
-        lines.append(f"   [dim]➜[/dim]  Serving: {serving_path}")
 
-        lines.append("")  # Blank line
+        lines = [
+            "",
+            "ᓚᘏᗢ Bengal Dev Server",
+            "",
+            f"   →  Local:   {url}",
+            f"   →  Serving: {serving_path}",
+            "",
+        ]
 
-        icons = get_icons()
-
-        # Serve-first status
         if serve_first:
             lines.append(
-                f"   [green]{icons.success}[/green]  Serving cached content (validating in background...)"
+                f"   {icons.success}  Serving cached content (validating in background...)"
             )
 
-        # Watching status
         if self.watch:
-            lines.append(
-                f"   [yellow]{icons.warning}[/yellow]  File watching enabled (auto-reload on changes)"
-            )
-            lines.append("      [dim](Live reload enabled - browser refreshes after rebuild)[/dim]")
+            lines.append(f"   {icons.info}  File watching enabled (auto-reload on changes)")
         else:
-            lines.append("   [dim]○  File watching disabled[/dim]")
+            lines.append(f"   {icons.info}  File watching disabled")
 
-        # Show DX hints (WSL, Docker, GIL, etc.)
         from bengal.utils.dx import collect_hints
 
         hints = collect_hints("serve", host=self.host, max_hints=1)
         if hints:
-            lines.append("")  # Blank line
-            lines.append(f"   [dim]💡 {hints[0].message}[/dim]")
+            lines.append(f"   → {hints[0].message}")
 
-        lines.append("")  # Blank line
-        lines.append("   [dim]Press Ctrl+C to stop (or twice to force quit)[/dim]")
+        lines.append("")
+        lines.append("   Press Ctrl+C to stop")
+        lines.append("")
 
-        # Create panel with content
-        from bengal import __version__
-
-        content = "\n".join(lines)
-        panel = Panel(
-            content,
-            title=f"[bold]{icons.arrow} Bengal Dev Server[/bold]",
-            subtitle=f"[dim]v{__version__}[/dim]",
-            border_style="cyan",
-            padding=(0, 1),
-            expand=False,  # Don't expand to full terminal width
-            width=80,  # Fixed width that works well
-        )
-
-        console.print()
-        console.print(panel)
-        console.print()
+        sys.stdout.write("\n".join(lines) + "\n")
+        sys.stdout.flush()
 
         # Request log header
         from datetime import datetime

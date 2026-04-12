@@ -1,0 +1,34 @@
+{#- Translation coverage matrix with progress bars.
+
+    Usage from CLIOutput:
+        cli.render_write("i18n_coverage.kida",
+            total_keys=50,
+            domain="messages",
+            locales=[
+                {"name": "fr", "translated": 45, "missing": 5, "coverage": 0.9},
+                {"name": "de", "translated": 30, "missing": 20, "coverage": 0.6},
+            ],
+        )
+
+    Variables:
+        total_keys: Total number of translatable keys
+        domain: Gettext domain name
+        locales: List of {name, translated, missing, coverage} dicts
+        missing_keys: Dict of {locale: [key1, key2, ...]} for verbose mode (optional)
+-#}
+{% from "components/_defs.kida" import kv_pair, status_line %}
+{{ kv_pair("Translation coverage", (total_keys | string) ~ " keys, domain=" ~ domain) }}
+
+{%- for loc in locales %}
+  {{ loc.name | bold | pad(8) }}{{ loc.coverage | bar(width=20) }}  {{ ((loc.coverage * 100) | int | string ~ "%") | pad(5) }}  {{ (loc.translated | string ~ "/" ~ total_keys | string) | dim }}
+{%- if loc.missing > 0 %}  {{ (loc.missing | string ~ " missing") | yellow }}{% endif %}
+{%- endfor -%}
+{%- if missing_keys | default(none) %}
+
+{%- for locale, keys in missing_keys.items() %}
+  {{ locale | bold }}:
+{%- for key in keys %}
+    {{ key | dim }}
+{%- endfor %}
+{%- endfor -%}
+{%- endif -%}

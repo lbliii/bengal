@@ -75,86 +75,46 @@ def display_bengal_error(error: BengalError, cli: CLIOutput) -> None:
     icons = cli.icons
 
     # Header with code and category
+    cli.blank()
     if error.code:
         code_str = f"[{error.code.name}]"
         category = error.code.category.replace("_", " ").title()
-
-        if cli.use_rich:
-            cli.console.print()
-            cli.console.print(
-                f"  [bold red]{icons.error}[/bold red] [bold]{code_str}[/bold] "
-                f"[red]{category} Error[/red]"
-            )
-            cli.console.print()
-        else:
-            cli.console.print()
-            cli.console.print(f"  {icons.error} {code_str} {category} Error")
-            cli.console.print()
+        cli.error(f"{code_str} {category} Error")
     else:
-        if cli.use_rich:
-            cli.console.print()
-            cli.console.print(f"  [bold red]{icons.error} Error[/bold red]")
-            cli.console.print()
-        else:
-            cli.console.print()
-            cli.console.print(f"  {icons.error} Error")
-            cli.console.print()
+        cli.error("Error")
+    cli.blank()
 
     # Main message
-    if cli.use_rich:
-        cli.console.print(f"  {error.message}")
-        cli.console.print()
-    else:
-        cli.console.print(f"  {error.message}")
-        cli.console.print()
+    cli.info(f"  {error.message}")
+    cli.blank()
 
     # File location (clickable in most terminals)
     if error.file_path:
         location = f"  File: {error.file_path}"
         if error.line_number:
             location += f":{error.line_number}"
-        if cli.use_rich:
-            cli.console.print(f"[dim]{location}[/dim]")
-            cli.console.print()
-        else:
-            cli.console.print(location)
-            cli.console.print()
+        cli.info(location)
+        cli.blank()
 
     # Related files (for debugging)
     if error.related_files:
-        if cli.use_rich:
-            cli.console.print("  [dim]Related:[/dim]")
-            for rf in error.related_files[:3]:
-                cli.console.print(f"    [dim]• {rf}[/dim]")
-            if len(error.related_files) > 3:
-                cli.console.print(f"    [dim]... and {len(error.related_files) - 3} more[/dim]")
-            cli.console.print()
-        else:
-            cli.console.print("  Related:")
-            for rf in error.related_files[:3]:
-                cli.console.print(f"    • {rf}")
-            if len(error.related_files) > 3:
-                cli.console.print(f"    ... and {len(error.related_files) - 3} more")
-            cli.console.print()
+        cli.info("  Related:")
+        for rf in error.related_files[:3]:
+            cli.info(f"    {icons.dot} {rf}")
+        if len(error.related_files) > 3:
+            cli.info(f"    ... and {len(error.related_files) - 3} more")
+        cli.blank()
 
     # Actionable suggestion
     if error.suggestion:
-        if cli.use_rich:
-            cli.console.print(f"  [bold cyan]Tip:[/bold cyan] {error.suggestion}")
-            cli.console.print()
-        else:
-            cli.console.print(f"  Tip: {error.suggestion}")
-            cli.console.print()
+        cli.info(f"  Tip: {error.suggestion}")
+        cli.blank()
 
     # Documentation link
     if error.code:
         docs_url = f"https://lbliii.github.io/bengal{error.code.docs_url}"
-        if cli.use_rich:
-            cli.console.print(f"  [dim]Docs: {docs_url}[/dim]")
-            cli.console.print()
-        else:
-            cli.console.print(f"  Docs: {docs_url}")
-            cli.console.print()
+        cli.info(f"  Docs: {docs_url}")
+        cli.blank()
 
 
 def beautify_common_exception(e: Exception) -> tuple[str, str | None] | None:

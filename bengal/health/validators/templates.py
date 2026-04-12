@@ -28,8 +28,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import click
-
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -114,26 +112,32 @@ def validate_templates(template_engine: Any) -> int:
         Number of errors found
 
     """
-    click.echo(click.style("\n🔍 Validating templates...\n", fg="cyan", bold=True))
+    from bengal.cli.utils.output import get_cli_output
+
+    cli = get_cli_output()
+    cli.blank()
+    cli.info("Validating templates...")
+    cli.blank()
 
     validator = TemplateValidator(template_engine)
     errors = validator.validate_all()
 
     if not errors:
-        click.echo(click.style("✓ All templates valid!", fg="green", bold=True))
-        click.echo()
+        cli.success("All templates valid!")
+        cli.blank()
         return 0
 
     # Display errors
     from bengal.rendering.errors import display_template_error
 
-    click.echo(click.style(f"❌ Found {len(errors)} template error(s):\n", fg="red", bold=True))
+    cli.error(f"Found {len(errors)} template error(s):")
+    cli.blank()
 
     for i, error in enumerate(errors, 1):
-        click.echo(click.style(f"Error {i}/{len(errors)}:", fg="red", bold=True))
+        cli.error(f"Error {i}/{len(errors)}:")
         display_template_error(error)
 
         if i < len(errors):
-            click.echo(click.style("─" * 80, fg="cyan"))
+            cli.info("─" * 80)
 
     return len(errors)

@@ -18,6 +18,7 @@ from bengal.core.theme import (
     resolve_theme_chain,
     resolve_theme_templates_path,
 )
+from bengal.core.theme.resolution import resolve_theme_asset_chain
 
 
 class TestReadThemeExtends:
@@ -178,6 +179,20 @@ class TestResolveThemeChain:
 
         # MAX_DEPTH is 5, so should stop after 5 levels
         assert len(chain) <= 5
+
+
+class TestResolveThemeAssetChain:
+    """Tests for resolve_theme_asset_chain function."""
+
+    def test_keeps_default_for_asset_inheritance(self, tmp_path):
+        """Child themes keep default in the asset inheritance chain."""
+        theme_dir = tmp_path / "themes" / "child"
+        theme_dir.mkdir(parents=True)
+        (theme_dir / "theme.toml").write_text('extends = "default"')
+
+        chain = resolve_theme_asset_chain(tmp_path, "child")
+
+        assert chain == ["child", "default"]
 
 
 class TestIterThemeAssetDirs:

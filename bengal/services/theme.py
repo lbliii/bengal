@@ -71,15 +71,10 @@ def get_theme_assets_chain(root_path: Path, theme_name: str | None) -> list[Path
     if not theme_name:
         return []
 
-    from bengal.core.theme import iter_theme_asset_dirs, resolve_theme_chain
+    from bengal.core.theme.resolution import iter_theme_asset_dirs, resolve_theme_asset_chain
 
-    chain = resolve_theme_chain(root_path, theme_name)
-    dirs: list[Path] = []
-
-    for name in reversed(chain):
-        dirs.extend(iter_theme_asset_dirs(root_path, [name]))
-
-    return dirs
+    chain = resolve_theme_asset_chain(root_path, theme_name)
+    return iter_theme_asset_dirs(root_path, reversed(chain))
 
 
 def get_theme_templates_chain(root_path: Path, theme_name: str | None) -> list[Path]:

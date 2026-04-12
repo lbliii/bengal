@@ -1,0 +1,31 @@
+{#- Version check and upgrade status display.
+
+    Usage from CLIOutput:
+        cli.render_write("upgrade_status.kida",
+            current="0.3.0", latest="0.4.0",
+            installer={"name": "uv", "command": "uv pip install --upgrade bengal"},
+            up_to_date=False,
+        )
+
+    Variables:
+        current: Current version string
+        latest: Latest available version string
+        installer: {name, command} dict
+        up_to_date: Boolean
+        dry_run: Boolean (optional)
+-#}
+{% from "components/_defs.kida" import kv_pair, status_line %}
+{{ kv_pair("Current version", current) }}
+{{ kv_pair("Latest version", latest) }}
+{%- if installer | default(none) %}
+{{ kv_pair("Installer", installer.name) }}
+{{ kv_pair("Command", installer.command) }}
+{%- endif %}
+
+{%- if up_to_date %}
+{{ status_line("success", "Already on latest version (v" ~ current ~ ")") }}
+{%- elif dry_run | default(false) %}
+{{ status_line("info", "Would run: " ~ installer.command) }}
+{%- else %}
+{{ status_line("warning", "Update available: " ~ current ~ " → " ~ latest) }}
+{%- endif -%}

@@ -23,7 +23,8 @@ class TestGetConsole:
         reset_console()
 
         console = get_console()
-        assert console.no_color is True
+        # Rich console is no longer used; get_console() returns None
+        assert console is None
 
     def test_ci_mode_detection(self, monkeypatch):
         """Test that CI mode is detected and disables color."""
@@ -33,9 +34,8 @@ class TestGetConsole:
         reset_console()
 
         console = get_console()
-        # In CI mode, force_terminal should be False
-        # This is internal to Console, so we check behavior
-        assert console is not None
+        # Rich console is no longer used; get_console() returns None
+        assert console is None
 
 
 class TestShouldUseRich:
@@ -161,12 +161,13 @@ class TestResetConsole:
     """Tests for reset_console() function."""
 
     def test_resets_singleton(self):
-        """Test that reset_console() clears the singleton."""
+        """Test that reset_console() is a no-op (Rich removed)."""
         from bengal.utils.observability.rich_console import get_console, reset_console
 
         console1 = get_console()
         reset_console()
         console2 = get_console()
 
-        # Should be different instances after reset
-        assert console1 is not console2
+        # Rich console removed; both return None
+        assert console1 is None
+        assert console2 is None

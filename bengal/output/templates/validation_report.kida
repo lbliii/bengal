@@ -1,0 +1,35 @@
+{#- Validation report with severity-grouped issues.
+
+    Usage from CLIOutput:
+        cli.render_write("validation_report.kida",
+            title="Health Check",
+            issues=[
+                {"level": "error", "message": "Missing title", "detail": "content/about.md"},
+                {"level": "warning", "message": "Long description", "detail": "content/index.md"},
+                {"level": "success", "message": "All links valid"},
+            ],
+            summary={"errors": 1, "warnings": 1, "passed": 1},
+        )
+
+    Variables:
+        title: Report header (optional)
+        issues: List of {level, message, detail?} dicts
+        summary: {errors, warnings, passed} counts (optional)
+-#}
+{% from "_bengal.kida" import bengal_header %}
+{% from "components/_defs.kida" import issue_list, status_line %}
+{%- if title | default(false) %}
+{{ bengal_header(title) }}
+{%- endif %}
+{{ issue_list(issues) }}
+{%- if summary | default(false) -%}
+{%- if summary.errors %}
+{{ status_line("error", (summary.errors | string) ~ " error(s) found") }}
+{%- endif -%}
+{%- if summary.warnings %}
+{{ status_line("warning", (summary.warnings | string) ~ " warning(s)") }}
+{%- endif -%}
+{%- if summary.passed and not summary.errors %}
+{{ status_line("success", "Validation passed") }}
+{%- endif -%}
+{%- endif -%}

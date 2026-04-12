@@ -77,6 +77,21 @@ class TestGetThemeAssetsChain:
         result = get_theme_assets_chain(tmp_path, "mysite")
         assert site_theme_assets in result
 
+    def test_includes_default_assets_for_theme_extending_default(self, tmp_path: Path) -> None:
+        """Child themes inherit bundled default assets for asset discovery."""
+        child_theme_dir = tmp_path / "themes" / "child"
+        child_assets = child_theme_dir / "assets"
+        child_assets.mkdir(parents=True)
+        (child_theme_dir / "theme.toml").write_text(
+            'name = "child"\nextends = "default"\n',
+            encoding="utf-8",
+        )
+
+        result = get_theme_assets_chain(tmp_path, "child")
+        default_assets = get_bundled_themes_dir() / "default" / "assets"
+
+        assert result == [default_assets, child_assets]
+
 
 class TestGetThemeTemplatesChain:
     """Tests for get_theme_templates_chain function."""

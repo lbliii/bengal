@@ -13,8 +13,9 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
+from bengal.assets.manifest import AssetManifest
 from bengal.orchestration.build.rendering import (
-    _is_css_output_missing,
+    _get_asset_output_integrity,
     _rewrite_fonts_css_urls,
     phase_assets,
     phase_render,
@@ -59,6 +60,21 @@ class MockPhaseContext:
     def create_cli():
         """Create a mock CLI."""
         return MagicMock()
+
+
+def _write_asset_manifest(output_dir: Path, *output_paths: str) -> None:
+    """Write a minimal asset-manifest.json for tests."""
+    manifest = AssetManifest()
+    for output_path in output_paths:
+        logical_path = output_path.removeprefix("assets/")
+        manifest.set_entry(
+            logical_path=logical_path,
+            output_path=output_path,
+            fingerprint=None,
+            size_bytes=None,
+            updated_at=None,
+        )
+    manifest.write(output_dir / "asset-manifest.json")
 
 
 class TestRewriteFontsCssUrls:
@@ -130,79 +146,59 @@ class TestRewriteFontsCssUrls:
         orchestrator.logger.warning.assert_called()
 
 
-class TestIsCssOutputMissing:
-    """Tests for _is_css_output_missing helper function.
+class TestAssetOutputIntegrity:
+    """Tests for the asset output integrity helper.
 
-    This helper validates CSS entry points exist in output before skipping
-    asset processing during incremental builds. See Issue #130.
+    This helper validates that the manifest exists and that every referenced
+    output file is present before incremental builds trust the asset tree.
     """
 
-    def test_returns_true_when_assets_dir_missing(self, tmp_path):
-        """Returns True when output/assets/ directory doesn't exist."""
+    def test_reports_incomplete_when_output_dir_missing(self, tmp_path):
+        """Missing output directory is incomplete."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        # Don't create output directory
+        integrity = _get_asset_output_integrity(orchestrator)
+        assert integrity.is_complete is False
+        assert integrity.output_dir_exists is False
 
-        assert _is_css_output_missing(orchestrator) is True
-
-    def test_returns_true_when_css_dir_missing(self, tmp_path):
-        """Returns True when output/assets/css/ directory doesn't exist."""
+    def test_reports_incomplete_when_manifest_missing(self, tmp_path):
+        """Existing output without a manifest is incomplete."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        output_assets = tmp_path / "public" / "assets"
-        output_assets.mkdir(parents=True)
-        # Don't create css subdirectory
+        output_dir = tmp_path / "public"
+        output_dir.mkdir(parents=True)
+        integrity = _get_asset_output_integrity(orchestrator)
+        assert integrity.is_complete is False
+        assert integrity.manifest_present is False
 
-        assert _is_css_output_missing(orchestrator) is True
-
-    def test_returns_true_when_no_style_css(self, tmp_path):
-        """Returns True when no style*.css files exist."""
+    def test_reports_incomplete_when_manifest_output_missing(self, tmp_path):
+        """Missing files referenced by the manifest are reported."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        css_dir = tmp_path / "public" / "assets" / "css"
-        css_dir.mkdir(parents=True)
-        # Create other CSS files but not style.css
-        (css_dir / "fonts.css").write_text("/* fonts */")
-        (css_dir / "print.css").write_text("/* print */")
-
-        assert _is_css_output_missing(orchestrator) is True
-
-    def test_returns_false_when_style_css_exists(self, tmp_path):
-        """Returns False when style.css exists."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        css_dir = tmp_path / "public" / "assets" / "css"
+        output_dir = tmp_path / "public"
+        css_dir = output_dir / "assets" / "css"
         css_dir.mkdir(parents=True)
         (css_dir / "style.css").write_text("/* styles */")
+        _write_asset_manifest(output_dir, "assets/css/style.css", "assets/js/main.js")
 
-        assert _is_css_output_missing(orchestrator) is False
+        integrity = _get_asset_output_integrity(orchestrator)
+        assert integrity.is_complete is False
+        assert integrity.manifest_present is True
+        assert integrity.missing_count == 1
+        assert integrity.missing_outputs == ("assets/js/main.js",)
 
-    def test_returns_false_when_fingerprinted_style_exists(self, tmp_path):
-        """Returns False when fingerprinted style.{hash}.css exists."""
+    def test_reports_complete_when_all_manifest_outputs_exist(self, tmp_path):
+        """Manifest-backed output is complete when all files exist."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        css_dir = tmp_path / "public" / "assets" / "css"
+        output_dir = tmp_path / "public"
+        css_dir = output_dir / "assets" / "css"
+        js_dir = output_dir / "assets" / "js"
         css_dir.mkdir(parents=True)
-        (css_dir / "style.abc12345.css").write_text("/* fingerprinted */")
+        js_dir.mkdir(parents=True)
+        (css_dir / "style.css").write_text("/* styles */")
+        (js_dir / "main.js").write_text("// main")
+        _write_asset_manifest(output_dir, "assets/css/style.css", "assets/js/main.js")
 
-        assert _is_css_output_missing(orchestrator) is False
-
-    def test_returns_false_with_multiple_style_files(self, tmp_path):
-        """Returns False when multiple style CSS files exist."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        css_dir = tmp_path / "public" / "assets" / "css"
-        css_dir.mkdir(parents=True)
-        (css_dir / "style.css").write_text("/* original */")
-        (css_dir / "style.abc12345.css").write_text("/* fingerprinted */")
-
-        assert _is_css_output_missing(orchestrator) is False
-
-    def test_ignores_non_style_css_files(self, tmp_path):
-        """Ignores CSS files that don't match style*.css pattern."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        css_dir = tmp_path / "public" / "assets" / "css"
-        css_dir.mkdir(parents=True)
-        # Create various CSS files but not style.css
-        (css_dir / "mystyle.css").write_text("/* not a match */")
-        (css_dir / "custom-style.css").write_text("/* not a match */")
-        (css_dir / "main.css").write_text("/* not a match */")
-
-        assert _is_css_output_missing(orchestrator) is True
+        integrity = _get_asset_output_integrity(orchestrator)
+        assert integrity.is_complete is True
+        assert integrity.missing_count == 0
 
 
 class TestPhaseAssets:
@@ -244,8 +240,8 @@ class TestPhaseAssets:
 
         assert orchestrator.stats.assets_time_ms >= 0
 
-    def test_processes_all_assets_on_incremental_if_css_missing(self, tmp_path):
-        """Processes all assets on incremental build if CSS output is missing.
+    def test_processes_all_assets_on_incremental_if_output_incomplete(self, tmp_path):
+        """Processes all assets on incremental build if manifest output is incomplete.
 
         This is a safety net that handles race conditions where output is
         corrupted after provenance filtering. The check is unified for both
@@ -255,8 +251,9 @@ class TestPhaseAssets:
         orchestrator.site.assets = [MagicMock(), MagicMock()]
         cli = MockPhaseContext.create_cli()
 
-        # CSS output is missing (no public/assets/css/style*.css)
-        # Don't create the CSS directory - this triggers the safety net
+        output_dir = tmp_path / "public"
+        output_dir.mkdir(parents=True)
+        # No manifest - this triggers the safety net
 
         result = phase_assets(
             orchestrator,
@@ -266,44 +263,46 @@ class TestPhaseAssets:
             assets_to_process=[],  # No changed assets
         )
 
-        # Should process all assets since CSS output is missing
+        # Should process all assets since output integrity is incomplete
         assert result == orchestrator.site.assets
 
-    def test_processes_all_assets_for_themed_site_if_css_missing(self, tmp_path):
-        """Themed sites also get all assets processed when CSS missing.
-
-        The safety net behavior is unified - no special handling for themes.
-        Theme assets are included in site.assets during content discovery.
-        """
+    def test_expands_partial_incremental_asset_work_when_output_incomplete(self, tmp_path):
+        """Incomplete output upgrades partial asset work to a full asset pass."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        orchestrator.site.theme = "my-theme"
         orchestrator.site.assets = [MagicMock(), MagicMock(), MagicMock()]
         cli = MockPhaseContext.create_cli()
 
-        # CSS output is missing
-        # Don't create the CSS directory - this triggers the safety net
+        output_dir = tmp_path / "public"
+        css_dir = output_dir / "assets" / "css"
+        css_dir.mkdir(parents=True)
+        (css_dir / "style.css").write_text("/* styles */")
+        _write_asset_manifest(output_dir, "assets/css/style.css", "assets/js/main.js")
 
         result = phase_assets(
             orchestrator,
             cli,
             incremental=True,
             parallel=False,
-            assets_to_process=[],  # No changed assets
+            assets_to_process=[MagicMock()],  # Incremental filter only picked one asset
         )
 
-        # Should process all assets (theme assets are already in site.assets)
+        # Should process all assets instead of trusting the partial output tree.
         assert result == orchestrator.site.assets
 
-    def test_skips_safety_net_when_css_exists(self, tmp_path):
-        """Safety net doesn't trigger when CSS output exists."""
+    def test_skips_safety_net_when_asset_output_is_complete(self, tmp_path):
+        """Safety net doesn't trigger when manifest output is complete."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
         orchestrator.site.assets = [MagicMock()]
         cli = MockPhaseContext.create_cli()
 
-        # Create CSS output so safety net doesn't trigger
-        css_dir = tmp_path / "public" / "assets" / "css"
+        output_dir = tmp_path / "public"
+        css_dir = output_dir / "assets" / "css"
+        js_dir = output_dir / "assets" / "js"
         css_dir.mkdir(parents=True)
+        js_dir.mkdir(parents=True)
         (css_dir / "style.css").write_text("/* styles */")
+        (js_dir / "main.js").write_text("// main")
+        _write_asset_manifest(output_dir, "assets/css/style.css", "assets/js/main.js")
 
         result = phase_assets(
             orchestrator,
@@ -313,7 +312,7 @@ class TestPhaseAssets:
             assets_to_process=[],  # No changed assets
         )
 
-        # Should NOT process assets - CSS exists, no safety net needed
+        # Should NOT process assets - output is complete, no safety net needed
         assert result == []
 
 

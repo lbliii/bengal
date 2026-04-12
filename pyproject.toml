@@ -33,6 +33,7 @@ classifiers = [
 ]
 dependencies = [
     "click>=8.1.7",
+    "milo-cli>=0.2.1",                         # B-stack CLI framework (replaces Click — migration in progress)
 
     "rosettes>=0.2.0",
     "kida-templates>=0.4.0",                   # Kida template engine (AST-native, free-threading ready)
@@ -81,7 +82,7 @@ all-sources = ["aiohttp>=3.9.0", "cachetools>=5.0.0"] # All remote sources
 # Note: Dev dependencies use [dependency-groups] (PEP 735) - install with: uv sync --group dev
 
 [project.scripts]
-bengal = "bengal.__main__:run"
+bengal = "bengal.cli.milo_app:run"
 
 [project.entry-points."bengal.plugins"]
 
@@ -90,6 +91,9 @@ Homepage = "https://lbliii.github.io/bengal/"
 Documentation = "https://lbliii.github.io/bengal/"
 Repository = "https://github.com/lbliii/bengal"
 "Bug Tracker" = "https://github.com/lbliii/bengal/issues"
+
+[tool.uv.sources]
+milo-cli = { git = "https://github.com/lbliii/milo-cli.git", rev = "d929be6cfac3152ee3549604b52e0aec66e396c8" }
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -100,6 +104,7 @@ bengal = [
     "themes/**/*",
     "assets/**/*",
     "analysis/graph/templates/**/*",
+    "output/templates/**/*",
     "scaffolds/**/*",
     "py.typed",
 ]

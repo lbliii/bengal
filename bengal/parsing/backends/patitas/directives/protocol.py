@@ -49,6 +49,16 @@ class DirectiveHandler(Protocol):
         contract: Optional nesting validation contract.
         options_class: Class for typed options parsing.
 
+    Template Overrides:
+        Handlers may optionally implement get_template_context() to enable
+        theme-overridable rendering. When present, the renderer tries Kida
+        templates in order: directives/{name}.html (per-type, e.g., note.html)
+        then directives/{token_type}.html (handler-level, e.g., admonition.html),
+        falling back to render() if neither exists. The method returns a dict
+        of template variables with all derived values pre-computed (CSS classes,
+        icons, etc.), so theme authors get a stable API contract without
+        reimplementing Python logic.
+
     Thread Safety:
         Handlers must be stateless. All mutable state must be in the AST
         node (which is immutable) or passed as arguments. Multiple threads
@@ -117,6 +127,11 @@ class DirectiveHandler(Protocol):
 
         Called by the renderer when a Directive node is encountered.
         Append HTML output to the StringBuilder.
+
+        If the handler also implements get_template_context(), the renderer
+        will first try Kida templates (directives/{name}.html, then
+        directives/{token_type}.html). This method serves as the fallback
+        when no template override exists.
 
         Args:
             node: The Directive AST node to render

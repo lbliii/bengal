@@ -1,0 +1,23 @@
+{#- Entity detail view with dot-fill aligned labels.
+
+    Usage from CLIOutput:
+        cli.render_write("kv_detail.kida", title="Theme: default", items=[
+            {"label": "Name", "value": "default"},
+            {"label": "Location", "value": "/themes/default"},
+        ], badge={"level": "success", "text": "valid"})
+
+    Variables:
+        title: Header text (optional)
+        items: List of {label, value} dicts
+        badge: Optional {level, text} for status badge
+        width: Column width for kv alignment (default: 40)
+-#}
+{% from "components/_defs.kida" import kv_list, status_line %}
+{% from "_bengal.kida" import bengal_header %}
+{%- if title | default(false) %}
+{{ bengal_header(title, mascot=false) }}
+{% endif -%}
+{%- if badge | default(false) %}
+{{ status_line(badge.level, badge.text) }}
+{% endif -%}
+{{ kv_list(items, width=width | default(40)) }}

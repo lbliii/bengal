@@ -15,7 +15,7 @@ from enum import Enum
 from typing import Any
 
 from bengal.output.icons import get_icon_set
-from bengal.utils.observability.rich_console import should_use_emoji
+from bengal.utils.observability.terminal import should_use_emoji
 
 
 class CheckStatus(Enum):

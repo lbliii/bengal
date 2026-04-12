@@ -39,6 +39,7 @@ from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
 from bengal.themes.utils import DEFAULT_THEME_PATH, THEMES_ROOT
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from pathlib import Path
 
     from bengal.core import Site
@@ -300,6 +301,7 @@ class KidaTemplateEngine:
 
     NAME = "kida"
     __slots__ = (
+        "_directive_template_renderer",
         "_env",
         "_menu_dict_cache",
         "_profile",
@@ -410,6 +412,10 @@ class KidaTemplateEngine:
         # Register Bengal-specific globals and filters
         # Uses register_all() which works because Kida has same interface as Jinja2
         self._register_bengal_template_functions()
+
+        # Expose directive template renderer on site for use by _render_directive()
+        self._directive_template_renderer = self._create_directive_template_renderer()
+        site._directive_template_renderer = self._directive_template_renderer
 
     def _build_template_dirs(self) -> list[Path]:
         """Build ordered list of template search directories.
@@ -582,6 +588,36 @@ class KidaTemplateEngine:
             except Exception as e:
                 msg = f"Theme library '{provider.package}': register_filters() failed: {e}"
                 raise BengalConfigError(msg) from e
+
+    def _create_directive_template_renderer(
+        self,
+    ) -> Callable[[str, dict[str, Any]], str | None]:
+        """Create a callable that renders directive templates from the Kida Environment.
+
+        Returns a function (name, context) -> str | None that:
+        - Looks up directives/{name}.html in the template search path
+        - Renders it with the given context dict
+        - Returns None if no template is found (caller falls back to handler.render())
+
+        The caller (_try_template_render) handles the two-step lookup:
+        first directives/{node.name}.html, then directives/{token_type}.html.
+        This function is called once per lookup attempt.
+
+        Template search order follows the existing loader hierarchy:
+        site templates → theme chain → default theme → provider libraries.
+        Theme authors override by placing directives/{name}.html in their theme.
+        """
+        env = self._env
+
+        def render_directive_template(name: str, context: dict[str, Any]) -> str | None:
+            template_name = f"directives/{name}.html"
+            try:
+                template = env.get_template(template_name)
+            except KidaTemplateNotFoundError:
+                return None
+            return template.render(context)
+
+        return render_directive_template
 
     def _get_menu(self, menu_name: str = "main") -> list[dict]:
         """Get menu items as dicts (cached)."""

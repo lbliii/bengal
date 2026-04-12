@@ -87,8 +87,6 @@ DEFAULT_SUPPRESS: tuple[str, ...] = ("click", "jinja2")
 
 
 if TYPE_CHECKING:
-    from types import ModuleType
-
     from bengal.errors.traceback.renderer import TracebackRenderer
 
 
@@ -172,55 +170,10 @@ class TracebackConfig:
         return cls(style=style, show_locals=show_locals, max_frames=max_frames, suppress=suppress)
 
     def install(self) -> None:
-        """Install Rich traceback handler according to config and environment.
+        """Install traceback handler according to config.
 
-        - If style == OFF: do not install rich hook (use standard Python)
-        - If in CI or non-TTY, rely on rich_console.should_use_rich to skip
+        Currently a no-op — uses standard Python tracebacks.
         """
-        if self.style == TracebackStyle.OFF:
-            return
-
-        # Only attempt install if rich is available and terminal is suitable
-        try:
-            from rich.traceback import install as rich_install
-
-            from bengal.utils.observability.rich_console import get_console, should_use_rich
-
-            if not should_use_rich():
-                return
-
-            # Build suppress modules from names
-            suppress_modules: list[str | ModuleType] = []
-            for name in self.suppress:
-                try:
-                    mod = __import__(name)
-                    suppress_modules.append(mod)
-                except Exception as e:
-                    # Best-effort; ignore unknown modules
-                    logger.debug(
-                        "traceback_config_module_import_failed",
-                        module_name=name,
-                        error=str(e),
-                        error_type=type(e).__name__,
-                        action="skipping_module",
-                    )
-
-            rich_install(
-                console=get_console(),
-                show_locals=self.show_locals,
-                suppress=tuple(suppress_modules),
-                max_frames=self.max_frames,
-                width=None,
-            )
-        except Exception as e:
-            # Silently skip if rich not available or any failure during install
-            logger.debug(
-                "traceback_config_rich_install_failed",
-                error=str(e),
-                error_type=type(e).__name__,
-                action="skipping_rich_install",
-            )
-            return
 
     def get_renderer(self) -> TracebackRenderer:
         from bengal.errors.traceback.renderer import (

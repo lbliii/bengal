@@ -1,0 +1,39 @@
+{#- Colored diff display for config/version/codemod comparisons.
+
+    Usage from CLIOutput:
+        cli.render_write("diff_view.kida", title="config diff: local → production",
+            changes=[
+                {"path": "site.baseurl", "old": "http://localhost:5173", "new": "https://example.com", "type": "changed"},
+                {"path": "build.parallel", "value": "true", "type": "added"},
+                {"path": "assets.minify", "value": "false", "type": "removed"},
+            ],
+            summary="3 differences found",
+        )
+
+    Variables:
+        title: Diff header (optional)
+        changes: List of change dicts with type: "changed", "added", "removed"
+        summary: Summary line (optional)
+        labels: Tuple of (old_label, new_label) for changed items
+-#}
+{% from "_bengal.kida" import bengal_header %}
+{% from "components/_defs.kida" import status_line %}
+{%- if title | default(false) %}
+{{ bengal_header(title, mascot=false) }}
+{% endif -%}
+{%- set old_label = labels[0] if labels | default(false) else "old" -%}
+{%- set new_label = labels[1] if labels | default(false) else "new" -%}
+{%- for change in changes %}
+{{ change.path | bold }}:
+{%- if change.type == "changed" %}
+  {{ ("- " ~ change.old) | red }}  {{ ("[" ~ old_label ~ "]") | dim }}
+  {{ ("+ " ~ change.new) | green }}  {{ ("[" ~ new_label ~ "]") | dim }}
+{%- elif change.type == "added" %}
+  {{ ("+ " ~ change.value) | green }}  {{ ("[" ~ new_label ~ "]") | dim }}
+{%- elif change.type == "removed" %}
+  {{ ("- " ~ change.value) | red }}  {{ ("[" ~ old_label ~ "]") | dim }}
+{%- endif %}
+{% endfor -%}
+{%- if summary | default(false) %}
+{{ summary | dim }}
+{%- endif -%}

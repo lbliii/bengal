@@ -51,7 +51,7 @@ def test_template_scaffolds_and_builds(template: str, tmp_path) -> None:
 
     # Scaffold - run from tmp_path so site is created there
     result = run_cli(
-        ["new", "site", site_name, "--template", template, "--no-init"],
+        ["new", "site", "--name", site_name, "--template", template, "--no-init"],
         cwd=str(tmp_path),
         timeout=60,
     )
@@ -62,7 +62,7 @@ def test_template_scaffolds_and_builds(template: str, tmp_path) -> None:
 
     # Build
     result = run_cli(
-        ["site", "build"],
+        ["build"],
         cwd=str(site_dir),
         timeout=120,
     )
@@ -92,7 +92,7 @@ def test_template_has_valid_structure(template: str, tmp_path) -> None:
 
     # Scaffold - run from tmp_path so site is created there
     result = run_cli(
-        ["new", "site", site_name, "--template", template, "--no-init"],
+        ["new", "site", "--name", site_name, "--template", template, "--no-init"],
         cwd=str(tmp_path),
         timeout=60,
     )
@@ -123,7 +123,7 @@ def test_blog_template_generates_rss(tmp_path) -> None:
 
     # Scaffold blog - run from tmp_path
     result = run_cli(
-        ["new", "site", site_name, "--template", "blog", "--no-init"],
+        ["new", "site", "--name", site_name, "--template", "blog", "--no-init"],
         cwd=str(tmp_path),
         timeout=60,
     )
@@ -131,7 +131,7 @@ def test_blog_template_generates_rss(tmp_path) -> None:
 
     # Build
     result = run_cli(
-        ["site", "build"],
+        ["build"],
         cwd=str(site_dir),
         timeout=120,
     )
@@ -157,7 +157,7 @@ def test_docs_template_generates_search_index(tmp_path) -> None:
 
     # Scaffold docs - run from tmp_path
     result = run_cli(
-        ["new", "site", site_name, "--template", "docs", "--no-init"],
+        ["new", "site", "--name", site_name, "--template", "docs", "--no-init"],
         cwd=str(tmp_path),
         timeout=60,
     )
@@ -165,7 +165,7 @@ def test_docs_template_generates_search_index(tmp_path) -> None:
 
     # Build
     result = run_cli(
-        ["site", "build"],
+        ["build"],
         cwd=str(site_dir),
         timeout=120,
     )
@@ -202,7 +202,7 @@ def test_template_dev_server_starts(tmp_path) -> None:
 
     # Scaffold - run from tmp_path
     result = run_cli(
-        ["new", "site", site_name, "--template", "default", "--no-init"],
+        ["new", "site", "--name", site_name, "--template", "default", "--no-init"],
         cwd=str(tmp_path),
         timeout=60,
     )
@@ -213,7 +213,7 @@ def test_template_dev_server_starts(tmp_path) -> None:
 
     # Start dev server as subprocess
     proc = subprocess.Popen(
-        [sys.executable, "-m", "bengal.cli", "site", "serve", "--port", "8765"],
+        [sys.executable, "-m", "bengal.cli", "serve", "--port", "8765"],
         cwd=str(site_dir),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,

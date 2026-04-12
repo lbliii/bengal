@@ -1,0 +1,140 @@
+{#- Page explanation — formatted output from `bengal inspect page`.
+
+    Usage:
+        cli.render_write("page_explanation.kida", **context)
+
+    Variables:
+        source: {path, size, lines, modified, encoding}
+        frontmatter: list[{label, value}]|none
+        template_chain: list[{name, theme, depth, includes}]|none
+        deps: list[{section, items}]|none
+        shortcodes: list[{name, count, lines_str}]|none
+        cache: {status, reason, key, layers}
+        output: {url, path, size}
+        issues: list[{level, message, detail}]|none
+        performance: {total_ms, breakdown: list[{label, value}]}|none
+-#}
+{% from "_bengal.kida" import bengal_header %}
+{% from "components/_defs.kida" import section, kv_list, kv_pair, panel, summary_box, issue_list, status_line %}
+
+{{ bengal_header("Page Explanation: " ~ source.path) }}
+
+{#- ── Source ──────────────────────────────────────────── -#}
+{%- capture source_content -%}
+{{ "Path" | kv(source.path, width=40) }}
+{{ "Size" | kv(source.size ~ " (" ~ (source.lines | string) ~ " lines)", width=40) }}
+{%- if source.modified %}
+{{ "Modified" | kv(source.modified, width=40) }}
+{%- endif %}
+{{ "Encoding" | kv(source.encoding, width=40) }}
+{%- endcapture -%}
+{{ panel(source_content | trim, title="Source") }}
+
+{#- ── Frontmatter ─────────────────────────────────────── -#}
+{%- if frontmatter %}
+
+{%- capture fm_content -%}
+{%- for item in frontmatter -%}
+{{ item.label | kv(item.value, width=40) }}
+{% endfor -%}
+{%- endcapture -%}
+{{ panel(fm_content | trim, title="Frontmatter") }}
+{%- endif -%}
+
+{#- ── Template Chain ──────────────────────────────────── -#}
+{%- if template_chain %}
+
+{%- capture chain_content -%}
+{%- for tpl in template_chain -%}
+{%- set indent = "  " * tpl.depth -%}
+{%- set prefix = "" if tpl.depth == 0 else "extends: " -%}
+{%- set theme_str = " (" ~ tpl.theme ~ ")" if tpl.theme else "" -%}
+{{ indent }}{{ prefix | dim }}{{ tpl.name | bold }}{{ theme_str | dim }}
+{%- for inc in tpl.includes %}
+{{ indent }}  {{ "includes:" | dim }} {{ inc }}
+{%- endfor -%}
+{%- endfor -%}
+{%- endcapture -%}
+{{ panel(chain_content | trim, title="Template Chain") }}
+{%- endif -%}
+
+{#- ── Dependencies ────────────────────────────────────── -#}
+{%- if deps %}
+
+{%- capture deps_content -%}
+{%- for group in deps %}
+{{ group.section | bold }}:
+{%- for item in group.items %}
+  {{ icons.dot | dim }} {{ item }}
+{%- endfor -%}
+{%- endfor -%}
+{%- endcapture -%}
+{{ panel(deps_content | trim, title="Dependencies") }}
+{%- endif -%}
+
+{#- ── Shortcodes ──────────────────────────────────────── -#}
+{%- if shortcodes %}
+
+{%- capture sc_content -%}
+{%- for sc in shortcodes -%}
+{{ sc.name | pad(20) }} {{ (sc.count | string) | pad(5) }}  {{ sc.lines_str | dim }}
+{% endfor -%}
+{%- endcapture -%}
+{{ panel(sc_content | trim, title="Directives") }}
+{%- endif -%}
+
+{#- ── Cache Status ────────────────────────────────────── -#}
+
+{%- capture cache_content -%}
+{%- if cache.status == "HIT" -%}
+{{ "Status" | kv((icons.check ~ " " ~ cache.status) | green, width=40) }}
+{%- elif cache.status == "STALE" -%}
+{{ "Status" | kv(cache.status | yellow, width=40) }}
+{%- elif cache.status == "MISS" -%}
+{{ "Status" | kv((icons.cross ~ " " ~ cache.status) | red, width=40) }}
+{%- else -%}
+{{ "Status" | kv(cache.status, width=40) }}
+{%- endif -%}
+{%- if cache.reason %}
+{{ "Reason" | kv(cache.reason, width=40) }}
+{%- endif -%}
+{%- if cache.key %}
+{{ "Cache Key" | kv(cache.key | dim, width=40) }}
+{%- endif -%}
+{%- if cache.layers %}
+{{ "Cached" | kv(cache.layers | join(", "), width=40) }}
+{%- endif -%}
+{%- endcapture -%}
+{{ panel(cache_content | trim, title="Cache") }}
+
+{#- ── Output ──────────────────────────────────────────── -#}
+
+{%- capture output_content -%}
+{{ "URL" | kv(output.url, width=40) }}
+{%- if output.path %}
+{{ "Path" | kv(output.path, width=40) }}
+{%- endif -%}
+{%- if output.size %}
+{{ "Size" | kv(output.size, width=40) }}
+{%- endif -%}
+{%- endcapture -%}
+{{ panel(output_content | trim, title="Output") }}
+
+{#- ── Issues ──────────────────────────────────────────── -#}
+{%- if issues %}
+
+{{ section("Issues") }}
+{{ issue_list(issues) }}
+{%- endif -%}
+
+{#- ── Performance ─────────────────────────────────────── -#}
+{%- if performance %}
+
+{%- capture perf_content -%}
+{{ "Total" | kv((performance.total_ms | round(1) | string ~ "ms"), width=40) }}
+{%- for item in performance.breakdown %}
+{{ ("  " ~ item.label) | kv(item.value, width=38) }}
+{%- endfor -%}
+{%- endcapture -%}
+{{ panel(perf_content | trim, title="Performance") }}
+{%- endif -%}
