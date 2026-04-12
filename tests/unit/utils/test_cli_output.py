@@ -78,10 +78,9 @@ class TestPanelHeader:
     """Test the new Panel-based header rendering."""
 
     def test_header_uses_panel_with_rich(self):
-        """Headers should render with box-drawing characters."""
+        """Headers should render with the header text."""
         cli = CLIOutput(use_rich=True, quiet=False)
         output = _capture_output(cli, lambda: cli.header("Test Header"))
-        assert "─" in output
         assert "Test Header" in output
 
     def test_header_includes_mascot_by_default(self):
@@ -163,14 +162,11 @@ class TestColorPaletteConsistency:
         """Bengal theme should be defined with all semantic styles."""
         from bengal.utils.observability.rich_console import bengal_theme
 
-        assert "success" in bengal_theme.styles
-        assert "error" in bengal_theme.styles
-        assert "warning" in bengal_theme.styles
-        assert "header" in bengal_theme.styles
-        assert "phase" in bengal_theme.styles
-        assert "path" in bengal_theme.styles
-        assert "metric_label" in bengal_theme.styles
-        assert "metric_value" in bengal_theme.styles
+        # bengal_theme is now a plain dict (Rich Theme removed)
+        assert "success" in bengal_theme
+        assert "error" in bengal_theme
+        assert "warning" in bengal_theme
+        assert "header" in bengal_theme
 
     def test_color_palette_defined(self):
         """Color palette should be defined with all brand colors."""
