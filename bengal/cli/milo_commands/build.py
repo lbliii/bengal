@@ -311,7 +311,7 @@ def build(
                 from bengal.utils.observability.terminal import detect_environment
 
                 console_env = detect_environment()
-                display_build_summary(stats, environment=console_env)
+                display_build_summary(stats, environment=console_env, cli=cli)
             else:
                 display_build_stats(stats, show_art=True, output_dir=str(site.output_dir))
         else:

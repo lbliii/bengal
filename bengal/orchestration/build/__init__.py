@@ -241,7 +241,11 @@ class BuildOrchestrator:
         reporter = None
 
         if use_live_progress:
-            progress_manager = LiveProgressManager(profile=profile, enabled=True)
+            progress_manager = LiveProgressManager(
+                profile=profile,
+                enabled=True,
+                render_fn=cli.render,
+            )
 
         # Suppress console log noise (logs still go to file for debugging)
         from bengal.utils.observability.logger import set_console_quiet

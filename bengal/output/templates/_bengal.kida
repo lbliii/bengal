@@ -50,6 +50,12 @@
 {{ next_steps(steps) }}
 {%- enddef -%}
 
+{#- ── Timing bar: phase name + time + percentage + bar ────────── -#}
+{%- def timing_bar(name, time_str, pct, bar_width=20) -%}
+{%- set pct_color = "red" if pct > 60 else ("yellow" if pct > 40 else "green") -%}
+   {{ name | pad(15) }} {{ time_str | pad(8) }}  {{ ("%5.1f%%" | format(pct)) | fg(pct_color) }}  {{ pct | bar(bar_width) | fg(pct_color) }}
+{%- enddef -%}
+
 {#- ── Diff line: colored +/- prefix ─────────────────────────────── -#}
 {%- def diff_added(text) -%}
 {{ ("+ " ~ text) | green }}

@@ -86,7 +86,7 @@ def inspect_page(
     else:
         from bengal.debug import ExplanationReporter
 
-        reporter = ExplanationReporter()
+        reporter = ExplanationReporter(cli=cli)
         reporter.print(explanation, verbose=verbose)
 
         cli.blank()

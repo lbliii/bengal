@@ -22,22 +22,20 @@ bengal.orchestration.build.finalization: Calls display after build
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from bengal.analysis.performance.advisor import PerformanceAdvisor
     from bengal.orchestration.stats import BuildStats
 
 
-def _write(text: str = "") -> None:
-    print(text, file=sys.stdout)
-
-
-def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None = None) -> None:
+def display_build_summary(
+    stats: BuildStats,
+    environment: dict[str, Any] | None = None,
+    cli: object | None = None,
+) -> None:
     """
-    Display comprehensive build summary.
+    Display comprehensive build summary via kida template.
 
     This is the main entry point for build summaries.
     Shows timing breakdown, performance analysis, and smart suggestions.
@@ -45,114 +43,89 @@ def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None 
     Args:
         stats: Build statistics
         environment: Environment info (from detect_environment())
+        cli: CLIOutput instance; lazy-created if None
 
     """
     from bengal.analysis.performance.advisor import PerformanceAdvisor
 
+    if cli is None:
+        from bengal.output.core import CLIOutput
+
+        cli = CLIOutput()
+
     # Skip if build was skipped
     if stats.skipped:
-        _write()
-        _write("  No changes detected - build skipped!")
-        _write()
+        cli.info("No changes detected - build skipped!")
         return
 
     # Create performance advisor
     advisor = PerformanceAdvisor(stats, environment)
     advisor.analyze()
 
-    # Header
-    _write()
-    _write("    Build complete!")
-    _write()
+    # ── Build context dict for the template ──────────────────────────
 
-    # Performance grade
-    _print_performance(stats, advisor)
+    context: dict[str, Any] = {}
 
-    # Content stats
-    _print_content_stats(stats)
-
-    # Timing breakdown
-    _print_timing_breakdown(stats)
-
-    # Cache stats
-    _print_cache_stats(stats)
-
-    # Suggestions
-    _print_suggestions(advisor)
-
-    # Errors and warnings
-    if stats.has_errors or stats.warnings:
-        from bengal.errors import format_error_report
-
-        error_report = format_error_report(stats, verbose=True)
-        if error_report not in ("No errors or warnings",):
-            _write("  Errors & Warnings:")
-            for line in error_report.split("\n"):
-                _write(f"    {line}")
-            _write()
-
-    # Footer: Output location
-    if hasattr(stats, "output_dir") and stats.output_dir:
-        _write(f"  Output: {stats.output_dir}")
-        _write()
-
-
-def _print_performance(stats: BuildStats, advisor: PerformanceAdvisor) -> None:
-    """Print performance grade and insights."""
+    # Grade
     grade = advisor.get_grade()
-
-    _write(f"  Performance: {grade.grade} ({grade.score}/100)")
-    _write(f"  {grade.summary}")
+    context["grade_letter"] = grade.grade
+    context["grade_score"] = grade.score
+    context["grade_summary"] = grade.summary
 
     # Throughput
     render_ms = stats.rendering_time_ms if stats.rendering_time_ms > 0 else stats.build_time_ms
     if render_ms > 0 and stats.total_pages > 0:
-        pages_per_sec = (stats.total_pages / render_ms) * 1000
-        _write(f"  Throughput: {pages_per_sec:.1f} pages/second")
+        context["throughput"] = (stats.total_pages / render_ms) * 1000
+    else:
+        context["throughput"] = 0
 
-    # Per-page render distribution
+    # Render distribution
+    context["render_dist"] = None
     if stats.render_p50_ms > 0:
-        _write(
-            f"  P50 {stats.render_p50_ms:.0f}ms | P95 {stats.render_p95_ms:.0f}ms | Max {stats.render_max_ms:.0f}ms"
+        context["render_dist"] = (
+            f"P50 {stats.render_p50_ms:.0f}ms | "
+            f"P95 {stats.render_p95_ms:.0f}ms | "
+            f"Max {stats.render_max_ms:.0f}ms"
         )
 
     # Bottleneck
-    bottleneck = advisor.get_bottleneck()
-    if bottleneck:
-        _write(f"  Bottleneck: {bottleneck}")
+    context["bottleneck"] = advisor.get_bottleneck()
 
-    _write()
+    # Regression
+    context["regression"] = None
+    context["regression_positive"] = False
+    if stats.regression_pct is not None:
+        sign = "+" if stats.regression_pct > 0 else ""
+        context["regression"] = f"{sign}{stats.regression_pct:.0f}% vs last build"
+        context["regression_positive"] = stats.regression_pct > 0
 
+    # ── Content stats ────────────────────────────────────────────────
 
-def _print_content_stats(stats: BuildStats) -> None:
-    """Print content statistics."""
-    _write("  Content Statistics:")
-    _write(
-        f"    Pages:      {stats.total_pages} ({stats.regular_pages} regular + {stats.generated_pages} generated)"
-    )
-    _write(f"    Assets:     {stats.total_assets}")
-    _write(f"    Sections:   {stats.total_sections}")
+    content: list[dict[str, str]] = [
+        {
+            "label": "Pages",
+            "value": f"{stats.total_pages} ({stats.regular_pages} regular + {stats.generated_pages} generated)",
+        },
+        {"label": "Assets", "value": str(stats.total_assets)},
+        {"label": "Sections", "value": str(stats.total_sections)},
+    ]
     if stats.taxonomies_count > 0:
-        _write(f"    Taxonomies: {stats.taxonomies_count}")
-
-    # Directives
+        content.append({"label": "Taxonomies", "value": str(stats.taxonomies_count)})
     if hasattr(stats, "total_directives") and stats.total_directives > 0:
-        _write(f"    Directives: {stats.total_directives}")
+        content.append({"label": "Directives", "value": str(stats.total_directives)})
 
-    # Build mode
-    mode_parts = []
+    mode_parts: list[str] = []
     if stats.incremental:
         mode_parts.append("incremental")
     if stats.parallel:
         mode_parts.append("parallel")
     if not mode_parts:
         mode_parts.append("sequential")
-    _write(f"    Mode:       {', '.join(mode_parts)}")
-    _write()
+    content.append({"label": "Mode", "value": ", ".join(mode_parts)})
+    context["content"] = content
 
+    # ── Timing breakdown ─────────────────────────────────────────────
 
-def _print_timing_breakdown(stats: BuildStats) -> None:
-    """Print timing breakdown table."""
     phases = [
         ("Fonts", stats.fonts_time_ms),
         ("Discovery", stats.discovery_time_ms),
@@ -166,125 +139,125 @@ def _print_timing_breakdown(stats: BuildStats) -> None:
     ]
 
     total_phase_time = sum(t for _, t in phases)
-    if total_phase_time == 0:
-        return
+    timing: list[dict[str, Any]] = []
+    if total_phase_time > 0:
+        for phase_name, phase_time in phases:
+            if phase_time == 0:
+                continue
+            if phase_time < 1:
+                time_str = f"{phase_time:.2f}ms"
+            elif phase_time < 1000:
+                time_str = f"{int(phase_time)}ms"
+            else:
+                time_str = f"{phase_time / 1000:.2f}s"
+            pct = (phase_time / total_phase_time) * 100
+            timing.append({"name": phase_name, "time_str": time_str, "pct": pct})
 
-    _write("  Build Phase Breakdown:")
+    context["timing"] = timing or None
 
-    for phase_name, phase_time in phases:
-        if phase_time == 0:
-            continue
-
-        if phase_time < 1:
-            time_str = f"{phase_time:.2f}ms"
-        elif phase_time < 1000:
-            time_str = f"{int(phase_time)}ms"
-        else:
-            time_str = f"{phase_time / 1000:.2f}s"
-
-        pct = (phase_time / total_phase_time) * 100
-        bar_width = int((pct / 100) * 20)
-        bar = "#" * bar_width + "." * (20 - bar_width)
-
-        _write(f"    {phase_name:<15} {time_str:>8}  {pct:5.1f}%  [{bar}]")
-
-    # Total
     total_time = stats.build_time_ms
-    total_str = f"{int(total_time)}ms" if total_time < 1000 else f"{total_time / 1000:.2f}s"
-    _write(f"    {'Total':<15} {total_str:>8}  100.0%")
+    context["total_time"] = (
+        f"{int(total_time)}ms" if total_time < 1000 else f"{total_time / 1000:.2f}s"
+    )
 
     # Slowest pages
+    slowest: list[dict[str, Any]] = []
     if stats.slowest_pages:
-        _write()
-        _write("  Slowest pages:")
         for path, ms in stats.slowest_pages[:3]:
             short = Path(path).name
-            _write(f"    {short}: {ms:.0f}ms")
+            slowest.append({"name": short, "ms": ms})
+    context["slowest"] = slowest or None
 
-    _write()
+    # ── Cache stats ──────────────────────────────────────────────────
 
+    cache: list[dict[str, str]] = []
 
-def _print_cache_stats(stats: BuildStats) -> None:
-    """Print cache statistics if available."""
-    has_any = False
-
-    # Render pipeline cache
     parsed_hits = getattr(stats, "parsed_cache_hits", 0)
     rendered_hits = getattr(stats, "rendered_cache_hits", 0)
     parsed_misses = getattr(stats, "parsed_cache_misses", 0)
     pipeline_total = parsed_hits + rendered_hits + parsed_misses
 
     if pipeline_total > 0 and (parsed_hits > 0 or rendered_hits > 0):
-        if not has_any:
-            _write("  Cache Statistics:")
-            has_any = True
-        _write(f"    Rendered (full skip): {rendered_hits}")
-        _write(f"    Parsed (skip parse):  {parsed_hits}")
-        _write(f"    Parsed (full parse):  {parsed_misses}")
+        cache.append({"label": "Rendered (full skip)", "value": str(rendered_hits)})
+        cache.append({"label": "Parsed (skip parse)", "value": str(parsed_hits)})
+        cache.append({"label": "Parsed (full parse)", "value": str(parsed_misses)})
 
-    # Page-level cache
     cache_hits = getattr(stats, "cache_hits", 0)
     cache_misses = getattr(stats, "cache_misses", 0)
     cache_total = cache_hits + cache_misses
 
     if stats.incremental and cache_total > 0:
-        if not has_any:
-            _write("  Cache Statistics:")
-            has_any = True
         hit_rate = (cache_hits / cache_total) * 100 if cache_total > 0 else 0
-        _write(f"    Page cache hit rate: {hit_rate:.1f}%")
-        _write(f"    Hits: {cache_hits}  Misses: {cache_misses}")
-
+        cache.append({"label": "Page cache hit rate", "value": f"{hit_rate:.1f}%"})
+        cache.append({"label": "Hits / Misses", "value": f"{cache_hits} / {cache_misses}"})
         if hasattr(stats, "time_saved_ms") and stats.time_saved_ms > 0:
-            _write(f"    Time saved: {stats.time_saved_ms / 1000:.2f}s")
+            cache.append({"label": "Time saved", "value": f"{stats.time_saved_ms / 1000:.2f}s"})
 
-    # Block-level cache
     block_hits = getattr(stats, "block_cache_hits", 0)
     block_misses = getattr(stats, "block_cache_misses", 0)
     block_cached = getattr(stats, "block_cache_site_blocks", 0)
     block_total = block_hits + block_misses
 
     if block_cached > 0 or block_total > 0:
-        if not has_any:
-            _write("  Cache Statistics:")
-            has_any = True
-        _write(f"    Block cache: {block_cached} blocks cached")
+        cache.append({"label": "Block cache", "value": f"{block_cached} blocks cached"})
         if block_total > 0:
             block_hit_rate = (block_hits / block_total) * 100 if block_total > 0 else 0
-            _write(f"    Block reuse: {block_hit_rate:.1f}% ({block_hits}x reused)")
+            cache.append(
+                {"label": "Block reuse", "value": f"{block_hit_rate:.1f}% ({block_hits}x reused)"}
+            )
 
-    # Effectiveness
+    context["cache"] = cache or None
+
     effectiveness = stats.cache_effectiveness_pct
-    if effectiveness is not None:
-        if not has_any:
-            _write("  Cache Statistics:")
-            has_any = True
-        _write(f"    Cache saved {effectiveness:.0f}% of render time")
+    context["cache_effectiveness"] = (
+        f"Cache saved {effectiveness:.0f}% of render time" if effectiveness is not None else None
+    )
 
-    if has_any:
-        _write()
+    # ── Suggestions ──────────────────────────────────────────────────
 
+    suggestions_raw = advisor.get_top_suggestions(5)
+    if suggestions_raw:
+        suggestion_list: list[dict[str, Any]] = []
+        for s in suggestions_raw:
+            marker = {"high": "!", "medium": "*", "low": "-"}.get(s.priority.value, "-")
+            suggestion_list.append(
+                {
+                    "marker": marker,
+                    "title": s.title,
+                    "description": s.description,
+                    "impact": s.impact,
+                    "action": s.action,
+                    "config": s.config_example,
+                }
+            )
+        context["suggestions"] = suggestion_list
+    else:
+        context["suggestions"] = None
 
-def _print_suggestions(advisor: PerformanceAdvisor) -> None:
-    """Print smart suggestions."""
-    suggestions = advisor.get_top_suggestions(5)
-    if not suggestions:
-        return
+    # ── Errors & warnings ────────────────────────────────────────────
 
-    _write("  Suggestions:")
+    context["errors"] = None
+    if stats.has_errors or stats.warnings:
+        from bengal.errors import format_error_report
 
-    for i, suggestion in enumerate(suggestions, 1):
-        priority_marker = {"high": "!", "medium": "*", "low": "-"}.get(
-            suggestion.priority.value, "-"
-        )
-        _write(f"    {priority_marker} {i}. {suggestion.title}")
-        _write(f"        {suggestion.description}")
-        _write(f"        Impact: {suggestion.impact}")
-        _write(f"        Action: {suggestion.action}")
-        if suggestion.config_example:
-            _write(f"        Config: {suggestion.config_example}")
+        error_report = format_error_report(stats, verbose=True)
+        if error_report not in ("No errors or warnings",):
+            error_lines: list[dict[str, str]] = [
+                {"text": line, "level": "error" if "error" in line.lower() else "warning"}
+                for line in error_report.split("\n")
+                if line.strip()
+            ]
+            context["errors"] = error_lines or None
 
-    _write()
+    # ── Output dir ───────────────────────────────────────────────────
+
+    context["output_dir"] = None
+    if hasattr(stats, "output_dir") and stats.output_dir:
+        context["output_dir"] = str(stats.output_dir)
+
+    # ── Render the template ──────────────────────────────────────────
+
+    cli.render_write("build_dashboard.kida", **context)
 
 
 def display_simple_summary(stats: BuildStats) -> None:

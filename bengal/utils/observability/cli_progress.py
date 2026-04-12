@@ -41,6 +41,7 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.observability.terminal import is_interactive_terminal
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
     from types import TracebackType
 
     from bengal.utils.observability.profile import BuildProfile
@@ -148,6 +149,7 @@ class LiveProgressManager:
         profile: BuildProfile,
         console: object | None = None,
         enabled: bool = True,
+        render_fn: Callable[..., str] | None = None,
     ):
         """
         Initialize live progress manager.
@@ -156,12 +158,18 @@ class LiveProgressManager:
             profile: Build profile (Writer/Theme-Dev/Developer)
             console: Ignored — kept for backward compatibility.
             enabled: Whether live progress is enabled
+            render_fn: Optional template render function (e.g. CLIOutput.render).
+                Takes a template name and keyword context, returns rendered string.
         """
         self.profile = profile
         self.phases: dict[str, PhaseProgress] = {}
         self.phase_order: list[str] = []  # Preserve insertion order
         self.enabled = enabled
         self.use_live = enabled and is_interactive_terminal()
+        self._render_fn = render_fn
+
+        # Number of lines in the previous live frame (for ANSI cursor rewind).
+        self._prev_frame_lines: int = 0
 
         # Get profile configuration
         profile_config = profile.get_config()
@@ -195,6 +203,11 @@ class LiveProgressManager:
 
     def stop(self) -> None:
         """Stop the progress display."""
+        if self._prev_frame_lines > 0:
+            # Ensure the cursor is below the last rendered frame.
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            self._prev_frame_lines = 0
 
     def __enter__(self) -> LiveProgressManager:
         """Enter context manager."""
@@ -308,13 +321,87 @@ class LiveProgressManager:
             phase.metadata["error"] = error
             self._print_fallback()
 
+    def _build_state(self) -> dict[str, Any]:
+        """Convert phase data to pipeline_progress state format."""
+        total_elapsed = 0.0
+        completed = 0
+        total = len(self.phase_order)
+        phases: list[dict[str, Any]] = []
+
+        for phase_id in self.phase_order:
+            phase = self.phases[phase_id]
+            status_map = {
+                PhaseStatus.PENDING: "pending",
+                PhaseStatus.RUNNING: "running",
+                PhaseStatus.COMPLETE: "completed",
+                PhaseStatus.FAILED: "failed",
+            }
+            phases.append(
+                {
+                    "name": phase.name,
+                    "status": status_map[phase.status],
+                    "elapsed": phase.elapsed_ms / 1000.0,
+                    "error": phase.metadata.get("error", ""),
+                }
+            )
+            if phase.status == PhaseStatus.COMPLETE:
+                completed += 1
+                total_elapsed += phase.elapsed_ms / 1000.0
+            elif phase.status == PhaseStatus.RUNNING:
+                total_elapsed += phase.elapsed_ms / 1000.0
+
+        # Determine overall status
+        if any(p.status == PhaseStatus.FAILED for p in self.phases.values()):
+            overall = "failed"
+        elif all(p.status == PhaseStatus.COMPLETE for p in self.phases.values()):
+            overall = "completed"
+        else:
+            overall = "running"
+
+        progress = completed / total if total > 0 else 0.0
+
+        return {
+            "status": overall,
+            "progress": progress,
+            "elapsed": total_elapsed,
+            "phases": phases,
+        }
+
+    def _render_live(self) -> None:
+        """Render progress with kida template and ANSI cursor control."""
+        if not self._render_fn:
+            return
+
+        state = self._build_state()
+        try:
+            frame = self._render_fn("build_progress.kida", state=state).strip("\n")
+        except Exception:
+            return  # Silently fall back if template rendering fails
+
+        lines = frame.split("\n")
+
+        # Move cursor up to overwrite previous frame
+        if self._prev_frame_lines > 0:
+            sys.stdout.write(f"\033[{self._prev_frame_lines}A")
+
+        for line in lines:
+            sys.stdout.write(f"\033[2K{line}\n")
+        sys.stdout.flush()
+
+        self._prev_frame_lines = len(lines)
+
     def _print_fallback(self) -> None:
         """
         Print sequential progress output.
 
-        Prints traditional sequential lines showing phase starts
-        and completions.
+        Uses live ANSI rendering when a render function is available
+        in an interactive terminal, otherwise prints traditional
+        sequential lines showing phase starts and completions.
         """
+        if self.use_live and self._render_fn:
+            self._render_live()
+            return
+
         for phase_id in self.phase_order:
             phase = self.phases[phase_id]
 
