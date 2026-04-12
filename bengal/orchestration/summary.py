@@ -1,25 +1,9 @@
 """
-Rich build summary dashboard with performance insights.
+Build summary display with performance insights.
 
-Displays comprehensive build statistics using Rich formatting with timing
-breakdown, performance grading, smart suggestions, and cache analysis.
-This module provides the visual feedback shown after a build completes.
-
-Components:
-Timing Breakdown Table
-    Shows time spent in each phase (discovery, taxonomies, rendering,
-    assets, postprocess) with percentage bars and bottleneck highlighting.
-Performance Panel
-    Displays letter grade (A-F) with score, throughput (pages/sec),
-    and identified bottleneck phase.
-Suggestions Panel
-    Smart optimization suggestions from PerformanceAdvisor based on
-    the specific build profile and detected issues.
-Cache Statistics Panel
-    Cache hit rate, time saved, and cache effectiveness metrics
-    (shown only for incremental builds).
-Content Statistics Table
-    Page, asset, section, and taxonomy counts with build mode info.
+Displays build statistics with timing breakdown, performance grading,
+smart suggestions, and cache analysis. This module provides the visual
+feedback shown after a build completes.
 
 Display Modes:
 Full Dashboard (display_build_summary)
@@ -30,7 +14,6 @@ Simple Summary (display_simple_summary)
 Related Modules:
 bengal.analysis.performance_advisor: Generates grades and suggestions
 bengal.orchestration.stats: BuildStats data model
-bengal.utils.rich_console: Console setup and detection
 
 See Also:
 bengal.orchestration.build.finalization: Calls display after build
@@ -39,44 +22,137 @@ bengal.orchestration.build.finalization: Calls display after build
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
-
-from rich.console import Group
-from rich.panel import Panel
-from rich.table import Table
-from rich.text import Text
 
 if TYPE_CHECKING:
     from bengal.analysis.performance.advisor import PerformanceAdvisor
     from bengal.orchestration.stats import BuildStats
 
 
-def create_timing_breakdown_table(stats: BuildStats) -> Table:
+def _write(text: str = "") -> None:
+    print(text, file=sys.stdout)
+
+
+def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None = None) -> None:
     """
-    Create a detailed timing breakdown table.
+    Display comprehensive build summary.
+
+    This is the main entry point for build summaries.
+    Shows timing breakdown, performance analysis, and smart suggestions.
 
     Args:
         stats: Build statistics
-
-    Returns:
-        Rich Table with phase timing breakdown
+        environment: Environment info (from detect_environment())
 
     """
-    table = Table(
-        title="⏱️  Build Phase Breakdown",
-        show_header=True,
-        header_style="bold cyan",
-        border_style="cyan",
-        title_style="bold cyan",
+    from bengal.analysis.performance.advisor import PerformanceAdvisor
+
+    # Skip if build was skipped
+    if stats.skipped:
+        _write()
+        _write("  No changes detected - build skipped!")
+        _write()
+        return
+
+    # Create performance advisor
+    advisor = PerformanceAdvisor(stats, environment)
+    advisor.analyze()
+
+    # Header
+    _write()
+    _write("    Build complete!")
+    _write()
+
+    # Performance grade
+    _print_performance(stats, advisor)
+
+    # Content stats
+    _print_content_stats(stats)
+
+    # Timing breakdown
+    _print_timing_breakdown(stats)
+
+    # Cache stats
+    _print_cache_stats(stats)
+
+    # Suggestions
+    _print_suggestions(advisor)
+
+    # Errors and warnings
+    if stats.has_errors or stats.warnings:
+        from bengal.errors import format_error_report
+
+        error_report = format_error_report(stats, verbose=True)
+        if error_report not in ("No errors or warnings",):
+            _write("  Errors & Warnings:")
+            for line in error_report.split("\n"):
+                _write(f"    {line}")
+            _write()
+
+    # Footer: Output location
+    if hasattr(stats, "output_dir") and stats.output_dir:
+        _write(f"  Output: {stats.output_dir}")
+        _write()
+
+
+def _print_performance(stats: BuildStats, advisor: PerformanceAdvisor) -> None:
+    """Print performance grade and insights."""
+    grade = advisor.get_grade()
+
+    _write(f"  Performance: {grade.grade} ({grade.score}/100)")
+    _write(f"  {grade.summary}")
+
+    # Throughput
+    render_ms = stats.rendering_time_ms if stats.rendering_time_ms > 0 else stats.build_time_ms
+    if render_ms > 0 and stats.total_pages > 0:
+        pages_per_sec = (stats.total_pages / render_ms) * 1000
+        _write(f"  Throughput: {pages_per_sec:.1f} pages/second")
+
+    # Per-page render distribution
+    if stats.render_p50_ms > 0:
+        _write(
+            f"  P50 {stats.render_p50_ms:.0f}ms | P95 {stats.render_p95_ms:.0f}ms | Max {stats.render_max_ms:.0f}ms"
+        )
+
+    # Bottleneck
+    bottleneck = advisor.get_bottleneck()
+    if bottleneck:
+        _write(f"  Bottleneck: {bottleneck}")
+
+    _write()
+
+
+def _print_content_stats(stats: BuildStats) -> None:
+    """Print content statistics."""
+    _write("  Content Statistics:")
+    _write(
+        f"    Pages:      {stats.total_pages} ({stats.regular_pages} regular + {stats.generated_pages} generated)"
     )
+    _write(f"    Assets:     {stats.total_assets}")
+    _write(f"    Sections:   {stats.total_sections}")
+    if stats.taxonomies_count > 0:
+        _write(f"    Taxonomies: {stats.taxonomies_count}")
 
-    table.add_column("Phase", style="cyan", no_wrap=True)
-    table.add_column("Time", justify="right", style="white")
-    table.add_column("% of Total", justify="right")
-    table.add_column("Bar", width=20)
+    # Directives
+    if hasattr(stats, "total_directives") and stats.total_directives > 0:
+        _write(f"    Directives: {stats.total_directives}")
 
-    # Add rows for each phase
+    # Build mode
+    mode_parts = []
+    if stats.incremental:
+        mode_parts.append("incremental")
+    if stats.parallel:
+        mode_parts.append("parallel")
+    if not mode_parts:
+        mode_parts.append("sequential")
+    _write(f"    Mode:       {', '.join(mode_parts)}")
+    _write()
+
+
+def _print_timing_breakdown(stats: BuildStats) -> None:
+    """Print timing breakdown table."""
     phases = [
         ("Fonts", stats.fonts_time_ms),
         ("Discovery", stats.discovery_time_ms),
@@ -89,14 +165,16 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
         ("Health Check", stats.health_check_time_ms),
     ]
 
-    # Calculate total phase time
     total_phase_time = sum(t for _, t in phases)
+    if total_phase_time == 0:
+        return
+
+    _write("  Build Phase Breakdown:")
 
     for phase_name, phase_time in phases:
         if phase_time == 0:
             continue
 
-        # Format time
         if phase_time < 1:
             time_str = f"{phase_time:.2f}ms"
         elif phase_time < 1000:
@@ -104,492 +182,109 @@ def create_timing_breakdown_table(stats: BuildStats) -> Table:
         else:
             time_str = f"{phase_time / 1000:.2f}s"
 
-        # Calculate percentage
-        if total_phase_time > 0:
-            pct = (phase_time / total_phase_time) * 100
-            pct_str = f"{pct:.1f}%"
+        pct = (phase_time / total_phase_time) * 100
+        bar_width = int((pct / 100) * 20)
+        bar = "#" * bar_width + "." * (20 - bar_width)
 
-            # Color code based on percentage (bottleneck detection)
-            if pct > 60:
-                pct_color = "red bold"
-            elif pct > 40:
-                pct_color = "yellow"
-            else:
-                pct_color = "green"
+        _write(f"    {phase_name:<15} {time_str:>8}  {pct:5.1f}%  [{bar}]")
 
-            # Create visual bar
-            bar_width = int((pct / 100) * 20)
-            bar = "█" * bar_width + "░" * (20 - bar_width)
-
-            table.add_row(
-                phase_name,
-                time_str,
-                f"[{pct_color}]{pct_str}[/{pct_color}]",
-                f"[{pct_color}]{bar}[/{pct_color}]",
-            )
-        else:
-            table.add_row(phase_name, time_str, "-", "")
-
-    # Overhead row (unaccounted time)
-    if stats.overhead_ms > 0 and total_phase_time > 0:
-        overhead = stats.overhead_ms
-        overhead_str = f"{int(overhead)}ms" if overhead < 1000 else f"{overhead / 1000:.2f}s"
-        overhead_pct = (overhead / stats.build_time_ms) * 100 if stats.build_time_ms > 0 else 0
-        table.add_row(
-            "[dim]Overhead[/dim]",
-            f"[dim]{overhead_str}[/dim]",
-            f"[dim]{overhead_pct:.1f}%[/dim]",
-            f"[dim]{'█' * int((overhead_pct / 100) * 20)}{'░' * (20 - int((overhead_pct / 100) * 20))}[/dim]",
-        )
-
-    # Add total
+    # Total
     total_time = stats.build_time_ms
     total_str = f"{int(total_time)}ms" if total_time < 1000 else f"{total_time / 1000:.2f}s"
+    _write(f"    {'Total':<15} {total_str:>8}  100.0%")
 
-    table.add_row(
-        "[bold]Total[/bold]",
-        f"[bold]{total_str}[/bold]",
-        "[bold]100%[/bold]",
-        "[success]████████████████████[/success]",
-    )
-
-    # Slowest pages (top 3)
+    # Slowest pages
     if stats.slowest_pages:
-        table.add_row("", "", "", "")
+        _write()
+        _write("  Slowest pages:")
         for path, ms in stats.slowest_pages[:3]:
             short = Path(path).name
-            table.add_row(f"[dim]  {short}[/dim]", f"[dim]{ms:.0f}ms[/dim]", "", "")
+            _write(f"    {short}: {ms:.0f}ms")
 
-    return table
-
-
-def create_performance_panel(stats: BuildStats, advisor: PerformanceAdvisor) -> Panel:
-    """
-    Create performance grade and insights panel.
-
-    Args:
-        stats: Build statistics
-        advisor: Performance advisor with analysis
-
-    Returns:
-        Rich Panel with performance insights
-
-    """
-    grade = advisor.get_grade()
-
-    # Grade visualization
-    grade_colors = {"A": "bright_green", "B": "green", "C": "yellow", "D": "orange1", "F": "red"}
-    grade_color = grade_colors.get(grade.grade, "white")
-
-    # Create content
-    lines = []
-
-    # Big grade display
-    lines.append(
-        Text(f"   {grade.grade}   ", style=f"bold {grade_color} on black", justify="center")
-    )
-    lines.append(Text(f"{grade.score}/100", style="bold white", justify="center"))
-    lines.append(Text())
-    lines.append(Text(grade.summary, style="dim", justify="center"))
-
-    # Throughput calculation - use rendering time for accurate per-page speed
-    render_ms = stats.rendering_time_ms if stats.rendering_time_ms > 0 else stats.build_time_ms
-    if render_ms > 0 and stats.total_pages > 0:
-        pages_per_sec = (stats.total_pages / render_ms) * 1000
-        lines.append(Text())
-        lines.append(Text(f"📈 {pages_per_sec:.1f} pages/second", style="cyan", justify="center"))
-
-    # Per-page render distribution
-    if stats.render_p50_ms > 0:
-        lines.append(
-            Text(
-                f"P50 {stats.render_p50_ms:.0f}ms | P95 {stats.render_p95_ms:.0f}ms | Max {stats.render_max_ms:.0f}ms",
-                style="dim cyan",
-                justify="center",
-            )
-        )
-
-    # Memory per page
-    if stats.total_pages > 0 and stats.memory_rss_mb > 0:
-        mem_per_page = stats.memory_rss_mb / stats.total_pages
-        lines.append(Text(f"{mem_per_page:.2f} MB/page", style="dim", justify="center"))
-
-    # Regression vs previous build
-    if stats.regression_pct is not None and abs(stats.regression_pct) > 10:
-        sign = "+" if stats.regression_pct > 0 else ""
-        style = (
-            "bold red"
-            if stats.regression_pct > 25
-            else "yellow"
-            if stats.regression_pct > 0
-            else "green"
-        )
-        lines.append(Text())
-        lines.append(
-            Text(f"{sign}{stats.regression_pct:.0f}% vs last build", style=style, justify="center")
-        )
-
-    # Bottleneck detection
-    bottleneck = advisor.get_bottleneck()
-    if bottleneck:
-        lines.append(Text())
-        lines.append(Text(f"🎯 Bottleneck: {bottleneck}", style="yellow", justify="center"))
-
-    content = Group(*lines)
-
-    return Panel(
-        content,
-        title="[header]⚡ Performance Grade[/header]",
-        border_style="cyan",
-        padding=(1, 2),
-    )
+    _write()
 
 
-def create_suggestions_panel(advisor: PerformanceAdvisor) -> Panel | None:
-    """
-    Create smart suggestions panel.
+def _print_cache_stats(stats: BuildStats) -> None:
+    """Print cache statistics if available."""
+    has_any = False
 
-    Args:
-        advisor: Performance advisor with analysis
-
-    Returns:
-        Rich Panel with suggestions, or None if no suggestions
-
-    """
-    suggestions = advisor.get_top_suggestions(5)
-
-    if not suggestions:
-        return None
-
-    lines = []
-
-    for i, suggestion in enumerate(suggestions, 1):
-        # Priority emoji
-        if suggestion.priority.value == "high":
-            emoji = "🔥"
-            style = "red bold"
-        elif suggestion.priority.value == "medium":
-            emoji = "💡"
-            style = "yellow"
-        else:
-            emoji = "ℹ️"
-            style = "cyan"
-
-        # Title
-        lines.append(Text())
-        lines.append(Text(f"{emoji} {i}. {suggestion.title}", style=style))
-
-        # Description
-        lines.append(Text(f"   {suggestion.description}", style="dim"))
-
-        # Impact
-        lines.append(Text(f"   💫 {suggestion.impact}", style="green"))
-
-        # Action
-        lines.append(Text(f"   → {suggestion.action}", style="cyan"))
-
-        # Config example (if provided)
-        if suggestion.config_example:
-            lines.append(Text(f"     {suggestion.config_example}", style="dim italic"))
-
-    content = Group(*lines)
-
-    return Panel(
-        content,
-        title="[bold yellow]💡 Smart Suggestions[/bold yellow]",
-        border_style="yellow",
-        padding=(1, 2),
-    )
-
-
-def create_cache_stats_panel(stats: BuildStats) -> Panel | None:
-    """
-    Create cache statistics panel (if available).
-
-    Shows both page-level cache stats (incremental builds) and
-    block-level cache stats (Kida template introspection).
-
-    Args:
-        stats: Build statistics
-
-    Returns:
-        Rich Panel with cache stats, or None if not applicable
-
-    """
-    lines = []
-
-    # Render pipeline cache (parsed + rendered)
+    # Render pipeline cache
     parsed_hits = getattr(stats, "parsed_cache_hits", 0)
     rendered_hits = getattr(stats, "rendered_cache_hits", 0)
     parsed_misses = getattr(stats, "parsed_cache_misses", 0)
     pipeline_total = parsed_hits + rendered_hits + parsed_misses
-    has_pipeline_cache = pipeline_total > 0 and (parsed_hits > 0 or rendered_hits > 0)
 
-    if has_pipeline_cache:
-        lines.append(Text("📄 Parse/Render Cache", style="bold cyan"))
-        lines.append(Text(f"   Rendered (full skip): {rendered_hits:>4}", style="green"))
-        lines.append(Text(f"   Parsed (skip parse):  {parsed_hits:>4}", style="green"))
-        lines.append(Text(f"   Parsed (full parse):   {parsed_misses:>4}", style="yellow"))
-        lines.append(Text())
+    if pipeline_total > 0 and (parsed_hits > 0 or rendered_hits > 0):
+        if not has_any:
+            _write("  Cache Statistics:")
+            has_any = True
+        _write(f"    Rendered (full skip): {rendered_hits}")
+        _write(f"    Parsed (skip parse):  {parsed_hits}")
+        _write(f"    Parsed (full parse):  {parsed_misses}")
 
-    # Page-level cache stats (incremental builds)
+    # Page-level cache
     cache_hits = getattr(stats, "cache_hits", 0)
     cache_misses = getattr(stats, "cache_misses", 0)
     cache_total = cache_hits + cache_misses
 
-    has_page_cache = stats.incremental and cache_total > 0
-
-    if has_page_cache:
+    if stats.incremental and cache_total > 0:
+        if not has_any:
+            _write("  Cache Statistics:")
+            has_any = True
         hit_rate = (cache_hits / cache_total) * 100 if cache_total > 0 else 0
+        _write(f"    Page cache hit rate: {hit_rate:.1f}%")
+        _write(f"    Hits: {cache_hits}  Misses: {cache_misses}")
 
-        # Determine color based on hit rate
-        if hit_rate >= 80:
-            rate_color = "bright_green"
-            emoji = "✨"
-        elif hit_rate >= 60:
-            rate_color = "green"
-            emoji = "👍"
-        elif hit_rate >= 40:
-            rate_color = "yellow"
-            emoji = "📊"
-        else:
-            rate_color = "red"
-            emoji = "⚠️"
-
-        lines.append(Text("📄 Page Cache", style="bold cyan"))
-        lines.append(
-            Text(f"   {emoji} Hit Rate: ", style="cyan")
-            + Text(f"{hit_rate:.1f}%", style=f"bold {rate_color}")
-        )
-        lines.append(Text(f"   Hits:   {cache_hits:>4}", style="green"))
-        lines.append(Text(f"   Misses: {cache_misses:>4}", style="red"))
-
-        # Time savings estimate
         if hasattr(stats, "time_saved_ms") and stats.time_saved_ms > 0:
-            time_saved = stats.time_saved_ms / 1000
-            lines.append(Text(f"   ⚡ Time Saved: {time_saved:.2f}s", style="cyan"))
+            _write(f"    Time saved: {stats.time_saved_ms / 1000:.2f}s")
 
-    # Block-level cache stats (Kida template introspection)
+    # Block-level cache
     block_hits = getattr(stats, "block_cache_hits", 0)
     block_misses = getattr(stats, "block_cache_misses", 0)
     block_cached = getattr(stats, "block_cache_site_blocks", 0)
     block_total = block_hits + block_misses
 
-    has_block_cache = block_cached > 0 or block_total > 0
-
-    if has_block_cache:
-        if lines:
-            lines.append(Text())  # Separator
-
-        block_hit_rate = (block_hits / block_total) * 100 if block_total > 0 else 0
-
-        # Color based on block hit rate
-        if block_hit_rate >= 90:
-            block_color = "bright_green"
-            block_emoji = "🚀"
-        elif block_hit_rate >= 70:
-            block_color = "green"
-            block_emoji = "✨"
-        else:
-            block_color = "yellow"
-            block_emoji = "📊"
-
-        lines.append(Text("🧩 Block Cache (Kida)", style="bold magenta"))
-        lines.append(Text(f"   Blocks Cached: {block_cached}", style="magenta"))
+    if block_cached > 0 or block_total > 0:
+        if not has_any:
+            _write("  Cache Statistics:")
+            has_any = True
+        _write(f"    Block cache: {block_cached} blocks cached")
         if block_total > 0:
-            lines.append(
-                Text(f"   {block_emoji} Block reuse: ", style="magenta")
-                + Text(f"{block_hit_rate:.1f}%", style=f"bold {block_color}")
-            )
-            lines.append(Text(f"   Reused: {block_hits:>4}x", style="green"))
+            block_hit_rate = (block_hits / block_total) * 100 if block_total > 0 else 0
+            _write(f"    Block reuse: {block_hit_rate:.1f}% ({block_hits}x reused)")
 
-            # Time savings estimate for blocks
-            block_time_saved = getattr(stats, "block_cache_time_saved_ms", 0)
-            if block_time_saved > 0:
-                if block_time_saved < 1000:
-                    saved_str = f"{int(block_time_saved)}ms"
-                else:
-                    saved_str = f"{block_time_saved / 1000:.2f}s"
-                lines.append(Text(f"   ✨ Cache gain:  {saved_str}", style="cyan"))
-
-    # Cache effectiveness summary
+    # Effectiveness
     effectiveness = stats.cache_effectiveness_pct
     if effectiveness is not None:
-        if lines:
-            lines.append(Text())
-        lines.append(
-            Text("Cache saved ", style="cyan")
-            + Text(f"{effectiveness:.0f}%", style="bold green")
-            + Text(" of render time", style="cyan")
+        if not has_any:
+            _write("  Cache Statistics:")
+            has_any = True
+        _write(f"    Cache saved {effectiveness:.0f}% of render time")
+
+    if has_any:
+        _write()
+
+
+def _print_suggestions(advisor: PerformanceAdvisor) -> None:
+    """Print smart suggestions."""
+    suggestions = advisor.get_top_suggestions(5)
+    if not suggestions:
+        return
+
+    _write("  Suggestions:")
+
+    for i, suggestion in enumerate(suggestions, 1):
+        priority_marker = {"high": "!", "medium": "*", "low": "-"}.get(
+            suggestion.priority.value, "-"
         )
+        _write(f"    {priority_marker} {i}. {suggestion.title}")
+        _write(f"        {suggestion.description}")
+        _write(f"        Impact: {suggestion.impact}")
+        _write(f"        Action: {suggestion.action}")
+        if suggestion.config_example:
+            _write(f"        Config: {suggestion.config_example}")
 
-    # Return None if no cache data at all
-    if not lines:
-        return None
-
-    content = Group(*lines)
-
-    return Panel(
-        content,
-        title="[header]💾 Cache Statistics[/header]",
-        border_style="cyan",
-        padding=(1, 2),
-    )
-
-
-def create_content_stats_table(stats: BuildStats) -> Table:
-    """
-    Create content statistics table.
-
-    Args:
-        stats: Build statistics
-
-    Returns:
-        Rich Table with content stats
-
-    """
-    table = Table(
-        title="📊 Content Statistics",
-        show_header=False,
-        border_style="cyan",
-        title_style="bold cyan",
-    )
-
-    table.add_column("Metric", style="cyan")
-    table.add_column("Value", justify="right", style="bold white")
-    table.add_column("Details", style="dim")
-
-    # Pages
-    table.add_row(
-        "📄 Pages",
-        str(stats.total_pages),
-        f"{stats.regular_pages} regular + {stats.generated_pages} generated",
-    )
-
-    # Assets
-    table.add_row("📦 Assets", str(stats.total_assets), "")
-
-    # Sections
-    table.add_row("📁 Sections", str(stats.total_sections), "")
-
-    # Taxonomies
-    if stats.taxonomies_count > 0:
-        table.add_row("🏷️  Taxonomies", str(stats.taxonomies_count), "")
-
-    # Directives (if tracked)
-    if hasattr(stats, "total_directives") and stats.total_directives > 0:
-        # Get top 3 directive types
-        if hasattr(stats, "directives_by_type") and stats.directives_by_type:
-            top_types = sorted(stats.directives_by_type.items(), key=lambda x: x[1], reverse=True)[
-                :3
-            ]
-            type_summary = ", ".join([f"{t}({c})" for t, c in top_types])
-        else:
-            type_summary = ""
-
-        table.add_row("⚙️  Directives", str(stats.total_directives), type_summary)
-
-    # Build mode
-    mode_parts = []
-    if stats.incremental:
-        mode_parts.append("incremental")
-    if stats.parallel:
-        mode_parts.append("parallel")
-    if not mode_parts:
-        mode_parts.append("sequential")
-
-    table.add_row("🔧 Mode", ", ".join(mode_parts), "")
-
-    return table
-
-
-def display_build_summary(stats: BuildStats, environment: dict[str, Any] | None = None) -> None:
-    """
-    Display comprehensive build summary with rich formatting.
-
-    This is the main entry point for Phase 2 build summaries.
-    Shows timing breakdown, performance analysis, and smart suggestions.
-
-    Args:
-        stats: Build statistics
-        environment: Environment info (from detect_environment())
-
-    """
-    from bengal.analysis.performance.advisor import PerformanceAdvisor
-    from bengal.utils.observability.rich_console import get_console, should_use_rich
-
-    # Check if we should use rich output
-    if not should_use_rich():
-        # Fall back to simple display
-        from bengal.orchestration.stats import display_build_stats
-
-        display_build_stats(stats)
-        return
-
-    console = get_console()
-
-    # Skip if build was skipped
-    if stats.skipped:
-        console.print()
-        console.print("[info]No changes detected - build skipped![/info]")
-        console.print()
-        return
-
-    # Create performance advisor
-    advisor = PerformanceAdvisor(stats, environment)
-    advisor.analyze()
-
-    # Header (keep cat branding - it's identity, not decoration)
-    console.print()
-    console.print("    [bengal]ᓚᘏᗢ[/bengal]  [success]Build complete![/success]")
-    console.print()
-
-    # Main content
-    # Row 1: Performance grade + Content stats
-    console.print(create_performance_panel(stats, advisor))
-    console.print()
-    console.print(create_content_stats_table(stats))
-    console.print()
-
-    # Row 2: Timing breakdown
-    console.print(create_timing_breakdown_table(stats))
-    console.print()
-
-    # Row 3: Cache stats (if available)
-    cache_panel = create_cache_stats_panel(stats)
-    if cache_panel:
-        console.print(cache_panel)
-        console.print()
-
-    # Row 4: Suggestions (if any)
-    suggestions_panel = create_suggestions_panel(advisor)
-    if suggestions_panel:
-        console.print(suggestions_panel)
-        console.print()
-
-    # Row 5: Errors and warnings (if any)
-    if stats.has_errors or stats.warnings:
-        from bengal.errors import format_error_report
-
-        error_report = format_error_report(stats, verbose=True)
-        if error_report not in ("✅ No errors or warnings", "No errors or warnings"):
-            from rich.panel import Panel
-
-            console.print(
-                Panel(
-                    error_report,
-                    title="[red bold]Errors & Warnings[/red bold]",
-                    border_style="red" if stats.has_errors else "yellow",
-                    padding=(1, 2),
-                )
-            )
-            console.print()
-
-    # Footer: Output location
-    if hasattr(stats, "output_dir") and stats.output_dir:
-        console.print("[header]Output:[/header]")
-        console.print(f"   [cyan]↪[/cyan] [white bold]{stats.output_dir}[/white bold]")
-        console.print()
+    _write()
 
 
 def display_simple_summary(stats: BuildStats) -> None:
@@ -602,5 +297,4 @@ def display_simple_summary(stats: BuildStats) -> None:
     """
     from bengal.orchestration.stats import display_simple_build_stats
 
-    # Use existing simple display
     display_simple_build_stats(stats)

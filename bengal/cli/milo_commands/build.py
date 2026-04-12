@@ -308,7 +308,7 @@ def build(
                 display_simple_build_stats(stats, output_dir=str(site.output_dir))
             elif build_profile == BuildProfile.DEVELOPER:
                 from bengal.orchestration.summary import display_build_summary
-                from bengal.utils.observability.rich_console import detect_environment
+                from bengal.utils.observability.terminal import detect_environment
 
                 console_env = detect_environment()
                 display_build_summary(stats, environment=console_env)

@@ -1,13 +1,8 @@
 """
 Display functions for template errors.
 
-This module provides functions to display template errors in the terminal
-with syntax highlighting (via Rich if available) or plain text fallback.
-
 Functions:
     display_template_error: Main entry point for displaying errors
-    _display_template_error_rich: Rich-based display with syntax highlighting
-    _display_template_error_plain: Plain text fallback display
 
 Helper Functions:
     _generate_enhanced_suggestions: Context-aware suggestion generation
@@ -26,156 +21,8 @@ if TYPE_CHECKING:
 
 
 def display_template_error(error: TemplateRenderError, use_color: bool = True) -> None:
-    """
-    Display a rich template error in the terminal.
-
-    Args:
-        error: Rich error object
-        use_color: Whether to use terminal colors
-
-    """
-    # Try to use rich for enhanced display
-    try:
-        from bengal.utils.observability.rich_console import should_use_rich
-
-        if should_use_rich():
-            _display_template_error_rich(error)
-            return
-    except ImportError:
-        pass  # Fall back to plain text
-
-    # Fallback to plain text display
+    """Display a template error in the terminal."""
     _display_template_error_plain(error)
-
-
-def _display_template_error_rich(error: TemplateRenderError) -> None:
-    """Display template error with rich formatting."""
-    from rich.panel import Panel
-    from rich.syntax import Syntax
-
-    from bengal.utils.observability.rich_console import get_console
-
-    console = get_console()
-
-    # Error type names
-    error_type_names = {
-        "syntax": "Template Syntax Error",
-        "filter": "Unknown Filter",
-        "undefined": "Undefined Variable",
-        "runtime": "Template Runtime Error",
-        "callable": "None Is Not Callable",
-        "none_access": "None Is Not Iterable",
-        "other": "Template Error",
-    }
-
-    header = error_type_names.get(error.error_type, "Template Error")
-    ctx = error.template_context
-
-    # Build code context with syntax highlighting
-    if ctx.surrounding_lines:
-        # Extract code around error
-        code_lines = []
-
-        for _line_num, line_content in ctx.surrounding_lines:
-            code_lines.append(line_content)
-
-        code_text = "\n".join(code_lines)
-
-        # Create syntax-highlighted code
-        start_line = ctx.surrounding_lines[0][0] if ctx.surrounding_lines else 1
-
-        syntax = Syntax(
-            code_text,
-            "jinja2",
-            theme="monokai",
-            line_numbers=True,
-            start_line=start_line,
-            highlight_lines={ctx.line_number} if ctx.line_number else set(),
-            word_wrap=False,
-            background_color="default",
-        )
-
-        # Display in panel
-        panel_title = f"[red bold]{header}[/red bold] in [yellow]{ctx.template_name}[/yellow]"
-        if ctx.line_number:
-            panel_title += f":[yellow]{ctx.line_number}[/yellow]"
-
-        console.print()
-        console.print(Panel(syntax, title=panel_title, border_style="red", padding=(1, 2)))
-    else:
-        # No code context, just show header
-        console.print()
-        console.print(f"[red bold]⚠️  {header}[/red bold]")
-        console.print()
-        if ctx.template_path:
-            console.print(f"  [cyan]File:[/cyan] {ctx.template_path}")
-        else:
-            console.print(f"  [cyan]Template:[/cyan] {ctx.template_name}")
-        if ctx.line_number:
-            console.print(f"  [cyan]Line:[/cyan] {ctx.line_number}")
-
-    # Error message
-    console.print()
-    console.print(f"[red bold]Error:[/red bold] {error.message}")
-
-    # Generate enhanced suggestions (handles both TemplateRenderError and engine TemplateError)
-    suggestions = _generate_enhanced_suggestions(error)
-
-    if suggestions:
-        console.print()
-        console.print("[yellow bold]💡 Suggestions:[/yellow bold]")
-        console.print()
-        for i, suggestion in enumerate(suggestions, 1):
-            console.print(f"   [yellow]{i}.[/yellow] {suggestion}")
-
-    # Alternatives (for filter/variable errors)
-    available_alternatives = getattr(error, "available_alternatives", None) or []
-    if available_alternatives:
-        console.print()
-        console.print("[yellow bold]Did you mean:[/yellow bold]")
-        for alt in available_alternatives:
-            console.print(f"   • [cyan]{alt}[/cyan]")
-
-    # Inclusion chain
-    inclusion_chain = getattr(error, "inclusion_chain", None)
-    if inclusion_chain:
-        console.print()
-        console.print("[cyan bold]Template Chain:[/cyan bold]")
-        for line in str(inclusion_chain).split("\n"):
-            console.print(f"  {line}")
-
-    # Page source
-    page_source = getattr(error, "page_source", None)
-    if page_source:
-        console.print()
-        console.print(f"[cyan]Used by page:[/cyan] {page_source}")
-
-    # Template search paths (helpful for debugging template not found errors)
-    search_paths = getattr(error, "search_paths", None) or []
-    if search_paths:
-        console.print()
-        console.print("[cyan bold]🔍 Template Search Paths:[/cyan bold]")
-        for i, search_path in enumerate(search_paths, 1):
-            # Mark the path where template was found (if found)
-            found_marker = ""
-            if ctx.template_path and ctx.template_path.is_relative_to(search_path):
-                found_marker = " [green]← found here[/green]"
-            console.print(f"   {i}. [dim]{search_path}[/dim]{found_marker}")
-
-    # Documentation link
-    doc_links = {
-        "filter": "https://lbliii.github.io/bengal/docs/templates/filters",
-        "undefined": "https://lbliii.github.io/bengal/docs/templates/variables",
-        "syntax": "https://lbliii.github.io/bengal/docs/templates/syntax",
-        "callable": "https://lbliii.github.io/bengal/docs/templates/troubleshooting#none-not-callable",
-        "none_access": "https://lbliii.github.io/bengal/docs/templates/troubleshooting#none-not-iterable",
-    }
-
-    if error.error_type in doc_links:
-        console.print()
-        console.print(f"[dim]📚 Learn more: {doc_links[error.error_type]}[/dim]")
-
-    console.print()
 
 
 def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
@@ -193,7 +40,7 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
     if error.error_type == "callable":
         # This is a "NoneType is not callable" error
         suggestions.append(
-            "[red bold]A filter or function is None![/red bold] This means something "
+            "A filter or function is None! This means something "
             "expected to be callable wasn't registered properly."
         )
 
@@ -205,7 +52,7 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
             filter_matches = re.findall(r"\|\s*(\w+)", line)
             if filter_matches:
                 suggestions.append(
-                    f"Suspected filters: [cyan]{', '.join(filter_matches)}[/cyan] - "
+                    f"Suspected filters: {', '.join(filter_matches)} - "
                     f"verify these are registered in the template engine."
                 )
 
@@ -218,7 +65,7 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
             ]
             if func_matches:
                 suggestions.append(
-                    f"Suspected functions: [cyan]{', '.join(func_matches)}[/cyan] - "
+                    f"Suspected functions: {', '.join(func_matches)} - "
                     f"verify these are defined in template globals or context."
                 )
 
@@ -227,7 +74,7 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
             "a method is called on it, or a global function wasn't added to the engine."
         )
         suggestions.append(
-            "Debug tip: Add [cyan]{% if debug %}{{ element | pprint }}{% endif %}[/cyan] "
+            "Debug tip: Add {% if debug %}{{ element | pprint }}{% endif %} "
             "to inspect what's being passed to the template."
         )
         return suggestions
@@ -235,7 +82,7 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
     if error.error_type == "none_access":
         # This is "argument of type 'NoneType' is not a container or iterable"
         suggestions.append(
-            "[red bold]A variable is None![/red bold] This happens when using 'in' operator "
+            "A variable is None! This happens when using 'in' operator "
             "or iterating over a variable that doesn't exist or is None."
         )
 
@@ -248,8 +95,8 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
             if in_match:
                 var_name = in_match.group(1)
                 suggestions.append(
-                    f"Variable [cyan]{var_name}[/cyan] is likely None. "
-                    f"Add a guard: [green]{{% if {var_name} and x in {var_name} %}}[/green]"
+                    f"Variable {var_name} is likely None. "
+                    f"Add a guard: {{% if {var_name} and x in {var_name} %}}"
                 )
 
             # Look for for loops: for x in y
@@ -257,8 +104,8 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
             if for_match:
                 var_name = for_match.group(1)
                 suggestions.append(
-                    f"Variable [cyan]{var_name}[/cyan] is likely None. "
-                    f"Add a guard: [green]{{% if {var_name} %}}{{% for x in {var_name} %}}...{{% endif %}}[/green]"
+                    f"Variable {var_name} is likely None. "
+                    f"Add a guard: {{% if {var_name} %}}{{% for x in {var_name} %}}...{{% endif %}}"
                 )
 
         suggestions.append(
@@ -266,7 +113,7 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
             "or optional metadata that wasn't provided."
         )
         suggestions.append(
-            "Debug tip: Add [cyan]{{ var | pprint }}[/cyan] before the error line to see what's None."
+            "Debug tip: Add {{ var | pprint }} before the error line to see what's None."
         )
         return suggestions
 
@@ -277,18 +124,14 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
         if "'dict object' has no attribute" in error.message:
             # This is THE key pattern we just fixed!
             attr = _extract_dict_attribute(error.message)
-            suggestions.append(
-                "[red bold]Unsafe dict access detected![/red bold] Dict keys should use .get() method"
-            )
+            suggestions.append("Unsafe dict access detected! Dict keys should use .get() method")
             if attr:
                 suggestions.append(
-                    f"Replace [red]dict.{attr}[/red] with [green]dict.get('{attr}')[/green] or [green]dict.get('{attr}', 'default')[/green]"
+                    f"Replace dict.{attr} with dict.get('{attr}') or dict.get('{attr}', 'default')"
                 )
+            suggestions.append("Common locations: page.metadata, site.config, section.metadata")
             suggestions.append(
-                "Common locations: [cyan]page.metadata[/cyan], [cyan]site.config[/cyan], [cyan]section.metadata[/cyan]"
-            )
-            suggestions.append(
-                "[yellow]Note:[/yellow] This error only appears in strict mode (serve). Use [cyan]bengal build --strict[/cyan] to catch in builds."
+                "Note: This error only appears in strict mode (serve). Use bengal build --strict to catch in builds."
             )
             return suggestions  # Return early with specific guidance
 
@@ -305,49 +148,40 @@ def _generate_enhanced_suggestions(error: TemplateRenderError) -> list[str]:
             }
 
             if var_name.lower() in typo_map:
-                suggestions.append(
-                    f"Common typo: try [cyan]'{typo_map[var_name.lower()]}'[/cyan] instead"
-                )
+                suggestions.append(f"Common typo: try '{typo_map[var_name.lower()]}' instead")
 
             # Suggest safe access
-            suggestions.append(
-                f"Use safe access: [cyan]{{{{ {var_name} | default('fallback') }}}}[/cyan]"
-            )
+            suggestions.append(f"Use safe access: {{{{ {var_name} | default('fallback') }}}}")
 
             # Check if it looks like metadata access
             if "." in var_name:
                 base, attr = var_name.rsplit(".", 1)
-                suggestions.append(
-                    f"Or use dict access: [cyan]{{{{ {base}.get('{attr}', 'default') }}}}[/cyan]"
-                )
+                suggestions.append(f"Or use dict access: {{{{ {base}.get('{attr}', 'default') }}}}")
             else:
                 # Suggest adding to frontmatter
-                suggestions.append(f"Add [cyan]'{var_name}'[/cyan] to page frontmatter")
+                suggestions.append(f"Add '{var_name}' to page frontmatter")
 
     elif error.error_type == "filter":
         filter_name = _extract_filter_name(error.message)
 
         if filter_name:
             # Suggest checking documentation
-            suggestions.append(
-                "Check available filters in [cyan]bengal --help[/cyan] or documentation"
-            )
+            suggestions.append("Check available filters in bengal --help or documentation")
 
             # Common filter mistakes
             if "date" in filter_name.lower():
-                suggestions.append("For dates, use [cyan]{{ date | date('%Y-%m-%d') }}[/cyan]")
+                suggestions.append("For dates, use {{ date | date('%Y-%m-%d') }}")
 
     elif error.error_type == "syntax":
         if "unexpected" in error_str:
-            suggestions.append("Check for missing [cyan]%}[/cyan] or [cyan]}}[/cyan] tags")
+            suggestions.append("Check for missing %} or }} tags")
 
         if "expected token" in error_str:
             suggestions.append("Verify Jinja2 syntax - might be using unsupported features")
 
         if "endfor" in error_str or "endif" in error_str:
             suggestions.append(
-                "Every [cyan]{% for %}[/cyan] needs [cyan]{% endfor %}[/cyan], "
-                "every [cyan]{% if %}[/cyan] needs [cyan]{% endif %}[/cyan]"
+                "Every {% for %} needs {% endfor %}, every {% if %} needs {% endif %}"
             )
 
     return suggestions

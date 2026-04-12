@@ -15,12 +15,9 @@ Related:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from bengal.output.enums import MessageLevel
-
-if TYPE_CHECKING:
-    from rich.console import Console
 
 
 class DevServerOutputMixin:
@@ -30,16 +27,10 @@ class DevServerOutputMixin:
     All output is rendered through the server_dashboard.kida template.
 
     Required Attributes (from CLIOutput):
-        use_rich: Whether to use Rich console output
-        console: Rich Console instance for styled output
         should_show: Method to check message visibility based on level
         render_write: Method to render kida templates to stdout
 
     """
-
-    # These attributes are defined in CLIOutput
-    use_rich: bool
-    console: Console
 
     def should_show(self, level: MessageLevel) -> bool:
         """Check if message should be shown based on level and settings."""

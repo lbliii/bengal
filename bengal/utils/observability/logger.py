@@ -543,37 +543,18 @@ class BengalLogger:
         if not timings:
             return
 
-        try:
-            from bengal.utils.observability.rich_console import get_console
+        print("\n" + "=" * 60)
+        print("Build Phase Timings:")
+        print("=" * 60)
 
-            console = get_console()
+        total = sum(timings.values())
+        for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
+            percentage = (duration / total * 100) if total > 0 else 0
+            print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
 
-            console.print("\n" + "=" * 60)
-            console.print("Build Phase Timings:")
-            console.print("=" * 60)
-
-            total = sum(timings.values())
-            for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
-                percentage = (duration / total * 100) if total > 0 else 0
-                console.print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
-
-            console.print("-" * 60)
-            console.print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
-            console.print("=" * 60)
-        except ImportError:
-            # Fallback to plain print
-            print("\n" + "=" * 60)
-            print("Build Phase Timings:")
-            print("=" * 60)
-
-            total = sum(timings.values())
-            for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
-                percentage = (duration / total * 100) if total > 0 else 0
-                print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
-
-            print("-" * 60)
-            console.print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
-            print("=" * 60)
+        print("-" * 60)
+        print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
+        print("=" * 60)
 
     def close(self) -> None:
         """Close log file handle."""
@@ -889,68 +870,30 @@ def print_all_summaries() -> None:
     if not timings:
         return
 
-    try:
-        from bengal.utils.observability.rich_console import get_console
+    print("\n" + "=" * 70)
+    print("Build Phase Performance:")
+    print("=" * 70)
 
-        console = get_console()
+    total_time = sum(timings.values())
+    for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
+        duration = timings[phase]
+        percentage = (duration / total_time * 100) if total_time > 0 else 0
 
-        console.print("\n" + "=" * 70)
-        console.print("[bold cyan]Build Phase Performance:[/bold cyan]")
-        console.print("=" * 70)
+        line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
 
-        # Show timing + memory
-        total_time = sum(timings.values())
-        for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
-            duration = timings[phase]
-            percentage = (duration / total_time * 100) if total_time > 0 else 0
+        if phase in memory_deltas:
+            mem_delta = memory_deltas[phase]
+            line += f"  Δ{mem_delta:+7.1f}MB"
+        if phase in peak_memories:
+            peak = peak_memories[phase]
+            line += f"  peak:{peak:7.1f}MB"
 
-            line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
+        print(line)
 
-            # Add memory if available
-            if phase in memory_deltas:
-                mem_delta = memory_deltas[phase]
-                line += f"  Δ{mem_delta:+7.1f}MB"
-            if phase in peak_memories:
-                peak = peak_memories[phase]
-                line += f"  peak:{peak:7.1f}MB"
-
-            console.print(line)
-
-        console.print("-" * 70)
-        total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
-        if memory_deltas:
-            total_mem = sum(memory_deltas.values())
-            total_line += f"  Δ{total_mem:+7.1f}MB"
-        console.print(total_line)
-        console.print("=" * 70)
-    except ImportError:
-        # Fallback to plain print
-        print("\n" + "=" * 70)
-        print("Build Phase Performance:")
-        print("=" * 70)
-
-        # Show timing + memory
-        total_time = sum(timings.values())
-        for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
-            duration = timings[phase]
-            percentage = (duration / total_time * 100) if total_time > 0 else 0
-
-            line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
-
-            # Add memory if available
-            if phase in memory_deltas:
-                mem_delta = memory_deltas[phase]
-                line += f"  Δ{mem_delta:+7.1f}MB"
-            if phase in peak_memories:
-                peak = peak_memories[phase]
-                line += f"  peak:{peak:7.1f}MB"
-
-            print(line)
-
-        print("-" * 70)
-        total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
-        if memory_deltas:
-            total_mem = sum(memory_deltas.values())
-            total_line += f"  Δ{total_mem:+7.1f}MB"
-        print(total_line)
-        print("=" * 70)
+    print("-" * 70)
+    total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
+    if memory_deltas:
+        total_mem = sum(memory_deltas.values())
+        total_line += f"  Δ{total_mem:+7.1f}MB"
+    print(total_line)
+    print("=" * 70)

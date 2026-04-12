@@ -57,7 +57,7 @@ from typing import TYPE_CHECKING
 
 from bengal.errors.utils import get_error_message
 from bengal.output.icons import get_icon_set
-from bengal.utils.observability.rich_console import should_use_emoji
+from bengal.utils.observability.terminal import should_use_emoji
 
 if TYPE_CHECKING:
     from bengal.orchestration.stats.models import BuildStats

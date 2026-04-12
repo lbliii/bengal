@@ -128,15 +128,7 @@ class CLIOutput(DevServerOutputMixin):
 
     @property
     def console(self):
-        """Lazy Rich Console — DEPRECATED, will be removed with Click CLI.
-
-        All milo_commands now use cli.render_write() / cli.info() instead.
-        Only old Click commands (bengal/cli/commands/) still call this.
-        """
-        if self._console is None:
-            from bengal.utils.observability.rich_console import get_console
-
-            self._console = get_console()
+        """Deprecated — returns None. Use cli.render_write() or cli.info() instead."""
         return self._console
 
     @console.setter

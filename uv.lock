@@ -226,7 +226,7 @@ requires-dist = [
     { name = "jsmin", specifier = ">=3.0.1" },
     { name = "kida-templates", specifier = ">=0.4.0" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
-    { name = "milo-cli", editable = "../../milo-cli/yeosu" },
+    { name = "milo-cli", git = "https://github.com/lbliii/milo-cli.git?rev=d929be6cfac3152ee3549604b52e0aec66e396c8" },
     { name = "packaging", specifier = ">=23.0" },
     { name = "patitas", specifier = ">=0.3.5" },
     { name = "pillow", specifier = ">=10.0.0" },
@@ -659,32 +659,9 @@ wheels = [
 [[package]]
 name = "milo-cli"
 version = "0.2.1"
-source = { editable = "../../milo-cli/yeosu" }
+source = { git = "https://github.com/lbliii/milo-cli.git?rev=d929be6cfac3152ee3549604b52e0aec66e396c8#d929be6cfac3152ee3549604b52e0aec66e396c8" }
 dependencies = [
     { name = "kida-templates" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "bengal", marker = "extra == 'docs'", specifier = ">=0.2.6" },
-    { name = "kida-templates", specifier = ">=0.4.0" },
-    { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0" },
-    { name = "watchfiles", marker = "extra == 'watch'", specifier = ">=1.0" },
-]
-provides-extras = ["docs", "yaml", "watch"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "hypothesis", specifier = ">=6.100.0" },
-    { name = "pre-commit", specifier = ">=4.0.0" },
-    { name = "pytest", specifier = ">=8.0" },
-    { name = "pytest-benchmark", specifier = ">=4.0.0" },
-    { name = "pytest-cov", specifier = ">=4.0" },
-    { name = "pytest-timeout", specifier = ">=2.3.0" },
-    { name = "pytest-xdist", specifier = ">=3.3.0" },
-    { name = "ruff", specifier = ">=0.15.1" },
-    { name = "towncrier", specifier = ">=24.0" },
-    { name = "ty", specifier = ">=0.0.11" },
 ]
 
 [[package]]

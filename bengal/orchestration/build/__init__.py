@@ -234,9 +234,9 @@ class BuildOrchestrator:
         # Re-enabled with improved throttled updates in WaveScheduler (RFC: rfc-bengal-snapshot-engine)
         # Shows real-time progress during the rendering phase which can take 10+ seconds
         from bengal.utils.observability.cli_progress import LiveProgressManager
-        from bengal.utils.observability.rich_console import should_use_rich
+        from bengal.utils.observability.terminal import is_interactive_terminal
 
-        use_live_progress = should_use_rich() and not quiet
+        use_live_progress = is_interactive_terminal() and not quiet
         progress_manager = None
         reporter = None
 

@@ -93,7 +93,7 @@ Repository = "https://github.com/lbliii/bengal"
 "Bug Tracker" = "https://github.com/lbliii/bengal/issues"
 
 [tool.uv.sources]
-milo-cli = { path = "/Users/llane/conductor/workspaces/milo-cli/yeosu", editable = true }
+milo-cli = { git = "https://github.com/lbliii/milo-cli.git", rev = "d929be6cfac3152ee3549604b52e0aec66e396c8" }
 
 [tool.setuptools.packages.find]
 where = ["."]
