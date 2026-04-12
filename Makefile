@@ -51,11 +51,11 @@ install:
 
 build:
 	@echo "Building site..."
-	uv run bengal site build site
+	uv run bengal build site
 
 serve:
 	@echo "Starting development server..."
-	uv run bengal site serve site
+	uv run bengal serve site
 
 deploy-test:
 	@echo "Building with production config (simulates GitHub Pages)..."

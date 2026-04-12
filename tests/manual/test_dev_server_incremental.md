@@ -8,7 +8,7 @@
 ### ✅ Test 1: Single File Change
 ```bash
 cd examples/showcase
-bengal site serve
+bengal serve
 
 # In another terminal:
 echo "# Test change $(date +%s)" >> content/index.md

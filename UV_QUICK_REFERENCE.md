@@ -82,11 +82,11 @@ make build                         # Build the documentation site
 make serve                         # Start dev server
 
 # Or directly:
-uv run bengal site build site
-uv run bengal site serve site
+uv run bengal build site
+uv run bengal serve site
 
 # Run any bengal command:
-make run ARGS="site build site"
+make run ARGS="build site"
 ```
 
 ## Clean Start

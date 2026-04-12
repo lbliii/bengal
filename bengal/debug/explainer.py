@@ -144,8 +144,8 @@ class PageExplainer:
             raise BengalContentError(
                 f"Page not found: {page_path}\n"
                 f"Searched in {len(self.site.pages)} pages\n"
-                f"Tip: Run 'bengal site build' first to discover content",
-                suggestion="Run 'bengal site build' first to discover content, or check the page path",
+                f"Tip: Run 'bengal build' first to discover content",
+                suggestion="Run 'bengal build' first to discover content, or check the page path",
                 code=ErrorCode.N004,
             )
 

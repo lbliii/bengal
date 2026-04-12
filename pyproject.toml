@@ -384,11 +384,11 @@ showcontent = true
 
 [tool.poe.tasks]
 # Development Server
-serve = { cmd = "bengal site serve site", help = "Start development server for site/" }
+serve = { cmd = "bengal serve site", help = "Start development server for site/" }
 dev = { cmd = "bengal serve", help = "Start dev server (auto-detects site)" }
 
 # Building
-build = { cmd = "bengal site build site", help = "Build the documentation site" }
+build = { cmd = "bengal build site", help = "Build the documentation site" }
 build-prod = { cmd = "bengal build -e production", help = "Build with production config", cwd = "site" }
 
 # Testing
