@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING
 
+from bengal.assets.manifest import AssetManifest, inspect_asset_outputs
 from bengal.cache.paths import BengalPaths
 
 if TYPE_CHECKING:
@@ -73,6 +74,26 @@ def test_asset_orchestrator_runs_pipeline_when_enabled(monkeypatch, tmp_path: Pa
 
     # Assert: compiled file remains (no exceptions) and output dir created lazily later
     assert compiled_file.exists()
+
+
+def test_asset_orchestrator_writes_empty_manifest_when_no_assets(tmp_path: Path):
+    """Sites with no processed assets still get an empty asset manifest."""
+    from bengal.orchestration.asset import AssetOrchestrator
+
+    site = DummySite(tmp_path, config={})
+    orchestrator = AssetOrchestrator(site)
+
+    orchestrator.process([])
+
+    manifest_path = tmp_path / "public" / "asset-manifest.json"
+    manifest = AssetManifest.load(manifest_path)
+
+    assert manifest is not None
+    assert manifest.entries == {}
+
+    integrity = inspect_asset_outputs(tmp_path / "public")
+    assert integrity.is_complete is True
+    assert integrity.total_entries == 0
 
 
 def test_cli_build_flag_overrides_pipeline(tmp_path: Path, monkeypatch):

@@ -309,3 +309,76 @@ class AssetManifest:
             )
 
         return manifest
+
+
+@dataclass(frozen=True, slots=True)
+class AssetOutputIntegrity:
+    """
+    Integrity summary for files referenced by ``asset-manifest.json``.
+
+    Used by incremental builds and the dev server to distinguish a complete
+    cached asset tree from a partially missing one.
+    """
+
+    output_dir_exists: bool
+    manifest_present: bool
+    total_entries: int
+    missing_count: int
+    missing_outputs: tuple[str, ...] = ()
+
+    @property
+    def is_complete(self) -> bool:
+        """Whether the output directory has a manifest and all referenced files."""
+        return self.output_dir_exists and self.manifest_present and self.missing_count == 0
+
+
+def inspect_asset_outputs(output_dir: Path, *, sample_limit: int = 5) -> AssetOutputIntegrity:
+    """
+    Inspect asset output completeness using ``asset-manifest.json``.
+
+    Args:
+        output_dir: Site output directory containing ``asset-manifest.json``.
+        sample_limit: Max missing output paths to retain for logging/debugging.
+
+    Returns:
+        ``AssetOutputIntegrity`` describing whether the manifest exists and whether
+        every file it references is present in the output tree.
+    """
+    if not output_dir.exists():
+        return AssetOutputIntegrity(
+            output_dir_exists=False,
+            manifest_present=False,
+            total_entries=0,
+            missing_count=0,
+        )
+
+    manifest = AssetManifest.load(output_dir / "asset-manifest.json")
+    if manifest is None:
+        return AssetOutputIntegrity(
+            output_dir_exists=True,
+            manifest_present=False,
+            total_entries=0,
+            missing_count=0,
+        )
+
+    missing_outputs: list[str] = []
+    missing_count = 0
+    for entry in manifest.entries.values():
+        output_path = output_dir / entry.output_path
+        try:
+            exists = output_path.exists()
+        except OSError:
+            exists = False
+        if exists:
+            continue
+        missing_count += 1
+        if len(missing_outputs) < sample_limit:
+            missing_outputs.append(entry.output_path)
+
+    return AssetOutputIntegrity(
+        output_dir_exists=True,
+        manifest_present=True,
+        total_entries=len(manifest.entries),
+        missing_count=missing_count,
+        missing_outputs=tuple(missing_outputs),
+    )

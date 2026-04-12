@@ -35,8 +35,8 @@ from bengal.core.theme import Theme, resolve_theme_chain
 if theme.has_feature('navigation.toc'):
     enable_toc()
 
-    chain = resolve_theme_chain('docs', site.root_path)
-# Returns: ['docs', 'default'] if docs extends default
+    chain = resolve_theme_chain(site.root_path, "docs")
+# Returns: ['docs'] for template lookup when docs extends default
 
 Related Packages:
 bengal.rendering.template_engine: Uses theme chains for template loading

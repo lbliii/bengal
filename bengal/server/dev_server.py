@@ -70,6 +70,7 @@ from pathlib import Path
 from typing import Any
 from urllib.request import Request, urlopen
 
+from bengal.assets.manifest import inspect_asset_outputs
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
@@ -420,14 +421,37 @@ class DevServer:
 
         # Check for index.html as a proxy for "has content"
         index_file = output_dir / "index.html"
-        if index_file.exists():
-            return True
-
-        # Also check for any HTML files
         try:
-            return any(output_dir.rglob("*.html"))
+            has_html = index_file.exists() or any(output_dir.rglob("*.html"))
         except Exception:
             return False
+
+        if not has_html:
+            logger.debug(
+                "cached_output_rejected",
+                reason="no_html_output",
+                output_dir=str(output_dir),
+            )
+            return False
+
+        asset_integrity = inspect_asset_outputs(output_dir)
+        if not asset_integrity.is_complete:
+            logger.debug(
+                "cached_output_rejected",
+                reason=(
+                    "no_asset_manifest"
+                    if not asset_integrity.manifest_present
+                    else "asset_output_incomplete"
+                ),
+                output_dir=str(output_dir),
+                manifest_present=asset_integrity.manifest_present,
+                manifest_entries=asset_integrity.total_entries,
+                missing_outputs=asset_integrity.missing_count,
+                missing_output_samples=list(asset_integrity.missing_outputs),
+            )
+            return False
+
+        return True
 
     def _run_validation_build(self, profile: Any, port: int) -> None:
         """

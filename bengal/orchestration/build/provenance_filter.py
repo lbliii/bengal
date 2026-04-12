@@ -23,6 +23,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from bengal.assets.manifest import inspect_asset_outputs
 from bengal.build.contracts.keys import content_key
 from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
 from bengal.build.provenance.filter import ProvenanceFilterResult
@@ -452,14 +453,9 @@ def phase_incremental_filter_provenance(
         # We know the answer (build everything). Provenance will be computed during
         # record_build after rendering - no need for the 20+ second filter pass.
         output_dir = site.output_dir
-        output_assets_dir = output_dir / "assets"
         output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
-        css_dir = output_assets_dir / "css"
-        output_assets_missing = (
-            not output_assets_dir.exists()
-            or not css_dir.exists()
-            or not any(css_dir.glob("style*.css"))
-        )
+        asset_integrity = inspect_asset_outputs(output_dir)
+        output_assets_missing = not asset_integrity.is_complete
         if (output_html_missing or output_assets_missing) and pages_list:
             result = provenance_filter.filter(
                 pages=pages_list,
@@ -763,19 +759,8 @@ def phase_incremental_filter_provenance(
 
         # Check if output directory is missing
         output_dir = site.output_dir
-        output_assets_dir = output_dir / "assets"
-
         output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
-
-        # Check for CSS entry points instead of arbitrary file count
-        # CSS entry points (style.css or fingerprinted style.*.css) are critical assets
-        css_dir = output_assets_dir / "css"
-        css_entry_missing = (
-            not output_assets_dir.exists()
-            or not css_dir.exists()
-            or not any(css_dir.glob("style*.css"))
-        )
-        output_assets_missing = css_entry_missing
+        output_assets_missing = not asset_integrity.is_complete
 
         if (output_html_missing or output_assets_missing) and site.pages:
             # Output was cleaned but cache is warm - force full rebuild
@@ -800,6 +785,10 @@ def phase_incremental_filter_provenance(
                 pages_count=len(result.pages_to_build),
                 html_missing=output_html_missing,
                 assets_missing=output_assets_missing,
+                asset_manifest_present=asset_integrity.manifest_present,
+                asset_manifest_entries=asset_integrity.total_entries,
+                missing_asset_outputs=asset_integrity.missing_count,
+                missing_asset_output_samples=list(asset_integrity.missing_outputs),
             )
 
         # If specific outputs are missing, rebuild those pages even if provenance is fresh.

@@ -485,6 +485,65 @@ title: Home
         # Pages should be rebuilt (the key indicator)
         assert len(result.pages_to_build) > 0, "Pages should be rebuilt when output is incomplete"
 
+    def test_detects_missing_manifest_outputs(self, site_with_cache: Path) -> None:
+        """
+        Missing files referenced by asset-manifest.json should trigger rebuild.
+
+        Regression test for partial asset trees where index.html and style.css exist,
+        but other manifest-backed assets were lost from the output directory.
+        """
+        from bengal.assets.manifest import AssetManifest
+        from bengal.core.site import Site
+        from bengal.orchestration.build import BuildOrchestrator
+        from bengal.orchestration.build.provenance_filter import phase_incremental_filter_provenance
+        from bengal.output import CLIOutput
+
+        output_dir = site_with_cache / "public"
+        assets_css_dir = output_dir / "assets" / "css"
+        assets_css_dir.mkdir(parents=True)
+        (output_dir / "index.html").write_text("<html></html>")
+        (assets_css_dir / "style.css").write_text("body {}")
+        (output_dir / "graph").mkdir()
+        (output_dir / "graph" / "index.html").write_text("<html></html>")
+        (output_dir / "search").mkdir()
+        (output_dir / "search" / "index.html").write_text("<html></html>")
+
+        manifest = AssetManifest()
+        manifest.set_entry(
+            logical_path="css/style.css",
+            output_path="assets/css/style.css",
+            fingerprint=None,
+            size_bytes=None,
+            updated_at=None,
+        )
+        manifest.set_entry(
+            logical_path="js/main.js",
+            output_path="assets/js/main.js",
+            fingerprint=None,
+            size_bytes=None,
+            updated_at=None,
+        )
+        manifest.write(output_dir / "asset-manifest.json")
+
+        site = Site.from_config(site_with_cache)
+        orchestrator = BuildOrchestrator(site)
+        orchestrator.content.discover_content()
+        orchestrator.content.discover_assets()
+
+        cache = orchestrator.incremental.initialize(enabled=True)
+
+        result = phase_incremental_filter_provenance(
+            orchestrator=orchestrator,
+            cli=CLIOutput(),
+            incremental=True,
+            verbose=False,
+            cache=cache,
+            build_start=time.time(),
+        )
+
+        assert result is not None, "Should rebuild when manifest-backed asset outputs are missing"
+        assert len(result.pages_to_build) > 0, "Pages should be rebuilt when output is incomplete"
+
 
 class TestAutodocOutputMismatch:
     """

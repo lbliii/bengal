@@ -13,6 +13,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from bengal.assets.manifest import AssetManifest
 from bengal.server.dev_server import DevServer
 
 
@@ -122,3 +123,24 @@ class TestDevServerServeFirstWatcherOrder:
             assert validation_called, "Validation should have run"
             mock_watcher.start.assert_called_once()
             mock_build_trigger.seed_content_hash_cache.assert_called_once()
+
+
+class TestDevServerCachedOutputIntegrity:
+    """Tests that serve-first rejects incomplete cached asset trees."""
+
+    @pytest.mark.bengal(testroot="test-basic")
+    def test_rejects_cached_output_with_missing_manifest_output(self, site, build_site) -> None:
+        """Serve-first should reject cache when manifest outputs are missing."""
+        build_site(incremental=False)
+
+        manifest = AssetManifest.load(site.output_dir / "asset-manifest.json")
+        assert manifest is not None, "Build should create an asset manifest"
+        assert manifest.entries, "Build should create an asset manifest"
+
+        missing_output = next(iter(manifest.entries.values())).output_path
+        missing_path = site.output_dir / missing_output
+        assert missing_path.exists(), f"Expected manifest output to exist: {missing_output}"
+        missing_path.unlink()
+
+        server = DevServer(site, watch=False, auto_port=False)
+        assert server._has_cached_output() is False

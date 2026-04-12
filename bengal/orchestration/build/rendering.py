@@ -28,6 +28,7 @@ import json
 import time
 from typing import TYPE_CHECKING, Any
 
+from bengal.assets.manifest import inspect_asset_outputs
 from bengal.rendering.pipeline.profiler import RenderProfiler
 from bengal.rendering.pipeline.profiler import is_enabled as _profiling_enabled
 
@@ -35,6 +36,7 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
     from pathlib import Path
 
+    from bengal.assets.manifest import AssetOutputIntegrity
     from bengal.core.asset import Asset
     from bengal.core.output import OutputCollector
     from bengal.orchestration.build import BuildOrchestrator
@@ -104,34 +106,20 @@ def _get_top_bottleneck(total_render_ms: float) -> str | None:
     return f"{display_name} {pct:.0f}%"
 
 
-def _is_css_output_missing(orchestrator: BuildOrchestrator) -> bool:
+def _get_asset_output_integrity(orchestrator: BuildOrchestrator) -> AssetOutputIntegrity:
     """
-    Check if CSS entry points are missing from output.
+    Inspect whether the current asset output tree is complete.
 
-    Used to detect when CSS needs to be re-processed during incremental builds,
-    even if no assets have explicitly changed. This handles the case where output
-    was cleaned or CSS bundling was interrupted.
+    Uses ``asset-manifest.json`` as the source of truth so partial asset trees are
+    detected even when ``style.css`` happens to still exist.
 
     Args:
         orchestrator: Build orchestrator instance with site configuration
 
     Returns:
-        True if CSS entry points are missing and need processing
-
+        ``AssetOutputIntegrity`` result for the current output directory.
     """
-    output_assets = orchestrator.site.output_dir / "assets"
-    if not output_assets.exists():
-        return True
-
-    # Check for CSS entry points (style.css or fingerprinted style.*.css)
-    css_dir = output_assets / "css"
-    if not css_dir.exists():
-        return True
-
-    # Look for style.css or style.{hash}.css
-    # Fingerprinted CSS files have pattern: style.{8-char-hash}.css
-    style_files = list(css_dir.glob("style*.css"))
-    return len(style_files) == 0
+    return inspect_asset_outputs(orchestrator.site.output_dir)
 
 
 def _optimize_css(
@@ -298,15 +286,28 @@ def phase_assets(
     with orchestrator.logger.phase("assets", asset_count=len(assets_to_process), parallel=parallel):
         assets_start = time.time()
 
-        # Safety net: On incremental builds, if no assets to process, verify CSS exists
-        # This handles race conditions where output is corrupted after provenance filtering
-        # site.assets is the source of truth (includes theme assets if discovery succeeded)
-        if incremental and not assets_to_process and _is_css_output_missing(orchestrator):
+        # Safety net: If incremental mode sees an incomplete output tree, reprocess all
+        # discovered assets. site.assets is the source of truth for what should exist.
+        asset_integrity = _get_asset_output_integrity(orchestrator) if incremental else None
+        if (
+            incremental
+            and asset_integrity is not None
+            and not asset_integrity.is_complete
+            and len(assets_to_process) < len(orchestrator.site.assets)
+        ):
             assets_to_process = list(orchestrator.site.assets)
             orchestrator.logger.info(
-                "css_output_missing_forcing_full_asset_reprocess",
-                reason="safety_net_output_corruption",
+                "asset_output_incomplete_forcing_full_asset_reprocess",
+                reason=(
+                    "no_asset_manifest"
+                    if not asset_integrity.manifest_present
+                    else "missing_manifest_outputs"
+                ),
                 asset_count=len(assets_to_process),
+                manifest_present=asset_integrity.manifest_present,
+                manifest_entries=asset_integrity.total_entries,
+                missing_outputs=asset_integrity.missing_count,
+                missing_output_samples=list(asset_integrity.missing_outputs),
             )
 
         # CSS Optimization: Generate minimal style.css based on content types and features
