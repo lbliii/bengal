@@ -239,11 +239,10 @@ class TestExplainJson:
 
     def test_explain_json_structure(self, minimal_site: Path):
         """Test that JSON output function produces correct structure."""
-        from io import StringIO
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
-        from bengal.cli.commands.build import _print_explain_json
         from bengal.cli.helpers import load_site_from_cli
+        from bengal.cli.milo_commands.build import _print_explain_json
         from bengal.orchestration.build.options import BuildOptions
         from bengal.utils.observability.profile import BuildProfile
 
@@ -257,13 +256,19 @@ class TestExplainJson:
         )
         stats = site.build(options=options)
 
-        # Capture print output directly
-        output = StringIO()
-        with patch("builtins.print", lambda x: output.write(x)):
+        # Capture render_write call via mock CLI
+        mock_cli = MagicMock()
+        with patch("bengal.cli.utils.get_cli_output", return_value=mock_cli):
             _print_explain_json(stats, dry_run=False)
 
-        # Should be valid JSON
-        json_str = output.getvalue()
+        # Extract the JSON data passed to render_write
+        mock_cli.render_write.assert_called_once()
+        call_kwargs = mock_cli.render_write.call_args
+        json_str = (
+            call_kwargs[1].get("data") or call_kwargs[0][1]
+            if len(call_kwargs[0]) > 1
+            else call_kwargs[1]["data"]
+        )
         data = json.loads(json_str)
         assert "pages_to_build" in data
         assert "pages_skipped" in data
@@ -273,11 +278,10 @@ class TestExplainJson:
 
     def test_explain_json_includes_reason_summary(self, minimal_site: Path):
         """JSON output should include reason_summary counts."""
-        from io import StringIO
-        from unittest.mock import patch
+        from unittest.mock import MagicMock, patch
 
-        from bengal.cli.commands.build import _print_explain_json
         from bengal.cli.helpers import load_site_from_cli
+        from bengal.cli.milo_commands.build import _print_explain_json
         from bengal.orchestration.build.options import BuildOptions
         from bengal.utils.observability.profile import BuildProfile
 
@@ -291,12 +295,18 @@ class TestExplainJson:
         )
         stats = site.build(options=options)
 
-        # Capture print output directly
-        output = StringIO()
-        with patch("builtins.print", lambda x: output.write(x)):
+        # Capture render_write call via mock CLI
+        mock_cli = MagicMock()
+        with patch("bengal.cli.utils.get_cli_output", return_value=mock_cli):
             _print_explain_json(stats, dry_run=False)
 
-        data = json.loads(output.getvalue())
+        call_kwargs = mock_cli.render_write.call_args
+        json_str = (
+            call_kwargs[1].get("data") or call_kwargs[0][1]
+            if len(call_kwargs[0]) > 1
+            else call_kwargs[1]["data"]
+        )
+        data = json.loads(json_str)
         assert "reason_summary" in data
         # First build with no cache produces content_changed reasons
         assert (

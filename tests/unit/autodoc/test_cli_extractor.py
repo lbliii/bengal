@@ -371,17 +371,14 @@ class TestLazyLoadedGroups:
         assert "bar" in names
 
     def test_bengal_cli_extracts_subcommands(self):
-        """Bengal CLI (lazy-loaded) yields subcommands when extracted."""
-        from bengal.cli import main
-
+        """Click CLI extraction from a sample group."""
+        # Bengal CLI is now milo-based, not Click. Test extraction of sample_cli instead.
         extractor = CLIExtractor()
-        elements = extractor.extract(main)
+        elements = extractor.extract(sample_cli)
 
         root = elements[0]
         assert root.element_type == "command-group"
-        assert len(root.children) >= 5, "Bengal CLI must have multiple top-level commands"
-        names = {c.name for c in root.children}
-        assert "build" in names or "serve" in names, "Core commands must be present"
+        assert len(root.children) >= 1, "Sample CLI must have subcommands"
 
 
 class TestNestedCommandGroups:

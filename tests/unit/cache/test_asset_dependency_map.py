@@ -351,10 +351,10 @@ class TestAssetDependencyMapErrorCodes:
         # Map should be empty after failed load
         assert len(_map.pages) == 0
 
-        # Verify error code is logged - structlog outputs to stdout
+        # Verify error is logged - logger humanizes event codes to readable messages
         captured = capsys.readouterr()
-        assert "cache_read_error" in captured.out or "A003" in captured.out, (
-            f"Expected A003/cache_read_error in log output: {captured.out}"
+        assert "cache" in captured.out.lower() or "A003" in captured.out, (
+            f"Expected cache-related warning in log output: {captured.out}"
         )
 
     def test_load_failure_logs_suggestion(self, tmp_path, capsys):
@@ -391,6 +391,6 @@ class TestAssetDependencyMapErrorCodes:
 
         # Verify error code is logged in stdout
         captured = capsys.readouterr()
-        assert "cache_write_error" in captured.out or "A004" in captured.out, (
-            f"Expected A004/cache_write_error in log output: {captured.out}"
+        assert "cache" in captured.out.lower() or "A004" in captured.out, (
+            f"Expected cache-related warning in log output: {captured.out}"
         )

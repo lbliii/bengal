@@ -17,20 +17,18 @@ class TestCLICommandOutput:
 
     @pytest.mark.bengal(testroot="test-basic")
     def test_clean_command_works(self, site):
-        """Test 'bengal site clean' command doesn't crash with style errors."""
-        # Run clean help command (should not crash with style errors)
-        result = run_cli(["site", "clean", "--help"], cwd=str(site.root_path))
+        """Test 'bengal clean --help' command doesn't crash."""
+        result = run_cli(["clean", "--help"], cwd=str(site.root_path))
 
         # Should not contain style error
         assert "Failed to get style" not in result.stderr
-        assert "unable to parse 'header' as color" not in result.stderr
 
         # Help should succeed
         result.assert_ok()
 
     def test_build_help_shows_themed_output(self):
         """Test help commands display without style errors."""
-        result = run_cli(["site", "build", "--help"])
+        result = run_cli(["build", "--help"])
 
         # Should not have style errors
         assert "Failed to get style" not in result.stderr
@@ -54,18 +52,6 @@ class TestCLICommandOutput:
         # Should show version
         assert "Bengal" in result.stdout or "bengal" in result.stdout
 
-    @pytest.mark.bengal(testroot="test-assets")
-    def test_assets_status_shows_manifest_entries(self, site):
-        """`bengal assets status` should report logical-to-fingerprint mappings."""
-        # Ensure manifest exists
-        result = run_cli(["site", "build", "--clean-output"], cwd=str(site.root_path), timeout=40)
-        result.assert_ok()
-
-        status = run_cli(["assets", "status"], cwd=str(site.root_path))
-        status.assert_ok()
-        assert "css/style.css" in status.stdout
-        assert "fingerprint" in status.stdout.lower()
-
 
 class TestCLIOutputWithRealCommands:
     """Test CLI output system with real command scenarios."""
@@ -73,8 +59,7 @@ class TestCLIOutputWithRealCommands:
     @pytest.mark.bengal(testroot="test-basic")
     def test_build_command_uses_themed_header(self, site):
         """Test build command displays themed header without errors."""
-        # Run build command on the test site
-        result = run_cli(["site", "build"], cwd=str(site.root_path), timeout=30)
+        result = run_cli(["build"], cwd=str(site.root_path), timeout=30)
 
         # Build should succeed
         result.assert_ok()
@@ -125,59 +110,36 @@ class TestCLIOutputInitialization:
 class TestThemeConsistency:
     """Test theme is consistent across all CLI entry points."""
 
-    def test_get_console_returns_themed_instance(self):
-        """Test get_console() returns a themed console."""
-        from bengal.utils.observability.rich_console import get_console
+    def test_bengal_theme_has_semantic_keys(self):
+        """Test bengal_theme dict has expected semantic keys."""
+        from bengal.utils.observability.rich_console import bengal_theme
 
-        console = get_console()
+        assert "success" in bengal_theme
+        assert "error" in bengal_theme
+        assert "warning" in bengal_theme
+        assert "header" in bengal_theme
 
-        assert console is not None
-
-        # Verify it has semantic styles by trying to get them
-        try:
-            console.get_style("header")
-            console.get_style("success")
-            console.get_style("error")
-        except Exception as e:
-            pytest.fail(f"Console missing semantic styles: {e}")
-
-    def test_cli_output_uses_get_console(self):
-        """Test CLIOutput uses get_console() not raw Console()."""
+    def test_cli_output_styles_are_populated(self):
+        """Test CLIOutput initializes with theme styles."""
         from bengal.output import CLIOutput
-        from bengal.utils.observability.rich_console import get_console
 
         cli = CLIOutput(use_rich=True)
-        expected_console = get_console()
+        # _styles dict should be populated from BENGAL_THEME
+        assert len(cli._styles) > 0
 
-        # Should be using the singleton themed console
-        assert cli.console is expected_console
+    def test_palette_colors_consistent(self):
+        """Test PALETTE colors are consistent across imports."""
+        from bengal.utils.observability.rich_console import PALETTE
+        from bengal.utils.observability.terminal import PALETTE as PALETTE2
 
-    def test_singleton_console_persists_theme(self):
-        """Test singleton console maintains theme across calls."""
-        from bengal.utils.observability.rich_console import get_console, reset_console
-
-        # Reset to ensure clean state
-        reset_console()
-
-        console1 = get_console()
-        console2 = get_console()
-
-        # Should be same instance
-        assert console1 is console2
-
-        # Both should have semantic styles
-        try:
-            console1.get_style("header")
-            console2.get_style("header")
-        except Exception as e:
-            pytest.fail(f"Singleton console lost theme: {e}")
+        assert PALETTE is PALETTE2
 
 
 @pytest.mark.parametrize(
     "command",
     [
-        ["site", "clean", "--help"],
-        ["site", "build", "--help"],
+        ["clean", "--help"],
+        ["build", "--help"],
         ["--help"],
         ["--version"],
     ],

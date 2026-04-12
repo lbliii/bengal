@@ -183,7 +183,7 @@ class TestSignalHandling:
     def test_cleanup_command_help(self):
         """Test that cleanup command is accessible."""
         result = subprocess.run(
-            [sys.executable, "-m", "bengal.cli", "site", "clean", "--help"],
+            [sys.executable, "-m", "bengal.cli", "clean", "--help"],
             capture_output=True,
             text=True,
             timeout=5,

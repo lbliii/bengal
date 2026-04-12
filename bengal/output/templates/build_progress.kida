@@ -1,0 +1,15 @@
+{#- Live build progress — rendered in-place during build.
+
+    Usage:
+        rendered = cli.render("build_progress.kida", state=state)
+
+    Variables:
+        state: dict matching milo's pipeline_progress format:
+            status: "running" | "completed" | "failed"
+            progress: float (0.0-1.0)
+            elapsed: float (seconds)
+            phases: list[{name, status, elapsed, error}]
+-#}
+{% from "components/_defs.kida" import pipeline_progress %}
+
+{{ pipeline_progress(state) }}

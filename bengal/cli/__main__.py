@@ -11,7 +11,7 @@ Example:
 
 from __future__ import annotations
 
-from bengal.cli import main
+from bengal.cli.milo_app import run
 
 if __name__ == "__main__":
-    main()
+    run()

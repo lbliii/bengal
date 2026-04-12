@@ -1,0 +1,70 @@
+{#- Bengal-specific component primitives.
+
+    Usage:
+        {% from "_bengal.kida" import bengal_header, error_header, phase_line, metric_line, file_tree %}
+
+    These extend milo's _defs.kida components with Bengal's visual identity:
+    mascot (ᓚᘏᗢ), error mouse (ᘛ⁐̤ᕐᐷ), build phases, and scaffold trees.
+-#}
+{% from "components/_defs.kida" import status_line, kv_pair, kv_list, next_steps %}
+
+{#- ── Bengal header: clean line with optional cat mascot ───────────── -#}
+{%- def bengal_header(text, mascot=true) -%}
+{%- set mascot_str = ("ᓚᘏᗢ" | fg("#FF9D00") | bold) ~ " " if mascot else "" -%}
+{{ mascot_str }}{{ text | bold }}
+{%- enddef -%}
+
+
+{#- ── Error header: clean line with optional mouse mascot ─────────── -#}
+{%- def error_header(text, mouse=true) -%}
+{%- set mouse_str = ("ᘛ⁐̤ᕐᐷ" | red | bold) ~ " " if mouse else "" -%}
+{{ mouse_str }}{{ text | red | bold }}
+{%- enddef -%}
+
+{#- ── Build phase line with aligned columns ──────────────────────── -#}
+{%- def phase_line(name, status="Done", duration_ms=none, details=none, icon=none) -%}
+{%- set phase_icon = icon | default(icons.check) -%}
+{%- set pad = [12 - (name | length), 0] | max -%}
+{{ phase_icon | green }} {{ name | bold }}{{ " " * pad }}{% if duration_ms is not none %} {{ (duration_ms | int | string ~ "ms") | dim }}{% endif %}{% if details %} {{ ("(" ~ details ~ ")") | dim }}{% endif %}{% if not duration_ms and not details %} {{ status | dim }}{% endif %}
+{%- enddef -%}
+
+{#- ── Metric with styled label ───────────────────────────────────── -#}
+{%- def metric_line(label, value, unit="", indent=0) -%}
+{{ " " * (indent * 2) }}{{ label | fg("#F1C40F") | bold }}: {{ value }}{% if unit %} {{ unit }}{% endif %}
+{%- enddef -%}
+
+{#- ── File tree from entries list ────────────────────────────────── -#}
+{%- def file_tree(entries, indent="   ") -%}
+{%- for entry in entries -%}
+{%- set connector = "└─" if loop.last else "├─" -%}
+{{ indent }}{{ connector | dim }} {{ entry.name }}{% if entry.note %} {{ entry.note | dim }}{% endif %}
+{% endfor -%}
+{%- enddef -%}
+
+{#- ── Scaffold result: header + tree + next steps ────────────────── -#}
+{%- def scaffold_result(title, entries, steps, icon="") -%}
+{{ bengal_header(icon ~ title if icon else title) }}
+
+{{ file_tree(entries) }}
+
+{{ next_steps(steps) }}
+{%- enddef -%}
+
+{#- ── Timing bar: phase name + time + percentage + bar ────────── -#}
+{%- def timing_bar(name, time_str, pct, bar_width=20) -%}
+{%- set pct_color = "red" if pct > 60 else ("yellow" if pct > 40 else "green") -%}
+   {{ name | pad(15) }} {{ time_str | pad(8) }}  {{ ("%5.1f%%" | format(pct)) | fg(pct_color) }}  {{ pct | bar(bar_width) | fg(pct_color) }}
+{%- enddef -%}
+
+{#- ── Diff line: colored +/- prefix ─────────────────────────────── -#}
+{%- def diff_added(text) -%}
+{{ ("+ " ~ text) | green }}
+{%- enddef -%}
+
+{%- def diff_removed(text) -%}
+{{ ("- " ~ text) | red }}
+{%- enddef -%}
+
+{%- def diff_context(text) -%}
+{{ ("  " ~ text) | dim }}
+{%- enddef -%}

@@ -285,24 +285,15 @@ def run_health_check(
                     )
 
     if health_config.get("verbose", False):
-        if cli.use_rich:
-            cli.console.print(report.format_console(verbose=True))
-        else:
-            # Strip Rich markup for plain text output
-            from re import sub
+        from re import sub
 
-            plain_text = sub(r"\[/?[^\]]+\]", "", report.format_console(verbose=True))
-            print(plain_text)
-    # Only print if there are issues
+        plain_text = sub(r"\[/?[^\]]+\]", "", report.format_console(verbose=True))
+        cli.info(plain_text)
     elif report.has_errors() or report.has_warnings():
-        if cli.use_rich:
-            cli.console.print(report.format_console(verbose=False))
-        else:
-            # Strip Rich markup for plain text output
-            from re import sub
+        from re import sub
 
-            plain_text = sub(r"\[/?[^\]]+\]", "", report.format_console(verbose=False))
-            print(plain_text)
+        plain_text = sub(r"\[/?[^\]]+\]", "", report.format_console(verbose=False))
+        cli.info(plain_text)
 
     # Store report in stats
     orchestrator.stats.health_report = report
