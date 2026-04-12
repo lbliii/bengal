@@ -156,6 +156,15 @@ class TestTemplateValidator:
 class TestValidateTemplatesFunction:
     """Tests for validate_templates helper function."""
 
+    @pytest.fixture(autouse=True)
+    def _reset_cli_output(self):
+        """Reset global CLI output to ensure non-quiet state for capture tests."""
+        from bengal.cli.utils.output import reset_cli_output
+
+        reset_cli_output()
+        yield
+        reset_cli_output()
+
     def test_validate_templates_no_errors(self, tmp_path, capsys):
         """Test validate_templates with valid templates."""
         mock_engine = MockTemplateEngine(template_dirs=[tmp_path], errors=[])
