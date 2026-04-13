@@ -294,9 +294,14 @@ def load_site_from_cli(
         cli.error(f"Config file does not exist: {config_path}")
         sys.exit(1)
 
-    from bengal.cli.helpers.error_handling import cli_error_context
+    from bengal.cli.utils.errors import handle_exception
 
-    with cli_error_context("loading site configuration"):
+    try:
         return Site.from_config(
             root_path, config_path, environment=environment, profile=profile_name
         )
+    except SystemExit, KeyboardInterrupt:
+        raise
+    except Exception as e:
+        handle_exception(e, cli, operation="loading site configuration")
+        raise SystemExit(1) from e
