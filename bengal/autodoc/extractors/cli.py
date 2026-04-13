@@ -682,9 +682,11 @@ class CLIExtractor(Extractor):
         is_lazy = hasattr(cmd_def, "import_path")
 
         if is_lazy:
-            # Try pre-computed schema first (no import needed)
-            if cmd_def._schema is not None:
-                schema = cmd_def._schema
+            # Try pre-computed schema first (no import needed).
+            # Use getattr for safety in case internals change.
+            cached_schema = getattr(cmd_def, "_schema", None)
+            if cached_schema is not None:
+                schema = cached_schema
             else:
                 try:
                     resolved = cmd_def.resolve()
@@ -839,7 +841,7 @@ class CLIExtractor(Extractor):
 
         typed_meta = CLIOptionMetadata(
             name=opt.name,
-            param_type="GlobalOption",
+            param_type="option",
             type_name=type_name,
             required=False,
             default=default_str,
@@ -859,7 +861,8 @@ class CLIExtractor(Extractor):
             source_file=None,
             line_number=None,
             metadata={
-                "param_type": "GlobalOption",
+                "param_type": "option",
+                "source": "global",
                 "type": type_name,
                 "required": False,
                 "default": default_str,

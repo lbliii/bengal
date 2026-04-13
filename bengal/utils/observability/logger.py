@@ -491,15 +491,15 @@ class BengalLogger:
 
             formatted = event.format_console(verbose=self.verbose)
             line = formatted + "\n"
-            # Capture reference locally to avoid TOCTOU race under
-            # free-threading: flush_deferred_output can set the global
-            # to None between our check and the append.
-            buf = _deferred_console
-            if buf is not None:
-                buf.append(line)
-            else:
-                sys.stdout.write(line)
-                sys.stdout.flush()
+            # Synchronize with flush_deferred_output() so we cannot append
+            # to a detached deferred buffer after it has been swapped out.
+            with _logger_lock:
+                buf = _deferred_console
+                if buf is not None:
+                    buf.append(line)
+                else:
+                    sys.stdout.write(line)
+                    sys.stdout.flush()
 
         # Output to file (JSON format)
         if self._file_handle:

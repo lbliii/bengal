@@ -707,7 +707,7 @@ except ImportError:
     MILO_AVAILABLE = False
 
 
-def _build_sample_milo_cli() -> Any:
+def _build_sample_milo_cli():
     """Build a sample milo CLI for testing (avoids module-level import)."""
     cli = CLI(name="testapp", description="A test application", version="1.0.0")
 
@@ -783,11 +783,6 @@ def _build_sample_milo_cli() -> Any:
     )
 
     return cli
-
-
-if MILO_AVAILABLE:
-    # Need this import at module level for type annotation in test fixtures
-    from typing import Any
 
 
 @pytest.mark.skipif(not MILO_AVAILABLE, reason="milo not installed")

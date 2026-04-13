@@ -254,8 +254,6 @@ class DirectiveRendererMixin:
             if matches:
                 match = matches[0]
 
-        suggestion_text = f" — did you mean '{match}'?" if match else ""
-
         # Extract source location from page context if available
         source_hint = ""
         page = self._page_context
@@ -272,7 +270,7 @@ class DirectiveRendererMixin:
             extra["source"] = source
 
         logger.warning(
-            f'Unknown directive "{node.name}"{source_hint}{suggestion_text}',
+            f'Unknown directive "{node.name}"{source_hint}',
             **extra,
         )
 

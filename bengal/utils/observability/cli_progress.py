@@ -221,10 +221,11 @@ class LiveProgressManager:
             sys.stdout.flush()
             self._prev_frame_lines = 0
 
-        # Replay warnings that were buffered during live progress.
-        from bengal.utils.observability.logger import flush_deferred_output
+        # Only flush deferred output if this instance enabled deferral.
+        if self.use_live:
+            from bengal.utils.observability.logger import flush_deferred_output
 
-        flush_deferred_output()
+            flush_deferred_output()
 
     def __enter__(self) -> LiveProgressManager:
         """Enter context manager."""
@@ -470,7 +471,8 @@ class LiveProgressManager:
 
     def _render_live(self) -> None:
         """Render progress with ANSI cursor control for in-place updates."""
-        state = self._build_state()
+        with self._lock:
+            state = self._build_state()
         frame = self._render_frame(state)
 
         lines = frame.split("\n")
