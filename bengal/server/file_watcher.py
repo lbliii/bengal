@@ -74,6 +74,16 @@ def _should_use_polling(force_polling: bool | None) -> bool:
     if force_polling is not None:
         logger.debug("file_watcher_mode", polling=force_polling, reason="explicit_config")
         return force_polling
+    # Env var (watchfiles convention) — checked before platform defaults so users can override
+    env_val = (os.environ.get("WATCHFILES_FORCE_POLLING", "") or "").strip().lower()
+    if env_val:
+        use_polling = env_val not in ("0", "false", "no", "disable", "disabled")
+        logger.debug(
+            "file_watcher_mode",
+            polling=use_polling,
+            reason="env_var_WATCHFILES_FORCE_POLLING",
+        )
+        return use_polling
     # macOS: known watchfiles reliability issues with atomic writes
     if sys.platform == "darwin":
         logger.debug(
@@ -84,12 +94,7 @@ def _should_use_polling(force_polling: bool | None) -> bool:
             "Set WATCHFILES_FORCE_POLLING=0 to use native events.",
         )
         return True
-    # Env var (watchfiles convention)
-    env_val = (os.environ.get("WATCHFILES_FORCE_POLLING", "") or "").strip().lower()
-    use_polling = bool(env_val and env_val not in ("0", "false", "no", "disable", "disabled"))
-    if use_polling:
-        logger.debug("file_watcher_mode", polling=True, reason="env_var_WATCHFILES_FORCE_POLLING")
-    return use_polling
+    return False
 
 
 class FileWatcher(Protocol):

@@ -377,6 +377,27 @@ class ConfigValidator:
                     # Coerce to string if not already
                     section_dict[key] = str(value)
 
+            elif isinstance(value, dict) and key not in self.KNOWN_SECTION_KEYS:
+                # Unknown dict-valued section — warn with fuzzy suggestion
+                if not prefix:  # Only check at top level
+                    path = key
+                    matches = difflib.get_close_matches(
+                        key, self.KNOWN_SECTION_KEYS, n=1, cutoff=0.6
+                    )
+                    if matches:
+                        logger.warning(
+                            "unknown_config_section",
+                            key=path,
+                            suggestion=matches[0],
+                            hint=f"Unknown config section '{path}'. Did you mean '{matches[0]}'?",
+                        )
+                    else:
+                        logger.warning(
+                            "unknown_config_section",
+                            key=path,
+                            hint=f"Unknown config section '{path}' — will be ignored.",
+                        )
+
             elif not isinstance(value, dict) and key not in self.KNOWN_SECTION_KEYS:
                 # Unknown scalar key — warn with fuzzy suggestion
                 path = f"{prefix}.{key}" if prefix else key

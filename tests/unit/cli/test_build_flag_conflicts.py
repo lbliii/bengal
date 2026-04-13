@@ -59,3 +59,18 @@ class TestBuildFlagConflicts:
         assert exc_info.value.code == 2
         captured = capsys.readouterr()
         assert expected_msg in (captured.out + captured.err)
+
+    def test_deprecated_dev_alias_still_conflicts(self, capsys):
+        """The deprecated --dev alias should forward to --dev-profile and trigger the same conflict."""
+        import warnings
+
+        from bengal.cli.milo_commands.build import build
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            with pytest.raises(SystemExit) as exc_info:
+                build(dev=True, profile="writer")
+
+        assert exc_info.value.code == 2
+        captured = capsys.readouterr()
+        assert "--dev-profile is shorthand for --profile dev" in (captured.out + captured.err)

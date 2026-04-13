@@ -42,6 +42,7 @@ def build(
     dev_profile: Annotated[
         bool, Description("Shorthand for --profile dev (full observability)")
     ] = False,
+    dev: Annotated[bool, Description("Deprecated alias for --dev-profile")] = False,
     verbose: Annotated[
         bool,
         Description("[Output] Show per-file build details (incompatible with --quiet, --fast)"),
@@ -177,6 +178,17 @@ def build(
     # Apply fast mode after validation
     if fast:
         quiet = True
+
+    # Handle deprecated --dev alias
+    if dev:
+        import warnings
+
+        warnings.warn(
+            "--dev is deprecated, use --dev-profile instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        dev_profile = True
 
     if dev_profile and profile_val:
         cli.error("--dev-profile is shorthand for --profile dev — use one or the other")

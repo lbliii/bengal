@@ -317,6 +317,11 @@ class BuildOrchestrator:
 
         self.site.build_time = datetime.now()
 
+        # Reset fast-write tracker at build start (prevents stale paths across dev-server rebuilds)
+        from bengal.rendering.pipeline.output import reset_fast_write_tracker
+
+        reset_fast_write_tracker()
+
         # Create fresh BuildState for this build
         build_state = BuildState(
             build_time=self.site.build_time,
@@ -370,7 +375,7 @@ class BuildOrchestrator:
                 from bengal.effects.render_integration import BuildEffectTracer
 
                 tracer_instance = BuildEffectTracer.get_instance()
-                if not tracer_instance.tracer.has_effects:
+                if not tracer_instance.tracer.effects:
                     import warnings
 
                     warnings.warn(
@@ -867,6 +872,14 @@ class BuildOrchestrator:
             from bengal.orchestration.build.provenance_filter import save_provenance_cache
 
             save_provenance_cache(self)
+
+        # Clean up partial fast-write files if build had errors
+        if self.stats.template_errors or (isinstance(self.stats, HasErrors) and self.stats.errors):
+            from bengal.rendering.pipeline.output import cleanup_fast_writes
+
+            cleaned = cleanup_fast_writes()
+            if cleaned:
+                logger.info("fast_write_cleanup", files_removed=cleaned)
 
         # Clear build state (build complete)
         self.site.set_build_state(None)

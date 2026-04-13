@@ -361,8 +361,9 @@ class SwizzleManager:
                             target=rec.get("target"),
                             diff_lines=diff_text.count("\n"),
                         )
+                        # Print diff for user visibility
+                        print(diff_text.rstrip())
                     # Proceed to write (falls through to the write below)
-                    force_updated += 1
                 else:
                     skipped_changed += 1
                     logger.info(
@@ -372,6 +373,8 @@ class SwizzleManager:
                     )
                     continue
 
+            is_force_update = force and current_checksum != expected_checksum
+
             new_content = source_path.read_text(encoding="utf-8")
             atomic_write_text(target_path, new_content)
 
@@ -380,7 +383,10 @@ class SwizzleManager:
             rec["upstream_checksum"] = new_checksum
             rec["local_checksum"] = new_checksum
             rec["timestamp"] = time.time()
-            updated += 1
+            if is_force_update:
+                force_updated += 1
+            else:
+                updated += 1
             logger.info("swizzle_update_success", target=rec.get("target"), source=str(source_path))
 
         # Persist registry updates

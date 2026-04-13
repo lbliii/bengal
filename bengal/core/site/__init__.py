@@ -1138,7 +1138,7 @@ class Site:
                     suggestion=f"Create the directory at '{content_dir}', or check "
                     f"'build.content_dir' in your config",
                 )
-            emit_diagnostic(self, "error", "content_dir_not_found", path=str(content_dir))
+            emit_diagnostic(self, "warning", "content_dir_not_found", path=str(content_dir))
             import warnings
 
             warnings.warn(
