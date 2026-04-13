@@ -54,11 +54,9 @@ def clean(
 
     site.clean()
 
+    removed = [str(site.output_dir)]
     if clean_cache and site.paths.state_dir.exists():
         site._rmtree_robust(site.paths.state_dir)
-
-    removed = [str(site.output_dir)]
-    if clean_cache:
         removed.append(str(site.paths.state_dir))
 
     cli.blank()

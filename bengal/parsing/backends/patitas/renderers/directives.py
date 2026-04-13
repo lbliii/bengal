@@ -248,11 +248,13 @@ class DirectiveRendererMixin:
         if self._directive_registry:
             registered_names = self._directive_registry.names
 
-        suggestion = ""
+        match: str | None = None
         if registered_names:
             matches = find_close_matches(node.name, registered_names, n=1, cutoff=0.6)
             if matches:
-                suggestion = f" — did you mean '{matches[0]}'?"
+                match = matches[0]
+
+        suggestion_text = f" — did you mean '{match}'?" if match else ""
 
         # Extract source location from page context if available
         source_hint = ""
@@ -261,9 +263,9 @@ class DirectiveRendererMixin:
             source_hint = f" in {page.source_path}"
 
         logger.warning(
-            f'Unknown directive "{node.name}"{source_hint}{suggestion}',
+            f'Unknown directive "{node.name}"{source_hint}{suggestion_text}',
             directive=node.name,
-            suggestion=suggestion.removeprefix(" — ") if suggestion else None,
+            suggestion=match,
             source=getattr(page, "source_path", None) if page else None,
         )
 

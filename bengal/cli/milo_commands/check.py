@@ -148,7 +148,15 @@ def check(
     else:
         cli.success("Validation passed - no issues found")
 
-    return {"errors": errors, "warnings": warnings, "passed": not report.has_errors()}
+    return {
+        "status": "ok" if not report.has_errors() else "error",
+        "message": "Validation passed"
+        if not report.has_errors()
+        else f"Validation failed: {errors} error(s)",
+        "errors": errors,
+        "warnings": warnings,
+        "passed": not report.has_errors(),
+    }
 
 
 def _run_watch_mode(site, build_profile, verbose, suggestions, incremental, cli):

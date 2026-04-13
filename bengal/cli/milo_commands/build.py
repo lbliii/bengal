@@ -352,12 +352,17 @@ def build(
             if hints:
                 cli.tip(hints[0].message)
 
+        error_count = len(getattr(stats, "template_errors", []))
         return {
+            "status": "ok" if error_count == 0 else "error",
+            "message": "Build complete"
+            if error_count == 0
+            else f"Build completed with {error_count} error(s)",
             "output_dir": str(site.output_dir),
             "pages": getattr(stats, "pages_built", None),
             "build_time_ms": getattr(stats, "build_time_ms", None),
             "incremental": incremental_resolved,
-            "errors": len(getattr(stats, "template_errors", [])),
+            "errors": error_count,
         }
     finally:
         close_all_loggers()

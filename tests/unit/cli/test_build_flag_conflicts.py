@@ -49,11 +49,13 @@ class TestBuildFlagConflicts:
             "memory-optimized+perf-profile",
         ],
     )
-    def test_conflicting_flags_exit_with_error(self, kwargs, expected_msg):
-        """Mutually exclusive flags should cause SystemExit(2)."""
+    def test_conflicting_flags_exit_with_error(self, kwargs, expected_msg, capsys):
+        """Mutually exclusive flags should cause SystemExit(2) with a clear message."""
         from bengal.cli.milo_commands.build import build
 
         with pytest.raises(SystemExit) as exc_info:
             build(**kwargs)
 
         assert exc_info.value.code == 2
+        captured = capsys.readouterr()
+        assert expected_msg in (captured.out + captured.err)

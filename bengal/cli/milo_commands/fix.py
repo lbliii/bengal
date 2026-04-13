@@ -169,6 +169,10 @@ def fix(
         cli.info(report_after.format_console(verbose=False, show_suggestions=False))
 
     return {
+        "status": "ok" if results["failed"] == 0 else "error",
+        "message": "All fixes applied"
+        if results["failed"] == 0
+        else f"{results['failed']} fix(es) failed",
         "applied": results["applied"],
         "failed": results["failed"],
         "skipped": results["skipped"],
