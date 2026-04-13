@@ -92,7 +92,7 @@ class Effect:
         ``{"t": "s", "v": "base.html"}`` for str (template name).
         """
         tagged_deps: list[dict[str, str]] = []
-        for d in sorted(self.depends_on, key=str):
+        for d in sorted(self.depends_on, key=lambda x: (str(x), type(x).__name__)):
             if isinstance(d, Path):
                 tagged_deps.append({"t": "p", "v": str(d)})
             else:
@@ -118,9 +118,19 @@ class Effect:
         deps: list[Path | str] = []
         for d in raw_deps:
             if isinstance(d, dict):
-                # Tagged format: lossless type recovery
-                deps.append(Path(d["v"]) if d["t"] == "p" else d["v"])
-            else:
+                # Tagged format: lossless type recovery when the payload is valid.
+                dep_type = d.get("t")
+                dep_value = d.get("v")
+                if dep_type == "p" and isinstance(dep_value, str):
+                    deps.append(Path(dep_value))
+                elif dep_type == "s" and isinstance(dep_value, str):
+                    deps.append(dep_value)
+                elif isinstance(dep_value, str):
+                    # Malformed tagged entry: fall back to the legacy string heuristic.
+                    deps.append(
+                        Path(dep_value) if "/" in dep_value or "\\" in dep_value else dep_value
+                    )
+            elif isinstance(d, str):
                 # Legacy plain-string format: lossy heuristic (one cycle only)
                 deps.append(Path(d) if "/" in d or "\\" in d else d)
         return cls(

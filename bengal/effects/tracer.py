@@ -362,7 +362,22 @@ class EffectTracer:
                 action="using_empty_tracer",
             )
             return cls()
-        return cls.from_dict(data)
+        try:
+            return cls.from_dict(data)
+        except KeyError, TypeError, ValueError:
+            import logging
+
+            logger = logging.getLogger("bengal.effects.tracer")
+            corrupted_path = path.with_suffix(".json.corrupted")
+            with suppress(Exception):
+                path.rename(corrupted_path)
+            logger.warning(
+                "effect_tracer_schema_error",
+                path=str(path),
+                backup=str(corrupted_path),
+                action="using_empty_tracer",
+            )
+            return cls()
 
     def clear(self) -> None:
         """Clear all recorded effects and indexes."""

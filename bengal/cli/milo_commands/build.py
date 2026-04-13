@@ -122,13 +122,14 @@ def build(
 
     fast_val: bool | None = True if fast else None
 
-    # Apply fast mode
-    if fast:
-        quiet = True
+    cli = get_cli_output(quiet=quiet or fast, verbose=verbose)
 
-    cli = get_cli_output(quiet=quiet, verbose=verbose)
+    # Validate mutually exclusive flag combinations — check before fast
+    # sets quiet=True so the user sees the right error message.
+    if verbose and fast:
+        cli.error("--verbose and --fast cannot be used together (--fast implies --quiet)")
+        raise SystemExit(2)
 
-    # Validate mutually exclusive flag combinations
     if dashboard:
         conflicts = []
         if quiet:
@@ -151,9 +152,9 @@ def build(
         cli.error("--verbose and --quiet cannot be used together")
         raise SystemExit(2)
 
-    if verbose and fast:
-        cli.error("--verbose and --fast cannot be used together (--fast implies --quiet)")
-        raise SystemExit(2)
+    # Apply fast mode after validation
+    if fast:
+        quiet = True
 
     if dev and profile_val:
         cli.error("--dev is shorthand for --profile dev — use one or the other")

@@ -360,10 +360,12 @@ class ReloadController:
                     if output_dir.stat().st_mtime == self._baseline_output_dir_mtime:
                         return
                 except OSError as e:
-                    import logging
+                    from bengal.utils.observability.logger import get_logger
 
-                    logging.getLogger("bengal.server.reload").debug(
-                        "output_dir_stat_failed: %s — %s", output_dir, e
+                    get_logger(__name__).debug(
+                        "output_dir_stat_failed",
+                        path=str(output_dir),
+                        error=str(e),
                     )
 
         self._baseline_content_hashes.clear()
