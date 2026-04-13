@@ -490,8 +490,16 @@ class BengalLogger:
             import sys
 
             formatted = event.format_console(verbose=self.verbose)
-            sys.stdout.write(formatted + "\n")
-            sys.stdout.flush()
+            line = formatted + "\n"
+            # Capture reference locally to avoid TOCTOU race under
+            # free-threading: flush_deferred_output can set the global
+            # to None between our check and the append.
+            buf = _deferred_console
+            if buf is not None:
+                buf.append(line)
+            else:
+                sys.stdout.write(line)
+                sys.stdout.flush()
 
         # Output to file (JSON format)
         if self._file_handle:
@@ -628,6 +636,13 @@ _global_config: _GlobalConfig = {
     "verbose": False,
     "quiet_console": False,
 }
+
+# Deferred console output buffer.  When non-None, formatted warning/error
+# strings are appended here instead of being written to stdout.  This
+# allows the live progress bar to prevent interleaved output that corrupts
+# ANSI cursor control.  Use ``defer_console_output`` / ``flush_deferred``
+# to manage this.
+_deferred_console: list[str] | None = None
 
 
 def _get_actual_logger(name: str) -> BengalLogger:
@@ -810,6 +825,36 @@ def set_console_quiet(quiet: bool = True) -> None:
         # Update existing loggers
         for logger in _loggers.values():
             logger.quiet_console = quiet
+
+
+def defer_console_output(enabled: bool = True) -> None:
+    """Enable or disable console output deferral.
+
+    When enabled, formatted log lines that would go to stdout are
+    buffered instead.  Call ``flush_deferred_output`` to replay them.
+    Used by the live progress bar to prevent interleaved warnings from
+    corrupting ANSI cursor control.
+    """
+    global _deferred_console
+    with _logger_lock:
+        if enabled:
+            if _deferred_console is None:
+                _deferred_console = []
+        else:
+            _deferred_console = None
+
+
+def flush_deferred_output() -> None:
+    """Write all buffered console lines to stdout and disable deferral."""
+    global _deferred_console
+    with _logger_lock:
+        buf = _deferred_console
+        _deferred_console = None
+    if buf:
+        import sys
+
+        sys.stdout.write("".join(buf))
+        sys.stdout.flush()
 
 
 def close_all_loggers() -> None:

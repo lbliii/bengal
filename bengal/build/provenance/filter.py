@@ -483,10 +483,12 @@ class ProvenanceFilter:
 
             # Check if section has an index page
             index_page = getattr(section, "index_page", None)
-            if index_page is not None:
+            if index_page is not None and not getattr(index_page, "_virtual", False):
+                # Only check filesystem for real (non-virtual) pages.
+                # Virtual pages (autodoc, section-indexes) have synthetic
+                # source paths that intentionally don't exist on disk.
                 index_path = getattr(index_page, "source_path", None)
                 if index_path is not None and isinstance(index_path, Path):
-                    # Verify file exists (could be virtual or deleted)
                     try:
                         if index_path.exists():
                             sources.append(index_path)
@@ -494,18 +496,16 @@ class ProvenanceFilter:
                             self._warned_cascade_paths.add(index_path)
                             logger.warning(
                                 "cascade_source_missing",
-                                index_path=str(index_path),
-                                page=str(getattr(page, "source_path", "unknown")),
-                                reason="Cascade source file not found — descendant pages may not rebuild correctly",
+                                path=str(index_path),
+                                hint=f"Expected _index.md at {index_path} — add it or check the content hierarchy",
                             )
                     except OSError:
                         if index_path not in self._warned_cascade_paths:
                             self._warned_cascade_paths.add(index_path)
                             logger.warning(
                                 "cascade_source_inaccessible",
-                                index_path=str(index_path),
-                                page=str(getattr(page, "source_path", "unknown")),
-                                reason="File system error accessing cascade source",
+                                path=str(index_path),
+                                hint="File system error — check permissions on the content directory",
                             )
 
             # Move to parent section

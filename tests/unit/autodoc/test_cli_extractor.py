@@ -691,3 +691,313 @@ class TestTyperExtractor:
 
         # Success if we got here without duplicate paths
         assert len(paths) == len(elements)
+
+
+# ============================================================================
+# Milo Tests
+# ============================================================================
+
+try:
+    from milo._command_defs import CommandDef, GlobalOption, LazyCommandDef
+    from milo.commands import CLI
+    from milo.groups import Group
+
+    MILO_AVAILABLE = True
+except ImportError:
+    MILO_AVAILABLE = False
+
+
+def _build_sample_milo_cli() -> Any:
+    """Build a sample milo CLI for testing (avoids module-level import)."""
+    cli = CLI(name="testapp", description="A test application", version="1.0.0")
+
+    # Register a command with a real handler
+    def greet(name: str, loud: bool = False) -> str:
+        """Say hello."""
+        msg = f"Hello, {name}!"
+        return msg.upper() if loud else msg
+
+    from milo.schema import function_to_schema
+
+    greet_schema = function_to_schema(greet)
+    cli._commands["greet"] = CommandDef(
+        name="greet",
+        description="Say hello",
+        handler=greet,
+        schema=greet_schema,
+    )
+
+    # Register a lazy command with pre-computed schema
+    cli._commands["lazy-cmd"] = LazyCommandDef(
+        name="lazy-cmd",
+        import_path="os.path:exists",  # valid import for testing
+        description="A lazy command",
+        schema={
+            "type": "object",
+            "properties": {
+                "path": {"type": "string", "description": "File path to check"},
+            },
+            "required": ["path"],
+        },
+    )
+
+    # Register a group with subcommands
+    site_group = Group("site", description="Site operations")
+
+    def build_site(output: str = "_site") -> str:
+        """Build the site."""
+        return f"Building to {output}"
+
+    build_schema = function_to_schema(build_site)
+    site_group._commands["build"] = CommandDef(
+        name="build",
+        description="Build the site",
+        handler=build_site,
+        schema=build_schema,
+    )
+
+    def serve_site(port: int = 8000, host: str = "localhost") -> str:
+        """Serve the site locally."""
+        return f"Serving on {host}:{port}"
+
+    serve_schema = function_to_schema(serve_site)
+    site_group._commands["serve"] = CommandDef(
+        name="serve",
+        description="Serve the site locally",
+        handler=serve_site,
+        schema=serve_schema,
+    )
+
+    cli._groups["site"] = site_group
+
+    # Add a global option
+    cli._global_options.append(
+        GlobalOption(
+            name="verbose",
+            short="-v",
+            option_type=bool,
+            default=False,
+            description="Enable verbose output",
+            is_flag=True,
+        )
+    )
+
+    return cli
+
+
+if MILO_AVAILABLE:
+    # Need this import at module level for type annotation in test fixtures
+    from typing import Any
+
+
+@pytest.mark.skipif(not MILO_AVAILABLE, reason="milo not installed")
+class TestMiloExtractor:
+    """Tests for milo CLI extraction."""
+
+    def test_extract_root(self):
+        """Test extracting milo CLI root."""
+        cli = _build_sample_milo_cli()
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        assert len(elements) >= 1
+        root = elements[0]
+
+        assert root.name == "testapp"
+        assert root.element_type == "command-group"
+        assert "test application" in root.description
+
+    def test_extract_commands(self):
+        """Test that top-level commands are extracted."""
+        cli = _build_sample_milo_cli()
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        command_names = [e.name for e in elements if e.element_type == "command"]
+        assert "greet" in command_names
+        assert "lazy-cmd" in command_names
+
+    def test_extract_command_parameters(self):
+        """Test that command parameters are extracted from JSON Schema."""
+        cli = _build_sample_milo_cli()
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        greet_cmd = next(e for e in elements if e.name == "greet")
+        param_names = [p.name for p in greet_cmd.children]
+        assert "name" in param_names
+        assert "loud" in param_names
+
+        # Check types
+        name_param = next(p for p in greet_cmd.children if p.name == "name")
+        assert name_param.metadata["type"] == "STRING"
+        assert name_param.metadata["required"] is True
+
+        loud_param = next(p for p in greet_cmd.children if p.name == "loud")
+        assert loud_param.metadata["type"] == "BOOLEAN"
+        assert loud_param.metadata["is_flag"] is True
+
+    def test_extract_lazy_command_with_precomputed_schema(self):
+        """Test lazy commands with pre-computed schema don't import handler."""
+        cli = _build_sample_milo_cli()
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        lazy_cmd = next(e for e in elements if e.name == "lazy-cmd")
+        assert lazy_cmd.element_type == "command"
+        assert lazy_cmd.description == "A lazy command"
+
+        # Should have extracted the parameter from pre-computed schema
+        param_names = [p.name for p in lazy_cmd.children]
+        assert "path" in param_names
+
+        path_param = next(p for p in lazy_cmd.children if p.name == "path")
+        assert path_param.metadata["required"] is True
+
+    def test_extract_group(self):
+        """Test that groups are extracted as command-groups."""
+        cli = _build_sample_milo_cli()
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        group_names = [e.name for e in elements if e.element_type == "command-group"]
+        assert "site" in group_names
+
+        site_group = next(e for e in elements if e.name == "site")
+        assert site_group.qualified_name == "testapp.site"
+
+    def test_extract_group_subcommands(self):
+        """Test that subcommands within groups are extracted."""
+        cli = _build_sample_milo_cli()
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        command_names = [e.name for e in elements if e.element_type == "command"]
+        assert "build" in command_names
+        assert "serve" in command_names
+
+    def test_qualified_names(self):
+        """Test that qualified names are hierarchical."""
+        cli = _build_sample_milo_cli()
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        greet = next(e for e in elements if e.name == "greet")
+        assert greet.qualified_name == "testapp.greet"
+
+        build = next(e for e in elements if e.name == "build")
+        assert build.qualified_name == "testapp.site.build"
+
+    def test_output_paths(self):
+        """Test that output paths are correct."""
+        cli = _build_sample_milo_cli()
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        root = elements[0]
+        assert extractor.get_output_path(root) == Path("_index.md")
+
+        site_group = next(
+            e for e in elements if e.name == "site" and e.element_type == "command-group"
+        )
+        assert extractor.get_output_path(site_group) == Path("site/_index.md")
+
+        build_cmd = next(e for e in elements if e.name == "build")
+        assert extractor.get_output_path(build_cmd) == Path("site/build.md")
+
+    def test_flattened_element_count(self):
+        """Test total flattened element count."""
+        cli = _build_sample_milo_cli()
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        # Root (testapp) + greet + lazy-cmd + site group + build + serve = 6
+        assert len(elements) == 6
+
+    def test_hidden_commands_excluded_by_default(self):
+        """Test that hidden commands are excluded."""
+        cli = _build_sample_milo_cli()
+
+        from milo.schema import function_to_schema
+
+        def secret():
+            """Secret command."""
+
+        cli._commands["secret"] = CommandDef(
+            name="secret",
+            description="Secret",
+            handler=secret,
+            schema=function_to_schema(secret),
+            hidden=True,
+        )
+
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        command_names = [e.name for e in elements if e.element_type == "command"]
+        assert "secret" not in command_names
+
+    def test_hidden_commands_included_when_requested(self):
+        """Test that hidden commands are included with include_hidden."""
+        cli = _build_sample_milo_cli()
+
+        from milo.schema import function_to_schema
+
+        def secret():
+            """Secret command."""
+
+        cli._commands["secret"] = CommandDef(
+            name="secret",
+            description="Secret",
+            handler=secret,
+            schema=function_to_schema(secret),
+            hidden=True,
+        )
+
+        extractor = CLIExtractor(framework="milo", include_hidden=True)
+        elements = extractor.extract(cli)
+
+        command_names = [e.name for e in elements if e.element_type == "command"]
+        assert "secret" in command_names
+
+    def test_lazy_command_graceful_failure(self):
+        """Test that a lazy command with bad import_path doesn't crash."""
+        cli = CLI(name="testapp", description="Test")
+        cli._commands["broken"] = LazyCommandDef(
+            name="broken",
+            import_path="nonexistent.module:func",
+            description="This will fail to resolve",
+            # No pre-computed schema — resolve() will fail
+        )
+
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        broken = next(e for e in elements if e.name == "broken")
+        assert broken.element_type == "command"
+        assert broken.description == "This will fail to resolve"
+        # Should have 0 params since schema couldn't be retrieved
+        assert len(broken.children) == 0
+
+    def test_parameter_default_values(self):
+        """Test that default values are extracted from schema."""
+        cli = _build_sample_milo_cli()
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        serve = next(e for e in elements if e.name == "serve")
+        port_param = next(p for p in serve.children if p.name == "port")
+        assert port_param.metadata["default"] == "8000"
+
+        host_param = next(p for p in serve.children if p.name == "host")
+        assert host_param.metadata["default"] == "localhost"
+
+    def test_parameter_cli_flag_format(self):
+        """Test that parameter opts use kebab-case CLI flags."""
+        cli = _build_sample_milo_cli()
+        extractor = CLIExtractor(framework="milo")
+        elements = extractor.extract(cli)
+
+        greet = next(e for e in elements if e.name == "greet")
+        loud_param = next(p for p in greet.children if p.name == "loud")
+        assert "--loud" in loud_param.metadata["opts"]
