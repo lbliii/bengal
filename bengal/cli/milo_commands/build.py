@@ -94,8 +94,29 @@ def build(
 
     cli = get_cli_output(quiet=quiet, verbose=verbose)
 
+    # Validate mutually exclusive flag combinations
     if memory_optimized and perf_profile_path:
         cli.error("--memory-optimized and --perf-profile cannot be used together")
+        raise SystemExit(2)
+
+    if verbose and quiet:
+        cli.error("--verbose and --quiet cannot be used together")
+        raise SystemExit(2)
+
+    if dev and profile_val:
+        cli.error("--dev is shorthand for --profile dev — use one or the other")
+        raise SystemExit(2)
+
+    if theme_dev and profile_val:
+        cli.error("--theme-dev is shorthand for --profile theme-dev — use one or the other")
+        raise SystemExit(2)
+
+    if incremental and no_incremental:
+        cli.error("--incremental and --no-incremental cannot be used together")
+        raise SystemExit(2)
+
+    if assets_pipeline and no_assets_pipeline:
+        cli.error("--assets-pipeline and --no-assets-pipeline cannot be used together")
         raise SystemExit(2)
 
     # Determine build profile
@@ -181,11 +202,11 @@ def build(
                 strict=strict,
                 profile=build_profile,
             )
-            return None
+            return {"status": "ok", "message": "Dashboard session ended"}
 
         # Git version mode
         if build_version_val or all_versions:
-            _build_versions(
+            version_result = _build_versions(
                 site=site,
                 source=source,
                 config_path=config_path,
@@ -203,7 +224,7 @@ def build(
                 full_output=full_output,
                 cli=cli,
             )
-            return None
+            return version_result or {"status": "ok", "message": "Version build complete"}
 
         # Template validation
         if validate:

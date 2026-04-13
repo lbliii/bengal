@@ -71,7 +71,7 @@ cli.lazy_command(
     "check",
     import_path="bengal.cli.milo_commands.check:check",
     description="Validate your site",
-    aliases=("v", "validate", "lint"),
+    aliases=("v",),
     display_result=False,
 )
 

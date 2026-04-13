@@ -265,7 +265,6 @@ bengal serve
 
 ## Next Steps
 
-- Read the [Architecture Documentation](ARCHITECTURE.md)
 - Explore [Contributing Guidelines](CONTRIBUTING.md)
 - Check out the full [README](README.md)
 - Create your own custom theme
@@ -292,16 +291,14 @@ Make sure your templates are in:
 
 For debugging template problems:
 ```bash
-# Quick template diagnostics
-python debug_template_rendering.py [source_file]  # Comprehensive debugging
-python debug_macro_error.py                       # Focused macro testing
-python test_macro_step_by_step.py [source_file]   # Step-by-step macro validation
-
 # Validate template syntax
-bengal template-dev validate <template_name>
+bengal check --templates
 
-# Interactive debugging with sample data
-bengal template-dev debug <template_name> --element-type module
+# Validate template context (Kida only)
+bengal check --templates-context
+
+# Debug a specific theme
+bengal theme debug
 ```
 
 ### Import Errors
@@ -313,6 +310,5 @@ pip install -r requirements.txt
 
 ## Getting Help
 
-- Check [ARCHITECTURE.md](ARCHITECTURE.md) for technical details
 - See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines
 - Review example sites in the `examples/` directory

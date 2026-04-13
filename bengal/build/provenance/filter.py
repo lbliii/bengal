@@ -487,8 +487,20 @@ class ProvenanceFilter:
                     try:
                         if index_path.exists():
                             sources.append(index_path)
+                        else:
+                            logger.warning(
+                                "cascade_source_missing",
+                                index_path=str(index_path),
+                                page=str(getattr(page, "source_path", "unknown")),
+                                reason="Cascade source file not found — descendant pages may not rebuild correctly",
+                            )
                     except OSError:
-                        pass  # Skip if file system error
+                        logger.warning(
+                            "cascade_source_inaccessible",
+                            index_path=str(index_path),
+                            page=str(getattr(page, "source_path", "unknown")),
+                            reason="File system error accessing cascade source",
+                        )
 
             # Move to parent section
             parent = getattr(section, "parent", None)

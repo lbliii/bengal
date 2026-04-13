@@ -376,6 +376,11 @@ def _expand_forced_changed(
                     needs_full_rebuild = True
                     break
             if needs_full_rebuild:
+                logger.info(
+                    "template_dependency_partial_miss",
+                    changed_templates=template_names_str,
+                    reason="Some changed templates have no dependency data — rebuilding all pages",
+                )
                 for page in pages:
                     if page.source_path not in expanded:
                         expanded.add(page.source_path)
@@ -384,6 +389,11 @@ def _expand_forced_changed(
                         )
         else:
             # No template dependency data yet — fall back to rebuilding ALL pages
+            logger.info(
+                "template_dependency_full_miss",
+                changed_templates=template_names_str,
+                reason="No template dependency data cached — rebuilding all pages (first build after cache clear)",
+            )
             for page in pages:
                 if page.source_path not in expanded:
                     expanded.add(page.source_path)
@@ -769,6 +779,12 @@ def phase_incremental_filter_provenance(
         if fingerprint_assets and not result.pages_to_build:
             # Assets changed but no content changes - rebuild all pages
             # (fingerprinted URLs embedded in HTML will change)
+            asset_names = [a.source_path.name for a in fingerprint_assets]
+            logger.info(
+                "fingerprint_assets_forcing_full_rebuild",
+                changed_assets=asset_names,
+                reason=f"Fingerprinted asset(s) changed ({', '.join(asset_names)}) — rebuilding all pages because asset URLs are embedded in HTML",
+            )
             result = provenance_filter.filter(
                 pages=list(site.pages),
                 assets=list(site.assets),

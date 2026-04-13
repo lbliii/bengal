@@ -13,11 +13,11 @@ from milo import Description
 
 def new_site(
     name: Annotated[str, Description("Site name (slugified for directory)")] = "",
-    theme: Annotated[str, Description("Theme to use")] = "default",
+    theme: Annotated[str, Description("Visual theme (colors, layout): default")] = "default",
     template: Annotated[
         str,
         Description(
-            "Site template: default, blog, docs, portfolio, product, resume, landing, changelog"
+            "Site structure (directories, starter content): default, blog, docs, portfolio, product, resume, landing, changelog"
         ),
     ] = "default",
     no_init: Annotated[bool, Description("Skip structure initialization wizard")] = False,
@@ -77,7 +77,7 @@ def new_site(
     config_dir.mkdir(parents=True)
     atomic_write_text(
         config_dir / "site.yaml",
-        f"title: {site_title}\nbaseurl: https://example.com\ntheme: {theme}\n",
+        f'title: {site_title}\nbaseurl: ""\ndescription: A new Bengal site\ntheme: {theme}\n\n# Uncomment to customize:\n# language: en\n# author: Your Name\n',
     )
 
     # Create .gitignore

@@ -34,7 +34,7 @@ def clean(
 
     if stale_server:
         _cleanup_stale_server(force, source)
-        return None
+        return {"status": "ok", "message": "Stale server cleanup complete"}
 
     action = "Clean output + cache" if clean_cache else "Clean output"
     items = [{"label": "Output", "value": str(site.output_dir)}]
@@ -50,12 +50,16 @@ def clean(
             cli.warning("This forces a complete rebuild next time")
         if not cli.confirm("Proceed", default=False):
             cli.warning("Cancelled")
-            return None
+            return {"status": "skipped", "message": "Clean cancelled by user"}
 
     site.clean()
 
     if clean_cache and site.paths.state_dir.exists():
         site._rmtree_robust(site.paths.state_dir)
+
+    removed = [str(site.output_dir)]
+    if clean_cache:
+        removed.append(str(site.paths.state_dir))
 
     cli.blank()
     if clean_cache:
@@ -63,7 +67,12 @@ def clean(
     else:
         cli.success("Done — cache preserved")
 
-    return None
+    return {
+        "status": "ok",
+        "message": "Done — cold build next time" if clean_cache else "Done — cache preserved",
+        "removed": removed,
+        "cache_cleared": clean_cache,
+    }
 
 
 def _cleanup_stale_server(force: bool, source: str) -> None:
