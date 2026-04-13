@@ -309,4 +309,5 @@ def _validate_templates(site, pattern, show_hints, cli, templates, validate_cont
         issues=issues,
         summary={"errors": len(errors), "warnings": 0, "passed": 0},
     )
-    raise SystemExit(f"Template validation failed: {len(errors)} error(s)")
+    cli.error(f"Template validation failed: {len(errors)} error(s)")
+    raise SystemExit(1)

@@ -81,25 +81,33 @@ def serve(
     if debug:
         cfg["build"]["debug"] = True
 
-    if dashboard:
-        from bengal.cli.dashboard.serve import run_serve_dashboard
+    try:
+        if dashboard:
+            from bengal.cli.dashboard.serve import run_serve_dashboard
 
-        run_serve_dashboard(
-            site=site,
+            run_serve_dashboard(
+                site=site,
+                host=host,
+                port=port,
+                watch=watch,
+                open_browser=open_browser,
+            )
+            return {"status": "ok", "message": "Dashboard session ended"}
+
+        site.serve(
             host=host,
             port=port,
             watch=watch,
+            auto_port=auto_port,
             open_browser=open_browser,
+            version_scope=version_scope_val,
         )
-        return None
 
-    site.serve(
-        host=host,
-        port=port,
-        watch=watch,
-        auto_port=auto_port,
-        open_browser=open_browser,
-        version_scope=version_scope_val,
-    )
+        return {"status": "ok", "message": "Server stopped"}
+    except SystemExit, KeyboardInterrupt:
+        raise
+    except Exception as e:
+        from bengal.cli.utils.errors import handle_exception
 
-    return None
+        handle_exception(e, cli, operation="running development server")
+        raise SystemExit(1) from e

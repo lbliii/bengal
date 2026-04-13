@@ -52,10 +52,10 @@ def upgrade(
             answer = input("Proceed with upgrade? [Y/n] ").strip().lower()
             if answer and answer not in ("y", "yes"):
                 cli.info("Upgrade cancelled")
-                return None
+                return {"status": "skipped", "message": "Upgrade cancelled", "upgraded": False}
         except EOFError, KeyboardInterrupt:
             cli.info("\nUpgrade cancelled")
-            return None
+            return {"status": "skipped", "message": "Upgrade cancelled", "upgraded": False}
 
     cli.info("Upgrading bengal...")
 

@@ -188,7 +188,9 @@ class BuildCache(
         # Validation results are already in dict format (no conversion needed)
 
     @classmethod
-    def load(cls, cache_path: Path, use_lock: bool = True) -> BuildCache:
+    def load(
+        cls, cache_path: Path, use_lock: bool = True, site_root: Path | None = None
+    ) -> BuildCache:
         """
         Load build cache from disk with optional file locking.
 
@@ -201,6 +203,9 @@ class BuildCache(
         Args:
             cache_path: Path to cache file
             use_lock: Whether to use file locking (default: True)
+            site_root: Site root for canonical cache key normalization.
+                       Set eagerly to avoid a window where ``_cache_key``
+                       falls back to absolute paths.
 
         Returns:
             BuildCache instance (empty if file doesn't exist or is invalid)
@@ -208,7 +213,9 @@ class BuildCache(
         # Check both uncompressed and compressed paths
         compressed_path = cache_path.with_suffix(".json.zst")
         if not cache_path.exists() and not compressed_path.exists():
-            return cls()
+            cache = cls()
+            cache.site_root = site_root
+            return cache
 
         try:
             # Acquire shared lock for reading (allows concurrent reads)
@@ -216,9 +223,11 @@ class BuildCache(
                 from bengal.utils.io.file_lock import file_lock
 
                 with file_lock(cache_path, exclusive=False):
-                    return cls._load_from_file(cache_path)
+                    cache = cls._load_from_file(cache_path)
             else:
-                return cls._load_from_file(cache_path)
+                cache = cls._load_from_file(cache_path)
+            cache.site_root = site_root
+            return cache
 
         except Exception as e:
             from bengal.errors import ErrorCode
@@ -231,7 +240,9 @@ class BuildCache(
                 action="using_fresh_cache",
                 error_code=ErrorCode.A003.value,  # cache_read_error
             )
-            return cls()
+            cache = cls()
+            cache.site_root = site_root
+            return cache
 
     @classmethod
     def _load_from_file(cls, cache_path: Path) -> BuildCache:

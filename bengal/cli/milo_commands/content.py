@@ -27,7 +27,12 @@ def content_sources(
         cli.warning("No collections configured.")
         cli.info("To configure collections, create a collections.py file.")
         cli.info("Run 'bengal content collections-init' to get started.")
-        return None
+        return {
+            "status": "skipped",
+            "message": "No collections configured",
+            "sources": [],
+            "count": 0,
+        }
 
     items = []
     for name, config in collections.items():
@@ -79,7 +84,12 @@ def content_fetch(
 
     if not collections:
         cli.warning("No collections configured.")
-        return None
+        return {
+            "status": "skipped",
+            "message": "No collections configured",
+            "fetched": {},
+            "total": 0,
+        }
 
     remote_collections = {
         name: config
@@ -92,7 +102,12 @@ def content_fetch(
             cli.warning(f"Source '{filter_val}' not found or is not remote.")
         else:
             cli.info("No remote content sources configured.")
-        return None
+        return {
+            "status": "skipped",
+            "message": "No remote content sources",
+            "fetched": {},
+            "total": 0,
+        }
 
     from bengal.cache.paths import BengalPaths
     from bengal.content.sources.manager import ContentLayerManager
@@ -153,7 +168,12 @@ def content_collections(
     if not loaded:
         cli.warning("No collections defined")
         cli.info("Run 'bengal content collections-init' to create collections.py")
-        return None
+        return {
+            "status": "skipped",
+            "message": "No collections defined",
+            "collections": [],
+            "count": 0,
+        }
 
     for name, coll_config in loaded.items():
         items = [
@@ -204,13 +224,18 @@ def content_schemas(
     if not loaded:
         cli.warning("No collections defined")
         cli.info("Run 'bengal content collections-init' to create collections.py")
-        return None
+        return {"status": "skipped", "message": "No collections defined", "files": 0, "errors": 0}
 
     if collection_val:
         if collection_val not in loaded:
             cli.error(f"Collection '{collection_val}' not found")
             cli.info(f"Available: {', '.join(loaded.keys())}")
-            return None
+            return {
+                "status": "error",
+                "message": f"Collection '{collection_val}' not found",
+                "files": 0,
+                "errors": 0,
+            }
         loaded = {collection_val: loaded[collection_val]}
 
     total_files = 0

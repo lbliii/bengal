@@ -12,37 +12,71 @@ def build(
     no_parallel: Annotated[
         bool, Description("Force sequential processing (bypasses auto-detection)")
     ] = False,
-    incremental: Annotated[bool, Description("Incremental mode (uses cache if present)")] = False,
-    no_incremental: Annotated[bool, Description("Force full rebuild (ignore cache)")] = False,
+    incremental: Annotated[
+        bool,
+        Description(
+            "Force incremental build using cache (default: auto-detect based on cache existence)"
+        ),
+    ] = False,
+    no_incremental: Annotated[
+        bool, Description("Force full rebuild ignoring cache (default: auto-detect)")
+    ] = False,
     memory_optimized: Annotated[
         bool, Description("Streaming build for memory efficiency (5K+ pages)")
     ] = False,
-    environment: Annotated[str, Description("Environment: local, preview, production")] = "",
+    environment: Annotated[
+        str,
+        Description(
+            "Build environment: 'local' for dev defaults, 'preview' for staging, 'production' for live site"
+        ),
+    ] = "",
     profile: Annotated[str, Description("Build profile: writer, theme-dev, dev")] = "",
     perf_profile: Annotated[str, Description("Enable performance profiling, save to file")] = "",
     profile_templates: Annotated[bool, Description("Profile template rendering times")] = False,
     clean_output: Annotated[bool, Description("Delete output directory before building")] = False,
     theme_dev: Annotated[bool, Description("Use theme developer profile")] = False,
     dev: Annotated[bool, Description("Use developer profile with full observability")] = False,
-    verbose: Annotated[bool, Description("Show detailed build output")] = False,
+    verbose: Annotated[
+        bool, Description("Show per-file build details (incompatible with --quiet, --fast)")
+    ] = False,
     strict: Annotated[bool, Description("Fail on template errors (recommended for CI)")] = False,
     debug: Annotated[bool, Description("Show debug output and full tracebacks")] = False,
     traceback: Annotated[
-        str, Description("Traceback verbosity: full | compact | minimal | off")
+        str,
+        Description(
+            "Traceback verbosity: 'full' shows complete stack, 'compact' one-line per frame, 'minimal' exception only, 'off' suppresses"
+        ),
     ] = "",
     validate: Annotated[bool, Description("Validate templates before building")] = False,
-    assets_pipeline: Annotated[bool, Description("Enable Node-based assets pipeline")] = False,
-    no_assets_pipeline: Annotated[bool, Description("Disable Node-based assets pipeline")] = False,
-    config: Annotated[str, Description("Path to config file (default: bengal.toml)")] = "",
-    quiet: Annotated[bool, Description("Minimal output — only errors and summary")] = False,
-    fast: Annotated[bool, Description("Fast mode: quiet output, max speed")] = False,
-    full_output: Annotated[
-        bool, Description("Full traditional output instead of live progress")
+    assets_pipeline: Annotated[
+        bool,
+        Description(
+            "Force Node-based assets pipeline (default: auto-detect based on package.json)"
+        ),
     ] = False,
-    dashboard: Annotated[bool, Description("Launch interactive Textual dashboard")] = False,
-    explain: Annotated[bool, Description("Show incremental build decision breakdown")] = False,
-    explain_json: Annotated[bool, Description("Output --explain results as JSON")] = False,
-    dry_run: Annotated[bool, Description("Preview build without writing files")] = False,
+    no_assets_pipeline: Annotated[
+        bool, Description("Disable Node-based assets pipeline (default: auto-detect)")
+    ] = False,
+    config: Annotated[str, Description("Path to config file (default: bengal.toml)")] = "",
+    quiet: Annotated[bool, Description("Minimal output — only errors and final summary")] = False,
+    fast: Annotated[
+        bool, Description("Maximum speed: implies --quiet, disables live progress")
+    ] = False,
+    full_output: Annotated[
+        bool, Description("Traditional line-by-line output instead of live progress bar")
+    ] = False,
+    dashboard: Annotated[
+        bool, Description("Launch interactive TUI dashboard (incompatible with other output flags)")
+    ] = False,
+    explain: Annotated[
+        bool, Description("Show why each page was rebuilt or skipped during incremental build")
+    ] = False,
+    explain_json: Annotated[
+        bool, Description("Output --explain results as machine-readable JSON")
+    ] = False,
+    dry_run: Annotated[
+        bool, Description("Preview what would be built without writing files to disk")
+    ] = False,
     log_file: Annotated[str, Description("Write detailed logs to file")] = "",
     build_version: Annotated[str, Description("Build only a specific version (git mode)")] = "",
     all_versions: Annotated[bool, Description("Build all versions in parallel (git mode)")] = False,
@@ -88,13 +122,28 @@ def build(
 
     fast_val: bool | None = True if fast else None
 
-    # Apply fast mode
-    if fast:
-        quiet = True
+    cli = get_cli_output(quiet=quiet or fast, verbose=verbose)
 
-    cli = get_cli_output(quiet=quiet, verbose=verbose)
+    # Validate mutually exclusive flag combinations — check before fast
+    # sets quiet=True so the user sees the right error message.
+    if verbose and fast:
+        cli.error("--verbose and --fast cannot be used together (--fast implies --quiet)")
+        raise SystemExit(2)
 
-    # Validate mutually exclusive flag combinations
+    if dashboard:
+        conflicts = []
+        if quiet:
+            conflicts.append("--quiet")
+        if verbose:
+            conflicts.append("--verbose")
+        if fast:
+            conflicts.append("--fast")
+        if full_output:
+            conflicts.append("--full-output")
+        if conflicts:
+            cli.error(f"--dashboard cannot be used with {', '.join(conflicts)}")
+            raise SystemExit(2)
+
     if memory_optimized and perf_profile_path:
         cli.error("--memory-optimized and --perf-profile cannot be used together")
         raise SystemExit(2)
@@ -102,6 +151,10 @@ def build(
     if verbose and quiet:
         cli.error("--verbose and --quiet cannot be used together")
         raise SystemExit(2)
+
+    # Apply fast mode after validation
+    if fast:
+        quiet = True
 
     if dev and profile_val:
         cli.error("--dev is shorthand for --profile dev — use one or the other")

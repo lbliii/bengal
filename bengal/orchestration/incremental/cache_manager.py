@@ -125,8 +125,7 @@ class CacheManager:
                     logger.warning(
                         "cache_migration_failed", error=str(e), action="using_fresh_cache"
                     )
-            self.cache = BuildCache.load(cache_path)
-            self.cache.site_root = self.site.root_path
+            self.cache = BuildCache.load(cache_path, site_root=self.site.root_path)
             cache_exists = cache_path.exists()
             try:
                 file_count = len(self.cache.file_fingerprints)
@@ -140,8 +139,7 @@ class CacheManager:
                 cache_location=str(cache_path),
             )
         else:
-            self.cache = BuildCache()
-            self.cache.site_root = self.site.root_path
+            self.cache = BuildCache(site_root=self.site.root_path)
             logger.debug("cache_initialized", enabled=False)
 
         # Initialize CacheCoordinator for unified page-level invalidation
@@ -159,11 +157,19 @@ class CacheManager:
         effects_path = paths.state_dir / "effects.json"
         if enabled:
             self._effect_tracer = _EffectTracer.load(effects_path)
+            loaded_from_file = effects_path.exists()
+            effect_count = len(self._effect_tracer.effects)
             logger.debug(
                 "effect_tracer_initialized",
-                loaded_from_cache=effects_path.exists(),
-                effect_count=len(self._effect_tracer.effects),
+                loaded_from_cache=loaded_from_file,
+                effect_count=effect_count,
             )
+            if loaded_from_file and effect_count == 0:
+                logger.warning(
+                    "effect_tracer_empty_after_load",
+                    path=str(effects_path),
+                    hint="file may be corrupted or from a previous version — full rebuild recommended",
+                )
         else:
             self._effect_tracer = _EffectTracer()
             logger.debug("effect_tracer_initialized", enabled=False)

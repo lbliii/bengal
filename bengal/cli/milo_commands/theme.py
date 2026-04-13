@@ -336,7 +336,7 @@ def theme_test(
     else:
         cli.warning("No content provided.")
         cli.info("Usage: bengal theme test '<content>' or --file <path>")
-        return None
+        return {"status": "skipped", "message": "No content provided"}
 
     if validate_only:
         validation = sandbox.validate(content)
@@ -462,7 +462,7 @@ def theme_assets(
 
     if not watch_dirs:
         cli.warning("No assets directories found to watch.")
-        return None
+        return {"status": "skipped", "message": "No assets directories found to watch"}
 
     try:
         import watchfiles
@@ -483,4 +483,4 @@ def theme_assets(
         cli.blank()
         cli.warning("Stopped asset watcher.")
 
-    return None
+    return {"status": "ok", "message": "Asset watcher stopped"}

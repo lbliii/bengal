@@ -115,7 +115,7 @@ def debug_delta(
         delta_result = analyzer.compare_to_baseline()
         if not delta_result:
             cli.warning("No baseline found. Run with --save-baseline first.")
-            return None
+            return {"status": "skipped", "message": "No baseline found", "findings": []}
     else:
         delta_result = analyzer.compare_to_previous()
 
@@ -347,7 +347,7 @@ def debug_sandbox(
         cli.warning("No content provided")
         cli.info("Usage: bengal debug sandbox '<content>' or --file-path <path>")
         cli.info("       bengal debug sandbox --list-directives")
-        return None
+        return {"status": "skipped", "message": "No content provided"}
 
     if validate_only:
         validation = sandbox.validate(content)

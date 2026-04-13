@@ -85,10 +85,21 @@ class Effect:
         )
 
     def to_dict(self) -> dict[str, Any]:
-        """Serialize to JSON-compatible dict."""
+        """Serialize to JSON-compatible dict.
+
+        Dependencies are serialized as tagged dicts to preserve type info:
+        ``{"t": "p", "v": "content/page.md"}`` for Path,
+        ``{"t": "s", "v": "base.html"}`` for str (template name).
+        """
+        tagged_deps: list[dict[str, str]] = []
+        for d in sorted(self.depends_on, key=lambda x: (str(x), type(x).__name__)):
+            if isinstance(d, Path):
+                tagged_deps.append({"t": "p", "v": str(d)})
+            else:
+                tagged_deps.append({"t": "s", "v": d})
         return {
             "outputs": [str(p) for p in sorted(self.outputs)],
-            "depends_on": [str(d) for d in sorted(self.depends_on, key=str)],
+            "depends_on": tagged_deps,
             "invalidates": sorted(self.invalidates),
             "operation": self.operation,
             "metadata": self.metadata,
@@ -96,12 +107,35 @@ class Effect:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Effect:
-        """Deserialize from dict."""
+        """Deserialize from dict.
+
+        Handles both the current tagged format (``{"t": "p", "v": "..."}``
+        dicts) and legacy plain-string format for backward compatibility.
+        Legacy entries fall back to a ``/`` heuristic for one build cycle;
+        the next save writes the lossless tagged format.
+        """
+        raw_deps = data.get("depends_on", [])
+        deps: list[Path | str] = []
+        for d in raw_deps:
+            if isinstance(d, dict):
+                # Tagged format: lossless type recovery when the payload is valid.
+                dep_type = d.get("t")
+                dep_value = d.get("v")
+                if dep_type == "p" and isinstance(dep_value, str):
+                    deps.append(Path(dep_value))
+                elif dep_type == "s" and isinstance(dep_value, str):
+                    deps.append(dep_value)
+                elif isinstance(dep_value, str):
+                    # Malformed tagged entry: fall back to the legacy string heuristic.
+                    deps.append(
+                        Path(dep_value) if "/" in dep_value or "\\" in dep_value else dep_value
+                    )
+            elif isinstance(d, str):
+                # Legacy plain-string format: lossy heuristic (one cycle only)
+                deps.append(Path(d) if "/" in d or "\\" in d else d)
         return cls(
             outputs=frozenset(Path(p) for p in data.get("outputs", [])),
-            depends_on=frozenset(
-                Path(d) if "/" in d or "\\" in d else d for d in data.get("depends_on", [])
-            ),
+            depends_on=frozenset(deps),
             invalidates=frozenset(data.get("invalidates", [])),
             operation=data.get("operation", ""),
             metadata=data.get("metadata", {}),
@@ -115,8 +149,8 @@ class Effect:
         template_name: str,
         template_includes: frozenset[str],
         page_href: str,
-        cascade_sources: frozenset[Path] | None = None,
-        data_files: frozenset[Path] | None = None,
+        cascade_sources: frozenset[Path] = frozenset(),
+        data_files: frozenset[Path] = frozenset(),
     ) -> Effect:
         """
         Create effect for page rendering.
@@ -137,11 +171,8 @@ class Effect:
         """
         deps: set[Path | str] = {source_path, template_name}
         deps.update(template_includes)
-
-        if cascade_sources:
-            deps.update(cascade_sources)
-        if data_files:
-            deps.update(data_files)
+        deps.update(cascade_sources)
+        deps.update(data_files)
 
         return cls(
             outputs=frozenset({output_path}),

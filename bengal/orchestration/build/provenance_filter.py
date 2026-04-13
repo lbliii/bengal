@@ -161,8 +161,12 @@ def _detect_changed_templates(
                         "hash": current_hash,
                     },
                 )
-            except OSError:
-                pass
+            except OSError as e:
+                logger.debug(
+                    "template_fingerprint_update_failed",
+                    file=str(tpl_file),
+                    error=str(e),
+                )
 
     if changed:
         logger.debug(
@@ -583,15 +587,15 @@ def phase_incremental_filter_provenance(
             )
             cli.success(f"✓ Recovery succeeded: Found {len(pages_list)} pages")
 
-            # Check if provenance cache entries match the recovered pages
-            # If they match, we can keep the cache (no need to rebuild)
-            # If they don't match, clear cache to force rebuild
+            # Check if provenance cache entries match ALL recovered pages.
+            # If they match, we can keep the cache (no need to rebuild).
+            # If they don't match, clear cache to force rebuild.
+            # NOTE: We check every page, not a sample — a 10-page sample
+            # could miss stale entries for pages 11+, producing wrong output.
             provenance_cache._ensure_loaded()
             cache_matches = True
             if provenance_cache._index:
-                # Sample check: verify a few pages have matching cache entries
-                sample_pages = pages_list[: min(10, len(pages_list))]
-                for page in sample_pages:
+                for page in pages_list:
                     page_key = provenance_filter._get_page_key(page)
                     if page_key not in provenance_cache._index:
                         cache_matches = False
