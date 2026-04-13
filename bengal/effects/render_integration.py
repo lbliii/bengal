@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.effects.effect import Effect
 from bengal.effects.tracer import EffectTracer
-from bengal.effects.utils import frozenset_or_none
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike
@@ -162,8 +161,8 @@ class RenderEffectRecorder:
                 template_name=self._context.template_name,
                 template_includes=frozenset(self._context.template_includes),
                 page_href=self._context.page_href,
-                cascade_sources=frozenset_or_none(self._context.cascade_sources),
-                data_files=frozenset_or_none(self._context.data_files),
+                cascade_sources=frozenset(self._context.cascade_sources),
+                data_files=frozenset(self._context.data_files),
             )
 
             # Add extra deps

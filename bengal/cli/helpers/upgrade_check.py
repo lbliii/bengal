@@ -100,8 +100,12 @@ def save_cache(latest_version: str) -> None:
             "checked_at": datetime.now(UTC).isoformat(),
         }
         cache_path.write_text(json.dumps(data, indent=2))
-    except OSError:
-        pass
+    except OSError as e:
+        import logging
+
+        logging.getLogger("bengal.cli.upgrade").debug(
+            "upgrade_cache_write_failed: %s — %s", cache_path, e
+        )
 
 
 def fetch_latest_version() -> str | None:

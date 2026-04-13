@@ -28,7 +28,7 @@ def i18n_compile(
 
     if not localedir.exists():
         cli.warning(f"No i18n directory at {localedir}")
-        return None
+        return {"status": "skipped", "message": f"No i18n directory at {localedir}", "compiled": 0}
 
     locales = [loc.strip() for loc in locale.split(",") if loc.strip()] if locale else []
 
@@ -90,8 +90,12 @@ def _extract_keys_from_templates(root, config):
                     text = path.read_text(encoding="utf-8", errors="replace")
                     for m in _T_PATTERN.finditer(text):
                         keys.add(m.group(1))
-                except OSError:
-                    pass
+                except OSError as e:
+                    import logging
+
+                    logging.getLogger("bengal.cli.i18n").debug(
+                        "i18n_template_read_error: %s — %s", path, e
+                    )
     return keys
 
 
@@ -122,7 +126,7 @@ def i18n_extract(
 
     if not keys:
         cli.warning("No t() calls found in templates.")
-        return None
+        return {"status": "skipped", "message": "No t() calls found in templates", "keys": 0}
 
     out = Path(output_path)
     if not out.is_absolute():
@@ -177,7 +181,12 @@ def i18n_status(
     if not keys:
         cli.warning("No t() calls found in templates.")
         cli.info("Run 'bengal i18n extract' to generate .pot, then add locales.")
-        return None
+        return {
+            "status": "skipped",
+            "message": "No t() calls found in templates",
+            "locales": [],
+            "keys": 0,
+        }
 
     locales: list[str] = []
     i18n_cfg = raw.get("i18n") or {}
@@ -197,7 +206,12 @@ def i18n_status(
         cli.warning(
             "No locales found. Add i18n.languages in config or create i18n/{locale}/LC_MESSAGES/"
         )
-        return None
+        return {
+            "status": "skipped",
+            "message": "No locales found",
+            "locales": [],
+            "keys": len(keys),
+        }
 
     any_incomplete = False
     coverage_items = []
@@ -316,7 +330,7 @@ def i18n_sync(
     if not localedir.exists():
         cli.warning(f"No i18n directory at {localedir}")
         cli.info("Tip: Run 'bengal i18n init <locale>' to create locale directories.")
-        return None
+        return {"status": "skipped", "message": f"No i18n directory at {localedir}", "synced": 0}
 
     config_loader = UnifiedConfigLoader()
     try:
@@ -328,7 +342,7 @@ def i18n_sync(
     keys = _extract_keys_from_templates(root, raw)
     if not keys:
         cli.warning("No t() calls found in templates.")
-        return None
+        return {"status": "skipped", "message": "No t() calls found in templates", "synced": 0}
 
     cli.info(f"Found {len(keys)} keys in templates.")
 

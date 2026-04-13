@@ -54,7 +54,7 @@ def codemod(
 
     if not files_to_process:
         cli.warning("No matching files found.")
-        return None
+        return {"status": "skipped", "message": "No matching files found", "files_processed": 0}
 
     cli.info(f"Found {len(files_to_process)} files to process")
     cli.blank()

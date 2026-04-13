@@ -1189,8 +1189,8 @@ class DevServer:
                 with urlopen(Request(url), timeout=2) as resp:
                     if resp.status in (200, 304):
                         return True
-            except OSError:
-                pass
+            except OSError as e:
+                logger.debug("server_readiness_poll_failed", port=port, error=str(e))
             time.sleep(0.15)
         return False
 

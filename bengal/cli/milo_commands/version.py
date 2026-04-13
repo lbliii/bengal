@@ -24,12 +24,22 @@ def version_list(
     if not version_config or not version_config.enabled:
         cli.warning("Versioning is not enabled in this site.")
         cli.info("Add 'versioning.enabled: true' to your config to enable versioning.")
-        return None
+        return {
+            "status": "skipped",
+            "message": "Versioning is not enabled",
+            "versions": [],
+            "count": 0,
+        }
 
     if not version_config.versions:
         cli.warning("No versions configured.")
         cli.info("Add versions to your config or use 'bengal version create' to create one.")
-        return None
+        return {
+            "status": "skipped",
+            "message": "No versions configured",
+            "versions": [],
+            "count": 0,
+        }
 
     cli.header("Documentation Versions")
     cli.blank()

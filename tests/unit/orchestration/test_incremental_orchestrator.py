@@ -95,8 +95,10 @@ class TestIncrementalOrchestrator:
 
         cache = orchestrator.initialize(enabled=True)
 
-        # Should load existing cache from .bengal/cache.json
-        mock_load.assert_called_once_with(mock_site.paths.build_cache)
+        # Should load existing cache from .bengal/cache.json with site_root
+        mock_load.assert_called_once_with(
+            mock_site.paths.build_cache, site_root=mock_site.root_path
+        )
         assert cache is mock_cache
 
     def test_check_config_changed_no_cache(self, orchestrator):
