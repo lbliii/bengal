@@ -271,16 +271,6 @@ def phase_template_validation(
             # Validate all templates (syntax)
             errors = engine.validate_templates()
 
-            # Validate template context variables (catch typos like {{ page.tilte }})
-            from bengal.rendering.template_context_validation import (
-                context_errors_to_template_errors,
-                validate_template_contexts,
-            )
-
-            context_errors = validate_template_contexts(engine, orchestrator.site)
-            if context_errors:
-                errors.extend(context_errors_to_template_errors(context_errors))
-
             validation_time_ms = (time.time() - validation_start) * 1000
 
             # Add errors to build stats
