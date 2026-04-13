@@ -254,19 +254,24 @@ class DirectiveRendererMixin:
             if matches:
                 match = matches[0]
 
-        suggestion_text = f" — did you mean '{match}'?" if match else ""
-
         # Extract source location from page context if available
         source_hint = ""
         page = self._page_context
         if page and hasattr(page, "source_path"):
             source_hint = f" in {page.source_path}"
 
+        extra: dict[str, Any] = {"directive": node.name}
+        if match:
+            extra["suggestion"] = f"Did you mean '{match}'?"
+        else:
+            extra["hint"] = "Check spelling or register a custom directive for this name"
+        source = getattr(page, "source_path", None) if page else None
+        if source:
+            extra["source"] = source
+
         logger.warning(
-            f'Unknown directive "{node.name}"{source_hint}{suggestion_text}',
-            directive=node.name,
-            suggestion=match,
-            source=getattr(page, "source_path", None) if page else None,
+            f'Unknown directive "{node.name}"{source_hint}',
+            **extra,
         )
 
     def _directive_ast_cache_key(self: HtmlRendererProtocol, node: Directive) -> str:

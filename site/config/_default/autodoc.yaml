@@ -59,8 +59,8 @@ autodoc:
   # CLI Documentation
   cli:
     enabled: true
-    app_module: "bengal.cli:main"
-    framework: click
+    app_module: "bengal.cli:cli"
+    framework: milo
 
     # Output prefix for CLI docs
     # This creates the section at /cli/...

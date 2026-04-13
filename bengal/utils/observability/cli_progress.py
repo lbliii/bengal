@@ -189,6 +189,10 @@ class LiveProgressManager:
         # Lock protecting phase state mutations.
         self._lock = threading.Lock()
 
+        # Throttle live rendering to avoid excessive redraws.
+        self._last_render_time: float = 0.0
+        self._render_interval: float = 0.1  # seconds
+
         # Track last printed state for fallback
         self._last_fallback_phase: str | None = None
 
@@ -196,18 +200,32 @@ class LiveProgressManager:
         """
         Start the progress display.
 
+        When live mode is active, defers logger console output so that
+        warnings don't corrupt ANSI cursor control.  Deferred lines are
+        flushed when ``stop()`` is called.
+
         Returns:
             Self for method chaining.
         """
+        if self.use_live:
+            from bengal.utils.observability.logger import defer_console_output
+
+            defer_console_output(True)
         return self
 
     def stop(self) -> None:
-        """Stop the progress display."""
+        """Stop the progress display and flush any deferred warnings."""
         if self._prev_frame_lines > 0:
             # Ensure the cursor is below the last rendered frame.
             sys.stdout.write("\n")
             sys.stdout.flush()
             self._prev_frame_lines = 0
+
+        # Only flush deferred output if this instance enabled deferral.
+        if self.use_live:
+            from bengal.utils.observability.logger import flush_deferred_output
+
+            flush_deferred_output()
 
     def __enter__(self) -> LiveProgressManager:
         """Enter context manager."""
@@ -285,6 +303,12 @@ class LiveProgressManager:
             if phase.status == PhaseStatus.RUNNING and phase.start_time:
                 phase.elapsed_ms = (time.time() - phase.start_time) * 1000
 
+        # Throttled live render so the progress bar updates in place
+        now = time.time()
+        if self.use_live and now - self._last_render_time >= self._render_interval:
+            self._last_render_time = now
+            self._render_live()
+
     def complete_phase(self, phase_id: str, elapsed_ms: float | None = None) -> None:
         """
         Mark phase as complete.
@@ -358,7 +382,21 @@ class LiveProgressManager:
         else:
             overall = "running"
 
-        progress = completed / total if total > 0 else 0.0
+        # Use per-item progress from the running phase when available,
+        # otherwise fall back to phase-count ratio.
+        progress: float
+        running_phase = next(
+            (
+                self.phases[pid]
+                for pid in self.phase_order
+                if self.phases[pid].status == PhaseStatus.RUNNING
+            ),
+            None,
+        )
+        if running_phase and running_phase.total and running_phase.total > 0:
+            progress = running_phase.current / running_phase.total
+        else:
+            progress = completed / total if total > 0 else 0.0
 
         return {
             "status": overall,
@@ -367,25 +405,86 @@ class LiveProgressManager:
             "phases": phases,
         }
 
-    def _render_live(self) -> None:
-        """Render progress with kida template and ANSI cursor control."""
-        if not self._render_fn:
-            return
+    def _format_time(self, seconds: float) -> str:
+        """Format seconds as MM:SS.CC."""
+        m = int(seconds // 60)
+        s = int(seconds % 60)
+        c = int((seconds * 100) % 100)
+        return f"{m:02d}:{s:02d}.{c:02d}"
 
-        state = self._build_state()
-        try:
-            frame = self._render_fn("build_progress.kida", state=state).strip("\n")
-        except Exception:
-            return  # Silently fall back if template rendering fails
+    def _render_frame(self, state: dict[str, Any]) -> str:
+        """Render progress frame, using template with Python fallback."""
+        if self._render_fn:
+            try:
+                return self._render_fn("build_progress.kida", state=state).strip("\n")
+            except Exception:
+                pass
+
+        import os
+
+        use_color = not os.environ.get("NO_COLOR")
+
+        # ANSI helpers — collapse to empty strings when NO_COLOR is set.
+        _R = "\033[0m" if use_color else ""
+        _B = "\033[1m" if use_color else ""
+        _D = "\033[2m" if use_color else ""
+        _GRN = "\033[32m" if use_color else ""
+        _CYN = "\033[36m" if use_color else ""
+        _BCYN = "\033[1;36m" if use_color else ""
+        _BRED = "\033[1;31m" if use_color else ""
+        _BGRN = "\033[1;32m" if use_color else ""
+
+        # Python fallback matching milo's pipeline_progress format
+        lines: list[str] = []
+        for phase in state["phases"]:
+            name = phase["name"]
+            pad = " " * max(16 - len(name), 1)
+            match phase["status"]:
+                case "completed":
+                    lines.append(
+                        f"  {_GRN}✓{_R} {_B}{name}{_R}{pad}{_D}{self._format_time(phase['elapsed'])}{_R}"
+                    )
+                case "running":
+                    lines.append(f"  {_BCYN}●{_R} {_BCYN}{name}{_R}{pad}{_D}...{_R}")
+                case "failed":
+                    lines.append(
+                        f"  {_BRED}✗{_R} {_BRED}{name}{_R}{pad}{_D}{phase.get('error', '')}{_R}"
+                    )
+                case _:
+                    lines.append(f"  {_D}· {name}{_R}")
+
+        pct = max(0, min(int(state["progress"] * 100), 100))
+        filled = max(0, min(pct // 2, 50))
+        match state["status"]:
+            case "running":
+                bar = "█" * filled + "░" * (50 - filled)
+                lines.append(f"  {_CYN}{bar}{_R}  {pct}%")
+            case "completed":
+                bar = "█" * 50
+                lines.append(
+                    f"  {_GRN}{bar}{_R}  {_BGRN}done{_R} {_D}{self._format_time(state['elapsed'])}{_R}"
+                )
+            case "failed":
+                lines.append(f"  {_BRED}pipeline failed{_R}")
+
+        return "\n".join(lines)
+
+    def _render_live(self) -> None:
+        """Render progress with ANSI cursor control for in-place updates."""
+        with self._lock:
+            state = self._build_state()
+        frame = self._render_frame(state)
 
         lines = frame.split("\n")
 
-        # Move cursor up to overwrite previous frame
+        # Move cursor up to overwrite previous frame.
+        # Use \033[J (erase below) to clean up any warning lines that
+        # were printed to stdout between frames.
         if self._prev_frame_lines > 0:
-            sys.stdout.write(f"\033[{self._prev_frame_lines}A")
+            sys.stdout.write(f"\033[{self._prev_frame_lines}A\033[J")
 
         for line in lines:
-            sys.stdout.write(f"\033[2K{line}\n")
+            sys.stdout.write(f"{line}\n")
         sys.stdout.flush()
 
         self._prev_frame_lines = len(lines)
@@ -398,7 +497,7 @@ class LiveProgressManager:
         in an interactive terminal, otherwise prints traditional
         sequential lines showing phase starts and completions.
         """
-        if self.use_live and self._render_fn:
+        if self.use_live:
             self._render_live()
             return
 

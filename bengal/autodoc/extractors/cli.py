@@ -1,7 +1,8 @@
 """
 CLI documentation extractor for autodoc system.
 
-Extracts documentation from command-line applications built with Click, argparse, or Typer.
+Extracts documentation from command-line applications built with
+Click, argparse, Typer, or milo.
 """
 
 from __future__ import annotations
@@ -9,8 +10,6 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 from typing import Any, override
-
-import click
 
 from bengal.autodoc.base import DocElement, Extractor
 from bengal.autodoc.models import CLICommandMetadata, CLIGroupMetadata, CLIOptionMetadata
@@ -45,6 +44,8 @@ def _is_sentinel_value(value: Any) -> bool:
         return True
 
     # Check if it's Click's actual _missing sentinel
+    import click
+
     return (
         hasattr(click, "core") and hasattr(click.core, "_missing") and value is click.core._missing
     )
@@ -72,20 +73,21 @@ def _format_default_value(value: Any) -> str | None:
 
 class CLIExtractor(Extractor):
     """
-    Extract CLI documentation from Click/argparse/typer applications.
+    Extract CLI documentation from Click/argparse/typer/milo applications.
 
     This extractor introspects CLI frameworks to build comprehensive documentation
     for commands, options, arguments, and their relationships.
 
-    Currently supported frameworks:
+    Supported frameworks:
     - Click (full support)
+    - milo (full support)
     - argparse (planned)
     - Typer (planned)
 
     Example:
-            >>> from bengal.cli import main
-            >>> extractor = CLIExtractor(framework='click')
-            >>> elements = extractor.extract(main)
+            >>> from bengal.cli import cli
+            >>> extractor = CLIExtractor(framework='milo')
+            >>> elements = extractor.extract(cli)
             >>> # Returns list of DocElements for all commands
 
     """
@@ -95,18 +97,18 @@ class CLIExtractor(Extractor):
         Initialize CLI extractor.
 
         Args:
-            framework: CLI framework to extract from ('click', 'argparse', 'typer')
+            framework: CLI framework to extract from ('click', 'argparse', 'typer', 'milo')
             include_hidden: Include hidden commands (default: False)
         """
         self.framework = framework
         self.include_hidden = include_hidden
 
-        if framework not in ("click", "argparse", "typer"):
+        if framework not in ("click", "argparse", "typer", "milo"):
             from bengal.errors import BengalConfigError, ErrorCode
 
             raise BengalConfigError(
-                f"Unsupported framework: {framework}. Use 'click', 'argparse', or 'typer'",
-                suggestion="Set framework to 'click', 'argparse', or 'typer'",
+                f"Unsupported framework: {framework}. Use 'click', 'argparse', 'typer', or 'milo'",
+                suggestion="Set framework to 'click', 'argparse', 'typer', or 'milo'",
                 code=ErrorCode.C003,
             )
 
@@ -120,6 +122,7 @@ class CLIExtractor(Extractor):
                 - For Click: click.Group or click.Command
                 - For argparse: ArgumentParser instance
                 - For Typer: Typer app instance
+                - For milo: milo.commands.CLI instance
 
         Returns:
             List of DocElements representing the CLI structure
@@ -133,15 +136,17 @@ class CLIExtractor(Extractor):
             return self._extract_from_argparse(source)
         if self.framework == "typer":
             return self._extract_from_typer(source)
+        if self.framework == "milo":
+            return self._extract_from_milo(source)
         from bengal.errors import BengalConfigError, ErrorCode
 
         raise BengalConfigError(
             f"Unknown framework: {self.framework}",
-            suggestion="Set framework to 'click', 'argparse', or 'typer'",
+            suggestion="Set framework to 'click', 'argparse', 'typer', or 'milo'",
             code=ErrorCode.C003,
         )
 
-    def _extract_from_click(self, cli: click.Group) -> list[DocElement]:
+    def _extract_from_click(self, cli: Any) -> list[DocElement]:
         """
         Extract documentation from Click command group.
 
@@ -178,9 +183,7 @@ class CLIExtractor(Extractor):
 
         return elements
 
-    def _extract_click_group(
-        self, group: click.Group, parent_name: str | None = None
-    ) -> DocElement:
+    def _extract_click_group(self, group: Any, parent_name: str | None = None) -> DocElement:
         """
         Extract Click command group documentation.
 
@@ -211,6 +214,8 @@ class CLIExtractor(Extractor):
         # Build children (subcommands)
         # Use list_commands + get_command to support lazy-loaded groups (e.g. Bengal CLI).
         # group.commands is empty for lazy groups that defer loading until invocation.
+        import click
+
         children = []
         seen_command_ids: set[int] = set()
         if isinstance(group, click.Group):
@@ -273,9 +278,7 @@ class CLIExtractor(Extractor):
             deprecated=None,
         )
 
-    def _extract_click_command(
-        self, cmd: click.Command, parent_name: str | None = None
-    ) -> DocElement:
+    def _extract_click_command(self, cmd: Any, parent_name: str | None = None) -> DocElement:
         """
         Extract Click command documentation.
 
@@ -300,6 +303,8 @@ class CLIExtractor(Extractor):
                 pass
 
         # Extract options and arguments
+        import click
+
         options = []
         arguments = []
 
@@ -364,7 +369,7 @@ class CLIExtractor(Extractor):
             deprecated=deprecated,
         )
 
-    def _extract_click_parameter(self, param: click.Parameter, parent_name: str) -> DocElement:
+    def _extract_click_parameter(self, param: Any, parent_name: str) -> DocElement:
         """
         Extract Click parameter (option or argument) documentation.
 
@@ -376,6 +381,8 @@ class CLIExtractor(Extractor):
             DocElement representing the parameter
         """
         # Determine element type
+        import click
+
         if isinstance(param, click.Argument):
             element_type = "argument"
         elif isinstance(param, click.Option):
@@ -422,7 +429,7 @@ class CLIExtractor(Extractor):
         # Build typed metadata
         typed_meta = CLIOptionMetadata(
             name=param.name or "",
-            param_type="argument" if isinstance(param, click.Argument) else "option",
+            param_type="argument" if element_type == "argument" else "option",
             type_name=type_name.upper() if type_name else "STRING",
             required=param.required,
             default=_format_default_value(param.default),
@@ -514,6 +521,378 @@ class CLIExtractor(Extractor):
             examples.append("\n".join(current_example))
 
         return examples
+
+    # ------------------------------------------------------------------
+    # Milo extraction
+    # ------------------------------------------------------------------
+
+    def _extract_from_milo(self, cli: Any) -> list[DocElement]:
+        """
+        Extract documentation from a milo CLI instance.
+
+        Args:
+            cli: milo.commands.CLI instance
+
+        Returns:
+            Flat list of DocElements (root group + all commands/groups)
+        """
+        elements: list[DocElement] = []
+
+        root = self._extract_milo_group_root(cli)
+        elements.append(root)
+
+        # Flatten children into top-level list for individual pages
+        def flatten(children: list[DocElement]) -> None:
+            for child in children:
+                elements.append(child)
+                if child.element_type == "command-group" and child.children:
+                    flatten(child.children)
+
+        flatten(root.children)
+        return elements
+
+    def _extract_milo_group_root(self, cli: Any) -> DocElement:
+        """
+        Extract root CLI object as a command-group DocElement.
+
+        Args:
+            cli: milo.commands.CLI instance
+
+        Returns:
+            Root DocElement with children for all commands and groups
+        """
+        name = cli.name or "cli"
+
+        children: list[DocElement] = []
+
+        # Extract top-level commands
+        for cmd_name in sorted(cli._commands):
+            cmd_def = cli._commands[cmd_name]
+            if getattr(cmd_def, "hidden", False) and not self.include_hidden:
+                continue
+            children.append(self._extract_milo_command(cmd_def, name))
+
+        # Extract groups (recursive)
+        for group_name in sorted(cli._groups):
+            group = cli._groups[group_name]
+            if getattr(group, "hidden", False) and not self.include_hidden:
+                continue
+            children.append(self._extract_milo_group(group, name))
+
+        typed_meta = CLIGroupMetadata(
+            callback=None,
+            command_count=len(children),
+        )
+
+        return DocElement(
+            name=name,
+            qualified_name=name,
+            description=sanitize_text(cli.description),
+            element_type="command-group",
+            source_file=None,
+            line_number=None,
+            metadata={
+                "callback": None,
+                "command_count": len(children),
+                "version": getattr(cli, "version", ""),
+            },
+            typed_metadata=typed_meta,
+            children=children,
+            examples=[],
+            see_also=[],
+            deprecated=None,
+        )
+
+    def _extract_milo_group(self, group: Any, parent_name: str) -> DocElement:
+        """
+        Extract a milo Group as a command-group DocElement (recursive).
+
+        Args:
+            group: milo.groups.Group instance
+            parent_name: Parent qualified name
+
+        Returns:
+            DocElement for the group with its children
+        """
+        name = group.name
+        qualified_name = f"{parent_name}.{name}"
+
+        children: list[DocElement] = []
+
+        for cmd_name in sorted(group._commands):
+            cmd_def = group._commands[cmd_name]
+            if getattr(cmd_def, "hidden", False) and not self.include_hidden:
+                continue
+            children.append(self._extract_milo_command(cmd_def, qualified_name))
+
+        for sub_name in sorted(group._groups):
+            sub = group._groups[sub_name]
+            if getattr(sub, "hidden", False) and not self.include_hidden:
+                continue
+            children.append(self._extract_milo_group(sub, qualified_name))
+
+        typed_meta = CLIGroupMetadata(
+            callback=None,
+            command_count=len(children),
+        )
+
+        return DocElement(
+            name=name,
+            qualified_name=qualified_name,
+            description=sanitize_text(group.description),
+            element_type="command-group",
+            source_file=None,
+            line_number=None,
+            metadata={
+                "callback": None,
+                "command_count": len(children),
+            },
+            typed_metadata=typed_meta,
+            children=children,
+            examples=[],
+            see_also=[],
+            deprecated=None,
+        )
+
+    def _extract_milo_command(self, cmd_def: Any, parent_name: str) -> DocElement:
+        """
+        Extract a milo CommandDef or LazyCommandDef as a command DocElement.
+
+        For LazyCommandDef, tries pre-computed _schema first to avoid
+        importing the handler module. Falls back to resolve(), and if
+        that fails, creates the element with description only.
+
+        Args:
+            cmd_def: CommandDef or LazyCommandDef instance
+            parent_name: Parent qualified name
+
+        Returns:
+            DocElement for the command
+        """
+        name = cmd_def.name
+        qualified_name = f"{parent_name}.{name}"
+        description = sanitize_text(cmd_def.description)
+
+        # Get schema — may require resolving lazy commands
+        schema: dict[str, Any] = {}
+        source_file = None
+        line_number = None
+
+        # Check for LazyCommandDef by attribute (avoid importing milo types)
+        is_lazy = hasattr(cmd_def, "import_path")
+
+        if is_lazy:
+            # Try pre-computed schema first (no import needed).
+            # Use getattr for safety in case internals change.
+            cached_schema = getattr(cmd_def, "_schema", None)
+            if cached_schema is not None:
+                schema = cached_schema
+            else:
+                try:
+                    resolved = cmd_def.resolve()
+                    schema = resolved.schema
+                    source_file, line_number = self._get_handler_source(resolved.handler)
+                except Exception as e:
+                    logger.debug(
+                        "cli_extractor_lazy_resolve_failed",
+                        command=name,
+                        import_path=cmd_def.import_path,
+                        error=str(e),
+                    )
+        else:
+            # Regular CommandDef — schema and handler always available
+            schema = cmd_def.schema
+            source_file, line_number = self._get_handler_source(cmd_def.handler)
+
+        # Extract parameters from JSON Schema properties
+        options: list[DocElement] = []
+        properties = schema.get("properties", {})
+        required_params = set(schema.get("required", []))
+
+        for prop_name, prop_schema in properties.items():
+            options.append(
+                self._extract_milo_parameter(
+                    prop_name, prop_schema, prop_name in required_params, qualified_name
+                )
+            )
+
+        # Extract examples from command def
+        examples: list[str] = []
+        for ex in getattr(cmd_def, "examples", ()):
+            if isinstance(ex, dict):
+                # milo examples are dicts with 'command' and optional 'description'
+                cmd_str = ex.get("command", "")
+                desc = ex.get("description", "")
+                if desc and cmd_str:
+                    examples.append(f"# {desc}\n{cmd_str}")
+                elif cmd_str:
+                    examples.append(cmd_str)
+            elif isinstance(ex, str):
+                examples.append(ex)
+
+        typed_meta = CLICommandMetadata(
+            callback=None,
+            option_count=len(options),
+            argument_count=0,  # milo uses keyword args only
+            is_group=False,
+            is_hidden=getattr(cmd_def, "hidden", False),
+        )
+
+        return DocElement(
+            name=name,
+            qualified_name=qualified_name,
+            description=description,
+            element_type="command",
+            source_file=source_file,
+            line_number=line_number,
+            metadata={
+                "callback": None,
+                "option_count": len(options),
+                "argument_count": 0,
+            },
+            typed_metadata=typed_meta,
+            children=options,
+            examples=examples,
+            see_also=[],
+            deprecated=None,
+        )
+
+    def _extract_milo_parameter(
+        self,
+        name: str,
+        prop_schema: dict[str, Any],
+        required: bool,
+        parent_name: str,
+    ) -> DocElement:
+        """
+        Extract a parameter from a JSON Schema property.
+
+        Args:
+            name: Parameter name
+            prop_schema: JSON Schema property definition
+            required: Whether the parameter is required
+            parent_name: Parent command qualified name
+
+        Returns:
+            DocElement for the option
+        """
+        type_name = prop_schema.get("type", "string").upper()
+        description = sanitize_text(prop_schema.get("description"))
+        default = prop_schema.get("default")
+        default_str = str(default) if default is not None else None
+
+        # Detect boolean flags
+        is_flag = type_name == "BOOLEAN"
+
+        typed_meta = CLIOptionMetadata(
+            name=name,
+            param_type="option",
+            type_name=type_name,
+            required=required,
+            default=default_str,
+            multiple=False,
+            is_flag=is_flag,
+            count=False,
+            opts=(f"--{name.replace('_', '-')}",),
+            envvar=None,
+            help_text=description or "",
+        )
+
+        return DocElement(
+            name=name,
+            qualified_name=f"{parent_name}.{name}",
+            description=description,
+            element_type="option",
+            source_file=None,
+            line_number=None,
+            metadata={
+                "param_type": "option",
+                "type": type_name,
+                "required": required,
+                "default": default_str,
+                "multiple": False,
+                "is_flag": is_flag,
+                "count": False,
+                "opts": [f"--{name.replace('_', '-')}"],
+            },
+            typed_metadata=typed_meta,
+            children=[],
+            examples=[],
+            see_also=[],
+            deprecated=None,
+        )
+
+    def _extract_milo_global_option(self, opt: Any, parent_name: str) -> DocElement:
+        """
+        Extract a milo GlobalOption as an option DocElement.
+
+        Args:
+            opt: milo GlobalOption instance
+            parent_name: Root CLI qualified name
+
+        Returns:
+            DocElement for the global option
+        """
+        type_name = getattr(opt.option_type, "__name__", "str").upper()
+        default_str = str(opt.default) if opt.default is not None else None
+        opts: list[str] = [f"--{opt.name.replace('_', '-')}"]
+        if opt.short:
+            opts.append(opt.short)
+
+        typed_meta = CLIOptionMetadata(
+            name=opt.name,
+            param_type="option",
+            type_name=type_name,
+            required=False,
+            default=default_str,
+            multiple=False,
+            is_flag=opt.is_flag,
+            count=False,
+            opts=tuple(opts),
+            envvar=None,
+            help_text=opt.description or "",
+        )
+
+        return DocElement(
+            name=opt.name,
+            qualified_name=f"{parent_name}.{opt.name}",
+            description=sanitize_text(opt.description),
+            element_type="option",
+            source_file=None,
+            line_number=None,
+            metadata={
+                "param_type": "option",
+                "source": "global",
+                "type": type_name,
+                "required": False,
+                "default": default_str,
+                "is_flag": opt.is_flag,
+                "opts": opts,
+            },
+            typed_metadata=typed_meta,
+            children=[],
+            examples=[],
+            see_also=[],
+            deprecated=None,
+        )
+
+    @staticmethod
+    def _get_handler_source(handler: Any) -> tuple[Path | None, int | None]:
+        """
+        Extract source file and line number from a handler function.
+
+        Args:
+            handler: Callable to inspect
+
+        Returns:
+            (source_file, line_number) tuple; either may be None
+        """
+        try:
+            source_file = Path(inspect.getfile(handler))
+            line_number = inspect.getsourcelines(handler)[1]
+            return source_file, line_number
+        except TypeError, OSError:
+            return None, None
 
     def _extract_from_argparse(self, parser: Any) -> list[DocElement]:
         """
