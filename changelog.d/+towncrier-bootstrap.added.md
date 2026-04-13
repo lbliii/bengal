@@ -1,1 +1,0 @@
-Adopt [Towncrier](https://towncrier.readthedocs.io/) for release notes: add `changelog.d/` fragments, `poe changelog` / `poe changelog-draft`, and rename the package changelog to `CHANGELOG.md` (aligned with the b-stack strategy).
