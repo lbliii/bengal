@@ -61,7 +61,13 @@ def fix(
 
     if not fixes:
         cli.success("No fixes available - all checks passed!")
-        return None
+        return {
+            "status": "ok",
+            "message": "No fixes needed",
+            "applied": 0,
+            "failed": 0,
+            "skipped": 0,
+        }
 
     safe_fixes = [f for f in fixes if f.safety == FixSafety.SAFE]
     confirm_fixes = [f for f in fixes if f.safety == FixSafety.CONFIRM]
@@ -108,7 +114,15 @@ def fix(
     if dry_run:
         cli.blank()
         cli.info("Dry run mode - no changes made")
-        return None
+        return {
+            "status": "ok",
+            "message": "Dry run complete",
+            "dry_run": True,
+            "fixes_available": len(fixes),
+            "safe": len(safe_fixes),
+            "confirm": len(confirm_fixes),
+            "unsafe": len(unsafe_fixes),
+        }
 
     cli.blank()
     fixes_to_apply = safe_fixes.copy()
@@ -122,7 +136,13 @@ def fix(
 
     if not fixes_to_apply:
         cli.info("No fixes to apply")
-        return None
+        return {
+            "status": "skipped",
+            "message": "No fixes to apply",
+            "applied": 0,
+            "failed": 0,
+            "skipped": 0,
+        }
 
     cli.info(f"Applying {len(fixes_to_apply)} fix(es)...")
     results = fixer.apply_fixes(fixes_to_apply)
@@ -149,6 +169,10 @@ def fix(
         cli.info(report_after.format_console(verbose=False, show_suggestions=False))
 
     return {
+        "status": "ok" if results["failed"] == 0 else "error",
+        "message": "All fixes applied"
+        if results["failed"] == 0
+        else f"{results['failed']} fix(es) failed",
         "applied": results["applied"],
         "failed": results["failed"],
         "skipped": results["skipped"],

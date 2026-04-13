@@ -23,8 +23,11 @@ True
 
 from __future__ import annotations
 
+import logging
 from dataclasses import MISSING, dataclass, fields
 from typing import Any, ClassVar, Self, get_type_hints
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,6 +78,26 @@ class DirectiveOptions:
         """
         hints = get_type_hints(cls)
         kwargs: dict[str, Any] = {}
+
+        # Detect unknown option keys and warn with suggestions
+        known_names = {f.name for f in fields(cls) if not f.name.startswith("_")}
+        # Include alias sources (e.g., "class" -> "class_")
+        alias_sources = set(cls._aliases.keys())
+        accepted_keys = known_names | alias_sources
+        for key in raw:
+            if key not in accepted_keys:
+                from bengal.errors.utils import find_close_matches
+
+                # Check against both field names and alias sources
+                candidates = known_names | alias_sources
+                matches = find_close_matches(key, candidates, n=1, cutoff=0.6)
+                suggestion = f" — did you mean '{matches[0]}'?" if matches else ""
+                _logger.warning(
+                    "Unknown option '%s' for %s%s",
+                    key,
+                    cls.__name__,
+                    suggestion,
+                )
 
         for field in fields(cls):
             # Skip private/internal fields

@@ -131,6 +131,9 @@ class ProvenanceFilter:
         # Observability: mtime short-circuit hits (reset each filter())
         self._mtime_short_circuit_hits: int = 0
 
+        # Deduplicate cascade source warnings (one per path per build)
+        self._warned_cascade_paths: set[Path] = set()
+
     def filter(
         self,
         pages: Sequence[PageLike],
@@ -487,8 +490,23 @@ class ProvenanceFilter:
                     try:
                         if index_path.exists():
                             sources.append(index_path)
+                        elif index_path not in self._warned_cascade_paths:
+                            self._warned_cascade_paths.add(index_path)
+                            logger.warning(
+                                "cascade_source_missing",
+                                index_path=str(index_path),
+                                page=str(getattr(page, "source_path", "unknown")),
+                                reason="Cascade source file not found — descendant pages may not rebuild correctly",
+                            )
                     except OSError:
-                        pass  # Skip if file system error
+                        if index_path not in self._warned_cascade_paths:
+                            self._warned_cascade_paths.add(index_path)
+                            logger.warning(
+                                "cascade_source_inaccessible",
+                                index_path=str(index_path),
+                                page=str(getattr(page, "source_path", "unknown")),
+                                reason="File system error accessing cascade source",
+                            )
 
             # Move to parent section
             parent = getattr(section, "parent", None)

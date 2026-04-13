@@ -146,7 +146,9 @@ class DirectiveRendererMixin:
             sb.append(result)
             return
 
-        # Default rendering when no handler registered
+        # Default rendering when no handler registered — warn about unknown directive
+        self._warn_unknown_directive(node)
+        result_sb.append(f'<!-- bengal: unknown directive "{escape_html(node.name)}" -->')
         result_sb.append(f'<div class="directive directive-{escape_attr(node.name)}">')
         if node.title:
             result_sb.append(f'<p class="directive-title">{escape_html(node.title)}</p>')
@@ -234,6 +236,38 @@ class DirectiveRendererMixin:
                 error=str(e),
             )
             return None
+
+    def _warn_unknown_directive(self: HtmlRendererProtocol, node: Directive) -> None:
+        """Emit a warning when an unregistered directive name is encountered.
+
+        Includes fuzzy-match suggestions if a close match exists in the registry.
+        """
+        from bengal.errors.utils import find_close_matches
+
+        registered_names: frozenset[str] = frozenset()
+        if self._directive_registry:
+            registered_names = self._directive_registry.names
+
+        match: str | None = None
+        if registered_names:
+            matches = find_close_matches(node.name, registered_names, n=1, cutoff=0.6)
+            if matches:
+                match = matches[0]
+
+        suggestion_text = f" — did you mean '{match}'?" if match else ""
+
+        # Extract source location from page context if available
+        source_hint = ""
+        page = self._page_context
+        if page and hasattr(page, "source_path"):
+            source_hint = f" in {page.source_path}"
+
+        logger.warning(
+            f'Unknown directive "{node.name}"{source_hint}{suggestion_text}',
+            directive=node.name,
+            suggestion=match,
+            source=getattr(page, "source_path", None) if page else None,
+        )
 
     def _directive_ast_cache_key(self: HtmlRendererProtocol, node: Directive) -> str:
         """Generate cache key from directive AST structure without rendering.

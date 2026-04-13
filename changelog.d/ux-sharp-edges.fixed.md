@@ -1,0 +1,1 @@
+Surface silent failures across directives, incremental builds, and CLI: unknown directives now warn with fuzzy-match suggestions, contradictory CLI flags fail fast, silent full-rebuild triggers log reasons, and all CLI commands return structured dicts.

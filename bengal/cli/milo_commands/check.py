@@ -80,7 +80,7 @@ def check(
 
     if templates or templates_context:
         _validate_templates(site, templates_pattern_val, fix, cli, templates, templates_context)
-        return None
+        return {"status": "ok", "message": "Template validation complete"}
 
     context: list[Path] | None = None
     cache = None
@@ -98,7 +98,12 @@ def check(
 
         if not context:
             cli.info("No changed files found - all files are up to date")
-            return None
+            return {
+                "status": "skipped",
+                "message": "No changed files found",
+                "errors": 0,
+                "warnings": 0,
+            }
         cli.info(f"Found {len(context)} changed file(s)")
 
     if (incremental or changed) and cache is None:
@@ -130,7 +135,7 @@ def check(
             incremental=incremental or changed,
             cli=cli,
         )
-        return None
+        return {"status": "ok", "message": "Watch mode ended"}
 
     errors = report.total_errors if hasattr(report, "total_errors") else 0
     warnings = report.total_warnings if hasattr(report, "total_warnings") else 0
@@ -143,7 +148,15 @@ def check(
     else:
         cli.success("Validation passed - no issues found")
 
-    return {"errors": errors, "warnings": warnings, "passed": not report.has_errors()}
+    return {
+        "status": "ok" if not report.has_errors() else "error",
+        "message": "Validation passed"
+        if not report.has_errors()
+        else f"Validation failed: {errors} error(s)",
+        "errors": errors,
+        "warnings": warnings,
+        "passed": not report.has_errors(),
+    }
 
 
 def _run_watch_mode(site, build_profile, verbose, suggestions, incremental, cli):
