@@ -1,0 +1,1 @@
+Harden CLI user-facing edges: route site-loading errors through existing error infrastructure, make required args enforced by argparse, remove double-negative boolean flags in serve, add traceback fallback when renderer fails, and fix misleading help text.
