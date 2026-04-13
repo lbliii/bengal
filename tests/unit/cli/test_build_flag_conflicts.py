@@ -20,8 +20,8 @@ class TestBuildFlagConflicts:
                 "--verbose and --quiet cannot be used together",
             ),
             (
-                {"dev": True, "profile": "writer"},
-                "--dev is shorthand for --profile dev",
+                {"dev_profile": True, "profile": "writer"},
+                "--dev-profile is shorthand for --profile dev",
             ),
             (
                 {"theme_dev": True, "profile": "writer"},
