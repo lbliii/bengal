@@ -13,7 +13,6 @@ Functions:
 
 from __future__ import annotations
 
-import contextlib
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -71,10 +70,14 @@ def display_traceback(exception: BaseException, show_traceback: bool | None) -> 
     if not should_show_traceback(show_traceback, is_bengal):
         return
 
-    with contextlib.suppress(Exception):
+    try:
         from bengal.errors.traceback import TracebackConfig
 
         TracebackConfig.from_environment().get_renderer().display_exception(exception)
+    except Exception:
+        import traceback as tb
+
+        tb.print_exception(exception)
 
 
 def handle_exception(

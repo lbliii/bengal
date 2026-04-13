@@ -93,7 +93,9 @@ def build(
         quiet = True
 
     if memory_optimized and perf_profile_path:
-        raise SystemExit("Error: --memory-optimized and --perf-profile cannot be used together")
+        cli = get_cli_output()
+        cli.error("--memory-optimized and --perf-profile cannot be used together")
+        raise SystemExit(2)
 
     # Determine build profile
     build_profile = BuildProfile.from_cli_args(

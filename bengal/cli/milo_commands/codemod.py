@@ -9,7 +9,7 @@ from milo import Description
 
 
 def codemod(
-    path: Annotated[str, Description("Directory path to process recursively")] = "",
+    path: Annotated[str, Description("Directory path to process recursively")],
     dry_run: Annotated[bool, Description("Preview changes without modifying files")] = False,
     diff: Annotated[bool, Description("Show unified diff of changes")] = False,
 ) -> dict:
@@ -22,9 +22,6 @@ def codemod(
 
     from bengal.cli.utils import get_cli_output
     from bengal.utils.io.atomic_write import atomic_write_text
-
-    if not path:
-        raise SystemExit("Error: --path is required")
 
     cli = get_cli_output()
     target = Path(path).resolve()

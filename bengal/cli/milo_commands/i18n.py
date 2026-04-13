@@ -228,7 +228,7 @@ def i18n_status(
 
 
 def i18n_init(
-    locale_codes: Annotated[str, Description("Locale codes, comma-separated (e.g. es,fr,de)")] = "",
+    locale_codes: Annotated[str, Description("Locale codes, comma-separated (e.g. es,fr,de)")],
     source: Annotated[str, Description("Source directory path")] = "",
     domain: Annotated[str, Description("Gettext domain")] = "messages",
 ) -> dict:
@@ -238,10 +238,6 @@ def i18n_init(
     from bengal.cli.utils import get_cli_output
 
     source = source or "."
-
-    if not locale_codes:
-        raise SystemExit("Error: locale_codes is required (e.g. --locale-codes es,fr,de)")
-
     codes = [c.strip() for c in locale_codes.split(",") if c.strip()]
 
     cli = get_cli_output()
