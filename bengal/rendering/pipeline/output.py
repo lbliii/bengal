@@ -42,6 +42,7 @@ Related Modules:
 from __future__ import annotations
 
 import re
+import threading
 from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.pipeline.thread_local import mark_dir_created
@@ -57,6 +58,41 @@ if TYPE_CHECKING:
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 
 logger = get_logger(__name__)
+
+# Track files written in fast-write mode for cleanup on build failure
+_fast_write_files: set[str] = set()
+_fast_write_lock = threading.Lock()
+
+
+def track_fast_write(path: Path) -> None:
+    """Record a file written in fast-write mode."""
+    with _fast_write_lock:
+        _fast_write_files.add(str(path))
+
+
+def cleanup_fast_writes() -> int:
+    """Remove files written in fast-write mode during a failed build.
+
+    Returns the number of files cleaned up.
+    """
+    from pathlib import Path
+
+    cleaned = 0
+    with _fast_write_lock:
+        for path_str in _fast_write_files:
+            try:
+                Path(path_str).unlink(missing_ok=True)
+                cleaned += 1
+            except OSError:
+                pass
+        _fast_write_files.clear()
+    return cleaned
+
+
+def reset_fast_write_tracker() -> None:
+    """Clear the fast-write tracker (call at build start)."""
+    with _fast_write_lock:
+        _fast_write_files.clear()
 
 
 def determine_output_path(page: PageLike, site: SiteLike) -> Path:
@@ -192,6 +228,7 @@ def write_output(
         if fast_writes:
             # Direct write (faster, but not crash-safe)
             output_path.write_text(rendered_html, encoding="utf-8")
+            track_fast_write(output_path)
         else:
             # Atomic write (crash-safe, slightly slower)
             from bengal.utils.io.atomic_write import atomic_write_text

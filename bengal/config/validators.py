@@ -37,6 +37,7 @@ See Also:
 
 from __future__ import annotations
 
+import difflib
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.config.utils import coerce_bool
@@ -213,6 +214,35 @@ class ConfigValidator:
         "default_palette",  # palette key or empty string
     }
 
+    # Top-level sections and keys that are dicts (not individual fields)
+    KNOWN_SECTION_KEYS: ClassVar[set[str]] = {
+        "site",
+        "build",
+        "dev",
+        "assets",
+        "features",
+        "theme",
+        "content",
+        "static",
+        "html_output",
+        "menu",
+        "versioning",
+        "pagination",
+        "health_check",
+        "search",
+        "graph",
+        "i18n",
+        "output",
+        "plugins",
+        "markdown",
+        "collections",
+        "social",
+        "nav",
+        "extra",
+        "params",
+        "hooks",
+    }
+
     def validate(self, config: dict[str, Any], source_file: Path | None = None) -> dict[str, Any]:
         """
         Validate configuration and return a normalized version.
@@ -286,7 +316,9 @@ class ConfigValidator:
         errors = []
         from bengal.config.defaults import BOOL_OR_DICT_KEYS
 
-        # Boolean fields
+        all_known_fields = self.BOOLEAN_FIELDS | self.INTEGER_FIELDS | self.STRING_FIELDS
+
+        # Type validation + unknown key detection
         for key, value in section_dict.items():
             # Resolve the canonical field name for lookup
             field_name = f"{key}_assets" if is_assets else key
@@ -344,6 +376,24 @@ class ConfigValidator:
                 if not isinstance(value, str):
                     # Coerce to string if not already
                     section_dict[key] = str(value)
+
+            elif not isinstance(value, dict) and key not in self.KNOWN_SECTION_KEYS:
+                # Unknown scalar key — warn with fuzzy suggestion
+                path = f"{prefix}.{key}" if prefix else key
+                matches = difflib.get_close_matches(field_name, all_known_fields, n=1, cutoff=0.6)
+                if matches:
+                    logger.warning(
+                        "unknown_config_key",
+                        key=path,
+                        suggestion=matches[0],
+                        hint=f"Unknown config key '{path}'. Did you mean '{matches[0]}'?",
+                    )
+                else:
+                    logger.warning(
+                        "unknown_config_key",
+                        key=path,
+                        hint=f"Unknown config key '{path}' — will be ignored.",
+                    )
 
         return errors
 

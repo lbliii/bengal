@@ -204,13 +204,27 @@ def version_create(
             "dry_run": True,
         }
 
+    # Pre-validate: ensure a config file exists before copying files
+    config_file = _find_config_file(root_path)
+    if not config_file:
+        cli.error("No bengal.yaml or bengal.toml found.")
+        cli.info("Create a config file first, or add the version manually after copying.")
+        raise SystemExit(1)
+
     cli.info("Copying files...")
     dest_dir.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(source_dir, dest_dir)
     cli.success(f"Copied {file_count} files")
 
     cli.info("Updating configuration...")
-    _update_config_with_version(root_path, version_id, dest_dir, label_val, cli)
+    try:
+        _update_config_with_version(root_path, version_id, dest_dir, label_val, cli)
+    except Exception as e:
+        cli.error(f"Config update failed: {e}")
+        cli.info("Rolling back copied files...")
+        shutil.rmtree(dest_dir, ignore_errors=True)
+        cli.warning(f"Removed {dest_dir}")
+        raise SystemExit(1) from e
 
     cli.render_write(
         "scaffold_result.kida",
@@ -410,17 +424,22 @@ def _display_version_table(cli, version_config):
     )
 
 
+def _find_config_file(root_path):
+    """Find the bengal config file (yaml or toml)."""
+    for name in ("bengal.yaml", "bengal.toml"):
+        path = root_path / name
+        if path.exists():
+            return path
+    return None
+
+
 def _update_config_with_version(root_path, version_id, dest_dir, label, cli):
     import yaml
 
-    config_file = root_path / "bengal.yaml"
-    if not config_file.exists():
-        config_file = root_path / "bengal.toml"
-
-    if not config_file.exists():
-        cli.warning("No bengal.yaml or bengal.toml found.")
-        cli.info("Add the version manually to your config.")
-        return
+    config_file = _find_config_file(root_path)
+    if not config_file:
+        msg = "No bengal.yaml or bengal.toml found"
+        raise FileNotFoundError(msg)
 
     if config_file.suffix == ".yaml":
         with open(config_file) as f:
@@ -445,5 +464,5 @@ def _update_config_with_version(root_path, version_id, dest_dir, label, cli):
 
         cli.success(f"  Updated {config_file.name}")
     else:
-        cli.warning(f"Cannot auto-update {config_file.name}")
-        cli.info("Add the version manually to your config.")
+        msg = f"Cannot auto-update {config_file.name} (TOML write not supported)"
+        raise NotImplementedError(msg)

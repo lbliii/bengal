@@ -64,6 +64,7 @@ class ContentLayerManager:
         cache_dir: Path | None = None,
         cache_ttl: timedelta = timedelta(hours=1),
         offline: bool = False,
+        strict_mode: bool = False,
     ) -> None:
         """
         Initialize content layer manager.
@@ -72,10 +73,12 @@ class ContentLayerManager:
             cache_dir: Directory for caching remote content (default: .bengal/content_cache)
             cache_ttl: Time-to-live for cached content (default: 1 hour)
             offline: If True, only use cached content (no network requests)
+            strict_mode: If True, fail on fetch errors instead of falling back to stale cache
         """
         self.cache_dir = cache_dir or Path(".bengal/content_cache")
         self.cache_ttl = cache_ttl
         self.offline = offline
+        self.strict_mode = strict_mode
         self.sources: dict[str, ContentSource] = {}
 
         # Ensure cache directory exists
@@ -229,10 +232,23 @@ class ContentLayerManager:
         try:
             entries = [entry async for entry in source.fetch_all()]
         except Exception as e:
+            # In strict mode, never fall back to stale cache
+            if self.strict_mode:
+                error = BengalDiscoveryError(
+                    f"Failed to fetch content from '{name}': {e}\n"
+                    f"Strict mode is enabled — stale cache fallback is disabled.",
+                    code=ErrorCode.D008,
+                    suggestion=f"Check network connectivity and source configuration for '{name}', "
+                    f"or disable strict mode to allow stale cache fallback",
+                    original_error=e,
+                )
+                record_error(error)
+                raise error from e
+
             # Try to fall back to cache on error
             cached = self._load_cache(name)
             if cached:
-                # Record warning but continue with cache
+                # Record warning and emit user-visible warning
                 warning = BengalDiscoveryError(
                     f"Fetch failed for '{name}', using cached content",
                     code=ErrorCode.D008,
@@ -240,6 +256,13 @@ class ContentLayerManager:
                     original_error=e,
                 )
                 record_error(warning, file_path=str(self.cache_dir / f"{name}.json"))
+                import warnings
+
+                warnings.warn(
+                    f"Remote source '{name}' fetch failed — using stale cached content. "
+                    f"Published output may be outdated. Error: {e}",
+                    stacklevel=2,
+                )
                 logger.warning(f"Fetch failed for '{name}', using cached content: {e}")
                 return cached
 

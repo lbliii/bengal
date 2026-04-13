@@ -12,6 +12,7 @@ def codemod(
     path: Annotated[str, Description("Directory path to process recursively")],
     dry_run: Annotated[bool, Description("Preview changes without modifying files")] = False,
     diff: Annotated[bool, Description("Show unified diff of changes")] = False,
+    yes: Annotated[bool, Description("Skip confirmation prompt (for CI/automation)")] = False,
 ) -> dict:
     """Run automated code migrations (URL property migration).
 
@@ -68,6 +69,7 @@ def codemod(
 
     total_changes = 0
     files_changed = 0
+    pending_writes: list[tuple[Path, str]] = []
 
     for file_path in sorted(files_to_process):
         try:
@@ -103,7 +105,7 @@ def codemod(
                     cli.blank()
 
                 if not dry_run:
-                    atomic_write_text(file_path, modified_content)
+                    pending_writes.append((file_path, modified_content))
 
         except Exception as e:
             cli.error(f"  {file_path}: {e}")
@@ -121,6 +123,21 @@ def codemod(
     if dry_run:
         cli.warning("DRY RUN — no files were modified")
         cli.tip("Run without --dry-run to apply changes")
+    elif pending_writes:
+        if not yes and not cli.confirm(
+            f"Apply {len(pending_writes)} file change(s)?", default=False
+        ):
+            cli.warning("Aborted — no files were modified")
+            return {
+                "files_processed": len(files_to_process),
+                "files_changed": 0,
+                "total_replacements": 0,
+                "dry_run": False,
+                "aborted": True,
+            }
+        for file_path, modified_content in pending_writes:
+            atomic_write_text(file_path, modified_content)
+        cli.success(f"Applied changes to {len(pending_writes)} file(s)")
 
     return {
         "files_processed": len(files_to_process),

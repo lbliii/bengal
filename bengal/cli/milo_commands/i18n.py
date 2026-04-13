@@ -60,9 +60,10 @@ def i18n_compile(
     if compiled == 0:
         cli.warning("No .po files found to compile.")
         cli.info("Create i18n/{locale}/LC_MESSAGES/{domain}.po first.")
-    else:
-        clear_catalog_cache(root)
-        cli.success(f"Compiled {compiled} catalog(s).")
+        raise SystemExit(1)
+
+    clear_catalog_cache(root)
+    cli.success(f"Compiled {compiled} catalog(s).")
 
     return {"compiled": compiled, "domain": domain}
 

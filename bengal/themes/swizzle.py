@@ -259,7 +259,7 @@ class SwizzleManager:
         logger.debug("swizzle_list", total=len(records), invalid=invalid_count)
         return records
 
-    def update(self) -> dict[str, int]:
+    def update(self, force: bool = False) -> dict[str, int]:
         """
         Update swizzled files from upstream if local is unchanged.
 
@@ -267,12 +267,19 @@ class SwizzleManager:
         Only updates files where the local checksum matches the original
         swizzle checksum (i.e., user hasn't modified the file).
 
+        When force=True, also updates files with local modifications after
+        showing a unified diff of the changes.
+
+        Args:
+            force: If True, update locally modified files (shows diff first).
+
         Returns:
             Dictionary with update counts:
                 - updated (int): Files successfully updated
                 - skipped_changed (int): Files skipped (local modifications)
                 - skipped_error (int): Files skipped (checksum error)
                 - missing_upstream (int): Files skipped (theme source not found)
+                - force_updated (int): Files force-updated despite local changes
 
         Example:
             >>> results = manager.update()
@@ -288,6 +295,7 @@ class SwizzleManager:
         skipped_changed = 0
         skipped_error = 0
         missing_upstream = 0
+        force_updated = 0
 
         for rec in records:
             target_path = self.root / "templates" / rec.get("target", "")
@@ -334,13 +342,35 @@ class SwizzleManager:
                 continue
 
             if current_checksum != expected_checksum:
-                skipped_changed += 1
-                logger.info(
-                    "swizzle_update_skipped_changed",
-                    target=rec.get("target"),
-                    reason="local_modifications_detected",
-                )
-                continue
+                if force:
+                    # Show diff and force-update
+                    import difflib
+
+                    local_content = target_path.read_text(encoding="utf-8")
+                    upstream_content = source_path.read_text(encoding="utf-8")
+                    diff = difflib.unified_diff(
+                        local_content.splitlines(keepends=True),
+                        upstream_content.splitlines(keepends=True),
+                        fromfile=f"local/{rec.get('target', '')}",
+                        tofile=f"upstream/{rec.get('target', '')}",
+                    )
+                    diff_text = "".join(diff)
+                    if diff_text:
+                        logger.info(
+                            "swizzle_force_update",
+                            target=rec.get("target"),
+                            diff_lines=diff_text.count("\n"),
+                        )
+                    # Proceed to write (falls through to the write below)
+                    force_updated += 1
+                else:
+                    skipped_changed += 1
+                    logger.info(
+                        "swizzle_update_skipped_changed",
+                        target=rec.get("target"),
+                        reason="local_modifications_detected",
+                    )
+                    continue
 
             new_content = source_path.read_text(encoding="utf-8")
             atomic_write_text(target_path, new_content)
@@ -360,12 +390,14 @@ class SwizzleManager:
         logger.info(
             "swizzle_update_complete",
             updated=updated,
+            force_updated=force_updated,
             skipped_changed=skipped_changed,
             skipped_error=skipped_error,
             missing_upstream=missing_upstream,
         )
         return {
             "updated": updated,
+            "force_updated": force_updated,
             "skipped_changed": skipped_changed,
             "skipped_error": skipped_error,
             "missing_upstream": missing_upstream,
