@@ -1,3 +1,21 @@
+## [0.3.1] - 2026-04-13
+
+### Added
+
+- Add milo as a first-class CLI autodoc framework, enabling automatic CLI reference documentation generation from milo-based CLIs with JSON Schema parameter extraction and lazy command support. (`#milo-cli-autodoc`)
+- Adopt [Towncrier](https://towncrier.readthedocs.io/) for release notes: add `changelog.d/` fragments, `poe changelog` / `poe changelog-draft`, and rename the package changelog to `CHANGELOG.md` (aligned with the b-stack strategy).
+
+### Fixed
+
+- Harden CLI user-facing edges: route site-loading errors through existing error infrastructure, make required args enforced by argparse, remove double-negative boolean flags in serve, add traceback fallback when renderer fails, and fix misleading help text. (`#cli-sharp-edges`)
+- Update stale `bengal site {build,serve,clean}` references to flattened top-level commands across CI, tooling, source code, and documentation. (`#fix-stale-cli-refs`)
+- Fix live progress bar not updating in place by adding throttled ANSI rendering with deferred logger output, and eliminate false-positive cascade and directive warnings for virtual autodoc pages. (`#progress-bar-and-warnings`)
+- Fix 12 sharp edges across effects, CLI, and error handling: Effect.from_dict now uses tagged serialization to preserve Path vs string types, BuildCache.load sets site_root eagerly to prevent cache key races, EffectTracer.load handles JSON corruption gracefully, provenance recovery scans all pages instead of sampling 10, serve/dashboard commands wrap exceptions through handle_exception, 22 CLI return-None sites return structured dicts, output-mode flag conflicts are validated upfront, and 5 silent except-OSError-pass handlers now log debug messages. (`#sharp-edges-remediation`)
+- Harden 17 UX sharp edges: codemod now confirms before writing, version create rolls back on failure, stale remote cache warns visibly, unknown config keys and features get "did you mean?" suggestions, template context validation wired into builds, CLI flags categorized in help, and exit codes standardized. (`#ux-edge-finder`)
+- Surface silent failures across directives, incremental builds, and CLI: unknown directives now warn with fuzzy-match suggestions, contradictory CLI flags fail fast, silent full-rebuild triggers log reasons, and all CLI commands return structured dicts. (`#ux-sharp-edges`)
+- Bump kida-templates to v0.6.0 for optional chaining display fix, structured errors, and expanded error codes. Fix silent `| int` coercion of empty string in tag list component. (`#bump-kida-v0.6.0`)
+
+
 ## [Unreleased]
 
 ## 0.3.0 - 2026-04-09

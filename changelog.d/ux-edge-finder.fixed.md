@@ -1,1 +1,0 @@
-Harden 17 UX sharp edges: codemod now confirms before writing, version create rolls back on failure, stale remote cache warns visibly, unknown config keys and features get "did you mean?" suggestions, template context validation wired into builds, CLI flags categorized in help, and exit codes standardized.
