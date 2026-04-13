@@ -12,17 +12,14 @@ def serve(
     host: Annotated[str, Description("Server host address")] = "localhost",
     port: Annotated[int, Description("Server port number")] = 5173,
     watch: Annotated[bool, Description("Watch for file changes and rebuild")] = True,
-    no_watch: Annotated[bool, Description("Disable file watching")] = False,
     auto_port: Annotated[
         bool, Description("Find available port if specified port is taken")
     ] = True,
-    no_auto_port: Annotated[bool, Description("Don't auto-find available port")] = False,
     open_browser: Annotated[bool, Description("Open browser after server starts")] = True,
-    no_open: Annotated[bool, Description("Don't open browser")] = False,
     environment: Annotated[str, Description("Environment: local, preview, production")] = "",
     profile: Annotated[str, Description("Config profile: writer, theme-dev, dev")] = "",
     version_scope: Annotated[str, Description("Focus on single version (e.g., v2, latest)")] = "",
-    all_versions: Annotated[bool, Description("Build all versions (default behavior)")] = False,
+    all_versions: Annotated[bool, Description("Build all versions (git versioning mode)")] = False,
     dashboard: Annotated[bool, Description("Launch interactive Textual dashboard")] = False,
     verbose: Annotated[bool, Description("Show detailed server activity")] = False,
     debug: Annotated[bool, Description("Show debug output and full tracebacks")] = False,
@@ -36,23 +33,27 @@ def serve(
     Watches for changes in content, assets, and templates,
     automatically rebuilding the site when files are modified.
     """
-    from bengal.cli.utils import configure_cli_logging, configure_traceback, load_site_from_cli
+    from bengal.cli.utils import (
+        configure_cli_logging,
+        configure_traceback,
+        get_cli_output,
+        load_site_from_cli,
+    )
 
     source = source or "."
     config_path = config or None
     traceback_val = traceback or None
     version_scope_val = version_scope or None
 
-    # Resolve tri-state flags
-    watch_enabled = not no_watch and watch
-    auto_port_enabled = not no_auto_port and auto_port
-    open_browser_enabled = not no_open and open_browser
+    cli = get_cli_output()
 
     if verbose and debug:
-        raise SystemExit("Error: --verbose and --debug cannot be used together")
+        cli.error("--verbose and --debug cannot be used together")
+        raise SystemExit(2)
 
     if version_scope_val and all_versions:
-        raise SystemExit("Error: --version-scope and --all-versions cannot be used together")
+        cli.error("--version-scope and --all-versions cannot be used together")
+        raise SystemExit(2)
 
     configure_cli_logging(
         source=source,
@@ -87,17 +88,17 @@ def serve(
             site=site,
             host=host,
             port=port,
-            watch=watch_enabled,
-            open_browser=open_browser_enabled,
+            watch=watch,
+            open_browser=open_browser,
         )
         return None
 
     site.serve(
         host=host,
         port=port,
-        watch=watch_enabled,
-        auto_port=auto_port_enabled,
-        open_browser=open_browser_enabled,
+        watch=watch,
+        auto_port=auto_port,
+        open_browser=open_browser,
         version_scope=version_scope_val,
     )
 

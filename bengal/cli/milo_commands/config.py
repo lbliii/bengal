@@ -160,8 +160,8 @@ def config_doctor(
 
 
 def config_diff(
+    against: Annotated[str, Description("Environment to compare against (e.g. production)")],
     source: Annotated[str, Description("Source directory path")] = "",
-    against: Annotated[str, Description("Environment to compare against (required)")] = "",
     environment: Annotated[str, Description("Environment to compare (default: local)")] = "",
 ) -> dict:
     """Compare configurations between environments."""
@@ -172,10 +172,6 @@ def config_diff(
     from bengal.config.unified_loader import UnifiedConfigLoader
 
     source = source or "."
-
-    if not against:
-        raise SystemExit("Error: --against is required (e.g. --against production)")
-
     cli = get_cli_output()
     root_path = Path(source).resolve()
     config_dir = root_path / "config"

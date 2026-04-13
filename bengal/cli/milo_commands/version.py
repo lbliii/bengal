@@ -70,7 +70,7 @@ def version_list(
 
 
 def version_info(
-    version_id: Annotated[str, Description("Version ID or alias (e.g. v2, latest)")] = "",
+    version_id: Annotated[str, Description("Version ID or alias (e.g. v2, latest)")],
     source: Annotated[str, Description("Source directory path")] = "",
 ) -> dict:
     """Show details about a specific version."""
@@ -79,10 +79,6 @@ def version_info(
     from bengal.cli.utils import get_cli_output
 
     source = source or "."
-
-    if not version_id:
-        raise SystemExit("Error: version_id is required")
-
     cli = get_cli_output()
     root_path = Path(source).resolve()
     version_config = _load_version_config(root_path)
@@ -131,7 +127,7 @@ def version_info(
 
 
 def version_create(
-    version_id: Annotated[str, Description("New version identifier")] = "",
+    version_id: Annotated[str, Description("New version identifier")],
     source: Annotated[str, Description("Source directory path")] = "",
     label: Annotated[str, Description("Human-readable label (default: version ID)")] = "",
     from_path: Annotated[str, Description("Source directory to snapshot (default: docs)")] = "docs",
@@ -145,10 +141,6 @@ def version_create(
     from bengal.cli.utils import get_cli_output
 
     source = source or "."
-
-    if not version_id:
-        raise SystemExit("Error: version_id is required")
-
     label_val = label or None
     to_path_val = to_path or None
 
@@ -231,8 +223,8 @@ def version_create(
 
 
 def version_diff(
-    old_version: Annotated[str, Description("Old version ID or git ref")] = "",
-    new_version: Annotated[str, Description("New version ID or git ref")] = "",
+    old_version: Annotated[str, Description("Old version ID or git ref")],
+    new_version: Annotated[str, Description("New version ID or git ref")],
     source: Annotated[str, Description("Source directory path")] = "",
     git: Annotated[bool, Description("Compare git refs instead of folder versions")] = False,
     output: Annotated[str, Description("Output format: summary, markdown, json")] = "summary",
@@ -243,10 +235,6 @@ def version_diff(
     from bengal.cli.utils import get_cli_output
 
     source = source or "."
-
-    if not old_version or not new_version:
-        raise SystemExit("Error: both old_version and new_version are required")
-
     cli = get_cli_output()
     root_path = Path(source).resolve()
 

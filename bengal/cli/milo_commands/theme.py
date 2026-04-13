@@ -32,7 +32,7 @@ def theme_list(
 
 
 def theme_info(
-    slug: Annotated[str, Description("Theme identifier")] = "",
+    slug: Annotated[str, Description("Theme identifier")],
     source: Annotated[str, Description("Source directory path")] = "",
 ) -> dict:
     """Show theme details."""
@@ -40,9 +40,6 @@ def theme_info(
     from bengal.themes import get_theme_package
 
     source = source or "."
-    if not slug:
-        raise SystemExit("Error: slug is required")
-
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
     theme = get_theme_package(slug, site)
@@ -81,7 +78,7 @@ def theme_discover(
 
 
 def theme_swizzle(
-    template_path: Annotated[str, Description("Template path (e.g. layouts/article.html)")] = "",
+    template_path: Annotated[str, Description("Template path (e.g. layouts/article.html)")],
     source: Annotated[str, Description("Source directory path")] = "",
 ) -> dict:
     """Copy a theme template to project for customization."""
@@ -89,9 +86,6 @@ def theme_swizzle(
     from bengal.themes.swizzle import SwizzleManager
 
     source = source or "."
-    if not template_path:
-        raise SystemExit("Error: template_path is required")
-
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
     manager = SwizzleManager(site)
@@ -102,7 +96,7 @@ def theme_swizzle(
 
 
 def theme_install(
-    name: Annotated[str, Description("Package name or slug")] = "",
+    name: Annotated[str, Description("Package name or slug")],
     force: Annotated[bool, Description("Install even if name is non-canonical")] = False,
 ) -> dict:
     """Install a theme from PyPI."""
@@ -110,9 +104,6 @@ def theme_install(
     import subprocess
 
     from bengal.cli.utils import get_cli_output
-
-    if not name:
-        raise SystemExit("Error: name is required")
 
     cli = get_cli_output()
     SAFE_PACKAGE_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -133,15 +124,12 @@ def theme_install(
 
 
 def theme_validate(
-    theme_path: Annotated[str, Description("Path to theme directory")] = "",
+    theme_path: Annotated[str, Description("Path to theme directory")],
 ) -> dict:
     """Validate theme directory structure."""
     from pathlib import Path
 
     from bengal.cli.utils import get_cli_output
-
-    if not theme_path:
-        raise SystemExit("Error: theme_path is required")
 
     cli = get_cli_output()
     path = Path(theme_path).resolve()
@@ -185,7 +173,7 @@ def theme_validate(
 
 
 def theme_new(
-    slug: Annotated[str, Description("Theme identifier")] = "",
+    slug: Annotated[str, Description("Theme identifier")],
     mode: Annotated[str, Description("Scaffold mode: site or package")] = "site",
     output: Annotated[str, Description("Output directory")] = ".",
     extends: Annotated[str, Description("Parent theme to extend")] = "default",
@@ -196,9 +184,6 @@ def theme_new(
     from pathlib import Path
 
     from bengal.cli.utils import get_cli_output
-
-    if not slug:
-        raise SystemExit("Error: slug is required")
 
     cli = get_cli_output()
     slug = re.sub(r"[^a-z0-9_-]", "-", slug.lower().strip())

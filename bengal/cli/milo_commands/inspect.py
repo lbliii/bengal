@@ -10,7 +10,7 @@ from milo import Description
 def inspect_page(
     page_path: Annotated[
         str, Description("Page path (relative to content dir, full, or partial match)")
-    ] = "",
+    ],
     source: Annotated[str, Description("Source directory path")] = "",
     verbose: Annotated[
         bool, Description("Show additional details (timing, template variables)")
@@ -28,9 +28,6 @@ def inspect_page(
     from bengal.utils.observability.profile import BuildProfile
 
     source = source or "."
-    if not page_path:
-        raise SystemExit("Error: page_path is required")
-
     cli = get_cli_output()
     cli.header("Page Explanation")
     cli.info("Loading site...")

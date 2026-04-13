@@ -92,8 +92,11 @@ def build(
     if fast:
         quiet = True
 
+    cli = get_cli_output(quiet=quiet, verbose=verbose)
+
     if memory_optimized and perf_profile_path:
-        raise SystemExit("Error: --memory-optimized and --perf-profile cannot be used together")
+        cli.error("--memory-optimized and --perf-profile cannot be used together")
+        raise SystemExit(2)
 
     # Determine build profile
     build_profile = BuildProfile.from_cli_args(
@@ -112,8 +115,6 @@ def build(
         track_memory=profile_config.get("track_memory", False),
     )
     configure_traceback(debug=debug, traceback=traceback_val)
-
-    cli = get_cli_output(quiet=quiet, verbose=verbose)
 
     if memory_optimized and incremental_val is True:
         cli.warning("--memory-optimized with --incremental may not fully utilize cache")
