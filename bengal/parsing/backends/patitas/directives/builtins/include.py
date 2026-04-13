@@ -192,6 +192,15 @@ class IncludeDirective:
 
         error = getattr(opts, "error", "")
         if error:
+            import warnings
+
+            file_path = getattr(opts, "file_path", "unknown")
+            loc = node.location
+            loc_str = f" (line {loc.line})" if loc and hasattr(loc, "line") else ""
+            warnings.warn(
+                f"Include directive error{loc_str}: {error} (path: {file_path})",
+                stacklevel=2,
+            )
             sb.append(
                 f'<div class="include-error">'
                 f"<p><strong>Include error:</strong> {html_escape(error)}</p>"
@@ -350,6 +359,15 @@ class LiteralIncludeDirective:
 
         error = getattr(opts, "error", "")
         if error:
+            import warnings
+
+            file_path = getattr(opts, "file_path", "unknown")
+            loc = node.location
+            loc_str = f" (line {loc.line})" if loc and hasattr(loc, "line") else ""
+            warnings.warn(
+                f"Literalinclude directive error{loc_str}: {error} (path: {file_path})",
+                stacklevel=2,
+            )
             sb.append(
                 f'<div class="literalinclude-error">'
                 f"<p><strong>Literal include error:</strong> {html_escape(error)}</p>"

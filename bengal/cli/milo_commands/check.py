@@ -9,7 +9,7 @@ from milo import Description
 
 def check(
     source: Annotated[str, Description("Source directory path")] = "",
-    file: Annotated[str, Description("Validate specific file (can be repeated)")] = "",
+    file: Annotated[str, Description("Validate specific file(s), comma-separated")] = "",
     changed: Annotated[
         bool, Description("Only validate changed files (requires build cache)")
     ] = False,

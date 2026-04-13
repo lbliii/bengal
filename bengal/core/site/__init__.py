@@ -1127,7 +1127,25 @@ class Site:
             content_dir = self.root_path / "content"
 
         if not content_dir.exists():
+            build_cfg = self.config.get("build", {}) if isinstance(self.config, dict) else {}
+            if build_cfg.get("strict_mode", False):
+                from bengal.errors import BengalConfigError, ErrorCode
+
+                raise BengalConfigError(
+                    f"Content directory not found: {content_dir}\n"
+                    f"Strict mode is enabled — missing content directory is an error.",
+                    code=ErrorCode.C003,
+                    suggestion=f"Create the directory at '{content_dir}', or check "
+                    f"'build.content_dir' in your config",
+                )
             emit_diagnostic(self, "warning", "content_dir_not_found", path=str(content_dir))
+            import warnings
+
+            warnings.warn(
+                f"Content directory not found: {content_dir} — "
+                f"site will have zero pages. Check 'build.content_dir' in your config.",
+                stacklevel=2,
+            )
             return
 
         from bengal.collections import load_collections

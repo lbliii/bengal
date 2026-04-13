@@ -57,9 +57,13 @@ def _should_use_polling(force_polling: bool | None) -> bool:
     Determine if polling mode should be used for reliable change detection.
 
     Polling is more reliable than native OS events when:
-    - macOS: FSEvents can miss changes (atomic writes, editor sync patterns)
+    - macOS: FSEvents can miss atomic writes from vim, neovim, and similar editors
     - Symlinks / monorepos: Path resolution can differ between watcher and editor
     - Editable installs: Parent-dir layouts can confuse native watchers
+
+    On macOS, polling is the default because FSEvents misses atomic swap writes
+    that editors like vim/neovim use (write to temp file, then rename).
+    Set WATCHFILES_FORCE_POLLING=0 to use native FSEvents instead.
 
     Args:
         force_polling: Explicit override from config (None = auto-detect)
@@ -68,13 +72,29 @@ def _should_use_polling(force_polling: bool | None) -> bool:
         True if polling should be used
     """
     if force_polling is not None:
+        logger.debug("file_watcher_mode", polling=force_polling, reason="explicit_config")
         return force_polling
-    # macOS: known watchfiles reliability issues
-    if sys.platform == "darwin":
-        return True
-    # Env var (watchfiles convention)
+    # Env var (watchfiles convention) — checked before platform defaults so users can override
     env_val = (os.environ.get("WATCHFILES_FORCE_POLLING", "") or "").strip().lower()
-    return bool(env_val and env_val not in ("0", "false", "no", "disable", "disabled"))
+    if env_val:
+        use_polling = env_val not in ("0", "false", "no", "disable", "disabled")
+        logger.debug(
+            "file_watcher_mode",
+            polling=use_polling,
+            reason="env_var_WATCHFILES_FORCE_POLLING",
+        )
+        return use_polling
+    # macOS: known watchfiles reliability issues with atomic writes
+    if sys.platform == "darwin":
+        logger.debug(
+            "file_watcher_mode",
+            polling=True,
+            reason="macos_default",
+            hint="FSEvents misses atomic writes from vim/neovim; using polling. "
+            "Set WATCHFILES_FORCE_POLLING=0 to use native events.",
+        )
+        return True
+    return False
 
 
 class FileWatcher(Protocol):

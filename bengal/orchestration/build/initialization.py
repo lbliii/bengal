@@ -268,7 +268,7 @@ def phase_template_validation(
             # Create template engine for validation
             engine = create_engine(orchestrator.site)
 
-            # Validate all templates
+            # Validate all templates (syntax)
             errors = engine.validate_templates()
 
             validation_time_ms = (time.time() - validation_start) * 1000

@@ -31,20 +31,28 @@ def build(
         ),
     ] = "",
     profile: Annotated[str, Description("Build profile: writer, theme-dev, dev")] = "",
-    perf_profile: Annotated[str, Description("Enable performance profiling, save to file")] = "",
-    profile_templates: Annotated[bool, Description("Profile template rendering times")] = False,
+    perf_profile: Annotated[
+        str, Description("[Debug] Enable performance profiling, save to file")
+    ] = "",
+    profile_templates: Annotated[
+        bool, Description("[Debug] Profile template rendering times")
+    ] = False,
     clean_output: Annotated[bool, Description("Delete output directory before building")] = False,
     theme_dev: Annotated[bool, Description("Use theme developer profile")] = False,
-    dev: Annotated[bool, Description("Use developer profile with full observability")] = False,
+    dev_profile: Annotated[
+        bool, Description("Shorthand for --profile dev (full observability)")
+    ] = False,
+    dev: Annotated[bool, Description("Deprecated alias for --dev-profile")] = False,
     verbose: Annotated[
-        bool, Description("Show per-file build details (incompatible with --quiet, --fast)")
+        bool,
+        Description("[Output] Show per-file build details (incompatible with --quiet, --fast)"),
     ] = False,
     strict: Annotated[bool, Description("Fail on template errors (recommended for CI)")] = False,
-    debug: Annotated[bool, Description("Show debug output and full tracebacks")] = False,
+    debug: Annotated[bool, Description("[Debug] Show debug output and full tracebacks")] = False,
     traceback: Annotated[
         str,
         Description(
-            "Traceback verbosity: 'full' shows complete stack, 'compact' one-line per frame, 'minimal' exception only, 'off' suppresses"
+            "[Debug] Traceback verbosity: 'full' shows complete stack, 'compact' one-line per frame, 'minimal' exception only, 'off' suppresses"
         ),
     ] = "",
     validate: Annotated[bool, Description("Validate templates before building")] = False,
@@ -58,33 +66,48 @@ def build(
         bool, Description("Disable Node-based assets pipeline (default: auto-detect)")
     ] = False,
     config: Annotated[str, Description("Path to config file (default: bengal.toml)")] = "",
-    quiet: Annotated[bool, Description("Minimal output — only errors and final summary")] = False,
+    quiet: Annotated[
+        bool, Description("[Output] Minimal output — only errors and final summary")
+    ] = False,
     fast: Annotated[
-        bool, Description("Maximum speed: implies --quiet, disables live progress")
+        bool, Description("[Output] Maximum speed: implies --quiet, disables live progress")
     ] = False,
     full_output: Annotated[
-        bool, Description("Traditional line-by-line output instead of live progress bar")
+        bool, Description("[Output] Traditional line-by-line output instead of live progress bar")
     ] = False,
     dashboard: Annotated[
-        bool, Description("Launch interactive TUI dashboard (incompatible with other output flags)")
+        bool,
+        Description(
+            "[Output] Launch interactive TUI dashboard (incompatible with other output flags)"
+        ),
     ] = False,
     explain: Annotated[
-        bool, Description("Show why each page was rebuilt or skipped during incremental build")
+        bool,
+        Description("[Debug] Show why each page was rebuilt or skipped during incremental build"),
     ] = False,
     explain_json: Annotated[
-        bool, Description("Output --explain results as machine-readable JSON")
+        bool, Description("[Debug] Output --explain results as machine-readable JSON")
     ] = False,
     dry_run: Annotated[
         bool, Description("Preview what would be built without writing files to disk")
     ] = False,
-    log_file: Annotated[str, Description("Write detailed logs to file")] = "",
-    build_version: Annotated[str, Description("Build only a specific version (git mode)")] = "",
-    all_versions: Annotated[bool, Description("Build all versions in parallel (git mode)")] = False,
+    log_file: Annotated[str, Description("[Debug] Write detailed logs to file")] = "",
+    build_version: Annotated[
+        str, Description("[Versioning] Build only a specific version (git mode)")
+    ] = "",
+    all_versions: Annotated[
+        bool, Description("[Versioning] Build all versions in parallel (git mode)")
+    ] = False,
 ) -> dict:
     """Build the static site.
 
     Generates HTML from content, applies templates, processes assets,
     and outputs a production-ready site.
+
+    Tip: Use --profile to set common flag combinations at once:
+      bengal build --profile dev        (verbose + debug + incremental)
+      bengal build --profile writer     (quiet + fast + incremental)
+      bengal build --profile theme-dev  (verbose + debug + watch templates)
     """
 
     from bengal.cli.utils import (
@@ -156,8 +179,19 @@ def build(
     if fast:
         quiet = True
 
-    if dev and profile_val:
-        cli.error("--dev is shorthand for --profile dev — use one or the other")
+    # Handle deprecated --dev alias
+    if dev:
+        import warnings
+
+        warnings.warn(
+            "--dev is deprecated, use --dev-profile instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        dev_profile = True
+
+    if dev_profile and profile_val:
+        cli.error("--dev-profile is shorthand for --profile dev — use one or the other")
         raise SystemExit(2)
 
     if theme_dev and profile_val:
@@ -174,7 +208,7 @@ def build(
 
     # Determine build profile
     build_profile = BuildProfile.from_cli_args(
-        profile=profile_val, dev=dev, theme_dev=theme_dev, debug=debug
+        profile=profile_val, dev=dev_profile, theme_dev=theme_dev, debug=debug
     )
     set_current_profile(build_profile)
     profile_config = build_profile.get_config()

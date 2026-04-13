@@ -99,9 +99,9 @@ def content_fetch(
 
     if not remote_collections:
         if filter_val:
-            cli.warning(f"Source '{filter_val}' not found or is not remote.")
-        else:
-            cli.info("No remote content sources configured.")
+            cli.error(f"Source '{filter_val}' not found or is not remote.")
+            raise SystemExit(1)
+        cli.info("No remote content sources configured.")
         return {
             "status": "skipped",
             "message": "No remote content sources",

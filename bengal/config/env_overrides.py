@@ -229,6 +229,14 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
             action="using_original_config",
             hint="Deployment platform baseurl auto-detection failed; verify environment variables",
         )
+        import warnings
+
+        warnings.warn(
+            f"Deployment platform baseurl auto-detection failed: {e}. "
+            f"Your site may be deployed with an incorrect baseurl. "
+            f"Set 'site.baseurl' explicitly in your config to avoid this.",
+            stacklevel=2,
+        )
 
     # DX hint: container environments with empty baseurl
     try:

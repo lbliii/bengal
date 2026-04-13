@@ -129,7 +129,17 @@ def expand_features(config: dict[str, Any]) -> dict[str, Any]:
 
     for feature_name, enabled in features.items():
         if feature_name not in FEATURE_MAPPINGS:
-            # Unknown feature, ignore silently (or could warn)
+            import difflib
+
+            valid_names = sorted(FEATURE_MAPPINGS.keys())
+            matches = difflib.get_close_matches(feature_name, valid_names, n=1, cutoff=0.6)
+            hint = f" Did you mean '{matches[0]}'?" if matches else ""
+            import warnings
+
+            warnings.warn(
+                f"Unknown feature '{feature_name}'.{hint} Valid features: {', '.join(valid_names)}",
+                stacklevel=2,
+            )
             continue
 
         mapping = FEATURE_MAPPINGS[feature_name]
