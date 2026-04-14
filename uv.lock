@@ -219,7 +219,7 @@ requires-dist = [
     { name = "aiohttp", marker = "extra == 'github'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'notion'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'rest'", specifier = ">=3.9.0" },
-    { name = "bengal-pounce", specifier = ">=0.4.0" },
+    { name = "bengal-pounce", specifier = ">=0.6.0" },
     { name = "cachetools", marker = "extra == 'all-sources'", specifier = ">=5.0.0" },
     { name = "cachetools", marker = "extra == 'notion'", specifier = ">=5.0.0" },
     { name = "click", specifier = ">=8.1.7" },
@@ -283,14 +283,15 @@ dev = [
 
 [[package]]
 name = "bengal-pounce"
-version = "0.4.0"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "h11" },
+    { name = "milo-cli" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/eb/f3/8b3a31027904d39937541c5bf9201c43fd0681e1662b9d5f3ece6d418a02/bengal_pounce-0.4.0.tar.gz", hash = "sha256:266703b1df3817702e46a9353e9c205bf39c225a24607c0c84f0ce2c256d68b9", size = 130566, upload-time = "2026-03-26T15:30:08.001Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a9/99/3bf019a9c1c4a0f710d897c72e669b2133cc3be7278b6d53d9548753cab8/bengal_pounce-0.6.0.tar.gz", hash = "sha256:3c5834a3ba7e5822f292661286e77ad7c651d80b34149a1dc02f653532acdde6", size = 181583, upload-time = "2026-04-14T00:27:59.006Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/86/a1/004afe05f89600607a9474b9e6fa5e432219d75a81ba233bfef5cb2ecee1/bengal_pounce-0.4.0-py3-none-any.whl", hash = "sha256:238301104441db8f787c37c1604a4f5c853143664141e7a826eb02a3e4d7c2ed", size = 158044, upload-time = "2026-03-26T15:30:06.43Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/4e/b28ad5fcf2e6ef8152738e8982aadeeb24f81035521774a87af69d495c06/bengal_pounce-0.6.0-py3-none-any.whl", hash = "sha256:48a192de4b926aefd1f053aca25271c9b8e6e637e1e617e92b449aca8f72b5e9", size = 210857, upload-time = "2026-04-14T00:27:57.346Z" },
 ]
 
 [[package]]
