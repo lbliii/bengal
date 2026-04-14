@@ -50,7 +50,6 @@ def cache_hash(
     include_version: Annotated[
         bool, Description("Include Bengal version in hash (recommended)")
     ] = True,
-    no_include_version: Annotated[bool, Description("Exclude Bengal version from hash")] = False,
     config: Annotated[str, Description("Path to config file")] = "",
 ) -> dict:
     """Compute deterministic hash of build inputs for CI cache keys."""
@@ -64,9 +63,6 @@ def cache_hash(
     config_val = config or None
     cli = get_cli_output()
 
-    # --no-include-version overrides --include-version
-    should_include_version = include_version and not no_include_version
-
     site = load_site_from_cli(
         source=source, config=config_val, environment=None, profile=None, cli=cli
     )
@@ -74,7 +70,7 @@ def cache_hash(
 
     hasher = hashlib.sha256()
 
-    if should_include_version:
+    if include_version:
         hasher.update(f"bengal:{bengal.__version__}".encode())
 
     for glob_pattern, _source in input_globs:
@@ -122,4 +118,4 @@ def cache_hash(
     result = hasher.hexdigest()[:16]
     cli.info(result)
 
-    return {"hash": result, "include_version": should_include_version}
+    return {"hash": result, "include_version": include_version}
