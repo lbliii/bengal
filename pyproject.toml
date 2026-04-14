@@ -198,6 +198,8 @@ ignore = [
     "S603",  # Subprocess in tests is fine
     "S607",  # Partial path in tests is fine
     "TRY",   # Exception patterns in tests are intentionally varied
+    "S110",  # try-except-pass is fine in test setup/teardown
+    "S112",  # try-except-continue is fine in test iteration
 ]
 # CLI layer — print() is the primary output mechanism, callbacks have fixed signatures
 "bengal/cli/**/*.py" = ["T201", "ARG"]
