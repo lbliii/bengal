@@ -172,7 +172,7 @@ def build_template_metadata(site: SiteLike) -> dict[str, Any]:
                 and isinstance(cached.get("metadata"), dict)
             ):
                 return cached["metadata"]
-        except Exception:
+        except Exception:  # noqa: S110
             # Best-effort caching only; never fail metadata generation
             pass
 

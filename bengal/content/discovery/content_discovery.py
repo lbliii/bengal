@@ -370,7 +370,7 @@ class ContentDiscovery:
         # Check cache
         cache_lookup_path = file_path
         if self.site and file_path.is_absolute():
-            with contextlib.suppress(ValueError):
+            with contextlib.suppress(ValueError):  # silent: best-effort path parsing
                 cache_lookup_path = file_path.relative_to(self.site.root_path)
 
         cached_metadata = cache.get_metadata(cache_lookup_path)

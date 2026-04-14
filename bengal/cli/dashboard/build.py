@@ -231,7 +231,7 @@ class BengalBuildDashboard(BengalDashboard):
         try:
             stats_panel = self.query_one("#build-stats", Static)
             stats_panel.update(self._get_build_stats_content())
-        except Exception:
+        except Exception:  # noqa: S110 -- widget may not be mounted
             pass  # Panel may not exist yet
 
     def _start_build(self) -> None:
@@ -492,7 +492,7 @@ class BengalBuildDashboard(BengalDashboard):
                 table.update_cell(row_key, "%", percent)
             if details is not None:
                 table.update_cell(row_key, "Details", details)
-        except Exception:
+        except Exception:  # noqa: S110 -- widget may not be mounted
             # Row may not exist yet
             pass
 

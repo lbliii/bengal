@@ -365,7 +365,7 @@ def phase_finalize(
                     orchestrator.logger.debug(code, **data)
                 else:
                     orchestrator.logger.info(code, **data)
-    except Exception:
+    except Exception:  # noqa: S110
         # Diagnostics must never break build finalization.
         pass
 

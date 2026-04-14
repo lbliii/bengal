@@ -174,7 +174,7 @@ class TaxonomyExplorer(Vertical):
         try:
             header = self.query_one("#taxonomy-header", Static)
             header.update(self._format_header())
-        except Exception:
+        except Exception:  # noqa: S110 -- widget may not be mounted
             pass  # Widget may not be mounted yet during compose
 
     def refresh_from_site(self) -> None:

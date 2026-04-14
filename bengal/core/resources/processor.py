@@ -257,7 +257,7 @@ class ImageProcessor:
                 json.dump(meta, f)
             os.replace(temp_path, meta_path)
         except Exception:
-            with contextlib.suppress(OSError):
+            with contextlib.suppress(OSError):  # silent: best-effort temp file cleanup
                 os.unlink(temp_path)
             raise
 
@@ -346,7 +346,7 @@ class ImageProcessor:
             img.save(temp_path, format=output_format.upper(), **save_kwargs)
             os.replace(temp_path, output_path)
         except Exception:
-            with contextlib.suppress(OSError):
+            with contextlib.suppress(OSError):  # silent: best-effort temp file cleanup
                 os.unlink(temp_path)
             raise
 

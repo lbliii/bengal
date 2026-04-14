@@ -150,7 +150,7 @@ class FileWatcherLog(Vertical):
         try:
             header = self.query_one("#watcher-header", Static)
             header.update(self._format_header())
-        except Exception:
+        except Exception:  # noqa: S110 -- widget may not be mounted
             pass  # Widget may not be mounted yet during compose
 
     def clear(self) -> None:

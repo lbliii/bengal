@@ -246,7 +246,7 @@ def apply_file_traceback_to_env(site_config: dict[str, Any] | None) -> None:
 
     # max_frames
     if os.getenv("BENGAL_TRACEBACK_MAX_FRAMES") is None and "max_frames" in tb_cfg:
-        with contextlib.suppress(Exception):
+        with contextlib.suppress(Exception):  # silent: best-effort traceback config
             os.environ["BENGAL_TRACEBACK_MAX_FRAMES"] = str(int(tb_cfg.get("max_frames")))
 
     # suppress (comma-separated)

@@ -465,7 +465,9 @@ class ProvenanceFilter:
             if core is not None:
                 section_path = getattr(core, "section", None)
                 if section_path and self.site:
-                    with contextlib.suppress(AttributeError, KeyError, TypeError):
+                    with contextlib.suppress(
+                        AttributeError, KeyError, TypeError
+                    ):  # silent: best-effort provenance extraction
                         section = self.site.get_section_by_path(section_path)
 
         # Safety guard: prevent infinite loops from circular references or mock objects

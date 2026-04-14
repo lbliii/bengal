@@ -134,7 +134,7 @@ def write_if_changed_atomic(path: Any, content: str, atomic_file_cls: Any) -> No
             existing = path.read_text(encoding="utf-8")
             if existing == content:
                 return
-    except Exception:
+    except Exception:  # noqa: S110
         # Best-effort; if read fails, proceed to write.
         pass
 

@@ -695,7 +695,7 @@ class Asset:
                             ):
                                 old_full.unlink(missing_ok=True)
                                 manifest_cleanup_done = True
-                except Exception:
+                except Exception:  # noqa: S110
                     # Best-effort only; fall back to directory scan.
                     pass
 
@@ -750,7 +750,7 @@ class Asset:
             ):
                 logical_str = str(self.logical_path) if self.logical_path else self.source_path.name
                 return self._site.template_engine._asset_url(logical_str)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
         # Fallback: simple baseurl application

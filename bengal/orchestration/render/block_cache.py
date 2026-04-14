@@ -58,7 +58,7 @@ def create_and_warm_block_cache(site: SiteLike) -> Any | None:
             try:
                 cached = block_cache.warm_site_blocks(engine, template_name, site_context)
                 total_cached += cached
-            except Exception:
+            except Exception:  # noqa: S110
                 pass
 
         if total_cached > 0:

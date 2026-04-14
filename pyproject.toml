@@ -46,7 +46,7 @@ dependencies = [
     "textual-serve>=0.1.0",                    # Web-based dashboard access
     "questionary>=2.0.0",                      # Interactive CLI prompts with arrow key navigation
     "watchfiles>=0.20",                        # Rust-based file watching for dev server (fast)
-    "bengal-pounce>=0.4.0",                    # ASGI server for dev server (replaces ThreadingTCPServer)
+    "bengal-pounce>=0.6.0",                    # ASGI server for dev server (replaces ThreadingTCPServer)
     "httpx>=0.27.0",                           # Async HTTP client for link checking
     "uvloop>=0.21.0; sys_platform != 'win32'", # Rust-based event loop (Linux/macOS)
     "packaging>=23.0",                         # Version parsing for upgrade checks
@@ -166,13 +166,13 @@ ignore = [
     "RET504", # unnecessary-assign — intermediate vars aid debuggability
     # S: false positives for a documentation site generator
     "S105",   # hardcoded-password-string — false positives on config keys like "secret_key"
-    "S110",   # try-except-pass — intentional suppress patterns
+    # S110 enabled — silent try-except-pass now caught by ruff; use noqa with reason where intentional
     "S311",   # non-cryptographic random — fine for non-security uses (shuffling, sampling)
     "S324",   # insecure hash — MD5/SHA1 used for content hashing, not security
     "S701",   # jinja2-autoescape-false — template engine controls escaping contextually
     "S301",   # suspicious-pickle — used for build cache serialization
     "S314",   # suspicious-xml — used for sitemap/feed generation
-    "S112",   # try-except-continue — intentional skip-and-continue patterns
+    # S112 enabled — silent try-except-continue now caught by ruff; use noqa with reason where intentional
     "S101",   # assert — used as contract/invariant checks throughout
     "S310",   # suspicious-url-open — URL fetching is core functionality
     "S108",   # hardcoded-temp-file — /tmp paths in a build tool are fine
@@ -198,6 +198,8 @@ ignore = [
     "S603",  # Subprocess in tests is fine
     "S607",  # Partial path in tests is fine
     "TRY",   # Exception patterns in tests are intentionally varied
+    "S110",  # try-except-pass is fine in test setup/teardown
+    "S112",  # try-except-continue is fine in test iteration
 ]
 # CLI layer — print() is the primary output mechanism, callbacks have fixed signatures
 "bengal/cli/**/*.py" = ["T201", "ARG"]
@@ -230,7 +232,7 @@ ignore = [
 # Notebooks — print is the output mechanism
 "site/**/*.ipynb" = ["T201"]
 # Cursor/audit scripts — standalone scripts
-".cursor/**/*.py" = ["T201", "S101", "S603", "S607"]
+".cursor/**/*.py" = ["T201", "S101", "S110", "S112", "S603", "S607"]
 # Assets/CLI — subprocess for external tools (npm, pip, etc.)
 "bengal/assets/**/*.py" = ["S603", "S607"]
 "bengal/cli/commands/upgrade/**/*.py" = ["S603", "S607"]
@@ -247,7 +249,7 @@ ignore = [
 "bengal/postprocess/**/*.py" = ["S603", "S607", "ARG"]
 # Scripts and benchmarks
 "scripts/**/*.py" = ["T201", "S"]
-"benchmarks/**/*.py" = ["T201", "S101", "S603", "S607", "ARG"]
+"benchmarks/**/*.py" = ["T201", "S101", "S110", "S112", "S603", "S607", "ARG"]
 # Jinja test functions use test_ prefix by convention (not pytest tests)
 "bengal/rendering/template_tests.py" = ["PT028"]
 # LRUCache.keys() returns list[K], not a dict - SIM118 false positive

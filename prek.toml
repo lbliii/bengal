@@ -120,3 +120,12 @@ language = "system"
 files = "^bengal/.*\\.py$"
 pass_filenames = true
 priority = 2
+
+[[repos.hooks]]
+id = "check-silent-suppress"
+name = "Require justification for contextlib.suppress in bengal/"
+entry = "uv run python scripts/check_silent_suppress.py"
+language = "system"
+files = "^bengal/.*\\.py$"
+pass_filenames = true
+priority = 2

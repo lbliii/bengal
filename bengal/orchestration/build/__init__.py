@@ -384,7 +384,7 @@ class BuildOrchestrator:
                         "Run a full rebuild (bengal build --no-incremental) if content seems stale.",
                         stacklevel=2,
                     )
-            except Exception:
+            except Exception:  # noqa: S110
                 pass  # Effect tracing may not be initialized yet on first build
 
         # Store options and cache for phase-level optimizations
@@ -616,7 +616,7 @@ class BuildOrchestrator:
                 from bengal.services.data import DataService
 
                 early_ctx.data_service = DataService.from_root(self.site.root_path)
-            except Exception:
+            except Exception:  # noqa: S110
                 pass  # data/ dir may not exist; service remains None
 
         # === DRY-RUN MODE: Skip output-producing phases ===

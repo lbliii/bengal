@@ -208,7 +208,9 @@ class WatcherRunner:
 
             # Wait for tasks to complete with timeout to avoid hanging
             # This prevents "Task was destroyed but it is pending!" warnings
-            with contextlib.suppress(asyncio.CancelledError, asyncio.TimeoutError):
+            with contextlib.suppress(
+                asyncio.CancelledError, asyncio.TimeoutError
+            ):  # silent: graceful shutdown on cancel/timeout
                 await asyncio.wait_for(
                     asyncio.gather(watch_task, debounce_task, return_exceptions=True),
                     timeout=1.0,

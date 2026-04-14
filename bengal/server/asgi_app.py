@@ -205,7 +205,9 @@ def _request_logging_middleware(
                 cb = request_callback()
                 if cb is not None:
                     duration_ms = (time.perf_counter() - start) * 1000
-                    with contextlib.suppress(Exception):
+                    with contextlib.suppress(
+                        Exception
+                    ):  # silent: request callback must not crash server
                         cb(method, path, status, duration_ms)
 
     return wrapped
@@ -441,5 +443,7 @@ async def _handle_sse(send: Any, *, keepalive_interval: float | None = None) -> 
     except asyncio.CancelledError, ConnectionError, OSError:
         pass
 
-    with contextlib.suppress(ConnectionError, OSError):
+    with contextlib.suppress(
+        ConnectionError, OSError
+    ):  # silent: SSE connection may already be closed
         await _send_chunk(b"", more=False)

@@ -390,7 +390,7 @@ class ConnectivityValidator(BaseValidator):
             # Summary info with connectivity distribution
             import contextlib
 
-            with contextlib.suppress(Exception):
+            with contextlib.suppress(Exception):  # silent: best-effort connectivity check
                 results.append(
                     CheckResult.info(
                         f"Analysis: {metrics.get('total_pages', 0)} pages | "

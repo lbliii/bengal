@@ -651,10 +651,14 @@ def _get_actual_logger(name: str) -> BengalLogger:
     Thread-safe: Uses double-checked locking pattern for safe concurrent
     access under free-threading (PEP 703).
     """
-    # Fast path: already exists (no lock needed)
-    if name in _loggers:
+    # Fast path: already exists (no lock needed).
+    # KeyError is possible if reset_loggers() clears the dict between the
+    # membership check and the lookup — fall through to the locked slow path.
+    try:
         return _loggers[name]
-    # Slow path: acquire lock and double-check
+    except KeyError:
+        pass
+    # Slow path: acquire lock and create
     with _logger_lock:
         if name not in _loggers:
             _loggers[name] = BengalLogger(
@@ -740,7 +744,7 @@ def configure_logging(
                 # Truncate the file to ensure we start fresh
                 with open(log_file, "w", encoding="utf-8"):
                     pass
-            except Exception:
+            except Exception:  # noqa: S110
                 # Ignore errors (file might not be writable, etc.)
                 pass
 

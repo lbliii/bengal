@@ -219,7 +219,7 @@ def extract_error_attributes(error: Exception) -> dict[str, Any]:
     if hasattr(error, "filename") and result["file_path"] is None:
         filename = getattr(error, "filename", None)
         if filename:
-            with contextlib.suppress(TypeError, ValueError):
+            with contextlib.suppress(TypeError, ValueError):  # silent: best-effort error formatting
                 result["file_path"] = Path(filename)
 
     if hasattr(error, "lineno") and result["line_number"] is None:

@@ -174,7 +174,7 @@ class PIDManager:
 
         except ValueError, OSError:
             # Invalid PID file or read error
-            with contextlib.suppress(OSError):
+            with contextlib.suppress(OSError):  # silent: best-effort PID file cleanup
                 pid_file.unlink()
             return None
 

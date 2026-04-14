@@ -149,7 +149,7 @@ class AssetExplorer(Vertical):
             self._categorized[category].append(asset)
             # Get file size if available
             if asset.source_path and asset.source_path.exists():
-                with contextlib.suppress(OSError):
+                with contextlib.suppress(OSError):  # silent: widget query may fail during compose
                     total_size += asset.source_path.stat().st_size
 
         # Update tables

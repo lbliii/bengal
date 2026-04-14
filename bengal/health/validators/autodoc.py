@@ -214,7 +214,7 @@ class AutodocValidator(BaseValidator):
                         type_mismatches.append(
                             f"{page_path.relative_to(site.output_dir)}: got {actual}"
                         )
-                except Exception:
+                except Exception:  # noqa: S110
                     pass
 
             if type_mismatches:

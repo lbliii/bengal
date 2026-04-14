@@ -308,7 +308,7 @@ def migrate_template_cache(paths: BengalPaths, output_dir: Path) -> bool:
             old_parent = output_dir / ".bengal-cache"
             if old_parent.exists() and not any(old_parent.iterdir()):
                 old_parent.rmdir()
-        except Exception:
+        except Exception:  # noqa: S110
             pass
         return False
 

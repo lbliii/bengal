@@ -1209,7 +1209,7 @@ class Site:
                         version=version,
                         lang=lang,
                     )
-                except Exception:
+                except Exception:  # noqa: S110
                     # Don't fail discovery on registry errors (graceful degradation)
                     pass
 

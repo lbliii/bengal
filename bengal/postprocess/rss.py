@@ -90,7 +90,7 @@ class RSSGenerator:
                 site_section = cfg.setdefault("site", {})
                 if isinstance(site_section, dict) and "baseurl" not in site_section:
                     site_section["baseurl"] = cfg.get("baseurl", "")
-        except Exception:
+        except Exception:  # noqa: S110
             # Best-effort; do not fail initialization
             pass
 

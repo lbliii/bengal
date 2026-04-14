@@ -98,7 +98,7 @@ def save_compressed(data: dict[str, Any], path: Path, level: int = COMPRESSION_L
         os.replace(temp_path, path)
     except Exception:
         # Clean up temp file on failure
-        with contextlib.suppress(OSError):
+        with contextlib.suppress(OSError):  # silent: best-effort cache cleanup
             os.unlink(temp_path)
         raise
 

@@ -27,7 +27,7 @@ Displays tags as styled badges, optionally linkable.
 ============================================================================= #}
 {% def tag_list(tags, small=false, linkable=true) %}
 {% let safe_tags = tags ?? [] %}
-{% let max_display = (theme?.max_tags_display | default(0)) | int %}
+{% let max_display = (theme?.max_tags_display or 0) | int %}
 {% let display_tags = safe_tags[:max_display] if max_display > 0 else safe_tags %}
 {% let tag_count = safe_tags | length %}
 

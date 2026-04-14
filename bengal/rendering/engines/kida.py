@@ -1256,7 +1256,7 @@ class KidaTemplateEngine:
             try:
                 self._env.get_template(name)
                 compiled += 1
-            except Exception:
+            except Exception:  # noqa: S110
                 # Skip templates that fail to compile
                 # (will be caught later during rendering)
                 pass

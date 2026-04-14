@@ -113,7 +113,9 @@ class RenderedOutputCacheMixin:
         asset_manifest_mtime: float | None = None
         if output_dir:
             manifest_path = output_dir / "asset-manifest.json"
-            with contextlib.suppress(FileNotFoundError, OSError):
+            with contextlib.suppress(
+                FileNotFoundError, OSError
+            ):  # silent: best-effort cache file cleanup
                 asset_manifest_mtime = manifest_path.stat().st_mtime
 
         # Store as dict (will be serialized to JSON)
