@@ -227,7 +227,7 @@ requires-dist = [
     { name = "jsmin", specifier = ">=3.0.1" },
     { name = "kida-templates", specifier = ">=0.6.0" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
-    { name = "milo-cli", git = "https://github.com/lbliii/milo-cli.git?rev=d929be6cfac3152ee3549604b52e0aec66e396c8" },
+    { name = "milo-cli", git = "https://github.com/lbliii/milo-cli.git?rev=db0426e823abec0f853804ec7490e60847560bb9" },
     { name = "packaging", specifier = ">=23.0" },
     { name = "patitas", specifier = ">=0.3.5" },
     { name = "pillow", specifier = ">=10.0.0" },
@@ -660,8 +660,8 @@ wheels = [
 
 [[package]]
 name = "milo-cli"
-version = "0.2.1"
-source = { git = "https://github.com/lbliii/milo-cli.git?rev=d929be6cfac3152ee3549604b52e0aec66e396c8#d929be6cfac3152ee3549604b52e0aec66e396c8" }
+version = "0.2.2"
+source = { git = "https://github.com/lbliii/milo-cli.git?rev=db0426e823abec0f853804ec7490e60847560bb9#db0426e823abec0f853804ec7490e60847560bb9" }
 dependencies = [
     { name = "kida-templates" },
 ]

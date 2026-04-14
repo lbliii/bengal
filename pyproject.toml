@@ -33,7 +33,7 @@ classifiers = [
 ]
 dependencies = [
     "click>=8.1.7",
-    "milo-cli>=0.2.1",                         # B-stack CLI framework (replaces Click — migration in progress)
+    "milo-cli>=0.2.2",                         # B-stack CLI framework (replaces Click — migration in progress)
 
     "rosettes>=0.2.0",
     "kida-templates>=0.6.0",                   # Kida template engine (AST-native, free-threading ready)
@@ -93,7 +93,7 @@ Repository = "https://github.com/lbliii/bengal"
 "Bug Tracker" = "https://github.com/lbliii/bengal/issues"
 
 [tool.uv.sources]
-milo-cli = { git = "https://github.com/lbliii/milo-cli.git", rev = "d929be6cfac3152ee3549604b52e0aec66e396c8" }
+milo-cli = { git = "https://github.com/lbliii/milo-cli.git", rev = "db0426e823abec0f853804ec7490e60847560bb9" }
 
 [tool.setuptools.packages.find]
 where = ["."]
