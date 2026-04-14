@@ -19,13 +19,13 @@ Usage:
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-class TaxonomyStatsDict(TypedDict, total=False):
+class TaxonomyStatsDict(TypedDict):
     """Statistics for taxonomy-type caches."""
 
     total_tags: int
@@ -34,7 +34,7 @@ class TaxonomyStatsDict(TypedDict, total=False):
     total_unique_pages: int
     total_page_tag_pairs: int
     avg_tags_per_page: float
-    cache_size_bytes: int
+    cache_size_bytes: NotRequired[int]
 
 
 def compute_validity_stats[V](

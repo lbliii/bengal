@@ -68,7 +68,7 @@ See Also
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 if TYPE_CHECKING:
     from bengal.errors.codes import ErrorCode
@@ -80,7 +80,7 @@ if TYPE_CHECKING:
     from bengal.protocols.build import BuildPhase
 
 
-class ErrorDict(TypedDict, total=False):
+class ErrorDict(TypedDict):
     """Serialized form of BengalError for JSON output."""
 
     type: str
@@ -92,7 +92,7 @@ class ErrorDict(TypedDict, total=False):
     build_phase: str | None
     severity: str | None
     related_files: list[str]
-    debug_payload: dict[str, Any]
+    debug_payload: NotRequired[dict[str, Any]]
 
 
 class BengalError(Exception):
