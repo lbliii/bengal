@@ -48,7 +48,18 @@ Related Modules:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, TypedDict
+
+
+class AuthorDict(TypedDict):
+    """Serialized form of Author for template context."""
+
+    name: str
+    email: str
+    bio: str
+    avatar: str
+    url: str
+    social: dict[str, str]
 
 
 @dataclass(frozen=True, slots=True)
@@ -129,7 +140,7 @@ class Author:
         """Shortcut for Mastodon handle."""
         return self.social.get("mastodon", "")
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> AuthorDict:
         """
         Convert to dictionary for template context or serialization.
 

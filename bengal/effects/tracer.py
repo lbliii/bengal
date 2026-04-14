@@ -20,9 +20,17 @@ import time
 from collections import defaultdict
 from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from bengal.effects.effect import Effect
+
+
+class EffectTracerDict(TypedDict):
+    """Serialized form of EffectTracer state."""
+
+    effects: list[dict[str, Any]]
+    fingerprints: dict[str, str]
+
 
 if TYPE_CHECKING:
     from bengal.snapshots.types import SiteSnapshot
@@ -305,7 +313,7 @@ class EffectTracer:
 
     # --- Persistence ---
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> EffectTracerDict:
         """Serialize tracer state to dict."""
         with self._lock:
             return {

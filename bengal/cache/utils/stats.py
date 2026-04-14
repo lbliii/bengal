@@ -19,10 +19,22 @@ Usage:
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, TypedDict
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+
+class TaxonomyStatsDict(TypedDict, total=False):
+    """Statistics for taxonomy-type caches."""
+
+    total_tags: int
+    valid_tags: int
+    invalid_tags: int
+    total_unique_pages: int
+    total_page_tag_pairs: int
+    avg_tags_per_page: float
+    cache_size_bytes: int
 
 
 def compute_validity_stats[V](
@@ -106,7 +118,7 @@ def compute_taxonomy_stats(
     is_valid: Callable[[Any], bool],
     get_page_paths: Callable[[Any], list[str]],
     serialize: Callable[[Any], dict[str, Any]] | None = None,
-) -> dict[str, Any]:
+) -> TaxonomyStatsDict:
     """
     Compute statistics for taxonomy-type caches.
 

@@ -62,7 +62,7 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 
 @dataclass
@@ -158,6 +158,18 @@ class GitVersionConfig:
     parallel_builds: int = 4
 
 
+class VersionDict(TypedDict):
+    """Serialized form of Version for template context."""
+
+    id: str
+    label: str
+    latest: bool
+    deprecated: bool
+    url_prefix: str
+    release_date: str | None
+    end_of_life: str | None
+
+
 @dataclass
 class Version:
     """
@@ -219,7 +231,7 @@ class Version:
             return ""
         return f"/{self.id}"
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> VersionDict:
         """
         Convert to dictionary for template context.
 

@@ -27,7 +27,7 @@ from typing import Literal, Protocol, TypedDict, runtime_checkable
 # =============================================================================
 
 # Status literal type matching CheckStatus enum
-CheckStatusLiteral = Literal["success", "info", "suggestion", "warning", "error"]
+type CheckStatusLiteral = Literal["success", "info", "suggestion", "warning", "error"]
 
 
 class CheckResultDict(TypedDict, total=False):

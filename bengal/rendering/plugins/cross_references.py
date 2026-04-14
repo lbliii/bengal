@@ -36,7 +36,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 # Type alias for cross-version dependency callback
-CrossVersionTracker = Callable[[Path, str, str], None]
+type CrossVersionTracker = Callable[[Path, str, str], None]
 
 __all__ = ["CrossReferencePlugin"]
 

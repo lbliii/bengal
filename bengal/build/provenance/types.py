@@ -122,7 +122,7 @@ class Provenance:
         return f"Provenance({', '.join(parts)}) → {self.combined_hash}"
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ProvenanceRecord:
     """
     Stored provenance record with metadata.

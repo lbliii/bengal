@@ -29,7 +29,7 @@ if TYPE_CHECKING:
     from textual.app import ComposeResult
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class BuildPhase:
     """
     Represents a build phase with status.

@@ -43,7 +43,7 @@ if TYPE_CHECKING:
     from bengal.protocols.core import PageLike
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ProvenanceFilterResult:
     """Result of provenance-based filtering."""
 

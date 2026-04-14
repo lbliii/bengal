@@ -77,7 +77,7 @@ from bengal.errors.utils import (
 )
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class FileChange:
     """
     Record of a file change that may have caused an error.

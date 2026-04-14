@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from bengal.server.build_executor import BuildRequest
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class BuildInput:
     """
     Complete, serializable record of all inputs to a build.

@@ -49,7 +49,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class FeatureFlags:
     """
     Feature flags organized by category.
@@ -142,7 +142,7 @@ class FeatureFlags:
         )
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class AppearanceConfig:
     """
     Appearance configuration for theme mode and color palette.
@@ -191,7 +191,7 @@ class AppearanceConfig:
         )
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class IconConfig:
     """
     Icon library configuration with semantic aliases.
@@ -254,7 +254,7 @@ class IconConfig:
         }
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class HeaderConfig:
     """
     Header layout and behavior configuration.
@@ -316,7 +316,7 @@ class HeaderConfig:
         }
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ThemeConfig:
     """
     Complete theme configuration loaded from theme.yaml.

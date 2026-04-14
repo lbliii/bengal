@@ -343,19 +343,20 @@ class HtmlRenderer(BlockRendererMixin, DirectiveRendererMixin, HtmlRendererProto
         """
         parts: list[str] = []
         for child in children:
-            if isinstance(child, Text):
-                content = child.content
-                # Apply text transformer if present (e.g., variable substitution)
-                if self._text_transformer:
-                    content = self._text_transformer(content)
-                parts.append(content)
-            elif isinstance(child, CodeSpan):
-                parts.append(child.code)
-            elif isinstance(child, (Emphasis, Strong, Strikethrough, Link)):
-                parts.append(self._extract_plain_text(child.children))
-            elif isinstance(child, Math):
-                parts.append(child.content)
-            # Skip: Image, LineBreak, SoftBreak, HtmlInline, Role, FootnoteRef
+            match child:
+                case Text():
+                    content = child.content
+                    # Apply text transformer if present (e.g., variable substitution)
+                    if self._text_transformer:
+                        content = self._text_transformer(content)
+                    parts.append(content)
+                case CodeSpan():
+                    parts.append(child.code)
+                case Emphasis() | Strong() | Strikethrough() | Link():
+                    parts.append(self._extract_plain_text(child.children))
+                case Math():
+                    parts.append(child.content)
+                # Skip: Image, LineBreak, SoftBreak, HtmlInline, Role, FootnoteRef
         return "".join(parts)
 
     def _get_unique_slug(self, text: str) -> str:

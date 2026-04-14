@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from bengal.protocols import SiteLike
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class LinkRegistry:
     """
     Immutable registry of all valid link targets in a site.

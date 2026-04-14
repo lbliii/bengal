@@ -390,77 +390,78 @@ class NotionSource(ContentSource):
             block_type = block.get("type")
             block_data = block.get(str(block_type) if block_type else "", {})
 
-            if block_type == "paragraph":
-                text = self._rich_text_to_md(block_data.get("rich_text", []))
-                lines.append(text)
+            match block_type:
+                case "paragraph":
+                    text = self._rich_text_to_md(block_data.get("rich_text", []))
+                    lines.append(text)
 
-            elif block_type == "heading_1":
-                text = self._rich_text_to_md(block_data.get("rich_text", []))
-                lines.append(f"# {text}")
+                case "heading_1":
+                    text = self._rich_text_to_md(block_data.get("rich_text", []))
+                    lines.append(f"# {text}")
 
-            elif block_type == "heading_2":
-                text = self._rich_text_to_md(block_data.get("rich_text", []))
-                lines.append(f"## {text}")
+                case "heading_2":
+                    text = self._rich_text_to_md(block_data.get("rich_text", []))
+                    lines.append(f"## {text}")
 
-            elif block_type == "heading_3":
-                text = self._rich_text_to_md(block_data.get("rich_text", []))
-                lines.append(f"### {text}")
+                case "heading_3":
+                    text = self._rich_text_to_md(block_data.get("rich_text", []))
+                    lines.append(f"### {text}")
 
-            elif block_type == "bulleted_list_item":
-                text = self._rich_text_to_md(block_data.get("rich_text", []))
-                lines.append(f"- {text}")
+                case "bulleted_list_item":
+                    text = self._rich_text_to_md(block_data.get("rich_text", []))
+                    lines.append(f"- {text}")
 
-            elif block_type == "numbered_list_item":
-                text = self._rich_text_to_md(block_data.get("rich_text", []))
-                lines.append(f"1. {text}")
+                case "numbered_list_item":
+                    text = self._rich_text_to_md(block_data.get("rich_text", []))
+                    lines.append(f"1. {text}")
 
-            elif block_type == "to_do":
-                text = self._rich_text_to_md(block_data.get("rich_text", []))
-                checked = "x" if block_data.get("checked") else " "
-                lines.append(f"- [{checked}] {text}")
+                case "to_do":
+                    text = self._rich_text_to_md(block_data.get("rich_text", []))
+                    checked = "x" if block_data.get("checked") else " "
+                    lines.append(f"- [{checked}] {text}")
 
-            elif block_type == "toggle":
-                text = self._rich_text_to_md(block_data.get("rich_text", []))
-                lines.append(f"<details><summary>{text}</summary>")
-                # Note: nested blocks not handled in this simple implementation
-                lines.append("</details>")
+                case "toggle":
+                    text = self._rich_text_to_md(block_data.get("rich_text", []))
+                    lines.append(f"<details><summary>{text}</summary>")
+                    # Note: nested blocks not handled in this simple implementation
+                    lines.append("</details>")
 
-            elif block_type == "code":
-                code = self._rich_text_to_md(block_data.get("rich_text", []))
-                lang = block_data.get("language", "")
-                lines.append(f"```{lang}")
-                lines.append(code)
-                lines.append("```")
+                case "code":
+                    code = self._rich_text_to_md(block_data.get("rich_text", []))
+                    lang = block_data.get("language", "")
+                    lines.append(f"```{lang}")
+                    lines.append(code)
+                    lines.append("```")
 
-            elif block_type == "quote":
-                text = self._rich_text_to_md(block_data.get("rich_text", []))
-                lines.append(f"> {text}")
+                case "quote":
+                    text = self._rich_text_to_md(block_data.get("rich_text", []))
+                    lines.append(f"> {text}")
 
-            elif block_type == "callout":
-                icon = block_data.get("icon", {}).get("emoji", "💡")
-                text = self._rich_text_to_md(block_data.get("rich_text", []))
-                lines.append(f"> {icon} {text}")
+                case "callout":
+                    icon = block_data.get("icon", {}).get("emoji", "💡")
+                    text = self._rich_text_to_md(block_data.get("rich_text", []))
+                    lines.append(f"> {icon} {text}")
 
-            elif block_type == "divider":
-                lines.append("---")
+                case "divider":
+                    lines.append("---")
 
-            elif block_type == "image":
-                image_data = block_data
-                url = image_data.get("external", {}).get("url") or image_data.get("file", {}).get(
-                    "url"
-                )
-                caption = self._rich_text_to_md(image_data.get("caption", []))
-                if url:
-                    lines.append(f"![{caption}]({url})")
+                case "image":
+                    image_data = block_data
+                    url = image_data.get("external", {}).get("url") or image_data.get(
+                        "file", {}
+                    ).get("url")
+                    caption = self._rich_text_to_md(image_data.get("caption", []))
+                    if url:
+                        lines.append(f"![{caption}]({url})")
 
-            elif block_type == "bookmark":
-                url = block_data.get("url", "")
-                caption = self._rich_text_to_md(block_data.get("caption", []))
-                lines.append(f"[{caption or url}]({url})")
+                case "bookmark":
+                    url = block_data.get("url", "")
+                    caption = self._rich_text_to_md(block_data.get("caption", []))
+                    lines.append(f"[{caption or url}]({url})")
 
-            elif block_type == "equation":
-                expression = block_data.get("expression", "")
-                lines.append(f"$$\n{expression}\n$$")
+                case "equation":
+                    expression = block_data.get("expression", "")
+                    lines.append(f"$$\n{expression}\n$$")
 
             # Add blank line between blocks
             lines.append("")
@@ -524,56 +525,57 @@ class NotionSource(ContentSource):
             prop = properties[notion_prop]
             prop_type = prop.get("type")
 
-            if prop_type == "title":
-                frontmatter[fm_key] = self._rich_text_to_md(prop.get("title", []))
+            match prop_type:
+                case "title":
+                    frontmatter[fm_key] = self._rich_text_to_md(prop.get("title", []))
 
-            elif prop_type == "rich_text":
-                frontmatter[fm_key] = self._rich_text_to_md(prop.get("rich_text", []))
+                case "rich_text":
+                    frontmatter[fm_key] = self._rich_text_to_md(prop.get("rich_text", []))
 
-            elif prop_type == "date":
-                date_obj = prop.get("date")
-                if date_obj:
-                    frontmatter[fm_key] = date_obj.get("start")
+                case "date":
+                    date_obj = prop.get("date")
+                    if date_obj:
+                        frontmatter[fm_key] = date_obj.get("start")
 
-            elif prop_type == "multi_select":
-                frontmatter[fm_key] = [opt["name"] for opt in prop.get("multi_select", [])]
+                case "multi_select":
+                    frontmatter[fm_key] = [opt["name"] for opt in prop.get("multi_select", [])]
 
-            elif prop_type == "select":
-                select_obj = prop.get("select")
-                if select_obj:
-                    frontmatter[fm_key] = select_obj.get("name")
+                case "select":
+                    select_obj = prop.get("select")
+                    if select_obj:
+                        frontmatter[fm_key] = select_obj.get("name")
 
-            elif prop_type == "checkbox":
-                frontmatter[fm_key] = prop.get("checkbox", False)
+                case "checkbox":
+                    frontmatter[fm_key] = prop.get("checkbox", False)
 
-            elif prop_type == "number":
-                frontmatter[fm_key] = prop.get("number")
+                case "number":
+                    frontmatter[fm_key] = prop.get("number")
 
-            elif prop_type == "url":
-                frontmatter[fm_key] = prop.get("url")
+                case "url":
+                    frontmatter[fm_key] = prop.get("url")
 
-            elif prop_type == "email":
-                frontmatter[fm_key] = prop.get("email")
+                case "email":
+                    frontmatter[fm_key] = prop.get("email")
 
-            elif prop_type == "phone_number":
-                frontmatter[fm_key] = prop.get("phone_number")
+                case "phone_number":
+                    frontmatter[fm_key] = prop.get("phone_number")
 
-            elif prop_type == "people":
-                people = prop.get("people", [])
-                frontmatter[fm_key] = [p.get("name", p.get("id")) for p in people]
+                case "people":
+                    people = prop.get("people", [])
+                    frontmatter[fm_key] = [p.get("name", p.get("id")) for p in people]
 
-            elif prop_type == "files":
-                files = prop.get("files", [])
-                urls = []
-                for f in files:
-                    url = f.get("external", {}).get("url") or f.get("file", {}).get("url")
-                    if url:
-                        urls.append(url)
-                frontmatter[fm_key] = urls
+                case "files":
+                    files = prop.get("files", [])
+                    urls = []
+                    for f in files:
+                        url = f.get("external", {}).get("url") or f.get("file", {}).get("url")
+                        if url:
+                            urls.append(url)
+                    frontmatter[fm_key] = urls
 
-            elif prop_type == "status":
-                status_obj = prop.get("status")
-                if status_obj:
-                    frontmatter[fm_key] = status_obj.get("name")
+                case "status":
+                    status_obj = prop.get("status")
+                    if status_obj:
+                        frontmatter[fm_key] = status_obj.get("name")
 
         return frontmatter

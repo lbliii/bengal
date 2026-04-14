@@ -52,7 +52,7 @@ class SiteContext(Protocol):
     current_language: str | None
 
 
-SiteContextGetter = Callable[[], tuple[SiteContext | None, Any | None]]
+type SiteContextGetter = Callable[[], tuple[SiteContext | None, Any | None]]
 
 
 # =============================================================================

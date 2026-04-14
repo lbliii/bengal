@@ -62,7 +62,7 @@ class PageContext(Protocol):
 
 
 # Type alias for page context getter
-PageContextGetter = Callable[[], PageContext | None]
+type PageContextGetter = Callable[[], PageContext | None]
 
 
 # =============================================================================

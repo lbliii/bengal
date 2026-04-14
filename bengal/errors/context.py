@@ -148,7 +148,7 @@ class ErrorSeverity(Enum):
         return self in (ErrorSeverity.ERROR, ErrorSeverity.WARNING)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class RelatedFile:
     """
     A file related to an error for debugging context.
@@ -171,7 +171,7 @@ class RelatedFile:
         return f"{self.role}: {path_str}"
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ErrorDebugPayload:
     """
     Machine-parseable debug context for AI troubleshooting.
