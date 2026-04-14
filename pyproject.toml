@@ -232,7 +232,7 @@ ignore = [
 # Notebooks — print is the output mechanism
 "site/**/*.ipynb" = ["T201"]
 # Cursor/audit scripts — standalone scripts
-".cursor/**/*.py" = ["T201", "S101", "S603", "S607"]
+".cursor/**/*.py" = ["T201", "S101", "S110", "S112", "S603", "S607"]
 # Assets/CLI — subprocess for external tools (npm, pip, etc.)
 "bengal/assets/**/*.py" = ["S603", "S607"]
 "bengal/cli/commands/upgrade/**/*.py" = ["S603", "S607"]
@@ -249,7 +249,7 @@ ignore = [
 "bengal/postprocess/**/*.py" = ["S603", "S607", "ARG"]
 # Scripts and benchmarks
 "scripts/**/*.py" = ["T201", "S"]
-"benchmarks/**/*.py" = ["T201", "S101", "S603", "S607", "ARG"]
+"benchmarks/**/*.py" = ["T201", "S101", "S110", "S112", "S603", "S607", "ARG"]
 # Jinja test functions use test_ prefix by convention (not pytest tests)
 "bengal/rendering/template_tests.py" = ["PT028"]
 # LRUCache.keys() returns list[K], not a dict - SIM118 false positive
