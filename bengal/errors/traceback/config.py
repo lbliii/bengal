@@ -90,7 +90,7 @@ if TYPE_CHECKING:
     from bengal.errors.traceback.renderer import TracebackRenderer
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class TracebackConfig:
     """
     Configuration for traceback display and Rich installation.

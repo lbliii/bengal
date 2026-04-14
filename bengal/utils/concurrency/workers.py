@@ -77,7 +77,7 @@ class Environment(Enum):
     PRODUCTION = "production"
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class WorkloadProfile:
     """Tuning profile for a workload type.
 

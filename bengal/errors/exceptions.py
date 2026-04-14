@@ -68,7 +68,7 @@ See Also
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 if TYPE_CHECKING:
     from bengal.errors.codes import ErrorCode
@@ -78,6 +78,21 @@ if TYPE_CHECKING:
         RelatedFile,
     )
     from bengal.protocols.build import BuildPhase
+
+
+class ErrorDict(TypedDict):
+    """Serialized form of BengalError for JSON output."""
+
+    type: str
+    message: str
+    code: str | None
+    file_path: str | None
+    line_number: int | None
+    suggestion: str | None
+    build_phase: str | None
+    severity: str | None
+    related_files: list[str]
+    debug_payload: NotRequired[dict[str, Any]]
 
 
 class BengalError(Exception):
@@ -196,7 +211,7 @@ class BengalError(Exception):
 
         return "\n".join(parts)
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> ErrorDict:
         """
         Convert to dictionary for JSON serialization.
 

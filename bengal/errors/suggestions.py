@@ -83,7 +83,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ActionableSuggestion:
     """
     A structured, actionable suggestion for fixing an error.

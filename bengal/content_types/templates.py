@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 #: Page type literals for template resolution
-PageType = Literal["home", "list", "single"]
+type PageType = Literal["home", "list", "single"]
 
 
 def classify_page(page: PageLike) -> PageType:

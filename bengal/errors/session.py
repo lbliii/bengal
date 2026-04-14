@@ -81,7 +81,7 @@ if TYPE_CHECKING:
     from bengal.errors.codes import ErrorCode
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ErrorOccurrence:
     """
     Record of a single error occurrence.
@@ -104,7 +104,7 @@ class ErrorOccurrence:
     build_phase: str | None = None
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class ErrorPattern:
     """
     Aggregated pattern for similar errors.

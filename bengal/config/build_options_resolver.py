@@ -41,7 +41,7 @@ from bengal.config.utils import coerce_bool, get_config_value
 from bengal.orchestration.build.options import BuildOptions
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class CLIFlags:
     """
     Flags explicitly passed via CLI (None = not passed).

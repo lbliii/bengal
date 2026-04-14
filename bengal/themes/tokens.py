@@ -98,7 +98,7 @@ class ColorPalette(Protocol):
     def background(self) -> str: ...
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class BengalPalette:
     """
     Bengal color palette with semantic color tokens.
@@ -166,7 +166,7 @@ class BengalPalette:
 BENGAL_PALETTE = BengalPalette()
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class BengalMascots:
     """
     Bengal brand mascots and status icons for terminal output.
@@ -235,7 +235,7 @@ class BengalMascots:
 BENGAL_MASCOT = BengalMascots()
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class PaletteVariant:
     """
     Named color palette variant for theming.

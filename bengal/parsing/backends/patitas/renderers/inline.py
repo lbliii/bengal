@@ -37,7 +37,7 @@ from bengal.parsing.backends.patitas.renderers.utils import (
 )
 
 # Type alias for inline render handler
-InlineHandler = Callable[[Any, StringBuilder, Callable], None]
+type InlineHandler = Callable[[Any, StringBuilder, Callable], None]
 
 
 def render_text(node: Text, sb: StringBuilder, render_children: Callable) -> None:

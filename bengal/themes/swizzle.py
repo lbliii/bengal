@@ -85,7 +85,7 @@ class ModificationStatus(Enum):
     CHECKSUM_ERROR = "checksum_error"  # Could not compute checksum
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SwizzleRecord:
     """
     Immutable record of a swizzled template's provenance.

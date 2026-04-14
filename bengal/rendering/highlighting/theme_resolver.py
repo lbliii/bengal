@@ -28,7 +28,7 @@ __all__ = [
 ]
 
 # Type alias for CSS class style
-CssClassStyle = Literal["semantic", "pygments"]
+type CssClassStyle = Literal["semantic", "pygments"]
 
 # Mapping from Bengal site palettes to Rosettes syntax themes.
 # When syntax_highlighting.theme is "auto", we look up the site's

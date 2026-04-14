@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class BreadcrumbItem:
     """
     Single breadcrumb in navigation trail.
@@ -68,7 +68,7 @@ class BreadcrumbItem:
         return getattr(self, key, default)
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class PaginationItem:
     """
     Single page in pagination.
@@ -110,7 +110,7 @@ class PaginationItem:
         return getattr(self, key, default)
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class PaginationInfo:
     """
     Complete pagination data structure.
@@ -149,7 +149,7 @@ class PaginationInfo:
         return getattr(self, key, default)
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class TocGroupItem:
     """
     Grouped TOC item for collapsible sections.
@@ -196,7 +196,7 @@ class TocGroupItem:
         return getattr(self, key, default)
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class AutoNavItem:
     """
     Auto-discovered navigation item.

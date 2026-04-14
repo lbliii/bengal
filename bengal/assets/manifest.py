@@ -81,7 +81,7 @@ def _isoformat(timestamp: float | None) -> str | None:
     return datetime.fromtimestamp(timestamp, tz=UTC).isoformat().replace("+00:00", "Z")
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class AssetManifestEntry:
     """
     Manifest entry for a single logical asset.

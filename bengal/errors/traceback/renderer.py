@@ -64,7 +64,7 @@ from bengal.utils.observability.logger import get_logger
 logger = get_logger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class TracebackRenderer:
     """
     Base class for traceback renderers.

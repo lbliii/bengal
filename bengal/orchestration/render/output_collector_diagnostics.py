@@ -48,7 +48,7 @@ SOURCE_HINTS: dict[OutputCollectorSource, str] = {
 }
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class OutputCollectorDiagnostic:
     """Structured diagnostic for output_collector propagation failure."""
 

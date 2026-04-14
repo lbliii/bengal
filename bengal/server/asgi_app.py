@@ -26,13 +26,13 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 # ASGI app type: async (scope, receive, send) -> None
-ASGIApp = Callable[..., Any]
+type ASGIApp = Callable[..., Any]
 
 # Type for request callback: (method, path, status, duration_ms) -> None
-RequestCallback = Callable[[str, str, int, float], None]
+type RequestCallback = Callable[[str, str, int, float], None]
 
 # Getter for lazy callback resolution (set after backend creation)
-RequestCallbackGetter = Callable[[], RequestCallback | None]
+type RequestCallbackGetter = Callable[[], RequestCallback | None]
 
 
 def create_bengal_dev_app(

@@ -86,7 +86,7 @@ class HashEntry:
     digest: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, slots=True)
 class SnapshotEntry:
     """
     Immutable file metadata for snapshot comparison.
