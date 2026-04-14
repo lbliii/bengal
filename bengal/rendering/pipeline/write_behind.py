@@ -202,7 +202,7 @@ class WriteBehindCollector:
         if not self._shutdown.is_set():
             self._shutdown.set()
             for _ in self._writer_threads:
-                with contextlib.suppress(Exception):
+                with contextlib.suppress(Exception):  # silent: best-effort async write cleanup
                     self._queue.put_nowait(None)
 
     def _mark_thread_exited(self) -> None:

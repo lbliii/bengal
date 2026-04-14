@@ -412,7 +412,7 @@ def build(
                                 / _prev.build_time_ms
                                 * 100
                             )
-                    except Exception:
+                    except Exception:  # noqa: S110
                         pass
                 display_simple_build_stats(stats, output_dir=str(site.output_dir))
             elif build_profile == BuildProfile.DEVELOPER:

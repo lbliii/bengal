@@ -417,7 +417,7 @@ class LiveProgressManager:
         if self._render_fn:
             try:
                 return self._render_fn("build_progress.kida", state=state).strip("\n")
-            except Exception:
+            except Exception:  # noqa: S110
                 pass
 
         import os

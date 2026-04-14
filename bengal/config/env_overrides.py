@@ -246,7 +246,7 @@ def apply_env_overrides(config: dict[str, Any]) -> dict[str, Any]:
         hints = collect_hints("config", baseurl=str(baseurl_val or ""), max_hints=1)
         for h in hints:
             logger.info("dx_hint", hint_id=h.id, hint_message=h.message)
-    except Exception:
+    except Exception:  # noqa: S110
         pass
 
     return config

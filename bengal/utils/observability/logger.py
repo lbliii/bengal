@@ -744,7 +744,7 @@ def configure_logging(
                 # Truncate the file to ensure we start fresh
                 with open(log_file, "w", encoding="utf-8"):
                     pass
-            except Exception:
+            except Exception:  # noqa: S110
                 # Ignore errors (file might not be writable, etc.)
                 pass
 

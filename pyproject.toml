@@ -166,13 +166,13 @@ ignore = [
     "RET504", # unnecessary-assign — intermediate vars aid debuggability
     # S: false positives for a documentation site generator
     "S105",   # hardcoded-password-string — false positives on config keys like "secret_key"
-    "S110",   # try-except-pass — intentional suppress patterns
+    # S110 enabled — silent try-except-pass now caught by ruff; use noqa with reason where intentional
     "S311",   # non-cryptographic random — fine for non-security uses (shuffling, sampling)
     "S324",   # insecure hash — MD5/SHA1 used for content hashing, not security
     "S701",   # jinja2-autoescape-false — template engine controls escaping contextually
     "S301",   # suspicious-pickle — used for build cache serialization
     "S314",   # suspicious-xml — used for sitemap/feed generation
-    "S112",   # try-except-continue — intentional skip-and-continue patterns
+    # S112 enabled — silent try-except-continue now caught by ruff; use noqa with reason where intentional
     "S101",   # assert — used as contract/invariant checks throughout
     "S310",   # suspicious-url-open — URL fetching is core functionality
     "S108",   # hardcoded-temp-file — /tmp paths in a build tool are fine

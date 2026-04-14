@@ -190,7 +190,7 @@ def collect_hints(
                 continue
 
             hints.append(hint)
-        except Exception:
+        except Exception:  # noqa: S112
             continue
 
     hints.sort(key=lambda h: h.priority)

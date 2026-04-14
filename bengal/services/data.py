@@ -178,7 +178,7 @@ def scan_data_directory(root_path: Path) -> tuple[dict[str, Any], set[Path]]:
             current[parts[-1]] = content
             source_files.add(file_path)
 
-        except Exception:
+        except Exception:  # noqa: S110
             # Skip files that fail to load
             pass
 

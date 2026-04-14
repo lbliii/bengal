@@ -91,7 +91,7 @@ class ScoutThread(threading.Thread):
                         env.get_template(template_name)
             elif hasattr(self.template_engine, "get_template"):
                 self.template_engine.get_template(template_name)
-        except Exception:
+        except Exception:  # noqa: S110
             # Scout failures are non-fatal; workers will compile on demand
             pass
 

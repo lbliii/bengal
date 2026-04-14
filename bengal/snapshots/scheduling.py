@@ -227,7 +227,7 @@ def _compute_attention_score(page: PageLike) -> float:
             if isinstance(date, datetime):
                 days_ago = (datetime.now(UTC) - date).days
                 score += max(0, 10.0 - days_ago / 10.0)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     # Boost for featured pages

@@ -109,7 +109,7 @@ def emit_best_effort(obj: object | None, event: DiagnosticEvent) -> None:
     if sink is None:
         return
 
-    with contextlib.suppress(Exception):
+    with contextlib.suppress(Exception):  # silent: best-effort emit, failure is harmless
         sink.emit(event)
 
 

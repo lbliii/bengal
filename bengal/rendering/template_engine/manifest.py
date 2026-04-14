@@ -161,7 +161,7 @@ class ManifestHelpersMixin:
                     if logical_path in global_set:
                         return
                     global_set.add(logical_path)
-            except Exception:
+            except Exception:  # noqa: S110
                 # Fall back to per-engine suppression
                 pass
 

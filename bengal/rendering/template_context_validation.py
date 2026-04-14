@@ -62,7 +62,7 @@ def validate_template_contexts(
     for name in template_names:
         try:
             template = engine.env.get_template(name)
-        except Exception:
+        except Exception:  # noqa: S112
             continue
 
         if not hasattr(template, "validate_context"):

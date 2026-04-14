@@ -298,7 +298,7 @@ def create_pages(
                     source=source,
                     priority=80,  # Autodoc pages
                 )
-            except Exception:
+            except Exception:  # noqa: S110
                 # Don't fail autodoc generation on registry errors (graceful degradation)
                 pass
 

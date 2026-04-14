@@ -469,7 +469,7 @@ class TemplateRenderError(BengalRenderingError):
             try:
                 template_suspects = TemplateRenderError._scan_template_for_callables(template_path)
                 suspects.extend(template_suspects)
-            except Exception:
+            except Exception:  # noqa: S110
                 pass
 
         # Deduplicate and format

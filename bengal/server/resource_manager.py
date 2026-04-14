@@ -171,7 +171,7 @@ class ResourceManager:
 
         def _safe_shutdown(server: Any) -> None:
             """Run shutdown in thread; catch exceptions to prevent traceback."""
-            with contextlib.suppress(Exception):
+            with contextlib.suppress(Exception):  # silent: best-effort resource cleanup
                 server.shutdown()
 
         def cleanup(s: Any) -> None:
@@ -365,14 +365,14 @@ class ResourceManager:
         import contextlib
 
         for sig in signals_to_catch:
-            with contextlib.suppress(OSError, ValueError):
+            with contextlib.suppress(OSError, ValueError):  # silent: best-effort temp file cleanup
                 # Some signals can't be caught (e.g., in threads, Windows limitations)
                 self._original_signals[sig] = signal.signal(sig, self._signal_handler)
 
     def _restore_signals(self) -> None:
         """Restore original signal handlers."""
         for sig, handler in self._original_signals.items():
-            with contextlib.suppress(OSError, ValueError):
+            with contextlib.suppress(OSError, ValueError):  # silent: best-effort temp file cleanup
                 signal.signal(sig, handler)
 
     def __enter__(self) -> ResourceManager:

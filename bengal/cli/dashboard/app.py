@@ -256,7 +256,7 @@ class BengalApp(App):
                 log = self.screen.query_one(log_id, Log)
                 log.clear()
                 cleared = True
-            except Exception:
+            except Exception:  # noqa: S112 -- widget may not be mounted
                 continue
 
         if cleared:

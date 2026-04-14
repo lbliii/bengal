@@ -133,7 +133,7 @@ class BuildSnapshot:
         # Parse last build timestamp
         timestamp = datetime.now()
         if cache.last_build:
-            with contextlib.suppress(ValueError):
+            with contextlib.suppress(ValueError):  # silent: best-effort delta parsing
                 timestamp = datetime.fromisoformat(cache.last_build)
 
         return cls(

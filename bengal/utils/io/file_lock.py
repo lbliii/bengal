@@ -233,7 +233,7 @@ def _unlock_unix(lock_file: IO[str]) -> None:
     import contextlib
     import fcntl
 
-    with contextlib.suppress(OSError):
+    with contextlib.suppress(OSError):  # silent: best-effort lock file cleanup
         fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
 
 

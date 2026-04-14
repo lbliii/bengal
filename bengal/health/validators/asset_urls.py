@@ -80,7 +80,7 @@ class AssetURLValidator(BaseValidator):
         for html_file in html_files:
             try:
                 content = html_file.read_text(encoding="utf-8", errors="ignore")
-            except Exception:
+            except Exception:  # noqa: S112
                 continue
 
             for match in self.ASSET_PATTERN.finditer(content):

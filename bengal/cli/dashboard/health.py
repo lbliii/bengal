@@ -419,7 +419,7 @@ class BengalHealthDashboard(BengalDashboard):
         try:
             progress_bar = self.query_one("#health-score-bar", ProgressBar)
             progress_bar.update(progress=score)
-        except Exception:
+        except Exception:  # noqa: S110 -- widget may not be mounted
             # Silently ignore if widget not mounted yet or query fails;
             # progress bar update is non-critical UI feedback
             pass

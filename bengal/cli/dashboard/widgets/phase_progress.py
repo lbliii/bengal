@@ -242,7 +242,7 @@ class PhaseProgress(Vertical):
         try:
             details = self.query_one("#phase-details", Static)
             details.update(text)
-        except Exception:
+        except Exception:  # noqa: S110 -- widget may not be mounted
             pass  # Widget may not be mounted yet during compose
 
     def _update_elapsed(self) -> None:
@@ -256,7 +256,7 @@ class PhaseProgress(Vertical):
                     elapsed.update(f"Elapsed: {self.elapsed_ms / 1000:.1f}s")
             else:
                 elapsed.update("")
-        except Exception:
+        except Exception:  # noqa: S110 -- widget may not be mounted
             pass  # Widget may not be mounted yet during compose
 
     @property

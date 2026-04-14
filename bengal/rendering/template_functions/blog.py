@@ -234,7 +234,7 @@ def posts_filter(pages: Iterable[Any]) -> list[PostView]:
     for page in pages:
         try:
             result.append(PostView.from_page(page))
-        except Exception:
+        except Exception:  # noqa: S112
             # Skip pages that can't be converted
             continue
 

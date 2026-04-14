@@ -582,7 +582,7 @@ class DevServer:
             if default_palette:
                 build_state.set_active_palette(default_palette)
                 logger.debug("rebuilding_page_palette_set", palette=default_palette)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     def _init_reload_controller(self) -> None:
