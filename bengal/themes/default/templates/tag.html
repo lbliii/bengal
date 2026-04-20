@@ -24,7 +24,8 @@ Auto-generated for each tag in the site
 {# Template-scoped variables #}
 {% let current_tag = tag ?? '' %}
 {% let tag_posts = posts ?? [] %}
-{% let total_posts = total_posts ?? (tag_posts | length) %}
+{% let tag_posts_count = tag_posts | length %}
+{% let total_posts = total_posts ?? tag_posts_count %}
 {% let total_pages = total_pages ?? 1 %}
 {% let current_page = current_page ?? 1 %}
 {% let base_url = base_url ?? tag_url(current_tag) %}
