@@ -59,6 +59,7 @@ if TYPE_CHECKING:
     from bengal.orchestration.menu import MenuOrchestrator
     from bengal.orchestration.postprocess import PostprocessOrchestrator
     from bengal.orchestration.render import RenderOrchestrator
+    from bengal.orchestration.site_runner import SiteRunner
     from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 
 __all__ = [
@@ -69,6 +70,7 @@ __all__ = [
     "MenuOrchestrator",
     "PostprocessOrchestrator",
     "RenderOrchestrator",
+    "SiteRunner",
     "TaxonomyOrchestrator",
 ]
 
@@ -109,6 +111,10 @@ def __getattr__(name: str) -> Any:
         from bengal.orchestration.render import RenderOrchestrator
 
         return RenderOrchestrator
+    if name == "SiteRunner":
+        from bengal.orchestration.site_runner import SiteRunner
+
+        return SiteRunner
     if name == "TaxonomyOrchestrator":
         from bengal.orchestration.taxonomy import TaxonomyOrchestrator
 

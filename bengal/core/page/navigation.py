@@ -19,24 +19,18 @@ from contextlib import suppress
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from bengal.core.site import Site
+    from bengal.core.site.context import SiteContext
     from bengal.protocols.core import PageLike, SectionLike
 
 
-def _get_site_page_index(site: Site) -> dict:
-    """Return a lazily-built and cached page→index mapping for site.pages.
+def _get_site_page_index(site: SiteContext) -> dict:
+    """Return the registry-cached page→index mapping for site.pages.
 
-    The cache is stored directly on the site object and rebuilt whenever the
-    number of pages changes (covers the common case of pages being appended
-    during taxonomy/archive generation).
+    Delegates to ContentRegistry.page_index, which memoizes the mapping and
+    rebuilds it whenever the pages-list length changes (covers the common
+    case of pages being appended during taxonomy/archive generation).
     """
-    pages = site.pages
-    cached: dict | None = getattr(site, "_page_index_cache", None)
-    if cached is None or len(cached) != len(pages):
-        cached = {p: i for i, p in enumerate(pages)}
-        with suppress(AttributeError):
-            site._page_index_cache = cached  # type: ignore[attr-defined]
-    return cached
+    return site.registry.page_index(site.pages)
 
 
 def _get_section_page_index(section: SectionLike) -> dict:
@@ -54,7 +48,7 @@ def _get_section_page_index(section: SectionLike) -> dict:
     return cached
 
 
-def get_next_page(page: PageLike, site: Site | None) -> PageLike | None:
+def get_next_page(page: PageLike, site: SiteContext | None) -> PageLike | None:
     """Get the next page in the site's collection."""
     if not site or not hasattr(site, "pages"):
         return None
@@ -68,7 +62,7 @@ def get_next_page(page: PageLike, site: Site | None) -> PageLike | None:
     return None
 
 
-def get_prev_page(page: PageLike, site: Site | None) -> PageLike | None:
+def get_prev_page(page: PageLike, site: SiteContext | None) -> PageLike | None:
     """Get the previous page in the site's collection."""
     if not site or not hasattr(site, "pages"):
         return None

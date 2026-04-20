@@ -128,7 +128,7 @@ class TrackValidator(BaseValidator):
             if track_id and track_id not in track_ids:
                 results.append(
                     CheckResult.warning(
-                        f"Page '{page.relative_path}' has invalid track_id",
+                        f"Page '{page.source_path}' has invalid track_id",
                         code="H806",
                         recommendation=f"Either add '{track_id}' to tracks.yaml or remove track_id from page metadata.",
                         details=[

@@ -128,7 +128,7 @@ class RawHTMLNode(TypedDict):
 
     Used for:
     - Directive output (code blocks, admonitions, tabs)
-    - Virtual page content (page._prerendered_html)
+    - Virtual page content (page.prerendered_html)
     - External embeds
     - Any content that bypasses markdown parsing
 

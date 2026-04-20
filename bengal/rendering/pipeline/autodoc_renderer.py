@@ -157,12 +157,12 @@ class AutodocRenderer:
             )
             return
 
-        page.html_content = page._prerendered_html
+        page.html_content = page.prerendered_html
         page.toc = ""
 
         # Check if pre-rendered HTML is already a complete page (extends base.html)
         # Complete pages should not be wrapped with another template
-        prerendered = page._prerendered_html or ""
+        prerendered = page.prerendered_html or ""
         prerendered_stripped = prerendered.strip()
         is_complete_page = prerendered_stripped.startswith(("<!DOCTYPE", "<html", "<!doctype"))
 
@@ -232,10 +232,10 @@ class AutodocRenderer:
             page._autodoc_fallback_reason = str(e)
             # Fall back to rendering as regular virtual page
             fallback_desc = getattr(element, "description", "") if element else ""
-            page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            page.html_content = page._prerendered_html
+            page.prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
+            page.html_content = page.prerendered_html
             page.toc = ""
-            page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
+            page.rendered_html = self.renderer.render_page(page, page.prerendered_html)
             page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
             return
 
@@ -298,15 +298,15 @@ class AutodocRenderer:
             )
             # Fallback minimal HTML to keep build moving
             fallback_desc = getattr(element, "description", "") if element else ""
-            page._prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            page.html_content = page._prerendered_html
+            page.prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
+            page.html_content = page.prerendered_html
             page.toc = ""
             page._toc_items_cache = []  # Set private cache, not read-only property
-            page.rendered_html = self.renderer.render_page(page, page._prerendered_html)
+            page.rendered_html = self.renderer.render_page(page, page.prerendered_html)
             page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
             return
 
-        page._prerendered_html = html_content
+        page.prerendered_html = html_content
         page.html_content = html_content
         page.toc = ""
         page._toc_items_cache = []  # Set private cache, not read-only property

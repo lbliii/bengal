@@ -14,8 +14,8 @@ class TestInlineAssetExtraction:
         """phase_track_assets persists accumulated assets from rendering."""
         # Create mock orchestrator
         orchestrator = MagicMock()
-        orchestrator.site.paths.asset_cache = tmp_path / "asset_cache"
-        orchestrator.site.paths.asset_cache.mkdir(parents=True)
+        orchestrator.site.config_service.paths.asset_cache = tmp_path / "asset_cache"
+        orchestrator.site.config_service.paths.asset_cache.mkdir(parents=True)
         orchestrator.logger.phase.return_value.__enter__ = MagicMock()
         orchestrator.logger.phase.return_value.__exit__ = MagicMock(return_value=False)
 
@@ -48,8 +48,8 @@ class TestInlineAssetExtraction:
         """phase_track_assets handles empty page list."""
         # Create mock orchestrator
         orchestrator = MagicMock()
-        orchestrator.site.paths.asset_cache = tmp_path / "asset_cache"
-        orchestrator.site.paths.asset_cache.mkdir(parents=True)
+        orchestrator.site.config_service.paths.asset_cache = tmp_path / "asset_cache"
+        orchestrator.site.config_service.paths.asset_cache.mkdir(parents=True)
         orchestrator.logger.phase.return_value.__enter__ = MagicMock()
         orchestrator.logger.phase.return_value.__exit__ = MagicMock(return_value=False)
 
@@ -64,8 +64,8 @@ class TestInlineAssetExtraction:
     def test_phase_track_assets_clears_memory_after_persistence(self, tmp_path):
         """phase_track_assets clears accumulated assets to free memory."""
         orchestrator = MagicMock()
-        orchestrator.site.paths.asset_cache = tmp_path / "asset_cache"
-        orchestrator.site.paths.asset_cache.mkdir(parents=True)
+        orchestrator.site.config_service.paths.asset_cache = tmp_path / "asset_cache"
+        orchestrator.site.config_service.paths.asset_cache.mkdir(parents=True)
         orchestrator.logger.phase.return_value.__enter__ = MagicMock()
         orchestrator.logger.phase.return_value.__exit__ = MagicMock(return_value=False)
 

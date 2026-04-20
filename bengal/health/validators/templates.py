@@ -69,6 +69,7 @@ class TemplateValidator:
             List of TemplateRenderError objects for display
         """
         from bengal.rendering.errors import TemplateErrorContext, TemplateRenderError
+        from bengal.rendering.errors.classifier import code_for_legacy_string
 
         # Use the engine's validate() method - works with all engines
         # This returns list[TemplateError] (simple dataclass)
@@ -78,8 +79,9 @@ class TemplateValidator:
         errors: list[Any] = []
         for err in template_errors:
             template_path = self.template_engine.get_template_path(err.template)
+            error_type = err.error_type or "syntax"
             error = TemplateRenderError(
-                error_type=err.error_type or "syntax",
+                error_type=error_type,
                 message=err.message,
                 template_context=TemplateErrorContext(
                     template_name=err.template,
@@ -93,6 +95,7 @@ class TemplateValidator:
                 page_source=None,
                 suggestion=None,
                 available_alternatives=[],
+                code=code_for_legacy_string(error_type),
             )
             errors.append(error)
 
@@ -128,14 +131,14 @@ def validate_templates(template_engine: Any) -> int:
         return 0
 
     # Display errors
-    from bengal.rendering.errors import display_template_error
+    from bengal.errors.display import display_template_render_error
 
     cli.error(f"Found {len(errors)} template error(s):")
     cli.blank()
 
     for i, error in enumerate(errors, 1):
         cli.error(f"Error {i}/{len(errors)}:")
-        display_template_error(error)
+        display_template_render_error(error, cli)
 
         if i < len(errors):
             cli.info("─" * 80)

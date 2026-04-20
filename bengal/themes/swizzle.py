@@ -150,7 +150,7 @@ class SwizzleManager:
         """
         self.site = site
         self.root = site.root_path
-        self.registry_path = site.paths.swizzle_registry
+        self.registry_path = site.config_service.paths.swizzle_registry
 
     def swizzle(self, template_rel_path: str) -> Path:
         """

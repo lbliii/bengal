@@ -115,7 +115,7 @@ class TestCacheHitMiss:
         page.source_path.parent.mkdir(parents=True, exist_ok=True)
         page.source_path.write_text("# About")
         page.metadata = {}
-        page._virtual = False
+        page.virtual = False
 
         result = provenance_filter.filter(
             pages=[page],
@@ -135,7 +135,7 @@ class TestCacheHitMiss:
         page.source_path.parent.mkdir(parents=True, exist_ok=True)
         page.source_path.write_text("# New Page")
         page.metadata = {}
-        page._virtual = False
+        page.virtual = False
 
         result = provenance_filter.filter(pages=[page], assets=[])
 
@@ -160,7 +160,7 @@ class TestFileHashCaching:
         page.source_path.parent.mkdir(parents=True, exist_ok=True)
         page.source_path.write_text("# About")
         page.metadata = {}
-        page._virtual = False
+        page.virtual = False
 
         # First call computes hash
         hash1 = provenance_filter._get_file_hash(page.source_path)
@@ -187,7 +187,7 @@ class TestOSErrorHandling:
         page = MagicMock()
         page.source_path = mock_site.root_path / "content" / "nonexistent.md"
         page.metadata = {}
-        page._virtual = False
+        page.virtual = False
 
         result = provenance_filter._compute_provenance_fast(page)
 
@@ -271,7 +271,7 @@ class TestProvenanceFilterThreadSafety:
             page = MagicMock()
             page.source_path = path
             page.metadata = {}
-            page._virtual = False
+            page.virtual = False
             pages.append(page)
 
         results: dict[int, Provenance] = {}
@@ -312,7 +312,7 @@ class TestVirtualPages:
         page = MagicMock()
         page.source_path = mock_site.root_path / "_generated" / "tags" / "python.md"
         page.metadata = {"_generated": True}
-        page._virtual = True
+        page.virtual = True
 
         result = provenance_filter._compute_provenance_fast(page)
 
@@ -325,7 +325,7 @@ class TestVirtualPages:
         page = MagicMock()
         page.source_path = mock_site.root_path / "_generated" / "tags" / "python.md"
         page.metadata = {"_generated": True, "template": "tag.html", "title": "Python"}
-        page._virtual = True
+        page.virtual = True
 
         prov = provenance_filter._compute_provenance(page)
 
@@ -502,7 +502,7 @@ class TestCascadeProvenance:
         page = MagicMock()
         page.source_path = page_path
         page.metadata = {}
-        page._virtual = False
+        page.virtual = False
         page._section = section
 
         # Compute initial provenance
@@ -548,7 +548,7 @@ class TestCascadeProvenance:
         page = MagicMock()
         page.source_path = page_path
         page.metadata = {}
-        page._virtual = False
+        page.virtual = False
         page._section = section
 
         # Compute fast-path provenance

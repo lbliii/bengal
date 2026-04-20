@@ -811,7 +811,7 @@ def phase_track_assets(
         try:
             from bengal.cache.asset_dependency_map import AssetDependencyMap
 
-            asset_map = AssetDependencyMap(orchestrator.site.paths.asset_cache)
+            asset_map = AssetDependencyMap(orchestrator.site.config_service.paths.asset_cache)
 
             if build_context and build_context.has_accumulated_assets:
                 # Persist accumulated assets from inline extraction

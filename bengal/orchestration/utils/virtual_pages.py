@@ -130,7 +130,7 @@ def create_virtual_page(
     )
 
     # Mark as virtual page (attribute, not just metadata)
-    page._virtual = True
+    page.virtual = True
 
     # Set site reference BEFORE output_path for correct URL computation
     page._site = site

@@ -104,6 +104,7 @@ bengal = [
     "themes/**/*",
     "assets/**/*",
     "analysis/graph/templates/**/*",
+    "errors/overlay/templates/**/*",
     "output/templates/**/*",
     "scaffolds/**/*",
     "py.typed",
@@ -333,6 +334,7 @@ dev = [
     "poethepoet>=0.35.0",
     "pytest-randomly>=3.15.0",
     "towncrier>=24.0",
+    "import-linter>=2.0",             # Layered-architecture enforcement (Epic: Errors & Site S-Tier, Sprint B0.2)
 ]
 
 # =============================================================================
@@ -419,6 +421,7 @@ lint = { cmd = "ruff check .", help = "Run ruff linter" }
 lint-fix = { cmd = "ruff check . --fix", help = "Run ruff linter with auto-fix" }
 format = { cmd = "ruff format .", help = "Format code with ruff" }
 format-check = { cmd = "ruff format . --check", help = "Check formatting without changing files" }
+lint-imports = { cmd = "lint-imports --config .importlinter", help = "Check layered-architecture contracts (import-linter)" }
 
 # Pre-commit
 hooks = { cmd = "prek run --all-files", help = "Run all pre-commit hooks" }

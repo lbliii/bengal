@@ -62,7 +62,7 @@ if TYPE_CHECKING:
     from bengal.core.author import Author
     from bengal.core.records import SourcePage
     from bengal.core.series import Series
-    from bengal.core.site import Site
+    from bengal.core.site.context import SiteContext
     from bengal.parsing.ast.types import ASTNode
     from bengal.protocols.core import PageLike, SectionLike
     from bengal.utils.pagination import Paginator
@@ -109,7 +109,7 @@ class Page(
     ==============
     Virtual pages represent dynamically-generated content (e.g., API docs)
     that doesn't have a corresponding file on disk. Virtual pages:
-    - Have _virtual=True and a synthetic source_path
+    - Have virtual=True and a synthetic source_path
     - Are created via Page.create_virtual() factory
     - Don't read from disk (content provided directly)
     - Integrate with site's page collection and navigation
@@ -147,7 +147,7 @@ class Page(
         toc: Table of contents HTML (auto-generated from headings)
         toc_items: Structured TOC data for custom rendering
         related_posts: Related pages (pre-computed during build based on tag overlap)
-        _virtual: True if this is a virtual page (not backed by a disk file)
+        virtual: True if this is a virtual page (not backed by a disk file)
 
     """
 
@@ -196,7 +196,7 @@ class Page(
     aliases: list[str] = field(default_factory=list)
 
     # References for navigation (set during site building)
-    _site: Site | None = field(default=None, repr=False)
+    _site: SiteContext | None = field(default=None, repr=False)
     # Path-based section reference (stable across rebuilds)
     _section_path: Path | None = field(default=None, repr=False)
     # URL-based section reference for virtual sections (path=None)
@@ -238,7 +238,7 @@ class Page(
     _plain_text_cache: str | None = field(default=None, repr=False, init=False)
 
     # Virtual page support (for API docs, generated content)
-    _virtual: bool = field(default=False, repr=False)
+    virtual: bool = field(default=False, repr=False)
 
     # Internal metadata for section index pages (replaces metadata["_key"] pattern)
     # These are build-time bookkeeping, not user-facing frontmatter
@@ -250,10 +250,10 @@ class Page(
     _autodoc_fallback_reason: str | None = field(default=None, repr=False, init=False)
 
     # Pre-rendered HTML for virtual pages (bypasses markdown parsing)
-    _prerendered_html: str | None = field(default=None, repr=False)
+    prerendered_html: str | None = field(default=None, repr=False)
 
     # Template override for virtual pages (uses custom template)
-    _template_name: str | None = field(default=None, repr=False)
+    template_name: str | None = field(default=None, repr=False)
 
     # Complexity cache for parallel render ordering (set by orchestration)
     _complexity_score: int | None = field(default=None, repr=False, init=False)
@@ -422,41 +422,6 @@ class Page(
             self.core = replace(self.core, **updates)
 
     @property
-    def is_virtual(self) -> bool:
-        """
-        Check if this is a virtual page (not backed by a disk file).
-
-        Virtual pages are used for:
-        - API documentation generated from Python source code
-        - Dynamically-generated content from external sources
-        - Content that doesn't have a corresponding content/ file
-
-        Returns:
-            True if this page is virtual (not backed by a disk file)
-        """
-        return self._virtual
-
-    @property
-    def template_name(self) -> str | None:
-        """
-        Get custom template name for this page.
-
-        Virtual pages may specify a custom template for rendering.
-        Returns None to use the default template selection logic.
-        """
-        return self._template_name
-
-    @property
-    def prerendered_html(self) -> str | None:
-        """
-        Get pre-rendered HTML for virtual pages.
-
-        Virtual pages with pre-rendered HTML bypass markdown parsing
-        and use this HTML directly in the template.
-        """
-        return self._prerendered_html
-
-    @property
     def frontmatter(self) -> Frontmatter:
         """
         Typed access to frontmatter fields.
@@ -528,21 +493,11 @@ class Page(
         )
 
         # Set virtual page fields (not in __init__ to preserve dataclass)
-        page._virtual = True
-        page._prerendered_html = rendered_html
-        page._template_name = template_name
+        page.virtual = True
+        page.prerendered_html = rendered_html
+        page.template_name = template_name
 
         return page
-
-    @property
-    def relative_path(self) -> str:
-        """
-        Get relative path string (alias for source_path as string).
-
-        Used by templates and filtering where a string path is expected.
-        This provides convenience.
-        """
-        return str(self.source_path)
 
     def __hash__(self) -> int:
         """

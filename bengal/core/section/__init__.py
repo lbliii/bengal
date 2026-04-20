@@ -51,7 +51,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from bengal.core.diagnostics import DiagnosticEvent, DiagnosticsSink
-    from bengal.core.site import Site
+    from bengal.core.site.context import SiteContext
     from bengal.protocols.core import PageLike
 
 from .ergonomics import SectionErgonomicsMixin
@@ -117,7 +117,7 @@ class Section(
     _relative_url_override: str | None = field(default=None, repr=False)
 
     # Reference to site (set during site building)
-    _site: Site | None = field(default=None, repr=False)
+    _site: SiteContext | None = field(default=None, repr=False)
     # Optional diagnostics sink (for unit tests or if no site is available yet)
     _diagnostics: DiagnosticsSink | None = field(default=None, repr=False)
 

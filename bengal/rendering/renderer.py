@@ -529,8 +529,19 @@ class Renderer:
             if strict_mode:
                 raise rich_error from e
 
-            # Fallback to simple HTML
-            return self._render_fallback(page, content)
+            # Render the error overlay in place of the page so a developer
+            # hitting the URL in the dev server lands on a useful page.
+            try:
+                from bengal.errors.overlay import render_error_page
+
+                return render_error_page(
+                    rich_error,
+                    page_title=f"Build Error — {page.title}",
+                )
+            except Exception:
+                # Defensive: never let the overlay renderer mask the
+                # original error path. Fall back to the legacy minimal HTML.
+                return self._render_fallback(page, content)
 
     def _add_generated_page_context(self, page: PageLike, context: dict[str, Any]) -> None:
         """

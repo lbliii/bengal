@@ -94,7 +94,9 @@ def serve(
             )
             return {"status": "ok", "message": "Dashboard session ended"}
 
-        site.serve(
+        from bengal.orchestration.site_runner import SiteRunner
+
+        SiteRunner(site).serve(
             host=host,
             port=port,
             watch=watch,

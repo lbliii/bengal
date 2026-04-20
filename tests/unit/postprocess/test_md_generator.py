@@ -46,8 +46,8 @@ def _make_page(
     else:
         page._section = None
 
-    # Prevent MagicMock from creating is_virtual as a truthy mock
-    page.is_virtual = False
+    # Prevent MagicMock from creating virtual as a truthy mock
+    page.virtual = False
     page.in_ai_input = True
 
     return page

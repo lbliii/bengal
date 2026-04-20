@@ -7,6 +7,23 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+class _DummyConfigService:
+    """Minimal ConfigService mock exposing paths/assets_config."""
+
+    def __init__(self, site: DummySite) -> None:
+        self._site = site
+
+    @property
+    def paths(self) -> BengalPaths:
+        if self._site._paths is None:
+            self._site._paths = BengalPaths(self._site.root_path)
+        return self._site._paths
+
+    @property
+    def assets_config(self) -> dict:
+        return self._site.config.get("assets", {})
+
+
 class DummySite:
     """Minimal Site mock for asset pipeline tests."""
 
@@ -17,6 +34,7 @@ class DummySite:
         self.output_dir = root_path / "public"
         self.build_state = None
         self._paths: BengalPaths | None = None
+        self.config_service = _DummyConfigService(self)
 
     @property
     def baseurl(self) -> str:
@@ -25,18 +43,6 @@ class DummySite:
         if isinstance(site_section, dict) and site_section.get("baseurl"):
             return site_section.get("baseurl", "")
         return self.config.get("baseurl", "")
-
-    @property
-    def paths(self) -> BengalPaths:
-        """Access to .bengal directory paths."""
-        if self._paths is None:
-            self._paths = BengalPaths(self.root_path)
-        return self._paths
-
-    @property
-    def assets_config(self) -> dict:
-        """Get the 'assets' configuration section."""
-        return self.config.get("assets", {})
 
 
 def test_asset_orchestrator_runs_pipeline_when_enabled(monkeypatch, tmp_path: Path):

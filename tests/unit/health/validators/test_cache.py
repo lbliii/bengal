@@ -30,8 +30,8 @@ def mock_site(tmp_path):
     site.output_dir.mkdir(parents=True, exist_ok=True)
     site.config = {"incremental": True}
     # Mock paths object to return correct paths for cache validation
-    site.paths.build_cache = tmp_path / ".bengal" / "cache.json"
-    site.paths.state_dir = tmp_path / ".bengal"
+    site.config_service.paths.build_cache = tmp_path / ".bengal" / "cache.json"
+    site.config_service.paths.state_dir = tmp_path / ".bengal"
     return site
 
 

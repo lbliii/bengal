@@ -23,13 +23,13 @@ during parallel rendering updates.
 Usage:
     from bengal.cache.content_hash_registry import ContentHashRegistry
 
-    registry = ContentHashRegistry.load(site.paths.content_hash_registry)
+    registry = ContentHashRegistry.load(site.config_service.paths.content_hash_registry)
     registry.update_source(page.source_path, content_hash)
     registry.update_output(output_path, output_hash, OutputType.CONTENT_PAGE)
-    registry.save(site.paths.content_hash_registry)
+    registry.save(site.config_service.paths.content_hash_registry)
 
     # Validate cache integrity
-    is_valid, message = ContentHashRegistry.validate(site.paths.content_hash_registry)
+    is_valid, message = ContentHashRegistry.validate(site.config_service.paths.content_hash_registry)
 
 Related Modules:
 - bengal.rendering.pipeline.output: Content hash embedding

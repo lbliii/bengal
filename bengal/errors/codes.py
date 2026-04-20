@@ -158,10 +158,20 @@ class ErrorCode(Enum):
     R009 = "template_inheritance_error"
     R010 = "render_output_error"
 
-    # Syntax highlighting (R011-R015)
+    # Syntax highlighting (R011-R013)
     R011 = "highlighting_language_unknown"  # Unknown/unsupported language
     R012 = "highlighting_backend_error"  # Backend initialization or processing error
     R013 = "highlighting_theme_unknown"  # Unknown syntax theme/palette
+
+    # Template runtime / data errors (R014-R017)
+    R014 = "template_runtime_error"  # TemplateRuntimeError / KidaRuntimeError
+    R015 = "template_callable_error"  # NoneType called; filter/function is None
+    R016 = "template_none_access_error"  # iterating/subscripting None
+    R017 = "template_type_comparison_error"  # TypeError comparing mixed types (int < str)
+
+    # Template structural errors (R018-R019)
+    R018 = "template_include_not_found"  # {% include "x.html" %} target missing
+    R019 = "template_circular_include"  # Include cycle detected
 
     # ============================================================
     # Discovery errors (D001-D099)

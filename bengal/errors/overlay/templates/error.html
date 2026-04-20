@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en" data-bengal-overlay="1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${page_title}</title>
+<style>
+  :root {
+    color-scheme: dark light;
+    --fg: #e6e6e6;
+    --fg-dim: #9aa0a6;
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel-2: #1f242c;
+    --border: #30363d;
+    --accent: #ff5c5c;
+    --accent-bg: rgba(255, 92, 92, 0.12);
+    --hint: #6ee7b7;
+    --link: #58a6ff;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --fg: #1f2328;
+      --fg-dim: #57606a;
+      --bg: #f6f8fa;
+      --panel: #ffffff;
+      --panel-2: #f0f3f6;
+      --border: #d0d7de;
+      --accent: #cf222e;
+      --accent-bg: rgba(207, 34, 46, 0.08);
+      --hint: #1a7f37;
+      --link: #0969da;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  .wrap {
+    max-width: 980px;
+    margin: 2rem auto;
+    padding: 0 1.25rem;
+  }
+  .badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font: 600 0.78rem/1.2 var(--mono);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    vertical-align: middle;
+    margin-right: 0.6rem;
+  }
+  h1.title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin: 0.6rem 0 0.4rem 0;
+    color: var(--accent);
+  }
+  .subtitle {
+    color: var(--fg-dim);
+    font: 400 0.92rem/1.4 -apple-system, BlinkMacSystemFont, sans-serif;
+    margin: 0 0 1.5rem 0;
+  }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+  .panel header {
+    background: var(--panel-2);
+    padding: 0.55rem 1rem;
+    font: 600 0.78rem/1.2 var(--mono);
+    color: var(--fg-dim);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  .panel .body {
+    padding: 1rem;
+  }
+  .file-loc {
+    font: 400 0.92rem/1.4 var(--mono);
+    color: var(--fg-dim);
+  }
+  .file-loc strong {
+    color: var(--fg);
+    font-weight: 500;
+  }
+  pre.frame {
+    margin: 0;
+    background: var(--panel);
+    color: var(--fg);
+    font: 400 0.85rem/1.5 var(--mono);
+    overflow-x: auto;
+  }
+  pre.frame .line {
+    display: block;
+    padding: 0.05rem 1rem;
+    white-space: pre;
+  }
+  pre.frame .line.is-error {
+    background: var(--accent-bg);
+    border-left: 3px solid var(--accent);
+    padding-left: calc(1rem - 3px);
+  }
+  pre.frame .ln {
+    display: inline-block;
+    width: 3.5em;
+    color: var(--fg-dim);
+    text-align: right;
+    user-select: none;
+    margin-right: 0.75em;
+  }
+  pre.frame .caret {
+    color: var(--accent);
+    user-select: none;
+  }
+  .hint {
+    color: var(--hint);
+  }
+  p.alt-top {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+    color: var(--fg);
+  }
+  p.alt-top .alt-top-name {
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--hint);
+    font: 600 0.95rem/1.3 var(--mono);
+  }
+  p.alt-others-label {
+    margin: 0.4rem 0 0.3rem 0;
+    color: var(--fg-dim);
+    font: 400 0.85rem/1.2 var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  ul.alts {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  ul.alts li {
+    display: inline-block;
+    margin: 0.15rem 0.4rem 0.15rem 0;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    font: 400 0.85rem/1.2 var(--mono);
+  }
+  ol.chain {
+    margin: 0;
+    padding-left: 1.4rem;
+    color: var(--fg-dim);
+    font: 400 0.9rem/1.4 var(--mono);
+  }
+  ol.chain li strong { color: var(--fg); font-weight: 500; }
+  a { color: var(--link); }
+  details.stack {
+    margin-top: 0.5rem;
+  }
+  details.stack summary {
+    cursor: pointer;
+    color: var(--fg-dim);
+    font-size: 0.9rem;
+  }
+  pre.stack-body {
+    margin: 0.5rem 0 0 0;
+    padding: 0.75rem;
+    background: var(--panel-2);
+    border-radius: 4px;
+    font: 400 0.8rem/1.4 var(--mono);
+    overflow-x: auto;
+    color: var(--fg-dim);
+  }
+  footer.meta {
+    color: var(--fg-dim);
+    font-size: 0.85rem;
+    margin-top: 1.5rem;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div>
+    <span class="badge">${code_badge}</span>
+    <span class="subtitle">${error_type_label}</span>
+  </div>
+  <h1 class="title">${title_html}</h1>
+  <p class="subtitle">${file_loc_html}</p>
+
+  ${frame_section}
+  ${message_section}
+  ${hint_section}
+  ${alternatives_section}
+  ${chain_section}
+  ${page_source_section}
+  ${search_paths_section}
+  ${docs_section}
+  ${stack_section}
+
+  <footer class="meta">Bengal SSG — build error overlay</footer>
+</div>
+${reload_script}
+</body>
+</html>

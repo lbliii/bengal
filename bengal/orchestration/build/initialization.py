@@ -353,7 +353,7 @@ def run_discovery_phase(input: DiscoveryPhaseInput) -> DiscoveryPhaseOutput:
         try:
             from bengal.cache.page_discovery_cache import PageDiscoveryCache
 
-            page_discovery_cache = PageDiscoveryCache(site.paths.page_cache)
+            page_discovery_cache = PageDiscoveryCache(site.config_service.paths.page_cache)
         except Exception as e:
             _log.debug(
                 "page_discovery_cache_load_failed: %s (%s)",
@@ -487,7 +487,7 @@ def phase_cache_metadata(orchestrator: BuildOrchestrator) -> None:
         try:
             from bengal.cache.page_discovery_cache import PageDiscoveryCache
 
-            page_cache = PageDiscoveryCache(orchestrator.site.paths.page_cache)
+            page_cache = PageDiscoveryCache(orchestrator.site.config_service.paths.page_cache)
 
             # Extract metadata from discovered pages (AFTER cascades applied)
             for page in orchestrator.site.pages:

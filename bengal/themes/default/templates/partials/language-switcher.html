@@ -43,12 +43,13 @@ Example usage in base.html:
   <ul class="language-switcher__menu" role="listbox" hidden>
     {%- for alt in alternates if alt.hreflang != 'x-default' %}
     {%- let lang_info = langs |> selectattr('code', 'eq', alt.hreflang) |> first %}
+    {%- let lang_fallback = alt.hreflang | upper %}
     <li
       role="option"
       {%- if alt.hreflang == current %} aria-selected="true" class="language-switcher__item language-switcher__item--active"{% else %} class="language-switcher__item"{% end %}
     >
       <a href="{{ alt.href }}" hreflang="{{ alt.hreflang }}" lang="{{ alt.hreflang }}">
-        {{ lang_info?.name ?? (alt.hreflang | upper) }}
+        {{ lang_info?.name ?? lang_fallback }}
       </a>
     </li>
     {% end %}

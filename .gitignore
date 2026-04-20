@@ -97,5 +97,8 @@ benchmarks/scenarios/
 .dori/local/
 .dori/events/
 
+# Claude Code agent runtime state (local/ephemeral)
+.claude/
+
 # Test artifacts (leaked mocks)
 MagicMock/

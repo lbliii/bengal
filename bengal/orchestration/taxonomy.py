@@ -160,7 +160,7 @@ class TaxonomyOrchestrator:
             from bengal.cache.taxonomy_index import TaxonomyIndex
 
             # Create fresh index (don't load existing)
-            index = TaxonomyIndex(self.site.paths.taxonomy_cache)
+            index = TaxonomyIndex(self.site.config_service.paths.taxonomy_cache)
             index.clear()  # Start fresh for full build
 
             # Populate index from collected taxonomies
@@ -243,7 +243,7 @@ class TaxonomyOrchestrator:
         try:
             from bengal.cache.taxonomy_index import TaxonomyIndex
 
-            taxonomy_index = TaxonomyIndex(self.site.paths.taxonomy_cache)
+            taxonomy_index = TaxonomyIndex(self.site.config_service.paths.taxonomy_cache)
             logger.debug(
                 "taxonomy_index_loaded_for_incremental",
                 tags=len(taxonomy_index.tags),

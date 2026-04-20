@@ -150,7 +150,7 @@ def test_mtime_short_circuit_disabled_via_env(
 
     page = MagicMock()
     page.source_path = site_root / "content" / "index.md"
-    page._virtual = False
+    page.virtual = False
 
     filter_obj = ProvenanceFilter(site, cache)
     # Should return False (disabled) - full verification needed
@@ -185,7 +185,7 @@ def test_mtime_short_circuit_returns_true_when_no_changes(
 
     page = MagicMock()
     page.source_path = site_root / "content" / "index.md"
-    page._virtual = False
+    page.virtual = False
 
     filter_obj = ProvenanceFilter(site, cache)
     assert filter_obj._mtime_short_circuit(page, ContentHash("abc123")) is True
@@ -222,7 +222,7 @@ def test_mtime_short_circuit_returns_false_when_content_changed(
 
     page = MagicMock()
     page.source_path = content_file
-    page._virtual = False
+    page.virtual = False
 
     filter_obj = ProvenanceFilter(site, cache)
     assert filter_obj._mtime_short_circuit(page, ContentHash("abc123")) is False

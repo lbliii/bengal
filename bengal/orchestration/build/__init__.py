@@ -270,7 +270,7 @@ class BuildOrchestrator:
             # tracemalloc has ~2-5x overhead alone, ~100x with cProfile
             track_memory = profile_config.get("track_memory", False)
             collector = PerformanceCollector(
-                metrics_dir=self.site.paths.metrics_dir,
+                metrics_dir=self.site.config_service.paths.metrics_dir,
                 track_memory=track_memory,
             )
             collector.start_build()
@@ -340,7 +340,7 @@ class BuildOrchestrator:
         from bengal.cache.generated_page_cache import GeneratedPageCache
 
         generated_page_cache = GeneratedPageCache(
-            self.site.paths.state_dir / "generated_page_cache.json"
+            self.site.config_service.paths.state_dir / "generated_page_cache.json"
         )
         # Note: GeneratedPageCache loads automatically in __init__
 
@@ -348,7 +348,7 @@ class BuildOrchestrator:
         auto_reason = None
         if incremental is None:
             try:
-                cache_path = self.site.paths.build_cache
+                cache_path = self.site.config_service.paths.build_cache
                 cache_exists = cache_path.exists()
                 cached_files = len(cache.file_fingerprints)
                 if cache_exists and cached_files > 0:

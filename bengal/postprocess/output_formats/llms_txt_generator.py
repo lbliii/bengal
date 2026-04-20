@@ -149,7 +149,7 @@ class SiteLlmsTxtGenerator:
                 continue
 
             # Skip virtual pages (taxonomy term pages, tag listings, etc.)
-            if getattr(page, "is_virtual", False) is True:
+            if getattr(page, "virtual", False) is True:
                 continue
 
             curated.append(page)

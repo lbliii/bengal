@@ -26,7 +26,7 @@ def mock_site():
     paths = MagicMock()
     paths.content_dir = Path("/project/content")
     paths.generated_dir = Path("/project/.bengal/generated")
-    site.paths = paths
+    site.config_service.paths = paths
 
     return site
 
@@ -162,16 +162,13 @@ class TestPathRegistry:
 
 
 class TestPathRegistryWithoutPaths:
-    """Tests for PathRegistry when site.paths is not available."""
+    """Tests for PathRegistry when site.config_service is not available."""
 
     def test_fallback_paths(self):
-        """Registry uses fallback paths when site.paths is missing."""
-        site = MagicMock(spec=[])  # No paths attribute
+        """Registry uses fallback paths when site.config_service is missing."""
+        site = MagicMock(spec=[])  # No config_service attribute
         site.root_path = Path("/project")
         site.output_dir = Path("/project/public")
-
-        # Delete paths to trigger fallback
-        del site.paths
 
         registry = PathRegistry(site)
 

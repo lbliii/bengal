@@ -93,6 +93,14 @@ def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> di
     # Error summary
     error_summary = stats.get_error_summary() if hasattr(stats, "get_error_summary") else {}
 
+    # Error code breakdown (Sprint A4.3)
+    template_errors = getattr(stats, "template_errors", None) or []
+    error_code_summary = ""
+    if template_errors:
+        from bengal.errors.aggregation import format_error_code_summary
+
+        error_code_summary = format_error_code_summary(template_errors)
+
     return {
         "skipped": stats.skipped,
         "has_errors": stats.has_errors,
@@ -114,6 +122,7 @@ def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> di
         "warning_count": error_summary.get("total_warnings", 0)
         if error_summary
         else len(stats.warnings),
+        "error_code_summary": error_code_summary,
     }
 
 

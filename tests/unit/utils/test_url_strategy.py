@@ -32,7 +32,7 @@ class TestURLStrategy:
         site.output_dir = tmp_path / "public"
         site.config = {"site": {"base_url": "https://example.com"}, "pretty_urls": True}
         # Mock paths object to return correct Path for generated_dir
-        site.paths.generated_dir = tmp_path / ".bengal" / "generated"
+        site.config_service.paths.generated_dir = tmp_path / ".bengal" / "generated"
         return site
 
     @pytest.fixture

@@ -43,9 +43,10 @@ archive_posts = posts ?? [],
 archive_subsections = subsections ?? [],
 total_pages = total_pages ?? 1,
 current_page = current_page ?? 1,
-total_posts = total_posts ?? (archive_posts | length),
+archive_posts_count = archive_posts | length,
 base_url = base_url ?? section?.href ?? '/archive/'
 %}
+{% let total_posts = total_posts ?? archive_posts_count %}
 
 <div class="container">
     {{ breadcrumbs(page_or_section) }}

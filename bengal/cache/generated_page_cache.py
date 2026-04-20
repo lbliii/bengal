@@ -157,7 +157,7 @@ class GeneratedPageCache(PersistentCacheMixin):
         html_cache_threshold: Max HTML size to cache (default: 100KB)
 
     Example:
-        >>> cache = GeneratedPageCache(site.paths.generated_page_cache)
+        >>> cache = GeneratedPageCache(site.config_service.paths.generated_page_cache)
         >>> if cache.should_regenerate("tag", "python", member_pages, content_cache):
         ...     html = render_tag_page(tag="python", pages=member_pages)
         ...     cache.update("tag", "python", member_pages, content_cache, html, 100)

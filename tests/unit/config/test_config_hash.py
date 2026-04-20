@@ -162,8 +162,8 @@ class TestConfigHashIntegration:
 
         site = Site(root_path=tmp_path, config={"title": "Test"})
 
-        assert site.config_hash is not None
-        assert len(site.config_hash) == 16
+        assert site.config_service.config_hash is not None
+        assert len(site.config_service.config_hash) == 16
 
     def test_same_config_same_site_hash(self, tmp_path):
         """Sites with same config have same hash."""
@@ -174,7 +174,7 @@ class TestConfigHashIntegration:
         site1 = Site(root_path=tmp_path, config=config.copy())
         site2 = Site(root_path=tmp_path, config=config.copy())
 
-        assert site1.config_hash == site2.config_hash
+        assert site1.config_service.config_hash == site2.config_service.config_hash
 
     def test_different_config_different_site_hash(self, tmp_path):
         """Sites with different config have different hash."""
@@ -183,4 +183,4 @@ class TestConfigHashIntegration:
         site1 = Site(root_path=tmp_path, config={"title": "Test1"})
         site2 = Site(root_path=tmp_path, config={"title": "Test2"})
 
-        assert site1.config_hash != site2.config_hash
+        assert site1.config_service.config_hash != site2.config_service.config_hash

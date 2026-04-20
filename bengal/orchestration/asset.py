@@ -247,7 +247,7 @@ class AssetOrchestrator:
         other_assets = [a for a in assets if a.asset_type != "css"]
 
         # Check if JS bundling is enabled
-        assets_cfg = self.site.assets_config
+        assets_cfg = self.site.config_service.assets_config
         bundle_js = assets_cfg.get("bundle_js", False)
 
         # Handle JS bundling if enabled
@@ -277,7 +277,7 @@ class AssetOrchestrator:
                 other_assets.extend(css_modules)
                 css_modules = []
 
-        assets_cfg = self.site.assets_config
+        assets_cfg = self.site.config_service.assets_config
         if assets_cfg.get("pipeline", False):
             skip_exts = {".scss", ".sass", ".ts", ".tsx"}
             other_assets = [
@@ -660,7 +660,7 @@ class AssetOrchestrator:
             # Write bundle to temp location atomically
             from bengal.utils.io.atomic_write import atomic_write_text
 
-            bundle_dir = self.site.paths.js_bundle_dir
+            bundle_dir = self.site.config_service.paths.js_bundle_dir
             bundle_dir.mkdir(parents=True, exist_ok=True)
             bundle_path = bundle_dir / "bundle.js"
             atomic_write_text(bundle_path, bundled_content, encoding="utf-8")

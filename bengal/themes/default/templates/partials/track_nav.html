@@ -1,4 +1,4 @@
-{% set current_slug = page.relative_path | replace('.md', '') %}
+{% set current_slug = page.source_path | string | replace('.md', '') %}
 
 {# Check if page is in any track defined in site.data.tracks #}
 {% if site.data.tracks %}

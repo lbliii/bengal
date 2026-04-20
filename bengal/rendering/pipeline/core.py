@@ -336,9 +336,9 @@ class RenderingPipeline:
         # Handle virtual pages (autodoc, etc.)
         # - Pages with pre-rendered HTML (truthy or empty string)
         # - Autodoc pages that defer rendering until navigation is available
-        prerendered = getattr(page, "_prerendered_html", None)
+        prerendered = getattr(page, "prerendered_html", None)
         is_autodoc = page.metadata.get("is_autodoc")
-        if getattr(page, "_virtual", False) and (prerendered is not None or is_autodoc):
+        if getattr(page, "virtual", False) and (prerendered is not None or is_autodoc):
             if is_autodoc:
                 # Optimized autodoc path: try rendered cache first
                 template = page.metadata.get("_autodoc_template", "autodoc/python/module")

@@ -28,7 +28,7 @@ def debug_incremental(
 
     cli.info("Loading site...")
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
-    cache = BuildCache.load(site.paths.build_cache)
+    cache = BuildCache.load(site.config_service.paths.build_cache)
     cli.info(f"Loaded cache with {len(cache.file_fingerprints)} tracked files")
 
     debugger = IncrementalBuildDebugger(site=site, cache=cache, root_path=site.root_path)
@@ -102,7 +102,7 @@ def debug_delta(
 
     cli.info("Loading site...")
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
-    cache = BuildCache.load(site.paths.build_cache)
+    cache = BuildCache.load(site.config_service.paths.build_cache)
 
     analyzer = BuildDeltaAnalyzer(site=site, cache=cache, root_path=site.root_path)
 
@@ -180,7 +180,7 @@ def debug_deps(
 
     cli.info("Loading build cache...")
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
-    cache = BuildCache.load(site.paths.build_cache)
+    cache = BuildCache.load(site.config_service.paths.build_cache)
     cli.info(f"Loaded {len(cache.dependencies)} pages with dependencies")
 
     visualizer = DependencyVisualizer(site=site, cache=cache, root_path=site.root_path)

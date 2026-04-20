@@ -79,7 +79,7 @@ def test_function(x: int, y: str = "default") -> bool:
         assert stats1.pages_built > 0, "First build should create pages"
 
         # Verify cache was created and contains autodoc payload
-        cache_path = site.paths.build_cache
+        cache_path = site.config_service.paths.build_cache
         assert cache_path.exists() or cache_path.with_suffix(".json.zst").exists(), (
             "Cache should exist after first build"
         )
@@ -218,7 +218,7 @@ source_dirs = ["src"]
         site.build(BuildOptions(force_sequential=True, incremental=False))
 
         # Step 2: Corrupt cache payload with missing required fields
-        cache_path = site.paths.build_cache
+        cache_path = site.config_service.paths.build_cache
         cache = BuildCache.load(cache_path, use_lock=False)
         cache_key = "__autodoc_elements_v1"
         cached_payload = cache.get_page_cache(cache_key)

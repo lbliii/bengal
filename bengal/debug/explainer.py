@@ -218,7 +218,7 @@ class PageExplainer:
         source_path = page.source_path
 
         # Handle virtual pages
-        if page.is_virtual:
+        if page.virtual:
             return SourceInfo(
                 path=source_path,
                 size_bytes=len(page._source.encode()) if page._source else 0,
@@ -317,7 +317,7 @@ class PageExplainer:
             return str(page.metadata["template"])
 
         # Check for template override on virtual pages
-        if page.is_virtual and page.template_name:
+        if page.virtual and page.template_name:
             return page.template_name
 
         # Check page type for template inference

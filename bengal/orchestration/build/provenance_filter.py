@@ -663,7 +663,7 @@ def phase_incremental_filter_provenance(
 
             for page in pages_list:
                 # Check if this is a taxonomy term page
-                is_taxonomy = getattr(page, "_virtual", False) and (
+                is_taxonomy = getattr(page, "virtual", False) and (
                     page.metadata.get("_taxonomy_term")
                     or page.metadata.get("tag")
                     or "/tags/" in str(page.source_path)

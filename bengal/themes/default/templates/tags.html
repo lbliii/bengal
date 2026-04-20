@@ -21,7 +21,8 @@ Auto-generated at /tags/
 {# Template-scoped variables #}
 {% let page_title = page?.title ?? 'All Tags' %}
 {% let all_tags = tags ?? [] %}
-{% let total_tags = total_tags ?? (all_tags | length) %}
+{% let all_tags_count = all_tags | length %}
+{% let total_tags = total_tags ?? all_tags_count %}
 
 {# Two-column layout similar to docs #}
 <div class="docs-layout">
