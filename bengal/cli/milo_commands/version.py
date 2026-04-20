@@ -95,6 +95,9 @@ def version_info(
 
     if not version_config or not version_config.enabled:
         cli.error("Versioning is not enabled in this site.")
+        cli.tip(
+            "Add a [versions] section to bengal.yaml — see `bengal version --help` for the schema."
+        )
         raise SystemExit(1)
 
     resolved_id = version_config.aliases.get(version_id, version_id)
@@ -164,6 +167,7 @@ def version_create(
 
     if not source_dir.exists():
         cli.error(f"Source directory not found: {source_dir}")
+        cli.tip("Pass --from-path pointing to an existing directory (relative to the site root).")
         raise SystemExit(1)
 
     if dest_dir.exists() and not dry_run:
@@ -280,6 +284,9 @@ def version_diff(
 
         if not version_config or not version_config.enabled:
             cli.error("Versioning is not enabled in this site.")
+            cli.tip(
+                "Add a [versions] section to bengal.yaml, or pass --git to diff by ref instead."
+            )
             raise SystemExit(1)
 
         old_v = next((v for v in version_config.versions if v.id == old_version), None)
@@ -287,9 +294,11 @@ def version_diff(
 
         if not old_v:
             cli.error(f"Version '{old_version}' not found.")
+            cli.tip("Run `bengal version list` to see available version IDs.")
             raise SystemExit(1)
         if not new_v:
             cli.error(f"Version '{new_version}' not found.")
+            cli.tip("Run `bengal version list` to see available version IDs.")
             raise SystemExit(1)
 
         from bengal.content.discovery.version_diff import VersionDiffer
@@ -299,9 +308,15 @@ def version_diff(
 
         if not old_path.exists():
             cli.error(f"Old version path not found: {old_path}")
+            cli.tip(
+                "Check the `source` for this version in bengal.yaml — the directory must exist on disk."
+            )
             raise SystemExit(1)
         if not new_path.exists():
             cli.error(f"New version path not found: {new_path}")
+            cli.tip(
+                "Check the `source` for this version in bengal.yaml — the directory must exist on disk."
+            )
             raise SystemExit(1)
 
         differ = VersionDiffer(old_path, new_path)

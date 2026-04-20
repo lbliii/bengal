@@ -2,8 +2,9 @@
 
 **Status**: Complete
 **Date**: 2026-04-10
+**Archived**: 2026-04-20 — triage feeds `plan/complete/epic-ty-diagnostic-reduction.md`. Diagnostic floor now ~2207 (verified 2026-04-20).
 **Total diagnostics at start**: 2,654
-**Epic**: `plan/epic-ty-diagnostic-reduction.md`
+**Epic**: `plan/complete/epic-ty-diagnostic-reduction.md`
 
 ---
 

@@ -777,7 +777,7 @@ The snapshot pattern established for Site/Page/Section provides the template:
 - **Single config loader**: Consolidation of `loader.py`, `directory_loader.py`, and `unified_loader.py` into a single `ConfigSnapshot` pipeline.
 - **Type safety**: IDE autocomplete for `config.site.title`.
 - **No dual access**: Always `config.site.title` (nested).
-- **Thread-safe**: Frozen = safe for parallel builds (aligns with `rfc-free-threading-hardening.md`).
+- **Thread-safe**: Frozen = safe for parallel builds (aligns with `plan/evaluated/rfc-free-threading-hardening.md`).
 
 ### Estimated Effort: 20-30 hours
 
@@ -915,7 +915,7 @@ if __name__ == "__main__":
 ## Open Questions
 
 1. **Block detector fate**: **Resolved**. Refactor into `BlockDiffService` used by `EffectTracer`.
-2. **Free-threading RFC interaction**: **Resolved**. `SiteSnapshot` and `ConfigSnapshot` are key components for the GIL-free architecture proposed in `rfc-free-threading-hardening.md`. Frozen snapshots eliminate 90% of the render-phase lock requirements.
+2. **Free-threading RFC interaction**: **Resolved**. `SiteSnapshot` and `ConfigSnapshot` are key components for the GIL-free architecture proposed in `plan/evaluated/rfc-free-threading-hardening.md`. Frozen snapshots eliminate 90% of the render-phase lock requirements.
 3. **Speculation accuracy**: **Resolved**. Implement a **Shadow Mode** in Phase 2 to validate accuracy before full enablement.
 4. **Config loader consolidation scope**: **Resolved**. All 3 files (`loader.py`, `directory_loader.py`, `unified_loader.py`) will be merged into the new `UnifiedConfigLoader` pipeline.
 
@@ -925,7 +925,7 @@ if __name__ == "__main__":
 
 - `plan/rfc-bengal-snapshot-engine.md` — Foundation (implemented)
 - `plan/rfc-bengal-v2-architecture.md` — Broader v2 vision
-- `plan/rfc-free-threading-hardening.md` — Thread safety patterns
+- `plan/evaluated/rfc-free-threading-hardening.md` — Thread safety patterns
 - `plan/rfc-global-build-state-dependencies.md` — Incremental build gaps
 
 ---

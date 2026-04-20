@@ -136,6 +136,7 @@ def theme_validate(
 
     if not path.exists():
         cli.error(f"Theme directory not found: {path}")
+        cli.tip("Pass a valid path, or run `bengal theme list` to see available themes.")
         raise SystemExit(1)
 
     errors = []
@@ -440,6 +441,7 @@ def theme_assets(
             cli.phase("Assets", duration_ms=elapsed_ms, details=f"{len(outputs)} outputs")
         except Exception as e:
             cli.error(f"Asset pipeline failed: {e}")
+            cli.tip("Re-run with --verbose to see which asset failed, then check its source file.")
 
     if not watch:
         run_once()

@@ -972,6 +972,6 @@ The Lexer has similar potential for slot reduction:
 
 - `patitas/plan/rfc-contextvar-config.md` — Original pattern design (Status: Implemented)
 - `patitas/plan/rfc-free-threading-patterns.md` — Thread safety validation
-- `bengal/plan/rfc-contextvar-config-analysis.md` — Bengal-specific analysis with benchmarks
+- `plan/evaluated/rfc-contextvar-config-analysis.md` — Bengal-specific analysis with benchmarks
 - `bengal/benchmarks/test_contextvar_config.py` — Benchmark validation script
 - [PEP 567: Context Variables](https://peps.python.org/pep-0567/) — Python specification

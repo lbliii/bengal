@@ -29,6 +29,7 @@ def codemod(
 
     if not target.exists() or not target.is_dir():
         cli.error(f"Directory not found: {target}")
+        cli.tip("Pass a path to your site's templates/ directory, or the project root.")
         raise SystemExit(1)
 
     mode_badge = (

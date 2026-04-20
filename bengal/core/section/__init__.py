@@ -146,7 +146,13 @@ class Section(
         """
         Check if this is a virtual section (no disk directory).
 
-        Virtual sections are used for:
+        When to use:
+            Guard any code that needs to read from or write to ``self.path``.
+            Virtual sections have ``path=None`` and must not touch the disk —
+            attempting to would raise ``AttributeError``. Typical callers:
+            asset resolvers, file-mtime cache keys, content discovery walkers.
+
+        Virtual sections back:
         - API documentation generated from Python source code
         - Dynamically-generated content from external sources
         - Content that doesn't have a corresponding content/ directory
@@ -166,6 +172,15 @@ class Section(
     ) -> Section:
         """
         Create a virtual section for dynamically-generated content.
+
+        When to use:
+            Use this when you need a Section for content that has no
+            corresponding ``content/`` directory — typically autodoc
+            (``VirtualAutodocOrchestrator``), remote content fetchers, or
+            programmatically-generated indexes. Prefer the regular
+            ``Section(name, path)`` constructor whenever a real directory
+            exists; virtual sections skip disk-backed operations and must
+            register their URL explicitly via ``relative_url``.
 
         Virtual sections are not backed by a disk directory but integrate
         with the site's section hierarchy, navigation, and menu system.
@@ -207,6 +222,12 @@ class Section(
     def slug(self) -> str:
         """
         URL-friendly identifier for this section.
+
+        When to use:
+            Prefer this over reading ``self.path.name`` or ``self.name``
+            directly when you need a stable URL segment. It handles virtual
+            sections (no path) and disk-backed sections uniformly; raw
+            attribute access is not safe for virtual sections.
 
         For virtual sections, uses the name directly.
         For physical sections, uses the directory name.
@@ -250,8 +271,14 @@ class Section(
         """
         Get section weight for sorting (always returns sortable value).
 
+        When to use:
+            Prefer this over ``self.metadata.get("weight")`` whenever sorting.
+            Raw metadata access returns ``None`` for unweighted sections and
+            may return a non-numeric string from malformed frontmatter; this
+            property coerces to ``float`` and falls back to ``inf`` so
+            ``sorted(sections, key=lambda s: s.weight)`` never raises.
+
         Returns weight from metadata if set, otherwise infinity (sorts last).
-        This property ensures sections are always sortable without None errors.
 
         Example in _index.md:
             ---

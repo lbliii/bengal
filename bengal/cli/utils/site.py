@@ -274,6 +274,7 @@ def load_site_from_cli(
 
     if not root_path.exists():
         cli.error(f"Source directory does not exist: {root_path}")
+        cli.tip("Pass a valid path with --source, or `cd` into an existing Bengal site.")
         sys.exit(1)
 
     # Check for common directory structure mistakes
@@ -292,6 +293,7 @@ def load_site_from_cli(
 
     if config_path and not config_path.exists():
         cli.error(f"Config file does not exist: {config_path}")
+        cli.tip("Check the --config path, or omit it to use the default bengal.yaml/bengal.toml.")
         sys.exit(1)
 
     from bengal.cli.utils.errors import handle_exception

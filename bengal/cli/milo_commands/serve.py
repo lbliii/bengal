@@ -49,10 +49,14 @@ def serve(
 
     if verbose and debug:
         cli.error("--verbose and --debug cannot be used together")
+        cli.tip("Pick one — --debug implies --verbose and adds traceback output.")
         raise SystemExit(2)
 
     if version_scope_val and all_versions:
         cli.error("--version-scope and --all-versions cannot be used together")
+        cli.tip(
+            "Use --version-scope to target specific versions, or --all-versions for everything."
+        )
         raise SystemExit(2)
 
     configure_cli_logging(

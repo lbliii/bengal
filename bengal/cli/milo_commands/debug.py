@@ -267,6 +267,9 @@ def debug_migrate(
                 cli.info(f"  {prefix}{action}")
         elif execute and not preview.can_proceed:
             cli.error("Cannot proceed due to warnings")
+            cli.tip(
+                "Resolve the warnings shown above, or re-run without --execute to preview only."
+            )
 
         return {
             "move_from": move_from,
@@ -277,6 +280,9 @@ def debug_migrate(
 
     if move_from or move_to:
         cli.error("Both --move-from and --move-to are required for a move operation")
+        cli.tip(
+            "Pass both flags together, e.g. `bengal debug structure --move-from old/ --move-to new/`."
+        )
         raise SystemExit(1)
 
     report = migrator.run()

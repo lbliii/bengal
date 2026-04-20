@@ -82,6 +82,98 @@ Things that look reasonable and are wrong here:
 
 ---
 
+## Extending Bengal
+
+Four extension points. Pick the one that matches your need. If none fit, ask before changing the `Plugin` protocol or any of the 9 hook surfaces (`bengal/protocols/`) — see "Escape hatches."
+
+### 1. Template function or filter
+
+**When:** You need a new Jinja filter or global usable in `.html` templates (e.g. `{{ posts | my_sort }}`).
+
+**Where:** Add a module under `bengal/rendering/template_functions/`. Each module exports a `register(env, site)` function and is wired into `register_all()` in that package's `__init__.py`. No decorator, no auto-discovery — append your `register()` call to the coordinator.
+
+```python
+# bengal/rendering/template_functions/my_funcs.py
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from bengal.protocols import SiteLike, TemplateEnvironment
+
+def register(env: TemplateEnvironment, site: SiteLike) -> None:
+    env.filters["my_filter"] = lambda v: v.upper()
+```
+
+Then add `my_funcs.register(env, site)` to the appropriate phase in `register_all()`. Canonical example: `bengal/rendering/template_functions/strings.py`.
+
+### 2. Content type strategy
+
+**When:** A section needs custom sorting, pagination, filtering, or template defaults that built-in `content_type` strategies (`blog`, `doc`, `tutorial`, `changelog`, `archive`, `notebook`, `track`, `page`, `autodoc-python`, `autodoc-cli`) don't cover.
+
+**Fastest path:** `bengal new content-type <name>` — scaffolds a `ContentTypeStrategy` subclass in the right place with `When to use:`, `default_template`, `allows_pagination`, `sort_pages()`, `detect_from_section()`, and the `register_strategy()` call already wired up. Then edit the TODOs.
+
+**Manual path** (or to understand what the scaffold gives you): subclass `ContentTypeStrategy` from `bengal/content_types/base.py`, register the instance via `register_strategy()` from `bengal/content_types/registry.py`. Built-in strategies live in `bengal/content_types/strategies.py` — read `BlogStrategy` first, it's the canonical short example.
+
+```python
+from bengal.content_types import ContentTypeStrategy, register_strategy
+
+class RecipeStrategy(ContentTypeStrategy):
+    default_template = "recipes/list.html"
+    allows_pagination = True
+    def sort_pages(self, pages):
+        return sorted(pages, key=lambda p: p.metadata.get("difficulty", 99))
+
+register_strategy("recipe", RecipeStrategy())
+```
+
+Sections opt in by setting `type = "recipe"` in their `_index.md` frontmatter, or by `detect_from_section()` returning `True`.
+
+### 3. CLI command
+
+**When:** A new `bengal <verb>` operation — top-level command or subcommand under an existing group (`config`, `theme`, `content`, `version`, etc.).
+
+**Where:** Write a function in `bengal/cli/milo_commands/`, then register it in `bengal/cli/milo_app.py` via `cli.lazy_command(...)`. There is **no filesystem auto-discovery** — the file has to be wired in `milo_app.py` to be reachable.
+
+```python
+# bengal/cli/milo_commands/hello.py
+from __future__ import annotations
+from typing import Annotated
+from milo import Description
+
+def hello(name: Annotated[str, Description("Who to greet")] = "world") -> dict:
+    """Say hi."""
+    return {"status": "ok", "message": f"hello, {name}"}
+```
+
+Then in `bengal/cli/milo_app.py`:
+
+```python
+cli.lazy_command(
+    "hello",
+    import_path="bengal.cli.milo_commands.hello:hello",
+    description="Say hi",
+)
+```
+
+**Milo ≠ Click — three things to know**:
+
+- **Args:** `Annotated[type, Description("...")]` parameters with defaults — not `@click.option` decorators stacked above the function.
+- **Discovery:** explicit `cli.lazy_command(name, import_path="module:fn")` in `milo_app.py`. Lazy import avoids the cold-start tax; the function isn't loaded until the command runs.
+- **Output:** commands return `dict`. Milo handles structured output, MCP serialization, and `--json` for free. Don't `print()` — use `cli.render_write(template, ...)` for human output and the dict return for machine output.
+
+Canonical example: `bengal/cli/milo_commands/clean.py` — small, real, exercises the full pattern (annotated args, dict return, `cli.error()` / `cli.tip()` for failure paths).
+
+### 4. Build phase
+
+**When:** You think you need to insert a custom step into the build pipeline.
+
+**Where:** You don't. Build phases are hardcoded in `bengal/orchestration/build/__init__.py` — 21 numbered phases, called sequentially. Adding one is a design conversation, not a patch (see "Escape hatches").
+
+**For observability** (timing, progress reporting): use `BuildOptions.on_phase_start` / `on_phase_complete` callbacks.
+
+**For behavior changes mid-build**: use one of the 9 plugin hook surfaces in `bengal/protocols/` — those *are* the supported extension surface. Custom orchestration phases bypass the plugin contract and free-threading guarantees.
+
+---
+
 ## Done criteria
 
 A change is done when all of these hold:

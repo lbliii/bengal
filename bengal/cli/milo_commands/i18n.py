@@ -55,6 +55,7 @@ def i18n_compile(
             cli.success(f"Compiled {loc_name}: {po_path.relative_to(root)} -> .mo")
         except Exception as e:
             cli.error(f"Failed to compile {po_path}: {e}")
+            cli.tip("Check the .po file for syntax errors — `msgfmt --check` can help locate them.")
             raise
 
     if compiled == 0:
@@ -146,6 +147,7 @@ def i18n_extract(
         cli.success(f"Extracted {len(keys)} strings to {out.relative_to(root)}")
     except Exception as e:
         cli.error(f"Failed to write .pot: {e}")
+        cli.tip("Check write permissions on the i18n/ directory and that the output path exists.")
         raise
 
     return {"keys": len(keys), "output": str(out), "domain": domain}
@@ -294,9 +296,11 @@ def i18n_init(
             cli.success(f"Created {po_path.relative_to(root)}")
         except ImportError:
             cli.error("polib is required: pip install bengal[gettext]")
+            cli.tip("Install the gettext extras with `pip install bengal[gettext]` then re-run.")
             raise SystemExit(1) from None
         except Exception as e:
             cli.error(f"Failed to create {po_path}: {e}")
+            cli.tip("Check write permissions on the locale directory, then re-run.")
             raise
 
     if created:
@@ -351,6 +355,7 @@ def i18n_sync(
         import polib
     except ImportError:
         cli.error("polib is required: pip install bengal[gettext]")
+        cli.tip("Install the gettext extras with `pip install bengal[gettext]` then re-run.")
         raise SystemExit(1) from None
 
     locales = [loc.strip() for loc in locale.split(",") if loc.strip()] if locale else []

@@ -142,6 +142,7 @@ def check(
 
     if report.has_errors():
         cli.error(f"Validation failed: {errors} error(s) found")
+        cli.tip("Re-run with --suggestions for actionable fixes, or --verbose for full context.")
         raise SystemExit(1)
     if report.has_warnings():
         cli.warning(f"Validation completed with {warnings} warning(s)")
@@ -219,6 +220,7 @@ def _run_watch_mode(site, build_profile, verbose, suggestions, incremental, cli)
 
         if report.has_errors():
             cli.error(f"{report.total_errors} error(s) found")
+            cli.tip("Fix the issues above — watcher will re-run on save.")
         elif report.has_warnings():
             cli.warning(f"{report.total_warnings} warning(s)")
         else:
@@ -310,4 +312,5 @@ def _validate_templates(site, pattern, show_hints, cli, templates, validate_cont
         summary={"errors": len(errors), "warnings": 0, "passed": 0},
     )
     cli.error(f"Template validation failed: {len(errors)} error(s)")
+    cli.tip("See the validation report above — each issue includes a suggestion for how to fix it.")
     raise SystemExit(1)

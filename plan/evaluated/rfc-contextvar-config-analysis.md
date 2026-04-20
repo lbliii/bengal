@@ -2,6 +2,7 @@
 
 **Status**: ✅ Validated via Benchmark  
 **Created**: 2026-01-13  
+**Archived**: 2026-04-20 — benchmark validated; implementation tracked in `plan/complete/rfc-contextvar-config-implementation.md`. Kept as historical analysis.  
 **Related**: `patitas/plan/rfc-contextvar-config.md`, `patitas/plan/rfc-free-threading-patterns.md`
 
 ---
