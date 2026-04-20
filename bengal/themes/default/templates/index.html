@@ -34,9 +34,9 @@ related: false # disable related entirely
     <header class="section-header">
         <h1>{{ page.title if page else section.title if section else site.title }}</h1>
 
-        {% if page and params.description %}
+        {% if page and (params?.description ?? none) %}
         <p class="section-description">{{ params.description }}</p>
-        {% elif section and section.params.description %}
+        {% elif section and (section?.params?.description ?? none) %}
         <p class="section-description">{{ section.params.description }}</p>
         {% end %}
     </header>

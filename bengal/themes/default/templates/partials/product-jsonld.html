@@ -32,7 +32,7 @@ Usage in base.html or product layout:
   {% include "partials/product-jsonld.html" %}
 -#}
 
-{%- if page.structured_data and page.type == 'product' %}
+{%- if (page?.structured_data ?? none) and (page?.type ?? '') == 'product' %}
 <script type="application/ld+json">
 {
   "@context": "https://schema.org/",

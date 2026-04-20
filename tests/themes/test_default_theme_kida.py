@@ -115,12 +115,13 @@ class TestKidaNativeFeatures:
         # Block renders default content when not extended
         assert "default" in tmpl.render()
 
-    def test_do_statement(self, env: Environment):
-        """Test {% do %} for side effects."""
+    def test_set_append_for_side_effects(self, env: Environment):
+        """Test {% set _ = list.append(...) %} — kida 0.7.0 dropped {% do %}
+        in favor of set-with-discard and the | compact filter."""
         tmpl = env.from_string("""
 {%- set items = [] -%}
-{%- do items.append(1) -%}
-{%- do items.append(2) -%}
+{%- set _ = items.append(1) -%}
+{%- set _ = items.append(2) -%}
 {{ items | length }}
 """)
         assert tmpl.render().strip() == "2"
@@ -184,10 +185,13 @@ class TestKidaNativeFeatures:
         assert tmpl.render().strip() == "10-20-30"
 
     def test_with_as_nil_resilient(self, env: Environment):
-        """Test {% with expr as name %} for nil-resilient binding."""
-        # When value exists, block renders
+        """Test {% with expr as name %} for nil-resilient binding.
+
+        Under kida 0.7.0 strict_undefined, missing-key access raises; pair
+        {% with %} with `?? none` so an absent key is treated as nil by the block.
+        """
         tmpl = env.from_string("""
-{%- with user.name as name -%}
+{%- with (user?.name ?? none) as name -%}
 Hello, {{ name }}!
 {%- end -%}
 """)

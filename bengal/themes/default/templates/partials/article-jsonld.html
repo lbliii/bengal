@@ -12,8 +12,8 @@ Usage in base.html head:
 -#}
 
 {%- set article_enabled = (config.structured_data ?? {}).article ?? true %}
-{%- set is_doc = page.type == 'doc' or page.kind == 'doc' %}
-{%- set is_post = page.type == 'post' or page.kind == 'post' %}
+{%- set is_doc = (page?.type ?? '') == 'doc' or (page?.kind ?? '') == 'doc' %}
+{%- set is_post = (page?.type ?? '') == 'post' or (page?.kind ?? '') == 'post' %}
 {%- set _toc = page.toc_items ?? toc_items ?? [] %}
 {%- if article_enabled and (is_doc or is_post) %}
 <script type="application/ld+json">

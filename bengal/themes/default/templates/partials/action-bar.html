@@ -66,7 +66,7 @@ BREADCRUMB ITEM HELPER
     {% let breadcrumb_items = get_breadcrumbs(page) ?? [] %}
 
     {% let params = params ?? {} %}
-    {% let has_metadata = params?.author or page?.date or page?.content or params?.lastmod %}
+    {% let has_metadata = (params?.author ?? none) or (page?.date ?? none) or (page?.content ?? none) or (params?.lastmod ?? none) %}
     {% let theme_features = theme?.features ?? [] %}
 
     <div class="action-bar-container">
@@ -154,7 +154,7 @@ BREADCRUMB ITEM HELPER
         {% if has_metadata %}
         <div id="action-bar-metadata-popover" popover class="action-bar-metadata--popover">
             <div class="action-bar-metadata-content">
-                {% with params?.author as author %}
+                {% with (params?.author ?? none) as author %}
                 {% if author and 'content.author' in theme_features %}
                 <span class="action-bar-meta-item">
                     {{ icon("user", size=16) }}
@@ -181,7 +181,7 @@ BREADCRUMB ITEM HELPER
                 {% end %}
                 {% end %}
 
-                {% with params?.lastmod ?? page?.date as last_updated %}
+                {% with (params?.lastmod ?? page?.date ?? none) as last_updated %}
                 {% if last_updated %}
                 <span class="action-bar-meta-item">
                     {{ icon("arrow-clockwise", size=16) }}

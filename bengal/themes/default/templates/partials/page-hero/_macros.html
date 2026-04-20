@@ -469,7 +469,7 @@ KIDA FEATURES:
         {% if source_file and config?.github_repo %}
         {% let branch = config?.github_branch ?? 'main' %}
         {% let line_anchor = '#L' ~ element.line_number if element?.line_number else '' %}
-        {% let source_url = config.params.github_repo ~ '/blob/' ~ branch ~ '/' ~ source_file ~ line_anchor %}
+        {% let source_url = config.github_repo ~ '/blob/' ~ branch ~ '/' ~ source_file ~ line_anchor %}
         <a href="{{ source_url }}" class="page-hero__source-link" target="_blank" rel="noopener">
             {{ icon('file-code', size=14) }}
             <span>{{ t('source.view', default='View source') }}</span>
@@ -504,7 +504,7 @@ KIDA FEATURES:
 
 {% def hero_section(section, page, hero_context) %}
 {# Determine section type from explicit context, page type, or URL (fallback) #}
-{% let is_cli = hero_context?.is_cli or (page?.type == 'autodoc-cli') or (page?.href and '/cli' in page.href) or false
+{% let is_cli = (hero_context?.is_cli ?? false) or (page?.type == 'autodoc-cli') or (page?.href and '/cli' in page.href) or false
 %}
 {% let section_type = 'cli' if is_cli else 'api' %}
 {% let labels = SECTION_LABELS[section_type] %}

@@ -226,7 +226,7 @@ requires-dist = [
     { name = "click", specifier = ">=8.1.7" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "jsmin", specifier = ">=3.0.1" },
-    { name = "kida-templates", specifier = ">=0.6.0" },
+    { name = "kida-templates", specifier = ">=0.7.0" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
     { name = "milo-cli", git = "https://github.com/lbliii/milo-cli.git?rev=db0426e823abec0f853804ec7490e60847560bb9" },
     { name = "packaging", specifier = ">=23.0" },
@@ -592,11 +592,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/5e/73/e01e4c5e11ad0494f
 
 [[package]]
 name = "kida-templates"
-version = "0.6.0"
+version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/bf/3a/07c7cdd1ff8a96ca277663cb5358a3104ee115a0b5a98a5540a82111a31c/kida_templates-0.6.0.tar.gz", hash = "sha256:d01b38442cd0d2f10dfaa0215f6aeb474577596081486b23b482309bf8d68c3f", size = 529973, upload-time = "2026-04-13T22:32:35.335Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7e/d0/261198d9c8667272ee87c2012fa42fea6628053e34c1ec7bf66ed147ece8/kida_templates-0.7.0.tar.gz", hash = "sha256:81fcbc167f9754e0fc503d46ea50b4e558f0da1c468bcf28b57f670152856f65", size = 570668, upload-time = "2026-04-20T21:40:22.864Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/5a/07/4d08e9333f009cf578e557f28dfa22a190af89c4c4ac9934848528c66309/kida_templates-0.6.0-py3-none-any.whl", hash = "sha256:e5da2e0531c9256e0db19b6c7afc4b9220eb426677f9b4ed0ac12ee59a56b5f3", size = 384796, upload-time = "2026-04-13T22:32:33.668Z" },
+    { url = "https://files.pythonhosted.org/packages/b6/fb/52359cf08ed6547f03be43958af2ebfd5df2bb65cda08e68dd3e6ab6f27b/kida_templates-0.7.0-py3-none-any.whl", hash = "sha256:b7b7e1061dbf21ba5ba296efcba40f003576c4428006ff4531fa5861e34dbc60", size = 400534, upload-time = "2026-04-20T21:40:20.927Z" },
 ]
 
 [[package]]

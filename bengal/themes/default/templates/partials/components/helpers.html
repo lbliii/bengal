@@ -23,7 +23,7 @@ Usage with {% call %}:
 {% def for_each_item_excluding_current(items) %}
 {% let page_path = page?._path ?? '' %}
 {% for item in items %}
-{% if item?._path != page_path %}
+{% if (item?._path ?? '') != page_path %}
 {{ caller(item) }}
 {% end %}
 {% end %}

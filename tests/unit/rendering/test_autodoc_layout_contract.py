@@ -52,6 +52,10 @@ def test_base_template_does_not_render_none_variant_attribute() -> None:
     base_path = Path("bengal/themes/default/templates/base.html")
     base = base_path.read_text(encoding="utf-8")
 
-    # Require a guard that emits an empty string when variant is falsy.
-    # Pattern: page.variant or '' (Jinja2 shorthand for fallback)
-    assert re.search(r'data-variant="\{\{\s*page\.variant\s+or\s+\'\'\s*\}\}"', base)
+    # Require a guard that emits an empty string when variant is None/absent.
+    # Kida 0.7.0 strict_undefined requires `page?.variant ?? ''` for safe access;
+    # the trailing `or ''` further coerces a stored None to an empty string.
+    assert re.search(
+        r"data-variant=\"\{\{\s*\(\s*page\?\.variant\s*\?\?\s*''\s*\)\s+or\s+''\s*\}\}\"",
+        base,
+    )
