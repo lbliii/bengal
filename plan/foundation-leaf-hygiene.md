@@ -64,43 +64,67 @@ These hold throughout the plan or we stop and reassess:
 
 Three questions block Sprint 2 and Sprint 3. Resolve before writing patches.
 
+**Status: Resolved 2026-04-20.** Evidence summarized below; full investigation in PR notes.
+
 ### Q1: Is `DotDict.__getattribute__` returning `""` for missing keys intentional?
 
-**Why it matters:** Returning `""` instead of raising `AttributeError` breaks `hasattr(d, "x")` (always True) and `getattr(d, "x", default)` (never returns `default`). This may be deliberate to make Jinja2 templates render gracefully on missing frontmatter — or it may be an old bug.
+**Decision: Option A — intentional. Keep behavior. Fix downstream misuse + docstring drift.**
 
-**Inputs:** `git log` on `dotdict.py`; grep for `DotDict` template usage; check Kida template tests.
+**Evidence:**
 
-**Outputs:**
-- **Option A — intentional:** Document as deviation in module docstring with rationale; close finding.
-- **Option B — bug:** Switch to `__getattr__` (only called on miss) raising `AttributeError`. Audit downstream callers for breakage.
+- `tests/unit/utils/test_dotdict.py:23-27, 145, 328, 379-393` — explicit assertions that miss returns `""`; tests encode this as the contract.
+- `bengal/themes/default/templates/SAFE_PATTERNS.md` — documents the intentional pattern (`{{ resume.name or page.title }}`) that depends on `""`-falsy chaining.
+- `bengal/themes/default/templates/.../track-helpers.html:105` (and similar) — template uses `{% if site.data.tracks and ... %}` relying on `""` falsy semantics.
+- `bengal/rendering/context/data_wrappers.py:119-122` — `ParamsContext` uses the same `""`-on-miss pattern; the dotdict docstring's "consistent with ParamsContext" claim is accurate.
 
-**Acceptance:** ADR-style decision recorded in `plan/foundation-leaf-hygiene.md` (this file) with chosen option and grep-verifiable scope of impact.
+**Bugs layered on top of correct design (move to Sprint 2):**
+
+1. `bengal/utils/primitives/dotdict.py:89` — docstring says "we return None" but code returns `""`. Docstring drift.
+2. `bengal/orchestration/menu.py:278, 809` and `bengal/health/validators/tracks.py:40` — use `hasattr(site.data, key)` to gate behavior, but `hasattr` is **always True** on `DotDict`. These checks are no-ops; they should be `key in site.data` or `bool(site.data.get(key))`.
+
+**Why:** Templates are the load-bearing consumer. Switching to `AttributeError` on miss would force every template to add `is defined` guards — high churn for no template-author benefit. The bug isn't the design; it's downstream code that misread the design.
+
+**Confidence:** High.
 
 ### Q2: Should `DotDict.from_dict` stop eagerly wrapping nested dicts/lists?
 
-**Why it matters:** `__getattribute__` already wraps lazily on access. Eager wrap in `from_dict` is wasted work for keys never read — but may exist for type-stability of callers expecting `DotDict` instances inside lists.
+**Decision: Option C — keep eager wrap. Document why in module docstring.**
 
-**Inputs:** Grep for `from_dict` callers; check if any do `isinstance(item, DotDict)` on nested values.
+**Evidence:**
 
-**Outputs:**
-- **Option A — keep eager:** Document why (type-stability for caller X).
-- **Option B — go lazy:** Make `from_dict` shallow; lazy wrap propagates.
+- `bengal/utils/primitives/dotdict.py:102-113` — `__getattribute__` lazy-wraps top-level dict *values*, but does NOT recurse into list elements. So `wrap_data({"team": [{"name": "..."}, ...]}).team[0].name` would fail without eager wrap.
+- `bengal/themes/default/templates/partials/track_nav.html:5-6` — iterates `site.data.tracks | items` and accesses `track.title`, `track.items` on dict-in-list elements. Only works because `from_dict` pre-wraps list items.
+- `tests/unit/utils/test_dotdict.py:228-232` — `assert isinstance(data.users[0], DotDict)` after `from_dict`. Encodes the contract.
+- `tests/unit/utils/test_dotdict.py:294-295, 411-415` — `wrap_data` and template-simulation tests assert wrapped list items.
+- `bengal/core/site/__init__.py:213` — `self.data = wrap_data(data_dict)` is the production caller that templates consume.
 
-**Acceptance:** Decision recorded; if Option B, benchmark page-data load to confirm no regression.
+**Why:** The lazy wrap path doesn't cover dict-in-list, which templates exercise. Going shallow would silently break templates that iterate lists of dicts. Extending lazy wrap to list elements would add complexity (list-element cache invalidation, mutation hooks) that is more cost than the saved work for the eager-wrap-of-cold-keys case. Sprint 2 will add a one-line comment in `from_dict` referencing this decision.
+
+**Confidence:** High.
 
 ### Q3: Is splitting `text.py` worth the churn?
 
-**Why it matters:** 681 LOC, 6 distinct concerns. Layer 1 flagged it. But splitting churns ~20 importers; the file is also already in active use. May be lower-leverage than other work.
+**Decision: Option A — keep monolithic. Add docstring section headers. Skip Sprint 3.**
 
-**Inputs:** Grep importers of each function group: `humanize_*`, `format_path_for_display`, `slugify*`, HTML helpers.
+**Evidence (importer count per proposed split):**
 
-**Outputs:**
-- **Option A — keep monolithic:** Add docstring section headers; close finding as "accepted technical debt with rationale."
-- **Option B — split:** Define new module names + migration. Schedule Sprint 3.
+| Function group | Proposed module | Direct importers | Notes |
+|---|---|---|---|
+| `humanize_bytes` | `humanize.py` | 1 | `rendering/template_functions/strings.py` |
+| `humanize_number`, `humanize_slug` | `humanize.py` | 0 direct | re-exported via `bengal/utils/primitives/__init__.py` only |
+| `pluralize` | `humanize.py` | 2 | `rendering/template_functions/strings.py`, `rendering/engines/kida.py` |
+| `format_path_for_display` | `paths/display.py` | 2 | `core/page/__init__.py`, `orchestration/stats/models.py` |
+| HTML / truncate / slugify / excerpt | stays in `text.py` | ~19 | scattered across directives, parsing, rendering |
 
-**Acceptance:** Decision recorded; if Option B, target module names listed and importer count enumerated.
+- Bengal forbids re-export shims (per AGENTS.md). Every importer must update by hand.
+- The file has been actively edited recently (Sprint 1 refactor 2026-04-20; taxonomy consolidation 2026-04-02). Splitting now risks rebase friction.
+- `bengal/utils/paths/` does not exist as a subpackage; splitting also costs subpackage creation and `__init__.py` plumbing.
 
-**Effort:** 1–2h total for all three Q's.
+**Why:** All ~10 public functions in `text.py` serve text *transformation* or *presentation*. The 6-concern grouping is real but cohesive. The benefit of split (clearer module boundaries) is not worth the migration cost given how few real importers the movable groups have, the no-shim rule, and active churn on the file. Sprint 2 will add docstring section headers (`# --- Humanize ---`, etc.) to make the internal grouping discoverable without churning callers.
+
+**Confidence:** Medium-High. Revisit if a future audit finds `text.py` growing past ~900 LOC or if a humanize function gains many new callers that would justify a dedicated module.
+
+**Effort actual:** ~2h (three parallel Explore agents + synthesis).
 
 ---
 
@@ -131,57 +155,47 @@ Bundle six low-risk patches from the audit's "clean win" recommendation.
 
 ---
 
-## Sprint 2 — Medium Fixes (depends on Sprint 0 Q1, Q2)
+## Sprint 2 — Medium Fixes (Sprint 0 decisions baked in)
 
-| # | File:Line | Change | Depends on |
-|---|---|---|---|
-| 1 | `dotdict.py:74-79` | Apply Sprint 0 Q1 decision (document or refactor to `__getattr__`). | Q1 |
-| 2 | `dotdict.py:216-229` | Apply Sprint 0 Q2 decision. | Q2 |
-| 3 | `dotdict.py:107-152` | Extract `_get_cached_value(key)` helper to dedupe `__getattribute__`/`__getitem__`. | — |
-| 4 | `lru_cache.py:156-203` | Consolidate `get_or_set` duplicate TTL check paths into single critical section. | — |
-| 5 | `hashing.py:115` | **Conditional**: profile `hash_dict` callers; add memo only if benchmark shows >5% wall-clock win on a representative build. | Benchmark first |
+| # | File:Line | Change |
+|---|---|---|
+| 1 | `dotdict.py:89` | Q1 follow-up: fix docstring drift — replace "we return None instead of raising AttributeError" with the actual contract ("we return `''` for Jinja2 falsy-chain ergonomics"). |
+| 2 | `orchestration/menu.py:278, 809` and `health/validators/tracks.py:40` | Q1 follow-up: replace `hasattr(site.data, key)` with `key in site.data` (or `bool(site.data.get(key))` where the value's truthiness matters). `hasattr` on a `DotDict` is always True, so these checks are no-ops today. |
+| 3 | `dotdict.py:204-229` | Q2 follow-up: add a one-line comment above `from_dict` referencing the Sprint 0 decision (eager wrap is required because lazy wrap-on-access doesn't cover dict-in-list — see plan Q2). |
+| 4 | `dotdict.py:107-152` | Extract `_get_cached_wrapped_value(key)` helper to dedupe the cache-wrap branch shared by `__getattribute__` and `__getitem__`. Mechanical refactor; no contract change. |
+| 5 | `text.py` | Q3 follow-up: add docstring section headers (`# --- Humanize ---`, `# --- HTML ---`, `# --- Slugify ---`, `# --- Truncation ---`, `# --- Excerpt ---`, `# --- Path display ---`) so the 6-concern grouping is discoverable without splitting the module. |
+| 6 | `lru_cache.py:156-203` | Consolidate `get_or_set` duplicate TTL check paths into single critical section. |
+| 7 | `hashing.py:115` | **Conditional**: profile `hash_dict` callers; add memo only if benchmark shows >5% wall-clock win on a representative build. |
 
 **Acceptance:**
 - All Sprint 1 acceptance gates still hold.
-- Sprint 0 decisions cited in commit messages.
+- Sprint 0 decisions cited in commit messages for items 1–3, 5.
+- `rg "hasattr\(.*\.data" bengal/` returns zero hits in `orchestration/` and `health/validators/`.
 - If `hash_dict` change ships, `benchmarks/` shows the wall-clock delta.
 
-**Effort:** 4–6h depending on Q1/Q2 outcomes.
+**Effort:** 4–5h.
 
-**Ships independently:** Yes.
-
----
-
-## Sprint 3 — `text.py` Decomposition (only if Sprint 0 Q3 = Option B)
-
-If Q3 chose to split, execute the decomposition; otherwise skip this sprint entirely.
-
-**Scope (tentative, Q3 finalizes):**
-- `bengal/utils/primitives/humanize.py` — `humanize_bytes`, `humanize_number`, `humanize_slug`, `pluralize`.
-- `bengal/utils/paths/display.py` — `format_path_for_display`.
-- `text.py` retains: HTML escape/unescape, truncation, slugify, excerpt, `_strip_trailing_orphan_markdown`.
-- Bundle the `generate_excerpt` fusion (`text.py:389-392`) since we're already touching the file.
-
-**Acceptance:**
-- All importers updated; `rg "from bengal.utils.primitives.text import" bengal/` lists only retained symbols.
-- `text.py` LOC drops by ≥150.
-- Re-export shims **not** added (per AGENTS.md guidance against backwards-compat hacks).
-- Full suite green.
-
-**Effort:** 3–5h.
-
-**Ships independently:** Yes (skipped entirely if Q3 = A).
+**Ships independently:** Yes. Items 1–3 + 5 are doc/comment/grep-replace and could split into a tiny PR if the helper extract or `lru_cache` work blocks.
 
 ---
 
-## Sprint 4 — Free-Threading Polish
+## Sprint 3 — `text.py` Decomposition
 
-Targets only matter under Python 3.14 free-threaded builds, but are cheap.
+**Status: Skipped.** Q3 resolved to Option A (keep monolithic). Section headers will be added in Sprint 2 item 5 instead.
+
+The `generate_excerpt` fusion (`text.py:389-392`) flagged in the audit is moved to Sprint 4 as a free-threading-adjacent micro-opt, since we're no longer bundling it with a structural split.
+
+---
+
+## Sprint 4 — Free-Threading Polish + Bundled Micro-Opts
+
+Targets only matter under Python 3.14 free-threaded builds (1, 2), or are cheap micro-opts that lost their bundling vehicle when Sprint 3 was skipped (3).
 
 | # | File:Line | Change |
 |---|---|---|
 | 1 | `async_compat.py:39-56` | Wrap `_uvloop_checked` lazy init in `threading.Lock` or `functools.cache` on a getter. |
 | 2 | `thread_local.py:100-104` | Bind `cache_key` once at the top of `get()`. |
+| 3 | `text.py:389-392` (`generate_excerpt`) | Inline the `strip_html` + `truncate_words` chain to avoid double-traversal of long markdown bodies. |
 
 **Acceptance:**
 - `uv run pytest` full suite passes on both default and `--gil=0` invocations (if local Python 3.14t available).
@@ -197,11 +211,12 @@ Targets only matter under Python 3.14 free-threaded builds, but are cheap.
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Sprint 0 Q1 decision (DotDict miss → `""`) is "bug", but downstream templates rely on it | High | Sprint 0 Q1 explicitly enumerates downstream callers via grep before changing; if any rely on it, choose Option A and document. |
-| `hash_dict` memoization adds correctness bug (mutable dict reused) | Medium | Sprint 2 #5 is gated on benchmark justification; if shipped, memo key is the serialized form, not the dict identity. |
-| `text.py` split churns active rebases on the file | Medium | Sprint 3 is opt-in via Q3; if multiple feature branches touch `text.py`, defer Sprint 3 to a quiet window. |
-| Sprint 1 `Union[*args]` change breaks ty inference | Low | Run `uv run ty check` at Sprint 1 boundary; if diagnostics rise above 1913 floor, revert that one item. |
-| `retry.py` dead-code removal hides a real bug (unreachable was defensive) | Low | Audit `git log` of `retry.py` for the "unreachable" block's history before deleting; if added defensively, leave a short comment explaining why we trust the loop's termination. |
+| ~~Sprint 0 Q1 decision (DotDict miss → `""`) is "bug", but downstream templates rely on it~~ | ~~High~~ | **Resolved Sprint 0:** Q1 = Option A (intentional). Templates and SAFE_PATTERNS rely on `""`-falsy chaining. Sprint 2 fixes the docstring drift + `hasattr` misuse downstream, not the `DotDict` contract. |
+| ~~`text.py` split churns active rebases on the file~~ | ~~Medium~~ | **Resolved Sprint 0:** Q3 = Option A (keep monolithic). Risk neutralized; section headers added in Sprint 2 instead. |
+| Sprint 2 `hasattr → in` migration in `menu.py`/`tracks.py` changes runtime behavior in subtle ways (since `hasattr` was always True, replacing with `in` may now skip code paths that were silently entering them) | Medium | For each call site, read the surrounding code to confirm what should happen when the key is *truly* missing. If the previous always-True behavior was masking a missing-data bug, the fix is the goal — but call out the change in the PR body and add tests for the missing-data branch. |
+| `hash_dict` memoization adds correctness bug (mutable dict reused) | Medium | Sprint 2 #7 is gated on benchmark justification; if shipped, memo key is the serialized form, not the dict identity. |
+| ~~Sprint 1 `Union[*args]` change breaks ty inference~~ | ~~Low~~ | **Resolved Sprint 1:** S1.5 was deferred (Ruff UP007 rejects the runtime form); current `reduce(lambda)` retained. Risk neutralized. |
+| ~~`retry.py` dead-code removal hides a real bug (unreachable was defensive)~~ | ~~Low~~ | **Resolved Sprint 1:** Verified loop invariant before deletion (`range(retries+1)` always yields ≥1 iteration; body returns or raises). Sentinel `AssertionError` retained in case the invariant ever breaks. |
 
 ---
 
@@ -209,11 +224,13 @@ Targets only matter under Python 3.14 free-threaded builds, but are cheap.
 
 | Metric | Current | After Sprint 1 | After Sprint 2 | After Sprint 4 |
 |---|---|---|---|---|
-| Audit Tier-1 findings open | 2 | 1 (text.py split pending) | 1 | 1 (or 0 if Sprint 3 ran) |
-| Audit Tier-2 findings open | 6 | 5 | 0 (Q1/Q2 dependent) | 0 |
-| Audit Tier-3 findings open | 8 | 4 | 3 | 0 |
-| `text.py` LOC | 681 | 678 | 678 | 678 (or ~520 after Sprint 3) |
+| Audit Tier-1 findings open | 2 | 1 (text.py split closed as A) | 0 | 0 |
+| Audit Tier-2 findings open | 6 | 5 | 1 (`hash_dict` if benchmark justifies) | 0 |
+| Audit Tier-3 findings open | 8 | 4 | 2 | 0 |
+| `text.py` LOC | 681 | 678 | 678 + section headers | 678 |
 | `parse_date` per-call list allocation | Yes | No | No | No |
+| Stale `hasattr(site.data, x)` no-ops | 3 | 3 | 0 | 0 |
+| `DotDict` docstring drift (line 89) | 1 | 1 | 0 | 0 |
 | Free-threading lazy-init races in `bengal/utils/concurrency/` | 1 | 1 | 1 | 0 |
 
 ---
