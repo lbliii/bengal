@@ -13,6 +13,15 @@ if TYPE_CHECKING:
     from collections.abc import ItemsView, Iterator, KeysView, ValuesView
 
 
+def _wrap_dict_value(cache: dict[str, Any], key: str, value: Any) -> Any:
+    """Lazily wrap a dict value as DotDict, caching for identity stability."""
+    if isinstance(value, dict) and not isinstance(value, DotDict):
+        if key not in cache:
+            cache[key] = DotDict(value)
+        return cache[key]
+    return value
+
+
 class DotDict:
     """
     Dictionary wrapper that allows dot notation access without method name conflicts.
@@ -37,7 +46,9 @@ class DotDict:
         - Recursive wrapping of nested dicts (with caching for performance)
         - Dict-like interface (but not inheriting from dict)
         - No method name collisions
-        - Returns '' for missing keys (consistent with ParamsContext)
+        - Returns '' for missing keys (consistent with ParamsContext) — note
+          this means ``hasattr(d, key)`` is always True; use ``key in d`` or
+          ``d.get(key)`` to test membership.
 
     Usage:
             >>> # Create from dict
@@ -85,15 +96,17 @@ class DotDict:
         This ensures that if a data field has the same name as a method
         (like 'items', 'keys', 'values'), the data field is returned.
 
-        For Jinja2 compatibility, if a key doesn't exist in data and isn't
-        a real attribute, we return None instead of raising AttributeError.
-        This allows templates to safely check `if obj.field` without errors.
+        For Jinja2 compatibility, missing keys return ``""`` (empty string),
+        not ``None`` and not ``AttributeError``. This is intentional and
+        load-bearing — see ``themes/default/templates/SAFE_PATTERNS.md`` —
+        but a side effect is that ``hasattr(d, key)`` is **always True** on
+        a DotDict. Use ``key in d`` or ``d.get(key)`` to test for membership.
 
         Args:
             key: The attribute name
 
         Returns:
-            The data value if it exists, the attribute, or None
+            The data value if it exists, a real attribute, or ``""`` on miss.
         """
         # Special case: internal attributes need normal access
         if key in ("_data", "_cache", "__class__", "__dict__"):
@@ -102,23 +115,13 @@ class DotDict:
         # Check if key exists in data first
         data = object.__getattribute__(self, "_data")
         if key in data:
-            value = data[key]
-            # Recursively wrap nested dicts (with caching)
-            if isinstance(value, dict) and not isinstance(value, DotDict):
-                cache = object.__getattribute__(self, "_cache")
-                # Check cache first
-                if key not in cache:
-                    cache[key] = DotDict(value)
-                return cache[key]
-            return value
+            return _wrap_dict_value(object.__getattribute__(self, "_cache"), key, data[key])
 
         # Try to get as a real attribute (methods like .get(), .keys())
         try:
             return object.__getattribute__(self, key)
         except AttributeError:
-            # Key doesn't exist in data or as attribute
-            # Return empty string for Jinja2 compatibility (consistent with ParamsContext)
-            # Empty string is falsy, so `{% if obj.field %}` still works as expected
+            # Miss — empty string preserves Jinja2 falsy-chain ergonomics.
             return ""
 
     def __setattr__(self, key: str, value: Any) -> None:
@@ -144,13 +147,7 @@ class DotDict:
     # Dict interface methods
     def __getitem__(self, key: str) -> Any:
         """Bracket notation access with caching."""
-        value = self._data[key]
-        if isinstance(value, dict) and not isinstance(value, DotDict):
-            # Check cache first
-            if key not in self._cache:
-                self._cache[key] = DotDict(value)
-            return self._cache[key]
-        return value
+        return _wrap_dict_value(self._cache, key, self._data[key])
 
     def __setitem__(self, key: str, value: Any) -> None:
         """Bracket notation assignment. Invalidates cache for the key."""
@@ -205,6 +202,13 @@ class DotDict:
     def from_dict(cls, data: dict[str, Any]) -> DotDict:
         """
         Create DotDict from a regular dict, recursively wrapping nested dicts.
+
+        The eager recursion (and especially the dict-in-list wrap below) is
+        required: ``__getattribute__`` only lazily wraps top-level dict
+        *values*, not dicts nested inside lists. Templates iterate
+        list-of-dicts (e.g. ``site.data.tracks``) and access ``.attr`` on
+        each item, which only works if those items are pre-wrapped here.
+        See ``plan/foundation-leaf-hygiene.md`` Sprint 0 Q2 for details.
 
         Args:
             data: Source dictionary

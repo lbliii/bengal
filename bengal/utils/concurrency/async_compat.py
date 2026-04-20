@@ -31,29 +31,28 @@ See Also:
 from __future__ import annotations
 
 import asyncio
+from functools import cache
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Coroutine
 
-# Lazy uvloop detection - only check when first needed
-# This avoids ~200ms import overhead when uvloop is installed but not used
-_uvloop_checked = False
-_uvloop_module = None
 
-
+@cache
 def _get_uvloop():
-    """Lazily import uvloop on first use."""
-    global _uvloop_checked, _uvloop_module
-    if not _uvloop_checked:
-        _uvloop_checked = True
-        try:
-            import uvloop
+    """
+    Lazily import uvloop on first use.
 
-            _uvloop_module = uvloop
-        except ImportError:
-            _uvloop_module = None
-    return _uvloop_module
+    Cached via ``functools.cache`` so the import attempt happens exactly
+    once across all threads (avoids the ~200ms uvloop import overhead on
+    every call, and avoids a check-then-act race under Python 3.14t
+    free-threading).
+    """
+    try:
+        import uvloop
+    except ImportError:
+        return None
+    return uvloop
 
 
 def run_async[T](coro: Coroutine[Any, Any, T]) -> T:

@@ -14,6 +14,17 @@ from typing import cast
 # Type alias for date-like values
 type DateLike = datetime | date_type | str | None
 
+_DEFAULT_DATE_FORMATS: tuple[str, ...] = (
+    "%Y-%m-%d",  # 2025-10-09
+    "%Y/%m/%d",  # 2025/10/09
+    "%d-%m-%Y",  # 09-10-2025
+    "%d/%m/%Y",  # 09/10/2025
+    "%B %d, %Y",  # October 09, 2025
+    "%b %d, %Y",  # Oct 09, 2025
+    "%Y-%m-%d %H:%M:%S",  # 2025-10-09 14:30:00
+    "%Y/%m/%d %H:%M:%S",  # 2025/10/09 14:30:00
+)
+
 
 def parse_date(
     value: DateLike, formats: list[str] | None = None, on_error: str = "return_none"
@@ -76,18 +87,7 @@ def parse_date(
                     continue
 
         # Try common formats
-        default_formats = [
-            "%Y-%m-%d",  # 2025-10-09
-            "%Y/%m/%d",  # 2025/10/09
-            "%d-%m-%Y",  # 09-10-2025
-            "%d/%m/%Y",  # 09/10/2025
-            "%B %d, %Y",  # October 09, 2025
-            "%b %d, %Y",  # Oct 09, 2025
-            "%Y-%m-%d %H:%M:%S",  # 2025-10-09 14:30:00
-            "%Y/%m/%d %H:%M:%S",  # 2025/10/09 14:30:00
-        ]
-
-        for fmt in default_formats:
+        for fmt in _DEFAULT_DATE_FORMATS:
             try:
                 return datetime.strptime(value, fmt)
             except ValueError:

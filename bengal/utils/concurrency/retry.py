@@ -110,28 +110,19 @@ def retry_with_backoff[T](
             ... )
 
     """
-    last_error: Exception | None = None
-
     for attempt in range(retries + 1):
         try:
             return func()
         except exceptions as e:
-            last_error = e
-
             if attempt < retries:
                 delay = calculate_backoff(attempt, base_delay, max_delay, jitter)
-
                 if on_retry:
                     on_retry(attempt, e)
-
                 time.sleep(delay)
             else:
                 raise
-
-    # Should never reach here (loop always runs at least once and re-raises)
-    if last_error is None:
-        raise RuntimeError("retry_with_backoff: no attempts executed")
-    raise last_error
+    # range(retries + 1) yields >= 1 iteration for retries >= 0; loop always returns or raises.
+    raise AssertionError("unreachable: retry_with_backoff loop did not terminate")
 
 
 async def async_retry_with_backoff[T](
@@ -169,24 +160,16 @@ async def async_retry_with_backoff[T](
             ... )
 
     """
-    last_error: Exception | None = None
-
     for attempt in range(retries + 1):
         try:
             return await coro_func()
         except exceptions as e:
-            last_error = e
-
             if attempt < retries:
                 delay = calculate_backoff(attempt, base_delay, max_delay, jitter)
-
                 if on_retry:
                     on_retry(attempt, e)
-
                 await asyncio.sleep(delay)
             else:
                 raise
-
-    if last_error is None:
-        raise RuntimeError("async_retry_with_backoff: no attempts executed")
-    raise last_error
+    # range(retries + 1) yields >= 1 iteration for retries >= 0; loop always returns or raises.
+    raise AssertionError("unreachable: async_retry_with_backoff loop did not terminate")

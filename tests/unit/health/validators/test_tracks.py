@@ -13,6 +13,7 @@ import pytest
 
 from bengal.health.report import CheckStatus
 from bengal.health.validators.tracks import TrackValidator
+from bengal.utils.primitives.dotdict import DotDict
 
 
 @pytest.fixture
@@ -50,14 +51,19 @@ def mock_site(tmp_path):
 
     site.pages = [page1, page2]
 
-    # Create mock data with tracks
-    site.data = MagicMock()
-    site.data.tracks = {
-        "beginner": {
-            "title": "Beginner Track",
-            "items": ["intro.md", "basics.md"],
+    # Create mock data with tracks. Use real DotDict so `key in site.data`
+    # behaves like production — MagicMock.__contains__ returns False by default
+    # which would silently bypass the validator.
+    site.data = DotDict(
+        {
+            "tracks": {
+                "beginner": {
+                    "title": "Beginner Track",
+                    "items": ["intro.md", "basics.md"],
+                }
+            }
         }
-    }
+    )
 
     return site
 
@@ -82,9 +88,9 @@ class TestTrackValidatorNoTracks:
     """Tests when no tracks are defined."""
 
     def test_info_when_no_tracks_attribute(self, validator):
-        """Returns info when no tracks attribute."""
+        """Returns info when no tracks key is present."""
         site = MagicMock()
-        site.data = MagicMock(spec=[])  # No tracks attribute
+        site.data = DotDict({})  # No tracks key
         site.pages = []
 
         results = validator.validate(site)
@@ -96,8 +102,7 @@ class TestTrackValidatorNoTracks:
     def test_info_when_tracks_empty(self, validator):
         """Returns info when tracks is empty."""
         site = MagicMock()
-        site.data = MagicMock()
-        site.data.tracks = {}
+        site.data = DotDict({"tracks": {}})
         site.pages = []
 
         results = validator.validate(site)
@@ -191,10 +196,7 @@ class TestTrackValidatorMissingPages:
         site = MagicMock()
         site.root_path = tmp_path
         site._page_lookup_maps = None
-        site.data = MagicMock()
-        site.data.tracks = {
-            "learn": {"title": "Learn", "items": ["guide.md"]},
-        }
+        site.data = DotDict({"tracks": {"learn": {"title": "Learn", "items": ["guide.md"]}}})
 
         content_dir = tmp_path / "content"
         content_dir.mkdir(parents=True)

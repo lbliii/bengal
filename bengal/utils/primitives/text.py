@@ -5,6 +5,25 @@ Provides canonical implementations for common text operations like slugification
 HTML stripping, truncation, excerpt generation, and path formatting. These
 utilities consolidate duplicate implementations found throughout the codebase.
 
+Function groups (Sprint 0 Q3 in `plan/foundation-leaf-hygiene.md` resolved
+to keep this module monolithic; these groupings document the internal
+structure without the churn of a split):
+
+- **Slugify** — :func:`slugify`, :func:`normalize_taxonomy_slug`,
+  :func:`slugify_id`. URL-safe / HTML-id-safe identifier generation.
+- **HTML** — :func:`strip_html`, :func:`escape_html`, :func:`unescape_html`.
+  Tag stripping and entity escape/unescape.
+- **Truncation** — :func:`truncate_words`, :func:`truncate_chars`,
+  :func:`truncate_middle` (and the private
+  :func:`_strip_trailing_orphan_markdown` helper).
+- **Excerpt** — :func:`generate_excerpt`. Convenience over strip_html +
+  truncate_words for HTML content.
+- **Whitespace** — :func:`normalize_whitespace`.
+- **Humanize** — :func:`pluralize`, :func:`humanize_bytes`,
+  :func:`humanize_number`, :func:`humanize_slug`. Display-formatting helpers.
+- **Path display** — :func:`format_path_for_display`. Friendly path
+  shortening for log / error messages.
+
 Example:
 
 ```python
@@ -21,6 +40,7 @@ from __future__ import annotations
 
 import html as html_module
 import re
+import unicodedata
 from pathlib import Path
 
 
@@ -155,8 +175,6 @@ def slugify_id(text: str, default: str = "") -> str:
         For Unicode-aware slugification (international URLs), use ``slugify()`` instead.
 
     """
-    import unicodedata
-
     if not text:
         return default
 
@@ -274,18 +292,20 @@ def truncate_words(text: str, word_count: int, suffix: str = "...") -> str:
     if not text:
         return ""
 
-    words = text.split()
+    # split(maxsplit=word_count) returns at most word_count+1 elements:
+    # the first word_count words individually, plus the remainder in the
+    # last slot. Avoids the full O(len(text)) re-split that the prior
+    # text.split() did when callers (e.g. generate_excerpt) only need a
+    # short prefix of a long markdown body.
+    parts = text.split(maxsplit=word_count)
 
-    if len(words) <= word_count:
+    if len(parts) <= word_count:
         return text
 
-    result = " ".join(words[:word_count]) + suffix
+    before_suffix = " ".join(parts[:word_count])
     # Avoid ending with orphaned markdown (**, *, etc.)
-    before_suffix = " ".join(words[:word_count])
     cleaned = _strip_trailing_orphan_markdown(before_suffix)
-    if cleaned != before_suffix:
-        result = cleaned + suffix
-    return result
+    return (cleaned if cleaned != before_suffix else before_suffix) + suffix
 
 
 def truncate_chars(text: str, length: int, suffix: str = "...") -> str:

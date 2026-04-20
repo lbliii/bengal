@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.orchestration.utils.i18n import get_i18n_config
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.dotdict import DotDict
 from bengal.utils.primitives.hashing import hash_str
 
 logger = get_logger(__name__)
@@ -275,9 +276,9 @@ class MenuOrchestrator:
                     # If data-driven, include the data keys
                     if isinstance(dropdown_cfg, str) and dropdown_cfg.startswith("data:"):
                         data_key = dropdown_cfg[5:]
-                        if hasattr(self.site.data, data_key):
-                            data = getattr(self.site.data, data_key)
-                            if isinstance(data, dict):
+                        if data_key in self.site.data:
+                            data = self.site.data[data_key]
+                            if isinstance(data, dict | DotDict):
                                 dropdown_configs[-1]["data_keys"] = sorted(data.keys())
 
         # Include bundles config
@@ -806,11 +807,11 @@ class MenuOrchestrator:
             seen_*: Deduplication sets
         """
         # Get data from site.data
-        if not hasattr(self.site.data, data_key):
+        if data_key not in self.site.data:
             return
 
-        data = getattr(self.site.data, data_key)
-        if not data or not isinstance(data, dict):
+        data = self.site.data[data_key]
+        if not data or not isinstance(data, dict | DotDict):
             return
 
         section_url = getattr(section, "_path", None) or f"/{section.name}/"

@@ -86,6 +86,10 @@ class ThreadLocalCache[T]:
         params = list(sig.parameters.values())
         return len(params) > 0
 
+    def _cache_key(self, key: str | None) -> str:
+        """Build the per-thread attribute name for a logical key."""
+        return f"_cache_{self._name}_{key or 'default'}"
+
     def get(self, key: str | None = None) -> T:
         """
         Get or create cached instance for current thread.
@@ -97,7 +101,7 @@ class ThreadLocalCache[T]:
         Returns:
             Cached or newly created instance
         """
-        cache_key = f"_cache_{self._name}_{key or 'default'}"
+        cache_key = self._cache_key(key)
 
         if not hasattr(self._local, cache_key):
             instance = self._factory(key) if self._factory_accepts_key and key else self._factory()
@@ -112,14 +116,14 @@ class ThreadLocalCache[T]:
         Args:
             key: Specific key to clear, or None to clear default
         """
-        cache_key = f"_cache_{self._name}_{key or 'default'}"
+        cache_key = self._cache_key(key)
         if hasattr(self._local, cache_key):
             delattr(self._local, cache_key)
 
     def clear_all(self) -> None:
         """Clear all cached instances for current thread."""
-        # Find all cache keys for this cache name
-        to_delete = [attr for attr in dir(self._local) if attr.startswith(f"_cache_{self._name}_")]
+        prefix = f"_cache_{self._name}_"
+        to_delete = [attr for attr in dir(self._local) if attr.startswith(prefix)]
         for attr in to_delete:
             delattr(self._local, attr)
 
