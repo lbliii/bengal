@@ -113,6 +113,7 @@ def cache_hash(
                 hasher.update(file_path.read_bytes())
             except OSError as e:
                 cli.error(f"Cannot read file '{file_path}': {e}")
+                cli.tip("Check file permissions or exclude unreadable paths from the hash.")
                 raise SystemExit(1) from e
 
     result = hasher.hexdigest()[:16]

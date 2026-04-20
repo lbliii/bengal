@@ -3,6 +3,7 @@
 **Status**: Evaluated ✅  
 **Created**: 2026-01-16  
 **Evaluated**: 2026-01-16  
+**Archived**: 2026-04-20 — evaluation complete; thread-safety fixes landed via `foundation-leaf-hygiene.md` Sprint 4. Retained for design rationale.  
 **Author**: Claude Opus 4.5  
 **Confidence**: 95% 🟢  
 **Category**: Concurrency / Thread Safety / PEP 703

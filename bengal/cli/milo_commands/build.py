@@ -161,6 +161,7 @@ def build(
     # sets quiet=True so the user sees the right error message.
     if verbose and fast:
         cli.error("--verbose and --fast cannot be used together (--fast implies --quiet)")
+        cli.tip("Pass only one — use --verbose for debugging, --fast for tight inner loops.")
         raise SystemExit(2)
 
     if dashboard:
@@ -175,23 +176,28 @@ def build(
             conflicts.append("--full-output")
         if conflicts:
             cli.error(f"--dashboard cannot be used with {', '.join(conflicts)}")
+            cli.tip("--dashboard owns the terminal output; drop the conflicting flag(s).")
             raise SystemExit(2)
 
     if memory_optimized and perf_profile_path:
         cli.error("--memory-optimized and --perf-profile cannot be used together")
+        cli.tip("Profile a normal run first, then re-run with --memory-optimized once tuned.")
         raise SystemExit(2)
 
     if verbose and quiet:
         cli.error("--verbose and --quiet cannot be used together")
+        cli.tip("Pass only one — they're opposites.")
         raise SystemExit(2)
 
     if strict and continue_on_error:
         cli.error("--strict and --continue-on-error cannot be used together")
+        cli.tip("Pass only one — they're opposites (fail-fast vs. tolerate).")
         raise SystemExit(2)
 
     error_format_val = (error_format or "text").lower()
     if error_format_val not in {"text", "json"}:
         cli.error(f"--error-format must be 'text' or 'json' (got: {error_format!r})")
+        cli.tip("Use --error-format text for humans, --error-format json for tooling.")
         raise SystemExit(2)
 
     # Apply fast mode after validation
@@ -211,18 +217,22 @@ def build(
 
     if dev_profile and profile_val:
         cli.error("--dev-profile is shorthand for --profile dev — use one or the other")
+        cli.tip("Drop --dev-profile and pass --profile dev (or vice versa).")
         raise SystemExit(2)
 
     if theme_dev and profile_val:
         cli.error("--theme-dev is shorthand for --profile theme-dev — use one or the other")
+        cli.tip("Drop --theme-dev and pass --profile theme-dev (or vice versa).")
         raise SystemExit(2)
 
     if incremental and no_incremental:
         cli.error("--incremental and --no-incremental cannot be used together")
+        cli.tip("Pass only one — they're opposites.")
         raise SystemExit(2)
 
     if assets_pipeline and no_assets_pipeline:
         cli.error("--assets-pipeline and --no-assets-pipeline cannot be used together")
+        cli.tip("Pass only one — they're opposites.")
         raise SystemExit(2)
 
     # Determine build profile
@@ -344,6 +354,9 @@ def build(
             if error_count > 0:
                 cli.blank()
                 cli.error(f"Validation failed with {error_count} error(s)")
+                cli.tip(
+                    "Run `bengal check` for detailed diagnostics, or fix errors above and re-run."
+                )
                 raise SystemExit(1)
             cli.blank()
 
@@ -524,11 +537,13 @@ def _build_versions(
 
     if not getattr(site, "versioning_enabled", False):
         cli.error("Versioning is not enabled (add versioning config to bengal.yaml)")
+        cli.tip("Add a [versions] section to bengal.yaml — see `bengal version --help`.")
         raise SystemExit(1)
 
     version_config = getattr(site, "version_config", None)
     if not version_config or not version_config.is_git_mode:
         cli.error("--version and --all-versions require git mode versioning")
+        cli.tip('Set `mode = "git"` in your [versions] config, or drop these flags.')
         raise SystemExit(1)
 
     from bengal.content.versioning import GitVersionAdapter

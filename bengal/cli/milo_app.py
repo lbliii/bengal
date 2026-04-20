@@ -99,6 +99,13 @@ for name, desc in [
         display_result=False,
     )
 
+new.lazy_command(
+    "content-type",
+    import_path="bengal.cli.milo_commands.new:new_content_type",
+    description="Create a new ContentTypeStrategy scaffold",
+    display_result=False,
+)
+
 # ---------------------------------------------------------------------------
 # Tier 2 — Feature groups (weekly use)
 # ---------------------------------------------------------------------------

@@ -140,6 +140,9 @@ def content_fetch(
         return {"fetched": by_source, "total": sum(by_source.values())}
     except Exception as e:
         cli.error(f"Fetch failed: {e}")
+        cli.tip(
+            "Verify the source URL/path and any credentials in [content.sources] — re-run with --verbose for details."
+        )
         raise SystemExit(1) from None
 
 

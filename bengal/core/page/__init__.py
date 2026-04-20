@@ -287,7 +287,16 @@ class Page(
         """
         Return combined frontmatter + cascade metadata as CascadeView.
 
-        This property provides dict-like access to page metadata. Values come from:
+        When to use:
+            Prefer this over ``self._raw_metadata`` whenever you want the
+            *effective* value seen by templates — raw metadata misses
+            cascaded values from parent sections. Prefer
+            ``self.frontmatter`` instead when you want **typed** access to
+            known fields (``page.frontmatter.title: str``) rather than
+            dict-style lookup. The View is immutable — write via
+            ``self._raw_metadata`` directly only during early construction.
+
+        Values come from:
         1. Page frontmatter (always takes precedence)
         2. Cascade from parent sections (inherited values)
 
@@ -426,6 +435,14 @@ class Page(
         """
         Typed access to frontmatter fields.
 
+        When to use:
+            Use this when calling code knows the expected types — the
+            ``Frontmatter`` wrapper gives IDE/type-checker support and safer
+            coercion than ``self.metadata[...]``. Prefer ``self.metadata``
+            for dict-style iteration or unknown-key access (templates,
+            frontmatter dumps). Both include cascade; the difference is
+            typed-object vs dict-like access.
+
         Lazily created from metadata dict on first access.
 
         Example:
@@ -454,6 +471,15 @@ class Page(
     ) -> Page:
         """
         Create a virtual page for dynamically-generated content.
+
+        When to use:
+            Use this for pages that have no corresponding markdown file —
+            typically autodoc (Python/OpenAPI), generated listing indexes,
+            or content imported from external sources at build time. Prefer
+            the regular ``Page(...)`` constructor whenever a real source
+            file exists; virtual pages bypass disk mtime tracking and must
+            register their output path explicitly. Pass ``rendered_html=``
+            to skip markdown parsing when you already have HTML.
 
         Virtual pages are not backed by a disk file but integrate with
         the site's page collection, navigation, and rendering pipeline.
@@ -714,8 +740,12 @@ class Page(
         """
         Get the section path as a string.
 
-        Returns the path to the section this page belongs to, or None if
-        the page doesn't belong to a section.
+        When to use:
+            Use when you need a serializable path string (cache keys, JSON
+            output, log lines). Prefer ``self.parent`` (``Section`` object)
+            for navigation and ``self._section_path`` (``Path``) for
+            filesystem operations — this property strings both together
+            and should not be round-tripped back into those forms.
 
         Returns:
             Section path as string (e.g., "docs/guides") or None
@@ -728,28 +758,55 @@ class Page(
 
     @property
     def next(self) -> PageLike | None:
-        """Next page in site collection."""
+        """
+        Next page in the full site collection (chronological by date).
+
+        When to use:
+            Use this for site-wide "next post" navigation (blog archive
+            feeds). Prefer ``next_in_section`` when the reader should stay
+            within the current directory (docs chapters, tutorial steps).
+        """
         from bengal.core.page.navigation import get_next_page
 
         return get_next_page(self, self._site)
 
     @property
     def prev(self) -> PageLike | None:
-        """Previous page in site collection."""
+        """
+        Previous page in the full site collection (chronological by date).
+
+        When to use:
+            Site-wide companion to ``next``. Prefer ``prev_in_section`` for
+            within-directory navigation.
+        """
         from bengal.core.page.navigation import get_prev_page
 
         return get_prev_page(self, self._site)
 
     @property
     def next_in_section(self) -> PageLike | None:
-        """Next page in current section."""
+        """
+        Next page among siblings in this page's section.
+
+        When to use:
+            Use this for chapter-style navigation where the reader should
+            stay inside the current section (``docs/guides/``, ``tutorial/``).
+            Prefer ``next`` for site-wide chronological navigation, and
+            ``next_in_series`` when a page declares ``series:`` frontmatter.
+        """
         from bengal.core.page.navigation import get_next_in_section
 
         return get_next_in_section(self, self._section)
 
     @property
     def prev_in_section(self) -> PageLike | None:
-        """Previous page in current section."""
+        """
+        Previous page among siblings in this page's section.
+
+        When to use:
+            Section-scoped companion to ``next_in_section``. See ``next`` and
+            ``prev_in_series`` for the other two navigation modes.
+        """
         from bengal.core.page.navigation import get_prev_in_section
 
         return get_prev_in_section(self, self._section)
@@ -772,24 +829,58 @@ class Page(
 
     @cached_property
     def bundle_type(self) -> BundleType:
-        """Bundle type classification (LEAF, BRANCH, or NONE)."""
+        """
+        Bundle type classification (LEAF, BRANCH, or NONE).
+
+        When to use:
+            Use this for switch-style logic where you need to distinguish all
+            three cases (``LEAF`` = page bundle with co-located resources,
+            ``BRANCH`` = section index like ``_index.md``, ``NONE`` = plain
+            page). For simple boolean checks, prefer the ``is_bundle`` /
+            ``is_branch_bundle`` shortcuts.
+        """
         from bengal.core.page.bundle import get_bundle_type
 
         return get_bundle_type(self.source_path)
 
     @property
     def is_bundle(self) -> bool:
-        """True if this page is a leaf bundle with resources."""
+        """
+        True if this page is a leaf bundle (markdown + co-located resources).
+
+        When to use:
+            Use this to gate resource-copying logic (images, downloads)
+            that applies only to leaf bundles. Mutually exclusive with
+            ``is_branch_bundle``. For full three-way classification, use
+            ``bundle_type``.
+        """
         return self.bundle_type == BundleType.LEAF
 
     @property
     def is_branch_bundle(self) -> bool:
-        """True if this page is a branch bundle (section index)."""
+        """
+        True if this page is a branch bundle (section index: ``_index.md``).
+
+        When to use:
+            Use this to detect pages that represent a whole section rather
+            than a single piece of content — typically to render section
+            landing layouts or to merge branch frontmatter into cascade.
+            Mutually exclusive with ``is_bundle``.
+        """
         return self.bundle_type == BundleType.BRANCH
 
     @cached_property
     def resources(self) -> PageResources:
-        """Get resources co-located with this page bundle."""
+        """
+        Resources co-located with this page bundle (images, downloads).
+
+        When to use:
+            Use when rendering a leaf bundle that needs to surface its
+            co-located files — image galleries, download links, featured
+            media. Returns an empty container for non-bundle pages, so
+            templates can iterate unconditionally. Gate heavier resource
+            logic on ``self.is_bundle`` to avoid unnecessary lookups.
+        """
         from bengal.core.page.bundle import get_resources
 
         return get_resources(self.source_path, getattr(self, "url", "/"))
@@ -804,7 +895,16 @@ class Page(
         return self._raw_content
 
     def HasShortcode(self, name: str) -> bool:
-        """Return True if page content uses the given shortcode."""
+        """
+        Return True if page content uses the given shortcode.
+
+        When to use:
+            Use in templates to branch on optional content — e.g. render a
+            hero layout only when the page includes a ``{{% hero %}}``
+            shortcode, or skip an expensive block when its driving
+            shortcode is absent. Preferable to string-matching the raw
+            source because shortcode parsing handles comments and nesting.
+        """
         from bengal.rendering.shortcodes import has_shortcode
 
         return has_shortcode(self, name)
@@ -845,49 +945,104 @@ class Page(
 
     @cached_property
     def age_days(self) -> int:
-        """Days since publication."""
+        """
+        Days since publication.
+
+        When to use:
+            Use for short-range freshness checks ("new this week", "posted
+            less than N days ago"). For coarse ranges use ``age_months`` —
+            it uses calendar arithmetic and is not equivalent to
+            ``age_days // 30``.
+        """
         from bengal.core.page.computed import compute_age_days
 
         return compute_age_days(self.date)
 
     @cached_property
     def age_months(self) -> int:
-        """Months since publication."""
+        """
+        Months since publication (calendar-aware, not ``age_days // 30``).
+
+        When to use:
+            Use for coarse freshness labels ("updated 3 months ago"). Uses
+            calendar month arithmetic, so a post from Jan 31 is reported as
+            1 month old on Feb 28, not ~29 days. Prefer ``age_days`` for
+            short-range checks.
+        """
         from bengal.core.page.computed import compute_age_months
 
         return compute_age_months(self.date)
 
     @cached_property
     def author(self) -> Author | None:
-        """Primary author as Author object."""
+        """
+        Primary author as an ``Author`` object (first entry, or ``None``).
+
+        When to use:
+            Use this for byline display where a single name is shown. For
+            multi-author pages, iterate ``authors`` instead — ``author``
+            returns only the first one and hides collaborators.
+        """
         from bengal.core.page.computed import get_primary_author
 
         return get_primary_author(self.metadata)
 
     @cached_property
     def authors(self) -> list[Author]:
-        """All authors as list of Author objects."""
+        """
+        All authors as a list of ``Author`` objects (may be empty).
+
+        When to use:
+            Use this for pages with multiple contributors, author cards,
+            or co-author metadata. Prefer ``author`` when the template only
+            shows a single byline — ``authors`` always returns a list even
+            for single-author pages.
+        """
         from bengal.core.page.computed import get_all_authors
 
         return get_all_authors(self.metadata)
 
     @cached_property
     def series(self) -> Series | None:
-        """Series info as Series object."""
+        """
+        Series metadata object if this page declares ``series:`` frontmatter.
+
+        When to use:
+            Use as the truthiness gate before rendering series navigation —
+            calling ``next_in_series`` / ``prev_in_series`` when
+            ``page.series`` is ``None`` returns ``None`` silently, which
+            hides template logic errors. Also exposes series-level metadata
+            (total count, series title) not available on the navigation
+            properties.
+        """
         from bengal.core.page.computed import get_series_info
 
         return get_series_info(self.metadata)
 
     @cached_property
     def prev_in_series(self) -> PageLike | None:
-        """Previous page in series."""
+        """
+        Previous page in the explicit series this page belongs to.
+
+        When to use:
+            Use this for tutorial/article-series navigation where pages opt
+            in via ``series:`` frontmatter. Returns ``None`` when the page
+            has no series. Distinct from ``prev_in_section`` (directory
+            siblings) and ``prev`` (site-wide chronological).
+        """
         from bengal.core.page.computed import get_series_neighbor
 
         return get_series_neighbor(self.metadata, self._site, -1)
 
     @cached_property
     def next_in_series(self) -> PageLike | None:
-        """Next page in series."""
+        """
+        Next page in the explicit series this page belongs to.
+
+        When to use:
+            Series companion to ``prev_in_series``. See ``next`` and
+            ``next_in_section`` for the other two navigation modes.
+        """
         from bengal.core.page.computed import get_series_neighbor
 
         return get_series_neighbor(self.metadata, self._site, 1)

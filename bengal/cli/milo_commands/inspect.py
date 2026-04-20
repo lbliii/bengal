@@ -92,6 +92,7 @@ def inspect_page(
             warning_count = sum(1 for i in explanation.issues if i.severity == "warning")
             if error_count:
                 cli.error(f"Found {error_count} error(s) and {warning_count} warning(s)")
+                cli.tip("See the issue list above — each entry points to the file, line, and fix.")
             elif warning_count:
                 cli.warning(f"Found {warning_count} warning(s)")
         else:
@@ -192,6 +193,7 @@ def inspect_links(
         raise
     except Exception as e:
         cli.error(f"Link check failed: {e}")
+        cli.tip("Re-run with --traceback to see the full error, or narrow scope with --path.")
         raise SystemExit(1) from e
 
 

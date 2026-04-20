@@ -250,6 +250,14 @@ class Site:
         """
         Content registry for O(1) page/section lookups.
 
+        When to use:
+            Use for low-level registry operations — bulk registration, URL
+            ownership checks, epoch introspection. For typical lookups,
+            prefer the wrappers: ``get_section_by_path``,
+            ``get_section_by_url``, ``page_by_source_path``. Go to the
+            registry directly only when those wrappers don't cover the
+            access pattern.
+
         Initialized lazily on first access.
         """
         if self._registry is None:
@@ -262,7 +270,16 @@ class Site:
         return self._registry
 
     def get_section_by_path(self, path: Path | str) -> SectionLike | None:
-        """Look up a section by its path (O(1) operation)."""
+        """
+        Look up a section by its path (O(1) operation).
+
+        When to use:
+            Use when you have a filesystem path (absolute, ``content/``-
+            relative, or root-relative) and need the matching ``Section``.
+            Prefer ``get_section_by_url`` when the caller has a URL.
+            Returns ``None`` if not found (logs a debug diagnostic); do not
+            treat ``None`` as an error in code that runs pre-discovery.
+        """
         if isinstance(path, str):
             path = Path(path)
 
@@ -289,7 +306,15 @@ class Site:
         return section
 
     def get_section_by_url(self, url: str) -> SectionLike | None:
-        """Look up a section by its relative URL (O(1) operation)."""
+        """
+        Look up a section by its relative URL (O(1) operation).
+
+        When to use:
+            Use for URL-driven lookups (permalink resolution, redirect
+            handling, sitemap tooling). Prefer ``get_section_by_path`` when
+            you have a filesystem path. Returns ``None`` if no section
+            owns that URL.
+        """
         section = self.registry.get_section_by_url(url)
 
         if section is None:
@@ -306,6 +331,12 @@ class Site:
     def register_sections(self) -> None:
         """
         Build the section registry for path-based and URL-based lookups.
+
+        When to use:
+            Call once per build after ``discover_content()`` and before
+            any ``get_section_by_*()`` call. Orchestrators already wire
+            this in the standard sequence; only call directly if you are
+            driving discovery manually (e.g., tests or custom pipelines).
 
         Populates ContentRegistry with all sections (recursive). Must be called
         after discover_content().
@@ -340,6 +371,13 @@ class Site:
     def discover_content(self, content_dir: Path | None = None) -> None:
         """
         Discover all content (pages, sections) in the content directory.
+
+        When to use:
+            Call once early in a build, before ``register_sections`` and
+            ``build_cascade_snapshot``. Orchestrators wire this in the
+            standard sequence — call directly only from tests or custom
+            pipelines. Passing ``content_dir=`` overrides the default
+            ``root_path/content`` for mixed-source builds.
 
         Scans the content directory recursively, creating Page and Section
         objects for all markdown files and organizing them into a hierarchy.
@@ -450,6 +488,13 @@ class Site:
     def discover_assets(self, assets_dir: Path | None = None) -> None:
         """
         Discover all assets in the assets directory and theme assets.
+
+        When to use:
+            Call once per build after theme setup, typically alongside
+            ``discover_content``. Order matters: theme assets are loaded
+            first so site-level assets can override them by sharing a
+            relative path. Override ``assets_dir`` only for tests or
+            alternative layouts.
 
         Theme assets are discovered first (lower priority), then site assets
         (higher priority, can override theme assets).
@@ -565,7 +610,14 @@ class Site:
     @property
     def cascade(self) -> CascadeSnapshot:
         """
-        Get the immutable cascade snapshot for this build.
+        Immutable cascade snapshot for this build (read-only).
+
+        When to use:
+            Use to resolve cascaded metadata values outside a Page/Section
+            context (e.g., build-wide queries, diagnostic dumps, cross-page
+            analytics). Page code should read through ``Page.metadata``,
+            which applies cascade per-page. The snapshot is rebuilt by
+            ``build_cascade_snapshot()`` — never mutate it.
 
         Resolution order:
             1. BuildState.cascade_snapshot (during builds — structurally fresh)
@@ -588,6 +640,13 @@ class Site:
     def build_cascade_snapshot(self) -> None:
         """
         Build the immutable cascade snapshot from all sections.
+
+        When to use:
+            Call once per build, after ``discover_content()`` and before
+            any code that reads ``self.cascade`` or ``Page.metadata``.
+            Cheap to skip inside tests that construct pages with fully-
+            populated metadata; required for any build path that relies on
+            ``_index.md`` cascade values.
 
         Delegates to bengal.core.cascade_snapshot.build_cascade_from_content()
         and stores the result on BuildState (primary) and _cascade_snapshot (fallback).
@@ -616,7 +675,17 @@ class Site:
 
     @property
     def indexes(self) -> QueryIndexRegistry:
-        """Access to query indexes for O(1) page lookups."""
+        """
+        Query index registry for O(1) page/term lookups.
+
+        When to use:
+            Use when you need to query pages by indexed fields (tags,
+            categories, custom indexes) — taxonomies, "related posts"
+            logic, sitemap generation. Prefer this over iterating
+            ``self.pages`` with a filter; the registry is precomputed and
+            disk-cached. Raw ``self.pages`` iteration is only correct when
+            ordering matters or you genuinely need every page.
+        """
         if self._query_registry is None:
             with self._init_lock:
                 if self._query_registry is None:
@@ -635,31 +704,83 @@ class Site:
 
     @property
     def regular_pages(self) -> list[PageLike]:
-        """Regular content pages (excludes generated taxonomy/archive pages)."""
+        """
+        Regular content pages authored on disk (excludes generated).
+
+        When to use:
+            Use when you need the set of pages a writer actually created —
+            sitemaps of authored content, "recent posts" feeds, incremental
+            rebuild planning. Does **not** include taxonomy/archive pages
+            generated at build time; use ``generated_pages`` for those or
+            ``self.pages`` for the union.
+        """
         return self.page_cache.regular_pages
 
     @property
     def generated_pages(self) -> list[PageLike]:
-        """Generated pages (taxonomy, archive, pagination)."""
+        """
+        Pages created by generators (taxonomy, archive, pagination).
+
+        When to use:
+            Use to introspect what the build produced beyond the authored
+            files — tag pages, year archives, paginated listings. Complement
+            to ``regular_pages``; the union is ``self.pages``. These pages
+            have no source file, so filesystem operations must check
+            ``page.virtual`` first.
+        """
         return self.page_cache.generated_pages
 
     @property
     def listable_pages(self) -> list[PageLike]:
-        """Pages eligible for public listings (excludes hidden/draft)."""
+        """
+        Pages eligible to appear in public listings (excludes hidden/draft).
+
+        When to use:
+            Use for anything that renders a user-visible page index — home
+            feeds, section lists, sitemap.xml, RSS. Filters out
+            ``draft: true``, ``hidden: true``, and ``_no_list: true`` pages.
+            Prefer this over ``regular_pages`` whenever the output is
+            reader-facing; use ``regular_pages`` only for authoring or
+            build-planning code.
+        """
         return self.page_cache.listable_pages
 
     def get_page_path_map(self) -> dict[str, PageLike]:
-        """Cached string-keyed page lookup map for O(1) resolution."""
+        """
+        Cached string-keyed page lookup map for O(1) resolution.
+
+        When to use:
+            Use when you have a string path (e.g., from config, CLI args,
+            URL resolution) and want O(1) page lookup. Prefer
+            ``page_by_source_path`` when you already hold a ``Path`` — that
+            variant avoids the stringification and is shared across
+            orchestrators without re-materializing.
+        """
         return self.page_cache.get_page_path_map()
 
     @property
     def page_by_source_path(self) -> dict[Path, PageLike]:
-        """O(1) page lookup by source Path (shared across orchestrators)."""
+        """
+        O(1) page lookup keyed by source ``Path`` (shared across orchestrators).
+
+        When to use:
+            Use this whenever the caller already has a ``Path`` object.
+            Prefer ``get_page_path_map()`` when your key is a ``str``. The
+            map is shared across the build so reads are safe and cheap; do
+            not mutate it.
+        """
         return self.page_cache.page_by_source_path
 
     @property
     def root_section(self) -> SectionLike:
-        """Root section of the content tree (first parentless section)."""
+        """
+        Root section of the content tree (first parentless section).
+
+        When to use:
+            Use as the walk entry point when traversing the section tree.
+            Raises ``ValueError`` if the site has no sections — callers that
+            can run pre-discovery should check ``self.sections`` first.
+        """
         for section in self.sections:
             if section.parent is None:
                 return section
@@ -671,11 +792,28 @@ class Site:
         raise ValueError(msg)
 
     def invalidate_page_caches(self) -> None:
-        """Clear all page caches. Call after adding/removing pages."""
+        """
+        Clear all page caches (regular, generated, listable, path maps).
+
+        When to use:
+            Call after any structural change — adding, removing, or
+            reclassifying pages (e.g., toggling ``draft``). Heavier than
+            ``invalidate_regular_pages_cache``; prefer the narrower call
+            when you only added/removed authored pages and know generated
+            pages are unaffected.
+        """
         self.page_cache.invalidate()
 
     def invalidate_regular_pages_cache(self) -> None:
-        """Clear only the regular_pages cache."""
+        """
+        Clear only the ``regular_pages`` cache (authored content only).
+
+        When to use:
+            Call after adding/removing authored pages during an
+            incremental build. Cheaper than ``invalidate_page_caches``;
+            use that fuller variant when generated pages or listing
+            eligibility may have changed.
+        """
         self.page_cache.invalidate_regular()
 
     # =========================================================================
@@ -929,6 +1067,14 @@ class Site:
         """
         Detect when multiple pages output to the same URL.
 
+        When to use:
+            Call near the end of discovery (after ``_set_output_paths``)
+            whenever you need to surface conflicting permalinks. Pass
+            ``strict=True`` to fail the build on collision; default is a
+            warning list that callers can report at whatever severity
+            fits. Typical call sites: pre-render validation, health check,
+            ``bengal check``.
+
         Args:
             strict: If True, raise BengalContentError on collision instead of warning.
 
@@ -1058,14 +1204,32 @@ class Site:
         environment: str | None = None,
         profile: str | None = None,
     ) -> Self:
-        """Create a Site from configuration (preferred constructor)."""
+        """
+        Create a Site from on-disk configuration (preferred constructor).
+
+        When to use:
+            Use this from the CLI, dev server, and any production-shaped
+            code path. Resolves ``bengal.toml`` from ``root_path`` (or
+            ``config_path``), applies environment/profile overrides, and
+            wires all composed services. Prefer ``for_testing`` only inside
+            tests that do not need a real config file.
+        """
         return from_config(cls, root_path, config_path, environment, profile)
 
     @classmethod
     def for_testing(
         cls, root_path: Path | None = None, config: dict[str, Any] | None = None
     ) -> Self:
-        """Create a minimal Site instance for tests (no config file required)."""
+        """
+        Create a minimal Site for tests (no config file required).
+
+        When to use:
+            Use only in tests that exercise Site behavior without needing a
+            real ``bengal.toml``. Skips config-file resolution and env/profile
+            merging. Pass ``config=`` as a dict to inject specific values.
+            Prefer ``from_config`` in any code path that might run outside
+            ``tests/``.
+        """
         return for_testing(cls, root_path, config)
 
     # =========================================================================
@@ -1074,25 +1238,68 @@ class Site:
 
     @property
     def versioning_enabled(self) -> bool:
-        """Whether versioned documentation is enabled."""
+        """
+        Whether versioned documentation is enabled.
+
+        When to use:
+            Gate any code that branches on versioning — version pickers,
+            canonical-URL emission, version-aware search indexes. Returns
+            ``False`` when no ``[versions]`` config is present, so it is
+            safe to call unconditionally instead of probing
+            ``site.config_service`` directly.
+        """
         return self._version_service.versioning_enabled if self._version_service else False
 
     @property
     def versions(self) -> list[dict[str, Any]]:
-        """Available documentation versions."""
+        """
+        Available documentation versions.
+
+        When to use:
+            Iterate this in templates and version-switcher widgets to render
+            the full version list. Returns plain ``dict`` entries (not
+            ``Version`` objects) for template-friendly access; reach for
+            ``get_version(id)`` when you need typed metadata. Empty list
+            when versioning is disabled.
+        """
         return self._version_service.versions if self._version_service else []
 
     @property
     def latest_version(self) -> dict[str, Any] | None:
-        """Latest documentation version."""
+        """
+        Latest documentation version.
+
+        When to use:
+            Use to identify the version that should receive the canonical
+            URL and serve as the default redirect target from the bare
+            site root. Returns ``None`` when versioning is disabled or no
+            version is marked latest in config.
+        """
         return self._version_service.latest_version if self._version_service else None
 
     def get_version(self, version_id: str) -> Version | None:
-        """Get version by ID or alias."""
+        """
+        Get version by ID or alias.
+
+        When to use:
+            Prefer this over scanning ``self.versions`` — it accepts both
+            the canonical ID (e.g. ``"v2.1"``) and configured aliases
+            (e.g. ``"latest"``, ``"stable"``) and returns a typed
+            ``Version`` object instead of a raw dict. Returns ``None``
+            when the ID is unknown or versioning is disabled.
+        """
         return self._version_service.get_version(version_id) if self._version_service else None
 
     def invalidate_version_caches(self) -> None:
-        """Clear cached version data."""
+        """
+        Clear cached version data (resolved version list, latest, aliases).
+
+        When to use:
+            Call after modifying ``versions`` config at runtime (dev-server
+            config reload, test fixtures). Narrower than
+            ``invalidate_page_caches``; this touches only version metadata.
+            No-op when versioning is disabled.
+        """
         if self._version_service:
             self._version_service.invalidate_caches()
 
@@ -1101,6 +1308,14 @@ class Site:
     ) -> str:
         """
         Get the best URL for a page in the target version.
+
+        When to use:
+            Use from version-switching UI to produce a guaranteed-non-404
+            target URL — if the exact page doesn't exist in the target
+            version, the method falls back to the nearest section index or
+            the version root. Prefer this over manually building URLs when
+            cross-version navigation is in play; the fallback cascade is
+            non-obvious to reimplement.
 
         Computes a fallback cascade at build time:
         1. If exact equivalent page exists → return that URL
@@ -1143,11 +1358,28 @@ class Site:
         return SiteRunner(self)
 
     def prepare_for_rebuild(self) -> None:
-        """Reset content state for a warm rebuild. Delegates to SiteRunner."""
+        """
+        Reset content state for a warm rebuild (keeps caches).
+
+        When to use:
+            Call between builds in a long-running process (dev server,
+            watch mode) before invoking ``build()`` again. Preserves cache
+            state that is still valid across rebuilds. Prefer
+            ``reset_ephemeral_state`` for the narrower scope of clearing
+            just per-build derived state, and only call this when content
+            discovery needs to be redone.
+        """
         self._runner().prepare_for_rebuild()
 
     def build(self, options: BuildOptions | BuildInput) -> BuildStats:
-        """Build the entire site. Delegates to SiteRunner."""
+        """
+        Build the entire site.
+
+        When to use:
+            Primary entry point for one-shot production builds. Dev server
+            drives this indirectly via ``serve()``. For multiple builds in
+            the same process, call ``prepare_for_rebuild()`` between them.
+        """
         return self._runner().build(options)
 
     def serve(
@@ -1159,7 +1391,15 @@ class Site:
         open_browser: bool = False,
         version_scope: str | None = None,
     ) -> None:
-        """Start a development server. Delegates to SiteRunner."""
+        """
+        Start a development server with file watching and live reload.
+
+        When to use:
+            The preferred entry point for ``bengal serve`` and interactive
+            authoring. Performs an initial ``build()`` and then reacts to
+            file changes. For headless one-shot production output, use
+            ``build()`` directly.
+        """
         self._runner().serve(
             host=host,
             port=port,
@@ -1170,20 +1410,54 @@ class Site:
         )
 
     def clean(self) -> None:
-        """Clean the output directory. Delegates to SiteRunner."""
+        """
+        Remove the output directory and build artifacts.
+
+        When to use:
+            Call before a fully cold rebuild, from CI reset scripts, or when
+            stale files need to be purged. Does not touch source content or
+            caches — use ``invalidate_page_caches()`` alongside it for a
+            scorched-earth reset.
+        """
         self._runner().clean()
 
     def reset_ephemeral_state(self) -> None:
-        """Clear ephemeral/derived state between builds. Delegates to SiteRunner."""
+        """
+        Clear per-build derived state (stats, timings, warnings, rendered html).
+
+        When to use:
+            Call between builds when you want a clean slate for reported
+            output without re-running discovery. Narrower than
+            ``prepare_for_rebuild``; use that when content may have
+            changed on disk.
+        """
         self._runner().reset_ephemeral_state()
 
     @property
     def build_state(self) -> BuildState | None:
-        """Current build state (None outside build context)."""
+        """
+        Current ``BuildState`` while a build is running, else ``None``.
+
+        When to use:
+            Use from orchestration code that needs to emit diagnostics,
+            read the current cascade snapshot, or collect stats. Outside a
+            build (CLI idle, tests without a runner) this is ``None`` — do
+            not dereference unguarded. Prefer reading through convenience
+            properties (``self.cascade``) when they already handle the
+            fallback.
+        """
         return self._current_build_state
 
     def set_build_state(self, state: BuildState | None) -> None:
-        """Set current build state (called by BuildOrchestrator)."""
+        """
+        Set current build state (called by BuildOrchestrator).
+
+        When to use:
+            Orchestration-internal API. Called at build start with a fresh
+            ``BuildState`` and at build end with ``None``. Do not call from
+            user code — use ``SiteRunner`` to drive builds, which manages
+            state lifecycle correctly.
+        """
         self._current_build_state = state
 
 

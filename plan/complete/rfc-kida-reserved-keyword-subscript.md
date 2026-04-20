@@ -4,6 +4,7 @@
 **Author**: AI Assistant  
 **Created**: 2025-01-01  
 **Resolved**: 2025-01-01  
+**Archived**: 2026-04-20 — decision was to document the workaround, not add sugar. No code change shipped.  
 **Issue**: `?.[key]` is currently a parse error; users expect it to behave like optional subscript (`?[key]`)
 
 ---
