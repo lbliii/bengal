@@ -37,7 +37,7 @@ class TrackValidator(BaseValidator):
         results = []
 
         # Check if tracks data exists
-        if not hasattr(site.data, "tracks") or not site.data.tracks:
+        if "tracks" not in site.data or not site.data.tracks:
             results.append(
                 CheckResult.info(
                     "No tracks defined",

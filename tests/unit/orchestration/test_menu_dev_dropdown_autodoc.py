@@ -12,6 +12,7 @@ from unittest.mock import MagicMock
 
 from bengal.core.section import Section
 from bengal.orchestration.menu import MenuOrchestrator
+from bengal.utils.primitives.dotdict import DotDict
 
 
 def test_auto_menu_bundles_github_and_api_into_dev_dropdown() -> None:
@@ -225,11 +226,16 @@ def test_add_data_children_produces_absolute_urls() -> None:
     (absolute). Ensures sidebar/nav links work regardless of current page.
     """
     site = MagicMock()
-    site.data = MagicMock()
-    site.data.tracks = {
-        "content-mastery": {"title": "Content Mastery", "items": []},
-        "getting-started": {"title": "Getting Started", "items": []},
-    }
+    # Real DotDict so `data_key in site.data` works (MagicMock.__contains__
+    # returns False by default and would silently skip the data lookup).
+    site.data = DotDict(
+        {
+            "tracks": {
+                "content-mastery": {"title": "Content Mastery", "items": []},
+                "getting-started": {"title": "Getting Started", "items": []},
+            }
+        }
+    )
 
     section = MagicMock()
     section.name = "tracks"

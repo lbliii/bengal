@@ -5,6 +5,25 @@ Provides canonical implementations for common text operations like slugification
 HTML stripping, truncation, excerpt generation, and path formatting. These
 utilities consolidate duplicate implementations found throughout the codebase.
 
+Function groups (Sprint 0 Q3 in `plan/foundation-leaf-hygiene.md` resolved
+to keep this module monolithic; these groupings document the internal
+structure without the churn of a split):
+
+- **Slugify** — :func:`slugify`, :func:`normalize_taxonomy_slug`,
+  :func:`slugify_id`. URL-safe / HTML-id-safe identifier generation.
+- **HTML** — :func:`strip_html`, :func:`escape_html`, :func:`unescape_html`.
+  Tag stripping and entity escape/unescape.
+- **Truncation** — :func:`truncate_words`, :func:`truncate_chars`,
+  :func:`truncate_middle` (and the private
+  :func:`_strip_trailing_orphan_markdown` helper).
+- **Excerpt** — :func:`generate_excerpt`. Convenience over strip_html +
+  truncate_words for HTML content.
+- **Whitespace** — :func:`normalize_whitespace`.
+- **Humanize** — :func:`pluralize`, :func:`humanize_bytes`,
+  :func:`humanize_number`, :func:`humanize_slug`. Display-formatting helpers.
+- **Path display** — :func:`format_path_for_display`. Friendly path
+  shortening for log / error messages.
+
 Example:
 
 ```python

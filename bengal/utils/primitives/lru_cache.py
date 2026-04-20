@@ -156,22 +156,19 @@ class LRUCache[K, V]:
         with self._lock:
             if not self._enabled:
                 self._misses += 1
-                if pass_key:
-                    return factory(key)
-                return factory()
+                return factory(key) if pass_key else factory()
+
             if key in self._cache:
-                # Check TTL
-                if self._ttl is not None:
-                    ts = self._timestamps.get(key, 0)
-                    if time.monotonic() - ts > self._ttl:
-                        del self._cache[key]
-                        del self._timestamps[key]
-                        # Fall through to compute
-                    else:
-                        self._cache.move_to_end(key)
-                        self._hits += 1
-                        return self._cache[key]
+                # Expired entries are evicted and treated as a miss.
+                expired = (
+                    self._ttl is not None
+                    and time.monotonic() - self._timestamps.get(key, 0) > self._ttl
+                )
+                if expired:
+                    del self._cache[key]
+                    del self._timestamps[key]
                 else:
+                    # Cache hit
                     self._cache.move_to_end(key)
                     self._hits += 1
                     return self._cache[key]
