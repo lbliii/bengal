@@ -72,12 +72,12 @@ HELPER: Render a menu item (desktop/mobile)
     {% if has_children %}
     <ul class="submenu">
         {% for child in item.children %}
-        <li class="{{ ['active' if child.active] | classes }}">
-            <a href="{{ child.href | absolute_url }}">
-                {% with child.icon as icon_name %}
+        <li class="{{ ['active' if (child?.active ?? false)] | classes }}">
+            <a href="{{ (child?.href ?? '') | absolute_url }}">
+                {% with (child?.icon ?? none) as icon_name %}
                 {% if icon_name %}<span class="submenu-icon">{{ icon(icon_name, size=16) }}</span>{% end %}
                 {% end %}
-                <span class="submenu-text"><bdi>{{ child.name }}</bdi></span>
+                <span class="submenu-text"><bdi>{{ child?.name ?? '' }}</bdi></span>
             </a>
         </li>
         {% end %}
