@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import html as html_module
 import re
+import unicodedata
 from pathlib import Path
 
 
@@ -155,8 +156,6 @@ def slugify_id(text: str, default: str = "") -> str:
         For Unicode-aware slugification (international URLs), use ``slugify()`` instead.
 
     """
-    import unicodedata
-
     if not text:
         return default
 
@@ -279,13 +278,10 @@ def truncate_words(text: str, word_count: int, suffix: str = "...") -> str:
     if len(words) <= word_count:
         return text
 
-    result = " ".join(words[:word_count]) + suffix
-    # Avoid ending with orphaned markdown (**, *, etc.)
     before_suffix = " ".join(words[:word_count])
+    # Avoid ending with orphaned markdown (**, *, etc.)
     cleaned = _strip_trailing_orphan_markdown(before_suffix)
-    if cleaned != before_suffix:
-        result = cleaned + suffix
-    return result
+    return (cleaned if cleaned != before_suffix else before_suffix) + suffix
 
 
 def truncate_chars(text: str, length: int, suffix: str = "...") -> str:
