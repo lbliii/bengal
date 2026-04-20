@@ -1,0 +1,90 @@
+[importlinter]
+root_package = bengal
+
+# Contracts defined below enforce the Track B (Site decomposition) architecture.
+# See plan/immutable-floating-sun.md and plan/rfc-site-context-protocol.md.
+#
+# Baseline strategy: known violations are listed under `ignore_imports` so that
+# CI can adopt these contracts today without being immediately red. Each Sprint
+# B task removes entries from ignore_imports as the violation is fixed.
+#
+# Add to CI after baseline is committed (Sprint B0.2 follow-up):
+#     uv run lint-imports
+
+# -----------------------------------------------------------------------------
+# Contract 1: bengal.core must not depend on higher layers
+# -----------------------------------------------------------------------------
+# Audit-identified violations (Sprint B1/B3 removes these):
+#   bengal.core.site -> bengal.orchestration.BuildOrchestrator (L1480)
+#   bengal.core.site -> bengal.orchestration.feature_detector.FeatureDetector (L1224)
+#   bengal.core.site -> bengal.server.dev_server.DevServer (L1505)
+#   bengal.core.site -> bengal.rendering.pipeline.thread_local (L1579)
+#   bengal.core.site -> bengal.rendering.assets (L1583)
+#   bengal.core.site -> bengal.rendering.template_functions.version_url (L866)
+
+[importlinter:contract:core-does-not-import-upward]
+name = bengal.core must not directly import orchestration, server, or rendering.pipeline/assets
+type = forbidden
+source_modules =
+    bengal.core
+forbidden_modules =
+    bengal.orchestration
+    bengal.server
+    bengal.rendering.pipeline
+    bengal.rendering.assets
+# Only direct edges; transitive chains are tolerated (other layers will clean those).
+allow_indirect_imports = True
+# Baseline — known direct violations remaining after Sprint B1.1.
+# Sprint B1.1 cleared (removed from this list):
+#   bengal.core.site -> bengal.orchestration                  (BuildOrchestrator)
+#   bengal.core.site -> bengal.server.dev_server              (DevServer)
+#   bengal.core.site -> bengal.rendering.assets               (reset_asset_manifest)
+#   bengal.core.site -> bengal.rendering.pipeline.thread_local
+# All five lifecycle methods (build/serve/clean/prepare_for_rebuild/
+# reset_ephemeral_state) moved to bengal.orchestration.site_runner.
+#
+# Remaining baseline (each Sprint B task below removes entries):
+#   B1 followup: TYPE_CHECKING imports for BuildOptions/BuildInput/BuildStats/
+#                BuildState are typing-only and will move to forward refs in B3.
+#   S4 followup: bengal.core.site -> bengal.orchestration.feature_detector —
+#                FeatureDetector is pure analysis with only protocols deps; move
+#                to bengal.core.feature_detector in a follow-up to clear this edge.
+#   B1 transient: bengal.core.site -> bengal.orchestration.site_runner —
+#                NEW edge from delegating shims; removed in v0.5.0 when shims drop.
+#   B2: bengal.core.page.metadata -> bengal.rendering.pipeline
+ignore_imports =
+    bengal.core.site -> bengal.orchestration.build.inputs
+    bengal.core.site -> bengal.orchestration.build.options
+    bengal.core.site -> bengal.orchestration.build_state
+    bengal.core.site -> bengal.orchestration.feature_detector
+    bengal.core.site -> bengal.orchestration.site_runner
+    bengal.core.site -> bengal.orchestration.stats.models
+    bengal.core.page.metadata -> bengal.rendering.pipeline
+
+# -----------------------------------------------------------------------------
+# Contract 2: Page/Section use SiteContext, not Site
+# -----------------------------------------------------------------------------
+# Enabled in Sprint B2.4 — Page and Section now type their `_site` field as
+# `bengal.core.site.context.SiteContext` (read-only Protocol). Direct imports
+# of `bengal.core.site` (the dataclass module) from page/section code are
+# forbidden, so refactoring Site cannot leak into Page/Section construction
+# sites without explicit consent.
+
+[importlinter:contract:page-section-use-sitecontext-only]
+name = bengal.core.page and bengal.core.section must not import bengal.core.site (use context only)
+type = forbidden
+source_modules =
+    bengal.core.page
+    bengal.core.section
+forbidden_modules =
+    bengal.core.site
+allow_indirect_imports = True
+# Allow only the context submodule. Each importer is listed explicitly because
+# import-linter matches module-pair edges, not subpackage rollups.
+ignore_imports =
+    bengal.core.page -> bengal.core.site.context
+    bengal.core.page.computed -> bengal.core.site.context
+    bengal.core.page.metadata -> bengal.core.site.context
+    bengal.core.page.navigation -> bengal.core.site.context
+    bengal.core.section -> bengal.core.site.context
+    bengal.core.section.navigation -> bengal.core.site.context

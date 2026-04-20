@@ -13,7 +13,7 @@ Required Host Attributes:
 - index_page: Page | None
 - _virtual: bool
 - _relative_url_override: str | None
-- _site: Site | None
+- _site: SiteContext | None
 - _diagnostics: DiagnosticsSink | None
 - sorted_pages: list[Page] (from SectionQueryMixin)
 - sorted_subsections: list[Section] (from SectionHierarchyMixin)
@@ -45,7 +45,7 @@ if TYPE_CHECKING:
 
     from bengal.core.diagnostics import DiagnosticsSink
     from bengal.core.section import Section
-    from bengal.core.site import Site
+    from bengal.core.site.context import SiteContext
     from bengal.protocols.core import PageLike
 
 
@@ -76,7 +76,7 @@ class SectionNavigationMixin:
     index_page: PageLike | None
     _virtual: bool
     _relative_url_override: str | None
-    _site: Site | None
+    _site: SiteContext | None
     _diagnostics: DiagnosticsSink | None
 
     # From other mixins - accessed via self but defined in other mixins.

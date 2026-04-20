@@ -55,9 +55,11 @@ def clean(
     site.clean()
 
     removed = [str(site.output_dir)]
-    if clean_cache and site.paths.state_dir.exists():
-        site._rmtree_robust(site.paths.state_dir)
-        removed.append(str(site.paths.state_dir))
+    if clean_cache and site.config_service.paths.state_dir.exists():
+        from bengal.utils.io.file_io import rmtree_robust
+
+        rmtree_robust(site.config_service.paths.state_dir, max_retries=3, caller="cli.clean")
+        removed.append(str(site.config_service.paths.state_dir))
 
     cli.blank()
     if clean_cache:

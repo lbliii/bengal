@@ -103,7 +103,7 @@ class CacheManager:
         from bengal.cache import BuildCache
         from bengal.orchestration.build.coordinator import CacheCoordinator
 
-        paths = self.site.paths
+        paths = self.site.config_service.paths
         cache_path = paths.build_cache
 
         if enabled:
@@ -203,7 +203,7 @@ class CacheManager:
         if not self.cache:
             return False
 
-        config_hash = self.site.config_hash
+        config_hash = self.site.config_service.config_hash
         is_valid = self.cache.validate_config(config_hash)
 
         if not is_valid:
@@ -241,7 +241,7 @@ class CacheManager:
             return
 
         # Use same cache location as initialize()
-        paths = self.site.paths
+        paths = self.site.config_service.paths
         paths.state_dir.mkdir(parents=True, exist_ok=True)
         cache_path = paths.build_cache
 
@@ -261,7 +261,7 @@ class CacheManager:
                 continue
 
             # Skip virtual pages (no source file) and generated pages
-            if page.is_virtual or page.metadata.get("_generated"):
+            if page.virtual or page.metadata.get("_generated"):
                 continue
             self.cache.update_file(page.source_path)
             # Store tags for next build's comparison

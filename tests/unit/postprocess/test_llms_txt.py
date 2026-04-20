@@ -274,10 +274,10 @@ class TestCuration:
         site.output_dir = tmp_path
 
         real_page = _make_page(title="Real", path="/real/")
-        real_page.is_virtual = False
+        real_page.virtual = False
 
         virtual_page = _make_page(title="Virtual", path="/tags/python/")
-        virtual_page.is_virtual = True
+        virtual_page.virtual = True
 
         gen = SiteLlmsTxtGenerator(site)
         result = gen.generate([real_page, virtual_page])
@@ -302,7 +302,7 @@ class TestCuration:
             _make_page(title=f"Page {i}", path=f"/page-{i}/", section_name="docs") for i in range(5)
         ]
         for p in pages:
-            p.is_virtual = False
+            p.virtual = False
 
         gen = SiteLlmsTxtGenerator(site)
         result = gen.generate(pages)
@@ -339,7 +339,7 @@ class TestTruncation:
             for i in range(20)
         ]
         for p in pages:
-            p.is_virtual = False
+            p.virtual = False
 
         gen = SiteLlmsTxtGenerator(site)
         result = gen.generate(pages)
@@ -376,7 +376,7 @@ class TestTruncation:
             for i in range(50)
         ]
         for p in pages:
-            p.is_virtual = False
+            p.virtual = False
 
         gen = SiteLlmsTxtGenerator(site)
         result = gen.generate(pages)

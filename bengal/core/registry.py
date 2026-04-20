@@ -89,6 +89,12 @@ class ContentRegistry:
     # Used by Page._section to detect when section cache is stale
     _epoch: int = field(default=0, repr=False)
 
+    # Memoized page→index map for next/prev navigation. Relocated from
+    # Site in Sprint B2.3 — Page navigation no longer writes to a private
+    # Site attribute. Invalidated on clear() and rebuilt when pages length
+    # changes (covers taxonomy/archive page generation).
+    _page_index_cache: dict[PageLike, int] | None = field(default=None, repr=False)
+
     def get_page(self, path: Path) -> PageLike | None:
         """
         Get page by source path. O(1) lookup.
@@ -156,6 +162,26 @@ class ContentRegistry:
             Section if found, None otherwise
         """
         return self._sections_by_url.get(url)
+
+    def page_index(self, pages: list[PageLike]) -> dict[PageLike, int]:
+        """
+        Memoized page→index map for next/prev navigation.
+
+        Built lazily on first access and rebuilt whenever the pages list
+        length changes (covers taxonomy/archive page generation that appends
+        pages after initial discovery). Invalidated by clear().
+
+        Args:
+            pages: Current ordered list of pages (typically site.pages)
+
+        Returns:
+            Dict mapping each Page to its index in the list
+        """
+        cached = self._page_index_cache
+        if cached is None or len(cached) != len(pages):
+            cached = {p: i for i, p in enumerate(pages)}
+            self._page_index_cache = cached
+        return cached
 
     def register_page(self, page: PageLike) -> None:
         """
@@ -255,6 +281,7 @@ class ContentRegistry:
         self._pages_by_url.clear()
         self._sections_by_url.clear()
         self.url_ownership = URLRegistry()
+        self._page_index_cache = None
         self._frozen = False
         self._epoch += 1
 

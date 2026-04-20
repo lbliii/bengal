@@ -20,7 +20,7 @@ def mock_site():
     site = Mock()
     site.root_path = Path("/fake/site")
     site.output_dir = Path("/fake/site/public")
-    site.paths = BengalPaths(site.root_path)
+    site.config_service.paths = BengalPaths(site.root_path)
     site.config = {"pagination": {"per_page": 10}}
     site.taxonomies = {}
     site.pages = []

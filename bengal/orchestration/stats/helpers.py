@@ -67,7 +67,7 @@ def display_template_errors(stats: BuildStats) -> None:
     if not stats.template_errors:
         return
 
-    from bengal.rendering.errors import display_template_error
+    from bengal.errors.display import display_template_render_error
 
     cli = CLIOutput()
     error_count = len(stats.template_errors)
@@ -76,7 +76,7 @@ def display_template_errors(stats: BuildStats) -> None:
 
     for i, error in enumerate(stats.template_errors, 1):
         cli.error(f"Error {i}/{error_count}:")
-        display_template_error(error, use_color=True)
+        display_template_render_error(error, cli)
 
         if i < error_count:
             cli.info("─" * 80)

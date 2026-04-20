@@ -23,7 +23,7 @@ def mock_site(tmp_path):
     site = Mock()
     site.root_path = tmp_path
     site.output_dir = tmp_path / "public"
-    site.paths = BengalPaths(tmp_path)
+    site.config_service.paths = BengalPaths(tmp_path)
 
     # Create a proper config mock with path attribute
     mock_config = Mock()
@@ -97,7 +97,7 @@ class TestIncrementalOrchestrator:
 
         # Should load existing cache from .bengal/cache.json with site_root
         mock_load.assert_called_once_with(
-            mock_site.paths.build_cache, site_root=mock_site.root_path
+            mock_site.config_service.paths.build_cache, site_root=mock_site.root_path
         )
         assert cache is mock_cache
 
@@ -120,7 +120,7 @@ class TestIncrementalOrchestrator:
         mock_site.root_path = tmp_path
 
         # Mock config_hash on the site
-        mock_site.config_hash = "test_hash_12345"
+        mock_site.config_service.config_hash = "test_hash_12345"
 
         # Test
         result = orchestrator.check_config_changed()

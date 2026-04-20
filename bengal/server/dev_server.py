@@ -409,7 +409,7 @@ class DevServer:
             return False
 
         # Build cache must exist — stale output without a cache is not servable
-        build_cache = self.site.paths.build_cache
+        build_cache = self.site.config_service.paths.build_cache
         has_build_cache = build_cache.exists() or build_cache.with_suffix(".json.zst").exists()
         if not has_build_cache:
             logger.debug(

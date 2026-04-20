@@ -120,7 +120,7 @@ class TestPageExplainer:
         page1.content = "# Guide\n\nSome content here.\n"
         page1._source = "# Guide\n\nSome content here.\n"  # Required: source code uses page._source
         page1.metadata = {"title": "Guide", "type": "doc", "tags": ["tutorial"]}
-        page1.is_virtual = False
+        page1.virtual = False
         page1.href = "/docs/guide/"
         page1._path = "/docs/guide/"
         page1.output_path = Path("docs/guide/index.html")
@@ -135,7 +135,7 @@ class TestPageExplainer:
             "# Hello\n\n:::note\nA note\n:::\n"  # Required: source code uses page._source
         )
         page2.metadata = {"title": "Hello", "type": "post"}
-        page2.is_virtual = False
+        page2.virtual = False
         page2.href = "/posts/hello/"
         page2._path = "/posts/hello/"
         page2.output_path = Path("posts/hello/index.html")
@@ -178,7 +178,7 @@ class TestPageExplainer:
 
     def test_get_source_info_virtual_page(self, mock_site):
         """Test source info for virtual page."""
-        mock_site.pages[0].is_virtual = True
+        mock_site.pages[0].virtual = True
         explainer = PageExplainer(mock_site)
 
         info = explainer._get_source_info(mock_site.pages[0])

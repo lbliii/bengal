@@ -23,7 +23,7 @@ def mock_site(tmp_path):
     site = Mock()
     site.root_path = tmp_path
     site.output_dir = tmp_path / "public"
-    site.paths = BengalPaths(tmp_path)
+    site.config_service.paths = BengalPaths(tmp_path)
     site.config = Mock()
     site.config.path = tmp_path / "bengal.toml"
     site.theme = None

@@ -183,12 +183,12 @@ class TestDeferredRendering:
         # rendered_html is empty string during discovery phase (deferred rendering)
         # Page.create_virtual uses `rendered_html or ""` as default
         assert autodoc_page.rendered_html == ""
-        assert autodoc_page._prerendered_html is None
+        assert autodoc_page.prerendered_html is None
 
     def test_section_index_has_no_prerendered_html(self, section_index_page: Page) -> None:
         """Section index pages should not have pre-rendered HTML during discovery."""
         assert section_index_page.rendered_html == ""
-        assert section_index_page._prerendered_html is None
+        assert section_index_page.prerendered_html is None
 
 
 class TestRenderingPipelineIntegration:
@@ -533,7 +533,7 @@ class TestEdgeCases:
         )
         # If HTML is pre-rendered, it should be used
         assert page.rendered_html == prerendered
-        assert page._prerendered_html == prerendered
+        assert page.prerendered_html == prerendered
         assert "Pre-rendered" in page.rendered_html
 
     def test_nested_module_path(self, mock_site: MagicMock) -> None:

@@ -90,7 +90,7 @@ def check(
     elif changed:
         from bengal.cache import BuildCache
 
-        cache = BuildCache.load(site.paths.build_cache)
+        cache = BuildCache.load(site.config_service.paths.build_cache)
         context = []
         for page in site.pages:
             if page.source_path and cache.is_changed(page.source_path):
@@ -109,7 +109,7 @@ def check(
     if (incremental or changed) and cache is None:
         from bengal.cache import BuildCache
 
-        cache = BuildCache.load(site.paths.build_cache)
+        cache = BuildCache.load(site.config_service.paths.build_cache)
 
     cli.blank()
     health_check = HealthCheck(site)
@@ -203,7 +203,7 @@ def _run_watch_mode(site, build_profile, verbose, suggestions, incremental, cli)
         if incremental:
             from bengal.cache import BuildCache
 
-            cache = BuildCache.load(site.paths.build_cache)
+            cache = BuildCache.load(site.config_service.paths.build_cache)
 
         health_check = HealthCheck(site)
         report = health_check.run(

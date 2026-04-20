@@ -86,6 +86,10 @@ class BuildOptions:
     # Output behavior
     strict: bool = False
     full_output: bool = False
+    # When True, template errors do not halt the build but the process
+    # exits non-zero if any errors were collected. Mutually exclusive
+    # with `strict`. Default keeps backward-compatible silent exit-0.
+    continue_on_error: bool = False
 
     # Explain mode (RFC: rfc-incremental-build-observability Phase 2)
     explain: bool = False

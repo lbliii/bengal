@@ -64,7 +64,7 @@ class CacheValidator(BaseValidator):
             return results
 
         # Check 1: Cache location (new location since v0.1.2)
-        cache_path = site.paths.build_cache
+        cache_path = site.config_service.paths.build_cache
 
         # Check for old cache location (migration needed)
         old_cache_path = site.output_dir / ".bengal-cache.json"
@@ -121,7 +121,7 @@ class CacheValidator(BaseValidator):
         results.extend(self._check_cache_size(cache_path, cache_data))
 
         # Check 5: Cache location correctness (new check for v0.1.2+)
-        if cache_path == site.paths.build_cache:
+        if cache_path == site.config_service.paths.build_cache:
             results.append(CheckResult.success("Cache at correct location (.bengal/)"))
         else:
             results.append(

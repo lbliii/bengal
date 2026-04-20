@@ -35,7 +35,7 @@ class TestExplainerProtocolCompliance:
         page = MagicMock()
         page.metadata = {"template": "custom.html"}
         page.source_path = Path("content/test.md")
-        page.is_virtual = False
+        page.virtual = False
         page._source = "# Test\n\nContent here."
         page.core = MagicMock()
         page.core.type = "doc"
@@ -223,7 +223,7 @@ class TestExplainerWithoutTemplateEngine:
         mock_page = MagicMock()
         mock_page.metadata = {"type": "post"}
         mock_page.source_path = Path("content/post.md")
-        mock_page.is_virtual = False
+        mock_page.virtual = False
         mock_page._source = "# Post"
         mock_page.core = MagicMock()
         mock_page.core.type = "post"

@@ -393,7 +393,7 @@ class SectionOrchestrator:
         archive_page = Page(source_path=virtual_path, _raw_content="", _raw_metadata=metadata)
 
         # Mark as virtual page (attribute, not just metadata)
-        archive_page._virtual = True
+        archive_page.virtual = True
 
         # Compute output path using centralized logic
         archive_page.output_path = self.url_strategy.compute_archive_output_path(

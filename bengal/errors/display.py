@@ -6,6 +6,9 @@ suggestions, file locations, and documentation links.
 
 Functions:
     display_bengal_error: Display a BengalError with beautiful formatting
+    display_template_render_error: Display a TemplateRenderError with the
+        rich source-frame layout (code window, caret, inclusion chain,
+        search paths, alternatives) routed through CLIOutput.
     beautify_common_exception: Convert common exceptions to user-friendly messages
 
 Note:
@@ -40,6 +43,21 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from bengal.errors import BengalError
     from bengal.output import CLIOutput
+    from bengal.rendering.errors import TemplateRenderError
+
+
+_ERROR_TYPE_HEADERS: dict[str, str] = {
+    "syntax": "Template Syntax Error",
+    "filter": "Unknown Filter",
+    "undefined": "Undefined Variable",
+    "runtime": "Template Runtime Error",
+    "callable": "None Is Not Callable",
+    "none_access": "None Is Not Iterable",
+    "type_comparison": "Type Comparison Error",
+    "include_missing": "Include Not Found",
+    "circular_include": "Circular Include",
+    "other": "Template Error",
+}
 
 
 def display_bengal_error(error: BengalError, cli: CLIOutput) -> None:
@@ -115,6 +133,106 @@ def display_bengal_error(error: BengalError, cli: CLIOutput) -> None:
         docs_url = f"https://lbliii.github.io/bengal{error.code.docs_url}"
         cli.info(f"  Docs: {docs_url}")
         cli.blank()
+
+
+def display_template_render_error(error: TemplateRenderError, cli: CLIOutput) -> None:
+    """Display a :class:`TemplateRenderError` with rich formatting via CLIOutput.
+
+    Renders the same structure as the legacy plain-text formatter but
+    routes through :class:`CLIOutput` so output respects the active TTY,
+    quiet/verbose flags, and Rich styling.
+
+    Layout:
+        1. Header — error type or `[R0XX]` code badge.
+        2. File / Template name.
+        3. Line number.
+        4. Code window with `>` marker on the offending line and a
+           caret underline.
+        5. Error message.
+        6. Suggestion (``Tip:``).
+        7. Alternative filters/variables (``Did you mean:``).
+        8. Inclusion chain (``Template Chain:``).
+        9. Source page that triggered the error.
+       10. Template search paths (with `<-- found here` marker).
+       11. Docs URL (when an ErrorCode is set).
+    """
+    code_obj = getattr(error, "code", None)
+    code_prefix = f"[{code_obj.name}] " if code_obj else ""
+
+    header = _ERROR_TYPE_HEADERS.get(error.error_type, "Template Error")
+
+    cli.blank()
+    cli.error(f"{code_prefix}{header}")
+
+    ctx = error.template_context
+    if ctx.template_path:
+        cli.blank()
+        cli.info(f"  File: {ctx.template_path}")
+    else:
+        cli.blank()
+        cli.info(f"  Template: {ctx.template_name}")
+
+    if ctx.line_number:
+        cli.info(f"  Line: {ctx.line_number}")
+
+    if ctx.surrounding_lines:
+        cli.blank()
+        cli.info("  Code:")
+        for line_num, line_content in ctx.surrounding_lines:
+            is_error_line = line_num == ctx.line_number
+            prefix = ">" if is_error_line else " "
+            cli.info(f"  {prefix} {line_num:4d} | {line_content}")
+
+            if is_error_line and ctx.source_line:
+                pointer = " " * (len(f"  {prefix} {line_num:4d} | ")) + "^" * min(
+                    len(ctx.source_line.strip()), 40
+                )
+                cli.info(pointer)
+
+    cli.blank()
+    cli.info(f"  Error: {error.message}")
+
+    suggestion = getattr(error, "suggestion", None)
+    if suggestion:
+        cli.blank()
+        cli.info(f"  Suggestion: {suggestion}")
+
+    available_alternatives = getattr(error, "available_alternatives", None) or []
+    if available_alternatives:
+        top, *rest = available_alternatives
+        cli.blank()
+        cli.info(f"  Did you mean: {top!r}?")
+        if rest:
+            cli.info(f"  Other matches: {', '.join(f'{alt!r}' for alt in rest)}")
+
+    inclusion_chain = getattr(error, "inclusion_chain", None)
+    if inclusion_chain:
+        cli.blank()
+        cli.info("  Template Chain:")
+        for line in str(inclusion_chain).split("\n"):
+            cli.info(f"  {line}")
+
+    page_source = getattr(error, "page_source", None)
+    if page_source:
+        cli.blank()
+        cli.info(f"  Used by page: {page_source}")
+
+    search_paths = getattr(error, "search_paths", None) or []
+    if search_paths:
+        cli.blank()
+        cli.info("  Template Search Paths:")
+        for i, search_path in enumerate(search_paths, 1):
+            found_marker = ""
+            if ctx.template_path and ctx.template_path.is_relative_to(search_path):
+                found_marker = " <-- found here"
+            cli.info(f"     {i}. {search_path}{found_marker}")
+
+    if code_obj:
+        docs_url = f"https://lbliii.github.io/bengal{code_obj.docs_url}"
+        cli.blank()
+        cli.info(f"  Docs: {docs_url}")
+
+    cli.blank()
 
 
 def beautify_common_exception(e: Exception) -> tuple[str, str | None] | None:

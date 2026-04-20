@@ -234,7 +234,7 @@ class MenuOrchestrator:
             SHA256 hash of menu-related data
         """
         # Get menu config
-        menu_config = self.site.menu_config
+        menu_config = self.site.config_service.menu_config
 
         # Use pre-collected data if available, otherwise collect fresh
         if menu_pages is None or root_level_pages is None:
@@ -877,7 +877,7 @@ class MenuOrchestrator:
 
         # Get menu definitions from config (make deep copy to avoid mutating site config)
         try:
-            raw_menu_config = self.site.menu_config
+            raw_menu_config = self.site.config_service.menu_config
             menu_config = copy.deepcopy(raw_menu_config)
         except Exception as e:
             context = ErrorContext(

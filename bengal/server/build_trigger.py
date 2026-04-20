@@ -186,6 +186,9 @@ class BuildTrigger:
         self._content_hash_cache: dict[Path, ContentHashCacheEntry] = {}
         # Track last successful build for error context
         self._last_successful_build: datetime | None = None
+        # Track whether the previous build surfaced template errors so we
+        # know when to push a `build_ok` message that dismisses the overlay.
+        self._had_template_errors_last_build: bool = False
 
     def trigger_build(
         self,
@@ -519,6 +522,19 @@ class BuildTrigger:
                 pages_built=result.pages_built,
                 incremental=use_incremental,
             )
+
+            # Browser-overlay control: if any pages failed to render, push a
+            # `build_error` envelope so the SSE client renders the overlay in
+            # place. If a previous build had errors and this one is clean,
+            # push `build_ok` (which the client treats as both dismiss AND
+            # cache-bust reload). Skip the regular reload path in those
+            # cases — the overlay messages are the reload signal.
+            template_errors = list(getattr(stats, "template_errors", None) or [])
+            overlay_handled = self._handle_overlay_messages(template_errors, build_duration)
+
+            if overlay_handled:
+                self._clear_html_cache()
+                return
 
             # Handle reload decision
             self._handle_reload(
@@ -1003,7 +1019,7 @@ class BuildTrigger:
             try:
                 from bengal.cache import BuildCache
 
-                cache_path = self.site.paths.build_cache
+                cache_path = self.site.config_service.paths.build_cache
                 if cache_path.exists():
                     cache = BuildCache.load(cache_path)
                     cache.site_root = self.site.root_path
@@ -1138,6 +1154,57 @@ class BuildTrigger:
         """Display build statistics using MinimalStats adapter."""
         stats = MinimalStats.from_build_result(result, incremental=incremental)
         display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
+
+    def _handle_overlay_messages(self, template_errors: list[Any], build_duration: float) -> bool:
+        """Push browser-overlay control messages over SSE.
+
+        Returns ``True`` when the overlay messages take ownership of the
+        client-notification slot for this build, signalling the caller to
+        skip the regular reload path. Returns ``False`` when the build is
+        clean and was preceded by another clean build (no overlay state).
+        """
+        from bengal.errors.overlay import build_error_payload, build_ok_payload
+        from bengal.server.live_reload.notification import (
+            send_build_error_payload,
+            send_build_ok_payload,
+        )
+
+        if template_errors:
+            try:
+                payload = build_error_payload(template_errors)
+                send_build_error_payload(payload)
+            except Exception as exc:
+                logger.warning(
+                    "build_error_overlay_send_failed",
+                    error_code=ErrorCode.S003.name,
+                    error=str(exc),
+                )
+                # Fall through to normal reload — the per-page overlay
+                # HTML written to disk still gives the developer a useful
+                # page even without the live overlay.
+                return False
+            self._had_template_errors_last_build = True
+            return True
+
+        if self._had_template_errors_last_build:
+            try:
+                payload = build_ok_payload(build_ms=int(build_duration * 1000))
+                send_build_ok_payload(payload)
+            except Exception as exc:
+                logger.warning(
+                    "build_ok_overlay_send_failed",
+                    error_code=ErrorCode.S003.name,
+                    error=str(exc),
+                )
+                # Fall through to normal reload so the user still gets a
+                # refresh; the overlay JS treats a plain `reload` as a
+                # dismiss as well.
+                self._had_template_errors_last_build = False
+                return False
+            self._had_template_errors_last_build = False
+            return True
+
+        return False
 
     def _handle_reload(self, info: BuildReloadInfo) -> None:
         """Handle reload decision and notification.

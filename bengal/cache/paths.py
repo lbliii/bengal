@@ -46,7 +46,7 @@ from bengal.cache.paths import BengalPaths, STATE_DIR_NAME
 paths.ensure_dirs()
 
 # Or access via Site
-    cache_path = site.paths.build_cache
+    cache_path = site.config_service.paths.build_cache
 
 Related:
 - bengal.cache.build_cache: Uses paths.build_cache

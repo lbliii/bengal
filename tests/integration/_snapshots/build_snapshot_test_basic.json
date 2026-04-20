@@ -1,0 +1,882 @@
+{
+  "404.html": {
+    "sha256": "eef5f856befd2bec58b5ebda741cad58c6e6ebaa53681b195df2dfefeb9990dd",
+    "size": 29063
+  },
+  "assets/android-chrome-192x192.e4ddd5dd.png": {
+    "sha256": "a4c01df3cc66226c32a9e7738363072db6471ee4497676b97f6adef091e842a1",
+    "size": 5895
+  },
+  "assets/android-chrome-512x512.061f85d6.png": {
+    "sha256": "af364a8dfac291cba1a585b560a5dea3980e0c1fb08797aef40d0c42116cfc65",
+    "size": 8202
+  },
+  "assets/apple-touch-icon.5d408119.png": {
+    "sha256": "32049705b4bd8b45c5718fe4e14124f587db09270378a436e491f457b9eda608",
+    "size": 5294
+  },
+  "assets/css/experimental/holo-cards-demo.f5636c2d.html": {
+    "sha256": "f5636c2d6c1df90d5f6011c5d84c4b04d2e1c10b68cda28375d939bfb7ea9750",
+    "size": 17132
+  },
+  "assets/css/experimental/holo-tcg-demo.eeb402ad.html": {
+    "sha256": "eeb402ad650f4f9ba1d9a4a17ada810bf2ff72bf26eb7ee7d8b1e1fc99048fdd",
+    "size": 10835
+  },
+  "assets/css/style.bfc7e545.css": {
+    "sha256": "bfc7e5457e1ab9914fecbd42bc19a6359ff9c0ecf8c38b906fc9f6b75b06ce7a",
+    "size": 759110
+  },
+  "assets/favicon-16x16.95847e56.png": {
+    "sha256": "ee6aa238ac3bf36a2cc1a0460ad7e853d9816ee8c5a7ebbba02c518613147020",
+    "size": 321
+  },
+  "assets/favicon-32x32.4024e46d.png": {
+    "sha256": "9f16a6cab5f2df1ae7844da09285bae5fcf4b6947470bd5dc6ba12735dd9ac97",
+    "size": 742
+  },
+  "assets/favicon.d9f3bb14.ico": {
+    "sha256": "d9f3bb1486929ec676350214779f1aae291dbf858ce4e0164a9d71f1f01d9b1d",
+    "size": 15406
+  },
+  "assets/icons/ai-chatgpt.1f5a4c23.svg": {
+    "sha256": "1f5a4c231afedcadfd0e4cb3c87157d94da54168cc3344ba4fa1e6c8fbf8050f",
+    "size": 335
+  },
+  "assets/icons/ai-claude.55411670.svg": {
+    "sha256": "55411670237f196e9e0b142d0b1e5ccb0e9625eb15409cac994fed4fba50203c",
+    "size": 254
+  },
+  "assets/icons/ai-copilot.f4536f6a.svg": {
+    "sha256": "f4536f6ac9d38816c0a758ff585fc1dcd7a55d8ce71119c3dc62c1b4a727ccbd",
+    "size": 216
+  },
+  "assets/icons/ai-gemini.b2f308af.svg": {
+    "sha256": "b2f308af63c5e0aac63b8d565ab772e8dbe11db1f91bdec147231c772c208a9f",
+    "size": 154
+  },
+  "assets/icons/arrow-clockwise.a4524468.svg": {
+    "sha256": "a4524468e8a673fe9eb161af8d4660618aa492f5118792597e5a2996645cdcae",
+    "size": 342
+  },
+  "assets/icons/arrow-left.e2f7dfd5.svg": {
+    "sha256": "e2f7dfd5942c0c05870be88425e6da8ba4fc21a1416f9817c829ec8efd9e54f9",
+    "size": 249
+  },
+  "assets/icons/arrow-right.7c82e3d8.svg": {
+    "sha256": "7c82e3d81af835a60eeba84ea044e201dbf4b9c20ab2df4b1ff3d3fa4c4301b9",
+    "size": 246
+  },
+  "assets/icons/arrow-up.b718e54b.svg": {
+    "sha256": "b718e54b6455cf74796a30eb3b9347b6373b7da1258e0faa92798c0931be569a",
+    "size": 300
+  },
+  "assets/icons/article.ea6681cd.svg": {
+    "sha256": "ea6681cde9d9dac7ae6499ed3f536dfb972aa5c8702c1356525c784ec06ec835",
+    "size": 432
+  },
+  "assets/icons/atomic.5fecbcff.svg": {
+    "sha256": "5fecbcffa69b1605c49b714734cad3848a4618ca8aa0c4ee2d4f4f1588b7905b",
+    "size": 1333
+  },
+  "assets/icons/bengal-rosette.e01b0d61.svg": {
+    "sha256": "e01b0d618edb0d4b62ae8532d3877ced581e195d9f99004d212f0a6a243f6e81",
+    "size": 1428
+  },
+  "assets/icons/book-open.64378c41.svg": {
+    "sha256": "64378c41db8f257fc69b65eaa6931f66e7ea0246f1c69e19afa19909234b3c39",
+    "size": 397
+  },
+  "assets/icons/book.cdd29655.svg": {
+    "sha256": "cdd29655e67b32ab0b746173e80dc71bcee4f172da32fe74c5d139b5f3a765c2",
+    "size": 288
+  },
+  "assets/icons/bookmark.57ed65aa.svg": {
+    "sha256": "57ed65aa8aa7ee66dbd34c01ddb068d1d96d9f8c19caa69090e4e59cbb7fee25",
+    "size": 379
+  },
+  "assets/icons/boomerang.f6d0f910.svg": {
+    "sha256": "f6d0f910c8284542ae8d498d301dc98007cd111f140ec7434af21eb66e4417a5",
+    "size": 291
+  },
+  "assets/icons/briefcase.3e8eef2a.svg": {
+    "sha256": "3e8eef2aa329b10b5fc5e1f3c16bedc338c770236d542b632786f762cb6b2a79",
+    "size": 536
+  },
+  "assets/icons/bug.fc925168.svg": {
+    "sha256": "fc925168aed6ff342a8fe08b38781ded790d24ae44e3b82047526241cc727ea3",
+    "size": 758
+  },
+  "assets/icons/calendar.bdaf96b0.svg": {
+    "sha256": "bdaf96b0fa0e2cc548d23502ec4e4968185fb58bed78163d8e32d50892332f3c",
+    "size": 619
+  },
+  "assets/icons/caret-down.5730ca09.svg": {
+    "sha256": "5730ca09bca8cb5f86844a4f3a73e3ee4a86b250ca5faf3b06855e4d1e80f64c",
+    "size": 255
+  },
+  "assets/icons/caret-left.6493c42f.svg": {
+    "sha256": "6493c42fb78547816620ac9b5ec7c4fdb3f5baa829aaa881b579dfbfc0e038e6",
+    "size": 241
+  },
+  "assets/icons/caret-right.3cbe329e.svg": {
+    "sha256": "3cbe329e789ca4ffc7b66dc96252a69685eba317f12c005643180079e881c4a9",
+    "size": 261
+  },
+  "assets/icons/caret-up.df92cbaa.svg": {
+    "sha256": "df92cbaa19daf4bb4009b7a593eef3fb3aea5f8f57aea30d80cb0444447a342c",
+    "size": 271
+  },
+  "assets/icons/caution.a2891153.svg": {
+    "sha256": "a2891153928cc63596c4c24653fdaece8f4d9b52654d6c155bbcd890fedcb901",
+    "size": 581
+  },
+  "assets/icons/check-circle.a6323019.svg": {
+    "sha256": "a63230196e46329c045d85ae8507b474f5c7469fa9866160006a21310a75ded2",
+    "size": 340
+  },
+  "assets/icons/check.60280877.svg": {
+    "sha256": "60280877db8b2f6db4472e8a7a81165e9fec20772eea1ce0e07751991a267cdc",
+    "size": 251
+  },
+  "assets/icons/chevron-down.c53f1358.svg": {
+    "sha256": "c53f1358526632e9fcd8487ff11c7acbbb3a406101be7137966768dd84aa3154",
+    "size": 257
+  },
+  "assets/icons/chevron-left.3594d758.svg": {
+    "sha256": "3594d7588f14298075d0148b81ae49d932b819acb8ee92af64c20adfb2cddc0b",
+    "size": 243
+  },
+  "assets/icons/chevron-right.db64a74e.svg": {
+    "sha256": "db64a74e04b945d7e20660d054f2f6fb2f81674b3ee67bf075dfadf631bccfcc",
+    "size": 263
+  },
+  "assets/icons/chevron-up.e65a1231.svg": {
+    "sha256": "e65a12315c89b08c7cd22bf768549c7008166708ccce6f435a83c6db4a1c6b95",
+    "size": 273
+  },
+  "assets/icons/clock.a1a28557.svg": {
+    "sha256": "a1a2855758aa0676cce00481e751e9defef2066a541205fc67c025675433b269",
+    "size": 323
+  },
+  "assets/icons/close.911d4fe1.svg": {
+    "sha256": "911d4fe1274adc30d89c8842807ce7d3a852790dedf3fa21b835302761b9d436",
+    "size": 320
+  },
+  "assets/icons/cloud.bef51c84.svg": {
+    "sha256": "bef51c84cbbb15aa125bfe991691497763c7352ff687fe2b1c4835456a38a4c3",
+    "size": 313
+  },
+  "assets/icons/code-branch.44560480.svg": {
+    "sha256": "44560480d170d5881fa1bc028f049da3613f9c994e5b3fa1ca99c39c5d5bb062",
+    "size": 445
+  },
+  "assets/icons/code.1dc995ea.svg": {
+    "sha256": "1dc995ea4bfa6e1584d1f8ada606d90efe8fd5e7e9ee74e669d50b6a6c16fdc9",
+    "size": 486
+  },
+  "assets/icons/compass.790e7e9b.svg": {
+    "sha256": "790e7e9be96872e24312044dcedd61162dbf80d8417e733ce22beec0f3a700d9",
+    "size": 403
+  },
+  "assets/icons/container.89228bb5.svg": {
+    "sha256": "89228bb5f8d2f398277851828078a3c75eebf626c280f2a2e7a3e4557ef0c672",
+    "size": 309
+  },
+  "assets/icons/copy.3d56e945.svg": {
+    "sha256": "3d56e9451bb25aaac75b7fb770a1248d7e1af89908c1a417baea9f9add5e8b7c",
+    "size": 314
+  },
+  "assets/icons/cpu.200bf5a3.svg": {
+    "sha256": "200bf5a30edf65cbef98c0bac16036ff5f992af0e5273c7bbf76e8103ef35882",
+    "size": 575
+  },
+  "assets/icons/cube.844bd9c8.svg": {
+    "sha256": "844bd9c8be6d40cc6c7ac9c3b931b7a55ddb779a0494183ea60a5a3cae46a074",
+    "size": 437
+  },
+  "assets/icons/danger.ba6aa99b.svg": {
+    "sha256": "ba6aa99b118ab197901616d28c77b683deaa61871e58593ab98610724f11bc14",
+    "size": 441
+  },
+  "assets/icons/database.e01032d1.svg": {
+    "sha256": "e01032d156ea6e88c61fc59a5c9e4335c0c52964a6f732f8c0f05f27be110bb7",
+    "size": 849
+  },
+  "assets/icons/docs.fea8c2c2.svg": {
+    "sha256": "fea8c2c2644f226e6daa0bc2cff67a34ff4632136f6fadd4e8d527318ecf48a2",
+    "size": 451
+  },
+  "assets/icons/download.04f07e1b.svg": {
+    "sha256": "04f07e1b06c1acbdbba0433b4689451dc8b1bf1000b6498fc7c53adceb2bba8a",
+    "size": 462
+  },
+  "assets/icons/edit.7bf54175.svg": {
+    "sha256": "7bf54175f1d90a9e5f15d6f2da9eb26a99d1e754b5eff320add243cc6ef64e62",
+    "size": 447
+  },
+  "assets/icons/enlarge.652035e5.svg": {
+    "sha256": "652035e57bb5ab76e5b6dd4cb5def1049a0128dd7dae5276dfe7255b628c12c8",
+    "size": 571
+  },
+  "assets/icons/envelope-simple.19ca4a93.svg": {
+    "sha256": "19ca4a9305f837867e2a0e4587cfec7c31ce0e1d961b8210d4365e42512338ef",
+    "size": 283
+  },
+  "assets/icons/error.5d7a0e4c.svg": {
+    "sha256": "5d7a0e4ca42d719e03a2aede4df0a8f74045b9cf5fa3bd1df801aa3f4d7f41fa",
+    "size": 440
+  },
+  "assets/icons/example.1ec9b4f8.svg": {
+    "sha256": "1ec9b4f8f215cc078c7384751ec64a42626bfbf3aae95f5d6a3a5fd655797b10",
+    "size": 489
+  },
+  "assets/icons/external.6a6bd62f.svg": {
+    "sha256": "6a6bd62f126b8f48a6040a72c1c962e425e9c07db6eacc4966bb73ea91472285",
+    "size": 386
+  },
+  "assets/icons/eye.67cb308e.svg": {
+    "sha256": "67cb308ece921678224e4b51d4b2d4fdeba4414f9481dbeefa4b11834d9ee5df",
+    "size": 702
+  },
+  "assets/icons/facebook-logo.59f0e5ed.svg": {
+    "sha256": "59f0e5ed48b9fbf7c513977251a8183b5ed1a179bc938776bf0865d4e0d26ded",
+    "size": 303
+  },
+  "assets/icons/feather.8c514d40.svg": {
+    "sha256": "8c514d4008f4b65caa3382f433bbef8d40f131fedade6fd425337d160c8ee3eb",
+    "size": 486
+  },
+  "assets/icons/file-code.77d6d23f.svg": {
+    "sha256": "77d6d23f4da807bab5dd30c4504eb3f99aa1fdad544d7f465e9f6ede9ad1d8cb",
+    "size": 531
+  },
+  "assets/icons/file-js.9b732c15.svg": {
+    "sha256": "9b732c152f9f7e5ac482f27a0c1d45d454e2b017334804ddddd063f96b6df4a3",
+    "size": 865
+  },
+  "assets/icons/file-py.6e92f834.svg": {
+    "sha256": "6e92f834614f022a45a10d3c07fe4804e8aa8038889006c84f5872e09b00b4fe",
+    "size": 556
+  },
+  "assets/icons/file-text.3ed22777.svg": {
+    "sha256": "3ed2277749410917e545ac73eac593a611e16567a515492715d522d2432b3a20",
+    "size": 456
+  },
+  "assets/icons/file-ts.d5e08e60.svg": {
+    "sha256": "d5e08e600191bdad240dae17f46791369076dec629422dffbaba3d3572734b7d",
+    "size": 847
+  },
+  "assets/icons/file.bdc0f8bc.svg": {
+    "sha256": "bdc0f8bc25ea9f4e4e67fcc7681a4a769eb0cbcb05565584c276b821f4f37b89",
+    "size": 331
+  },
+  "assets/icons/filter.9aac48b2.svg": {
+    "sha256": "9aac48b22d2bda7270f6ee615d264cfe8376dd3456b7c4bfab083e64fb3b6179",
+    "size": 414
+  },
+  "assets/icons/flask.12e6850e.svg": {
+    "sha256": "12e6850ed8ab67e5d7d505d7eef85e4df09c18fc38f1ebe3a13bd1ef9ee77c67",
+    "size": 540
+  },
+  "assets/icons/folder.297756e4.svg": {
+    "sha256": "297756e4ad9bb977f403b8e685a8093cdaa880690bedc7f6eb3730712c7d1678",
+    "size": 342
+  },
+  "assets/icons/function.2b36aae2.svg": {
+    "sha256": "2b36aae2771595a4ddb36e927f38ad25b7e315e8e064e161065c2410edc9e1b5",
+    "size": 395
+  },
+  "assets/icons/funnel.15a10b55.svg": {
+    "sha256": "15a10b55bdb5bcfa85d9ffb0ddf102e340287ff456ce8dbfbd7b1fc1373596ab",
+    "size": 386
+  },
+  "assets/icons/git-branch.a4bf228e.svg": {
+    "sha256": "a4bf228ea454dc69e1760c80ca0eaa2e65242754bee39401cc8a8e2ac107f2da",
+    "size": 452
+  },
+  "assets/icons/git-commit.821c9350.svg": {
+    "sha256": "821c9350537354ce6908e07ccca1976277a8f1518c88ee437bbfb8edae3a97eb",
+    "size": 288
+  },
+  "assets/icons/github-logo.16f87126.svg": {
+    "sha256": "16f87126bd765364067478f16a35d21d2f9380936068cf1e1b8becadcb51bc2b",
+    "size": 891
+  },
+  "assets/icons/globe.04c45799.svg": {
+    "sha256": "04c457996a5a8adcb709191de591c8080a699eecb751589cd6f93f59e4625f7a",
+    "size": 892
+  },
+  "assets/icons/graduation-cap.d8c2a65e.svg": {
+    "sha256": "d8c2a65e9bce5e030014bfebac1da7833b4048a0784670758f5e29010f189d95",
+    "size": 655
+  },
+  "assets/icons/hard-drives.76d7ffbd.svg": {
+    "sha256": "76d7ffbde361faa9f4081115ad58c1fa868c09c57373425aa6ce8694f7fa72e2",
+    "size": 460
+  },
+  "assets/icons/heart.29674230.svg": {
+    "sha256": "29674230065ce8a3bbe4eaff45748d39d9f4913a4584948dfec2165cd6795599",
+    "size": 525
+  },
+  "assets/icons/house.e7f90c14.svg": {
+    "sha256": "e7f90c141390f7dad08f08c0375717800a17b7f8d0ed3fdd348f8cabaffd8c0a",
+    "size": 357
+  },
+  "assets/icons/image.c34dfd40.svg": {
+    "sha256": "c34dfd40cad5efb69b609d00cea76927744c2a651821ca04d57043c07548ecb5",
+    "size": 401
+  },
+  "assets/icons/info.e891bfb0.svg": {
+    "sha256": "e891bfb07954694c86019718d5dd005f2ff63f88d1bc144bf9f01b3feb9dd89e",
+    "size": 383
+  },
+  "assets/icons/key.6d65e9f3.svg": {
+    "sha256": "6d65e9f3746bedb1c7beef41033b8d6d47d3bcd7d28abcfb738047cd4f683b67",
+    "size": 674
+  },
+  "assets/icons/layers.a742c53b.svg": {
+    "sha256": "a742c53b1c02acdcf241b8cede50e1f97259d3a5ef437d81350965abfe86b337",
+    "size": 484
+  },
+  "assets/icons/lightbulb.7f71d234.svg": {
+    "sha256": "7f71d23412261332a07ba601191449de6f1eda947f1fd1f7795d5170bfd9faf8",
+    "size": 744
+  },
+  "assets/icons/lightning.85979373.svg": {
+    "sha256": "859793739c29a54e49cec2d5c144cba6159434e630902dd4b72f0ff0f36e33dc",
+    "size": 416
+  },
+  "assets/icons/link.3c398f08.svg": {
+    "sha256": "3c398f086b9b41c61472b9efef7dde32c15cdcaf293294630f0178dbd3a5b303",
+    "size": 725
+  },
+  "assets/icons/linkedin-logo.b5f3bca5.svg": {
+    "sha256": "b5f3bca54dad30975c9a401adaa1d569b343f81dafb4a59f08ac90508a863b31",
+    "size": 416
+  },
+  "assets/icons/list.32c56a54.svg": {
+    "sha256": "32c56a548d0e516e1eef5af25f663a384c2bc0be793ac940d1252077102d93cf",
+    "size": 288
+  },
+  "assets/icons/lock.0e41a4f5.svg": {
+    "sha256": "0e41a4f54455be27e512a905fe219b8225161d0f420da9bae8fcf2dc17292ceb",
+    "size": 356
+  },
+  "assets/icons/magnifying-glass.d4e64853.svg": {
+    "sha256": "d4e64853718d91a6e2c2e62d79997d714e060a6be4c57bb116a307346eaca2df",
+    "size": 290
+  },
+  "assets/icons/map.aa870e1c.svg": {
+    "sha256": "aa870e1c9ea653f40bbaef54a09544ec6aabffafa6488b4a9c10ed0ff62fe316",
+    "size": 431
+  },
+  "assets/icons/menu.ef6e892b.svg": {
+    "sha256": "ef6e892b01061001cc7bd5cd35897b1cc29c3b4ec0144e589c9511b8fee3ad5e",
+    "size": 288
+  },
+  "assets/icons/monitor.2157b7ac.svg": {
+    "sha256": "2157b7acb0e7ff6e90452f36d30a8303b9fa267f30e22f8b83e6d2a868871b92",
+    "size": 360
+  },
+  "assets/icons/moon.cbf313b8.svg": {
+    "sha256": "cbf313b87d59c7be6715d5c5fe7ae6dd05ed6d60899b667e7b03c619a321e6b1",
+    "size": 502
+  },
+  "assets/icons/network.3ff9590b.svg": {
+    "sha256": "3ff9590b3665b5e1c6eb7e91f5f9fe454c6d1e393f5843032ab5279db3d14c69",
+    "size": 530
+  },
+  "assets/icons/newspaper.40af5f5e.svg": {
+    "sha256": "40af5f5e793b1aaa099b3958e3c0249eebb32719eb672fbf7ace943afee9a98f",
+    "size": 433
+  },
+  "assets/icons/note.7c9b0056.svg": {
+    "sha256": "7c9b0056536f761b824ba607a4a9137cc67c98435fa36827ed7afba07de24074",
+    "size": 383
+  },
+  "assets/icons/notepad.359b6fc4.svg": {
+    "sha256": "359b6fc46f8af4f1fd226bfd68f312c2da318d44d0b39725122fa37d93cd3c92",
+    "size": 493
+  },
+  "assets/icons/package.2227aabc.svg": {
+    "sha256": "2227aabc905583d74baed76659b51f3a868aa62d4b12ade0e7d644742c72cec0",
+    "size": 524
+  },
+  "assets/icons/palette.47ae2624.svg": {
+    "sha256": "47ae262465fd1fd7b769b6b51721604782eaef65e63fbd44a8206e2f4a782e57",
+    "size": 740
+  },
+  "assets/icons/pencil.e580c8af.svg": {
+    "sha256": "e580c8aff9248b99b56d774fcf0600584abce32772376b1f7b7272af07e387d9",
+    "size": 349
+  },
+  "assets/icons/pin.9867437a.svg": {
+    "sha256": "9867437aadb6c95a93304e010d3220db9a8ed4824bf54315f5987bde4461c3a7",
+    "size": 493
+  },
+  "assets/icons/puzzle-piece.f9cf22d0.svg": {
+    "sha256": "f9cf22d0349c53be4efa6e841c6c53aac6d78005341fa42fe2d33fc5e90fe493",
+    "size": 817
+  },
+  "assets/icons/puzzle.fe2dd575.svg": {
+    "sha256": "fe2dd575e1e620ee5ee7382b50ced96ac642473b0ab84b4e64f33a481bdba8c1",
+    "size": 811
+  },
+  "assets/icons/question.3908734b.svg": {
+    "sha256": "3908734bfb58a8b1eea6afce5892cceb8c9dc8b7b0303530423717ade33bb2fc",
+    "size": 481
+  },
+  "assets/icons/recycle.f8626bb2.svg": {
+    "sha256": "f8626bb2979ed71fe47f1c70c488724876084ad160032cd65bbfc69d4ff7b2fa",
+    "size": 810
+  },
+  "assets/icons/reddit-logo.2b63ce27.svg": {
+    "sha256": "2b63ce27294f0f5d49e87e70df2da1f7ab88e67ee1c8b4722d38eec62cd3d033",
+    "size": 1116
+  },
+  "assets/icons/reset.d26dba29.svg": {
+    "sha256": "d26dba295c9c0d9237ebb31beb0a7d0c256e4bba3574d549a337dce4d3dedf02",
+    "size": 326
+  },
+  "assets/icons/rocket.e0eba429.svg": {
+    "sha256": "e0eba429e613eb94b8716bcd27819a45221daa217b6d79dd7bcb1ee51d50ead9",
+    "size": 834
+  },
+  "assets/icons/search.80ab2c22.svg": {
+    "sha256": "80ab2c22e2ecd6796e19db7d994a9a6e1e534354abb8cc5d8d9b148016b0a528",
+    "size": 280
+  },
+  "assets/icons/server.fb4f310e.svg": {
+    "sha256": "fb4f310ef393d6f6064436e6fc299e4412c13ec119c4fdae3631f65fec74885c",
+    "size": 455
+  },
+  "assets/icons/settings.cfec3a96.svg": {
+    "sha256": "cfec3a9670bbcd8c1f576f21c5db0a822d623662544dd152c7696869a55ba770",
+    "size": 2016
+  },
+  "assets/icons/share.038a60a5.svg": {
+    "sha256": "038a60a576812f5dfbd1e8d254dcac1ddb6e84e0efa6a49994b027194d7cd8c7",
+    "size": 408
+  },
+  "assets/icons/shield.9b055875.svg": {
+    "sha256": "9b0558750dc7380e718921de4e57e82769c8862ab45d3aa37da5571fc25ee09c",
+    "size": 467
+  },
+  "assets/icons/sidebar-simple.9911756f.svg": {
+    "sha256": "9911756ff360dcd414b0a7b9c0db731df4cf06ff878d4e37e6753c4083b17147",
+    "size": 236
+  },
+  "assets/icons/sidebar.641ee4dd.svg": {
+    "sha256": "641ee4dd5ae232ec47814343641c8dcf0dd297c0f29d55df59b39f21b99db755",
+    "size": 309
+  },
+  "assets/icons/sparkle.83df962c.svg": {
+    "sha256": "83df962c9277e5cc975e552442a563b3cb0988a41d6a50df132e4c3227421baf",
+    "size": 704
+  },
+  "assets/icons/stack.3a503d23.svg": {
+    "sha256": "3a503d23eb63ed082eb770aaf292e63853485438e3c4d19b149f0731eed21b78",
+    "size": 519
+  },
+  "assets/icons/star.06a9f0f9.svg": {
+    "sha256": "06a9f0f9fbd9ca037ba198b118a0f2a90fc18300a29f144b7d9b33e49f45174b",
+    "size": 845
+  },
+  "assets/icons/starburst.8cdb2999.svg": {
+    "sha256": "8cdb299984032383927dea58b4096ee62048237ab275e26ee1ec4e27d732e3cc",
+    "size": 472
+  },
+  "assets/icons/success.74f3f466.svg": {
+    "sha256": "74f3f466fb73fe88d6397f416e1bf033edcdd9c2487847df644ccfc86637fc92",
+    "size": 377
+  },
+  "assets/icons/sun.17d53691.svg": {
+    "sha256": "17d53691adbcd9466b7238348e613766e0fa5772bca081aee96169b1d404445a",
+    "size": 719
+  },
+  "assets/icons/tag.7e8f534f.svg": {
+    "sha256": "7e8f534fce4259a5565fdffd530bb0259e31326c5357eeaa67e907da6c7ae9a2",
+    "size": 379
+  },
+  "assets/icons/terminal.7113efda.svg": {
+    "sha256": "7113efda26053a6a5d9a0de86d3898647d2200122ab1bd1fd45daa6c175dd75e",
+    "size": 280
+  },
+  "assets/icons/timer.084eb8ee.svg": {
+    "sha256": "084eb8eebb4f082d3af0b8aaa5760066fccc4d202e8c231d19386151164e34f2",
+    "size": 387
+  },
+  "assets/icons/tip.76341a2c.svg": {
+    "sha256": "76341a2c42cb0dacc58a39d04f66e402a88488ae88e437607e11ebca87868ca5",
+    "size": 738
+  },
+  "assets/icons/translate.849ccbc8.svg": {
+    "sha256": "849ccbc8a07d844cf4d36aaacce8d5f55035646163897d117359110d46421d57",
+    "size": 650
+  },
+  "assets/icons/trash.17678552.svg": {
+    "sha256": "1767855292d768994f959e981c7c5449846a5b0f26b08d036c3eee07406ed150",
+    "size": 427
+  },
+  "assets/icons/tree-structure.158e4e62.svg": {
+    "sha256": "158e4e625cbabc4e36fd367f26ac26af30e6ecea1bf6c2e249e17e0476c0e413",
+    "size": 569
+  },
+  "assets/icons/twitter-logo.9280b2f0.svg": {
+    "sha256": "9280b2f0fe897732482e3820e70c67f17d6a8a4c6bdd64380e7c4012d066d553",
+    "size": 850
+  },
+  "assets/icons/upload.a32b789c.svg": {
+    "sha256": "a32b789ccacd0b14a7607ccacbc4a60745c26b9e5cea49c2bb803d0bd380bbb4",
+    "size": 467
+  },
+  "assets/icons/user.347438bb.svg": {
+    "sha256": "347438bbd903eae492d0fb06894b941689ed628f6e991b2686ea21389627dd95",
+    "size": 375
+  },
+  "assets/icons/users.19b21256.svg": {
+    "sha256": "19b212568df65a952902a03622f0d80283a06d321439a8ec36e4d337e642bd7e",
+    "size": 507
+  },
+  "assets/icons/warning.287f9771.svg": {
+    "sha256": "287f977178548c6415277bef4c80220efa281df7f1a16a86066550523024bd6a",
+    "size": 581
+  },
+  "assets/icons/workflow.fba56511.svg": {
+    "sha256": "fba565115e22a50fef8f0eaad915d474a3a28dca43ea1fc15906b682928ec525",
+    "size": 458
+  },
+  "assets/icons/wrench.bddf7b7b.svg": {
+    "sha256": "bddf7b7b647fa3d8ebfc707ab6643fdc69325da89aa47b54d775b3de45775de6",
+    "size": 690
+  },
+  "assets/icons/x.ae77950d.svg": {
+    "sha256": "ae77950d5dea6f276cce913d72edfa201bd79f56f2e061e2e73bdc0374e0c42a",
+    "size": 316
+  },
+  "assets/icons/zap.17ed3cc3.svg": {
+    "sha256": "17ed3cc305ea72d835f97ad4ab28d299be1e68412460259e5bf43784820aac2a",
+    "size": 377
+  },
+  "assets/icons/zoom-in.237b4a83.svg": {
+    "sha256": "237b4a836745fd81677256b56b684025478c6ed004351c2505e9e52269803979",
+    "size": 377
+  },
+  "assets/icons/zoom-out.38857c77.svg": {
+    "sha256": "38857c77b0ce729468f37e10ac47920fe429776461bcc225988189011d9e83ea",
+    "size": 327
+  },
+  "assets/icons_backup/atomic.ebc15835.svg": {
+    "sha256": "ebc15835b3036300e032e489a9530f6287da04c59c6d307d5c0c8d49f34191b2",
+    "size": 1331
+  },
+  "assets/icons_backup/bengal-rosette.e01b0d61.svg": {
+    "sha256": "e01b0d618edb0d4b62ae8532d3877ced581e195d9f99004d212f0a6a243f6e81",
+    "size": 1428
+  },
+  "assets/icons_backup/bookmark.eda867b9.svg": {
+    "sha256": "eda867b91a490162df9d812a68a90fa0f974677ef55e47f57f7111f9e130f182",
+    "size": 377
+  },
+  "assets/icons_backup/boomerang.27c61ac4.svg": {
+    "sha256": "27c61ac4b78c704c344ca2555fcef9258155d0e101f1447f25816a897aa2952b",
+    "size": 289
+  },
+  "assets/icons_backup/calendar.701117b9.svg": {
+    "sha256": "701117b9a586bac93a014c9a4f2b77909023b6ed5011179d3041ded178e5e591",
+    "size": 617
+  },
+  "assets/icons_backup/check.b9409982.svg": {
+    "sha256": "b94099827310ed2e1167ff78a17e41230bd622a9606bbfadd763f7d273c4744e",
+    "size": 249
+  },
+  "assets/icons_backup/chevron-down.0b2d0f00.svg": {
+    "sha256": "0b2d0f00d2b9f1f56a842a544546d433a2af7ecec8753e89e80b896183b0aa6c",
+    "size": 255
+  },
+  "assets/icons_backup/chevron-left.3352327d.svg": {
+    "sha256": "3352327d38ff712049ca81022dd95672b400b0942a760a686ef1c202460214e2",
+    "size": 241
+  },
+  "assets/icons_backup/chevron-right.87120749.svg": {
+    "sha256": "87120749fee8d6a821f0d4ae69a68bddc26a279f328e7fb7227ce1e309788b0d",
+    "size": 261
+  },
+  "assets/icons_backup/chevron-up.9cdec355.svg": {
+    "sha256": "9cdec355f99fbd4c5d0ef0a6b16faae1f8e7ed277afe46d9b882ab440660997c",
+    "size": 271
+  },
+  "assets/icons_backup/clock.d3f6757b.svg": {
+    "sha256": "d3f6757bdb3bb0c3bd613e4d9f78dd6673d663ab37e87a73d51b843f1ae6c67a",
+    "size": 321
+  },
+  "assets/icons_backup/close.19faec2b.svg": {
+    "sha256": "19faec2b925c8bcc77db32a733b3fb513f5f45c89601380f9a5ca02f130d0445",
+    "size": 318
+  },
+  "assets/icons_backup/code.7b069f58.svg": {
+    "sha256": "7b069f58673fb18a5ed8df16aa9e498650712c5f20b2968e73bf93285b893e1c",
+    "size": 484
+  },
+  "assets/icons_backup/copy.c42e52ac.svg": {
+    "sha256": "c42e52ac9ede33ef27844af2b6fcb0459a0cff11e3b76e3ff2e0a596ff845457",
+    "size": 312
+  },
+  "assets/icons_backup/docs.a3471c96.svg": {
+    "sha256": "a3471c961ffa97e82ba60c5a99169cc2a7c1a851a03cc81ab66e854bce6014bd",
+    "size": 449
+  },
+  "assets/icons_backup/download.521d8896.svg": {
+    "sha256": "521d8896b8602bf2a358ea85555437d201753b9c0004edca35c386a0a183a5e5",
+    "size": 460
+  },
+  "assets/icons_backup/edit.8fe02cee.svg": {
+    "sha256": "8fe02ceeb7a8325e1e885b3479a2cb9b4db45586936ccb90011eb41c8f5d90c4",
+    "size": 445
+  },
+  "assets/icons_backup/error.d7ac8b3c.svg": {
+    "sha256": "d7ac8b3c943e9014dfcc57761ea2c134a954d781c7f95c00873d9b406a0ed1b3",
+    "size": 438
+  },
+  "assets/icons_backup/external.a2fbeb42.svg": {
+    "sha256": "a2fbeb4220c4c6f1b2c6e95f74260395f7966d12469fbdbe118b11b961795f8e",
+    "size": 384
+  },
+  "assets/icons_backup/file.05871cd3.svg": {
+    "sha256": "05871cd33b0312aa41dfff0396acf281898157ecb517583798fec25944d65886",
+    "size": 329
+  },
+  "assets/icons_backup/folder.ba105d04.svg": {
+    "sha256": "ba105d04aa2ac49654321f6608aa1c04e792ccbdc61f834a3317f632f0f00b9d",
+    "size": 340
+  },
+  "assets/icons_backup/heart.fa6c6b0e.svg": {
+    "sha256": "fa6c6b0efadc58ec4d4ab1d1dfc11304b6f28509da8d3bed3228382e5563e82e",
+    "size": 523
+  },
+  "assets/icons_backup/info.274f21ee.svg": {
+    "sha256": "274f21ee0b7fc400519603f565328cb6fe524df8c043ecdd3da6e0f605b6b889",
+    "size": 381
+  },
+  "assets/icons_backup/link.c0f415ab.svg": {
+    "sha256": "c0f415ab9bc2b42f5eeefa4ec956b42b418fbc6b8f232b7b8d4c785749ed6652",
+    "size": 723
+  },
+  "assets/icons_backup/menu.a4551e94.svg": {
+    "sha256": "a4551e94fd75f626ebc4f55cced8ec2e6024c7a79456f2c80b0e1017c578b40f",
+    "size": 286
+  },
+  "assets/icons_backup/moon.08a95827.svg": {
+    "sha256": "08a958272f8b15e07d649c0212d1f3b5ea3c7ad15a1f7ac789dc3de09889c942",
+    "size": 500
+  },
+  "assets/icons_backup/notepad.f7694ed4.svg": {
+    "sha256": "f7694ed4fd67ac2e44a4d0c3f9b8c7731539516854d154012b9b0932bb885fa0",
+    "size": 491
+  },
+  "assets/icons_backup/palette.f9a76deb.svg": {
+    "sha256": "f9a76deb0dc461ed5ec35b2b32b5b355e9a4500b90741fd20adac0e43bb02178",
+    "size": 738
+  },
+  "assets/icons_backup/pin.51883073.svg": {
+    "sha256": "518830737bb7a676a2b6c57240c94f2617f66ae6e0cb6cf1cbd6353fd70e7f8c",
+    "size": 491
+  },
+  "assets/icons_backup/search.9226f338.svg": {
+    "sha256": "9226f338a70280c448655746053eae492c0466e63e129f3714e16945f9215f1f",
+    "size": 278
+  },
+  "assets/icons_backup/settings.40f8996f.svg": {
+    "sha256": "40f8996f0f4d6240c977d13c206f956fa5868dee29e4309ab80907e4f37c4f54",
+    "size": 2014
+  },
+  "assets/icons_backup/star.f63d6d96.svg": {
+    "sha256": "f63d6d96ec35c71ba4b650162cc5d3f316dcc4fbfbd4aa1e6f54df9edd54272b",
+    "size": 843
+  },
+  "assets/icons_backup/starburst.fdcc0e2f.svg": {
+    "sha256": "fdcc0e2f53f636077121f20da72c8fc4ac9114f711e935eb64383118b5d35ec5",
+    "size": 470
+  },
+  "assets/icons_backup/sun.5645fb09.svg": {
+    "sha256": "5645fb090c6e9eb90516e8304375a6def7276d1e9c525dd6f9dd14d6a88d68c0",
+    "size": 717
+  },
+  "assets/icons_backup/tag.86ead648.svg": {
+    "sha256": "86ead6488e0a99c869947dc0ff060c75b8665dcb4480b779dcd222d5ed8d12e7",
+    "size": 377
+  },
+  "assets/icons_backup/terminal.65f2661a.svg": {
+    "sha256": "65f2661a565ddaf993261848f418047e487de21a06311b24e197e2c0cea6664c",
+    "size": 278
+  },
+  "assets/icons_backup/trash.873cde29.svg": {
+    "sha256": "873cde29ff4b1ba9933215adda0cae276e1f56e49a5165fe2c8ab7ea95d05fd9",
+    "size": 425
+  },
+  "assets/icons_backup/upload.f138ba95.svg": {
+    "sha256": "f138ba95b97e6e7e7f2ed6190091db5954a691154ee6f7feb9e9f2f42f8738f5",
+    "size": 465
+  },
+  "assets/icons_backup/warning.ffe2bae7.svg": {
+    "sha256": "ffe2bae719359a15172401b2cb9ef79fe92e1b26a2406cb035638bdc866ba6ad",
+    "size": 579
+  },
+  "assets/images/kida-avatar.7a874edc.png": {
+    "sha256": "f96ebc832738d20796dcb3dfbcfc9013eea3cef3200e3cfbe9b51b0659d7b7c3",
+    "size": 2738175
+  },
+  "assets/js/bengal-enhance.584a80ad.js": {
+    "sha256": "584a80ad24da17e3453cd914c78921c7285469f06cd63b6f07cf156404e8fa67",
+    "size": 3867
+  },
+  "assets/js/biome.acadc3df.json": {
+    "sha256": "acadc3df5cb8a1e4eec2383ef4a43c0cf08840766cb666e8327c449012fab121",
+    "size": 1623
+  },
+  "assets/js/core/build-badge.b2293701.js": {
+    "sha256": "b22937014ef4290dd442e53f7052fbc6f5b8c70b5974305a842aacd81a049ecb",
+    "size": 8002
+  },
+  "assets/js/core/nav-dropdown.8bcb61fa.js": {
+    "sha256": "8bcb61fa07e79211b6c43f3c951a4ddef583dbe3a88bbfa3ef1dd473bdff40af",
+    "size": 3321
+  },
+  "assets/js/core/search.cea12131.js": {
+    "sha256": "cea1213102201802d632ac3e5b7d261d09e2e52fbfa582c3d5c3f02b2511cafe",
+    "size": 37119
+  },
+  "assets/js/core/session-path-tracker.8fe5452b.js": {
+    "sha256": "8fe5452bdd1233d70d96132758a678c46966420de3a40c97c52abc1354c03cae",
+    "size": 1755
+  },
+  "assets/js/core/theme.85392cb8.js": {
+    "sha256": "85392cb86c843b1012577b89ee1153baea04e0adcdbcdac244e95458af317748",
+    "size": 4979
+  },
+  "assets/js/core/version-selector.e6ba449d.js": {
+    "sha256": "e6ba449d7732f3516671acd61819f8515a6265617f71dc09e410c7e883dca9b0",
+    "size": 484
+  },
+  "assets/js/enhancements/action-bar.d62417f4.js": {
+    "sha256": "d62417f4478f962e61bd3f081c7bdae077a861d197b07b235ec0de0abdca8981",
+    "size": 6811
+  },
+  "assets/js/enhancements/copy-link.7d9a5c29.js": {
+    "sha256": "7d9a5c2996d78171e485512075a7854e9b0b42913be5971a25ae373f4d82469d",
+    "size": 2359
+  },
+  "assets/js/enhancements/data-table.1f5bc1eb.js": {
+    "sha256": "1f5bc1eb4fdec8183f62aec463353eac3f3dcfe19e7c44eb2c273ef4f204e333",
+    "size": 2985
+  },
+  "assets/js/enhancements/docs-nav.57e4b129.js": {
+    "sha256": "57e4b129ee77f29d1e5435fa02c61cb4e16d64cd63e3f4299576e301ef4166e2",
+    "size": 182
+  },
+  "assets/js/enhancements/holo.ee13c841.js": {
+    "sha256": "ee13c841bbf1f83a6431ccb31da2afea32955cd1d39de2b783c338671c32dbfd",
+    "size": 6391
+  },
+  "assets/js/enhancements/interactive.96c8880c.js": {
+    "sha256": "96c8880c35d4170d3bfbbf2e73e0c7a067905788f34ecc6f25e9482491dfcf9b",
+    "size": 9377
+  },
+  "assets/js/enhancements/lazy-loaders.a5c38245.js": {
+    "sha256": "a5c3824538f78ce40ecb51b2846e9ac90e011b1a59fac1ea5137e60dd2f1d238",
+    "size": 3014
+  },
+  "assets/js/enhancements/lightbox.1ca22aa1.js": {
+    "sha256": "1ca22aa15ed2b2ae3669386a2cfc1933dccf241b051ec6b4f7189f42fee4eb53",
+    "size": 5687
+  },
+  "assets/js/enhancements/link-previews.96620bcf.js": {
+    "sha256": "96620bcf4e4ead7168af8b57c15ad9e38bea1453692aa6254750d6a4602f24a3",
+    "size": 14854
+  },
+  "assets/js/enhancements/math.6a7fcd91.js": {
+    "sha256": "6a7fcd91a4f149f71b766694fc5c64b5489ef5c6c558bc38c967fe7dc11e5c05",
+    "size": 278
+  },
+  "assets/js/enhancements/mobile-nav.d991657f.js": {
+    "sha256": "d991657f6e0c70c3673a915d78f77d0a6701e46a01d2bcd6116d821ffec5b309",
+    "size": 3385
+  },
+  "assets/js/enhancements/tabs.aac9e817.js": {
+    "sha256": "aac9e817740d61375acf1c61e10373cd1d0e58dc3e9844e8442dcb50a1862ce1",
+    "size": 6696
+  },
+  "assets/js/enhancements/toc.736b857e.js": {
+    "sha256": "736b857e6ed84e4db1f19b70bb3ef026a21c50e24b28445ddff06d742a7a4e6d",
+    "size": 9167
+  },
+  "assets/js/enhancements/tracks.3bce4cba.js": {
+    "sha256": "3bce4cba8b84dc121cd16baffdb80989ee14d0c18f1cf31fe2dcaa8eb040ac9e",
+    "size": 7204
+  },
+  "assets/js/graph-contextual.355458ba.js": {
+    "sha256": "355458bac89dbdcd0bb64a16d68926a62f14f010eed8d1a0d9ceb8867c27f86e",
+    "size": 15830
+  },
+  "assets/js/graph-minimap.ff04e939.js": {
+    "sha256": "ff04e9390c76469e949411f00a11b7043563f9ac713396b4a2490b8823332cf3",
+    "size": 9439
+  },
+  "assets/js/main.84b1d63d.js": {
+    "sha256": "84b1d63d95ac3fc9c0e46a7b1ba41f46ead4c6a260de62032cf5e3740dd8429b",
+    "size": 8628
+  },
+  "assets/js/mermaid-theme.344822c5.js": {
+    "sha256": "344822c52417b9d3c619c362b86d0860096724d251de258db5bac105ab2ae0c8",
+    "size": 10378
+  },
+  "assets/js/mermaid-toolbar.9de5abba.js": {
+    "sha256": "9de5abba30e72a28b5bbe4d4d798540deb73523d729a9a8198a1a164e55dc681",
+    "size": 14509
+  },
+  "assets/js/utils.7b73d74c.js": {
+    "sha256": "7b73d74c0944cb7559cdee55aecbdcf3726da2cd1220750c1acbfbdd5b8b9c94",
+    "size": 4026
+  },
+  "assets/js/vendor/lunr.min.0c50d900.js": {
+    "sha256": "0c50d9002b85780a842afffb567bb54ede402dae7c6dc5997a018614d8044fc8",
+    "size": 29510
+  },
+  "assets/js/vendor/tabulator.min.b7d4e3db.js": {
+    "sha256": "b7d4e3dbe26b3a448ee667cd7cb6ea6fcebf03a688ca0504efed67cc94a9bea6",
+    "size": 437387
+  },
+  "assets/site.8d90594a.webmanifest": {
+    "sha256": "8d90594a5b3516a05a763f243a2819276a5da9b2ac946c70b22e068e0765da7b",
+    "size": 443
+  },
+  "graph/index.html": {
+    "sha256": "429152188191f3c368d2eef0e83910c6de508876749fc775accfd9c3721916ed",
+    "size": 20868
+  },
+  "index.html": {
+    "sha256": "17aebf4f8e94d9f6a9ce24f6e059ed78f186db13b13fdcaae52166de503ec344",
+    "size": 24893
+  },
+  "index.md": {
+    "sha256": "16e8222fb857cd4306c6d5037ed4da901955c5b705724e0a50ba2a44bef31069",
+    "size": 85
+  },
+  "index.txt": {
+    "sha256": "706c3fbcd62a422222c0a1b03793808509683410399730181acb0c2fbf293324",
+    "size": 294
+  },
+  "llms.txt": {
+    "sha256": "a03f60b7b801965d34080c9d18e1d0e27110dcf7587f5ba5bd06d29ae1face45",
+    "size": 198
+  },
+  "robots.txt": {
+    "sha256": "c40daaf872059821018e39d660119a1217dd08b12c8e12b913ed933b462b1897",
+    "size": 1031
+  },
+  "search/index.html": {
+    "sha256": "b2deff33ff7a018e1da47ffbc6202c917fc7cef7805674de196728a9264e38dc",
+    "size": 35871
+  }
+}

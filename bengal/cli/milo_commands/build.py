@@ -48,6 +48,12 @@ def build(
         Description("[Output] Show per-file build details (incompatible with --quiet, --fast)"),
     ] = False,
     strict: Annotated[bool, Description("Fail on template errors (recommended for CI)")] = False,
+    continue_on_error: Annotated[
+        bool,
+        Description(
+            "Render error placeholders for failed pages and continue; exit 1 if any errors"
+        ),
+    ] = False,
     debug: Annotated[bool, Description("[Debug] Show debug output and full tracebacks")] = False,
     traceback: Annotated[
         str,
@@ -88,6 +94,10 @@ def build(
     explain_json: Annotated[
         bool, Description("[Debug] Output --explain results as machine-readable JSON")
     ] = False,
+    error_format: Annotated[
+        str,
+        Description("Error output format for editor integrations: 'text' (default) or 'json'"),
+    ] = "",
     dry_run: Annotated[
         bool, Description("Preview what would be built without writing files to disk")
     ] = False,
@@ -175,6 +185,15 @@ def build(
         cli.error("--verbose and --quiet cannot be used together")
         raise SystemExit(2)
 
+    if strict and continue_on_error:
+        cli.error("--strict and --continue-on-error cannot be used together")
+        raise SystemExit(2)
+
+    error_format_val = (error_format or "text").lower()
+    if error_format_val not in {"text", "json"}:
+        cli.error(f"--error-format must be 'text' or 'json' (got: {error_format!r})")
+        raise SystemExit(2)
+
     # Apply fast mode after validation
     if fast:
         quiet = True
@@ -237,8 +256,10 @@ def build(
         )
 
         if clean_output:
+            from bengal.orchestration.site_runner import SiteRunner
+
             cli.info("Cleaning output directory before build (--clean-output).")
-            site.clean()
+            SiteRunner(site).clean()
             site.config["_clean_output_this_run"] = True
 
         configure_traceback(debug=debug, traceback=traceback_val, site=site)
@@ -253,6 +274,7 @@ def build(
             fast=fast_val,
             memory_optimized=memory_optimized,
             profile_templates=profile_templates,
+            continue_on_error=continue_on_error if continue_on_error else None,
         )
         build_options = resolve_build_options(site.config, cli_flags)
 
@@ -262,6 +284,7 @@ def build(
         strict = build_options.strict
         memory_optimized = build_options.memory_optimized
         profile_templates = build_options.profile_templates
+        continue_on_error = build_options.continue_on_error
 
         if strict:
             if "build" not in site.config:
@@ -352,6 +375,7 @@ def build(
                 enable_profiling()
 
             from bengal.orchestration.build.options import BuildOptions
+            from bengal.orchestration.site_runner import SiteRunner
 
             build_opts = BuildOptions(
                 force_sequential=build_options.force_sequential,
@@ -361,13 +385,14 @@ def build(
                 profile=build_profile,
                 memory_optimized=memory_optimized,
                 strict=strict,
+                continue_on_error=continue_on_error,
                 full_output=full_output,
                 profile_templates=profile_templates,
                 explain=explain,
                 dry_run=dry_run,
                 explain_json=explain_json,
             )
-            stats = site.build(options=build_opts)
+            stats = SiteRunner(site).build(build_opts)
 
             if explain:
                 if explain_json:
@@ -385,6 +410,20 @@ def build(
                     cli.header("Template Profiling Report")
                     for line in format_profile_report(report, top_n=20).splitlines():
                         cli.info(line)
+
+        # JSON error format short-circuits the human-readable display.
+        # (Sprint A4.2) Emits {"errors": [...]} for editor integrations.
+        if error_format_val == "json":
+            _print_errors_json(stats, cli)
+            error_count = len(getattr(stats, "template_errors", []))
+            if error_count > 0:
+                raise SystemExit(1)
+            return {
+                "status": "ok",
+                "message": "Build complete",
+                "output_dir": str(site.output_dir),
+                "errors": 0,
+            }
 
         # Display results
         if stats.template_errors and build_profile != BuildProfile.WRITER:
@@ -404,7 +443,9 @@ def build(
                             PerformanceCollector,
                         )
 
-                        _reader = PerformanceCollector(metrics_dir=site.paths.metrics_dir)
+                        _reader = PerformanceCollector(
+                            metrics_dir=site.config_service.paths.metrics_dir
+                        )
                         _prev = _reader.load_previous()
                         if _prev and _prev.build_time_ms > 0 and stats.build_time_ms > 0:
                             stats.regression_pct = (
@@ -440,6 +481,8 @@ def build(
                 cli.tip(hints[0].message)
 
         error_count = len(getattr(stats, "template_errors", []))
+        if continue_on_error and error_count > 0:
+            raise SystemExit(1)
         return {
             "status": "ok" if error_count == 0 else "error",
             "message": "Build complete"
@@ -508,6 +551,7 @@ def _build_versions(
         )
 
         from bengal.orchestration.build.options import BuildOptions
+        from bengal.orchestration.site_runner import SiteRunner
 
         for v in discovered_versions:
             cli.blank()
@@ -538,7 +582,7 @@ def _build_versions(
                 strict=strict,
                 full_output=full_output,
             )
-            worktree_site.build(worktree_build_opts)
+            SiteRunner(worktree_site).build(worktree_build_opts)
 
         git_adapter.cleanup_worktrees(keep_cached=True)
         cli.blank()
@@ -586,6 +630,7 @@ def _build_with_profiling(
     from pathlib import Path
 
     from bengal.orchestration.build.options import BuildOptions
+    from bengal.orchestration.site_runner import SiteRunner
 
     profiler = cProfile.Profile()
     profiler.enable()
@@ -600,7 +645,7 @@ def _build_with_profiling(
         strict=strict,
         full_output=full_output,
     )
-    stats = site.build(options=build_opts)
+    stats = SiteRunner(site).build(build_opts)
 
     profiler.disable()
 
@@ -723,6 +768,30 @@ def _print_explain_output(stats, cli, *, dry_run: bool = False) -> None:
                 for reason, count in sorted(reason_summary.items(), key=lambda x: -x[1])[:3]
             ]
             cli.detail(f"  Reason summary: {', '.join(summary_parts)}", indent=0)
+
+
+def _print_errors_json(stats, cli) -> None:
+    """Emit collected template errors as machine-readable JSON.
+
+    Sprint A4.2: Editor integrations (VS Code problem matchers, etc.)
+    consume this format. The schema reuses ``error_to_dict`` so it stays
+    in lockstep with the dev-server overlay payload.
+    """
+    import json
+
+    from bengal.errors.aggregation import group_errors_by_code
+    from bengal.errors.overlay.transport import error_to_dict
+
+    template_errors = list(getattr(stats, "template_errors", []) or [])
+    output = {
+        "errors": [error_to_dict(err) for err in template_errors],
+        "summary": {
+            "total": len(template_errors),
+            "by_code": group_errors_by_code(template_errors),
+        },
+    }
+
+    cli.render_write("json_output.kida", data=json.dumps(output, indent=2))
 
 
 def _print_explain_json(stats, *, dry_run: bool = False) -> None:

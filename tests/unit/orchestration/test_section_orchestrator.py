@@ -26,7 +26,7 @@ class TestSectionOrchestrator:
         site = Mock(spec=Site)
         site.root_path = tmp_path
         site.output_dir = tmp_path / "public"
-        site.paths = BengalPaths(tmp_path)
+        site.config_service.paths = BengalPaths(tmp_path)
         site.sections = []
         site.pages = []
         site.config = {"pagination": {"per_page": 10}}

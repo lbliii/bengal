@@ -65,11 +65,13 @@ class PathRegistry:
         """
         self.site = site
         self._content_dir = (
-            site.paths.content_dir if hasattr(site, "paths") else site.root_path / "content"
+            site.config_service.paths.content_dir
+            if hasattr(site, "config_service")
+            else site.root_path / "content"
         )
         self._generated_dir = (
-            site.paths.generated_dir
-            if hasattr(site, "paths")
+            site.config_service.paths.generated_dir
+            if hasattr(site, "config_service")
             else site.root_path / ".bengal" / "generated"
         )
         self._output_dir = (

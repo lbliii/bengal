@@ -222,7 +222,7 @@ class TestMakeVirtualPathProperties:
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_site = Mock()
             mock_site.root_path = Path(tmpdir)
-            mock_site.paths.generated_dir = Path(tmpdir) / ".bengal" / "generated"
+            mock_site.config_service.paths.generated_dir = Path(tmpdir) / ".bengal" / "generated"
 
             virtual_path = URLStrategy.make_virtual_path(mock_site, *segments)
 
@@ -247,7 +247,7 @@ class TestMakeVirtualPathProperties:
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_site = Mock()
             mock_site.root_path = Path(tmpdir)
-            mock_site.paths.generated_dir = Path(tmpdir) / ".bengal" / "generated"
+            mock_site.config_service.paths.generated_dir = Path(tmpdir) / ".bengal" / "generated"
 
             virtual_path = URLStrategy.make_virtual_path(mock_site, *segments)
 
@@ -275,7 +275,7 @@ class TestMakeVirtualPathProperties:
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_site = Mock()
             mock_site.root_path = Path(tmpdir)
-            mock_site.paths.generated_dir = Path(tmpdir) / ".bengal" / "generated"
+            mock_site.config_service.paths.generated_dir = Path(tmpdir) / ".bengal" / "generated"
 
             virtual_path = URLStrategy.make_virtual_path(mock_site, *segments)
 
@@ -298,7 +298,7 @@ class TestMakeVirtualPathProperties:
         with tempfile.TemporaryDirectory() as tmpdir:
             mock_site = Mock()
             mock_site.root_path = Path(tmpdir)
-            mock_site.paths.generated_dir = Path(tmpdir) / ".bengal" / "generated"
+            mock_site.config_service.paths.generated_dir = Path(tmpdir) / ".bengal" / "generated"
 
             virtual_path = URLStrategy.make_virtual_path(mock_site, *segments)
 

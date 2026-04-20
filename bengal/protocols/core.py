@@ -124,7 +124,7 @@ class Navigable(Protocol):
         ...
 
     @property
-    def is_virtual(self) -> bool:
+    def virtual(self) -> bool:
         """Whether this is a virtual (generated) page."""
         ...
 
@@ -242,7 +242,7 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
     related_posts: list[PageLike]  # Pre-computed related pages
 
     _site: Any  # Site reference (set during setup_references)
-    _prerendered_html: str | None  # Pre-rendered HTML (autodoc, etc.), set before render
+    prerendered_html: str | None  # Pre-rendered HTML (autodoc, etc.), set before render
     _excerpt: str | None  # AST-extracted excerpt (set by pipeline)
     _meta_description: str | None  # AST-extracted meta description (set by pipeline)
     _toc_items_cache: list[Any] | None  # Cached TOC items from parsing

@@ -573,6 +573,58 @@ class TestClientScriptPayloadContract:
         assert "action === 'fragment'" in LIVE_RELOAD_SCRIPT
         assert "innerHTML" in LIVE_RELOAD_SCRIPT
 
+    def test_script_handles_build_error_message(self):
+        """Client script must branch on payload.type === 'build_error' and render the overlay."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        assert "type === 'build_error'" in LIVE_RELOAD_SCRIPT
+        assert "renderErrorOverlay" in LIVE_RELOAD_SCRIPT
+
+    def test_script_handles_build_ok_message(self):
+        """Client script must branch on payload.type === 'build_ok' and dismiss the overlay."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        assert "type === 'build_ok'" in LIVE_RELOAD_SCRIPT
+        assert "dismissErrorOverlay" in LIVE_RELOAD_SCRIPT
+
+    def test_script_reloads_when_on_overlay_page_after_build_ok(self):
+        """When the page itself is the error placeholder, build_ok must full-reload."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        assert "isOnOverlayPage" in LIVE_RELOAD_SCRIPT
+        assert "data-bengal-overlay" in LIVE_RELOAD_SCRIPT
+
+    def test_overlay_renderer_escapes_user_data(self):
+        """The HTML overlay renderer must HTML-escape user-controlled strings."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        # We don't run JS here, but we verify the helper exists and is used.
+        assert "function escapeHTML" in LIVE_RELOAD_SCRIPT
+        # The overlay rendering must route the title/message through escapeHTML.
+        assert "escapeHTML(err.message" in LIVE_RELOAD_SCRIPT
+        assert "escapeHTML(err.title" in LIVE_RELOAD_SCRIPT
+
+    def test_overlay_renderer_promotes_top_suggestion(self):
+        """Top suggestion must be rendered as a prominent 'Did you mean X?' headline."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        # The headline class and prompt phrasing must both be present.
+        assert "bengal-alt-top" in LIVE_RELOAD_SCRIPT
+        assert "Did you mean" in LIVE_RELOAD_SCRIPT
+        # The top suggestion is sugg[0]; remaining are sliced off.
+        assert "sugg[0]" in LIVE_RELOAD_SCRIPT
+        assert "sugg.slice(1)" in LIVE_RELOAD_SCRIPT
+        # Top suggestion value must still flow through escapeHTML.
+        assert "escapeHTML(sugg[0].value)" in LIVE_RELOAD_SCRIPT
+
+    def test_overlay_renderer_styles_top_suggestion(self):
+        """Top-suggestion CSS rules must be injected so the headline stands out."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        assert ".bengal-alt-top {" in LIVE_RELOAD_SCRIPT
+        assert ".bengal-alt-top-name {" in LIVE_RELOAD_SCRIPT
+        assert ".bengal-alt-others-label {" in LIVE_RELOAD_SCRIPT
+
     def test_script_uses_changed_paths_from_payload(self):
         """Client script must read changedPaths from payload for CSS targeting."""
         from bengal.server.live_reload import LIVE_RELOAD_SCRIPT

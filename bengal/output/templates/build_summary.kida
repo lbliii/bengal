@@ -43,6 +43,9 @@
 
         # Error report lines (optional)
         error_lines: list[{text, level}] — pre-formatted error report lines
+
+        # Error-code breakdown (Sprint A4.3, optional)
+        error_code_summary: str — e.g. "3 errors (2 [R022], 1 [R024])"
 -#}
 {% from "_bengal.kida" import bengal_header, error_header %}
 
@@ -86,6 +89,10 @@
 {%- endif -%}
 {%- if output_dir | default(none) %}
    {{ "↪" | dim }} {{ output_dir | dim }}
+{%- endif -%}
+
+{%- if error_code_summary | default("") %}
+   {{ ("By code: " ~ error_code_summary) | red }}
 {%- endif -%}
 
 {%- if error_lines | default(none) %}

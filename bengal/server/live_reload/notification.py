@@ -100,6 +100,96 @@ def set_reload_action(action: str) -> None:
     logger.debug("reload_action_set", action=action)
 
 
+def send_build_error_payload(payload: dict) -> None:
+    """Push a ``build_error`` envelope to all connected SSE clients.
+
+    The payload must already conform to the A0.2 wire schema (see
+    :mod:`bengal.errors.overlay.transport`). The notifier only adds
+    transport concerns: JSON-encoding, generation bump, condition signal.
+    """
+    if _reload_events_disabled():
+        logger.info(
+            "reload_notification_suppressed",
+            reason="env_BENGAL_DISABLE_RELOAD_EVENTS",
+            action="build_error",
+        )
+        return
+    try:
+        encoded = json.dumps(payload)
+    except Exception as e:
+        logger.warning(
+            "build_error_payload_serialization_failed",
+            error_code=ErrorCode.S003.name,
+            error=str(e),
+        )
+        return
+
+    with _state.condition:
+        _state.last_action = encoded
+        _state.generation += 1
+        _state.sent_count += 1
+        _state.condition.notify_all()
+
+    error_count = len(payload.get("errors", []))
+    first_code = ""
+    if error_count:
+        first_code = payload["errors"][0].get("code") or ""
+    logger.info(
+        "build_error_notification_sent",
+        error_count=error_count,
+        first_code=first_code,
+        generation=_state.generation,
+        sent_count=_state.sent_count,
+    )
+    if os.environ.get("BENGAL_DEBUG_RELOAD"):
+        print(
+            f"[Bengal] build_error sent: errors={error_count} first={first_code!r}",
+            flush=True,
+        )
+
+
+def send_build_ok_payload(payload: dict) -> None:
+    """Push a ``build_ok`` envelope to all connected SSE clients.
+
+    Sent after a successful rebuild that follows a failed build, so the
+    overlay can dismiss itself.
+    """
+    if _reload_events_disabled():
+        logger.info(
+            "reload_notification_suppressed",
+            reason="env_BENGAL_DISABLE_RELOAD_EVENTS",
+            action="build_ok",
+        )
+        return
+    try:
+        encoded = json.dumps(payload)
+    except Exception as e:
+        logger.warning(
+            "build_ok_payload_serialization_failed",
+            error_code=ErrorCode.S003.name,
+            error=str(e),
+        )
+        return
+
+    with _state.condition:
+        _state.last_action = encoded
+        _state.generation += 1
+        _state.sent_count += 1
+        _state.condition.notify_all()
+
+    logger.info(
+        "build_ok_notification_sent",
+        build_ms=payload.get("build_ms"),
+        generation=_state.generation,
+        sent_count=_state.sent_count,
+    )
+    if os.environ.get("BENGAL_DEBUG_RELOAD"):
+        print(
+            f"[Bengal] build_ok sent: build_ms={payload.get('build_ms')!r}",
+            flush=True,
+        )
+
+
 def send_fragment_payload(
     selector: str,
     html: str,

@@ -70,7 +70,7 @@ class TestBuildTemplateContext:
         site.baseurl = "/test"
         site.title = "Test Site"
         site.output_dir = Path("/tmp/output")
-        site.paths.asset_manifest = Path("/tmp/.bengal/asset-manifest.json")
+        site.config_service.paths.asset_manifest = Path("/tmp/.bengal/asset-manifest.json")
         site.theme = None
         return site
 
@@ -143,7 +143,7 @@ class TestRenderTemplate:
         site = MagicMock()
         site.config = {"title": "Test Site", "baseurl": ""}
         site.output_dir = Path("/tmp/output")
-        site.paths.asset_manifest = Path("/tmp/.bengal/asset-manifest.json")
+        site.config_service.paths.asset_manifest = Path("/tmp/.bengal/asset-manifest.json")
         site.theme = None
         return site
 
@@ -217,7 +217,7 @@ class TestGenerateHtml:
         site = MagicMock()
         site.config = {"title": "Test Site", "baseurl": ""}
         site.output_dir = Path("/tmp/output")
-        site.paths.asset_manifest = Path("/tmp/.bengal/asset-manifest.json")
+        site.config_service.paths.asset_manifest = Path("/tmp/.bengal/asset-manifest.json")
         site.theme = None
         return site
 

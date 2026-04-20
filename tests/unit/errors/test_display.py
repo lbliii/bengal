@@ -17,7 +17,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.errors import BengalRenderingError, ErrorCode
-from bengal.errors.display import beautify_common_exception, display_bengal_error
+from bengal.errors.display import (
+    beautify_common_exception,
+    display_bengal_error,
+    display_template_render_error,
+)
 
 
 class TestBeautifyCommonException:
@@ -279,3 +283,124 @@ class TestDisplayBengalError:
         calls = mock_cli.info.call_args_list
         output = " ".join(str(call) for call in calls)
         assert "Simple error" in output
+
+
+class TestDisplayTemplateRenderError:
+    """Tests for the canonical CLIOutput-aware template-error renderer (Sprint A2.2)."""
+
+    def _make_error(
+        self,
+        *,
+        error_type: str = "syntax",
+        code: ErrorCode | None = ErrorCode.R002,
+        suggestion: str | None = None,
+        alternatives: list[str] | None = None,
+    ):
+        from bengal.rendering.errors import TemplateErrorContext, TemplateRenderError
+
+        return TemplateRenderError(
+            error_type=error_type,
+            message="boom",
+            template_context=TemplateErrorContext(
+                template_name="page.html",
+                line_number=3,
+                column=None,
+                source_line="{{ x }}",
+                surrounding_lines=[(2, "before"), (3, "{{ x }}"), (4, "after")],
+                template_path=Path("/tmp/page.html"),
+            ),
+            inclusion_chain=None,
+            page_source=None,
+            suggestion=suggestion,
+            available_alternatives=alternatives or [],
+            code=code,
+        )
+
+    def _capture(self, mock_cli: MagicMock) -> str:
+        """Concatenate every cli.info / cli.error call into a flat string."""
+        parts: list[str] = []
+        for call in mock_cli.info.call_args_list:
+            parts.extend(str(arg) for arg in call.args)
+        for call in mock_cli.error.call_args_list:
+            parts.extend(str(arg) for arg in call.args)
+        return "\n".join(parts)
+
+    def test_emits_error_code_prefix_in_header(self) -> None:
+        """A2.2 acceptance: every rendered template error contains the [R0XX] prefix."""
+        mock_cli = MagicMock()
+        mock_cli.icons = MagicMock()
+
+        display_template_render_error(self._make_error(), mock_cli)
+
+        output = self._capture(mock_cli)
+        assert "[R002]" in output
+        assert "Template Syntax Error" in output
+
+    def test_renders_code_window_with_caret(self) -> None:
+        mock_cli = MagicMock()
+        mock_cli.icons = MagicMock()
+
+        display_template_render_error(self._make_error(), mock_cli)
+
+        output = self._capture(mock_cli)
+        assert "  Code:" in output
+        # Error line should be marked with `>`.
+        assert ">    3 |" in output
+        # Caret underline appears under the offending line.
+        assert "^" in output
+
+    def test_includes_suggestion_and_alternatives(self) -> None:
+        mock_cli = MagicMock()
+        mock_cli.icons = MagicMock()
+
+        err = self._make_error(
+            error_type="filter",
+            code=ErrorCode.R004,
+            suggestion="Use `format_date` instead",
+            alternatives=["format_date", "dateformat", "fmt_date"],
+        )
+        display_template_render_error(err, mock_cli)
+
+        output = self._capture(mock_cli)
+        assert "Suggestion: Use `format_date` instead" in output
+        # Top match is promoted onto its own line.
+        assert "Did you mean: 'format_date'?" in output
+        # Remaining matches go on a secondary line, top excluded.
+        assert "Other matches: 'dateformat', 'fmt_date'" in output
+
+    def test_omits_other_matches_line_when_only_one_alternative(self) -> None:
+        mock_cli = MagicMock()
+        mock_cli.icons = MagicMock()
+
+        err = self._make_error(
+            error_type="filter",
+            code=ErrorCode.R004,
+            alternatives=["format_date"],
+        )
+        display_template_render_error(err, mock_cli)
+
+        output = self._capture(mock_cli)
+        assert "Did you mean: 'format_date'?" in output
+        assert "Other matches" not in output
+
+    def test_includes_docs_url_when_code_present(self) -> None:
+        mock_cli = MagicMock()
+        mock_cli.icons = MagicMock()
+
+        display_template_render_error(self._make_error(), mock_cli)
+
+        output = self._capture(mock_cli)
+        assert "Docs: https://lbliii.github.io/bengal" in output
+
+    def test_falls_back_when_code_missing(self) -> None:
+        mock_cli = MagicMock()
+        mock_cli.icons = MagicMock()
+
+        err = self._make_error(code=None)
+        display_template_render_error(err, mock_cli)
+
+        output = self._capture(mock_cli)
+        # No prefix, but header still emitted; no docs URL.
+        assert "Template Syntax Error" in output
+        assert "[R" not in output
+        assert "Docs:" not in output

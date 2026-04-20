@@ -44,7 +44,7 @@ def inspect_page(
 
     from bengal.cache import BuildCache
 
-    cache_path = site.paths.build_cache
+    cache_path = site.config_service.paths.build_cache
     cache = (
         BuildCache.load(cache_path)
         if cache_path.exists() or cache_path.with_suffix(".json.zst").exists()
@@ -222,7 +222,7 @@ def inspect_graph(
     from bengal.cache.build_cache import BuildCache
     from bengal.debug import DependencyVisualizer
 
-    cache = BuildCache.load(site.paths.build_cache)
+    cache = BuildCache.load(site.config_service.paths.build_cache)
     visualizer = DependencyVisualizer(site=site, cache=cache, root_path=site.root_path)
 
     report = visualizer.run()

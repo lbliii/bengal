@@ -66,6 +66,7 @@ class CLIFlags:
     fast: bool | None = None
     memory_optimized: bool | None = None
     profile_templates: bool | None = None
+    continue_on_error: bool | None = None
 
 
 def _get_build_config_value(config: dict[str, Any] | Any, key: str) -> Any:
@@ -109,6 +110,7 @@ _BOOLEAN_BUILD_OPTIONS = frozenset(
         "memory_optimized",
         "profile_templates",
         "strict",
+        "continue_on_error",
     }
 )
 
@@ -208,6 +210,7 @@ def resolve_build_options(
     verbose_resolved = resolve("verbose", cli.verbose)
     memory_optimized_resolved = resolve("memory_optimized", cli.memory_optimized)
     profile_templates_resolved = resolve("profile_templates", cli.profile_templates)
+    continue_on_error_resolved = resolve("continue_on_error", cli.continue_on_error)
 
     return BuildOptions(
         force_sequential=force_sequential,
@@ -217,6 +220,9 @@ def resolve_build_options(
         if verbose_resolved is not None
         else DEFAULTS.get("verbose", False),
         strict=strict,
+        continue_on_error=continue_on_error_resolved
+        if continue_on_error_resolved is not None
+        else False,
         memory_optimized=memory_optimized_resolved
         if memory_optimized_resolved is not None
         else DEFAULTS.get("memory_optimized", False),

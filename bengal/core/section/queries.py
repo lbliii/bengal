@@ -47,7 +47,6 @@ class SectionQueryMixin:
 
     This mixin handles:
     - Page listing (regular_pages, sorted_pages, regular_pages_recursive)
-    - Section listing (sections alias)
     - Page addition (add_page)
     - Sorting (sort_children_by_weight)
     - Index page detection (has_index, needs_auto_index)
@@ -100,21 +99,6 @@ class SectionQueryMixin:
             {% endfor %}
         """
         return list(self.sorted_pages)
-
-    @property
-    def sections(self) -> list[Section]:
-        """
-        Get immediate child sections.
-
-        Returns:
-            List of child Section objects
-
-        Example:
-            {% for subsection in section.sections %}
-              <h3>{{ subsection.title }}</h3>
-            {% endfor %}
-        """
-        return self.subsections
 
     @cached_property
     def sorted_pages(self) -> list[PageLike]:

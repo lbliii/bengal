@@ -39,6 +39,14 @@ class TestBuildFlagConflicts:
                 {"memory_optimized": True, "perf_profile": "/tmp/profile.stats"},
                 "--memory-optimized and --perf-profile cannot be used together",
             ),
+            (
+                {"strict": True, "continue_on_error": True},
+                "--strict and --continue-on-error cannot be used together",
+            ),
+            (
+                {"error_format": "yaml"},
+                "--error-format must be 'text' or 'json'",
+            ),
         ],
         ids=[
             "verbose+quiet",
@@ -47,6 +55,8 @@ class TestBuildFlagConflicts:
             "incremental+no-incremental",
             "assets-pipeline+no-assets-pipeline",
             "memory-optimized+perf-profile",
+            "strict+continue-on-error",
+            "invalid-error-format",
         ],
     )
     def test_conflicting_flags_exit_with_error(self, kwargs, expected_msg, capsys):

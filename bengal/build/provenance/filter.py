@@ -312,7 +312,7 @@ class ProvenanceFilter:
         sections: set[str] = set()
         paths: set[Path] = set()
         page_path = self._get_page_key(page)
-        is_virtual = getattr(page, "_virtual", False)
+        is_virtual = getattr(page, "virtual", False)
 
         # mtime short-circuit: skip hashing if no input file changed since last build
         if self._mtime_short_circuit(page, stored_hash):
@@ -386,7 +386,7 @@ class ProvenanceFilter:
                 "skipping_provenance_storage",
                 page_path=str(page_path),
                 input_count=provenance.input_count,
-                is_virtual=getattr(page, "_virtual", False),
+                is_virtual=getattr(page, "virtual", False),
                 has_section=getattr(page, "_section", None) is not None,
                 source_path=str(getattr(page, "source_path", None)),
             )
@@ -485,7 +485,7 @@ class ProvenanceFilter:
 
             # Check if section has an index page
             index_page = getattr(section, "index_page", None)
-            if index_page is not None and not getattr(index_page, "_virtual", False):
+            if index_page is not None and not getattr(index_page, "virtual", False):
                 # Only check filesystem for real (non-virtual) pages.
                 # Virtual pages (autodoc, section-indexes) have synthetic
                 # source paths that intentionally don't exist on disk.
@@ -553,7 +553,7 @@ class ProvenanceFilter:
         cache hits on regular markdown files.
         """
         # Only works for real content pages (not virtual)
-        is_virtual = getattr(page, "_virtual", False)
+        is_virtual = getattr(page, "virtual", False)
         if is_virtual:
             return None  # Need full computation for virtual pages
 
@@ -627,7 +627,7 @@ class ProvenanceFilter:
         rel_path = page_path
 
         # 1. Determine the actual source for this page
-        is_virtual = getattr(page, "_virtual", False)
+        is_virtual = getattr(page, "virtual", False)
 
         if not is_virtual:
             # Real content page - hash the markdown file

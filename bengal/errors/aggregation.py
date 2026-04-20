@@ -278,6 +278,67 @@ class ErrorAggregator:
         }
 
 
+def group_errors_by_code(errors: list[Any]) -> dict[str, int]:
+    """
+    Count template errors grouped by their ErrorCode value.
+
+    Sprint A4.3: Drives the build-end summary line so users see at a glance
+    which error families a build hit (e.g. "2 [R022], 1 [R024]").
+
+    Errors without a code (legacy or third-party exceptions) are bucketed
+    under ``"none"`` so they remain visible in the summary.
+
+    Args:
+        errors: Iterable of exception-like objects, typically
+            ``BuildStats.template_errors``.
+
+    Returns:
+        Mapping of error-code string to occurrence count, sorted with the
+        most-frequent code first to match the way the summary is rendered.
+
+    Example:
+        >>> from bengal.errors import ErrorCode, BengalRenderingError
+        >>> errs = [
+        ...     BengalRenderingError("a", code=ErrorCode.R002),
+        ...     BengalRenderingError("b", code=ErrorCode.R002),
+        ...     BengalRenderingError("c", code=ErrorCode.R004),
+        ... ]
+        >>> group_errors_by_code(errs)
+        {'R002': 2, 'R004': 1}
+
+    """
+    counts: dict[str, int] = defaultdict(int)
+    for err in errors:
+        code = getattr(err, "code", None)
+        # ErrorCode.name is the canonical short code ("R002"); .value is the
+        # descriptive slug — users recognize the code from logs and docs.
+        key = code.name if code is not None and hasattr(code, "name") else "none"
+        counts[key] += 1
+    return dict(sorted(counts.items(), key=lambda item: (-item[1], item[0])))
+
+
+def format_error_code_summary(errors: list[Any]) -> str:
+    """
+    Render a one-line "N errors (X [R022], Y [R024])" summary.
+
+    Returns an empty string when there are no errors so callers can drop
+    the line entirely from build-end output.
+
+    Args:
+        errors: Iterable of exception-like objects (template errors).
+
+    Returns:
+        Single-line summary string, or ``""`` when ``errors`` is empty.
+
+    """
+    if not errors:
+        return ""
+    by_code = group_errors_by_code(errors)
+    total = sum(by_code.values())
+    parts = [f"{count} [{code}]" for code, count in by_code.items()]
+    return f"{total} error{'s' if total != 1 else ''} ({', '.join(parts)})"
+
+
 def extract_error_context(error: Exception, item: Any | None = None) -> dict[str, Any]:
     """
     Extract rich context from an exception for logging and aggregation.

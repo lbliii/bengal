@@ -11,6 +11,8 @@ from .mixin import HTTPHandlerProtocol, LiveReloadMixin
 from .notification import (
     LiveReloadNotifier,
     notify_clients_reload,
+    send_build_error_payload,
+    send_build_ok_payload,
     send_reload_payload,
     set_reload_action,
 )
@@ -37,6 +39,8 @@ __all__ = [
     "reset_for_testing",
     "reset_sse_shutdown",
     "run_sse_loop",
+    "send_build_error_payload",
+    "send_build_ok_payload",
     "send_reload_payload",
     "set_reload_action",
     "shutdown_sse_clients",

@@ -46,7 +46,7 @@ if TYPE_CHECKING:
 
     from bengal.core.author import Author
     from bengal.core.series import Series
-    from bengal.core.site import Site
+    from bengal.core.site.context import SiteContext
     from bengal.protocols.core import PageLike
 
 
@@ -280,14 +280,14 @@ def get_series_info(metadata: Mapping[str, Any]) -> Series | None:
 
 def get_series_neighbor(
     metadata: Mapping[str, Any],
-    site: Site | None,
+    site: SiteContext | None,
     offset: int,
 ) -> PageLike | None:
     """Get neighboring page in series by part offset.
 
     Args:
         metadata: Page metadata dict
-        site: Site instance (for page lookup)
+        site: Site context (for page lookup)
         offset: Part number offset (-1 for prev, +1 for next)
 
     Returns:

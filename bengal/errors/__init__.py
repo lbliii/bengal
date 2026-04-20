@@ -182,6 +182,8 @@ if TYPE_CHECKING:
     from bengal.errors.aggregation import (
         ErrorAggregator,
         extract_error_context,
+        format_error_code_summary,
+        group_errors_by_code,
     )
     from bengal.errors.context import (
         BuildPhase,
@@ -347,6 +349,7 @@ __all__ = [
     # ============================================================
     # Reporter (lazy)
     # ============================================================
+    "format_error_code_summary",
     "format_error_report",
     "format_error_summary",
     "format_suggestion",
@@ -363,6 +366,7 @@ __all__ = [
     "get_session",
     "get_suggestion",
     "get_suggestion_dict",
+    "group_errors_by_code",
     "record_error",
     "recover_file_processing",
     "reset_dev_server_state",
@@ -427,6 +431,8 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     # Aggregation
     "ErrorAggregator": ("bengal.errors.aggregation", "ErrorAggregator"),
     "extract_error_context": ("bengal.errors.aggregation", "extract_error_context"),
+    "format_error_code_summary": ("bengal.errors.aggregation", "format_error_code_summary"),
+    "group_errors_by_code": ("bengal.errors.aggregation", "group_errors_by_code"),
     # Handlers
     "ContextAwareHelp": ("bengal.errors.handlers", "ContextAwareHelp"),
     "get_context_aware_help": ("bengal.errors.handlers", "get_context_aware_help"),

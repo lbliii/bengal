@@ -438,8 +438,8 @@ class GraphVisualizer:
             if not manifest_path.exists():
                 # Fallback to .bengal cache location
                 # Type narrowing: paths may not be on SiteLike protocol
-                if hasattr(self.site, "paths") and self.site.paths:
-                    paths = self.site.paths
+                if hasattr(self.site, "config_service") and self.site.config_service.paths:
+                    paths = self.site.config_service.paths
                     manifest_path = getattr(paths, "asset_manifest", None)
                 else:
                     manifest_path = None
