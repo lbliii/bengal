@@ -292,12 +292,17 @@ def truncate_words(text: str, word_count: int, suffix: str = "...") -> str:
     if not text:
         return ""
 
-    words = text.split()
+    # split(maxsplit=word_count) returns at most word_count+1 elements:
+    # the first word_count words individually, plus the remainder in the
+    # last slot. Avoids the full O(len(text)) re-split that the prior
+    # text.split() did when callers (e.g. generate_excerpt) only need a
+    # short prefix of a long markdown body.
+    parts = text.split(maxsplit=word_count)
 
-    if len(words) <= word_count:
+    if len(parts) <= word_count:
         return text
 
-    before_suffix = " ".join(words[:word_count])
+    before_suffix = " ".join(parts[:word_count])
     # Avoid ending with orphaned markdown (**, *, etc.)
     cleaned = _strip_trailing_orphan_markdown(before_suffix)
     return (cleaned if cleaned != before_suffix else before_suffix) + suffix
