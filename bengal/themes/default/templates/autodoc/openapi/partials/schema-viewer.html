@@ -26,9 +26,9 @@ Kida Features:
 {% let schema_type = schema?.schema_type ?? 'object' %}
 {% let properties = schema?.properties ?? {} %}
 {% let required_props = schema?.required ?? () %}
-{% let enum_vals = schema?.enum %}
-{% let example_val = schema?.example %}
-{% let items_schema = schema?.items %}
+{% let enum_vals = schema?.enum ?? none %}
+{% let example_val = schema?.example ?? none %}
+{% let items_schema = schema?.items ?? none %}
 {% let description = schema?.description ?? '' %}
 {% let current_depth = depth ?? 0 %}
 {% let max_depth = 4 %}

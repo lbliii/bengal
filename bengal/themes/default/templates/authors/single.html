@@ -34,12 +34,12 @@ MAIN TEMPLATE
 
 {% block content %}
 {# Template-scoped variables - using AuthorView for normalized access #}
-{% let author = page | author_view %}
+{% let author = (page | author_view) ?? none %}
 {% let section_filter = params?.section_filter ?? '' %}
 {% let author_index = site?.indexes?.author ?? {} %}
 
 {# Get author posts with O(1) lookup #}
-{% let author_posts_refs = author_index.get(author.key) ?? [] %}
+{% let author_posts_refs = author_index.get(author?.key ?? '') ?? [] %}
 {% let author_posts = author_posts_refs | resolve_pages %}
 
 {# Filter by section if specified #}
@@ -58,58 +58,58 @@ MAIN TEMPLATE
 
 <div class="author-page">
   <header class="author-header">
-    {% if author.avatar %}
-    <img src="{{ author.avatar }}" alt="{{ author.name }}" class="author-avatar-large">
+    {% if author?.avatar %}
+    <img src="{{ author?.avatar }}" alt="{{ author?.name }}" class="author-avatar-large">
     {% else %}
     <div class="author-avatar-placeholder">
-      {{ (author.name[0] | upper) if author.name else '?' }}
+      {{ (author?.name[0] | upper) if author?.name else '?' }}
     </div>
     {% end %}
 
     <div class="author-header-content">
-      <h1 class="author-name">{{ author.name }}</h1>
+      <h1 class="author-name">{{ author?.name }}</h1>
 
-      {% if author.company or author.location %}
+      {% if author?.company or author?.location %}
       <p class="author-meta">
-        {% if author.company %}{{ author.company }}{% end %}
-        {% if author.company and author.location %} · {% end %}
-        {% if author.location %}{{ author.location }}{% end %}
+        {% if author?.company %}{{ author?.company }}{% end %}
+        {% if author?.company and author?.location %} · {% end %}
+        {% if author?.location %}{{ author?.location }}{% end %}
       </p>
       {% end %}
 
-      {% if author.bio %}
-      <p class="author-bio">{{ author.bio }}</p>
+      {% if author?.bio %}
+      <p class="author-bio">{{ author?.bio }}</p>
       {% end %}
 
       {# Social links - using AuthorView normalized properties #}
-      {% if author.twitter or author.github or author.linkedin or author.website or author.email %}
+      {% if author?.twitter or author?.github or author?.linkedin or author?.website or author?.email %}
       <div class="author-social">
-        {% if author.twitter %}
-        <a href="https://twitter.com/{{ author.twitter }}" class="social-link" aria-label="Twitter">
+        {% if author?.twitter %}
+        <a href="https://twitter.com/{{ author?.twitter }}" class="social-link" aria-label="Twitter">
           Twitter
         </a>
         {% end %}
 
-        {% if author.github %}
-        <a href="https://github.com/{{ author.github }}" class="social-link" aria-label="GitHub">
+        {% if author?.github %}
+        <a href="https://github.com/{{ author?.github }}" class="social-link" aria-label="GitHub">
           GitHub
         </a>
         {% end %}
 
-        {% if author.linkedin %}
-        <a href="https://linkedin.com/in/{{ author.linkedin }}" class="social-link" aria-label="LinkedIn">
+        {% if author?.linkedin %}
+        <a href="https://linkedin.com/in/{{ author?.linkedin }}" class="social-link" aria-label="LinkedIn">
           LinkedIn
         </a>
         {% end %}
 
-        {% if author.website %}
-        <a href="{{ author.website }}" class="social-link" aria-label="Website">
+        {% if author?.website %}
+        <a href="{{ author?.website }}" class="social-link" aria-label="Website">
           Website
         </a>
         {% end %}
 
-        {% if author.email %}
-        <a href="mailto:{{ author.email }}" class="social-link" aria-label="Email">
+        {% if author?.email %}
+        <a href="mailto:{{ author?.email }}" class="social-link" aria-label="Email">
           Email
         </a>
         {% end %}
@@ -156,7 +156,7 @@ MAIN TEMPLATE
 
   {# Posts Section #}
   <section class="author-posts">
-    <h2>Posts by {{ author.name }}</h2>
+    <h2>Posts by {{ author?.name }}</h2>
 
     {# Group toggle #}
     <div class="posts-view-toggle">
@@ -228,7 +228,7 @@ MAIN TEMPLATE
   {% else %}
   {# Empty State #}
   <div class="author-empty">
-    <p>No posts found by {{ author.name }}.</p>
+    <p>No posts found by {{ author?.name }}.</p>
   </div>
   {% end %}
 </div>

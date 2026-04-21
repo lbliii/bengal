@@ -43,41 +43,32 @@ Or set `type: doc` to auto-select this template
 {% from 'partials/components/tiles.html' import content_tiles %}
 
 {# =============================================================================
-   HELPER FUNCTIONS
-   ============================================================================= #}
-
-{# Parse discover config with smart defaults #}
-{% def parse_discover_config(discover_config, default_title, default_variant='compact', default_limit=5) %}
-{% match discover_config %}
-  {% case false %}
-    {# Explicitly disabled #}
-    {{ {'enabled': false, 'title': none, 'variant': none, 'limit': 0} }}
-  {% case _ if discover_config is mapping %}
-    {# Config object provided #}
-    {{ {
-      'enabled': true,
-      'title': discover_config.title ?? default_title if discover_config.title is not sameas false else none,
-      'variant': discover_config.variant ?? default_variant,
-      'limit': discover_config.limit ?? default_limit
-    } }}
-  {% case _ if discover_config is number %}
-    {# Just a limit number #}
-    {{ {'enabled': true, 'title': default_title, 'variant': default_variant, 'limit': discover_config} }}
-  {% case _ %}
-    {# Default: enabled with defaults #}
-    {{ {'enabled': true, 'title': default_title, 'variant': default_variant, 'limit': default_limit} }}
-{% end %}
-{% end %}
-
-{# =============================================================================
    MAIN TEMPLATE
    ============================================================================= #}
 
 {% block content %}
-{# Template-scoped configuration #}
+{# Template-scoped configuration — discover config parsed inline (Kida defs return Markup) #}
 {% let discover = params?.discover ?? {} %}
-{% let children_config = parse_discover_config(discover?.children, 'In This Section', 'compact', 999) %}
-{% let related_config = parse_discover_config(discover?.related, 'Related Pages', 'compact', 5) %}
+
+{% let _ch = discover?.children ?? none %}
+{% let _ch_is_map = _ch is mapping %}
+{% let _ch_is_num = _ch is number %}
+{% let children_config = {
+  'enabled': _ch is not sameas false,
+  'title': (_ch.title ?? 'In This Section') if _ch_is_map else 'In This Section',
+  'variant': (_ch.variant ?? 'compact') if _ch_is_map else 'compact',
+  'limit': _ch if _ch_is_num else ((_ch.limit ?? 999) if _ch_is_map else 999)
+} %}
+
+{% let _rl = discover?.related ?? none %}
+{% let _rl_is_map = _rl is mapping %}
+{% let _rl_is_num = _rl is number %}
+{% let related_config = {
+  'enabled': _rl is not sameas false,
+  'title': (_rl.title ?? 'Related Pages') if _rl_is_map else 'Related Pages',
+  'variant': (_rl.variant ?? 'compact') if _rl_is_map else 'compact',
+  'limit': _rl if _rl_is_num else ((_rl.limit ?? 5) if _rl_is_map else 5)
+} %}
 
 {# Feature flag check #}
 {% let show_children_feature = 'content.children' in (theme?.features ?? []) %}
