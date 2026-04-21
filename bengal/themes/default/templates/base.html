@@ -9,10 +9,12 @@ Cache expensive function calls once per render. Page properties like title,
 _path, kind, tags are always defined - no defensive checks needed.
 ================================================================================
 #}
-{# Template-wide variables using {% let %} for explicit scope #}
+{# Template-wide variables using {% let %} for explicit scope
+   NOTE: `page` can be None in some render contexts (e.g., error shells, test fixtures).
+   Kida 0.7.0 strict_undefined requires guarded access. #}
 {% let params = params ?? {} %}
-{% let _page_title = page.title %}
-{% let _page_url = page._path %}
+{% let _page_title = page?.title ?? none %}
+{% let _page_url = page?._path ?? none %}
 
 {# Navigation - cache function calls #}
 {% let _current_lang = current_lang() %}
@@ -23,16 +25,16 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _build_badge = site.build_badge %}
 {% let _doc_app = site.document_application %}
 {% let _link_previews = site.link_previews %}
-{% let _per_page_json = 'json' in (config.output_formats.per_page ?? []) %}
-{% let _per_page_md = 'markdown' in (config.output_formats.per_page ?? []) %}
+{% let _per_page_json = 'json' in ((config?.output_formats ?? {})?.per_page ?? []) %}
+{% let _per_page_md = 'markdown' in ((config?.output_formats ?? {})?.per_page ?? []) %}
 
 {# Derived values #}
 {% let _main_menu = get_menu_lang('main', _current_lang) %}
 {% let _footer_menu = get_menu_lang('footer', _current_lang) %}
 
-{% let _doc_app_nav = _doc_app?.navigation %}
-{% let _view_transitions = _doc_app.enabled and _doc_app_nav?.view_transitions %}
-{% let _transition_style = _doc_app_nav?.transition_style %}
+{% let _doc_app_nav = _doc_app?.navigation ?? {} %}
+{% let _view_transitions = (_doc_app?.enabled ?? false) and (_doc_app_nav?.view_transitions ?? false) %}
+{% let _transition_style = _doc_app_nav?.transition_style ?? none %}
 
 {# Auto navigation if main menu is empty #}
 {% let _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
@@ -42,7 +44,7 @@ HELPER: Render a menu item (desktop/mobile)
 ============================================================================= #}
 {% def render_menu_item(item, is_mobile=false) %}
 {% let has_children = item.children | length > 0 %}
-{% let is_active = item.active or (_page_url == item.href) %}
+{% let is_active = (item?.active ?? false) or (_page_url == item?.href) %}
 {% let is_trail = item.active_trail ?? false %}
 
 <li
@@ -70,12 +72,12 @@ HELPER: Render a menu item (desktop/mobile)
     {% if has_children %}
     <ul class="submenu">
         {% for child in item.children %}
-        <li class="{{ ['active' if child.active] | classes }}">
-            <a href="{{ child.href | absolute_url }}">
-                {% with child.icon as icon_name %}
+        <li class="{{ ['active' if (child?.active ?? false)] | classes }}">
+            <a href="{{ (child?.href ?? '') | absolute_url }}">
+                {% with (child?.icon ?? none) as icon_name %}
                 {% if icon_name %}<span class="submenu-icon">{{ icon(icon_name, size=16) }}</span>{% end %}
                 {% end %}
-                <span class="submenu-text"><bdi>{{ child.name }}</bdi></span>
+                <span class="submenu-text"><bdi>{{ child?.name ?? '' }}</bdi></span>
             </a>
         </li>
         {% end %}
@@ -110,7 +112,7 @@ HELPER: Render a menu item (desktop/mobile)
     {# Title - captured for reuse in Open Graph and Twitter Card #}
     {% capture page_title %}
     {% block title %}
-    {% match page.title %}
+    {% match page?.title ?? none %}
     {% case title if title and _site_title %}{{ title }} - {{ _site_title }}
     {% case title if title %}{{ title }}
     {% case _ %}{{ _site_title }}
@@ -126,21 +128,23 @@ HELPER: Render a menu item (desktop/mobile)
     <meta name="description" content="{{ meta_desc | trim }}">
 
     {# Meta Keywords - use page.keywords or fallback to tags #}
-    {% if page.keywords %}
+    {% if page?.keywords ?? none %}
     <meta name="keywords" content="{{ page.keywords | join(', ') }}">
-    {% elif page.tags %}
+    {% elif page?.tags ?? none %}
     <meta name="keywords" content="{{ page.tags | meta_keywords(10) }}">
     {% end %}
 
     {# Robots directive for hidden/unlisted pages #}
-    {% if page.robots_meta and page.robots_meta != 'index, follow' %}
+    {% if (page?.robots_meta ?? none) and page.robots_meta != 'index, follow' %}
     <meta name="robots" content="{{ page.robots_meta }}">
     {% end %}
 
     {# Content Signals — per-page AI directives (only when restricted) #}
-    {% if not page.in_ai_train or not page.in_ai_input %}
-    <meta name="content-signal:ai-train" content="{{ 'yes' if page.in_ai_train else 'no' }}">
-    <meta name="content-signal:ai-input" content="{{ 'yes' if page.in_ai_input else 'no' }}">
+    {% let _ai_train = page?.in_ai_train ?? true %}
+    {% let _ai_input = page?.in_ai_input ?? true %}
+    {% if not _ai_train or not _ai_input %}
+    <meta name="content-signal:ai-train" content="{{ 'yes' if _ai_train else 'no' }}">
+    <meta name="content-signal:ai-input" content="{{ 'yes' if _ai_input else 'no' }}">
     {% end %}
 
     {# Open Graph / Facebook #}
@@ -172,10 +176,10 @@ HELPER: Render a menu item (desktop/mobile)
     <meta name="bengal:search_preload" content="{{ config.search_preload ?? 'smart' }}">
     <meta name="bengal:baseurl" content="{{ site.baseurl }}">
     <meta name="bengal:index_url" content="{{ '/index.json' | absolute_url }}">
-    {% if bengal.capabilities.prebuilt_search %}
+    {% if bengal?.capabilities?.prebuilt_search ?? false %}
     <meta name="bengal:search_index_url" content="{{ '/search-index.json' | absolute_url }}">
     {% end %}
-    {% if page.version %}
+    {% if page?.version ?? none %}
     <meta name="bengal:version" content="{{ page.version }}">
     {% end %}
 
@@ -185,7 +189,7 @@ HELPER: Render a menu item (desktop/mobile)
     {% end %}
 
     {# RSS Feed #}
-    {% with config.i18n as i18n %}
+    {% with (config?.i18n ?? none) as i18n %}
     {% let rss_href = '/rss.xml' %}
     {% if i18n and i18n.strategy == 'prefix' %}
     {% let default_lang = i18n.default_language ?? 'en' %}
@@ -220,7 +224,7 @@ HELPER: Render a menu item (desktop/mobile)
     <link rel="preconnect" href="https://d3js.org" crossorigin>
 
     {# Fonts #}
-    {% if config.fonts %}
+    {% if config?.fonts ?? none %}
     <link rel="preload" href="{{ asset_url('fonts/outfit-700.woff2') }}" as="font" type="font/woff2" crossorigin>
     <link rel="preload" href="{{ asset_url('fonts.css') }}" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
@@ -292,8 +296,8 @@ HELPER: Render a menu item (desktop/mobile)
 
 </head>
 
-<body data-type="{{ page.type }}" data-variant="{{ page.variant or '' }}"
-    class="page-kind-{{ page.kind or 'page' }}{% if page.is_draft %} draft-page{% end %}{% if page.hidden %} hidden-page{% end %}{% if page.is_featured %} featured-content{% end %}">
+<body data-type="{{ page?.type ?? '' }}" data-variant="{{ (page?.variant ?? '') or '' }}"
+    class="page-kind-{{ (page?.kind ?? none) or 'page' }}{% if page?.is_draft ?? false %} draft-page{% end %}{% if page?.hidden ?? false %} hidden-page{% end %}{% if page?.is_featured ?? false %} featured-content{% end %}">
 
     {% if 'accessibility.skip_link' in (theme.features ?? []) %}
     <a href="#main-content" class="skip-link">Skip to main content</a>
@@ -328,7 +332,7 @@ HELPER: Render a menu item (desktop/mobile)
                     </li>
                     {% end %}
                     {% end %}
-                    {% with site.params.repo_url as repo_url %}
+                    {% with (site?.params?.repo_url ?? none) as repo_url %}
                     {% if repo_url and not (site._dev_menu_metadata?.github_bundled ?? false) %}
                     <li><a href="{{ repo_url }}" target="_blank" rel="noopener" aria-label="GitHub">{{
                             icon('github-logo', size=16) }} <span>GitHub</span></a></li>
@@ -340,8 +344,8 @@ HELPER: Render a menu item (desktop/mobile)
                 {% end %}
 
                 <div class="header-actions hidden-mobile">
-                    {% with config.search.ui as ui %}
-                    {% if ui.modal ?? false %}
+                    {% with (config?.search?.ui ?? none) as ui %}
+                    {% if ui and (ui?.modal ?? false) %}
                     <button type="button" class="nav-search-trigger" id="nav-search-trigger" title="Search (⌘K)">{{
                         icon('magnifying-glass', size=16) }} <span>Search</span> <kbd
                             class="nav-search-shortcut">⌘K</kbd></button>
@@ -366,8 +370,8 @@ HELPER: Render a menu item (desktop/mobile)
     {# Search Modal Block — placed after <main> so content starts early in DOM #}
     {% block site_search_modal %}
     {% cache 'base-search-modal-' ~ _current_lang ~ '-' ~ (bengal.build.timestamp ?? '') %}
-    {% with config.search.ui as ui %}
-    {% if ui.modal ?? false %}
+    {% with (config?.search?.ui ?? none) as ui %}
+    {% if ui and (ui?.modal ?? false) %}
     <dialog id="search-modal" class="search-modal"
         aria-label="{{ t('search.aria_label', default='Search documentation') }}">
         <div class="search-modal__backdrop" data-close-modal></div>
@@ -462,7 +466,7 @@ HELPER: Render a menu item (desktop/mobile)
                     <a href="{{ item.href | absolute_url }}">{{ item.name }}</a>
                 </li>{% end %}
                 {% end %}
-                {% with site.params.repo_url as repo_url %}
+                {% with (site?.params?.repo_url ?? none) as repo_url %}
                 {% if repo_url and not (site._dev_menu_metadata?.github_bundled ?? false) %}
                 <li><a href="{{ repo_url }}" target="_blank" rel="noopener">{{ icon('github-logo', size=16) }}
                         GitHub</a></li>
@@ -589,7 +593,7 @@ HELPER: Render a menu item (desktop/mobile)
     {% end %}{# /cache base-speculation #}
 
     {# Bootstrap metadata — moved after content for faster content-start position #}
-    {% if config.expose_metadata_json %}
+    {% if config?.expose_metadata_json ?? false %}
     <script id="bengal-bootstrap" type="application/json">{{ bengal | tojson }}</script>
     <script>
         (function () {

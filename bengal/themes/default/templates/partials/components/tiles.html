@@ -48,6 +48,7 @@ page=none
 'description': subsection?.metadata?.description ?? '',
 'weight': subsection?.weight ?? 999,
 'page_count': sub_pages | length,
+'date': none,
 'icon': subsection?.metadata?.icon ?? ''
 }) %}
 {% end %}
@@ -57,7 +58,7 @@ page=none
 {% if children %}
 {% for post in children %}
 {# Skip the current page #}
-{% if post?._path != page_path %}
+{% if (post?._path ?? '') != page_path %}
 {% let post_content = post?.content ?? '' %}
 {% let post_desc = post?.metadata?.description ?? '' %}
 {% let desc = post_desc ?? (post_content | strip_html | excerpt(120) if post_content else '') %}
@@ -69,7 +70,8 @@ page=none
 'href': post?.href ?? post?._path ?? '',
 'description': desc,
 'weight': post?.weight ?? 999,
-'date': post?.date,
+'page_count': 0,
+'date': post?.date ?? none,
 'icon': post?.metadata?.icon ?? ''
 }) %}
 {% end %}
@@ -108,7 +110,8 @@ page=none
 'href': rel_href,
 'description': desc,
 'weight': rel_page?.weight ?? 999,
-'date': rel_page?.date,
+'page_count': 0,
+'date': rel_page?.date ?? none,
 'icon': rel_page?.metadata?.icon ?? ''
 }) %}
 {% end %}
@@ -181,7 +184,9 @@ sort(attribute='weight,title') %}
   {# ===== COMPACT VARIANT (default) ===== #}
   {% case _ %}
   <div class="content-tiles-list">
-    {% for group_name, group_items in sorted_items | groupby('group') %}
+    {% for group in sorted_items | groupby('group') %}
+    {% let group_name = group.grouper %}
+    {% let group_items = group.list %}
     {# Group headers when group_by='type' #}
     {% if group_by == 'type' and group_name == 'related' and related_title %}
     <div class="content-tiles-group-header">

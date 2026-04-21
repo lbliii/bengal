@@ -1,0 +1,1 @@
+Upgrade kida-templates to 0.7.0. The new default `strict_undefined=True` now raises `UndefinedError` on missing attrs/keys instead of rendering empty — default-theme templates were updated to use `?.` optional chaining with `?? default` fallbacks, and `tiles.html` was updated for the new `groupby` iteration shape (`{grouper, list}` dicts instead of `(key, items)` tuples).
