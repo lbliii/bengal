@@ -168,7 +168,12 @@ class TestBidiIsolation:
         from pathlib import Path
 
         template = Path("bengal/themes/default/templates/base.html").read_text(encoding="utf-8")
-        assert "<bdi>{{ item.name }}</bdi>" in template or "<bdi>{{ child.name }}</bdi>" in template
+        assert "<bdi>{{ _item_name }}</bdi>" in template, (
+            "Menu item names should be wrapped in <bdi> for bidi isolation"
+        )
+        assert "<bdi>{{ child?.name ?? '' }}</bdi>" in template, (
+            "Submenu child names should be wrapped in <bdi> for bidi isolation"
+        )
 
     def test_breadcrumb_separator_rtl_rule(self) -> None:
         """Breadcrumb CSS should have RTL separator override."""

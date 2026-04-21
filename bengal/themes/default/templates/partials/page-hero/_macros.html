@@ -47,7 +47,7 @@ HELPER MACROS (internal)
 
 {# Get page URL with fallback chain #}
 {% def _get_page_url(page) -%}
-{{ (page._path or page.href or '/') | trim }}
+{{ (page?._path ?? page?.href ?? '/') | trim }}
 {%- end %}
 
 {# =============================================================================
@@ -175,8 +175,8 @@ NOTE: Uses page.word_count and page.reading_time computed properties
 instead of filters for better performance (cached on first access).
 ============================================================================= #}
 {% def _hero_metadata(page, params, theme, show_reading_time=true) %}
-{% let has_word_count = page?.word_count %}
-{% let has_date = page?.date or params?.lastmod %}
+{% let has_word_count = (page?.word_count ?? none) %}
+{% let has_date = (page?.date ?? none) or (params?.lastmod ?? none) %}
 {% if has_word_count or has_date %}
 <div class="page-hero__meta">
     {# Reading Time - conditionally shown based on theme features #}
@@ -312,7 +312,7 @@ KIDA FEATURES:
     <h1 class="page-hero__title">{{ page_title }}</h1>
 
     {# Description #}
-    {% with params?.description as desc %}
+    {% with (params?.description ?? none) as desc %}
     {% if desc %}<p class="page-hero__description">{{ desc }}</p>{% end %}
     {% end %}
 
@@ -344,7 +344,7 @@ KIDA FEATURES:
     <h1 class="page-hero__title">{{ page_title }}</h1>
 
     {# Description #}
-    {% with params?.description as desc %}
+    {% with (params?.description ?? none) as desc %}
     {% if desc %}<p class="page-hero__description">{{ desc }}</p>{% end %}
     {% end %}
 
@@ -381,7 +381,7 @@ KIDA FEATURES:
     <h1 class="page-hero__title">{{ page_title }}</h1>
 
     {# Description #}
-    {% with params?.description as desc %}
+    {% with (params?.description ?? none) as desc %}
     {% if desc %}<p class="page-hero__description">{{ desc }}</p>{% end %}
     {% end %}
 
@@ -416,7 +416,7 @@ Useful for pages that need the action bar above the fold.
 {# Page Header #}
 <header class="page-header page-header--classic">
     <h1>{{ page?.title ?? 'Page' }}</h1>
-    {% with params?.description as desc %}
+    {% with (params?.description ?? none) as desc %}
     {% if desc %}<p class="lead">{{ desc }}</p>{% end %}
     {% end %}
 </header>
