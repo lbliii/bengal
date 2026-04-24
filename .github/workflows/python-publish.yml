@@ -34,6 +34,20 @@ jobs:
           python -m pip install build
           python -m build
 
+      # Smoke-test the built wheel against latest PyPI-resolved deps before publishing.
+      # v0.3.1 shipped broken because uv.lock pinned a milo-cli version that tests passed
+      # against, while the wheel's `>=` constraint resolved to a newer, incompatible milo
+      # once released. This step installs the wheel into a fresh venv (no lockfile,
+      # no cache) and verifies the CLI can start — the exact path an end user takes.
+      - name: Smoke-test wheel with fresh deps
+        run: |
+          python -m venv /tmp/wheel-smoke-venv
+          /tmp/wheel-smoke-venv/bin/python -m pip install --quiet --upgrade pip
+          /tmp/wheel-smoke-venv/bin/python -m pip install --quiet dist/bengal-*.whl
+          /tmp/wheel-smoke-venv/bin/bengal --version
+          /tmp/wheel-smoke-venv/bin/bengal --help > /dev/null
+          /tmp/wheel-smoke-venv/bin/bengal cache hash --help > /dev/null
+
       - name: Upload distributions
         uses: actions/upload-artifact@v7
         with:

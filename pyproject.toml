@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bengal"
-version = "0.3.1"
+version = "0.3.2"
 description = "Python static site generator built on free-threading — every layer pure Python, scales with your cores, zero npm"
 readme = "README.md"
 requires-python = ">=3.14"
@@ -332,6 +332,7 @@ dev = [
     "pytest-randomly>=3.15.0",
     "towncrier>=24.0",
     "import-linter>=2.0",             # Layered-architecture enforcement (Epic: Errors & Site S-Tier, Sprint B0.2)
+    "build>=1.2",                     # PEP 517 wheel builder; powers tests/integration/test_wheel_install.py
 ]
 
 # =============================================================================

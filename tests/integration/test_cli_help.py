@@ -1,6 +1,8 @@
-"""Integration test for CLI help output.
+"""Integration test for CLI help and version output.
 
-Uses Phase 1 infrastructure: run_cli() helper.
+Subprocess-level smoke: pairs with ``tests/unit/cli/test_milo_parser_construction.py``.
+The unit test catches parser-build conflicts fast; this one catches entry-point,
+console_scripts, and subprocess-level regressions.
 """
 
 from tests._testing.cli import run_cli
@@ -22,3 +24,16 @@ def test_build_and_serve_help_do_not_expose_dashboard_flags():
     serve_result.assert_ok()
     assert "--dashboard" not in build_result.stdout
     assert "--dashboard" not in serve_result.stdout
+
+
+def test_cli_version_runs():
+    """Test ``bengal --version`` exits 0 and prints the current version.
+
+    Regression guard for v0.3.1, where argparse conflict crashed every invocation
+    — including ``--version`` — before user code ran.
+    """
+    result = run_cli(["--version"])
+    result.assert_ok()
+    assert any(ch.isdigit() for ch in result.stdout), (
+        f"Expected version digits in stdout, got: {result.stdout!r}"
+    )
