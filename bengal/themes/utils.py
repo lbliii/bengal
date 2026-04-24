@@ -47,10 +47,6 @@ DEFAULT_THEME_PATH: Path = THEMES_ROOT / "default"
 #: Path to generated CSS tokens directory
 DEFAULT_CSS_TOKENS_PATH: Path = DEFAULT_THEME_PATH / "assets" / "css" / "tokens"
 
-#: Path to CLI dashboard TCSS file (for token validation)
-CLI_DASHBOARD_TCSS_PATH: Path = THEMES_ROOT.parent / "cli" / "dashboard" / "bengal.tcss"
-
-
 # ============================================================================
 # Validation Utilities
 # ============================================================================

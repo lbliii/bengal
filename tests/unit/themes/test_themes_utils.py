@@ -6,7 +6,6 @@ import pytest
 
 from bengal.errors import BengalConfigError, ErrorCode
 from bengal.themes.utils import (
-    CLI_DASHBOARD_TCSS_PATH,
     DEFAULT_CSS_TOKENS_PATH,
     DEFAULT_THEME_PATH,
     THEMES_ROOT,
@@ -37,11 +36,6 @@ class TestPathConstants:
         assert DEFAULT_CSS_TOKENS_PATH.name == "tokens"
         # Path should be under default theme
         assert DEFAULT_THEME_PATH in DEFAULT_CSS_TOKENS_PATH.parents
-
-    def test_cli_dashboard_tcss_path_structure(self) -> None:
-        """Verify CLI_DASHBOARD_TCSS_PATH points to correct location."""
-        assert CLI_DASHBOARD_TCSS_PATH.name == "bengal.tcss"
-        assert CLI_DASHBOARD_TCSS_PATH.parent.name == "dashboard"
 
 
 class TestValidateEnumField:

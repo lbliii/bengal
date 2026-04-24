@@ -227,7 +227,7 @@ Group flags with section headers in the help output (if milo-cli supports it) or
 ```
 Core:     --source, --config, --environment, --profile
 Speed:    --incremental/--no-incremental, --no-parallel, --fast, --memory-optimized
-Output:   --verbose, --quiet, --full-output, --dashboard, --explain, --explain-json
+Output:   --verbose, --quiet, --full-output, --explain, --explain-json
 Debug:    --debug, --traceback, --perf-profile, --profile-templates, --log-file
 Advanced: --assets-pipeline, --build-version, --all-versions, --clean-output, --dry-run, --validate
 ```

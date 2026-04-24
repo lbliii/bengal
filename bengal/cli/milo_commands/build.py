@@ -81,12 +81,6 @@ def build(
     full_output: Annotated[
         bool, Description("[Output] Traditional line-by-line output instead of live progress bar")
     ] = False,
-    dashboard: Annotated[
-        bool,
-        Description(
-            "[Output] Launch interactive TUI dashboard (incompatible with other output flags)"
-        ),
-    ] = False,
     explain: Annotated[
         bool,
         Description("[Debug] Show why each page was rebuilt or skipped during incremental build"),
@@ -163,21 +157,6 @@ def build(
         cli.error("--verbose and --fast cannot be used together (--fast implies --quiet)")
         cli.tip("Pass only one — use --verbose for debugging, --fast for tight inner loops.")
         raise SystemExit(2)
-
-    if dashboard:
-        conflicts = []
-        if quiet:
-            conflicts.append("--quiet")
-        if verbose:
-            conflicts.append("--verbose")
-        if fast:
-            conflicts.append("--fast")
-        if full_output:
-            conflicts.append("--full-output")
-        if conflicts:
-            cli.error(f"--dashboard cannot be used with {', '.join(conflicts)}")
-            cli.tip("--dashboard owns the terminal output; drop the conflicting flag(s).")
-            raise SystemExit(2)
 
     if memory_optimized and perf_profile_path:
         cli.error("--memory-optimized and --perf-profile cannot be used together")
@@ -309,20 +288,6 @@ def build(
             if "assets" not in site.config:
                 site.config["assets"] = {}
             site.config["assets"]["pipeline"] = bool(assets_pipeline_val)
-
-        # Dashboard mode
-        if dashboard:
-            from bengal.cli.dashboard.build import run_build_dashboard
-
-            run_build_dashboard(
-                site=site,
-                parallel=not build_options.force_sequential,
-                incremental=incremental_resolved,
-                memory_optimized=memory_optimized,
-                strict=strict,
-                profile=build_profile,
-            )
-            return {"status": "ok", "message": "Dashboard session ended"}
 
         # Git version mode
         if build_version_val or all_versions:

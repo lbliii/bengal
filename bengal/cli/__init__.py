@@ -25,7 +25,6 @@ Related:
 - bengal/cli/milo_app.py: CLI definition and entry point
 - bengal/cli/milo_commands/: Command implementations
 - bengal/cli/utils/: Shared utilities (CLIOutput, site loading, etc.)
-- bengal/cli/dashboard/: Interactive TUI dashboard
 
 """
 
