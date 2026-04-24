@@ -2,7 +2,7 @@
 Theme configuration, design tokens, and style generation for Bengal SSG.
 
 This package provides the complete theming infrastructure for Bengal sites,
-ensuring visual consistency between web output and terminal interfaces:
+ensuring visual consistency across web output:
 
 Configuration Models:
 ThemeConfig: Complete theme configuration loaded from theme.yaml
@@ -17,9 +17,7 @@ PaletteVariant: Named color palette variants (default, blue-bengal, etc.)
 
 Generation Utilities:
     generate_web_css: Create CSS custom properties from tokens
-    generate_tcss_reference: Create TCSS validation reference
     write_generated_css: Write generated CSS to theme assets
-    validate_tcss_tokens: Verify terminal styles match token definitions
 
 Token Instances:
 BENGAL_PALETTE: Default color palette instance
@@ -36,7 +34,6 @@ True
 
 Related:
 bengal/themes/default/: Default theme assets and templates
-bengal/cli/dashboard/: Terminal dashboard using theme tokens
 bengal/themes/default/assets/css/tokens/: Generated web CSS tokens
 
 """
@@ -49,12 +46,7 @@ from bengal.themes.config import (
     IconConfig,
     ThemeConfig,
 )
-from bengal.themes.generate import (
-    generate_tcss_reference,
-    generate_web_css,
-    validate_tcss_tokens,
-    write_generated_css,
-)
+from bengal.themes.generate import generate_web_css, write_generated_css
 from bengal.themes.swizzle import ModificationStatus
 from bengal.themes.tokens import (
     BENGAL_MASCOT,
@@ -67,7 +59,6 @@ from bengal.themes.tokens import (
     get_palette,
 )
 from bengal.themes.utils import (
-    CLI_DASHBOARD_TCSS_PATH,
     DEFAULT_CSS_TOKENS_PATH,
     DEFAULT_THEME_PATH,
     THEMES_ROOT,
@@ -80,7 +71,6 @@ __all__ = [
     "BENGAL_MASCOT",
     "BENGAL_PALETTE",
     # Path constants
-    "CLI_DASHBOARD_TCSS_PATH",
     "DEFAULT_CSS_TOKENS_PATH",
     "DEFAULT_THEME_PATH",
     "PALETTE_VARIANTS",
@@ -101,11 +91,9 @@ __all__ = [
     # Validation utilities
     "extract_with_defaults",
     # Generation utilities
-    "generate_tcss_reference",
     "generate_web_css",
     # Token utilities
     "get_palette",
     "validate_enum_field",
-    "validate_tcss_tokens",
     "write_generated_css",
 ]

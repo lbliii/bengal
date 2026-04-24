@@ -1,9 +1,9 @@
 """
-Shared design tokens for Bengal's web and terminal themes.
+Shared design tokens for Bengal's web themes.
 
 This module is the single source of truth for all visual design tokens used
-across Bengal's web CSS output and Textual terminal interfaces. All color
-values meet WCAG AA contrast requirements.
+across Bengal's web CSS output. All color values meet WCAG AA contrast
+requirements.
 
 Token Categories:
 Color Palettes: Brand, semantic, surface, border, and text colors
@@ -35,8 +35,7 @@ Tokens are defined as frozen dataclasses for immutability and hashability.
 The generate.py module reads these tokens to produce CSS output files.
 
 Related:
-bengal/themes/generate.py: CSS/TCSS generation from these tokens
-bengal/cli/dashboard/bengal.tcss: Textual dashboard styles
+bengal/themes/generate.py: CSS generation from these tokens
 bengal/themes/default/assets/css/tokens/: Generated web CSS
 
 """
@@ -146,7 +145,7 @@ class BengalPalette:
     info: str = "#95A5A6"  # Silver
     muted: str = "#7F8C8D"  # Grayish
 
-    # Surface Colors (for Textual widgets)
+    # Surface Colors
     surface: str = "#1e1e1e"  # Dark surface
     surface_light: str = "#2d2d2d"  # Lighter surface
     background: str = "#121212"  # Dark background

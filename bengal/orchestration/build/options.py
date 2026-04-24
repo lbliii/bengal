@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
     from bengal.utils.observability.profile import BuildProfile
 
-# Type aliases for phase callbacks (RFC: rfc-dashboard-api-integration)
+# Type aliases for phase callbacks.
 # on_phase_start receives: (phase_name)
 # on_phase_complete receives: (phase_name, duration_ms, details)
 type PhaseStartCallback = Callable[[str], None]
@@ -105,8 +105,7 @@ class BuildOptions:
     nav_changed_sources: set[Path] = field(default_factory=set)
     structural_changed: bool = False
 
-    # Phase streaming callbacks (RFC: rfc-dashboard-api-integration)
-    # These enable real-time build progress updates in the dashboard.
-    # Callbacks are optional (None = no streaming).
+    # Phase streaming callbacks. Presenters can use these to show live
+    # progress without coupling orchestration to a specific UI framework.
     on_phase_start: PhaseStartCallback | None = None
     on_phase_complete: PhaseCompleteCallback | None = None

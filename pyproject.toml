@@ -42,8 +42,6 @@ dependencies = [
     "jsmin>=3.0.1",
     "pillow>=10.0.0",                          # Image processing for social cards
     "psutil>=5.9.0",                           # For better process management in cleanup
-    "textual>=0.96",                           # Interactive dashboards (Visual API requires >=0.96)
-    "textual-serve>=0.1.0",                    # Web-based dashboard access
     "questionary>=2.0.0",                      # Interactive CLI prompts with arrow key navigation
     "watchfiles>=0.20",                        # Rust-based file watching for dev server (fast)
     "bengal-pounce>=0.6.0",                    # ASGI server for dev server (replaces ThreadingTCPServer)
@@ -312,7 +310,6 @@ dev = [
     "pytest-timeout>=2.2.0",
     "pytest-asyncio>=0.23.0",
     "pytest-forked>=1.6.0",           # Isolated test execution for stateful tests
-    "pytest-textual-snapshot>=0.4.0", # Textual dashboard snapshot testing
     "hypothesis>=6.92.0",
     # Linting & Type Checking
     "ty>=0.0.11",   # Astral type checker (Rust-based)

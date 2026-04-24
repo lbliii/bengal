@@ -2,11 +2,31 @@
 
 from __future__ import annotations
 
-import importlib.util
+import builtins
+import sys
 
 import pytest
 
 from bengal.content.sources.loaders import local_loader
+
+
+def _simulate_missing_aiohttp(monkeypatch: pytest.MonkeyPatch, source_module: str) -> None:
+    """Force a source module to re-import with aiohttp unavailable."""
+    original_import = builtins.__import__
+
+    def blocked_import(
+        name: str,
+        globals: dict[str, object] | None = None,
+        locals: dict[str, object] | None = None,
+        fromlist: tuple[str, ...] = (),
+        level: int = 0,
+    ) -> object:
+        if name == "aiohttp" or name.startswith("aiohttp."):
+            raise ImportError("No module named 'aiohttp'")
+        return original_import(name, globals, locals, fromlist, level)
+
+    sys.modules.pop(source_module, None)
+    monkeypatch.setattr(builtins, "__import__", blocked_import)
 
 
 class TestLocalLoader:
@@ -40,36 +60,29 @@ class TestLocalLoader:
 class TestRemoteLoaderImports:
     """Tests for remote loader import behavior."""
 
-    def test_github_loader_import_error(self) -> None:
+    def test_github_loader_import_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test github_loader raises ImportError if aiohttp not installed."""
-        if importlib.util.find_spec("aiohttp") is not None:
-            from bengal.content.sources.loaders import github_loader
+        _simulate_missing_aiohttp(monkeypatch, "bengal.content.sources.github")
 
-            loader = github_loader(repo="owner/repo")
-            assert loader.source_type == "github"
-        else:
-            with pytest.raises(ImportError, match=r"(?i)aiohttp|github"):
-                from bengal.content.sources.loaders import github_loader
+        from bengal.content.sources.loaders import github_loader
 
-    def test_rest_loader_import_error(self) -> None:
+        with pytest.raises(ImportError, match=r"(?i)aiohttp|github"):
+            github_loader(repo="owner/repo")
+
+    def test_rest_loader_import_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test rest_loader raises ImportError if aiohttp not installed."""
-        if importlib.util.find_spec("aiohttp") is not None:
-            from bengal.content.sources.loaders import rest_loader
+        _simulate_missing_aiohttp(monkeypatch, "bengal.content.sources.rest")
 
-            loader = rest_loader(url="https://api.example.com")
-            assert loader.source_type == "rest"
-        else:
-            with pytest.raises(ImportError, match=r"(?i)aiohttp|rest"):
-                from bengal.content.sources.loaders import rest_loader
+        from bengal.content.sources.loaders import rest_loader
 
-    def test_notion_loader_import_error(self) -> None:
+        with pytest.raises(ImportError, match=r"(?i)aiohttp|rest"):
+            rest_loader(url="https://api.example.com")
+
+    def test_notion_loader_import_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test notion_loader raises ImportError if aiohttp not installed."""
-        if importlib.util.find_spec("aiohttp") is not None:
-            from bengal.content.sources.loaders import notion_loader
-            from bengal.errors import BengalConfigError
+        _simulate_missing_aiohttp(monkeypatch, "bengal.content.sources.notion")
 
-            with pytest.raises(BengalConfigError, match="requires a token"):
-                notion_loader(database_id="abc123")
-        else:
-            with pytest.raises(ImportError, match=r"(?i)aiohttp|notion"):
-                from bengal.content.sources.loaders import notion_loader
+        from bengal.content.sources.loaders import notion_loader
+
+        with pytest.raises(ImportError, match=r"(?i)aiohttp|notion"):
+            notion_loader(database_id="abc123")

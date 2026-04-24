@@ -56,7 +56,7 @@
 | **Template engine** | 5 | Kida engine with bytecode cache, fragment cache, block introspection, pipeline operators, pattern matching. Jinja2 fallback with per-template locks. 80+ template functions across 10 phases. |
 | **Shortcodes** | 4 | Hugo-style `{{< name >}}` and `{{% name %}}` with `ShortcodeContext` (Get, GetInt, GetBool, Ref, RelRef, Inner, Params). Recursive expansion (max depth 20). Strict/non-strict error modes. |
 | **Template functions/filters** | 5 | 80+ functions: strings, collections, math, dates, URLs, content, data, images, icons, SEO, taxonomies, navigation, autodoc, OpenAPI, blog, changelog, authors. `coerce_int` for YAML type safety. `@template_safe` decorator. |
-| **Design tokens** | 4 | `BengalPalette`, `BengalMascots` in `tokens.py`. `generate_web_css()` writes CSS custom properties. TCSS validation. |
+| **Design tokens** | 4 | `BengalPalette`, `BengalMascots` in `tokens.py`. `generate_web_css()` writes CSS custom properties. |
 | **Icon system** | 4 | `IconConfig` with library and aliases. `render_svg_icon()` integration in admonitions and templates. |
 
 **Overall Score: 4.4 — Mature/Production**
@@ -245,7 +245,6 @@
 | **Scaffolding** | 4 | `bengal new` for site/page/layout/partial/theme. Interactive prompts. |
 | **Error messages** | 5 | `ErrorContext` + `enrich_error` + `ErrorCode`. Rich console display with `display_template_error()`. `ErrorDeduplicator` for batch rendering. Strict vs non-strict modes. |
 | **Diagnostics** | 4 | `emit_diagnostic` across models. Build stats collection. Phase timing. |
-| **Dashboard** | 4 | Textual TUI dashboard. Optional web dashboard via textual-serve. Snapshot tests. |
 | **Config inspection** | 4 | `bengal config show/validate`. `bengal explain` for page introspection. |
 | **Graph analysis** | 4 | Orphans, bridges, communities, pagerank, report. |
 | **Upgrade notification** | 4 | Post-command hook, cached 24h, skipped in CI/non-TTY. |

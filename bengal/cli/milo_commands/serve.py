@@ -20,7 +20,6 @@ def serve(
     profile: Annotated[str, Description("Config profile: writer, theme-dev, dev")] = "",
     version_scope: Annotated[str, Description("Focus on single version (e.g., v2, latest)")] = "",
     all_versions: Annotated[bool, Description("Build all versions (git versioning mode)")] = False,
-    dashboard: Annotated[bool, Description("Launch interactive Textual dashboard")] = False,
     verbose: Annotated[bool, Description("Show detailed server activity")] = False,
     debug: Annotated[bool, Description("Show debug output and full tracebacks")] = False,
     traceback: Annotated[
@@ -86,18 +85,6 @@ def serve(
         cfg["build"]["debug"] = True
 
     try:
-        if dashboard:
-            from bengal.cli.dashboard.serve import run_serve_dashboard
-
-            run_serve_dashboard(
-                site=site,
-                host=host,
-                port=port,
-                watch=watch,
-                open_browser=open_browser,
-            )
-            return {"status": "ok", "message": "Dashboard session ended"}
-
         from bengal.orchestration.site_runner import SiteRunner
 
         SiteRunner(site).serve(
