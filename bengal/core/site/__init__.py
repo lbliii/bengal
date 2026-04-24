@@ -368,6 +368,12 @@ class Site:
     # CONTENT DISCOVERY
     # =========================================================================
 
+    def _content_orchestrator(self) -> Any:
+        """Construct a ContentOrchestrator bound to this Site (deferred to avoid cycle)."""
+        from bengal.orchestration.content import ContentOrchestrator
+
+        return ContentOrchestrator(self)
+
     def discover_content(self, content_dir: Path | None = None) -> None:
         """
         Discover all content (pages, sections) in the content directory.
@@ -382,104 +388,15 @@ class Site:
         Scans the content directory recursively, creating Page and Section
         objects for all markdown files and organizing them into a hierarchy.
         """
-        if content_dir is None:
-            content_dir = self.root_path / "content"
-
-        if not content_dir.exists():
-            build_cfg = self.config.get("build", {}) if isinstance(self.config, dict) else {}
-            if build_cfg.get("strict_mode", False):
-                from bengal.errors import BengalConfigError, ErrorCode
-
-                raise BengalConfigError(
-                    f"Content directory not found: {content_dir}\n"
-                    f"Strict mode is enabled — missing content directory is an error.",
-                    code=ErrorCode.C003,
-                    suggestion=f"Create the directory at '{content_dir}', or check "
-                    f"'build.content_dir' in your config",
-                )
-            emit_diagnostic(self, "warning", "content_dir_not_found", path=str(content_dir))
-            import warnings
-
-            warnings.warn(
-                f"Content directory not found: {content_dir} — "
-                f"site will have zero pages. Check 'build.content_dir' in your config.",
-                stacklevel=2,
-            )
-            return
-
-        from bengal.collections import load_collections
-        from bengal.content.discovery.content_discovery import ContentDiscovery
-
-        collections = load_collections(self.root_path)
-
-        build_config = self.config.get("build", {}) if isinstance(self.config, dict) else {}
-        strict_validation = build_config.get("strict_collections", False)
-
-        discovery = ContentDiscovery(
-            content_dir,
-            site=self,
-            collections=collections,
-            strict_validation=strict_validation,
-        )
-        self.sections, self.pages = discovery.discover()
-
-        self.register_sections()
-        self._setup_page_references()
-        self._validate_page_section_references()
-        self._apply_cascades()
-        self._set_output_paths()
-        self._detect_features()
+        self._content_orchestrator().discover_content(content_dir=content_dir, warn_missing=True)
 
     def _set_output_paths(self) -> None:
         """Set output paths for all discovered pages."""
-        from bengal.utils.paths.url_strategy import URLStrategy
-
-        for page in self.pages:
-            if page.output_path:
-                continue
-
-            page.output_path = URLStrategy.compute_regular_page_output_path(
-                page, cast("SiteLike", self)
-            )
-
-            if hasattr(self, "url_registry") and self.url_registry:
-                try:
-                    url = URLStrategy.url_from_output_path(page.output_path, cast("SiteLike", self))
-                    source = str(getattr(page, "source_path", page.title))
-                    version = getattr(page, "version", None)
-                    lang = getattr(page, "lang", None)
-                    self.url_registry.claim(
-                        url=url,
-                        owner="content",
-                        source=source,
-                        priority=100,
-                        version=version,
-                        lang=lang,
-                    )
-                except Exception:  # noqa: S110
-                    pass
+        self._content_orchestrator()._set_output_paths()
 
     def _detect_features(self) -> None:
         """Detect CSS-requiring features in page content (mermaid, tables, etc.)."""
-        from bengal.orchestration.feature_detector import FeatureDetector
-
-        detector = FeatureDetector()
-
-        for page in self.pages:
-            features = detector.detect_features_in_page(page)
-            _bs = getattr(self, "_current_build_state", None)
-            target = _bs.features_detected if _bs is not None else self.features_detected
-            target.update(features)
-
-        config = self.config
-        _bs = getattr(self, "_current_build_state", None)
-        target = _bs.features_detected if _bs is not None else self.features_detected
-
-        if config.get("search", {}).get("enabled", False):
-            target.add("search")
-
-        if config.get("graph", {}).get("enabled", False):
-            target.add("graph")
+        self._content_orchestrator()._detect_features()
 
     # =========================================================================
     # ASSET DISCOVERY
@@ -499,61 +416,11 @@ class Site:
         Theme assets are discovered first (lower priority), then site assets
         (higher priority, can override theme assets).
         """
-        from bengal.content.discovery.asset_discovery import AssetDiscovery
-        from bengal.services.theme import get_theme_assets_chain
-
-        self.assets = []
-
-        if self.theme:
-            for theme_dir in get_theme_assets_chain(self.root_path, self.theme):
-                if theme_dir and theme_dir.exists():
-                    theme_discovery = AssetDiscovery(theme_dir)
-                    self.assets.extend(theme_discovery.discover())
-
-        self._discover_provider_assets()
-
-        if assets_dir is None:
-            assets_dir = self.root_path / "assets"
-
-        if assets_dir.exists():
-            emit_diagnostic(self, "debug", "discovering_site_assets", path=str(assets_dir))
-            site_discovery = AssetDiscovery(assets_dir)
-            self.assets.extend(site_discovery.discover())
-        elif not self.assets:
-            emit_diagnostic(self, "warning", "assets_dir_not_found", path=str(assets_dir))
-
-        if self.assets:
-            dedup: dict[str, Asset] = {}
-            order: list[str] = []
-            for asset in self.assets:
-                key = str(asset.output_path) if asset.output_path else str(asset.source_path.name)
-                if key in dedup:
-                    dedup[key] = asset
-                else:
-                    dedup[key] = asset
-                    order.append(key)
-            self.assets = [dedup[k] for k in order]
+        self._content_orchestrator().discover_assets(assets_dir=assets_dir)
 
     def _discover_provider_assets(self) -> None:
         """Discover assets from theme library providers, namespaced by prefix."""
-        from bengal.content.discovery.asset_discovery import AssetDiscovery
-        from bengal.core.theme.providers import get_provider_asset_dirs, resolve_theme_providers
-        from bengal.core.theme.resolution import resolve_theme_chain
-
-        if not self.theme:
-            return
-
-        theme_chain = resolve_theme_chain(self.root_path, self.theme)
-        providers = resolve_theme_providers(self.root_path, theme_chain)
-        if not providers:
-            return
-
-        for prefix, asset_root in get_provider_asset_dirs(providers):
-            discovery = AssetDiscovery(asset_root)
-            for asset in discovery.discover():
-                if asset.output_path:
-                    asset.output_path = Path(prefix) / asset.output_path
-                self.assets.append(asset)
+        self._content_orchestrator()._discover_provider_assets()
 
     # =========================================================================
     # PAGE / SECTION REFERENCES
@@ -567,32 +434,11 @@ class Site:
         content discovery and section registry building, but before cascade
         application.
         """
-        for page in self.pages:
-            page._site = self
-
-        for section in self.sections:
-            section._site = self
-
-            if section.index_page:
-                section.index_page._section = section
-
-            for page in section.pages:
-                page._section = section
-
-            self._setup_section_references(section)
+        self._content_orchestrator()._setup_page_references()
 
     def _setup_section_references(self, section: SectionLike) -> None:
         """Recursively set up references for a section and its subsections."""
-        for subsection in section.subsections:
-            subsection._site = self
-
-            if subsection.index_page:
-                subsection.index_page._section = subsection
-
-            for page in subsection.pages:
-                page._section = subsection
-
-            self._setup_section_references(subsection)
+        self._content_orchestrator()._setup_section_references(section)
 
     def _apply_cascades(self) -> None:
         """
@@ -601,7 +447,7 @@ class Site:
         Section _index.md files can define metadata that automatically applies to all
         descendant pages.
         """
-        self.build_cascade_snapshot()
+        self._content_orchestrator()._apply_cascades()
 
     # =========================================================================
     # CASCADE SNAPSHOT
@@ -1163,34 +1009,13 @@ class Site:
         Logs warnings for pages that are in a section's pages list but have
         _section = None, which would cause navigation to fall back to flat mode.
         """
-        pages_without_section: list[tuple[PageLike, SectionLike]] = []
-
-        for section in self.sections:
-            pages_without_section.extend(
-                (page, section) for page in section.pages if page._section is None
-            )
-            self._validate_subsection_references(section, pages_without_section)
-
-        if pages_without_section:
-            sample_pages = [(str(p.source_path), s.name) for p, s in pages_without_section[:5]]
-            emit_diagnostic(
-                self,
-                "warning",
-                "pages_missing_section_reference",
-                count=len(pages_without_section),
-                samples=sample_pages,
-                note="These pages are in sections but have _section=None, navigation may be flat",
-            )
+        self._content_orchestrator()._validate_page_section_references()
 
     def _validate_subsection_references(
         self, section: SectionLike, pages_without_section: list[tuple[PageLike, SectionLike]]
     ) -> None:
         """Recursively validate page-section references in subsections."""
-        for subsection in section.subsections:
-            pages_without_section.extend(
-                (page, subsection) for page in subsection.pages if page._section is None
-            )
-            self._validate_subsection_references(subsection, pages_without_section)
+        self._content_orchestrator()._validate_subsection_references(section, pages_without_section)
 
     # =========================================================================
     # FACTORY METHODS
