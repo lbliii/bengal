@@ -36,7 +36,6 @@ CORE_DIR = Path(__file__).resolve().parents[3] / "bengal" / "core"
 LEGACY_MIXINS: frozenset[str] = frozenset(
     {
         "PageMetadataMixin",
-        "PageContentMixin",
         "PageRelationshipsMixin",
         "SectionErgonomicsMixin",
         "SectionHierarchyMixin",
@@ -98,6 +97,54 @@ def test_site_remains_mixin_free() -> None:
             "Site dissolved all 5 mixins in epic-delete-forwarding-wrappers S4 "
             "(2026-04-20). Do not re-introduce — see the epic and PR #194."
         )
+
+
+def test_page_does_not_inherit_rendering_operations() -> None:
+    """Page keeps rendering operations behind shims, not inheritance."""
+    page_file = CORE_DIR / "page" / "__init__.py"
+    tree = ast.parse(page_file.read_text(encoding="utf-8"))
+
+    page_class = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
+    )
+    base_names = {
+        base.id if isinstance(base, ast.Name) else base.attr
+        for base in page_class.bases
+        if isinstance(base, (ast.Name, ast.Attribute))
+    }
+
+    assert "PageOperationsMixin" not in base_names
+
+
+def test_page_has_no_module_level_rendering_operations_import() -> None:
+    """Core Page should not import rendering page operations at module import time."""
+    page_file = CORE_DIR / "page" / "__init__.py"
+    tree = ast.parse(page_file.read_text(encoding="utf-8"))
+
+    imports = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.ImportFrom) and node.module == "bengal.rendering.page_operations"
+    ]
+
+    assert imports == []
+
+
+def test_page_does_not_inherit_content_mixin() -> None:
+    """Page content access stays inline and delegates processing outward."""
+    page_file = CORE_DIR / "page" / "__init__.py"
+    tree = ast.parse(page_file.read_text(encoding="utf-8"))
+
+    page_class = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
+    )
+    base_names = {
+        base.id if isinstance(base, ast.Name) else base.attr
+        for base in page_class.bases
+        if isinstance(base, (ast.Name, ast.Attribute))
+    }
+
+    assert "PageContentMixin" not in base_names
 
 
 def test_legacy_mixin_allowlist_is_accurate() -> None:

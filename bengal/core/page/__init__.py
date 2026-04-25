@@ -1,8 +1,8 @@
 """
 Page representation for content pages in Bengal SSG.
 
-Provides the main Page class combining multiple mixins for metadata,
-navigation, content processing, and rendering. Pages represent markdown
+Provides the main Page class combining metadata, navigation, and passive
+content access. Pages represent markdown
 content files and are the primary content unit in Bengal.
 
 Public API:
@@ -13,15 +13,16 @@ page_core.py: PageCore dataclass (cacheable metadata)
 metadata.py: PageMetadataMixin (frontmatter access)
 navigation.py: Free functions for navigation and hierarchy
 computed.py: Free functions for computed properties (word count, reading time, etc.)
-content.py: PageContentMixin (AST, TOC, excerpts)
+rendering/page_content.py: Rendering-side helpers behind content compatibility properties
 bundle.py: Free functions for bundle detection and resource access
 relationships.py: PageRelationshipsMixin (prev/next, related)
 utils.py: Field separation utilities
-(PageOperationsMixin moved to bengal.rendering.page_operations)
+rendering/page_operations.py: Rendering-side helpers behind Page compatibility shims
 
 Key Concepts:
-Mixin Architecture: Page combines focused mixins for separation of
-    concerns. Each mixin handles a specific aspect (metadata, nav, etc.).
+Compatibility Shims: Page keeps a few thin methods/properties for existing
+    template or third-party access while rendering-side helpers own the actual
+    work.
 
 Hashability: Pages are hashable by source_path, enabling set operations
     and use as dict keys. Two pages with same path are equal.
@@ -67,13 +68,7 @@ if TYPE_CHECKING:
     from bengal.protocols.core import PageLike, SectionLike
     from bengal.utils.pagination import Paginator
 
-# Import PageOperationsMixin from rendering layer where it logically belongs.
-# This is an intentional cross-layer import - the mixin contains rendering logic
-# that is mixed into the Page class for API convenience.
-from bengal.rendering.page_operations import PageOperationsMixin
-
 from .bundle import BundleType, PageResource, PageResources
-from .content import PageContentMixin
 from .frontmatter import Frontmatter
 from .metadata import PageMetadataMixin
 from .page_core import PageCore
@@ -85,8 +80,6 @@ from .utils import normalize_tags
 class Page(
     PageMetadataMixin,
     PageRelationshipsMixin,
-    PageOperationsMixin,
-    PageContentMixin,
 ):
     """
     Represents a single content page.
@@ -894,6 +887,75 @@ class Page(
         """Raw markdown source content."""
         return self._raw_content
 
+    @property
+    def content(self) -> str:
+        """
+        Rendered HTML content for template display.
+
+        Compatibility property for ``{{ page.content | safe }}``. Raw markdown
+        remains available as ``page._source`` for internal use.
+        """
+        from bengal.rendering.page_content import get_content
+
+        return get_content(self)
+
+    @property
+    def ast(self) -> list[ASTNode] | dict[str, Any] | None:
+        """Parser AST cache when available."""
+        from bengal.rendering.page_content import get_ast
+
+        return get_ast(self)
+
+    @property
+    def html(self) -> str:
+        """Rendered HTML content."""
+        from bengal.rendering.page_content import get_html
+
+        return get_html(self)
+
+    @property
+    def plain_text(self) -> str:
+        """Plain text extracted from AST, HTML, or raw source."""
+        from bengal.rendering.page_content import get_plain_text
+
+        return get_plain_text(self)
+
+    def _render_ast_to_html(self) -> str:
+        """Compatibility shim for older private Page content callers."""
+        from bengal.rendering.page_content import render_ast_to_html
+
+        return render_ast_to_html(self)
+
+    def _extract_text_from_ast(self) -> str:
+        """Compatibility shim for older private Page content callers."""
+        from bengal.rendering.page_content import extract_text_from_ast_cache
+
+        return extract_text_from_ast_cache(self._ast_cache)
+
+    def _extract_links_from_ast(self) -> list[str]:
+        """Compatibility shim for older private Page content callers."""
+        from bengal.rendering.page_content import extract_links_from_ast_cache
+
+        return extract_links_from_ast_cache(self._ast_cache)
+
+    def _strip_html_to_text(self, html: str) -> str:
+        """Compatibility shim for older private Page content callers."""
+        from bengal.rendering.page_content import strip_html_to_text
+
+        return strip_html_to_text(html)
+
+    def extract_links(self, plugin_links: list[str] | None = None) -> list[str]:
+        """
+        Extract links from page content via the rendering-side service.
+
+        Compatibility shim for older call sites that invoke
+        ``page.extract_links()`` directly. Build code should prefer
+        ``bengal.rendering.page_operations.extract_links(page, ...)``.
+        """
+        from bengal.rendering.page_operations import extract_links
+
+        return extract_links(self, plugin_links=plugin_links)
+
     def HasShortcode(self, name: str) -> bool:
         """
         Return True if page content uses the given shortcode.
@@ -905,7 +967,7 @@ class Page(
             shortcode is absent. Preferable to string-matching the raw
             source because shortcode parsing handles comments and nesting.
         """
-        from bengal.rendering.shortcodes import has_shortcode
+        from bengal.rendering.page_operations import has_shortcode
 
         return has_shortcode(self, name)
 

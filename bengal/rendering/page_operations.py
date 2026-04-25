@@ -1,23 +1,16 @@
-"""
-Page Operations Mixin - Link extraction for pages.
+"""Rendering-side helpers for operations exposed on pages.
 
-This mixin provides link extraction methods used during the build pipeline.
-The rendering pipeline calls extract_links() on each page after parsing to
-populate page.links for downstream link validation.
-
-Related Modules:
-- bengal.rendering.pipeline.core: Calls extract_links() during page processing
-- bengal.rendering.pipeline.cache_checker: Calls extract_links() on cache restore
-
-See Also:
-- bengal/core/page/__init__.py: Page class that uses this mixin
-
+The concrete ``Page`` type lives in ``bengal.core`` and should remain a passive
+domain object. Operations that understand rendered HTML, shortcode syntax, or
+link extraction belong here; ``Page`` keeps only small compatibility shims for
+template and third-party code that already calls methods such as
+``page.extract_links()``.
 """
 
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Protocol
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -32,116 +25,105 @@ _WIKILINK = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]")
 _BROKEN_REF = re.compile(r'<span\s+class="broken-ref"[^>]*data-ref="([^"]+)"')
 
 
-class PageOperationsMixin:
-    """
-    Mixin providing link extraction operations for pages.
+class PageOperationTarget(Protocol):
+    """Structural page surface needed by rendering operations."""
 
-    Attributes:
-        content: Raw page content (markdown)
-        rendered_html: Rendered HTML output
-        links: List of links extracted from the page
-        source_path: Path to the source content file
-
-    """
-
-    # Declare attributes that will be provided by the dataclass this mixin is mixed into
-    content: str
-    rendered_html: str
+    html_content: str | None
     links: list[str]
     source_path: Path
 
-    def extract_links(self, plugin_links: list[str] | None = None) -> list[str]:
-        """
-        Extract all links from the page content.
+    @property
+    def _source(self) -> str:
+        """Raw markdown source content."""
+        ...
 
-        When plugin_links is provided (from CrossReferencePlugin during parse),
-        uses those for wikilinks (single source of truth). Otherwise falls back
-        to html_content extraction or regex on source.
 
-        Skips content inside fenced code blocks to avoid false positives
-        from code examples in documentation.
+def extract_links(page: PageOperationTarget, plugin_links: list[str] | None = None) -> list[str]:
+    """
+    Extract all links from page content.
 
-        Args:
-            plugin_links: Resolved wikilink URLs from CrossReferencePlugin, or None
-                         when plugin did not run (e.g. cache restore, generated pages).
+    When plugin_links is provided (from CrossReferencePlugin during parse), it
+    is used as the single source of truth for wikilinks. Otherwise extraction
+    falls back to ``html_content`` or regex over source markdown.
 
-        Returns:
-            List of link URLs found in the page
-        """
-        # Regex-based extraction from raw markdown source
-        # Remove fenced code blocks before extracting links
-        # Process larger fences first (4+ backticks) to handle nested code blocks
-        content_without_code = self._source
+    Content inside fenced code blocks and inline code spans is ignored to avoid
+    false positives from documentation examples.
+    """
+    content_without_code = _strip_code_for_link_extraction(page._source)
 
-        # Remove 4+ backtick fences first (handles nested 3-backtick blocks)
-        content_without_code = _FENCE_4PLUS.sub("", content_without_code)
+    markdown_links = _MARKDOWN_LINK.findall(content_without_code)
+    html_links = _HTML_HREF.findall(content_without_code)
 
-        # Then remove 3-backtick fences
-        content_without_code = _FENCE_3.sub("", content_without_code)
+    if plugin_links is not None:
+        wikilink_urls = plugin_links
+        page.links = [url for _, url in markdown_links] + html_links + wikilink_urls
+    elif page.html_content:
+        page.links = extract_all_links_from_html(page.html_content)
+    else:
+        wikilink_urls = extract_wikilinks_from_source(content_without_code)
+        page.links = [url for _, url in markdown_links] + html_links + wikilink_urls
 
-        # Also remove inline code spans
-        content_without_code = _INLINE_CODE.sub("", content_without_code)
+    _merge_directive_links(page, plugin_links=plugin_links)
+    return page.links
 
-        # Extract Markdown links [text](url)
-        markdown_links = _MARKDOWN_LINK.findall(content_without_code)
 
-        # Extract HTML links <a href="url">
-        html_links = _HTML_HREF.findall(content_without_code)
+def has_shortcode(page: PageOperationTarget, name: str) -> bool:
+    """Return True if page source content uses the named shortcode."""
+    from bengal.rendering.shortcodes import has_shortcode as _has_shortcode
 
-        # Wikilinks: use plugin-collected when available, else fallback
-        if plugin_links is not None:
-            wikilink_urls = plugin_links
-            self.links = [url for _, url in markdown_links] + html_links + wikilink_urls
-        elif self.html_content:
-            # Fallback: extract all links from html_content (resolved hrefs + broken-ref)
-            self.links = self._extract_all_links_from_html()
+    return _has_shortcode(page, name)
+
+
+def extract_all_links_from_html(html_content: str | None) -> list[str]:
+    """Extract href and broken-reference links from rendered HTML."""
+    if not html_content:
+        return []
+    urls: list[str] = []
+    urls.extend(_HTML_HREF.findall(html_content))
+    urls.extend(match.group(1) for match in _BROKEN_REF.finditer(html_content))
+    return urls
+
+
+def extract_wikilinks_from_source(content: str) -> list[str]:
+    """Extract wikilinks from source via regex as a last-resort fallback."""
+    wikilink_urls: list[str] = []
+    for path in _WIKILINK.findall(content):
+        path = path.strip()
+        if path.startswith("ext:"):
+            continue
+        # Fix edge cases: [[!id]] -> #id, [[#heading]] -> #heading, [[path\|label]] -> path
+        if path.startswith("!"):
+            url = f"#{path[1:]}"
+        elif path.startswith("#"):
+            url = path
         else:
-            wikilink_urls = self._extract_wikilinks_from_source(content_without_code)
-            self.links = [url for _, url in markdown_links] + html_links + wikilink_urls
+            path = path.replace("\\|", "|").split("|")[0].strip()
+            url = f"/{path}" if not path.startswith("/") else path
+        wikilink_urls.append(url)
+    return wikilink_urls
 
-        # Capture directive-generated links (cards, buttons, navigation, etc.)
-        # Prefer renderer-collected links when available (set by LinksCollector
-        # during rendering), falling back to post-hoc regex scan of html_content.
-        collected = getattr(self, "_directive_links", None)
-        if collected:
-            existing = set(self.links)
-            for link in collected:
+
+def _strip_code_for_link_extraction(content: str) -> str:
+    """Remove Markdown code spans and fences before regex link extraction."""
+    content_without_code = _FENCE_4PLUS.sub("", content)
+    content_without_code = _FENCE_3.sub("", content_without_code)
+    return _INLINE_CODE.sub("", content_without_code)
+
+
+def _merge_directive_links(page: PageOperationTarget, *, plugin_links: list[str] | None) -> None:
+    """Merge directive-collected links without duplicating existing entries."""
+    collected = getattr(page, "_directive_links", None)
+    if collected:
+        existing = set(page.links)
+        for link in collected:
+            if link not in existing:
+                page.links.append(link)
+                existing.add(link)
+    elif page.html_content and plugin_links is not None:
+        directive_links = _HTML_HREF.findall(page.html_content)
+        if directive_links:
+            existing = set(page.links)
+            for link in directive_links:
                 if link not in existing:
-                    self.links.append(link)
+                    page.links.append(link)
                     existing.add(link)
-        elif self.html_content and plugin_links is not None:
-            directive_links = _HTML_HREF.findall(self.html_content)
-            if directive_links:
-                existing = set(self.links)
-                for link in directive_links:
-                    if link not in existing:
-                        self.links.append(link)
-                        existing.add(link)
-
-        return self.links
-
-    def _extract_all_links_from_html(self) -> list[str]:
-        """Extract all links from html_content (fallback when plugin didn't run)."""
-        urls: list[str] = []
-        urls.extend(_HTML_HREF.findall(self.html_content))
-        urls.extend(match.group(1) for match in _BROKEN_REF.finditer(self.html_content))
-        return urls
-
-    def _extract_wikilinks_from_source(self, content: str) -> list[str]:
-        """Extract wikilinks from source via regex (last-resort fallback)."""
-        wikilink_matches = _WIKILINK.findall(content)
-        wikilink_urls = []
-        for path in wikilink_matches:
-            path = path.strip()
-            if path.startswith("ext:"):
-                continue
-            # Fix edge cases: [[!id]] -> #id, [[#heading]] -> #heading, [[path\|label]] -> path
-            if path.startswith("!"):
-                url = f"#{path[1:]}"
-            elif path.startswith("#"):
-                url = path
-            else:
-                path = path.replace("\\|", "|").split("|")[0].strip()
-                url = f"/{path}" if not path.startswith("/") else path
-            wikilink_urls.append(url)
-        return wikilink_urls

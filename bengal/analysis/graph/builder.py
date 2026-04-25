@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from bengal.analysis.links.types import LinkMetrics, LinkType
 from bengal.errors import BengalGraphError, ErrorCode, record_error
+from bengal.rendering.page_operations import PageOperationTarget, extract_links
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers, should_parallelize
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import clean_md_path
@@ -336,10 +337,7 @@ class GraphBuilder:
         for page in analysis_pages:
             if not hasattr(page, "links") or not page.links:
                 try:
-                    # Type narrowing: extract_links may not be on PageLike protocol
-                    extract_method = getattr(page, "extract_links", None)
-                    if extract_method and callable(extract_method):
-                        extract_method()
+                    extract_links(cast("PageOperationTarget", page))
                 except (AttributeError, TypeError) as e:
                     logger.warning(
                         "knowledge_graph_link_extraction_error",
