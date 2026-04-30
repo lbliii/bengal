@@ -309,10 +309,10 @@ class Section:
 
     @cached_property
     def icon(self) -> str | None:
-        """Get section icon from index page metadata."""
-        from .hierarchy import get_icon
+        """Get section icon for theme navigation."""
+        from bengal.rendering.section_ergonomics import icon
 
-        return get_icon(self)
+        return icon(self)
 
     @cached_property
     def sorted_subsections(self) -> list[Section]:
@@ -415,7 +415,7 @@ class Section:
     @cached_property
     def has_nav_children(self) -> bool:
         """Check if this section has navigable children."""
-        from .navigation import has_nav_children
+        from bengal.rendering.section_ergonomics import has_nav_children
 
         return has_nav_children(self)
 

@@ -10,6 +10,8 @@ from bengal.core.section import Section
 from bengal.rendering.section_ergonomics import (
     aggregate_content,
     apply_section_template,
+    has_nav_children,
+    icon,
     recent_pages,
     word_count,
 )
@@ -41,6 +43,35 @@ def test_recent_pages_direct_helper_sorts_dated_pages(tmp_path: Path) -> None:
     section.pages = [old, undated, new]
 
     assert recent_pages(section) == [new, old]
+
+
+def test_icon_prefers_index_page_metadata(tmp_path: Path) -> None:
+    from bengal.core.section.hierarchy import get_icon
+
+    section = Section(name="docs", path=tmp_path / "docs", metadata={"icon": "folder"})
+    section.index_page = _page(tmp_path, "index", {"icon": "book"})
+
+    assert icon(section) == "book"
+    assert section.icon == "book"
+    assert get_icon(section) == "book"
+
+
+def test_icon_falls_back_to_section_metadata(tmp_path: Path) -> None:
+    section = Section(name="docs", path=tmp_path / "docs", metadata={"icon": "folder"})
+
+    assert icon(section) == "folder"
+
+
+def test_has_nav_children_uses_pages_or_subsections(tmp_path: Path) -> None:
+    empty = Section(name="empty", path=tmp_path / "empty")
+    with_page = Section(name="page", path=tmp_path / "page")
+    with_page.pages = [_page(tmp_path, "child")]
+    parent = Section(name="parent", path=tmp_path / "parent")
+    parent.add_subsection(Section(name="child", path=tmp_path / "parent" / "child"))
+
+    assert has_nav_children(empty) is False
+    assert has_nav_children(with_page) is True
+    assert parent.has_nav_children is True
 
 
 def test_section_recent_pages_shim_delegates_to_rendering_helper(tmp_path: Path) -> None:

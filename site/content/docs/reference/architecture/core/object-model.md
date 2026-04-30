@@ -50,7 +50,8 @@ Represents a single content page with source, metadata, rendered HTML, and navig
   - `relationships.py`: Section membership
   - `computed.py`: Compatibility wrappers for computed values
 - **Rendering-owned behavior**: rendered content, excerpts, TOC extraction, shortcode checks,
-  and template URLs delegate to helpers under `bengal/rendering/`
+  template URLs, and page bundle resource access/classification delegate to
+  helpers under `bengal/rendering/`
 
 **PageCore Integration:**
 - Cacheable fields (title, date, tags, slug) stored in `page.core`
@@ -70,9 +71,10 @@ Represents folder-based grouping of pages with hierarchical organization.
   - `queries.py`: Page retrieval, sorting, and index helper functions behind `Section` shims
 - **Rendering-owned URLs**: `href`, `_path`, `absolute_href`, subsection index
   URL sets, and version-path transforms delegate to `bengal/rendering/section_urls.py`
-- **Rendering-owned ergonomics**: theme-facing helpers such as `recent_pages()`,
-  `featured_posts()`, content stats, and section template application delegate
-  to `bengal/rendering/section_ergonomics.py`
+- **Rendering-owned ergonomics**: theme/navigation-facing helpers such as
+  `icon`, `has_nav_children`, `recent_pages()`, `featured_posts()`, content
+  stats, and section template application delegate to
+  `bengal/rendering/section_ergonomics.py`
 
 **Features:**
 - **Hierarchy**: Parent/child relationships (`subsections`)

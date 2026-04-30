@@ -1,1 +1,1 @@
-Moved Section hierarchy, query, and navigation helpers out of core mixin inheritance, and moved Section URL presentation and theme ergonomic behavior behind rendering-side helpers while preserving the existing template-facing Section API.
+Moved Section hierarchy, query, and navigation helpers out of core mixin inheritance, and moved Section URL presentation and theme/navigation ergonomic behavior, including section icons and nav-child visibility, behind rendering-side helpers while preserving the existing template-facing Section API.

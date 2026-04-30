@@ -111,6 +111,7 @@ def test_page_has_no_module_level_rendering_helper_imports() -> None:
     rendering_helper_modules = {
         "bengal.rendering.page_content",
         "bengal.rendering.page_operations",
+        "bengal.rendering.page_resources",
         "bengal.rendering.page_urls",
     }
     imports = [
@@ -120,6 +121,40 @@ def test_page_has_no_module_level_rendering_helper_imports() -> None:
     ]
 
     assert imports == []
+
+
+def test_page_bundle_resource_io_stays_out_of_core() -> None:
+    """Page bundle resource filesystem access belongs in rendering helpers."""
+    bundle_file = CORE_DIR / "page" / "bundle.py"
+    tree = ast.parse(bundle_file.read_text(encoding="utf-8"))
+    filesystem_call_names = {
+        "exists",
+        "is_dir",
+        "is_file",
+        "iterdir",
+        "read_bytes",
+        "read_text",
+        "stat",
+    }
+
+    hits = [
+        (node.func.attr, node.lineno)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in filesystem_call_names
+    ]
+
+    assert hits == []
+
+    core_resource_imports = [
+        (node.module, node.lineno)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        and node.module is not None
+        and node.module.startswith("bengal.core.resources")
+    ]
+    assert core_resource_imports == []
 
 
 def test_section_has_no_module_level_rendering_helper_imports() -> None:

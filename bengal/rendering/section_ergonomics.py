@@ -17,9 +17,11 @@ class SectionErgonomicsTarget(Protocol):
     sorted_pages: list[Any]
     regular_pages_recursive: list[Any]
     subsections: list[Any]
+    metadata: dict[str, Any]
     title: str
     hierarchy: list[str]
     index_page: Any | None
+    sorted_subsections: list[Any]
 
     def get_all_pages(self, recursive: bool = True) -> list[Any]:
         """Return pages in this section."""
@@ -29,6 +31,23 @@ class SectionErgonomicsTarget(Protocol):
 def content_pages(section: SectionErgonomicsTarget) -> list[Any]:
     """Get content pages for template listings."""
     return section.sorted_pages
+
+
+def icon(section: SectionErgonomicsTarget) -> str | None:
+    """Get section icon from index page metadata, falling back to section metadata."""
+    if (
+        section.index_page
+        and hasattr(section.index_page, "metadata")
+        and (icon_value := section.index_page.metadata.get("icon"))
+    ):
+        return str(icon_value) if icon_value else None
+    result = section.metadata.get("icon")
+    return str(result) if result else None
+
+
+def has_nav_children(section: SectionErgonomicsTarget) -> bool:
+    """Return True when the section has pages or subsections for navigation."""
+    return bool(section.sorted_pages or section.sorted_subsections)
 
 
 def recent_pages(section: SectionErgonomicsTarget, limit: int = 10) -> list[Any]:

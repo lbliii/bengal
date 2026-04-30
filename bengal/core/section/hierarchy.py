@@ -52,15 +52,10 @@ def get_root(section: Section) -> Section:
 
 
 def get_icon(section: Section) -> str | None:
-    """Get section icon from index page metadata."""
-    if (
-        section.index_page
-        and hasattr(section.index_page, "metadata")
-        and (icon_value := section.index_page.metadata.get("icon"))
-    ):
-        return str(icon_value) if icon_value else None
-    result = section.metadata.get("icon")
-    return str(result) if result else None
+    """Compatibility wrapper for rendering-owned section icon helper."""
+    from bengal.rendering.section_ergonomics import icon
+
+    return icon(section)
 
 
 def sorted_subsections(section: Section) -> list[Section]:

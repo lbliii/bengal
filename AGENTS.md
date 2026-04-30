@@ -40,9 +40,9 @@ Bengal is alpha but published on PyPI and used. Calibrate accordingly.
 The current shape to preserve:
 
 - `SourcePage → ParsedPage → RenderedPage` records are the immutable pipeline. They are not the place for convenience fields, late mutation, or plugin-specific state.
-- `Page` is a compatibility surface for templates and older callers, not a renderer. Template-facing properties such as `content`, `html`, `plain_text`, `toc_items`, `excerpt`, `meta_description`, `href`, `_path`, and `absolute_href` should delegate to rendering-side helpers.
+- `Page` is a compatibility surface for templates and older callers, not a renderer. Template-facing properties such as `content`, `html`, `plain_text`, `toc_items`, `excerpt`, `meta_description`, `href`, `_path`, `absolute_href`, and page bundle resource access/classification should delegate to rendering-side helpers.
 - `Site` coordinates through registries, services, and orchestration. It should not reacquire forwarding wrappers just because an internal service exists.
-- `Section` is mixin-free; hierarchy, query, and structural navigation helpers sit behind Section shims instead of base classes. Section URL presentation delegates to `bengal/rendering/section_urls.py`; theme ergonomic helpers such as `recent_pages()`, `featured_posts()`, content stats, and section template application delegate to `bengal/rendering/section_ergonomics.py`.
+- `Section` is mixin-free; hierarchy, query, and structural version-navigation helpers sit behind Section shims instead of base classes. Section URL presentation delegates to `bengal/rendering/section_urls.py`; theme/navigation ergonomic helpers such as icons, `has_nav_children`, `recent_pages()`, `featured_posts()`, content stats, and section template application delegate to `bengal/rendering/section_ergonomics.py`.
 - Rendering owns parser, template, shortcode, AST/HTML, and URL presentation behavior. Core may call into rendering lazily from a compatibility shim; it should not import rendering helpers at module load time.
 - Protocols and plugin hooks are public contracts. Prefer internal adapters or rendering services over widening `SiteLike`, `PageLike`, or `Plugin`.
 
@@ -82,7 +82,7 @@ Things that look reasonable and are wrong here:
 
 - **Adding npm/JS to the build path.** No. The whole point is a pure-Python content stack.
 - **Reintroducing core mixins.** PR #194 dissolved Site mixins deliberately over 10+ commits, and Page/Section mixins have since been dissolved. The allow-list is empty — not an invitation to add more.
-- **Moving rendering behavior back into Page.** Page may keep template-facing compatibility properties, but the work behind rendered content, excerpts, meta descriptions, shortcode checks, link extraction, TOC structures, and template URLs belongs in `bengal/rendering/`.
+- **Moving rendering behavior back into Page.** Page may keep template-facing compatibility properties, but the work behind rendered content, excerpts, meta descriptions, shortcode checks, link extraction, TOC structures, template URLs, and page bundle resource access/classification belongs in `bengal/rendering/`.
 - **`try: ... except Exception: pass`.** S110 is enabled. If you must swallow, log via diagnostics with what + why.
 - **Wrapping `except A, B:` in parens.** Valid PEP 758 syntax in 3.14+. Ruff will undo your "fix."
 - **`# type: ignore` to clear a ty diagnostic.** Floor is ty-limitation territory. Either narrow the type properly or leave it; don't ignore.

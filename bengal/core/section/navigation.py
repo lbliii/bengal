@@ -1,9 +1,9 @@
 """
 Section navigation helper functions.
 
-Provides version-aware filtering helpers for sections. URL presentation helpers
-live in ``bengal.rendering.section_urls``; this module keeps compatibility
-wrappers for older imports.
+Provides version-aware filtering helpers for sections. URL presentation and
+template navigation-view helpers live in rendering; this module keeps
+compatibility wrappers for older imports.
 """
 
 from __future__ import annotations
@@ -44,14 +44,10 @@ def subsection_index_urls(section: Section) -> set[str]:
 
 
 def has_nav_children(section: Section) -> bool:
-    """
-    Check if this section has navigable children.
+    """Compatibility wrapper for rendering-owned section nav view helpers."""
+    from bengal.rendering.section_ergonomics import has_nav_children as _has_nav_children
 
-    A section has navigable children if it contains either:
-    - Regular pages (excluding the index page itself)
-    - Subsections
-    """
-    return bool(section.sorted_pages or section.sorted_subsections)
+    return _has_nav_children(section)
 
 
 def pages_for_version(section: Section, version_id: str | None) -> list[PageLike]:

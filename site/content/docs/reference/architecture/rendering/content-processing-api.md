@@ -96,8 +96,15 @@ Section URL presentation is implemented in `bengal/rendering/section_urls.py`,
 and section theme ergonomics are implemented in
 `bengal/rendering/section_ergonomics.py`. `Section` keeps compatibility shims
 so existing templates can continue using properties and methods such as
-`section.href`, `section.recent_pages()`, `section.featured_posts()`, and
-`section.aggregate_content()`.
+`section.href`, `section.icon`, `section.has_nav_children`, `section.recent_pages()`,
+`section.featured_posts()`, and `section.aggregate_content()`.
+
+Page bundle resource discovery and reads are implemented in
+`bengal/rendering/page_resources.py`. `PageResource` keeps compatibility
+methods such as `read_text()`, `read_json()`, `exists`, and `size`, but the
+filesystem work sits outside core. Resource type categorization and image
+conversion helpers live there too, behind existing `PageResource` and
+`PageResources` methods.
 
 ---
 

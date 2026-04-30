@@ -21,13 +21,16 @@ may remain on `Page`, but rendering-derived behavior belongs behind helpers in
 `bengal/rendering/`. `Page.content`, `Page.html`, `Page.plain_text`,
 `Page.toc_items`, `Page.excerpt`, `Page.meta_description`, `Page.href`,
 `Page._path`, `Page.absolute_href`, `Page.extract_links()`, and
-`Page.HasShortcode()` are compatibility shims, not permission to put parser,
-template, shortcode, or URL presentation logic back into core.
+`Page.HasShortcode()` are compatibility shims, as are `PageResource` read
+methods, type helpers, image conversion, and page bundle resource discovery. Do
+not put parser, template, shortcode, URL presentation, or resource access logic
+back into core.
 
 `Section` follows the same boundary for theme-facing ergonomics:
-`Section.recent_pages()`, `Section.pages_with_tag()`, `Section.featured_posts()`,
-section content stats, and section template application are compatibility shims
-over `bengal/rendering/section_ergonomics.py`.
+`Section.icon`, `Section.has_nav_children`, `Section.recent_pages()`,
+`Section.pages_with_tag()`, `Section.featured_posts()`, section content stats,
+and section template application are compatibility shims over
+`bengal/rendering/section_ergonomics.py`.
 Section URL properties (`Section.href`, `Section._path`, `Section.absolute_href`,
 subsection index URL sets, and version-path transforms) are compatibility shims
 over `bengal/rendering/section_urls.py`.
