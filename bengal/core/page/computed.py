@@ -6,9 +6,9 @@ accessing them through mixin self-reference.
 
 Key Functions:
 - compute_word_count: Word count from source markdown
-- compute_meta_description: SEO-friendly description (max 160 chars)
+- compute_meta_description: Compatibility wrapper for rendering-side descriptions
 - compute_reading_time: Estimated reading time in minutes
-- compute_excerpt: Content excerpt for listings (max 200 chars)
+- compute_excerpt: Compatibility wrapper for rendering-side excerpts
 - compute_age_days: Days since publication
 - compute_age_months: Months since publication
 - get_primary_author: Primary Author object
@@ -32,14 +32,8 @@ See Also:
 
 from __future__ import annotations
 
-import re
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, cast
-
-from bengal.core.utils.text import strip_html, truncate_at_sentence, truncate_at_word
-
-# Match leading h1 (# Title) so excerpt starts with content after it
-_LEADING_H1 = re.compile(r"^#\s*[^\n]*\n", re.MULTILINE)
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
@@ -72,10 +66,11 @@ def compute_word_count(raw_content: str) -> int:
 def compute_meta_description(metadata: Mapping[str, Any], raw_content: str) -> str:
     """Generate SEO-friendly meta description.
 
-    Creates description by:
-    - Using explicit 'description' from metadata if available
-    - Otherwise generating from content by stripping HTML and truncating
-    - Attempting to end at sentence boundary for better readability
+    .. deprecated::
+        Content-derived descriptions belong in
+        ``bengal.rendering.page_content``. This wrapper remains so older
+        imports of ``bengal.core.page.computed.compute_meta_description`` keep
+        working.
 
     Args:
         metadata: Page metadata dict
@@ -84,22 +79,9 @@ def compute_meta_description(metadata: Mapping[str, Any], raw_content: str) -> s
     Returns:
         Meta description text (max 160 chars)
     """
-    # Check metadata first (explicit description)
-    description = metadata.get("description")
-    if description:
-        return cast("str", description)
+    from bengal.rendering.page_content import compute_meta_description as render_description
 
-    # Generate from raw content
-    if not raw_content:
-        return ""
-
-    # Strip HTML tags and normalize whitespace
-    from bengal.core.utils.text import normalize_whitespace
-
-    text = normalize_whitespace(strip_html(raw_content))
-
-    # Truncate at sentence boundary for readability
-    return truncate_at_sentence(text, length=160)
+    return render_description(metadata, raw_content)
 
 
 def compute_reading_time(word_count: int) -> int:
@@ -120,14 +102,9 @@ def compute_excerpt(raw_content: str) -> str:
     """Extract content excerpt as rendered HTML.
 
     .. deprecated::
-        When Patitas is the parser, the pipeline extracts excerpt from AST
-        (plain text, structurally correct) and sets page._excerpt. This
-        function remains as fallback for PythonMarkdownParser and edge cases.
-
-    Creates an excerpt by:
-    - Stripping the leading h1 (# Title) so excerpt starts with content after it
-    - Truncating markdown at ~250 chars (word boundary)
-    - Rendering markdown to HTML (bold, links, etc.)
+        Rendering excerpts belongs in ``bengal.rendering.page_content``.
+        This wrapper remains so older imports of
+        ``bengal.core.page.computed.compute_excerpt`` keep working.
 
     Args:
         raw_content: Raw markdown source string
@@ -135,24 +112,9 @@ def compute_excerpt(raw_content: str) -> str:
     Returns:
         Excerpt as HTML (safe to render in templates)
     """
-    if not raw_content:
-        return ""
+    from bengal.rendering.page_content import compute_excerpt as render_excerpt
 
-    # Strip leading h1 and start with content after the newline
-    content_after_h1 = _LEADING_H1.sub("", raw_content, count=1).lstrip("\n")
-
-    # Truncate markdown at word boundary before rendering
-    truncated_md = truncate_at_word(content_after_h1, length=250)
-
-    if not truncated_md:
-        return ""
-
-    # Render markdown to HTML
-    from bengal.parsing import create_markdown_parser
-
-    parser = create_markdown_parser()
-    html = parser.parse(truncated_md, {})
-    return html.strip()
+    return render_excerpt(raw_content)
 
 
 def compute_age_days(date: datetime | None) -> int:

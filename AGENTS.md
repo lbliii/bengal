@@ -13,7 +13,7 @@ Bengal builds the sites people read documentation on. Bugs you introduce here re
 ## Design philosophy
 
 - **Pure Python is a constraint.** No npm, no Node, no JS toolchain. The whole B-stack (Patitas, Rosettes, Kida, Pounce, Milo) exists to make that viable — keep it that way. Faster path = better Python.
-- **Core is passive.** `bengal/core/` does no I/O and no logging. Use the diagnostics sink (`emit(self, "warning", ...)`), not loggers. Orchestration coordinates; core models hold state.
+- **Core is passive.** `bengal/core/` does no I/O and no logging. Use the diagnostics sink (`emit(self, "warning", ...)`), not loggers. Orchestration coordinates; core models hold state. Rendering services derive presentation: HTML, excerpts, template URLs, and content views belong under `bengal/rendering/`, with core keeping only compatibility shims where callers already depend on them.
 - **Immutable pipelines.** `SourcePage → ParsedPage → RenderedPage` is frozen on purpose. Mutation in the pipeline is a thread-safety bug waiting for 3.14t to find it. Don't add setters to `*Page` records.
 - **Atomic writes everywhere.** `bengal.utils.io.atomic_write_text` / `atomic_write_bytes` / `json_compat.dump`. A crash mid-build must not corrupt outputs.
 - **Sharp edges are bugs.** Silent `except`, `# type: ignore`, ambiguous flags, unhelpful errors, fuzzy "did you mean" omitted — not taste, bugs. Use `BengalError` with `code`, `context`, `suggestion`, `debug_payload`.
@@ -35,6 +35,19 @@ Bengal is alpha but published on PyPI and used. Calibrate accordingly.
 
 ---
 
+## Current architecture spine
+
+The current shape to preserve:
+
+- `SourcePage → ParsedPage → RenderedPage` records are the immutable pipeline. They are not the place for convenience fields, late mutation, or plugin-specific state.
+- `Page` is a compatibility surface for templates and older callers, not a renderer. Template-facing properties such as `content`, `html`, `plain_text`, `toc_items`, `excerpt`, `meta_description`, `href`, `_path`, `absolute_href`, and page bundle resource access/classification should delegate to rendering-side helpers.
+- `Site` coordinates through registries, services, and orchestration. It should not reacquire forwarding wrappers just because an internal service exists.
+- `Section` is mixin-free; hierarchy, query, and structural version-navigation helpers sit behind Section shims instead of base classes. Section URL presentation delegates to `bengal/rendering/section_urls.py`; theme/navigation ergonomic helpers such as icons, `has_nav_children`, `recent_pages()`, `featured_posts()`, content stats, and section template application delegate to `bengal/rendering/section_ergonomics.py`.
+- Rendering owns parser, template, shortcode, AST/HTML, and URL presentation behavior. Core may call into rendering lazily from a compatibility shim; it should not import rendering helpers at module load time.
+- Protocols and plugin hooks are public contracts. Prefer internal adapters or rendering services over widening `SiteLike`, `PageLike`, or `Plugin`.
+
+---
+
 ## Who reads your output
 
 - **Site authors** — want `bengal serve` to just work and the traceback to tell them which file broke. They read errors, the dev server output, and `--help`.
@@ -48,14 +61,14 @@ Bengal is alpha but published on PyPI and used. Calibrate accordingly.
 
 Forks where I want a check-in, not a judgment call:
 
-- **Reintroducing a mixin in `bengal/core/`.** Site is mixin-free after epic-delete-forwarding-wrappers (PR #194); `tests/unit/core/test_no_core_mixins.py` enforces it via a `LEGACY_MIXINS` allow-list (Page/Section only). Adding to that list, or adding new core mixins, needs a check-in.
+- **Reintroducing a mixin in `bengal/core/`.** Site, Page, and Section are mixin-free after epic-delete-forwarding-wrappers and the follow-up boundary cleanups. `tests/unit/core/test_no_core_mixins.py` enforces an empty `LEGACY_MIXINS` allow-list. Adding to that list, or adding new core mixins, needs a check-in.
 - **Moving a deferred import to module level.** Bengal has multiple deferred-only import cycles. The `check-cycles` pre-commit hook catches some; not all. If you see `from bengal.X import Y` inside a function and want to hoist it, run check-cycles first and ask.
 - **Touching the immutable page pipeline.** `SourcePage` / `ParsedPage` / `RenderedPage` are frozen on purpose. Adding fields, mutability, or new pipeline stages is a design conversation, not a patch.
 - **Changing the `Plugin` protocol or any of the 9 extension points.** Public surface; breaks unknown third parties. Sketch the change first.
 - **Public API change** (`bengal` CLI commands/flags, `bengal.plugins` entry-point shape, `BengalError` constructor). Ask whether the break is worth it.
 - **New runtime dependency.** Default is no. The B-stack is deliberately small. Reach for an existing dep, then ask.
 - **New config option.** Reshape an existing one first. Configs are easier to add than to remove.
-- **Chasing ty diagnostics below the floor (~1913).** Remaining ones are ty checker limitations (structural matching, hasattr narrowing, ParamSpec). Don't expand `SiteLike` — it backfires (+200 diagnostics) because test mocks don't implement new attrs. Ask before opening a "reduce ty diagnostics" branch.
+- **Chasing ty diagnostics below the floor (~570).** Remaining ones are ty checker limitations, optional dependency modeling, structural matching, hasattr narrowing, or protocol/test-double mismatches. Don't expand `SiteLike` — it backfires because test mocks don't implement new attrs. Ask before opening a "reduce ty diagnostics" branch.
 - **Refactoring methods on Site/Page/Section.** Run each through the greenfield-design test (see `feedback_domain_facets_vs_vestiges`): would you name it this, here, designing fresh? If no → it's a vestige, delete + migrate callers, don't relocate. Ask before opening a "reorganize" PR.
 - **Test disagrees with code.** Ask which is authoritative before "fixing" either.
 - **Can't reproduce a reported bug.** Stop. Ask for a minimal repro (a `tests/roots/` fixture is ideal). Don't guess.
@@ -68,7 +81,8 @@ Forks where I want a check-in, not a judgment call:
 Things that look reasonable and are wrong here:
 
 - **Adding npm/JS to the build path.** No. The whole point is a pure-Python content stack.
-- **Reintroducing core mixins.** PR #194 dissolved Site mixins deliberately over 10+ commits. Page/Section legacy mixins are allow-listed pending a follow-up audit — not an invitation to add more.
+- **Reintroducing core mixins.** PR #194 dissolved Site mixins deliberately over 10+ commits, and Page/Section mixins have since been dissolved. The allow-list is empty — not an invitation to add more.
+- **Moving rendering behavior back into Page.** Page may keep template-facing compatibility properties, but the work behind rendered content, excerpts, meta descriptions, shortcode checks, link extraction, TOC structures, template URLs, and page bundle resource access/classification belongs in `bengal/rendering/`.
 - **`try: ... except Exception: pass`.** S110 is enabled. If you must swallow, log via diagnostics with what + why.
 - **Wrapping `except A, B:` in parens.** Valid PEP 758 syntax in 3.14+. Ruff will undo your "fix."
 - **`# type: ignore` to clear a ty diagnostic.** Floor is ty-limitation territory. Either narrow the type properly or leave it; don't ignore.

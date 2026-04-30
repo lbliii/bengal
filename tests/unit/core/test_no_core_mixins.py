@@ -11,12 +11,11 @@ History:
 - Later: Sprint B3 of immutable-floating-sun.md re-introduced 5 Site mixins.
 - 2026-04-20 (epic-delete-forwarding-wrappers.md S4): dissolved all Site mixins.
 
-The epic explicitly targeted Site. Page and Section still have legacy mixins
-(pre-dating the epic); they are allow-listed below and slated for a follow-up
-audit using the same greenfield-design test.
+The epic explicitly targeted Site. Page and Section mixins have since been
+dissolved during the boundary cleanup work that followed it.
 
-This test pins the outcome: Site stays mixin-free; any NEW mixin added to
-bengal/core/ fails CI.
+This test pins the outcome: Site, Page, and Section stay mixin-free, and any NEW
+mixin added to bengal/core/ fails CI.
 
 See also:
 - plan/epic-delete-forwarding-wrappers.md (S5.1)
@@ -30,20 +29,7 @@ from pathlib import Path
 
 CORE_DIR = Path(__file__).resolve().parents[3] / "bengal" / "core"
 
-# Legacy mixins that pre-date epic-delete-forwarding-wrappers.md. Each entry
-# should be removed (and the mixin dissolved) in a follow-up audit. New names
-# must not be added without running the greenfield-design test first.
-LEGACY_MIXINS: frozenset[str] = frozenset(
-    {
-        "PageMetadataMixin",
-        "PageContentMixin",
-        "PageRelationshipsMixin",
-        "SectionErgonomicsMixin",
-        "SectionHierarchyMixin",
-        "SectionQueryMixin",
-        "SectionNavigationMixin",
-    }
-)
+LEGACY_MIXINS: frozenset[str] = frozenset()
 
 
 def _find_mixin_classes(core_dir: Path) -> list[tuple[Path, str, int]]:
@@ -100,8 +86,171 @@ def test_site_remains_mixin_free() -> None:
         )
 
 
-def test_legacy_mixin_allowlist_is_accurate() -> None:
-    """Shrink the allow-list as Page/Section mixins are dissolved."""
+def test_page_does_not_inherit_rendering_operations() -> None:
+    """Page keeps rendering operations behind shims, not inheritance."""
+    page_file = CORE_DIR / "page" / "__init__.py"
+    tree = ast.parse(page_file.read_text(encoding="utf-8"))
+
+    page_class = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
+    )
+    base_names = {
+        base.id if isinstance(base, ast.Name) else base.attr
+        for base in page_class.bases
+        if isinstance(base, (ast.Name, ast.Attribute))
+    }
+
+    assert "PageOperationsMixin" not in base_names
+
+
+def test_page_has_no_module_level_rendering_helper_imports() -> None:
+    """Core Page should import rendering helpers only inside compatibility shims."""
+    page_file = CORE_DIR / "page" / "__init__.py"
+    tree = ast.parse(page_file.read_text(encoding="utf-8"))
+
+    rendering_helper_modules = {
+        "bengal.rendering.page_content",
+        "bengal.rendering.page_operations",
+        "bengal.rendering.page_resources",
+        "bengal.rendering.page_urls",
+    }
+    imports = [
+        node
+        for node in tree.body
+        if isinstance(node, ast.ImportFrom) and node.module in rendering_helper_modules
+    ]
+
+    assert imports == []
+
+
+def test_page_bundle_resource_io_stays_out_of_core() -> None:
+    """Page bundle resource filesystem access belongs in rendering helpers."""
+    bundle_file = CORE_DIR / "page" / "bundle.py"
+    tree = ast.parse(bundle_file.read_text(encoding="utf-8"))
+    filesystem_call_names = {
+        "exists",
+        "is_dir",
+        "is_file",
+        "iterdir",
+        "read_bytes",
+        "read_text",
+        "stat",
+    }
+
+    hits = [
+        (node.func.attr, node.lineno)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr in filesystem_call_names
+    ]
+
+    assert hits == []
+
+    core_resource_imports = [
+        (node.module, node.lineno)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+        and node.module is not None
+        and node.module.startswith("bengal.core.resources")
+    ]
+    assert core_resource_imports == []
+
+
+def test_section_has_no_module_level_rendering_helper_imports() -> None:
+    """Core Section should import rendering helpers only inside compatibility shims."""
+    section_dir = CORE_DIR / "section"
+    imports: list[tuple[Path, str]] = []
+    for section_file in section_dir.rglob("*.py"):
+        tree = ast.parse(section_file.read_text(encoding="utf-8"))
+        imports.extend(
+            (section_file, node.module)
+            for node in tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module is not None
+            and (node.module == "bengal.rendering" or node.module.startswith("bengal.rendering."))
+        )
+
+    assert imports == []
+
+
+def test_page_does_not_inherit_content_mixin() -> None:
+    """Page content access stays inline and delegates processing outward."""
+    page_file = CORE_DIR / "page" / "__init__.py"
+    tree = ast.parse(page_file.read_text(encoding="utf-8"))
+
+    page_class = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
+    )
+    base_names = {
+        base.id if isinstance(base, ast.Name) else base.attr
+        for base in page_class.bases
+        if isinstance(base, (ast.Name, ast.Attribute))
+    }
+
+    assert "PageContentMixin" not in base_names
+
+
+def test_page_does_not_inherit_metadata_mixin() -> None:
+    """Page metadata access is inline and delegates normalization to helpers."""
+    page_file = CORE_DIR / "page" / "__init__.py"
+    tree = ast.parse(page_file.read_text(encoding="utf-8"))
+
+    page_class = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
+    )
+    base_names = {
+        base.id if isinstance(base, ast.Name) else base.attr
+        for base in page_class.bases
+        if isinstance(base, (ast.Name, ast.Attribute))
+    }
+
+    assert "PageMetadataMixin" not in base_names
+
+
+def test_page_does_not_inherit_relationships_mixin() -> None:
+    """Page relationship helpers are inline compatibility methods."""
+    page_file = CORE_DIR / "page" / "__init__.py"
+    tree = ast.parse(page_file.read_text(encoding="utf-8"))
+
+    page_class = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
+    )
+    base_names = {
+        base.id if isinstance(base, ast.Name) else base.attr
+        for base in page_class.bases
+        if isinstance(base, (ast.Name, ast.Attribute))
+    }
+
+    assert "PageRelationshipsMixin" not in base_names
+
+
+def test_page_computed_keeps_content_rendering_out_of_core() -> None:
+    """Core Page computed helpers keep content rendering/parsing out of core."""
+    computed_file = CORE_DIR / "page" / "computed.py"
+    tree = ast.parse(computed_file.read_text(encoding="utf-8"))
+
+    imported_modules: set[str] = set()
+    imported_names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            imported_modules.add(node.module)
+            imported_names.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.Import):
+            imported_modules.update(alias.name for alias in node.names)
+
+    parser_imports = {
+        module
+        for module in imported_modules
+        if module == "bengal.parsing" or module.startswith("bengal.parsing.")
+    }
+    assert parser_imports == set()
+    assert "strip_html" not in imported_names
+    assert "truncate_at_sentence" not in imported_names
+
+
+def test_legacy_mixin_allowlist_stays_empty() -> None:
+    """Keep the legacy allow-list empty now that Page and Section mixins are dissolved."""
     hits = _find_mixin_classes(CORE_DIR)
     found_names = {n for _, n, _ in hits}
     stale = LEGACY_MIXINS - found_names

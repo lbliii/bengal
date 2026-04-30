@@ -1,19 +1,21 @@
 """
-Mixin contract tests for core package.
+Core helper compatibility tests.
 
-These tests verify that mixins provide expected interfaces and can
-be composed safely. They help catch issues like:
+These tests verify that Page and Section keep their template-facing helper
+interfaces stable while the actual work moves out of inheritance-based mixins.
+They help catch regressions like:
 - Attribute override conflicts (writable vs read-only)
 - Missing protocol implementations
-- Self-reference type issues in mixin methods
+- Self-reference type issues in delegated helper methods
 
-Run these tests after modifying any mixin class.
+Run these tests after modifying core compatibility shims or helper modules.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock
 
@@ -58,8 +60,47 @@ class TestPageNavigation:
         assert idx == 0
 
 
-class TestPageComputedMixin:
-    """Verify PageComputedMixin contract."""
+class TestPageRelationships:
+    """Verify inline Page relationship compatibility helpers."""
+
+    def test_eq_matches_pages_by_source_path(self) -> None:
+        page1 = _create_minimal_page(source_path=Path("/test/page.md"))
+        page2 = _create_minimal_page(source_path=Path("/test/page.md"))
+        other = object()
+
+        assert page1.eq(page2) is True
+        assert page1.eq(other) is False
+
+    def test_in_section_compares_resolved_section(self) -> None:
+        page = _create_minimal_page()
+        section = _create_minimal_section()
+        page._section = section
+        page._site = SimpleNamespace(
+            registry=SimpleNamespace(epoch=1),
+            get_section_by_path=lambda path: section if path == section.path else None,
+            get_section_by_url=lambda url: None,
+        )
+
+        assert page.in_section(section) is True
+        other_section = _create_minimal_section()
+        other_section.path = Path("/test/other")
+        assert page.in_section(other_section) is False
+
+    def test_regular_page_is_not_ancestor(self) -> None:
+        page = _create_minimal_page()
+        child = _create_minimal_page(source_path=Path("/test/child.md"))
+
+        assert page.is_ancestor(child) is False
+
+    def test_descendant_requires_page_ancestor(self) -> None:
+        page = _create_minimal_page()
+        other = object()
+
+        assert page.is_descendant(other) is False
+
+
+class TestPageComputedHelpers:
+    """Verify Page computed helper contract."""
 
     def test_word_count_returns_int(self) -> None:
         """word_count always returns int, even for empty content."""
@@ -91,8 +132,8 @@ class TestPageComputedMixin:
         assert len(result) <= 161  # 160 + potential ellipsis
 
 
-class TestSectionErgonomicsMixin:
-    """Verify SectionErgonomicsMixin contract."""
+class TestSectionErgonomicHelpers:
+    """Verify Section ergonomic helper contract."""
 
     def test_recent_pages_handles_none_dates(self) -> None:
         """recent_pages doesn't crash when pages have None dates."""
@@ -119,17 +160,13 @@ class TestSectionErgonomicsMixin:
     def test_content_pages_property_exists(self) -> None:
         """content_pages property exists on Section class."""
         from bengal.core.section import Section
-        from bengal.core.section.ergonomics import SectionErgonomicsMixin
 
-        # Verify the property exists on the Section class (inherited from mixin)
         assert hasattr(Section, "content_pages")
-
-        # Verify it's defined in the ergonomics mixin
-        assert "content_pages" in SectionErgonomicsMixin.__dict__
+        assert "content_pages" in Section.__dict__
 
 
-class TestSectionNavigationMixin:
-    """Verify SectionNavigationMixin contract."""
+class TestSectionNavigationHelpers:
+    """Verify Section navigation helper contract."""
 
     def test_href_without_site_returns_path(self) -> None:
         """href works even when _site is None."""
@@ -151,8 +188,8 @@ class TestSectionNavigationMixin:
         assert isinstance(result, set)
 
 
-class TestSectionHierarchyMixin:
-    """Verify SectionHierarchyMixin contract."""
+class TestSectionHierarchyHelpers:
+    """Verify Section hierarchy helper contract."""
 
     def test_hierarchy_returns_list_of_strings(self) -> None:
         """hierarchy returns list[str]."""

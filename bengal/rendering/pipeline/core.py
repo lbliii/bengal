@@ -44,6 +44,7 @@ if TYPE_CHECKING:
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
+from bengal.rendering.page_operations import extract_links
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
 from bengal.rendering.pipeline.cache_checker import CacheChecker
 from bengal.rendering.pipeline.json_accumulator import JsonAccumulator
@@ -430,9 +431,9 @@ class RenderingPipeline:
             plugin_links = self._get_plugin_collected_links()
             if _prof:
                 with _prof.step("link_extract"):
-                    page.extract_links(plugin_links=plugin_links)
+                    extract_links(page, plugin_links=plugin_links)
             else:
-                page.extract_links(plugin_links=plugin_links)
+                extract_links(page, plugin_links=plugin_links)
         except Exception as e:
             # Log at warning level so users are aware of extraction issues
             # In strict mode, this could indicate malformed content that needs attention

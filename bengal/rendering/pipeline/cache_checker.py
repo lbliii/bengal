@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.records import ParsedPage, RenderedPage
+from bengal.rendering.page_operations import extract_links
 from bengal.rendering.pipeline.output import format_html, write_output
 from bengal.rendering.pipeline.toc import extract_toc_structure
 from bengal.utils.observability.logger import get_logger
@@ -225,7 +226,7 @@ class CacheChecker:
                 page.links = []
         else:
             try:
-                page.extract_links()
+                extract_links(page)
             except Exception as e:
                 logger.debug(
                     "link_extraction_failed",

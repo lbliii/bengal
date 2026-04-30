@@ -1,4 +1,4 @@
-"""Page bundle detection and resource access.
+"""Page bundle detection and resource access shims.
 
 Page bundles keep content and assets together in a directory:
 - Leaf bundles: posts/my-post/index.md (page with co-located resources)
@@ -7,9 +7,9 @@ Page bundles keep content and assets together in a directory:
 
 This module provides:
 - BundleType enum for bundle classification
-- Free functions for bundle detection and resource discovery
-- PageResources collection for accessing co-located files
-- PageResource for individual resource files
+- Free functions for bundle detection
+- PageResources collection for matching co-located files
+- PageResource for individual resource file references
 
 Functions accept explicit parameters (source_path, url) instead of
 accessing them through mixin self-reference.
@@ -36,20 +36,6 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from collections.abc import Iterator
     from pathlib import Path
-
-# MIME type category mappings
-_TYPE_EXTENSIONS: dict[str, set[str]] = {
-    "image": {".jpg", ".jpeg", ".png", ".gif", ".svg", ".webp", ".avif", ".ico", ".bmp", ".tiff"},
-    "video": {".mp4", ".webm", ".mov", ".avi", ".mkv", ".m4v"},
-    "audio": {".mp3", ".wav", ".ogg", ".flac", ".aac", ".m4a"},
-    "document": {".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx"},
-    "data": {".json", ".yaml", ".yml", ".csv", ".xml", ".toml"},
-    "code": {".js", ".ts", ".css", ".scss", ".less", ".py", ".rb", ".go"},
-    "archive": {".zip", ".tar", ".gz", ".rar", ".7z"},
-}
-
-# Extensions to exclude from bundle resources (content files)
-_CONTENT_EXTENSIONS: set[str] = {".md", ".markdown", ".rst", ".txt"}
 
 
 class BundleType(Enum):
@@ -118,15 +104,16 @@ class PageResource:
     @property
     def size(self) -> int:
         """File size in bytes."""
-        try:
-            return self.path.stat().st_size
-        except OSError:
-            return 0
+        from bengal.rendering.page_resources import resource_size
+
+        return resource_size(self)
 
     @property
     def exists(self) -> bool:
         """Check if the resource file exists."""
-        return self.path.exists()
+        from bengal.rendering.page_resources import resource_exists
+
+        return resource_exists(self)
 
     @property
     def resource_type(self) -> str | None:
@@ -135,64 +122,45 @@ class PageResource:
         Returns one of: 'image', 'video', 'audio', 'document', 'data', 'code', 'archive'
         or None if unrecognized.
         """
-        suffix_lower = self.suffix.lower()
-        for category, extensions in _TYPE_EXTENSIONS.items():
-            if suffix_lower in extensions:
-                return category
-        return None
+        from bengal.rendering.page_resources import resource_type
+
+        return resource_type(self)
 
     def as_image(self) -> Any | None:
-        """Convert to ImageResource for image processing.
+        """Convert to ImageResource for image processing."""
+        from bengal.rendering.page_resources import as_image
 
-        Returns None if not an image file or if image processing
-        is not available.
-
-        Note: ImageResource is imported lazily to avoid circular imports
-        and to make image processing optional.
-        """
-        if self.suffix.lower() not in _TYPE_EXTENSIONS.get("image", set()):
-            return None
-
-        try:
-            from bengal.core.resources.image import ImageResource
-
-            # ImageResource needs the site for processing, but we don't have it here.
-            # Return a minimal ImageResource that can be used for basic operations.
-            return ImageResource(source_path=self.path, site=None)
-        except ImportError:
-            # Image processing module not available
-            return None
+        return as_image(self)
 
     def read_text(self, encoding: str = "utf-8") -> str:
         """Read resource as text (for data files)."""
-        return self.path.read_text(encoding=encoding)
+        from bengal.rendering.page_resources import read_text
+
+        return read_text(self, encoding=encoding)
 
     def read_bytes(self) -> bytes:
         """Read resource as bytes (for binary files)."""
-        return self.path.read_bytes()
+        from bengal.rendering.page_resources import read_bytes
+
+        return read_bytes(self)
 
     def read_json(self) -> Any:
         """Read resource as JSON.
 
         Returns parsed JSON data.
         """
-        import json
+        from bengal.rendering.page_resources import read_json
 
-        return json.loads(self.read_text())
+        return read_json(self)
 
     def read_yaml(self) -> Any:
         """Read resource as YAML.
 
         Returns parsed YAML data.
         """
-        try:
-            import yaml
+        from bengal.rendering.page_resources import read_yaml
 
-            return yaml.safe_load(self.read_text())
-        except ImportError as err:
-            raise ImportError(
-                "PyYAML is required for read_yaml(). Install with: pip install pyyaml"
-            ) from err
+        return read_yaml(self)
 
     def __str__(self) -> str:
         """Return URL for easy template usage."""
@@ -286,16 +254,21 @@ class PageResources:
             >>> page.resources.by_type("image")
             >>> page.resources.by_type("data")
         """
-        extensions = _TYPE_EXTENSIONS.get(resource_type, set())
-        return [r for r in self._resources if r.suffix.lower() in extensions]
+        from bengal.rendering.page_resources import by_type
+
+        return by_type(self, resource_type)
 
     def images(self) -> list[PageResource]:
         """Get all image resources. Convenience alias for by_type("image")."""
-        return self.by_type("image")
+        from bengal.rendering.page_resources import images
+
+        return images(self)
 
     def data(self) -> list[PageResource]:
         """Get all data resources (JSON, YAML, CSV, etc.). Convenience alias for by_type("data")."""
-        return self.by_type("data")
+        from bengal.rendering.page_resources import data
+
+        return data(self)
 
     def __iter__(self) -> Iterator[PageResource]:
         """Iterate over all resources."""
@@ -358,7 +331,7 @@ def is_branch_bundle(source_path: Path) -> bool:
 
 
 def get_resources(source_path: Path, url: str) -> PageResources:
-    """Get resources co-located with a page bundle.
+    """Compatibility wrapper for rendering-owned page bundle resource discovery.
 
     For leaf bundles (index.md in directory), returns all
     non-markdown files in the same directory.
@@ -375,32 +348,6 @@ def get_resources(source_path: Path, url: str) -> PageResources:
     Example:
         >>> get_resources(Path("posts/my-post/index.md"), "/posts/my-post/")
     """
-    if not is_leaf_bundle(source_path):
-        return PageResources([])
+    from bengal.rendering.page_resources import get_resources as _get_resources
 
-    bundle_dir = source_path.parent
-
-    if not bundle_dir.exists() or not bundle_dir.is_dir():
-        return PageResources([])
-
-    resources: list[PageResource] = []
-
-    for path in bundle_dir.iterdir():
-        if not path.is_file():
-            continue
-
-        # Skip content files
-        if path.suffix.lower() in _CONTENT_EXTENSIONS:
-            continue
-
-        resources.append(
-            PageResource(
-                path=path,
-                page_url=url,
-            )
-        )
-
-    # Sort by name for deterministic ordering
-    resources.sort(key=lambda r: r.name)
-
-    return PageResources(resources)
+    return _get_resources(source_path, url)

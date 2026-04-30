@@ -43,13 +43,15 @@ Represents a single content page with source, metadata, rendered HTML, and navig
 
 **Architecture:**
 - **Composition Pattern**: `Page` contains a `PageCore` instance for cacheable metadata
-- **Split into focused mixins** (key modules):
+- **Plain dataclass with helper modules**:
   - `page_core.py`: Cacheable metadata (title, date, tags, etc.)
-  - `metadata.py`: Frontmatter parsing
-  - `navigation.py`: Next/prev/parent links
+  - `metadata_helpers.py`: Frontmatter-derived metadata helpers
+  - `content.py`: Content compatibility helpers
   - `relationships.py`: Section membership
-  - `computed.py`: URL generation, TOC
-  - `content.py`: Content and rendering logic
+  - `computed.py`: Compatibility wrappers for computed values
+- **Rendering-owned behavior**: rendered content, excerpts, TOC extraction, shortcode checks,
+  template URLs, and page bundle resource access/classification delegate to
+  helpers under `bengal/rendering/`
 
 **PageCore Integration:**
 - Cacheable fields (title, date, tags, slug) stored in `page.core`
@@ -63,11 +65,16 @@ Represents a single content page with source, metadata, rendered HTML, and navig
 Represents folder-based grouping of pages with hierarchical organization.
 
 **Architecture:**
-- **Composition Pattern**: Split into focused mixins:
-  - `hierarchy.py`: Tree traversal, parent/child, identity (`__hash__`, `__eq__`)
-  - `navigation.py`: URL generation, version-aware filtering
-  - `queries.py`: Page retrieval, sorting, index detection
-  - `ergonomics.py`: Theme developer helpers (recent_pages, featured_posts, etc.)
+- **Plain dataclass with helper modules**:
+  - `hierarchy.py`: Tree traversal, parent/child, and identity helper functions behind `Section` shims
+  - `navigation.py`: Version-aware structural navigation helper functions behind `Section` shims
+  - `queries.py`: Page retrieval, sorting, and index helper functions behind `Section` shims
+- **Rendering-owned URLs**: `href`, `_path`, `absolute_href`, subsection index
+  URL sets, and version-path transforms delegate to `bengal/rendering/section_urls.py`
+- **Rendering-owned ergonomics**: theme/navigation-facing helpers such as
+  `icon`, `has_nav_children`, `recent_pages()`, `featured_posts()`, content
+  stats, and section template application delegate to
+  `bengal/rendering/section_ergonomics.py`
 
 **Features:**
 - **Hierarchy**: Parent/child relationships (`subsections`)

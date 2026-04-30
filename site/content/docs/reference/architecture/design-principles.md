@@ -21,6 +21,33 @@ keywords:
 
 # Design Principles
 
+## North Star
+
+Bengal exists to make free-threaded Python worth deploying for content tooling.
+The architectural bias is simple: keep the stack pure Python, make parallelism
+real, and keep performance measurable. A feature that makes documentation sites
+more capable but pulls the build toward opaque toolchains, mutable shared state,
+or hard-to-measure behavior is working against the project.
+
+## Current Architecture Spine
+
+- **Core holds state.** `bengal/core/` models describe sites, pages, sections,
+  assets, metadata, registries, and cacheable facts. Core does not write files,
+  log directly, or own rendering behavior.
+- **Rendering derives presentation.** Markdown/parser behavior, HTML extraction,
+  excerpts, meta descriptions, TOC structures, shortcode/link extraction, and
+  template-ready URLs live under `bengal/rendering/`.
+- **Page is a compatibility surface.** Template-facing Page properties remain
+  stable for themes and plugins, but the work behind `content`, `html`,
+  `plain_text`, `toc_items`, `excerpt`, `meta_description`, `href`, `_path`,
+  `absolute_href`, `extract_links()`, and `HasShortcode()` delegates to
+  rendering-side helpers.
+- **Orchestration coordinates.** Discovery, build phases, rendering batches,
+  provenance, cache policy, and output writing belong outside core.
+- **Pipeline records stay immutable.** `SourcePage`, `ParsedPage`, and
+  `RenderedPage` are records passed between phases. They are not convenience
+  bags for late mutation.
+
 ## 1. Avoiding Stack Overflow
 - **Iterative Traversal**: Section hierarchy uses `walk()` method instead of deep recursion
 - **Configurable Limits**: Can set max recursion depth if needed
@@ -30,6 +57,9 @@ keywords:
 - **Single Responsibility**: Each class has one clear purpose
 - **Composition over Inheritance**: Objects compose other objects rather than inheriting
 - **Clear Dependencies**: Site → Sections → Pages (one direction)
+- **Compatibility Shims, Not Behavior Sinks**: Domain objects can keep stable
+  properties for callers, but extraction/rendering/URL work should live in the
+  subsystem that owns that behavior.
 
 ## 3. Performance Optimization
 - **Parallel Processing** (implemented):
@@ -56,14 +86,14 @@ keywords:
 - **Template Flexibility**: Custom templates override defaults
 - **Theme System**: Self-contained themes with templates and assets
 - **Directives System**: Extensible MyST directives for custom markdown components
-- **Plugin System**: 📋 Future consideration - hooks for pre/post build events
+- **Plugin System**: 9 supported hook surfaces exposed through the plugin contract
 
 ## 5. Data Flow Principles
 
 ### Immutability Where Possible
-- Page content immutable after parsing
-- Metadata frozen after cascade application
-- Templates are pure functions (input → output)
+- Pipeline records are immutable across `SourcePage → ParsedPage → RenderedPage`
+- Cacheable page facts live in frozen `PageCore`
+- Templates should behave like pure functions of context wherever possible
 
 ### Explicit State Management
 - BuildContext carries shared state explicitly
@@ -157,6 +187,8 @@ keywords:
 - Incremental builds available
 - Smart thresholds avoid overhead
 - Python 3.14+ for optimal performance
+- Free-threaded safety matters whenever shared rendering, cache, or effect state
+  is introduced
 
 ### Predictable and Reproducible
 - Same input → same output

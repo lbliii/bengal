@@ -606,7 +606,7 @@ def humanize_slug(slug: str) -> str:
     page titles, and other user-facing contexts.
 
     Consolidates pattern from:
-    - bengal/core/page/metadata.py (title property)
+    - bengal/core/page/__init__.py (title property)
     - bengal/discovery/content_discovery.py (fallback titles)
     - bengal/rendering/template_functions/navigation.py (breadcrumbs)
     - bengal/cli/helpers/menu_config.py (menu titles)

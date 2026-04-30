@@ -113,8 +113,8 @@ class TestDiagnosticsAPIConsistency:
         )
 
 
-class TestMixinComposition:
-    """Verify mixins compose correctly in combined classes."""
+class TestCoreAttributeComposition:
+    """Verify composed core classes expose expected runtime attributes."""
 
     def test_section_mixin_attributes_accessible(self) -> None:
         """Section class has all expected attributes from mixins."""
@@ -134,13 +134,17 @@ class TestMixinComposition:
         for attr in expected_attrs:
             assert hasattr(Section, attr), f"Section missing expected attribute: {attr}"
 
-    def test_page_mixin_attributes_accessible(self) -> None:
-        """Page class has all expected attributes from mixins."""
+    def test_page_attributes_accessible(self) -> None:
+        """Page class has all expected attributes from inline methods and mixins."""
         from bengal.core.page import Page
 
         expected_attrs = [
             "content",
+            "eq",
             "html",
+            "in_section",
+            "is_ancestor",
+            "is_descendant",
             "plain_text",
             "next",
             "prev",
@@ -225,23 +229,15 @@ class TestASTTypeConsistency:
 
     def test_ast_cache_annotation_exists(self) -> None:
         """
-        _ast_cache type annotation should exist on Page and mixin.
+        _ast_cache type annotation should exist on Page.
 
         Note: We can't fully resolve forward references at runtime (ASTNode),
         so we just verify the annotation exists via __annotations__.
         """
         from bengal.core.page import Page
-        from bengal.core.page.content import PageContentMixin
 
-        # Both should have _ast_cache in their annotations
         assert "_ast_cache" in Page.__annotations__, "Page missing _ast_cache annotation"
-        assert "_ast_cache" in PageContentMixin.__annotations__, (
-            "PageContentMixin missing _ast_cache annotation"
-        )
 
-        # Both annotations should reference ASTNode
         page_annotation = str(Page.__annotations__["_ast_cache"])
-        mixin_annotation = str(PageContentMixin.__annotations__["_ast_cache"])
 
         assert "ASTNode" in page_annotation or "dict" in page_annotation.lower()
-        assert "ASTNode" in mixin_annotation or "dict" in mixin_annotation.lower()

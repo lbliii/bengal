@@ -1,9 +1,9 @@
 """
 Tests for computed free functions in bengal.core.page.computed.
 
-These test the pure functions directly (not through Page property wrappers),
+These test the functions directly (not through Page property wrappers),
 verifying correctness of age calculations, author parsing, series parsing,
-and series navigation.
+series navigation, and the legacy content-derived rendering wrappers.
 
 Completes Track 4b of the free-threading migration epic.
 """
@@ -54,7 +54,7 @@ class TestComputeWordCount:
 
 
 class TestComputeMetaDescription:
-    """Direct tests for compute_meta_description free function."""
+    """Direct tests for the compute_meta_description compatibility wrapper."""
 
     def test_explicit_description_preferred(self):
         result = compute_meta_description(
@@ -102,10 +102,11 @@ class TestComputeReadingTime:
 
 
 class TestComputeExcerpt:
-    """Direct tests for compute_excerpt free function.
+    """Direct tests for the compute_excerpt compatibility wrapper.
 
-    Excerpt now returns rendered HTML (markdown parsed), strips leading h1,
-    and truncates at ~250 chars before rendering.
+    The rendering-side helper returns rendered HTML, strips leading h1, and
+    truncates at ~250 chars before rendering. The core wrapper preserves the
+    older import path without owning that rendering behavior.
     """
 
     def test_short_content_renders_markdown(self):

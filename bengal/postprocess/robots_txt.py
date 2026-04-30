@@ -23,7 +23,7 @@ rules and emits a minimal robots.txt with only the necessary
 overrides.
 
 Related:
-- bengal.core.page.metadata: visibility system with ai_train/ai_input
+- bengal.core.page: visibility system with ai_train/ai_input
 - bengal.config.defaults: content_signals config section
 - bengal.orchestration.postprocess: registration point
 

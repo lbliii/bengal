@@ -18,7 +18,7 @@ AST walks have better constant factors than regex:
 
 Related:
 - bengal/parsing/ast/types.py: ASTNode type definitions
-- bengal/core/page/content.py: PageContentMixin uses these utilities
+- bengal/rendering/page_content.py: Page content helpers use these utilities
 - bengal/parsing/backends/mistune/ast.py: AST parsing
 
 See Also:
