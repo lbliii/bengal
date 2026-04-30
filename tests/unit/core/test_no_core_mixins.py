@@ -179,6 +179,30 @@ def test_page_does_not_inherit_relationships_mixin() -> None:
     assert "PageRelationshipsMixin" not in base_names
 
 
+def test_page_computed_keeps_content_rendering_out_of_core() -> None:
+    """Core Page computed helpers keep content rendering/parsing out of core."""
+    computed_file = CORE_DIR / "page" / "computed.py"
+    tree = ast.parse(computed_file.read_text(encoding="utf-8"))
+
+    imported_modules: set[str] = set()
+    imported_names: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            imported_modules.add(node.module)
+            imported_names.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.Import):
+            imported_modules.update(alias.name for alias in node.names)
+
+    parser_imports = {
+        module
+        for module in imported_modules
+        if module == "bengal.parsing" or module.startswith("bengal.parsing.")
+    }
+    assert parser_imports == set()
+    assert "strip_html" not in imported_names
+    assert "truncate_at_sentence" not in imported_names
+
+
 def test_legacy_mixin_allowlist_is_accurate() -> None:
     """Shrink the allow-list as Page/Section mixins are dissolved."""
     hits = _find_mixin_classes(CORE_DIR)

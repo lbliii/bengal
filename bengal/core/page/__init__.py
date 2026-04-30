@@ -1348,12 +1348,9 @@ class Page:
     @cached_property
     def meta_description(self) -> str:
         """SEO-friendly meta description (max 160 chars)."""
-        # Prefer AST-extracted meta description set by pipeline (Patitas parse-once path)
-        if getattr(self, "_meta_description", None) is not None:
-            return self._meta_description or ""
-        from bengal.core.page.computed import compute_meta_description
+        from bengal.rendering.page_content import get_meta_description
 
-        return compute_meta_description(self.metadata, self._raw_content)
+        return get_meta_description(self, self.metadata)
 
     @cached_property
     def reading_time(self) -> int:
@@ -1365,12 +1362,9 @@ class Page:
     @cached_property
     def excerpt(self) -> str:
         """Content excerpt for listings (max 250 chars)."""
-        # Prefer AST-extracted excerpt set by pipeline (Patitas parse-once path)
-        if getattr(self, "_excerpt", None) is not None:
-            return self._excerpt or ""
-        from bengal.core.page.computed import compute_excerpt
+        from bengal.rendering.page_content import get_excerpt
 
-        return compute_excerpt(self._raw_content)
+        return get_excerpt(self)
 
     @cached_property
     def age_days(self) -> int:

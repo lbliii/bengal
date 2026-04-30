@@ -8,13 +8,22 @@ adding inheritance behavior to core.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any, Protocol
 
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.core.utils.text import strip_html_and_normalize
+from bengal.core.utils.text import (
+    strip_html_and_normalize,
+    truncate_at_sentence,
+    truncate_at_word,
+)
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from bengal.parsing.ast.types import ASTNode
+
+_LEADING_H1 = re.compile(r"^#\s*[^\n]*\n", re.MULTILINE)
 
 
 class PageContentTarget(Protocol):
@@ -27,6 +36,8 @@ class PageContentTarget(Protocol):
     _html_cache: str | None
     _plain_text_cache: str | None
     _toc_items_cache: list[dict[str, Any]] | None
+    _excerpt: str | None
+    _meta_description: str | None
     _init_lock: Any
 
 
@@ -75,6 +86,56 @@ def get_plain_text(page: PageContentTarget) -> str:
 
         page._plain_text_cache = text
     return text
+
+
+def get_meta_description(page: PageContentTarget, metadata: Mapping[str, Any]) -> str:
+    """Return the AST-provided meta description or derive one from content."""
+    if getattr(page, "_meta_description", None) is not None:
+        return page._meta_description or ""
+    return compute_meta_description(metadata, page._raw_content)
+
+
+def compute_meta_description(metadata: Mapping[str, Any], raw_content: str) -> str:
+    """Generate an SEO-friendly description from explicit metadata or content."""
+    description = metadata.get("description")
+    if description:
+        return str(description)
+
+    if not raw_content:
+        return ""
+
+    text = strip_html_and_normalize(raw_content)
+    return truncate_at_sentence(text, length=160)
+
+
+def get_excerpt(page: PageContentTarget) -> str:
+    """Return the AST-provided excerpt or render a markdown fallback."""
+    if getattr(page, "_excerpt", None) is not None:
+        return page._excerpt or ""
+    return compute_excerpt(page._raw_content)
+
+
+def compute_excerpt(raw_content: str) -> str:
+    """
+    Extract content excerpt as rendered HTML.
+
+    This fallback is used when the parser pipeline has not already populated
+    ``page._excerpt`` from the AST. It strips a leading H1, truncates at a word
+    boundary, then renders the markdown snippet to HTML.
+    """
+    if not raw_content:
+        return ""
+
+    content_after_h1 = _LEADING_H1.sub("", raw_content, count=1).lstrip("\n")
+    truncated_md = truncate_at_word(content_after_h1, length=250)
+    if not truncated_md:
+        return ""
+
+    from bengal.parsing import create_markdown_parser
+
+    parser = create_markdown_parser()
+    html = parser.parse(truncated_md, {})
+    return html.strip()
 
 
 def get_toc_items(page: PageContentTarget) -> list[dict[str, Any]]:
