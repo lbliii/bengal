@@ -46,6 +46,17 @@ The current shape to preserve:
 - Rendering owns parser, template, shortcode, AST/HTML, and URL presentation behavior. Core may call into rendering lazily from a compatibility shim; it should not import rendering helpers at module load time.
 - Protocols and plugin hooks are public contracts. Prefer internal adapters or rendering services over widening `SiteLike`, `PageLike`, or `Plugin`.
 
+Scoped `AGENTS.md` files act as local stewards. The root file is the
+constitution; nested files explain what a package protects, what it refuses to
+become, and which local checks best defend that boundary. When editing a
+subtree, read the closest `AGENTS.md` in addition to this one.
+Stewards also own the documentation that explains their subsystem. If a code
+change alters a package's behavior, boundary, or extension story, update the
+nearest architecture/reference docs in the same PR.
+When a change crosses a scoped steward area, add brief `Steward Notes` to the
+PR description. Name the steward area and one sentence about how its invariants
+were protected; this is a lightweight sign-off, not a new gate.
+
 ---
 
 ## Who reads your output
@@ -212,6 +223,7 @@ A change is done when all of these hold:
 - **I read diff-first, description-second.** Tight diff + clear why merges fast; sprawling diff gets questions.
 - **One concern per PR.** If the diff needs section headers, it's two PRs. Exception: refactors renaming a concept across many files — one bundled PR beats review churn.
 - **Commit style:** see `git log`. `<scope>: <description>` — scope is `core` / `orchestration` / `rendering` / `cache` / `cli` / `tests` / `docs` / `deps` / `release`. Imperative. Multi-area: separate with `;`.
+- **Steward notes:** when scoped `AGENTS.md` guidance applies, include a short PR section such as `Page steward: compatibility shim preserved; Rendering steward: behavior stays behind helper.`
 - **Don't trailing-summary me.** If the diff is readable, I can read it.
 - **Flag surprises.** Weird test, unused config, dead code, an allow-list that grew — put it in the PR description. Don't fix silently, don't ignore.
 - **Dead code you found.** Flag in the PR, let me decide. Bengal has had vestiges from prior extractions (ConfigService, PageCacheManager, PageProxy — finally deleted in #200) that lingered. Most are deletable; some are load-bearing for a transport, plugin, or example.
