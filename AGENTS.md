@@ -57,6 +57,42 @@ When a change crosses a scoped steward area, add brief `Steward Notes` to the
 PR description. Name the steward area and one sentence about how its invariants
 were protected; this is a lightweight sign-off, not a new gate.
 
+When prioritizing backlog or planning cross-cutting work, consult the stewards
+as domain owners rather than treating the root file or roadmap as the only
+authority:
+
+Trigger phrase: **"ask stewards"** means run this consultation workflow. For a
+specific implementation, consult only affected scoped stewards. For backlog,
+roadmap, or prioritization work, consult all scoped stewards and produce the
+rollup report.
+
+1. Verify the checkout is current before asking for priorities; stale steward
+   files produce plausible but wrong answers.
+2. Enumerate scoped `AGENTS.md` files first, then group related stewards
+   (core/page/site/protocols, build/incremental/cache, rendering/templates,
+   CLI/errors, tests/performance) so parallel consultation stays focused.
+3. Ask each steward for one top priority with evidence, dependencies, and
+   risks. Also ask for confidence, dependency edges, and one tempting
+   "not now" item when useful. Ask what the domain could do to better serve
+   its upstream and downstream neighbors. Favor the nearest scoped steward over
+   generic audit personas.
+4. Separate raw steward signals from the final ranking. Steward consultation is
+   weighted voting, not majority rule: synthesize by convergence, blast radius,
+   dependency order, risk reduction, reversibility, and user-visible
+   correctness. Priorities named by multiple stewards or protecting public
+   contracts/free-threading outrank isolated polish.
+5. Preserve minority reports. A single steward can still identify urgent work
+   when it owns a safety boundary, public contract, or stale-output risk.
+6. Timebox consultation. A backlog pulse should answer priority questions, not
+   rediscover the whole repo.
+7. Carry the synthesis into the backlog or PR description as steward notes, so
+   future readers can see which boundaries shaped the decision.
+8. For backlog or roadmap consultations, produce a short rollup report. Include
+   the checkout/ref, stewards consulted, raw steward signals with confidence,
+   convergence points, dependency graph, upstream/downstream service
+   opportunities, ranked backlog, deferred/not-now items, minority reports, and
+   any steward notes that should carry into follow-up PRs.
+
 ---
 
 ## Who reads your output
