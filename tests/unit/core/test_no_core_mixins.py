@@ -114,15 +114,20 @@ def test_page_does_not_inherit_rendering_operations() -> None:
     assert "PageOperationsMixin" not in base_names
 
 
-def test_page_has_no_module_level_rendering_operations_import() -> None:
-    """Core Page should not import rendering page operations at module import time."""
+def test_page_has_no_module_level_rendering_helper_imports() -> None:
+    """Core Page should import rendering helpers only inside compatibility shims."""
     page_file = CORE_DIR / "page" / "__init__.py"
     tree = ast.parse(page_file.read_text(encoding="utf-8"))
 
+    rendering_helper_modules = {
+        "bengal.rendering.page_content",
+        "bengal.rendering.page_operations",
+        "bengal.rendering.page_urls",
+    }
     imports = [
         node
         for node in tree.body
-        if isinstance(node, ast.ImportFrom) and node.module == "bengal.rendering.page_operations"
+        if isinstance(node, ast.ImportFrom) and node.module in rendering_helper_modules
     ]
 
     assert imports == []
