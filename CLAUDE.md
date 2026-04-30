@@ -6,8 +6,9 @@ Project-specific guidance for AI coding assistants working on Bengal.
 
 Bengal favors **composition over inheritance** for its core domain types.
 
-`Site`, `Page`, `Section` are plain `@dataclass` containers. They do not inherit
-from mixin classes. Functionality is organized by:
+`Site` and `Page` are plain `@dataclass` containers with no core mixin
+inheritance. `Section` still carries legacy mixins that are explicitly
+allow-listed pending a separate audit. Functionality should be organized by:
 
 1. **Composed services** — public attributes holding a service instance
    (`site.config_service`, `site.page_cache`, `site.registry`).
@@ -16,11 +17,23 @@ from mixin classes. Functionality is organized by:
    the entity at the right level of abstraction (`site.title`, `site.regular_pages`,
    `section.content_pages`).
 
+For `Page`, there is one extra compatibility rule: template-facing properties
+may remain on `Page`, but rendering-derived behavior belongs behind helpers in
+`bengal/rendering/`. `Page.content`, `Page.html`, `Page.plain_text`,
+`Page.toc_items`, `Page.excerpt`, `Page.meta_description`, `Page.href`,
+`Page._path`, `Page.absolute_href`, `Page.extract_links()`, and
+`Page.HasShortcode()` are compatibility shims, not permission to put parser,
+template, shortcode, or URL presentation logic back into core.
+
 ### Forbidden
 
-- **Mixin inheritance on core types** (`class Site(SomeMixin, OtherMixin): ...`).
+- **New mixin inheritance on core types** (`class Site(SomeMixin, OtherMixin): ...`).
   Enforced by `tests/unit/core/test_no_core_mixins.py` — CI fails if a new
-  `*Mixin` class is added under `bengal/core/`.
+  `*Mixin` class is added under `bengal/core/`. The remaining Section mixins
+  are legacy debt, not precedent.
+- **Rendering behavior inside core Page** — parser calls, HTML extraction,
+  shortcode/link extraction, TOC parsing, excerpt/meta-description derivation,
+  and template URL construction belong in rendering-side helpers.
 - **Vestigial forwarders** — a property whose body is `return self._service.X`
   and whose name is just a convenience rename for internal wiring. If the name
   wouldn't be designed this way greenfield, the property is a vestige. Delete
@@ -55,6 +68,9 @@ The decision is enforced by:
 
 - `tests/unit/core/test_no_core_mixins.py` — blocks new mixins in `bengal/core/`.
 - `.importlinter` Contract 2 — Page/Section use `SiteContext` protocol only.
+- Page-specific guard tests in `tests/unit/core/test_no_core_mixins.py` — block
+  module-level rendering helper imports and parser/text rendering work from
+  returning to core Page computed helpers.
 
 Before proposing a mixin split or decomposition on `Site`, `Page`, or `Section`,
 read `plan/epic-delete-forwarding-wrappers.md` and run the greenfield-design

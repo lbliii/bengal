@@ -11,12 +11,13 @@ History:
 - Later: Sprint B3 of immutable-floating-sun.md re-introduced 5 Site mixins.
 - 2026-04-20 (epic-delete-forwarding-wrappers.md S4): dissolved all Site mixins.
 
-The epic explicitly targeted Site. Page and Section still have legacy mixins
-(pre-dating the epic); they are allow-listed below and slated for a follow-up
-audit using the same greenfield-design test.
+The epic explicitly targeted Site. Page mixins have since been dissolved during
+the Page boundary cleanup. Section still has legacy mixins (pre-dating the
+epic); they are allow-listed below and slated for a follow-up audit using the
+same greenfield-design test.
 
-This test pins the outcome: Site stays mixin-free; any NEW mixin added to
-bengal/core/ fails CI.
+This test pins the outcome: Site and Page stay mixin-free; any NEW mixin added
+to bengal/core/ fails CI.
 
 See also:
 - plan/epic-delete-forwarding-wrappers.md (S5.1)
@@ -30,9 +31,9 @@ from pathlib import Path
 
 CORE_DIR = Path(__file__).resolve().parents[3] / "bengal" / "core"
 
-# Legacy mixins that pre-date epic-delete-forwarding-wrappers.md. Each entry
-# should be removed (and the mixin dissolved) in a follow-up audit. New names
-# must not be added without running the greenfield-design test first.
+# Legacy Section mixins that pre-date epic-delete-forwarding-wrappers.md. Each
+# entry should be removed (and the mixin dissolved) in a follow-up audit. New
+# names must not be added without running the greenfield-design test first.
 LEGACY_MIXINS: frozenset[str] = frozenset(
     {
         "SectionErgonomicsMixin",
