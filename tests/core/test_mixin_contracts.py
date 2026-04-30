@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock
 
@@ -56,6 +57,45 @@ class TestPageNavigation:
         # This should NOT raise - it was a bug when mixin self-reference was wrong
         idx = pages.index(page1)
         assert idx == 0
+
+
+class TestPageRelationships:
+    """Verify inline Page relationship compatibility helpers."""
+
+    def test_eq_matches_pages_by_source_path(self) -> None:
+        page1 = _create_minimal_page(source_path=Path("/test/page.md"))
+        page2 = _create_minimal_page(source_path=Path("/test/page.md"))
+        other = object()
+
+        assert page1.eq(page2) is True
+        assert page1.eq(other) is False
+
+    def test_in_section_compares_resolved_section(self) -> None:
+        page = _create_minimal_page()
+        section = _create_minimal_section()
+        page._section = section
+        page._site = SimpleNamespace(
+            registry=SimpleNamespace(epoch=1),
+            get_section_by_path=lambda path: section if path == section.path else None,
+            get_section_by_url=lambda url: None,
+        )
+
+        assert page.in_section(section) is True
+        other_section = _create_minimal_section()
+        other_section.path = Path("/test/other")
+        assert page.in_section(other_section) is False
+
+    def test_regular_page_is_not_ancestor(self) -> None:
+        page = _create_minimal_page()
+        child = _create_minimal_page(source_path=Path("/test/child.md"))
+
+        assert page.is_ancestor(child) is False
+
+    def test_descendant_requires_page_ancestor(self) -> None:
+        page = _create_minimal_page()
+        other = object()
+
+        assert page.is_descendant(other) is False
 
 
 class TestPageComputedMixin:

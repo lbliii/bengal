@@ -60,7 +60,7 @@ Validation supports:
 Related Modules:
 - ``bengal.content.discovery.content_discovery``: Collection integration point
 - ``bengal.content.sources``: Remote content sources (GitHub, Notion)
-- ``bengal.core.page.metadata``: Page frontmatter access
+- ``bengal.core.page``: Page frontmatter access
 
 """
 

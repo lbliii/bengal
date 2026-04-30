@@ -10,12 +10,11 @@ Page: Content page with metadata, content, and rendering capabilities
 
 Package Structure:
 page_core.py: PageCore dataclass (cacheable metadata)
-metadata.py: PageMetadataMixin (frontmatter access)
+metadata_helpers.py: Pure helper functions behind metadata compatibility properties
 navigation.py: Free functions for navigation and hierarchy
 computed.py: Free functions for computed properties (word count, reading time, etc.)
 rendering/page_content.py: Rendering-side helpers behind content compatibility properties
 bundle.py: Free functions for bundle detection and resource access
-relationships.py: PageRelationshipsMixin (prev/next, related)
 utils.py: Field separation utilities
 rendering/page_operations.py: Rendering-side helpers behind Page compatibility shims
 
@@ -55,10 +54,25 @@ from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 from bengal.core.cascade import CascadeSnapshot, CascadeView
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.core.page.metadata_helpers import (
+    coerce_weight,
+    fallback_url,
+    get_internal_metadata,
+    get_user_metadata,
+    infer_nav_title,
+    infer_slug,
+    infer_title,
+    normalize_edition,
+    normalize_keywords,
+    normalize_visibility,
+    should_render_visibility,
+)
+from bengal.core.utils.url import apply_baseurl, get_baseurl, get_site_origin
 from bengal.protocols import SiteLike
 
 if TYPE_CHECKING:
     from collections.abc import Mapping
+    from datetime import datetime
 
     from bengal.core.author import Author
     from bengal.core.records import SourcePage
@@ -70,17 +84,12 @@ if TYPE_CHECKING:
 
 from .bundle import BundleType, PageResource, PageResources
 from .frontmatter import Frontmatter
-from .metadata import PageMetadataMixin
 from .page_core import PageCore
-from .relationships import PageRelationshipsMixin
 from .utils import normalize_tags
 
 
 @dataclass
-class Page(
-    PageMetadataMixin,
-    PageRelationshipsMixin,
-):
+class Page:
     """
     Represents a single content page.
 
@@ -337,6 +346,333 @@ class Page(
             self._metadata_view_cache_key = cache_key
         return view
 
+    @property
+    def title(self) -> str:
+        """Page title from metadata or source path."""
+        return infer_title(self.metadata, self.source_path)
+
+    @property
+    def nav_title(self) -> str:
+        """Navigation title, falling back to the regular page title."""
+        return infer_nav_title(
+            core_nav_title=self.core.nav_title if self.core is not None else None,
+            metadata=self.metadata,
+            fallback_title=self.title,
+        )
+
+    @property
+    def weight(self) -> float:
+        """Sortable page weight, defaulting to infinity."""
+        return coerce_weight(self.core.weight if self.core is not None else None, self.metadata)
+
+    @property
+    def date(self) -> datetime | None:
+        """Parsed page date from metadata."""
+        from bengal.utils.primitives.dates import parse_date
+
+        return parse_date(self.metadata.get("date"))
+
+    @property
+    def slug(self) -> str:
+        """URL slug for the page."""
+        return infer_slug(self.metadata, self.source_path)
+
+    @property
+    def href(self) -> str:
+        """
+        URL for template href attributes. Includes baseurl.
+
+        Use this in templates for all links:
+            <a href="{{ page.href }}">
+            <link href="{{ page.href }}">
+
+        Returns:
+            URL path with baseurl prepended (if configured)
+
+        Note: Uses manual caching that only stores when _path is properly
+        computed (not from fallback).
+        """
+        manual_value = self.__dict__.get("href")
+        if manual_value is not None:
+            return manual_value
+
+        cached = self.__dict__.get("_href_cache")
+        if cached is not None:
+            return cached
+
+        with self._init_lock:
+            cached = self.__dict__.get("_href_cache")
+            if cached is not None:
+                return cached
+
+            rel = self._path or "/"
+
+            try:
+                site = getattr(self, "_site", None)
+                baseurl = get_baseurl(site) if site else ""
+            except Exception as e:
+                emit_diagnostic(self, "debug", "page_baseurl_lookup_failed", error=str(e))
+                baseurl = ""
+
+            result = apply_baseurl(rel, baseurl)
+
+            if "_path_cache" in self.__dict__:
+                self.__dict__["_href_cache"] = result
+
+        return result
+
+    @property
+    def _path(self) -> str:
+        """
+        Internal site-relative path. NO baseurl.
+
+        Use for internal operations only:
+        - Cache keys
+        - Active trail detection
+        - URL comparisons
+        - Link validation
+
+        NEVER use in templates - use .href instead.
+        """
+        manual_value = self.__dict__.get("_path")
+        if manual_value is not None:
+            return manual_value
+
+        cached = self.__dict__.get("_path_cache")
+        if cached is not None:
+            return cached
+
+        if not self.output_path:
+            return self._fallback_url()
+
+        if not self._site:
+            return self._fallback_url()
+
+        with self._init_lock:
+            cached = self.__dict__.get("_path_cache")
+            if cached is not None:
+                return cached
+
+            try:
+                rel_path = self.output_path.relative_to(self._site.output_dir)
+            except ValueError:
+                emit_diagnostic(
+                    self,
+                    "debug",
+                    "page_output_path_fallback",
+                    output_path=str(self.output_path),
+                    output_dir=str(self._site.output_dir),
+                    page_source=str(getattr(self, "source_path", "unknown")),
+                )
+                return self._fallback_url()
+
+            url_parts = list(rel_path.parts)
+            if url_parts and url_parts[-1] == "index.html":
+                url_parts = url_parts[:-1]
+            elif url_parts and url_parts[-1].endswith(".html"):
+                url_parts[-1] = url_parts[-1][:-5]
+
+            if not url_parts:
+                url = "/"
+            else:
+                url = "/" + "/".join(url_parts)
+                if not url.endswith("/"):
+                    url += "/"
+
+            self.__dict__["_path_cache"] = url
+        return url
+
+    @property
+    def absolute_href(self) -> str:
+        """Fully-qualified URL for meta tags and sitemaps when configured."""
+        origin = get_site_origin(self._site) if self._site else ""
+        if not origin:
+            return self.href
+        return f"{origin}{self._path}"
+
+    def _fallback_url(self) -> str:
+        """Generate fallback URL when output_path or site is not available."""
+        return fallback_url(self.slug)
+
+    @property
+    def toc_items(self) -> list[dict[str, Any]]:
+        """Structured TOC data for template compatibility."""
+        from bengal.rendering.page_content import get_toc_items
+
+        return get_toc_items(self)
+
+    @property
+    def is_home(self) -> bool:
+        """True if this page is the home page."""
+        return self._path == "/" or self.slug in ("index", "_index", "home")
+
+    @property
+    def is_section(self) -> bool:
+        """True if this page is a Section instance."""
+        from bengal.core.section import Section
+
+        return isinstance(self, Section)
+
+    @property
+    def is_page(self) -> bool:
+        """True if this is a regular page, not a section."""
+        return not self.is_section
+
+    @property
+    def kind(self) -> str:
+        """Page kind: ``home``, ``section``, or ``page``."""
+        if self.is_home:
+            return "home"
+        if self.is_section:
+            return "section"
+        return "page"
+
+    @property
+    def type(self) -> str | None:
+        """Page type from metadata."""
+        return self.metadata.get("type")
+
+    @property
+    def description(self) -> str:
+        """Page description from core metadata or frontmatter."""
+        if self.core is not None and self.core.description:
+            return self.core.description
+        return str(self.metadata.get("description", ""))
+
+    @property
+    def variant(self) -> str | None:
+        """Visual variant from metadata, with legacy layout fallbacks."""
+        return (
+            self.metadata.get("variant")
+            or self.metadata.get("layout")
+            or self.metadata.get("hero_style")
+        )
+
+    @property
+    def props(self) -> dict[str, Any]:
+        """Page props alias for metadata."""
+        return cast("dict[str, Any]", self.metadata)
+
+    @property
+    def params(self) -> dict[str, Any]:
+        """Page params alias for metadata."""
+        return cast("dict[str, Any]", self.metadata)
+
+    @property
+    def draft(self) -> bool:
+        """True if page is marked as draft."""
+        return bool(self.metadata.get("draft", False))
+
+    @property
+    def keywords(self) -> list[str]:
+        """Sanitized page keywords from metadata."""
+        return normalize_keywords(self.metadata.get("keywords", []))
+
+    @property
+    def hidden(self) -> bool:
+        """True if page is hidden from listings/navigation."""
+        return bool(self.metadata.get("hidden", False))
+
+    def _get_content_signal_defaults(self) -> dict[str, Any]:
+        """Get site-level content signal defaults from config."""
+        site = getattr(self, "_site", None)
+        if site is None:
+            return {}
+        config = getattr(site, "config", None)
+        if config is None:
+            return {}
+        try:
+            cs = config.get("content_signals", {})
+            return cs if isinstance(cs, dict) else {}
+        except Exception:
+            return {}
+
+    @property
+    def visibility(self) -> dict[str, Any]:
+        """Visibility settings merged with Bengal defaults."""
+        return normalize_visibility(self.metadata, self._get_content_signal_defaults())
+
+    @property
+    def in_listings(self) -> bool:
+        """True if page should appear in listings/queries."""
+        return self.visibility["listings"] and not self.draft
+
+    @property
+    def in_sitemap(self) -> bool:
+        """True if page should appear in sitemap.xml."""
+        return self.visibility["sitemap"] and not self.draft
+
+    @property
+    def in_search(self) -> bool:
+        """True if page should appear in the search index."""
+        return self.visibility["search"] and not self.draft
+
+    @property
+    def in_rss(self) -> bool:
+        """True if page should appear in RSS feeds."""
+        return self.visibility["rss"] and not self.draft
+
+    @property
+    def in_ai_train(self) -> bool:
+        """True if page permits AI training use."""
+        return self.visibility["ai_train"] and not self.draft
+
+    @property
+    def in_ai_input(self) -> bool:
+        """True if page permits AI input/RAG use."""
+        return self.visibility["ai_input"] and not self.draft
+
+    @property
+    def robots_meta(self) -> str:
+        """Robots meta directive for this page."""
+        return str(self.visibility["robots"])
+
+    @property
+    def should_render(self) -> bool:
+        """True if visibility.render is not ``never``."""
+        return bool(self.visibility["render"] != "never")
+
+    def should_render_in_environment(self, is_production: bool = False) -> bool:
+        """True if page should render in the given environment."""
+        return should_render_visibility(self.visibility, is_production)
+
+    @property
+    def edition(self) -> list[str]:
+        """Edition/variant list from frontmatter for multi-variant builds."""
+        return normalize_edition(self.metadata.get("edition"))
+
+    def in_variant(self, variant: str | None) -> bool:
+        """True if page should be included for the given build variant."""
+        if variant is None or not str(variant).strip():
+            return True
+        editions = self.edition
+        if not editions:
+            return True
+        return variant in editions
+
+    def get_user_metadata(self, key: str, default: Any = None) -> Any:
+        """Get user frontmatter, excluding internal underscore keys."""
+        return get_user_metadata(self.metadata, key, default)
+
+    def get_internal_metadata(self, key: str, default: Any = None) -> Any:
+        """Get internal underscore-prefixed metadata."""
+        return get_internal_metadata(self.metadata, key, default)
+
+    @property
+    def is_generated(self) -> bool:
+        """True if page was dynamically generated."""
+        return bool(self.metadata.get("_generated"))
+
+    @property
+    def assigned_template(self) -> str | None:
+        """Template explicitly assigned to this page."""
+        return self.metadata.get("template")
+
+    @property
+    def content_type_name(self) -> str | None:
+        """Content type assigned to this page."""
+        return self.metadata.get("content_type")
+
     def _init_core_from_fields(self) -> None:
         """
         Initialize PageCore from Page fields.
@@ -447,7 +783,7 @@ class Page(
         if self._frontmatter is None:
             with self._init_lock:
                 if self._frontmatter is None:
-                    self._frontmatter = Frontmatter.from_dict(self.metadata)
+                    self._frontmatter = Frontmatter.from_dict(dict(self.metadata))
         return self._frontmatter
 
     @classmethod
@@ -549,6 +885,37 @@ class Page(
         if not isinstance(other, Page):
             return NotImplemented
         return self.source_path == other.source_path
+
+    def eq(self, other: object) -> bool:
+        """
+        Template-facing page equality helper.
+
+        This mirrors ``__eq__`` but returns ``False`` instead of
+        ``NotImplemented`` for non-Page values, preserving the older template
+        helper behavior.
+        """
+        if not isinstance(other, Page):
+            return False
+        return self.source_path == other.source_path
+
+    def in_section(self, section: Any) -> bool:
+        """Return True when this page belongs to the given section."""
+        return bool(self._section == section)
+
+    def is_ancestor(self, other: Page) -> bool:
+        """Return True when this page acts as a section ancestor of another page."""
+        if not self.is_section:
+            return False
+
+        from bengal.protocols.capabilities import has_walk
+
+        return other._section in self.walk() if has_walk(self) else False
+
+    def is_descendant(self, other: object) -> bool:
+        """Return True when this page is a descendant of another page."""
+        if hasattr(other, "is_ancestor") and isinstance(other, Page):
+            return other.is_ancestor(self)
+        return False
 
     def __repr__(self) -> str:
         return f"Page(title='{self.title}', source='{self.source_path}')"

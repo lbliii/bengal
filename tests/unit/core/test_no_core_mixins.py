@@ -35,8 +35,6 @@ CORE_DIR = Path(__file__).resolve().parents[3] / "bengal" / "core"
 # must not be added without running the greenfield-design test first.
 LEGACY_MIXINS: frozenset[str] = frozenset(
     {
-        "PageMetadataMixin",
-        "PageRelationshipsMixin",
         "SectionErgonomicsMixin",
         "SectionHierarchyMixin",
         "SectionQueryMixin",
@@ -145,6 +143,40 @@ def test_page_does_not_inherit_content_mixin() -> None:
     }
 
     assert "PageContentMixin" not in base_names
+
+
+def test_page_does_not_inherit_metadata_mixin() -> None:
+    """Page metadata access is inline and delegates normalization to helpers."""
+    page_file = CORE_DIR / "page" / "__init__.py"
+    tree = ast.parse(page_file.read_text(encoding="utf-8"))
+
+    page_class = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
+    )
+    base_names = {
+        base.id if isinstance(base, ast.Name) else base.attr
+        for base in page_class.bases
+        if isinstance(base, (ast.Name, ast.Attribute))
+    }
+
+    assert "PageMetadataMixin" not in base_names
+
+
+def test_page_does_not_inherit_relationships_mixin() -> None:
+    """Page relationship helpers are inline compatibility methods."""
+    page_file = CORE_DIR / "page" / "__init__.py"
+    tree = ast.parse(page_file.read_text(encoding="utf-8"))
+
+    page_class = next(
+        node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
+    )
+    base_names = {
+        base.id if isinstance(base, ast.Name) else base.attr
+        for base in page_class.bases
+        if isinstance(base, (ast.Name, ast.Attribute))
+    }
+
+    assert "PageRelationshipsMixin" not in base_names
 
 
 def test_legacy_mixin_allowlist_is_accurate() -> None:

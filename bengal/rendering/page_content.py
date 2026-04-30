@@ -22,9 +22,11 @@ class PageContentTarget(Protocol):
 
     _raw_content: str
     html_content: str | None
+    toc: str | None
     _ast_cache: list[ASTNode] | dict[str, Any] | None
     _html_cache: str | None
     _plain_text_cache: str | None
+    _toc_items_cache: list[dict[str, Any]] | None
     _init_lock: Any
 
 
@@ -73,6 +75,23 @@ def get_plain_text(page: PageContentTarget) -> str:
 
         page._plain_text_cache = text
     return text
+
+
+def get_toc_items(page: PageContentTarget) -> list[dict[str, Any]]:
+    """
+    Return structured TOC data.
+
+    Empty results are not cached because toc may be populated later during
+    parsing after early xref indexing has already touched this helper.
+    """
+    if page._toc_items_cache is None and page.toc:
+        with page._init_lock:
+            if page._toc_items_cache is None and page.toc:
+                from bengal.rendering.pipeline import extract_toc_structure
+
+                page._toc_items_cache = extract_toc_structure(page.toc)
+
+    return page._toc_items_cache if page._toc_items_cache is not None else []
 
 
 def render_ast_to_html(page: PageContentTarget) -> str:

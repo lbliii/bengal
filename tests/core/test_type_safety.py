@@ -140,7 +140,11 @@ class TestCoreAttributeComposition:
 
         expected_attrs = [
             "content",
+            "eq",
             "html",
+            "in_section",
+            "is_ancestor",
+            "is_descendant",
             "plain_text",
             "next",
             "prev",

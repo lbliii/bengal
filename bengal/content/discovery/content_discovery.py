@@ -801,7 +801,7 @@ class ContentDiscovery:
 
         standard_fields, custom_props = separate_standard_and_custom_fields(metadata)
 
-        # Replicate slug computation from PageMetadataMixin.slug
+        # Replicate slug computation from Page.slug
         slug = metadata.get("slug")
         if slug is None:
             slug = file_path.parent.name if file_path.stem == "_index" else file_path.stem

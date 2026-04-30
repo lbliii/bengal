@@ -51,7 +51,6 @@ allow_indirect_imports = True
 #                to bengal.core.feature_detector in a follow-up to clear this edge.
 #   B1 transient: bengal.core.site -> bengal.orchestration.site_runner —
 #                NEW edge from delegating shims; removed in v0.5.0 when shims drop.
-#   B2: bengal.core.page.metadata -> bengal.rendering.pipeline
 ignore_imports =
     bengal.core.site -> bengal.orchestration.build.inputs
     bengal.core.site -> bengal.orchestration.build.options
@@ -59,7 +58,6 @@ ignore_imports =
     bengal.core.site -> bengal.orchestration.feature_detector
     bengal.core.site -> bengal.orchestration.site_runner
     bengal.core.site -> bengal.orchestration.stats.models
-    bengal.core.page.metadata -> bengal.rendering.pipeline
 
 # -----------------------------------------------------------------------------
 # Contract 2: Page/Section use SiteContext, not Site
@@ -84,7 +82,6 @@ allow_indirect_imports = True
 ignore_imports =
     bengal.core.page -> bengal.core.site.context
     bengal.core.page.computed -> bengal.core.site.context
-    bengal.core.page.metadata -> bengal.core.site.context
     bengal.core.page.navigation -> bengal.core.site.context
     bengal.core.section -> bengal.core.site.context
     bengal.core.section.navigation -> bengal.core.site.context

@@ -407,7 +407,7 @@ _SUGGESTIONS: dict[str, dict[str, ActionableSuggestion]] = {
             docs_url="/docs/content/frontmatter/#date",
             before_snippet="date: January 15, 2024",
             after_snippet="date: 2024-01-15\n# Or with time: 2024-01-15T10:30:00",
-            check_files=["bengal/core/page/metadata.py"],
+            check_files=["bengal/core/page/__init__.py", "bengal/core/page/metadata_helpers.py"],
             related_codes=["N002"],
             grep_patterns=["parse_date", "DateParseError"],
         ),
