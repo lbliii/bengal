@@ -6,9 +6,8 @@ Project-specific guidance for AI coding assistants working on Bengal.
 
 Bengal favors **composition over inheritance** for its core domain types.
 
-`Site` and `Page` are plain `@dataclass` containers with no core mixin
-inheritance. `Section` still carries legacy mixins that are explicitly
-allow-listed pending a separate audit. Functionality should be organized by:
+`Site`, `Page`, and `Section` are plain `@dataclass` containers with no core
+mixin inheritance. Functionality should be organized by:
 
 1. **Composed services** — public attributes holding a service instance
    (`site.config_service`, `site.page_cache`, `site.registry`).
@@ -25,15 +24,28 @@ may remain on `Page`, but rendering-derived behavior belongs behind helpers in
 `Page.HasShortcode()` are compatibility shims, not permission to put parser,
 template, shortcode, or URL presentation logic back into core.
 
+`Section` follows the same boundary for theme-facing ergonomics:
+`Section.recent_pages()`, `Section.pages_with_tag()`, `Section.featured_posts()`,
+section content stats, and section template application are compatibility shims
+over `bengal/rendering/section_ergonomics.py`.
+Section URL properties (`Section.href`, `Section._path`, `Section.absolute_href`,
+subsection index URL sets, and version-path transforms) are compatibility shims
+over `bengal/rendering/section_urls.py`.
+
 ### Forbidden
 
 - **New mixin inheritance on core types** (`class Site(SomeMixin, OtherMixin): ...`).
   Enforced by `tests/unit/core/test_no_core_mixins.py` — CI fails if a new
-  `*Mixin` class is added under `bengal/core/`. The remaining Section mixins
-  are legacy debt, not precedent.
+  `*Mixin` class is added under `bengal/core/`. The allow-list is empty.
 - **Rendering behavior inside core Page** — parser calls, HTML extraction,
   shortcode/link extraction, TOC parsing, excerpt/meta-description derivation,
   and template URL construction belong in rendering-side helpers.
+- **Theme ergonomic behavior inside core Section** — rendered-content stats,
+  template collection views, and section template application belong in
+  `bengal/rendering/section_ergonomics.py`.
+- **URL presentation inside core Section** — baseurl/origin application,
+  template-ready section paths, subsection index URL sets, and versioned URL
+  transforms belong in `bengal/rendering/section_urls.py`.
 - **Vestigial forwarders** — a property whose body is `return self._service.X`
   and whose name is just a convenience rename for internal wiring. If the name
   wouldn't be designed this way greenfield, the property is a vestige. Delete

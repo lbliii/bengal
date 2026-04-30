@@ -14,10 +14,10 @@ Section(name, path): Create a section for a directory
 Section.create_virtual(): Create a virtual section (no disk directory)
 
 Package Structure:
-hierarchy.py: SectionHierarchyMixin (tree traversal, identity)
-navigation.py: SectionNavigationMixin (URLs, version-aware nav)
-queries.py: SectionQueryMixin (page retrieval, collection ops)
-ergonomics.py: SectionErgonomicsMixin (theme developer helpers)
+hierarchy.py: Tree traversal and identity helper functions
+navigation.py: Version-aware structural navigation helper functions
+queries.py: Page retrieval and collection helper functions
+ergonomics.py: Compatibility re-exports for rendering-owned theme helpers
 utils.py: Module-level helper functions
 
 Key Concepts:
@@ -46,6 +46,7 @@ bengal.orchestration.content: Content discovery that builds section hierarchy
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import cached_property
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -54,21 +55,12 @@ if TYPE_CHECKING:
     from bengal.core.site.context import SiteContext
     from bengal.protocols.core import PageLike
 
-from .ergonomics import SectionErgonomicsMixin
-from .hierarchy import SectionHierarchyMixin
-from .navigation import SectionNavigationMixin
-from .queries import SectionQueryMixin
 from .utils import resolve_page_section_path
 from .weighted import WeightedPage
 
 
 @dataclass(eq=False)
-class Section(
-    SectionHierarchyMixin,
-    SectionQueryMixin,
-    SectionNavigationMixin,
-    SectionErgonomicsMixin,
-):
+class Section:
     """
     Represents a folder or logical grouping of pages.
 
@@ -293,6 +285,240 @@ class Section(
             except ValueError, TypeError:
                 pass
         return float("inf")
+
+    @cached_property
+    def hierarchy(self) -> list[str]:
+        """Get the full hierarchy path of this section."""
+        from .hierarchy import get_hierarchy
+
+        return get_hierarchy(self)
+
+    @cached_property
+    def depth(self) -> int:
+        """Get the depth of this section in the hierarchy."""
+        from .hierarchy import get_depth
+
+        return get_depth(self)
+
+    @property
+    def root(self) -> Section:
+        """Get the root section of this section's hierarchy."""
+        from .hierarchy import get_root
+
+        return get_root(self)
+
+    @cached_property
+    def icon(self) -> str | None:
+        """Get section icon from index page metadata."""
+        from .hierarchy import get_icon
+
+        return get_icon(self)
+
+    @cached_property
+    def sorted_subsections(self) -> list[Section]:
+        """Get subsections sorted by weight, then title."""
+        from .hierarchy import sorted_subsections
+
+        return sorted_subsections(self)
+
+    def add_subsection(self, section: Section) -> None:
+        """Add a subsection to this section."""
+        from .hierarchy import add_subsection
+
+        add_subsection(self, section)
+
+    def walk(self) -> list[Section]:
+        """Iteratively walk through all sections in the hierarchy."""
+        from .hierarchy import walk
+
+        return walk(self)
+
+    @cached_property
+    def regular_pages(self) -> list[PageLike]:
+        """Get content pages in this section, excluding index pages."""
+        from .queries import regular_pages
+
+        return regular_pages(self)
+
+    @cached_property
+    def sorted_pages(self) -> list[PageLike]:
+        """Get pages sorted by weight, then title."""
+        from .queries import sorted_pages
+
+        return sorted_pages(self)
+
+    @cached_property
+    def regular_pages_recursive(self) -> list[PageLike]:
+        """Get all regular pages recursively, including from subsections."""
+        from .queries import regular_pages_recursive
+
+        return regular_pages_recursive(self)
+
+    def add_page(self, page: PageLike) -> None:
+        """Add a page to this section."""
+        from .queries import add_page
+
+        add_page(self, page)
+
+    def sort_children_by_weight(self) -> None:
+        """Sort pages and subsections by weight, then title."""
+        from .queries import sort_children_by_weight
+
+        sort_children_by_weight(self)
+
+    def needs_auto_index(self) -> bool:
+        """Check if this section needs an auto-generated index page."""
+        from .queries import needs_auto_index
+
+        return needs_auto_index(self)
+
+    def has_index(self) -> bool:
+        """Check if section has a valid index page."""
+        from .queries import has_index
+
+        return has_index(self)
+
+    def get_all_pages(self, recursive: bool = True) -> list[PageLike]:
+        """Get all pages in this section."""
+        from .queries import get_all_pages
+
+        return get_all_pages(self, recursive)
+
+    @cached_property
+    def href(self) -> str:
+        """URL for template href attributes. Includes baseurl."""
+        from bengal.rendering.section_urls import get_href
+
+        return get_href(self)
+
+    @cached_property
+    def _path(self) -> str:
+        """Internal site-relative path. Does not include baseurl."""
+        from bengal.rendering.section_urls import get_path
+
+        return get_path(self)
+
+    @property
+    def absolute_href(self) -> str:
+        """Fully-qualified URL for meta tags and sitemaps when available."""
+        from bengal.rendering.section_urls import get_absolute_href
+
+        return get_absolute_href(self)
+
+    @cached_property
+    def subsection_index_urls(self) -> set[str]:
+        """Get URLs for all subsection index pages."""
+        from bengal.rendering.section_urls import subsection_index_urls
+
+        return subsection_index_urls(self)
+
+    @cached_property
+    def has_nav_children(self) -> bool:
+        """Check if this section has navigable children."""
+        from .navigation import has_nav_children
+
+        return has_nav_children(self)
+
+    def pages_for_version(self, version_id: str | None) -> list[PageLike]:
+        """Get pages matching the specified version."""
+        from .navigation import pages_for_version
+
+        return pages_for_version(self, version_id)
+
+    def subsections_for_version(self, version_id: str | None) -> list[Section]:
+        """Get subsections that have content for the specified version."""
+        from .navigation import subsections_for_version
+
+        return subsections_for_version(self, version_id)
+
+    def has_content_for_version(self, version_id: str | None) -> bool:
+        """Check if this section has any content for the specified version."""
+        from .navigation import has_content_for_version
+
+        return has_content_for_version(self, version_id)
+
+    def _apply_version_path_transform(self, url: str) -> str:
+        """Transform versioned section URL to proper output structure."""
+        from bengal.rendering.section_urls import apply_version_path_transform
+
+        return apply_version_path_transform(self, url)
+
+    @cached_property
+    def content_pages(self) -> list[PageLike]:
+        """Get content pages for template listings."""
+        from bengal.rendering.section_ergonomics import content_pages
+
+        return content_pages(self)
+
+    def recent_pages(self, limit: int = 10) -> list[PageLike]:
+        """Get most recent pages by date."""
+        from bengal.rendering.section_ergonomics import recent_pages
+
+        return recent_pages(self, limit)
+
+    def pages_with_tag(self, tag: str) -> list[PageLike]:
+        """Get pages containing a specific tag."""
+        from bengal.rendering.section_ergonomics import pages_with_tag
+
+        return pages_with_tag(self, tag)
+
+    def featured_posts(self, limit: int = 5) -> list[PageLike]:
+        """Get featured pages from this section."""
+        from bengal.rendering.section_ergonomics import featured_posts
+
+        return featured_posts(self, limit)
+
+    @cached_property
+    def post_count(self) -> int:
+        """Get total number of content pages in this section."""
+        from bengal.rendering.section_ergonomics import post_count
+
+        return post_count(self)
+
+    @cached_property
+    def post_count_recursive(self) -> int:
+        """Get total number of content pages in this section and all subsections."""
+        from bengal.rendering.section_ergonomics import post_count_recursive
+
+        return post_count_recursive(self)
+
+    @cached_property
+    def word_count(self) -> int:
+        """Get total word count across all pages in this section."""
+        from bengal.rendering.section_ergonomics import word_count
+
+        return word_count(self)
+
+    @cached_property
+    def total_reading_time(self) -> int:
+        """Get total reading time for all pages in this section."""
+        from bengal.rendering.section_ergonomics import total_reading_time
+
+        return total_reading_time(self)
+
+    def aggregate_content(self) -> dict[str, Any]:
+        """Aggregate content from all pages in this section."""
+        from bengal.rendering.section_ergonomics import aggregate_content
+
+        return aggregate_content(self)
+
+    def apply_section_template(self, template_engine: Any) -> str:
+        """Apply a section template to generate a section index page."""
+        from bengal.rendering.section_ergonomics import apply_section_template
+
+        return apply_section_template(self, template_engine)
+
+    def __hash__(self) -> int:
+        """Hash based on section path, or name and URL for virtual sections."""
+        from .hierarchy import section_hash
+
+        return section_hash(self)
+
+    def __eq__(self, other: object) -> bool:
+        """Compare sections by path, or by name and URL for virtual sections."""
+        from .hierarchy import section_eq
+
+        return section_eq(self, other)
 
     def __repr__(self) -> str:
         return f"Section(name='{self.name}', pages={len(self.pages)}, subsections={len(self.subsections)})"

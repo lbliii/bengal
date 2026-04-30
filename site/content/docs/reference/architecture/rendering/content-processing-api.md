@@ -92,6 +92,13 @@ This pattern is ergonomic: templates use `{{ page.href }}` for display and it "j
 | `section.title` | (from index metadata or generated) | `{{ section.title }}` | Section title |
 | `section.aggregate_content()` | (automatic) | `{{ section.aggregate_content().page_count }}` | Aggregated stats (page counts, tags) |
 
+Section URL presentation is implemented in `bengal/rendering/section_urls.py`,
+and section theme ergonomics are implemented in
+`bengal/rendering/section_ergonomics.py`. `Section` keeps compatibility shims
+so existing templates can continue using properties and methods such as
+`section.href`, `section.recent_pages()`, `section.featured_posts()`, and
+`section.aggregate_content()`.
+
 ---
 
 ## Config Examples

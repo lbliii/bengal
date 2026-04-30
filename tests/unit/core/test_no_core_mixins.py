@@ -11,13 +11,11 @@ History:
 - Later: Sprint B3 of immutable-floating-sun.md re-introduced 5 Site mixins.
 - 2026-04-20 (epic-delete-forwarding-wrappers.md S4): dissolved all Site mixins.
 
-The epic explicitly targeted Site. Page mixins have since been dissolved during
-the Page boundary cleanup. Section still has legacy mixins (pre-dating the
-epic); they are allow-listed below and slated for a follow-up audit using the
-same greenfield-design test.
+The epic explicitly targeted Site. Page and Section mixins have since been
+dissolved during the boundary cleanup work that followed it.
 
-This test pins the outcome: Site and Page stay mixin-free; any NEW mixin added
-to bengal/core/ fails CI.
+This test pins the outcome: Site, Page, and Section stay mixin-free, and any NEW
+mixin added to bengal/core/ fails CI.
 
 See also:
 - plan/epic-delete-forwarding-wrappers.md (S5.1)
@@ -31,17 +29,7 @@ from pathlib import Path
 
 CORE_DIR = Path(__file__).resolve().parents[3] / "bengal" / "core"
 
-# Legacy Section mixins that pre-date epic-delete-forwarding-wrappers.md. Each
-# entry should be removed (and the mixin dissolved) in a follow-up audit. New
-# names must not be added without running the greenfield-design test first.
-LEGACY_MIXINS: frozenset[str] = frozenset(
-    {
-        "SectionErgonomicsMixin",
-        "SectionHierarchyMixin",
-        "SectionQueryMixin",
-        "SectionNavigationMixin",
-    }
-)
+LEGACY_MIXINS: frozenset[str] = frozenset()
 
 
 def _find_mixin_classes(core_dir: Path) -> list[tuple[Path, str, int]]:
@@ -134,6 +122,23 @@ def test_page_has_no_module_level_rendering_helper_imports() -> None:
     assert imports == []
 
 
+def test_section_has_no_module_level_rendering_helper_imports() -> None:
+    """Core Section should import rendering helpers only inside compatibility shims."""
+    section_dir = CORE_DIR / "section"
+    imports: list[tuple[Path, str]] = []
+    for section_file in section_dir.rglob("*.py"):
+        tree = ast.parse(section_file.read_text(encoding="utf-8"))
+        imports.extend(
+            (section_file, node.module)
+            for node in tree.body
+            if isinstance(node, ast.ImportFrom)
+            and node.module is not None
+            and (node.module == "bengal.rendering" or node.module.startswith("bengal.rendering."))
+        )
+
+    assert imports == []
+
+
 def test_page_does_not_inherit_content_mixin() -> None:
     """Page content access stays inline and delegates processing outward."""
     page_file = CORE_DIR / "page" / "__init__.py"
@@ -209,8 +214,8 @@ def test_page_computed_keeps_content_rendering_out_of_core() -> None:
     assert "truncate_at_sentence" not in imported_names
 
 
-def test_legacy_mixin_allowlist_is_accurate() -> None:
-    """Shrink the allow-list as Page/Section mixins are dissolved."""
+def test_legacy_mixin_allowlist_stays_empty() -> None:
+    """Keep the legacy allow-list empty now that Page and Section mixins are dissolved."""
     hits = _find_mixin_classes(CORE_DIR)
     found_names = {n for _, n, _ in hits}
     stale = LEGACY_MIXINS - found_names

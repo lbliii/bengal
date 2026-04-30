@@ -42,7 +42,7 @@ The current shape to preserve:
 - `SourcePage → ParsedPage → RenderedPage` records are the immutable pipeline. They are not the place for convenience fields, late mutation, or plugin-specific state.
 - `Page` is a compatibility surface for templates and older callers, not a renderer. Template-facing properties such as `content`, `html`, `plain_text`, `toc_items`, `excerpt`, `meta_description`, `href`, `_path`, and `absolute_href` should delegate to rendering-side helpers.
 - `Site` coordinates through registries, services, and orchestration. It should not reacquire forwarding wrappers just because an internal service exists.
-- `Section` still has legacy core mixins on the allow-list. Treat them as audit debt, not precedent.
+- `Section` is mixin-free; hierarchy, query, and structural navigation helpers sit behind Section shims instead of base classes. Section URL presentation delegates to `bengal/rendering/section_urls.py`; theme ergonomic helpers such as `recent_pages()`, `featured_posts()`, content stats, and section template application delegate to `bengal/rendering/section_ergonomics.py`.
 - Rendering owns parser, template, shortcode, AST/HTML, and URL presentation behavior. Core may call into rendering lazily from a compatibility shim; it should not import rendering helpers at module load time.
 - Protocols and plugin hooks are public contracts. Prefer internal adapters or rendering services over widening `SiteLike`, `PageLike`, or `Plugin`.
 
@@ -61,7 +61,7 @@ The current shape to preserve:
 
 Forks where I want a check-in, not a judgment call:
 
-- **Reintroducing a mixin in `bengal/core/`.** Site and Page are mixin-free after epic-delete-forwarding-wrappers and the Page boundary cleanup. `tests/unit/core/test_no_core_mixins.py` enforces the remaining `LEGACY_MIXINS` allow-list for Section only. Adding to that list, or adding new core mixins, needs a check-in.
+- **Reintroducing a mixin in `bengal/core/`.** Site, Page, and Section are mixin-free after epic-delete-forwarding-wrappers and the follow-up boundary cleanups. `tests/unit/core/test_no_core_mixins.py` enforces an empty `LEGACY_MIXINS` allow-list. Adding to that list, or adding new core mixins, needs a check-in.
 - **Moving a deferred import to module level.** Bengal has multiple deferred-only import cycles. The `check-cycles` pre-commit hook catches some; not all. If you see `from bengal.X import Y` inside a function and want to hoist it, run check-cycles first and ask.
 - **Touching the immutable page pipeline.** `SourcePage` / `ParsedPage` / `RenderedPage` are frozen on purpose. Adding fields, mutability, or new pipeline stages is a design conversation, not a patch.
 - **Changing the `Plugin` protocol or any of the 9 extension points.** Public surface; breaks unknown third parties. Sketch the change first.
@@ -81,7 +81,7 @@ Forks where I want a check-in, not a judgment call:
 Things that look reasonable and are wrong here:
 
 - **Adding npm/JS to the build path.** No. The whole point is a pure-Python content stack.
-- **Reintroducing core mixins.** PR #194 dissolved Site mixins deliberately over 10+ commits, and Page mixins have since been dissolved. Section legacy mixins are allow-listed pending audit — not an invitation to add more.
+- **Reintroducing core mixins.** PR #194 dissolved Site mixins deliberately over 10+ commits, and Page/Section mixins have since been dissolved. The allow-list is empty — not an invitation to add more.
 - **Moving rendering behavior back into Page.** Page may keep template-facing compatibility properties, but the work behind rendered content, excerpts, meta descriptions, shortcode checks, link extraction, TOC structures, and template URLs belongs in `bengal/rendering/`.
 - **`try: ... except Exception: pass`.** S110 is enabled. If you must swallow, log via diagnostics with what + why.
 - **Wrapping `except A, B:` in parens.** Valid PEP 758 syntax in 3.14+. Ruff will undo your "fix."
