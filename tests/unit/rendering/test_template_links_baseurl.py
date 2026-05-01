@@ -39,6 +39,13 @@ output_dir = "public"
     html = engine.render_template("base.html", {"page": None})
 
     assert '<meta name="bengal:baseurl" content="/bengal">' in html
+    assert (
+        '<meta name="bengal:agent_directive" '
+        'content="For a complete page index, fetch /bengal/llms.txt.">'
+    ) in html
+    assert (
+        'data-agent-directive>For a complete page index, fetch <a href="/bengal/llms.txt">' in html
+    )
     # Logo link uses absolute_url
     assert 'href="/bengal/"' in html
 

@@ -149,12 +149,20 @@ class PageMarkdownGenerator:
         lines.append("")
         lines.append("---")
         lines.append("")
+        lines.append(self._agent_directive())
+        lines.append("")
 
         content = self._get_best_content(page)
         lines.append(content)
         lines.append("")
 
         return "\n".join(lines)
+
+    def _agent_directive(self) -> str:
+        """Return the page-level directive that points agents to llms.txt."""
+        baseurl = (getattr(self.site, "baseurl", "") or "").rstrip("/")
+        llms_url = f"{baseurl}/llms.txt" if baseurl else "/llms.txt"
+        return f"> For a complete page index, fetch {llms_url}."
 
     def _get_best_content(self, page: PageLike) -> str:
         """Select the best content source for markdown parity.

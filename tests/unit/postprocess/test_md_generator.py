@@ -119,6 +119,15 @@ class TestPageToMarkdown:
 
         assert "\n---\n" in result
 
+    def test_includes_agent_directive(self):
+        site = _make_site(baseurl="/bengal")
+        gen = PageMarkdownGenerator(site)
+        page = _make_page(raw_content="Body text.")
+
+        result = gen._page_to_markdown(page)
+
+        assert "> For a complete page index, fetch /bengal/llms.txt." in result
+
     def test_preserves_raw_content(self):
         site = _make_site()
         gen = PageMarkdownGenerator(site)

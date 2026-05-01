@@ -17,6 +17,7 @@ Generated for every page in your site:
 
 - **JSON** (`index.json`): Structured data including metadata, HTML content, plain text, and optional heading-level chunks for RAG.
 - **LLM Text** (`index.txt`): AI-friendly plain text format optimized for **RAG** (Retrieval-Augmented Generation) and LLM consumption.
+- **Markdown** (`index.md`): Markdown mirror for coding agents and documentation checkers. Each file includes a short directive pointing agents to the site's `llms.txt` index.
 
 ### Site-Wide Formats
 
@@ -39,7 +40,7 @@ Enable output formats in your config file.
 # config/_default/outputs.yaml
 output_formats:
   enabled: true
-  per_page: ["json"]
+  per_page: ["json", "llm_txt", "markdown"]
   site_wide: ["index_json"]
   options:
     excerpt_length: 200                    # Excerpt length for site index
@@ -58,7 +59,7 @@ output_formats:
 # bengal.toml
 [output_formats]
 enabled = true
-per_page = ["json"]
+per_page = ["json", "llm_txt", "markdown"]
 site_wide = ["index_json"]
 
 [output_formats.options]
@@ -77,7 +78,7 @@ exclude_patterns = ["404.html", "search.html"]
 :::{tip}
 **Effective Defaults**: The `[features]` section controls which formats are enabled. With default features (`json = true`, `llm_txt = true`), Bengal generates:
 
-- **per_page**: `["json", "llm_txt"]` (both JSON and LLM text)
+- **per_page**: `["json", "llm_txt", "markdown"]` (JSON, LLM text, and Markdown mirrors)
 - **site_wide**: `["index_json", "llm_full", "llms_txt", "changelog", "agent_manifest"]` (search index, LLM texts, build changelog, and agent manifest)
 
 To disable LLM text generation, set `features.llm_txt = false` in your config.
