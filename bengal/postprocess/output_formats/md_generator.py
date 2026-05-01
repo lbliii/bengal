@@ -54,6 +54,7 @@ from bengal.postprocess.output_formats.utils import (
     parallel_write_files,
 )
 from bengal.postprocess.utils import get_section_name
+from bengal.rendering.html_markdown import rendered_html_to_markdown
 from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
@@ -167,10 +168,11 @@ class PageMarkdownGenerator:
     def _get_best_content(self, page: PageLike) -> str:
         """Select the best content source for markdown parity.
 
-        Prefers raw markdown (preserves formatting), but falls back to
-        plain_text when raw content is significantly shorter than the
-        rendered output — indicating shortcodes, includes, or directives
-        expanded substantial content during rendering.
+        Prefers raw markdown when it covers the rendered page well, because
+        it preserves author formatting. Uses the rendered primary content
+        when templates generated substantial additional content, then falls
+        back to plain_text for parser-expanded content without full rendered
+        HTML.
 
         Args:
             page: Page to get content for.
@@ -180,9 +182,11 @@ class PageMarkdownGenerator:
         """
         raw = getattr(page, "_raw_content", None) or ""
         plain = getattr(page, "plain_text", "") or ""
+        rendered = getattr(page, "rendered_html", "") or ""
+        rendered_markdown = rendered_html_to_markdown(rendered) if isinstance(rendered, str) else ""
 
         if not raw:
-            return plain
+            return rendered_markdown or plain
 
         content = raw.strip()
 
@@ -200,6 +204,11 @@ class PageMarkdownGenerator:
         # Use plain_text for better parity with the rendered HTML.
         raw_len = len(content)
         plain_len = len(plain)
+        rendered_len = len(rendered_markdown)
+        reference_len = max(raw_len, plain_len)
+        if rendered_len > 0 and (reference_len == 0 or rendered_len / reference_len > 1.15):
+            return rendered_markdown
+
         if plain_len > 0 and raw_len > 0:
             coverage = raw_len / plain_len
             if coverage < 0.75:

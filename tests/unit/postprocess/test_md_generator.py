@@ -29,6 +29,7 @@ def _make_page(
     output_path: str | None = None,
     raw_content: str = "",
     plain_text: str = "",
+    rendered_html: str = "",
 ) -> MagicMock:
     page = MagicMock()
     page.title = title
@@ -38,6 +39,7 @@ def _make_page(
     page.output_path = Path(output_path) if output_path else Path(f"public{path}index.html")
     page._raw_content = raw_content or None
     page.plain_text = plain_text or None
+    page.rendered_html = rendered_html
 
     if section_name:
         section = MagicMock()
@@ -267,6 +269,31 @@ class TestContentParityThreshold:
         result = gen._get_best_content(page)
 
         assert result == raw
+
+    def test_uses_rendered_content_when_template_adds_substantial_content(self):
+        """Rendered primary content fills parity gaps on generated pages."""
+        site = _make_site()
+        gen = PageMarkdownGenerator(site)
+        raw = "Short intro."
+        rendered = """
+        <main id="main-content">
+          <article class="prose">
+            <div class="docs-content"><p>Short intro.</p></div>
+            <section class="docs-children">
+              <h2>In This Section</h2>
+              <article><h3>Installation</h3><p>Install Bengal.</p></article>
+              <article><h3>Configuration</h3><p>Configure output formats.</p></article>
+            </section>
+          </article>
+        </main>
+        """
+        page = _make_page(title="Guide", raw_content=raw, rendered_html=rendered)
+
+        result = gen._get_best_content(page)
+
+        assert "In This Section" in result
+        assert "Installation" in result
+        assert "Configuration" in result
 
 
 class TestGenerate:
