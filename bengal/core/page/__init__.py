@@ -74,7 +74,6 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from bengal.core.author import Author
-    from bengal.core.records import SourcePage
     from bengal.core.series import Series
     from bengal.core.site.context import SiteContext
     from bengal.parsing.ast.types import ASTNode
@@ -264,11 +263,6 @@ class Page:
     # Sprint 5: True when page was reconstructed from cache without disk I/O.
     # Used for metrics/logging and to skip wasteful re-initialization in __post_init__.
     _from_cache: bool = field(default=False, repr=False)
-
-    # Sprint 4 dual-write bridge: immutable SourcePage record from discovery.
-    # Set by ContentDiscovery._create_page(); None for cached/proxy pages.
-    # Removed in Sprint 6 when Page is deleted.
-    _source_page: SourcePage | None = field(default=None, repr=False, init=False)
 
     def __post_init__(self) -> None:
         """Initialize computed fields and PageCore."""

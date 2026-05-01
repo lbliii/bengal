@@ -818,9 +818,9 @@ class RenderingPipeline:
         # Store rendered output in cache
         if _prof:
             with _prof.step("cache_rendered"):
-                self._cache_checker.cache_rendered_output(page, template)
+                self._cache_checker.cache_rendered_output(page, template, rendered_page)
         else:
-            self._cache_checker.cache_rendered_output(page, template)
+            self._cache_checker.cache_rendered_output(page, template, rendered_page)
 
         # Write output (sync or async via write-behind)
         if _prof:
@@ -854,12 +854,19 @@ class RenderingPipeline:
         # Use render-time tracked assets, fall back to HTML parsing if needed
         if _prof:
             with _prof.step("asset_deps"):
-                self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
+                self._accumulate_asset_deps(
+                    page, tracked_assets=tracked_assets, rendered_html=rendered_page.rendered_html
+                )
         else:
-            self._accumulate_asset_deps(page, tracked_assets=tracked_assets)
+            self._accumulate_asset_deps(
+                page, tracked_assets=tracked_assets, rendered_html=rendered_page.rendered_html
+            )
 
     def _accumulate_asset_deps(
-        self, page: PageLike, tracked_assets: set[str] | None = None
+        self,
+        page: PageLike,
+        tracked_assets: set[str] | None = None,
+        rendered_html: str | None = None,
     ) -> None:
         """
         Accumulate asset dependencies during rendering.
@@ -870,8 +877,10 @@ class RenderingPipeline:
         Args:
             page: Page with rendered HTML
             tracked_assets: Assets tracked during render-time (if available)
+            rendered_html: Rendered HTML from the immutable render record.
         """
-        if not self.build_context or not page.rendered_html:
+        html = rendered_html if rendered_html is not None else page.rendered_html
+        if not self.build_context or not html:
             return
 
         assets: set[str] = set()
@@ -888,7 +897,7 @@ class RenderingPipeline:
                 from bengal.rendering.asset_extractor import extract_assets_from_html
                 from bengal.rendering.assets import get_asset_manifest
 
-                raw_assets = extract_assets_from_html(page.rendered_html)
+                raw_assets = extract_assets_from_html(html)
 
                 # Normalize fingerprinted URLs back to logical paths.
                 # When Kida fragment cache hits, asset_url() is not called, so

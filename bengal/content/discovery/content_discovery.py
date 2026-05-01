@@ -726,7 +726,8 @@ class ContentDiscovery:
             content, metadata = self._parser.parse_file(file_path)
             metadata = self._parser.validate_against_collection(file_path, metadata)
 
-            # Sprint 4: build immutable SourcePage first, then mutable Page
+            # Build the immutable discovery record first, then adapt it into
+            # the remaining Page compatibility object for downstream callers.
             source_page = self._build_source_page(
                 file_path, content, metadata, current_lang, section
             )
@@ -736,7 +737,6 @@ class ContentDiscovery:
                 _raw_content=source_page.raw_content,
                 _raw_metadata=source_page.raw_metadata_dict(),
             )
-            page._source_page = source_page
 
             if self.site is not None:
                 page._site = self.site

@@ -51,8 +51,9 @@ class ReactiveContentHandler:
     def handle_content_change(self, path: Path) -> ReactiveResult | None:
         """Process content-only change for a single .md file.
 
-        Flow: find page -> read source -> update page._raw_content -> run
-        RenderingPipeline.process_page -> write to disk.
+        Flow: find page -> read source -> update the remaining Page
+        compatibility fields -> run RenderingPipeline.process_page -> write
+        to disk.
 
         Returns a ReactiveResult carrying both the output path and the
         rendered HTML string so callers can extract fragments in memory
@@ -80,24 +81,6 @@ class ReactiveContentHandler:
         # full file would render YAML as markdown.
         _, body_content = parse_frontmatter(raw_file)
 
-        # Sprint 4: reconstruct immutable SourcePage record.
-        # Uses dataclasses.replace() so new SourcePage fields are carried forward automatically.
-        from bengal.core.records import SourcePage
-
-        old_source = getattr(page, "_source_page", None)
-        if isinstance(old_source, SourcePage):
-            from dataclasses import replace as dc_replace
-
-            from bengal.utils.primitives.hashing import hash_str
-
-            file_hash = hash_str(raw_file)
-            content_hash = hash_str(body_content)
-            new_core = dc_replace(old_source.core, file_hash=file_hash)
-            page._source_page = dc_replace(
-                old_source, core=new_core, raw_content=body_content, content_hash=content_hash
-            )
-
-        # Existing mutable Page update (kept for backward compatibility)
         page._raw_content = body_content
         page.html_content = None
 

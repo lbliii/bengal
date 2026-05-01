@@ -14,6 +14,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.cache import BuildCache
+from bengal.core.records import RenderedPage
 from bengal.rendering.pipeline import RenderingPipeline
 
 
@@ -157,6 +158,33 @@ class TestPipelineCacheStorage:
         # After caching, rendered_output should have an entry
         assert str(mock_page.source_path) in cache.rendered_output
         assert "Rendered" in cache.rendered_output[str(mock_page.source_path)]["html"]
+
+    def test_cache_rendered_output_prefers_rendered_page_record(
+        self, site_with_cache, mock_page, tmp_path
+    ):
+        """Rendered output cache reads from RenderedPage when supplied."""
+        site, cache = site_with_cache
+
+        parser = DummyParser()
+        engine = DummyTemplateEngine(site)
+        ctx = SimpleNamespace(markdown_parser=parser, template_engine=engine)
+
+        pipeline = RenderingPipeline(site, build_context=ctx, build_cache=cache)
+        cache.update_file(mock_page.source_path)
+
+        mock_page.rendered_html = "<html><body>stale mutable html</body></html>"
+        rendered_page = RenderedPage(
+            source_path=mock_page.source_path,
+            output_path=tmp_path / "public" / "test" / "index.html",
+            rendered_html="<html><body>record html</body></html>",
+            render_time_ms=1.0,
+        )
+
+        pipeline._cache_checker.cache_rendered_output(mock_page, "default.html", rendered_page)
+
+        cached = cache.rendered_output[str(mock_page.source_path)]
+        assert "record html" in cached["html"]
+        assert "stale mutable html" not in cached["html"]
 
     def test_build_cache_passed_directly(self, site_with_cache):
         """
