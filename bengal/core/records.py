@@ -180,10 +180,10 @@ class SourcePage:
     metadata and adds discovery-specific fields (raw content, content
     hash, i18n).
 
-    Consumed by the orchestration and rendering phases via the
-    ``page._source_page`` dual-write bridge.  In the target architecture
-    (Sprint 5+) content loading is deferred to the parse stage and
-    ``raw_content`` becomes optional.
+    Consumed by discovery/orchestration handoffs before the remaining mutable
+    ``Page`` compatibility object is populated.  In the target architecture,
+    content loading is deferred to the parse stage and ``raw_content`` becomes
+    optional.
 
     The record itself is frozen (field reassignment raises).  Composed
     ``PageCore`` contains mutable containers (``tags``, ``props``,

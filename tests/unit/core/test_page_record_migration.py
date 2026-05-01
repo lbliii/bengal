@@ -7,6 +7,7 @@ from types import MappingProxyType, SimpleNamespace
 
 import pytest
 
+from bengal.core.page import Page
 from bengal.core.records import (
     PAGE_CORE_MIGRATION_MAP,
     PARSED_PAGE_MIGRATION_MAP,
@@ -97,6 +98,16 @@ def test_build_source_page_does_not_compute_hashes_in_core():
 
     assert source.content_hash is None
     assert source.core.file_hash is None
+
+
+def test_page_no_longer_retains_source_page_bridge():
+    page = Page(
+        source_path=Path("content/posts/hello.md"),
+        _raw_content="# Hello",
+        _raw_metadata={"title": "Hello"},
+    )
+
+    assert not hasattr(page, "_source_page")
 
 
 def test_parsed_page_adapter_uses_supplied_toc_items_without_rendering_imports():

@@ -127,7 +127,9 @@ as the canonical handoff from mutable `Page` compatibility state into record
 state:
 
 - `build_page_core()` maps frontmatter and path inputs into `PageCore`.
-- `build_source_page()` maps discovery inputs into `SourcePage`.
+- `build_source_page()` maps discovery inputs into `SourcePage`; discovery
+  consumes that record while populating the remaining `Page` compatibility
+  object, but does not retain it as a second mutable sidecar on `Page`.
 - `parsed_page_from_page_state()` maps parse-phase `PageLike` state into
   `ParsedPage` while accepting rendering-supplied TOC structures.
 - `rendered_page_from_page_state()` maps render-phase state into `RenderedPage`.
