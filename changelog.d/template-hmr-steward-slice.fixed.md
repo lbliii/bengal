@@ -1,0 +1,1 @@
+Template changes in the dev server now use existing template dependency data instead of importing the removed legacy template detector, keeping selective rebuilds available when dependencies are known and falling back conservatively when they are not.

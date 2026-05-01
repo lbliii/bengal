@@ -1030,20 +1030,29 @@ class BuildTrigger:
             if not self._is_in_template_dir(path, template_dirs):
                 continue
 
-            # Check if template has any dependents
-            affected: set[str] = set()
-            if cache is not None:
-                with suppress(Exception):
-                    affected = cache.get_affected_pages(path)
+            affected, dependency_data_known = self._get_template_dependents(
+                path,
+                cache,
+                template_dirs,
+            )
 
             if not affected:
-                # Template has no dependents - skip entirely
+                if dependency_data_known:
+                    # Template has no dependents - skip entirely
+                    logger.debug(
+                        "template_change_ignored",
+                        template=str(path),
+                        reason="no_dependents",
+                    )
+                    continue
+
                 logger.debug(
-                    "template_change_ignored",
+                    "template_change_full_rebuild",
                     template=str(path),
-                    reason="no_dependents",
+                    affected_pages=0,
+                    reason="dependency_data_missing",
                 )
-                continue
+                return True
 
             # Has dependents - check if we can do incremental update
             if self._can_use_incremental_template_update(path, cache):
@@ -1064,6 +1073,49 @@ class BuildTrigger:
             return True
 
         return False
+
+    def _template_name_for_path(self, path: Path, template_dirs: list[Path]) -> str:
+        """Return the template name used by BuildCache dependency indexes."""
+        for template_dir in template_dirs:
+            try:
+                return to_posix(path.resolve().relative_to(template_dir.resolve()))
+            except OSError, ValueError:
+                continue
+        return path.name
+
+    def _get_template_dependents(
+        self,
+        path: Path,
+        cache: Any,
+        template_dirs: list[Path],
+    ) -> tuple[set[str], bool]:
+        """Return pages affected by a template and whether dependency data was known."""
+        if cache is None:
+            return set(), False
+
+        template_name = self._template_name_for_path(path, template_dirs)
+        template_dependencies = getattr(cache, "template_dependencies", None)
+        if isinstance(template_dependencies, dict) and template_dependencies:
+            try:
+                return set(cache.get_pages_for_template(template_name)), True
+            except Exception as exc:
+                logger.debug(
+                    "template_dependency_lookup_failed",
+                    template=template_name,
+                    error=str(exc),
+                )
+
+        try:
+            affected = set(cache.get_affected_pages(path))
+        except Exception as exc:
+            logger.debug(
+                "template_reverse_dependency_lookup_failed",
+                template=str(path),
+                error=str(exc),
+            )
+            return set(), False
+
+        return affected, bool(affected)
 
     def _is_in_template_dir(self, path: Path, template_dirs: list[Path]) -> bool:
         """Check if path is within any template directory."""
@@ -1106,14 +1158,14 @@ class BuildTrigger:
             if not engine.has_capability(EngineCapability.BLOCK_LEVEL_DETECTION):
                 return False
 
-            # Check if we have block cache support
-            from bengal.orchestration.incremental.template_detector import (
-                TemplateChangeDetector,
+            template_dependencies = getattr(cache, "template_dependencies", None)
+            return isinstance(template_dependencies, dict) and bool(template_dependencies)
+        except Exception as exc:
+            logger.debug(
+                "template_incremental_check_failed",
+                template=str(template_path),
+                error=str(exc),
             )
-
-            detector = TemplateChangeDetector(self.site, cache, block_cache=None)
-            return detector._can_use_block_detection()
-        except Exception:
             return False
 
     def _should_regenerate_autodoc(self, changed_paths: set[Path]) -> bool:
