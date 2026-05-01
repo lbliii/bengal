@@ -49,8 +49,16 @@ def test_milo_cli_walk_commands_resolves_every_lazy_import():
         ["build", "--help"],
         ["cache", "hash", "--help"],
         ["check", "--help"],
+        ["plugin", "list", "--help"],
     ],
-    ids=["root-version", "root-help", "build-help", "cache-hash-help", "check-help"],
+    ids=[
+        "root-version",
+        "root-help",
+        "build-help",
+        "cache-hash-help",
+        "check-help",
+        "plugin-list-help",
+    ],
 )
 def test_milo_cli_parse_args_never_raises_argparse_error(argv):
     """Parsing canonical help/version invocations must not raise ArgumentError.

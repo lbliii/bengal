@@ -358,6 +358,25 @@ my-plugin = "my_package:MyPlugin"
 | `add_shortcode()` | Shortcode templates |
 | `on_phase()` | Build phase lifecycle hooks |
 
+**Lifecycle hook names currently wired into builds:**
+
+- `build_start`, `build_complete`
+- `pre_discovery`, `post_discovery`
+- `pre_content`, `post_content`
+- `pre_parsing`, `post_parsing`
+- `pre_snapshot`, `post_snapshot`
+- `pre_assets`, `post_assets`
+- `pre_render`, `post_render` (`pre_rendering` and `post_rendering` are also emitted)
+- `pre_finalization`, `post_finalization`
+- `pre_health`, `post_health`
+
+Use `bengal plugin list`, `bengal plugin info <name>`, and
+`bengal plugin validate` to inspect installed plugins. The CLI reports both
+registered capabilities and whether each capability is currently wired. For
+example, template filters and phase hooks are active; directive, role, content
+source, health validator, and shortcode injection are still reported as pending
+until those subsystem hooks are wired.
+
 ## Future: Custom CLI Commands
 
 **Purpose**: Add custom commands to Bengal CLI

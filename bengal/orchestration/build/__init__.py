@@ -410,9 +410,16 @@ class BuildOrchestrator:
 
         # Phase 0: Plugin Loading
         from bengal.plugins import load_plugins, set_active_registry
+        from bengal.plugins.integration import apply_plugin_phase_hooks
 
         plugin_registry = load_plugins()
         set_active_registry(plugin_registry)
+
+        def run_plugin_phase(phase_name: str) -> None:
+            """Run registered plugin callbacks for a build lifecycle phase."""
+            apply_plugin_phase_hooks(plugin_registry, phase_name, self.site, early_ctx)
+
+        run_plugin_phase("build_start")
 
         # Phase 1: Font Processing
         initialization.phase_fonts(self, cli, collector=output_collector)
@@ -421,6 +428,7 @@ class BuildOrchestrator:
         initialization.phase_template_validation(self, cli, strict=strict)
 
         # === DISCOVERY PHASE GROUP (dashboard-integrated) ===
+        run_plugin_phase("pre_discovery")
         notify_phase_start("discovery")
         discovery_start = time.time()
 
@@ -444,6 +452,7 @@ class BuildOrchestrator:
             discovery_duration_ms,
             f"{len(self.site.pages)} pages, {len(self.site.sections)} sections",
         )
+        run_plugin_phase("post_discovery")
 
         # Phase 4: Config Check and Cleanup
         config_result = initialization.phase_config_check(self, cli, cache, incremental)
@@ -469,6 +478,7 @@ class BuildOrchestrator:
 
         if filter_result is None:
             # No changes detected - early exit
+            run_plugin_phase("build_complete")
             return self.stats
         pages_to_build = filter_result.pages_to_build
         assets_to_process = filter_result.assets_to_process
@@ -482,6 +492,7 @@ class BuildOrchestrator:
         early_ctx.changed_page_paths = set(changed_page_paths)
 
         # === CONTENT PHASE GROUP (dashboard-integrated) ===
+        run_plugin_phase("pre_content")
         notify_phase_start("content")
         content_start = time.time()
 
@@ -544,10 +555,12 @@ class BuildOrchestrator:
             content_duration_ms,
             f"{taxonomy_count} taxonomies, {len(affected_tags)} affected tags",
         )
+        run_plugin_phase("post_content")
 
         # === PARSING PHASE (after all pages known, before snapshot) ===
         # Parse markdown content for ALL pages (including generated taxonomy pages)
         # RFC: rfc-bengal-snapshot-engine - pre-parse to avoid redundant work during rendering
+        run_plugin_phase("pre_parsing")
         parsing_start = time.time()
         with self.logger.phase("parsing"):
             parsing.phase_parse_content(
@@ -563,10 +576,12 @@ class BuildOrchestrator:
         cli.phase(
             "Parsing", duration_ms=parsing_duration_ms, details=f"{len(pages_to_build)} pages"
         )
+        run_plugin_phase("post_parsing")
 
         # === SNAPSHOT CREATION (after parsing, before rendering) ===
         # Create immutable snapshot for lock-free parallel rendering
         # Snapshot now contains pre-parsed HTML content from all pages
+        run_plugin_phase("pre_snapshot")
         from bengal.snapshots import create_site_snapshot
         from bengal.snapshots.persistence import SnapshotCache
 
@@ -618,6 +633,7 @@ class BuildOrchestrator:
                 early_ctx.data_service = DataService.from_root(self.site.root_path)
             except Exception:  # noqa: S110
                 pass  # data/ dir may not exist; service remains None
+        run_plugin_phase("post_snapshot")
 
         # === DRY-RUN MODE: Skip output-producing phases ===
         # RFC: rfc-incremental-build-observability Phase 2
@@ -631,9 +647,11 @@ class BuildOrchestrator:
             # Clear build state (build complete)
             self.site.set_build_state(None)
 
+            run_plugin_phase("build_complete")
             return self.stats
 
         # === ASSETS PHASE GROUP (dashboard-integrated) ===
+        run_plugin_phase("pre_assets")
         notify_phase_start("assets")
         assets_start = time.time()
 
@@ -655,8 +673,11 @@ class BuildOrchestrator:
             assets_duration_ms,
             f"{len(assets_to_process) if assets_to_process else 0} assets processed",
         )
+        run_plugin_phase("post_assets")
 
         # === RENDERING PHASE GROUP (dashboard-integrated) ===
+        run_plugin_phase("pre_render")
+        run_plugin_phase("pre_rendering")
         notify_phase_start("rendering")
         rendering_start = time.time()
 
@@ -715,8 +736,11 @@ class BuildOrchestrator:
             rendering_duration_ms,
             f"{len(pages_to_build) if pages_to_build else 0} pages rendered",
         )
+        run_plugin_phase("post_render")
+        run_plugin_phase("post_rendering")
 
         # === FINALIZATION PHASE GROUP (dashboard-integrated) ===
+        run_plugin_phase("pre_finalization")
         notify_phase_start("finalization")
         finalization_start = time.time()
 
@@ -846,8 +870,10 @@ class BuildOrchestrator:
             finalization_duration_ms,
             "post-processing complete",
         )
+        run_plugin_phase("post_finalization")
 
         # === HEALTH PHASE GROUP (dashboard-integrated) ===
+        run_plugin_phase("pre_health")
         notify_phase_start("health")
         health_start = time.time()
 
@@ -863,6 +889,7 @@ class BuildOrchestrator:
             total = health_report.total_checks
             health_summary = f"{passed}/{total} checks passed"
         notify_phase_complete("health", health_duration_ms, health_summary)
+        run_plugin_phase("post_health")
 
         # Phase 21: Finalize Build
         finalization.phase_finalize(self, verbose, collector)
@@ -883,6 +910,8 @@ class BuildOrchestrator:
 
         # Clear build state (build complete)
         self.site.set_build_state(None)
+
+        run_plugin_phase("build_complete")
 
         return self.stats
 

@@ -7,11 +7,11 @@ Bengal subsystem (directive builder, template environment, etc.).
 Currently wired:
 - Template extensions (functions, filters, tests) — via register_all() in
   bengal.rendering.template_functions
+- Phase hooks — via BuildOrchestrator lifecycle phase groups
 
 Scaffolding for future subsystem integration:
 - Directives and roles — pending directive/role builder plugin hooks
 - Content sources — pending content source registry plugin hooks
-- Phase hooks — pending build orchestrator phase hook wiring
 
 """
 

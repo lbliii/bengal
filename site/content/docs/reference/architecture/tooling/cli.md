@@ -197,6 +197,23 @@ bengal --version
 bengal --help
 ```
 
+**Plugin Commands**:
+```bash
+# List installed plugins and readiness
+bengal plugin list
+
+# Show capability details for one plugin
+bengal plugin info my-plugin
+
+# Validate plugins against capabilities Bengal currently wires
+bengal plugin validate
+```
+
+Plugin introspection is intentionally conservative: it loads the same
+`bengal.plugins` entry points as a build, runs each plugin's `register()` method
+against a temporary registry, and reports capability counts plus whether each
+capability is actually integrated today.
+
 **Upgrade Commands**:
 ```bash
 # Check for updates and upgrade interactively

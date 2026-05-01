@@ -207,6 +207,26 @@ notify_phase_complete("discovery", duration_ms, "150 pages, 12 sections")
 
 Groups: `discovery`, `content`, `assets`, `rendering`, `finalization`, `health`
 
+## Plugin Lifecycle Hooks
+
+Builds load the frozen plugin registry during setup, then execute registered
+`PluginRegistry.on_phase()` callbacks around the existing phase groups. Hooks
+receive `(site, build_context)` and run through the same build context object
+that later phases enrich.
+
+Emitted lifecycle hooks:
+
+- `build_start`, `build_complete`
+- `pre_discovery`, `post_discovery`
+- `pre_content`, `post_content`
+- `pre_parsing`, `post_parsing`
+- `pre_snapshot`, `post_snapshot`
+- `pre_assets`, `post_assets`
+- `pre_render`, `post_render`
+- `pre_rendering`, `post_rendering`
+- `pre_finalization`, `post_finalization`
+- `pre_health`, `post_health`
+
 :::{seealso}
 - [Pipeline](pipeline.md) — Streaming and memory optimization
 - [Cache](cache.md) — Build caching
