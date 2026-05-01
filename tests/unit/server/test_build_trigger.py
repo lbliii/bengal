@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from bengal.cache import BuildCache
 from bengal.orchestration.stats import ReloadHint
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.reload_types import BuildReloadInfo, SerializedOutputRecord
@@ -237,6 +238,67 @@ class TestBuildTrigger:
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
         assert trigger._is_template_change({template_file}) is True
+
+    @patch("bengal.rendering.engines.create_engine")
+    def test_template_change_uses_incremental_when_dependents_are_known(
+        self,
+        mock_create_engine: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Known template dependents can be handled by an incremental rebuild."""
+        mock_site.root_path = tmp_path
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir()
+        template_file = templates_dir / "base.html"
+        template_file.write_text("<html></html>")
+
+        page_path = tmp_path / "content" / "page.md"
+        cache = BuildCache(site_root=tmp_path)
+        cache.record_page_templates(str(page_path), frozenset({"base.html"}))
+        mock_site._cache = cache
+        mock_create_engine.return_value.has_capability.return_value = True
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._is_template_change({template_file}) is False
+
+    def test_template_change_without_dependency_data_stays_conservative(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Template changes fall back to full rebuild when dependency data is missing."""
+        mock_site.root_path = tmp_path
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir()
+        template_file = templates_dir / "base.html"
+        template_file.write_text("<html></html>")
+        mock_site._cache = BuildCache(site_root=tmp_path)
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._is_template_change({template_file}) is True
+
+    def test_template_change_with_known_orphan_template_is_ignored(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """A changed template with known empty dependents does not force a rebuild."""
+        mock_site.root_path = tmp_path
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir()
+        template_file = templates_dir / "orphan.html"
+        template_file.write_text("<html></html>")
+
+        cache = BuildCache(site_root=tmp_path)
+        cache.record_page_templates(
+            str(tmp_path / "content" / "page.md"),
+            frozenset({"base.html"}),
+        )
+        mock_site._cache = cache
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._is_template_change({template_file}) is False
 
     def test_detect_nav_changes_finds_nav_frontmatter(
         self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path

@@ -80,6 +80,28 @@ class TestIncrementalOrchestrator:
         assert orchestrator.cache is None
         assert orchestrator.effect_tracer is None
 
+    def test_detect_template_changes_uses_template_dependency_index(
+        self, orchestrator, mock_site, tmp_path
+    ):
+        """Template changes map to affected pages through cached template dependencies."""
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir()
+        template_file = templates_dir / "base.html"
+        template_file.write_text("<html></html>")
+
+        cache = BuildCache(site_root=tmp_path)
+        cache.record_page_templates(
+            str(mock_site.pages[0].source_path),
+            frozenset({"base.html"}),
+        )
+        cache.is_changed = Mock(return_value=True)
+        orchestrator.cache = cache
+
+        changed_templates, affected_pages = orchestrator._detect_template_changes()
+
+        assert changed_templates == [template_file]
+        assert affected_pages == {mock_site.pages[0].source_path}
+
     def test_initialize_with_cache_disabled(self, orchestrator):
         """Test initialization with caching disabled."""
         cache = orchestrator.initialize(enabled=False)

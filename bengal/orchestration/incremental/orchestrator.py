@@ -251,23 +251,66 @@ class IncrementalOrchestrator:
         template_changes: list[Path] = []
         affected_pages: set[Path] = set()
 
-        templates_dir = self._cache_manager._get_theme_templates_dir()
-        if not templates_dir or not templates_dir.exists():
+        template_dirs = self._get_template_dirs()
+        if not template_dirs:
             return template_changes, affected_pages
 
-        can_get_affected = self.cache and hasattr(self.cache, "get_affected_pages")
+        seen_template_files: set[Path] = set()
+        for templates_dir in template_dirs:
+            for template_file in templates_dir.rglob("*.html"):
+                if template_file in seen_template_files:
+                    continue
+                seen_template_files.add(template_file)
+                if not self.cache or not self.cache.is_changed(template_file):
+                    continue
 
-        for template_file in templates_dir.rglob("*.html"):
-            if not self.cache or not self.cache.is_changed(template_file):
-                continue
-
-            template_changes.append(template_file)
-
-            if can_get_affected:
-                for path_str in self.cache.get_affected_pages(str(template_file)):
-                    affected_pages.add(Path(path_str))
+                template_changes.append(template_file)
+                affected_pages.update(self._pages_for_template(template_file, template_dirs))
 
         return template_changes, affected_pages
+
+    def _get_template_dirs(self) -> list[Path]:
+        """Return site and theme template directories that exist."""
+        template_dirs = [self.site.root_path / "templates"]
+        theme_templates_dir = self._cache_manager._get_theme_templates_dir()
+        if theme_templates_dir is not None:
+            template_dirs.append(theme_templates_dir)
+
+        existing_dirs: list[Path] = []
+        seen: set[Path] = set()
+        for path in template_dirs:
+            if not path.exists():
+                continue
+            try:
+                key = path.resolve()
+            except OSError, ValueError:
+                key = path
+            if key in seen:
+                continue
+            seen.add(key)
+            existing_dirs.append(path)
+        return existing_dirs
+
+    def _template_name_for_path(self, path: Path, template_dirs: list[Path]) -> str:
+        """Return the template dependency key for a template path."""
+        for template_dir in template_dirs:
+            try:
+                return to_posix(path.resolve().relative_to(template_dir.resolve()))
+            except OSError, ValueError:
+                continue
+        return path.name
+
+    def _pages_for_template(self, template_file: Path, template_dirs: list[Path]) -> set[Path]:
+        """Return cached page source paths affected by a template file."""
+        if not self.cache:
+            return set()
+
+        template_name = self._template_name_for_path(template_file, template_dirs)
+        template_dependencies = getattr(self.cache, "template_dependencies", None)
+        if isinstance(template_dependencies, dict) and template_dependencies:
+            return {Path(path_str) for path_str in self.cache.get_pages_for_template(template_name)}
+
+        return {Path(path_str) for path_str in self.cache.get_affected_pages(template_file)}
 
     def find_work(self, verbose: bool = False) -> tuple[list[PageLike], list[Asset], ChangeSummary]:
         """
