@@ -726,7 +726,8 @@ class ContentDiscovery:
             content, metadata = self._parser.parse_file(file_path)
             metadata = self._parser.validate_against_collection(file_path, metadata)
 
-            # Sprint 4: build immutable SourcePage first, then mutable Page
+            # Build the immutable discovery record first, then adapt it into
+            # the remaining Page compatibility object for downstream callers.
             source_page = self._build_source_page(
                 file_path, content, metadata, current_lang, section
             )
@@ -736,7 +737,6 @@ class ContentDiscovery:
                 _raw_content=source_page.raw_content,
                 _raw_metadata=source_page.raw_metadata_dict(),
             )
-            page._source_page = source_page
 
             if self.site is not None:
                 page._site = self.site
@@ -788,67 +788,29 @@ class ContentDiscovery:
     ) -> SourcePage:
         """Build an immutable SourcePage record from parsed file data.
 
-        Constructs PageCore (replicating Page._init_core_from_fields logic)
-        and wraps metadata in a read-only MappingProxyType.
+        Uses the canonical record adapter so discovery and Page compatibility
+        construction share the same field migration rules.
         """
-        from types import MappingProxyType
-
-        from bengal.core.page.page_core import PageCore
-        from bengal.core.page.utils import normalize_tags, separate_standard_and_custom_fields
-        from bengal.core.records import SourcePage
-        from bengal.utils.primitives.dates import parse_date
+        from bengal.core.records import build_source_page
         from bengal.utils.primitives.hashing import hash_file, hash_str
 
-        standard_fields, custom_props = separate_standard_and_custom_fields(metadata)
-
-        # Replicate slug computation from Page.slug
-        slug = metadata.get("slug")
-        if slug is None:
-            slug = file_path.parent.name if file_path.stem == "_index" else file_path.stem
-
-        # Replicate variant normalization from Page._init_core_from_fields
-        variant = standard_fields.get("variant")
-        if not variant:
-            variant = standard_fields.get("layout") or custom_props.get("hero_style")
-
-        # content_hash: hash of the markdown body (frontmatter stripped)
-        content_hash = hash_str(content) if content else hash_str("")
-
-        # file_hash: hash of the full source file (frontmatter + body) for cache validation.
-        # Frontmatter-only edits must invalidate the cache, so we hash the whole file.
+        # content_hash covers the frontmatter-stripped body. file_hash covers
+        # the full source file so frontmatter-only edits still invalidate cache.
+        content_hash = hash_str(content)
         try:
             file_hash = hash_file(file_path) if file_path.exists() else content_hash
         except OSError:
             file_hash = content_hash
 
-        core = PageCore(
-            source_path=str(file_path),
-            title=standard_fields.get("title", ""),
-            date=parse_date(standard_fields.get("date")),
-            tags=normalize_tags(metadata.get("tags")),
-            slug=slug,
-            weight=standard_fields.get("weight"),
-            lang=current_lang or metadata.get("lang"),
-            nav_title=standard_fields.get("nav_title"),
-            type=standard_fields.get("type"),
-            variant=variant,
-            description=standard_fields.get("description"),
-            props=custom_props,
-            section=str(section.path) if section and getattr(section, "path", None) else None,
-            file_hash=file_hash,
-            aliases=metadata.get("aliases", []),
-            version=metadata.get("version") or metadata.get("_version"),
-            cascade=metadata.get("cascade", {}),
-        )
-
-        return SourcePage(
-            core=core,
+        return build_source_page(
+            source_path=file_path,
             raw_content=content,
-            raw_metadata=MappingProxyType(metadata),
+            metadata=metadata,
+            lang=current_lang,
+            section_path=str(section.path) if section and getattr(section, "path", None) else None,
             content_hash=content_hash,
+            file_hash=file_hash,
             is_virtual=False,
-            lang=current_lang or metadata.get("lang"),
-            translation_key=metadata.get("translation_key"),
         )
 
     def _enrich_page_i18n(
