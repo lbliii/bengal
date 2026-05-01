@@ -13,39 +13,14 @@ import pytest
 
 from bengal.core.page.page_core import PageCore
 from bengal.core.records import SourcePage, create_virtual_source_page
-
-
-def _make_core(**overrides) -> PageCore:
-    """Create a minimal PageCore for testing."""
-    defaults = {
-        "source_path": "content/posts/hello.md",
-        "title": "Hello World",
-        "tags": ["python", "web"],
-        "slug": "hello",
-        "type": "post",
-    }
-    defaults.update(overrides)
-    return PageCore(**defaults)
-
-
-def _make_source_page(**overrides) -> SourcePage:
-    """Create a minimal SourcePage for testing."""
-    core = overrides.pop("core", _make_core())
-    defaults = {
-        "core": core,
-        "raw_content": "# Hello\n\nWorld",
-        "raw_metadata": MappingProxyType({"title": "Hello World", "tags": ["python", "web"]}),
-        "content_hash": "abc123",
-    }
-    defaults.update(overrides)
-    return SourcePage(**defaults)
+from tests._testing.page_records import make_page_core, make_source_page
 
 
 class TestSourcePageConstruction:
     """SourcePage can be constructed with all required fields."""
 
     def test_basic_construction(self):
-        sp = _make_source_page()
+        sp = make_source_page(content_hash="abc123")
         assert sp.core.title == "Hello World"
         assert sp.raw_content == "# Hello\n\nWorld"
         assert sp.content_hash == "abc123"
@@ -54,7 +29,7 @@ class TestSourcePageConstruction:
         assert sp.translation_key is None
 
     def test_all_fields(self):
-        sp = _make_source_page(
+        sp = make_source_page(
             content_hash="def456",
             is_virtual=True,
             lang="fr",
@@ -70,22 +45,22 @@ class TestSourcePageImmutability:
     """SourcePage is frozen and cannot be mutated."""
 
     def test_cannot_set_raw_content(self):
-        sp = _make_source_page()
+        sp = make_source_page()
         with pytest.raises(FrozenInstanceError):
             sp.raw_content = "new content"
 
     def test_cannot_set_content_hash(self):
-        sp = _make_source_page()
+        sp = make_source_page()
         with pytest.raises(FrozenInstanceError):
             sp.content_hash = "new_hash"
 
     def test_cannot_set_core(self):
-        sp = _make_source_page()
+        sp = make_source_page()
         with pytest.raises(FrozenInstanceError):
-            sp.core = _make_core(title="Different")
+            sp.core = make_page_core(metadata={"title": "Different"})
 
     def test_raw_metadata_is_readonly(self):
-        sp = _make_source_page()
+        sp = make_source_page()
         assert isinstance(sp.raw_metadata, MappingProxyType)
         with pytest.raises(TypeError):
             sp.raw_metadata["new_key"] = "value"
@@ -95,11 +70,16 @@ class TestSourcePageDelegates:
     """Property delegates forward to core."""
 
     def test_source_path_delegate(self):
-        sp = _make_source_page(core=_make_core(source_path="content/docs/guide.md"))
+        sp = SourcePage(
+            core=make_page_core(source_path="content/docs/guide.md"),
+            raw_content="# Guide",
+            raw_metadata=MappingProxyType({"title": "Hello World"}),
+            content_hash="abc123",
+        )
         assert sp.source_path == "content/docs/guide.md"
 
     def test_title_delegate(self):
-        sp = _make_source_page(core=_make_core(title="My Guide"))
+        sp = make_source_page(metadata={"title": "My Guide"})
         assert sp.title == "My Guide"
 
 
@@ -108,7 +88,12 @@ class TestSourcePageMetadataRoundTrip:
 
     def test_round_trip(self):
         original = {"title": "Hello", "tags": ["a", "b"], "custom": 42}
-        sp = _make_source_page(raw_metadata=MappingProxyType(original))
+        sp = SourcePage(
+            core=make_page_core(metadata=original),
+            raw_content="# Hello",
+            raw_metadata=MappingProxyType(original),
+            content_hash="abc123",
+        )
         result = sp.raw_metadata_dict()
         assert result == original
         assert isinstance(result, dict)
@@ -121,7 +106,7 @@ class TestSourcePageCoreCache:
     """SourcePage.core round-trips through PageCore cache serialization."""
 
     def test_core_cache_round_trip(self):
-        sp = _make_source_page(content_hash="hash123")
+        sp = make_source_page(content_hash="hash123")
         cache_dict = sp.core.to_cache_dict()
         restored = PageCore.from_cache_dict(cache_dict)
         assert restored.source_path == sp.core.source_path

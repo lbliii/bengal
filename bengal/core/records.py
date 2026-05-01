@@ -15,13 +15,78 @@ See Also:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from collections.abc import Mapping, Sequence
 
     from bengal.core.page.page_core import PageCore
+
+
+PAGE_CORE_MIGRATION_MAP = MappingProxyType(
+    {
+        "source_path": "source_path",
+        "title": "metadata.title",
+        "date": "metadata.date",
+        "tags": "metadata.tags",
+        "slug": "metadata.slug or source_path.stem",
+        "weight": "metadata.weight",
+        "lang": "lang override or metadata.lang",
+        "nav_title": "metadata.nav_title",
+        "type": "metadata.type",
+        "variant": "metadata.variant or metadata.layout or props.hero_style",
+        "description": "metadata.description",
+        "props": "metadata minus standard/internal fields",
+        "section": "section path string",
+        "file_hash": "full source hash when available",
+        "aliases": "metadata.aliases",
+        "version": "metadata.version or metadata._version",
+        "cascade": "metadata.cascade",
+    }
+)
+"""Canonical PageCore field migration map from mutable Page/frontmatter state."""
+
+SOURCE_PAGE_MIGRATION_MAP = MappingProxyType(
+    {
+        "core": "PageCore built by build_page_core()",
+        "raw_content": "frontmatter-stripped source body",
+        "raw_metadata": "read-only parsed frontmatter mapping",
+        "content_hash": "hash of raw_content",
+        "is_virtual": "generated/non-file-backed source marker",
+        "lang": "lang override or PageCore.lang",
+        "translation_key": "metadata.translation_key",
+    }
+)
+"""Canonical SourcePage migration map from discovery-time mutable inputs."""
+
+PARSED_PAGE_MIGRATION_MAP = MappingProxyType(
+    {
+        "html_content": "page.html_content",
+        "toc": "page.toc",
+        "toc_items": "rendering-supplied TOC structure or page.toc_items",
+        "excerpt": "page.excerpt",
+        "meta_description": "page.meta_description or page.description",
+        "plain_text": "page.plain_text",
+        "word_count": "page.word_count",
+        "reading_time": "page.reading_time",
+        "links": "page.links",
+        "ast_cache": "page._ast_cache",
+    }
+)
+"""Canonical ParsedPage migration map from parse-phase PageLike state."""
+
+RENDERED_PAGE_MIGRATION_MAP = MappingProxyType(
+    {
+        "source_path": "page.source_path",
+        "output_path": "page.output_path",
+        "rendered_html": "rendered HTML argument or page.rendered_html",
+        "render_time_ms": "measured render time",
+        "dependencies": "render-time tracked asset/template dependencies",
+    }
+)
+"""Canonical RenderedPage migration map from render-phase PageLike state."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -189,40 +254,185 @@ def create_virtual_source_page(
     Virtual pages have no disk file, no content_hash, and
     ``is_virtual=True``.
     """
+    meta = dict(metadata) if metadata else {}
+    meta.setdefault("title", title)
+
+    return build_source_page(
+        source_path=source_id,
+        raw_content=content,
+        metadata=meta,
+        lang=lang,
+        section_path=section_path,
+        content_hash=None,
+        file_hash=None,
+        is_virtual=True,
+    )
+
+
+def build_page_core(
+    source_path: str | Path,
+    metadata: Mapping[str, Any] | None = None,
+    *,
+    tags: Sequence[Any] | None = None,
+    slug: str | None = None,
+    lang: str | None = None,
+    section_path: str | Path | None = None,
+    file_hash: str | None = None,
+    aliases: Sequence[Any] | None = None,
+) -> PageCore:
+    """Build a ``PageCore`` from canonical discovery/frontmatter inputs.
+
+    This is the migration substrate shared by mutable ``Page`` construction,
+    immutable ``SourcePage`` construction, and tests.  It intentionally accepts
+    plain mappings and path strings so callers do not need the concrete
+    mutable ``Page`` class.
+    """
     from bengal.core.page.page_core import PageCore
     from bengal.core.page.utils import normalize_tags, separate_standard_and_custom_fields
     from bengal.utils.primitives.dates import parse_date
 
-    meta = dict(metadata) if metadata else {}
-    meta.setdefault("title", title)
-
+    meta = dict(metadata or {})
     standard_fields, custom_props = separate_standard_and_custom_fields(meta)
+    source = Path(source_path)
 
-    core = PageCore(
-        source_path=source_id,
-        title=title,
+    resolved_slug = slug if slug is not None else standard_fields.get("slug")
+    if resolved_slug is None:
+        resolved_slug = source.parent.name if source.stem == "_index" else source.stem
+
+    variant = standard_fields.get("variant")
+    if not variant:
+        variant = standard_fields.get("layout") or custom_props.get("hero_style")
+
+    resolved_tags = normalize_tags(tags if tags is not None else meta.get("tags"))
+    resolved_aliases = list(aliases if aliases is not None else standard_fields.get("aliases", []))
+    resolved_lang = lang or standard_fields.get("lang")
+    resolved_section = str(section_path) if section_path is not None else None
+
+    return PageCore(
+        source_path=str(source_path),
+        title=standard_fields.get("title", ""),
         date=parse_date(standard_fields.get("date")),
-        tags=normalize_tags(meta.get("tags")),
-        slug=standard_fields.get("slug"),
+        tags=resolved_tags,
+        slug=resolved_slug,
         weight=standard_fields.get("weight"),
-        lang=lang or standard_fields.get("lang"),
+        lang=resolved_lang,
         nav_title=standard_fields.get("nav_title"),
         type=standard_fields.get("type"),
-        variant=standard_fields.get("variant"),
+        variant=variant,
         description=standard_fields.get("description"),
         props=custom_props,
-        section=section_path,
-        aliases=meta.get("aliases", []),
-        version=meta.get("version"),
+        section=resolved_section,
+        file_hash=file_hash,
+        aliases=resolved_aliases,
+        version=meta.get("version") or meta.get("_version"),
         cascade=meta.get("cascade", {}),
+    )
+
+
+def build_source_page(
+    source_path: str | Path,
+    raw_content: str,
+    metadata: Mapping[str, Any] | None = None,
+    *,
+    lang: str | None = None,
+    section_path: str | Path | None = None,
+    content_hash: str | None = None,
+    file_hash: str | None = None,
+    is_virtual: bool = False,
+) -> SourcePage:
+    """Build an immutable ``SourcePage`` without requiring a mutable ``Page``.
+
+    ``content_hash`` is the hash of the frontmatter-stripped body. ``file_hash``
+    is the full source file hash for real files. Both values are computed by
+    discovery/orchestration boundaries and passed in so core remains passive.
+    """
+    meta = dict(metadata or {})
+
+    core = build_page_core(
+        source_path,
+        meta,
+        lang=lang,
+        section_path=section_path,
+        file_hash=file_hash,
     )
 
     return SourcePage(
         core=core,
-        raw_content=content,
+        raw_content=raw_content,
         raw_metadata=MappingProxyType(meta),
-        content_hash=None,
-        is_virtual=True,
-        lang=core.lang,
+        content_hash=content_hash,
+        is_virtual=is_virtual,
+        lang=lang or core.lang,
         translation_key=meta.get("translation_key"),
+    )
+
+
+def parsed_page_from_page_state(
+    page: Any,
+    *,
+    toc_items: Sequence[Mapping[str, Any]] | None = None,
+    links: Sequence[Any] | None = None,
+    ast_cache: Any = None,
+) -> ParsedPage:
+    """Build ``ParsedPage`` from parse-phase state on a Page-like object.
+
+    Rendering owns deriving TOC structures; pass ``toc_items`` when available
+    so this adapter does not import rendering helpers from core.
+    """
+    raw_toc_items = toc_items
+    if raw_toc_items is None:
+        raw_toc_items = getattr(page, "toc_items", ()) or ()
+
+    raw_links = links
+    if raw_links is None:
+        raw_links = getattr(page, "links", None) or ()
+
+    resolved_ast_cache = ast_cache if ast_cache is not None else getattr(page, "_ast_cache", None)
+
+    return ParsedPage(
+        html_content=getattr(page, "html_content", None) or "",
+        toc=getattr(page, "toc", None) or "",
+        toc_items=tuple(dict(item) for item in raw_toc_items),
+        excerpt=getattr(page, "excerpt", "") or "",
+        meta_description=getattr(page, "meta_description", "")
+        or getattr(page, "description", "")
+        or "",
+        plain_text=getattr(page, "plain_text", "") or "",
+        word_count=getattr(page, "word_count", 0) or 0,
+        reading_time=getattr(page, "reading_time", 0) or 0,
+        links=tuple(str(link) for link in raw_links),
+        ast_cache=resolved_ast_cache,
+    )
+
+
+def rendered_page_from_page_state(
+    page: Any,
+    *,
+    rendered_html: str | None = None,
+    render_time_ms: float | None = None,
+    dependencies: Sequence[str] | frozenset[str] | None = None,
+) -> RenderedPage:
+    """Build ``RenderedPage`` from render-phase state on a Page-like object."""
+    output_path = getattr(page, "output_path", None)
+    if output_path is None:
+        raise ValueError(
+            "RenderedPage requires page.output_path; call determine_output_path() before rendering."
+        )
+
+    resolved_html = (
+        rendered_html if rendered_html is not None else getattr(page, "rendered_html", "")
+    )
+    resolved_time = (
+        render_time_ms if render_time_ms is not None else getattr(page, "render_time_ms", 0.0)
+    )
+    resolved_dependencies = (
+        dependencies if isinstance(dependencies, frozenset) else frozenset(dependencies or ())
+    )
+
+    return RenderedPage(
+        source_path=page.source_path,
+        output_path=output_path,
+        rendered_html=resolved_html,
+        render_time_ms=resolved_time,
+        dependencies=resolved_dependencies,
     )

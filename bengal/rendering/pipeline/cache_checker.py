@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-from bengal.core.records import ParsedPage, RenderedPage
+from bengal.core.records import ParsedPage, rendered_page_from_page_state
 from bengal.rendering.page_operations import extract_links
 from bengal.rendering.pipeline.output import format_html, write_output
 from bengal.rendering.pipeline.toc import extract_toc_structure
@@ -124,9 +124,8 @@ class CacheChecker:
             page.output_path = determine_output_path(page, self.site)
 
         # Sprint 2: Build RenderedPage from cached data
-        rendered_page = RenderedPage(
-            source_path=page.source_path,
-            output_path=page.output_path,  # set by determine_output_path above
+        rendered_page = rendered_page_from_page_state(
+            page,
             rendered_html=cached_html,
             render_time_ms=0.0,
         )
@@ -271,9 +270,8 @@ class CacheChecker:
             page.output_path = determine_output_path(page, self.site)
 
         # Sprint 2: Build RenderedPage from cache-rendered data
-        rendered_page = RenderedPage(
-            source_path=page.source_path,
-            output_path=page.output_path,  # set by determine_output_path above
+        rendered_page = rendered_page_from_page_state(
+            page,
             rendered_html=final_html,
             render_time_ms=0.0,
         )

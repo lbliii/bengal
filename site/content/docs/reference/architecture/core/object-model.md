@@ -120,11 +120,30 @@ Refer to:
 - `bengal/cache/page_discovery_cache.py`
 - `bengal/core/records.py`
 
+## Page Record Migration Adapters
+
+The immutable pipeline migration uses adapter helpers in `bengal/core/records.py`
+as the canonical handoff from mutable `Page` compatibility state into record
+state:
+
+- `build_page_core()` maps frontmatter and path inputs into `PageCore`.
+- `build_source_page()` maps discovery inputs into `SourcePage`.
+- `parsed_page_from_page_state()` maps parse-phase `PageLike` state into
+  `ParsedPage` while accepting rendering-supplied TOC structures.
+- `rendered_page_from_page_state()` maps render-phase state into `RenderedPage`.
+
+The module also exposes `*_MIGRATION_MAP` constants for tests and migration
+notes. These maps are documentation, not a new public protocol: callers should
+prefer the adapters over adding attributes to `PageLike` or depending on the
+concrete mutable `Page` class.
+
 ::::{dropdown} Contributor notes: adding fields and deciding what belongs in PageCore
 When you add a cacheable field:
 
 1. Add it to `PageCore` (`bengal/core/page/page_core.py`)
-2. Add a property delegate to `Page` (`bengal/core/page/__init__.py`)
+2. Update the migration adapter/map in `bengal/core/records.py`
+3. Add a property delegate to `Page` (`bengal/core/page/__init__.py`) when
+   templates or compatibility callers need it
 
 Include fields that are stable, JSON-serializable, and useful without full content parsing. Keep build artifacts and parsed-content-derived fields out of `PageCore`.
 ::::
