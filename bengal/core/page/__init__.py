@@ -74,7 +74,6 @@ if TYPE_CHECKING:
     from datetime import datetime
 
     from bengal.core.author import Author
-    from bengal.core.records import SourcePage
     from bengal.core.series import Series
     from bengal.core.site.context import SiteContext
     from bengal.parsing.ast.types import ASTNode
@@ -264,11 +263,6 @@ class Page:
     # Sprint 5: True when page was reconstructed from cache without disk I/O.
     # Used for metrics/logging and to skip wasteful re-initialization in __post_init__.
     _from_cache: bool = field(default=False, repr=False)
-
-    # Sprint 4 dual-write bridge: immutable SourcePage record from discovery.
-    # Set by ContentDiscovery._create_page(); None for cached/proxy pages.
-    # Removed in Sprint 6 when Page is deleted.
-    _source_page: SourcePage | None = field(default=None, repr=False, init=False)
 
     def __post_init__(self) -> None:
         """Initialize computed fields and PageCore."""
@@ -609,40 +603,17 @@ class Page:
         Note: Initially creates PageCore with absolute paths, but normalize_core_paths()
         should be called before caching to convert to relative paths.
         """
-        # Separate standard fields from custom props (Component Model)
-        from bengal.core.page.utils import separate_standard_and_custom_fields
-        from bengal.utils.primitives.dates import parse_date
+        from bengal.core.records import build_page_core
 
-        standard_fields, custom_props = separate_standard_and_custom_fields(self._raw_metadata)
-
-        # Component Model: variant (normalized from layout/hero_style)
-        variant = standard_fields.get("variant")
-        # Normalize legacy fields to variant
-        if not variant:
-            variant = standard_fields.get("layout") or custom_props.get("hero_style")
-
-        self.core = PageCore(
-            source_path=str(self.source_path),  # May be absolute initially
-            title=standard_fields.get("title", ""),
-            date=parse_date(standard_fields.get("date")),
+        self.core = build_page_core(
+            self.source_path,
+            self._raw_metadata,
             tags=self.tags or [],
             slug=self.slug,  # Use computed slug (includes filename fallback)
-            weight=standard_fields.get("weight"),
             lang=self.lang,
-            nav_title=standard_fields.get("nav_title"),  # Short title for navigation
-            # Component Model Fields
-            type=standard_fields.get("type"),
-            variant=variant,
-            description=standard_fields.get("description"),
-            props=custom_props,  # Only custom fields go into props
-            # Links
-            section=str(self._section_path) if self._section_path else None,
+            section_path=self._section_path,
             file_hash=None,  # Will be populated during caching
-            aliases=standard_fields.get("aliases") or self.aliases or [],
-            # Cascade data (from _index.md frontmatter)
-            # Critical for incremental builds: without this, cascade data is lost
-            # when _index.md files are loaded from cache
-            cascade=self._raw_metadata.get("cascade", {}),
+            aliases=self.aliases,
         )
 
     def normalize_core_paths(self) -> None:
@@ -1404,6 +1375,7 @@ __all__ = [
     "BundleType",
     "Frontmatter",
     "Page",
+    "PageCore",
     "PageResource",
     "PageResources",
 ]

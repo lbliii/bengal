@@ -108,6 +108,19 @@ page = MockAnalysisPage(
 # to match the Page interface used by LinkSuggestionEngine
 ```
 
+### `page_records.py`
+
+Canonical immutable page-record factories for migration tests. Use these when a
+test needs `PageCore`, `SourcePage`, `ParsedPage`, or `RenderedPage` without
+depending on concrete mutable `Page` construction.
+
+```python
+from tests._testing.page_records import make_source_page, make_parsed_page
+
+source = make_source_page(metadata={"title": "Guide"})
+parsed = make_parsed_page(html_content="<h1>Guide</h1>")
+```
+
 ### `fixtures.py`
 
 Provides core fixtures:

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-from bengal.core.records import ParsedPage, RenderedPage
+from bengal.core.records import ParsedPage, RenderedPage, rendered_page_from_page_state
 from bengal.rendering.page_operations import extract_links
 from bengal.rendering.pipeline.output import format_html, write_output
 from bengal.rendering.pipeline.toc import extract_toc_structure
@@ -124,9 +124,8 @@ class CacheChecker:
             page.output_path = determine_output_path(page, self.site)
 
         # Sprint 2: Build RenderedPage from cached data
-        rendered_page = RenderedPage(
-            source_path=page.source_path,
-            output_path=page.output_path,  # set by determine_output_path above
+        rendered_page = rendered_page_from_page_state(
+            page,
             rendered_html=cached_html,
             render_time_ms=0.0,
         )
@@ -271,9 +270,8 @@ class CacheChecker:
             page.output_path = determine_output_path(page, self.site)
 
         # Sprint 2: Build RenderedPage from cache-rendered data
-        rendered_page = RenderedPage(
-            source_path=page.source_path,
-            output_path=page.output_path,  # set by determine_output_path above
+        rendered_page = rendered_page_from_page_state(
+            page,
             rendered_html=final_html,
             render_time_ms=0.0,
         )
@@ -347,13 +345,17 @@ class CacheChecker:
             meta_description=meta_description,
         )
 
-    def cache_rendered_output(self, page: PageLike, template: str) -> None:
+    def cache_rendered_output(
+        self, page: PageLike, template: str, rendered_page: RenderedPage | None = None
+    ) -> None:
         """
         Store rendered output in cache for next build.
 
         Args:
             page: Page with rendered HTML
             template: Template name used
+            rendered_page: Optional immutable render record to read HTML from
+                instead of the mutable Page compatibility field.
         """
         if not self.build_cache or page.metadata.get("_generated"):
             return
@@ -367,7 +369,7 @@ class CacheChecker:
         output_dir = getattr(self.site, "output_dir", None)
         cache.store_rendered_output(
             page.source_path,
-            page.rendered_html,
+            rendered_page.rendered_html if rendered_page is not None else page.rendered_html,
             template,
             page.metadata,
             dependencies=deps,
