@@ -80,6 +80,13 @@ def test_load_error_is_reported_without_raising() -> None:
     assert report.errors == ("RuntimeError: nope",)
 
 
+def test_invalid_plugin_is_not_reported_as_load_error() -> None:
+    report = inspect_entry_point(FakeEntryPoint("invalid", "example:Invalid", object()))
+
+    assert report.status == "invalid"
+    assert report.has_load_error is False
+
+
 def test_instantiation_error_is_reported_without_raising() -> None:
     report = inspect_entry_point(
         FakeEntryPoint("exploding", "example:ExplodingPlugin", ExplodingPlugin)

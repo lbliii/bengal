@@ -23,6 +23,7 @@ CAPABILITY_FIELDS = (
     "phase_hooks",
 )
 
+# Whether each registered plugin capability is currently wired into builds.
 CAPABILITY_INTEGRATION_STATUS = MappingProxyType(
     {
         "directives": "pending",
@@ -36,7 +37,6 @@ CAPABILITY_INTEGRATION_STATUS = MappingProxyType(
         "phase_hooks": "ready",
     }
 )
-"""Whether each registered plugin capability is currently wired into builds."""
 
 CAPABILITY_NOTES = MappingProxyType(
     {
@@ -72,8 +72,8 @@ class PluginInspection:
 
     @property
     def has_load_error(self) -> bool:
-        """True when the plugin failed protocol or registration validation."""
-        return self.status in {"load_error", "invalid", "register_error"}
+        """True when the plugin failed to load from its entry point."""
+        return self.status == "load_error"
 
     @property
     def pending_capabilities(self) -> tuple[str, ...]:
