@@ -84,6 +84,15 @@ class MyPlugin(Plugin):
 
 The `PluginRegistry` provides 9 registration methods:
 
+Current integration status:
+
+- Ready in builds: template functions, template filters, template tests, build phase hooks
+- Registered but pending subsystem wiring: directives, roles, content sources, health validators, shortcodes
+
+Use `bengal plugin list`, `bengal plugin info <name>`, and
+`bengal plugin validate` to inspect installed plugins and see whether their
+registered capabilities are active in the current Bengal build pipeline.
+
 ### Template Extensions
 
 ```python
@@ -111,6 +120,9 @@ def register(self, registry: PluginRegistry) -> None:
     registry.add_role(MyRoleHandler)
 ```
 
+Directive and role registration is discoverable through plugin introspection,
+but parser injection is not wired yet.
+
 ### Content Sources
 
 ```python
@@ -118,12 +130,18 @@ def register(self, registry: PluginRegistry) -> None:
     registry.add_content_source("my-source", MyContentSource)
 ```
 
+Content source registration is discoverable through plugin introspection, but
+content discovery does not consume plugin sources yet.
+
 ### Health Validators
 
 ```python
 def register(self, registry: PluginRegistry) -> None:
     registry.add_health_validator(MyValidator())
 ```
+
+Health validator registration is discoverable through plugin introspection, but
+health checks do not consume plugin validators yet.
 
 ### Shortcodes
 
@@ -134,6 +152,9 @@ def register(self, registry: PluginRegistry) -> None:
         '<div class="alert alert-{{ type | default("info") }}">{{ content }}</div>',
     )
 ```
+
+Shortcode registration is discoverable through plugin introspection, but the
+shortcode registry does not consume plugin shortcodes yet.
 
 ### Build Phase Hooks
 
@@ -148,6 +169,19 @@ def before_render(self, site, build_context):
 def after_render(self, site, build_context):
     print("Render complete")
 ```
+
+Lifecycle hook names currently emitted by builds:
+
+- `build_start`, `build_complete`
+- `pre_discovery`, `post_discovery`
+- `pre_content`, `post_content`
+- `pre_parsing`, `post_parsing`
+- `pre_snapshot`, `post_snapshot`
+- `pre_assets`, `post_assets`
+- `pre_render`, `post_render`
+- `pre_rendering`, `post_rendering`
+- `pre_finalization`, `post_finalization`
+- `pre_health`, `post_health`
 
 ## How Discovery Works
 

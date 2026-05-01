@@ -9,6 +9,7 @@ import pytest
 from bengal.orchestration.build import BuildOrchestrator
 from bengal.orchestration.build.options import BuildOptions
 from bengal.orchestration.stats import BuildStats
+from bengal.plugins.registry import PluginRegistry
 
 
 class TestBuildOrchestrator:
@@ -121,6 +122,70 @@ class TestBuildOrchestrator:
         mock_orchestrators["incremental"].return_value.save_cache.assert_called_once()
 
         assert isinstance(stats, BuildStats)
+
+    def test_full_build_runs_plugin_phase_hooks(self, mock_site, mock_orchestrators):
+        """Plugin lifecycle hooks run around the build phase groups."""
+        orchestrator = BuildOrchestrator(mock_site)
+        registry = PluginRegistry()
+        observed: list[tuple[str, object, object]] = []
+        hook_phases = (
+            "build_start",
+            "pre_discovery",
+            "post_discovery",
+            "pre_content",
+            "post_content",
+            "pre_parsing",
+            "post_parsing",
+            "pre_snapshot",
+            "post_snapshot",
+            "pre_assets",
+            "post_assets",
+            "pre_render",
+            "pre_rendering",
+            "post_render",
+            "post_rendering",
+            "pre_finalization",
+            "post_finalization",
+            "pre_health",
+            "post_health",
+            "build_complete",
+        )
+        for phase_name in hook_phases:
+            registry.on_phase(
+                phase_name,
+                lambda site, context, phase_name=phase_name: observed.append(
+                    (phase_name, site, context)
+                ),
+            )
+        plugin_registry = registry.freeze()
+
+        mock_cache = MagicMock()
+        mock_cache.parsed_content = {}
+        mock_orchestrators["incremental"].return_value.initialize.return_value = mock_cache
+        mock_orchestrators["incremental"].return_value.check_config_changed.return_value = False
+        mock_orchestrators["section"].return_value.validate_sections.return_value = []
+
+        from bengal.orchestration.build.results import FilterResult
+
+        filter_result = FilterResult(
+            pages_to_build=[],
+            assets_to_process=[],
+            affected_tags=set(),
+            changed_page_paths=set(),
+            affected_sections=None,
+        )
+        with (
+            patch("bengal.plugins.load_plugins", return_value=plugin_registry),
+            patch(
+                "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance",
+                return_value=filter_result,
+            ),
+        ):
+            orchestrator.build(BuildOptions(incremental=False, force_sequential=True))
+
+        assert [phase for phase, _, _ in observed] == list(hook_phases)
+        assert all(site is mock_site for _, site, _ in observed)
+        assert all(context is not None for _, _, context in observed)
 
     def test_incremental_build_sequence(self, mock_site, mock_orchestrators):
         """Test incremental build flow."""

@@ -220,6 +220,21 @@ for name, desc in [
         display_result=False,
     )
 
+# --- plugin ---
+plugin = cli.group("plugin", description="Plugin discovery and readiness", aliases=("plugins",))
+
+for name, desc in [
+    ("list", "List installed Bengal plugins"),
+    ("info", "Show plugin capability readiness"),
+    ("validate", "Validate plugin capability wiring"),
+]:
+    plugin.lazy_command(
+        name,
+        import_path=f"bengal.cli.milo_commands.plugin:plugin_{name}",
+        description=desc,
+        display_result=False,
+    )
+
 # ---------------------------------------------------------------------------
 # Tier 3 — Analysis & debugging (power users)
 # ---------------------------------------------------------------------------
