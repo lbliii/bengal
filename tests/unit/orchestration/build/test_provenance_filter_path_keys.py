@@ -38,6 +38,17 @@ def mock_cache(tmp_path: Path):
     cache.set_file_fingerprint = lambda path, data: cache.file_fingerprints.__setitem__(
         cache._cache_key(path), data
     )
+
+    def is_changed(path: Path) -> bool:
+        cached = cache.get_file_fingerprint(path)
+        if not cached:
+            return True
+        stat = path.stat()
+        if cached.get("mtime") == stat.st_mtime and cached.get("size") == stat.st_size:
+            return False
+        return cached.get("hash") != hash_file(path)
+
+    cache.is_changed = is_changed
     return cache
 
 
@@ -95,6 +106,21 @@ class TestDetectChangedDataFilesPathKeys:
 
         assert data_file in changed
 
+    def test_unchanged_data_file_uses_cache_fast_path(
+        self, mock_cache: MagicMock, mock_site: MagicMock, tmp_path: Path
+    ) -> None:
+        """Unchanged data files delegate to the cache fast path."""
+        data_dir = tmp_path / "data"
+        data_dir.mkdir()
+        data_file = data_dir / "team.yaml"
+        data_file.write_text("name: test")
+        mock_cache.is_changed = MagicMock(return_value=False)
+
+        changed = _detect_changed_data_files(mock_cache, mock_site)
+
+        assert data_file not in changed
+        mock_cache.is_changed.assert_called_once_with(data_file)
+
 
 class TestDetectChangedTemplatesPathKeys:
     """Tests for _detect_changed_templates path key alignment."""
@@ -120,6 +146,23 @@ class TestDetectChangedTemplatesPathKeys:
         assert tpl_file not in changed
         # Should have stored current fingerprint with same key
         assert file_key in mock_cache.file_fingerprints
+
+    def test_unchanged_template_uses_cache_fast_path(
+        self, mock_cache: MagicMock, mock_site: MagicMock, tmp_path: Path
+    ) -> None:
+        """Unchanged templates avoid provenance-level hashing."""
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir()
+        tpl_file = templates_dir / "base.html"
+        tpl_file.write_text("<html></html>")
+        mock_cache.is_changed = MagicMock(return_value=False)
+        mock_cache.set_file_fingerprint = MagicMock()
+
+        changed = _detect_changed_templates(mock_cache, mock_site)
+
+        assert tpl_file not in changed
+        mock_cache.is_changed.assert_called_once_with(tpl_file)
+        mock_cache.set_file_fingerprint.assert_not_called()
 
 
 class TestGetTaxonomyTermPagesForMemberPathKeys:
