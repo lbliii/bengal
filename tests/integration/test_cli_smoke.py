@@ -61,3 +61,35 @@ class TestCLICommandSmoke:
         cache_hash = result.stdout.strip().splitlines()[-1]
         assert len(cache_hash) == 16
         assert all(ch in "0123456789abcdef" for ch in cache_hash)
+
+    def test_cache_hash_includes_absolute_autodoc_sources(self, tmp_path):
+        """Absolute autodoc input paths must contribute to the runtime hash."""
+        source_dir = tmp_path / "src" / "pkg"
+        source_dir.mkdir(parents=True)
+        source_file = source_dir / "__init__.py"
+        source_file.write_text("VALUE = 1\n")
+
+        site_root = tmp_path / "site"
+        (site_root / "content").mkdir(parents=True)
+        (site_root / "content" / "index.md").write_text("---\ntitle: Home\n---\n# Home\n")
+        (site_root / "bengal.toml").write_text(
+            "\n".join(
+                [
+                    "[site]",
+                    'title = "Hash Site"',
+                    "",
+                    "[autodoc.python]",
+                    "enabled = true",
+                    f'source_dirs = ["{source_dir.as_posix()}"]',
+                    "",
+                ]
+            )
+        )
+
+        result1 = run_cli(["cache", "hash"], cwd=str(site_root))
+        result1.assert_ok()
+        source_file.write_text("VALUE = 2\n")
+        result2 = run_cli(["cache", "hash"], cwd=str(site_root))
+        result2.assert_ok()
+
+        assert result1.stdout.strip().splitlines()[-1] != result2.stdout.strip().splitlines()[-1]
