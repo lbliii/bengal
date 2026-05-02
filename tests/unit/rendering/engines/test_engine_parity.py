@@ -10,6 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from bengal.rendering.context.lazy import LazyPageContext, make_lazy
+
 
 def make_mock_site(
     dev_mode: bool = False,
@@ -106,6 +108,45 @@ class TestEngineMenuCache:
         engine = make_kida_engine(mock_site)
         assert hasattr(engine, "_menu_dict_cache")
         assert isinstance(engine._menu_dict_cache, dict)
+
+
+class TestKidaLazyContext:
+    """Kida rendering preserves Bengal lazy template context values."""
+
+    def test_render_template_does_not_evaluate_unused_lazy_value(self, tmp_path: Path) -> None:
+        templates = tmp_path / "templates"
+        templates.mkdir()
+        (templates / "page.html").write_text("{{ title }}", encoding="utf-8")
+        site = make_mock_site(root_path=tmp_path)
+        site.theme = ""
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+        context = LazyPageContext(
+            {
+                "title": "Hello",
+                "posts": make_lazy(
+                    lambda: (_ for _ in ()).throw(AssertionError("unused lazy value was evaluated"))
+                ),
+            }
+        )
+
+        assert engine.render_template("page.html", context) == "Hello"
+
+    def test_render_template_evaluates_used_lazy_value(self, tmp_path: Path) -> None:
+        templates = tmp_path / "templates"
+        templates.mkdir()
+        (templates / "page.html").write_text("{{ posts | length }}", encoding="utf-8")
+        site = make_mock_site(root_path=tmp_path)
+        site.theme = ""
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+        context = LazyPageContext({"posts": make_lazy(lambda: ["one", "two"])})
+
+        assert engine.render_template("page.html", context) == "2"
 
 
 class TestEngineCapabilities:

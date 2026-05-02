@@ -35,6 +35,7 @@ from bengal.errors import BengalRenderingError
 from bengal.errors.codes import ErrorCode
 from bengal.protocols import EngineCapability, TemplateEngineProtocol
 from bengal.protocols.capabilities import has_clear_template_cache
+from bengal.rendering.context.lazy import LazyPageContext
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
 from bengal.themes.utils import DEFAULT_THEME_PATH, THEMES_ROOT
 
@@ -708,12 +709,11 @@ class KidaTemplateEngine:
             template = self._env.get_template(name)
 
             # Get page-aware functions (t, current_lang, etc.)
-            # Instead of mutating env.globals (not thread-safe), we pass them in context
-            ctx = {"site": self.site, "config": self.site.config}
-            # Use items() explicitly to trigger LazyPageContext evaluation.
-            # dict.update(other_dict) may bypass __getitem__ via CPython optimization,
-            # but items() always calls LazyPageContext.items() which evaluates lazy values.
-            ctx.update(context.items())
+            # Instead of mutating env.globals (not thread-safe), we pass them in context.
+            # Preserve LazyValue entries so Kida only evaluates fields the template reads.
+            ctx = LazyPageContext()
+            ctx.update({"site": self.site, "config": self.site.config})
+            ctx.update(context)
 
             page = context.get("page")
             if hasattr(self._env, "_page_aware_factory"):
@@ -725,11 +725,11 @@ class KidaTemplateEngine:
             if self._profiler:
                 self._profiler.start_template(name)
                 try:
-                    result = template.render(ctx)
+                    result = self._render_kida_template(template, ctx)
                 finally:
                     self._profiler.end_template(name)
                 return result
-            return template.render(ctx)
+            return self._render_kida_template(template, ctx)
 
         except KidaTemplateNotFoundError as e:
             raise TemplateNotFoundError(name, self.template_dirs) from e
@@ -810,6 +810,22 @@ class KidaTemplateEngine:
                 suggestion=getattr(e, "hint", None) or getattr(e, "suggestion", None),
             ) from e
 
+    def _render_kida_template(self, template: Any, context: LazyPageContext) -> str:
+        """Render a compiled Kida template without materializing lazy values."""
+        render_func = getattr(template, "_render_func", None)
+        render_scaffold = getattr(template, "_render_scaffold", None)
+        check_output_size = getattr(template, "_check_output_size", None)
+        if render_func is None or render_scaffold is None or check_output_size is None:
+            return template.render(context)
+
+        with render_scaffold(
+            (context,),
+            {},
+            "render",
+            use_cached_blocks=True,
+        ) as (_eager_context, _render_context, blocks_arg):
+            return check_output_size(render_func(context, blocks_arg))
+
     def render_string(
         self,
         template: str,
@@ -839,19 +855,17 @@ class KidaTemplateEngine:
                 tmpl = self._env.from_string(template)
 
             # Get page-aware functions (t, current_lang, etc.)
-            # Instead of mutating env.globals (not thread-safe), we pass them in context
-            ctx = {"site": self.site, "config": self.site.config}
-            # Use items() explicitly to trigger LazyPageContext evaluation.
-            # dict.update(other_dict) may bypass __getitem__ via CPython optimization,
-            # but items() always calls LazyPageContext.items() which evaluates lazy values.
-            ctx.update(context.items())
+            # Instead of mutating env.globals (not thread-safe), we pass them in context.
+            ctx = LazyPageContext()
+            ctx.update({"site": self.site, "config": self.site.config})
+            ctx.update(context)
 
             page = context.get("page")
             if hasattr(self._env, "_page_aware_factory"):
                 page_functions = self._env._page_aware_factory(page)
                 ctx.update(page_functions)
 
-            return tmpl.render(ctx)
+            return self._render_kida_template(tmpl, ctx)
 
         except UndefinedError as e:
             # When strict=False, return empty string for undefined variables
