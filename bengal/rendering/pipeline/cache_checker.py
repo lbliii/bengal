@@ -63,6 +63,7 @@ class CacheChecker:
         write_behind: Any = None,
         build_cache: Any = None,
         parser: Any = None,
+        compare_existing_output: bool = True,
     ):
         """
         Initialize the cache checker.
@@ -75,6 +76,7 @@ class CacheChecker:
             write_behind: Optional write-behind collector for async I/O
             build_cache: Optional BuildCache for direct cache access.
             parser: Markdown parser for restore-from-AST fallback.
+            compare_existing_output: Whether to suppress unchanged output records.
         """
         self.site = site
         self.renderer = renderer
@@ -83,6 +85,7 @@ class CacheChecker:
         self.write_behind = write_behind
         self.build_cache = build_cache
         self.parser = parser
+        self.compare_existing_output = compare_existing_output
 
     def try_rendered_cache(self, page: PageLike, template: str) -> bool:
         """
@@ -137,6 +140,7 @@ class CacheChecker:
             write_behind=self.write_behind,
             build_cache=self.build_cache,
             rendered_page=rendered_page,
+            compare_existing_output=self.compare_existing_output,
         )
 
         return True
@@ -283,6 +287,7 @@ class CacheChecker:
             write_behind=self.write_behind,
             build_cache=self.build_cache,
             rendered_page=rendered_page,
+            compare_existing_output=self.compare_existing_output,
         )
 
         return True

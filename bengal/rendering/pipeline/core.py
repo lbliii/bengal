@@ -237,6 +237,9 @@ class RenderingPipeline:
         self.build_context = build_context
         self.changed_sources = {Path(p) for p in (changed_sources or set())}
         self._highlight_cache = highlight_cache
+        self._compare_existing_output = bool(
+            getattr(build_context, "incremental", True) if build_context else True
+        )
 
         # Extract output collector: explicit param > build_context (hot reload tracking)
         self._output_collector = output_collector or (
@@ -262,6 +265,7 @@ class RenderingPipeline:
             write_behind=self._write_behind,
             build_cache=self.build_cache,
             parser=self.parser,
+            compare_existing_output=self._compare_existing_output,
         )
         self._json_accumulator = JsonAccumulator(site, build_context)
         self._autodoc_renderer = AutodocRenderer(
@@ -272,6 +276,7 @@ class RenderingPipeline:
             build_stats=build_stats,
             write_behind=self._write_behind,
             build_cache=self.build_cache,
+            compare_existing_output=self._compare_existing_output,
         )
 
         # PERF: Unified HTML transformer - single instance reused across all pages, ~27% faster than separate transforms
@@ -832,6 +837,7 @@ class RenderingPipeline:
                     write_behind=self._write_behind,
                     build_cache=self.build_cache,
                     rendered_page=rendered_page,
+                    compare_existing_output=self._compare_existing_output,
                 )
         else:
             write_output(
@@ -841,6 +847,7 @@ class RenderingPipeline:
                 write_behind=self._write_behind,
                 build_cache=self.build_cache,
                 rendered_page=rendered_page,
+                compare_existing_output=self._compare_existing_output,
             )
 
         # Accumulate unified page data during rendering (JSON + search index)
@@ -1019,6 +1026,7 @@ class RenderingPipeline:
             cast("SiteLike", self.site),
             collector=self._output_collector,
             build_cache=self.build_cache,
+            compare_existing_output=self._compare_existing_output,
         )
 
     def _preprocess_content(self, page: PageLike) -> str:

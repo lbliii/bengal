@@ -157,6 +157,7 @@ def write_output(
     write_behind: WriteBehindCollector | None = None,
     build_cache: Any = None,
     rendered_page: RenderedPage | None = None,
+    compare_existing_output: bool = True,
 ) -> None:
     """
     Write rendered page to output directory.
@@ -181,6 +182,9 @@ def write_output(
         rendered_page: Optional RenderedPage record (Sprint 2: Immutable Pipeline).
             When provided, rendered_html and output_path are read from this
             record instead of the mutable Page object.
+        compare_existing_output: If True, read existing output bytes and suppress
+            collector records for unchanged HTML. Incremental hot reload uses this;
+            full rebuilds can skip the read and record every rendered output.
 
     """
     # Sprint 2: Read from RenderedPage when available, fall back to page attrs
@@ -206,7 +210,7 @@ def write_output(
         return
 
     record_output = True
-    if collector is not None and output_path.is_file():
+    if collector is not None and compare_existing_output and output_path.is_file():
         try:
             record_output = output_path.read_text(encoding="utf-8") != rendered_html
         except UnicodeDecodeError, OSError:

@@ -80,6 +80,7 @@ class AutodocRenderer:
         build_stats: BuildStats | None = None,
         write_behind: WriteBehindCollector | None = None,
         build_cache: BuildCache | None = None,
+        compare_existing_output: bool = True,
     ):
         """
         Initialize the autodoc renderer.
@@ -92,6 +93,7 @@ class AutodocRenderer:
             build_stats: Optional BuildStats for error tracking and deduplication
             write_behind: Optional write-behind collector for async I/O
             build_cache: Optional BuildCache for direct cache access.
+            compare_existing_output: Whether to suppress unchanged output records.
         """
         self.site = site
         self.template_engine = template_engine
@@ -100,6 +102,7 @@ class AutodocRenderer:
         self.build_stats = build_stats
         self.write_behind = write_behind
         self.build_cache = build_cache
+        self.compare_existing_output = compare_existing_output
 
         # PERF: Cache autodoc config to avoid repeated lookups per page render.
         # Autodoc config is immutable during a build, so we cache it once.
@@ -149,6 +152,7 @@ class AutodocRenderer:
                 collector=self.output_collector,
                 write_behind=self.write_behind,
                 build_cache=self.build_cache,
+                compare_existing_output=self.compare_existing_output,
             )
             logger.debug(
                 "autodoc_page_rendered",
@@ -182,6 +186,7 @@ class AutodocRenderer:
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,
+            compare_existing_output=self.compare_existing_output,
         )
 
         logger.debug(

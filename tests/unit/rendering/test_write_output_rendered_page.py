@@ -123,6 +123,22 @@ class TestWriteOutputRenderedPage:
         assert collector.get_outputs() == []
         assert out.read_text(encoding="utf-8") == "<p>same</p>"
 
+    def test_full_rebuild_can_skip_existing_output_compare(self, tmp_path):
+        """Full rebuilds can record outputs without reading old HTML first."""
+        out = tmp_path / "same" / "index.html"
+        out.parent.mkdir(parents=True)
+        out.write_text("<p>same</p>", encoding="utf-8")
+        page = _make_page(output_path=out, rendered_html="<p>same</p>")
+        site = _make_site(tmp_path)
+        collector = BuildOutputCollector(output_dir=tmp_path)
+
+        write_output(page, site, collector=collector, compare_existing_output=False)
+
+        outputs = collector.get_outputs()
+        assert len(outputs) == 1
+        assert str(outputs[0].path) == "same/index.html"
+        assert out.read_text(encoding="utf-8") == "<p>same</p>"
+
     def test_records_changed_html_output(self, tmp_path):
         """Changed HTML bytes should still be written and recorded."""
         out = tmp_path / "changed" / "index.html"
