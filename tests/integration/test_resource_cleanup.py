@@ -8,6 +8,7 @@ across all termination scenarios.
 import os
 import subprocess
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -91,6 +92,26 @@ class TestPIDManager:
 
         result = PIDManager.is_bengal_process(os.getpid())
         assert result is False
+
+    def test_is_bengal_process_accepts_serve_alias(self, monkeypatch):
+        """Stale server detection should recognize `bengal s` as serve."""
+
+        class FakePsutil:
+            class NoSuchProcess(Exception):
+                pass
+
+            class AccessDenied(Exception):
+                pass
+
+            @staticmethod
+            def Process(_pid: int):
+                return SimpleNamespace(cmdline=lambda: ["uv", "run", "bengal", "s"])
+
+        monkeypatch.setitem(sys.modules, "psutil", FakePsutil)
+
+        from bengal.server.pid_manager import PIDManager
+
+        assert PIDManager.is_bengal_process(12345) is True
 
 
 class TestResourceManager:

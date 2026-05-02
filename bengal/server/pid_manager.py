@@ -101,8 +101,10 @@ class PIDManager:
             import psutil
 
             proc = psutil.Process(pid)
-            cmdline = " ".join(proc.cmdline()).lower()
-            return "bengal" in cmdline and "serve" in cmdline
+            argv = [part.lower() for part in proc.cmdline()]
+            cmdline = " ".join(argv)
+            serve_commands = {"serve", "s", "dev"}
+            return "bengal" in cmdline and any(part in serve_commands for part in argv)
         except ImportError:
             # psutil not available: do NOT assume ownership. Returning True would
             # risk killing unrelated processes. Install psutil for reliable

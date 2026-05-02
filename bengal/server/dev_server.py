@@ -858,11 +858,19 @@ class DevServer:
             True if port is available, False otherwise
         """
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                s.bind((self.host, port))
-                return True
+            addr_infos = socket.getaddrinfo(self.host, port, type=socket.SOCK_STREAM)
         except OSError:
             return False
+
+        checked = False
+        for family, socktype, proto, _canonname, sockaddr in addr_infos:
+            try:
+                with socket.socket(family, socktype, proto) as s:
+                    s.bind(sockaddr)
+                    checked = True
+            except OSError:
+                return False
+        return checked
 
     def _find_available_port(self, start_port: int, max_attempts: int = 10) -> int:
         """
