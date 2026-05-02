@@ -65,10 +65,14 @@ _OUTPUT_FORMAT_ARTIFACTS = {
     "changelog": "changelog.json",
     "agent_manifest": "agent.json",
 }
+_I18N_OUTPUT_FORMATS = frozenset({"index_json", "changelog", "agent_manifest"})
 
 
-def _site_output_path(site: SiteLike, filename: str) -> Path:
+def _site_output_path(site: SiteLike, filename: str, *, uses_i18n_output_path: bool) -> Path:
     """Return root or i18n-prefixed site-wide output path for a filename."""
+    if not uses_i18n_output_path:
+        return site.output_dir / filename
+
     i18n = site.config.get("i18n", {}) or {}
     if i18n.get("strategy") == "prefix":
         default_lang = i18n.get("default_language", "en")
@@ -112,7 +116,13 @@ def _missing_postprocess_artifacts(site: SiteLike) -> tuple[Path, ...]:
     for output_format in _configured_site_wide_output_formats(site):
         filename = _OUTPUT_FORMAT_ARTIFACTS.get(output_format)
         if filename is not None:
-            expected.append(_site_output_path(site, filename))
+            expected.append(
+                _site_output_path(
+                    site,
+                    filename,
+                    uses_i18n_output_path=output_format in _I18N_OUTPUT_FORMATS,
+                )
+            )
 
     if site.config.get("generate_sitemap", True):
         expected.append(site.output_dir / "sitemap.xml")

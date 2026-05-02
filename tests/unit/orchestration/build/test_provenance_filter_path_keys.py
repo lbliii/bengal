@@ -19,6 +19,7 @@ from bengal.orchestration.build.provenance_filter import (
     _get_pages_for_data_file,
     _get_pages_for_template,
     _get_taxonomy_term_pages_for_member,
+    _missing_postprocess_artifacts,
 )
 from bengal.utils.primitives.hashing import hash_file
 
@@ -265,3 +266,40 @@ class TestGetPagesForTemplatePathKeys:
 
         assert len(pages) == 1
         assert Path("content/about.md") in pages
+
+
+class TestMissingPostprocessArtifacts:
+    """Tests for postprocess artifact path checks."""
+
+    def test_i18n_prefix_only_applies_to_i18n_aware_artifacts(self, tmp_path: Path) -> None:
+        """Root-only LLM artifacts should not be looked up under the language prefix."""
+        site = MagicMock()
+        site.output_dir = tmp_path
+        site.current_language = "fr"
+        site.config = {
+            "i18n": {
+                "strategy": "prefix",
+                "default_language": "en",
+                "default_in_subdir": False,
+            },
+            "output_formats": {
+                "enabled": True,
+                "site_wide": [
+                    "index_json",
+                    "llm_full",
+                    "llms_txt",
+                    "changelog",
+                    "agent_manifest",
+                ],
+            },
+            "generate_sitemap": False,
+            "content_signals": {"enabled": False},
+        }
+        (tmp_path / "fr").mkdir()
+        (tmp_path / "fr" / "index.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "fr" / "changelog.json").write_text("[]", encoding="utf-8")
+        (tmp_path / "fr" / "agent.json").write_text("{}", encoding="utf-8")
+        (tmp_path / "llm-full.txt").write_text("# LLM", encoding="utf-8")
+        (tmp_path / "llms.txt").write_text("# LLMs", encoding="utf-8")
+
+        assert _missing_postprocess_artifacts(site) == ()

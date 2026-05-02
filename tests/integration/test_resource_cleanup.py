@@ -113,6 +113,28 @@ class TestPIDManager:
 
         assert PIDManager.is_bengal_process(12345) is True
 
+    def test_is_bengal_process_rejects_dev_profile_arg(self, monkeypatch):
+        """Stale server detection should not treat any `dev` token as serve."""
+
+        class FakePsutil:
+            class NoSuchProcess(Exception):
+                pass
+
+            class AccessDenied(Exception):
+                pass
+
+            @staticmethod
+            def Process(_pid: int):
+                return SimpleNamespace(
+                    cmdline=lambda: ["uv", "run", "bengal", "build", "--profile", "dev"]
+                )
+
+        monkeypatch.setitem(sys.modules, "psutil", FakePsutil)
+
+        from bengal.server.pid_manager import PIDManager
+
+        assert PIDManager.is_bengal_process(12345) is False
+
 
 class TestResourceManager:
     """Test resource manager cleanup."""

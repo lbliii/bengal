@@ -123,6 +123,27 @@ class TestWriteOutputRenderedPage:
         assert collector.get_outputs() == []
         assert out.read_text(encoding="utf-8") == "<p>same</p>"
 
+    def test_copies_notebook_when_html_output_is_unchanged(self, tmp_path):
+        """Notebook companion files are side effects even when HTML is stable."""
+        src = tmp_path / "content" / "analysis.ipynb"
+        src.parent.mkdir(parents=True)
+        src.write_text('{"cells":[]}', encoding="utf-8")
+        out = tmp_path / "same" / "index.html"
+        out.parent.mkdir(parents=True)
+        out.write_text("<p>same</p>", encoding="utf-8")
+        page = _make_page(
+            source_path=src,
+            output_path=out,
+            rendered_html="<p>same</p>",
+        )
+        site = _make_site(tmp_path)
+        collector = BuildOutputCollector(output_dir=tmp_path)
+
+        write_output(page, site, collector=collector)
+
+        assert collector.get_outputs() == []
+        assert (out.parent / "analysis.ipynb").read_text(encoding="utf-8") == '{"cells":[]}'
+
     def test_full_rebuild_can_skip_existing_output_compare(self, tmp_path):
         """Full rebuilds can record outputs without reading old HTML first."""
         out = tmp_path / "same" / "index.html"

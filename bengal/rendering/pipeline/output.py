@@ -216,6 +216,7 @@ def write_output(
         except UnicodeDecodeError, OSError:
             record_output = True
         if not record_output:
+            _copy_notebook_source(page, output_path=output_path)
             _track_and_record(
                 page,
                 site,
