@@ -148,6 +148,19 @@ class TestKidaLazyContext:
 
         assert engine.render_template("page.html", context) == "2"
 
+    def test_render_template_preserves_environment_globals(self, tmp_path: Path) -> None:
+        templates = tmp_path / "templates"
+        templates.mkdir()
+        (templates / "page.html").write_text("{{ bengal.engine.name }}", encoding="utf-8")
+        site = make_mock_site(root_path=tmp_path)
+        site.theme = ""
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+
+        assert engine.render_template("page.html", {}) == "Bengal SSG"
+
 
 class TestKidaTemplateDependencyCache:
     """Template dependency graph discovery is cached per engine."""

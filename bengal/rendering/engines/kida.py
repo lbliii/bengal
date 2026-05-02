@@ -717,6 +717,7 @@ class KidaTemplateEngine:
             # Instead of mutating env.globals (not thread-safe), we pass them in context.
             # Preserve LazyValue entries so Kida only evaluates fields the template reads.
             ctx = LazyPageContext()
+            ctx.update(self._env.globals)
             ctx.update({"site": self.site, "config": self.site.config})
             ctx.update(context)
 
@@ -862,6 +863,7 @@ class KidaTemplateEngine:
             # Get page-aware functions (t, current_lang, etc.)
             # Instead of mutating env.globals (not thread-safe), we pass them in context.
             ctx = LazyPageContext()
+            ctx.update(self._env.globals)
             ctx.update({"site": self.site, "config": self.site.config})
             ctx.update(context)
 
