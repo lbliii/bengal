@@ -1,1 +1,0 @@
-Improve warm-build performance by preserving lazy Kida template context, caching Kida template dependency discovery, passing incremental context to health checks, reusing fingerprint fast paths for data/templates, memoizing section version membership, removing transient nav proxy locks, and regenerating missing site-wide postprocess artifacts without rebuilding pages.

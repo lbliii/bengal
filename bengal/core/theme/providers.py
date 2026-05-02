@@ -38,6 +38,33 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _theme_library_debug_payload(
+    package_name: str,
+    *,
+    hook_name: str | None = None,
+    returned_type: str | None = None,
+) -> Any:
+    """Build structured debug context for theme library provider errors."""
+    from bengal.errors.context import ErrorDebugPayload
+
+    relevant_config: dict[str, Any] = {"library": package_name}
+    grep_patterns = [f"libraries = .*{package_name}"]
+    if hook_name is not None:
+        relevant_config["hook"] = hook_name
+        grep_patterns.append(f"def {hook_name}")
+    if returned_type is not None:
+        relevant_config["returned_type"] = returned_type
+
+    return ErrorDebugPayload(
+        processing_item=f"theme-library:{package_name}",
+        processing_type="theme_library",
+        config_keys_accessed=["theme.libraries"],
+        relevant_config=relevant_config,
+        files_to_check=["themes/*/theme.toml", package_name],
+        grep_patterns=grep_patterns,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class ThemeLibraryProvider:
     """Normalized provider record for an external Kida UI library.
@@ -71,6 +98,7 @@ def resolve_provider(package_name: str) -> ThemeLibraryProvider:
         BengalConfigError: If the package cannot be imported or a hook fails.
 
     """
+    from bengal.errors import ErrorCode
     from bengal.errors.exceptions import BengalConfigError
 
     try:
@@ -80,10 +108,26 @@ def resolve_provider(package_name: str) -> ThemeLibraryProvider:
             f"Theme library '{package_name}' is not installed. "
             f"Install it or remove it from the theme's libraries list."
         )
-        raise BengalConfigError(msg) from e
+        raise BengalConfigError(
+            msg,
+            code=ErrorCode.C003,
+            suggestion=(
+                f"Install the '{package_name}' package in the build environment "
+                "or remove it from the theme's libraries list."
+            ),
+            debug_payload=_theme_library_debug_payload(package_name),
+        ) from e
     except Exception as e:
         msg = f"Theme library '{package_name}' failed to import: {e}"
-        raise BengalConfigError(msg) from e
+        raise BengalConfigError(
+            msg,
+            code=ErrorCode.C003,
+            suggestion=(
+                f"Fix the import-time error in '{package_name}' or remove it "
+                "from the theme's libraries list."
+            ),
+            debug_payload=_theme_library_debug_payload(package_name),
+        ) from e
 
     loader = _probe_hook(package_name, module, "get_loader")
     asset_root_raw = _probe_hook(package_name, module, "static_path")
@@ -98,7 +142,19 @@ def resolve_provider(package_name: str) -> ThemeLibraryProvider:
                 f"Theme library '{package_name}': static_path() returned "
                 f"{type(asset_root_raw).__name__}, expected a path-like object"
             )
-            raise BengalConfigError(msg) from e
+            raise BengalConfigError(
+                msg,
+                code=ErrorCode.C003,
+                suggestion=(
+                    f"Change '{package_name}.static_path()' to return a str or Path, "
+                    "or remove the hook if the library has no static assets."
+                ),
+                debug_payload=_theme_library_debug_payload(
+                    package_name,
+                    hook_name="static_path",
+                    returned_type=type(asset_root_raw).__name__,
+                ),
+            ) from e
     register_filters_fn = getattr(module, "register_filters", None)
 
     register_env: Callable[[Any], None] | None = None
@@ -183,6 +239,7 @@ def get_provider_asset_dirs(
 
 def _probe_hook(package_name: str, module: Any, hook_name: str) -> Any | None:
     """Call a convention hook on a library module, returning None if absent."""
+    from bengal.errors import ErrorCode
     from bengal.errors.exceptions import BengalConfigError
 
     fn = getattr(module, hook_name, None)
@@ -192,4 +249,12 @@ def _probe_hook(package_name: str, module: Any, hook_name: str) -> Any | None:
         return fn()
     except Exception as e:
         msg = f"Theme library '{package_name}': {hook_name}() failed: {e}"
-        raise BengalConfigError(msg) from e
+        raise BengalConfigError(
+            msg,
+            code=ErrorCode.C003,
+            suggestion=(
+                f"Fix '{package_name}.{hook_name}()' or remove the hook if the "
+                "library does not provide that capability."
+            ),
+            debug_payload=_theme_library_debug_payload(package_name, hook_name=hook_name),
+        ) from e

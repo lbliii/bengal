@@ -189,29 +189,30 @@ class TestPerKeyLockManager:
     def test_different_keys_run_in_parallel(self) -> None:
         """Different keys should not block each other."""
         manager = PerKeyLockManager()
-        execution_times: dict[str, float] = {}
-        lock_for_times = threading.Lock()
+        start_barrier = threading.Barrier(4)
+        state_lock = threading.Lock()
+        active_workers = 0
+        max_active_workers = 0
 
         def work(key: str) -> None:
-            start = time.time()
-            with manager.get_lock(key):
-                time.sleep(0.02)  # 20ms work
-            end = time.time()
-            with lock_for_times:
-                execution_times[key] = end - start
+            nonlocal active_workers, max_active_workers
 
-        start_time = time.time()
+            start_barrier.wait()
+            with manager.get_lock(key):
+                with state_lock:
+                    active_workers += 1
+                    max_active_workers = max(max_active_workers, active_workers)
+                time.sleep(0.02)  # 20ms work
+                with state_lock:
+                    active_workers -= 1
+
         with ThreadPoolExecutor(max_workers=4) as executor:
             # 4 different keys should run in parallel
             futures = [executor.submit(work, f"key-{i}") for i in range(4)]
             for f in futures:
                 f.result()
-        total_time = time.time() - start_time
 
-        # If serialized, would take ~80ms (4 × 20ms)
-        # If parallel, should take ~20-30ms (just one work unit + overhead)
-        # Allow some tolerance for thread scheduling
-        assert total_time < 0.06, f"Expected parallel execution but took {total_time:.3f}s"
+        assert max_active_workers > 1
 
     def test_same_key_serializes(self) -> None:
         """Same key should serialize, taking longer."""

@@ -1,1 +1,0 @@
-Avoided wasted cold-build provenance verification, made Markdown mirror generation lazy, added output-format timings, and skipped unchanged-output byte comparisons outside incremental hot-reload builds.

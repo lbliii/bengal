@@ -1,1 +1,0 @@
-Foundation leaf hygiene (Sprint 1 of `plan/foundation-leaf-hygiene.md`): hoist `default_formats` in `dates.parse_date` to module-level constant; dedupe `text.truncate_words` double-join; delete unreachable post-loop blocks in sync + async `retry_with_backoff`; hoist local `unicodedata` import in `text.slugify_id`. Net −15 LOC across 4 leaf utility modules; no behavioral changes.

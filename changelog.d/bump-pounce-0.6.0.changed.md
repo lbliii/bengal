@@ -1,1 +1,0 @@
-Bump bengal-pounce to v0.6.0 (subinterpreter workers, RFC 9842 compression dictionaries, zero-copy sendfile, TOML config, security hardening); fix CoercionWarning in tags template where empty-string `max_tags_display` was silently coerced by `| int`.

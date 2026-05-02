@@ -1,1 +1,0 @@
-Adopt Python 3.14+ patterns: freeze 38 dataclasses with `frozen=True, slots=True`, convert 10 type aliases to PEP 695 `type` syntax, replace 3 if/elif dispatch chains with `match/case`, and add 5 TypedDict definitions for `to_dict()` return types.
