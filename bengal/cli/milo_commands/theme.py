@@ -16,19 +16,32 @@ def theme_list(
 
     source = source or "."
     cli = get_cli_output()
-    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
+    load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
 
-    from bengal.themes import get_installed_themes
+    from bengal.core.theme import get_installed_themes
 
-    themes = get_installed_themes(site)
+    themes = get_installed_themes()
+    items = [{"name": "default", "description": "Bundled theme"}]
+    items.extend(
+        {"name": slug, "description": theme.distribution or theme.package}
+        for slug, theme in sorted(themes.items())
+    )
 
     cli.render_write(
         "item_list.kida",
         title="Available Themes",
-        items=[{"name": t.slug, "description": f"{t.name}  {t.source}"} for t in themes],
+        items=items,
     )
 
-    return {"themes": [{"slug": t.slug, "name": t.name, "source": t.source} for t in themes]}
+    return {
+        "themes": [
+            {"slug": "default", "name": "default", "source": "bundled"},
+            *[
+                {"slug": slug, "name": slug, "source": theme.distribution or theme.package}
+                for slug, theme in sorted(themes.items())
+            ],
+        ]
+    }
 
 
 def theme_info(
@@ -37,22 +50,47 @@ def theme_info(
 ) -> dict:
     """Show theme details."""
     from bengal.cli.utils import get_cli_output, load_site_from_cli
-    from bengal.themes import get_theme_package
+    from bengal.core.theme import get_theme_package
 
     source = source or "."
     cli = get_cli_output()
-    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
-    theme = get_theme_package(slug, site)
+    load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
+
+    if slug == "default":
+        from pathlib import Path
+
+        path = Path(__file__).resolve().parents[2] / "themes" / "default"
+        items = [
+            {"label": "Name", "value": "default"},
+            {"label": "Location", "value": str(path)},
+            {"label": "Source", "value": "bundled"},
+        ]
+        cli.render_write("kv_detail.kida", title="Theme: default", items=items)
+        return {"slug": "default", "name": "default", "path": str(path)}
+
+    theme = get_theme_package(slug)
+    if theme is None:
+        cli.error(f"Theme not found: {slug}")
+        cli.tip("Run `bengal theme list` to see available themes.")
+        raise SystemExit(1)
 
     items = [
-        {"label": "Name", "value": theme.name},
-        {"label": "Location", "value": str(theme.path)},
+        {"label": "Name", "value": theme.slug},
+        {"label": "Package", "value": theme.package},
     ]
-    if hasattr(theme, "version"):
+    if theme.distribution:
+        items.append({"label": "Distribution", "value": theme.distribution})
+    if theme.version:
         items.append({"label": "Version", "value": str(theme.version)})
     cli.render_write("kv_detail.kida", title=f"Theme: {slug}", items=items)
 
-    return {"slug": slug, "name": theme.name, "path": str(theme.path)}
+    return {
+        "slug": slug,
+        "name": theme.slug,
+        "package": theme.package,
+        "distribution": theme.distribution,
+        "version": theme.version,
+    }
 
 
 def theme_discover(

@@ -47,6 +47,11 @@ jobs:
           /tmp/wheel-smoke-venv/bin/bengal --version
           /tmp/wheel-smoke-venv/bin/bengal --help > /dev/null
           /tmp/wheel-smoke-venv/bin/bengal cache hash --help > /dev/null
+          mkdir -p /tmp/bengal-wheel-smoke/content
+          printf '%s\n' '[site]' 'title = "Wheel Smoke"' > /tmp/bengal-wheel-smoke/bengal.toml
+          printf '%s\n' '---' 'title: Home' '---' '# Home' > /tmp/bengal-wheel-smoke/content/index.md
+          /tmp/wheel-smoke-venv/bin/bengal cache inputs --source /tmp/bengal-wheel-smoke
+          /tmp/wheel-smoke-venv/bin/bengal cache hash --source /tmp/bengal-wheel-smoke
 
       - name: Upload distributions
         uses: actions/upload-artifact@v7

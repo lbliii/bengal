@@ -1,1 +1,1 @@
-Restore `bengal cache inputs` and `bengal cache hash` runtime execution by moving CI cache input discovery into the cache package.
+Restore `bengal cache inputs` and `bengal cache hash` runtime execution by moving CI cache input discovery into the cache package, and add published CLI runtime smoke coverage for advertised commands.

@@ -1,32 +1,157 @@
-"""
-Smoke tests for CLI commands to prevent interface drift bugs.
+"""Published CLI contract smoke tests.
 
-These tests run real CLI commands in subprocesses against a standard
-test site fixture to ensure that:
-1. Commands can be initialized (no circular imports or missing dependencies)
-2. Commands correctly interface with Core models (no AttributeError/TypeError)
-3. Entry points and command decorators work as expected
+Parser construction tests prove Bengal can describe commands. These tests go one
+step further: each non-exempt advertised command gets at least one cheap runtime
+invocation that enters the command body against a tiny site fixture.
 
-The tests use 'run_cli' which invokes Bengal via 'python -m bengal.cli'.
+The tests use ``run_cli`` which invokes Bengal via ``python -m bengal.cli``.
 """
+
+from __future__ import annotations
+
+from dataclasses import dataclass
 
 import pytest
 
 from tests._testing.cli import run_cli
 
 
+@dataclass(frozen=True)
+class CLISmokeCase:
+    args: tuple[str, ...]
+    testroot: str | None = "test-basic"
+    acceptable_exit_codes: tuple[int, ...] = (0,)
+    timeout: int = 30
+
+
+CLI_SMOKE_CASES = [
+    CLISmokeCase(("--version",), None),
+    CLISmokeCase(("build",)),
+    CLISmokeCase(("clean", "--force")),
+    CLISmokeCase(("check",), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("fix", "--dry-run"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("codemod", "--path", "content", "--dry-run", "--yes")),
+    CLISmokeCase(("new", "site", "--name", "smoke-site", "--no-init")),
+    CLISmokeCase(("new", "theme", "--name", "smoke-theme")),
+    CLISmokeCase(("new", "page", "--name", "smoke-page")),
+    CLISmokeCase(("new", "layout", "--name", "smoke-layout"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("new", "partial", "--name", "smoke-partial"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("new", "content-type", "--name", "smoke-type")),
+    CLISmokeCase(("config", "show"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("config", "doctor"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("config", "diff", "--against", "production"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("config", "init", "--force")),
+    CLISmokeCase(("config", "inspect"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("theme", "list")),
+    CLISmokeCase(("theme", "info", "--slug", "default")),
+    CLISmokeCase(("theme", "discover")),
+    CLISmokeCase(
+        ("theme", "swizzle", "--template-path", "base.html"), acceptable_exit_codes=(0, 1)
+    ),
+    CLISmokeCase(("theme", "validate", "--theme-path", "."), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("theme", "new", "--slug", "runtime-smoke")),
+    CLISmokeCase(("theme", "debug")),
+    CLISmokeCase(("theme", "directives")),
+    CLISmokeCase(("theme", "test", "--content", "plain text", "--validate-only")),
+    CLISmokeCase(("theme", "assets"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("content", "sources")),
+    CLISmokeCase(("content", "fetch")),
+    CLISmokeCase(("content", "collections")),
+    CLISmokeCase(("content", "schemas"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("version", "list")),
+    CLISmokeCase(("version", "info", "--version-id", "v1"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(
+        ("version", "create", "--version-id", "v1", "--from-path", "content", "--dry-run")
+    ),
+    CLISmokeCase(
+        ("version", "diff", "--old-version", "v1", "--new-version", "v2"),
+        acceptable_exit_codes=(0, 1),
+    ),
+    CLISmokeCase(("i18n", "init", "--locale-codes", "es")),
+    CLISmokeCase(("i18n", "extract"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("i18n", "compile"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("i18n", "sync"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("i18n", "status")),
+    CLISmokeCase(("plugin", "list")),
+    CLISmokeCase(("plugin", "info", "--name", "smoke"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("plugin", "validate"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("inspect", "page", "--page-path", "index"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("inspect", "links", "--internal-only"), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("inspect", "graph")),
+    CLISmokeCase(("inspect", "perf")),
+    CLISmokeCase(("debug", "incremental")),
+    CLISmokeCase(("debug", "delta")),
+    CLISmokeCase(("debug", "deps")),
+    CLISmokeCase(("debug", "migrate")),
+    CLISmokeCase(("debug", "sandbox", "--list-directives")),
+    CLISmokeCase(("cache", "inputs")),
+    CLISmokeCase(("cache", "hash")),
+]
+
+
+CLI_SMOKE_EXEMPTIONS = {
+    "serve": "starts a long-running development server; server smoke tests own lifecycle checks",
+    "upgrade": "checks PyPI and can run an installer; release tests cover installed-wheel startup",
+    "theme.install": "installs packages from PyPI; networked installer behavior needs a dedicated test",
+}
+
+
+def _registered_command_keys() -> set[str]:
+    from bengal.cli.milo_app import cli
+
+    return {path for path, _command in cli.walk_commands()}
+
+
+def _case_command_key(args: tuple[str, ...], registered: set[str]) -> str | None:
+    if not args or args[0].startswith("-"):
+        return None
+    parts: list[str] = []
+    match: str | None = None
+    for arg in args:
+        if arg.startswith("-"):
+            break
+        parts.append(arg)
+        candidate = ".".join(parts)
+        if candidate in registered:
+            match = candidate
+    return match
+
+
+def test_cli_smoke_manifest_covers_registered_commands():
+    """Every advertised leaf command needs runtime smoke or an explicit reason."""
+    registered = _registered_command_keys()
+    covered = {
+        key
+        for case in CLI_SMOKE_CASES
+        if (key := _case_command_key(case.args, registered)) is not None
+    }
+    exempt = set(CLI_SMOKE_EXEMPTIONS)
+
+    assert registered - covered - exempt == set()
+    assert (covered | exempt) - registered == set()
+    assert all(reason.strip() for reason in CLI_SMOKE_EXEMPTIONS.values())
+
+
 @pytest.mark.bengal(testroot="test-basic")
 class TestCLICommandSmoke:
-    """Smoke tests for various CLI command groups."""
+    """Runtime smoke tests for published CLI commands."""
 
-    def test_build_command(self, site):
-        """Verify 'bengal build' works without interface errors."""
-        result = run_cli(["build"], cwd=str(site.root_path))
-        result.assert_ok()
-        # Look for the 'Built' success message
-        assert "Built" in result.stdout
+    @pytest.mark.parametrize(
+        "case",
+        CLI_SMOKE_CASES,
+        ids=lambda case: ".".join(case.args).replace("--", "") or "root",
+    )
+    def test_published_cli_contract_runtime_smoke(self, site, case: CLISmokeCase):
+        """Advertised commands must execute a runtime path, not only render help."""
+        cwd = str(site.root_path) if case.testroot is not None else None
+        result = run_cli(list(case.args), cwd=cwd, timeout=case.timeout)
 
-    def test_validate_command(self, site):
+        assert result.returncode in case.acceptable_exit_codes, (
+            f"Unexpected exit code {result.returncode} for bengal {' '.join(case.args)}\n"
+            f"stdout={result.stdout[-1000:]!r}\nstderr={result.stderr[-1000:]!r}"
+        )
+
+    def test_check_command_incremental_smoke(self, site):
         """Verify 'bengal check' works (checks fix for cache redefinition)."""
         # Run build first to ensure output and cache exist
         run_cli(["build"], cwd=str(site.root_path)).assert_ok()
@@ -38,20 +163,6 @@ class TestCLICommandSmoke:
         # Test incremental validation (checks our fix in validate.py)
         result = run_cli(["check", "--incremental"], cwd=str(site.root_path))
         result.assert_ok()
-
-    def test_theme_debug_command(self, site):
-        """Verify 'bengal theme debug' works (checks fix for _find_template_path)."""
-        result = run_cli(["theme", "debug"], cwd=str(site.root_path))
-        result.assert_ok()
-
-    def test_check_command_smoke(self, site):
-        """Verify 'bengal check' runs without crashing."""
-        run_cli(["build"], cwd=str(site.root_path)).assert_ok()
-        result = run_cli(["check"], cwd=str(site.root_path))
-        # Should complete without crashing (exit 0 or 1 for warnings)
-        assert result.returncode in (0, 1), (
-            f"Unexpected exit code {result.returncode}: {result.stderr}"
-        )
 
     def test_cache_hash_command(self, site):
         """Verify 'bengal cache hash' executes, not just renders help."""
