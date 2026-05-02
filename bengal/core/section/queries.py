@@ -119,6 +119,9 @@ def add_page(section: Section, page: PageLike) -> None:
     section.__dict__.pop("regular_pages", None)
     section.__dict__.pop("sorted_pages", None)
     section.__dict__.pop("regular_pages_recursive", None)
+    from bengal.core.section.navigation import invalidate_version_content_cache
+
+    invalidate_version_content_cache(section)
 
     # Set as index page if it's named index.md or _index.md.
     if is_index:

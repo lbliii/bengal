@@ -15,6 +15,14 @@ if TYPE_CHECKING:
     from bengal.protocols.core import PageLike
 
 
+def invalidate_version_content_cache(section: Section) -> None:
+    """Clear cached version membership for a section and its ancestors."""
+    current: Section | None = section
+    while current is not None:
+        current.__dict__.pop("_version_content_cache", None)
+        current = current.parent
+
+
 def get_href(section: Section) -> str:
     """Compatibility wrapper for rendering-owned section URL helpers."""
     from bengal.rendering.section_urls import get_href as _get_href
@@ -88,13 +96,21 @@ def has_content_for_version(section: Section, version_id: str | None) -> bool:
     if version_id is None:
         return True
 
+    cache: dict[str, bool] = section.__dict__.setdefault("_version_content_cache", {})
+    if version_id in cache:
+        return cache[version_id]
+
     if section.index_page and getattr(section.index_page, "version", None) == version_id:
+        cache[version_id] = True
         return True
 
     if any(getattr(p, "version", None) == version_id for p in section.sorted_pages):
+        cache[version_id] = True
         return True
 
-    return any(s.has_content_for_version(version_id) for s in section.subsections)
+    result = any(s.has_content_for_version(version_id) for s in section.subsections)
+    cache[version_id] = result
+    return result
 
 
 def apply_version_path_transform(section: Section, url: str) -> str:
