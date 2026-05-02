@@ -107,6 +107,12 @@ def _bengal_bin(venv_dir: Path) -> Path:
     return venv_dir / ("Scripts" if os.name == "nt" else "bin") / "bengal"
 
 
+def _write_minimal_site(root: Path) -> None:
+    (root / "content").mkdir(parents=True)
+    (root / "content" / "index.md").write_text("---\ntitle: Home\n---\n# Home\n")
+    (root / "bengal.toml").write_text('[site]\ntitle = "Wheel Smoke"\n')
+
+
 def test_wheel_bengal_version_succeeds(installed_venv: Path) -> None:
     """``bengal --version`` must exit 0 after wheel install against latest PyPI deps.
 
@@ -153,6 +159,45 @@ def test_wheel_cache_hash_help_succeeds(installed_venv: Path) -> None:
         f"bengal cache hash --help failed with code {result.returncode}\n"
         f"stderr={result.stderr[-1000:]!r}"
     )
+
+
+def test_wheel_cache_commands_execute_against_minimal_site(
+    installed_venv: Path, tmp_path: Path
+) -> None:
+    """Installed wheel cache commands must execute their runtime body.
+
+    ``--help`` only proves the parser can describe the command. This catches
+    missing deferred imports inside the command body before release.
+    """
+    site_root = tmp_path / "minimal-site"
+    _write_minimal_site(site_root)
+
+    bengal = _bengal_bin(installed_venv)
+    inputs = subprocess.run(
+        [str(bengal), "cache", "inputs", "--source", str(site_root)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert inputs.returncode == 0, (
+        f"bengal cache inputs failed with code {inputs.returncode}\n"
+        f"stdout={inputs.stdout!r}\nstderr={inputs.stderr!r}"
+    )
+    assert "content/**" in inputs.stdout
+
+    cache_hash = subprocess.run(
+        [str(bengal), "cache", "hash", "--source", str(site_root)],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert cache_hash.returncode == 0, (
+        f"bengal cache hash failed with code {cache_hash.returncode}\n"
+        f"stdout={cache_hash.stdout!r}\nstderr={cache_hash.stderr!r}"
+    )
+    digest = cache_hash.stdout.strip().splitlines()[-1]
+    assert len(digest) == 16
+    assert all(ch in "0123456789abcdef" for ch in digest)
 
 
 def test_wheel_build_executable_exists(installed_venv: Path) -> None:

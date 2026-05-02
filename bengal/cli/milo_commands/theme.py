@@ -7,6 +7,37 @@ from typing import Annotated
 from milo import Description
 
 
+def _site_local_theme_dirs(site_root):
+    themes_dir = site_root / "themes"
+    if not themes_dir.is_dir():
+        return []
+    return sorted(
+        path
+        for path in themes_dir.iterdir()
+        if path.is_dir()
+        and (
+            (path / "templates").is_dir()
+            or (path / "theme.toml").is_file()
+            or (path / "theme.yaml").is_file()
+        )
+    )
+
+
+def _site_theme_metadata(theme_path):
+    manifest = theme_path / "theme.toml"
+    if not manifest.is_file():
+        return {}
+
+    import tomllib
+
+    try:
+        with manifest.open("rb") as handle:
+            data = tomllib.load(handle)
+    except OSError, tomllib.TOMLDecodeError:
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
 def theme_list(
     source: Annotated[str, Description("Source directory path")] = "",
 ) -> dict:
@@ -18,17 +49,38 @@ def theme_list(
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
 
-    from bengal.themes import get_installed_themes
+    from bengal.core.theme import get_installed_themes
 
-    themes = get_installed_themes(site)
+    installed_themes = get_installed_themes()
+    local_themes = _site_local_theme_dirs(site.root_path)
+    items = [{"name": "default", "description": "Bundled theme"}]
+    items.extend({"name": path.name, "description": "Site-local theme"} for path in local_themes)
+    items.extend(
+        {"name": slug, "description": theme.distribution or theme.package}
+        for slug, theme in sorted(installed_themes.items())
+        if slug not in {path.name for path in local_themes}
+    )
 
     cli.render_write(
         "item_list.kida",
         title="Available Themes",
-        items=[{"name": t.slug, "description": f"{t.name}  {t.source}"} for t in themes],
+        items=items,
     )
 
-    return {"themes": [{"slug": t.slug, "name": t.name, "source": t.source} for t in themes]}
+    return {
+        "themes": [
+            {"slug": "default", "name": "default", "source": "bundled"},
+            *[
+                {"slug": path.name, "name": path.name, "source": "site-local"}
+                for path in local_themes
+            ],
+            *[
+                {"slug": slug, "name": slug, "source": theme.distribution or theme.package}
+                for slug, theme in sorted(installed_themes.items())
+                if slug not in {path.name for path in local_themes}
+            ],
+        ]
+    }
 
 
 def theme_info(
@@ -37,22 +89,67 @@ def theme_info(
 ) -> dict:
     """Show theme details."""
     from bengal.cli.utils import get_cli_output, load_site_from_cli
-    from bengal.themes import get_theme_package
+    from bengal.core.theme import get_theme_package
 
     source = source or "."
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
-    theme = get_theme_package(slug, site)
+
+    if slug == "default":
+        from pathlib import Path
+
+        path = Path(__file__).resolve().parents[2] / "themes" / "default"
+        items = [
+            {"label": "Name", "value": "default"},
+            {"label": "Location", "value": str(path)},
+            {"label": "Source", "value": "bundled"},
+        ]
+        cli.render_write("kv_detail.kida", title="Theme: default", items=items)
+        return {"slug": "default", "name": "default", "path": str(path)}
+
+    site_theme_path = site.root_path / "themes" / slug
+    if site_theme_path.is_dir():
+        metadata = _site_theme_metadata(site_theme_path)
+        items = [
+            {"label": "Name", "value": str(metadata.get("name") or slug)},
+            {"label": "Location", "value": str(site_theme_path)},
+            {"label": "Source", "value": "site-local"},
+        ]
+        if metadata.get("extends"):
+            items.append({"label": "Extends", "value": str(metadata["extends"])})
+        if metadata.get("version"):
+            items.append({"label": "Version", "value": str(metadata["version"])})
+        cli.render_write("kv_detail.kida", title=f"Theme: {slug}", items=items)
+        return {
+            "slug": slug,
+            "name": str(metadata.get("name") or slug),
+            "path": str(site_theme_path),
+            "source": "site-local",
+        }
+
+    theme = get_theme_package(slug)
+    if theme is None:
+        cli.error(f"Theme not found: {slug}")
+        cli.tip("Run `bengal theme list` to see available themes.")
+        raise SystemExit(1)
 
     items = [
-        {"label": "Name", "value": theme.name},
-        {"label": "Location", "value": str(theme.path)},
+        {"label": "Name", "value": theme.slug},
+        {"label": "Package", "value": theme.package},
     ]
-    if hasattr(theme, "version"):
+    if theme.distribution:
+        items.append({"label": "Distribution", "value": theme.distribution})
+    if theme.version:
         items.append({"label": "Version", "value": str(theme.version)})
     cli.render_write("kv_detail.kida", title=f"Theme: {slug}", items=items)
 
-    return {"slug": slug, "name": theme.name, "path": str(theme.path)}
+    return {
+        "slug": slug,
+        "name": theme.slug,
+        "package": theme.package,
+        "distribution": theme.distribution,
+        "version": theme.version,
+    }
 
 
 def theme_discover(

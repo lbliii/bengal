@@ -9,6 +9,15 @@ from typing import Annotated
 from milo import Description
 
 
+def _resolve_config_arg(config: str) -> str | None:
+    if not config:
+        return None
+
+    from pathlib import Path
+
+    return str(Path(config).expanduser().resolve())
+
+
 def cache_inputs(
     source: Annotated[str, Description("Source directory path")] = "",
     output_format: Annotated[str, Description("Output format: plain or json")] = "plain",
@@ -20,13 +29,13 @@ def cache_inputs(
     from bengal.cli.utils import get_cli_output, load_site_from_cli
 
     source = source or "."
-    config_val = config or None
+    config_val = _resolve_config_arg(config)
     cli = get_cli_output()
 
     site = load_site_from_cli(
         source=source, config=config_val, environment=None, profile=None, cli=cli
     )
-    input_globs = get_input_globs(site)
+    input_globs = get_input_globs(site, config_path=config_val)
 
     if output_format == "json":
         if verbose:
@@ -53,6 +62,7 @@ def cache_hash(
     config: Annotated[str, Description("Path to config file")] = "",
 ) -> dict:
     """Compute deterministic hash of build inputs for CI cache keys."""
+    import glob
     from pathlib import Path
 
     import bengal
@@ -60,13 +70,13 @@ def cache_hash(
     from bengal.cli.utils import get_cli_output, load_site_from_cli
 
     source = source or "."
-    config_val = config or None
+    config_val = _resolve_config_arg(config)
     cli = get_cli_output()
 
     site = load_site_from_cli(
         source=source, config=config_val, environment=None, profile=None, cli=cli
     )
-    input_globs = get_input_globs(site)
+    input_globs = get_input_globs(site, config_path=config_val)
 
     hasher = hashlib.sha256()
 
@@ -74,11 +84,14 @@ def cache_hash(
         hasher.update(f"bengal:{bengal.__version__}".encode())
 
     for glob_pattern, _source in input_globs:
-        if glob_pattern.count("../") > 1:
+        pattern_path = Path(glob_pattern)
+        if pattern_path.is_absolute():
+            base_path = None
+            resolved_pattern = glob_pattern
+        elif glob_pattern.count("../") > 1:
             cli.warning(f"Skipping unsupported pattern '{glob_pattern}' (nested ../ not supported)")
             continue
-
-        if glob_pattern.startswith("../"):
+        elif glob_pattern.startswith("../"):
             base_path = site.root_path.parent
             resolved_pattern = glob_pattern[3:]
         else:
@@ -86,7 +99,10 @@ def cache_hash(
             resolved_pattern = glob_pattern
 
         try:
-            matched_files = sorted(base_path.glob(resolved_pattern))
+            if base_path is None:
+                matched_files = sorted(Path(p) for p in glob.glob(resolved_pattern, recursive=True))
+            else:
+                matched_files = sorted(base_path.glob(resolved_pattern))
         except Exception as e:
             cli.warning(f"Error matching pattern '{glob_pattern}': {e}")
             continue
@@ -106,7 +122,7 @@ def cache_hash(
                 try:
                     rel_path = file_path.relative_to(site.root_path.parent.resolve())
                 except ValueError:
-                    rel_path = Path(file_path.name)
+                    rel_path = Path(file_path.as_posix())
 
             try:
                 hasher.update(rel_path.as_posix().encode())
