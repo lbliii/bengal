@@ -149,6 +149,58 @@ class TestKidaLazyContext:
         assert engine.render_template("page.html", context) == "2"
 
 
+class TestKidaTemplateDependencyCache:
+    """Template dependency graph discovery is cached per engine."""
+
+    def test_dependency_discovery_cached_but_recording_repeats(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+    ) -> None:
+        site = make_mock_site(root_path=tmp_path)
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+        dependency_calls: dict[str, int] = {"page.html": 0, "partial.html": 0}
+
+        class FakeTemplate:
+            def __init__(self, name: str) -> None:
+                self.name = name
+
+            def dependencies(self) -> dict[str, list[str]]:
+                dependency_calls[self.name] += 1
+                if self.name == "page.html":
+                    return {"includes": ["partial.html"]}
+                return {}
+
+        def get_template(name: str) -> FakeTemplate:
+            return FakeTemplate(name)
+
+        recorded_includes: list[str] = []
+        recorded_paths: list[Path] = []
+
+        monkeypatch.setattr(engine._env, "get_template", get_template)
+        monkeypatch.setattr(
+            KidaTemplateEngine, "get_template_path", lambda _self, name: tmp_path / name
+        )
+        monkeypatch.setattr(
+            "bengal.effects.render_integration.record_template_include",
+            recorded_includes.append,
+        )
+        monkeypatch.setattr(
+            "bengal.effects.render_integration.record_extra_dependency",
+            recorded_paths.append,
+        )
+
+        engine._track_referenced_templates("page.html")
+        engine._track_referenced_templates("page.html")
+
+        assert dependency_calls == {"page.html": 1, "partial.html": 1}
+        assert recorded_includes == ["partial.html", "partial.html"]
+        assert recorded_paths == [tmp_path / "partial.html", tmp_path / "partial.html"]
+
+
 class TestEngineCapabilities:
     """Test engine capabilities reporting."""
 

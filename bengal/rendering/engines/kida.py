@@ -16,6 +16,7 @@ Features:
 
 from __future__ import annotations
 
+from threading import Lock
 from typing import TYPE_CHECKING, Any
 
 from kida import Environment
@@ -308,6 +309,8 @@ class KidaTemplateEngine:
         "_profile",
         "_profiler",
         "_providers",
+        "_template_dependency_cache",
+        "_template_dependency_cache_lock",
         "site",
         "template_dirs",
     )
@@ -346,6 +349,8 @@ class KidaTemplateEngine:
         self.site = site
         self.template_dirs = self._build_template_dirs()
         self._providers = self._resolve_providers()
+        self._template_dependency_cache: dict[str, tuple[str, ...]] = {}
+        self._template_dependency_cache_lock = Lock()
 
         # Legacy dependency tracking removed — EffectTracer handles this now
 
@@ -945,8 +950,33 @@ class KidaTemplateEngine:
             record_template_include,
         )
 
+        referenced_templates = self._get_referenced_template_names(template_name)
+        for ref_name in referenced_templates:
+            record_template_include(ref_name)
+            ref_path = self.get_template_path(ref_name)
+            if ref_path:
+                record_extra_dependency(ref_path)
+
+    def _get_referenced_template_names(self, template_name: str) -> tuple[str, ...]:
+        """Return transitive referenced template names, cached for this engine."""
+        with self._template_dependency_cache_lock:
+            cached = self._template_dependency_cache.get(template_name)
+        if cached is not None:
+            return cached
+
+        referenced_templates = self._discover_referenced_template_names(template_name)
+        with self._template_dependency_cache_lock:
+            existing = self._template_dependency_cache.setdefault(
+                template_name,
+                referenced_templates,
+            )
+        return existing
+
+    def _discover_referenced_template_names(self, template_name: str) -> tuple[str, ...]:
+        """Discover transitive referenced templates by walking Kida dependencies."""
         seen: set[str] = {template_name}
         to_process: list[str] = [template_name]
+        ordered: list[str] = []
 
         while to_process:
             current_name = to_process.pop()
@@ -971,12 +1001,7 @@ class KidaTemplateEngine:
                     if ref_name in seen:
                         continue
                     seen.add(ref_name)
-
-                    # Record as dependency via EffectTracer
-                    record_template_include(ref_name)
-                    ref_path = self.get_template_path(ref_name)
-                    if ref_path:
-                        record_extra_dependency(ref_path)
+                    ordered.append(ref_name)
 
                     # Queue for recursive processing (catches nested includes)
                     to_process.append(ref_name)
@@ -984,6 +1009,8 @@ class KidaTemplateEngine:
             except AttributeError, TypeError, KeyError, OSError:
                 # Template analysis is optional - don't fail the build
                 continue
+
+        return tuple(ordered)
 
     def _extract_referenced_templates(self, ast: Any) -> set[str]:
         """Extract all referenced template names from an AST.
