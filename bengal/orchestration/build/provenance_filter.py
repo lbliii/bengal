@@ -1046,6 +1046,21 @@ def phase_incremental_filter_provenance(
                 filter_time_ms=filter_time_ms,
             )
 
+            orchestrator.stats.total_pages = len(site.pages)
+            orchestrator.stats.total_assets = len(site.assets)
+            orchestrator.stats.total_sections = len(site.sections)
+            orchestrator.stats.cache_hits = result.cache_hits
+            orchestrator.stats.cache_misses = result.cache_misses
+            if result.cache_hits > 0:
+                avg_time_per_page = 50  # Estimated ms per page render
+                orchestrator.stats.time_saved_ms = result.cache_hits * avg_time_per_page * 0.8
+            if verbose:
+                for page in result.pages_skipped:
+                    decision.skip_reasons[str(page.source_path)] = SkipReasonCode.NO_CHANGES
+            decision.log_summary(orchestrator.logger)
+            if verbose:
+                decision.log_details(orchestrator.logger)
+            orchestrator.stats.incremental_decision = decision
             orchestrator.stats.skipped = True
             orchestrator.stats.build_time_ms = (time.time() - build_start) * 1000
             return None

@@ -1,1 +1,0 @@
-Fix dev-server startup on `localhost` when an existing Bengal server is listening on IPv6. Bengal now recognizes the `bengal s` serve alias in stale-process detection and checks all address families before handing the port to Pounce, allowing auto-port fallback to run before the server bind fails.

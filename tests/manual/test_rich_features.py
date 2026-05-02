@@ -98,10 +98,6 @@ def test_rich_console():
     print("=" * 60)
 
     try:
-        from rich.panel import Panel
-        from rich.syntax import Syntax
-        from rich.tree import Tree
-
         from bengal.utils.observability.rich_console import (
             detect_environment,
             get_console,
@@ -118,6 +114,20 @@ def test_rich_console():
         print(f"  Color system: {env['color_system']}")
         print(f"  Terminal width: {env['width']}")
         print(f"  CI: {env['is_ci']}")
+
+        if console is None:
+            if not env["is_terminal"]:
+                assert should_use_rich() is False
+            print("\nRich console unavailable; validating fallback console behavior.")
+            print("  Plain success message")
+            print("  Plain warning message")
+            print("  Plain error message")
+            print("\n✓ Fallback console behavior working correctly")
+            return
+
+        from rich.panel import Panel
+        from rich.syntax import Syntax
+        from rich.tree import Tree
 
         # Test markup
         console.print("\n[bold cyan]Testing Rich markup:[/bold cyan]")

@@ -51,15 +51,15 @@ install:
 
 build:
 	@echo "Building site..."
-	uv run bengal build site
+	uv run bengal build --source site
 
 serve:
 	@echo "Starting development server..."
-	uv run bengal serve site
+	uv run bengal serve --source site
 
 deploy-test:
 	@echo "Building with production config (simulates GitHub Pages)..."
-	cd site && uv run bengal build -e production
+	uv run bengal build --source site --environment production
 	@echo ""
 	@echo "Verifying CSS exists..."
 	@ls -la site/public/assets/css/style.css || (echo "ERROR: CSS not found!" && exit 1)

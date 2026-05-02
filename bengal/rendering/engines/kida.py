@@ -233,6 +233,7 @@ class _ProviderEnvShim:
         self._package = package
 
     def _check_collision(self, name: str, kind: str) -> None:
+        from bengal.errors.context import ErrorDebugPayload
         from bengal.errors.exceptions import BengalConfigError
 
         builtins = self._builtin_filters if kind == "filter" else self._builtin_globals
@@ -240,14 +241,55 @@ class _ProviderEnvShim:
             msg = (
                 f"Theme library '{self._package}': {kind} '{name}' collides with a Bengal built-in"
             )
-            raise BengalConfigError(msg)
+            raise BengalConfigError(
+                msg,
+                code=ErrorCode.C003,
+                suggestion=(
+                    f"Rename the {kind} in '{self._package}' or remove the library "
+                    "from the theme's libraries list."
+                ),
+                debug_payload=ErrorDebugPayload(
+                    processing_item=f"theme-library:{self._package}",
+                    processing_type="theme_library",
+                    config_keys_accessed=["theme.libraries"],
+                    relevant_config={
+                        "library": self._package,
+                        "kind": kind,
+                        "name": name,
+                        "collision": "bengal_builtin",
+                    },
+                    files_to_check=["themes/*/theme.toml", self._package],
+                    grep_patterns=[f"libraries = .*{self._package}", f"{kind}.*{name}"],
+                ),
+            )
         owners = self._filter_owners if kind == "filter" else self._global_owners
         if name in owners:
             msg = (
                 f"Theme library '{self._package}': {kind} '{name}' "
                 f"collides with library '{owners[name]}'"
             )
-            raise BengalConfigError(msg)
+            raise BengalConfigError(
+                msg,
+                code=ErrorCode.C003,
+                suggestion=(
+                    f"Rename the {kind} in either '{self._package}' or '{owners[name]}', "
+                    "or remove one library from the theme's libraries list."
+                ),
+                debug_payload=ErrorDebugPayload(
+                    processing_item=f"theme-library:{self._package}",
+                    processing_type="theme_library",
+                    config_keys_accessed=["theme.libraries"],
+                    relevant_config={
+                        "library": self._package,
+                        "existing_library": owners[name],
+                        "kind": kind,
+                        "name": name,
+                        "collision": "provider",
+                    },
+                    files_to_check=["themes/*/theme.toml", self._package, owners[name]],
+                    grep_patterns=[f"libraries = .*{self._package}", f"{kind}.*{name}"],
+                ),
+            )
 
     def template_filter(self, name: str | None = None):
         """Decorator-style filter registration (Flask-compatible)."""
@@ -592,8 +634,31 @@ class KidaTemplateEngine:
             except BengalConfigError:
                 raise
             except Exception as e:
+                from bengal.errors.context import ErrorDebugPayload
+
                 msg = f"Theme library '{provider.package}': register_filters() failed: {e}"
-                raise BengalConfigError(msg) from e
+                raise BengalConfigError(
+                    msg,
+                    code=ErrorCode.C003,
+                    suggestion=(
+                        f"Fix '{provider.package}.register_filters(app)' or remove the "
+                        "library from the theme's libraries list."
+                    ),
+                    debug_payload=ErrorDebugPayload(
+                        processing_item=f"theme-library:{provider.package}",
+                        processing_type="theme_library",
+                        config_keys_accessed=["theme.libraries"],
+                        relevant_config={
+                            "library": provider.package,
+                            "hook": "register_filters",
+                        },
+                        files_to_check=["themes/*/theme.toml", provider.package],
+                        grep_patterns=[
+                            f"libraries = .*{provider.package}",
+                            "def register_filters",
+                        ],
+                    ),
+                ) from e
 
     def _create_directive_template_renderer(
         self,

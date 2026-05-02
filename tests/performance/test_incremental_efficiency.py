@@ -145,6 +145,14 @@ class EfficiencyMetrics:
             AssertionError: If efficiency expectations not met
         """
         errors = []
+        expects_measurement = max_rebuilds is not None or min_cache_hit_rate is not None
+        measured_pages = self.rebuild_count + self.skip_count
+        if expects_measurement and (self.total_pages <= 0 or measured_pages <= 0):
+            errors.append(
+                "No pages were measured for this efficiency check "
+                f"(total={self.total_pages}, rebuilt={self.rebuild_count}, "
+                f"skipped={self.skip_count})"
+            )
 
         if max_rebuilds is not None and self.rebuild_count > max_rebuilds:
             errors.append(
