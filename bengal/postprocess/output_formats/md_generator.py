@@ -181,11 +181,10 @@ class PageMarkdownGenerator:
             Best available content string.
         """
         raw = getattr(page, "_raw_content", None) or ""
-        plain = getattr(page, "plain_text", "") or ""
-        rendered = getattr(page, "rendered_html", "") or ""
-        rendered_markdown = rendered_html_to_markdown(rendered) if isinstance(rendered, str) else ""
 
         if not raw:
+            plain = getattr(page, "plain_text", "") or ""
+            rendered_markdown = self._rendered_markdown(page)
             return rendered_markdown or plain
 
         content = raw.strip()
@@ -203,17 +202,44 @@ class PageMarkdownGenerator:
         # than raw content, shortcodes/includes added substantial content.
         # Use plain_text for better parity with the rendered HTML.
         raw_len = len(content)
+        plain = getattr(page, "plain_text", "") or ""
         plain_len = len(plain)
-        rendered_len = len(rendered_markdown)
-        reference_len = max(raw_len, plain_len)
-        if rendered_len > 0 and (reference_len == 0 or rendered_len / reference_len > 1.15):
-            return rendered_markdown
-
         if plain_len > 0 and raw_len > 0:
             coverage = raw_len / plain_len
             if coverage < 0.75:
                 # Raw markdown covers <75% of rendered content — fall back
-                # to plain text for better parity with HTML output
-                return plain
+                # to rendered primary content when available, then plain text.
+                return self._rendered_markdown(page) or plain
+
+        if self._should_check_rendered_markdown(page):
+            rendered_markdown = self._rendered_markdown(page)
+            rendered_len = len(rendered_markdown)
+            reference_len = max(raw_len, plain_len)
+            if rendered_len > 0 and (reference_len == 0 or rendered_len / reference_len > 1.15):
+                return rendered_markdown
 
         return content
+
+    def _rendered_markdown(self, page: PageLike) -> str:
+        """Convert rendered HTML to Markdown when a caller has decided it is needed."""
+        rendered = getattr(page, "rendered_html", "") or ""
+        if not isinstance(rendered, str):
+            return ""
+        return rendered_html_to_markdown(rendered)
+
+    def _should_check_rendered_markdown(self, page: PageLike) -> bool:
+        """Return whether rendered HTML is likely to contain generated page content."""
+        if getattr(page, "virtual", False):
+            return True
+
+        source_path = getattr(page, "source_path", None)
+        if getattr(source_path, "name", "") == "_index.md":
+            return True
+
+        metadata = getattr(page, "metadata", {}) or {}
+        return bool(
+            metadata.get("is_autodoc")
+            or metadata.get("is_section_index")
+            or metadata.get("_taxonomy_term")
+            or metadata.get("generated")
+        )
