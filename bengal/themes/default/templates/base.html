@@ -90,7 +90,8 @@ HELPER: Render a menu item (desktop/mobile)
 </li>
 {% enddef %}
 
-<html lang="{{ _current_lang }}" dir="{{ _direction }}" {% if _view_transitions and _transition_style !='crossfade' %}
+    <html lang="{{ _current_lang }}" dir="{{ _direction }}" {% if _view_transitions %}
+    data-view-transitions="enabled" {% end %}{% if _view_transitions and _transition_style !='crossfade' %}
     data-transition-style="{{ _transition_style }}" {% end %}>
 
 <head>
@@ -239,6 +240,9 @@ HELPER: Render a menu item (desktop/mobile)
 
     {# Stylesheets #}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
+    {% if _view_transitions %}
+    <link rel="stylesheet" href="{{ asset_url('css/base/transitions.css') }}">
+    {% end %}
     {% if 'content.math' in (theme.features ?? []) %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin>
     {% end %}

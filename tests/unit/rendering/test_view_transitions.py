@@ -31,6 +31,8 @@ class TestViewTransitionsMetaTag:
 
         html = site.read_output("index.html")
         assert '<meta name="view-transition" content="same-origin">' in html
+        assert 'data-view-transitions="enabled"' in html
+        assert 'href="/assets/css/base/transitions.css"' in html
 
     def test_meta_tag_absent_when_disabled(self, site_builder):
         """View transition meta tag should be absent when disabled."""
@@ -50,6 +52,8 @@ class TestViewTransitionsMetaTag:
 
         html = site.read_output("index.html")
         assert '<meta name="view-transition"' not in html
+        assert 'data-view-transitions="enabled"' not in html
+        assert "css/base/transitions.css" not in html
 
     def test_meta_tag_absent_when_doc_app_disabled(self, site_builder):
         """View transition meta tag should be absent when document_application is disabled."""
@@ -69,6 +73,8 @@ class TestViewTransitionsMetaTag:
 
         html = site.read_output("index.html")
         assert '<meta name="view-transition"' not in html
+        assert 'data-view-transitions="enabled"' not in html
+        assert "css/base/transitions.css" not in html
 
     def test_transition_style_attribute_slide(self, site_builder):
         """Transition style attribute should be added for non-default styles."""
@@ -218,6 +224,7 @@ class TestDocumentApplicationDefaults:
         html = site.read_output("index.html")
         # By default, view transitions are disabled (can hang on 404/dev rebuild)
         assert '<meta name="view-transition"' not in html
+        assert "css/base/transitions.css" not in html
 
     def test_default_config_enables_speculation(self, site_builder):
         """Default config should enable speculation rules."""

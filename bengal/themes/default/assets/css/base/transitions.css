@@ -36,8 +36,8 @@
    ============================================== */
 
 /* Main content - the only element with a view transition name */
-main[role="main"],
-#main-content {
+html[data-view-transitions="enabled"] main[role="main"],
+html[data-view-transitions="enabled"] #main-content {
   view-transition-name: main-content;
 }
 
