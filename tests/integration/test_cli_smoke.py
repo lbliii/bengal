@@ -52,3 +52,12 @@ class TestCLICommandSmoke:
         assert result.returncode in (0, 1), (
             f"Unexpected exit code {result.returncode}: {result.stderr}"
         )
+
+    def test_cache_hash_command(self, site):
+        """Verify 'bengal cache hash' executes, not just renders help."""
+        result = run_cli(["cache", "hash"], cwd=str(site.root_path))
+
+        result.assert_ok()
+        cache_hash = result.stdout.strip().splitlines()[-1]
+        assert len(cache_hash) == 16
+        assert all(ch in "0123456789abcdef" for ch in cache_hash)
