@@ -51,6 +51,36 @@ if TYPE_CHECKING:
     from bengal.protocols.core import PageLike
 
 
+def _page_output_counts(pages: Sequence[PageLike]) -> tuple[int, int]:
+    """Return ``(checked, missing)`` for page HTML outputs."""
+    checked = 0
+    missing = 0
+    for page in pages:
+        output_path = getattr(page, "output_path", None)
+        if output_path is None:
+            continue
+        checked += 1
+        try:
+            if not Path(output_path).exists():
+                missing += 1
+        except OSError:
+            missing += 1
+    return checked, missing
+
+
+def _has_page_provenance(
+    provenance_cache: ProvenanceCache,
+    provenance_filter: ProvenanceFilter,
+    pages: Sequence[PageLike],
+) -> bool:
+    """Return whether any discovered page has a stored provenance entry."""
+    for page in pages:
+        page_key = provenance_filter._get_page_key(page)
+        if provenance_cache.get_stored_hash(page_key) is not None:
+            return True
+    return False
+
+
 def _detect_changed_data_files(
     cache: BuildCache,
     site: SiteLike,
@@ -489,14 +519,31 @@ def phase_incremental_filter_provenance(
         filter_start = time.time()
         assets_list = list(site.assets)
 
-        # COLD BUILD: If output is missing, skip provenance verification entirely.
+        # COLD BUILD: If output or provenance is missing, skip verification entirely.
         # We know the answer (build everything). Provenance will be computed during
         # record_build after rendering - no need for the 20+ second filter pass.
+        #
+        # Font/theme setup may create files in public/ before this phase, so an output
+        # directory that is merely non-empty is not proof that page HTML can be reused.
         output_dir = site.output_dir
         output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
         asset_integrity = inspect_asset_outputs(output_dir)
         output_assets_missing = not asset_integrity.is_complete
-        if (output_html_missing or output_assets_missing) and pages_list:
+        page_outputs_checked, page_outputs_missing = _page_output_counts(pages_list)
+        all_page_outputs_missing = (
+            page_outputs_checked > 0 and page_outputs_missing == page_outputs_checked
+        )
+        no_page_provenance = not _has_page_provenance(
+            provenance_cache,
+            provenance_filter,
+            pages_list,
+        )
+        if (
+            output_html_missing
+            or output_assets_missing
+            or all_page_outputs_missing
+            or no_page_provenance
+        ) and pages_list:
             result = provenance_filter.filter(
                 pages=pages_list,
                 assets=assets_list,
@@ -521,7 +568,13 @@ def phase_incremental_filter_provenance(
                     decision.add_rebuild_reason(
                         page_key,
                         RebuildReasonCode.FULL_REBUILD,
-                        {"cold_build": True, "output_missing": True},
+                        {
+                            "cold_build": True,
+                            "output_missing": output_html_missing
+                            or output_assets_missing
+                            or all_page_outputs_missing,
+                            "no_page_provenance": no_page_provenance,
+                        },
                     )
                 orchestrator.stats.incremental_decision = decision
 
@@ -530,8 +583,21 @@ def phase_incremental_filter_provenance(
                 f"{len(result.assets_to_process)} assets (skipped 0 cached)"
             )
             cli.detail(
-                f"Filter time: {filter_time_ms:.1f}ms (cold build, skipped verification)",
+                f"Filter time: {filter_time_ms:.1f}ms (cold/no-cache build, skipped verification)",
                 indent=1,
+            )
+            orchestrator.logger.info(
+                "provenance_verification_skipped_cold_build",
+                pages=len(result.pages_to_build),
+                assets=len(result.assets_to_process),
+                output_html_missing=output_html_missing,
+                output_assets_missing=output_assets_missing,
+                page_outputs_checked=page_outputs_checked,
+                page_outputs_missing=page_outputs_missing,
+                no_page_provenance=no_page_provenance,
+                asset_manifest_present=asset_integrity.manifest_present,
+                asset_manifest_entries=asset_integrity.total_entries,
+                missing_asset_outputs=asset_integrity.missing_count,
             )
             return FilterResult(
                 pages_to_build=result.pages_to_build,
