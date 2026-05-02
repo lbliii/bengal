@@ -208,9 +208,12 @@ class TestBuildOrchestrator:
             affected_sections=None,
         )
 
-        with patch(
-            "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
-        ) as mock_filter:
+        with (
+            patch(
+                "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance"
+            ) as mock_filter,
+            patch("bengal.orchestration.build.finalization.run_health_check") as mock_health,
+        ):
             mock_filter.return_value = filter_result
             # Run incremental build with BuildOptions
             options = BuildOptions(incremental=True, force_sequential=False)
@@ -226,6 +229,7 @@ class TestBuildOrchestrator:
             "taxonomy"
         ].return_value.collect_and_generate_incremental.assert_called_once()
         mock_orchestrators["taxonomy"].return_value.collect_and_generate.assert_not_called()
+        assert mock_health.call_args.kwargs["incremental"] is True
 
     def test_section_validation_error_strict(self, mock_site, mock_orchestrators):
         """Test that section validation errors raise exception in strict mode."""
