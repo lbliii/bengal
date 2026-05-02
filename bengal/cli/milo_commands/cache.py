@@ -9,6 +9,15 @@ from typing import Annotated
 from milo import Description
 
 
+def _resolve_config_arg(config: str) -> str | None:
+    if not config:
+        return None
+
+    from pathlib import Path
+
+    return str(Path(config).expanduser().resolve())
+
+
 def cache_inputs(
     source: Annotated[str, Description("Source directory path")] = "",
     output_format: Annotated[str, Description("Output format: plain or json")] = "plain",
@@ -20,7 +29,7 @@ def cache_inputs(
     from bengal.cli.utils import get_cli_output, load_site_from_cli
 
     source = source or "."
-    config_val = config or None
+    config_val = _resolve_config_arg(config)
     cli = get_cli_output()
 
     site = load_site_from_cli(
@@ -61,7 +70,7 @@ def cache_hash(
     from bengal.cli.utils import get_cli_output, load_site_from_cli
 
     source = source or "."
-    config_val = config or None
+    config_val = _resolve_config_arg(config)
     cli = get_cli_output()
 
     site = load_site_from_cli(

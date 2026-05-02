@@ -204,3 +204,59 @@ class TestCLICommandSmoke:
         result2.assert_ok()
 
         assert result1.stdout.strip().splitlines()[-1] != result2.stdout.strip().splitlines()[-1]
+
+    def test_cache_commands_resolve_config_relative_to_cwd(self, tmp_path):
+        """--config must hash the same cwd-relative file that site loading uses."""
+        site_root = tmp_path / "site"
+        (site_root / "content").mkdir(parents=True)
+        (site_root / "content" / "index.md").write_text("---\ntitle: Home\n---\n# Home\n")
+
+        config_dir = tmp_path / "configs"
+        config_dir.mkdir()
+        config_path = config_dir / "prod.toml"
+        config_path.write_text('[site]\ntitle = "Prod"\n')
+
+        inputs = run_cli(
+            ["cache", "inputs", "--source", "site", "--config", "configs/prod.toml"],
+            cwd=str(tmp_path),
+        )
+        inputs.assert_ok()
+        assert config_path.as_posix() in inputs.stdout
+
+        result1 = run_cli(
+            ["cache", "hash", "--source", "site", "--config", "configs/prod.toml"],
+            cwd=str(tmp_path),
+        )
+        result1.assert_ok()
+        config_path.write_text('[site]\ntitle = "Changed"\n')
+        result2 = run_cli(
+            ["cache", "hash", "--source", "site", "--config", "configs/prod.toml"],
+            cwd=str(tmp_path),
+        )
+        result2.assert_ok()
+
+        assert result1.stdout.strip().splitlines()[-1] != result2.stdout.strip().splitlines()[-1]
+
+    def test_theme_commands_include_site_local_themes(self, tmp_path):
+        """Site-local themes should appear in CLI list/info like render resolution."""
+        site_root = tmp_path / "site"
+        (site_root / "content").mkdir(parents=True)
+        (site_root / "content" / "index.md").write_text("---\ntitle: Home\n---\n# Home\n")
+        (site_root / "bengal.toml").write_text('[site]\ntitle = "Theme Site"\n')
+
+        theme_root = site_root / "themes" / "custom"
+        (theme_root / "templates").mkdir(parents=True)
+        (theme_root / "templates" / "page.html").write_text("{{ page.content }}\n")
+        (theme_root / "theme.toml").write_text(
+            'name = "Custom Theme"\nextends = "default"\nversion = "1.0.0"\n'
+        )
+
+        listed = run_cli(["theme", "list", "--source", str(site_root)])
+        listed.assert_ok()
+        assert "custom" in listed.stdout
+        assert "Site-local theme" in listed.stdout
+
+        info = run_cli(["theme", "info", "--slug", "custom", "--source", str(site_root)])
+        info.assert_ok()
+        assert "Custom Theme" in info.stdout
+        assert str(theme_root) in info.stdout
