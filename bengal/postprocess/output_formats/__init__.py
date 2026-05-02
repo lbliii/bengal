@@ -24,6 +24,7 @@ Configuration (bengal.toml):
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING, Any
 
 from bengal.postprocess.output_formats.agent_manifest_generator import (
@@ -42,6 +43,8 @@ from bengal.postprocess.utils import get_section_name
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import PageLike, SiteLike
 
@@ -262,6 +265,7 @@ class OutputFormatsGenerator:
 
         # Track what we generated
         generated = []
+        timings: dict[str, float] = {}
         options = self.config.get("options", {})
 
         # Get accumulated page data once (shared by multiple generators)
@@ -301,20 +305,32 @@ class OutputFormatsGenerator:
                     if data.full_json_data is not None
                     and data.full_json_data.get("url") in ai_input_urls
                 ]
-            count = json_gen.generate(ai_input_pages, accumulated_json=accumulated_json)
+            count = self._timed_generate(
+                timings,
+                "page_json",
+                lambda: json_gen.generate(ai_input_pages, accumulated_json=accumulated_json),
+            )
             generated.append(f"JSON ({count} files)")
             logger.debug("generated_page_json", file_count=count)
 
         if "llm_txt" in per_page:
             separator_width = options.get("llm_separator_width", 80)
             txt_gen = PageTxtGenerator(self.site, separator_width=separator_width)
-            count = txt_gen.generate(ai_input_pages)
+            count = self._timed_generate(
+                timings,
+                "page_llm_txt",
+                lambda: txt_gen.generate(ai_input_pages),
+            )
             generated.append(f"LLM text ({count} files)")
             logger.debug("generated_page_txt", file_count=count)
 
         if "markdown" in per_page:
             md_gen = PageMarkdownGenerator(self.site)
-            count = md_gen.generate(ai_input_pages)
+            count = self._timed_generate(
+                timings,
+                "page_markdown",
+                lambda: md_gen.generate(ai_input_pages),
+            )
             generated.append(f"Markdown ({count} files)")
             logger.debug("generated_page_markdown", file_count=count)
 
@@ -331,10 +347,14 @@ class OutputFormatsGenerator:
             )
             # OPTIMIZATION: Pass accumulated page data for hybrid mode
             # See: plan/drafted/rfc-unified-page-data-accumulation.md
-            index_result = index_gen.generate(
-                search_pages,
-                accumulated_data=accumulated_data,
-                build_context=self.build_context,
+            index_result = self._timed_generate(
+                timings,
+                "site_index_json",
+                lambda: index_gen.generate(
+                    search_pages,
+                    accumulated_data=accumulated_data,
+                    build_context=self.build_context,
+                ),
             )
 
             # Handle both single Path and list[Path] return
@@ -359,7 +379,11 @@ class OutputFormatsGenerator:
                 if lunr_gen.is_available():
                     # Generate Lunr index for each version index
                     for index_path in index_paths:
-                        lunr_path = lunr_gen.generate(index_path)
+                        lunr_path = self._timed_generate(
+                            timings,
+                            "site_lunr_index",
+                            lambda index_path=index_path: lunr_gen.generate(index_path),
+                        )
                         if lunr_path:
                             generated.append("search-index.json")
                             logger.debug("generated_prebuilt_lunr_index", path=str(lunr_path))
@@ -372,30 +396,64 @@ class OutputFormatsGenerator:
         if "llm_full" in site_wide:
             separator_width = options.get("llm_separator_width", 80)
             llm_gen = SiteLlmTxtGenerator(self.site, separator_width=separator_width)
-            llm_gen.generate(ai_train_pages)
+            self._timed_generate(
+                timings,
+                "site_llm_full",
+                lambda: llm_gen.generate(ai_train_pages),
+            )
             generated.append("llm-full.txt")
             logger.debug("generated_site_llm_full")
 
         if "llms_txt" in site_wide:
             llms_gen = SiteLlmsTxtGenerator(self.site)
-            llms_gen.generate(ai_input_pages)
+            self._timed_generate(
+                timings,
+                "site_llms_txt",
+                lambda: llms_gen.generate(ai_input_pages),
+            )
             generated.append("llms.txt")
             logger.debug("generated_site_llms_txt")
 
         if "changelog" in site_wide:
             changelog_gen = ChangelogGenerator(self.site)
-            changelog_gen.generate(ai_input_pages)
+            self._timed_generate(
+                timings,
+                "site_changelog",
+                lambda: changelog_gen.generate(ai_input_pages),
+            )
             generated.append("changelog.json")
             logger.debug("generated_changelog_json")
 
         if "agent_manifest" in site_wide:
             agent_gen = AgentManifestGenerator(self.site)
-            agent_gen.generate(ai_input_pages)
+            self._timed_generate(
+                timings,
+                "site_agent_manifest",
+                lambda: agent_gen.generate(ai_input_pages),
+            )
             generated.append("agent.json")
             logger.debug("generated_agent_manifest")
 
         if generated:
-            logger.info("output_formats_complete", formats=generated)
+            logger.info("output_formats_complete", formats=generated, timings_ms=timings)
+
+    def _timed_generate(
+        self,
+        timings: dict[str, float],
+        format_name: str,
+        generate_fn: Callable[[], Any],
+    ) -> Any:
+        """Run one output-format generator and record its elapsed time."""
+        start = time.perf_counter()
+        result = generate_fn()
+        duration_ms = (time.perf_counter() - start) * 1000
+        timings[format_name] = round(duration_ms, 1)
+        logger.info(
+            "output_format_generated",
+            format=format_name,
+            duration_ms=timings[format_name],
+        )
+        return result
 
     def _filter_pages(self) -> list[PageLike]:
         """
