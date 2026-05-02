@@ -35,6 +35,7 @@ Every `bengal build` produces these files automatically:
 | `agent.json` | Hierarchical site map with content hashes | Programmatic agent navigation |
 | `{page}/index.json` | Per-page metadata, navigation, optional chunks | Fine-grained RAG retrieval |
 | `{page}/index.txt` | Per-page plain text | Single-page LLM consumption |
+| `{page}/index.md` | Per-page Markdown mirror with an `llms.txt` directive | Coding agents and documentation checkers |
 | `index.json` | Searchable site index with facets | Client-side search, indexers |
 | `robots.txt` | Content Signal directives | Crawlers respecting your policies |
 | `.well-known/content-signals.json` | Machine-readable policy manifest | Automated compliance checks |
@@ -84,6 +85,7 @@ visibility:
 Content Signals are not advisory. Bengal enforces them at the file level:
 
 - `ai_input: false` pages get no `index.json` or `index.txt`
+- `ai_input: false` pages get no `index.md` Markdown mirror
 - `ai_train: false` pages are excluded from `llm-full.txt`
 - `search: false` pages are excluded from `index.json` site index
 - Draft pages are excluded from all machine-readable outputs

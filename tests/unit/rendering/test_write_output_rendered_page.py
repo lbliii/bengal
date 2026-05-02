@@ -9,6 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+from bengal.core.output import BuildOutputCollector
 from bengal.core.records import RenderedPage
 from bengal.rendering.pipeline.output import write_output
 
@@ -107,3 +108,70 @@ class TestWriteOutputRenderedPage:
 
         # Should not raise
         write_output(page, site)
+
+    def test_does_not_record_unchanged_html_output(self, tmp_path):
+        """Output collector should only receive route-visible byte changes."""
+        out = tmp_path / "same" / "index.html"
+        out.parent.mkdir(parents=True)
+        out.write_text("<p>same</p>", encoding="utf-8")
+        page = _make_page(output_path=out, rendered_html="<p>same</p>")
+        site = _make_site(tmp_path)
+        collector = BuildOutputCollector(output_dir=tmp_path)
+
+        write_output(page, site, collector=collector)
+
+        assert collector.get_outputs() == []
+        assert out.read_text(encoding="utf-8") == "<p>same</p>"
+
+    def test_copies_notebook_when_html_output_is_unchanged(self, tmp_path):
+        """Notebook companion files are side effects even when HTML is stable."""
+        src = tmp_path / "content" / "analysis.ipynb"
+        src.parent.mkdir(parents=True)
+        src.write_text('{"cells":[]}', encoding="utf-8")
+        out = tmp_path / "same" / "index.html"
+        out.parent.mkdir(parents=True)
+        out.write_text("<p>same</p>", encoding="utf-8")
+        page = _make_page(
+            source_path=src,
+            output_path=out,
+            rendered_html="<p>same</p>",
+        )
+        site = _make_site(tmp_path)
+        collector = BuildOutputCollector(output_dir=tmp_path)
+
+        write_output(page, site, collector=collector)
+
+        assert collector.get_outputs() == []
+        assert (out.parent / "analysis.ipynb").read_text(encoding="utf-8") == '{"cells":[]}'
+
+    def test_full_rebuild_can_skip_existing_output_compare(self, tmp_path):
+        """Full rebuilds can record outputs without reading old HTML first."""
+        out = tmp_path / "same" / "index.html"
+        out.parent.mkdir(parents=True)
+        out.write_text("<p>same</p>", encoding="utf-8")
+        page = _make_page(output_path=out, rendered_html="<p>same</p>")
+        site = _make_site(tmp_path)
+        collector = BuildOutputCollector(output_dir=tmp_path)
+
+        write_output(page, site, collector=collector, compare_existing_output=False)
+
+        outputs = collector.get_outputs()
+        assert len(outputs) == 1
+        assert str(outputs[0].path) == "same/index.html"
+        assert out.read_text(encoding="utf-8") == "<p>same</p>"
+
+    def test_records_changed_html_output(self, tmp_path):
+        """Changed HTML bytes should still be written and recorded."""
+        out = tmp_path / "changed" / "index.html"
+        out.parent.mkdir(parents=True)
+        out.write_text("<p>old</p>", encoding="utf-8")
+        page = _make_page(output_path=out, rendered_html="<p>new</p>")
+        site = _make_site(tmp_path)
+        collector = BuildOutputCollector(output_dir=tmp_path)
+
+        write_output(page, site, collector=collector)
+
+        outputs = collector.get_outputs()
+        assert len(outputs) == 1
+        assert str(outputs[0].path) == "changed/index.html"
+        assert out.read_text(encoding="utf-8") == "<p>new</p>"

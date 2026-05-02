@@ -79,6 +79,9 @@ def add_subsection(section: Section, child: Section) -> None:
     section.subsections.append(child)
     child.__dict__.pop("hierarchy", None)
     child.__dict__.pop("depth", None)
+    from bengal.core.section.navigation import invalidate_version_content_cache
+
+    invalidate_version_content_cache(section)
 
 
 def walk(section: Section) -> list[Section]:

@@ -719,6 +719,16 @@ class TestNavNodeProxy:
                 f"Child proxy href should include baseurl. Got: {child.href}"
             )
 
+    def test_proxy_uses_lock_free_local_caches(self, tree_with_baseurl):
+        """Transient render proxies should not allocate per-node locks."""
+        tree, current_page, _site = tree_with_baseurl
+        context = NavTreeContext(tree, current_page)
+        root_proxy = context._wrap_node(tree.root)
+
+        assert not hasattr(root_proxy, "_lock")
+        assert root_proxy.children is root_proxy.children
+        assert root_proxy.href is root_proxy.href
+
 
 class TestNavTreeCache:
     """Test NavTreeCache caching and invalidation."""

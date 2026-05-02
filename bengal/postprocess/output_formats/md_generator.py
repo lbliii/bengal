@@ -54,6 +54,7 @@ from bengal.postprocess.output_formats.utils import (
     parallel_write_files,
 )
 from bengal.postprocess.utils import get_section_name
+from bengal.rendering.html_markdown import rendered_html_to_markdown
 from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
@@ -149,6 +150,8 @@ class PageMarkdownGenerator:
         lines.append("")
         lines.append("---")
         lines.append("")
+        lines.append(self._agent_directive())
+        lines.append("")
 
         content = self._get_best_content(page)
         lines.append(content)
@@ -156,13 +159,20 @@ class PageMarkdownGenerator:
 
         return "\n".join(lines)
 
+    def _agent_directive(self) -> str:
+        """Return the page-level directive that points agents to llms.txt."""
+        baseurl = (getattr(self.site, "baseurl", "") or "").rstrip("/")
+        llms_url = f"{baseurl}/llms.txt" if baseurl else "/llms.txt"
+        return f"> For a complete page index, fetch {llms_url}."
+
     def _get_best_content(self, page: PageLike) -> str:
         """Select the best content source for markdown parity.
 
-        Prefers raw markdown (preserves formatting), but falls back to
-        plain_text when raw content is significantly shorter than the
-        rendered output — indicating shortcodes, includes, or directives
-        expanded substantial content during rendering.
+        Prefers raw markdown when it covers the rendered page well, because
+        it preserves author formatting. Uses the rendered primary content
+        when templates generated substantial additional content, then falls
+        back to plain_text for parser-expanded content without full rendered
+        HTML.
 
         Args:
             page: Page to get content for.
@@ -171,10 +181,11 @@ class PageMarkdownGenerator:
             Best available content string.
         """
         raw = getattr(page, "_raw_content", None) or ""
-        plain = getattr(page, "plain_text", "") or ""
 
         if not raw:
-            return plain
+            plain = getattr(page, "plain_text", "") or ""
+            rendered_markdown = self._rendered_markdown(page)
+            return rendered_markdown or plain
 
         content = raw.strip()
 
@@ -191,12 +202,44 @@ class PageMarkdownGenerator:
         # than raw content, shortcodes/includes added substantial content.
         # Use plain_text for better parity with the rendered HTML.
         raw_len = len(content)
+        plain = getattr(page, "plain_text", "") or ""
         plain_len = len(plain)
         if plain_len > 0 and raw_len > 0:
             coverage = raw_len / plain_len
             if coverage < 0.75:
                 # Raw markdown covers <75% of rendered content — fall back
-                # to plain text for better parity with HTML output
-                return plain
+                # to rendered primary content when available, then plain text.
+                return self._rendered_markdown(page) or plain
+
+        if self._should_check_rendered_markdown(page):
+            rendered_markdown = self._rendered_markdown(page)
+            rendered_len = len(rendered_markdown)
+            reference_len = max(raw_len, plain_len)
+            if rendered_len > 0 and (reference_len == 0 or rendered_len / reference_len > 1.15):
+                return rendered_markdown
 
         return content
+
+    def _rendered_markdown(self, page: PageLike) -> str:
+        """Convert rendered HTML to Markdown when a caller has decided it is needed."""
+        rendered = getattr(page, "rendered_html", "") or ""
+        if not isinstance(rendered, str):
+            return ""
+        return rendered_html_to_markdown(rendered)
+
+    def _should_check_rendered_markdown(self, page: PageLike) -> bool:
+        """Return whether rendered HTML is likely to contain generated page content."""
+        if getattr(page, "virtual", False):
+            return True
+
+        source_path = getattr(page, "source_path", None)
+        if getattr(source_path, "name", "") == "_index.md":
+            return True
+
+        metadata = getattr(page, "metadata", {}) or {}
+        return bool(
+            metadata.get("is_autodoc")
+            or metadata.get("is_section_index")
+            or metadata.get("_taxonomy_term")
+            or metadata.get("generated")
+        )

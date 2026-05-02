@@ -445,6 +445,77 @@ title: Home
         assert result is not None, "Should rebuild when index.html is missing"
         assert len(result.pages_to_build) > 0
 
+    def test_cold_page_outputs_skip_provenance_verification(
+        self,
+        site_with_cache: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """
+        Page output removal should force a full rebuild before provenance verification.
+
+        Fonts or asset setup can make public/ non-empty before the provenance phase.
+        That must not hide the fact that all page HTML outputs are missing.
+        """
+        from bengal.assets.manifest import AssetManifest
+        from bengal.build.contracts.keys import content_key
+        from bengal.build.provenance.filter import ProvenanceFilter
+        from bengal.build.provenance.store import ProvenanceCache
+        from bengal.build.provenance.types import ContentHash, Provenance, ProvenanceRecord
+        from bengal.core.site import Site
+        from bengal.orchestration.build import BuildOrchestrator
+        from bengal.orchestration.build.provenance_filter import phase_incremental_filter_provenance
+        from bengal.output import CLIOutput
+
+        output_dir = site_with_cache / "public"
+        asset_path = output_dir / "assets" / "fonts" / "fonts.css"
+        asset_path.parent.mkdir(parents=True)
+        asset_path.write_text("body { font-family: sans-serif; }")
+        manifest = AssetManifest()
+        manifest.set_entry(
+            logical_path="fonts/fonts.css",
+            output_path="assets/fonts/fonts.css",
+            fingerprint=None,
+            size_bytes=None,
+            updated_at=None,
+        )
+        manifest.write(output_dir / "asset-manifest.json")
+
+        site = Site.from_config(site_with_cache)
+        orchestrator = BuildOrchestrator(site)
+        orchestrator.content.discover_content()
+        orchestrator.content.discover_assets()
+
+        provenance_cache = ProvenanceCache(site_with_cache / ".bengal" / "provenance")
+        for index, page in enumerate(site.pages):
+            page_key = content_key(page.source_path, site.root_path)
+            provenance = Provenance(combined_hash=ContentHash(f"stale{index:04d}"))
+            provenance_cache.store(
+                ProvenanceRecord(
+                    page_path=page_key,
+                    provenance=provenance,
+                    output_hash=ContentHash("stale-output"),
+                )
+            )
+        provenance_cache.save()
+
+        def fail_verify(*args: object, **kwargs: object) -> None:
+            raise AssertionError("cold page outputs should not enter provenance verification")
+
+        monkeypatch.setattr(ProvenanceFilter, "_verify_page_provenance", fail_verify)
+
+        cache = orchestrator.incremental.initialize(enabled=True)
+        result = phase_incremental_filter_provenance(
+            orchestrator=orchestrator,
+            cli=CLIOutput(),
+            incremental=True,
+            verbose=False,
+            cache=cache,
+            build_start=time.time(),
+        )
+
+        assert result is not None
+        assert len(result.pages_to_build) == len(site.pages)
+
     def test_detects_missing_assets(self, site_with_cache: Path) -> None:
         """
         Specifically test that missing assets directory triggers rebuild.

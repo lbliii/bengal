@@ -632,6 +632,14 @@ class TestClientScriptPayloadContract:
         assert "changedPaths" in LIVE_RELOAD_SCRIPT
         assert "payload" in LIVE_RELOAD_SCRIPT
 
+    def test_reload_page_is_route_aware(self):
+        """reload-page should skip when changedPaths do not match location.pathname."""
+        from bengal.server.live_reload import LIVE_RELOAD_SCRIPT
+
+        assert "currentRouteMatchesChangedPath" in LIVE_RELOAD_SCRIPT
+        assert "outputPathToRoute" in LIVE_RELOAD_SCRIPT
+        assert "Current route unchanged; skipping page reload" in LIVE_RELOAD_SCRIPT
+
     def test_script_payload_keys_match_send_reload_payload(self):
         """Payload keys used by client must match send_reload_payload output."""
         import json

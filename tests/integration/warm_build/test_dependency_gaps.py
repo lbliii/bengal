@@ -363,6 +363,36 @@ This page will be deleted.
         )
 
 
+class TestPostprocessArtifactFreshness:
+    """
+    Site-wide postprocess artifacts should be repaired on warm no-op builds.
+
+    A clean provenance result can skip page rendering, but it must not skip
+    incremental postprocess when generated artifacts are missing from public/.
+    """
+
+    def test_missing_site_wide_artifact_runs_incremental_postprocess(
+        self, site_with_output_formats: WarmBuildTestSite
+    ) -> None:
+        site_with_output_formats.full_build()
+
+        site_with_output_formats.assert_output_exists("index.json")
+        site_with_output_formats.assert_output_exists("llms.txt")
+        site_with_output_formats.assert_output_exists("sitemap.xml")
+        site_with_output_formats.assert_output_exists("robots.txt")
+
+        for artifact in ("index.json", "llms.txt", "sitemap.xml", "robots.txt"):
+            (site_with_output_formats.output_dir / artifact).unlink()
+
+        stats = site_with_output_formats.incremental_build()
+
+        assert stats.skipped is False
+        site_with_output_formats.assert_output_exists("index.json")
+        site_with_output_formats.assert_output_exists("llms.txt")
+        site_with_output_formats.assert_output_exists("sitemap.xml")
+        site_with_output_formats.assert_output_exists("robots.txt")
+
+
 class TestCascadeFrontmatterGap:
     """
     Gap 4: Cascade changes should trigger child page rebuilds.

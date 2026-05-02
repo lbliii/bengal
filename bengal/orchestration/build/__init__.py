@@ -879,7 +879,12 @@ class BuildOrchestrator:
 
         # Phase 20: Health Check
         with logger.phase("health_check"):
-            finalization.run_health_check(self, profile=profile, build_context=ctx)
+            finalization.run_health_check(
+                self,
+                profile=profile,
+                incremental=incremental,
+                build_context=ctx,
+            )
 
         health_duration_ms = (time.time() - health_start) * 1000
         health_report = getattr(self.stats, "health_report", None)

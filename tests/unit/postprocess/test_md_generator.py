@@ -10,9 +10,13 @@ Covers:
 from __future__ import annotations
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 from bengal.postprocess.output_formats.md_generator import PageMarkdownGenerator
+
+if TYPE_CHECKING:
+    import pytest
 
 
 def _make_site(baseurl: str = "") -> MagicMock:
@@ -29,6 +33,8 @@ def _make_page(
     output_path: str | None = None,
     raw_content: str = "",
     plain_text: str = "",
+    rendered_html: str = "",
+    source_path: str = "content/docs/page.md",
 ) -> MagicMock:
     page = MagicMock()
     page.title = title
@@ -36,8 +42,11 @@ def _make_page(
     page.href = path
     page.description = description
     page.output_path = Path(output_path) if output_path else Path(f"public{path}index.html")
+    page.source_path = Path(source_path)
     page._raw_content = raw_content or None
     page.plain_text = plain_text or None
+    page.rendered_html = rendered_html
+    page.metadata = {}
 
     if section_name:
         section = MagicMock()
@@ -118,6 +127,15 @@ class TestPageToMarkdown:
         result = gen._page_to_markdown(page)
 
         assert "\n---\n" in result
+
+    def test_includes_agent_directive(self):
+        site = _make_site(baseurl="/bengal")
+        gen = PageMarkdownGenerator(site)
+        page = _make_page(raw_content="Body text.")
+
+        result = gen._page_to_markdown(page)
+
+        assert "> For a complete page index, fetch /bengal/llms.txt." in result
 
     def test_preserves_raw_content(self):
         site = _make_site()
@@ -211,6 +229,33 @@ class TestContentParityThreshold:
         assert "## Setup" in result
         assert "## Usage" in result
 
+    def test_skips_rendered_conversion_when_raw_coverage_high(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Normal pages should not parse rendered HTML when raw/plain parity is already good."""
+        import bengal.postprocess.output_formats.md_generator as md_generator
+
+        def fail_conversion(rendered_html: str) -> str:
+            raise AssertionError("rendered HTML conversion should be lazy")
+
+        monkeypatch.setattr(md_generator, "rendered_html_to_markdown", fail_conversion)
+
+        site = _make_site()
+        gen = PageMarkdownGenerator(site)
+        raw = "## Setup\n\nInstall with pip."
+        plain = "Setup\nInstall with pip."
+        page = _make_page(
+            title="Guide",
+            raw_content=raw,
+            plain_text=plain,
+            rendered_html="<main><article>expanded</article></main>",
+        )
+
+        result = gen._get_best_content(page)
+
+        assert result == raw
+
     def test_falls_back_to_plain_when_coverage_low(self):
         """Raw content covering <75% of plain_text triggers fallback."""
         site = _make_site()
@@ -258,6 +303,32 @@ class TestContentParityThreshold:
         result = gen._get_best_content(page)
 
         assert result == raw
+
+    def test_uses_rendered_content_when_template_adds_substantial_content(self):
+        """Rendered primary content fills parity gaps on generated pages."""
+        site = _make_site()
+        gen = PageMarkdownGenerator(site)
+        raw = "Short intro."
+        rendered = """
+        <main id="main-content">
+          <article class="prose">
+            <div class="docs-content"><p>Short intro.</p></div>
+            <section class="docs-children">
+              <h2>In This Section</h2>
+              <article><h3>Installation</h3><p>Install Bengal.</p></article>
+              <article><h3>Configuration</h3><p>Configure output formats.</p></article>
+            </section>
+          </article>
+        </main>
+        """
+        page = _make_page(title="Guide", raw_content=raw, rendered_html=rendered)
+        page.source_path = Path("content/docs/guide/_index.md")
+
+        result = gen._get_best_content(page)
+
+        assert "In This Section" in result
+        assert "Installation" in result
+        assert "Configuration" in result
 
 
 class TestGenerate:

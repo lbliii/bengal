@@ -35,6 +35,7 @@ _path, kind, tags are always defined - no defensive checks needed.
 {% let _doc_app_nav = _doc_app?.navigation ?? {} %}
 {% let _view_transitions = (_doc_app?.enabled ?? false) and (_doc_app_nav?.view_transitions ?? false) %}
 {% let _transition_style = _doc_app_nav?.transition_style ?? none %}
+{% let _llms_txt_url = '/llms.txt' | absolute_url %}
 
 {# Auto navigation if main menu is empty #}
 {% let _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
@@ -89,7 +90,8 @@ HELPER: Render a menu item (desktop/mobile)
 </li>
 {% enddef %}
 
-<html lang="{{ _current_lang }}" dir="{{ _direction }}" {% if _view_transitions and _transition_style !='crossfade' %}
+    <html lang="{{ _current_lang }}" dir="{{ _direction }}" {% if _view_transitions %}
+    data-view-transitions="enabled" {% end %}{% if _view_transitions and _transition_style !='crossfade' %}
     data-transition-style="{{ _transition_style }}" {% end %}>
 
 <head>
@@ -179,6 +181,7 @@ HELPER: Render a menu item (desktop/mobile)
     <meta name="bengal:search_preload" content="{{ config.search_preload ?? 'smart' }}">
     <meta name="bengal:baseurl" content="{{ site.baseurl }}">
     <meta name="bengal:index_url" content="{{ '/index.json' | absolute_url }}">
+    <meta name="bengal:agent_directive" content="For a complete page index, fetch {{ _llms_txt_url }}.">
     {% if bengal?.capabilities?.prebuilt_search ?? false %}
     <meta name="bengal:search_index_url" content="{{ '/search-index.json' | absolute_url }}">
     {% end %}
@@ -237,6 +240,9 @@ HELPER: Render a menu item (desktop/mobile)
 
     {# Stylesheets #}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
+    {% if _view_transitions %}
+    <link rel="stylesheet" href="{{ asset_url('css/base/transitions.css') }}">
+    {% end %}
     {% if 'content.math' in (theme.features ?? []) %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin>
     {% end %}
@@ -305,6 +311,8 @@ HELPER: Render a menu item (desktop/mobile)
     {% if 'accessibility.skip_link' in (theme.features ?? []) %}
     <a href="#main-content" class="skip-link">Skip to main content</a>
     {% end %}
+
+    <p class="sr-only" data-agent-directive>For a complete page index, fetch <a href="{{ _llms_txt_url }}">{{ _llms_txt_url }}</a>.</p>
 
     {# Header #}
     {% let _header_sticky = theme.header_sticky ?? true %}

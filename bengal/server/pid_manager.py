@@ -101,8 +101,7 @@ class PIDManager:
             import psutil
 
             proc = psutil.Process(pid)
-            cmdline = " ".join(proc.cmdline()).lower()
-            return "bengal" in cmdline and "serve" in cmdline
+            return PIDManager._is_bengal_serve_argv(proc.cmdline())
         except ImportError:
             # psutil not available: do NOT assume ownership. Returning True would
             # risk killing unrelated processes. Install psutil for reliable
@@ -110,6 +109,20 @@ class PIDManager:
             return False
         except psutil.NoSuchProcess, psutil.AccessDenied:
             return False
+
+    @staticmethod
+    def _is_bengal_serve_argv(argv: list[str]) -> bool:
+        """Return True when argv is a Bengal serve/dev command."""
+        serve_commands = {"serve", "s", "dev"}
+        tokens = [os.path.basename(part).lower() for part in argv]
+
+        for index in range(len(tokens) - 1, -1, -1):
+            if tokens[index] not in {"bengal", "bengal.cli", "bengal.__main__"}:
+                continue
+            next_index = index + 1
+            return next_index < len(tokens) and tokens[next_index] in serve_commands
+
+        return False
 
     @staticmethod
     def check_stale_pid(pid_file: Path) -> int | None:

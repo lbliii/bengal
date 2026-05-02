@@ -45,11 +45,6 @@ Or set `type: doc` to auto-select this template
 
 {# Three-column documentation layout #}
 <div class="docs-layout">
-  {# Left Sidebar: Navigation #}
-  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="Documentation navigation">
-    {% include 'partials/docs-nav.html' %}
-  </aside>
-
   {# Main Content #}
   <div class="docs-main">
     {# Version Banner - warns users when viewing old/deprecated versions #}
@@ -86,6 +81,11 @@ Or set `type: doc` to auto-select this template
     {# Page navigation (prev/next) at bottom #}
     {{ page_navigation(page) }}
   </div>
+
+  {# Left Sidebar: Navigation #}
+  <aside class="docs-sidebar" id="docs-sidebar" role="navigation" aria-label="Documentation navigation">
+    {% include 'partials/docs-nav.html' %}
+  </aside>
 
   {# Right Sidebar: Contextual Graph + TOC + Metadata #}
   {% if toc_items %}

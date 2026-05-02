@@ -8,6 +8,8 @@ RFC: template-bugs-live-reload-issues
 
 from __future__ import annotations
 
+import errno
+import socket
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -144,3 +146,42 @@ class TestDevServerCachedOutputIntegrity:
 
         server = DevServer(site, watch=False, auto_port=False)
         assert server._has_cached_output() is False
+
+
+class TestDevServerPortDetection:
+    """Port probing should match the address families Pounce may bind."""
+
+    def test_localhost_port_probe_checks_ipv6_listener(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+
+        def fake_getaddrinfo(host: str, port: int, **_kwargs: object):
+            assert host == "localhost"
+            return [
+                (socket.AF_INET6, socket.SOCK_STREAM, 0, "", ("::1", port, 0, 0)),
+                (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("127.0.0.1", port)),
+            ]
+
+        class FakeSocket:
+            def __init__(self, family: int, _socktype: int, _proto: int) -> None:
+                self.family = family
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args: object) -> None:
+                return None
+
+            def bind(self, _sockaddr: object) -> None:
+                if self.family == socket.AF_INET6:
+                    raise OSError(errno.EADDRINUSE, "Address already in use")
+
+        monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
+        monkeypatch.setattr(socket, "socket", FakeSocket)
+
+        server = DevServer(site, host="localhost", watch=False, auto_port=False)
+
+        assert server._is_port_available(5173) is False

@@ -157,6 +157,7 @@ def write_output(
     write_behind: WriteBehindCollector | None = None,
     build_cache: Any = None,
     rendered_page: RenderedPage | None = None,
+    compare_existing_output: bool = True,
 ) -> None:
     """
     Write rendered page to output directory.
@@ -181,6 +182,9 @@ def write_output(
         rendered_page: Optional RenderedPage record (Sprint 2: Immutable Pipeline).
             When provided, rendered_html and output_path are read from this
             record instead of the mutable Page object.
+        compare_existing_output: If True, read existing output bytes and suppress
+            collector records for unchanged HTML. Incremental hot reload uses this;
+            full rebuilds can skip the read and record every rendered output.
 
     """
     # Sprint 2: Read from RenderedPage when available, fall back to page attrs
@@ -205,11 +209,36 @@ def write_output(
         )
         return
 
+    record_output = True
+    if collector is not None and compare_existing_output and output_path.is_file():
+        try:
+            record_output = output_path.read_text(encoding="utf-8") != rendered_html
+        except UnicodeDecodeError, OSError:
+            record_output = True
+        if not record_output:
+            _copy_notebook_source(page, output_path=output_path)
+            _track_and_record(
+                page,
+                site,
+                collector,
+                build_cache=build_cache,
+                output_path=output_path,
+                record_output=False,
+            )
+            return
+
     # Write-behind mode: queue for async write (RFC: rfc-path-to-200-pgs)
     if write_behind is not None:
         write_behind.enqueue(output_path, rendered_html)
         _copy_notebook_source(page, output_path=output_path)
-        _track_and_record(page, site, collector, build_cache=build_cache, output_path=output_path)
+        _track_and_record(
+            page,
+            site,
+            collector,
+            build_cache=build_cache,
+            output_path=output_path,
+            record_output=record_output,
+        )
         return
 
     # Synchronous write (original behavior)
@@ -258,7 +287,14 @@ def write_output(
             )
 
     _copy_notebook_source(page)
-    _track_and_record(page, site, collector, build_cache=build_cache, output_path=output_path)
+    _track_and_record(
+        page,
+        site,
+        collector,
+        build_cache=build_cache,
+        output_path=output_path,
+        record_output=record_output,
+    )
 
 
 def _copy_notebook_source(page: PageLike, output_path: Path | None = None) -> None:
@@ -290,6 +326,7 @@ def _track_and_record(
     collector: OutputCollector | None,
     build_cache: Any = None,
     output_path: Path | None = None,
+    record_output: bool = True,
 ) -> None:
     """Track output mapping and record output (shared by sync and async paths).
 
@@ -299,6 +336,7 @@ def _track_and_record(
         collector: Optional output collector for hot reload
         build_cache: Optional BuildCache for direct cache access.
         output_path: Optional override from RenderedPage (Sprint 2).
+        record_output: Whether to record the output as byte-visible changed.
 
     """
     effective_output_path = output_path or page.output_path
@@ -315,7 +353,7 @@ def _track_and_record(
         cache.track_output(page.source_path, effective_output_path, site.output_dir)
 
     # Record output for hot reload tracking
-    if collector and effective_output_path:
+    if collector is not None and effective_output_path and record_output:
         from bengal.core.output import OutputType
 
         collector.record(effective_output_path, OutputType.HTML, phase="render")

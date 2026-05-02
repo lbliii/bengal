@@ -296,6 +296,18 @@ class TestHasContentForVersion:
         # None should have content for v2
         assert root.has_content_for_version("v2") is False
 
+    def test_version_content_cache_invalidates_when_page_added(self, tmp_path):
+        """Adding a page clears cached version membership on ancestors."""
+        root = Section(name="root", path=tmp_path / "root")
+        child = Section(name="child", path=tmp_path / "root/child")
+        root.add_subsection(child)
+
+        assert root.has_content_for_version("v1") is False
+        child.add_page(make_page(tmp_path, "guide", version="v1"))
+
+        assert child.has_content_for_version("v1") is True
+        assert root.has_content_for_version("v1") is True
+
 
 class TestVersionFilteringIntegration:
     """Integration tests for version filtering across nested sections."""

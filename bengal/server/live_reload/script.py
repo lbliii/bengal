@@ -20,6 +20,33 @@ LIVE_RELOAD_SCRIPT = r"""
         location.replace(url.toString());
     }
 
+    function normalizeRoutePath(path) {
+        var value = String(path || '/').split('?')[0].split('#')[0];
+        if (!value.startsWith('/')) value = '/' + value;
+        value = value.replace(/\/+/g, '/');
+        if (value === '/index.html') return '/';
+        if (value.endsWith('/index.html')) {
+            value = value.slice(0, -'index.html'.length);
+        }
+        if (value !== '/' && value.endsWith('/')) {
+            value = value.slice(0, -1);
+        }
+        return value || '/';
+    }
+
+    function outputPathToRoute(path) {
+        var value = String(path || '').replace(/\\/g, '/');
+        return normalizeRoutePath(value);
+    }
+
+    function currentRouteMatchesChangedPath(changedPaths) {
+        if (!changedPaths || changedPaths.length === 0) return true;
+        var current = normalizeRoutePath(location.pathname);
+        return changedPaths.some(function(path) {
+            return outputPathToRoute(path) === current;
+        });
+    }
+
     function escapeHTML(s) {
         return String(s == null ? '' : s)
             .replace(/&/g, '&amp;')
@@ -140,8 +167,15 @@ LIVE_RELOAD_SCRIPT = r"""
     }
 
     function executeReload(action, changedPaths) {
-        if (action === 'reload' || action === 'reload-page') {
-            console.log(action === 'reload' ? '🔄 Bengal: Reloading page...' : '📄 Bengal: Reloading current page...');
+        if (action === 'reload-page') {
+            if (!currentRouteMatchesChangedPath(changedPaths)) {
+                console.log('📄 Bengal: Current route unchanged; skipping page reload', changedPaths);
+                return;
+            }
+            console.log('📄 Bengal: Reloading current page...');
+            cacheBustReload();
+        } else if (action === 'reload') {
+            console.log('🔄 Bengal: Reloading page...');
             cacheBustReload();
         } else if (action === 'reload-css') {
             console.log('🎨 Bengal: Reloading CSS...', changedPaths);

@@ -10,6 +10,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from bengal.rendering.context.lazy import LazyPageContext, make_lazy
+
 
 def make_mock_site(
     dev_mode: bool = False,
@@ -106,6 +108,110 @@ class TestEngineMenuCache:
         engine = make_kida_engine(mock_site)
         assert hasattr(engine, "_menu_dict_cache")
         assert isinstance(engine._menu_dict_cache, dict)
+
+
+class TestKidaLazyContext:
+    """Kida rendering preserves Bengal lazy template context values."""
+
+    def test_render_template_does_not_evaluate_unused_lazy_value(self, tmp_path: Path) -> None:
+        templates = tmp_path / "templates"
+        templates.mkdir()
+        (templates / "page.html").write_text("{{ title }}", encoding="utf-8")
+        site = make_mock_site(root_path=tmp_path)
+        site.theme = ""
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+        context = LazyPageContext(
+            {
+                "title": "Hello",
+                "posts": make_lazy(
+                    lambda: (_ for _ in ()).throw(AssertionError("unused lazy value was evaluated"))
+                ),
+            }
+        )
+
+        assert engine.render_template("page.html", context) == "Hello"
+
+    def test_render_template_evaluates_used_lazy_value(self, tmp_path: Path) -> None:
+        templates = tmp_path / "templates"
+        templates.mkdir()
+        (templates / "page.html").write_text("{{ posts | length }}", encoding="utf-8")
+        site = make_mock_site(root_path=tmp_path)
+        site.theme = ""
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+        context = LazyPageContext({"posts": make_lazy(lambda: ["one", "two"])})
+
+        assert engine.render_template("page.html", context) == "2"
+
+    def test_render_template_preserves_environment_globals(self, tmp_path: Path) -> None:
+        templates = tmp_path / "templates"
+        templates.mkdir()
+        (templates / "page.html").write_text("{{ bengal.engine.name }}", encoding="utf-8")
+        site = make_mock_site(root_path=tmp_path)
+        site.theme = ""
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+
+        assert engine.render_template("page.html", {}) == "Bengal SSG"
+
+
+class TestKidaTemplateDependencyCache:
+    """Template dependency graph discovery is cached per engine."""
+
+    def test_dependency_discovery_cached_but_recording_repeats(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+    ) -> None:
+        site = make_mock_site(root_path=tmp_path)
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+        dependency_calls: dict[str, int] = {"page.html": 0, "partial.html": 0}
+
+        class FakeTemplate:
+            def __init__(self, name: str) -> None:
+                self.name = name
+
+            def dependencies(self) -> dict[str, list[str]]:
+                dependency_calls[self.name] += 1
+                if self.name == "page.html":
+                    return {"includes": ["partial.html"]}
+                return {}
+
+        def get_template(name: str) -> FakeTemplate:
+            return FakeTemplate(name)
+
+        recorded_includes: list[str] = []
+        recorded_paths: list[Path] = []
+
+        monkeypatch.setattr(engine._env, "get_template", get_template)
+        monkeypatch.setattr(
+            KidaTemplateEngine, "get_template_path", lambda _self, name: tmp_path / name
+        )
+        monkeypatch.setattr(
+            "bengal.effects.render_integration.record_template_include",
+            recorded_includes.append,
+        )
+        monkeypatch.setattr(
+            "bengal.effects.render_integration.record_extra_dependency",
+            recorded_paths.append,
+        )
+
+        engine._track_referenced_templates("page.html")
+        engine._track_referenced_templates("page.html")
+
+        assert dependency_calls == {"page.html": 1, "partial.html": 1}
+        assert recorded_includes == ["partial.html", "partial.html"]
+        assert recorded_paths == [tmp_path / "partial.html", tmp_path / "partial.html"]
 
 
 class TestEngineCapabilities:

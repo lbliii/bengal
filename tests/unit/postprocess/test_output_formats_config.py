@@ -274,6 +274,20 @@ class TestConfigNormalizationEdgeCases:
             "Advanced format 'per_page' should override simple 'json' key"
         )
 
+    def test_timed_generate_records_elapsed_time(self, tmp_path: Path) -> None:
+        """Output-format substeps record timings for slow postprocess diagnosis."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        generator = OutputFormatsGenerator(mock_site, {"enabled": True})
+        timings: dict[str, float] = {}
+
+        result = generator._timed_generate(timings, "test_format", lambda: "ok")
+
+        assert result == "ok"
+        assert "test_format" in timings
+        assert timings["test_format"] >= 0
+
     # Helper methods
 
     def _create_mock_site(self, site_dir: Path, output_dir: Path, baseurl: str = "") -> Mock:
