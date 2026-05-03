@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from .envelope import envelope_from_health_report
 from .formatting import (
     format_normal,
     format_quiet,
@@ -215,7 +216,7 @@ class HealthReport:
         Returns structured data for CLI rendering without embedding terminal
         layout in the health model.
         """
-        return validation_report_context(
+        context = validation_report_context(
             self.validator_reports,
             self.has_problems(),
             self.total_errors,
@@ -228,3 +229,29 @@ class HealthReport:
             verbose=verbose,
             show_suggestions=show_suggestions,
         )
+        envelope = self.format_envelope(command="check")
+        context.update(
+            {
+                "schema_version": envelope["schema_version"],
+                "command": envelope["command"],
+                "status": envelope["status"],
+                "policy": envelope["policy"],
+                "findings": envelope["findings"],
+                "report": envelope,
+            }
+        )
+        return context
+
+    def format_envelope(self, command: str = "check", *, include_success: bool = False) -> dict:
+        """
+        Format report as a versioned, presentation-neutral result envelope.
+
+        This is the shared shape for Milo/Kida terminal output and machine
+        output. The legacy JSON and console formatters remain available for
+        compatibility while callers migrate to the envelope.
+        """
+        return envelope_from_health_report(
+            self,
+            command=command,
+            include_success=include_success,
+        ).to_dict()

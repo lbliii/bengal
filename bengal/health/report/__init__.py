@@ -27,13 +27,25 @@ Related:
 
 """
 
+from .envelope import (
+    DEFAULT_CHECK_SCHEMA,
+    ReportEnvelope,
+    ReportFinding,
+    ReportPolicy,
+    envelope_from_health_report,
+)
 from .health_report import HealthReport
 from .models import CheckResult, CheckStatus, ValidatorReport, ValidatorStats
 
 __all__ = [
+    "DEFAULT_CHECK_SCHEMA",
     "CheckResult",
     "CheckStatus",
     "HealthReport",
+    "ReportEnvelope",
+    "ReportFinding",
+    "ReportPolicy",
     "ValidatorReport",
     "ValidatorStats",
+    "envelope_from_health_report",
 ]
