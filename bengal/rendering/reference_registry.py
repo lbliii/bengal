@@ -255,6 +255,8 @@ def _build_auxiliary_urls_from_output_records(
 def _outputs_per_page_llm_txt(site: SiteLike) -> bool:
     """Return whether per-page LLM text outputs are enabled."""
     config = getattr(site, "config", {}) or {}
+    if "output_formats" not in config:
+        return False
     output_formats: dict[str, Any] = config.get("output_formats", {}) or {}
     if not output_formats.get("enabled", True):
         return False
@@ -278,6 +280,8 @@ def _build_site_wide_auxiliary_urls(site: SiteLike) -> set[str]:
 def _configured_site_wide_output_formats(site: SiteLike) -> tuple[str, ...]:
     """Return normalized site-wide output formats from the site configuration."""
     config = getattr(site, "config", {}) or {}
+    if "output_formats" not in config:
+        return ()
     output_formats: dict[str, Any] = config.get("output_formats", {}) or {}
     if not output_formats.get("enabled", True):
         return ()
