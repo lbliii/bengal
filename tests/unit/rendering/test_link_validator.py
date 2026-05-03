@@ -147,6 +147,28 @@ class TestInternalLinkValidation:
 
         assert validator._is_valid_link("getting-started/", page) is True
 
+    def test_dot_slash_link_from_directory_url_resolves_within_current_directory(self):
+        """Regression: directory page links like ./quickstart-writer are same-dir links."""
+        site = MagicMock()
+        site.root_path = Path("/project")
+        site.link_registry = None
+
+        index = MagicMock()
+        index.href = "/docs/get-started/"
+        index.permalink = None
+        index.source_path = Path("/project/content/docs/get-started/_index.md")
+        index.links = ["./quickstart-writer"]
+
+        child = MagicMock()
+        child.href = "/docs/get-started/quickstart-writer/"
+        child.permalink = None
+        child.source_path = Path("/project/content/docs/get-started/quickstart-writer.md")
+        child.links = []
+
+        site.pages = [index, child]
+
+        assert LinkValidator().validate_site(site) == []
+
     def test_invalid_link_to_missing_page(self, validator, mock_site):
         """Test that links to missing pages are invalid."""
         page = MagicMock()

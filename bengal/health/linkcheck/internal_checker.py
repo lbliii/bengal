@@ -28,8 +28,8 @@ from bengal.health.linkcheck.models import LinkCheckResult, LinkKind, LinkStatus
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.health.link_registry import LinkRegistry
     from bengal.protocols import SiteLike
+    from bengal.rendering.reference_registry import LinkRegistry
 
 logger = get_logger(__name__)
 

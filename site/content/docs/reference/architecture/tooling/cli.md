@@ -7,13 +7,13 @@ tags:
 - tooling
 - cli
 - commands
-- click
+- milo
 - command-line
 - interface
 keywords:
 - CLI
 - command-line interface
-- Click
+- Milo
 - commands
 - build
 - serve
@@ -22,25 +22,24 @@ keywords:
 
 # CLI (`bengal/cli/`)
 
-**Structure**: Modular command-line interface with Click framework
+**Structure**: Modular command-line interface with Milo CLI
 
 **Location**: `bengal/cli/` directory with organized command modules
 
 **Architecture**:
-- `bengal/cli/__init__.py` - Main CLI group with command registration and typo detection
-- `bengal/cli/base.py` - Custom Click classes (`BengalGroup`, `BengalCommand`) with themed help
-- `bengal/cli/commands/` - Individual command modules
+- `bengal/cli/milo_app.py` - Root Milo app and lazy command registration
+- `bengal/cli/milo_commands/` - Annotated Milo command modules
+- `bengal/output/templates/` - Kida templates for terminal output
   - `build.py` - Build commands
   - `serve.py` - Development server
-  - `graph/` - Graph analysis commands (package with report, orphans, pagerank, etc.)
-  - `perf.py` - Performance analysis
+  - `check.py` - Author-facing validation checks
+  - `audit.py` - Generated artifact audit
   - `clean.py` - Cleanup utilities
-  - `new/` - Content creation (package with presets, wizard, config, site, scaffolds)
-  - `validate.py` - Content validation
+  - `new.py` - Content and theme creation
 
 **Features**:
-- **Typo Detection**: Fuzzy matching for command names with suggestions
-- **Rich Output**: Colored output and progress bars using Rich library
+- **Lazy command imports**: Fast CLI startup with command modules loaded on demand
+- **Kida output**: Structured command results rendered through Milo/Kida templates
 - **Error Handling**: Beautiful tracebacks with context and locals
 - **Extensibility**: Easy to add new commands in separate modules
 
@@ -178,6 +177,15 @@ bengal perf --format json
 
 **Utility Commands**:
 ```bash
+# Validate source content and author-facing policy
+bengal check
+
+# Compatibility alias while older automation migrates
+bengal health
+
+# Audit generated artifacts after a build
+bengal audit
+
 # Clean output directory
 bengal clean
 

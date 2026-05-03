@@ -29,6 +29,8 @@ CLI_SMOKE_CASES = [
     CLISmokeCase(("build",)),
     CLISmokeCase(("clean", "--force")),
     CLISmokeCase(("check",), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("audit",), acceptable_exit_codes=(0, 1)),
+    CLISmokeCase(("health",), acceptable_exit_codes=(0, 1)),
     CLISmokeCase(("fix", "--dry-run"), acceptable_exit_codes=(0, 1)),
     CLISmokeCase(("codemod", "--path", "content", "--dry-run", "--yes")),
     CLISmokeCase(("new", "site", "--name", "smoke-site", "--no-init")),
