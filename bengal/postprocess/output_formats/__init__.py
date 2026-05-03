@@ -24,7 +24,11 @@ Configuration (bengal.toml):
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
+from datetime import date, datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.postprocess.output_formats.agent_manifest_generator import (
@@ -39,6 +43,7 @@ from bengal.postprocess.output_formats.llms_txt_generator import SiteLlmsTxtGene
 from bengal.postprocess.output_formats.lunr_index_generator import LunrIndexGenerator
 from bengal.postprocess.output_formats.md_generator import PageMarkdownGenerator
 from bengal.postprocess.output_formats.txt_generator import PageTxtGenerator
+from bengal.postprocess.output_formats.utils import get_i18n_output_path
 from bengal.postprocess.utils import get_section_name
 from bengal.utils.observability.logger import get_logger
 
@@ -271,8 +276,12 @@ class OutputFormatsGenerator:
         # Get accumulated page data once (shared by multiple generators)
         # See: plan/drafted/rfc-unified-page-data-accumulation.md
         accumulated_data = None
-        if self.build_context and self.build_context.has_accumulated_page_data:
+        if self.build_context and (
+            self.build_context.has_accumulated_page_data
+            or getattr(self.build_context, "incremental", False)
+        ):
             accumulated_data = self.build_context.get_accumulated_page_data()
+            accumulated_data = self._merge_cached_page_artifacts(pages, accumulated_data)
             logger.debug(
                 "using_accumulated_page_data",
                 count=len(accumulated_data),
@@ -347,9 +356,17 @@ class OutputFormatsGenerator:
             )
             # OPTIMIZATION: Pass accumulated page data for hybrid mode
             # See: plan/drafted/rfc-unified-page-data-accumulation.md
-            index_result = self._timed_generate(
+            index_result = self._generate_site_wide_if_needed(
                 timings,
                 "site_index_json",
+                search_pages,
+                accumulated_data,
+                {
+                    "excerpt_length": excerpt_length,
+                    "json_indent": json_indent,
+                    "include_full_content": include_full_content,
+                },
+                self._expected_site_wide_outputs("site_index_json"),
                 lambda: index_gen.generate(
                     search_pages,
                     accumulated_data=accumulated_data,
@@ -396,9 +413,13 @@ class OutputFormatsGenerator:
         if "llm_full" in site_wide:
             separator_width = options.get("llm_separator_width", 80)
             llm_gen = SiteLlmTxtGenerator(self.site, separator_width=separator_width)
-            self._timed_generate(
+            self._generate_site_wide_if_needed(
                 timings,
                 "site_llm_full",
+                ai_train_pages,
+                accumulated_data,
+                {"separator_width": separator_width},
+                self._expected_site_wide_outputs("site_llm_full"),
                 lambda: llm_gen.generate(ai_train_pages),
             )
             generated.append("llm-full.txt")
@@ -406,9 +427,16 @@ class OutputFormatsGenerator:
 
         if "llms_txt" in site_wide:
             llms_gen = SiteLlmsTxtGenerator(self.site)
-            self._timed_generate(
+            self._generate_site_wide_if_needed(
                 timings,
                 "site_llms_txt",
+                ai_input_pages,
+                accumulated_data,
+                {
+                    "max_pages": getattr(llms_gen, "max_pages", None),
+                    "max_chars": getattr(llms_gen, "max_chars", None),
+                },
+                self._expected_site_wide_outputs("site_llms_txt"),
                 lambda: llms_gen.generate(ai_input_pages),
             )
             generated.append("llms.txt")
@@ -416,9 +444,13 @@ class OutputFormatsGenerator:
 
         if "changelog" in site_wide:
             changelog_gen = ChangelogGenerator(self.site)
-            self._timed_generate(
+            self._generate_site_wide_if_needed(
                 timings,
                 "site_changelog",
+                ai_input_pages,
+                accumulated_data,
+                {},
+                self._expected_site_wide_outputs("site_changelog"),
                 lambda: changelog_gen.generate(ai_input_pages),
             )
             generated.append("changelog.json")
@@ -426,9 +458,13 @@ class OutputFormatsGenerator:
 
         if "agent_manifest" in site_wide:
             agent_gen = AgentManifestGenerator(self.site)
-            self._timed_generate(
+            self._generate_site_wide_if_needed(
                 timings,
                 "site_agent_manifest",
+                ai_input_pages,
+                accumulated_data,
+                {},
+                self._expected_site_wide_outputs("site_agent_manifest"),
                 lambda: agent_gen.generate(ai_input_pages),
             )
             generated.append("agent.json")
@@ -436,6 +472,125 @@ class OutputFormatsGenerator:
 
         if generated:
             logger.info("output_formats_complete", formats=generated, timings_ms=timings)
+
+    def _merge_cached_page_artifacts(
+        self,
+        pages: list[PageLike],
+        accumulated_data: list[Any],
+    ) -> list[Any]:
+        """Merge current rendered page data with cached records for unchanged pages."""
+        if not self.build_context or not getattr(self.build_context, "incremental", False):
+            return accumulated_data
+        cache = getattr(self.build_context, "cache", None)
+        page_artifacts = getattr(cache, "page_artifacts", None)
+        if not cache or not isinstance(page_artifacts, dict):
+            return accumulated_data
+
+        from bengal.orchestration.build_context import AccumulatedPageData
+
+        by_source = {data.source_path: data for data in accumulated_data}
+        merged = list(accumulated_data)
+        for page in pages:
+            source_path = getattr(page, "source_path", None)
+            if not source_path or source_path in by_source:
+                continue
+            cache_key = str(cache._cache_key(_site_relative_path(self.site, source_path)))
+            record = page_artifacts.get(cache_key)
+            if not isinstance(record, dict):
+                continue
+            merged.append(_page_artifact_to_accumulated(record, AccumulatedPageData))
+        return merged
+
+    def _generate_site_wide_if_needed(
+        self,
+        timings: dict[str, float],
+        format_name: str,
+        pages: list[PageLike],
+        accumulated_data: list[Any] | None,
+        options: dict[str, Any],
+        expected_outputs: list[Path] | None,
+        generate_fn: Callable[[], Any],
+    ) -> Any:
+        """Skip unchanged site-wide generators when their artifact input fingerprint matches."""
+        fingerprint = self._site_wide_input_fingerprint(
+            format_name, pages, accumulated_data, options
+        )
+        cache = getattr(self.build_context, "cache", None)
+        fingerprints = getattr(cache, "output_format_fingerprints", None)
+        can_skip = (
+            fingerprint is not None
+            and isinstance(fingerprints, dict)
+            and expected_outputs is not None
+            and all(path.exists() for path in expected_outputs)
+            and fingerprints.get(format_name) == fingerprint
+        )
+        if can_skip:
+            timings[format_name] = 0.0
+            stats = getattr(self.build_context, "stats", None)
+            if stats is not None:
+                stats.postprocess_output_timings_ms[format_name] = 0.0
+            logger.debug(
+                "site_wide_output_skipped",
+                format=format_name,
+                reason="input_fingerprint_unchanged",
+            )
+            return expected_outputs if len(expected_outputs) > 1 else expected_outputs[0]
+
+        result = self._timed_generate(timings, format_name, generate_fn)
+        if fingerprint is not None and isinstance(fingerprints, dict):
+            fingerprints[format_name] = fingerprint
+        return result
+
+    def _site_wide_input_fingerprint(
+        self,
+        format_name: str,
+        pages: list[PageLike],
+        accumulated_data: list[Any] | None,
+        options: dict[str, Any],
+    ) -> str | None:
+        """Fingerprint complete site-wide generator inputs from page artifacts."""
+        if not self.build_context or not getattr(self.build_context, "incremental", False):
+            return None
+        if format_name == "site_changelog":
+            return None
+        if not accumulated_data:
+            return None
+
+        by_source = {data.source_path: data for data in accumulated_data}
+        records = []
+        for page in pages:
+            source_path = getattr(page, "source_path", None)
+            if not source_path:
+                return None
+            data = by_source.get(source_path)
+            if data is None:
+                return None
+            records.append(_fingerprint_page_artifact(data))
+
+        payload = {
+            "format": format_name,
+            "options": options,
+            "site": _site_fingerprint(self.site),
+            "pages": records,
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()
+
+    def _expected_site_wide_outputs(self, format_name: str) -> list[Path] | None:
+        """Return outputs that must exist before a site-wide generator can be skipped."""
+        if format_name == "site_index_json":
+            if getattr(self.site, "versioning_enabled", False):
+                return None
+            return [get_i18n_output_path(self.site, "index.json")]
+        if format_name == "site_llm_full":
+            return [self.site.output_dir / "llm-full.txt"]
+        if format_name == "site_llms_txt":
+            return [self.site.output_dir / "llms.txt"]
+        if format_name == "site_changelog":
+            return [get_i18n_output_path(self.site, "changelog.json")]
+        if format_name == "site_agent_manifest":
+            return [get_i18n_output_path(self.site, "agent.json")]
+        return None
 
     def _timed_generate(
         self,
@@ -448,6 +603,9 @@ class OutputFormatsGenerator:
         result = generate_fn()
         duration_ms = (time.perf_counter() - start) * 1000
         timings[format_name] = round(duration_ms, 1)
+        stats = getattr(self.build_context, "stats", None)
+        if stats is not None:
+            stats.postprocess_output_timings_ms[format_name] = timings[format_name]
         logger.info(
             "output_format_generated",
             format=format_name,
@@ -512,3 +670,96 @@ class OutputFormatsGenerator:
         )
 
         return filtered
+
+
+def _page_artifact_to_accumulated(record: dict[str, Any], accumulated_type: Any) -> Any:
+    """Rehydrate a cached page artifact into an AccumulatedPageData record."""
+    json_output_path = record.get("json_output_path")
+    return accumulated_type(
+        source_path=Path(record["source_path"]),
+        url=record["url"],
+        uri=record["uri"],
+        title=record["title"],
+        description=record.get("description", ""),
+        date=record.get("date"),
+        date_iso=record.get("date_iso"),
+        plain_text=record.get("plain_text", ""),
+        excerpt=record.get("excerpt", ""),
+        content_preview=record.get("content_preview", ""),
+        word_count=int(record.get("word_count") or 0),
+        reading_time=int(record.get("reading_time") or 0),
+        section=record.get("section", ""),
+        tags=list(record.get("tags") or []),
+        dir=record.get("dir", ""),
+        enhanced_metadata=dict(record.get("enhanced_metadata") or {}),
+        is_autodoc=bool(record.get("is_autodoc", False)),
+        full_json_data=record.get("full_json_data"),
+        json_output_path=Path(json_output_path) if json_output_path else None,
+        raw_metadata=dict(record.get("raw_metadata") or {}),
+    )
+
+
+def _site_relative_path(site: SiteLike, source_path: Path) -> Path:
+    """Resolve relative source paths against the site root before cache lookup."""
+    if source_path.is_absolute():
+        return source_path
+    root_path = getattr(site, "root_path", None)
+    return root_path / source_path if root_path else source_path
+
+
+def _fingerprint_page_artifact(data: Any) -> dict[str, Any]:
+    """Return stable page artifact fields that affect site-wide output formats."""
+    return {
+        "source_path": str(data.source_path),
+        "url": data.url,
+        "uri": data.uri,
+        "title": data.title,
+        "description": data.description,
+        "date": data.date,
+        "date_iso": data.date_iso,
+        "plain_text": data.plain_text,
+        "excerpt": data.excerpt,
+        "content_preview": data.content_preview,
+        "word_count": data.word_count,
+        "reading_time": data.reading_time,
+        "section": data.section,
+        "tags": list(data.tags),
+        "dir": data.dir,
+        "enhanced_metadata": _json_safe(data.enhanced_metadata),
+        "is_autodoc": data.is_autodoc,
+        "full_json_data": _json_safe(data.full_json_data),
+        "raw_metadata": _json_safe(data.raw_metadata),
+    }
+
+
+def _site_fingerprint(site: SiteLike) -> dict[str, Any]:
+    """Return site metadata that can affect site-wide output content."""
+    build_time = getattr(site, "build_time", None)
+    build_time_value = build_time.isoformat() if hasattr(build_time, "isoformat") else None
+    return {
+        "title": getattr(site, "title", "") or "",
+        "description": getattr(site, "description", "") or "",
+        "baseurl": getattr(site, "baseurl", "") or "",
+        "dev_mode": bool(getattr(site, "dev_mode", False)),
+        "build_time": None if getattr(site, "dev_mode", False) else build_time_value,
+    }
+
+
+def _json_safe(value: Any) -> Any:
+    """Return a stable JSON-serializable representation for fingerprinting."""
+    if isinstance(value, str | int | float | bool | type(None)):
+        return value
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, date | datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {
+            str(key): _json_safe(item)
+            for key, item in sorted(value.items(), key=lambda item: str(item[0]))
+        }
+    if isinstance(value, list | tuple):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, set | frozenset):
+        return sorted(_json_safe(item) for item in value)
+    return str(value)

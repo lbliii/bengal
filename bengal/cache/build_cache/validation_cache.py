@@ -23,27 +23,36 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from bengal.build.contracts.keys import CacheKey
+
 
 class ValidationCacheMixin:
     """
     Mixin providing validation result caching.
 
     Requires these attributes on the host class:
-        - validation_results: dict[str, dict[str, list[dict[str, Any]]]]
+        - validation_results: dict[str, dict[str, Any]]
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
         - _cache_key: Callable[[Path], str]  # Canonical path key
 
     """
 
     # Type hints for mixin attributes (provided by host class)
-    validation_results: dict[str, dict[str, list[dict[str, Any]]]]
+    validation_results: dict[str, dict[str, Any]]
 
     def is_changed(self, file_path: Path) -> bool:
         """Check if file changed (provided by FileTrackingMixin)."""
         raise NotImplementedError("Must be provided by FileTrackingMixin")
 
+    def _cache_key(self, path: Path) -> CacheKey:
+        """Return a canonical cache key (provided by host BuildCache)."""
+        raise NotImplementedError("Must be provided by BuildCache")
+
     def get_cached_validation_results(
-        self, file_path: Path, validator_name: str
+        self,
+        file_path: Path,
+        validator_name: str,
+        cache_context: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]] | None:
         """
         Get cached validation results for a file and validator.
@@ -51,6 +60,7 @@ class ValidationCacheMixin:
         Args:
             file_path: Path to file
             validator_name: Name of validator
+            cache_context: Optional context that must match cached metadata.
 
         Returns:
             List of CheckResult dicts if cached and file unchanged, None otherwise
@@ -66,10 +76,15 @@ class ValidationCacheMixin:
 
         # File unchanged - return cached results if available
         file_results = self.validation_results.get(file_key, {})
-        return file_results.get(validator_name)
+        entry = file_results.get(validator_name)
+        return _validation_results_from_entry(entry, cache_context)
 
     def cache_validation_results(
-        self, file_path: Path, validator_name: str, results: list[Any]
+        self,
+        file_path: Path,
+        validator_name: str,
+        results: list[Any],
+        cache_context: dict[str, Any] | None = None,
     ) -> None:
         """
         Cache validation results for a file and validator.
@@ -78,6 +93,7 @@ class ValidationCacheMixin:
             file_path: Path to file
             validator_name: Name of validator
             results: List of CheckResult objects to cache
+            cache_context: Optional context required for future cache reuse
         """
         file_key = self._cache_key(file_path)
 
@@ -101,7 +117,13 @@ class ValidationCacheMixin:
                     result.to_cache_dict() if hasattr(result, "to_cache_dict") else {}
                 )
 
-        self.validation_results[file_key][validator_name] = serialized_results
+        if cache_context is None:
+            self.validation_results[file_key][validator_name] = serialized_results
+        else:
+            self.validation_results[file_key][validator_name] = {
+                "context": dict(cache_context),
+                "results": serialized_results,
+            }
 
     def invalidate_validation_results(self, file_path: Path | None = None) -> None:
         """
@@ -118,3 +140,26 @@ class ValidationCacheMixin:
             file_key = self._cache_key(file_path)
             if file_key in self.validation_results:
                 del self.validation_results[file_key]
+
+
+def _validation_results_from_entry(
+    entry: Any,
+    cache_context: dict[str, Any] | None = None,
+) -> list[dict[str, Any]] | None:
+    """Decode legacy or context-enveloped cached validation results."""
+    if entry is None:
+        return None
+
+    if cache_context is None:
+        if isinstance(entry, list):
+            return entry
+        if isinstance(entry, dict) and isinstance(entry.get("results"), list):
+            return entry["results"]
+        return None
+
+    if not isinstance(entry, dict):
+        return None
+    if entry.get("context") != cache_context:
+        return None
+    results = entry.get("results")
+    return results if isinstance(results, list) else None

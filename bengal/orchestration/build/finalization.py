@@ -223,9 +223,26 @@ def run_health_check(
         return
 
     # Build rendering-owned link registry before health checks (zero-cost: reuses toc_items)
-    from bengal.rendering.reference_registry import build_link_registry
+    from bengal.rendering.reference_registry import (
+        build_link_registry,
+        build_link_registry_from_artifacts,
+    )
 
-    orchestrator.site.link_registry = build_link_registry(orchestrator.site)
+    output_records = None
+    artifact_collector = getattr(build_context, "artifact_collector", None)
+    if artifact_collector is not None:
+        get_outputs = getattr(artifact_collector, "get_outputs", None)
+        if callable(get_outputs):
+            output_records = get_outputs()
+
+    artifact_registry = (
+        build_link_registry_from_artifacts(orchestrator.site, build_context)
+        if incremental and build_context is not None
+        else None
+    )
+    orchestrator.site.link_registry = artifact_registry or build_link_registry(
+        orchestrator.site, output_records=output_records
+    )
 
     health_start = time.time()
 

@@ -724,7 +724,12 @@ class IncrementalOrchestrator:
         if self.cache:
             cleanup_deleted_files(self.site, self.cache)
 
-    def save_cache(self, pages_built: Sequence[PageLike], assets_processed: list[Asset]) -> None:
+    def save_cache(
+        self,
+        pages_built: Sequence[PageLike],
+        assets_processed: list[Asset],
+        build_context: Any | None = None,
+    ) -> None:
         """
         Update cache with processed files.
 
@@ -737,7 +742,7 @@ class IncrementalOrchestrator:
         self._cache_manager.cache = self.cache
         # Sync EffectTracer back to CacheManager for persistence
         self._cache_manager._effect_tracer = self.effect_tracer
-        self._cache_manager.save(pages_built, assets_processed)
+        self._cache_manager.save(pages_built, assets_processed, build_context=build_context)
 
     def _check_shared_content_changes(
         self, forced_changed_sources: set[Path] | None = None

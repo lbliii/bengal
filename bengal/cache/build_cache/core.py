@@ -126,9 +126,14 @@ class BuildCache(
     # Synthetic page cache (for autodoc, etc.)
     synthetic_pages: dict[str, dict[str, Any]] = field(default_factory=dict)
 
-    # Validation result cache: file_path → validator_name → [CheckResult dicts]
-    # Structure: {file_path: {validator_name: [CheckResult.to_cache_dict(), ...]}}
-    validation_results: dict[str, dict[str, list[dict[str, Any]]]] = field(default_factory=dict)
+    # Validation result cache: file_path → validator_name → legacy list or context envelope
+    validation_results: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    # Post-render page artifact cache: source path key → serialized rendering/postprocess record
+    page_artifacts: dict[str, dict[str, Any]] = field(default_factory=dict)
+
+    # Site-wide output format input fingerprints: format name → sha256 input fingerprint
+    output_format_fingerprints: dict[str, str] = field(default_factory=dict)
 
     # Composed autodoc tracker (replaces AutodocTrackingMixin)
     autodoc_tracker: AutodocTracker = field(default_factory=AutodocTracker)
@@ -318,6 +323,16 @@ class BuildCache(
             # Validation results (new in VERSION 2, tolerate missing)
             if "validation_results" not in data:
                 data["validation_results"] = {}
+
+            # Page artifacts (post-render aggregate records, tolerate missing)
+            if "page_artifacts" not in data or not isinstance(data["page_artifacts"], dict):
+                data["page_artifacts"] = {}
+
+            # Output format input fingerprints (tolerate missing)
+            if "output_format_fingerprints" not in data or not isinstance(
+                data["output_format_fingerprints"], dict
+            ):
+                data["output_format_fingerprints"] = {}
 
             # Config hash (new in VERSION 3, tolerate missing)
             if "config_hash" not in data:
@@ -587,6 +602,8 @@ class BuildCache(
             "parsed_content": self.parsed_content,  # Already in dict format
             "rendered_output": self.rendered_output,  # Already in dict format (Optimization #3)
             "validation_results": self.validation_results,  # Already in dict format
+            "page_artifacts": self.page_artifacts,  # Serialized post-render page records
+            "output_format_fingerprints": self.output_format_fingerprints,
             "autodoc_dependencies": {
                 k: list(v) for k, v in at.autodoc_dependencies.items()
             },  # Autodoc source → pages
@@ -645,6 +662,8 @@ class BuildCache(
         self.rendered_output.clear()
         self.synthetic_pages.clear()
         self.validation_results.clear()
+        self.page_artifacts.clear()
+        self.output_format_fingerprints.clear()
         self.autodoc_tracker.clear()
         self.autodoc_content_cache.clear()
         self.template_dependencies.clear()

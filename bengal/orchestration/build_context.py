@@ -211,6 +211,10 @@ class BuildContext:
     # Output collector for hot reload tracking
     output_collector: OutputCollector | None = None
 
+    # Artifact collector for link/health truth. Unlike output_collector, this
+    # records all known build artifacts, not only files changed this run.
+    artifact_collector: OutputCollector | None = None
+
     # API doc enhancer (injectable for tests)
     api_doc_enhancer: APIDocEnhancerProtocol | None = None
 

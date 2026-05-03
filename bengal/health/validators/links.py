@@ -35,6 +35,7 @@ from urllib.parse import urlparse
 from bengal.build.contracts.keys import content_key
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, ValidatorStats
+from bengal.health.scope import get_validation_scope
 from bengal.health.utils import relative_path
 from bengal.health.validators.link_skip_rules import should_skip_link
 from bengal.rendering.reference_registry import (
@@ -47,9 +48,87 @@ from bengal.rendering.reference_resolution import (
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from bengal.health.scope import ValidationScope
     from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
+
+
+def _format_link_location(page_path: Path | None, root: Path) -> str:
+    """Format a broken-link source location, including unknown sources."""
+    return "<unknown>" if page_path is None else relative_path(page_path, root)
+
+
+def _cached_broken_links(scope: ValidationScope | None) -> list[tuple[Path | None, str]]:
+    """Extract cached broken-link metadata from scoped validation results."""
+    if scope is None:
+        return []
+
+    broken_links: list[tuple[Path | None, str]] = []
+    for result in scope.cached_results():
+        metadata = result.metadata or {}
+        source = metadata.get("source_path")
+        links = metadata.get("broken_links")
+        if not isinstance(source, str) or not isinstance(links, list):
+            continue
+        source_path = Path(source)
+        broken_links.extend((source_path, link) for link in links if isinstance(link, str))
+    return broken_links
+
+
+def _file_results_by_source(
+    broken_links: list[tuple[Path | None, str]],
+    site: SiteLike,
+) -> dict[Path, list[CheckResult]]:
+    """Build cacheable per-source results from freshly validated broken links."""
+    grouped: dict[Path, list[str]] = {}
+    for source_path, link in broken_links:
+        if source_path is None:
+            continue
+        grouped.setdefault(source_path, []).append(link)
+
+    file_results: dict[Path, list[CheckResult]] = {}
+    for source_path, links in grouped.items():
+        internal_links = [link for link in links if not link.startswith(("http://", "https://"))]
+        external_links = [link for link in links if link.startswith(("http://", "https://"))]
+        results = []
+        if internal_links:
+            results.append(
+                CheckResult.error(
+                    f"{len(internal_links)} broken internal link(s)",
+                    code="H101",
+                    recommendation="Fix broken internal links. They point to pages that don't exist.",
+                    details=[
+                        f"{_format_link_location(source_path, site.root_path)}: {link}"
+                        for link in internal_links[:5]
+                    ],
+                    metadata={
+                        "source_path": str(source_path),
+                        "broken_links": internal_links,
+                    },
+                )
+            )
+        if external_links:
+            results.append(
+                CheckResult.warning(
+                    f"{len(external_links)} broken external link(s)",
+                    code="H102",
+                    recommendation="External links may be temporarily unavailable or incorrect.",
+                    details=[
+                        f"{_format_link_location(source_path, site.root_path)}: {link}"
+                        for link in external_links[:5]
+                    ],
+                    metadata={
+                        "source_path": str(source_path),
+                        "broken_links": external_links,
+                    },
+                )
+            )
+        file_results[source_path] = results
+
+    return file_results
 
 
 class LinkValidator:
@@ -83,6 +162,9 @@ class LinkValidator:
         self._anchors_by_url: dict[str, frozenset[str]] | None = None
         self._resolver: InternalReferenceResolver | None = None
         self._site: SiteLike | None = site
+        self._link_result_cache: dict[tuple[str, str, str], bool] = {}
+        self.cache_hits = 0
+        self.cache_misses = 0
 
     def _llm_txt_enabled(self, site: Any) -> bool:
         """Check if output_formats.llm_txt is enabled (index.txt generated per page)."""
@@ -196,6 +278,7 @@ class LinkValidator:
         if site is not None and (self._page_urls is None or site is not self._site):
             self._load_reference_registry(site)
             self._site = site
+            self._reset_result_cache()
 
         logger.debug(
             "validating_page_links", page=str(page.source_path), link_count=len(page.links)
@@ -218,7 +301,9 @@ class LinkValidator:
 
         return broken
 
-    def validate_site(self, site: Any) -> list[tuple[Path | None, str]]:
+    def validate_site(
+        self, site: Any, pages: list[PageLike] | None = None
+    ) -> list[tuple[Path | None, str]]:
         """
         Validate all links in the entire site.
 
@@ -228,14 +313,21 @@ class LinkValidator:
         Returns:
             List of (page_path, broken_link) tuples
         """
-        logger.debug("validating_site_links", page_count=len(site.pages))
+        pages_to_validate = list(site.pages) if pages is None else pages
+        logger.debug(
+            "validating_site_links",
+            page_count=len(pages_to_validate),
+            total_pages=len(site.pages),
+        )
 
         # Reset state
         self.broken_links = []
+        self.validated_urls = set()
+        self._reset_result_cache()
         self._site = site
         self._load_reference_registry(site)
 
-        for page in site.pages:
+        for page in pages_to_validate:
             self.validate_page_links(page, site)
 
         if self.broken_links:
@@ -246,7 +338,8 @@ class LinkValidator:
                 total_broken=len(self.broken_links),
                 pages_affected=pages_affected,
                 sample_links=[
-                    (relative_path(p, site.root_path), link) for p, link in self.broken_links[:10]
+                    (_format_link_location(p, site.root_path), link)
+                    for p, link in self.broken_links[:10]
                 ],
             )
         else:
@@ -283,31 +376,16 @@ class LinkValidator:
 
         # Fragment-only links (e.g., "#section") — validate anchor exists on current page
         if not parsed.path and parsed.fragment:
-            if self._anchors_by_url is not None:
-                page_path = getattr(page, "_path", None)
-                if page_path:
-                    anchors = (
-                        self._resolver.anchors_for(page_path)
-                        if self._resolver is not None
-                        else self._anchors_by_url.get(page_path, frozenset())
-                    )
-                    if anchors and parsed.fragment not in anchors:
-                        logger.debug(
-                            "validating_fragment_link",
-                            link=link,
-                            page=str(page.source_path),
-                            result="broken_anchor",
-                            fragment=parsed.fragment,
-                        )
-                        return False
-            logger.debug(
-                "validating_fragment_link",
-                link=link,
-                page=str(page.source_path),
-                result="valid",
+            page_key = str(
+                getattr(page, "_path", None)
+                or getattr(page, "href", None)
+                or getattr(page, "source_path", "")
             )
-            self.validated_urls.add(link)
-            return True
+            return self._cached_link_result(
+                ("fragment", page_key, link),
+                link,
+                lambda: self._validate_fragment_link(link, parsed.fragment, page),
+            )
 
         # Skip if we have no page URL index (graceful degradation)
         if self._page_urls is None:
@@ -324,7 +402,12 @@ class LinkValidator:
         # - [link](../other.md)
         # - [link](sibling.md)  (implicit current directory)
         if parsed.path.endswith(".md") and not parsed.path.startswith("/"):
-            return self._validate_relative_md_link(parsed.path, page)
+            source_key = str(getattr(page, "source_path", ""))
+            return self._cached_link_result(
+                ("source", source_key, link),
+                parsed.path,
+                lambda: self._validate_relative_md_link(parsed.path, page),
+            )
 
         # Get page's URL for resolving other relative links
         page_url = getattr(page, "href", None)
@@ -337,8 +420,78 @@ class LinkValidator:
             return True
 
         page_url = str(page_url)
+        return self._cached_link_result(
+            ("url", page_url, link),
+            link,
+            lambda: self._validate_internal_link(
+                link, parsed.path, parsed.fragment, page, page_url
+            ),
+        )
+
+    def _cached_link_result(
+        self,
+        cache_key: tuple[str, str, str],
+        valid_marker: str,
+        compute: Callable[[], bool],
+    ) -> bool:
+        """Return a cached per-run link result, preserving valid-link accounting."""
+        cached = self._link_result_cache.get(cache_key)
+        if cached is not None:
+            self.cache_hits += 1
+            if cached:
+                self.validated_urls.add(valid_marker)
+            return cached
+
+        self.cache_misses += 1
+        result = compute()
+        self._link_result_cache[cache_key] = result
+        return result
+
+    def _reset_result_cache(self) -> None:
+        """Clear per-run link result memoization and counters."""
+        self._link_result_cache = {}
+        self.cache_hits = 0
+        self.cache_misses = 0
+
+    def _validate_fragment_link(self, link: str, fragment: str, page: PageLike) -> bool:
+        """Validate a fragment-only link against the current page's anchors."""
+        if self._anchors_by_url is not None:
+            page_path = getattr(page, "_path", None)
+            if page_path:
+                anchors = (
+                    self._resolver.anchors_for(page_path)
+                    if self._resolver is not None
+                    else self._anchors_by_url.get(page_path, frozenset())
+                )
+                if anchors and fragment not in anchors:
+                    logger.debug(
+                        "validating_fragment_link",
+                        link=link,
+                        page=str(page.source_path),
+                        result="broken_anchor",
+                        fragment=fragment,
+                    )
+                    return False
+        logger.debug(
+            "validating_fragment_link",
+            link=link,
+            page=str(page.source_path),
+            result="valid",
+        )
+        self.validated_urls.add(link)
+        return True
+
+    def _validate_internal_link(
+        self,
+        link: str,
+        link_path: str,
+        fragment: str,
+        page: PageLike,
+        page_url: str,
+    ) -> bool:
+        """Validate an internal page URL plus optional anchor."""
         if self._resolver is not None:
-            resolved_path = self._resolver.resolve(page_url, str(parsed.path))
+            resolved_path = self._resolver.resolve(page_url, str(link_path))
             is_valid = self._resolver.has_url(resolved_path)
         else:
             from bengal.rendering.reference_resolution import (
@@ -346,13 +499,14 @@ class LinkValidator:
                 resolved_path_url_variants,
             )
 
-            resolved_path = resolve_internal_link(page_url, str(parsed.path))
+            resolved_path = resolve_internal_link(page_url, str(link_path))
             variants = resolved_path_url_variants(resolved_path)
-            is_valid = any(v in self._page_urls for v in variants)
+            page_urls = self._page_urls
+            is_valid = page_urls is not None and any(v in page_urls for v in variants)
 
         if is_valid:
             # If link has a fragment, also validate the anchor exists
-            if parsed.fragment and self._anchors_by_url is not None:
+            if fragment and self._anchors_by_url is not None:
                 anchors = (
                     self._resolver.anchors_for(resolved_path)
                     if self._resolver is not None
@@ -362,14 +516,14 @@ class LinkValidator:
                     anchors = self._anchors_by_url.get(
                         resolved_path.rstrip("/"), frozenset()
                     ) or self._anchors_by_url.get(resolved_path.rstrip("/") + "/", frozenset())
-                if anchors and parsed.fragment not in anchors:
+                if anchors and fragment not in anchors:
                     logger.debug(
                         "validating_internal_link",
                         link=link,
                         resolved=resolved_path,
                         page=str(page.source_path),
                         result="broken_anchor",
-                        fragment=parsed.fragment,
+                        fragment=fragment,
                     )
                     return False
 
@@ -397,7 +551,7 @@ class LinkValidator:
         """Load rendering-owned registry data for validation."""
         self._resolver = build_reference_resolver(site)
         registry = self._resolver.registry
-        self._page_urls = set(registry.page_urls | registry.auxiliary_urls)
+        self._page_urls = set(self._resolver.all_urls)
         self._source_paths = set(registry.source_paths)
         self._anchors_by_url = dict(registry.anchors_by_url)
 
@@ -499,9 +653,11 @@ class LinkValidatorWrapper(BaseValidator):
     name = "Links"
     description = "Validates internal and external links"
     enabled_by_default = True
+    consumes_validation_scope_cache = True
 
     # Store stats from last validation for observability
     last_stats: ValidatorStats | None = None
+    last_file_results: dict[Path, list[CheckResult]] | None = None
 
     @override
     def validate(self, site: SiteLike, build_context: Any = None) -> list[CheckResult]:
@@ -523,6 +679,7 @@ class LinkValidatorWrapper(BaseValidator):
         """
         results = []
         sub_timings: dict[str, float] = {}
+        self.last_file_results = None
 
         # Initialize stats
         stats = ValidatorStats(pages_total=len(site.pages))
@@ -537,35 +694,55 @@ class LinkValidatorWrapper(BaseValidator):
         # Run link validator
         t0 = time.time()
         validator = LinkValidator()
-        broken_links = validator.validate_site(site)
+        scope = get_validation_scope(build_context)
+        pages_to_validate = scope.pages_to_validate(site) if scope is not None else list(site.pages)
+        broken_links = validator.validate_site(site, pages=pages_to_validate)
         sub_timings["validate"] = (time.time() - t0) * 1000
+        cached_broken_links = _cached_broken_links(scope)
+        all_broken_links = cached_broken_links + broken_links
 
         # Track stats
-        stats.pages_processed = len(site.pages)
+        stats.pages_processed = len(pages_to_validate)
+        if scope is not None:
+            skipped = len(site.pages) - len(pages_to_validate) - scope.cached_file_count
+            if skipped > 0:
+                stats.pages_skipped["unscoped"] = skipped
 
         # Track link count and broken links as metrics
-        total_links = sum(len(getattr(page, "links", [])) for page in site.pages)
+        total_links = sum(len(getattr(page, "links", [])) for page in pages_to_validate)
+        stats.cache_hits = validator.cache_hits
+        stats.cache_misses = validator.cache_misses
         stats.metrics["total_links"] = total_links
-        stats.metrics["broken_links"] = len(broken_links) if broken_links else 0
+        stats.metrics["unique_link_checks"] = validator.cache_misses
+        stats.metrics["broken_links"] = len(all_broken_links) if all_broken_links else 0
+        if scope is not None:
+            stats.metrics["cached_files"] = scope.cached_file_count
+            stats.metrics["cached_results"] = scope.cached_result_count
+            stats.metrics["scoped_pages"] = len(pages_to_validate)
+            stats.metrics["site_links"] = sum(
+                len(getattr(page, "links", [])) for page in site.pages
+            )
 
-        if broken_links:
+        self.last_file_results = _file_results_by_source(broken_links, site)
+
+        if all_broken_links:
             # broken_links is list of (page_path, link_url) tuples
             # Group by type based on the link URL (second element)
             internal_broken = [
                 (page, link)
-                for page, link in broken_links
+                for page, link in all_broken_links
                 if not link.startswith(("http://", "https://"))
             ]
             external_broken = [
                 (page, link)
-                for page, link in broken_links
+                for page, link in all_broken_links
                 if link.startswith(("http://", "https://"))
             ]
 
             if internal_broken:
                 # Format as "page: link" for display (using relative paths)
                 details = [
-                    f"{relative_path(page, site.root_path)}: {link}"
+                    f"{_format_link_location(page, site.root_path)}: {link}"
                     for page, link in internal_broken[:5]
                 ]
                 results.append(
@@ -579,7 +756,7 @@ class LinkValidatorWrapper(BaseValidator):
 
             if external_broken:
                 details = [
-                    f"{relative_path(page, site.root_path)}: {link}"
+                    f"{_format_link_location(page, site.root_path)}: {link}"
                     for page, link in external_broken[:5]
                 ]
                 results.append(

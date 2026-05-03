@@ -8,11 +8,13 @@ Tests health/validators/links.py:
 from __future__ import annotations
 
 from pathlib import Path
+from types import MappingProxyType
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from bengal.health.report import CheckStatus
+from bengal.health.report import CheckResult, CheckStatus
+from bengal.health.scope import ScopedValidationContext, ValidationScope
 from bengal.health.validators.links import LinkValidator, LinkValidatorWrapper
 
 
@@ -207,6 +209,81 @@ class TestLinkValidatorWrapperStats:
 
         assert "validate" in validator.last_stats.sub_timings
 
+    def test_tracks_link_result_cache_stats(self, validator, mock_site):
+        """Tracks per-run link result cache effectiveness."""
+        mock_site.pages[0].links.append("/about/")
+
+        validator.validate(mock_site)
+
+        assert validator.last_stats is not None
+        assert validator.last_stats.cache_hits == 1
+        assert validator.last_stats.cache_misses == 3
+        assert validator.last_stats.metrics["unique_link_checks"] == 3
+
+    def test_scoped_validation_processes_only_selected_pages(self, validator, mock_site):
+        """Incremental validation scopes link scanning to selected source pages."""
+        changed_page = mock_site.pages[0]
+        unchanged_page = mock_site.pages[1]
+        unchanged_page.links = ["/missing/"]
+        scope = ValidationScope(
+            incremental=True,
+            files_to_validate=frozenset({changed_page.source_path}),
+        )
+
+        results = validator.validate(mock_site, build_context=ScopedValidationContext(None, scope))
+
+        assert results == []
+        assert validator.last_stats is not None
+        assert validator.last_stats.pages_processed == 1
+        assert validator.last_stats.metrics["scoped_pages"] == 1
+        assert validator.last_stats.metrics["site_links"] == 3
+
+    def test_cached_scoped_results_are_reported(self, validator, mock_site):
+        """Cached broken links from unchanged pages are included in aggregate output."""
+        changed_page = mock_site.pages[0]
+        unchanged_page = mock_site.pages[1]
+        cached_result = CheckResult.error(
+            "1 broken internal link(s)",
+            code="H101",
+            metadata={
+                "source_path": str(unchanged_page.source_path),
+                "broken_links": ["/cached-missing/"],
+            },
+        )
+        scope = ValidationScope(
+            incremental=True,
+            files_to_validate=frozenset({changed_page.source_path}),
+            cached_results_by_file={unchanged_page.source_path: (cached_result,)},
+        )
+
+        results = validator.validate(mock_site, build_context=ScopedValidationContext(None, scope))
+
+        assert len(results) == 1
+        assert results[0].code == "H101"
+        assert "cached-missing" in results[0].details[0]
+        assert validator.last_stats is not None
+        assert validator.last_stats.metrics["cached_files"] == 1
+        assert validator.last_stats.metrics["cached_results"] == 1
+
+    def test_records_cacheable_file_results_for_fresh_broken_links(self, validator, mock_site):
+        """Fresh broken links are exposed by source file for validation caching."""
+        changed_page = mock_site.pages[0]
+        changed_page.links = ["/missing/"]
+        scope = ValidationScope(
+            incremental=True,
+            files_to_validate=frozenset({changed_page.source_path}),
+        )
+
+        validator.validate(mock_site, build_context=ScopedValidationContext(None, scope))
+
+        assert validator.last_file_results is not None
+        file_results = validator.last_file_results[changed_page.source_path]
+        assert file_results[0].code == "H101"
+        assert file_results[0].metadata == {
+            "source_path": str(changed_page.source_path),
+            "broken_links": ["/missing/"],
+        }
+
 
 class TestLinkValidatorWrapperRecommendations:
     """Tests for recommendation messages."""
@@ -237,6 +314,54 @@ class TestLinkValidatorWrapperSilenceIsGolden:
 
         success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
         assert len(success_results) == 0
+
+
+class TestLinkValidatorHealthScopeIntegration:
+    """Tests Links integration with HealthCheck scoped validation cache."""
+
+    def test_health_check_reuses_cached_unchanged_link_results(self, mock_site):
+        """HealthCheck scopes Links and lets it aggregate cached unchanged findings."""
+        from bengal.health.health_check import HealthCheck
+
+        changed_page = mock_site.pages[0]
+        unchanged_page = mock_site.pages[1]
+        changed_page.links = ["/missing-now/"]
+
+        cached_result = CheckResult.error(
+            "1 broken internal link(s)",
+            code="H101",
+            validator="Links",
+            metadata={
+                "source_path": str(unchanged_page.source_path),
+                "broken_links": ["/cached-missing/"],
+            },
+        )
+        cache = MagicMock()
+        cache.is_changed.side_effect = lambda path: path == changed_page.source_path
+
+        def cached_results(path: Path, _validator_name: str):
+            if path == unchanged_page.source_path:
+                return [cached_result.to_cache_dict()]
+            return []
+
+        cache.get_cached_validation_results.side_effect = cached_results
+
+        health_check = HealthCheck(mock_site, auto_register=False)
+        health_check.register(LinkValidatorWrapper())
+        report = health_check.run(incremental=True, cache=cache)
+
+        link_report = report.validator_reports[0]
+        assert link_report.results[0].code == "H101"
+        assert "2 broken internal link(s)" in link_report.results[0].message
+        details = link_report.results[0].details
+        assert details is not None
+        assert any("cached-missing" in detail for detail in details)
+        assert any("missing-now" in detail for detail in details)
+        cache.cache_validation_results.assert_called_once()
+        cached_path, validator_name, file_results = cache.cache_validation_results.call_args.args
+        assert cached_path == changed_page.source_path
+        assert validator_name == "Links"
+        assert file_results[0].metadata["broken_links"] == ["/missing-now/"]
 
 
 class TestLinkValidatorRegistryCache:
@@ -272,6 +397,112 @@ class TestLinkValidatorRegistryCache:
         assert validator.validate_page_links(page, site_with_target) == []
 
 
+class TestLinkValidatorResultCache:
+    """Tests for per-run link result memoization."""
+
+    def test_reuses_duplicate_internal_link_result(self):
+        """Duplicate links from the same page URL are resolved once."""
+        from bengal.health.link_registry import LinkRegistry
+        from bengal.rendering.reference_registry import InternalReferenceResolver
+
+        page = MagicMock()
+        page.href = "/docs/"
+        page.source_path = Path("/project/content/docs.md")
+        page.links = ["/target/", "/target/", "/target/"]
+
+        site = MagicMock()
+        site.config = {"validate_links": True}
+        site.root_path = Path("/project")
+        site.pages = [page]
+        site.link_registry = LinkRegistry(
+            page_urls=frozenset(["/docs/", "/docs", "/target/", "/target"]),
+            source_paths=frozenset(),
+            anchors_by_url=MappingProxyType({}),
+            auxiliary_urls=frozenset(),
+        )
+
+        validator = LinkValidator()
+        with patch.object(
+            InternalReferenceResolver, "has_url", autospec=True, return_value=True
+        ) as has_url:
+            broken = validator.validate_site(site)
+
+        assert broken == []
+        assert has_url.call_count == 1
+        assert validator.cache_hits == 2
+        assert validator.cache_misses == 1
+
+    def test_relative_markdown_cache_is_scoped_by_source_path(self):
+        """The same relative .md link can differ by source directory."""
+        from bengal.health.link_registry import LinkRegistry
+
+        page_a = MagicMock()
+        page_a.href = "/a/"
+        page_a.source_path = Path("/project/content/a/page.md")
+        page_a.links = ["sibling.md"]
+
+        page_b = MagicMock()
+        page_b.href = "/b/"
+        page_b.source_path = Path("/project/content/b/page.md")
+        page_b.links = ["sibling.md"]
+
+        site = MagicMock()
+        site.config = {"validate_links": True}
+        site.root_path = Path("/project")
+        site.pages = [page_a, page_b]
+        site.link_registry = LinkRegistry(
+            page_urls=frozenset(["/a/", "/a", "/b/", "/b"]),
+            source_paths=frozenset(["content/a/sibling.md"]),
+            anchors_by_url=MappingProxyType({}),
+            auxiliary_urls=frozenset(),
+        )
+
+        broken = LinkValidator().validate_site(site)
+
+        assert broken == [(page_b.source_path, "sibling.md")]
+
+    def test_fragment_cache_is_scoped_by_current_page(self):
+        """The same fragment can be valid on one page and broken on another."""
+        from bengal.health.link_registry import LinkRegistry
+
+        page_docs = MagicMock()
+        page_docs._path = "/docs/"
+        page_docs.href = "/docs/"
+        page_docs.source_path = Path("/project/content/docs.md")
+        page_docs.links = ["#intro"]
+
+        page_about = MagicMock()
+        page_about._path = "/about/"
+        page_about.href = "/about/"
+        page_about.source_path = Path("/project/content/about.md")
+        page_about.links = ["#intro"]
+
+        site = MagicMock()
+        site.config = {"validate_links": True}
+        site.root_path = Path("/project")
+        site.pages = [page_docs, page_about]
+        site.link_registry = LinkRegistry(
+            page_urls=frozenset(["/docs/", "/docs", "/about/", "/about"]),
+            source_paths=frozenset(),
+            anchors_by_url=MappingProxyType(
+                {
+                    "/docs/": frozenset(["intro"]),
+                    "/docs": frozenset(["intro"]),
+                    "/about/": frozenset(["team"]),
+                    "/about": frozenset(["team"]),
+                }
+            ),
+            auxiliary_urls=frozenset(),
+        )
+
+        validator = LinkValidator()
+        broken = validator.validate_site(site)
+
+        assert broken == [(page_about.source_path, "#intro")]
+        assert validator.cache_hits == 0
+        assert validator.cache_misses == 2
+
+
 class TestLinkValidatorAnchorValidation:
     """Tests for anchor validation via LinkRegistry."""
 
@@ -287,12 +518,14 @@ class TestLinkValidatorAnchorValidation:
         registry = LinkRegistry(
             page_urls=frozenset(["/docs/", "/docs", "/about/", "/about"]),
             source_paths=frozenset(),
-            anchors_by_url={
-                "/docs/": frozenset(["introduction", "getting-started"]),
-                "/docs": frozenset(["introduction", "getting-started"]),
-                "/about/": frozenset(["team", "mission"]),
-                "/about": frozenset(["team", "mission"]),
-            },
+            anchors_by_url=MappingProxyType(
+                {
+                    "/docs/": frozenset(["introduction", "getting-started"]),
+                    "/docs": frozenset(["introduction", "getting-started"]),
+                    "/about/": frozenset(["team", "mission"]),
+                    "/about": frozenset(["team", "mission"]),
+                }
+            ),
             auxiliary_urls=frozenset(),
         )
         site.link_registry = registry

@@ -67,9 +67,9 @@ from bengal.postprocess.output_formats.utils import (
     get_page_url,
     normalize_url,
     parallel_write_files,
+    write_text_if_changed,
 )
 from bengal.postprocess.utils import get_section_name, tags_to_list
-from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -205,11 +205,10 @@ class PageJSONGenerator:
             return 0
 
         # Write function for parallel execution
-        def write_json(path: Any, data: dict[str, Any]) -> None:
-            path.parent.mkdir(parents=True, exist_ok=True)
+        def write_json(path: Any, data: dict[str, Any]) -> bool:
             # Use compact JSON (no indent) for speed - 3x faster
-            with AtomicFile(path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, separators=(",", ":"))
+            content = json.dumps(data, ensure_ascii=False, separators=(",", ":"))
+            return write_text_if_changed(path, content)
 
         # Use parallel write utility
         count = parallel_write_files(page_items, write_json, operation_name="page_json_write")

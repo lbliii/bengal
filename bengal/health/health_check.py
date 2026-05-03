@@ -46,6 +46,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.health.report import CheckResult, HealthReport, ValidatorReport
+from bengal.health.scope import ValidationScope, with_validation_scope
 
 if TYPE_CHECKING:
     from bengal.health.base import BaseValidator
@@ -463,37 +464,20 @@ class HealthCheck:
         Returns:
             ValidatorReport with results and timing
         """
-        # File-specific validators that can benefit from incremental validation
-        FILE_SPECIFIC_VALIDATORS = {"Directives", "Links"}
-
-        # Check if we can use cached results (for file-specific validators)
-        use_cache = (
-            cache is not None
-            and validator.name in FILE_SPECIFIC_VALIDATORS
-            and files_to_validate is not None
-            and len(files_to_validate) < len(self.site.pages)  # Only cache if subset
-        )
-
-        cached_results: list[CheckResult] = []
-        if use_cache:
-            # Try to get cached results for unchanged files
-            for page in self.site.pages:
-                if not page.source_path or (
-                    files_to_validate is not None and page.source_path in files_to_validate
-                ):
-                    continue  # Skip changed files or pages without source
-
-                cached = cache.get_cached_validation_results(page.source_path, validator.name)
-                if cached:
-                    # Deserialize cached results
-                    cached_results.extend([CheckResult.from_cache_dict(r) for r in cached])
+        scope = self._build_validation_scope(validator, cache, files_to_validate)
 
         # Run validator and time it
         start_time = time.time()
 
         try:
             # Pass build_context so validators can use cached artifacts
-            results = validator.validate(self.site, build_context=build_context)
+            scoped_context = with_validation_scope(build_context, scope)
+            results = validator.validate(self.site, build_context=scoped_context)
+
+            if scope is not None and not getattr(
+                validator, "consumes_validation_scope_cache", False
+            ):
+                results = scope.cached_results() + results
 
             # Set validator name on all results
             for result in results:
@@ -504,6 +488,8 @@ class HealthCheck:
             ignore_codes = getattr(self, "_ignore_codes", set())
             if ignore_codes:
                 results = [r for r in results if not (r.code and r.code in ignore_codes)]
+
+            self._cache_fresh_validation_results(validator, cache, scope)
 
         except Exception as e:
             # If validator crashes, record as error and track in session
@@ -537,6 +523,91 @@ class HealthCheck:
             duration_ms=duration_ms,
             stats=validator_stats,
         )
+
+    def _build_validation_scope(
+        self,
+        validator: BaseValidator,
+        cache: Any,
+        files_to_validate: set[Path] | None,
+    ) -> ValidationScope | None:
+        """Build an internal validation scope for file-specific validators."""
+        file_specific_validators = {"Directives", "Links"}
+        if validator.name not in file_specific_validators or files_to_validate is None:
+            return None
+
+        cached_results_by_file: dict[Path, tuple[CheckResult, ...]] = {}
+        use_cache = cache is not None and len(files_to_validate) < len(self.site.pages)
+        cache_context = self._validation_cache_context(validator)
+        if use_cache:
+            for page in self.site.pages:
+                source_path = getattr(page, "source_path", None)
+                if not source_path or source_path in files_to_validate:
+                    continue
+
+                cached = self._get_cached_validation_results(
+                    cache, source_path, validator, cache_context
+                )
+                if cached is not None:
+                    cached_results_by_file[source_path] = tuple(
+                        CheckResult.from_cache_dict(result) for result in cached
+                    )
+
+        return ValidationScope(
+            incremental=True,
+            files_to_validate=frozenset(files_to_validate),
+            cached_results_by_file=cached_results_by_file,
+        )
+
+    def _cache_fresh_validation_results(
+        self,
+        validator: BaseValidator,
+        cache: Any,
+        scope: ValidationScope | None,
+    ) -> None:
+        """Persist validator-provided per-file results for changed files."""
+        if cache is None or scope is None or scope.files_to_validate is None:
+            return
+
+        file_results = getattr(validator, "last_file_results", None)
+        if not isinstance(file_results, dict):
+            return
+
+        cache_context = self._validation_cache_context(validator)
+        for source_path in scope.files_to_validate:
+            fresh_results = list(file_results.get(source_path, []))
+            if cache_context is None:
+                cache.cache_validation_results(source_path, validator.name, fresh_results)
+            else:
+                cache.cache_validation_results(
+                    source_path,
+                    validator.name,
+                    fresh_results,
+                    cache_context=cache_context,
+                )
+
+    def _get_cached_validation_results(
+        self,
+        cache: Any,
+        source_path: Path,
+        validator: BaseValidator,
+        cache_context: dict[str, Any] | None,
+    ) -> list[dict[str, Any]] | None:
+        """Load cached validation results, preserving legacy call shape when possible."""
+        if cache_context is None:
+            return cache.get_cached_validation_results(source_path, validator.name)
+        return cache.get_cached_validation_results(
+            source_path, validator.name, cache_context=cache_context
+        )
+
+    def _validation_cache_context(self, validator: BaseValidator) -> dict[str, Any] | None:
+        """Return extra cache context for validators that depend on global render state."""
+        if validator.name != "Links":
+            return None
+        registry = getattr(self.site, "link_registry", None)
+        fingerprint = getattr(registry, "fingerprint", None)
+        if isinstance(fingerprint, str) and fingerprint:
+            return {"link_registry_fingerprint": fingerprint}
+        return None
 
     def _run_validators_sequential(
         self,

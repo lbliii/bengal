@@ -18,8 +18,9 @@ Related Modules:
 from __future__ import annotations
 
 import shutil
+from datetime import date, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
 
@@ -227,7 +228,12 @@ class CacheManager:
 
         return False
 
-    def save(self, pages_built: Sequence[PageLike], assets_processed: list[Asset]) -> None:
+    def save(
+        self,
+        pages_built: Sequence[PageLike],
+        assets_processed: list[Asset],
+        build_context: Any | None = None,
+    ) -> None:
         """
         Update cache with processed files.
 
@@ -236,6 +242,7 @@ class CacheManager:
         Args:
             pages_built: Pages that were built
             assets_processed: Assets that were processed
+            build_context: Optional BuildContext with rendered page artifacts.
         """
         if not self.cache:
             return
@@ -332,6 +339,8 @@ class CacheManager:
                     action="continuing_without_caching_claims",
                 )
 
+        self._store_page_artifacts(build_context)
+
         # Update template hashes (even if not changed, to track them)
         theme_templates_dir = self._get_theme_templates_dir()
         if theme_templates_dir and theme_templates_dir.exists():
@@ -357,6 +366,36 @@ class CacheManager:
 
         # Save cache
         self.cache.save(cache_path)
+
+    def _store_page_artifacts(self, build_context: Any | None) -> None:
+        """Persist post-render page artifacts accumulated during rendering."""
+        if not self.cache or build_context is None:
+            return
+        get_accumulated = getattr(build_context, "get_accumulated_page_data", None)
+        if not callable(get_accumulated):
+            return
+
+        current_keys = {
+            str(self.cache._cache_key(_site_relative_path(self.site.root_path, page.source_path)))
+            for page in getattr(self.site, "pages", [])
+            if getattr(page, "source_path", None)
+        }
+        self.cache.page_artifacts = {
+            key: value for key, value in self.cache.page_artifacts.items() if key in current_keys
+        }
+
+        anchors_by_source = _page_anchor_ids_by_source(
+            getattr(self.site, "pages", []), self.site.root_path, self.cache
+        )
+        for data in get_accumulated():
+            source_path = getattr(data, "source_path", None)
+            if not source_path:
+                continue
+            key_path = _site_relative_path(self.site.root_path, source_path)
+            artifact_key = str(self.cache._cache_key(key_path))
+            self.cache.page_artifacts[artifact_key] = _serialize_page_artifact(
+                data, anchors_by_source.get(artifact_key, frozenset())
+            )
 
     def _get_theme_templates_dir(self) -> Path | None:
         """
@@ -421,3 +460,73 @@ class CacheManager:
                 "data_file_fingerprints_updated",
                 count=updated_count,
             )
+
+
+def _serialize_page_artifact(data: Any, anchors: frozenset[str]) -> dict[str, Any]:
+    """Convert AccumulatedPageData into a JSON-serializable cache record."""
+    source_path = data.source_path
+    json_output_path = getattr(data, "json_output_path", None)
+    return {
+        "source_path": str(source_path),
+        "url": data.url,
+        "uri": data.uri,
+        "title": data.title,
+        "description": data.description,
+        "date": data.date,
+        "date_iso": data.date_iso,
+        "plain_text": data.plain_text,
+        "excerpt": data.excerpt,
+        "content_preview": data.content_preview,
+        "word_count": data.word_count,
+        "reading_time": data.reading_time,
+        "section": data.section,
+        "tags": list(data.tags),
+        "dir": data.dir,
+        "enhanced_metadata": _json_safe(data.enhanced_metadata),
+        "is_autodoc": data.is_autodoc,
+        "full_json_data": _json_safe(data.full_json_data),
+        "json_output_path": str(json_output_path) if json_output_path else None,
+        "raw_metadata": _json_safe(data.raw_metadata),
+        "anchors": sorted(anchors),
+    }
+
+
+def _site_relative_path(root_path: Path, source_path: Path) -> Path:
+    """Resolve relative source paths against the current site root."""
+    if source_path.is_absolute():
+        return source_path
+    return root_path / source_path
+
+
+def _page_anchor_ids_by_source(
+    pages: Sequence[PageLike], root_path: Path, cache: BuildCache
+) -> dict[str, frozenset[str]]:
+    """Return rendered TOC anchor ids by source path cache key."""
+    anchors: dict[str, frozenset[str]] = {}
+    for page in pages:
+        source_path = getattr(page, "source_path", None)
+        if not source_path:
+            continue
+        toc_items = getattr(page, "toc_items", None) or []
+        ids = frozenset(
+            str(item["id"]) for item in toc_items if isinstance(item, dict) and "id" in item
+        )
+        if ids:
+            key_path = _site_relative_path(root_path, source_path)
+            anchors[str(cache._cache_key(key_path))] = ids
+    return anchors
+
+
+def _json_safe(value: Any) -> Any:
+    """Return a JSON-serializable representation for cache persistence."""
+    if isinstance(value, str | int | float | bool | type(None)):
+        return value
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, date | datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list | tuple | set | frozenset):
+        return [_json_safe(item) for item in value]
+    return str(value)

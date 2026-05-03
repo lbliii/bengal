@@ -14,8 +14,12 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock
 
+from bengal.cache.build_cache import BuildCache
+from bengal.orchestration.build_context import AccumulatedPageData
+from bengal.orchestration.stats import BuildStats
 from bengal.postprocess.output_formats import OutputFormatsGenerator
 
 
@@ -279,7 +283,11 @@ class TestConfigNormalizationEdgeCases:
         output_dir = tmp_path / "public"
         output_dir.mkdir()
         mock_site = self._create_mock_site(tmp_path, output_dir)
-        generator = OutputFormatsGenerator(mock_site, {"enabled": True})
+        stats = BuildStats()
+        build_context = type("BuildContext", (), {"stats": stats})()
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
         timings: dict[str, float] = {}
 
         result = generator._timed_generate(timings, "test_format", lambda: "ok")
@@ -287,6 +295,201 @@ class TestConfigNormalizationEdgeCases:
         assert result == "ok"
         assert "test_format" in timings
         assert timings["test_format"] >= 0
+        assert stats.postprocess_output_timings_ms["test_format"] == timings["test_format"]
+
+    def test_incremental_accumulated_data_merges_cached_page_artifacts(
+        self, tmp_path: Path
+    ) -> None:
+        """Incremental output formats can reuse cached artifacts for unchanged pages."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        changed_page = self._create_mock_page(
+            title="Changed",
+            url="/changed/",
+            content="Changed",
+            output_path=output_dir / "changed/index.html",
+        )
+        changed_page.source_path = Path("content/changed.md")
+        unchanged_page = self._create_mock_page(
+            title="Unchanged",
+            url="/unchanged/",
+            content="Unchanged",
+            output_path=output_dir / "unchanged/index.html",
+        )
+        unchanged_page.source_path = Path("content/unchanged.md")
+        mock_site.pages = [changed_page, unchanged_page]
+        cache = BuildCache(site_root=tmp_path)
+        cache.page_artifacts["content/unchanged.md"] = _artifact_record("content/unchanged.md")
+        changed_artifact = _accumulated_page_data(Path("content/changed.md"), "/changed/")
+        build_context = SimpleNamespace(incremental=True, cache=cache)
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
+
+        merged = generator._merge_cached_page_artifacts(
+            [changed_page, unchanged_page], [changed_artifact]
+        )
+
+        assert [data.uri for data in merged] == ["/changed/", "/unchanged/"]
+
+    def test_incremental_output_formats_use_cached_artifacts_without_rendered_pages(
+        self, tmp_path: Path
+    ) -> None:
+        """No-op incremental builds can skip site-wide output from cached artifacts."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        index_path = output_dir / "index.json"
+        index_path.write_text("sentinel", encoding="utf-8")
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Unchanged",
+            url="/unchanged/",
+            content="Unchanged",
+            output_path=output_dir / "unchanged/index.html",
+        )
+        page.source_path = Path("content/unchanged.md")
+        mock_site.pages = [page]
+        cache = BuildCache(site_root=tmp_path)
+        cache.page_artifacts["content/unchanged.md"] = _artifact_record("content/unchanged.md")
+        build_context = SimpleNamespace(
+            incremental=True,
+            cache=cache,
+            stats=BuildStats(),
+            has_accumulated_page_data=False,
+            get_accumulated_page_data=list,
+        )
+        generator = OutputFormatsGenerator(
+            mock_site,
+            {"enabled": True, "per_page": [], "site_wide": ["index_json"]},
+            build_context=build_context,
+        )
+        cached_data = generator._merge_cached_page_artifacts([page], [])
+        fingerprint = generator._site_wide_input_fingerprint(
+            "site_index_json",
+            [page],
+            cached_data,
+            {
+                "excerpt_length": 200,
+                "json_indent": None,
+                "include_full_content": False,
+            },
+        )
+        assert fingerprint is not None
+        cache.output_format_fingerprints["site_index_json"] = fingerprint
+
+        generator.generate()
+
+        assert index_path.read_text(encoding="utf-8") == "sentinel"
+        assert build_context.stats.postprocess_output_timings_ms["site_index_json"] == 0.0
+
+    def test_site_wide_generation_skips_when_input_fingerprint_matches(
+        self, tmp_path: Path
+    ) -> None:
+        """Unchanged site-wide outputs skip generator work when their input fingerprint matches."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.json").write_text("{}", encoding="utf-8")
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Page",
+            url="/page/",
+            content="Page",
+            output_path=output_dir / "page/index.html",
+        )
+        page.source_path = Path("content/page.md")
+        cache = BuildCache(site_root=tmp_path)
+        stats = BuildStats()
+        build_context = SimpleNamespace(incremental=True, cache=cache, stats=stats)
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
+        data = [_accumulated_page_data(Path("content/page.md"), "/page/")]
+        fingerprint = generator._site_wide_input_fingerprint(
+            "site_index_json", [page], data, {"json_indent": None}
+        )
+        assert fingerprint is not None
+        cache.output_format_fingerprints["site_index_json"] = fingerprint
+
+        result = generator._generate_site_wide_if_needed(
+            {},
+            "site_index_json",
+            [page],
+            data,
+            {"json_indent": None},
+            [output_dir / "index.json"],
+            lambda: (_ for _ in ()).throw(AssertionError("should skip")),
+        )
+
+        assert result == output_dir / "index.json"
+        assert stats.postprocess_output_timings_ms["site_index_json"] == 0.0
+
+    def test_changelog_site_wide_generation_does_not_skip_on_matching_fingerprint(
+        self, tmp_path: Path
+    ) -> None:
+        """Changelog includes build ids, so it must regenerate every build."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "changelog.json").write_text("{}", encoding="utf-8")
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Page",
+            url="/page/",
+            content="Page",
+            output_path=output_dir / "page/index.html",
+        )
+        page.source_path = Path("content/page.md")
+        cache = BuildCache(site_root=tmp_path)
+        cache.output_format_fingerprints["site_changelog"] = "matching"
+        build_context = SimpleNamespace(incremental=True, cache=cache, stats=BuildStats())
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
+        data = [_accumulated_page_data(Path("content/page.md"), "/page/")]
+
+        result = generator._generate_site_wide_if_needed(
+            {},
+            "site_changelog",
+            [page],
+            data,
+            {},
+            [output_dir / "changelog.json"],
+            lambda: "generated",
+        )
+
+        assert result == "generated"
+
+    def test_site_wide_fingerprint_sanitizes_page_artifact_metadata(self, tmp_path: Path) -> None:
+        """Fingerprinting tolerates Python objects from rendered page metadata."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Page",
+            url="/page/",
+            content="Page",
+            output_path=output_dir / "page/index.html",
+        )
+        page.source_path = Path("content/page.md")
+        build_context = SimpleNamespace(incremental=True, cache=BuildCache(site_root=tmp_path))
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
+        data = _accumulated_page_data(Path("content/page.md"), "/page/")
+        data.raw_metadata["path"] = tmp_path / "source.md"
+        data.enhanced_metadata["updated"] = datetime(2026, 5, 3, 12, 0, 0)
+        data.full_json_data = {
+            "url": "/page/",
+            "source": tmp_path / "source.md",
+            1: {"updated": datetime(2026, 5, 3, 12, 0, 0)},
+        }
+
+        fingerprint = generator._site_wide_input_fingerprint(
+            "site_index_json", [page], [data], {"json_indent": None}
+        )
+
+        assert isinstance(fingerprint, str)
+        assert len(fingerprint) == 64
 
     # Helper methods
 
@@ -294,6 +497,7 @@ class TestConfigNormalizationEdgeCases:
         """Create a mock Site instance."""
         site = Mock()
         site.site_dir = site_dir
+        site.root_path = site_dir
         site.output_dir = output_dir
         site.dev_mode = False
         site.versioning_enabled = False
@@ -343,3 +547,51 @@ class TestConfigNormalizationEdgeCases:
             page._section = None
 
         return page
+
+
+def _accumulated_page_data(source_path: Path, uri: str) -> AccumulatedPageData:
+    return AccumulatedPageData(
+        source_path=source_path,
+        url=uri,
+        uri=uri,
+        title=uri.strip("/") or "Home",
+        description="",
+        date=None,
+        date_iso=None,
+        plain_text="Body",
+        excerpt="Body",
+        content_preview="Body",
+        word_count=1,
+        reading_time=1,
+        section="Docs",
+        tags=[],
+        dir=uri,
+        full_json_data={"url": uri},
+        json_output_path=Path("public/index.json"),
+    )
+
+
+def _artifact_record(source_path: str) -> dict[str, object]:
+    data = _accumulated_page_data(Path(source_path), "/unchanged/")
+    return {
+        "source_path": str(data.source_path),
+        "url": data.url,
+        "uri": data.uri,
+        "title": data.title,
+        "description": data.description,
+        "date": data.date,
+        "date_iso": data.date_iso,
+        "plain_text": data.plain_text,
+        "excerpt": data.excerpt,
+        "content_preview": data.content_preview,
+        "word_count": data.word_count,
+        "reading_time": data.reading_time,
+        "section": data.section,
+        "tags": data.tags,
+        "dir": data.dir,
+        "enhanced_metadata": data.enhanced_metadata,
+        "is_autodoc": data.is_autodoc,
+        "full_json_data": data.full_json_data,
+        "json_output_path": str(data.json_output_path),
+        "raw_metadata": data.raw_metadata,
+    }

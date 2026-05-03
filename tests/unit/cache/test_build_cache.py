@@ -3,6 +3,7 @@ Unit tests for BuildCache.
 """
 
 from bengal.cache.build_cache import BuildCache
+from bengal.health.report import CheckResult
 from bengal.utils.primitives.sentinel import MISSING
 
 
@@ -262,6 +263,8 @@ class TestBuildCache:
         assert len(cache.rendered_output) == 0
         assert len(cache.synthetic_pages) == 0
         assert len(cache.validation_results) == 0
+        assert len(cache.page_artifacts) == 0
+        assert len(cache.output_format_fingerprints) == 0
         assert len(cache.autodoc_tracker.autodoc_dependencies) == 0
         assert len(cache.autodoc_tracker.autodoc_source_metadata) == 0
         assert len(cache.autodoc_content_cache) == 0  # NEW: verify this is cleared
@@ -297,6 +300,84 @@ class TestBuildCache:
         assert str(page) in loaded_cache.dependencies
         assert str(template) in loaded_cache.dependencies[str(page)]
         assert "tag:python" in loaded_cache.taxonomy_index.taxonomy_deps
+
+    def test_page_artifacts_survive_save_load(self, tmp_path):
+        """Post-render page artifact records are persisted in the build cache."""
+        cache = BuildCache()
+        cache.page_artifacts["content/page.md"] = {"uri": "/page/", "title": "Page"}
+        cache.output_format_fingerprints["site_index_json"] = "abc123"
+        cache_file = tmp_path / ".bengal-cache.json"
+
+        cache.save(cache_file)
+        loaded_cache = BuildCache.load(cache_file)
+
+        assert loaded_cache.page_artifacts["content/page.md"] == {
+            "uri": "/page/",
+            "title": "Page",
+        }
+        assert loaded_cache.output_format_fingerprints["site_index_json"] == "abc123"
+
+    def test_validation_cache_returns_legacy_results_without_context(self, tmp_path):
+        """Validation cache keeps legacy list-shaped entries readable."""
+        cache = BuildCache()
+        page = tmp_path / "page.md"
+        page.write_text("Content")
+        cache.update_file(page)
+        result = CheckResult.error("Broken", code="H101")
+
+        cache.cache_validation_results(page, "Links", [result])
+
+        assert cache.get_cached_validation_results(page, "Links") == [result.to_cache_dict()]
+
+    def test_validation_cache_context_must_match(self, tmp_path):
+        """Context-enveloped validation results are reused only for matching context."""
+        cache = BuildCache()
+        page = tmp_path / "page.md"
+        page.write_text("Content")
+        cache.update_file(page)
+        result = CheckResult.error("Broken", code="H101")
+        context = {"link_registry_fingerprint": "abc"}
+
+        cache.cache_validation_results(page, "Links", [result], cache_context=context)
+
+        assert cache.get_cached_validation_results(page, "Links", cache_context=context) == [
+            result.to_cache_dict()
+        ]
+        assert (
+            cache.get_cached_validation_results(
+                page, "Links", cache_context={"link_registry_fingerprint": "def"}
+            )
+            is None
+        )
+
+    def test_validation_cache_context_rejects_legacy_entries(self, tmp_path):
+        """Context-sensitive callers conservatively miss old list-shaped entries."""
+        cache = BuildCache()
+        page = tmp_path / "page.md"
+        page.write_text("Content")
+        cache.update_file(page)
+        result = CheckResult.error("Broken", code="H101")
+
+        cache.cache_validation_results(page, "Links", [result])
+
+        assert (
+            cache.get_cached_validation_results(
+                page, "Links", cache_context={"link_registry_fingerprint": "abc"}
+            )
+            is None
+        )
+
+    def test_validation_cache_preserves_empty_context_results(self, tmp_path):
+        """Clean per-file validation results still carry invalidation context."""
+        cache = BuildCache()
+        page = tmp_path / "page.md"
+        page.write_text("Content")
+        cache.update_file(page)
+        context = {"link_registry_fingerprint": "abc"}
+
+        cache.cache_validation_results(page, "Links", [], cache_context=context)
+
+        assert cache.get_cached_validation_results(page, "Links", cache_context=context) == []
 
     def test_load_nonexistent_cache(self, tmp_path):
         """Test loading a cache file that doesn't exist."""

@@ -87,6 +87,7 @@ class BuildStats:
     pages_rendered: int = 0  # Set by RenderOrchestrator from WaveScheduler
     assets_time_ms: float = 0
     postprocess_time_ms: float = 0
+    postprocess_output_timings_ms: dict[str, float] = field(default_factory=dict)
     health_check_time_ms: float = 0
 
     # Memory metrics (Phase 1 - Performance Tracking)
@@ -397,6 +398,7 @@ class BuildStats:
             "pages_rendered": self.pages_rendered,
             "assets_time_ms": self.assets_time_ms,
             "postprocess_time_ms": self.postprocess_time_ms,
+            "postprocess_output_timings_ms": self.postprocess_output_timings_ms,
             "health_check_time_ms": self.health_check_time_ms,
             # Memory
             "memory_rss_mb": self.memory_rss_mb,

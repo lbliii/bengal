@@ -66,9 +66,9 @@ from bengal.postprocess.output_formats.utils import (
     get_page_txt_path,
     get_page_url,
     parallel_write_files,
+    write_text_if_changed,
 )
 from bengal.postprocess.utils import get_section_name, tags_to_list
-from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -155,10 +155,8 @@ class PageTxtGenerator:
             return 0
 
         # Write function for parallel execution
-        def write_txt(path: Path, content: str) -> None:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with AtomicFile(path, "w", encoding="utf-8") as f:
-                f.write(content)
+        def write_txt(path: Path, content: str) -> bool:
+            return write_text_if_changed(path, content)
 
         # Use parallel write utility
         count = parallel_write_files(page_items, write_txt, operation_name="page_txt_write")
