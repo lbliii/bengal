@@ -18,6 +18,21 @@ from bengal.rendering.reference_resolution import (
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
 
+_DEFAULT_SITE_WIDE_OUTPUT_FORMATS = (
+    "index_json",
+    "llm_full",
+    "llms_txt",
+    "changelog",
+    "agent_manifest",
+)
+_SITE_WIDE_AUXILIARY_OUTPUTS = {
+    "index_json": "index.json",
+    "llm_full": "llm-full.txt",
+    "llms_txt": "llms.txt",
+    "changelog": "changelog.json",
+    "agent_manifest": "agent.json",
+}
+
 
 @dataclass(frozen=True, slots=True)
 class LinkRegistry:
@@ -137,7 +152,7 @@ def build_link_registry_from_artifacts(site: SiteLike, build_context: Any) -> Li
     urls: set[str] = set()
     paths: set[str] = set()
     anchors: dict[str, frozenset[str]] = {}
-    auxiliary_urls: set[str] = set()
+    auxiliary_urls = _build_site_wide_auxiliary_urls(site)
     root = site.root_path
     output_llm_txt = _outputs_per_page_llm_txt(site)
 
@@ -202,15 +217,14 @@ def _add_anchor_variants(
 
 
 def _build_auxiliary_urls(site: SiteLike) -> set[str]:
-    """Build set of auxiliary output URLs, such as per-page ``index.txt``."""
-    if not _outputs_per_page_llm_txt(site):
-        return set()
-
+    """Build set of auxiliary output URLs, such as output-format files."""
     urls: set[str] = set()
-    for page in site.pages:
-        url = getattr(page, "href", None)
-        if url:
-            urls.add(str(url).rstrip("/") + "/index.txt")
+    if _outputs_per_page_llm_txt(site):
+        for page in site.pages:
+            url = getattr(page, "href", None)
+            if url:
+                urls.add(str(url).rstrip("/") + "/index.txt")
+    urls.update(_build_site_wide_auxiliary_urls(site))
     return urls
 
 
@@ -220,8 +234,62 @@ def _outputs_per_page_llm_txt(site: SiteLike) -> bool:
     output_formats: dict[str, Any] = config.get("output_formats", {}) or {}
     if not output_formats.get("enabled", True):
         return False
-    per_page = output_formats.get("per_page", [])
-    return "llm_txt" in per_page
+    if "per_page" in output_formats:
+        return "llm_txt" in (output_formats.get("per_page") or [])
+    if "llm_txt" in output_formats:
+        return bool(output_formats.get("llm_txt"))
+    return "json" not in output_formats
+
+
+def _build_site_wide_auxiliary_urls(site: SiteLike) -> set[str]:
+    """Build valid internal URLs for generated site-wide output-format files."""
+    urls: set[str] = set()
+    for output_format in _configured_site_wide_output_formats(site):
+        filename = _SITE_WIDE_AUXILIARY_OUTPUTS.get(output_format)
+        if filename:
+            _add_auxiliary_output_variants(urls, site, filename)
+    return urls
+
+
+def _configured_site_wide_output_formats(site: SiteLike) -> tuple[str, ...]:
+    """Return normalized site-wide output formats from the site configuration."""
+    config = getattr(site, "config", {}) or {}
+    output_formats: dict[str, Any] = config.get("output_formats", {}) or {}
+    if not output_formats.get("enabled", True):
+        return ()
+    if "site_wide" in output_formats:
+        return tuple(str(item) for item in output_formats.get("site_wide") or [])
+
+    simple_keys = {"site_json", "site_llm"}
+    if simple_keys & output_formats.keys():
+        site_wide: list[str] = []
+        if output_formats.get("site_json", False):
+            site_wide.append("index_json")
+        if output_formats.get("site_llm", False):
+            site_wide.append("llm_full")
+        return tuple(site_wide)
+
+    return _DEFAULT_SITE_WIDE_OUTPUT_FORMATS
+
+
+def _add_auxiliary_output_variants(urls: set[str], site: SiteLike, filename: str) -> None:
+    """Add root and baseurl-prefixed variants for a generated auxiliary file."""
+    _add_url_variants(urls, f"/{filename}")
+    baseurl = _site_baseurl(site)
+    if baseurl:
+        _add_url_variants(urls, f"{baseurl}/{filename}")
+
+
+def _site_baseurl(site: SiteLike) -> str:
+    """Return normalized site baseurl without a trailing slash."""
+    baseurl = getattr(site, "baseurl", None)
+    if not isinstance(baseurl, str):
+        config = getattr(site, "config", {}) or {}
+        baseurl = config.get("baseurl", "")
+    baseurl = str(baseurl or "").strip()
+    if not baseurl or baseurl == "/":
+        return ""
+    return "/" + baseurl.strip("/")
 
 
 def _site_relative_path(root_path: Path, source_path: Path) -> Path:
