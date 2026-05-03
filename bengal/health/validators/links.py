@@ -35,6 +35,7 @@ from urllib.parse import urlparse
 from bengal.build.contracts.keys import content_key
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, ValidatorStats
+from bengal.health.scope import get_validation_scope
 from bengal.health.utils import relative_path
 from bengal.health.validators.link_skip_rules import should_skip_link
 from bengal.rendering.reference_registry import (
@@ -49,6 +50,7 @@ from bengal.utils.observability.logger import get_logger
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from bengal.health.scope import ValidationScope
     from bengal.protocols import PageLike, SiteLike
 
 logger = get_logger(__name__)
@@ -57,6 +59,76 @@ logger = get_logger(__name__)
 def _format_link_location(page_path: Path | None, root: Path) -> str:
     """Format a broken-link source location, including unknown sources."""
     return "<unknown>" if page_path is None else relative_path(page_path, root)
+
+
+def _cached_broken_links(scope: ValidationScope | None) -> list[tuple[Path | None, str]]:
+    """Extract cached broken-link metadata from scoped validation results."""
+    if scope is None:
+        return []
+
+    broken_links: list[tuple[Path | None, str]] = []
+    for result in scope.cached_results():
+        metadata = result.metadata or {}
+        source = metadata.get("source_path")
+        links = metadata.get("broken_links")
+        if not isinstance(source, str) or not isinstance(links, list):
+            continue
+        source_path = Path(source)
+        broken_links.extend((source_path, link) for link in links if isinstance(link, str))
+    return broken_links
+
+
+def _file_results_by_source(
+    broken_links: list[tuple[Path | None, str]],
+    site: SiteLike,
+) -> dict[Path, list[CheckResult]]:
+    """Build cacheable per-source results from freshly validated broken links."""
+    grouped: dict[Path, list[str]] = {}
+    for source_path, link in broken_links:
+        if source_path is None:
+            continue
+        grouped.setdefault(source_path, []).append(link)
+
+    file_results: dict[Path, list[CheckResult]] = {}
+    for source_path, links in grouped.items():
+        internal_links = [link for link in links if not link.startswith(("http://", "https://"))]
+        external_links = [link for link in links if link.startswith(("http://", "https://"))]
+        results = []
+        if internal_links:
+            results.append(
+                CheckResult.error(
+                    f"{len(internal_links)} broken internal link(s)",
+                    code="H101",
+                    recommendation="Fix broken internal links. They point to pages that don't exist.",
+                    details=[
+                        f"{_format_link_location(source_path, site.root_path)}: {link}"
+                        for link in internal_links[:5]
+                    ],
+                    metadata={
+                        "source_path": str(source_path),
+                        "broken_links": internal_links,
+                    },
+                )
+            )
+        if external_links:
+            results.append(
+                CheckResult.warning(
+                    f"{len(external_links)} broken external link(s)",
+                    code="H102",
+                    recommendation="External links may be temporarily unavailable or incorrect.",
+                    details=[
+                        f"{_format_link_location(source_path, site.root_path)}: {link}"
+                        for link in external_links[:5]
+                    ],
+                    metadata={
+                        "source_path": str(source_path),
+                        "broken_links": external_links,
+                    },
+                )
+            )
+        file_results[source_path] = results
+
+    return file_results
 
 
 class LinkValidator:
@@ -229,7 +301,9 @@ class LinkValidator:
 
         return broken
 
-    def validate_site(self, site: Any) -> list[tuple[Path | None, str]]:
+    def validate_site(
+        self, site: Any, pages: list[PageLike] | None = None
+    ) -> list[tuple[Path | None, str]]:
         """
         Validate all links in the entire site.
 
@@ -239,7 +313,12 @@ class LinkValidator:
         Returns:
             List of (page_path, broken_link) tuples
         """
-        logger.debug("validating_site_links", page_count=len(site.pages))
+        pages_to_validate = list(site.pages) if pages is None else pages
+        logger.debug(
+            "validating_site_links",
+            page_count=len(pages_to_validate),
+            total_pages=len(site.pages),
+        )
 
         # Reset state
         self.broken_links = []
@@ -248,7 +327,7 @@ class LinkValidator:
         self._site = site
         self._load_reference_registry(site)
 
-        for page in site.pages:
+        for page in pages_to_validate:
             self.validate_page_links(page, site)
 
         if self.broken_links:
@@ -574,9 +653,11 @@ class LinkValidatorWrapper(BaseValidator):
     name = "Links"
     description = "Validates internal and external links"
     enabled_by_default = True
+    consumes_validation_scope_cache = True
 
     # Store stats from last validation for observability
     last_stats: ValidatorStats | None = None
+    last_file_results: dict[Path, list[CheckResult]] | None = None
 
     @override
     def validate(self, site: SiteLike, build_context: Any = None) -> list[CheckResult]:
@@ -598,6 +679,7 @@ class LinkValidatorWrapper(BaseValidator):
         """
         results = []
         sub_timings: dict[str, float] = {}
+        self.last_file_results = None
 
         # Initialize stats
         stats = ValidatorStats(pages_total=len(site.pages))
@@ -612,31 +694,48 @@ class LinkValidatorWrapper(BaseValidator):
         # Run link validator
         t0 = time.time()
         validator = LinkValidator()
-        broken_links = validator.validate_site(site)
+        scope = get_validation_scope(build_context)
+        pages_to_validate = scope.pages_to_validate(site) if scope is not None else list(site.pages)
+        broken_links = validator.validate_site(site, pages=pages_to_validate)
         sub_timings["validate"] = (time.time() - t0) * 1000
+        cached_broken_links = _cached_broken_links(scope)
+        all_broken_links = cached_broken_links + broken_links
 
         # Track stats
-        stats.pages_processed = len(site.pages)
+        stats.pages_processed = len(pages_to_validate)
+        if scope is not None:
+            skipped = len(site.pages) - len(pages_to_validate) - scope.cached_file_count
+            if skipped > 0:
+                stats.pages_skipped["unscoped"] = skipped
 
         # Track link count and broken links as metrics
-        total_links = sum(len(getattr(page, "links", [])) for page in site.pages)
+        total_links = sum(len(getattr(page, "links", [])) for page in pages_to_validate)
         stats.cache_hits = validator.cache_hits
         stats.cache_misses = validator.cache_misses
         stats.metrics["total_links"] = total_links
         stats.metrics["unique_link_checks"] = validator.cache_misses
-        stats.metrics["broken_links"] = len(broken_links) if broken_links else 0
+        stats.metrics["broken_links"] = len(all_broken_links) if all_broken_links else 0
+        if scope is not None:
+            stats.metrics["cached_files"] = scope.cached_file_count
+            stats.metrics["cached_results"] = scope.cached_result_count
+            stats.metrics["scoped_pages"] = len(pages_to_validate)
+            stats.metrics["site_links"] = sum(
+                len(getattr(page, "links", [])) for page in site.pages
+            )
 
-        if broken_links:
+        self.last_file_results = _file_results_by_source(broken_links, site)
+
+        if all_broken_links:
             # broken_links is list of (page_path, link_url) tuples
             # Group by type based on the link URL (second element)
             internal_broken = [
                 (page, link)
-                for page, link in broken_links
+                for page, link in all_broken_links
                 if not link.startswith(("http://", "https://"))
             ]
             external_broken = [
                 (page, link)
-                for page, link in broken_links
+                for page, link in all_broken_links
                 if link.startswith(("http://", "https://"))
             ]
 
