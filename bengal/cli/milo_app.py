@@ -128,6 +128,13 @@ cli.lazy_command(
 )
 
 cli.lazy_command(
+    "health",
+    import_path="bengal.cli.milo_commands.check:check",
+    description="Legacy alias for check",
+    display_result=False,
+)
+
+cli.lazy_command(
     "fix",
     import_path="bengal.cli.milo_commands.fix:fix",
     description="Auto-fix issues",

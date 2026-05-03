@@ -50,6 +50,7 @@ def test_milo_cli_walk_commands_resolves_every_lazy_import():
         ["audit", "--help"],
         ["cache", "hash", "--help"],
         ["check", "--help"],
+        ["health", "--help"],
         ["plugin", "list", "--help"],
     ],
     ids=[
@@ -59,6 +60,7 @@ def test_milo_cli_walk_commands_resolves_every_lazy_import():
         "audit-help",
         "cache-hash-help",
         "check-help",
+        "health-help",
         "plugin-list-help",
     ],
 )
