@@ -537,13 +537,16 @@ class HealthCheck:
 
         cached_results_by_file: dict[Path, tuple[CheckResult, ...]] = {}
         use_cache = cache is not None and len(files_to_validate) < len(self.site.pages)
+        cache_context = self._validation_cache_context(validator)
         if use_cache:
             for page in self.site.pages:
                 source_path = getattr(page, "source_path", None)
                 if not source_path or source_path in files_to_validate:
                     continue
 
-                cached = cache.get_cached_validation_results(source_path, validator.name)
+                cached = self._get_cached_validation_results(
+                    cache, source_path, validator, cache_context
+                )
                 if cached is not None:
                     cached_results_by_file[source_path] = tuple(
                         CheckResult.from_cache_dict(result) for result in cached
@@ -569,12 +572,42 @@ class HealthCheck:
         if not isinstance(file_results, dict):
             return
 
+        cache_context = self._validation_cache_context(validator)
         for source_path in scope.files_to_validate:
-            cache.cache_validation_results(
-                source_path,
-                validator.name,
-                list(file_results.get(source_path, [])),
-            )
+            fresh_results = list(file_results.get(source_path, []))
+            if cache_context is None:
+                cache.cache_validation_results(source_path, validator.name, fresh_results)
+            else:
+                cache.cache_validation_results(
+                    source_path,
+                    validator.name,
+                    fresh_results,
+                    cache_context=cache_context,
+                )
+
+    def _get_cached_validation_results(
+        self,
+        cache: Any,
+        source_path: Path,
+        validator: BaseValidator,
+        cache_context: dict[str, Any] | None,
+    ) -> list[dict[str, Any]] | None:
+        """Load cached validation results, preserving legacy call shape when possible."""
+        if cache_context is None:
+            return cache.get_cached_validation_results(source_path, validator.name)
+        return cache.get_cached_validation_results(
+            source_path, validator.name, cache_context=cache_context
+        )
+
+    def _validation_cache_context(self, validator: BaseValidator) -> dict[str, Any] | None:
+        """Return extra cache context for validators that depend on global render state."""
+        if validator.name != "Links":
+            return None
+        registry = getattr(self.site, "link_registry", None)
+        fingerprint = getattr(registry, "fingerprint", None)
+        if isinstance(fingerprint, str) and fingerprint:
+            return {"link_registry_fingerprint": fingerprint}
+        return None
 
     def _run_validators_sequential(
         self,

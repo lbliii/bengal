@@ -357,6 +357,39 @@ class TestHealthCheckHelperMethods:
             page.source_path, "Links", [file_result]
         )
 
+    def test_link_validation_cache_uses_registry_fingerprint_context(self, mock_site):
+        """Links cache keys include rendered URL and anchor truth when available."""
+        changed = MagicMock()
+        changed.source_path = Path("content/changed.md")
+        unchanged = MagicMock()
+        unchanged.source_path = Path("content/unchanged.md")
+        mock_site.pages = [changed, unchanged]
+        mock_site.link_registry = MagicMock(fingerprint="registry-fingerprint")
+        cache = MagicMock()
+        cache.get_cached_validation_results.return_value = []
+        validator = MockValidator("Links", results=[])
+        validator.last_file_results = {changed.source_path: []}
+        health_check = HealthCheck(mock_site, auto_register=False)
+
+        health_check._run_single_validator(
+            validator,
+            build_context=None,
+            cache=cache,
+            files_to_validate={changed.source_path},
+        )
+
+        cache.get_cached_validation_results.assert_called_once_with(
+            unchanged.source_path,
+            "Links",
+            cache_context={"link_registry_fingerprint": "registry-fingerprint"},
+        )
+        cache.cache_validation_results.assert_called_once_with(
+            changed.source_path,
+            "Links",
+            [],
+            cache_context={"link_registry_fingerprint": "registry-fingerprint"},
+        )
+
 
 class TestHealthCheckStats:
     """Test HealthCheckStats observability."""

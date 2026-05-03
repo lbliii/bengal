@@ -126,9 +126,8 @@ class BuildCache(
     # Synthetic page cache (for autodoc, etc.)
     synthetic_pages: dict[str, dict[str, Any]] = field(default_factory=dict)
 
-    # Validation result cache: file_path → validator_name → [CheckResult dicts]
-    # Structure: {file_path: {validator_name: [CheckResult.to_cache_dict(), ...]}}
-    validation_results: dict[str, dict[str, list[dict[str, Any]]]] = field(default_factory=dict)
+    # Validation result cache: file_path → validator_name → legacy list or context envelope
+    validation_results: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     # Composed autodoc tracker (replaces AutodocTrackingMixin)
     autodoc_tracker: AutodocTracker = field(default_factory=AutodocTracker)

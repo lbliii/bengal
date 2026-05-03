@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
@@ -30,6 +32,11 @@ class LinkRegistry:
     source_paths: frozenset[str]
     anchors_by_url: MappingProxyType[str, frozenset[str]]
     auxiliary_urls: frozenset[str]
+    fingerprint: str = field(init=False)
+
+    def __post_init__(self) -> None:
+        """Precompute a deterministic fingerprint of URL and anchor truth."""
+        object.__setattr__(self, "fingerprint", _fingerprint_link_registry(self))
 
 
 @dataclass(frozen=True, slots=True)
@@ -156,3 +163,17 @@ def _build_auxiliary_urls(site: SiteLike) -> set[str]:
         if url:
             urls.add(str(url).rstrip("/") + "/index.txt")
     return urls
+
+
+def _fingerprint_link_registry(registry: LinkRegistry) -> str:
+    """Return a stable fingerprint for link target and anchor invalidation."""
+    payload = {
+        "page_urls": sorted(registry.page_urls),
+        "source_paths": sorted(registry.source_paths),
+        "auxiliary_urls": sorted(registry.auxiliary_urls),
+        "anchors_by_url": [
+            [url, sorted(anchors)] for url, anchors in sorted(registry.anchors_by_url.items())
+        ],
+    }
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()

@@ -18,7 +18,7 @@ def _mock_site(tmp_path):
     site.config = {"output_formats": {"enabled": True, "per_page": ["llm_txt"]}}
 
     content_dir = tmp_path / "content"
-    content_dir.mkdir()
+    content_dir.mkdir(exist_ok=True)
     (content_dir / "docs.md").touch()
 
     page = MagicMock()
@@ -65,3 +65,37 @@ def test_resolver_precomputes_combined_url_index(tmp_path):
 
     assert resolver.all_urls == resolver.registry.page_urls | resolver.registry.auxiliary_urls
     assert "/docs/index.txt" in resolver.all_urls
+
+
+def test_registry_fingerprint_is_stable_for_same_link_targets(tmp_path):
+    registry_a = build_link_registry(_mock_site(tmp_path))
+    registry_b = build_link_registry(_mock_site(tmp_path))
+
+    assert registry_a.fingerprint == registry_b.fingerprint
+
+
+def test_registry_fingerprint_changes_when_url_truth_changes(tmp_path):
+    site = _mock_site(tmp_path)
+    registry_a = build_link_registry(site)
+    site.pages[0].href = "/renamed/"
+    registry_b = build_link_registry(site)
+
+    assert registry_a.fingerprint != registry_b.fingerprint
+
+
+def test_registry_fingerprint_changes_when_anchor_truth_changes(tmp_path):
+    site = _mock_site(tmp_path)
+    registry_a = build_link_registry(site)
+    site.pages[0].toc_items = [{"id": "intro"}, {"id": "changed"}]
+    registry_b = build_link_registry(site)
+
+    assert registry_a.fingerprint != registry_b.fingerprint
+
+
+def test_registry_fingerprint_changes_when_auxiliary_outputs_change(tmp_path):
+    site = _mock_site(tmp_path)
+    registry_a = build_link_registry(site)
+    site.config = {"output_formats": {"enabled": False}}
+    registry_b = build_link_registry(site)
+
+    assert registry_a.fingerprint != registry_b.fingerprint
