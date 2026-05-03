@@ -52,10 +52,10 @@ from bengal.postprocess.output_formats.utils import (
     get_page_md_path,
     get_page_url,
     parallel_write_files,
+    write_text_if_changed,
 )
 from bengal.postprocess.utils import get_section_name
 from bengal.rendering.html_markdown import rendered_html_to_markdown
-from bengal.utils.io.atomic_write import AtomicFile
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -102,10 +102,8 @@ class PageMarkdownGenerator:
         if not page_items:
             return 0
 
-        def write_md(path: Path, content: str) -> None:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            with AtomicFile(path, "w", encoding="utf-8") as f:
-                f.write(content)
+        def write_md(path: Path, content: str) -> bool:
+            return write_text_if_changed(path, content)
 
         count = parallel_write_files(
             page_items,

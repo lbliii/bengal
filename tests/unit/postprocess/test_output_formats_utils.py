@@ -10,6 +10,7 @@ from bengal.postprocess.output_formats.utils import (
     get_i18n_output_path,
     parallel_write_files,
     write_if_content_changed,
+    write_text_if_changed,
 )
 
 
@@ -225,6 +226,57 @@ class TestParallelWriteFiles:
 
             assert count == 1
             assert (base / "sub" / "dir" / "file.txt").read_text() == "nested"
+
+    def test_counts_false_return_as_skipped(self) -> None:
+        """A write function can return False when an unchanged file is skipped."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = Path(tmpdir)
+            items = [(base / "a.txt", "same"), (base / "b.txt", "new")]
+
+            def write_fn(path: Path, content: str) -> bool:
+                path.write_text(content)
+                return path.name != "a.txt"
+
+            count = parallel_write_files(items, write_fn)
+
+            assert count == 1
+
+
+class TestWriteTextIfChanged:
+    """Test write_text_if_changed utility."""
+
+    def test_writes_new_file(self) -> None:
+        """Writes content when the file does not exist."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "nested" / "page.txt"
+
+            result = write_text_if_changed(path, "content")
+
+            assert result is True
+            assert path.read_text() == "content"
+
+    def test_skips_unchanged_file(self) -> None:
+        """Does not rewrite when existing content matches."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "page.txt"
+            path.write_text("content")
+            before = path.stat().st_mtime_ns
+
+            result = write_text_if_changed(path, "content")
+
+            assert result is False
+            assert path.stat().st_mtime_ns == before
+
+    def test_updates_changed_file(self) -> None:
+        """Rewrites when content differs."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "page.txt"
+            path.write_text("old")
+
+            result = write_text_if_changed(path, "new")
+
+            assert result is True
+            assert path.read_text() == "new"
 
 
 class TestWriteIfContentChanged:

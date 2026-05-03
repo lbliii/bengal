@@ -266,7 +266,7 @@ def get_i18n_output_path(site: SiteLike, filename: str) -> Path:
 
 def parallel_write_files[T](
     items: list[tuple[Path, T]],
-    write_fn: Callable[[Path, T], None],
+    write_fn: Callable[[Path, T], bool | None],
     max_workers: int = 8,
     operation_name: str = "file_write",
 ) -> int:
@@ -278,7 +278,9 @@ def parallel_write_files[T](
 
     Args:
         items: List of (path, content) tuples to write
-        write_fn: Function that takes (path, content) and writes the file
+        write_fn: Function that takes (path, content) and writes the file.
+            Return False to mark an unchanged file as skipped; return None for
+            backward-compatible "written successfully" behavior.
         max_workers: Maximum parallel workers (default: 8)
         operation_name: Name for logging purposes
 
@@ -305,8 +307,8 @@ def parallel_write_files[T](
     def safe_write(item: tuple[Path, T]) -> bool:
         path, content = item
         try:
-            write_fn(path, content)
-            return True
+            written = write_fn(path, content)
+            return True if written is None else written
         except Exception as e:
             logger.warning(
                 f"{operation_name}_failed",
@@ -323,6 +325,43 @@ def parallel_write_files[T](
 
     count = sum(1 for r in results if r.ok and r.value)
     return count
+
+
+def write_text_if_changed(path: Path, content: str) -> bool:
+    """
+    Write text atomically only when the existing file differs.
+
+    This avoids rewriting unchanged per-page output-format files during serve
+    rebuilds without creating public sidecar hash files for every page.
+
+    Args:
+        path: Output file path.
+        content: Text content to write.
+
+    Returns:
+        True if the file was written, False if the existing content matched.
+    """
+    try:
+        if path.exists() and path.read_text(encoding="utf-8") == content:
+            logger.debug(
+                "write_skipped_unchanged",
+                path=str(path),
+                reason="content_unchanged",
+            )
+            return False
+    except OSError as e:
+        logger.debug(
+            "existing_output_read_failed",
+            path=str(path),
+            error=str(e),
+            error_type=type(e).__name__,
+            action="proceeding_to_write",
+        )
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with AtomicFile(path, "w", encoding="utf-8") as f:
+        f.write(content)
+    return True
 
 
 def extract_heading_chunks(
