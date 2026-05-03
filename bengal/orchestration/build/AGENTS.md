@@ -3,10 +3,10 @@
 The numbered build pipeline is intentionally explicit. Phase changes affect
 cache correctness, plugin hook timing, user output, and incremental rebuilds.
 
-Related architecture docs:
-
-- `../../../AGENTS.md`
+Related docs:
+- root `../../../AGENTS.md`
 - `../../../site/content/docs/reference/architecture/core/orchestration.md`
+- `../../../site/content/docs/reference/architecture/core/pipeline.md`
 
 ## Point Of View
 
@@ -20,6 +20,15 @@ without hiding behavior in phase coordinators.
 - Clear inputs and outputs for each phase.
 - Atomic finalization and output safety.
 - Explicit callbacks for observability instead of hidden side effects.
+
+## Contract Checklist
+
+- Unit tests in `tests/unit/orchestration/build/`.
+- Integration tests for full build, incremental parity, artifact inventory, and
+  finalization.
+- Docs for phase order, pipeline inputs/outputs, and plugin hook timing.
+- Cache/provenance collateral when phases add, remove, or rename artifacts.
+- Changelog for user-visible output or command behavior.
 
 ## Advocate
 
@@ -47,9 +56,9 @@ without hiding behavior in phase coordinators.
 
 ## Own
 
-- Own build-phase descriptions in `site/content/docs/reference/architecture/core/orchestration.md`.
-- Keep `site/content/docs/reference/architecture/core/pipeline.md` aligned with phase inputs/outputs.
-- Update user-facing build docs when phase behavior affects command output or artifacts.
-- `uv run pytest tests/unit/orchestration/build -q`
-- `uv run pytest tests/integration/test_incremental_invariants.py -q`
-- `uv run ruff check bengal/orchestration/build`
+- Build-phase descriptions in `site/content/docs/reference/architecture/core/orchestration.md`
+- `site/content/docs/reference/architecture/core/pipeline.md`
+- User-facing build docs when phases affect command output or artifacts
+- Checks: `uv run pytest tests/unit/orchestration/build -q`
+- Checks: `uv run pytest tests/integration/test_incremental_invariants.py -q`
+- Checks: `uv run ruff check bengal/orchestration/build`

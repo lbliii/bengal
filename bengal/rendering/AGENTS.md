@@ -4,11 +4,11 @@ Rendering owns the work that turns domain state into presentation: HTML,
 template views, excerpts, TOC structures, URLs, shortcode/link extraction, and
 page/section resource views.
 
-Related architecture docs:
-
-- `../../AGENTS.md`
+Related docs:
+- root `../../AGENTS.md`
 - `../../site/content/docs/reference/architecture/design-principles.md`
-- `../../site/content/docs/reference/architecture/rendering/content-processing-api.md`
+- `../../site/content/docs/reference/architecture/rendering/`
+- `../../site/content/docs/reference/template-functions/`
 
 ## Point Of View
 
@@ -21,7 +21,20 @@ and themes get dependable data.
 - Template compatibility for existing themes and plugins.
 - Clear helper/service boundaries behind core compatibility shims.
 - Deferred imports where rendering and core need to see each other.
-- Rendering behavior that is deterministic under parallel builds.
+- Deterministic rendering under parallel builds.
+- URL, reference, anchor, asset, shortcode, and template context correctness.
+
+## Contract Checklist
+
+- Unit tests under `tests/unit/rendering/`, parser tests under
+  `tests/rendering/`, and integration roots that exercise rendered output.
+- Template-function docs, theming docs, and default-theme templates when context
+  changes.
+- Protocol impact on `PageLike`, `SectionLike`, `TemplateEngine`, and test
+  doubles.
+- Cache/incremental impact when rendering records dependencies, references, or
+  output hashes.
+- Changelog for user-visible rendering changes.
 
 ## Advocate
 
@@ -49,10 +62,10 @@ and themes get dependable data.
 
 ## Own
 
-- Own `site/content/docs/reference/architecture/rendering/`.
-- Keep `site/content/docs/reference/template-functions/` accurate for template-facing behavior.
-- Update theming docs when rendering helpers change what themes can rely on.
-- `uv run pytest tests/unit/rendering -q`
-- `uv run pytest tests/rendering -q`
-- `uv run ruff check bengal/rendering tests/unit/rendering tests/rendering`
+- `site/content/docs/reference/architecture/rendering/`
+- `site/content/docs/reference/template-functions/`
+- Theming docs when rendering helpers change theme contracts
+- Checks: `uv run pytest tests/unit/rendering -q`
+- Checks: `uv run pytest tests/rendering -q`
+- Checks: `uv run ruff check bengal/rendering tests/unit/rendering tests/rendering`
 - Run `check-cycles` before hoisting any deferred import across core/rendering.

@@ -3,11 +3,11 @@
 Protocols and plugin hook shapes are public contracts. They are read by plugin
 developers and mocked throughout tests, so casual widening is expensive.
 
-Related architecture docs:
-
-- `../../AGENTS.md`
+Related docs:
+- root `../../AGENTS.md`
 - `../../site/content/docs/reference/architecture/meta/protocols.md`
 - `../../site/content/docs/reference/architecture/meta/extension-points.md`
+- `../../site/content/docs/extending/plugins.md`
 
 ## Point Of View
 
@@ -19,8 +19,18 @@ turning private convenience into permanent API.
 
 - The `Plugin` protocol and the 9 supported hook surfaces.
 - Narrow `PageLike`, `SectionLike`, and `SiteLike` contracts.
-- Test-double compatibility.
-- Backward-compatible evolution through adapters where possible.
+- Template, parser, and syntax-highlighting engine protocols.
+- Test-double compatibility and backward-compatible evolution.
+
+## Contract Checklist
+
+- Protocol tests in `tests/unit/protocols/` and type-safety tests in
+  `tests/core/test_type_safety.py`.
+- Plugin docs, extension-point docs, and migration notes for signature changes.
+- Mocks/fakes under `tests/_testing/` and downstream test fixtures.
+- Changelog for public protocol or hook behavior changes.
+- Parity matrix when a contract spans CLI, plugin hook, programmatic API, and
+  docs.
 
 ## Advocate
 
@@ -47,9 +57,9 @@ turning private convenience into permanent API.
 
 ## Own
 
-- Own `site/content/docs/reference/architecture/meta/protocols.md`.
-- Own plugin-contract material in `site/content/docs/reference/architecture/meta/extension-points.md`.
-- Update migration docs/changelog notes for public protocol or hook changes.
-- `uv run pytest tests/unit/protocols tests/core/test_type_safety.py -q`
-- `uv run pytest tests/unit/core/test_no_core_mixins.py -q`
-- `uv run ruff check bengal/protocols tests/unit/protocols`
+- `site/content/docs/reference/architecture/meta/protocols.md`
+- `site/content/docs/reference/architecture/meta/extension-points.md`
+- Public protocol migration notes and changelog collateral
+- Checks: `uv run pytest tests/unit/protocols tests/core/test_type_safety.py -q`
+- Checks: `uv run pytest tests/unit/core/test_no_core_mixins.py -q`
+- Checks: `uv run ruff check bengal/protocols tests/unit/protocols`

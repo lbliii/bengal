@@ -3,10 +3,11 @@
 Incremental orchestration protects the promise that a rebuild is both fast and
 correct. Stale content is worse than a failed build because authors trust it.
 
-Related architecture docs:
-
-- `../../../AGENTS.md`
+Related docs:
+- root `../../../AGENTS.md`
 - `../../../site/content/docs/reference/architecture/core/cache.md`
+- `../../../site/content/docs/building/performance/template-deps.md`
+- `../../../plan/rfc-incremental-build-observability.md`
 
 ## Point Of View
 
@@ -16,9 +17,18 @@ correct rebuilds. When uncertain, it should rebuild and explain why.
 ## Protect
 
 - Dependency tracking and invalidation correctness.
-- Provenance of content, templates, data, assets, and config.
+- Provenance of content, templates, data, assets, config, and generated pages.
 - Conservative rebuilds when uncertainty exists.
 - Clear diagnostics for why a page did or did not rebuild.
+
+## Contract Checklist
+
+- Tests in `tests/unit/orchestration/incremental/`,
+  `tests/integration/warm_build/`, and incremental invariants.
+- Cache/provenance tests when dependency keys or invalidation reasons change.
+- Performance docs and benchmark notes for warm-build speed claims.
+- Troubleshooting/docs when diagnostics or rebuild explanations change.
+- Changelog for user-visible rebuild behavior.
 
 ## Advocate
 
@@ -43,9 +53,9 @@ correct rebuilds. When uncertain, it should rebuild and explain why.
 
 ## Own
 
-- Own incremental sections in `site/content/docs/reference/architecture/core/cache.md`.
-- Keep `site/content/docs/building/performance/template-deps.md` accurate for dependency behavior.
-- Update troubleshooting docs when invalidation diagnostics change.
-- `uv run pytest tests/unit/orchestration/incremental tests/integration/warm_build -q`
-- `uv run pytest tests/integration/test_incremental_invariants.py -q`
-- `uv run ruff check bengal/orchestration/incremental`
+- Incremental sections in `site/content/docs/reference/architecture/core/cache.md`
+- `site/content/docs/building/performance/template-deps.md`
+- Troubleshooting docs for invalidation diagnostics
+- Checks: `uv run pytest tests/unit/orchestration/incremental tests/integration/warm_build -q`
+- Checks: `uv run pytest tests/integration/test_incremental_invariants.py -q`
+- Checks: `uv run ruff check bengal/orchestration/incremental`

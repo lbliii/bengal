@@ -4,26 +4,41 @@ The default theme is Bengal's shipped user experience. It should make real
 documentation readable, navigable, accessible, and fast without adding a Node or
 npm build path.
 
-Related architecture docs:
-
-- `../../../AGENTS.md`
+Related docs:
+- root `../../../AGENTS.md`
 - `README.md`
 - `templates/README.md`
 - `templates/SAFE_PATTERNS.md`
 - `templates/TEMPLATE-CONTEXT.md`
+- `../../../site/content/docs/theming/`
+
+## Point Of View
+
+Default theme represents readers, authors, and theme customizers encountering
+Bengal's built-in UX. It should make documentation feel trustworthy at desktop,
+mobile, keyboard, and code-heavy scales.
 
 ## Protect
 
-- Reader ergonomics for documentation, blogs, release notes, API references,
-  CLI references, search, navigation, and code-heavy pages.
+- Reader ergonomics for docs, blogs, release notes, API references, CLI
+  references, search, navigation, and code-heavy pages.
 - Semantic HTML, keyboard navigation, focus states, contrast, and responsive
   behavior.
-- Pure-Python delivery: no npm, no Node build step, and no theme asset pipeline
-  that depends on external JavaScript tooling.
+- Pure-Python delivery: no npm, no Node build step, and no external JS build
+  pipeline.
 - Stable template contracts and swizzle-friendly template structure.
-- CSS token discipline and component scoping that prevents site-authored
-  content from being accidentally restyled.
+- CSS token discipline and component scoping that avoids restyling authored
+  content accidentally.
 - Asset weight and rendering performance on mobile and low-power devices.
+
+## Contract Checklist
+
+- Theme tests under `tests/unit/themes/`, `tests/themes/`, and representative
+  integration builds.
+- Template context docs, safe patterns, CSS architecture docs, and theming docs.
+- Rendering/template-function collateral when templates need new context.
+- Accessibility/responsive manual inspection for layout-affecting changes.
+- Changelog for user-visible default-theme behavior.
 
 ## Advocate
 
@@ -55,15 +70,12 @@ Related architecture docs:
 
 ## Own
 
-- Own `README.md`, `templates/README.md`, `templates/SAFE_PATTERNS.md`, and
-  `templates/TEMPLATE-CONTEXT.md`.
-- Keep `site/content/docs/theming/`,
-  `site/content/docs/reference/theme-variables.md`, and theme customization
-  docs accurate when default theme behavior changes.
-- Coordinate with the rendering steward when template context or helper
-  behavior changes.
-- `uv run pytest tests/unit/themes tests/themes -q`
-- `uv run bengal build site`
-- Inspect representative pages for docs, release notes, search, tags,
-  autodoc/API reference, and narrow mobile layouts.
-- `rg "^[^@#][^{]*\b(ul|ol|a|pre|code|table)\b" bengal/themes/default`
+- `README.md`, `templates/README.md`, `templates/SAFE_PATTERNS.md`, and
+  `templates/TEMPLATE-CONTEXT.md`
+- `site/content/docs/theming/`,
+  `site/content/docs/reference/theme-variables.md`, and theme customization docs
+- Checks: `uv run pytest tests/unit/themes tests/themes -q`
+- Checks: `uv run bengal build site`
+- Inspect representative docs, release notes, search, tags, autodoc/API, and
+  narrow mobile layouts.
+- Checks: `rg "^[^@#][^{]*\\b(ul|ol|a|pre|code|table)\\b" bengal/themes/default`

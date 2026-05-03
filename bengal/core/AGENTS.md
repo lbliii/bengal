@@ -1,11 +1,14 @@
 # Core Steward
 
 This directory protects Bengal's passive domain model. Core objects describe
-state, identity, relationships, and cacheable facts. They do not perform I/O,
-log directly, or own rendering behavior.
+state, identity, relationships, and cacheable facts without performing I/O,
+logging directly, or owning rendering behavior.
 
-Start with the root guidance in `../../AGENTS.md`, then use this file for the
-local boundary.
+Related docs:
+- root `../../AGENTS.md`
+- `../../CLAUDE.md`
+- `../../site/content/docs/reference/architecture/core/object-model.md`
+- `../../site/content/docs/reference/architecture/design-principles.md`
 
 ## Point Of View
 
@@ -15,10 +18,26 @@ rendered, logs are emitted, or outputs are written.
 
 ## Protect
 
-- Passive objects: `Site`, `Page`, `Section`, `PageCore`, records, registries.
-- Compatibility shims that preserve existing template/plugin access.
-- Deferred imports where core reaches into rendering only from a shim.
+- Passive objects: `Site`, `Page`, `Section`, `PageCore`, records, registries,
+  and value objects.
+- Compatibility shims that preserve existing template/plugin access while
+  delegating presentation elsewhere.
+- Deferred imports where core reaches into rendering or orchestration only from
+  a compatibility shim.
 - The empty core mixin allow-list in `tests/unit/core/test_no_core_mixins.py`.
+- Import-linter contracts that keep page/section coupled to `SiteContext`
+  instead of concrete `Site`.
+
+## Contract Checklist
+
+- Unit and architecture guards: `tests/unit/core/`, `tests/core/`,
+  `tests/unit/core/test_no_core_mixins.py`, `.importlinter`.
+- Protocol impact: `bengal/protocols/`, `tests/unit/protocols/`, template-facing
+  compatibility properties.
+- Rendering impact: Page/Section shims must have rendering-side proof when
+  derived content, URLs, TOCs, excerpts, or resource views change.
+- Docs: core object-model and design-principle docs under `site/content/docs/`.
+- Changelog: required when user-facing behavior under `bengal/` changes.
 
 ## Advocate
 
@@ -46,9 +65,9 @@ rendered, logs are emitted, or outputs are written.
 
 ## Own
 
-- Keep `site/content/docs/reference/architecture/core/` aligned with core boundaries.
-- Update `site/content/docs/reference/architecture/design-principles.md` when core's role changes.
-- Keep object model docs honest when `Page`, `Section`, `Site`, or records move behavior.
-- `uv run pytest tests/unit/core tests/core -q`
-- `uv run pytest tests/unit/core/test_no_core_mixins.py -q`
-- `uv run ruff check bengal/core tests/unit/core tests/core`
+- `site/content/docs/reference/architecture/core/`
+- `site/content/docs/reference/architecture/design-principles.md`
+- `tests/unit/core/`, `tests/core/`, and core import-linter expectations
+- Checks: `uv run pytest tests/unit/core tests/core -q`
+- Checks: `uv run pytest tests/unit/core/test_no_core_mixins.py -q`
+- Checks: `uv run ruff check bengal/core tests/unit/core tests/core`
