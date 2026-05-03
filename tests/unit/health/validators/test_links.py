@@ -8,6 +8,7 @@ Tests health/validators/links.py:
 from __future__ import annotations
 
 from pathlib import Path
+from types import MappingProxyType
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -207,6 +208,17 @@ class TestLinkValidatorWrapperStats:
 
         assert "validate" in validator.last_stats.sub_timings
 
+    def test_tracks_link_result_cache_stats(self, validator, mock_site):
+        """Tracks per-run link result cache effectiveness."""
+        mock_site.pages[0].links.append("/about/")
+
+        validator.validate(mock_site)
+
+        assert validator.last_stats is not None
+        assert validator.last_stats.cache_hits == 1
+        assert validator.last_stats.cache_misses == 3
+        assert validator.last_stats.metrics["unique_link_checks"] == 3
+
 
 class TestLinkValidatorWrapperRecommendations:
     """Tests for recommendation messages."""
@@ -272,6 +284,112 @@ class TestLinkValidatorRegistryCache:
         assert validator.validate_page_links(page, site_with_target) == []
 
 
+class TestLinkValidatorResultCache:
+    """Tests for per-run link result memoization."""
+
+    def test_reuses_duplicate_internal_link_result(self):
+        """Duplicate links from the same page URL are resolved once."""
+        from bengal.health.link_registry import LinkRegistry
+        from bengal.rendering.reference_registry import InternalReferenceResolver
+
+        page = MagicMock()
+        page.href = "/docs/"
+        page.source_path = Path("/project/content/docs.md")
+        page.links = ["/target/", "/target/", "/target/"]
+
+        site = MagicMock()
+        site.config = {"validate_links": True}
+        site.root_path = Path("/project")
+        site.pages = [page]
+        site.link_registry = LinkRegistry(
+            page_urls=frozenset(["/docs/", "/docs", "/target/", "/target"]),
+            source_paths=frozenset(),
+            anchors_by_url=MappingProxyType({}),
+            auxiliary_urls=frozenset(),
+        )
+
+        validator = LinkValidator()
+        with patch.object(
+            InternalReferenceResolver, "has_url", autospec=True, return_value=True
+        ) as has_url:
+            broken = validator.validate_site(site)
+
+        assert broken == []
+        assert has_url.call_count == 1
+        assert validator.cache_hits == 2
+        assert validator.cache_misses == 1
+
+    def test_relative_markdown_cache_is_scoped_by_source_path(self):
+        """The same relative .md link can differ by source directory."""
+        from bengal.health.link_registry import LinkRegistry
+
+        page_a = MagicMock()
+        page_a.href = "/a/"
+        page_a.source_path = Path("/project/content/a/page.md")
+        page_a.links = ["sibling.md"]
+
+        page_b = MagicMock()
+        page_b.href = "/b/"
+        page_b.source_path = Path("/project/content/b/page.md")
+        page_b.links = ["sibling.md"]
+
+        site = MagicMock()
+        site.config = {"validate_links": True}
+        site.root_path = Path("/project")
+        site.pages = [page_a, page_b]
+        site.link_registry = LinkRegistry(
+            page_urls=frozenset(["/a/", "/a", "/b/", "/b"]),
+            source_paths=frozenset(["content/a/sibling.md"]),
+            anchors_by_url=MappingProxyType({}),
+            auxiliary_urls=frozenset(),
+        )
+
+        broken = LinkValidator().validate_site(site)
+
+        assert broken == [(page_b.source_path, "sibling.md")]
+
+    def test_fragment_cache_is_scoped_by_current_page(self):
+        """The same fragment can be valid on one page and broken on another."""
+        from bengal.health.link_registry import LinkRegistry
+
+        page_docs = MagicMock()
+        page_docs._path = "/docs/"
+        page_docs.href = "/docs/"
+        page_docs.source_path = Path("/project/content/docs.md")
+        page_docs.links = ["#intro"]
+
+        page_about = MagicMock()
+        page_about._path = "/about/"
+        page_about.href = "/about/"
+        page_about.source_path = Path("/project/content/about.md")
+        page_about.links = ["#intro"]
+
+        site = MagicMock()
+        site.config = {"validate_links": True}
+        site.root_path = Path("/project")
+        site.pages = [page_docs, page_about]
+        site.link_registry = LinkRegistry(
+            page_urls=frozenset(["/docs/", "/docs", "/about/", "/about"]),
+            source_paths=frozenset(),
+            anchors_by_url=MappingProxyType(
+                {
+                    "/docs/": frozenset(["intro"]),
+                    "/docs": frozenset(["intro"]),
+                    "/about/": frozenset(["team"]),
+                    "/about": frozenset(["team"]),
+                }
+            ),
+            auxiliary_urls=frozenset(),
+        )
+
+        validator = LinkValidator()
+        broken = validator.validate_site(site)
+
+        assert broken == [(page_about.source_path, "#intro")]
+        assert validator.cache_hits == 0
+        assert validator.cache_misses == 2
+
+
 class TestLinkValidatorAnchorValidation:
     """Tests for anchor validation via LinkRegistry."""
 
@@ -287,12 +405,14 @@ class TestLinkValidatorAnchorValidation:
         registry = LinkRegistry(
             page_urls=frozenset(["/docs/", "/docs", "/about/", "/about"]),
             source_paths=frozenset(),
-            anchors_by_url={
-                "/docs/": frozenset(["introduction", "getting-started"]),
-                "/docs": frozenset(["introduction", "getting-started"]),
-                "/about/": frozenset(["team", "mission"]),
-                "/about": frozenset(["team", "mission"]),
-            },
+            anchors_by_url=MappingProxyType(
+                {
+                    "/docs/": frozenset(["introduction", "getting-started"]),
+                    "/docs": frozenset(["introduction", "getting-started"]),
+                    "/about/": frozenset(["team", "mission"]),
+                    "/about": frozenset(["team", "mission"]),
+                }
+            ),
             auxiliary_urls=frozenset(),
         )
         site.link_registry = registry
