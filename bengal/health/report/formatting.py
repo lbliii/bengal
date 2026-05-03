@@ -18,6 +18,163 @@ if TYPE_CHECKING:
     from .models import ValidatorReport
 
 
+def _result_detail(result, detail_limit: int) -> str:
+    """Build a compact detail string for Kida validation report rows."""
+    parts: list[str] = []
+    if result.recommendation:
+        parts.append(result.recommendation)
+    if result.details:
+        shown = result.details[:detail_limit]
+        parts.extend(shown)
+        if len(result.details) > detail_limit:
+            parts.append(f"... and {len(result.details) - detail_limit} more")
+    return " | ".join(parts)
+
+
+def validation_report_context(
+    validator_reports: list[ValidatorReport],
+    has_problems: bool,
+    total_errors: int,
+    total_warnings: int,
+    total_suggestions: int,
+    total_passed: int,
+    quality_score: int,
+    quality_rating: str,
+    mode: str = "auto",
+    verbose: bool = False,
+    show_suggestions: bool = False,
+) -> dict:
+    """
+    Build structured context for ``validation_report.kida``.
+
+    This is the CLI-facing report boundary: health owns report semantics, while
+    Milo/Kida owns terminal rendering.
+    """
+    if verbose:
+        mode = "verbose"
+    if mode == "auto":
+        mode = "quiet" if not has_problems else "normal"
+
+    issues: list[dict[str, str]] = []
+
+    if mode == "quiet" and not has_problems:
+        issues.append(
+            {
+                "level": "success",
+                "message": f"All health checks passed (quality: {quality_score}%)",
+                "detail": f"{total_passed} check(s)",
+            }
+        )
+        return {
+            "title": "Health Check",
+            "issues": issues,
+            "summary": {"errors": 0, "warnings": 0, "passed": 1},
+        }
+
+    if mode == "verbose":
+        visible_statuses = {
+            CheckStatus.ERROR,
+            CheckStatus.WARNING,
+            CheckStatus.SUGGESTION,
+            CheckStatus.INFO,
+            CheckStatus.SUCCESS,
+        }
+        detail_limit = 5
+    else:
+        visible_statuses = {CheckStatus.ERROR, CheckStatus.WARNING}
+        if show_suggestions:
+            visible_statuses.add(CheckStatus.SUGGESTION)
+        detail_limit = 3
+
+    for validator in _ordered_validator_reports(validator_reports):
+        for result in validator.results:
+            if result.status not in visible_statuses:
+                continue
+            if (
+                result.status == CheckStatus.SUGGESTION
+                and not show_suggestions
+                and mode != "verbose"
+            ):
+                continue
+            issues.append(
+                {
+                    "level": _template_level(result.status),
+                    "message": f"{validator.validator_name}: {result.formatted_message}",
+                    "detail": _result_detail(result, detail_limit),
+                }
+            )
+
+    if not issues:
+        if total_suggestions and not show_suggestions:
+            issues.append(
+                {
+                    "level": "info",
+                    "message": f"{total_suggestions} quality suggestion(s) available",
+                    "detail": "Use --suggestions to view them.",
+                }
+            )
+        else:
+            issues.append(
+                {
+                    "level": "success",
+                    "message": f"Health checks passed (quality: {quality_score}%)",
+                    "detail": f"{total_passed} check(s)",
+                }
+            )
+    elif total_suggestions and not show_suggestions and mode != "verbose":
+        issues.append(
+            {
+                "level": "info",
+                "message": f"{total_suggestions} quality suggestion(s) available",
+                "detail": "Use --suggestions to view them.",
+            }
+        )
+
+    issues.append(
+        {
+            "level": "info",
+            "message": (
+                f"Health: {total_errors} error(s), {total_warnings} warning(s) | "
+                f"Quality: {quality_score}% ({quality_rating})"
+            ),
+            "detail": "",
+        }
+    )
+
+    return {
+        "title": "Health Check",
+        "issues": issues,
+        "summary": {
+            "errors": total_errors,
+            "warnings": total_warnings,
+            "passed": 1 if total_errors == 0 and total_warnings == 0 else 0,
+        },
+    }
+
+
+def _ordered_validator_reports(validator_reports: list[ValidatorReport]) -> list[ValidatorReport]:
+    """Sort problem validators first while preserving non-problem ordering."""
+    return sorted(
+        validator_reports,
+        key=lambda report: (
+            report.error_count == 0,
+            report.warning_count == 0,
+            report.validator_name,
+        ),
+    )
+
+
+def _template_level(status: CheckStatus) -> str:
+    """Map health severities to validation_report.kida status levels."""
+    if status == CheckStatus.ERROR:
+        return "error"
+    if status == CheckStatus.WARNING:
+        return "warning"
+    if status == CheckStatus.SUCCESS:
+        return "success"
+    return "info"
+
+
 def format_quiet(
     validator_reports: list[ValidatorReport],
     has_problems: bool,

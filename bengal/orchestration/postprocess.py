@@ -61,6 +61,13 @@ if TYPE_CHECKING:
 _print_lock = Lock()
 
 
+def _emit_postprocess_line(message: str) -> None:
+    """Route post-processing fallback messages through shared CLI output."""
+    from bengal.output import get_cli_output
+
+    get_cli_output().info(message)
+
+
 class PostprocessOrchestrator:
     """
     Orchestrates post-processing tasks after page rendering.
@@ -134,9 +141,9 @@ class PostprocessOrchestrator:
             reporter = build_context.reporter
 
         if not progress_manager:
-            from bengal.output import CLIOutput
+            from bengal.output import get_cli_output
 
-            cli = CLIOutput()
+            cli = get_cli_output()
             cli.section("Post-processing")
 
         # Collect enabled tasks
@@ -280,11 +287,11 @@ class PostprocessOrchestrator:
                                     task=task_name,
                                     reporter_error=str(reporter_error),
                                     error_type=type(reporter_error).__name__,
-                                    action="falling_back_to_print",
+                                    action="falling_back_to_cli_output",
                                 )
-                                print(f"  ✗ {task_name}: {e}")
+                                _emit_postprocess_line(f"  ✗ {task_name}: {e}")
                         else:
-                            print(f"  ✗ {task_name}: {e}")
+                            _emit_postprocess_line(f"  ✗ {task_name}: {e}")
 
     def _run_parallel(
         self,
@@ -380,15 +387,15 @@ class PostprocessOrchestrator:
                             error_count=len(errors),
                             reporter_error=str(reporter_error),
                             error_type=type(reporter_error).__name__,
-                            action="falling_back_to_print",
+                            action="falling_back_to_cli_output",
                         )
-                        print(header)
+                        _emit_postprocess_line(header)
                         for task_name, error in errors:
-                            print(f"    • {task_name}: {error}")
+                            _emit_postprocess_line(f"    • {task_name}: {error}")
                 else:
-                    print(header)
+                    _emit_postprocess_line(header)
                     for task_name, error in errors:
-                        print(f"    • {task_name}: {error}")
+                        _emit_postprocess_line(f"    • {task_name}: {error}")
 
     def _generate_special_pages(self, build_context: BuildContext | None = None) -> None:
         """
@@ -466,7 +473,7 @@ class PostprocessOrchestrator:
         Raises:
             Exception: If social card generation fails
         """
-        from bengal.output import CLIOutput
+        from bengal.output import get_cli_output
 
         social_config = parse_social_cards_config(self.site.config)
 
@@ -480,7 +487,7 @@ class PostprocessOrchestrator:
         generated, cached = generator.generate_all(self.site.pages, output_dir)
 
         # Log results using CLI output pattern
-        cli = CLIOutput()
+        cli = get_cli_output()
         if generated > 0 or cached > 0:
             cli.detail(
                 f"Generated: {generated}, Cached: {cached}",

@@ -701,7 +701,7 @@ def phase_render(
 
     # Print render pipeline profile if enabled
     if _profiling_enabled():
-        print(RenderProfiler.get().report())
+        cli.info(RenderProfiler.get().report())
 
     # Print rendering summary in quiet mode
     if quiet_mode:

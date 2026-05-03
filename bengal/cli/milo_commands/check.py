@@ -124,7 +124,10 @@ def check(
     )
 
     cli.blank()
-    cli.info(report.format_console(verbose=verbose, show_suggestions=suggestions))
+    cli.render_write(
+        "validation_report.kida",
+        **report.format_validation_report(verbose=verbose, show_suggestions=suggestions),
+    )
 
     if watch:
         _run_watch_mode(
@@ -216,7 +219,10 @@ def _run_watch_mode(site, build_profile, verbose, suggestions, incremental, cli)
         )
 
         cli.blank()
-        cli.info(report.format_console(verbose=verbose, show_suggestions=suggestions))
+        cli.render_write(
+            "validation_report.kida",
+            **report.format_validation_report(verbose=verbose, show_suggestions=suggestions),
+        )
 
         if report.has_errors():
             cli.error(f"{report.total_errors} error(s) found")

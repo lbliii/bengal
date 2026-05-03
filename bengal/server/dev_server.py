@@ -74,7 +74,7 @@ from bengal.assets.manifest import inspect_asset_outputs
 from bengal.cache import clear_build_cache, clear_output_directory, clear_template_cache
 from bengal.errors import BengalServerError, ErrorCode, reset_dev_server_state
 from bengal.orchestration.stats import display_build_stats, show_building_indicator
-from bengal.output import CLIOutput
+from bengal.output import get_cli_output
 from bengal.server.backend import ServerBackend, create_pounce_backend
 from bengal.server.buffer_manager import BufferManager
 from bengal.server.build_executor import BuildExecutor, BuildRequest
@@ -85,7 +85,6 @@ from bengal.server.ignore_filter import IgnoreFilter
 from bengal.server.live_reload import LiveReloadMixin
 from bengal.server.pid_manager import PIDManager
 from bengal.server.resource_manager import ResourceManager
-from bengal.server.utils import get_icons
 from bengal.server.watcher_runner import WatcherRunner
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.stats_minimal import MinimalStats
@@ -305,7 +304,7 @@ class DevServer:
                     if server_error[0] is not None:
                         sys.exit(1)
                 except KeyboardInterrupt:
-                    print("\n  👋 Shutting down server...")
+                    self._print_shutdown_message()
                     logger.info("dev_server_shutdown", reason="keyboard_interrupt")
                     backend.shutdown()
 
@@ -389,7 +388,7 @@ class DevServer:
                         suggestion=f"Use --port {actual_port + 1} or kill the process: lsof -ti:{actual_port} | xargs kill",
                     ) from exc
                 except KeyboardInterrupt:
-                    print("\n  👋 Shutting down server...")
+                    self._print_shutdown_message()
                     logger.info("dev_server_shutdown", reason="keyboard_interrupt")
             # ResourceManager cleanup happens automatically via __exit__
 
@@ -518,13 +517,13 @@ class DevServer:
             )
             # Trigger hot reload
             send_reload_payload(decision.action, "cache-validation", decision.changed_paths)
-            icons = get_icons()
-            print(
-                f"\n  {icons.success} Cache validated - {actual_changes} files updated, browser reloading..."
-            )
+            cli = get_cli_output()
+            cli.blank()
+            cli.success(f"Cache validated - {actual_changes} files updated, browser reloading...")
         else:
-            icons = get_icons()
-            print(f"\n  {icons.success} Cache validated - content is fresh")
+            cli = get_cli_output()
+            cli.blank()
+            cli.success("Cache validated - content is fresh")
 
         # Start watcher after validation to avoid race; seed cache for reactive path
         if self.watch and hasattr(self, "_watcher_runner") and hasattr(self, "_build_trigger"):
@@ -939,17 +938,17 @@ class DevServer:
 
             self._print_stale_process_panel(stale_pid, pid_file, is_holding_port)
 
-            response = input("  Kill stale process? [Y/n]: ").strip().lower()
-            should_kill = response in ("", "y", "yes")
+            cli = get_cli_output()
+            should_kill = cli.confirm("Kill stale process?", default=True)
 
             if should_kill:
                 if PIDManager.kill_stale_process(stale_pid):
-                    CLIOutput().success("Stale process terminated")
+                    cli.success("Stale process terminated")
                     logger.info("stale_process_killed", pid=stale_pid)
                     time.sleep(1)  # Give OS time to release resources
                 else:
-                    CLIOutput().error("Failed to kill process")
-                    CLIOutput().info(f"Try manually: kill {stale_pid}")
+                    cli.error("Failed to kill process")
+                    cli.info(f"Try manually: kill {stale_pid}")
                     logger.error(
                         "stale_process_kill_failed",
                         error_code=ErrorCode.S002.name,
@@ -962,7 +961,7 @@ class DevServer:
                         suggestion=f"Kill the stale process manually: kill {stale_pid}",
                     )
             else:
-                CLIOutput().warning("Continuing anyway (may encounter port conflicts)...")
+                cli.warning("Continuing anyway (may encounter port conflicts)...")
                 logger.warning(
                     "stale_process_ignored", pid=stale_pid, user_choice="continue_anyway"
                 )
@@ -988,22 +987,24 @@ class DevServer:
         if not self._is_port_available(self.port):
             logger.warning("port_unavailable", port=self.port, auto_port_enabled=self.auto_port)
 
-            icons = get_icons()
             if self.auto_port:
                 try:
                     actual_port = self._find_available_port(self.port + 1)
-                    print(f"{icons.warning} Port {self.port} is already in use")
-                    print(f"{icons.arrow} Using port {actual_port} instead")
+                    cli = get_cli_output()
+                    cli.warning(f"Port {self.port} is already in use")
+                    cli.info(f"{cli.icons.arrow} Using port {actual_port} instead")
                     logger.info("port_fallback", requested_port=self.port, actual_port=actual_port)
                 except (OSError, BengalServerError) as e:
-                    print(
-                        f"{icons.error} Port {self.port} is already in use and no alternative "
+                    cli = get_cli_output()
+                    cli.error(
+                        f"Port {self.port} is already in use and no alternative "
                         f"ports are available."
                     )
-                    print("\nTo fix this issue:")
-                    print(f"  1. Stop the process using port {self.port}, or")
-                    print("  2. Specify a different port with: bengal serve --port <PORT>")
-                    print(f"  3. Find the blocking process with: lsof -ti:{self.port}")
+                    cli.blank()
+                    cli.info("To fix this issue:")
+                    cli.info(f"  1. Stop the process using port {self.port}, or")
+                    cli.info("  2. Specify a different port with: bengal serve --port <PORT>")
+                    cli.info(f"  3. Find the blocking process with: lsof -ti:{self.port}")
                     logger.error(
                         "no_ports_available",
                         error_code=ErrorCode.S001.name,
@@ -1017,11 +1018,13 @@ class DevServer:
                         suggestion=f"Use --port {self.port + 100} or kill the process: lsof -ti:{self.port} | xargs kill",
                     ) from e
             else:
-                print(f"❌ Port {self.port} is already in use.")
-                print("\nTo fix this issue:")
-                print(f"  1. Stop the process using port {self.port}, or")
-                print("  2. Specify a different port with: bengal serve --port <PORT>")
-                print(f"  3. Find the blocking process with: lsof -ti:{self.port}")
+                cli = get_cli_output()
+                cli.error(f"Port {self.port} is already in use.")
+                cli.blank()
+                cli.info("To fix this issue:")
+                cli.info(f"  1. Stop the process using port {self.port}, or")
+                cli.info("  2. Specify a different port with: bengal serve --port <PORT>")
+                cli.info(f"  3. Find the blocking process with: lsof -ti:{self.port}")
                 logger.error(
                     "port_unavailable_no_fallback",
                     error_code=ErrorCode.S001.name,
@@ -1057,11 +1060,15 @@ class DevServer:
 
         return backend
 
+    def _print_shutdown_message(self) -> None:
+        """Print shutdown status through shared CLI output."""
+        cli = get_cli_output()
+        cli.blank()
+        cli.info("  👋 Shutting down server...")
+
     def _print_server_error(self, exc: BaseException, port: int) -> None:
         """Print a friendly error message for server startup failures (no traceback)."""
-        import sys
-
-        icons = get_icons()
+        cli = get_cli_output()
 
         if isinstance(exc, OSError):
             err = exc
@@ -1070,7 +1077,7 @@ class DevServer:
                 or "already in use" in str(err).lower()
             ):
                 lines = [
-                    f"{icons.error} Port {self.host}:{port} is already in use.",
+                    f"Port {self.host}:{port} is already in use.",
                     "",
                     "To fix:",
                     f"  1. Stop the process: lsof -ti:{port} | xargs kill",
@@ -1078,28 +1085,31 @@ class DevServer:
                 ]
             elif getattr(err, "errno", None) == errno.EACCES:
                 lines = [
-                    f"{icons.error} Permission denied binding to {self.host}:{port}.",
+                    f"Permission denied binding to {self.host}:{port}.",
                     "",
                     "Try a port > 1024 or run with elevated permissions.",
                 ]
             else:
-                lines = [f"{icons.error} {err}"]
+                lines = [str(err)]
         else:
-            lines = [f"{icons.error} Server failed to start: {exc}"]
+            lines = [f"Server failed to start: {exc}"]
 
-        sys.stderr.write("\n".join(lines) + "\n")
-        sys.stderr.flush()
+        first, *rest = lines
+        cli.error(first)
+        for line in rest:
+            if line:
+                cli.info(line)
+            else:
+                cli.blank()
 
     def _print_stale_process_panel(
         self, stale_pid: int, pid_file: Path, is_holding_port: bool
     ) -> None:
         """Print a friendly message for stale process detection."""
-        import sys
-
-        icons = get_icons()
+        cli = get_cli_output()
 
         lines = [
-            f"{icons.warning} Found stale Bengal server process (PID {stale_pid})",
+            f"Found stale Bengal server process (PID {stale_pid})",
         ]
         if is_holding_port:
             lines.append(f"   This process is holding port {self.port}")
@@ -1116,14 +1126,17 @@ class DevServer:
             ]
         )
 
-        sys.stderr.write("\n".join(lines) + "\n")
-        sys.stderr.flush()
+        first, *rest = lines
+        cli.warning(first)
+        for line in rest:
+            if line:
+                cli.info(line)
+            else:
+                cli.blank()
 
     def _print_startup_message(self, port: int, serve_first: bool = False) -> None:
         """Print server startup message."""
-        import sys
-
-        icons = get_icons()
+        cli = get_cli_output()
         url = f"http://{self.host}:{port}/"
 
         try:
@@ -1142,13 +1155,13 @@ class DevServer:
 
         if serve_first:
             lines.append(
-                f"   {icons.success}  Serving cached content (validating in background...)"
+                f"   {cli.icons.success}  Serving cached content (validating in background...)"
             )
 
         if self.watch:
-            lines.append(f"   {icons.info}  File watching enabled (auto-reload on changes)")
+            lines.append(f"   {cli.icons.info}  File watching enabled (auto-reload on changes)")
         else:
-            lines.append(f"   {icons.info}  File watching disabled")
+            lines.append(f"   {cli.icons.info}  File watching disabled")
 
         from bengal.utils.dx import collect_hints
 
@@ -1160,13 +1173,14 @@ class DevServer:
         lines.append("   Press Ctrl+C to stop")
         lines.append("")
 
-        sys.stdout.write("\n".join(lines) + "\n")
-        sys.stdout.flush()
+        for line in lines:
+            if line:
+                cli.info(line)
+            else:
+                cli.blank()
 
         # Request log header
         from datetime import datetime
-
-        cli = CLIOutput()
 
         def _log_request(method: str, path: str, status: int, _duration_ms: float) -> None:
             ts = datetime.now().strftime("%H:%M:%S")
@@ -1227,6 +1241,6 @@ class DevServer:
                     )
             except Exception as exc:
                 logger.warning("browser_open_failed", error=str(exc))
-                CLIOutput().warning("Could not open browser")
+                get_cli_output().warning("Could not open browser")
 
         threading.Thread(target=open_browser, daemon=True).start()

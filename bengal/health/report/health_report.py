@@ -11,7 +11,12 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from .formatting import format_normal, format_quiet, format_verbose
+from .formatting import (
+    format_normal,
+    format_quiet,
+    format_verbose,
+    validation_report_context,
+)
 from .scoring import calculate_quality_score, get_quality_rating
 from .serialization import format_report_json
 
@@ -199,4 +204,27 @@ class HealthReport:
             self.total_errors,
             self.build_quality_score(),
             self.quality_rating(),
+        )
+
+    def format_validation_report(
+        self, mode: str = "auto", verbose: bool = False, show_suggestions: bool = False
+    ) -> dict[str, Any]:
+        """
+        Format report as Kida ``validation_report.kida`` context.
+
+        Returns structured data for CLI rendering without embedding terminal
+        layout in the health model.
+        """
+        return validation_report_context(
+            self.validator_reports,
+            self.has_problems(),
+            self.total_errors,
+            self.total_warnings,
+            self.total_suggestions,
+            self.total_passed,
+            self.build_quality_score(),
+            self.quality_rating(),
+            mode=mode,
+            verbose=verbose,
+            show_suggestions=show_suggestions,
         )

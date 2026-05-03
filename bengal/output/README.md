@@ -78,9 +78,16 @@ BUILD COMPLETE
 BUILD COMPLETE (WITH WARNINGS)
 ```
 
+## Renderer Bridge
+
+`CLIOutput` is Bengal's Milo/Kida renderer bridge. Milo commands, Kida
+templates, prompts, raw progress, and compatibility utilities should share the
+same instance from `bengal.output.get_cli_output()` or the legacy
+`bengal.cli.utils.get_cli_output()` wrapper.
+
 ## Color Semantics
 
-Bengal uses semantic Rich theme tokens defined in `bengal/utils/rich_console.py`:
+Bengal uses semantic Milo theme tokens defined in `bengal/output/theme.py`:
 
 | Token | Usage | Color |
 |-------|-------|-------|
@@ -126,6 +133,7 @@ from bengal.output import CLIOutput
 cli = CLIOutput()
 cli.section("Processing")
 cli.success("Done!")
+cli.raw("machine-readable output", level=None)  # Only when semantic helpers do not fit
 
 # ❌ WRONG
 print("Processing:")
@@ -202,4 +210,4 @@ cli.path("/public", label="Output")  # "Output:\n   ↪ /public"
 - `bengal/output/colors.py` - Re-exports from utils.py (backward compat)
 - `bengal/output/dev_server.py` - Dev server output mixin
 - `bengal/output/globals.py` - Singleton access (get_cli_output)
-- `bengal/utils/rich_console.py` - Rich console and theme configuration
+- `bengal/output/theme.py` - Milo theme tokens for Kida rendering

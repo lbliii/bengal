@@ -104,8 +104,7 @@ class LinkCheckOrchestrator:
     Example:
             >>> orchestrator = LinkCheckOrchestrator(site, check_external=True)
             >>> results, summary = orchestrator.check_all_links()
-            >>> if not summary.passed:
-            ...     print(orchestrator.format_console_report(results, summary))
+            >>> context = orchestrator.format_validation_report(results, summary)
 
     """
 
@@ -383,6 +382,87 @@ class LinkCheckOrchestrator:
             "results": [r.to_dict() for r in results],
         }
 
+    def format_validation_report(
+        self, results: list[LinkCheckResult], summary: LinkCheckSummary
+    ) -> dict[str, Any]:
+        """
+        Format results as Kida ``validation_report.kida`` context.
+
+        Link checking owns the report semantics; the CLI owns terminal
+        rendering via Milo/Kida.
+        """
+        issues: list[dict[str, str]] = []
+        counts_detail = (
+            f"{summary.ok_count} ok, {summary.broken_count} broken, "
+            f"{summary.error_count} errors, {summary.ignored_count} ignored, "
+            f"{summary.duration_ms:.2f}ms"
+        )
+
+        broken = [r for r in results if r.status == LinkStatus.BROKEN]
+        errors = [r for r in results if r.status == LinkStatus.ERROR]
+
+        if not broken and not errors:
+            issues.append(
+                {
+                    "level": "success",
+                    "message": f"All {summary.total_checked} checked link(s) are valid",
+                    "detail": counts_detail,
+                }
+            )
+        else:
+            issues.append(
+                {
+                    "level": "info",
+                    "message": f"Checked {summary.total_checked} link(s)",
+                    "detail": counts_detail,
+                }
+            )
+
+        issues.extend(
+            {
+                "level": "error",
+                "message": result.url,
+                "detail": _link_issue_detail(result),
+            }
+            for result in broken[:20]
+        )
+        if len(broken) > 20:
+            issues.append(
+                {
+                    "level": "info",
+                    "message": f"{len(broken) - 20} additional broken link(s) hidden",
+                    "detail": "Use JSON output for the complete list.",
+                }
+            )
+
+        issues.extend(
+            {
+                "level": "error",
+                "message": result.url,
+                "detail": _link_issue_detail(result),
+            }
+            for result in errors[:10]
+        )
+        if len(errors) > 10:
+            issues.append(
+                {
+                    "level": "info",
+                    "message": f"{len(errors) - 10} additional link error(s) hidden",
+                    "detail": "Use JSON output for the complete list.",
+                }
+            )
+
+        failure_count = summary.broken_count + summary.error_count
+        return {
+            "title": "Link Check",
+            "issues": issues,
+            "summary": {
+                "errors": failure_count,
+                "warnings": 0,
+                "passed": 1 if summary.passed else 0,
+            },
+        }
+
     def format_console_report(
         self, results: list[LinkCheckResult], summary: LinkCheckSummary
     ) -> str:
@@ -399,59 +479,25 @@ class LinkCheckOrchestrator:
         Returns:
             Multi-line string formatted for terminal output.
         """
-        lines = []
-        lines.append("\n" + "=" * 70)
-        lines.append("\U0001f517 Link Check Report")
-        lines.append("=" * 70)
-        lines.append("")
-
-        # Summary
-        lines.append(f"Total checked:   {summary.total_checked}")
-        lines.append(f"\u2705 OK:           {summary.ok_count}")
-        lines.append(f"\u274c Broken:       {summary.broken_count}")
-        lines.append(f"\u26a0\ufe0f  Errors:       {summary.error_count}")
-        lines.append(f"\u2298  Ignored:      {summary.ignored_count}")
-        lines.append(f"\u23f1\ufe0f  Duration:     {summary.duration_ms:.2f}ms")
-        lines.append("")
-
-        # Broken links
-        broken = [r for r in results if r.status == LinkStatus.BROKEN]
-        if broken:
-            lines.append(f"\u274c Broken Links ({len(broken)}):")
-            lines.append("-" * 70)
-            for result in broken[:20]:  # Show first 20
-                lines.append(f"  {result.url}")
-                if result.first_ref:
-                    lines.append(f"    Referenced in: {result.first_ref}")
-                if result.reason:
-                    lines.append(f"    Reason: {result.reason}")
-                lines.append("")
-
-            if len(broken) > 20:
-                lines.append(f"  ... and {len(broken) - 20} more")
-            lines.append("")
-
-        # Errors
-        errors = [r for r in results if r.status == LinkStatus.ERROR]
-        if errors:
-            lines.append(f"\u26a0\ufe0f  Errors ({len(errors)}):")
-            lines.append("-" * 70)
-            for result in errors[:10]:  # Show first 10
-                lines.append(f"  {result.url}")
-                if result.error_message:
-                    lines.append(f"    Error: {result.error_message}")
-                lines.append("")
-
-            if len(errors) > 10:
-                lines.append(f"  ... and {len(errors) - 10} more")
-            lines.append("")
-
-        # Final status
-        lines.append("=" * 70)
-        if summary.passed:
-            lines.append("\u2705 PASSED - All links are valid")
-        else:
-            lines.append("\u274c FAILED - Broken or error links found")
-        lines.append("=" * 70)
-
+        context = self.format_validation_report(results, summary)
+        lines = [context["title"], ""]
+        lines.extend(
+            f"{issue['level'].upper()}: {issue['message']}"
+            + (f" - {issue['detail']}" if issue.get("detail") else "")
+            for issue in context["issues"]
+        )
         return "\n".join(lines)
+
+
+def _link_issue_detail(result: LinkCheckResult) -> str:
+    """Build detail text for one broken/error link row."""
+    parts: list[str] = []
+    if result.first_ref:
+        parts.append(f"Referenced in: {result.first_ref}")
+    if result.reason:
+        parts.append(f"Reason: {result.reason}")
+    if result.error_message:
+        parts.append(f"Error: {result.error_message}")
+    if result.status_code is not None:
+        parts.append(f"HTTP {result.status_code}")
+    return " | ".join(parts)

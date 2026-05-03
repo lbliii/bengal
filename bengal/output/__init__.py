@@ -43,7 +43,7 @@ from __future__ import annotations
 
 from bengal.output.core import CLIOutput
 from bengal.output.enums import MessageLevel, OutputStyle
-from bengal.output.globals import get_cli_output, init_cli_output
+from bengal.output.globals import get_cli_output, init_cli_output, reset_cli_output
 
 __all__ = [
     "CLIOutput",
@@ -51,4 +51,5 @@ __all__ = [
     "OutputStyle",
     "get_cli_output",
     "init_cli_output",
+    "reset_cli_output",
 ]
