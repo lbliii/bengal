@@ -22,7 +22,19 @@ keywords:
 
 # Health Check System (`bengal/health/`)
 
-Bengal includes a comprehensive health check system that validates builds across all components.
+Bengal includes a comprehensive health check system that validates source
+content and author-facing policy. Generated artifact correctness is now split
+out into `bengal audit`, while rendering owns the URL and anchor registries used
+by link validation.
+
+## Validation Surfaces
+
+| Surface | Command/API | Owner | Purpose |
+|---------|-------------|-------|---------|
+| Source policy checks | `bengal check` | `bengal/health/` | Config, directives, navigation, taxonomy, connectivity, and author-facing link checks |
+| Compatibility alias | `bengal health` | `bengal/cli/` | Legacy entrypoint for `bengal check` while automation migrates |
+| Artifact audit | `bengal audit` | `bengal/audit/` | Post-build scan of generated HTML references and output files |
+| Reference truth | `bengal/rendering/reference_registry.py` | `bengal/rendering/` | Rendered URLs, source paths, anchors, and auxiliary output URLs |
 
 ## Health Check (`bengal/health/health_check.py`)
 - **Purpose**: Orchestrates validators and produces unified health reports
@@ -58,11 +70,30 @@ Bengal includes a comprehensive health check system that validates builds across
   - `CheckResult`: Individual check result with recommendation
   - `ValidatorReport`: Results from a single validator
   - `HealthReport`: Aggregated report from all validators
+  - `ReportEnvelope`: Versioned CLI/machine envelope for Milo and Kida output
 - **Formats**:
   - Console output (colored, progressive disclosure)
   - JSON output (machine-readable)
+  - Versioned result envelope (`bengal.check.v1`)
   - Summary statistics (pass/warning/error counts)
   - Quality scoring (0-100 with ratings)
+
+## Artifact Audit (`bengal/audit/`)
+
+Artifact audit is intentionally cheaper and more orthogonal than a full health
+check. It scans the generated output directory after a build, extracts `href`
+and `src` references from HTML, skips external protocols, and verifies that
+internal references resolve to files, clean URL directories, or `.html` files in
+the output tree.
+
+```bash
+bengal build
+bengal audit
+bengal audit --json
+```
+
+Audit output uses the `bengal.audit.v1` envelope and renders through the same
+Kida validation report template as source checks.
 
 ## Remediation (`bengal/health/remediation/`)
 
