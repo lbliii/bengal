@@ -276,7 +276,10 @@ class OutputFormatsGenerator:
         # Get accumulated page data once (shared by multiple generators)
         # See: plan/drafted/rfc-unified-page-data-accumulation.md
         accumulated_data = None
-        if self.build_context and self.build_context.has_accumulated_page_data:
+        if self.build_context and (
+            self.build_context.has_accumulated_page_data
+            or getattr(self.build_context, "incremental", False)
+        ):
             accumulated_data = self.build_context.get_accumulated_page_data()
             accumulated_data = self._merge_cached_page_artifacts(pages, accumulated_data)
             logger.debug(
@@ -547,6 +550,8 @@ class OutputFormatsGenerator:
     ) -> str | None:
         """Fingerprint complete site-wide generator inputs from page artifacts."""
         if not self.build_context or not getattr(self.build_context, "incremental", False):
+            return None
+        if format_name == "site_changelog":
             return None
         if not accumulated_data:
             return None

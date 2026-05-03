@@ -46,3 +46,28 @@ def test_artifact_inventory_records_existing_outputs_only(tmp_path: Path) -> Non
     assert "sitemap.xml" in paths
     assert "docs/index.json" not in paths
     assert "index.json" not in paths
+
+
+def test_artifact_inventory_handles_dict_i18n_language_entries(tmp_path: Path) -> None:
+    output_dir = tmp_path / "public"
+    (output_dir / "fr").mkdir(parents=True)
+    (output_dir / "fr" / "rss.xml").write_text("<rss />", encoding="utf-8")
+    site = SimpleNamespace(
+        output_dir=output_dir,
+        pages=[],
+        config={
+            "output_formats": {"enabled": False},
+            "generate_rss": True,
+            "i18n": {
+                "strategy": "prefix",
+                "default_language": "en",
+                "languages": [{"code": "fr"}],
+            },
+        },
+    )
+    collector = BuildOutputCollector(output_dir=output_dir)
+    build_context = SimpleNamespace(artifact_collector=collector, output_collector=None)
+
+    populate_artifact_inventory(site, build_context)
+
+    assert "fr/rss.xml" in set(collector.get_relative_paths())

@@ -8,7 +8,8 @@ validators do not have to infer generated URLs from scattered config.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Literal
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from bengal.core.output import OutputType
 from bengal.postprocess.output_formats import OutputFormatsGenerator
@@ -152,7 +153,9 @@ def _rss_output_paths(site: Any) -> list[Path]:
 
     paths: list[Path] = []
     for lang in languages:
-        code = str(lang)
+        code = _language_code(lang)
+        if not code:
+            continue
         if strategy == "prefix" and (default_in_subdir or code != default_lang):
             paths.append(output_dir / code / "rss.xml")
         elif code == default_lang:
@@ -160,3 +163,14 @@ def _rss_output_paths(site: Any) -> list[Path]:
         else:
             paths.append(output_dir / code / "rss.xml")
     return paths
+
+
+def _language_code(lang: object) -> str:
+    """Return a normalized i18n language code from string or mapping config."""
+    if isinstance(lang, str):
+        return lang
+    if isinstance(lang, Mapping):
+        language = cast("Mapping[str, object]", lang)
+        code = language.get("code") or language.get("language") or language.get("id")
+        return str(code) if code else ""
+    return str(lang)
