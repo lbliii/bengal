@@ -8,7 +8,7 @@ hierarchy and gains MCP server, structured output, and llms.txt for free.
 Surface area (12 groups, 4 tiers):
 
     Tier 1 — Core workflow (daily use):
-        build, serve, clean, check, fix, new
+        build, serve, clean, check, audit, fix, new
 
     Tier 2 — Feature groups (weekly use):
         config, theme, content, version, i18n
@@ -117,6 +117,13 @@ cli.lazy_command(
     import_path="bengal.cli.milo_commands.check:check",
     description="Validate your site",
     aliases=("v",),
+    display_result=False,
+)
+
+cli.lazy_command(
+    "audit",
+    import_path="bengal.cli.milo_commands.audit:audit",
+    description="Audit generated artifacts",
     display_result=False,
 )
 
