@@ -333,6 +333,47 @@ class TestConfigNormalizationEdgeCases:
 
         assert [data.uri for data in merged] == ["/changed/", "/unchanged/"]
 
+    def test_site_wide_generation_skips_when_input_fingerprint_matches(
+        self, tmp_path: Path
+    ) -> None:
+        """Unchanged site-wide outputs skip generator work when their input fingerprint matches."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "index.json").write_text("{}", encoding="utf-8")
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Page",
+            url="/page/",
+            content="Page",
+            output_path=output_dir / "page/index.html",
+        )
+        page.source_path = Path("content/page.md")
+        cache = BuildCache(site_root=tmp_path)
+        stats = BuildStats()
+        build_context = SimpleNamespace(incremental=True, cache=cache, stats=stats)
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
+        data = [_accumulated_page_data(Path("content/page.md"), "/page/")]
+        fingerprint = generator._site_wide_input_fingerprint(
+            "site_index_json", [page], data, {"json_indent": None}
+        )
+        assert fingerprint is not None
+        cache.output_format_fingerprints["site_index_json"] = fingerprint
+
+        result = generator._generate_site_wide_if_needed(
+            {},
+            "site_index_json",
+            [page],
+            data,
+            {"json_indent": None},
+            [output_dir / "index.json"],
+            lambda: (_ for _ in ()).throw(AssertionError("should skip")),
+        )
+
+        assert result == output_dir / "index.json"
+        assert stats.postprocess_output_timings_ms["site_index_json"] == 0.0
+
     # Helper methods
 
     def _create_mock_site(self, site_dir: Path, output_dir: Path, baseurl: str = "") -> Mock:

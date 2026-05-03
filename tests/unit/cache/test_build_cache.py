@@ -264,6 +264,7 @@ class TestBuildCache:
         assert len(cache.synthetic_pages) == 0
         assert len(cache.validation_results) == 0
         assert len(cache.page_artifacts) == 0
+        assert len(cache.output_format_fingerprints) == 0
         assert len(cache.autodoc_tracker.autodoc_dependencies) == 0
         assert len(cache.autodoc_tracker.autodoc_source_metadata) == 0
         assert len(cache.autodoc_content_cache) == 0  # NEW: verify this is cleared
@@ -304,6 +305,7 @@ class TestBuildCache:
         """Post-render page artifact records are persisted in the build cache."""
         cache = BuildCache()
         cache.page_artifacts["content/page.md"] = {"uri": "/page/", "title": "Page"}
+        cache.output_format_fingerprints["site_index_json"] = "abc123"
         cache_file = tmp_path / ".bengal-cache.json"
 
         cache.save(cache_file)
@@ -313,6 +315,7 @@ class TestBuildCache:
             "uri": "/page/",
             "title": "Page",
         }
+        assert loaded_cache.output_format_fingerprints["site_index_json"] == "abc123"
 
     def test_validation_cache_returns_legacy_results_without_context(self, tmp_path):
         """Validation cache keeps legacy list-shaped entries readable."""
