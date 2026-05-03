@@ -374,6 +374,38 @@ class TestConfigNormalizationEdgeCases:
         assert result == output_dir / "index.json"
         assert stats.postprocess_output_timings_ms["site_index_json"] == 0.0
 
+    def test_site_wide_fingerprint_sanitizes_page_artifact_metadata(self, tmp_path: Path) -> None:
+        """Fingerprinting tolerates Python objects from rendered page metadata."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Page",
+            url="/page/",
+            content="Page",
+            output_path=output_dir / "page/index.html",
+        )
+        page.source_path = Path("content/page.md")
+        build_context = SimpleNamespace(incremental=True, cache=BuildCache(site_root=tmp_path))
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
+        data = _accumulated_page_data(Path("content/page.md"), "/page/")
+        data.raw_metadata["path"] = tmp_path / "source.md"
+        data.enhanced_metadata["updated"] = datetime(2026, 5, 3, 12, 0, 0)
+        data.full_json_data = {
+            "url": "/page/",
+            "source": tmp_path / "source.md",
+            1: {"updated": datetime(2026, 5, 3, 12, 0, 0)},
+        }
+
+        fingerprint = generator._site_wide_input_fingerprint(
+            "site_index_json", [page], [data], {"json_indent": None}
+        )
+
+        assert isinstance(fingerprint, str)
+        assert len(fingerprint) == 64
+
     # Helper methods
 
     def _create_mock_site(self, site_dir: Path, output_dir: Path, baseurl: str = "") -> Mock:

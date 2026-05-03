@@ -27,6 +27,7 @@ from __future__ import annotations
 import hashlib
 import json
 import time
+from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -719,10 +720,10 @@ def _fingerprint_page_artifact(data: Any) -> dict[str, Any]:
         "section": data.section,
         "tags": list(data.tags),
         "dir": data.dir,
-        "enhanced_metadata": data.enhanced_metadata,
+        "enhanced_metadata": _json_safe(data.enhanced_metadata),
         "is_autodoc": data.is_autodoc,
-        "full_json_data": data.full_json_data,
-        "raw_metadata": data.raw_metadata,
+        "full_json_data": _json_safe(data.full_json_data),
+        "raw_metadata": _json_safe(data.raw_metadata),
     }
 
 
@@ -737,3 +738,23 @@ def _site_fingerprint(site: SiteLike) -> dict[str, Any]:
         "dev_mode": bool(getattr(site, "dev_mode", False)),
         "build_time": None if getattr(site, "dev_mode", False) else build_time_value,
     }
+
+
+def _json_safe(value: Any) -> Any:
+    """Return a stable JSON-serializable representation for fingerprinting."""
+    if isinstance(value, str | int | float | bool | type(None)):
+        return value
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, date | datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {
+            str(key): _json_safe(item)
+            for key, item in sorted(value.items(), key=lambda item: str(item[0]))
+        }
+    if isinstance(value, list | tuple):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, set | frozenset):
+        return sorted(_json_safe(item) for item in value)
+    return str(value)

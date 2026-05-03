@@ -18,6 +18,7 @@ Related Modules:
 from __future__ import annotations
 
 import shutil
+from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -481,11 +482,11 @@ def _serialize_page_artifact(data: Any, anchors: frozenset[str]) -> dict[str, An
         "section": data.section,
         "tags": list(data.tags),
         "dir": data.dir,
-        "enhanced_metadata": dict(data.enhanced_metadata),
+        "enhanced_metadata": _json_safe(data.enhanced_metadata),
         "is_autodoc": data.is_autodoc,
-        "full_json_data": data.full_json_data,
+        "full_json_data": _json_safe(data.full_json_data),
         "json_output_path": str(json_output_path) if json_output_path else None,
-        "raw_metadata": dict(data.raw_metadata),
+        "raw_metadata": _json_safe(data.raw_metadata),
         "anchors": sorted(anchors),
     }
 
@@ -514,3 +515,18 @@ def _page_anchor_ids_by_source(
             key_path = _site_relative_path(root_path, source_path)
             anchors[str(cache._cache_key(key_path))] = ids
     return anchors
+
+
+def _json_safe(value: Any) -> Any:
+    """Return a JSON-serializable representation for cache persistence."""
+    if isinstance(value, str | int | float | bool | type(None)):
+        return value
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, date | datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list | tuple | set | frozenset):
+        return [_json_safe(item) for item in value]
+    return str(value)

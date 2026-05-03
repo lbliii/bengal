@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -43,6 +44,29 @@ def test_cache_manager_prunes_deleted_page_artifacts(tmp_path: Path) -> None:
     manager._store_page_artifacts(build_context)
 
     assert set(manager.cache.page_artifacts) == {"content/docs.md"}
+
+
+def test_cache_manager_sanitizes_page_artifact_metadata(tmp_path: Path) -> None:
+    """Cached page artifacts remain serializable when metadata has Python objects."""
+    source_path = Path("content/docs.md")
+    site = SimpleNamespace(
+        root_path=tmp_path,
+        pages=[SimpleNamespace(source_path=source_path, toc_items=[])],
+    )
+    manager = CacheManager(site)
+    manager.cache = BuildCache(site_root=tmp_path)
+    artifact = _artifact(source_path)
+    artifact.raw_metadata["path"] = tmp_path / "source.md"
+    artifact.enhanced_metadata["updated"] = datetime(2026, 5, 3, 12, 0, 0)
+    artifact.full_json_data = {"url": "/docs/", "source": tmp_path / "source.md"}
+    build_context = SimpleNamespace(get_accumulated_page_data=lambda: [artifact])
+
+    manager._store_page_artifacts(build_context)
+
+    cached = manager.cache.page_artifacts["content/docs.md"]
+    assert cached["raw_metadata"]["path"] == str(tmp_path / "source.md")
+    assert cached["enhanced_metadata"]["updated"] == "2026-05-03T12:00:00"
+    assert cached["full_json_data"]["source"] == str(tmp_path / "source.md")
 
 
 def _artifact(source_path: Path) -> AccumulatedPageData:
