@@ -31,7 +31,9 @@ Example:
     >>> health = HealthCheck(site)
     >>> report = health.run(tier="build", verbose=True)
     >>> if report.has_errors():
-    ...     print(report.format_console())
+    ...     from bengal.output import get_cli_output
+    ...     cli = get_cli_output()
+    ...     cli.render_write("validation_report.kida", **report.format_validation_report())
 
 """
 
@@ -125,7 +127,9 @@ class HealthCheck:
         # Default: auto-registers all validators
         health = HealthCheck(site)
         report = health.run()
-        print(report.format_console())
+        from bengal.output import get_cli_output
+        cli = get_cli_output()
+        cli.render_write("validation_report.kida", **report.format_validation_report())
 
         # Manual registration:
         health = HealthCheck(site, auto_register=False)
@@ -288,8 +292,7 @@ class HealthCheck:
         enabled_validators = [
             v
             for v in self.validators
-            if self._is_validator_enabled(v, profile, verbose)
-            and self._is_validator_in_tier(v, tier)
+            if self._is_validator_enabled(v, profile) and self._is_validator_in_tier(v, tier)
         ]
 
         # Determine which files to validate (for file-specific validators)
@@ -304,15 +307,10 @@ class HealthCheck:
         if len(enabled_validators) >= self.PARALLEL_THRESHOLD:
             worker_count = self._get_optimal_workers(len(enabled_validators))
             execution_mode = "parallel"
-            if verbose:
-                print(
-                    f"  ⚡ Running {len(enabled_validators)} validators in parallel ({worker_count} workers)"
-                )
             self._run_validators_parallel(
                 enabled_validators,
                 report,
                 build_context,
-                verbose,
                 cache,
                 files_to_validate,
                 worker_count,
@@ -320,10 +318,8 @@ class HealthCheck:
         else:
             worker_count = 1
             execution_mode = "sequential"
-            if verbose and len(enabled_validators) > 0:
-                print(f"  📝 Running {len(enabled_validators)} validators sequentially")
             self._run_validators_sequential(
-                enabled_validators, report, build_context, verbose, cache, files_to_validate
+                enabled_validators, report, build_context, cache, files_to_validate
             )
 
         # Calculate and store stats
@@ -338,9 +334,6 @@ class HealthCheck:
             cpu_count=cpu_count,
             sum_validator_duration_ms=sum_validator_duration,
         )
-
-        if verbose:
-            print(self.last_stats.format_summary())
 
         return report
 
@@ -392,17 +385,13 @@ class HealthCheck:
         }
         return tier_checks.get(tier, in_build)  # Unknown tier defaults to build
 
-    def _is_validator_enabled(
-        self, validator: BaseValidator, profile: BuildProfile | None, verbose: bool
-    ) -> bool:
+    def _is_validator_enabled(self, validator: BaseValidator, profile: BuildProfile | None) -> bool:
         """
         Check if a validator should run based on profile and config.
 
         Args:
             validator: The validator to check
             profile: Optional build profile for filtering
-            verbose: Whether to show skip messages
-
         Returns:
             True if validator should run
         """
@@ -422,27 +411,10 @@ class HealthCheck:
             config_value = validators_config.get(validator_key) if config_explicit else None
 
             if profile_allows:
-                # Profile allows it - check if config explicitly disables
-                if config_explicit and config_value is False:
-                    if verbose:
-                        print(f"  Skipping {validator.name} (disabled in config)")
-                    return False
-                # Profile allows and config doesn't disable - run it
-                return True
-            # Profile disables it - only run if config explicitly enables (True)
-            if config_explicit and config_value is True:
-                # Config explicitly enables - override profile
-                return True
-            # Profile disables and config doesn't override - skip
-            if verbose:
-                print(f"  Skipping {validator.name} (disabled by profile)")
-            return False
+                return not (config_explicit and config_value is False)
+            return config_explicit and config_value is True
         # No profile - use config/default
-        if not validator.is_enabled(self.site.config):
-            if verbose:
-                print(f"  Skipping {validator.name} (disabled in config)")
-            return False
-        return True
+        return validator.is_enabled(self.site.config)
 
     def _get_files_to_validate(
         self, context: list[Path] | None, incremental: bool, cache: Any
@@ -571,7 +543,6 @@ class HealthCheck:
         validators: list[BaseValidator],
         report: HealthReport,
         build_context: BuildContext | Any | None,
-        verbose: bool,
         cache: Any,
         files_to_validate: set[Path] | None,
     ) -> None:
@@ -582,7 +553,6 @@ class HealthCheck:
             validators: List of validators to run
             report: HealthReport to add results to
             build_context: Optional BuildContext with cached artifacts
-            verbose: Whether to show per-validator output
             cache: Optional BuildCache for result caching
             files_to_validate: Set of files to validate (for incremental mode)
         """
@@ -592,19 +562,11 @@ class HealthCheck:
             )
             report.validator_reports.append(validator_report)
 
-            if verbose:
-                status = "✅" if not validator_report.has_problems else "⚠️"
-                print(
-                    f"  {status} {validator.name}: "
-                    f"{len(validator_report.results)} checks in {validator_report.duration_ms:.1f}ms"
-                )
-
     def _run_validators_parallel(
         self,
         validators: list[BaseValidator],
         report: HealthReport,
         build_context: BuildContext | Any | None,
-        verbose: bool,
         cache: Any,
         files_to_validate: set[Path] | None,
         worker_count: int | None = None,
@@ -612,15 +574,13 @@ class HealthCheck:
         """
         Run validators in parallel using ThreadPoolExecutor.
 
-        Uses as_completed() to process results as they finish, providing
-        better UX for verbose mode. Output is printed in the main thread
-        to prevent garbled console output.
+        Uses WorkScope to execute validators concurrently while preserving
+        structured results for the CLI output boundary.
 
         Args:
             validators: List of validators to run
             report: HealthReport to add results to
             build_context: Optional BuildContext with cached artifacts
-            verbose: Whether to show per-validator output
             cache: Optional BuildCache for result caching
             files_to_validate: Set of files to validate (for incremental mode)
             worker_count: Number of worker threads (auto-detected if None)
@@ -645,20 +605,9 @@ class HealthCheck:
                     duration_ms=0,
                 )
                 report.validator_reports.append(validator_report)
-
-                if verbose:
-                    print(f"  ❌ unknown: execution failed - {r.error}")
             elif r.value is not None:
-                validator, validator_report = r.value
+                _validator, validator_report = r.value
                 report.validator_reports.append(validator_report)
-
-                if verbose:
-                    status = "✅" if not validator_report.has_problems else "⚠️"
-                    print(
-                        f"  {status} {validator.name}: "
-                        f"{len(validator_report.results)} checks in "
-                        f"{validator_report.duration_ms:.1f}ms"
-                    )
 
     def run_and_print(
         self, build_stats: dict[str, Any] | None = None, verbose: bool = False
@@ -674,7 +623,13 @@ class HealthCheck:
             HealthReport
         """
         report = self.run(build_stats=build_stats, verbose=verbose)
-        print(report.format_console(verbose=verbose))
+        from bengal.output import get_cli_output
+
+        cli = get_cli_output()
+        cli.render_write(
+            "validation_report.kida",
+            **report.format_validation_report(verbose=verbose, show_suggestions=verbose),
+        )
         return report
 
     def __repr__(self) -> str:

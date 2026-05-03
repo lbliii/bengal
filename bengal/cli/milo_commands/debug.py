@@ -7,6 +7,8 @@ from typing import Annotated
 
 from milo import Description
 
+from bengal.cli.helpers.debug_reports import render_debug_report
+
 
 def debug_incremental(
     source: Annotated[str, Description("Source directory path")] = "",
@@ -65,19 +67,7 @@ def debug_incremental(
             cli.render_write("json_output.kida", data=json.dumps(data, indent=2))
     else:
         cli.blank()
-        cli.info(report.format_summary())
-        if report.findings:
-            cli.render_write(
-                "item_list.kida",
-                title="Findings",
-                items=[{"name": f.format_short(), "description": ""} for f in report.findings],
-            )
-        if report.recommendations:
-            cli.render_write(
-                "item_list.kida",
-                title="Recommendations",
-                items=[{"name": rec, "description": ""} for rec in report.recommendations],
-            )
+        render_debug_report(cli, report)
     return {"findings": len(report.findings), "recommendations": len(report.recommendations)}
 
 
@@ -154,7 +144,7 @@ def debug_delta(
             cli.render_write("json_output.kida", data=json.dumps(data, indent=2))
     else:
         cli.blank()
-        cli.info(report.format_summary())
+        render_debug_report(cli, report)
     return {"findings": len(getattr(report, "findings", []))}
 
 
@@ -218,13 +208,7 @@ def debug_deps(
         return {"page": page_path, "max_depth": max_depth}
     report = visualizer.run()
     cli.blank()
-    cli.info(report.format_summary())
-    if report.findings:
-        cli.render_write(
-            "item_list.kida",
-            title="Findings",
-            items=[{"name": f.format_short(), "description": ""} for f in report.findings],
-        )
+    render_debug_report(cli, report)
     return {"findings": len(report.findings)}
 
 
@@ -287,14 +271,7 @@ def debug_migrate(
 
     report = migrator.run()
     cli.blank()
-    cli.info(report.format_summary())
-
-    if report.findings:
-        cli.render_write(
-            "item_list.kida",
-            title="Structure Issues",
-            items=[{"name": f.format_short(), "description": ""} for f in report.findings],
-        )
+    render_debug_report(cli, report, title="Structure Issues")
 
     return {"findings": len(report.findings)}
 

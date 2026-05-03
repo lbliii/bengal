@@ -62,8 +62,6 @@ def cli_progress(
     if cli is None:
         cli = get_cli_output()
 
-    import sys
-
     from bengal.utils.observability.terminal import is_interactive_terminal
 
     # Disable progress if quiet mode or not interactive
@@ -77,7 +75,7 @@ def cli_progress(
         yield noop_update
         return
 
-    # Simple print-based progress
+    # Simple inline progress routed through the CLIOutput bridge.
     _current = 0
 
     def update(
@@ -92,17 +90,13 @@ def cli_progress(
         else:
             _current += 1
 
-        if total:
-            sys.stdout.write(f"\r  {description} {_current}/{total}")
-        else:
-            sys.stdout.write(f"\r  {description} {_current}")
-        sys.stdout.flush()
+        cli.progress_update(description, current=_current, total=total)
 
-    sys.stdout.write(f"  {description}...")
-    sys.stdout.flush()
-    yield update
-    sys.stdout.write("\n")
-    sys.stdout.flush()
+    cli.progress_start(description)
+    try:
+        yield update
+    finally:
+        cli.progress_finish()
 
 
 def simple_progress(

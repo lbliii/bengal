@@ -285,15 +285,15 @@ def run_health_check(
                     )
 
     if health_config.get("verbose", False):
-        from re import sub
-
-        plain_text = sub(r"\[/?[^\]]+\]", "", report.format_console(verbose=True))
-        cli.info(plain_text)
+        cli.render_write(
+            "validation_report.kida",
+            **report.format_validation_report(verbose=True, show_suggestions=True),
+        )
     elif report.has_errors() or report.has_warnings():
-        from re import sub
-
-        plain_text = sub(r"\[/?[^\]]+\]", "", report.format_console(verbose=False))
-        cli.info(plain_text)
+        cli.render_write(
+            "validation_report.kida",
+            **report.format_validation_report(verbose=False, show_suggestions=False),
+        )
 
     # Store report in stats
     orchestrator.stats.health_report = report

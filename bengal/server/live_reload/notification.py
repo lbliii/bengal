@@ -19,6 +19,13 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _debug_reload(message: str) -> None:
+    """Emit reload debug messages through the shared CLI bridge."""
+    from bengal.output import get_cli_output
+
+    get_cli_output().raw(message, level=None)
+
+
 class LiveReloadNotifier:
     """ReloadNotifier implementation that sends events via SSE."""
 
@@ -76,7 +83,7 @@ def send_reload_payload(action: str, reason: str, changed_paths: Sequence[str]) 
         sent_count=_state.sent_count,
     )
     if os.environ.get("BENGAL_DEBUG_RELOAD"):
-        print(f"[Bengal] Reload sent: action={action!r} reason={reason!r}", flush=True)
+        _debug_reload(f"[Bengal] Reload sent: action={action!r} reason={reason!r}")
 
 
 def notify_clients_reload() -> None:
@@ -142,10 +149,7 @@ def send_build_error_payload(payload: dict) -> None:
         sent_count=_state.sent_count,
     )
     if os.environ.get("BENGAL_DEBUG_RELOAD"):
-        print(
-            f"[Bengal] build_error sent: errors={error_count} first={first_code!r}",
-            flush=True,
-        )
+        _debug_reload(f"[Bengal] build_error sent: errors={error_count} first={first_code!r}")
 
 
 def send_build_ok_payload(payload: dict) -> None:
@@ -184,10 +188,7 @@ def send_build_ok_payload(payload: dict) -> None:
         sent_count=_state.sent_count,
     )
     if os.environ.get("BENGAL_DEBUG_RELOAD"):
-        print(
-            f"[Bengal] build_ok sent: build_ms={payload.get('build_ms')!r}",
-            flush=True,
-        )
+        _debug_reload(f"[Bengal] build_ok sent: build_ms={payload.get('build_ms')!r}")
 
 
 def send_fragment_payload(
@@ -247,7 +248,4 @@ def send_fragment_payload(
         generation=_state.generation,
     )
     if os.environ.get("BENGAL_DEBUG_RELOAD"):
-        print(
-            f"[Bengal] Fragment sent: selector={selector!r} permalink={permalink!r}",
-            flush=True,
-        )
+        _debug_reload(f"[Bengal] Fragment sent: selector={selector!r} permalink={permalink!r}")

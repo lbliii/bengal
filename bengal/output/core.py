@@ -1,8 +1,9 @@
-"""
-Core CLI output manager.
+"""Milo/Kida CLI output bridge.
 
-Provides the central CLIOutput class for all terminal output in Bengal.
-All CLI messaging flows through this class, which ensures:
+Provides the central CLIOutput class for terminal output in Bengal. This class
+bridges Milo command execution to Bengal's Kida templates and theme tokens, so
+command results, prompts, raw progress, and compatibility helpers share one
+rendering path.
 
 - Profile-aware formatting (Writer sees minimal output, Developer sees everything)
 - Consistent spacing and indentation across all commands
@@ -57,11 +58,12 @@ def _should_use_emoji() -> bool:
 
 class CLIOutput(DevServerOutputMixin):
     """
-    Centralized CLI output manager.
+    Milo/Kida renderer bridge for Bengal CLI output.
 
-    All terminal output in Bengal flows through this class. It provides
-    profile-aware formatting (Writer/Theme-Dev/Developer), consistent
-    spacing, automatic TTY detection, and milo theme-based ANSI coloring.
+    CLIOutput owns Bengal-specific terminal presentation while leaning on Milo's
+    theme and Kida template environment. High-level helpers such as ``success``
+    and ``section`` sit beside low-level ``raw`` and progress methods so legacy
+    CLI utilities can route unavoidable terminal writes through the same bridge.
 
     Attributes:
         profile: Active build profile controlling output verbosity and style.
@@ -207,10 +209,46 @@ class CLIOutput(DevServerOutputMixin):
             return text
         return f"{prefix}{text}{_RESET}"
 
+    def _stream(self, name: str):
+        """Return a standard output stream by public bridge name."""
+        match name:
+            case "stdout":
+                return sys.stdout
+            case "stderr":
+                return sys.stderr
+            case _:
+                msg = f"Unknown CLI output stream {name!r}; expected 'stdout' or 'stderr'."
+                raise ValueError(msg)
+
+    def raw(
+        self,
+        text: str = "",
+        *,
+        stream: str = "stdout",
+        level: MessageLevel | None = MessageLevel.INFO,
+        end: str = "\n",
+    ) -> None:
+        """Write unavoidable raw terminal text through the CLIOutput bridge.
+
+        This exists for compatibility surfaces such as carriage-return progress,
+        Milo generator progress, and prompts. Prefer semantic helpers when a
+        structured message type exists.
+        """
+        if level is not None and not self.should_show(level):
+            return
+
+        if text:
+            self._mark_output()
+        elif "\n" in end:
+            self._last_was_blank = True
+
+        target = self._stream(stream)
+        target.write(text + end)
+        target.flush()
+
     def _write(self, text: str) -> None:
-        """Write text to stdout with newline."""
-        sys.stdout.write(text + "\n")
-        sys.stdout.flush()
+        """Write a semantic stdout line."""
+        self.raw(text, level=None)
 
     def should_show(self, level: MessageLevel) -> bool:
         """Determine if a message should be shown based on level and settings."""
@@ -412,6 +450,42 @@ class CLIOutput(DevServerOutputMixin):
             )
         self._write(self._table_tpl.render(rows=rows, headers=headers))
 
+    def progress_start(self, description: str) -> None:
+        """Start an inline progress line."""
+        self.raw(f"  {description}...", end="")
+
+    def progress_update(
+        self,
+        description: str,
+        *,
+        current: int,
+        total: int | None = None,
+    ) -> None:
+        """Update an inline progress line with a carriage return."""
+        suffix = f"{current}/{total}" if total else str(current)
+        self.raw(f"\r  {description} {suffix}", end="")
+
+    def progress_finish(self) -> None:
+        """Finish an inline progress line."""
+        self.raw("")
+
+    def progress_status(
+        self,
+        status: str,
+        *,
+        step: int = 0,
+        total: int = 0,
+        stream: str = "stderr",
+    ) -> None:
+        """Render a one-line progress status from Milo generator commands."""
+        if step and total:
+            status = f"{status} {step}/{total}"
+        self.raw(f"  {status}", stream=stream)
+
+    def interrupted(self) -> None:
+        """Render the standard Ctrl-C message."""
+        self.raw(f"\n{self._styled('Interrupted.', 'dim')}", level=None)
+
     def prompt(
         self,
         text: str,
@@ -421,12 +495,11 @@ class CLIOutput(DevServerOutputMixin):
     ) -> Any:
         """Prompt user for text input."""
         default_str = f" [{default}]" if default and show_default else ""
-        sys.stdout.write(f"{self._styled(text, 'prompt')}{default_str}: ")
-        sys.stdout.flush()
+        self.raw(f"{self._styled(text, 'prompt')}{default_str}: ", level=None, end="")
         try:
             result = input()
         except EOFError, KeyboardInterrupt:
-            self._write("")
+            self.raw("", level=None)
             return default
         self._last_was_blank = True
         if not result and default is not None:
@@ -436,12 +509,11 @@ class CLIOutput(DevServerOutputMixin):
     def confirm(self, text: str, default: bool = False) -> bool:
         """Prompt user for yes/no confirmation."""
         suffix = " [Y/n] " if default else " [y/N] "
-        sys.stdout.write(f"{self._styled(text, 'prompt')}{suffix}")
-        sys.stdout.flush()
+        self.raw(f"{self._styled(text, 'prompt')}{suffix}", level=None, end="")
         try:
             answer = input().strip().lower()
         except EOFError, KeyboardInterrupt:
-            self._write("")
+            self.raw("", level=None)
             return default
         self._last_was_blank = True
         if not answer:

@@ -6,6 +6,8 @@ from typing import Annotated, Any
 
 from milo import Description
 
+from bengal.cli.helpers.debug_reports import render_debug_report
+
 
 def inspect_page(
     page_path: Annotated[
@@ -182,8 +184,10 @@ def inspect_links(
             else:
                 cli.render_write("json_output.kida", data=json.dumps(report, indent=2))
         else:
-            console_report = orchestrator.format_console_report(results, summary)
-            cli.info(console_report)
+            cli.render_write(
+                "validation_report.kida",
+                **orchestrator.format_validation_report(results, summary),
+            )
 
         if not summary.passed:
             raise SystemExit(1)
@@ -244,16 +248,7 @@ def inspect_graph(
             cli.info(result)
     else:
         cli.blank()
-        cli.info(report.format_summary())
-        if report.findings:
-            cli.render_write(
-                "item_list.kida",
-                title="Findings",
-                items=[
-                    {"name": finding.format_short(), "description": ""}
-                    for finding in report.findings
-                ],
-            )
+        render_debug_report(cli, report, title="Dependency Report")
 
     return {"pages": len(site.pages), "findings": len(report.findings)}
 

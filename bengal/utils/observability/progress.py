@@ -24,7 +24,7 @@ See Also:
 
 from __future__ import annotations
 
-from contextlib import suppress
+import contextlib
 from typing import Any
 
 # Import protocol from canonical location
@@ -129,6 +129,8 @@ class LiveProgressReporterAdapter:
         self._pm.complete_phase(phase_id, elapsed_ms=elapsed_ms)
 
     def log(self, message: str) -> None:
-        # Simple bridge: print; live manager handles phases only
-        with suppress(Exception):
-            print(message)
+        # Simple bridge: live manager handles phases only.
+        with contextlib.suppress(Exception):  # silent: progress reporting must not break builds
+            from bengal.output import get_cli_output
+
+            get_cli_output().info(message)

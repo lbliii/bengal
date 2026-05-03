@@ -166,7 +166,10 @@ def fix(
         cli.blank()
         cli.info("Re-running validation...")
         report_after = health_check.run(profile=BuildProfile.WRITER)
-        cli.info(report_after.format_console(verbose=False, show_suggestions=False))
+        cli.render_write(
+            "validation_report.kida",
+            **report_after.format_validation_report(verbose=False, show_suggestions=False),
+        )
 
     return {
         "status": "ok" if results["failed"] == 0 else "error",

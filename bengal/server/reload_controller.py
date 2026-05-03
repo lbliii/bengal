@@ -65,7 +65,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.orchestration.stats import ReloadHint
-from bengal.server.utils import get_icons
 from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
@@ -749,12 +748,15 @@ class ReloadController:
                 action=decision.action,
                 reason=decision.reason,
             )
-            icons = get_icons()
-            print(
-                f"\n{icons.warning} RELOAD TRIGGERED: {len(changed)} files changed (action={decision.action}):"
+            from bengal.output import get_cli_output
+
+            cli = get_cli_output()
+            cli.blank()
+            cli.warning(
+                f"RELOAD TRIGGERED: {len(changed)} files changed (action={decision.action}):"
             )
             for f in changed[:5]:
-                print(f"    - {f}")
+                cli.info(f"    - {f}")
         except Exception as e:
             logger.debug(
                 "reload_controller_debug_output_failed",

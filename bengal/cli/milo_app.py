@@ -23,6 +23,7 @@ Surface area (12 groups, 4 tiers):
 from __future__ import annotations
 
 import sys
+from typing import Any
 
 from milo import CLI
 
@@ -32,7 +33,51 @@ from bengal import __version__
 # Root CLI
 # ---------------------------------------------------------------------------
 
-cli = CLI(
+
+class BengalCLI(CLI):
+    """Milo CLI that routes compatibility output through CLIOutput."""
+
+    def _consume_result(self, result: Any, *, emit_progress: bool = True) -> Any:
+        """Consume Milo generator progress through Bengal's renderer bridge."""
+        from milo.streaming import consume_generator, is_generator_result
+
+        if not is_generator_result(result):
+            return result
+
+        progress_list, final_value = consume_generator(result)
+        if emit_progress:
+            from bengal.cli.utils.output import get_cli_output
+
+            bridge = get_cli_output()
+            for progress in progress_list:
+                bridge.progress_status(
+                    progress.status,
+                    step=progress.step,
+                    total=progress.total,
+                )
+        return final_value
+
+    def _write_command_output(
+        self,
+        result: Any,
+        fmt: str,
+        output_file: str,
+        *,
+        force: bool = False,
+    ) -> None:
+        """Write Milo command results through CLIOutput when targeting stdout."""
+        if output_file:
+            return super()._write_command_output(result, fmt, output_file, force=force)
+
+        from milo.output import format_output
+
+        from bengal.cli.utils.output import get_cli_output
+
+        get_cli_output().raw(format_output(result, fmt=fmt), level=None)
+        return None
+
+
+cli = BengalCLI(
     name="bengal",
     description="Static site generator for Python teams — every layer pure Python, scales with your cores",
     version=__version__,
@@ -319,5 +364,7 @@ def run() -> None:
     try:
         cli.run()
     except KeyboardInterrupt:
-        print("\n\033[2m Interrupted.\033[0m")
+        from bengal.cli.utils.output import get_cli_output
+
+        get_cli_output().interrupted()
         sys.exit(130)

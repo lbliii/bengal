@@ -12,7 +12,14 @@ from __future__ import annotations
 
 import pytest
 
-from bengal.output import CLIOutput, MessageLevel, OutputStyle, get_cli_output, init_cli_output
+from bengal.output import (
+    CLIOutput,
+    MessageLevel,
+    OutputStyle,
+    get_cli_output,
+    init_cli_output,
+    reset_cli_output,
+)
 
 
 class TestCLIOutputInit:
@@ -169,6 +176,105 @@ class TestGlobalCLIOutput:
 
         # Should be the same object (or equivalent - depending on implementation)
         assert cli1 is cli2
+
+    def test_cli_utils_and_output_share_singleton(self):
+        """CLI utility imports should use the output package singleton."""
+        from bengal.cli.utils.output import get_cli_output as get_cli_output_from_utils
+
+        cli1 = init_cli_output(quiet=True)
+        cli2 = get_cli_output_from_utils()
+
+        assert cli1 is cli2
+        assert cli2.quiet is True
+
+    def test_cli_utils_reset_clears_output_singleton(self):
+        """Resetting through the CLI utility path should clear the shared singleton."""
+        from bengal.cli.utils.output import reset_cli_output as reset_cli_output_from_utils
+
+        cli1 = init_cli_output()
+        reset_cli_output_from_utils()
+        cli2 = get_cli_output()
+
+        assert cli1 is not cli2
+
+    def test_get_cli_output_can_create_isolated_instance(self):
+        """Isolated instances should not replace the shared CLI renderer."""
+        reset_cli_output()
+        global_cli = get_cli_output()
+        isolated_cli = get_cli_output(quiet=True, use_global=False)
+
+        assert isolated_cli is not global_cli
+        assert isolated_cli.quiet is True
+        assert get_cli_output() is global_cli
+
+
+class TestBridgeOutput:
+    """Tests for CLIOutput bridge methods."""
+
+    def test_raw_required_output_ignores_quiet(self, capsys):
+        """Required raw output can bypass quiet-mode suppression."""
+        cli = CLIOutput(use_rich=False, quiet=True)
+        cli.raw("machine output", level=None)
+
+        captured = capsys.readouterr()
+        assert captured.out == "machine output\n"
+
+    def test_interrupted_outputs_standard_message(self, capsys):
+        """Ctrl-C messaging should flow through CLIOutput."""
+        cli = CLIOutput(use_rich=False)
+        cli.interrupted()
+
+        captured = capsys.readouterr()
+        assert "Interrupted." in captured.out
+
+    def test_prompt_uses_bridge_even_when_quiet(self, monkeypatch, capsys):
+        """Interactive prompts remain visible in quiet mode."""
+        monkeypatch.setattr("builtins.input", lambda: "docs")
+        cli = CLIOutput(use_rich=False, quiet=True)
+
+        result = cli.prompt("Site name")
+
+        captured = capsys.readouterr()
+        assert result == "docs"
+        assert "Site name" in captured.out
+
+    def test_cli_progress_routes_through_cli_output(self, monkeypatch, capsys):
+        """Raw progress helpers should use CLIOutput progress methods."""
+        from bengal.cli.helpers.progress import cli_progress
+
+        monkeypatch.setattr(
+            "bengal.utils.observability.terminal.is_interactive_terminal",
+            lambda: True,
+        )
+        cli = CLIOutput(use_rich=False)
+
+        with cli_progress("Checking environments", total=2, cli=cli) as update:
+            update(advance=1)
+
+        captured = capsys.readouterr()
+        assert "Checking environments..." in captured.out
+        assert "Checking environments 1/2" in captured.out
+
+
+class TestMiloBridge:
+    """Tests for the Milo app compatibility bridge."""
+
+    def test_milo_generator_progress_routes_through_cli_output(self, capsys):
+        """Milo generator progress should render through CLIOutput."""
+        from milo.streaming import Progress
+
+        from bengal.cli.milo_app import BengalCLI
+
+        def command_result():
+            yield Progress("Preparing", step=1, total=2)
+            return {"status": "done"}
+
+        cli = BengalCLI(name="bengal-test")
+        result = cli._consume_result(command_result())
+
+        captured = capsys.readouterr()
+        assert result == {"status": "done"}
+        assert "Preparing 1/2" in captured.err
 
 
 class TestMessageLevel:

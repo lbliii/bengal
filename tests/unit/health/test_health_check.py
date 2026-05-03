@@ -208,20 +208,21 @@ class TestHealthCheckParallelExecution:
             assert seq_report.results[0].status == par_report.results[0].status
             assert seq_report.results[0].message == par_report.results[0].message
 
-    def test_verbose_output_in_parallel(self, mock_site, capsys):
-        """Test that verbose output works in parallel mode."""
+    def test_verbose_run_returns_report_without_direct_stdout(self, mock_site, capsys):
+        """HealthCheck leaves terminal rendering to the CLI output boundary."""
         validators = [MockValidator(f"Validator{i}") for i in range(4)]
 
         health_check = HealthCheck(mock_site, auto_register=False)
         for v in validators:
             health_check.register(v)
 
-        health_check.run(verbose=True)
+        report = health_check.run(verbose=True)
 
         captured = capsys.readouterr()
-        # All validators should appear in output
+        assert captured.out == ""
+        assert captured.err == ""
         for i in range(4):
-            assert f"Validator{i}" in captured.out
+            assert any(r.validator_name == f"Validator{i}" for r in report.validator_reports)
 
 
 class TestHealthCheckHelperMethods:
@@ -241,7 +242,7 @@ class TestHealthCheckHelperMethods:
         health_check = HealthCheck(mock_site, auto_register=False)
 
         # With no profile and enabled by default
-        assert health_check._is_validator_enabled(validator, None, False) is True
+        assert health_check._is_validator_enabled(validator, None) is True
 
     def test_get_files_to_validate_with_context(self, mock_site):
         """Test _get_files_to_validate with explicit context."""

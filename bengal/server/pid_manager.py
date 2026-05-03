@@ -41,10 +41,22 @@ import signal
 import time
 from typing import TYPE_CHECKING
 
-from bengal.server.utils import get_icons
-
 if TYPE_CHECKING:
     from pathlib import Path
+
+
+def _cli_warning(message: str) -> None:
+    """Emit PID recovery warnings through shared CLI output."""
+    from bengal.output import get_cli_output
+
+    get_cli_output().warning(message)
+
+
+def _cli_info(message: str) -> None:
+    """Emit PID recovery details through shared CLI output."""
+    from bengal.output import get_cli_output
+
+    get_cli_output().info(message)
 
 
 class PIDManager:
@@ -231,13 +243,11 @@ class PIDManager:
         except ProcessLookupError:
             return True  # Already dead
         except PermissionError:
-            icons = get_icons()
-            print(f"  {icons.warning} No permission to kill process {pid}")
-            print(f"     Try manually: kill {pid}")
+            _cli_warning(f"No permission to kill process {pid}")
+            _cli_info(f"Try manually: kill {pid}")
             return False
         except Exception as e:
-            icons = get_icons()
-            print(f"  {icons.warning} Error killing process {pid}: {e}")
+            _cli_warning(f"Error killing process {pid}: {e}")
             return False
 
     @staticmethod
@@ -261,8 +271,7 @@ class PIDManager:
 
             atomic_write_text(pid_file, str(os.getpid()))
         except OSError as e:
-            icons = get_icons()
-            print(f"  {icons.warning} Warning: Could not write PID file: {e}")
+            _cli_warning(f"Could not write PID file: {e}")
 
     @staticmethod
     def get_process_on_port(port: int) -> int | None:

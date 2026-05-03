@@ -1,23 +1,9 @@
-"""
-Global CLI output instance management.
+"""Global CLI output instance management.
 
-Provides singleton-pattern access to a shared CLIOutput instance. This allows
-CLI commands to share output configuration (profile, quiet/verbose modes)
-without passing the instance through every function call.
-
-Usage Pattern:
-CLI entry points call init_cli_output() once with configuration,
-then all subsystems call get_cli_output() to access the shared instance.
-
-Note:
-While Bengal generally avoids global mutable state, this singleton pattern
-is acceptable for CLI-layer utilities where the alternative (threading
-context through every function) would add significant complexity.
-
-Related:
-- bengal/output/core.py: CLIOutput class definition
-- bengal/cli/commands/: CLI commands that initialize and use global output
-
+This module is the single owner of Bengal's process-wide :class:`CLIOutput`.
+CLI-facing compatibility wrappers in ``bengal.cli.utils.output`` delegate here
+so Milo commands, Kida rendering helpers, and older call sites cannot drift onto
+different singleton instances.
 """
 
 from __future__ import annotations
@@ -32,28 +18,45 @@ _cli_output: CLIOutput | None = None
 _cli_output_lock = threading.Lock()
 
 
-def get_cli_output() -> CLIOutput:
-    """
-    Get the global CLI output instance.
+def _new_cli_output(
+    profile: Any | None = None,
+    quiet: bool = False,
+    verbose: bool = False,
+) -> CLIOutput:
+    from bengal.output.core import CLIOutput
 
-    Returns the shared CLIOutput instance, creating a default instance
-    with no profile if one hasn't been initialized via init_cli_output().
+    return CLIOutput(profile=profile, quiet=quiet, verbose=verbose)
+
+
+def get_cli_output(
+    quiet: bool = False,
+    verbose: bool = False,
+    profile: Any | None = None,
+    use_global: bool = True,
+) -> CLIOutput:
+    """
+    Get a CLI output instance.
+
+    By default, returns the shared CLIOutput instance, creating a default
+    instance when needed. Passing ``quiet``, ``verbose``, or ``profile`` updates
+    the shared instance for the current command. Use ``use_global=False`` for an
+    isolated renderer that does not affect process-global CLI state.
 
     Returns:
-        The global CLIOutput instance.
-
-    Example:
-            >>> cli = get_cli_output()
-            >>> cli.success("Operation complete")
+        The configured CLIOutput instance.
 
     """
     global _cli_output
+    if not use_global:
+        return _new_cli_output(profile=profile, quiet=quiet, verbose=verbose)
+
     if _cli_output is None:
         with _cli_output_lock:
             if _cli_output is None:
-                from bengal.output.core import CLIOutput
-
-                _cli_output = CLIOutput()
+                _cli_output = _new_cli_output(profile=profile, quiet=quiet, verbose=verbose)
+    elif quiet or verbose or profile is not None:
+        with _cli_output_lock:
+            _cli_output = _new_cli_output(profile=profile, quiet=quiet, verbose=verbose)
     return _cli_output
 
 
@@ -82,7 +85,16 @@ def init_cli_output(
 
     """
     global _cli_output
-    from bengal.output.core import CLIOutput
-
-    _cli_output = CLIOutput(profile=profile, quiet=quiet, verbose=verbose)
+    with _cli_output_lock:
+        _cli_output = _new_cli_output(profile=profile, quiet=quiet, verbose=verbose)
     return _cli_output
+
+
+def reset_cli_output() -> None:
+    """Reset the shared CLI output instance.
+
+    This is primarily for tests that need deterministic stdout/stderr capture.
+    """
+    global _cli_output
+    with _cli_output_lock:
+        _cli_output = None

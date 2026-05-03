@@ -509,6 +509,47 @@ class TestHealthReportFormatting:
         assert "1 warning" in output
         assert "Quality:" in output
 
+    def test_format_validation_report_context_with_warning(self):
+        """Structured CLI context preserves actionable health details."""
+        report = HealthReport()
+        vr = ValidatorReport("Validator")
+        vr.results = [
+            CheckResult.success("OK"),
+            CheckResult.warning(
+                "Warning",
+                code="H123",
+                recommendation="Fix the page",
+                details=["content/page.md:1", "content/page.md:2"],
+            ),
+        ]
+        report.validator_reports = [vr]
+
+        context = report.format_validation_report()
+
+        assert context["title"] == "Health Check"
+        assert context["summary"]["warnings"] == 1
+        assert any(issue["level"] == "warning" for issue in context["issues"])
+        assert any("[H123] Warning" in issue["message"] for issue in context["issues"])
+        assert any("Fix the page" in issue["detail"] for issue in context["issues"])
+
+    def test_format_validation_report_context_perfect(self):
+        """Perfect health checks render as one success issue."""
+        report = HealthReport()
+        vr = ValidatorReport("Validator")
+        vr.results = [CheckResult.success("OK")]
+        report.validator_reports = [vr]
+
+        context = report.format_validation_report()
+
+        assert context["summary"] == {"errors": 0, "warnings": 0, "passed": 1}
+        assert context["issues"] == [
+            {
+                "level": "success",
+                "message": "All health checks passed (quality: 100%)",
+                "detail": "1 check(s)",
+            }
+        ]
+
 
 class TestHealthReportJSON:
     """Test JSON export functionality."""
