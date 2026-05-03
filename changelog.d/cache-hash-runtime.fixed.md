@@ -1,0 +1,1 @@
+Restore `bengal cache inputs` and `bengal cache hash` runtime execution by moving CI cache input discovery into the cache package, fix cache hashing for cwd-relative `--config` paths, keep site-local themes visible in `bengal theme list/info`, and add published CLI runtime smoke coverage for advertised commands.
