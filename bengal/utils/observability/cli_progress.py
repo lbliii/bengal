@@ -506,19 +506,25 @@ class LiveProgressManager:
 
             if phase.status == PhaseStatus.RUNNING:
                 if self._last_fallback_phase != phase_id:
-                    print(f"  * {phase.name}...", file=sys.stdout)
+                    self._fallback_line(f"  * {phase.name}...")
                     self._last_fallback_phase = phase_id
 
             elif phase.status == PhaseStatus.COMPLETE:
                 if self._last_fallback_phase == phase_id:
                     elapsed = phase.get_elapsed_str()
                     if elapsed:
-                        print(f"  + {phase.name} ({elapsed})", file=sys.stdout)
+                        self._fallback_line(f"  + {phase.name} ({elapsed})")
                     else:
-                        print(f"  + {phase.name}", file=sys.stdout)
+                        self._fallback_line(f"  + {phase.name}")
                     self._last_fallback_phase = None
 
             elif phase.status == PhaseStatus.FAILED:
                 error = phase.metadata.get("error", "Unknown error")
-                print(f"  x {phase.name}: {error}", file=sys.stdout)
+                self._fallback_line(f"  x {phase.name}: {error}")
                 self._last_fallback_phase = None
+
+    def _fallback_line(self, message: str) -> None:
+        """Render non-live progress fallback through the CLI output bridge."""
+        from bengal.output import get_cli_output
+
+        get_cli_output().info(message)

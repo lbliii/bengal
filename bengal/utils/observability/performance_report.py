@@ -242,22 +242,35 @@ class PerformanceReport:
                 or 'summary' (brief overview of latest build).
         """
         metrics = self.load_metrics(last=last)
+        from bengal.output import get_cli_output
+
+        cli = get_cli_output()
 
         if not metrics:
-            print("No performance metrics found.")
-            print(f"Metrics will be collected in: {self.metrics_dir}/")
+            cli.render_write(
+                "validation_report.kida",
+                title="Performance",
+                issues=[
+                    {
+                        "level": "info",
+                        "message": "No performance metrics found",
+                        "detail": f"Metrics will be collected in: {self.metrics_dir}/",
+                    }
+                ],
+                summary=None,
+            )
             return
 
         if format == "table":
-            self._print_table(metrics)
+            self._print_table(metrics, cli=cli)
         elif format == "json":
-            self._print_json(metrics)
+            self._print_json(metrics, cli=cli)
         elif format == "summary":
-            self._print_summary(metrics)
+            self._print_summary(metrics, cli=cli)
         else:
-            print(f"Unknown format: {format}")
+            cli.error(f"Unknown format: {format}")
 
-    def _print_table(self, metrics: list[BuildMetric]) -> None:
+    def _print_table(self, metrics: list[BuildMetric], *, cli: Any) -> None:
         """
         Print metrics as an ASCII table.
 
@@ -267,18 +280,14 @@ class PerformanceReport:
         Args:
             metrics: List of BuildMetric objects to display.
         """
-        print("\n📊 Performance History")
-        print(f"   Showing {len(metrics)} most recent builds\n")
-
-        # Header
-        print(f"{'Date':<20} {'Pages':<8} {'Time':<10} {'Memory':<12} {'Type':<12}")
-        print("─" * 75)
-
-        # Rows
+        cli.render_write(
+            "kv_detail.kida",
+            title="Performance History",
+            items=[{"label": "Builds shown", "value": str(len(metrics))}],
+        )
+        rows: list[list[str]] = []
         for m in metrics:
             date = m.as_datetime.strftime("%Y-%m-%d %H:%M")
-
-            # Build type
             if m.skipped:
                 build_type = "skipped"
             elif m.incremental:
@@ -288,19 +297,27 @@ class PerformanceReport:
             else:
                 build_type = "sequential"
 
-            print(
-                f"{date:<20} "
-                f"{m.total_pages:<8} "
-                f"{m.build_time_s:>8.2f}s "
-                f"{m.memory_rss_mb:>10.1f}MB "
-                f"{build_type:<12}"
+            rows.append(
+                [
+                    date,
+                    str(m.total_pages),
+                    f"{m.build_time_s:.2f}s",
+                    f"{m.memory_rss_mb:.1f}MB",
+                    build_type,
+                ]
             )
+        cli.render_write(
+            "item_list.kida",
+            mode="table",
+            headers=["Date", "Pages", "Time", "Memory", "Type"],
+            table_data=rows,
+        )
 
         # Show trends if enough data
         if len(metrics) >= 2:
-            self._print_trends(metrics)
+            self._print_trends(metrics, cli=cli)
 
-    def _print_trends(self, metrics: list[BuildMetric]) -> None:
+    def _print_trends(self, metrics: list[BuildMetric], *, cli: Any) -> None:
         """
         Print trend analysis comparing oldest and newest builds.
 
@@ -337,22 +354,25 @@ class PerformanceReport:
         avg_memory = sum(m.memory_rss_mb for m in valid_metrics) / len(valid_metrics)
         avg_throughput = sum(m.pages_per_second for m in valid_metrics) / len(valid_metrics)
 
-        print(f"\n📈 Trends (last {len(valid_metrics)} builds)")
-        print(f"   Time:       {time_change:+.1f}%")
-        print(f"   Memory:     {mem_change:+.1f}%")
-
-        print("\n📊 Averages")
-        print(f"   Build time: {avg_time:.2f}s")
-        print(f"   Memory:     {avg_memory:.1f}MB")
-        print(f"   Throughput: {avg_throughput:.1f} pages/s")
+        cli.render_write(
+            "kv_detail.kida",
+            title=f"Trends (last {len(valid_metrics)} builds)",
+            items=[
+                {"label": "Time", "value": f"{time_change:+.1f}%"},
+                {"label": "Memory", "value": f"{mem_change:+.1f}%"},
+                {"label": "Average build time", "value": f"{avg_time:.2f}s"},
+                {"label": "Average memory", "value": f"{avg_memory:.1f}MB"},
+                {"label": "Average throughput", "value": f"{avg_throughput:.1f} pages/s"},
+            ],
+        )
 
         # Warnings
         if abs(time_change) > 20:
-            print(f"\n⚠️  Significant time change: {time_change:+.1f}%")
+            cli.warning(f"Significant time change: {time_change:+.1f}%")
         if abs(mem_change) > 15:
-            print(f"⚠️  Significant memory change: {mem_change:+.1f}%")
+            cli.warning(f"Significant memory change: {mem_change:+.1f}%")
 
-    def _print_json(self, metrics: list[BuildMetric]) -> None:
+    def _print_json(self, metrics: list[BuildMetric], *, cli: Any) -> None:
         """
         Print metrics as a JSON array.
 
@@ -375,9 +395,9 @@ class PerformanceReport:
             }
             for m in metrics
         ]
-        print(json.dumps(data, indent=2))
+        cli.render_write("json_output.kida", data=json.dumps(data, indent=2))
 
-    def _print_summary(self, metrics: list[BuildMetric]) -> None:
+    def _print_summary(self, metrics: list[BuildMetric], *, cli: Any) -> None:
         """
         Print a summary of the latest build with comparison to average.
 
@@ -392,14 +412,20 @@ class PerformanceReport:
 
         latest = metrics[0]
 
-        print("\n📊 Latest Build")
-        print(f"   Date:       {latest.as_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"   Pages:      {latest.total_pages}")
-        print(f"   Time:       {latest.build_time_s:.2f}s")
-        print(f"   Memory:     {latest.memory_rss_mb:.1f}MB RSS")
-        print(f"   Throughput: {latest.pages_per_second:.1f} pages/s")
-        print(
-            f"   Type:       {'incremental' if latest.incremental else 'full'} / {'parallel' if latest.parallel else 'sequential'}"
+        cli.render_write(
+            "kv_detail.kida",
+            title="Latest Build",
+            items=[
+                {"label": "Date", "value": latest.as_datetime.strftime("%Y-%m-%d %H:%M:%S")},
+                {"label": "Pages", "value": str(latest.total_pages)},
+                {"label": "Time", "value": f"{latest.build_time_s:.2f}s"},
+                {"label": "Memory", "value": f"{latest.memory_rss_mb:.1f}MB RSS"},
+                {"label": "Throughput", "value": f"{latest.pages_per_second:.1f} pages/s"},
+                {
+                    "label": "Type",
+                    "value": f"{'incremental' if latest.incremental else 'full'} / {'parallel' if latest.parallel else 'sequential'}",
+                },
+            ],
         )
 
         if len(metrics) > 1:
@@ -412,18 +438,34 @@ class PerformanceReport:
                 time_diff = latest.build_time_s - avg_time
                 mem_diff = latest.memory_rss_mb - avg_memory
 
-                print(f"\n📈 vs. Average ({len(valid_metrics)} builds)")
-                print(f"   Time:       {time_diff:+.2f}s ({(time_diff / avg_time * 100):+.1f}%)")
-                print(f"   Memory:     {mem_diff:+.1f}MB ({(mem_diff / avg_memory * 100):+.1f}%)")
+                cli.render_write(
+                    "kv_detail.kida",
+                    title=f"vs. Average ({len(valid_metrics)} builds)",
+                    items=[
+                        {
+                            "label": "Time",
+                            "value": f"{time_diff:+.2f}s ({(time_diff / avg_time * 100):+.1f}%)",
+                        },
+                        {
+                            "label": "Memory",
+                            "value": f"{mem_diff:+.1f}MB ({(mem_diff / avg_memory * 100):+.1f}%)",
+                        },
+                    ],
+                )
 
         # Phase breakdown if available
         if latest.rendering_time_ms > 0:
-            print("\n⏱️  Phase Breakdown")
-            print(f"   Discovery:  {latest.discovery_time_ms:>6.0f}ms")
-            print(f"   Taxonomies: {latest.taxonomy_time_ms:>6.0f}ms")
-            print(f"   Rendering:  {latest.rendering_time_ms:>6.0f}ms")
-            print(f"   Assets:     {latest.assets_time_ms:>6.0f}ms")
-            print(f"   Postproc:   {latest.postprocess_time_ms:>6.0f}ms")
+            cli.render_write(
+                "kv_detail.kida",
+                title="Phase Breakdown",
+                items=[
+                    {"label": "Discovery", "value": f"{latest.discovery_time_ms:.0f}ms"},
+                    {"label": "Taxonomies", "value": f"{latest.taxonomy_time_ms:.0f}ms"},
+                    {"label": "Rendering", "value": f"{latest.rendering_time_ms:.0f}ms"},
+                    {"label": "Assets", "value": f"{latest.assets_time_ms:.0f}ms"},
+                    {"label": "Postproc", "value": f"{latest.postprocess_time_ms:.0f}ms"},
+                ],
+            )
 
     def compare(self, build1_idx: int = 0, build2_idx: int = 1) -> None:
         """
@@ -442,58 +484,70 @@ class PerformanceReport:
             >>> report.compare(0, 9)  # Compare latest to 10 builds ago
         """
         metrics = self.load_metrics()
+        from bengal.output import get_cli_output
+
+        cli = get_cli_output()
 
         if len(metrics) < 2:
-            print("Need at least 2 builds to compare.")
+            cli.warning("Need at least 2 builds to compare.")
             return
 
         if build1_idx >= len(metrics) or build2_idx >= len(metrics):
-            print(f"Invalid build indices. Only {len(metrics)} builds available.")
+            cli.error(f"Invalid build indices. Only {len(metrics)} builds available.")
             return
 
         b1 = metrics[build1_idx]
         b2 = metrics[build2_idx]
 
-        print("\n📊 Build Comparison")
-        print(f"\n   Build 1: {b1.as_datetime.strftime('%Y-%m-%d %H:%M')}")
-        print(f"   Build 2: {b2.as_datetime.strftime('%Y-%m-%d %H:%M')}")
-
-        print(f"\n{'Metric':<20} {'Build 1':>12} {'Build 2':>12} {'Change':>12}")
-        print("─" * 60)
-
-        self._compare_metric("Pages", b1.total_pages, b2.total_pages)
-        self._compare_metric(
-            "Build time",
-            f"{b1.build_time_s:.2f}s",
-            f"{b2.build_time_s:.2f}s",
-            b1.build_time_s,
-            b2.build_time_s,
+        cli.render_write(
+            "kv_detail.kida",
+            title="Build Comparison",
+            items=[
+                {"label": "Build 1", "value": b1.as_datetime.strftime("%Y-%m-%d %H:%M")},
+                {"label": "Build 2", "value": b2.as_datetime.strftime("%Y-%m-%d %H:%M")},
+            ],
         )
-        self._compare_metric(
-            "Memory (RSS)",
-            f"{b1.memory_rss_mb:.1f}MB",
-            f"{b2.memory_rss_mb:.1f}MB",
-            b1.memory_rss_mb,
-            b2.memory_rss_mb,
-        )
-        self._compare_metric(
-            "Memory (heap)",
-            f"{b1.memory_heap_mb:.1f}MB",
-            f"{b2.memory_heap_mb:.1f}MB",
-            b1.memory_heap_mb,
-            b2.memory_heap_mb,
-        )
-        self._compare_metric(
-            "Throughput",
-            f"{b1.pages_per_second:.1f}/s",
-            f"{b2.pages_per_second:.1f}/s",
-            b1.pages_per_second,
-            b2.pages_per_second,
+        rows = [
+            self._compare_metric("Pages", b1.total_pages, b2.total_pages),
+            self._compare_metric(
+                "Build time",
+                f"{b1.build_time_s:.2f}s",
+                f"{b2.build_time_s:.2f}s",
+                b1.build_time_s,
+                b2.build_time_s,
+            ),
+            self._compare_metric(
+                "Memory (RSS)",
+                f"{b1.memory_rss_mb:.1f}MB",
+                f"{b2.memory_rss_mb:.1f}MB",
+                b1.memory_rss_mb,
+                b2.memory_rss_mb,
+            ),
+            self._compare_metric(
+                "Memory (heap)",
+                f"{b1.memory_heap_mb:.1f}MB",
+                f"{b2.memory_heap_mb:.1f}MB",
+                b1.memory_heap_mb,
+                b2.memory_heap_mb,
+            ),
+            self._compare_metric(
+                "Throughput",
+                f"{b1.pages_per_second:.1f}/s",
+                f"{b2.pages_per_second:.1f}/s",
+                b1.pages_per_second,
+                b2.pages_per_second,
+            ),
+        ]
+        cli.render_write(
+            "item_list.kida",
+            mode="table",
+            headers=["Metric", "Build 1", "Build 2", "Change"],
+            table_data=rows,
         )
 
     def _compare_metric(
         self, name: str, val1: Any, val2: Any, num1: float | None = None, num2: float | None = None
-    ) -> None:
+    ) -> list[str]:
         """
         Print a single row in the comparison table.
 
@@ -510,4 +564,4 @@ class PerformanceReport:
         else:
             change_str = "-"
 
-        print(f"{name:<20} {val1!s:>12} {val2!s:>12} {change_str:>12}")
+        return [name, str(val1), str(val2), change_str]
