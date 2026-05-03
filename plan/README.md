@@ -23,6 +23,7 @@ Quick reference for RFC status. Run `rg "^\*\*Status\*\*" plan/rfc-*.md` to refr
 | rfc-build-system-package | Draft | bengal/build/ never created; uses orchestration/build/ |
 | rfc-bengal-v2-architecture | Draft | Large; protocol-first, composition |
 | rfc-remaining-coupling-fixes | Draft | Depends on module-coupling-reduction (unverified) |
+| rfc-health-diagnostics-audit | Active implementation | Splits health policy, rendering registries, artifact audit, and Kida output |
 
 ## Implemented
 
