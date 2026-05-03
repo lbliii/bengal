@@ -8,6 +8,10 @@ from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 from bengal.build.contracts.keys import content_key
+from bengal.rendering.reference_resolution import (
+    resolve_internal_link,
+    resolved_path_url_variants,
+)
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
@@ -36,11 +40,15 @@ class InternalReferenceResolver:
 
     def has_url(self, url: str) -> bool:
         """Return whether a normalized URL target is known."""
-        return any(variant in self._all_urls for variant in self.url_variants(url))
+        return any(variant in self._all_urls for variant in resolved_path_url_variants(url))
+
+    def resolve(self, page_url: str, link_path: str) -> str:
+        """Resolve an internal link path from the given rendered page URL."""
+        return resolve_internal_link(page_url, link_path)
 
     def anchors_for(self, url: str) -> frozenset[str]:
         """Return anchors for a URL, checking slash variants."""
-        for variant in self.url_variants(url):
+        for variant in resolved_path_url_variants(url):
             anchors = self.registry.anchors_by_url.get(variant)
             if anchors is not None:
                 return anchors
@@ -54,14 +62,6 @@ class InternalReferenceResolver:
     @property
     def _all_urls(self) -> frozenset[str]:
         return self.registry.page_urls | self.registry.auxiliary_urls
-
-    @staticmethod
-    def url_variants(url: str) -> tuple[str, str, str]:
-        """Return the common slash variants for a URL lookup."""
-        stripped = url.rstrip("/")
-        if not stripped:
-            return (url, "/", "/")
-        return (url, stripped, stripped + "/")
 
 
 def build_link_registry(site: SiteLike) -> LinkRegistry:
@@ -131,7 +131,7 @@ def _add_anchor_variants(
     anchors: dict[str, frozenset[str]], url: str, anchor_ids: frozenset[str]
 ) -> None:
     """Index anchors by URL and slash variants."""
-    for variant in InternalReferenceResolver.url_variants(url):
+    for variant in resolved_path_url_variants(url):
         anchors[variant] = anchor_ids
 
 
@@ -151,4 +151,3 @@ def _build_auxiliary_urls(site: SiteLike) -> set[str]:
         if url:
             urls.add(str(url).rstrip("/") + "/index.txt")
     return urls
-

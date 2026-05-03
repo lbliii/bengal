@@ -37,11 +37,14 @@ from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, ValidatorStats
 from bengal.health.utils import relative_path
 from bengal.health.validators.link_skip_rules import should_skip_link
-from bengal.utils.observability.logger import get_logger
-from bengal.utils.paths.link_resolution import (
-    resolve_internal_link,
-    resolved_path_url_variants,
+from bengal.rendering.reference_registry import (
+    InternalReferenceResolver,
+    build_reference_resolver,
 )
+from bengal.rendering.reference_resolution import (
+    resolved_path_url_variants as _resolved_path_url_variants,
+)
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteLike
@@ -78,6 +81,7 @@ class LinkValidator:
         self._page_urls: set[str] | None = None
         self._source_paths: set[str] | None = None
         self._anchors_by_url: dict[str, frozenset[str]] | None = None
+        self._resolver: InternalReferenceResolver | None = None
         self._site: SiteLike | None = site
 
     def _llm_txt_enabled(self, site: Any) -> bool:
@@ -190,15 +194,7 @@ class LinkValidator:
 
         # Build indexes on first use (or if site changed)
         if self._page_urls is None and site is not None:
-            registry = getattr(site, "link_registry", None)
-            if registry is not None:
-                self._page_urls = set(registry.page_urls | registry.auxiliary_urls)
-                self._source_paths = set(registry.source_paths)
-                self._anchors_by_url = registry.anchors_by_url
-            else:
-                self._page_urls = self._build_page_url_index(site)
-                self._source_paths = self._build_source_path_index(site)
-                self._anchors_by_url = None
+            self._load_reference_registry(site)
             self._site = site
 
         logger.debug(
@@ -237,15 +233,7 @@ class LinkValidator:
         # Reset state
         self.broken_links = []
         self._site = site
-        registry = getattr(site, "link_registry", None)
-        if registry is not None:
-            self._page_urls = set(registry.page_urls | registry.auxiliary_urls)
-            self._source_paths = set(registry.source_paths)
-            self._anchors_by_url = registry.anchors_by_url
-        else:
-            self._page_urls = self._build_page_url_index(site)
-            self._source_paths = self._build_source_path_index(site)
-            self._anchors_by_url = None
+        self._load_reference_registry(site)
 
         for page in site.pages:
             self.validate_page_links(page, site)
@@ -298,7 +286,11 @@ class LinkValidator:
             if self._anchors_by_url is not None:
                 page_path = getattr(page, "_path", None)
                 if page_path:
-                    anchors = self._anchors_by_url.get(page_path, frozenset())
+                    anchors = (
+                        self._resolver.anchors_for(page_path)
+                        if self._resolver is not None
+                        else self._anchors_by_url.get(page_path, frozenset())
+                    )
                     if anchors and parsed.fragment not in anchors:
                         logger.debug(
                             "validating_fragment_link",
@@ -345,18 +337,28 @@ class LinkValidator:
             return True
 
         page_url = str(page_url)
-        resolved_path = resolve_internal_link(page_url, str(parsed.path))
-        variants = resolved_path_url_variants(resolved_path)
+        if self._resolver is not None:
+            resolved_path = self._resolver.resolve(page_url, str(parsed.path))
+            is_valid = self._resolver.has_url(resolved_path)
+        else:
+            from bengal.rendering.reference_resolution import (
+                resolve_internal_link,
+                resolved_path_url_variants,
+            )
 
-        # Check if any variant matches a known page URL
-        is_valid = any(v in self._page_urls for v in variants)
+            resolved_path = resolve_internal_link(page_url, str(parsed.path))
+            variants = resolved_path_url_variants(resolved_path)
+            is_valid = any(v in self._page_urls for v in variants)
 
         if is_valid:
             # If link has a fragment, also validate the anchor exists
             if parsed.fragment and self._anchors_by_url is not None:
-                anchors = self._anchors_by_url.get(resolved_path, frozenset())
-                if not anchors:
-                    # Try with/without trailing slash
+                anchors = (
+                    self._resolver.anchors_for(resolved_path)
+                    if self._resolver is not None
+                    else self._anchors_by_url.get(resolved_path, frozenset())
+                )
+                if not anchors and self._anchors_by_url is not None:
                     anchors = self._anchors_by_url.get(
                         resolved_path.rstrip("/"), frozenset()
                     ) or self._anchors_by_url.get(resolved_path.rstrip("/") + "/", frozenset())
@@ -386,10 +388,18 @@ class LinkValidator:
                 resolved=resolved_path,
                 page=str(page.source_path),
                 result="broken",
-                checked_variants=variants[:3],
+                checked_variants=list(_resolved_path_url_variants(resolved_path))[:3],
             )
 
         return is_valid
+
+    def _load_reference_registry(self, site: Any) -> None:
+        """Load rendering-owned registry data for validation."""
+        self._resolver = build_reference_resolver(site)
+        registry = self._resolver.registry
+        self._page_urls = set(registry.page_urls | registry.auxiliary_urls)
+        self._source_paths = set(registry.source_paths)
+        self._anchors_by_url = dict(registry.anchors_by_url)
 
     def _validate_relative_md_link(self, link_path: str, page: PageLike) -> bool:
         """
