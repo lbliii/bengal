@@ -7,6 +7,7 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 from bengal.cache.build_cache import BuildCache
+from bengal.core.output import BuildOutputCollector, OutputType
 from bengal.rendering.reference_registry import (
     InternalReferenceResolver,
     build_link_registry,
@@ -134,6 +135,18 @@ def test_site_wide_auxiliary_outputs_include_baseurl_variants(tmp_path):
     assert "/bengal/llms.txt" in registry.auxiliary_urls
 
 
+def test_registry_prefers_artifact_outputs_over_configured_outputs(tmp_path):
+    site = _mock_site(tmp_path)
+    collector = BuildOutputCollector(output_dir=tmp_path / "public")
+    collector.record(tmp_path / "public" / "llms.txt", OutputType.ASSET, phase="postprocess")
+
+    registry = build_link_registry(site, output_records=collector.get_outputs())
+
+    assert "/llms.txt" in registry.auxiliary_urls
+    assert "/index.json" not in registry.auxiliary_urls
+    assert "/docs/index.txt" not in registry.auxiliary_urls
+
+
 def test_build_link_registry_from_artifacts_uses_cached_url_and_anchor_truth(tmp_path):
     site = _mock_site(tmp_path)
     cache = BuildCache(site_root=tmp_path)
@@ -151,6 +164,25 @@ def test_build_link_registry_from_artifacts_uses_cached_url_and_anchor_truth(tmp
     assert "install" in registry.anchors_by_url["/docs/"]
     assert "/docs/index.txt" in registry.auxiliary_urls
     assert "/llms.txt" in registry.auxiliary_urls
+
+
+def test_build_link_registry_from_artifacts_uses_artifact_inventory(tmp_path):
+    site = _mock_site(tmp_path)
+    cache = BuildCache(site_root=tmp_path)
+    cache.page_artifacts["content/docs.md"] = {
+        "source_path": "content/docs.md",
+        "uri": "/docs/",
+        "anchors": ["intro", "install"],
+    }
+    collector = BuildOutputCollector(output_dir=tmp_path / "public")
+    collector.record(tmp_path / "public" / "llms.txt", OutputType.ASSET, phase="postprocess")
+    build_context = SimpleNamespace(cache=cache, artifact_collector=collector)
+
+    registry = build_link_registry_from_artifacts(site, build_context)
+
+    assert registry is not None
+    assert "/llms.txt" in registry.auxiliary_urls
+    assert "/docs/index.txt" not in registry.auxiliary_urls
 
 
 def test_build_link_registry_from_artifacts_falls_back_without_anchor_inventory(tmp_path):

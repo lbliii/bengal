@@ -407,6 +407,8 @@ class BuildOrchestrator:
         # Create output collector for hot reload tracking
         # This collector tracks all written files (HTML, CSS, assets) for typed reload decisions.
         output_collector = BuildOutputCollector(output_dir=self.site.output_dir)
+        artifact_collector = BuildOutputCollector(output_dir=self.site.output_dir)
+        early_ctx.artifact_collector = artifact_collector
 
         # Phase 0: Plugin Loading
         from bengal.plugins import load_plugins, set_active_registry
@@ -693,6 +695,7 @@ class BuildOrchestrator:
         # Pass force_sequential - phase will compute parallel based on should_parallelize() and page count
         # Ensure early_ctx has output_collector so pipeline gets it (fixes output_collector_missing)
         early_ctx.output_collector = output_collector
+        early_ctx.artifact_collector = artifact_collector
         try:
             ctx = rendering.phase_render(
                 self,
@@ -749,6 +752,13 @@ class BuildOrchestrator:
         finalization.phase_postprocess(
             self, cli, not force_sequential, ctx, incremental, collector=output_collector
         )
+
+        from bengal.orchestration.build.artifact_inventory import populate_artifact_inventory
+
+        if ctx is not None:
+            ctx.output_collector = output_collector
+            ctx.artifact_collector = artifact_collector
+        populate_artifact_inventory(self.site, ctx)
 
         # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered
         # This enables skipping them on future builds if member content hasn't changed

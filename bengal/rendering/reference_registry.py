@@ -16,6 +16,9 @@ from bengal.rendering.reference_resolution import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from bengal.core.output import OutputRecord
     from bengal.protocols import SiteLike
 
 _DEFAULT_SITE_WIDE_OUTPUT_FORMATS = (
@@ -91,7 +94,9 @@ class InternalReferenceResolver:
         return bool(anchors) and anchor in anchors
 
 
-def build_link_registry(site: SiteLike) -> LinkRegistry:
+def build_link_registry(
+    site: SiteLike, output_records: Sequence[OutputRecord] | None = None
+) -> LinkRegistry:
     """
     Build a LinkRegistry from a fully rendered site.
 
@@ -133,7 +138,7 @@ def build_link_registry(site: SiteLike) -> LinkRegistry:
         page_urls=frozenset(urls),
         source_paths=frozenset(paths),
         anchors_by_url=MappingProxyType(anchors),
-        auxiliary_urls=frozenset(_build_auxiliary_urls(site)),
+        auxiliary_urls=frozenset(_build_auxiliary_urls(site, output_records)),
     )
 
 
@@ -152,9 +157,10 @@ def build_link_registry_from_artifacts(site: SiteLike, build_context: Any) -> Li
     urls: set[str] = set()
     paths: set[str] = set()
     anchors: dict[str, frozenset[str]] = {}
-    auxiliary_urls = _build_site_wide_auxiliary_urls(site)
+    output_records = _output_records_from_build_context(build_context)
+    auxiliary_urls = _build_auxiliary_urls(site, output_records)
     root = site.root_path
-    output_llm_txt = _outputs_per_page_llm_txt(site)
+    output_llm_txt = output_records is None and _outputs_per_page_llm_txt(site)
 
     for page in site.pages:
         source_path = getattr(page, "source_path", None)
@@ -216,8 +222,11 @@ def _add_anchor_variants(
         anchors[variant] = anchor_ids
 
 
-def _build_auxiliary_urls(site: SiteLike) -> set[str]:
+def _build_auxiliary_urls(site: SiteLike, output_records: Sequence[Any] | None = None) -> set[str]:
     """Build set of auxiliary output URLs, such as output-format files."""
+    if output_records is not None:
+        return _build_auxiliary_urls_from_output_records(site, output_records)
+
     urls: set[str] = set()
     if _outputs_per_page_llm_txt(site):
         for page in site.pages:
@@ -225,6 +234,21 @@ def _build_auxiliary_urls(site: SiteLike) -> set[str]:
             if url:
                 urls.add(str(url).rstrip("/") + "/index.txt")
     urls.update(_build_site_wide_auxiliary_urls(site))
+    return urls
+
+
+def _build_auxiliary_urls_from_output_records(
+    site: SiteLike, output_records: Sequence[Any]
+) -> set[str]:
+    """Build auxiliary URLs from actual generated artifact records."""
+    urls: set[str] = set()
+    for record in output_records:
+        path = getattr(record, "path", None)
+        if path is None:
+            continue
+        url = _url_from_output_record_path(Path(path))
+        if url:
+            _add_auxiliary_output_url_variants(urls, site, url)
     return urls
 
 
@@ -274,10 +298,15 @@ def _configured_site_wide_output_formats(site: SiteLike) -> tuple[str, ...]:
 
 def _add_auxiliary_output_variants(urls: set[str], site: SiteLike, filename: str) -> None:
     """Add root and baseurl-prefixed variants for a generated auxiliary file."""
-    _add_url_variants(urls, f"/{filename}")
+    _add_auxiliary_output_url_variants(urls, site, f"/{filename}")
+
+
+def _add_auxiliary_output_url_variants(urls: set[str], site: SiteLike, url: str) -> None:
+    """Add root and baseurl-prefixed variants for a generated auxiliary URL."""
+    _add_url_variants(urls, url)
     baseurl = _site_baseurl(site)
     if baseurl:
-        _add_url_variants(urls, f"{baseurl}/{filename}")
+        _add_url_variants(urls, f"{baseurl}/{url.lstrip('/')}")
 
 
 def _site_baseurl(site: SiteLike) -> str:
@@ -290,6 +319,28 @@ def _site_baseurl(site: SiteLike) -> str:
     if not baseurl or baseurl == "/":
         return ""
     return "/" + baseurl.strip("/")
+
+
+def _url_from_output_record_path(path: Path) -> str | None:
+    """Convert an output-record path into its public URL path."""
+    path_str = path.as_posix().lstrip("/")
+    if not path_str or path_str in {".", ".."}:
+        return None
+    if path.name == "index.html":
+        parent = path.parent.as_posix().strip(".").strip("/")
+        return f"/{parent}/" if parent else "/"
+    return f"/{path_str}"
+
+
+def _output_records_from_build_context(build_context: Any) -> Sequence[Any] | None:
+    """Return artifact output records from build context when available."""
+    collector = getattr(build_context, "artifact_collector", None)
+    if collector is None:
+        return None
+    get_outputs = getattr(collector, "get_outputs", None)
+    if not callable(get_outputs):
+        return None
+    return get_outputs()
 
 
 def _site_relative_path(root_path: Path, source_path: Path) -> Path:
