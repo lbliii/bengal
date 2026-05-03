@@ -448,6 +448,9 @@ class OutputFormatsGenerator:
         result = generate_fn()
         duration_ms = (time.perf_counter() - start) * 1000
         timings[format_name] = round(duration_ms, 1)
+        stats = getattr(self.build_context, "stats", None)
+        if stats is not None:
+            stats.postprocess_output_timings_ms[format_name] = timings[format_name]
         logger.info(
             "output_format_generated",
             format=format_name,

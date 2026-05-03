@@ -16,6 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import Mock
 
+from bengal.orchestration.stats import BuildStats
 from bengal.postprocess.output_formats import OutputFormatsGenerator
 
 
@@ -279,7 +280,11 @@ class TestConfigNormalizationEdgeCases:
         output_dir = tmp_path / "public"
         output_dir.mkdir()
         mock_site = self._create_mock_site(tmp_path, output_dir)
-        generator = OutputFormatsGenerator(mock_site, {"enabled": True})
+        stats = BuildStats()
+        build_context = type("BuildContext", (), {"stats": stats})()
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
         timings: dict[str, float] = {}
 
         result = generator._timed_generate(timings, "test_format", lambda: "ok")
@@ -287,6 +292,7 @@ class TestConfigNormalizationEdgeCases:
         assert result == "ok"
         assert "test_format" in timings
         assert timings["test_format"] >= 0
+        assert stats.postprocess_output_timings_ms["test_format"] == timings["test_format"]
 
     # Helper methods
 
