@@ -4,9 +4,10 @@ Tests protect behavior, not implementation trivia. They should make regressions
 obvious, keep fixtures understandable, and avoid widening production contracts
 just to satisfy mocks.
 
-Related architecture docs:
-
-- `../AGENTS.md`
+Related docs:
+- root `../AGENTS.md`
+- `README.md`
+- `TEST_COVERAGE.md`
 - `../site/content/docs/reference/architecture/meta/testing.md`
 
 ## Point Of View
@@ -20,7 +21,18 @@ easy to reason about.
 - Focused unit tests for interesting branches.
 - Integration tests for user-visible workflows and build correctness.
 - `tests/roots/` fixtures as intentional, minimal sites.
-- Existing markers and parallel-safety expectations.
+- Existing markers, xdist behavior, and parallel-safety expectations.
+- Canonical mocks and helpers in `tests/_testing/`.
+
+## Contract Checklist
+
+- Unit/integration/performance scope stewards for the affected proof layer.
+- Fixture docs in `tests/roots/README.md` and helper docs in
+  `tests/_testing/README.md`.
+- Public protocol, CLI, config, and docs surfaces when tests expose contract
+  drift.
+- Marker updates when tests spawn workers, use global state, or are slow.
+- Changelog only when tests accompany user-visible package behavior changes.
 
 ## Advocate
 
@@ -47,9 +59,9 @@ easy to reason about.
 
 ## Own
 
-- Own `site/content/docs/reference/architecture/meta/testing.md`.
-- Keep `tests/README.md` and `tests/roots/README.md` accurate when fixture/test patterns change.
-- Update docs when markers, shared mocks, or test-layer expectations change.
-- `uv run pytest tests/unit -q`
-- `uv run pytest tests/integration -q`
-- `uv run ruff check tests`
+- `site/content/docs/reference/architecture/meta/testing.md`
+- `tests/README.md`, `tests/roots/README.md`, and `tests/_testing/README.md`
+- Shared mocks, fixtures, markers, and test helper patterns
+- Checks: `uv run pytest tests/unit -q`
+- Checks: `uv run pytest tests/integration -q`
+- Checks: `uv run ruff check tests`

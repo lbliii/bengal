@@ -3,10 +3,10 @@
 Cache code protects rebuild correctness and repeatability. A cache hit is a
 claim that the rendered output is still trustworthy.
 
-Related architecture docs:
-
-- `../../AGENTS.md`
+Related docs:
+- root `../../AGENTS.md`
 - `../../site/content/docs/reference/architecture/core/cache.md`
+- `../../plan/rfc-output-cache-architecture.md`
 
 ## Point Of View
 
@@ -19,6 +19,16 @@ atomic, deterministic, and honest about whether a hit can be trusted.
 - Atomic persistence and crash safety.
 - Explicit migration paths for old cache shapes.
 - Deterministic serialization for free-threaded builds.
+- Distinct behavior for misses, stale entries, corruption, and migration.
+
+## Contract Checklist
+
+- Cache tests under `tests/unit/cache/` plus warm-build and incremental
+  integration tests.
+- Provenance/build-cache docs and migration notes when schemas or keys change.
+- Performance notes when cache behavior changes rebuild speed or storage.
+- Changelog for user-visible cache behavior, invalidation, or diagnostics.
+- Atomic write proof for every persisted file path.
 
 ## Advocate
 
@@ -44,9 +54,9 @@ atomic, deterministic, and honest about whether a hit can be trusted.
 
 ## Own
 
-- Own `site/content/docs/reference/architecture/core/cache.md`.
-- Keep performance docs accurate when cache behavior changes rebuild speed or storage.
-- Update migration notes when cache schema compatibility changes.
-- `uv run pytest tests/unit/cache tests/unit/discovery -q`
-- `uv run pytest tests/integration/test_phase2b_cache_integration.py -q`
-- `uv run ruff check bengal/cache tests/unit/cache`
+- `site/content/docs/reference/architecture/core/cache.md`
+- Cache migration and performance notes
+- Tests: `tests/unit/cache/`, warm-build cache integrations
+- Checks: `uv run pytest tests/unit/cache tests/unit/discovery -q`
+- Checks: `uv run pytest tests/integration/test_phase2b_cache_integration.py -q`
+- Checks: `uv run ruff check bengal/cache tests/unit/cache`

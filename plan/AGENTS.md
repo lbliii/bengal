@@ -5,11 +5,17 @@ work that can be executed without rediscovering the same context. This steward
 protects decision quality and archive hygiene; it does not outrank the package
 stewards that own implementation boundaries.
 
-Related architecture docs:
-
-- `../AGENTS.md`
+Related docs:
+- root `../AGENTS.md`
 - `README.md`
 - `ROADMAP.md`
+- `maturity-assessment.md`
+
+## Point Of View
+
+Planning represents the future work queue and decision memory. It should keep
+tradeoffs, dependencies, and stale assumptions visible before code changes
+start.
 
 ## Protect
 
@@ -19,8 +25,17 @@ Related architecture docs:
   measurable performance, and user-visible documentation correctness.
 - Steward notes for cross-boundary work, especially public contracts,
   rendering behavior, incremental correctness, and free-threading safety.
-- Archive status that stays truthful: drafted, evaluated, stale, superseded,
-  or complete.
+- Archive status that stays truthful: drafted, evaluated, stale, superseded, or
+  complete.
+
+## Contract Checklist
+
+- `plan/README.md`, `plan/ROADMAP.md`, and active RFC/epic status lines.
+- Code steward agreement before promoting implementation plans.
+- Docs/tests/examples/changelog collateral listed in acceptance criteria.
+- Verification notes for stale package names, deleted modules, and changed
+  architecture boundaries.
+- Not-now sections for tempting adjacent work.
 
 ## Advocate
 
@@ -44,17 +59,15 @@ Related architecture docs:
   routing through the root escape hatches.
 - Let stale architecture names survive in active plans without a verification
   note.
-- Hide deferred work in vague "later" language; name the tradeoff or move it
-  to a not-now section.
+- Hide deferred work in vague "later" language; name the tradeoff or move it to
+  a not-now section.
 
 ## Own
 
-- Own `plan/README.md` and `plan/ROADMAP.md`.
-- Keep RFC, epic, sprint, stale, superseded, evaluated, and complete buckets
-  consistent with the actual implementation state.
-- Carry steward consultation rollups into follow-up plans or PR descriptions
-  when planning work crosses scoped steward areas.
-- `rg "^\*\*Status\*\*" plan`
-- `rg "bengal/build|dependency_tracker|PageCacheManager|ConfigService" plan`
+- `plan/README.md` and `plan/ROADMAP.md`
+- RFC, epic, sprint, stale, superseded, evaluated, and complete bucket hygiene
+- Steward consultation rollups for planning work
+- Checks: `rg "^\\*\\*Status\\*\\*" plan`
+- Checks: `rg "bengal/build|dependency_tracker|PageCacheManager|ConfigService" plan`
 - Re-read affected scoped `AGENTS.md` files before promoting a plan from draft
   to active work.

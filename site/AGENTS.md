@@ -4,24 +4,37 @@ The `site/` tree is Bengal's dogfood documentation site. It represents the
 reader, site author, plugin developer, and contributor experience before the
 project asks anyone else to trust the tool.
 
-Related architecture docs:
-
-- `../AGENTS.md`
+Related docs:
+- root `../AGENTS.md`
 - `content/docs/about/philosophy.md`
 - `content/docs/get-started/`
 - `content/docs/reference/`
+- `../docs/b-stack-changelog-strategy.md`
+
+## Point Of View
+
+Site docs represent readers trying to complete tasks: install, scaffold, build,
+theme, extend, debug, migrate, and understand architecture.
 
 ## Protect
 
 - Docs that match current CLI behavior, config shape, template context, and
   extension contracts.
-- Reader task completion: install, scaffold, build, theme, extend, debug, and
-  migrate.
-- Runnable examples and snippets that do not depend on unstated local state.
-- Clear audience paths for site authors, plugin developers, theme developers,
+- Reader task completion for site authors, plugin developers, theme developers,
   and contributors.
+- Runnable examples and snippets that do not depend on unstated local state.
 - Release notes and migration guidance that say what changed, who is affected,
   and what to do next.
+
+## Contract Checklist
+
+- Authored docs under `site/content/`, snippets, config, data, and hand-maintained
+  assets.
+- README/CONTRIBUTING parity when quickstarts or contributor flows change.
+- CLI help and command examples for command docs.
+- Package stewards for architecture, protocols, config, rendering, theme, and
+  output claims.
+- `uv run bengal build site` for substantial docs or template changes.
 
 ## Advocate
 
@@ -52,14 +65,10 @@ Related architecture docs:
 
 ## Own
 
-- Own authored content under `site/content/`, `site/config/`, `site/data/`, and
-  hand-maintained site assets.
-- Keep snippets in `site/content/_snippets/` synchronized with installation,
-  configuration, and command examples.
-- Coordinate with package stewards when docs explain architecture, public API,
-  plugin hooks, or theme behavior owned outside `site/`.
-- `uv run bengal build site`
-- `uv run bengal serve site`
-- `rg "TODO|TBD|coming soon|not yet implemented" site/content`
-- For command docs, compare examples with `uv run bengal --help` or the
-  relevant subcommand help.
+- `site/content/`, `site/config/`, `site/data/`, and hand-maintained site assets
+- Snippets in `site/content/_snippets/`
+- Architecture, public API, plugin hook, and theme docs in coordination with
+  package stewards
+- Checks: `uv run bengal build site`
+- Checks: `rg "TODO|TBD|coming soon|not yet implemented" site/content`
+- For command docs, compare examples with `uv run bengal --help` or subcommand help.

@@ -4,10 +4,15 @@ Snapshots protect a stable, render-ready view of a site for scheduling and
 parallel rendering. They should make shared state explicit and immutable where
 possible.
 
-Related architecture docs:
-
-- `../../AGENTS.md`
+Related docs:
+- root `../../AGENTS.md`
 - `../../site/content/docs/reference/architecture/core/pipeline.md`
+- `../../plan/rfc-bengal-snapshot-engine.md`
+
+## Point Of View
+
+Snapshots represent the point where mutable compatibility state is captured for
+parallel work. They should give workers a deterministic view of the site.
 
 ## Protect
 
@@ -16,6 +21,25 @@ Related architecture docs:
 - Deterministic navigation/template/cache snapshots.
 - Thread-safe progress and error handling.
 
+## Contract Checklist
+
+- Snapshot unit tests and warm-build integration tests.
+- Pipeline and cache docs when snapshot reuse or scheduling changes.
+- Free-threading notes for shared state, worker queues, and mutable handoff.
+- Changelog for user-visible build/rebuild behavior.
+
+## Advocate
+
+- Captured values over live object references.
+- Small scheduling APIs with explicit error propagation.
+- Tests that compare sequential and parallel snapshot behavior.
+
+## Serve Peers
+
+- Give rendering workers stable inputs.
+- Give cache/incremental deterministic snapshot hashes or reuse signals.
+- Give tests a clear seam for parallel scheduling proof.
+
 ## Do Not
 
 - Store live mutable objects when a snapshot value should be captured.
@@ -23,14 +47,11 @@ Related architecture docs:
 - Mutate page pipeline records.
 - Hide worker exceptions without page/source context.
 
-## Documentation Ownership
+## Own
 
-- Own snapshot-related explanations in `site/content/docs/reference/architecture/core/pipeline.md`.
-- Keep cache and warm-build docs aligned when snapshot reuse behavior changes.
-- Update architecture docs when mutable Page compatibility and immutable snapshot handoffs move.
-
-## Local Checks
-
-- `uv run pytest tests/unit/snapshots -q`
-- `uv run pytest tests/integration/warm_build -q`
-- `uv run ruff check bengal/snapshots tests/unit/snapshots`
+- Snapshot explanations in `site/content/docs/reference/architecture/core/pipeline.md`
+- Cache and warm-build docs when snapshot reuse behavior changes
+- Tests: `tests/unit/snapshots/`, warm-build integrations
+- Checks: `uv run pytest tests/unit/snapshots -q`
+- Checks: `uv run pytest tests/integration/warm_build -q`
+- Checks: `uv run ruff check bengal/snapshots tests/unit/snapshots`
