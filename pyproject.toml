@@ -347,6 +347,7 @@ package_dir = "."
 title_format = "## [{version}] - {project_date}"
 issue_format = "`#{issue}`"
 underlines = ["", "", ""]
+ignore = ["changed"]
 
 [[tool.towncrier.type]]
 directory = "added"
