@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from bengal.cache.build_cache import BuildCache
 from bengal.rendering.reference_registry import (
     InternalReferenceResolver,
     build_link_registry,
+    build_link_registry_from_artifacts,
     build_reference_resolver,
 )
 
@@ -99,3 +102,33 @@ def test_registry_fingerprint_changes_when_auxiliary_outputs_change(tmp_path):
     registry_b = build_link_registry(site)
 
     assert registry_a.fingerprint != registry_b.fingerprint
+
+
+def test_build_link_registry_from_artifacts_uses_cached_url_and_anchor_truth(tmp_path):
+    site = _mock_site(tmp_path)
+    cache = BuildCache(site_root=tmp_path)
+    cache.page_artifacts["content/docs.md"] = {
+        "source_path": "content/docs.md",
+        "uri": "/docs/",
+        "anchors": ["intro", "install"],
+    }
+    build_context = SimpleNamespace(cache=cache)
+
+    registry = build_link_registry_from_artifacts(site, build_context)
+
+    assert registry is not None
+    assert "/docs" in registry.page_urls
+    assert "install" in registry.anchors_by_url["/docs/"]
+    assert "/docs/index.txt" in registry.auxiliary_urls
+
+
+def test_build_link_registry_from_artifacts_falls_back_without_anchor_inventory(tmp_path):
+    site = _mock_site(tmp_path)
+    cache = BuildCache(site_root=tmp_path)
+    cache.page_artifacts["content/docs.md"] = {
+        "source_path": "content/docs.md",
+        "uri": "/docs/",
+    }
+    build_context = SimpleNamespace(cache=cache)
+
+    assert build_link_registry_from_artifacts(site, build_context) is None

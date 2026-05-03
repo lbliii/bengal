@@ -13,7 +13,10 @@ from bengal.orchestration.incremental.cache_manager import CacheManager
 def test_cache_manager_persists_accumulated_page_artifacts(tmp_path: Path) -> None:
     """Rendered page artifacts are stored under canonical cache keys."""
     source_path = Path("content/docs.md")
-    site = SimpleNamespace(root_path=tmp_path, pages=[SimpleNamespace(source_path=source_path)])
+    site = SimpleNamespace(
+        root_path=tmp_path,
+        pages=[SimpleNamespace(source_path=source_path, toc_items=[{"id": "intro"}])],
+    )
     manager = CacheManager(site)
     manager.cache = BuildCache(site_root=tmp_path)
     artifact = _artifact(source_path)
@@ -23,6 +26,7 @@ def test_cache_manager_persists_accumulated_page_artifacts(tmp_path: Path) -> No
 
     cached = manager.cache.page_artifacts["content/docs.md"]
     assert cached["uri"] == "/docs/"
+    assert cached["anchors"] == ["intro"]
     assert cached["full_json_data"] == {"url": "/docs/", "title": "Docs"}
     assert cached["json_output_path"] == "public/docs/index.json"
 

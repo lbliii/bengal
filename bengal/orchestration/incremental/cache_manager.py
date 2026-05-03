@@ -383,13 +383,17 @@ class CacheManager:
             key: value for key, value in self.cache.page_artifacts.items() if key in current_keys
         }
 
+        anchors_by_source = _page_anchor_ids_by_source(
+            getattr(self.site, "pages", []), self.site.root_path, self.cache
+        )
         for data in get_accumulated():
             source_path = getattr(data, "source_path", None)
             if not source_path:
                 continue
             key_path = _site_relative_path(self.site.root_path, source_path)
-            self.cache.page_artifacts[str(self.cache._cache_key(key_path))] = (
-                _serialize_page_artifact(data)
+            artifact_key = str(self.cache._cache_key(key_path))
+            self.cache.page_artifacts[artifact_key] = _serialize_page_artifact(
+                data, anchors_by_source.get(artifact_key, frozenset())
             )
 
     def _get_theme_templates_dir(self) -> Path | None:
@@ -457,7 +461,7 @@ class CacheManager:
             )
 
 
-def _serialize_page_artifact(data: Any) -> dict[str, Any]:
+def _serialize_page_artifact(data: Any, anchors: frozenset[str]) -> dict[str, Any]:
     """Convert AccumulatedPageData into a JSON-serializable cache record."""
     source_path = data.source_path
     json_output_path = getattr(data, "json_output_path", None)
@@ -482,6 +486,7 @@ def _serialize_page_artifact(data: Any) -> dict[str, Any]:
         "full_json_data": data.full_json_data,
         "json_output_path": str(json_output_path) if json_output_path else None,
         "raw_metadata": dict(data.raw_metadata),
+        "anchors": sorted(anchors),
     }
 
 
@@ -490,3 +495,22 @@ def _site_relative_path(root_path: Path, source_path: Path) -> Path:
     if source_path.is_absolute():
         return source_path
     return root_path / source_path
+
+
+def _page_anchor_ids_by_source(
+    pages: Sequence[PageLike], root_path: Path, cache: BuildCache
+) -> dict[str, frozenset[str]]:
+    """Return rendered TOC anchor ids by source path cache key."""
+    anchors: dict[str, frozenset[str]] = {}
+    for page in pages:
+        source_path = getattr(page, "source_path", None)
+        if not source_path:
+            continue
+        toc_items = getattr(page, "toc_items", None) or []
+        ids = frozenset(
+            str(item["id"]) for item in toc_items if isinstance(item, dict) and "id" in item
+        )
+        if ids:
+            key_path = _site_relative_path(root_path, source_path)
+            anchors[str(cache._cache_key(key_path))] = ids
+    return anchors

@@ -122,6 +122,60 @@ def build_link_registry(site: SiteLike) -> LinkRegistry:
     )
 
 
+def build_link_registry_from_artifacts(site: SiteLike, build_context: Any) -> LinkRegistry | None:
+    """
+    Build a LinkRegistry from cached post-render page artifacts when complete.
+
+    Returns ``None`` when any current page lacks a compatible artifact so callers
+    can conservatively fall back to scanning rendered page objects.
+    """
+    cache = getattr(build_context, "cache", None)
+    page_artifacts = getattr(cache, "page_artifacts", None)
+    if cache is None or not isinstance(page_artifacts, dict):
+        return None
+
+    urls: set[str] = set()
+    paths: set[str] = set()
+    anchors: dict[str, frozenset[str]] = {}
+    auxiliary_urls: set[str] = set()
+    root = site.root_path
+    output_llm_txt = _outputs_per_page_llm_txt(site)
+
+    for page in site.pages:
+        source_path = getattr(page, "source_path", None)
+        if not source_path:
+            return None
+        key = str(cache._cache_key(_site_relative_path(root, source_path)))
+        record = page_artifacts.get(key)
+        if not isinstance(record, dict) or "anchors" not in record:
+            return None
+
+        uri = record.get("uri")
+        if not isinstance(uri, str) or not uri:
+            return None
+        _add_url_variants(urls, uri)
+
+        permalink = getattr(page, "permalink", None)
+        if permalink and permalink != uri:
+            _add_url_variants(urls, str(permalink))
+
+        paths.add(content_key(_site_relative_path(root, Path(source_path)), root))
+
+        anchor_ids = frozenset(str(anchor) for anchor in record.get("anchors", []))
+        if anchor_ids:
+            _add_anchor_variants(anchors, uri, anchor_ids)
+
+        if output_llm_txt:
+            auxiliary_urls.add(uri.rstrip("/") + "/index.txt")
+
+    return LinkRegistry(
+        page_urls=frozenset(urls),
+        source_paths=frozenset(paths),
+        anchors_by_url=MappingProxyType(anchors),
+        auxiliary_urls=frozenset(auxiliary_urls),
+    )
+
+
 def build_reference_resolver(site: SiteLike) -> InternalReferenceResolver:
     """Return a resolver backed by ``site.link_registry`` when available."""
     registry = getattr(site, "link_registry", None)
@@ -149,12 +203,7 @@ def _add_anchor_variants(
 
 def _build_auxiliary_urls(site: SiteLike) -> set[str]:
     """Build set of auxiliary output URLs, such as per-page ``index.txt``."""
-    config = getattr(site, "config", {}) or {}
-    output_formats: dict[str, Any] = config.get("output_formats", {}) or {}
-    if not output_formats.get("enabled", True):
-        return set()
-    per_page = output_formats.get("per_page", [])
-    if "llm_txt" not in per_page:
+    if not _outputs_per_page_llm_txt(site):
         return set()
 
     urls: set[str] = set()
@@ -163,6 +212,23 @@ def _build_auxiliary_urls(site: SiteLike) -> set[str]:
         if url:
             urls.add(str(url).rstrip("/") + "/index.txt")
     return urls
+
+
+def _outputs_per_page_llm_txt(site: SiteLike) -> bool:
+    """Return whether per-page LLM text outputs are enabled."""
+    config = getattr(site, "config", {}) or {}
+    output_formats: dict[str, Any] = config.get("output_formats", {}) or {}
+    if not output_formats.get("enabled", True):
+        return False
+    per_page = output_formats.get("per_page", [])
+    return "llm_txt" in per_page
+
+
+def _site_relative_path(root_path: Path, source_path: Path) -> Path:
+    """Resolve relative source paths against the current site root."""
+    if source_path.is_absolute():
+        return source_path
+    return root_path / source_path
 
 
 def _fingerprint_link_registry(registry: LinkRegistry) -> str:
