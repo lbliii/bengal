@@ -15,4 +15,3 @@ __all__ = [
     "ArtifactFinding",
     "audit_output_dir",
 ]
-

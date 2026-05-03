@@ -58,4 +58,3 @@ def test_build_reference_resolver_uses_existing_site_registry(tmp_path):
     resolver = build_reference_resolver(site)
 
     assert resolver.registry is registry
-

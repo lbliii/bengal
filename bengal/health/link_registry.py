@@ -15,4 +15,3 @@ __all__ = [
     "build_link_registry",
     "build_reference_resolver",
 ]
-

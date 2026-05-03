@@ -39,4 +39,3 @@ def audit(
 
     cli.success("Artifact audit passed")
     return envelope
-

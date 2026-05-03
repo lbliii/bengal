@@ -71,4 +71,3 @@ def test_audit_envelope_uses_audit_schema(tmp_path):
     assert envelope["status"] == "failed"
     assert envelope["summary"]["errors"] == 1
     assert envelope["findings"][0]["code"] == "A101"
-

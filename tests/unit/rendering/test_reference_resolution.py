@@ -32,4 +32,3 @@ def test_base_url_from_page_url_uses_browser_semantics():
 
 def test_resolved_path_url_variants_handles_root():
     assert resolved_path_url_variants("/") == ("/", "/", "/")
-

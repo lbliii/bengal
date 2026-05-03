@@ -16,4 +16,3 @@ __all__ = [
     "resolve_internal_link",
     "resolved_path_url_variants",
 ]
-

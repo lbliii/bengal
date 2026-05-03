@@ -51,4 +51,3 @@ def resolved_path_url_variants(resolved: str) -> tuple[str, str, str]:
     if not stripped:
         return (resolved, "/", "/")
     return (resolved, stripped, stripped + "/")
-
