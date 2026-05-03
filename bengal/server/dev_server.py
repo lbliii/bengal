@@ -1095,12 +1095,12 @@ class DevServer:
             lines = [f"Server failed to start: {exc}"]
 
         first, *rest = lines
-        cli.error(first)
+        cli.raw(f"{cli.icons.error} {first}", stream="stderr", level=None)
         for line in rest:
             if line:
-                cli.info(line)
+                cli.raw(line, stream="stderr", level=None)
             else:
-                cli.blank()
+                cli.raw("", stream="stderr", level=None)
 
     def _print_stale_process_panel(
         self, stale_pid: int, pid_file: Path, is_holding_port: bool

@@ -65,7 +65,7 @@ def _emit_postprocess_line(message: str) -> None:
     """Route post-processing fallback messages through shared CLI output."""
     from bengal.output import get_cli_output
 
-    get_cli_output().info(message)
+    get_cli_output().raw(message, stream="stderr", level=None)
 
 
 class PostprocessOrchestrator:

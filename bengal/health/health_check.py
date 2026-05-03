@@ -31,7 +31,9 @@ Example:
     >>> health = HealthCheck(site)
     >>> report = health.run(tier="build", verbose=True)
     >>> if report.has_errors():
-    ...     report.format_json()
+    ...     from bengal.output import get_cli_output
+    ...     cli = get_cli_output()
+    ...     cli.render_write("validation_report.kida", **report.format_validation_report())
 
 """
 
@@ -125,7 +127,9 @@ class HealthCheck:
         # Default: auto-registers all validators
         health = HealthCheck(site)
         report = health.run()
-        report.format_json()
+        from bengal.output import get_cli_output
+        cli = get_cli_output()
+        cli.render_write("validation_report.kida", **report.format_validation_report())
 
         # Manual registration:
         health = HealthCheck(site, auto_register=False)

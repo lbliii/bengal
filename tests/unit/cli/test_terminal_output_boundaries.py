@@ -12,6 +12,7 @@ SCANNED_TREES = [
     ROOT / "bengal" / "orchestration",
     ROOT / "bengal" / "output",
     ROOT / "bengal" / "server",
+    ROOT / "bengal" / "utils" / "observability",
 ]
 
 ALLOWED_DIRECT_WRITES = {

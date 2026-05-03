@@ -7,40 +7,7 @@ from typing import Annotated
 
 from milo import Description
 
-
-def _render_debug_report(cli, report, *, title: str | None = None) -> None:
-    """Render a DebugReport through Kida templates."""
-    report_title = title or f"{getattr(report, 'tool_name', 'Debug')} Report"
-    items = [
-        {"label": "Summary", "value": getattr(report, "summary", "") or "No summary"},
-        {"label": "Findings", "value": str(len(getattr(report, "findings", [])))},
-    ]
-    if getattr(report, "error_count", 0):
-        items.append({"label": "Errors", "value": str(report.error_count)})
-    if getattr(report, "warning_count", 0):
-        items.append({"label": "Warnings", "value": str(report.warning_count)})
-    if getattr(report, "execution_time_ms", 0):
-        items.append({"label": "Execution time", "value": f"{report.execution_time_ms:.1f}ms"})
-    for key, value in getattr(report, "statistics", {}).items():
-        items.append({"label": str(key).replace("_", " ").title(), "value": str(value)})
-
-    cli.render_write("kv_detail.kida", title=report_title, items=items)
-
-    findings = getattr(report, "findings", [])
-    if findings:
-        cli.render_write(
-            "item_list.kida",
-            title="Findings",
-            items=[{"name": f.format_short(), "description": ""} for f in findings],
-        )
-
-    recommendations = getattr(report, "recommendations", [])
-    if recommendations:
-        cli.render_write(
-            "item_list.kida",
-            title="Recommendations",
-            items=[{"name": rec, "description": ""} for rec in recommendations],
-        )
+from bengal.cli.helpers.debug_reports import render_debug_report
 
 
 def debug_incremental(
@@ -100,7 +67,7 @@ def debug_incremental(
             cli.render_write("json_output.kida", data=json.dumps(data, indent=2))
     else:
         cli.blank()
-        _render_debug_report(cli, report)
+        render_debug_report(cli, report)
     return {"findings": len(report.findings), "recommendations": len(report.recommendations)}
 
 
@@ -177,7 +144,7 @@ def debug_delta(
             cli.render_write("json_output.kida", data=json.dumps(data, indent=2))
     else:
         cli.blank()
-        _render_debug_report(cli, report)
+        render_debug_report(cli, report)
     return {"findings": len(getattr(report, "findings", []))}
 
 
@@ -241,7 +208,7 @@ def debug_deps(
         return {"page": page_path, "max_depth": max_depth}
     report = visualizer.run()
     cli.blank()
-    _render_debug_report(cli, report)
+    render_debug_report(cli, report)
     return {"findings": len(report.findings)}
 
 
@@ -304,7 +271,7 @@ def debug_migrate(
 
     report = migrator.run()
     cli.blank()
-    _render_debug_report(cli, report, title="Structure Issues")
+    render_debug_report(cli, report, title="Structure Issues")
 
     return {"findings": len(report.findings)}
 
