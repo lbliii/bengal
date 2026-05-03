@@ -25,6 +25,7 @@ Configuration (bengal.toml):
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.postprocess.output_formats.agent_manifest_generator import (
@@ -273,6 +274,7 @@ class OutputFormatsGenerator:
         accumulated_data = None
         if self.build_context and self.build_context.has_accumulated_page_data:
             accumulated_data = self.build_context.get_accumulated_page_data()
+            accumulated_data = self._merge_cached_page_artifacts(pages, accumulated_data)
             logger.debug(
                 "using_accumulated_page_data",
                 count=len(accumulated_data),
@@ -437,6 +439,34 @@ class OutputFormatsGenerator:
         if generated:
             logger.info("output_formats_complete", formats=generated, timings_ms=timings)
 
+    def _merge_cached_page_artifacts(
+        self,
+        pages: list[PageLike],
+        accumulated_data: list[Any],
+    ) -> list[Any]:
+        """Merge current rendered page data with cached records for unchanged pages."""
+        if not self.build_context or not getattr(self.build_context, "incremental", False):
+            return accumulated_data
+        cache = getattr(self.build_context, "cache", None)
+        page_artifacts = getattr(cache, "page_artifacts", None)
+        if not cache or not isinstance(page_artifacts, dict):
+            return accumulated_data
+
+        from bengal.orchestration.build_context import AccumulatedPageData
+
+        by_source = {data.source_path: data for data in accumulated_data}
+        merged = list(accumulated_data)
+        for page in pages:
+            source_path = getattr(page, "source_path", None)
+            if not source_path or source_path in by_source:
+                continue
+            cache_key = str(cache._cache_key(_site_relative_path(self.site, source_path)))
+            record = page_artifacts.get(cache_key)
+            if not isinstance(record, dict):
+                continue
+            merged.append(_page_artifact_to_accumulated(record, AccumulatedPageData))
+        return merged
+
     def _timed_generate(
         self,
         timings: dict[str, float],
@@ -515,3 +545,38 @@ class OutputFormatsGenerator:
         )
 
         return filtered
+
+
+def _page_artifact_to_accumulated(record: dict[str, Any], accumulated_type: Any) -> Any:
+    """Rehydrate a cached page artifact into an AccumulatedPageData record."""
+    json_output_path = record.get("json_output_path")
+    return accumulated_type(
+        source_path=Path(record["source_path"]),
+        url=record["url"],
+        uri=record["uri"],
+        title=record["title"],
+        description=record.get("description", ""),
+        date=record.get("date"),
+        date_iso=record.get("date_iso"),
+        plain_text=record.get("plain_text", ""),
+        excerpt=record.get("excerpt", ""),
+        content_preview=record.get("content_preview", ""),
+        word_count=int(record.get("word_count") or 0),
+        reading_time=int(record.get("reading_time") or 0),
+        section=record.get("section", ""),
+        tags=list(record.get("tags") or []),
+        dir=record.get("dir", ""),
+        enhanced_metadata=dict(record.get("enhanced_metadata") or {}),
+        is_autodoc=bool(record.get("is_autodoc", False)),
+        full_json_data=record.get("full_json_data"),
+        json_output_path=Path(json_output_path) if json_output_path else None,
+        raw_metadata=dict(record.get("raw_metadata") or {}),
+    )
+
+
+def _site_relative_path(site: SiteLike, source_path: Path) -> Path:
+    """Resolve relative source paths against the site root before cache lookup."""
+    if source_path.is_absolute():
+        return source_path
+    root_path = getattr(site, "root_path", None)
+    return root_path / source_path if root_path else source_path

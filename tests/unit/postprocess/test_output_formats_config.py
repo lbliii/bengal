@@ -14,8 +14,11 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import Mock
 
+from bengal.cache.build_cache import BuildCache
+from bengal.orchestration.build_context import AccumulatedPageData
 from bengal.orchestration.stats import BuildStats
 from bengal.postprocess.output_formats import OutputFormatsGenerator
 
@@ -294,12 +297,49 @@ class TestConfigNormalizationEdgeCases:
         assert timings["test_format"] >= 0
         assert stats.postprocess_output_timings_ms["test_format"] == timings["test_format"]
 
+    def test_incremental_accumulated_data_merges_cached_page_artifacts(
+        self, tmp_path: Path
+    ) -> None:
+        """Incremental output formats can reuse cached artifacts for unchanged pages."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        changed_page = self._create_mock_page(
+            title="Changed",
+            url="/changed/",
+            content="Changed",
+            output_path=output_dir / "changed/index.html",
+        )
+        changed_page.source_path = Path("content/changed.md")
+        unchanged_page = self._create_mock_page(
+            title="Unchanged",
+            url="/unchanged/",
+            content="Unchanged",
+            output_path=output_dir / "unchanged/index.html",
+        )
+        unchanged_page.source_path = Path("content/unchanged.md")
+        mock_site.pages = [changed_page, unchanged_page]
+        cache = BuildCache(site_root=tmp_path)
+        cache.page_artifacts["content/unchanged.md"] = _artifact_record("content/unchanged.md")
+        changed_artifact = _accumulated_page_data(Path("content/changed.md"), "/changed/")
+        build_context = SimpleNamespace(incremental=True, cache=cache)
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
+
+        merged = generator._merge_cached_page_artifacts(
+            [changed_page, unchanged_page], [changed_artifact]
+        )
+
+        assert [data.uri for data in merged] == ["/changed/", "/unchanged/"]
+
     # Helper methods
 
     def _create_mock_site(self, site_dir: Path, output_dir: Path, baseurl: str = "") -> Mock:
         """Create a mock Site instance."""
         site = Mock()
         site.site_dir = site_dir
+        site.root_path = site_dir
         site.output_dir = output_dir
         site.dev_mode = False
         site.versioning_enabled = False
@@ -349,3 +389,51 @@ class TestConfigNormalizationEdgeCases:
             page._section = None
 
         return page
+
+
+def _accumulated_page_data(source_path: Path, uri: str) -> AccumulatedPageData:
+    return AccumulatedPageData(
+        source_path=source_path,
+        url=uri,
+        uri=uri,
+        title=uri.strip("/") or "Home",
+        description="",
+        date=None,
+        date_iso=None,
+        plain_text="Body",
+        excerpt="Body",
+        content_preview="Body",
+        word_count=1,
+        reading_time=1,
+        section="Docs",
+        tags=[],
+        dir=uri,
+        full_json_data={"url": uri},
+        json_output_path=Path("public/index.json"),
+    )
+
+
+def _artifact_record(source_path: str) -> dict[str, object]:
+    data = _accumulated_page_data(Path(source_path), "/unchanged/")
+    return {
+        "source_path": str(data.source_path),
+        "url": data.url,
+        "uri": data.uri,
+        "title": data.title,
+        "description": data.description,
+        "date": data.date,
+        "date_iso": data.date_iso,
+        "plain_text": data.plain_text,
+        "excerpt": data.excerpt,
+        "content_preview": data.content_preview,
+        "word_count": data.word_count,
+        "reading_time": data.reading_time,
+        "section": data.section,
+        "tags": data.tags,
+        "dir": data.dir,
+        "enhanced_metadata": data.enhanced_metadata,
+        "is_autodoc": data.is_autodoc,
+        "full_json_data": data.full_json_data,
+        "json_output_path": str(data.json_output_path),
+        "raw_metadata": data.raw_metadata,
+    }
