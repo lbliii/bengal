@@ -47,81 +47,119 @@
         # Error-code breakdown (Sprint A4.3, optional)
         error_code_summary: str — e.g. "3 errors (2 [R022], 1 [R024])"
 -#}
-{% from "_bengal.kida" import bengal_header, error_header %}
+{% from "_bengal.kida" import close_rule, error_header, open_rule, rail_line, report_metric %}
 
-{%- if skipped -%}
+{% if skipped -%}
 
-{{ icons.check | green }} {{ "No changes detected — build skipped!" | dim }}
+{{ open_rule("Build Signal") }}
+{{ rail_line((icons.check ~ " No changes detected") | green | bold, "success") }}
+{{ rail_line("Build skipped because inputs are unchanged." | dim, "success") }}
+{{ close_rule() }}
 
-{%- elif has_errors and not total_pages -%}
+{% elif has_errors and not total_pages -%}
 
-{{ error_header("Build Failed") }}
+{{ open_rule("Build Signal", color="red") }}
+{{ rail_line((icons.cross ~ " Build failed before pages were written") | red | bold, "error") }}
+{{ close_rule() }}
 
-{%- elif has_errors -%}
+{% elif has_errors -%}
 {#- Built with errors -#}
-{{ (icons.dot | yellow) }} {{ ("ᓚᘏᗢ" | fg("#FF9D00") | bold) }}  {{ ("Built with " ~ (error_count | string) ~ " error(s), " ~ (warning_count | string) ~ " warning(s)") | yellow }}
+{{ open_rule("Build Signal", color="red") }}
+{{ rail_line((icons.cross ~ " Built with " ~ (error_count | string) ~ " error(s), " ~ (warning_count | string) ~ " warning(s)") | red | bold, "error") }}
+{% if total_pages -%}
+{{ report_metric("Pages", total_pages, "info") }}
+{% endif -%}
+{% if build_time -%}
+{{ report_metric("Elapsed", build_time, "info") }}
+{% endif -%}
+{{ close_rule() }}
 
-{%- elif has_warnings -%}
+{% elif has_warnings -%}
 {#- Built with warnings -#}
-{{ (icons.dot | yellow) }} {{ ("ᓚᘏᗢ" | fg("#FF9D00") | bold) }}  {{ ("Built " ~ (total_pages | string) ~ " pages in " ~ build_time ~ " (" ~ mode ~ ") with warnings") | yellow }}
-   {{ content_parts | join(", ") | dim }}
-{%- if phases %}
-   {{ phases | join(", ") | dim }}
-{%- endif -%}
+{{ open_rule("Build Signal", color="yellow") }}
+{{ rail_line((icons.dot ~ " Built " ~ (total_pages | string) ~ " pages in " ~ build_time ~ " with warnings") | yellow | bold, "warning") }}
+{{ report_metric("Mode", mode, "info") }}
+{% if pages_per_sec | default(none) -%}
+{{ report_metric("Throughput", (pages_per_sec | round(1) | string) ~ " pages/sec", "info") }}
+{% endif -%}
+{% if content_parts -%}
+{{ rail_line(content_parts | join(", ") | dim, "info") }}
+{% endif -%}
+{% if phases -%}
+{{ rail_line(phases | join(", ") | dim, "info") }}
+{% endif -%}
+{{ close_rule() }}
 
-{%- else -%}
+{% else -%}
 {#- Clean success -#}
-{{ (icons.check | green) }} {{ ("ᓚᘏᗢ" | fg("#FF9D00") | bold) }}  {{ ("Built " ~ (total_pages | string) ~ " pages") | green }} {{ ("(" ~ breakdown ~ ")") | dim }} in {{ build_time | fg("#F1C40F") | bold }} {{ ("(" ~ mode ~ ")") | dim }} │ {{ (pages_per_sec | round(1) | string) | fg("#F1C40F") | bold }} {{ "pages/sec" | dim }}
-   {{ content_parts | join(", ") | dim }}
-{%- if phases %}
-   {{ phases | join(", ") | dim }}
-{%- endif -%}
-{%- if render_dist %}
-   {{ ("Render/page: " ~ render_dist) | dim }}
-{%- endif -%}
-{%- endif -%}
+{{ open_rule("Build Signal", color="green") }}
+{% set success_line = (icons.check ~ " Built " ~ (total_pages | string) ~ " pages") | green | bold -%}
+{% set success_line = success_line ~ " " ~ (("(" ~ breakdown ~ ")") | dim) -%}
+{{ rail_line(success_line, "success") }}
+{{ report_metric("Elapsed", build_time, "success") }}
+{{ report_metric("Mode", mode, "info") }}
+{{ report_metric("Throughput", (pages_per_sec | round(1) | string) ~ " pages/sec", "success") }}
+{% if content_parts -%}
+{{ rail_line(content_parts | join(", ") | dim, "info") }}
+{% endif -%}
+{% if phases -%}
+{{ rail_line(phases | join(", ") | dim, "info") }}
+{% endif -%}
+{% if render_dist -%}
+{{ rail_line(("Render/page: " ~ render_dist) | dim, "info") }}
+{% endif -%}
+{{ close_rule() }}
+{% endif -%}
 
-{%- if regression | default(none) %}
-   {{ regression | fg("yellow" if regression_positive | default(false) else "green") }}
-{%- endif -%}
-{%- if cache_line | default(none) %}
-   {{ cache_line | dim }}
-{%- endif -%}
-{%- if output_dir | default(none) %}
-   {{ "↪" | dim }} {{ output_dir | dim }}
-{%- endif -%}
+{% if regression | default(none) or cache_line | default(none) or output_dir | default(none) or error_code_summary | default("") -%}
+{{ open_rule("Build Notes") }}
+{% if regression | default(none) -%}
+{{ rail_line(regression | fg("yellow" if regression_positive | default(false) else "green"), "warning" if regression_positive | default(false) else "success") }}
+{% endif -%}
+{% if cache_line | default(none) -%}
+{{ rail_line(cache_line | dim, "info") }}
+{% endif -%}
+{% if output_dir | default(none) -%}
+{{ rail_line(("Output  " ~ output_dir) | dim, "info") }}
+{% endif -%}
 
-{%- if error_code_summary | default("") %}
-   {{ ("By code: " ~ error_code_summary) | red }}
-{%- endif -%}
+{% if error_code_summary | default("") -%}
+{{ rail_line(("By code: " ~ error_code_summary) | red, "error") }}
+{% endif -%}
+{{ close_rule() }}
+{% endif -%}
 
-{%- if error_lines | default(none) %}
+{% if error_lines | default(none) -%}
 
-{%- for line in error_lines %}
-{%- if line.level == "error" %}
-   {{ line.text | red }}
-{%- elif line.level == "warning" %}
-   {{ line.text | yellow }}
-{%- elif line.level == "header" %}
-   {{ line.text | bold }}
-{%- elif line.level == "dim" %}
-   {{ line.text | dim }}
-{%- else %}
-   {{ line.text }}
-{%- endif -%}
-{%- endfor %}
-{%- endif -%}
+{{ open_rule("Diagnostics", color="red") }}
+{% for line in error_lines -%}
+{% if line.level == "error" -%}
+{{ rail_line(line.text | red, "error") }}
+{% elif line.level == "warning" -%}
+{{ rail_line(line.text | yellow, "warning") }}
+{% elif line.level == "header" -%}
+{{ rail_line(line.text | bold, "info") }}
+{% elif line.level == "dim" -%}
+{{ rail_line(line.text | dim, "info") }}
+{% else -%}
+{{ rail_line(line.text, "info") }}
+{% endif -%}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}
 
-{%- if warning_groups | default(none) %}
+{% if warning_groups | default(none) -%}
 
 {{ error_header("Build completed with warnings (" ~ (warning_count | string) ~ ")") }}
-{%- for group in warning_groups %}
-   {{ (group.type_name ~ " (" ~ (group.warnings | length | string) ~ "):") | bold }}
-{%- for w in group.warnings %}
-{%- set prefix = "└─" if loop.last else "├─" %}
-   {{ prefix | dim }} {{ w.short_path | yellow }}
-{%- set msg_prefix = "   " if loop.last else "│  " %}
-   {{ msg_prefix | dim }}{{ "└─" | dim }} {{ w.message | red }}
-{%- endfor %}
-{%- endfor %}
-{%- endif -%}
+{{ open_rule("Warning Queue", color="yellow") }}
+{% for group in warning_groups -%}
+{{ rail_line((group.type_name ~ " (" ~ (group.warnings | length | string) ~ ")") | yellow | bold, "warning") }}
+{% for w in group.warnings -%}
+{% set prefix = "└─" if loop.last else "├─" -%}
+{{ rail_line((prefix ~ " " ~ w.short_path) | yellow, "warning") }}
+{% set msg_prefix = "   " if loop.last else "│  " -%}
+{{ rail_line((msg_prefix ~ "└─ " ~ w.message) | dim, "warning") }}
+{% endfor -%}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}

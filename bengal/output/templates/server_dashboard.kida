@@ -19,8 +19,9 @@
         host, port: for url mode
 -#}
 {%- if mode == "header" -%}
-  {{ ("TIME" | pad(8) ~ " │ " ~ "METHOD" | pad(6) ~ " │ " ~ "STA" | pad(3) ~ " │ PATH") | dim }}
-  {{ (("─" * 8) ~ "─┼─" ~ ("─" * 6) ~ "─┼─" ~ ("─" * 3) ~ "─┼─" ~ ("─" * 60)) | dim }}
+{{ "╭─ Dev Server Traffic " | cyan | bold }}{{ ("─" * 55) | dim }}{{ "╮" | dim }}
+{{ "│" | dim }} {{ "TIME" | pad(8) | dim }} {{ "METHOD" | pad(6) | dim }} {{ "STA" | pad(3) | dim }} {{ "PATH" | dim }}
+{{ "├" | dim }}{{ ("─" * 76) | dim }}{{ "┤" | dim }}
 {%- elif mode == "request" -%}
 {%- set status_color = "green" if status[:1] == "2" else ("red" if status[:1] == "4" else "yellow") -%}
 {%- set method_color = "cyan" if method == "GET" else ("green" if method == "POST" else "yellow") -%}
@@ -28,15 +29,17 @@
 {%- if not is_asset -%}
 {%- set indicator = (icons.info ~ " ") if status[:1] == "2" else ((icons.cross ~ " ") if status[:1] == "4" else "") -%}
 {%- endif -%}
-  {{ timestamp }} │ {{ method | pad(6) | fg(method_color) }} │ {{ status | pad(3) | fg(status_color) }} │ {{ indicator }}{{ path | truncate(60) }}
+{{ "│" | fg(status_color) }} {{ timestamp | dim }} {{ method | pad(6) | fg(method_color) | bold }} {{ status | pad(3) | fg(status_color) }} {{ indicator }}{{ path | truncate(60) }}
 {%- elif mode == "file_change" -%}
-  {{ ("─" * 78) | dim }}
-  {{ timestamp }} │ {{ "📝 File changed:" | yellow }} {{ file_name }}
-  {{ ("─" * 78) | dim }}
+{{ "├" | dim }}{{ ("─" * 76) | dim }}{{ "┤" | dim }}
+{{ "│" | yellow }} {{ timestamp | dim }} {{ "File changed" | yellow | bold }}  {{ file_name }}
+{{ "╰" | dim }}{{ ("─" * 76) | dim }}{{ "╯" | dim }}
 {%- elif mode == "url" -%}
 
-  {{ "➜" | cyan }}  Local: {{ ("http://" ~ host ~ ":" ~ (port | string) ~ "/") | bold }}
+{{ "╭─ Server Ready " | cyan | bold }}{{ ("─" * 61) | dim }}{{ "╮" | dim }}
+{{ "│" | cyan }} {{ "Local" | dim }}  {{ ("http://" ~ host ~ ":" ~ (port | string) ~ "/") | bold }}
+{{ "╰" | dim }}{{ ("─" * 76) | dim }}{{ "╯" | dim }}
 
 {%- elif mode == "separator" -%}
-  {{ ("─" * 78) | dim }}
+{{ "├" | dim }}{{ ("─" * 76) | dim }}{{ "┤" | dim }}
 {%- endif -%}

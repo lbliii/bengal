@@ -13,17 +13,27 @@
         headers: Column headers for table mode (optional)
         table_data: Row data for table mode (list of lists)
 -#}
-{% from "components/_defs.kida" import section, def_list %}
-{%- if title | default(false) %}
-{{ section(title) }}
-{%- endif %}
-{%- set display_mode = mode | default("simple") -%}
-{%- if display_mode == "table" and table_data | default(false) -%}
+{% from "components/_defs.kida" import def_list %}
+{% from "_bengal.kida" import close_rule, open_rule, rail_line %}
+{% set display_mode = mode | default("simple") -%}
+{% if display_mode == "table" and table_data | default(false) -%}
+{% if title | default(false) -%}
+{{ open_rule(title) }}
+{{ close_rule() }}
+{% endif -%}
 {{ table_data | table(headers=headers, border="light") }}
-{%- elif display_mode == "def" -%}
+{% elif display_mode == "def" -%}
+{% if title | default(false) -%}
+{{ open_rule(title) }}
+{% endif -%}
 {{ def_list(items) }}
-{%- else -%}
-{%- for item in items %}
-  {{ item.name | green | bold }}{% if item.description %}  {{ item.description | dim }}{% endif %}
-{%- endfor %}
-{%- endif -%}
+{% if title | default(false) -%}
+{{ close_rule() }}
+{% endif -%}
+{% else -%}
+{{ open_rule(title | default("Items")) }}
+{% for item in items -%}
+{{ rail_line((item.name | green | bold) ~ (("  " ~ (item.description | dim)) if item.description else ""), "success") }}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}

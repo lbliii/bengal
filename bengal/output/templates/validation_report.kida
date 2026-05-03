@@ -16,20 +16,39 @@
         issues: List of {level, message, detail?} dicts
         summary: {errors, warnings, passed} counts (optional)
 -#}
-{% from "_bengal.kida" import bengal_header %}
-{% from "components/_defs.kida" import issue_list, status_line %}
-{%- if title | default(false) %}
+{% from "_bengal.kida" import bengal_header, close_rule, open_rule, rail_line, report_metric %}
+{% from "components/_defs.kida" import status_line %}
+{% if title | default(false) -%}
 {{ bengal_header(title) }}
-{%- endif %}
-{{ issue_list(issues) }}
-{%- if summary | default(false) -%}
-{%- if summary.errors %}
+{% endif -%}
+{% if summary | default(false) -%}
+{{ open_rule("Validation Signal") }}
+{{ report_metric("Errors", summary.errors | default(0), "error") }}
+{{ report_metric("Warnings", summary.warnings | default(0), "warning") }}
+{{ report_metric("Passed", summary.passed | default(0), "success") }}
+{{ close_rule() }}
+{% endif -%}
+{% if issues -%}
+
+{{ open_rule("Findings") }}
+{% for issue in issues -%}
+{% set level = issue.level | default("info") -%}
+{% set glyph = icons.cross if level == "error" else (icons.dot if level == "warning" else (icons.check if level == "success" else icons.info)) -%}
+{% set color = "red" if level == "error" else ("yellow" if level == "warning" else ("green" if level == "success" else "cyan")) -%}
+{{ rail_line((glyph ~ " " ~ issue.message) | fg(color) | bold, level) }}
+{% if issue.detail | default(false) -%}
+{{ rail_line(("  " ~ issue.detail) | dim, level) }}
+{% endif -%}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}
+{% if summary | default(false) -%}
+
+{% if summary.errors | default(0) -%}
 {{ status_line("error", (summary.errors | string) ~ " error(s) found") }}
-{%- endif -%}
-{%- if summary.warnings %}
+{% elif summary.warnings | default(0) -%}
 {{ status_line("warning", (summary.warnings | string) ~ " warning(s)") }}
-{%- endif -%}
-{%- if summary.passed and not summary.errors %}
+{% elif summary.passed | default(0) -%}
 {{ status_line("success", "Validation passed") }}
-{%- endif -%}
-{%- endif -%}
+{% endif -%}
+{% endif -%}
