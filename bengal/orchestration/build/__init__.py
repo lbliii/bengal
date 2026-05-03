@@ -800,7 +800,7 @@ class BuildOrchestrator:
         cache_start = time.perf_counter()
 
         def _save_main_cache() -> None:
-            self.incremental.save_cache(pages_to_build, assets_to_process)
+            self.incremental.save_cache(pages_to_build, assets_to_process, build_context=ctx)
 
         def _save_generated_cache() -> None:
             if generated_page_cache:

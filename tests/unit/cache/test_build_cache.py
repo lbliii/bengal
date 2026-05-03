@@ -263,6 +263,7 @@ class TestBuildCache:
         assert len(cache.rendered_output) == 0
         assert len(cache.synthetic_pages) == 0
         assert len(cache.validation_results) == 0
+        assert len(cache.page_artifacts) == 0
         assert len(cache.autodoc_tracker.autodoc_dependencies) == 0
         assert len(cache.autodoc_tracker.autodoc_source_metadata) == 0
         assert len(cache.autodoc_content_cache) == 0  # NEW: verify this is cleared
@@ -298,6 +299,20 @@ class TestBuildCache:
         assert str(page) in loaded_cache.dependencies
         assert str(template) in loaded_cache.dependencies[str(page)]
         assert "tag:python" in loaded_cache.taxonomy_index.taxonomy_deps
+
+    def test_page_artifacts_survive_save_load(self, tmp_path):
+        """Post-render page artifact records are persisted in the build cache."""
+        cache = BuildCache()
+        cache.page_artifacts["content/page.md"] = {"uri": "/page/", "title": "Page"}
+        cache_file = tmp_path / ".bengal-cache.json"
+
+        cache.save(cache_file)
+        loaded_cache = BuildCache.load(cache_file)
+
+        assert loaded_cache.page_artifacts["content/page.md"] == {
+            "uri": "/page/",
+            "title": "Page",
+        }
 
     def test_validation_cache_returns_legacy_results_without_context(self, tmp_path):
         """Validation cache keeps legacy list-shaped entries readable."""
