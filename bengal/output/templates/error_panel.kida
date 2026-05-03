@@ -16,27 +16,32 @@
         hints: List of hint strings (optional)
         suggestions: List of "did you mean" suggestions (optional)
 -#}
-{% from "_bengal.kida" import error_header %}
-{% from "components/_defs.kida" import status_line, next_steps %}
+{% from "_bengal.kida" import close_rule, error_header, open_rule, rail_line %}
+{% from "components/_defs.kida" import status_line %}
 {{ error_header(title | default("Error")) }}
-{%- if message %}
-{{ status_line("error", message) }}
-{%- endif -%}
-{%- if details | default(none) %}
-{%- for d in details %}
-  {{ d | dim }}
-{%- endfor -%}
-{%- endif -%}
-{%- if suggestions | default(none) %}
+{{ open_rule("Failure", color="red") }}
+{% if message -%}
+{{ rail_line(status_line("error", message), "error") }}
+{% endif -%}
+{% if details | default(none) -%}
+{% for d in details -%}
+{{ rail_line(d | dim, "error") }}
+{% endfor -%}
+{% endif -%}
+{{ close_rule() }}
+{% if suggestions | default(none) -%}
 
-{%- for s in suggestions %}
-  {{ icons.arrow_r | cyan }} {{ s }}
-{%- endfor -%}
-{%- endif -%}
-{%- if hints | default(none) %}
+{{ open_rule("Suggestions") }}
+{% for s in suggestions -%}
+{{ rail_line((icons.arrow_r ~ " " ~ s) | cyan, "info") }}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}
+{% if hints | default(none) -%}
 
-{{ "Hints" | yellow | bold }}:
-{%- for h in hints %}
-  {{ icons.info | cyan }} {{ h }}
-{%- endfor -%}
-{%- endif -%}
+{{ open_rule("Hints", color="yellow") }}
+{% for h in hints -%}
+{{ rail_line((icons.info ~ " " ~ h) | yellow, "warning") }}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}

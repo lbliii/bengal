@@ -12,12 +12,17 @@
         badge: Optional {level, text} for status badge
         width: Column width for kv alignment (default: 40)
 -#}
-{% from "components/_defs.kida" import kv_list, status_line %}
-{% from "_bengal.kida" import bengal_header %}
-{%- if title | default(false) %}
-{{ bengal_header(title, mascot=false) }}
+{% from "components/_defs.kida" import status_line %}
+{% from "_bengal.kida" import close_rule, open_rule, rail_line %}
+{% if title | default(false) -%}
+{{ open_rule(title) }}
+{% else -%}
+{{ open_rule("Details") }}
 {% endif -%}
-{%- if badge | default(false) %}
-{{ status_line(badge.level, badge.text) }}
+{% if badge | default(false) -%}
+{{ rail_line(status_line(badge.level, badge.text), badge.level) }}
 {% endif -%}
-{{ kv_list(items, width=width | default(40)) }}
+{% for item in items -%}
+{{ rail_line(item.label | kv(item.value | string, width=width | default(40)), "info") }}
+{% endfor -%}
+{{ close_rule() }}

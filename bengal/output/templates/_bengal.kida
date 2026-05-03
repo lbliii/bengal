@@ -21,6 +21,29 @@
 {{ mouse_str }}{{ text | red | bold }}
 {%- enddef -%}
 
+{#- ── Open report rule inspired by Milo output gallery ───────────── -#}
+{%- def open_rule(title="", width=72, color="cyan") -%}
+{%- set label = (" " ~ title ~ " ") if title else "" -%}
+{%- set fill = [width - (label | length) - 2, 2] | max -%}
+{{ "╭" | dim }}{{ "─" | dim }}{{ label | fg(color) | bold }}{{ ("─" * fill) | dim }}{{ "╮" | dim }}
+{%- enddef -%}
+
+{%- def close_rule(width=72) -%}
+{{ "╰" | dim }}{{ ("─" * width) | dim }}{{ "╯" | dim }}
+{%- enddef -%}
+
+{#- ── Framed row with a visual rail ─────────────────────────────── -#}
+{%- def rail_line(text, level="info") -%}
+{%- set rail_color = "red" if level == "error" else ("yellow" if level == "warning" else ("green" if level == "success" else "cyan")) -%}
+{{ "│" | fg(rail_color) }} {{ text }}
+{%- enddef -%}
+
+{#- ── Compact metric row for framed reports ─────────────────────── -#}
+{%- def report_metric(label, value, level="info", width=22) -%}
+{%- set color = "red" if level == "error" else ("yellow" if level == "warning" else ("green" if level == "success" else "cyan")) -%}
+{{ "│" | fg(color) }} {{ label | pad(width) | dim }} {{ value | string | bold }}
+{%- enddef -%}
+
 {#- ── Build phase line with aligned columns ──────────────────────── -#}
 {%- def phase_line(name, status="Done", duration_ms=none, details=none, icon=none) -%}
 {%- set phase_icon = icon | default(icons.check) -%}

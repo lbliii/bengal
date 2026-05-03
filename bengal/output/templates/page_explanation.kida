@@ -14,127 +14,127 @@
         issues: list[{level, message, detail}]|none
         performance: {total_ms, breakdown: list[{label, value}]}|none
 -#}
-{% from "_bengal.kida" import bengal_header %}
-{% from "components/_defs.kida" import section, kv_list, kv_pair, panel, summary_box, issue_list, status_line %}
+{% from "_bengal.kida" import bengal_header, close_rule, open_rule, rail_line %}
 
 {{ bengal_header("Page Explanation: " ~ source.path) }}
 
 {#- ── Source ──────────────────────────────────────────── -#}
-{%- capture source_content -%}
-{{ "Path" | kv(source.path, width=40) }}
-{{ "Size" | kv(source.size ~ " (" ~ (source.lines | string) ~ " lines)", width=40) }}
-{%- if source.modified %}
-{{ "Modified" | kv(source.modified, width=40) }}
-{%- endif %}
-{{ "Encoding" | kv(source.encoding, width=40) }}
-{%- endcapture -%}
-{{ panel(source_content | trim, title="Source") }}
+{{ open_rule("Source") }}
+{{ rail_line("Path" | kv(source.path, width=40), "info") }}
+{{ rail_line("Size" | kv(source.size ~ " (" ~ (source.lines | string) ~ " lines)", width=40), "info") }}
+{% if source.modified -%}
+{{ rail_line("Modified" | kv(source.modified, width=40), "info") }}
+{% endif -%}
+{{ rail_line("Encoding" | kv(source.encoding, width=40), "info") }}
+{{ close_rule() }}
 
 {#- ── Frontmatter ─────────────────────────────────────── -#}
-{%- if frontmatter %}
+{% if frontmatter -%}
 
-{%- capture fm_content -%}
-{%- for item in frontmatter -%}
-{{ item.label | kv(item.value, width=40) }}
+{{ open_rule("Frontmatter") }}
+{% for item in frontmatter -%}
+{{ rail_line(item.label | kv(item.value, width=40), "info") }}
 {% endfor -%}
-{%- endcapture -%}
-{{ panel(fm_content | trim, title="Frontmatter") }}
-{%- endif -%}
+{{ close_rule() }}
+{% endif -%}
 
 {#- ── Template Chain ──────────────────────────────────── -#}
-{%- if template_chain %}
+{% if template_chain -%}
 
-{%- capture chain_content -%}
-{%- for tpl in template_chain -%}
-{%- set indent = "  " * tpl.depth -%}
-{%- set prefix = "" if tpl.depth == 0 else "extends: " -%}
-{%- set theme_str = " (" ~ tpl.theme ~ ")" if tpl.theme else "" -%}
-{{ indent }}{{ prefix | dim }}{{ tpl.name | bold }}{{ theme_str | dim }}
-{%- for inc in tpl.includes %}
-{{ indent }}  {{ "includes:" | dim }} {{ inc }}
-{%- endfor -%}
-{%- endfor -%}
-{%- endcapture -%}
-{{ panel(chain_content | trim, title="Template Chain") }}
-{%- endif -%}
+{{ open_rule("Template Chain") }}
+{% for tpl in template_chain -%}
+{% set indent = "  " * tpl.depth -%}
+{% set prefix = "" if tpl.depth == 0 else "extends: " -%}
+{% set theme_str = " (" ~ tpl.theme ~ ")" if tpl.theme else "" -%}
+{{ rail_line(indent ~ (prefix | dim) ~ (tpl.name | bold) ~ (theme_str | dim), "info") }}
+{% for inc in tpl.includes -%}
+{{ rail_line(indent ~ "  " ~ ("includes:" | dim) ~ " " ~ inc, "info") }}
+{% endfor -%}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}
 
 {#- ── Dependencies ────────────────────────────────────── -#}
-{%- if deps %}
+{% if deps -%}
 
-{%- capture deps_content -%}
-{%- for group in deps %}
-{{ group.section | bold }}:
-{%- for item in group.items %}
-  {{ icons.dot | dim }} {{ item }}
-{%- endfor -%}
-{%- endfor -%}
-{%- endcapture -%}
-{{ panel(deps_content | trim, title="Dependencies") }}
-{%- endif -%}
+{{ open_rule("Dependencies") }}
+{% for group in deps -%}
+{{ rail_line(group.section | bold, "info") }}
+{% for item in group.items -%}
+{{ rail_line(("  " ~ icons.dot ~ " " ~ item) | dim, "info") }}
+{% endfor -%}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}
 
 {#- ── Shortcodes ──────────────────────────────────────── -#}
-{%- if shortcodes %}
+{% if shortcodes -%}
 
-{%- capture sc_content -%}
-{%- for sc in shortcodes -%}
-{{ sc.name | pad(20) }} {{ (sc.count | string) | pad(5) }}  {{ sc.lines_str | dim }}
+{{ open_rule("Directives") }}
+{% for sc in shortcodes -%}
+{{ rail_line((sc.name | pad(20)) ~ " " ~ ((sc.count | string) | pad(5)) ~ "  " ~ (sc.lines_str | dim), "info") }}
 {% endfor -%}
-{%- endcapture -%}
-{{ panel(sc_content | trim, title="Directives") }}
-{%- endif -%}
+{{ close_rule() }}
+{% endif -%}
 
 {#- ── Cache Status ────────────────────────────────────── -#}
 
-{%- capture cache_content -%}
-{%- if cache.status == "HIT" -%}
-{{ "Status" | kv((icons.check ~ " " ~ cache.status) | green, width=40) }}
-{%- elif cache.status == "STALE" -%}
-{{ "Status" | kv(cache.status | yellow, width=40) }}
-{%- elif cache.status == "MISS" -%}
-{{ "Status" | kv((icons.cross ~ " " ~ cache.status) | red, width=40) }}
-{%- else -%}
-{{ "Status" | kv(cache.status, width=40) }}
-{%- endif -%}
-{%- if cache.reason %}
-{{ "Reason" | kv(cache.reason, width=40) }}
-{%- endif -%}
-{%- if cache.key %}
-{{ "Cache Key" | kv(cache.key | dim, width=40) }}
-{%- endif -%}
-{%- if cache.layers %}
-{{ "Cached" | kv(cache.layers | join(", "), width=40) }}
-{%- endif -%}
-{%- endcapture -%}
-{{ panel(cache_content | trim, title="Cache") }}
+{{ open_rule("Cache") }}
+{% if cache.status == "HIT" -%}
+{{ rail_line("Status" | kv((icons.check ~ " " ~ cache.status) | green, width=40), "success") }}
+{% elif cache.status == "STALE" -%}
+{{ rail_line("Status" | kv(cache.status | yellow, width=40), "warning") }}
+{% elif cache.status == "MISS" -%}
+{{ rail_line("Status" | kv((icons.cross ~ " " ~ cache.status) | red, width=40), "error") }}
+{% else -%}
+{{ rail_line("Status" | kv(cache.status, width=40), "info") }}
+{% endif -%}
+{% if cache.reason -%}
+{{ rail_line("Reason" | kv(cache.reason, width=40), "info") }}
+{% endif -%}
+{% if cache.key -%}
+{{ rail_line("Cache Key" | kv(cache.key | dim, width=40), "info") }}
+{% endif -%}
+{% if cache.layers -%}
+{{ rail_line("Cached" | kv(cache.layers | join(", "), width=40), "info") }}
+{% endif -%}
+{{ close_rule() }}
 
 {#- ── Output ──────────────────────────────────────────── -#}
 
-{%- capture output_content -%}
-{{ "URL" | kv(output.url, width=40) }}
-{%- if output.path %}
-{{ "Path" | kv(output.path, width=40) }}
-{%- endif -%}
-{%- if output.size %}
-{{ "Size" | kv(output.size, width=40) }}
-{%- endif -%}
-{%- endcapture -%}
-{{ panel(output_content | trim, title="Output") }}
+{{ open_rule("Output") }}
+{{ rail_line("URL" | kv(output.url, width=40), "info") }}
+{% if output.path -%}
+{{ rail_line("Path" | kv(output.path, width=40), "info") }}
+{% endif -%}
+{% if output.size -%}
+{{ rail_line("Size" | kv(output.size, width=40), "info") }}
+{% endif -%}
+{{ close_rule() }}
 
 {#- ── Issues ──────────────────────────────────────────── -#}
-{%- if issues %}
+{% if issues -%}
 
-{{ section("Issues") }}
-{{ issue_list(issues) }}
-{%- endif -%}
+{{ open_rule("Issues", color="yellow") }}
+{% for issue in issues -%}
+{% set level = issue.level | default("info") -%}
+{% set glyph = icons.cross if level == "error" else (icons.dot if level == "warning" else icons.info) -%}
+{% set color = "red" if level == "error" else ("yellow" if level == "warning" else "cyan") -%}
+{{ rail_line((glyph ~ " " ~ issue.message) | fg(color) | bold, level) }}
+{% if issue.detail | default(false) -%}
+{{ rail_line(("  " ~ issue.detail) | dim, level) }}
+{% endif -%}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}
 
 {#- ── Performance ─────────────────────────────────────── -#}
-{%- if performance %}
+{% if performance -%}
 
-{%- capture perf_content -%}
-{{ "Total" | kv((performance.total_ms | round(1) | string ~ "ms"), width=40) }}
-{%- for item in performance.breakdown %}
-{{ ("  " ~ item.label) | kv(item.value, width=38) }}
-{%- endfor -%}
-{%- endcapture -%}
-{{ panel(perf_content | trim, title="Performance") }}
-{%- endif -%}
+{{ open_rule("Performance") }}
+{{ rail_line("Total" | kv((performance.total_ms | round(1) | string ~ "ms"), width=40), "info") }}
+{% for item in performance.breakdown -%}
+{{ rail_line(("  " ~ item.label) | kv(item.value, width=38), "info") }}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}

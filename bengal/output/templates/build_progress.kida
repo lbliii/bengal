@@ -10,6 +10,9 @@
             elapsed: float (seconds)
             phases: list[{name, status, elapsed, error}]
 -#}
+{% from "_bengal.kida" import close_rule, open_rule %}
 {% from "components/_defs.kida" import pipeline_progress %}
 
+{{ open_rule("Build Progress") }}
 {{ pipeline_progress(state) }}
+{{ close_rule() }}

@@ -23,18 +23,29 @@
         progress: Float 0-1 for progress bar
         elapsed: Total elapsed seconds
 -#}
-{% from "components/_defs.kida" import pipeline_progress, kv_list, status_line %}
-{%- if phases -%}
+{% from "_bengal.kida" import close_rule, open_rule, rail_line %}
+{% from "components/_defs.kida" import pipeline_progress %}
+{% if phases -%}
+{{ open_rule("Pipeline") }}
 {{ pipeline_progress({"phases": phases, "status": status | default("completed"), "progress": progress | default(1.0), "elapsed": elapsed | default(0)}) }}
-{%- endif %}
-{%- if metrics %}
+{{ close_rule() }}
+{% endif -%}
+{% if metrics -%}
 
-{{ kv_list(metrics) }}
-{%- endif -%}
-{%- if rebuild_reasons | default(none) %}
+{{ open_rule("Metrics") }}
+{% for item in metrics -%}
+{{ rail_line(item.label | kv(item.value | string, width=40), "info") }}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}
+{% if rebuild_reasons | default(none) -%}
 
-{{ "Rebuild reasons" | yellow | bold }}:
-{%- for r in rebuild_reasons %}
-  {{ r.reason | bold }}{{ " " * ([25 - (r.reason | length), 1] | max) }}{{ r.count | string | dim }}  {{ r.pages | dim }}
-{%- endfor -%}
-{%- endif -%}
+{{ open_rule("Rebuild Reasons", color="yellow") }}
+{% for r in rebuild_reasons -%}
+{% set reason_line = r.reason | bold -%}
+{% set reason_line = reason_line ~ (" " * ([25 - (r.reason | length), 1] | max)) -%}
+{% set reason_line = reason_line ~ ((r.count | string) | dim) ~ "  " ~ (r.pages | dim) -%}
+{{ rail_line(reason_line, "warning") }}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}
