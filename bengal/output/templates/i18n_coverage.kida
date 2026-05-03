@@ -16,19 +16,25 @@
         locales: List of {name, translated, missing, coverage} dicts
         missing_keys: Dict of {locale: [key1, key2, ...]} for verbose mode (optional)
 -#}
-{% from "components/_defs.kida" import kv_pair, status_line %}
-{{ kv_pair("Translation coverage", (total_keys | string) ~ " keys, domain=" ~ domain) }}
+{% from "_bengal.kida" import close_rule, open_rule, rail_line %}
+{{ open_rule("Translation Coverage") }}
+{{ rail_line("Domain" | kv(domain, width=24), "info") }}
+{{ rail_line("Total keys" | kv(total_keys | string, width=24), "info") }}
 
-{%- for loc in locales %}
-  {{ loc.name | bold | pad(8) }}{{ loc.coverage | bar(width=20) }}  {{ ((loc.coverage * 100) | int | string ~ "%") | pad(5) }}  {{ (loc.translated | string ~ "/" ~ total_keys | string) | dim }}
-{%- if loc.missing > 0 %}  {{ (loc.missing | string ~ " missing") | yellow }}{% endif %}
-{%- endfor -%}
-{%- if missing_keys | default(none) %}
+{% for loc in locales -%}
+{% set level = "warning" if loc.missing > 0 else "success" -%}
+{% set missing = ("  " ~ (loc.missing | string) ~ " missing") | yellow if loc.missing > 0 else "" -%}
+{{ rail_line((loc.name | bold | pad(8)) ~ (loc.coverage | bar(width=20)) ~ "  " ~ ((loc.translated | string ~ "/" ~ total_keys | string) | dim) ~ missing, level) }}
+{% endfor -%}
+{{ close_rule() }}
+{% if missing_keys | default(none) -%}
 
-{%- for locale, keys in missing_keys.items() %}
-  {{ locale | bold }}:
-{%- for key in keys %}
-    {{ key | dim }}
-{%- endfor %}
-{%- endfor -%}
-{%- endif -%}
+{{ open_rule("Missing Keys", color="yellow") }}
+{% for locale, keys in missing_keys.items() -%}
+{{ rail_line(locale | yellow | bold, "warning") }}
+{% for key in keys -%}
+{{ rail_line(("  " ~ key) | dim, "warning") }}
+{% endfor -%}
+{% endfor -%}
+{{ close_rule() }}
+{% endif -%}

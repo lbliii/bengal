@@ -1,1 +1,1 @@
-Refresh shared CLI Kida templates with gallery-style frames, signal rails, and cleaner report sections for build, validation, list, detail, and dev-server output.
+Refresh shared CLI Kida templates with gallery-style frames, signal rails, and cleaner report sections for build, validation, list, detail, dev-server, scaffold, upgrade, i18n, graph, diff, progress, and inspect-page output.

@@ -16,24 +16,23 @@
         summary: Summary line (optional)
         labels: Tuple of (old_label, new_label) for changed items
 -#}
-{% from "_bengal.kida" import bengal_header %}
-{% from "components/_defs.kida" import status_line %}
-{%- if title | default(false) %}
-{{ bengal_header(title, mascot=false) }}
+{% from "_bengal.kida" import close_rule, open_rule, rail_line %}
+{{ open_rule(title | default("Diff"), color="yellow") }}
+{% set label_pair = labels | default(false) -%}
+{% set old_label = label_pair[0] if label_pair else "old" -%}
+{% set new_label = label_pair[1] if label_pair else "new" -%}
+{% for change in changes -%}
+{{ rail_line(change.path | bold, "info") }}
+{% if change.type == "changed" -%}
+{{ rail_line(("- " ~ change.old) | red ~ "  " ~ (("[" ~ old_label ~ "]") | dim), "error") }}
+{{ rail_line(("+ " ~ change.new) | green ~ "  " ~ (("[" ~ new_label ~ "]") | dim), "success") }}
+{% elif change.type == "added" -%}
+{{ rail_line(("+ " ~ change.value) | green ~ "  " ~ (("[" ~ new_label ~ "]") | dim), "success") }}
+{% elif change.type == "removed" -%}
+{{ rail_line(("- " ~ change.value) | red ~ "  " ~ (("[" ~ old_label ~ "]") | dim), "error") }}
 {% endif -%}
-{%- set old_label = labels[0] if labels | default(false) else "old" -%}
-{%- set new_label = labels[1] if labels | default(false) else "new" -%}
-{%- for change in changes %}
-{{ change.path | bold }}:
-{%- if change.type == "changed" %}
-  {{ ("- " ~ change.old) | red }}  {{ ("[" ~ old_label ~ "]") | dim }}
-  {{ ("+ " ~ change.new) | green }}  {{ ("[" ~ new_label ~ "]") | dim }}
-{%- elif change.type == "added" %}
-  {{ ("+ " ~ change.value) | green }}  {{ ("[" ~ new_label ~ "]") | dim }}
-{%- elif change.type == "removed" %}
-  {{ ("- " ~ change.value) | red }}  {{ ("[" ~ old_label ~ "]") | dim }}
-{%- endif %}
 {% endfor -%}
-{%- if summary | default(false) %}
-{{ summary | dim }}
-{%- endif -%}
+{% if summary | default(false) -%}
+{{ rail_line(summary | dim, "info") }}
+{% endif -%}
+{{ close_rule() }}

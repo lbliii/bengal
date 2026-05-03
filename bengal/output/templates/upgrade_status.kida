@@ -14,18 +14,21 @@
         up_to_date: Boolean
         dry_run: Boolean (optional)
 -#}
-{% from "components/_defs.kida" import kv_pair, status_line %}
-{{ kv_pair("Current version", current) }}
-{{ kv_pair("Latest version", latest) }}
-{%- if installer | default(none) %}
-{{ kv_pair("Installer", installer.name) }}
-{{ kv_pair("Command", installer.command) }}
-{%- endif %}
+{% from "_bengal.kida" import close_rule, open_rule, rail_line %}
+{% from "components/_defs.kida" import status_line %}
+{{ open_rule("Upgrade Check") }}
+{{ rail_line("Current version" | kv(current, width=40), "info") }}
+{{ rail_line("Latest version" | kv(latest, width=40), "info") }}
+{% if installer | default(none) -%}
+{{ rail_line("Installer" | kv(installer.name, width=40), "info") }}
+{{ rail_line("Command" | kv(installer.command, width=40), "info") }}
+{% endif -%}
+{{ close_rule() }}
 
-{%- if up_to_date %}
+{% if up_to_date -%}
 {{ status_line("success", "Already on latest version (v" ~ current ~ ")") }}
-{%- elif dry_run | default(false) %}
+{% elif dry_run | default(false) -%}
 {{ status_line("info", "Would run: " ~ installer.command) }}
-{%- else %}
+{% else -%}
 {{ status_line("warning", "Update available: " ~ current ~ " → " ~ latest) }}
-{%- endif -%}
+{% endif -%}
