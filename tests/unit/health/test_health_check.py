@@ -16,10 +16,13 @@ import pytest
 from bengal.health.base import BaseValidator
 from bengal.health.health_check import HealthCheck, HealthCheckStats
 from bengal.health.report import CheckResult, CheckStatus
+from bengal.health.scope import get_validation_scope
 
 
 class MockValidator(BaseValidator):
     """Mock validator for testing."""
+
+    last_file_results: dict[Path, list[CheckResult]] | None = None
 
     def __init__(
         self,
@@ -29,16 +32,19 @@ class MockValidator(BaseValidator):
         raise_exception: Exception | None = None,
     ):
         self.name = name
-        self._results = results or [CheckResult.success(f"{name} passed")]
+        self._results = results if results is not None else [CheckResult.success(f"{name} passed")]
         self._sleep_time = sleep_time
         self._raise_exception = raise_exception
         self.was_called = False
         self.call_count = 0
+        self.received_context = None
+        self.last_file_results = None
 
     def validate(self, site: Any, build_context: Any = None) -> list[CheckResult]:
         """Run validation."""
         self.was_called = True
         self.call_count += 1
+        self.received_context = build_context
 
         if self._sleep_time > 0:
             time.sleep(self._sleep_time)
@@ -284,6 +290,72 @@ class TestHealthCheckHelperMethods:
         assert len(report.results) == 1
         assert report.results[0].status == CheckStatus.ERROR
         assert "crashed" in report.results[0].message.lower()
+
+    def test_run_single_validator_passes_validation_scope(self, mock_site):
+        """File-specific validators receive scoped validation context."""
+        page = MagicMock()
+        page.source_path = Path("content/changed.md")
+        mock_site.pages = [page]
+        validator = MockValidator("Links", results=[])
+        health_check = HealthCheck(mock_site, auto_register=False)
+
+        report = health_check._run_single_validator(
+            validator, build_context=None, cache=None, files_to_validate={page.source_path}
+        )
+
+        scope = get_validation_scope(validator.received_context)
+        assert report.results == []
+        assert scope is not None
+        assert scope.files_to_validate == frozenset({page.source_path})
+        assert scope.pages_to_validate(mock_site) == [page]
+
+    def test_run_single_validator_merges_cached_results_for_plain_validator(self, mock_site):
+        """Cached unchanged-file results are merged for validators that do not consume them."""
+        changed = MagicMock()
+        changed.source_path = Path("content/changed.md")
+        unchanged = MagicMock()
+        unchanged.source_path = Path("content/unchanged.md")
+        mock_site.pages = [changed, unchanged]
+
+        cached = CheckResult.error("cached broken", code="H101", validator="Links")
+        cache = MagicMock()
+        cache.get_cached_validation_results.return_value = [cached.to_cache_dict()]
+
+        fresh = CheckResult.warning("fresh broken", code="H102")
+        validator = MockValidator("Links", results=[fresh])
+        health_check = HealthCheck(mock_site, auto_register=False)
+
+        report = health_check._run_single_validator(
+            validator,
+            build_context=None,
+            cache=cache,
+            files_to_validate={changed.source_path},
+        )
+
+        assert [result.message for result in report.results] == ["cached broken", "fresh broken"]
+        cache.get_cached_validation_results.assert_called_once_with(unchanged.source_path, "Links")
+
+    def test_run_single_validator_caches_file_results(self, mock_site):
+        """Validator-provided per-file results are persisted for changed files."""
+        page = MagicMock()
+        page.source_path = Path("content/changed.md")
+        mock_site.pages = [page]
+        file_result = CheckResult.error("fresh broken", code="H101")
+        validator = MockValidator("Links", results=[file_result])
+        validator.last_file_results = {page.source_path: [file_result]}
+        cache = MagicMock()
+        health_check = HealthCheck(mock_site, auto_register=False)
+
+        health_check._run_single_validator(
+            validator,
+            build_context=None,
+            cache=cache,
+            files_to_validate={page.source_path},
+        )
+
+        cache.cache_validation_results.assert_called_once_with(
+            page.source_path, "Links", [file_result]
+        )
 
 
 class TestHealthCheckStats:
