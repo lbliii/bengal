@@ -239,6 +239,39 @@ class TestLinkValidatorWrapperSilenceIsGolden:
         assert len(success_results) == 0
 
 
+class TestLinkValidatorRegistryCache:
+    """Tests for LinkValidator registry cache lifecycle."""
+
+    def test_validate_page_links_reloads_when_site_changes(self):
+        """Reusing a validator with a different site must not keep stale URL indexes."""
+        page = MagicMock()
+        page.href = "/docs/"
+        page.source_path = Path("/project/content/docs.md")
+        page.links = ["/new/"]
+
+        site_without_target = MagicMock()
+        site_without_target.root_path = Path("/project")
+        site_without_target.link_registry = None
+        site_without_target.config = {"validate_links": True}
+        site_without_target.pages = [page]
+
+        target = MagicMock()
+        target.href = "/new/"
+        target.source_path = Path("/project/content/new.md")
+        target.links = []
+
+        site_with_target = MagicMock()
+        site_with_target.root_path = Path("/project")
+        site_with_target.link_registry = None
+        site_with_target.config = {"validate_links": True}
+        site_with_target.pages = [page, target]
+
+        validator = LinkValidator()
+
+        assert validator.validate_page_links(page, site_without_target) == ["/new/"]
+        assert validator.validate_page_links(page, site_with_target) == []
+
+
 class TestLinkValidatorAnchorValidation:
     """Tests for anchor validation via LinkRegistry."""
 

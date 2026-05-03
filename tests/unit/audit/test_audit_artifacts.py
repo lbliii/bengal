@@ -71,3 +71,64 @@ def test_audit_envelope_uses_audit_schema(tmp_path):
     assert envelope["status"] == "failed"
     assert envelope["summary"]["errors"] == 1
     assert envelope["findings"][0]["code"] == "A101"
+    assert envelope["policy"] == {
+        "errors_fail": True,
+        "warnings_fail": False,
+        "suggestions_fail": False,
+    }
+
+
+def test_audit_fails_for_missing_output_directory(tmp_path):
+    report = audit_output_dir(tmp_path / "missing")
+
+    assert report.passed is False
+    assert report.summary.files_checked == 0
+    assert report.findings[0].code == "A100"
+
+
+def test_audit_fails_when_output_has_no_html(tmp_path):
+    output = tmp_path / "public"
+    output.mkdir()
+    (output / "asset.txt").write_text("asset", encoding="utf-8")
+
+    report = audit_output_dir(output)
+
+    assert report.passed is False
+    assert report.findings[0].code == "A102"
+
+
+def test_audit_rejects_absolute_references_outside_output_dir(tmp_path):
+    output = tmp_path / "public"
+    output.mkdir()
+    (tmp_path / "secret.html").write_text("secret", encoding="utf-8")
+    (output / "index.html").write_text('<a href="/../secret.html">Secret</a>', encoding="utf-8")
+
+    report = audit_output_dir(output)
+
+    assert report.passed is False
+    assert report.summary.references_checked == 1
+    assert report.findings[0].reference == "/../secret.html"
+
+
+def test_audit_rejects_relative_references_outside_output_dir(tmp_path):
+    output = tmp_path / "public"
+    output.mkdir()
+    (tmp_path / "secret.html").write_text("secret", encoding="utf-8")
+    (output / "index.html").write_text('<a href="../secret.html">Secret</a>', encoding="utf-8")
+
+    report = audit_output_dir(output)
+
+    assert report.passed is False
+    assert report.summary.references_checked == 1
+    assert report.findings[0].reference == "../secret.html"
+
+
+def test_audit_requires_index_html_for_directory_references(tmp_path):
+    output = tmp_path / "public"
+    (output / "docs").mkdir(parents=True)
+    (output / "index.html").write_text('<a href="/docs/">Docs</a>', encoding="utf-8")
+
+    report = audit_output_dir(output)
+
+    assert report.passed is False
+    assert report.findings[0].reference == "/docs/"

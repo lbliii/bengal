@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
@@ -37,10 +37,19 @@ class InternalReferenceResolver:
     """Resolver over a rendered site's immutable link registry."""
 
     registry: LinkRegistry
+    all_urls: frozenset[str] = field(init=False)
+
+    def __post_init__(self) -> None:
+        """Precompute hot-path URL membership set once per resolver."""
+        object.__setattr__(
+            self,
+            "all_urls",
+            self.registry.page_urls | self.registry.auxiliary_urls,
+        )
 
     def has_url(self, url: str) -> bool:
         """Return whether a normalized URL target is known."""
-        return any(variant in self._all_urls for variant in resolved_path_url_variants(url))
+        return any(variant in self.all_urls for variant in resolved_path_url_variants(url))
 
     def resolve(self, page_url: str, link_path: str) -> str:
         """Resolve an internal link path from the given rendered page URL."""
@@ -58,10 +67,6 @@ class InternalReferenceResolver:
         """Return whether a URL has the requested anchor."""
         anchors = self.anchors_for(url)
         return bool(anchors) and anchor in anchors
-
-    @property
-    def _all_urls(self) -> frozenset[str]:
-        return self.registry.page_urls | self.registry.auxiliary_urls
 
 
 def build_link_registry(site: SiteLike) -> LinkRegistry:

@@ -58,3 +58,10 @@ def test_build_reference_resolver_uses_existing_site_registry(tmp_path):
     resolver = build_reference_resolver(site)
 
     assert resolver.registry is registry
+
+
+def test_resolver_precomputes_combined_url_index(tmp_path):
+    resolver = InternalReferenceResolver(build_link_registry(_mock_site(tmp_path)))
+
+    assert resolver.all_urls == resolver.registry.page_urls | resolver.registry.auxiliary_urls
+    assert "/docs/index.txt" in resolver.all_urls

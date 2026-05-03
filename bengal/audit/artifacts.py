@@ -76,7 +76,11 @@ class ArtifactAuditReport:
             "schema_version": "bengal.audit.v1",
             "command": command,
             "status": status,
-            "policy": {"errors_fail": True, "warnings_fail": False},
+            "policy": {
+                "errors_fail": True,
+                "warnings_fail": False,
+                "suggestions_fail": False,
+            },
             "summary": self.summary.to_dict(),
             "findings": [finding.to_dict() for finding in self.findings],
             "metadata": {"output_dir": str(self.output_dir)},
@@ -126,8 +130,34 @@ class ArtifactAuditReport:
 def audit_output_dir(output_dir: Path, *, baseurl: str = "") -> ArtifactAuditReport:
     """Audit generated HTML artifacts for broken internal file references."""
     output_dir = output_dir.resolve()
-    html_files = sorted(output_dir.rglob("*.html")) if output_dir.exists() else []
     findings: list[ArtifactFinding] = []
+    if not output_dir.exists():
+        findings.append(
+            ArtifactFinding(
+                severity="error",
+                message="Generated output directory does not exist",
+                artifact=".",
+                reference=str(output_dir),
+                code="A100",
+                recommendation="Run `bengal build` before auditing generated artifacts.",
+            )
+        )
+        return _audit_report(output_dir, files_checked=0, references_checked=0, findings=findings)
+
+    html_files = sorted(output_dir.rglob("*.html"))
+    if not html_files:
+        findings.append(
+            ArtifactFinding(
+                severity="error",
+                message="Generated output directory contains no HTML artifacts",
+                artifact=".",
+                reference=str(output_dir),
+                code="A102",
+                recommendation="Run `bengal build` and verify the output directory path.",
+            )
+        )
+        return _audit_report(output_dir, files_checked=0, references_checked=0, findings=findings)
+
     references_checked = 0
     baseurl_path = urlparse(baseurl).path.rstrip("/") if baseurl else ""
 
@@ -145,7 +175,7 @@ def audit_output_dir(output_dir: Path, *, baseurl: str = "") -> ArtifactAuditRep
             if target is None:
                 continue
             references_checked += 1
-            if not _target_exists(target):
+            if isinstance(target, _UnsafeTarget) or not _target_exists(target):
                 findings.append(
                     ArtifactFinding(
                         severity="error",
@@ -155,14 +185,11 @@ def audit_output_dir(output_dir: Path, *, baseurl: str = "") -> ArtifactAuditRep
                     )
                 )
 
-    return ArtifactAuditReport(
-        output_dir=output_dir,
-        summary=ArtifactAuditSummary(
-            files_checked=len(html_files),
-            references_checked=references_checked,
-            broken_references=len(findings),
-        ),
-        findings=tuple(findings),
+    return _audit_report(
+        output_dir,
+        files_checked=len(html_files),
+        references_checked=references_checked,
+        findings=findings,
     )
 
 
@@ -179,13 +206,17 @@ class _ReferenceExtractor(HTMLParser):
                 self.references.append(value)
 
 
+class _UnsafeTarget:
+    """Sentinel for internal references that resolve outside the audit root."""
+
+
 def _target_for_reference(
     reference: str,
     *,
     source_file: Path,
     output_dir: Path,
     baseurl_path: str,
-) -> Path | None:
+) -> Path | _UnsafeTarget | None:
     """Map an HTML reference to an expected local artifact path."""
     parsed = urlparse(reference)
     if parsed.scheme or parsed.netloc or reference.startswith(("#", "mailto:", "tel:", "data:")):
@@ -198,17 +229,47 @@ def _target_for_reference(
     if path.startswith("/"):
         if baseurl_path and (path == baseurl_path or path.startswith(baseurl_path + "/")):
             path = path[len(baseurl_path) :] or "/"
-        return output_dir / path.lstrip("/")
-    return (source_file.parent / path).resolve()
+        return _resolve_inside(output_dir, output_dir / path.lstrip("/"))
+    return _resolve_inside(output_dir, source_file.parent / path)
 
 
 def _target_exists(path: Path) -> bool:
     """Return whether a reference target exists as a file or clean URL artifact."""
-    if path.exists():
+    if path.is_file():
         return True
+    if path.is_dir():
+        return (path / "index.html").is_file()
     if path.suffix:
         return False
-    return (path / "index.html").exists() or path.with_suffix(".html").exists()
+    return (path / "index.html").is_file() or path.with_suffix(".html").is_file()
+
+
+def _resolve_inside(root: Path, target: Path) -> Path | _UnsafeTarget:
+    """Resolve a target path and reject paths outside the audit root."""
+    resolved_root = root.resolve()
+    resolved_target = target.resolve()
+    if not resolved_target.is_relative_to(resolved_root):
+        return _UnsafeTarget()
+    return resolved_target
+
+
+def _audit_report(
+    output_dir: Path,
+    *,
+    files_checked: int,
+    references_checked: int,
+    findings: list[ArtifactFinding],
+) -> ArtifactAuditReport:
+    """Build an immutable audit report from accumulated findings."""
+    return ArtifactAuditReport(
+        output_dir=output_dir,
+        summary=ArtifactAuditSummary(
+            files_checked=files_checked,
+            references_checked=references_checked,
+            broken_references=len(findings),
+        ),
+        findings=tuple(findings),
+    )
 
 
 def _posix_relative(path: Path, root: Path) -> str:

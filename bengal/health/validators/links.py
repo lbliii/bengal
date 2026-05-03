@@ -192,8 +192,8 @@ class LinkValidator:
         # Use provided site or cached site
         site = site or self._site
 
-        # Build indexes on first use (or if site changed)
-        if self._page_urls is None and site is not None:
+        # Build indexes on first use or when reusing this validator with a different site.
+        if site is not None and (self._page_urls is None or site is not self._site):
             self._load_reference_registry(site)
             self._site = site
 
