@@ -33,7 +33,7 @@ classifiers = [
 ]
 dependencies = [
     "click>=8.1.7",
-    "milo-cli>=0.2.2",                         # B-stack CLI framework (replaces Click — migration in progress)
+    "milo-cli>=0.3.0",                         # B-stack CLI framework (replaces Click — migration in progress)
 
     "rosettes>=0.2.0",
     "kida-templates>=0.7.0",                   # Kida template engine (AST-native, free-threading ready)
@@ -91,7 +91,10 @@ Repository = "https://github.com/lbliii/bengal"
 "Bug Tracker" = "https://github.com/lbliii/bengal/issues"
 
 [tool.uv.sources]
-milo-cli = { git = "https://github.com/lbliii/milo-cli.git", rev = "db0426e823abec0f853804ec7490e60847560bb9" }
+milo-cli = { git = "https://github.com/lbliii/milo-cli.git", rev = "36d64cf03c96186e3cf3da77fde4ea59e92f19a6" }
+
+[tool.uv.workspace]
+members = ["."]
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -296,7 +299,7 @@ invalid-method-override = "warn"        # Liskov violations - review later
 unresolved-reference = "warn"           # Missing imports - fix incrementally
 unknown-argument = "warn"               # Wrong kwargs - needs investigation
 
-# Workspace overrides (kida, patitas, pounce, rosettes) live in b-stack/pyproject.toml.
+# Bengal is its own uv workspace root. Local development uses the pinned lockfile here;
 # CI and standalone installs use PyPI per dependencies above.
 
 [dependency-groups]
