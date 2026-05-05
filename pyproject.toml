@@ -32,8 +32,8 @@ classifiers = [
     "Topic :: Software Development :: Documentation",
 ]
 dependencies = [
-    "click>=8.1.7",
-    "milo-cli>=0.3.0",                         # B-stack CLI framework (replaces Click — migration in progress)
+    "click>=8.1.7",                            # Autodoc compatibility for documenting Click apps
+    "milo-cli>=0.3.0",                         # B-stack CLI framework for Bengal commands
 
     "rosettes>=0.2.0",
     "kida-templates>=0.7.0",                   # Kida template engine (AST-native, free-threading ready)

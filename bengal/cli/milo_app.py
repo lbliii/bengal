@@ -1,9 +1,9 @@
 """
 Bengal CLI — powered by milo-cli.
 
-This module defines the new CLI surface area using milo's type-annotated
-command framework. It replaces the Click-based CLI with a cleaner 4-tier
-hierarchy and gains MCP server, structured output, and llms.txt for free.
+This module defines Bengal's CLI surface area using milo's type-annotated
+command framework. Milo owns command registration, structured output,
+MCP server mode, completions, and llms.txt generation.
 
 Surface area (12 groups, 4 tiers):
 
@@ -17,7 +17,7 @@ Surface area (12 groups, 4 tiers):
         inspect, debug
 
     Tier 4 — Infrastructure (rare):
-        cache, codemod, upgrade, provenance
+        cache, codemod, upgrade
 """
 
 from __future__ import annotations
@@ -895,7 +895,7 @@ cli.lazy_command(
 
 
 def run() -> None:
-    """Entry point for bengal-next console script."""
+    """Entry point for the bengal console script."""
     try:
         cli.run()
     except KeyboardInterrupt:

@@ -5,12 +5,11 @@ The CLI is powered by milo-cli with kida template rendering.
 
 Entry points:
     bengal      → bengal.cli.milo_app:run
-    bengal-next → bengal.cli.milo_app:run  (alias during migration, will be removed)
 
 Surface area (12 groups, 4 tiers):
 
     Tier 1 — Core workflow (daily use):
-        build, serve, clean, check, fix, new
+        build, serve, clean, check, audit, fix, new
 
     Tier 2 — Feature groups (weekly use):
         config, theme, content, version, i18n
@@ -19,7 +18,7 @@ Surface area (12 groups, 4 tiers):
         inspect, debug
 
     Tier 4 — Infrastructure (rare):
-        cache, codemod, upgrade, provenance
+        cache, codemod, upgrade
 
 Related:
 - bengal/cli/milo_app.py: CLI definition and entry point
