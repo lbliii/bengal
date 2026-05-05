@@ -167,9 +167,9 @@ class TestPageInitializer:
         # Should not raise - Page.url falls back to slug-based URL with warning
         initializer.ensure_initialized(page)
 
-        # Should have printed warning
+        # Should have emitted the structured CLI warning
         captured = capsys.readouterr()
-        assert "Warning" in captured.out
+        assert "! Page initializer output path check failed" in captured.out
         assert "not under output directory" in captured.out
 
     def test_ensure_initialized_with_nonexistent_path(
