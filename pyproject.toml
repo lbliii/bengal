@@ -203,9 +203,8 @@ ignore = [
     "S110",  # try-except-pass is fine in test setup/teardown
     "S112",  # try-except-continue is fine in test iteration
 ]
-# CLI layer — print() is the primary output mechanism, callbacks have fixed signatures
-"bengal/cli/**/*.py" = ["T201", "ARG"]
-"bengal/__main__.py" = ["T201"]
+# CLI layer — callbacks have fixed signatures; terminal output routes through CLIOutput/Milo.
+"bengal/cli/**/*.py" = ["ARG"]
 # Dev server / build output — print for output, callbacks have fixed signatures
 "bengal/server/**/*.py" = ["T201", "S108", "S603", "S607", "ARG"]
 "bengal/build/**/*.py" = ["T201"]

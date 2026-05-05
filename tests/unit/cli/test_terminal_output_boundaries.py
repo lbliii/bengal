@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -53,3 +54,12 @@ def test_cli_facing_packages_do_not_write_directly_to_terminal():
                     violations.append(f"{rel}:{node.lineno} uses {call_name}()")
 
     assert not violations, "\n".join(violations)
+
+
+def test_cli_ruff_config_does_not_allow_print_suppression():
+    """Ruff should agree with the AST guard: CLI code may not suppress print calls."""
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    ignores = pyproject["tool"]["ruff"]["lint"]["per-file-ignores"]
+
+    assert "T201" not in ignores.get("bengal/cli/**/*.py", [])
+    assert "T201" not in ignores.get("bengal/__main__.py", [])
