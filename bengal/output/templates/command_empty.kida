@@ -1,0 +1,14 @@
+{#- Branded empty-state panel for command outputs. -#}
+{% from "_bengal.kida" import bengal_header %}
+{{ bengal_header(title, mascot=mascot | default(true)) }}
+{{ message | dim }}
+{%- if details | default(false) %}
+{{ details | dim }}
+{%- endif %}
+{%- if steps | default(false) %}
+
+Next steps
+{%- for step in steps %}
+  {{ loop.index }}. {{ step }}
+{%- endfor %}
+{%- endif %}

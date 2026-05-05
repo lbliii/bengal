@@ -49,9 +49,9 @@ def display_build_summary(
     from bengal.analysis.performance.advisor import PerformanceAdvisor
 
     if cli is None:
-        from bengal.output.core import CLIOutput
+        from bengal.output import get_cli_output
 
-        cli = CLIOutput()
+        cli = get_cli_output()
 
     # Skip if build was skipped
     if stats.skipped:

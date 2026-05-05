@@ -25,7 +25,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from typing import TYPE_CHECKING
 
-from bengal.cli.utils import get_cli_output
+from bengal.output import get_cli_output
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterator

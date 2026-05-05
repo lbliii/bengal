@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.build.contracts.keys import content_key
 from bengal.health.base import BaseValidator
-from bengal.health.report import CheckResult
+from bengal.health.report import CheckResult, CheckStatus
 from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
@@ -34,19 +34,20 @@ class TrackValidator(BaseValidator):
         self, site: SiteLike, build_context: BuildContext | Any | None = None
     ) -> list[CheckResult]:
         """Validate track definitions and references."""
-        results = []
+        results: list[CheckResult] = []
 
         # Check if tracks data exists
         if "tracks" not in site.data or not site.data.tracks:
             results.append(
                 CheckResult.info(
                     "No tracks defined",
-                    "No tracks.yaml file found or tracks data is empty. This is optional.",
+                    recommendation="No tracks.yaml file found or tracks data is empty. This is optional.",
                 )
             )
             return results
 
         tracks = site.data.tracks
+        valid_tracks: list[dict[str, Any]] = []
 
         # Validate track structure
         for track_id, track in tracks.items():
@@ -85,8 +86,10 @@ class TrackValidator(BaseValidator):
 
             # Validate track items reference existing pages
             missing_items = []
+            invalid_item_count = 0
             for item_path in track["items"]:
                 if not isinstance(item_path, str):
+                    invalid_item_count += 1
                     results.append(
                         CheckResult.warning(
                             f"Invalid track item type in {track_id}",
@@ -114,12 +117,32 @@ class TrackValidator(BaseValidator):
                         details=[details_text],
                     )
                 )
-            else:
-                results.append(
-                    CheckResult.success(
-                        f"Track '{track_id}' is valid ({len(track['items'])} items)"
-                    )
+            elif invalid_item_count == 0:
+                valid_tracks.append(
+                    {
+                        "id": str(track_id),
+                        "title": str(track.get("title") or track_id),
+                        "items": len(track["items"]),
+                    }
                 )
+
+        if valid_tracks:
+            track_count = len(valid_tracks)
+            total_items = sum(track["items"] for track in valid_tracks)
+            track_label = "track" if track_count == 1 else "tracks"
+            item_label = "item" if total_items == 1 else "items"
+            results.append(
+                CheckResult(
+                    CheckStatus.SUCCESS,
+                    f"{track_count} {track_label} valid ({total_items} {item_label} total)",
+                    details=[
+                        f"{track['id']}: {track['items']} "
+                        f"{'item' if track['items'] == 1 else 'items'}"
+                        for track in valid_tracks
+                    ],
+                    metadata={"tracks": valid_tracks, "total_items": total_items},
+                )
+            )
 
         # Check for track pages with invalid track_id
         track_ids = set(tracks.keys())

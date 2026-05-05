@@ -1,0 +1,14 @@
+{#- Branded command parser/usage error. -#}
+{%- from "_bengal.kida" import error_header -%}
+{{ error_header(title) }}
+{{ message }}
+{%- if suggestion | default(false) %}
+Tip: {{ suggestion }}
+{%- endif %}
+{%- if commands | default(false) %}
+
+Available commands
+{%- for command in commands %}
+  {{ command.label }}{{ command.padding }}{{ command.description | dim }}
+{%- endfor %}
+{%- endif %}

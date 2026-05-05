@@ -32,11 +32,11 @@ from bengal.cli.utils.errors import (
     should_show_traceback,
 )
 from bengal.cli.utils.logging import configure_cli_logging, get_log_level_for_profile
-from bengal.cli.utils.output import get_cli_output, init_cli_output, reset_cli_output
 from bengal.cli.utils.paths import format_display_path, resolve_source_path, truncate_path
 from bengal.cli.utils.site import load_site_from_cli
 from bengal.cli.utils.traceback import configure_traceback
 from bengal.cli.utils.validation import validate_flag_conflicts, validate_mutually_exclusive
+from bengal.output import get_cli_output, init_cli_output, reset_cli_output
 
 __all__ = [
     "configure_cli_logging",

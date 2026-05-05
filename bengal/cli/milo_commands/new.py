@@ -32,7 +32,7 @@ def new_site(
     """Create a new Bengal site with optional structure initialization."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
     from bengal.scaffolds import get_template
     from bengal.utils.io.atomic_write import atomic_write_text
     from bengal.utils.primitives.text import slugify
@@ -128,7 +128,7 @@ def new_theme(
     """Create a new theme scaffold with templates and assets."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
     from bengal.utils.io.atomic_write import atomic_write_text
     from bengal.utils.primitives.text import slugify
 
@@ -250,7 +250,7 @@ def new_page(
     from datetime import datetime
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
     from bengal.utils.io.atomic_write import atomic_write_text
     from bengal.utils.primitives.text import slugify
 
@@ -300,7 +300,7 @@ def new_layout(
     """Create a new layout template."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
     from bengal.utils.io.atomic_write import atomic_write_text
     from bengal.utils.primitives.text import slugify
 
@@ -354,7 +354,7 @@ def new_partial(
     """Create a new partial template."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
     from bengal.utils.io.atomic_write import atomic_write_text
     from bengal.utils.primitives.text import slugify
 
@@ -484,7 +484,7 @@ def new_content_type(
     """
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
     from bengal.utils.io.atomic_write import atomic_write_text
     from bengal.utils.primitives.text import slugify
 

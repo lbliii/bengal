@@ -20,8 +20,9 @@ def debug_incremental(
     from pathlib import Path
 
     from bengal.cache.build_cache import BuildCache
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
     from bengal.debug import IncrementalBuildDebugger
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -49,7 +50,9 @@ def debug_incremental(
                 "suggestions": explanation.suggestions,
             }
             if output_file:
-                Path(output_file).write_text(json.dumps(data, indent=2))
+                from bengal.utils.io.atomic_write import atomic_write_text
+
+                atomic_write_text(Path(output_file), json.dumps(data, indent=2))
                 cli.success(f"Saved to {output_file}")
             else:
                 cli.render_write("json_output.kida", data=json.dumps(data, indent=2))
@@ -61,7 +64,9 @@ def debug_incremental(
     if output_format == "json":
         data = report.to_dict()
         if output_file:
-            Path(output_file).write_text(json.dumps(data, indent=2))
+            from bengal.utils.io.atomic_write import atomic_write_text
+
+            atomic_write_text(Path(output_file), json.dumps(data, indent=2))
             cli.success(f"Saved report to {output_file}")
         else:
             cli.render_write("json_output.kida", data=json.dumps(data, indent=2))
@@ -82,8 +87,9 @@ def debug_delta(
     from pathlib import Path
 
     from bengal.cache.build_cache import BuildCache
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
     from bengal.debug import BuildDeltaAnalyzer
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -122,7 +128,9 @@ def debug_delta(
                 "config_changed": delta_result.config_changed,
             }
             if output_file:
-                Path(output_file).write_text(json.dumps(data, indent=2))
+                from bengal.utils.io.atomic_write import atomic_write_text
+
+                atomic_write_text(Path(output_file), json.dumps(data, indent=2))
                 cli.success(f"Saved to {output_file}")
             else:
                 cli.render_write("json_output.kida", data=json.dumps(data, indent=2))
@@ -138,7 +146,9 @@ def debug_delta(
     if output_format == "json":
         data = report.to_dict()
         if output_file:
-            Path(output_file).write_text(json.dumps(data, indent=2))
+            from bengal.utils.io.atomic_write import atomic_write_text
+
+            atomic_write_text(Path(output_file), json.dumps(data, indent=2))
             cli.success(f"Saved report to {output_file}")
         else:
             cli.render_write("json_output.kida", data=json.dumps(data, indent=2))
@@ -160,8 +170,9 @@ def debug_deps(
     from pathlib import Path
 
     from bengal.cache.build_cache import BuildCache
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
     from bengal.debug import DependencyVisualizer
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -222,8 +233,9 @@ def debug_migrate(
     dry_run: Annotated[bool, Description("Show what would be done without making changes")] = False,
 ) -> dict:
     """Preview or execute content migrations — move content while maintaining link integrity."""
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
     from bengal.debug import ContentMigrator
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -287,8 +299,8 @@ def debug_sandbox(
     """Test directives in isolation without building the entire site."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
     from bengal.debug import ShortcodeSandbox
+    from bengal.output import get_cli_output
 
     cli = get_cli_output()
     cli.header("Shortcode Sandbox")

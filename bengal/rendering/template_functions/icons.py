@@ -24,9 +24,8 @@ from kida import Markup
 if TYPE_CHECKING:
     from bengal.protocols import SiteConfig, TemplateEnvironment
 
-from bengal.errors import ErrorCode
 from bengal.icons import resolver as icon_resolver
-from bengal.icons.svg import ICON_MAP
+from bengal.icons.svg import ICON_MAP, warn_missing_icon
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.lru_cache import LRUCache
 
@@ -213,14 +212,7 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
         with _warned_lock:
             if name not in _warned_icons:
                 _warned_icons.add(name)
-                logger.warning(
-                    "icon_not_found",
-                    icon=name,
-                    error_code=ErrorCode.T010.value,
-                    searched=[str(p) for p in icon_resolver.get_search_paths()],
-                    suggestion="Check icon name spelling. Run 'bengal icons list' to see available icons.",
-                    hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
-                )
+                warn_missing_icon(name, directive="template-function:icon")
 
     # Return as Markup to prevent Jinja2 auto-escaping
     return Markup(svg_html)

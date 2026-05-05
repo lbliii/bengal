@@ -115,7 +115,7 @@ def validate_templates(template_engine: Any) -> int:
         Number of errors found
 
     """
-    from bengal.cli.utils.output import get_cli_output
+    from bengal.output import get_cli_output
 
     cli = get_cli_output()
     cli.blank()

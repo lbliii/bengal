@@ -14,7 +14,7 @@ def version_list(
     """Display all configured documentation versions."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -22,8 +22,12 @@ def version_list(
     version_config = _load_version_config(root_path)
 
     if not version_config or not version_config.enabled:
-        cli.warning("Versioning is not enabled in this site.")
-        cli.info("Add 'versioning.enabled: true' to your config to enable versioning.")
+        cli.render_write(
+            "command_empty.kida",
+            title="Documentation Versions",
+            message="Versioning is not enabled in this site.",
+            steps=["Add `versioning.enabled: true` to your config to enable versioning."],
+        )
         return {
             "status": "skipped",
             "message": "Versioning is not enabled",
@@ -32,17 +36,18 @@ def version_list(
         }
 
     if not version_config.versions:
-        cli.warning("No versions configured.")
-        cli.info("Add versions to your config or use 'bengal version create' to create one.")
+        cli.render_write(
+            "command_empty.kida",
+            title="Documentation Versions",
+            message="No versions configured.",
+            steps=["Add versions to your config or use `bengal version create` to create one."],
+        )
         return {
             "status": "skipped",
             "message": "No versions configured",
             "versions": [],
             "count": 0,
         }
-
-    cli.header("Documentation Versions")
-    cli.blank()
 
     if output_format == "json":
         import json
@@ -61,12 +66,11 @@ def version_list(
     else:
         _display_version_table(cli, version_config)
 
-    cli.blank()
-
     if version_config.aliases:
         cli.render_write(
-            "item_list.kida",
+            "command_list.kida",
             title="Aliases",
+            summary=f"{len(version_config.aliases)} alias(es) configured",
             items=[
                 {"name": alias, "description": f"→ {vid}"}
                 for alias, vid in version_config.aliases.items()
@@ -86,7 +90,7 @@ def version_info(
     """Show details about a specific version."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -105,9 +109,13 @@ def version_info(
 
     if not version:
         cli.error(f"Version '{version_id}' not found.")
-        cli.info("Available versions:")
-        for v in version_config.versions:
-            cli.info(f"  - {v.id}")
+        cli.render_write(
+            "command_list.kida",
+            title="Available Versions",
+            summary=f"{len(version_config.versions)} version(s) configured",
+            items=[{"name": v.id, "description": v.label} for v in version_config.versions],
+            mascot=False,
+        )
         raise SystemExit(1)
 
     items = [
@@ -151,7 +159,7 @@ def version_create(
     import shutil
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
 
     source = source or "."
     label_val = label or None
@@ -172,7 +180,7 @@ def version_create(
 
     if dest_dir.exists() and not dry_run:
         cli.error(f"Destination already exists: {dest_dir}")
-        cli.info("Choose a different version ID or remove the existing directory.")
+        cli.tip("Choose a different version ID or remove the existing directory.")
         raise SystemExit(1)
 
     md_files = list(source_dir.rglob("*.md"))
@@ -193,7 +201,7 @@ def version_create(
 
     if dry_run:
         cli.render_write(
-            "item_list.kida",
+            "command_list.kida",
             title="Would perform",
             items=[
                 {"name": f"Create directory: {dest_dir}", "description": ""},
@@ -212,22 +220,18 @@ def version_create(
     config_file = _find_config_file(root_path)
     if not config_file:
         cli.error("No bengal.yaml or bengal.toml found.")
-        cli.info("Create a config file first, or add the version manually after copying.")
+        cli.tip("Create a config file first, or add the version manually after copying.")
         raise SystemExit(1)
 
-    cli.info("Copying files...")
     dest_dir.parent.mkdir(parents=True, exist_ok=True)
     shutil.copytree(source_dir, dest_dir)
-    cli.success(f"Copied {file_count} files")
 
-    cli.info("Updating configuration...")
     try:
         _update_config_with_version(root_path, version_id, dest_dir, label_val, cli)
     except Exception as e:
         cli.error(f"Config update failed: {e}")
-        cli.info("Rolling back copied files...")
         shutil.rmtree(dest_dir, ignore_errors=True)
-        cli.warning(f"Removed {dest_dir}")
+        cli.tip(f"Rolled back copied files at {dest_dir}")
         raise SystemExit(1) from e
 
     cli.render_write(
@@ -260,19 +264,15 @@ def version_diff(
     """Compare documentation between two versions."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
     root_path = Path(source).resolve()
 
-    cli.header(f"Version Diff: {old_version} -> {new_version}")
-    cli.blank()
-
     if git:
         from bengal.content.discovery.version_diff import diff_git_versions
 
-        cli.info("Comparing git refs...")
         result = diff_git_versions(
             repo_path=root_path,
             old_ref=old_version,
@@ -339,9 +339,6 @@ def version_diff(
     elif output == "markdown":
         cli.info(result.to_markdown())
     else:
-        cli.info(result.summary())
-        cli.blank()
-
         if result.has_changes:
             changes = [
                 {"type": "added", "path": p.path, "value": "new"} for p in result.added_pages[:10]
@@ -375,12 +372,18 @@ def version_diff(
 
             cli.render_write(
                 "diff_view.kida",
+                title=f"Version Diff: {old_version} → {new_version}",
                 changes=changes,
                 summary=summary_line,
                 labels=(old_version, new_version),
             )
         else:
-            cli.success("No changes between versions")
+            cli.render_write(
+                "command_empty.kida",
+                title=f"Version Diff: {old_version} → {new_version}",
+                message="No changes between versions.",
+                mascot=False,
+            )
 
     return {
         "old_version": old_version,
@@ -428,7 +431,9 @@ def _version_to_dict(version):
 
 def _display_version_table(cli, version_config):
     cli.render_write(
-        "item_list.kida",
+        "command_list.kida",
+        title="Documentation Versions",
+        summary=f"{len(version_config.versions)} version(s) configured",
         items=[
             {
                 "name": v.id,
@@ -477,7 +482,7 @@ def _update_config_with_version(root_path, version_id, dest_dir, label, cli):
         with open(config_file, "w") as f:
             yaml.dump(config, f, default_flow_style=False, sort_keys=False)
 
-        cli.success(f"  Updated {config_file.name}")
-    else:
-        msg = f"Cannot auto-update {config_file.name} (TOML write not supported)"
-        raise NotImplementedError(msg)
+        return
+
+    msg = f"Cannot auto-update {config_file.name} (TOML write not supported)"
+    raise NotImplementedError(msg)

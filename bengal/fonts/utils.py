@@ -149,7 +149,7 @@ def record_and_display_asset_error(error: BengalAssetError) -> None:
     """
     from bengal.errors import record_error
     from bengal.errors.display import display_bengal_error
-    from bengal.output import CLIOutput
+    from bengal.output import get_cli_output
 
     record_error(error, file_path=None)
-    display_bengal_error(error, CLIOutput())
+    display_bengal_error(error, get_cli_output())

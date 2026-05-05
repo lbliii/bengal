@@ -4,11 +4,12 @@ Build statistics display functions.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.orchestration.stats.helpers import format_time
-from bengal.output import CLIOutput
+from bengal.output import get_cli_output
 
 if TYPE_CHECKING:
     from bengal.orchestration.stats.models import BuildStats
@@ -17,6 +18,19 @@ if TYPE_CHECKING:
 
 def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> dict:
     """Build the template context dict from stats."""
+    ascii_output = os.environ.get("BENGAL_CLI_ASCII") == "1"
+    glyphs = {
+        "brand": "Bengal" if ascii_output else "ᓚᘏᗢ",
+        "success": "v" if ascii_output else "✓",
+        "warning": "!" if ascii_output else "▲",
+        "error": "x" if ascii_output else "✗",
+        "arrow": ">" if ascii_output else "↪",
+        "separator": "|" if ascii_output else "│",
+        "tree_branch": "+-" if ascii_output else "├─",
+        "tree_end": "`-" if ascii_output else "└─",
+        "tree_pipe": "   " if ascii_output else "│  ",
+    }
+
     # Build mode
     mode_parts = []
     if stats.incremental:
@@ -103,6 +117,8 @@ def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> di
 
     return {
         "skipped": stats.skipped,
+        "ascii": ascii_output,
+        "glyphs": glyphs,
         "has_errors": stats.has_errors,
         "has_warnings": len(stats.warnings) > 0,
         "total_pages": stats.total_pages,
@@ -194,7 +210,7 @@ def display_simple_build_stats(stats: BuildStats, output_dir: str | None = None)
         output_dir: Output directory path to display
 
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     if stats.skipped:
         cli.blank()
@@ -249,7 +265,7 @@ def display_build_stats(
         output_dir: Output directory path to display
 
     """
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     if stats.skipped:
         cli.blank()

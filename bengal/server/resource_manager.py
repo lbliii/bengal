@@ -54,7 +54,7 @@ import threading
 import time
 from typing import TYPE_CHECKING, Any
 
-from bengal.output import CLIOutput
+from bengal.output import get_cli_output
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -183,7 +183,7 @@ class ResourceManager:
                     shutdown_thread.start()
                     shutdown_thread.join(timeout=2.0)
                     if shutdown_thread.is_alive():
-                        CLIOutput().warning(
+                        get_cli_output().warning(
                             "Server shutdown timed out (press Ctrl+C again to force quit)"
                         )
                     return
@@ -194,13 +194,13 @@ class ResourceManager:
                 shutdown_thread.join(timeout=2.0)
 
                 if shutdown_thread.is_alive():
-                    CLIOutput().warning(
+                    get_cli_output().warning(
                         "Server shutdown timed out (press Ctrl+C again to force quit)"
                     )
 
                 s.server_close()
             except Exception as e:
-                CLIOutput().warning(f"Error closing server: {e}")
+                get_cli_output().warning(f"Error closing server: {e}")
 
         return self.register("HTTP Server", server, cleanup)
 
@@ -219,7 +219,7 @@ class ResourceManager:
             try:
                 w.stop()
             except Exception as e:
-                CLIOutput().warning(f"Error stopping watcher: {e}")
+                get_cli_output().warning(f"Error stopping watcher: {e}")
 
         return self.register("File Watcher", watcher, cleanup)
 
@@ -314,7 +314,7 @@ class ResourceManager:
                 if hasattr(signal.Signals, "__contains__")
                 else str(signum)
             )
-            cli = CLIOutput()
+            cli = get_cli_output()
             if sig_name == "SIGINT":
                 cli.info("\n  👋 Shutting down gracefully... (press Ctrl+C again to force quit)")
             else:
@@ -327,14 +327,14 @@ class ResourceManager:
             try:
                 cleanup_fn(resource)
             except Exception as e:
-                CLIOutput().warning(f"Error cleaning up {name}: {e}")
+                get_cli_output().warning(f"Error cleaning up {name}: {e}")
 
         self._restore_signals()
 
         # Show completion message if shutdown was fast enough
         elapsed = time.time() - start_time
         if signum and elapsed < 3.0:  # Only show if cleanup was reasonably quick
-            CLIOutput().success("Server stopped")
+            get_cli_output().success("Server stopped")
 
     def _signal_handler(self, signum: int, frame: FrameType | None) -> None:
         """Handle termination signals."""
@@ -350,7 +350,7 @@ class ResourceManager:
                 sys.exit(0)
         else:
             # Second interrupt - force exit without waiting
-            CLIOutput().warning("\n  Stopped")
+            get_cli_output().warning("\n  Stopped")
             sys.exit(1)
 
     def _register_signal_handlers(self) -> None:

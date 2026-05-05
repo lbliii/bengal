@@ -720,7 +720,7 @@ def phase_incremental_filter_provenance(
                     content_dir=str(site.root_path / "content"),
                     suggestion="Check content directory exists and contains markdown files",
                 )
-                cli.error("✗ Build failed: No pages discovered after recovery")
+                cli.error("Build failed: No pages discovered after recovery")
                 cli.detail(
                     f"Expected pages in {site.root_path / 'content'}",
                     indent=1,

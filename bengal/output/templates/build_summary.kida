@@ -48,22 +48,35 @@
         error_code_summary: str — e.g. "3 errors (2 [R022], 1 [R024])"
 -#}
 {% from "_bengal.kida" import bengal_header, error_header %}
+{%- set mark = glyphs | default({}) -%}
+{%- set brand = mark.brand | default("ᓚᘏᗢ") -%}
+{%- set ok = mark.success | default(icons.check) -%}
+{%- set warn = mark.warning | default("▲") -%}
+{%- set arrow = mark.arrow | default("↪") -%}
+{%- set sep = mark.separator | default("│") -%}
+{%- set branch = mark.tree_branch | default("├─") -%}
+{%- set end_branch = mark.tree_end | default("└─") -%}
+{%- set pipe = mark.tree_pipe | default("│  ") -%}
 
 {%- if skipped -%}
 
-{{ icons.check | green }} {{ "No changes detected — build skipped!" | dim }}
+{{ ok | green }} {{ "No changes detected - build skipped!" | dim }}
 
 {%- elif has_errors and not total_pages -%}
 
+{%- if ascii | default(false) -%}
+Build Failed
+{%- else -%}
 {{ error_header("Build Failed") }}
+{%- endif -%}
 
 {%- elif has_errors -%}
 {#- Built with errors -#}
-{{ (icons.dot | yellow) }} {{ ("ᓚᘏᗢ" | fg("#FF9D00") | bold) }}  {{ ("Built with " ~ (error_count | string) ~ " error(s), " ~ (warning_count | string) ~ " warning(s)") | yellow }}
+{{ warn | yellow }} {{ brand | fg("#FF9D00") | bold }}  {{ ("Built with " ~ (error_count | string) ~ " error(s), " ~ (warning_count | string) ~ " warning(s)") | yellow }}
 
 {%- elif has_warnings -%}
 {#- Built with warnings -#}
-{{ (icons.dot | yellow) }} {{ ("ᓚᘏᗢ" | fg("#FF9D00") | bold) }}  {{ ("Built " ~ (total_pages | string) ~ " pages in " ~ build_time ~ " (" ~ mode ~ ") with warnings") | yellow }}
+{{ warn | yellow }} {{ brand | fg("#FF9D00") | bold }}  {{ ("Built " ~ (total_pages | string) ~ " pages in " ~ build_time ~ " (" ~ mode ~ ") with warnings") | yellow }}
    {{ content_parts | join(", ") | dim }}
 {%- if phases %}
    {{ phases | join(", ") | dim }}
@@ -71,7 +84,7 @@
 
 {%- else -%}
 {#- Clean success -#}
-{{ (icons.check | green) }} {{ ("ᓚᘏᗢ" | fg("#FF9D00") | bold) }}  {{ ("Built " ~ (total_pages | string) ~ " pages") | green }} {{ ("(" ~ breakdown ~ ")") | dim }} in {{ build_time | fg("#F1C40F") | bold }} {{ ("(" ~ mode ~ ")") | dim }} │ {{ (pages_per_sec | round(1) | string) | fg("#F1C40F") | bold }} {{ "pages/sec" | dim }}
+{{ ok | green }} {{ brand | fg("#FF9D00") | bold }}  {{ ("Built " ~ (total_pages | string) ~ " pages") | green }} {{ ("(" ~ breakdown ~ ")") | dim }} in {{ build_time | fg("#F1C40F") | bold }} {{ ("(" ~ mode ~ ")") | dim }} {{ sep }} {{ (pages_per_sec | round(1) | string) | fg("#F1C40F") | bold }} {{ "pages/sec" | dim }}
    {{ content_parts | join(", ") | dim }}
 {%- if phases %}
    {{ phases | join(", ") | dim }}
@@ -88,7 +101,7 @@
    {{ cache_line | dim }}
 {%- endif -%}
 {%- if output_dir | default(none) %}
-   {{ "↪" | dim }} {{ output_dir | dim }}
+   {{ arrow | dim }} {{ output_dir | dim }}
 {%- endif -%}
 
 {%- if error_code_summary | default("") %}
@@ -114,14 +127,18 @@
 
 {%- if warning_groups | default(none) %}
 
+{%- if ascii | default(false) %}
+Build completed with warnings ({{ warning_count }})
+{%- else %}
 {{ error_header("Build completed with warnings (" ~ (warning_count | string) ~ ")") }}
+{%- endif -%}
 {%- for group in warning_groups %}
    {{ (group.type_name ~ " (" ~ (group.warnings | length | string) ~ "):") | bold }}
 {%- for w in group.warnings %}
-{%- set prefix = "└─" if loop.last else "├─" %}
+{%- set prefix = end_branch if loop.last else branch %}
    {{ prefix | dim }} {{ w.short_path | yellow }}
-{%- set msg_prefix = "   " if loop.last else "│  " %}
-   {{ msg_prefix | dim }}{{ "└─" | dim }} {{ w.message | red }}
+{%- set msg_prefix = "   " if loop.last else pipe %}
+   {{ msg_prefix | dim }}{{ end_branch | dim }} {{ w.message | red }}
 {%- endfor %}
 {%- endfor %}
 {%- endif -%}

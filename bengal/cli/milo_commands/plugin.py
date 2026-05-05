@@ -27,26 +27,31 @@ def _load_reports() -> list[Any]:
 
 def plugin_list() -> dict:
     """List installed Bengal plugins and readiness status."""
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
 
     cli = get_cli_output()
     reports = _load_reports()
 
     if not reports:
-        cli.info("No Bengal plugins discovered")
+        cli.render_write(
+            "command_empty.kida",
+            title="Bengal Plugins",
+            message="No Bengal plugins discovered.",
+            steps=[
+                "Install a package that exposes the bengal.plugins entry point.",
+                "Run `bengal plugin validate` after installing or editing a plugin.",
+            ],
+        )
         return {"plugins": [], "count": 0}
 
     cli.render_write(
-        "item_list.kida",
+        "command_list.kida",
         title="Bengal Plugins",
         items=[
             {
                 "name": report.plugin_name or report.entry_point,
-                "description": (
-                    f"{report.version or 'unknown'}  "
-                    f"{_status_label(report.status)}  "
-                    f"{report.entry_point}"
-                ),
+                "status": _status_label(report.status),
+                "description": f"{report.version or 'unknown'}  {report.entry_point}",
             }
             for report in reports
         ],
@@ -62,7 +67,7 @@ def plugin_info(
     name: Annotated[str, Description("Plugin name or entry point name")],
 ) -> dict:
     """Show detailed plugin capability readiness."""
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
     from bengal.plugins.inspection import capability_details
 
     cli = get_cli_output()
@@ -100,7 +105,7 @@ def plugin_info(
 
 def plugin_validate() -> dict:
     """Validate installed plugins against currently wired Bengal capabilities."""
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
     from bengal.plugins.inspection import capability_details
 
     cli = get_cli_output()
@@ -123,7 +128,12 @@ def plugin_validate() -> dict:
         )
 
     if not reports:
-        cli.info("No Bengal plugins discovered")
+        cli.render_write(
+            "command_empty.kida",
+            title="Plugin Validation",
+            message="No Bengal plugins discovered.",
+            steps=["Install a plugin package, then run `bengal plugin validate` again."],
+        )
         return {"valid": True, "plugins": [], "issues": []}
 
     passed = len(reports) if not issues else 0

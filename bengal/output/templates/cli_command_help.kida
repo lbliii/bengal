@@ -1,0 +1,20 @@
+{#- Leaf command help rendered from Milo command schemas. -#}
+{% from "_bengal.kida" import bengal_header %}
+{{ brand_mark }} {{ bengal_header(prog, mascot=false) }}
+{% if description %}
+{{ description | dim }}
+{%- endif -%}
+{%- if options %}
+
+Options
+{%- for option in options %}
+  {{ option.label | green | bold }}{{ option.padding }}{{ option.help }}
+{%- endfor %}
+{% endif %}
+{% if examples %}
+
+Examples
+{%- for example in examples %}
+  {{ example.command | bold }}  {{ example.description | dim }}
+{%- endfor %}
+{% endif %}

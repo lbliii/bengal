@@ -26,7 +26,8 @@ def inspect_page(
     import json
     from dataclasses import asdict
 
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
     from bengal.utils.observability.profile import BuildProfile
 
     source = source or "."
@@ -126,8 +127,9 @@ def inspect_links(
     import json
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
     from bengal.health.linkcheck.orchestrator import LinkCheckOrchestrator
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -179,7 +181,9 @@ def inspect_links(
         if output_format == "json":
             report = orchestrator.format_json_report(results, summary)
             if output_file:
-                Path(output_file).write_text(json.dumps(report, indent=2))
+                from bengal.utils.io.atomic_write import atomic_write_text
+
+                atomic_write_text(Path(output_file), json.dumps(report, indent=2))
                 cli.success(f"JSON report saved to {output_file}")
             else:
                 cli.render_write("json_output.kida", data=json.dumps(report, indent=2))
@@ -212,7 +216,8 @@ def inspect_graph(
     import json
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -236,7 +241,9 @@ def inspect_graph(
     if output_format == "json":
         data = report.to_dict()
         if output_file:
-            Path(output_file).write_text(json.dumps(data, indent=2))
+            from bengal.utils.io.atomic_write import atomic_write_text
+
+            atomic_write_text(Path(output_file), json.dumps(data, indent=2))
             cli.success(f"Saved to {output_file}")
         else:
             cli.render_write("json_output.kida", data=json.dumps(data, indent=2))

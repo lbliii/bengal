@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
+from bengal.core.url_collisions import collect_url_collision_records
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 
@@ -59,36 +60,25 @@ class URLCollisionValidator(BaseValidator):
         """Run URL collision validation checks."""
         results: list[CheckResult] = []
 
-        # Track URLs and their sources
-        urls_seen: dict[str, list[str]] = {}  # url -> [source1, source2, ...]
-
-        for page in site.pages:
-            url = page._path
-            source = str(getattr(page, "source_path", page.title))
-
-            if url not in urls_seen:
-                urls_seen[url] = []
-            urls_seen[url].append(source)
-
-        # Report collisions
-        collisions = {url: sources for url, sources in urls_seen.items() if len(sources) > 1}
+        collisions = collect_url_collision_records(
+            site.pages,
+            root_path=getattr(site, "root_path", None),
+            url_registry=getattr(site, "url_registry", None),
+        )
 
         if collisions:
             # Format collision details with ownership context from registry
             details = []
-            for url, sources in list(collisions.items())[:5]:  # Limit to first 5
-                detail_lines = [f"URL: {url}"]
+            for collision in collisions[:5]:  # Limit to first 5
+                detail_lines = [f"URL: {collision.url}"]
 
-                # Get ownership context from registry if available
-                claim = None
-                if hasattr(site, "url_registry") and site.url_registry:
-                    claim = site.url_registry.get_claim(url)
-
-                for i, src in enumerate(sources):
-                    owner_info = ""
-                    if claim and i == 0:  # Show ownership for first source
-                        owner_info = f" ({claim.owner}, priority {claim.priority})"
-                    detail_lines.append(f"  Page {i + 1}: {src}{owner_info}")
+                for i, claimant in enumerate(collision.claimants):
+                    owner_info = (
+                        f" ({claimant.owner}, priority {claimant.priority})"
+                        if claimant.owner
+                        else ""
+                    )
+                    detail_lines.append(f"  Page {i + 1}: {claimant.display_source}{owner_info}")
 
                 details.append("\n".join(detail_lines))
 

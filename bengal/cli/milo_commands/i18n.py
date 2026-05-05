@@ -18,8 +18,8 @@ def i18n_compile(
     """Compile .po files to .mo."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
     from bengal.i18n.catalog import clear_catalog_cache
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -27,7 +27,12 @@ def i18n_compile(
     localedir = root / "i18n"
 
     if not localedir.exists():
-        cli.warning(f"No i18n directory at {localedir}")
+        cli.render_write(
+            "command_empty.kida",
+            title="Compile Translations",
+            message=f"No i18n directory at {localedir}",
+            steps=["Run `bengal i18n init <locale>` to create locale directories."],
+        )
         return {"status": "skipped", "message": f"No i18n directory at {localedir}", "compiled": 0}
 
     locales = [loc.strip() for loc in locale.split(",") if loc.strip()] if locale else []
@@ -37,7 +42,7 @@ def i18n_compile(
     else:
         locale_dirs = [d for d in localedir.iterdir() if d.is_dir()]
 
-    compiled = 0
+    compiled_items = []
     for loc_dir in locale_dirs:
         if not loc_dir.is_dir():
             continue
@@ -51,20 +56,34 @@ def i18n_compile(
 
             po = polib.pofile(str(po_path))
             po.save_as_mofile(str(mo_path))
-            compiled += 1
-            cli.success(f"Compiled {loc_name}: {po_path.relative_to(root)} -> .mo")
+            compiled_items.append(
+                {
+                    "name": loc_name,
+                    "description": f"{po_path.relative_to(root)} -> {mo_path.relative_to(root)}",
+                }
+            )
         except Exception as e:
             cli.error(f"Failed to compile {po_path}: {e}")
             cli.tip("Check the .po file for syntax errors — `msgfmt --check` can help locate them.")
             raise
 
+    compiled = len(compiled_items)
     if compiled == 0:
-        cli.warning("No .po files found to compile.")
-        cli.info("Create i18n/{locale}/LC_MESSAGES/{domain}.po first.")
+        cli.render_write(
+            "command_empty.kida",
+            title="Compile Translations",
+            message="No .po files found to compile.",
+            steps=["Create i18n/{locale}/LC_MESSAGES/{domain}.po first."],
+        )
         raise SystemExit(1)
 
     clear_catalog_cache(root)
-    cli.success(f"Compiled {compiled} catalog(s).")
+    cli.render_write(
+        "command_list.kida",
+        title="Compile Translations",
+        summary=f"{compiled} catalog(s) compiled for domain={domain}",
+        items=compiled_items,
+    )
 
     return {"compiled": compiled, "domain": domain}
 
@@ -109,9 +128,9 @@ def i18n_extract(
     """Extract t() calls from templates and generate .pot."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
     from bengal.config import UnifiedConfigLoader
     from bengal.config.directory_loader import ConfigLoadError
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -127,7 +146,12 @@ def i18n_extract(
     keys = _extract_keys_from_templates(root, raw)
 
     if not keys:
-        cli.warning("No t() calls found in templates.")
+        cli.render_write(
+            "command_empty.kida",
+            title="Extract Translations",
+            message="No t() calls found in templates.",
+            steps=["Add t('key') calls to templates or content before extracting."],
+        )
         return {"status": "skipped", "message": "No t() calls found in templates", "keys": 0}
 
     out = Path(output_path)
@@ -144,7 +168,16 @@ def i18n_extract(
         for key in sorted(keys):
             pot.append(polib.POEntry(msgid=key, msgstr=""))
         pot.save(str(out))
-        cli.success(f"Extracted {len(keys)} strings to {out.relative_to(root)}")
+        cli.render_write(
+            "kv_detail.kida",
+            title="Extract Translations",
+            items=[
+                {"label": "Strings", "value": str(len(keys))},
+                {"label": "Output", "value": str(out.relative_to(root))},
+                {"label": "Domain", "value": domain},
+            ],
+            badge={"level": "success", "text": "Done"},
+        )
     except Exception as e:
         cli.error(f"Failed to write .pot: {e}")
         cli.tip("Check write permissions on the i18n/ directory and that the output path exists.")
@@ -163,10 +196,10 @@ def i18n_status(
     """Show translation coverage per locale."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
     from bengal.config import UnifiedConfigLoader
     from bengal.config.directory_loader import ConfigLoadError
     from bengal.i18n.catalog import compute_coverage
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -182,8 +215,12 @@ def i18n_status(
 
     keys = _extract_keys_from_templates(root, raw)
     if not keys:
-        cli.warning("No t() calls found in templates.")
-        cli.info("Run 'bengal i18n extract' to generate .pot, then add locales.")
+        cli.render_write(
+            "command_empty.kida",
+            title="Translation Coverage",
+            message="No t() calls found in templates.",
+            steps=["Run `bengal i18n extract` after adding translation calls."],
+        )
         return {
             "status": "skipped",
             "message": "No t() calls found in templates",
@@ -206,8 +243,11 @@ def i18n_status(
         )
 
     if not locales:
-        cli.warning(
-            "No locales found. Add i18n.languages in config or create i18n/{locale}/LC_MESSAGES/"
+        cli.render_write(
+            "command_empty.kida",
+            title="Translation Coverage",
+            message="No locales found.",
+            steps=["Add i18n.languages in config or create i18n/{locale}/LC_MESSAGES/."],
         )
         return {
             "status": "skipped",
@@ -252,7 +292,7 @@ def i18n_init(
     """Initialize locale directory structure and PO files."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
 
     source = source or "."
     codes = [c.strip() for c in locale_codes.split(",") if c.strip()]
@@ -262,13 +302,16 @@ def i18n_init(
     localedir = root / "i18n"
     pot_path = root / f"{domain}.pot"
 
-    created = 0
+    created_items = []
+    existing_items = []
     for locale in codes:
         lc_dir = localedir / locale / "LC_MESSAGES"
         po_path = lc_dir / f"{domain}.po"
 
         if po_path.exists():
-            cli.warning(f"Already exists: {po_path.relative_to(root)}")
+            existing_items.append(
+                {"name": locale, "description": f"{po_path.relative_to(root)} already exists"}
+            )
             continue
 
         lc_dir.mkdir(parents=True, exist_ok=True)
@@ -292,8 +335,7 @@ def i18n_init(
                 }
 
             po.save(str(po_path))
-            created += 1
-            cli.success(f"Created {po_path.relative_to(root)}")
+            created_items.append({"name": locale, "description": str(po_path.relative_to(root))})
         except ImportError:
             cli.error("polib is required: pip install bengal[gettext]")
             cli.tip("Install the gettext extras with `pip install bengal[gettext]` then re-run.")
@@ -303,14 +345,22 @@ def i18n_init(
             cli.tip("Check write permissions on the locale directory, then re-run.")
             raise
 
+    created = len(created_items)
+    if created_items or existing_items:
+        cli.render_write(
+            "command_list.kida",
+            title="Initialize Translations",
+            summary=f"{created} created, {len(existing_items)} existing",
+            items=[
+                *[{**item, "status": "created"} for item in created_items],
+                *[{**item, "status": "exists"} for item in existing_items],
+            ],
+        )
     if created:
-        cli.success(f"Initialized {created} locale(s).")
         if pot_path.exists():
             cli.info(f"Used {pot_path.name} as template.")
         else:
-            cli.info("Tip: Run 'bengal i18n extract' first to generate a .pot template.")
-    elif codes:
-        cli.info("All locales already exist.")
+            cli.tip("Run 'bengal i18n extract' first to generate a .pot template.")
 
     return {"created": created, "locales": codes, "domain": domain}
 
@@ -323,9 +373,9 @@ def i18n_sync(
     """Sync PO files with current template keys."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
     from bengal.config import UnifiedConfigLoader
     from bengal.config.directory_loader import ConfigLoadError
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -333,8 +383,12 @@ def i18n_sync(
     localedir = root / "i18n"
 
     if not localedir.exists():
-        cli.warning(f"No i18n directory at {localedir}")
-        cli.info("Tip: Run 'bengal i18n init <locale>' to create locale directories.")
+        cli.render_write(
+            "command_empty.kida",
+            title="Sync Translations",
+            message=f"No i18n directory at {localedir}",
+            steps=["Run `bengal i18n init <locale>` to create locale directories."],
+        )
         return {"status": "skipped", "message": f"No i18n directory at {localedir}", "synced": 0}
 
     config_loader = UnifiedConfigLoader()
@@ -346,10 +400,15 @@ def i18n_sync(
 
     keys = _extract_keys_from_templates(root, raw)
     if not keys:
-        cli.warning("No t() calls found in templates.")
+        cli.render_write(
+            "command_empty.kida",
+            title="Sync Translations",
+            message="No t() calls found in templates.",
+            steps=["Add t('key') calls, then run `bengal i18n extract`."],
+        )
         return {"status": "skipped", "message": "No t() calls found in templates", "synced": 0}
 
-    cli.info(f"Found {len(keys)} keys in templates.")
+    key_count = len(keys)
 
     try:
         import polib
@@ -367,13 +426,16 @@ def i18n_sync(
 
     synced = 0
     sync_items = []
+    missing_po_items = []
     for loc_dir in locale_dirs:
         if not loc_dir.is_dir():
             continue
         loc_name = loc_dir.name
         po_path = loc_dir / "LC_MESSAGES" / f"{domain}.po"
         if not po_path.exists():
-            cli.warning(f"No PO file for {loc_name} -- run 'bengal i18n init {loc_name}'")
+            missing_po_items.append(
+                {"name": loc_name, "description": f"run `bengal i18n init {loc_name}`"}
+            )
             continue
 
         po = polib.pofile(str(po_path))
@@ -405,13 +467,26 @@ def i18n_sync(
 
     if sync_items:
         cli.render_write(
-            "item_list.kida",
-            title=f"Sync Results ({synced} synced)" if synced else "Sync Results",
+            "command_list.kida",
+            title="Sync Translations",
+            summary=f"{len(sync_items)} locale(s), {synced} synced, {key_count} key(s)",
             items=sync_items,
+        )
+    if missing_po_items:
+        cli.render_write(
+            "command_list.kida",
+            title="Missing Translation Catalogs",
+            summary=f"{len(missing_po_items)} locale(s) missing {domain}.po",
+            items=missing_po_items,
         )
     if synced:
         cli.tip("Run 'bengal i18n compile' to regenerate .mo files.")
-    elif not sync_items:
-        cli.info("All locales already in sync.")
+    elif not sync_items and not missing_po_items:
+        cli.render_write(
+            "command_empty.kida",
+            title="Sync Translations",
+            message="All locales already in sync.",
+            mascot=False,
+        )
 
-    return {"synced": synced, "keys": len(keys), "domain": domain}
+    return {"synced": synced, "keys": key_count, "domain": domain}

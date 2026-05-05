@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.health.results import compact_successes
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -134,7 +135,12 @@ class CacheValidator(BaseValidator):
         # Check 5: Basic dependency tracking
         results.extend(self._check_dependencies(cache_data))
 
-        return results
+        success_count = sum(1 for result in results if result.status.value == "success")
+        return compact_successes(
+            results,
+            f"{success_count} cache checks passed",
+            metadata_key="cache_checks",
+        )
 
     def _check_cache_readable(self, cache_path: Path) -> tuple[bool, dict[str, Any]]:
         """Check if cache file is readable and valid JSON."""

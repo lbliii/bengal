@@ -1,0 +1,25 @@
+{#- Bengal root CLI help.
+
+    Rendered by BengalCLI from the Milo command registry. The command data stays
+    registry-owned; this template owns presentation.
+-#}
+{% from "_bengal.kida" import bengal_header %}
+{{ brand_mark | fg("#FF9D00") | bold }} {{ bengal_header(name, mascot=false) }}{% if version %} {{ version | dim }}{% endif %}
+
+{{ description | dim }}{{ "\n" }}
+{%- for section in sections %}
+{{ section.title | yellow | bold }}
+{%- for command in section.commands %}
+  {{ command.name | green | bold }}{% if command.aliases %} {{ ("(" ~ command.aliases | join(", ") ~ ")") | dim }}{% endif %}{{ command.padding }}{{ command.description }}{% if command.kind == "group" %} {{ "[group]" | dim }}{% endif %}
+{%- endfor %}
+{% endfor %}
+
+{{ "Useful flags" | yellow | bold }}
+{%- for option in options %}
+  {{ option.flags | cyan }}{% if option.metavar %} {{ option.metavar | dim }}{% endif %}{{ option.padding }}{{ option.help }}
+{%- endfor %}
+
+{{ "Examples" | yellow | bold }}
+{%- for example in examples %}
+  {{ ("$ " ~ example.command) | green }} {{ ("- " ~ example.description) | dim }}
+{%- endfor %}

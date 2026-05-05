@@ -15,8 +15,8 @@ def content_sources(
     """List all configured content sources."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
     from bengal.collections.loader import load_collections
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -24,9 +24,15 @@ def content_sources(
     collections = load_collections(site_root)
 
     if not collections:
-        cli.warning("No collections configured.")
-        cli.info("To configure collections, create a collections.py file.")
-        cli.info("Run 'bengal content collections-init' to get started.")
+        cli.render_write(
+            "command_empty.kida",
+            title="Content Sources",
+            message="No collections configured.",
+            steps=[
+                "Create a collections.py file.",
+                "Run `bengal content collections-init` to scaffold collection setup.",
+            ],
+        )
         return {
             "status": "skipped",
             "message": "No collections configured",
@@ -48,7 +54,12 @@ def content_sources(
             {"name": name, "description": f"[{source_type}]  {location}  schema={schema_name}"}
         )
 
-    cli.render_write("item_list.kida", title="Content Sources", items=items)
+    cli.render_write(
+        "command_list.kida",
+        title="Content Sources",
+        summary=f"{len(items)} source(s) configured",
+        items=items,
+    )
 
     remote_sources = [(name, config) for name, config in collections.items() if config.is_remote]
     if remote_sources:
@@ -73,8 +84,8 @@ def content_fetch(
     """Fetch content from remote sources."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
     from bengal.collections.loader import load_collections
+    from bengal.output import get_cli_output
 
     source = source or "."
     filter_val = filter_source or None
@@ -83,7 +94,12 @@ def content_fetch(
     collections = load_collections(site_root)
 
     if not collections:
-        cli.warning("No collections configured.")
+        cli.render_write(
+            "command_empty.kida",
+            title="Fetch Content",
+            message="No collections configured.",
+            steps=["Create collections.py, then re-run `bengal content fetch`."],
+        )
         return {
             "status": "skipped",
             "message": "No collections configured",
@@ -101,7 +117,12 @@ def content_fetch(
         if filter_val:
             cli.error(f"Source '{filter_val}' not found or is not remote.")
             raise SystemExit(1)
-        cli.info("No remote content sources configured.")
+        cli.render_write(
+            "command_empty.kida",
+            title="Fetch Content",
+            message="No remote content sources configured.",
+            steps=["Add a remote loader to collections.py before running fetch."],
+        )
         return {
             "status": "skipped",
             "message": "No remote content sources",
@@ -155,22 +176,22 @@ def content_collections(
     from pathlib import Path
     from typing import Any
 
-    from bengal.cli.utils import get_cli_output
     from bengal.collections import CollectionConfig, load_collections
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
     root_path = Path(source).resolve()
 
-    cli.blank()
-    cli.header("Content Collections")
-    cli.blank()
-
     loaded: dict[str, CollectionConfig[Any]] = load_collections(root_path)
 
     if not loaded:
-        cli.warning("No collections defined")
-        cli.info("Run 'bengal content collections-init' to create collections.py")
+        cli.render_write(
+            "command_empty.kida",
+            title="Content Collections",
+            message="No collections defined.",
+            steps=["Run `bengal content collections-init` to create collections.py."],
+        )
         return {
             "status": "skipped",
             "message": "No collections defined",
@@ -195,7 +216,12 @@ def content_collections(
 
         cli.render_write("kv_detail.kida", title=name, items=items)
 
-    cli.info(f"Total: {len(loaded)} collection(s)")
+    cli.render_write(
+        "command_empty.kida",
+        title="Content Collections",
+        message=f"{len(loaded)} collection(s) configured.",
+        mascot=False,
+    )
     return {"collections": list(loaded.keys()), "count": len(loaded)}
 
 
@@ -207,10 +233,8 @@ def content_schemas(
     """Validate content against collection schemas."""
     from pathlib import Path
 
-    import frontmatter
-
-    from bengal.cli.utils import get_cli_output
     from bengal.collections import SchemaValidator, load_collections
+    from bengal.output import get_cli_output
 
     source = source or "."
     collection_val = collection or None
@@ -218,15 +242,15 @@ def content_schemas(
     root_path = Path(source).resolve()
     content_dir = root_path / "content"
 
-    cli.blank()
-    cli.header("Validating collections...")
-    cli.blank()
-
     loaded = load_collections(root_path)
 
     if not loaded:
-        cli.warning("No collections defined")
-        cli.info("Run 'bengal content collections-init' to create collections.py")
+        cli.render_write(
+            "command_empty.kida",
+            title="Schema Validation",
+            message="No collections defined.",
+            steps=["Run `bengal content collections-init` to create collections.py."],
+        )
         return {"status": "skipped", "message": "No collections defined", "files": 0, "errors": 0}
 
     if collection_val:
@@ -241,24 +265,43 @@ def content_schemas(
             }
         loaded = {collection_val: loaded[collection_val]}
 
+    try:
+        import frontmatter
+    except ImportError:
+        cli.error("python-frontmatter is required to validate collection schemas")
+        cli.tip("Install Bengal with the content/schema extras, then re-run.")
+        raise SystemExit(1) from None
+
     total_files = 0
     total_errors = 0
     errors_by_file: dict[str, list[str]] = {}
+    collection_items = []
 
     for name, coll_config in loaded.items():
         if coll_config.directory is None:
-            cli.warning(f"Collection '{name}' has no directory configured - skipping")
+            collection_items.append(
+                {
+                    "name": name,
+                    "status": "skipped",
+                    "description": "no directory configured",
+                }
+            )
             continue
         collection_dir = content_dir / coll_config.directory
 
         if not collection_dir.exists():
-            cli.warning(f"Collection '{name}' directory not found: {collection_dir}")
+            collection_items.append(
+                {
+                    "name": name,
+                    "status": "skipped",
+                    "description": f"directory not found: {collection_dir}",
+                }
+            )
             continue
-
-        cli.info(f"  {name}")
 
         files = list(collection_dir.glob(coll_config.glob))
         validator = SchemaValidator(coll_config.schema, strict=coll_config.strict)
+        collection_errors = 0
 
         for file_path in files:
             total_files += 1
@@ -271,21 +314,33 @@ def content_schemas(
 
                 if not result.valid:
                     total_errors += 1
+                    collection_errors += 1
                     rel_path = file_path.relative_to(root_path)
                     errors_by_file[str(rel_path)] = [
                         f"{e.field}: {e.message}" for e in result.errors
                     ]
-                    cli.info(f"    x {rel_path}")
-                else:
-                    rel_path = file_path.relative_to(root_path)
-                    cli.info(f"    v {rel_path}")
             except Exception as e:
                 total_errors += 1
+                collection_errors += 1
                 rel_path = file_path.relative_to(root_path)
                 errors_by_file[str(rel_path)] = [str(e)]
-                cli.info(f"    x {rel_path}: {e}")
 
-        cli.blank()
+        file_count = len(files)
+        collection_items.append(
+            {
+                "name": name,
+                "status": "valid" if collection_errors == 0 else "errors",
+                "description": f"{file_count} file(s), {collection_errors} error(s)",
+            }
+        )
+
+    if collection_items:
+        cli.render_write(
+            "command_list.kida",
+            title="Schema Validation",
+            summary=f"{total_files} file(s), {total_errors} error(s)",
+            items=collection_items,
+        )
 
     if total_errors == 0:
         cli.render_write(

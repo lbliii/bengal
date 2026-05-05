@@ -7,9 +7,10 @@ Tests the theme-aware icon resolution system.
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from bengal.icons import resolver as icon_resolver
+from bengal.icons.svg import clear_icon_cache, flush_missing_icon_warnings, warn_missing_icon
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -146,6 +147,40 @@ class TestIconCaching:
         # Should get new version
         content2 = icon_resolver.load_icon("reload")
         assert "<!-- v2 -->" in content2
+
+
+class TestMissingIconWarningAggregation:
+    """Missing icon warnings are condensed into one terminal notice."""
+
+    def test_missing_icon_warnings_flush_as_summary(self, tmp_path: Path) -> None:
+        icons_dir = tmp_path / "icons"
+        icons_dir.mkdir()
+        icon_resolver._search_paths = [icons_dir]
+        icon_resolver._initialized = True
+        clear_icon_cache()
+
+        warn_missing_icon("external", directive="card", context="External Link")
+        warn_missing_icon("python", directive="code-tabs", context="Python")
+        warn_missing_icon("external", directive="button", context="External Button")
+
+        with patch("bengal.icons.svg.logger") as mock_logger:
+            count = flush_missing_icon_warnings()
+
+        assert count == 2
+        mock_logger.warning.assert_called_once()
+        event, kwargs = mock_logger.warning.call_args.args[0], mock_logger.warning.call_args.kwargs
+        assert event == "icon_not_found_summary"
+        assert kwargs["count"] == 2
+        assert kwargs["icons"] == "external, python"
+        assert "themes/{theme}/assets/icons/<name>.svg" in kwargs["hint"]
+
+    def test_missing_icon_flush_clears_pending_notices(self) -> None:
+        clear_icon_cache()
+        warn_missing_icon("languages")
+
+        with patch("bengal.icons.svg.logger"):
+            assert flush_missing_icon_warnings() == 1
+            assert flush_missing_icon_warnings() == 0
 
 
 class TestGetSearchPaths:

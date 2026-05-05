@@ -1,0 +1,15 @@
+{#- Semantic one-line message primitive used by CLIOutput helpers. -#}
+{%- set prefix = (icon ~ " ") if icon else "" -%}
+{%- if level == "success" -%}
+{{ prefix | green }}{{ text | green }}
+{%- elif level == "warning" -%}
+{{ prefix | yellow }}{{ text | yellow }}
+{%- elif level == "error" -%}
+{{ prefix | red }}{{ text | red }}
+{%- elif level == "tip" -%}
+{{ prefix | dim }}{{ text | dim }}
+{%- elif level == "info" -%}
+{{ prefix | cyan }}{{ text }}
+{%- else -%}
+{{ prefix }}{{ text }}
+{%- endif -%}

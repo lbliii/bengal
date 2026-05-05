@@ -109,9 +109,14 @@ def pretty_print_config(config: dict[str, Any], title: str = "Configuration") ->
     """Pretty print configuration."""
     import pprint
 
-    print(f"\n{title}:\n")
-    pprint.pprint(config, width=100, compact=False)  # noqa: T203
-    print()
+    from bengal.output import get_cli_output
+
+    get_cli_output().render_write(
+        "json_output.kida",
+        data=pprint.pformat(config, width=100, compact=False),
+        title=title,
+        language="python",
+    )
 
 
 __all__ = [

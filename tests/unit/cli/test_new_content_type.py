@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 @pytest.fixture(autouse=True)
 def _quiet_cli() -> None:
     """Silence the global CLI singleton — tests don't want render output."""
-    from bengal.cli.utils.output import get_cli_output
+    from bengal.output import get_cli_output
 
     get_cli_output(quiet=True, use_global=True)
 

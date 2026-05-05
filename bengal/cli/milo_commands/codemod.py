@@ -21,7 +21,7 @@ def codemod(
     """
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
     from bengal.utils.io.atomic_write import atomic_write_text
 
     cli = get_cli_output()
@@ -55,11 +55,13 @@ def codemod(
     ]
 
     if not files_to_process:
-        cli.warning("No matching files found.")
+        cli.render_write(
+            "command_empty.kida",
+            title="Codemod Changes",
+            message="No matching files found.",
+            steps=["Pass a directory containing .html, .py, .jinja2, .j2, or .js files."],
+        )
         return {"status": "skipped", "message": "No matching files found", "files_processed": 0}
-
-    cli.info(f"Found {len(files_to_process)} files to process")
-    cli.blank()
 
     replacements = [
         (r"\.url\b", ".href", "url -> href"),
@@ -71,6 +73,8 @@ def codemod(
     total_changes = 0
     files_changed = 0
     pending_writes: list[tuple[Path, str]] = []
+    changed_items = []
+    error_items = []
 
     for file_path in sorted(files_to_process):
         try:
@@ -95,10 +99,14 @@ def codemod(
                 files_changed += 1
                 changes_count = sum(int(count) for _, count in file_changes)
                 total_changes += changes_count
-
-                cli.detail(str(file_path.relative_to(target)), icon=cli.icons.success)
-                for desc, count in file_changes:
-                    cli.detail(f"{desc}: {count}", indent=2)
+                changed_items.append(
+                    {
+                        "name": str(file_path.relative_to(target)),
+                        "description": ", ".join(
+                            f"{desc}: {count}" for desc, count in file_changes
+                        ),
+                    }
+                )
 
                 if diff:
                     cli.blank()
@@ -109,9 +117,25 @@ def codemod(
                     pending_writes.append((file_path, modified_content))
 
         except Exception as e:
-            cli.error(f"  {file_path}: {e}")
+            error_items.append({"name": str(file_path), "description": str(e)})
 
-    cli.blank()
+    if changed_items:
+        cli.render_write(
+            "command_list.kida",
+            title="Codemod Changes",
+            summary=f"{files_changed} file(s), {total_changes} replacement(s)",
+            items=changed_items,
+            mascot=False,
+        )
+    if error_items:
+        cli.render_write(
+            "command_list.kida",
+            title="Codemod Read Errors",
+            summary=f"{len(error_items)} file(s) skipped",
+            items=error_items,
+            mascot=False,
+        )
+
     cli.render_write(
         "kv_detail.kida",
         title="Summary",

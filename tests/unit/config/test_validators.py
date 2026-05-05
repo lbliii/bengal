@@ -7,7 +7,6 @@ Tests config/validators.py:
 
 from __future__ import annotations
 
-from io import StringIO
 from pathlib import Path
 from unittest.mock import patch
 
@@ -253,36 +252,24 @@ class TestConfigValidatorFlattenConfig:
 class TestConfigValidatorErrorPrinting:
     """Tests for ConfigValidator error printing."""
 
-    def test_prints_errors_with_count(self):
+    def test_prints_errors_with_count(self, capsys):
         """Prints error count in output."""
         validator = ConfigValidator()
         errors = ["Error 1", "Error 2"]
-        output = StringIO()
 
-        def capture_print(*args):
-            if args:
-                output.write(str(args[0]) + "\n")
-
-        with patch("builtins.print", capture_print):
-            validator._print_errors(errors)
-        result = output.getvalue()
-        assert "❌" in result
+        validator._print_errors(errors)
+        result = capsys.readouterr().out
+        assert "Configuration validation failed" in result
         assert "1." in result
         assert "2." in result
 
-    def test_prints_source_file_if_provided(self):
+    def test_prints_source_file_if_provided(self, capsys):
         """Prints source file in error output."""
         validator = ConfigValidator()
         errors = ["Error 1"]
-        output = StringIO()
 
-        def capture_print(*args):
-            if args:
-                output.write(str(args[0]) + "\n")
-
-        with patch("builtins.print", capture_print):
-            validator._print_errors(errors, source_file=Path("bengal.toml"))
-        result = output.getvalue()
+        validator._print_errors(errors, source_file=Path("bengal.toml"))
+        result = capsys.readouterr().out
         assert "bengal.toml" in result
 
     def test_logs_errors(self):
@@ -290,8 +277,7 @@ class TestConfigValidatorErrorPrinting:
         validator = ConfigValidator()
         errors = ["Error 1"]
         with patch("bengal.config.validators.logger") as mock_logger:
-            with patch("builtins.print"):  # Suppress print
-                validator._print_errors(errors)
+            validator._print_errors(errors)
             mock_logger.error.assert_called()
 
 
@@ -362,3 +348,27 @@ class TestConfigValidationErrorCode:
             validator.validate(config)
 
         assert exc_info.value.code == ErrorCode.C004
+
+
+class TestConfigUnknownEntryAggregation:
+    """Unknown config entries are summarized instead of emitted one-by-one."""
+
+    def test_unknown_config_entries_emit_one_summary(self):
+        validator = ConfigValidator()
+        config = {
+            "output_formats": {},
+            "generate_sitemap": True,
+            "build": {"parallel_graph": True, "track_dependency_ordering": True},
+        }
+
+        with patch("bengal.config.validators.logger") as mock_logger:
+            validator.validate(config)
+
+        warning_events = [call.args[0] for call in mock_logger.warning.call_args_list]
+        assert warning_events == ["unknown_config_summary"]
+
+        _, kwargs = mock_logger.warning.call_args
+        assert kwargs["count"] == 4
+        assert "output_formats -> output" in kwargs["entries"]
+        assert "generate_sitemap -> sitemap" in kwargs["entries"]
+        assert "build.parallel_graph -> parallel" in kwargs["entries"]

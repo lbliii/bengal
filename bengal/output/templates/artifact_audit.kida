@@ -1,0 +1,33 @@
+{#- Verdict-first generated artifact audit report. -#}
+{% from "_bengal.kida" import bengal_header %}
+{% from "_report_primitives.kida" import meter_row, issue_card %}
+{%- if ascii | default(false) -%}
+Bengal {{ title }}
+{%- else -%}
+{{ bengal_header(title) }}
+{%- endif %}
+{{ verdict }} - {{ detail }}
+{%- if output_dir | default(false) %}
+output  {{ output_dir | dim }}
+{%- endif %}
+
+{%- for meter in meters %}
+{{ meter_row(meter.glyph, meter.label, meter.padding, meter.bar, meter.value) }}
+{%- endfor %}
+
+{%- if findings %}
+Findings
+{%- for finding in findings %}
+{{ issue_card(finding.glyph, finding.display_code, finding.location, finding.message, finding.reference, finding.recommendation, ascii | default(false)) }}
+{%- endfor %}
+{%- if hidden_count %}
+{{ hidden_count }} more finding(s). Re-run with --focus {{ next_focus }} or --json.
+{%- endif %}
+{%- else %}
+No broken generated references found.
+{%- endif %}
+
+Next steps
+{%- for step in steps %}
+  {{ loop.index }}. {{ step }}
+{%- endfor %}

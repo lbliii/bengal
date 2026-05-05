@@ -1,0 +1,24 @@
+{#- Compact URL collision report for build/check output.
+
+    Variables:
+        collisions: list[{url, claimants: [{display_source, owner, priority}], count}]
+-#}
+{%- set count = collisions | length -%}
+{%- set mark = glyphs | default({}) -%}
+{%- set warn = mark.warning | default("▲") -%}
+{%- if count == 1 -%}
+{%- set first = collisions[0] -%}
+{{ warn | yellow }} {{ ("URL collision: " ~ first.url) | yellow | bold }}
+{%- else -%}
+{{ warn | yellow }} {{ ((count | string) ~ " URL collisions detected") | yellow | bold }}
+{%- endif -%}
+{%- for collision in collisions %}
+{%- if count > 1 %}
+   {{ collision.url | bold }} {{ ("(" ~ (collision.count | string) ~ " claimants)") | dim }}
+{%- endif %}
+   {{ "Claimants" | dim }}
+{%- for claimant in collision.claimants %}
+   {{ loop.index }}. {{ claimant.display_source }}{% if claimant.owner %} {{ ("(" ~ claimant.owner ~ ", priority " ~ (claimant.priority | string) ~ ")") | dim }}{% endif %}
+{%- endfor %}
+{%- endfor %}
+   {{ "Fix:" | bold }} Give one page a unique slug, permalink, or output namespace.

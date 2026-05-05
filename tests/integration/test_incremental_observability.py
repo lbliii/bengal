@@ -258,7 +258,7 @@ class TestExplainJson:
 
         # Capture render_write call via mock CLI
         mock_cli = MagicMock()
-        with patch("bengal.cli.utils.get_cli_output", return_value=mock_cli):
+        with patch("bengal.output.get_cli_output", return_value=mock_cli):
             _print_explain_json(stats, dry_run=False)
 
         # Extract the JSON data passed to render_write
@@ -297,7 +297,7 @@ class TestExplainJson:
 
         # Capture render_write call via mock CLI
         mock_cli = MagicMock()
-        with patch("bengal.cli.utils.get_cli_output", return_value=mock_cli):
+        with patch("bengal.output.get_cli_output", return_value=mock_cli):
             _print_explain_json(stats, dry_run=False)
 
         call_kwargs = mock_cli.render_write.call_args

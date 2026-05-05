@@ -159,7 +159,7 @@ class TestValidateTemplatesFunction:
     @pytest.fixture(autouse=True)
     def _reset_cli_output(self):
         """Reset global CLI output to ensure non-quiet state for capture tests."""
-        from bengal.cli.utils.output import reset_cli_output
+        from bengal.output import reset_cli_output
 
         reset_cli_output()
         yield

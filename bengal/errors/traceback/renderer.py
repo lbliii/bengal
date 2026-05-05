@@ -58,7 +58,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from bengal.errors.handlers import get_context_aware_help
-from bengal.output import CLIOutput
+from bengal.output import get_cli_output
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -121,7 +121,7 @@ class CompactTracebackRenderer(TracebackRenderer):
 
     def display_exception(self, error: BaseException) -> None:
         # Show a concise summary with last few frames (user code focus)
-        cli = CLIOutput()
+        cli = get_cli_output()
         tb = error.__traceback__
         frames = _traceback.extract_tb(tb)
         # Keep last up to 3 frames
@@ -159,7 +159,7 @@ class MinimalTracebackRenderer(TracebackRenderer):
 
     def display_exception(self, error: BaseException) -> None:
         # Only show type, message, and error location (last frame)
-        cli = CLIOutput()
+        cli = get_cli_output()
         tb = error.__traceback__
         last = _traceback.extract_tb(tb)[-1] if tb else None
         location = f" at {last.filename}:{last.lineno}" if last else ""

@@ -7,6 +7,128 @@ from typing import Annotated
 from milo import Description
 
 
+def _check_display_context(
+    report,
+    *,
+    focus: str = "",
+    style: str = "dense",
+    limit: int = 10,
+    verbose: bool = False,
+    suggestions: bool = False,
+) -> dict:
+    """Build template context for source health check output."""
+    from bengal.cli.milo_commands._reports import bar, palette
+
+    glyphs = palette(style)
+    envelope = report.format_envelope(command="check")
+    raw_findings = envelope["findings"]
+    filtered = [
+        finding
+        for finding in raw_findings
+        if (verbose or finding["severity"] != "info")
+        and (suggestions or finding["severity"] != "suggestion")
+    ]
+    findings = []
+    for index, finding in enumerate(filtered, 1):
+        code = finding.get("code") or "CHK"
+        details = finding.get("details") or []
+        severity = finding["severity"]
+        display_code = f"{code}-{index:03d}"
+        findings.append(
+            {
+                **finding,
+                "display_code": display_code,
+                "glyph": glyphs.get(severity, glyphs["warning"]),
+                "location": details[0] if details else finding.get("validator", "health"),
+                "target": details[1] if len(details) > 1 else finding.get("validator", "health"),
+                "recommendation": finding.get("recommendation")
+                or "Review the source health finding.",
+            }
+        )
+
+    total_findings = len(findings)
+    actionable_count = sum(
+        1 for finding in findings if finding["severity"] in {"error", "warning", "suggestion"}
+    )
+    visible = findings if limit <= 0 else findings[:limit]
+    hidden_count = 0 if limit <= 0 else max(0, total_findings - len(visible))
+    focus_value = focus.strip().lower()
+    focused = None
+    if focus_value:
+        focused = next(
+            (
+                item
+                for item in findings
+                if item["display_code"].lower() == focus_value
+                or str(item.get("code") or "").lower() == focus_value
+            ),
+            None,
+        )
+
+    summary = envelope["summary"]
+    errors = int(summary.get("errors", 0))
+    warnings = int(summary.get("warnings", 0))
+    suggestion_count = int(summary.get("suggestions", 0))
+    total_checks = max(int(summary.get("total_checks", 0)), errors + warnings + suggestion_count, 1)
+    if errors:
+        verdict = "Validation failed"
+    elif warnings:
+        verdict = "Validation passed with warnings"
+    else:
+        verdict = "Validation passed"
+    if actionable_count or total_findings:
+        detail = f"{errors} error(s), {warnings} warning(s), {suggestion_count} suggestion(s)"
+    else:
+        detail = f"{summary.get('passed', 0)} check(s) passed"
+    steps = (
+        [
+            "Re-run with --suggestions for actionable fixes.",
+            "Use --focus CODE to inspect one finding.",
+            "Fix source content or config, then re-run `bengal check`.",
+        ]
+        if actionable_count
+        else ["Source content and configuration passed health checks."]
+    )
+    return {
+        "title": "Health Check",
+        "ascii": style in {"ascii", "ci"},
+        "verdict": verdict,
+        "detail": detail,
+        "findings": visible,
+        "finding_heading": "Findings" if actionable_count else "Details",
+        "focused_finding": focused,
+        "focus": focus,
+        "hidden_count": hidden_count,
+        "next_focus": findings[len(visible)]["display_code"] if hidden_count else "",
+        "meters": [
+            {
+                "glyph": glyphs["error"] if errors else glyphs["ok"],
+                "label": "errors",
+                "padding": " " * 9,
+                "bar": bar(errors, total_checks, fill=glyphs["fill"], empty=glyphs["empty"]),
+                "value": errors,
+            },
+            {
+                "glyph": glyphs["warning"] if warnings else glyphs["ok"],
+                "label": "warnings",
+                "padding": " " * 7,
+                "bar": bar(warnings, total_checks, fill=glyphs["fill"], empty=glyphs["empty"]),
+                "value": warnings,
+            },
+            {
+                "glyph": glyphs["suggestion"] if suggestion_count else glyphs["ok"],
+                "label": "suggestions",
+                "padding": " " * 4,
+                "bar": bar(
+                    suggestion_count, total_checks, fill=glyphs["fill"], empty=glyphs["empty"]
+                ),
+                "value": suggestion_count,
+            },
+        ],
+        "steps": steps,
+    }
+
+
 def check(
     source: Annotated[str, Description("Source directory path")] = "",
     file: Annotated[str, Description("Validate specific file(s), comma-separated")] = "",
@@ -30,6 +152,9 @@ def check(
     ] = False,
     templates_pattern: Annotated[str, Description("Glob pattern for templates")] = "",
     fix: Annotated[bool, Description("Show migration hints for template errors")] = False,
+    focus: Annotated[str, Description("Show one health finding by code, e.g. H101-001")] = "",
+    style: Annotated[str, Description("Output style: dense, ascii, or ci")] = "dense",
+    limit: Annotated[int, Description("Maximum findings to show in human output (0 = all)")] = 10,
 ) -> dict:
     """Validate site health and content quality.
 
@@ -38,8 +163,9 @@ def check(
     """
     from pathlib import Path
 
-    from bengal.cli.utils import configure_traceback, get_cli_output, load_site_from_cli
+    from bengal.cli.utils import configure_traceback, load_site_from_cli
     from bengal.health import HealthCheck
+    from bengal.output import get_cli_output
     from bengal.utils.observability.profile import BuildProfile
 
     source = source or "."
@@ -61,106 +187,129 @@ def check(
                 files.append(Path(f))
 
     cli = get_cli_output()
-    configure_traceback(debug=False, traceback=traceback_val, site=None)
+    if style not in {"dense", "ascii", "ci"}:
+        cli.error(f"--style must be one of dense, ascii, or ci (got: {style!r})")
+        cli.tip("Use --style ci for stable ASCII-safe output in automation logs.")
+        raise SystemExit(2)
+    if limit < 0:
+        cli.error("--limit must be zero or greater")
+        cli.tip("Use --limit 0 to show all findings.")
+        raise SystemExit(2)
 
-    cli.header("Health Check Validation")
+    with cli.output_mode(style):
+        configure_traceback(debug=False, traceback=traceback_val, site=None)
 
-    build_profile = BuildProfile.from_string(profile_val) if profile_val else BuildProfile.WRITER
+        if style in {"ascii", "ci"}:
+            cli.raw("Bengal Health Check Validation", level=None)
+            cli.blank()
+        else:
+            cli.header("Health Check Validation")
 
-    site = load_site_from_cli(
-        source=source, config=None, environment=None, profile=build_profile, cli=cli
-    )
+        build_profile = (
+            BuildProfile.from_string(profile_val) if profile_val else BuildProfile.WRITER
+        )
 
-    configure_traceback(debug=False, traceback=traceback_val, site=site)
+        site = load_site_from_cli(
+            source=source, config=None, environment=None, profile=build_profile, cli=cli
+        )
 
-    site.discover_content()
-    site.discover_assets()
+        configure_traceback(debug=False, traceback=traceback_val, site=site)
 
-    cli.success(f"Loaded {len(site.pages)} pages")
+        site.discover_content()
+        site.discover_assets()
 
-    if templates or templates_context:
-        _validate_templates(site, templates_pattern_val, fix, cli, templates, templates_context)
-        return {"status": "ok", "message": "Template validation complete"}
+        cli.success(f"Loaded {len(site.pages)} pages")
 
-    context: list[Path] | None = None
-    cache = None
+        if templates or templates_context:
+            _validate_templates(site, templates_pattern_val, fix, cli, templates, templates_context)
+            return {"status": "ok", "message": "Template validation complete"}
 
-    if files:
-        context = files
-    elif changed:
-        from bengal.cache import BuildCache
+        context: list[Path] | None = None
+        cache = None
 
-        cache = BuildCache.load(site.config_service.paths.build_cache)
-        context = []
-        for page in site.pages:
-            if page.source_path and cache.is_changed(page.source_path):
-                context.append(page.source_path)
+        if files:
+            context = files
+        elif changed:
+            from bengal.cache import BuildCache
 
-        if not context:
-            cli.info("No changed files found - all files are up to date")
-            return {
-                "status": "skipped",
-                "message": "No changed files found",
-                "errors": 0,
-                "warnings": 0,
-            }
-        cli.info(f"Found {len(context)} changed file(s)")
+            cache = BuildCache.load(site.config_service.paths.build_cache)
+            context = []
+            for page in site.pages:
+                if page.source_path and cache.is_changed(page.source_path):
+                    context.append(page.source_path)
 
-    if (incremental or changed) and cache is None:
-        from bengal.cache import BuildCache
+            if not context:
+                cli.info("No changed files found - all files are up to date")
+                return {
+                    "status": "skipped",
+                    "message": "No changed files found",
+                    "errors": 0,
+                    "warnings": 0,
+                }
+            cli.info(f"Found {len(context)} changed file(s)")
 
-        cache = BuildCache.load(site.config_service.paths.build_cache)
+        if (incremental or changed) and cache is None:
+            from bengal.cache import BuildCache
 
-    cli.blank()
-    health_check = HealthCheck(site)
+            cache = BuildCache.load(site.config_service.paths.build_cache)
 
-    report = health_check.run(
-        profile=build_profile,
-        verbose=verbose,
-        incremental=incremental or changed,
-        context=context,
-        cache=cache,
-        ignore_codes=ignore_codes,
-    )
+        cli.blank()
+        health_check = HealthCheck(site)
 
-    cli.blank()
-    cli.render_write(
-        "validation_report.kida",
-        **report.format_validation_report(verbose=verbose, show_suggestions=suggestions),
-    )
+        report = health_check.run(
+            profile=build_profile,
+            verbose=verbose,
+            incremental=incremental or changed,
+            context=context,
+            cache=cache,
+            ignore_codes=ignore_codes,
+        )
 
-    if watch:
-        _run_watch_mode(
-            site=site,
-            build_profile=build_profile,
+        cli.blank()
+        report_context = _check_display_context(
+            report,
+            focus=focus,
+            style=style,
+            limit=limit,
             verbose=verbose,
             suggestions=suggestions,
-            incremental=incremental or changed,
-            cli=cli,
         )
-        return {"status": "ok", "message": "Watch mode ended"}
+        if focus:
+            focused = report_context["focused_finding"]
+            if focused is None:
+                cli.error(f"Health finding not found: {focus}")
+                cli.tip("Use a finding code from `bengal check`, such as H101-001.")
+                raise SystemExit(2)
+            cli.render_write("check_report_focus.kida", **{**report_context, "finding": focused})
+        else:
+            cli.render_write("check_report.kida", **report_context)
 
-    errors = report.total_errors if hasattr(report, "total_errors") else 0
-    warnings = report.total_warnings if hasattr(report, "total_warnings") else 0
+        if watch:
+            _run_watch_mode(
+                site=site,
+                build_profile=build_profile,
+                verbose=verbose,
+                suggestions=suggestions,
+                incremental=incremental or changed,
+                cli=cli,
+            )
+            return {"status": "ok", "message": "Watch mode ended"}
 
-    if report.has_errors():
-        cli.error(f"Validation failed: {errors} error(s) found")
-        cli.tip("Re-run with --suggestions for actionable fixes, or --verbose for full context.")
-        raise SystemExit(1)
-    if report.has_warnings():
-        cli.warning(f"Validation completed with {warnings} warning(s)")
-    else:
-        cli.success("Validation passed - no issues found")
+        errors = report.total_errors if hasattr(report, "total_errors") else 0
+        warnings = report.total_warnings if hasattr(report, "total_warnings") else 0
 
-    return {
-        "status": "ok" if not report.has_errors() else "error",
-        "message": "Validation passed"
-        if not report.has_errors()
-        else f"Validation failed: {errors} error(s)",
-        "errors": errors,
-        "warnings": warnings,
-        "passed": not report.has_errors(),
-    }
+        if report.has_errors():
+            raise SystemExit(1)
+
+        return {
+            "status": "ok" if not report.has_errors() else "error",
+            "message": "Validation passed"
+            if not report.has_errors()
+            else f"Validation failed: {errors} error(s)",
+            "errors": errors,
+            "warnings": warnings,
+            "passed": not report.has_errors(),
+        }
 
 
 def _run_watch_mode(site, build_profile, verbose, suggestions, incremental, cli):

@@ -179,7 +179,7 @@ class TestGlobalCLIOutput:
 
     def test_cli_utils_and_output_share_singleton(self):
         """CLI utility imports should use the output package singleton."""
-        from bengal.cli.utils.output import get_cli_output as get_cli_output_from_utils
+        from bengal.output import get_cli_output as get_cli_output_from_utils
 
         cli1 = init_cli_output(quiet=True)
         cli2 = get_cli_output_from_utils()
@@ -189,7 +189,7 @@ class TestGlobalCLIOutput:
 
     def test_cli_utils_reset_clears_output_singleton(self):
         """Resetting through the CLI utility path should clear the shared singleton."""
-        from bengal.cli.utils.output import reset_cli_output as reset_cli_output_from_utils
+        from bengal.output import reset_cli_output as reset_cli_output_from_utils
 
         cli1 = init_cli_output()
         reset_cli_output_from_utils()

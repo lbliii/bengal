@@ -150,8 +150,10 @@ class PythonExtractor(Extractor):
             prefix_map = grouping.get("prefix_map", {})
             return {"mode": "explicit", "prefix_map": prefix_map}
 
-        # Unknown mode - log warning and use off
-        print(f"⚠️  Warning: Unknown grouping mode: {mode}, using 'off'")
+        # Unknown mode - warn and use off.
+        from bengal.output import get_cli_output
+
+        get_cli_output().warning(f"Unknown grouping mode: {mode}, using 'off'")
         return {"mode": "off", "prefix_map": {}}
 
     def _should_use_parallel(self, file_count: int) -> bool:

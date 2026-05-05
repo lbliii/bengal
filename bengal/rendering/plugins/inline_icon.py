@@ -22,8 +22,8 @@ import threading
 from html import escape as html_escape
 from typing import Any
 
-from bengal.errors import ErrorCode
 from bengal.icons import resolver as icon_resolver
+from bengal.icons.svg import warn_missing_icon
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -157,14 +157,7 @@ class InlineIconPlugin:
             with _warned_lock:
                 if name not in _warned_icons:
                     _warned_icons.add(name)
-                    logger.warning(
-                        "icon_not_found",
-                        icon=name,
-                        error_code=ErrorCode.T010.value,
-                        searched=[str(p) for p in icon_resolver.get_search_paths()],
-                        suggestion="Check icon name spelling. Run 'bengal icons list' to see available icons.",
-                        hint=f"Add to theme: themes/{{theme}}/assets/icons/{name}.svg",
-                    )
+                    warn_missing_icon(name, directive="inline-icon")
             # Escape name to prevent XSS in title attribute
             return f'<span class="bengal-icon bengal-icon--missing" title="Icon not found: {html_escape(name)}">❓</span>'
 

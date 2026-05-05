@@ -60,7 +60,7 @@ def handle_cli_errors[F: Callable[..., Any]](
             except Exception as e:
                 # Delegate to consolidated error handling
                 from bengal.cli.utils.errors import handle_exception
-                from bengal.cli.utils.output import get_cli_output
+                from bengal.output import get_cli_output
 
                 cli = get_cli_output()
                 handle_exception(
@@ -107,7 +107,7 @@ def cli_error_context(
     except Exception as e:
         # Delegate to consolidated error handling
         from bengal.cli.utils.errors import handle_exception
-        from bengal.cli.utils.output import get_cli_output
+        from bengal.output import get_cli_output
 
         cli = get_cli_output()
         handle_exception(

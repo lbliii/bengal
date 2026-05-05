@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.health.results import compact_successes
 from bengal.health.utils import get_section_pages
 from bengal.utils.observability.logger import get_logger
 
@@ -65,7 +66,12 @@ class NavigationValidator(BaseValidator):
         # Check 6: Output path completeness (NEW - critical for URLs)
         results.extend(self._check_output_path_completeness(site))
 
-        return results
+        success_count = sum(1 for result in results if result.status.value == "success")
+        return compact_successes(
+            results,
+            f"{success_count} navigation checks passed",
+            metadata_key="navigation_checks",
+        )
 
     def _check_next_prev_chains(self, site: SiteLike) -> list[CheckResult]:
         """Check that next/prev links form valid chains."""

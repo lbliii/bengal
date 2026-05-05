@@ -38,6 +38,7 @@ if not icon_html:
 from __future__ import annotations
 
 import re
+import threading
 
 from bengal.icons import resolver as icon_resolver
 from bengal.utils.observability.logger import get_logger
@@ -46,6 +47,7 @@ from bengal.utils.primitives.lru_cache import LRUCache
 __all__ = [
     "ICON_MAP",
     "clear_icon_cache",
+    "flush_missing_icon_warnings",
     "get_available_icons",
     "get_icon_svg",
     "icon_exists",
@@ -60,6 +62,8 @@ logger = get_logger(__name__)
 _RE_WIDTH_HEIGHT = re.compile(r'\s+(width|height)="[^"]*"')
 _RE_CLASS = re.compile(r'\s+class="[^"]*"')
 _RE_SVG_TAG = re.compile(r"<svg\s")
+_missing_icon_lock = threading.Lock()
+_missing_icon_warnings: dict[str, dict[str, object]] = {}
 
 # Thread-safe LRU cache for SVG icon rendering (replaces @lru_cache for free-threading)
 _svg_icon_cache: LRUCache[tuple[str, int, str, str], str] = LRUCache(maxsize=512, name="svg_icon")
@@ -321,6 +325,8 @@ def clear_icon_cache() -> None:
     """
     icon_resolver.clear_cache()
     _svg_icon_cache.clear()
+    with _missing_icon_lock:
+        _missing_icon_warnings.clear()
 
 
 # =============================================================================
@@ -380,14 +386,58 @@ def warn_missing_icon(
         # Logs: icon_not_found icon=bad-icon directive=dropdown context=My Section
 
     """
+    if not icon_name:
+        return
+
+    with _missing_icon_lock:
+        entry = _missing_icon_warnings.setdefault(
+            icon_name,
+            {
+                "icon": icon_name,
+                "directives": set(),
+                "contexts": [],
+            },
+        )
+        directives = entry["directives"]
+        if isinstance(directives, set):
+            directives.add(directive or "unknown")
+
+        contexts = entry["contexts"]
+        if isinstance(contexts, list) and context and context not in contexts and len(contexts) < 3:
+            contexts.append(context)
+
+
+def flush_missing_icon_warnings() -> int:
+    """Emit one compact warning for missing icons recorded during rendering."""
+    with _missing_icon_lock:
+        entries = list(_missing_icon_warnings.values())
+        _missing_icon_warnings.clear()
+
+    if not entries:
+        return 0
+
+    icons = sorted(str(entry["icon"]) for entry in entries)
+    samples = icons[:12]
+    icons_text = ", ".join(samples)
+    hidden = len(icons) - len(samples)
+    if hidden > 0:
+        icons_text += f", +{hidden} more"
+
+    if len(icons) == 1:
+        hint = f"Add to theme: themes/{{theme}}/assets/icons/{icons[0]}.svg"
+    else:
+        hint = "Add missing SVGs under themes/{theme}/assets/icons/<name>.svg."
+
     logger.warning(
-        "icon_not_found",
-        icon=icon_name,
-        directive=directive or "unknown",
-        context=context or "",
+        "icon_not_found_summary",
+        count=len(icons),
+        plural="" if len(icons) == 1 else "s",
+        icons=icons_text,
         searched=[str(p) for p in icon_resolver.get_search_paths()],
-        hint=f"Add to theme: themes/{{theme}}/assets/icons/{icon_name}.svg",
+        suggestion="Check icon name spelling or run 'bengal icons list' to see available icons.",
+        hint=hint,
     )
+    return len(icons)
 
 
 def get_available_icons() -> list[str]:

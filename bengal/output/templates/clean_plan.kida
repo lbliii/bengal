@@ -1,0 +1,10 @@
+{#- Clean command preflight. -#}
+{{ brand_mark | fg("#FF9D00") | bold }} {{ title | bold }}
+
+{{ "Targets" | yellow | bold }}
+{{ targets_text }}
+{%- if cold_build %}
+
+{{ "Impact" | yellow | bold }}
+  {{ "▲" | yellow }} Complete rebuild required next time.
+{%- endif %}

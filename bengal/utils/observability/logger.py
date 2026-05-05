@@ -34,6 +34,57 @@ from typing import TYPE_CHECKING, Any, TextIO, TypedDict, cast
 if TYPE_CHECKING:
     from pathlib import Path
 
+_ASCII_REPLACEMENTS = {
+    "✓": "v",
+    "✗": "x",
+    "✖": "x",
+    "▲": "!",
+    "◆": "^",
+    "│": "|",
+    "├": "+",
+    "└": "`",
+    "─": "-",
+    "╭": "+",
+    "╮": "+",
+    "╰": "+",
+    "╯": "+",
+    "→": ">",
+    "↪": ">",
+    "•": "*",
+    "·": ".",
+    "…": "...",
+    "—": "-",
+    "–": "-",
+    "“": '"',
+    "”": '"',
+    "‘": "'",
+    "’": "'",
+    "🚀": "++",
+    "⚡": "+",
+    "📊": "~",
+    "🐌": "-",
+}
+
+
+def _plain_ascii(text: str) -> str:
+    for old, new in _ASCII_REPLACEMENTS.items():
+        text = text.replace(old, new)
+    return text.encode("ascii", "replace").decode("ascii")
+
+
+def _write_cli_terminal(text: str) -> None:
+    """Write logger-owned terminal text through the shared CLI bridge."""
+    from bengal.output.globals import get_cli_output
+
+    get_cli_output().raw(text, level=None, end="")
+
+
+def _render_cli_template(template_name: str, **context: Any) -> None:
+    """Render logger-owned terminal reports through Bengal's Kida bridge."""
+    from bengal.output.globals import get_cli_output
+
+    get_cli_output().render_write(template_name, **context)
+
 
 class LogLevel(Enum):
     """Log levels in order of severity."""
@@ -69,7 +120,7 @@ class LogEvent:
         """Format for console output using ANSI codes."""
         import os
 
-        if os.environ.get("NO_COLOR"):
+        if os.environ.get("NO_COLOR") or os.environ.get("BENGAL_CLI_NO_COLOR"):
             use_color = False
 
         indent = "  " * self.phase_depth
@@ -92,6 +143,16 @@ class LogEvent:
             "ERROR": "x",
             "CRITICAL": "x",
         }
+
+        plain_ascii = os.environ.get("BENGAL_CLI_ASCII") == "1"
+        if plain_ascii:
+            _ICONS = {
+                "DEBUG": ".",
+                "INFO": ".",
+                "WARNING": "!",
+                "ERROR": "x",
+                "CRITICAL": "x",
+            }
 
         color = _COLORS.get(self.level, "") if use_color else ""
         reset = _RESET if use_color else ""
@@ -135,6 +196,9 @@ class LogEvent:
             time_str = self.timestamp.split("T")[1].split(".")[0]
             base = f"{dim}{time_str}{reset} {base}"
 
+        if plain_ascii:
+            base = _plain_ascii(base)
+
         return base
 
     def _format_message(self) -> str:
@@ -146,9 +210,12 @@ class LogEvent:
         _MESSAGES: dict[str, str] = {
             "subdirectory_site_detected": "Using subdirectory '{subdirectory}/' (Bengal site with content)",
             "icon_not_found": "Icon not found: {icon}",
+            "icon_not_found_summary": "{count} missing icon{plural}: {icons}",
+            "unknown_config_summary": "{count} unknown config entr{plural}: {entries}",
             "found_broken_links": "{total_broken} broken internal link(s) across {pages_affected} page(s)",
             "url_collision": "URL collision: {url}",
             "url_collision_detected": "URL collision: {url}",
+            "url_collision_summary": "{count} URL collision(s): {urls}",
         }
 
         template = _MESSAGES.get(msg)
@@ -487,8 +554,6 @@ class BengalLogger:
         )
 
         if show_console:
-            import sys
-
             formatted = event.format_console(verbose=self.verbose)
             line = formatted + "\n"
             # Synchronize with flush_deferred_output() so we cannot append
@@ -498,8 +563,7 @@ class BengalLogger:
                 if buf is not None:
                     buf.append(line)
                 else:
-                    sys.stdout.write(line)
-                    sys.stdout.flush()
+                    _write_cli_terminal(line)
 
         # Output to file (JSON format)
         if self._file_handle:
@@ -551,18 +615,29 @@ class BengalLogger:
         if not timings:
             return
 
-        print("\n" + "=" * 60)
-        print("Build Phase Timings:")
-        print("=" * 60)
-
         total = sum(timings.values())
+        longest_phase = max((len(phase) for phase in timings), default=0)
+        rows = []
         for phase, duration in sorted(timings.items(), key=lambda x: x[1], reverse=True):
             percentage = (duration / total * 100) if total > 0 else 0
-            print(f"  {phase:30s} {duration:8.1f}ms ({percentage:5.1f}%)")
+            rows.append(
+                {
+                    "phase": phase,
+                    "padding": "." * max(2, longest_phase - len(phase) + 2),
+                    "duration": f"{duration:.1f}ms",
+                    "percent": f"{percentage:.1f}%",
+                    "memory_delta": "",
+                    "peak_memory": "",
+                }
+            )
 
-        print("-" * 60)
-        print(f"  {'TOTAL':30s} {total:8.1f}ms (100.0%)")
-        print("=" * 60)
+        _render_cli_template(
+            "phase_summary.kida",
+            title="Build Phase Timings",
+            rows=rows,
+            total_duration=f"{total:.1f}ms",
+            show_memory=False,
+        )
 
     def close(self) -> None:
         """Close log file handle."""
@@ -855,10 +930,7 @@ def flush_deferred_output() -> None:
         buf = _deferred_console
         _deferred_console = None
     if buf:
-        import sys
-
-        sys.stdout.write("".join(buf))
-        sys.stdout.flush()
+        _write_cli_terminal("".join(buf))
 
 
 def close_all_loggers() -> None:
@@ -919,30 +991,38 @@ def print_all_summaries() -> None:
     if not timings:
         return
 
-    print("\n" + "=" * 70)
-    print("Build Phase Performance:")
-    print("=" * 70)
-
     total_time = sum(timings.values())
+    longest_phase = max((len(phase) for phase in timings), default=0)
+    rows = []
     for phase in sorted(timings.keys(), key=lambda x: timings[x], reverse=True):
         duration = timings[phase]
         percentage = (duration / total_time * 100) if total_time > 0 else 0
 
-        line = f"  {phase:25s} {duration:8.1f}ms ({percentage:5.1f}%)"
-
+        row = {
+            "phase": phase,
+            "padding": "." * max(2, longest_phase - len(phase) + 2),
+            "duration": f"{duration:.1f}ms",
+            "percent": f"{percentage:.1f}%",
+            "memory_delta": "",
+            "peak_memory": "",
+        }
         if phase in memory_deltas:
             mem_delta = memory_deltas[phase]
-            line += f"  Δ{mem_delta:+7.1f}MB"
+            row["memory_delta"] = f"{mem_delta:+.1f}MB"
         if phase in peak_memories:
             peak = peak_memories[phase]
-            line += f"  peak:{peak:7.1f}MB"
+            row["peak_memory"] = f"peak:{peak:.1f}MB"
+        rows.append(row)
 
-        print(line)
-
-    print("-" * 70)
-    total_line = f"  {'TOTAL':25s} {total_time:8.1f}ms (100.0%)"
+    total_memory_delta = ""
     if memory_deltas:
         total_mem = sum(memory_deltas.values())
-        total_line += f"  Δ{total_mem:+7.1f}MB"
-    print(total_line)
-    print("=" * 70)
+        total_memory_delta = f"{total_mem:+.1f}MB"
+    _render_cli_template(
+        "phase_summary.kida",
+        title="Build Phase Performance",
+        rows=rows,
+        total_duration=f"{total_time:.1f}ms",
+        total_memory_delta=total_memory_delta,
+        show_memory=bool(memory_deltas or peak_memories),
+    )

@@ -1,0 +1,18 @@
+{#- Build phase timing/performance summary.
+
+    Usage:
+        cli.render_write("phase_summary.kida", title="Build Phase Performance", rows=rows)
+
+    Variables:
+        title: Report heading
+        rows: list[{phase, padding, duration, percent, memory_delta, peak_memory}]
+        total_duration: formatted total duration
+        total_memory_delta: optional formatted memory delta
+        show_memory: bool
+-#}
+{% from "_bengal.kida" import bengal_header %}
+{{ bengal_header(title, mascot=false) }}
+{% for row in rows -%}
+{{ row.phase }}{{ row.padding | dim }} {{ row.duration | fg("#F1C40F") | bold }} {{ ("(" ~ row.percent ~ ")") | dim }}{% if show_memory and row.memory_delta %} {{ row.memory_delta | dim }}{% endif %}{% if show_memory and row.peak_memory %} {{ row.peak_memory | dim }}{% endif %}
+{% endfor -%}
+{{ "TOTAL" | bold }}{{ ".." | dim }} {{ total_duration | fg("#F1C40F") | bold }} {{ "(100.0%)" | dim }}{% if show_memory and total_memory_delta | default(false) %} {{ total_memory_delta | dim }}{% endif %}

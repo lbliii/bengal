@@ -17,7 +17,7 @@ def upgrade(
     from bengal import __version__
     from bengal.cli.helpers.upgrade_check import fetch_latest_version
     from bengal.cli.helpers.upgrade_installers import detect_installer
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
 
     cli = get_cli_output()
 

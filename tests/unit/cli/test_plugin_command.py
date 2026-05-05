@@ -29,13 +29,25 @@ class FakeCLI:
 def test_plugin_list_reports_no_plugins(monkeypatch) -> None:
     cli = FakeCLI()
     monkeypatch.setattr(plugin_command, "_load_reports", list)
-    monkeypatch.setattr("bengal.cli.utils.get_cli_output", lambda: cli)
+    monkeypatch.setattr("bengal.output.get_cli_output", lambda: cli)
 
     result = plugin_command.plugin_list()
 
     assert result == {"plugins": [], "count": 0}
-    assert cli.infos == ["No Bengal plugins discovered"]
-    assert cli.renders == []
+    assert cli.infos == []
+    assert cli.renders == [
+        (
+            "command_empty.kida",
+            {
+                "title": "Bengal Plugins",
+                "message": "No Bengal plugins discovered.",
+                "steps": [
+                    "Install a package that exposes the bengal.plugins entry point.",
+                    "Run `bengal plugin validate` after installing or editing a plugin.",
+                ],
+            },
+        )
+    ]
 
 
 def test_plugin_validate_fails_on_pending_capability(monkeypatch) -> None:
@@ -49,7 +61,7 @@ def test_plugin_validate_fails_on_pending_capability(monkeypatch) -> None:
         capabilities={"directives": 1},
     )
     monkeypatch.setattr(plugin_command, "_load_reports", lambda: [report])
-    monkeypatch.setattr("bengal.cli.utils.get_cli_output", lambda: cli)
+    monkeypatch.setattr("bengal.output.get_cli_output", lambda: cli)
 
     with pytest.raises(SystemExit):
         plugin_command.plugin_validate()

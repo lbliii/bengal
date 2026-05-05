@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.output import CLIOutput
+from bengal.output import get_cli_output
 
 if TYPE_CHECKING:
     from bengal.orchestration.stats.models import BuildStats
@@ -23,7 +23,7 @@ def display_warnings(stats: BuildStats) -> None:
     if not stats.warnings:
         return
 
-    cli = CLIOutput()
+    cli = get_cli_output()
 
     type_names = {
         "jinja2": "Jinja2 Template Errors",

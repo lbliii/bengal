@@ -65,6 +65,7 @@ if TYPE_CHECKING:
     from bengal.config.accessor import Config
     from bengal.core.asset import Asset
     from bengal.core.menu import MenuBuilder, MenuItem
+    from bengal.core.url_collisions import URLCollisionRecord
     from bengal.orchestration.build.inputs import BuildInput
     from bengal.orchestration.build.options import BuildOptions
     from bengal.orchestration.build_state import BuildState
@@ -909,6 +910,16 @@ class Site:
     # VALIDATION — URL collisions and reference integrity
     # =========================================================================
 
+    def collect_url_collisions(self) -> list[URLCollisionRecord]:
+        """Return structured URL collision records for the current site graph."""
+        from bengal.core.url_collisions import collect_url_collision_records
+
+        return collect_url_collision_records(
+            self.pages,
+            root_path=self.root_path,
+            url_registry=self.url_registry if getattr(self, "url_registry", None) else None,
+        )
+
     def validate_no_url_collisions(self, *, strict: bool = False) -> list[str]:
         """
         Detect when multiple pages output to the same URL.
@@ -930,63 +941,22 @@ class Site:
         Raises:
             BengalContentError: If strict=True and collisions are detected.
         """
-        collisions: list[str] = []
+        from bengal.core.url_collisions import format_url_collision_text
 
-        if hasattr(self, "url_registry") and self.url_registry:
-            urls_seen: dict[str, str] = {}
+        records = self.collect_url_collisions()
+        collisions = [format_url_collision_text(record) for record in records]
 
-            for page in self.pages:
-                url = page._path
-                source = str(getattr(page, "source_path", page.title))
-
-                if url in urls_seen:
-                    claim = self.url_registry.get_claim(url)
-                    owner_info = f" ({claim.owner}, priority {claim.priority})" if claim else ""
-
-                    msg = (
-                        f"URL collision detected: {url}\n"
-                        f"  Already claimed by: {urls_seen[url]}{owner_info}\n"
-                        f"  Also claimed by: {source}\n"
-                        f"Tip: Check for duplicate slugs or conflicting autodoc output"
-                    )
-                    collisions.append(msg)
-
-                    emit_diagnostic(
-                        self,
-                        "warning",
-                        "url_collision",
-                        url=url,
-                        first_source=urls_seen[url],
-                        second_source=source,
-                    )
-                else:
-                    urls_seen[url] = source
-        else:
-            urls_seen = {}
-
-            for page in self.pages:
-                url = page._path
-                source = str(getattr(page, "source_path", page.title))
-
-                if url in urls_seen:
-                    msg = (
-                        f"URL collision detected: {url}\n"
-                        f"  Already claimed by: {urls_seen[url]}\n"
-                        f"  Also claimed by: {source}\n"
-                        f"Tip: Check for duplicate slugs or conflicting autodoc output"
-                    )
-                    collisions.append(msg)
-
-                    emit_diagnostic(
-                        self,
-                        "warning",
-                        "url_collision",
-                        url=url,
-                        first_source=urls_seen[url],
-                        second_source=source,
-                    )
-                else:
-                    urls_seen[url] = source
+        for record in records:
+            sources = [claimant.source for claimant in record.claimants]
+            emit_diagnostic(
+                self,
+                "warning",
+                "url_collision",
+                url=record.url,
+                first_source=sources[0] if sources else "",
+                second_source=sources[1] if len(sources) > 1 else "",
+                sources=sources,
+            )
 
         if collisions and strict:
             from bengal.errors import BengalContentError, ErrorCode

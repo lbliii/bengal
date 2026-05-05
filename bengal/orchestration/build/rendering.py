@@ -805,7 +805,7 @@ def phase_track_assets(
     with orchestrator.logger.phase("track_assets", enabled=True):
         start = time.perf_counter()
         status = "Done"
-        icon = "✓"
+        icon = cli.icons.success if cli is not None else "v"
         details = f"{len(pages_to_build)} pages"
 
         try:
@@ -833,7 +833,7 @@ def phase_track_assets(
             )
         except Exception as e:
             status = "Error"
-            icon = "✗"
+            icon = cli.icons.error if cli is not None else "x"
             details = "see logs"
             orchestrator.logger.warning("asset_tracking_failed", error=str(e))
         finally:

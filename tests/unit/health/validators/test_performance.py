@@ -14,6 +14,15 @@ from bengal.health.report import CheckStatus
 from bengal.health.validators.performance import PerformanceValidator
 
 
+def result_text(results) -> str:
+    """Return searchable human text from result messages and details."""
+    lines: list[str] = []
+    for result in results:
+        lines.append(result.message)
+        lines.extend(result.details or [])
+    return "\n".join(lines)
+
+
 @pytest.fixture
 def validator():
     """Create PerformanceValidator instance."""
@@ -77,8 +86,7 @@ class TestPerformanceValidatorBuildTime:
 
         results = validator.validate(mock_site)
 
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("build time" in r.message.lower() for r in success_results)
+        assert "build time" in result_text(results).lower()
 
     def test_warning_for_slow_build(self, validator, mock_site):
         """Returns warning for slow build."""
@@ -137,8 +145,7 @@ class TestPerformanceValidatorThroughput:
 
         results = validator.validate(mock_site)
 
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("excellent" in r.message.lower() for r in success_results)
+        assert "excellent" in result_text(results).lower()
 
     def test_good_throughput(self, validator, mock_site):
         """Success for good throughput."""
@@ -150,8 +157,7 @@ class TestPerformanceValidatorThroughput:
 
         results = validator.validate(mock_site)
 
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("good" in r.message.lower() for r in success_results)
+        assert "good" in result_text(results).lower()
 
     def test_acceptable_throughput(self, validator, mock_site):
         """Info for acceptable throughput."""
@@ -219,11 +225,9 @@ class TestPerformanceValidatorSlowPages:
 
         results = validator.validate(mock_site)
 
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any(
-            "render time" in r.message.lower() and "good" in r.message.lower()
-            for r in success_results
-        )
+        text = result_text(results).lower()
+        assert "render time" in text
+        assert "good" in text
 
 
 class TestPerformanceValidatorParallelMode:

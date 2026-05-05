@@ -264,14 +264,19 @@ class ConfigValidator:
                 Error messages are printed to the console before raising.
         """
         errors = []
+        unknown_entries: list[dict[str, str]] = []
 
         # 1. Validate top-level flat fields
-        errors.extend(self._validate_section(config))
+        errors.extend(self._validate_section(config, unknown_entries=unknown_entries))
 
         # 2. Validate nested sections
         for section in ("site", "build", "dev"):
             if section in config and isinstance(config[section], dict):
-                errors.extend(self._validate_section(config[section], prefix=section))
+                errors.extend(
+                    self._validate_section(
+                        config[section], prefix=section, unknown_entries=unknown_entries
+                    )
+                )
 
         # 3. Validate features (can be bool or dict)
         if "features" in config and isinstance(config["features"], dict):
@@ -280,15 +285,23 @@ class ConfigValidator:
 
             for key, value in features.items():
                 if key in BOOL_OR_DICT_KEYS and isinstance(value, dict):
-                    errors.extend(self._validate_section(value, prefix=f"features.{key}"))
+                    errors.extend(
+                        self._validate_section(
+                            value, prefix=f"features.{key}", unknown_entries=unknown_entries
+                        )
+                    )
 
-            errors.extend(self._validate_section(features, prefix="features"))
+            errors.extend(
+                self._validate_section(features, prefix="features", unknown_entries=unknown_entries)
+            )
 
         # 4. Validate assets
         if "assets" in config and isinstance(config["assets"], dict):
             assets = config["assets"]
             # Map assets.minify -> minify_assets for type checking
-            asset_errors = self._validate_section(assets, prefix="assets", is_assets=True)
+            asset_errors = self._validate_section(
+                assets, prefix="assets", is_assets=True, unknown_entries=unknown_entries
+            )
             errors.extend(asset_errors)
 
         # 5. Range validation (uses a flattened view for simplicity)
@@ -297,6 +310,8 @@ class ConfigValidator:
 
         # 6. Dependency validation
         errors.extend(self._validate_dependencies(flat_config))
+
+        self._log_unknown_config_summary(unknown_entries)
 
         if errors:
             self._print_errors(errors, source_file)
@@ -310,7 +325,11 @@ class ConfigValidator:
         return config
 
     def _validate_section(
-        self, section_dict: dict[str, Any], prefix: str = "", is_assets: bool = False
+        self,
+        section_dict: dict[str, Any],
+        prefix: str = "",
+        is_assets: bool = False,
+        unknown_entries: list[dict[str, str]] | None = None,
     ) -> list[str]:
         """Validate a single configuration section."""
         errors = []
@@ -385,17 +404,17 @@ class ConfigValidator:
                         key, self.KNOWN_SECTION_KEYS, n=1, cutoff=0.6
                     )
                     if matches:
-                        logger.warning(
-                            "unknown_config_section",
+                        self._record_unknown_config(
+                            unknown_entries,
+                            kind="section",
                             key=path,
                             suggestion=matches[0],
-                            hint=f"Unknown config section '{path}'. Did you mean '{matches[0]}'?",
                         )
                     else:
-                        logger.warning(
-                            "unknown_config_section",
+                        self._record_unknown_config(
+                            unknown_entries,
+                            kind="section",
                             key=path,
-                            hint=f"Unknown config section '{path}' — will be ignored.",
                         )
 
             elif not isinstance(value, dict) and key not in self.KNOWN_SECTION_KEYS:
@@ -403,20 +422,75 @@ class ConfigValidator:
                 path = f"{prefix}.{key}" if prefix else key
                 matches = difflib.get_close_matches(field_name, all_known_fields, n=1, cutoff=0.6)
                 if matches:
-                    logger.warning(
-                        "unknown_config_key",
+                    self._record_unknown_config(
+                        unknown_entries,
+                        kind="key",
                         key=path,
                         suggestion=matches[0],
-                        hint=f"Unknown config key '{path}'. Did you mean '{matches[0]}'?",
                     )
                 else:
-                    logger.warning(
-                        "unknown_config_key",
+                    self._record_unknown_config(
+                        unknown_entries,
+                        kind="key",
                         key=path,
-                        hint=f"Unknown config key '{path}' — will be ignored.",
                     )
 
         return errors
+
+    def _record_unknown_config(
+        self,
+        unknown_entries: list[dict[str, str]] | None,
+        *,
+        kind: str,
+        key: str,
+        suggestion: str = "",
+    ) -> None:
+        """Record or immediately emit an unknown config entry."""
+        if unknown_entries is None:
+            event = "unknown_config_section" if kind == "section" else "unknown_config_key"
+            if suggestion:
+                logger.warning(
+                    event,
+                    key=key,
+                    suggestion=suggestion,
+                    hint=f"Unknown config {kind} '{key}'. Did you mean '{suggestion}'?",
+                )
+            else:
+                logger.warning(
+                    event,
+                    key=key,
+                    hint=f"Unknown config {kind} '{key}' - will be ignored.",
+                )
+            return
+
+        unknown_entries.append({"kind": kind, "key": key, "suggestion": suggestion})
+
+    def _log_unknown_config_summary(self, entries: list[dict[str, str]]) -> None:
+        """Emit one compact warning for unknown config entries found in a pass."""
+        if not entries:
+            return
+
+        unique: dict[tuple[str, str], dict[str, str]] = {}
+        for entry in entries:
+            unique[(entry["kind"], entry["key"])] = entry
+
+        ordered = sorted(unique.values(), key=lambda item: (item["kind"], item["key"]))
+        samples = [
+            f"{entry['key']} -> {entry['suggestion']}" if entry.get("suggestion") else entry["key"]
+            for entry in ordered[:8]
+        ]
+        hidden = len(ordered) - len(samples)
+        entries_text = ", ".join(samples)
+        if hidden > 0:
+            entries_text += f", +{hidden} more"
+
+        logger.warning(
+            "unknown_config_summary",
+            count=len(ordered),
+            plural="y" if len(ordered) == 1 else "ies",
+            entries=entries_text,
+            hint="Rename suggested entries or remove unknown config keys; unknown entries are ignored.",
+        )
 
     def _flatten_config(self, config: dict[str, Any]) -> dict[str, Any]:
         """
@@ -561,14 +635,16 @@ class ConfigValidator:
             errors=errors,
         )
 
-        # Print for user visibility (part of CLI UX)
-        print(f"\n❌ Configuration validation failed{source_info}:")
-        print()
+        from bengal.output import get_cli_output
 
-        for i, error in enumerate(errors, 1):
-            print(f"  {i}. {error}")
-
-        print()
-        print("Please fix the configuration errors and try again.")
-        print("See documentation for valid configuration options.")
-        print()
+        get_cli_output().render_write(
+            "validation_report.kida",
+            title=f"Configuration validation failed{source_info}",
+            issues=[
+                {"level": "error", "message": error, "detail": f"{i}."}
+                for i, error in enumerate(errors, 1)
+            ],
+            summary={"errors": len(errors), "warnings": 0, "passed": 0},
+        )
+        get_cli_output().tip("Fix the configuration errors and try again.")
+        get_cli_output().tip("See documentation for valid configuration options.")

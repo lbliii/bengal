@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.health.results import compact_successes
 from bengal.health.utils import get_section_pages
 
 if TYPE_CHECKING:
@@ -56,7 +57,12 @@ class TaxonomyValidator(BaseValidator):
         # Check 4: Pagination integrity
         results.extend(self._check_pagination(site))
 
-        return results
+        success_count = sum(1 for result in results if result.status.value == "success")
+        return compact_successes(
+            results,
+            f"{success_count} taxonomy checks passed",
+            metadata_key="taxonomy_checks",
+        )
 
     def _check_tag_pages(self, site: SiteLike) -> list[CheckResult]:
         """Check that all tags have corresponding tag pages."""

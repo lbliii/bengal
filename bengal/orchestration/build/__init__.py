@@ -547,8 +547,14 @@ class BuildOrchestrator:
         # Phase 12.5: URL Collision Detection (proactive validation)
         collisions = self.site.validate_no_url_collisions(strict=options.strict)
         if collisions:
-            for msg in collisions:
-                logger.warning(msg, event="url_collision_detected")
+            collision_records = self.site.collect_url_collisions()
+            cli.render_write("url_collisions.kida", collisions=collision_records)
+            logger.warning(
+                "url_collision_summary",
+                count=len(collision_records),
+                urls=[record.url for record in collision_records],
+                _console=False,
+            )
 
         content_duration_ms = (time.time() - content_start) * 1000
         taxonomy_count = len(self.site.taxonomies) if hasattr(self.site, "taxonomies") else 0

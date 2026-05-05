@@ -334,4 +334,5 @@ URL collision detected: /about/
 ### See Also
 
 - `bengal/core/url_ownership.py` - URLRegistry implementation
+- `bengal/core/url_collisions.py` - Structured URL collision records used by health checks and CLI output
 - `bengal/config/url_policy.py` - Reserved namespace definitions

@@ -268,7 +268,7 @@ class TestResourceManagerCleanupContinuesOnError:
         rm.register("Failing", object(), failing_cleanup)
 
         mock_cli = MagicMock()
-        with patch("bengal.server.resource_manager.CLIOutput", return_value=mock_cli):
+        with patch("bengal.server.resource_manager.get_cli_output", return_value=mock_cli):
             rm.cleanup()
 
         mock_cli.warning.assert_called_once()

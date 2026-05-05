@@ -40,8 +40,31 @@ keywords:
 **Features**:
 - **Lazy command imports**: Fast CLI startup with command modules loaded on demand
 - **Kida output**: Structured command results rendered through Milo/Kida templates
+- **Bengal help templates**: Root and group help dogfood Milo's registry with Bengal-owned Kida templates
+- **Command state templates**: Empty states, command lists, and command errors use reusable Bengal Kida templates
+- **Shared output bridge**: Semantic command messages, logger console events, and phase summaries route through `CLIOutput`
+- **Aggregated notices**: Repeated warnings such as missing icons, unknown config entries, and URL collision claimants collapse into compact summaries
+- **Milo built-ins**: `--llms-txt`, shell completions, and MCP gateway modes are generated from the registered command tree
 - **Error Handling**: Beautiful tracebacks with context and locals
 - **Extensibility**: Easy to add new commands in separate modules
+
+**Milo Built-ins**:
+```bash
+# Agent-readable command reference
+bengal --llms-txt
+
+# Shell completion scripts
+bengal --completions zsh
+bengal --completions bash
+bengal --completions fish
+
+# Expose Bengal commands through Milo's MCP transport
+bengal --mcp
+
+# Register or remove Bengal from the local Milo MCP gateway
+bengal --mcp-install
+bengal --mcp-uninstall
+```
 
 ## Core Commands {#commands}
 
@@ -67,6 +90,9 @@ bengal build --verbose
 
 # Fast mode (quiet output, max speed)
 bengal build --fast
+
+# ASCII-safe lifecycle output for CI logs
+bengal build --style ci
 
 # Memory-optimized for large sites (5K+ pages)
 bengal build --memory-optimized
@@ -94,6 +120,9 @@ bengal serve --no-watch
 
 # Open browser automatically (default)
 bengal serve --open
+
+# ASCII-safe server lifecycle output for CI or log capture
+bengal serve --style ci
 
 # Verbose output (show file watch events)
 bengal serve --verbose
@@ -180,11 +209,23 @@ bengal perf --format json
 # Validate source content and author-facing policy
 bengal check
 
+# Bounded ASCII-safe health report for CI logs
+bengal check --style ci --limit 5
+
+# Drill into one health finding code from the report
+bengal check --focus H101-001 --suggestions
+
 # Compatibility alias while older automation migrates
 bengal health
 
 # Audit generated artifacts after a build
 bengal audit
+
+# Bounded verdict-first audit report for CI logs
+bengal audit --style ci --limit 5
+
+# Drill into one finding code from the report
+bengal audit --focus A101-001
 
 # Clean output directory
 bengal clean
@@ -241,82 +282,89 @@ The upgrade command automatically detects how Bengal was installed (uv, pip, pip
 
 ## Command Registration
 
-Commands are registered in `bengal/cli/__init__.py`. The CLI uses command groups for organization and top-level aliases for convenience:
+Commands are registered in `bengal/cli/milo_app.py`. The CLI uses Milo's lazy
+registration API so importing `bengal` or rendering root help does not import
+every command implementation:
 
 ```python
-from bengal.cli.base import BengalCommand, BengalGroup
-from bengal.cli.commands.build import build as build_cmd
-from bengal.cli.commands.serve import serve as serve_cmd
-from bengal.cli.commands.clean import clean as clean_cmd
-from bengal.cli.commands.graph import graph_cli
-from bengal.cli.commands.new import new
+from milo import CLI
 
-@click.group(cls=BengalGroup, name="bengal", invoke_without_command=True)
-@click.version_option(version=__version__, prog_name="Bengal SSG")
-def main(ctx: click.Context) -> None:
-    """Bengal Static Site Generator CLI."""
-    pass
+cli = CLI(name="bengal", description="Static site generator for Python teams")
 
-# Command groups (organized by category)
-main.add_command(graph_cli)       # bengal graph <subcommand>
-main.add_command(new)             # bengal new <subcommand>
+cli.lazy_command(
+    "build",
+    import_path="bengal.cli.milo_commands.build:build",
+    description="Build your site",
+    aliases=("b",),
+    display_result=False,
+)
 
-# Top-level aliases (most common operations)
-main.add_command(build_cmd, name="build")
-main.add_command(serve_cmd, name="serve")
-main.add_command(clean_cmd, name="clean")
-
-# Short aliases for power users
-main.add_command(build_cmd, name="b")   # b → build
-main.add_command(serve_cmd, name="s")   # s → serve
-main.add_command(serve_cmd, name="dev") # dev → serve
-main.add_command(graph_cli, name="g")   # g → graph
+new = cli.group("new", description="Create new site, theme, or content", aliases=("n",))
+new.lazy_command(
+    "site",
+    import_path="bengal.cli.milo_commands.new:new_site",
+    description="Create a new Bengal site",
+    display_result=False,
+)
 ```
 
-## Custom Click Group
+## Themed Help
 
-Bengal uses custom `BengalGroup` and `BengalCommand` classes in `bengal/cli/base.py` that provide themed help output and typo detection:
-
-```python
-class BengalGroup(click.Group):
-    """Custom Click group with typo detection and themed help output."""
-
-    command_class = BengalCommand  # Use themed command class
-
-    def resolve_command(self, ctx, args):
-        """Resolve command with fuzzy matching for typos."""
-        try:
-            return super().resolve_command(ctx, args)
-        except click.exceptions.UsageError as e:
-            if "No such command" in str(e) and args:
-                unknown_cmd = args[0]
-                suggestions = self._get_similar_commands(unknown_cmd)
-                if suggestions:
-                    cli = CLIOutput()
-                    cli.error_header(f"Unknown command '{unknown_cmd}'.")
-                    cli.console.print("[header]Did you mean one of these?[/header]")
-                    for suggestion in suggestions:
-                        cli.console.print(f"  [info]•[/info] {suggestion}")
-                    raise SystemExit(2)
-            raise
-
-    def _get_similar_commands(self, unknown_cmd, max_suggestions=3):
-        """Find similar commands using difflib fuzzy matching."""
-        from difflib import get_close_matches
-        return get_close_matches(unknown_cmd, self.commands.keys(),
-                                 n=max_suggestions, cutoff=0.5)
-```
-
-:::{example-label} Command Suggestion
-:::
+Bengal subclasses Milo's `CLI` as `BengalCLI` so command results and root help
+render through the shared `CLIOutput` bridge. Root `bengal`, `bengal --help`,
+and group invocations such as `bengal new` use Bengal-owned Kida templates fed
+by Milo's command registry, while leaf command help is generated from the
+annotated command signatures.
 
 ```bash
-$ bengal bild
-Unknown command 'bild'.
+$ bengal --help
+bengal 0.3.2
+Static site generator for Python teams — every layer pure Python, scales with your cores
 
-Did you mean one of these?
-  • build
-  • bridges
+Core workflow
+  build (b)               Build your site
+  serve (s, dev)          Start dev server with hot reload
+  check (v)               Validate your site
 
-Run 'bengal --help' to see all commands.
+Site systems
+  config                  Configuration management [group]
+  theme                   Theme development, directives, and assets [group]
 ```
+
+## Command Output Templates
+
+Command implementations should return structured dictionaries for automation
+and use `bengal.output.get_cli_output()` for human terminal output. Prefer
+command-state templates for user-facing branches:
+
+- `command_empty.kida` for no-op, missing setup, or nothing-to-do states
+- `command_list.kida` for lists with names, status, descriptions, or source metadata
+- `command_error.kida` for command-choice errors before argparse usage leaks through
+- `_report_primitives.kida` for verdict-first reports with meters and issue cards
+- Domain templates such as `build_summary.kida`, `validation_report.kida`,
+  `check_report.kida`, `scaffold_result.kida`, `clean_plan.kida`,
+  `clean_result.kida`, and `artifact_audit.kida` for richer flows
+
+The first parity pass covers plugin discovery, content sources/collections,
+cache input lists, theme lists/discovery, missing config states, and unknown
+root/group command errors. New command work should add the command to the
+output matrix in `tests/unit/cli/test_command_output_templates.py` when it
+introduces a new terminal branch.
+
+Build summaries, health checks, and artifact audit now follow the Milo output
+gallery pattern: the first screen states the verdict, details are bounded by
+`--limit` where findings can be long, `--focus CODE` drills into one finding
+for check/audit, `--style ci` and `--style ascii` use stable ASCII glyphs, and
+JSON-producing paths keep their existing structured envelopes for automation.
+Commands apply these styles with `CLIOutput.output_mode(...)`, so direct
+in-process command calls restore the previous terminal mode after completion or
+early exit.
+
+## MCP Annotations
+
+Command registration includes Milo MCP annotations where intent matters.
+Read-only commands such as `check`, `audit`, `plugin list`, `config show`, and
+`cache inputs` advertise `readOnlyHint`. File-writing or state-changing commands
+such as `clean`, `fix`, `new`, `config init`, `theme swizzle`, `i18n compile`,
+`version create`, `upgrade`, and `codemod` advertise `destructiveHint` and
+`idempotentHint` where applicable.

@@ -26,9 +26,10 @@ def fix(
     Analyzes health check results and applies safe fixes automatically.
     By default, only applies SAFE fixes (reversible, no side effects).
     """
-    from bengal.cli.utils import configure_traceback, get_cli_output, load_site_from_cli
+    from bengal.cli.utils import configure_traceback, load_site_from_cli
     from bengal.health import HealthCheck
     from bengal.health.remediation import AutoFixer, FixSafety
+    from bengal.output import get_cli_output
     from bengal.utils.observability.profile import BuildProfile
 
     source = source or "."

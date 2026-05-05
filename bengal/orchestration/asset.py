@@ -287,9 +287,9 @@ class AssetOrchestrator:
         total_discovered = len(assets)
         total_output = len(css_entries) + len(other_assets)
         if not progress_manager:
-            from bengal.output import CLIOutput
+            from bengal.output import get_cli_output
 
-            cli = CLIOutput()
+            cli = get_cli_output()
             cli.section("Assets")
             cli.detail(f"{cli.icons.tree_end} Discovered: {total_discovered} files", indent=1)
             if css_modules:
