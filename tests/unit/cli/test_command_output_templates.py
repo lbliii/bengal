@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
+import pytest
+
 
 def test_plugin_empty_states_use_command_template():
     """Plugin list/validate empty states should be branded and actionable."""
@@ -81,6 +83,25 @@ def test_build_dashboard_template_renders_bengal_panel():
     assert "Performance" in output
     assert "Build performance is excellent!" in output
     assert "Menus" in output
+
+
+def test_bengal_panel_sizing_includes_body_lines():
+    """Bengal panels should size to the widest body line, not just the title."""
+    from bengal.output import get_cli_output
+
+    cli = get_cli_output(use_global=False)
+
+    output = cli._render_component(
+        "_bengal.kida",
+        "bengal_panel",
+        "bengal_panel(content, title=title)",
+        content="short\nthis is a much longer line",
+        title="T",
+    )
+
+    lines = output.splitlines()
+    assert len({len(line) for line in lines}) == 1
+    assert "│ this is a much longer line │" in output
 
 
 def test_page_explanation_template_renders_bengal_panels():
@@ -182,3 +203,25 @@ def test_command_output_matrix_covers_priority_commands():
 
     assert len(matrix) >= 12
     assert all(".kida" in template for template in matrix.values())
+
+
+def test_build_ci_style_applies_to_memory_incremental_warning(monkeypatch, capsys):
+    """Build preflight warnings should honor ASCII-safe style before site loading."""
+    from bengal.cli.milo_commands.build import build
+    from bengal.output import reset_cli_output
+
+    reset_cli_output()
+    monkeypatch.setattr("bengal.cli.utils.configure_cli_logging", lambda **kwargs: None)
+    monkeypatch.setattr("bengal.cli.utils.configure_traceback", lambda **kwargs: None)
+    monkeypatch.setattr(
+        "bengal.cli.utils.load_site_from_cli",
+        lambda **kwargs: (_ for _ in ()).throw(RuntimeError("stop after preflight")),
+    )
+
+    with pytest.raises(RuntimeError, match="stop after preflight"):
+        build(memory_optimized=True, incremental=True, style="ci")
+    reset_cli_output()
+
+    output = capsys.readouterr().out
+    assert "! --memory-optimized with --incremental may not fully utilize cache" in output
+    assert "▲" not in output

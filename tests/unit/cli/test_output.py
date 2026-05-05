@@ -227,6 +227,18 @@ class TestBridgeOutput:
         captured = capsys.readouterr()
         assert "Interrupted." in captured.out
 
+    def test_error_header_normalizes_text_in_ci_mode(self, capsys):
+        """Raw Unicode in error header text should not leak into CI output."""
+        cli = CLIOutput(use_rich=False)
+
+        with cli.output_mode("ci"):
+            cli.error_header("❌ Template Errors", mouse=False)
+
+        captured = capsys.readouterr()
+        assert "x Template Errors" in captured.out
+        assert "❌" not in captured.out
+        assert "?" not in captured.out
+
     def test_prompt_uses_bridge_even_when_quiet(self, monkeypatch, capsys):
         """Interactive prompts remain visible in quiet mode."""
         monkeypatch.setattr("builtins.input", lambda: "docs")

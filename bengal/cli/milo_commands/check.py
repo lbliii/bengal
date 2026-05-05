@@ -21,7 +21,11 @@ def _check_display_context(
 
     glyphs = palette(style)
     envelope = report.format_envelope(command="check")
-    raw_findings = envelope["findings"]
+    raw_findings = []
+    for index, finding in enumerate(envelope["findings"], 1):
+        code = finding.get("code") or "CHK"
+        raw_findings.append({**finding, "display_code": f"{code}-{index:03d}"})
+
     filtered = [
         finding
         for finding in raw_findings
@@ -29,15 +33,12 @@ def _check_display_context(
         and (suggestions or finding["severity"] != "suggestion")
     ]
     findings = []
-    for index, finding in enumerate(filtered, 1):
-        code = finding.get("code") or "CHK"
+    for finding in filtered:
         details = finding.get("details") or []
         severity = finding["severity"]
-        display_code = f"{code}-{index:03d}"
         findings.append(
             {
                 **finding,
-                "display_code": display_code,
                 "glyph": glyphs.get(severity, glyphs["warning"]),
                 "location": details[0] if details else finding.get("validator", "health"),
                 "target": details[1] if len(details) > 1 else finding.get("validator", "health"),

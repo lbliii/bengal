@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from bengal.health.report import CheckResult, CheckStatus
+from bengal.health.report import CheckResult, CheckStatus, ValidatorReport
 from bengal.health.results import compact_successes
 
 
@@ -21,6 +21,7 @@ def test_compact_successes_preserves_problem_results() -> None:
     assert compacted[1].message == "2 checks passed"
     assert compacted[1].details == ["First check passed", "Second check passed"]
     assert compacted[1].metadata == {
+        "_bengal_compacted_success_count": 2,
         "checks": [
             {
                 "message": "First check passed",
@@ -34,7 +35,7 @@ def test_compact_successes_preserves_problem_results() -> None:
                 "details": [],
                 "metadata": {},
             },
-        ]
+        ],
     }
 
 
@@ -42,3 +43,19 @@ def test_compact_successes_leaves_single_success_alone() -> None:
     result = CheckResult.success("Only check passed")
 
     assert compact_successes([result], "1 check passed") == [result]
+
+
+def test_compacted_successes_preserve_validator_counts() -> None:
+    results = compact_successes(
+        [
+            CheckResult.success("First check passed"),
+            CheckResult.success("Second check passed"),
+            CheckResult.success("Third check passed"),
+        ],
+        "3 checks passed",
+    )
+
+    report = ValidatorReport("Example", results)
+
+    assert len(report.results) == 1
+    assert report.passed_count == 3

@@ -409,7 +409,12 @@ class ValidatorReport:
                 "error": 0,
             }
             for r in self.results:
-                counts[r.status.value] = counts.get(r.status.value, 0) + 1
+                count = 1
+                if r.status == CheckStatus.SUCCESS and r.metadata:
+                    compacted_count = r.metadata.get("_bengal_compacted_success_count")
+                    if isinstance(compacted_count, int) and compacted_count > 1:
+                        count = compacted_count
+                counts[r.status.value] = counts.get(r.status.value, 0) + count
             self._cached_counts = counts
             self._cached_results_id = current_id
             self._cached_results_len = current_len

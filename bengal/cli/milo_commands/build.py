@@ -239,13 +239,13 @@ def build(
     )
     configure_traceback(debug=debug, traceback=traceback_val)
 
-    if memory_optimized and incremental_val is True:
-        cli.warning("--memory-optimized with --incremental may not fully utilize cache")
-        cli.blank()
-
     output_mode = cli.output_mode(style_val)
     output_mode.__enter__()
     try:
+        if memory_optimized and incremental_val is True:
+            cli.warning("--memory-optimized with --incremental may not fully utilize cache")
+            cli.blank()
+
         site = load_site_from_cli(
             source=source,
             config=config_path,

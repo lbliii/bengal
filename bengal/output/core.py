@@ -48,6 +48,11 @@ _ASCII_REPLACEMENTS = {
     "✓": "v",
     "✗": "x",
     "✖": "x",
+    "❌": "x",
+    "⚠️": "!",
+    "⚠": "!",
+    "ℹ️": "i",
+    "ℹ": "i",
     "▲": "!",
     "◆": "^",
     "█": "#",
@@ -83,6 +88,14 @@ def _plain_ascii(text: str) -> str:
     for old, new in _ASCII_REPLACEMENTS.items():
         text = text.replace(old, new)
     return text.encode("ascii", "replace").decode("ascii")
+
+
+def _panel_content_width(content: str, title: str = "") -> int:
+    """Return the widest visible line for Bengal terminal panels."""
+    lines = str(content).splitlines()
+    body_width = max((len(line) for line in lines), default=0)
+    title_width = len(str(title)) + 4 if title else 0
+    return max(body_width, title_width)
 
 
 def _should_use_color() -> bool:
@@ -203,6 +216,7 @@ class CLIOutput(DevServerOutputMixin):
                 loader=FileSystemLoader(str(bengal_tpl)),
                 theme=BENGAL_THEME,
             )
+            self._kida_env_cache.add_global("bengal_panel_width", _panel_content_width)
         return self._kida_env_cache
 
     def render(self, template_name: str, **context: Any) -> str:
@@ -514,7 +528,7 @@ class CLIOutput(DevServerOutputMixin):
 
         if os.environ.get("BENGAL_CLI_ASCII") == "1":
             prefix = f"{self.icons.error_mascot} " if mouse else ""
-            self._write(f"{prefix}{text}")
+            self._write(f"{prefix}{_plain_ascii(text)}")
             return
 
         result = self._render_component(

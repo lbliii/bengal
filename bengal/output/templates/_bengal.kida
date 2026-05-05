@@ -24,15 +24,11 @@
 {#- ── Bengal panel: bordered content box without Milo box indexing ── -#}
 {%- def bengal_panel(content, title="") -%}
 {%- set lines = content.splitlines() -%}
-{%- set max_len = title | length + 4 if title else 0 -%}
-{%- for line in lines -%}
-{%- set line_len = line | length -%}
-{%- if line_len > max_len -%}{%- set max_len = line_len -%}{%- endif -%}
-{%- endfor -%}
+{%- set max_len = bengal_panel_width(content, title) -%}
 {%- set inner_w = [max_len + 2, 20] | max -%}
 {%- if title -%}
 {%- set title_str = " " ~ title ~ " " -%}
-{%- set remaining = inner_w - (title_str | length) -%}
+{%- set remaining = inner_w - (title_str | length) - 1 -%}
 {%- set fill = [remaining, 1] | max -%}
 ╭─{{ title_str | bold }}{{ "─" * fill }}╮
 {%- else -%}

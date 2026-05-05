@@ -9,6 +9,8 @@ from bengal.health.report import CheckResult, CheckStatus
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+COMPACTED_SUCCESS_COUNT_KEY = "_bengal_compacted_success_count"
+
 
 def compact_successes(
     results: Sequence[CheckResult],
@@ -29,6 +31,7 @@ def compact_successes(
             message,
             details=[result.message for result in successes],
             metadata={
+                COMPACTED_SUCCESS_COUNT_KEY: len(successes),
                 metadata_key: [
                     {
                         "message": result.message,
@@ -37,7 +40,7 @@ def compact_successes(
                         "metadata": result.metadata or {},
                     }
                     for result in successes
-                ]
+                ],
             },
         )
     )

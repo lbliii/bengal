@@ -193,3 +193,22 @@ def test_check_report_context_supports_focus_and_ci_style():
     assert context["focused_finding"]["glyph"] == "!"
     assert context["meters"][0]["glyph"] == "x"
     assert context["meters"][2]["glyph"] == "^"
+
+
+def test_check_display_codes_are_stable_when_suggestions_hidden():
+    """Focus codes should not change when optional severities are filtered."""
+    from bengal.cli.milo_commands.check import _check_display_context
+
+    class ReportWithSuggestionBeforeWarning:
+        def format_envelope(self, command: str = "check") -> dict:
+            envelope = _FakeHealthReport().format_envelope(command)
+            envelope["findings"][1], envelope["findings"][2] = (
+                envelope["findings"][2],
+                envelope["findings"][1],
+            )
+            return envelope
+
+    context = _check_display_context(ReportWithSuggestionBeforeWarning(), suggestions=False)
+
+    warning = next(finding for finding in context["findings"] if finding["code"] == "H202")
+    assert warning["display_code"] == "H202-003"
