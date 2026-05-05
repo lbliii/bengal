@@ -28,18 +28,74 @@ Related:
 from __future__ import annotations
 
 import os
+import re
 import sys
+from contextlib import contextmanager
 from typing import Any
 
 from bengal.output.dev_server import DevServerOutputMixin
 from bengal.output.enums import MessageLevel
 from bengal.output.icons import IconSet, get_icon_set
 from bengal.output.theme import BENGAL_THEME
-from bengal.utils.observability.logger import get_logger as _get_bengal_logger
-
-logger = _get_bengal_logger(__name__)
 
 _RESET = "\033[0m"
+_ANSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
+_UNSET = object()
+_ASCII_REPLACEMENTS = {
+    "ᓚᘏᗢ": "Bengal",
+    "ᗢ": "Bengal",
+    "ᘛ⁐̤ᕐᐷ": "!",
+    "✓": "v",
+    "✗": "x",
+    "✖": "x",
+    "❌": "x",
+    "⚠️": "!",
+    "⚠": "!",
+    "ℹ️": "i",
+    "ℹ": "i",
+    "▲": "!",
+    "◆": "^",
+    "█": "#",
+    "░": ".",
+    "│": "|",
+    "├": "+",
+    "└": "`",
+    "─": "-",
+    "╭": "+",
+    "╮": "+",
+    "╰": "+",
+    "╯": "+",
+    "→": ">",
+    "↪": ">",
+    "•": "*",
+    "·": ".",
+    "…": "...",
+    "—": "-",
+    "–": "-",
+    "“": '"',
+    "”": '"',
+    "‘": "'",
+    "’": "'",
+    "🚀": "++",
+    "⚡": "+",
+    "📊": "~",
+    "🐌": "-",
+}
+
+
+def _plain_ascii(text: str) -> str:
+    """Normalize command-owned output for ASCII-only logs."""
+    for old, new in _ASCII_REPLACEMENTS.items():
+        text = text.replace(old, new)
+    return text.encode("ascii", "replace").decode("ascii")
+
+
+def _panel_content_width(content: str, title: str = "") -> int:
+    """Return the widest visible line for Bengal terminal panels."""
+    lines = str(content).splitlines()
+    body_width = max((len(line) for line in lines), default=0)
+    title_width = len(str(title)) + 4 if title else 0
+    return max(body_width, title_width)
 
 
 def _should_use_color() -> bool:
@@ -121,7 +177,10 @@ class CLIOutput(DevServerOutputMixin):
         self.indent_size = 2
 
         # Icons
-        self._icons = get_icon_set(use_emoji=_should_use_emoji())
+        self._icons = get_icon_set(
+            use_emoji=_should_use_emoji(),
+            plain_ascii=os.environ.get("BENGAL_CLI_ASCII", "") == "1",
+        )
 
         # Theme styles (pre-resolve SGR prefixes for speed)
         self._styles: dict[str, str] = {}
@@ -149,18 +208,15 @@ class CLIOutput(DevServerOutputMixin):
         if not hasattr(self, "_kida_env_cache"):
             from pathlib import Path
 
-            from kida import ChoiceLoader, FileSystemLoader
+            from kida import FileSystemLoader
             from milo.templates import get_env
 
             bengal_tpl = Path(__file__).parent / "templates"
-            milo_tpl = Path(__import__("milo").__file__).parent / "templates"
-            loader = ChoiceLoader(
-                [
-                    FileSystemLoader(str(bengal_tpl)),
-                    FileSystemLoader(str(milo_tpl)),
-                ]
+            self._kida_env_cache = get_env(
+                loader=FileSystemLoader(str(bengal_tpl)),
+                theme=BENGAL_THEME,
             )
-            self._kida_env_cache = get_env(loader=loader, theme=BENGAL_THEME)
+            self._kida_env_cache.add_global("bengal_panel_width", _panel_content_width)
         return self._kida_env_cache
 
     def render(self, template_name: str, **context: Any) -> str:
@@ -202,6 +258,59 @@ class CLIOutput(DevServerOutputMixin):
         """Get SGR prefix for a style name."""
         return self._styles.get(name, "")
 
+    def set_color_enabled(self, enabled: bool) -> None:
+        """Enable or disable ANSI color for subsequent output."""
+        self.use_color = enabled
+        self.use_rich = enabled
+        if enabled:
+            os.environ.pop("BENGAL_CLI_NO_COLOR", None)
+        else:
+            os.environ["BENGAL_CLI_NO_COLOR"] = "1"
+        for name, style in BENGAL_THEME.items():
+            self._styles[name] = style.sgr_prefix() if self.use_color else ""
+
+    def set_ascii_enabled(self, enabled: bool) -> None:
+        """Enable or disable strict ASCII glyphs for subsequent output."""
+        if enabled:
+            os.environ["BENGAL_CLI_ASCII"] = "1"
+        else:
+            os.environ.pop("BENGAL_CLI_ASCII", None)
+        self._icons = get_icon_set(use_emoji=_should_use_emoji(), plain_ascii=enabled)
+
+    @contextmanager
+    def output_mode(self, style: str = "dense"):
+        """Temporarily apply an output style and restore previous process state."""
+        style_value = (style or "dense").lower()
+        if style_value not in {"dense", "ascii", "ci"}:
+            msg = f"Unknown output style {style!r}; expected dense, ascii, or ci."
+            raise ValueError(msg)
+
+        previous_color = self.use_color
+        previous_rich = self.use_rich
+        previous_icons = self._icons
+        previous_styles = self._styles.copy()
+        previous_ascii = os.environ.get("BENGAL_CLI_ASCII", _UNSET)
+        previous_no_color = os.environ.get("BENGAL_CLI_NO_COLOR", _UNSET)
+
+        try:
+            if style_value in {"ascii", "ci"}:
+                self.set_color_enabled(False)
+                self.set_ascii_enabled(True)
+            yield self
+        finally:
+            self.use_color = previous_color
+            self.use_rich = previous_rich
+            self._icons = previous_icons
+            self._styles = previous_styles
+            if previous_ascii is _UNSET:
+                os.environ.pop("BENGAL_CLI_ASCII", None)
+            else:
+                os.environ["BENGAL_CLI_ASCII"] = str(previous_ascii)
+            if previous_no_color is _UNSET:
+                os.environ.pop("BENGAL_CLI_NO_COLOR", None)
+            else:
+                os.environ["BENGAL_CLI_NO_COLOR"] = str(previous_no_color)
+
     def _styled(self, text: str, style: str) -> str:
         """Wrap text in ANSI style codes."""
         prefix = self._s(style)
@@ -242,6 +351,11 @@ class CLIOutput(DevServerOutputMixin):
         elif "\n" in end:
             self._last_was_blank = True
 
+        if text and not self.use_color:
+            text = _ANSI_RE.sub("", text)
+        if text and os.environ.get("BENGAL_CLI_ASCII") == "1":
+            text = _plain_ascii(text)
+
         target = self._stream(stream)
         target.write(text + end)
         target.flush()
@@ -272,6 +386,12 @@ class CLIOutput(DevServerOutputMixin):
         self._mark_output()
         if leading_blank:
             self._write("")
+        if os.environ.get("BENGAL_CLI_ASCII") == "1":
+            prefix = f"{self.icons.mascot} " if mascot else ""
+            self._write(f"{prefix}{text}")
+            if trailing_blank:
+                self._write("")
+            return
         result = self._render_component(
             "_bengal.kida",
             "bengal_header",
@@ -361,49 +481,54 @@ class CLIOutput(DevServerOutputMixin):
         if not self.should_show(MessageLevel.SUCCESS):
             return
 
-        self._mark_output()
         success_icon = icon if icon is not None else self.icons.success
-        self._write(f"{success_icon} {self._styled(text, 'success')}")
+        self._message_line("success", text, icon=success_icon)
 
     def info(self, text: str, icon: str | None = None) -> None:
         """Print an informational message."""
         if not self.should_show(MessageLevel.INFO):
             return
 
-        self._mark_output()
-        icon_str = f"{icon} " if icon else ""
-        self._write(f"{icon_str}{text}")
+        self._message_line("info", text, icon=icon or "")
 
     def warning(self, text: str, icon: str | None = None) -> None:
         """Print a warning message."""
         if not self.should_show(MessageLevel.WARNING):
             return
 
-        self._mark_output()
         warning_icon = icon if icon is not None else self.icons.warning
-        self._write(f"{warning_icon} {self._styled(text, 'warning')}")
+        self._message_line("warning", text, icon=warning_icon)
 
     def error(self, text: str, icon: str | None = None) -> None:
         """Print an error message."""
         if not self.should_show(MessageLevel.ERROR):
             return
 
-        self._mark_output()
         error_icon = icon if icon is not None else self.icons.error
-        self._write(f"{error_icon} {self._styled(text, 'error')}")
+        self._message_line("error", text, icon=error_icon)
 
     def tip(self, text: str, icon: str | None = None) -> None:
         """Print a subtle tip or instruction."""
         if not self.should_show(MessageLevel.INFO):
             return
 
-        self._mark_output()
         tip_icon = icon if icon is not None else self.icons.tip
-        self._write(f"{tip_icon} {self._styled(text, 'tip')}")
+        self._message_line("tip", text, icon=tip_icon)
+
+    def _message_line(self, level: str, text: str, *, icon: str = "") -> None:
+        """Render a semantic one-line message through Bengal's Kida templates."""
+        result = self.render("message_line.kida", level=level, text=text, icon=icon).strip("\n")
+        if result:
+            self._write(result)
 
     def error_header(self, text: str, mouse: bool = True) -> None:
         """Print a prominent error header with optional mouse mascot."""
         if not self.should_show(MessageLevel.ERROR):
+            return
+
+        if os.environ.get("BENGAL_CLI_ASCII") == "1":
+            prefix = f"{self.icons.error_mascot} " if mouse else ""
+            self._write(f"{prefix}{_plain_ascii(text)}")
             return
 
         result = self._render_component(

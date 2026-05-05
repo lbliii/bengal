@@ -36,6 +36,7 @@ from typing import TYPE_CHECKING
 from bengal.errors import BengalAssetError, ErrorCode
 from bengal.themes.tokens import BENGAL_PALETTE, PALETTE_VARIANTS
 from bengal.themes.utils import DEFAULT_CSS_TOKENS_PATH
+from bengal.utils.io.atomic_write import atomic_write_text
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -159,7 +160,7 @@ def write_generated_css(output_dir: Path | None = None) -> Path:
     css_content = generate_web_css()
 
     try:
-        output_file.write_text(css_content)
+        atomic_write_text(output_file, css_content)
     except OSError as e:
         raise BengalAssetError(
             f"Failed to write generated CSS: {output_file}",
@@ -185,20 +186,22 @@ def main() -> None:
     """
     import sys
 
-    print("Bengal Token Generator")
-    print("=" * 40)
+    from bengal.output import get_cli_output
+
+    cli = get_cli_output()
+    cli.header("Bengal Token Generator")
 
     # Generate web CSS (may raise BengalAssetError)
     try:
         output_path = write_generated_css()
-        print(f"✓ Generated web CSS: {output_path}")
+        cli.success(f"Generated web CSS: {output_path}")
     except BengalAssetError as e:
-        print(f"\n✗ CSS generation failed: {e.message}")
+        cli.error(f"CSS generation failed: {e.message}")
         if e.suggestion:
-            print(f"  Tip: {e.suggestion}")
+            cli.tip(e.suggestion)
         sys.exit(1)
 
-    print("\nDone!")
+    cli.success("Done!")
 
 
 if __name__ == "__main__":

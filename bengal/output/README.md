@@ -82,8 +82,21 @@ BUILD COMPLETE (WITH WARNINGS)
 
 `CLIOutput` is Bengal's Milo/Kida renderer bridge. Milo commands, Kida
 templates, prompts, raw progress, and compatibility utilities should share the
-same instance from `bengal.output.get_cli_output()` or the legacy
-`bengal.cli.utils.get_cli_output()` wrapper.
+same instance from `bengal.output.get_cli_output()`.
+
+Use `cli.output_mode("ci")` or `cli.output_mode("ascii")` as a scoped context
+when a command needs ASCII-safe output. The context restores color, glyphs, and
+process flags even when a command exits early, so embedded command calls do not
+leak CI styling into later output.
+
+Structured logger console events and build phase summaries also route through
+this bridge. The only direct terminal writer left outside `CLIOutput` is the
+live progress sink that owns carriage-return cursor control.
+
+Repeated author-facing warnings should be aggregated when they share one event
+shape and differ only by key, path, or item name. For example, missing icons,
+unknown config entries, and URL collision claimants render as compact notices
+with sample values and a shared hint instead of one warning per item.
 
 ## Color Semantics
 
@@ -116,21 +129,24 @@ Each build phase emits a consistent phase line:
 
 ### Section Headers
 
-Use `CLIOutput.section()` for section headers:
+Use the shared CLI output instance for section headers:
 
 ```python
-cli = CLIOutput()
+from bengal.output import get_cli_output
+
+cli = get_cli_output()
 cli.section("Post-processing")  # Outputs: "\nPost-processing:"
 ```
 
 ### No Raw Print
 
-All CLI output should go through `CLIOutput`:
+All CLI output should go through the shared output bridge:
 
 ```python
 # ✅ CORRECT
-from bengal.output import CLIOutput
-cli = CLIOutput()
+from bengal.output import get_cli_output
+
+cli = get_cli_output()
 cli.section("Processing")
 cli.success("Done!")
 cli.raw("machine-readable output", level=None)  # Only when semantic helpers do not fit
@@ -180,9 +196,9 @@ print(icons.success)  # "✨"
 ### CLIOutput Methods
 
 ```python
-from bengal.output import CLIOutput
+from bengal.output import get_cli_output
 
-cli = CLIOutput()
+cli = get_cli_output()
 
 # Section headers
 cli.section("Processing")      # "\nProcessing:"

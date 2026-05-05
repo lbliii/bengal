@@ -43,6 +43,13 @@ from pathlib import Path
 from typing import Any
 
 
+def _warn(message: str) -> None:
+    """Route autodoc warnings through Bengal's CLI output bridge."""
+    from bengal.output import get_cli_output
+
+    get_cli_output().warning(message)
+
+
 def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
     """
     Load autodoc configuration from config/ directory or bengal.toml.
@@ -151,7 +158,7 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
                 if "autodoc" in full_config:
                     return _merge_autodoc_config(default_config, full_config["autodoc"])
             except Exception as e:
-                print(f"⚠️  Warning: Could not load config from {config_path}: {e}")
+                _warn(f"Could not load config from {config_path}: {e}")
         elif config_path.exists():
             try:
                 with open(config_path, "rb") as f:
@@ -161,7 +168,7 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
                 if "autodoc" in file_config:
                     return _merge_autodoc_config(default_config, file_config["autodoc"])
             except Exception as e:
-                print(f"⚠️  Warning: Could not load config from {config_path}: {e}")
+                _warn(f"Could not load config from {config_path}: {e}")
 
         # Return defaults if explicit config failed (don't try auto-detection)
         return default_config
@@ -185,7 +192,7 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
                     return _merge_autodoc_config(default_config, full_config["autodoc"])
 
             except Exception as e:
-                print(f"⚠️  Warning: Could not load config from {config_dir}: {e}")
+                _warn(f"Could not load config from {config_dir}: {e}")
                 # Fall through to try next location
 
     # 3. Try single-file config (backward compatibility auto-detect)
@@ -201,7 +208,7 @@ def load_autodoc_config(config_path: Path | None = None) -> dict[str, Any]:
                 return _merge_autodoc_config(default_config, file_config["autodoc"])
 
         except Exception as e:
-            print(f"⚠️  Warning: Could not load config from {config_path}: {e}")
+            _warn(f"Could not load config from {config_path}: {e}")
 
     # Return defaults if no config found
     return default_config
@@ -246,7 +253,7 @@ def _merge_autodoc_config(
             if "mode" in grouping_config:
                 mode = grouping_config["mode"]
                 if mode not in ["off", "auto", "explicit"]:
-                    print(f"⚠️  Warning: Invalid grouping mode '{mode}', using 'off'")
+                    _warn(f"Invalid grouping mode '{mode}', using 'off'")
                     grouping_config["mode"] = "off"
             default_config["python"]["grouping"].update(grouping_config)
             # Remove from user config to avoid overwriting default dict

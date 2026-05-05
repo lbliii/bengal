@@ -13,7 +13,7 @@ def _reset_cli_output():
     a previous test's instance writes to a stale stdout reference,
     causing subsequent tests to see empty CliRunner output.
     """
-    from bengal.cli.utils.output import reset_cli_output
+    from bengal.output import reset_cli_output
 
     reset_cli_output()
     yield

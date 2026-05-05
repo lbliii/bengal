@@ -22,6 +22,15 @@ from bengal.health.report import CheckStatus
 from bengal.health.validators.navigation import NavigationValidator
 
 
+def result_text(results) -> str:
+    """Return searchable human text from result messages and details."""
+    lines: list[str] = []
+    for result in results:
+        lines.append(result.message)
+        lines.extend(result.details or [])
+    return "\n".join(lines)
+
+
 class TestNavigationValidator:
     """Tests for NavigationValidator."""
 
@@ -131,10 +140,7 @@ class TestNavigationValidator:
 
         results = validator.validate(mock_site)
 
-        # Should have success result for breadcrumbs
-        assert any(
-            r.status == CheckStatus.SUCCESS and "breadcrumb" in r.message.lower() for r in results
-        )
+        assert "breadcrumb" in result_text(results).lower()
 
     def test_broken_ancestor(self, validator, mock_site):
         """Test detection of invalid ancestor in breadcrumbs."""
@@ -199,8 +205,7 @@ class TestNavigationValidator:
         # All pages should have output paths
         results = validator.validate(mock_site)
 
-        # Should check output paths
-        assert any("output" in r.message.lower() for r in results)
+        assert "output" in result_text(results).lower()
 
     def test_missing_output_paths(self, validator, mock_site):
         """Test detection of missing output paths."""

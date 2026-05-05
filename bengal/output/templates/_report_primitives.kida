@@ -1,0 +1,20 @@
+{#- Reusable report primitives for verdict-first command output. -#}
+{%- def meter_row(glyph, label, padding, bar, value) -%}
+{{ glyph }} {{ label }}{{ padding }} {{ bar }} {{ value }}
+{%- enddef -%}
+
+{%- def issue_card(glyph, code, location, message, target, fix, ascii=false) -%}
+{%- if ascii -%}
+-- {{ glyph }} {{ code }} {{ location }}
+   {{ message }}
+   target  {{ target }}
+   fix     {{ fix }}
+------------------------------------------------------------
+{%- else -%}
+╭─ {{ (glyph ~ " " ~ code ~ " " ~ location) | bold }}
+│ {{ message }}
+│ target  {{ target }}
+│ fix     {{ fix }}
+╰────────────────────────────────────────────────────────
+{%- endif -%}
+{%- enddef -%}

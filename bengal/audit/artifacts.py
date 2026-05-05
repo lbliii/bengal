@@ -247,7 +247,7 @@ def _target_exists(path: Path) -> bool:
 def _resolve_inside(root: Path, target: Path) -> Path | _UnsafeTarget:
     """Resolve a target path and reject paths outside the audit root."""
     resolved_root = root.resolve()
-    resolved_target = target.resolve()
+    resolved_target = target.resolve(strict=False)
     if not resolved_target.is_relative_to(resolved_root):
         return _UnsafeTarget()
     return resolved_target

@@ -56,9 +56,9 @@ def display_template_error(
     del use_color  # CLIOutput handles TTY/color detection.
 
     if cli is None:
-        from bengal.output import CLIOutput
+        from bengal.output import get_cli_output
 
-        cli = CLIOutput()
+        cli = get_cli_output()
 
     _display_template_render_error_impl(error, cli)
 

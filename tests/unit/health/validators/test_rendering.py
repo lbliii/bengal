@@ -18,6 +18,15 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
+def result_text(results) -> str:
+    """Return searchable human text from result messages and details."""
+    lines: list[str] = []
+    for result in results:
+        lines.append(result.message)
+        lines.extend(result.details or [])
+    return "\n".join(lines)
+
+
 @pytest.fixture
 def validator():
     """Create RenderingValidator instance."""
@@ -85,8 +94,7 @@ class TestRenderingValidatorHTMLStructure:
 
         results = validator.validate(mock_site)
 
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("structure" in r.message.lower() for r in success_results)
+        assert "structure" in result_text(results).lower()
 
     def test_warning_for_missing_doctype(self, validator, mock_site, tmp_path):
         """Returns warning for missing DOCTYPE."""
@@ -138,8 +146,7 @@ class TestRenderingValidatorUnrenderedJinja2:
 
         results = validator.validate(mock_site)
 
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("jinja2" in r.message.lower() for r in success_results)
+        assert "jinja2" in result_text(results).lower()
 
     def test_warning_for_unrendered_page_variable(self, validator, mock_site, tmp_path):
         """Returns warning for unrendered {{ page. }} variables."""
@@ -174,8 +181,7 @@ class TestRenderingValidatorSEOMetadata:
 
         results = validator.validate(mock_site)
 
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("seo" in r.message.lower() for r in success_results)
+        assert "seo" in result_text(results).lower()
 
     def test_warning_for_missing_title(self, validator, mock_site, tmp_path):
         """Returns warning for missing title tag."""
@@ -211,8 +217,7 @@ class TestRenderingValidatorSEOMetadata:
 
         results = validator.validate(mock_site)
 
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("seo" in r.message.lower() for r in success_results)
+        assert "seo" in result_text(results).lower()
 
     def test_skips_generated_pages(self, validator, mock_site, tmp_path):
         """Skips generated pages in SEO check."""

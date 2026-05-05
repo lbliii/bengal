@@ -142,9 +142,9 @@ def test_invalid_grouping_mode_uses_off(capsys):
 
     assert merged["python"]["grouping"]["mode"] == "off"
 
-    # Check warning was printed
+    # Check warning is routed through Bengal's CLI output bridge.
     captured = capsys.readouterr()
-    assert "Warning: Invalid grouping mode 'invalid_mode'" in captured.out
+    assert "Invalid grouping mode 'invalid_mode'" in captured.out
 
 
 def test_get_grouping_config_returns_defaults_when_missing():

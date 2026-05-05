@@ -82,6 +82,21 @@ class IconSet:
 #: output across all terminals. This is Bengal's default choice.
 ASCII_ICONS = IconSet()
 
+PLAIN_ASCII_ICONS = IconSet(
+    mascot="Bengal",
+    error_mascot="!",
+    rosettes="***",
+    kida="Kida",
+    success="v",
+    warning="!",
+    error="x",
+    info=".",
+    tip=">",
+    arrow=">",
+    tree_branch="+-",
+    tree_end="`-",
+)
+
 #: Emoji icon set for users who prefer richer visual output.
 #: Enabled via BENGAL_EMOJI=1 environment variable.
 EMOJI_ICONS = IconSet(
@@ -98,7 +113,7 @@ EMOJI_ICONS = IconSet(
 )
 
 
-def get_icon_set(use_emoji: bool = False) -> IconSet:
+def get_icon_set(use_emoji: bool = False, plain_ascii: bool = False) -> IconSet:
     """
     Get icon set based on user preference.
 
@@ -120,4 +135,6 @@ def get_icon_set(use_emoji: bool = False) -> IconSet:
             >>> print(f"{icons.success} Done")  # "✨ Done"
 
     """
+    if plain_ascii:
+        return PLAIN_ASCII_ICONS
     return EMOJI_ICONS if use_emoji else ASCII_ICONS

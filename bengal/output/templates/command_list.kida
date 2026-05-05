@@ -1,0 +1,15 @@
+{#- Branded command list with optional status/source metadata. -#}
+{% from "_bengal.kida" import bengal_header %}
+{{ bengal_header(title, mascot=mascot | default(true)) }}
+{%- if summary | default(false) %}
+{{ summary | dim }}
+{%- endif %}
+{%- for item in items %}
+  {{ item.name | green | bold }}{% if item.status | default(false) %}  {{ item.status | dim }}{% endif %}
+{%- if item.description | default(false) %}
+    {{ item.description | dim }}
+{%- endif %}
+{%- if item.source | default(false) %}
+    {{ item.source | dim }}
+{%- endif %}
+{%- endfor %}

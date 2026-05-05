@@ -22,6 +22,7 @@ def serve(
     all_versions: Annotated[bool, Description("Build all versions (git versioning mode)")] = False,
     verbose: Annotated[bool, Description("Show detailed server activity")] = False,
     debug: Annotated[bool, Description("Show debug output and full tracebacks")] = False,
+    style: Annotated[str, Description("Output style: dense, ascii, or ci")] = "dense",
     traceback: Annotated[
         str, Description("Traceback verbosity: full | compact | minimal | off")
     ] = "",
@@ -58,49 +59,56 @@ def serve(
         )
         raise SystemExit(2)
 
-    configure_cli_logging(
-        source=source,
-        debug=debug,
-        verbose=verbose,
-        log_type="serve",
-    )
-    configure_traceback(debug=debug, traceback=traceback_val)
+    style_val = (style or "dense").lower()
+    if style_val not in {"dense", "ascii", "ci"}:
+        cli.error(f"--style must be one of dense, ascii, or ci (got: {style!r})")
+        cli.tip("Use --style ci for stable ASCII-safe output in automation logs.")
+        raise SystemExit(2)
 
-    dev_environment = environment or "local"
+    with cli.output_mode(style_val):
+        configure_cli_logging(
+            source=source,
+            debug=debug,
+            verbose=verbose,
+            log_type="serve",
+        )
+        configure_traceback(debug=debug, traceback=traceback_val)
 
-    site = load_site_from_cli(
-        source=source,
-        config=config_path,
-        environment=dev_environment,
-        profile=profile or None,
-    )
+        dev_environment = environment or "local"
 
-    configure_traceback(debug=debug, traceback=traceback_val, site=site)
-
-    cfg = site.config
-    if "build" not in cfg:
-        cfg["build"] = {}
-    cfg["build"]["strict_mode"] = True
-    if debug:
-        cfg["build"]["debug"] = True
-
-    try:
-        from bengal.orchestration.site_runner import SiteRunner
-
-        SiteRunner(site).serve(
-            host=host,
-            port=port,
-            watch=watch,
-            auto_port=auto_port,
-            open_browser=open_browser,
-            version_scope=version_scope_val,
+        site = load_site_from_cli(
+            source=source,
+            config=config_path,
+            environment=dev_environment,
+            profile=profile or None,
         )
 
-        return {"status": "ok", "message": "Server stopped"}
-    except SystemExit, KeyboardInterrupt:
-        raise
-    except Exception as e:
-        from bengal.cli.utils.errors import handle_exception
+        configure_traceback(debug=debug, traceback=traceback_val, site=site)
 
-        handle_exception(e, cli, operation="running development server")
-        raise SystemExit(1) from e
+        cfg = site.config
+        if "build" not in cfg:
+            cfg["build"] = {}
+        cfg["build"]["strict_mode"] = True
+        if debug:
+            cfg["build"]["debug"] = True
+
+        try:
+            from bengal.orchestration.site_runner import SiteRunner
+
+            SiteRunner(site).serve(
+                host=host,
+                port=port,
+                watch=watch,
+                auto_port=auto_port,
+                open_browser=open_browser,
+                version_scope=version_scope_val,
+            )
+
+            return {"status": "ok", "message": "Server stopped"}
+        except SystemExit, KeyboardInterrupt:
+            raise
+        except Exception as e:
+            from bengal.cli.utils.errors import handle_exception
+
+            handle_exception(e, cli, operation="running development server")
+            raise SystemExit(1) from e

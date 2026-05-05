@@ -26,8 +26,8 @@
         output_dir: str|none
         errors: list[{text, level}]|none
 -#}
-{% from "_bengal.kida" import bengal_header, error_header, timing_bar %}
-{% from "components/_defs.kida" import section, kv_list, status_line, summary_box, panel, next_steps %}
+{% from "_bengal.kida" import bengal_header, bengal_panel, error_header, timing_bar %}
+{% from "components/_defs.kida" import section, kv_list, status_line, summary_box, next_steps %}
 
 {{ bengal_header("Build Complete!") }}
 
@@ -47,7 +47,7 @@
 {{ regression | fg("yellow" if regression_positive | default(false) else "green") }}
 {%- endif -%}
 {%- endcapture -%}
-{{ panel(grade_content | trim, title="Performance") }}
+{{ bengal_panel(grade_content | trim, title="Performance") }}
 
 {#- ── Content Statistics ──────────────────────────────── -#}
 

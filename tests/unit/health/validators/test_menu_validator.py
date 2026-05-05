@@ -14,6 +14,15 @@ from bengal.health.report import CheckStatus
 from bengal.health.validators.menu import MenuValidator
 
 
+def result_text(results) -> str:
+    """Return searchable human text from result messages and details."""
+    lines: list[str] = []
+    for result in results:
+        lines.append(result.message)
+        lines.extend(result.details or [])
+    return "\n".join(lines)
+
+
 @pytest.fixture
 def validator():
     """Create MenuValidator instance."""
@@ -107,10 +116,7 @@ class TestMenuValidatorItemCount:
     def test_success_shows_item_count(self, validator, mock_site):
         """Success message shows item count."""
         results = validator.validate(mock_site)
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert len(success_results) >= 1
-        # Should mention the item count
-        assert any("2" in r.message for r in success_results)
+        assert "2" in result_text(results)
 
     def test_counts_nested_items(self, validator, mock_site):
         """Counts nested menu items correctly."""
@@ -130,9 +136,7 @@ class TestMenuValidatorItemCount:
         mock_site.menu["main"][0].children = [child1, child2]
 
         results = validator.validate(mock_site)
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        # Should count parent + children (2 + 2 = 4)
-        assert any("4" in r.message for r in success_results)
+        assert "4" in result_text(results)
 
 
 class TestMenuValidatorBrokenLinks:
@@ -201,8 +205,10 @@ class TestMenuValidatorMultipleMenus:
         results = validator.validate(mock_site)
 
         success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        # Should have success for both menus
-        assert len(success_results) >= 2
+        assert len(success_results) == 1
+        assert success_results[0].message == "2 navigation menus valid"
+        assert "main" in result_text(results)
+        assert "footer" in result_text(results)
 
 
 class TestMenuValidatorPrivateMethods:

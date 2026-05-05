@@ -143,7 +143,7 @@ class AssetDiscovery:
                     record_error(error)
                     # Display user-friendly error with suggestion
                     from bengal.errors.display import display_bengal_error
-                    from bengal.output import CLIOutput
+                    from bengal.output import get_cli_output
 
-                    display_bengal_error(error, CLIOutput())
+                    display_bengal_error(error, get_cli_output())
         return self.assets

@@ -104,16 +104,17 @@ class ErrorDeduplicator:
         if suppressed == 0:
             return
 
-        import sys
+        from bengal.output import get_cli_output
 
-        sys.stdout.write(f"\n  ▲ {suppressed} similar error(s) suppressed\n")
+        cli = get_cli_output()
+        cli.blank()
+        cli.warning(f"{suppressed} similar error(s) suppressed")
         for key, pages in self.seen_errors.items():
             if len(pages) > self.max_display_per_error:
                 template, line, error_type = key.file_path, key.line, key.category
                 extra = len(pages) - self.max_display_per_error
-                sys.stdout.write(f"   · {template}:{line} ({error_type}): +{extra} more page(s)\n")
-        sys.stdout.write("\n")
-        sys.stdout.flush()
+                cli.info(f"   · {template}:{line} ({error_type}): +{extra} more page(s)")
+        cli.blank()
 
     def reset(self) -> None:
         """Reset the deduplicator for a new build."""

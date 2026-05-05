@@ -201,9 +201,9 @@ class GoogleFontsDownloader:
         if cached_variants is not None:
             # All fonts already cached - no network request needed
             if use_cli_output:
-                from bengal.output import CLIOutput
+                from bengal.output import get_cli_output
 
-                cli = CLIOutput()
+                cli = get_cli_output()
                 for variant in cached_variants:
                     cli.detail(f"Cached: {variant.filename}", indent=2, icon=cli.icons.success)
             else:
@@ -246,9 +246,9 @@ class GoogleFontsDownloader:
                         if not output_path.exists():
                             self._download_file(url, output_path, user_agent=user_agent)
                             if use_cli_output:
-                                from bengal.output import CLIOutput
+                                from bengal.output import get_cli_output
 
-                                cli = CLIOutput()
+                                cli = get_cli_output()
                                 cli.detail(
                                     f"Downloaded: {variant.filename}",
                                     indent=2,
@@ -263,9 +263,9 @@ class GoogleFontsDownloader:
                                 )
                         else:
                             if use_cli_output:
-                                from bengal.output import CLIOutput
+                                from bengal.output import get_cli_output
 
-                                cli = CLIOutput()
+                                cli = get_cli_output()
                                 cli.detail(
                                     f"Cached: {variant.filename}", indent=2, icon=cli.icons.success
                                 )

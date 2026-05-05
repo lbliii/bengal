@@ -81,6 +81,7 @@ def build(
     full_output: Annotated[
         bool, Description("[Output] Traditional line-by-line output instead of live progress bar")
     ] = False,
+    style: Annotated[str, Description("[Output] Output style: dense, ascii, or ci")] = "dense",
     explain: Annotated[
         bool,
         Description("[Debug] Show why each page was rebuilt or skipped during incremental build"),
@@ -173,6 +174,12 @@ def build(
         cli.tip("Pass only one — they're opposites (fail-fast vs. tolerate).")
         raise SystemExit(2)
 
+    style_val = (style or "dense").lower()
+    if style_val not in {"dense", "ascii", "ci"}:
+        cli.error(f"--style must be one of dense, ascii, or ci (got: {style!r})")
+        cli.tip("Use --style ci for stable ASCII-safe output in automation logs.")
+        raise SystemExit(2)
+
     error_format_val = (error_format or "text").lower()
     if error_format_val not in {"text", "json"}:
         cli.error(f"--error-format must be 'text' or 'json' (got: {error_format!r})")
@@ -232,11 +239,13 @@ def build(
     )
     configure_traceback(debug=debug, traceback=traceback_val)
 
-    if memory_optimized and incremental_val is True:
-        cli.warning("--memory-optimized with --incremental may not fully utilize cache")
-        cli.blank()
-
+    output_mode = cli.output_mode(style_val)
+    output_mode.__enter__()
     try:
+        if memory_optimized and incremental_val is True:
+            cli.warning("--memory-optimized with --incremental may not fully utilize cache")
+            cli.blank()
+
         site = load_site_from_cli(
             source=source,
             config=config_path,
@@ -473,6 +482,7 @@ def build(
             "errors": error_count,
         }
     finally:
+        output_mode.__exit__(None, None, None)
         close_all_loggers()
 
 
@@ -778,7 +788,7 @@ def _print_explain_json(stats, *, dry_run: bool = False) -> None:
     """Print incremental build decision as JSON."""
     import json
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
 
     decision = getattr(stats, "incremental_decision", None)
 

@@ -31,8 +31,8 @@ Related:
 - bengal/cli/: CLI commands that consume this output system
 
 Example:
-    >>> from bengal.output import CLIOutput, get_cli_output, init_cli_output
-    >>> cli = CLIOutput(profile=BuildProfile.WRITER)
+    >>> from bengal.output import get_cli_output, init_cli_output
+    >>> cli = get_cli_output(profile=BuildProfile.WRITER)
     >>> cli.header("Building your site...")
     >>> cli.phase("Discovery", duration_ms=61)
     >>> cli.success("Built 245 pages in 0.8s")

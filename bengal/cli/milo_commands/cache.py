@@ -26,7 +26,8 @@ def cache_inputs(
 ) -> dict:
     """List build input patterns for CI cache keys."""
     from bengal.cache.ci import get_input_globs
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
 
     source = source or "."
     config_val = _resolve_config_arg(config)
@@ -46,10 +47,19 @@ def cache_inputs(
     else:
         if verbose:
             items = [{"name": p, "description": s} for p, s in input_globs]
-            cli.render_write("item_list.kida", title="Cache Input Patterns", items=items)
+            cli.render_write(
+                "command_list.kida",
+                title="Cache Input Patterns",
+                summary=f"{len(items)} pattern(s) contribute to CI cache keys",
+                items=items,
+            )
         else:
-            for pattern, _source_desc in input_globs:
-                cli.info(pattern)
+            cli.render_write(
+                "command_list.kida",
+                title="Cache Input Patterns",
+                summary=f"{len(input_globs)} pattern(s)",
+                items=[{"name": pattern, "description": ""} for pattern, _ in input_globs],
+            )
 
     return {"patterns": [p for p, _ in input_globs], "count": len(input_globs)}
 
@@ -67,7 +77,8 @@ def cache_hash(
 
     import bengal
     from bengal.cache.ci import get_input_globs
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
 
     source = source or "."
     config_val = _resolve_config_arg(config)

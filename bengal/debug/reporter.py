@@ -63,9 +63,9 @@ class ExplanationReporter:
                  If None, a default CLIOutput is created.
         """
         if cli is None:
-            from bengal.output.core import CLIOutput
+            from bengal.output import get_cli_output
 
-            cli = CLIOutput()
+            cli = get_cli_output()
         self._cli = cli
 
     def print(self, explanation: PageExplanation, verbose: bool = False) -> None:

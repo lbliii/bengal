@@ -1,0 +1,30 @@
+{#- Verdict-first source health check report. -#}
+{% from "_bengal.kida" import bengal_header %}
+{% from "_report_primitives.kida" import meter_row, issue_card %}
+{%- if ascii | default(false) -%}
+Bengal {{ title }}
+{%- else -%}
+{{ bengal_header(title) }}
+{%- endif %}
+{{ verdict }} - {{ detail }}
+
+{%- for meter in meters %}
+{{ meter_row(meter.glyph, meter.label, meter.padding, meter.bar, meter.value) }}
+{%- endfor %}
+
+{%- if findings %}
+{{ finding_heading | default("Findings") }}
+{%- for finding in findings %}
+{{ issue_card(finding.glyph, finding.display_code, finding.location, finding.message, finding.target, finding.recommendation, ascii | default(false)) }}
+{%- endfor %}
+{%- if hidden_count %}
+{{ hidden_count }} more finding(s). Re-run with --focus {{ next_focus }} or --verbose.
+{%- endif %}
+{%- else %}
+No source health problems found.
+{%- endif %}
+
+Next steps
+{%- for step in steps %}
+  {{ loop.index }}. {{ step }}
+{%- endfor %}

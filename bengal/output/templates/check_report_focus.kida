@@ -1,0 +1,16 @@
+{#- Single source health finding drilldown. -#}
+{% from "_bengal.kida" import bengal_header %}
+{% from "_report_primitives.kida" import issue_card %}
+{%- if ascii | default(false) -%}
+Bengal {{ title }}
+{%- else -%}
+{{ bengal_header(title) }}
+{%- endif %}
+{{ verdict }} - {{ detail }}
+
+{{ issue_card(finding.glyph, finding.display_code, finding.location, finding.message, finding.target, finding.recommendation, ascii | default(false)) }}
+
+Next steps
+{%- for step in steps %}
+  {{ loop.index }}. {{ step }}
+{%- endfor %}

@@ -15,6 +15,15 @@ from bengal.health.report import CheckStatus
 from bengal.health.validators.cache import CacheValidator
 
 
+def result_text(results) -> str:
+    """Return searchable human text from result messages and details."""
+    lines: list[str] = []
+    for result in results:
+        lines.append(result.message)
+        lines.extend(result.details or [])
+    return "\n".join(lines)
+
+
 @pytest.fixture
 def validator():
     """Create CacheValidator instance."""
@@ -99,8 +108,7 @@ class TestCacheValidatorCacheReadable:
         cache_path.write_text(json.dumps({"file_hashes": {}, "dependencies": {}}))
 
         results = validator.validate(mock_site)
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("readable" in r.message.lower() for r in success_results)
+        assert "readable" in result_text(results).lower()
 
     def test_error_when_cache_invalid_json(self, validator, mock_site):
         """Returns error when cache file has invalid JSON."""
@@ -125,8 +133,7 @@ class TestCacheValidatorStructure:
         cache_path.write_text(json.dumps({"file_hashes": {}, "dependencies": {}}))
 
         results = validator.validate(mock_site)
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("structure valid" in r.message.lower() for r in success_results)
+        assert "structure valid" in result_text(results).lower()
 
     def test_error_when_missing_file_hashes(self, validator, mock_site):
         """Returns error when cache missing file_hashes."""
@@ -163,9 +170,7 @@ class TestCacheValidatorSize:
         cache_path.write_text(json.dumps({"file_hashes": {}, "dependencies": {}}))
 
         results = validator.validate(mock_site)
-        # Should have a success message about size
-        size_results = [r for r in results if "size" in r.message.lower() or "MB" in r.message]
-        assert len(size_results) >= 1
+        assert "size" in result_text(results).lower()
 
     def test_warns_on_large_file_count(self, validator, mock_site):
         """Warns when tracking many files."""
@@ -217,8 +222,7 @@ class TestCacheValidatorDependencies:
         cache_path.write_text(json.dumps(cache_data))
 
         results = validator.validate(mock_site)
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("valid" in r.message.lower() for r in success_results)
+        assert "valid" in result_text(results).lower()
 
 
 class TestCacheValidatorPrivateMethods:
@@ -268,5 +272,4 @@ class TestCacheValidatorCorrectLocation:
         cache_path.write_text(json.dumps({"file_hashes": {}, "dependencies": {}}))
 
         results = validator.validate(mock_site)
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert any("correct location" in r.message.lower() for r in success_results)
+        assert "correct location" in result_text(results).lower()

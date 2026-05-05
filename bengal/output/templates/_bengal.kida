@@ -21,6 +21,25 @@
 {{ mouse_str }}{{ text | red | bold }}
 {%- enddef -%}
 
+{#- ── Bengal panel: bordered content box without Milo box indexing ── -#}
+{%- def bengal_panel(content, title="") -%}
+{%- set lines = content.splitlines() -%}
+{%- set max_len = bengal_panel_width(content, title) -%}
+{%- set inner_w = [max_len + 2, 20] | max -%}
+{%- if title -%}
+{%- set title_str = " " ~ title ~ " " -%}
+{%- set remaining = inner_w - (title_str | length) - 1 -%}
+{%- set fill = [remaining, 1] | max -%}
+╭─{{ title_str | bold }}{{ "─" * fill }}╮
+{%- else -%}
+╭{{ "─" * inner_w }}╮
+{%- endif -%}
+{%- for line in lines %}
+│ {{ line | pad(inner_w - 2) }} │
+{%- endfor %}
+╰{{ "─" * inner_w }}╯
+{%- enddef -%}
+
 {#- ── Build phase line with aligned columns ──────────────────────── -#}
 {%- def phase_line(name, status="Done", duration_ms=none, details=none, icon=none) -%}
 {%- set phase_icon = icon | default(icons.check) -%}
@@ -53,7 +72,7 @@
 {#- ── Timing bar: phase name + time + percentage + bar ────────── -#}
 {%- def timing_bar(name, time_str, pct, bar_width=20) -%}
 {%- set pct_color = "red" if pct > 60 else ("yellow" if pct > 40 else "green") -%}
-   {{ name | pad(15) }} {{ time_str | pad(8) }}  {{ ("%5.1f%%" | format(pct)) | fg(pct_color) }}  {{ pct | bar(bar_width) | fg(pct_color) }}
+   {{ name | pad(15) }} {{ time_str | pad(8) }}  {{ ("{:5.1f}%" | format(pct)) | fg(pct_color) }}  {{ pct | bar(bar_width) | fg(pct_color) }}
 {%- enddef -%}
 
 {#- ── Diff line: colored +/- prefix ─────────────────────────────── -#}

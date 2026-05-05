@@ -297,7 +297,7 @@ class TestFormatTime:
 class TestDisplayFunctions:
     """Test display functions."""
 
-    @patch("bengal.orchestration.stats.warnings.CLIOutput")
+    @patch("bengal.orchestration.stats.warnings.get_cli_output")
     def test_display_warnings_skips_when_no_warnings(self, mock_cli_class: MagicMock) -> None:
         """Test display_warnings does nothing when no warnings."""
         from bengal.orchestration.stats import BuildStats, display_warnings
@@ -309,7 +309,7 @@ class TestDisplayFunctions:
         # Should not create CLI output when no warnings
         mock_cli_class.return_value.error_header.assert_not_called()
 
-    @patch("bengal.orchestration.stats.display.CLIOutput")
+    @patch("bengal.orchestration.stats.display.get_cli_output")
     def test_display_simple_build_stats_handles_skipped(self, mock_cli_class: MagicMock) -> None:
         """Test display_simple_build_stats handles skipped builds."""
         from bengal.orchestration.stats import BuildStats, display_simple_build_stats
@@ -323,7 +323,7 @@ class TestDisplayFunctions:
         # Should render the build summary template
         mock_cli.render_write.assert_called()
 
-    @patch("bengal.orchestration.stats.display.CLIOutput")
+    @patch("bengal.orchestration.stats.display.get_cli_output")
     def test_display_build_stats_handles_skipped(self, mock_cli_class: MagicMock) -> None:
         """Test display_build_stats handles skipped builds."""
         from bengal.orchestration.stats import BuildStats, display_build_stats
@@ -336,6 +336,38 @@ class TestDisplayFunctions:
 
         mock_cli.render_write.assert_called()
 
+    def test_display_build_stats_ci_style_is_ascii_safe(self, capsys) -> None:
+        """Build summaries should honor the shared ASCII-safe output mode."""
+        from bengal.orchestration.stats import BuildStats, display_build_stats
+        from bengal.output import get_cli_output, reset_cli_output
+
+        reset_cli_output()
+        cli = get_cli_output()
+
+        stats = BuildStats(
+            total_pages=3,
+            regular_pages=3,
+            total_sections=1,
+            total_assets=2,
+            build_time_ms=250.0,
+            rendering_time_ms=200.0,
+            parallel=True,
+        )
+
+        with cli.output_mode("ci"):
+            display_build_stats(stats, output_dir="public")
+
+        text = capsys.readouterr().out
+        assert "v Bengal  Built 3 pages" in text
+        assert "> public" in text
+        assert "\x1b[" not in text
+        assert "ᓚᘏᗢ" not in text
+        assert "│" not in text
+        assert "↪" not in text
+        assert all(ord(char) < 128 for char in text)
+
+        reset_cli_output()
+
     def test_show_building_indicator_does_nothing(self) -> None:
         """Test show_building_indicator does nothing (header shown elsewhere)."""
         from bengal.orchestration.stats import show_building_indicator
@@ -343,7 +375,7 @@ class TestDisplayFunctions:
         # Should not raise
         show_building_indicator("Building")
 
-    @patch("bengal.orchestration.stats.helpers.CLIOutput")
+    @patch("bengal.orchestration.stats.helpers.get_cli_output")
     def test_show_error_displays_error(self, mock_cli_class: MagicMock) -> None:
         """Test show_error displays error message."""
         from bengal.orchestration.stats import show_error

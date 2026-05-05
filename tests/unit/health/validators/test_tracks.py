@@ -121,11 +121,14 @@ class TestTrackValidatorValidTracks:
 
         results = validator.validate(mock_site)
 
-        # When pages exist, we should get success
         success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        warning_results = [r for r in results if r.status == CheckStatus.WARNING]
-        # Either success (pages found) or warning (pages missing)
-        assert len(success_results) >= 1 or len(warning_results) >= 1
+        assert len(success_results) == 1
+        assert success_results[0].message == "1 track valid (2 items total)"
+        assert success_results[0].details == ["beginner: 2 items"]
+        assert success_results[0].metadata == {
+            "tracks": [{"id": "beginner", "title": "Beginner Track", "items": 2}],
+            "total_items": 2,
+        }
 
     def test_success_shows_item_count(self, validator, mock_site):
         """Success message shows item count."""
@@ -134,9 +137,8 @@ class TestTrackValidatorValidTracks:
 
         results = validator.validate(mock_site)
 
-        # Check for item count in either success or warning messages
+        # Check for item count in either success or warning messages.
         all_messages = [r.message for r in results]
-        # The item count (2) should appear somewhere
         assert any("2" in msg or "items" in msg.lower() for msg in all_messages)
 
 
@@ -211,8 +213,8 @@ class TestTrackValidatorMissingPages:
         results = validator.validate(site)
 
         success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        assert len(success_results) >= 1
-        assert any("1" in r.message and "item" in r.message.lower() for r in success_results)
+        assert len(success_results) == 1
+        assert success_results[0].message == "1 track valid (1 item total)"
 
     def test_warning_shows_missing_count(self, validator, mock_site):
         """Warning shows count of missing pages."""
@@ -243,6 +245,8 @@ class TestTrackValidatorMissingPages:
         assert any(
             "string" in r.message.lower() or "type" in r.message.lower() for r in warning_results
         )
+        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
+        assert success_results == []
 
 
 class TestTrackValidatorInvalidTrackId:
@@ -359,11 +363,10 @@ class TestTrackValidatorMultipleTracks:
 
         results = validator.validate(mock_site)
 
-        # Should have results for both tracks (success or warning)
-        track_results = [
-            r for r in results if "beginner" in r.message.lower() or "advanced" in r.message.lower()
-        ]
-        assert len(track_results) >= 2
+        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
+        assert len(success_results) == 1
+        assert success_results[0].message == "2 tracks valid (2 items total)"
+        assert success_results[0].details == ["beginner: 1 item", "advanced: 1 item"]
 
     def test_mixed_valid_invalid_tracks(self, validator, mock_site):
         """Handles mix of valid and invalid tracks."""

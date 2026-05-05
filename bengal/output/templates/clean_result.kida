@@ -1,0 +1,9 @@
+{#- Clean command result. -#}
+{% from "components/_defs.kida" import status_line %}
+{%- if status == "success" %}
+{{ status_line("success", message, detail) }}
+{%- elif status == "skipped" %}
+{{ status_line("warning", message, detail) }}
+{%- else %}
+{{ status_line("info", message, detail) }}
+{%- endif %}

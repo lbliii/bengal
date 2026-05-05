@@ -11,6 +11,8 @@ from bengal.utils.observability.logger import (
     close_all_loggers,
     configure_logging,
     get_logger,
+    print_all_summaries,
+    reset_loggers,
 )
 
 
@@ -304,6 +306,23 @@ def test_print_summary(logger, capsys):
     assert "phase1" in captured.out
     assert "phase2" in captured.out
     assert "TOTAL" in captured.out
+
+
+def test_print_all_summaries_uses_phase_report(capsys):
+    """Test global summary rendering."""
+    reset_loggers()
+    logger = get_logger("test.global_summary")
+
+    with logger.phase("global_phase"):
+        pass
+
+    print_all_summaries()
+
+    captured = capsys.readouterr()
+    assert "Build Phase Performance" in captured.out
+    assert "global_phase" in captured.out
+    assert "TOTAL" in captured.out
+    reset_loggers()
 
 
 def test_context_manager(tmp_path):

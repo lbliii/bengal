@@ -99,7 +99,9 @@ def save_cache(latest_version: str) -> None:
             "current_version": __version__,
             "checked_at": datetime.now(UTC).isoformat(),
         }
-        cache_path.write_text(json.dumps(data, indent=2))
+        from bengal.utils.io.atomic_write import atomic_write_text
+
+        atomic_write_text(cache_path, json.dumps(data, indent=2))
     except OSError as e:
         import logging
 

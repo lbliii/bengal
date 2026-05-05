@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.health.results import compact_successes
 from bengal.health.utils import read_output_content, sample_pages
 from bengal.parsing.factory import ParserFactory
 from bengal.utils.observability.logger import get_logger
@@ -64,7 +65,12 @@ class RenderingValidator(BaseValidator):
         # Check 3: SEO metadata (catches missing titles/descriptions)
         results.extend(self._check_seo_metadata(site))
 
-        return results
+        success_count = sum(1 for result in results if result.status.value == "success")
+        return compact_successes(
+            results,
+            f"{success_count} rendering checks passed",
+            metadata_key="rendering_checks",
+        )
 
     def _check_html_structure(self, site: SiteLike) -> list[CheckResult]:
         """Check basic HTML structure in output pages."""

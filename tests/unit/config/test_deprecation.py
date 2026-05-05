@@ -9,7 +9,6 @@ Tests config/deprecation.py:
 
 from __future__ import annotations
 
-from io import StringIO
 from unittest.mock import patch
 
 from bengal.config.deprecation import (
@@ -108,43 +107,35 @@ class TestPrintDeprecationWarnings:
             print_deprecation_warnings([])
             mock_print.assert_not_called()
 
-    def test_prints_warning_header(self):
+    def test_prints_warning_header(self, capsys):
         """Prints warning header with source."""
         deprecated = [("minify_assets", "assets.minify", "Use assets.minify")]
-        output = StringIO()
-        with patch("builtins.print", lambda *args, **kwargs: output.write(str(args[0]) + "\n")):
-            print_deprecation_warnings(deprecated, source="bengal.toml")
-        result = output.getvalue()
-        assert "⚠️" in result
+        print_deprecation_warnings(deprecated, source="bengal.toml")
+        result = capsys.readouterr().out
+        assert "Deprecated configuration keys found" in result
         assert "bengal.toml" in result
 
-    def test_prints_old_to_new_mapping(self):
+    def test_prints_old_to_new_mapping(self, capsys):
         """Prints old key to new location mapping."""
         deprecated = [("minify_assets", "assets.minify", "Use assets.minify: true")]
-        output = StringIO()
-        with patch("builtins.print", lambda *args, **kwargs: output.write(str(args[0]) + "\n")):
-            print_deprecation_warnings(deprecated)
-        result = output.getvalue()
+        print_deprecation_warnings(deprecated)
+        result = capsys.readouterr().out
         assert "minify_assets" in result
         assert "assets.minify" in result
 
-    def test_prints_migration_note(self):
+    def test_prints_migration_note(self, capsys):
         """Prints migration note for each deprecation."""
         note = "Use assets.minify: true instead"
         deprecated = [("minify_assets", "assets.minify", note)]
-        output = StringIO()
-        with patch("builtins.print", lambda *args, **kwargs: output.write(str(args[0]) + "\n")):
-            print_deprecation_warnings(deprecated)
-        result = output.getvalue()
+        print_deprecation_warnings(deprecated)
+        result = capsys.readouterr().out
         assert note in result
 
-    def test_prints_future_removal_notice(self):
+    def test_prints_future_removal_notice(self, capsys):
         """Prints notice about future removal."""
         deprecated = [("minify_assets", "assets.minify", "Note")]
-        output = StringIO()
-        with patch("builtins.print", lambda *args, **kwargs: output.write(str(args[0]) + "\n")):
-            print_deprecation_warnings(deprecated)
-        result = output.getvalue()
+        print_deprecation_warnings(deprecated)
+        result = capsys.readouterr().out
         assert "may be removed in a future version" in result
 
 

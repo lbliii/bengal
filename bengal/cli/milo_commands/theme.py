@@ -43,7 +43,8 @@ def theme_list(
 ) -> dict:
     """List available themes."""
 
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -62,8 +63,9 @@ def theme_list(
     )
 
     cli.render_write(
-        "item_list.kida",
+        "command_list.kida",
         title="Available Themes",
+        summary=f"{len(items)} theme(s) available",
         items=items,
     )
 
@@ -88,8 +90,9 @@ def theme_info(
     source: Annotated[str, Description("Source directory path")] = "",
 ) -> dict:
     """Show theme details."""
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
     from bengal.core.theme import get_theme_package
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -156,7 +159,8 @@ def theme_discover(
     source: Annotated[str, Description("Source directory path")] = "",
 ) -> dict:
     """List swizzlable templates from active theme chain."""
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
     from bengal.rendering.engines import create_engine
 
     source = source or "."
@@ -166,7 +170,7 @@ def theme_discover(
     templates = engine.list_templates()
 
     cli.render_write(
-        "item_list.kida",
+        "command_list.kida",
         title=f"Swizzlable Templates ({len(templates)})",
         items=[{"name": t, "description": ""} for t in templates],
     )
@@ -179,7 +183,8 @@ def theme_swizzle(
     source: Annotated[str, Description("Source directory path")] = "",
 ) -> dict:
     """Copy a theme template to project for customization."""
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
     from bengal.themes.swizzle import SwizzleManager
 
     source = source or "."
@@ -200,7 +205,7 @@ def theme_install(
     import re
     import subprocess
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
 
     cli = get_cli_output()
     SAFE_PACKAGE_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
@@ -226,7 +231,7 @@ def theme_validate(
     """Validate theme directory structure."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
 
     cli = get_cli_output()
     path = Path(theme_path).resolve()
@@ -281,7 +286,8 @@ def theme_new(
     import re
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
+    from bengal.utils.io.atomic_write import atomic_write_text
 
     cli = get_cli_output()
     slug = re.sub(r"[^a-z0-9_-]", "-", slug.lower().strip())
@@ -300,17 +306,20 @@ def theme_new(
 
     # Theme config
     theme_config = f'[theme]\nname = "{slug}"\nextends = "{extends}"\n'
-    (output_dir / "theme.toml").write_text(theme_config)
+    atomic_write_text(output_dir / "theme.toml", theme_config)
 
     # Base template
-    (output_dir / "templates" / "base.html").write_text(
-        "<!DOCTYPE html>\n<html>\n<head><title>{{ page.title }}</title></head>\n<body>{% block content %}{% endblock %}</body>\n</html>\n"
+    atomic_write_text(
+        output_dir / "templates" / "base.html",
+        "<!DOCTYPE html>\n<html>\n<head><title>{{ page.title }}</title></head>\n<body>{% block content %}{% endblock %}</body>\n</html>\n",
     )
-    (output_dir / "templates" / "page.html").write_text(
-        '{% extends "base.html" %}\n{% block content %}{{ page.content }}{% endblock %}\n'
+    atomic_write_text(
+        output_dir / "templates" / "page.html",
+        '{% extends "base.html" %}\n{% block content %}{{ page.content }}{% endblock %}\n',
     )
-    (output_dir / "templates" / "home.html").write_text(
-        '{% extends "base.html" %}\n{% block content %}<h1>Welcome</h1>{{ page.content }}{% endblock %}\n'
+    atomic_write_text(
+        output_dir / "templates" / "home.html",
+        '{% extends "base.html" %}\n{% block content %}<h1>Welcome</h1>{{ page.content }}{% endblock %}\n',
     )
 
     cli.render_write(
@@ -338,7 +347,8 @@ def theme_debug(
     template: Annotated[str, Description("Show resolution path for specific template")] = "",
 ) -> dict:
     """Debug theme resolution and paths."""
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
 
     source = source or "."
     template_val = template or None
@@ -385,8 +395,8 @@ def theme_directives(
     """List available MyST directives."""
     import json
 
-    from bengal.cli.utils import get_cli_output
     from bengal.debug import ShortcodeSandbox
+    from bengal.output import get_cli_output
 
     cli = get_cli_output()
     sandbox = ShortcodeSandbox()
@@ -421,8 +431,8 @@ def theme_test(
     import json
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
     from bengal.debug import ShortcodeSandbox
+    from bengal.output import get_cli_output
 
     cli = get_cli_output()
     sandbox = ShortcodeSandbox()
@@ -523,7 +533,8 @@ def theme_assets(
     from pathlib import Path
 
     from bengal.assets.pipeline import from_site as pipeline_from_site
-    from bengal.cli.utils import get_cli_output, load_site_from_cli
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()

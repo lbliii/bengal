@@ -363,6 +363,15 @@ def phase_finalize(
 
     orchestrator.logger.info("build_complete", **log_data)
 
+    # Flush rendering-time notice aggregators before command summaries are shown.
+    try:
+        from bengal.icons.svg import flush_missing_icon_warnings
+
+        flush_missing_icon_warnings()
+    except Exception:  # noqa: S110
+        # Notice aggregation must never break build finalization.
+        pass
+
     # Flush any core diagnostics that were collected during the build.
     # These are emitted by core models via a sink/collector rather than logging directly.
     try:

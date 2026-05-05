@@ -260,8 +260,8 @@ def load_site_from_cli(
         SystemExit: If site loading fails
 
     """
-    from bengal.cli.utils.output import get_cli_output
     from bengal.core.site import Site
+    from bengal.output import get_cli_output
     from bengal.utils.observability.profile import BuildProfile
 
     if cli is None:

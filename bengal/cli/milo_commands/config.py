@@ -18,9 +18,9 @@ def config_show(
     """Display merged configuration with environment and profile resolution."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
     from bengal.config.environment import detect_environment
     from bengal.config.unified_loader import UnifiedConfigLoader
+    from bengal.output import get_cli_output
 
     source = source or "."
     environment_val = environment or None
@@ -32,8 +32,12 @@ def config_show(
     config_dir = root_path / "config"
 
     if not config_dir.exists():
-        cli.warning(f"Config directory not found: {config_dir}")
-        cli.info("Run 'bengal config init' to create config structure")
+        cli.render_write(
+            "command_empty.kida",
+            title="Configuration",
+            message=f"Config directory not found: {config_dir}",
+            steps=["Run `bengal config init` to create config structure."],
+        )
         raise SystemExit(1)
 
     loader = UnifiedConfigLoader(track_origins=origin)
@@ -95,8 +99,8 @@ def config_doctor(
         validate_config_types,
         validate_config_values,
     )
-    from bengal.cli.utils import get_cli_output
     from bengal.config.unified_loader import ConfigLoadError, UnifiedConfigLoader
+    from bengal.output import get_cli_output
 
     source = source or "."
     environment_val = environment or None
@@ -106,8 +110,12 @@ def config_doctor(
     config_dir = root_path / "config"
 
     if not config_dir.exists():
-        cli.warning(f"Config directory not found: {config_dir}")
-        cli.info("Run 'bengal config init' to create config structure")
+        cli.render_write(
+            "command_empty.kida",
+            title="Config Health Check",
+            message=f"Config directory not found: {config_dir}",
+            steps=["Run `bengal config init` to create config structure."],
+        )
         raise SystemExit(1)
 
     errors: list[str] = []
@@ -168,8 +176,8 @@ def config_diff(
     from pathlib import Path
     from typing import Any
 
-    from bengal.cli.utils import get_cli_output
     from bengal.config.unified_loader import UnifiedConfigLoader
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -177,7 +185,12 @@ def config_diff(
     config_dir = root_path / "config"
 
     if not config_dir.exists():
-        cli.warning(f"Config directory not found: {config_dir}")
+        cli.render_write(
+            "command_empty.kida",
+            title="Config Diff",
+            message=f"Config directory not found: {config_dir}",
+            steps=["Run `bengal config init` before comparing environments."],
+        )
         raise SystemExit(1)
 
     env1 = environment or "local"
@@ -240,7 +253,7 @@ def config_init(
     """Initialize configuration structure with templates."""
     from pathlib import Path
 
-    from bengal.cli.utils import get_cli_output
+    from bengal.output import get_cli_output
 
     source = source or "."
     cli = get_cli_output()
@@ -276,6 +289,8 @@ def _create_directory_structure(config_dir, template, cli):
     """Create config directory structure. Returns file tree entries."""
     import yaml
 
+    from bengal.utils.io.atomic_write import atomic_write_text
+
     defaults = config_dir / "_default"
     defaults.mkdir(parents=True, exist_ok=True)
     envs = config_dir / "environments"
@@ -295,35 +310,40 @@ def _create_directory_structure(config_dir, template, cli):
         "features": {"rss": True, "sitemap": True, "search": True, "json": True, "llm_txt": True}
     }
 
-    (defaults / "site.yaml").write_text(
-        yaml.dump(site_config, default_flow_style=False, sort_keys=False)
+    atomic_write_text(
+        defaults / "site.yaml", yaml.dump(site_config, default_flow_style=False, sort_keys=False)
     )
-    (defaults / "build.yaml").write_text(
-        yaml.dump(build_config, default_flow_style=False, sort_keys=False)
+    atomic_write_text(
+        defaults / "build.yaml", yaml.dump(build_config, default_flow_style=False, sort_keys=False)
     )
-    (defaults / "features.yaml").write_text(
-        yaml.dump(features_config, default_flow_style=False, sort_keys=False)
+    atomic_write_text(
+        defaults / "features.yaml",
+        yaml.dump(features_config, default_flow_style=False, sort_keys=False),
     )
 
-    (envs / "local.yaml").write_text(
-        yaml.dump({"build": {"debug": True, "strict_mode": False}}, default_flow_style=False)
+    atomic_write_text(
+        envs / "local.yaml",
+        yaml.dump({"build": {"debug": True, "strict_mode": False}}, default_flow_style=False),
     )
-    (envs / "production.yaml").write_text(
+    atomic_write_text(
+        envs / "production.yaml",
         yaml.dump(
             {"site": {"baseurl": "https://example.com"}, "build": {"strict_mode": True}},
             default_flow_style=False,
-        )
+        ),
     )
 
-    (profiles / "writer.yaml").write_text(
+    atomic_write_text(
+        profiles / "writer.yaml",
         yaml.dump(
             {"observability": {"track_memory": False, "verbose": False}}, default_flow_style=False
-        )
+        ),
     )
-    (profiles / "dev.yaml").write_text(
+    atomic_write_text(
+        profiles / "dev.yaml",
         yaml.dump(
             {"observability": {"track_memory": True, "verbose": True}}, default_flow_style=False
-        )
+        ),
     )
 
     return [
@@ -341,13 +361,15 @@ def _create_single_file(root_path, template, cli):
     """Create single bengal.yaml file. Returns file tree entries."""
     import yaml
 
+    from bengal.utils.io.atomic_write import atomic_write_text
+
     config_file = root_path / "bengal.yaml"
     config = {
         "site": {"title": "My Site", "baseurl": "https://example.com"},
         "features": {"rss": True, "sitemap": True, "search": True},
         "build": {"parallel": True, "incremental": True},
     }
-    config_file.write_text(yaml.dump(config, default_flow_style=False, sort_keys=False))
+    atomic_write_text(config_file, yaml.dump(config, default_flow_style=False, sort_keys=False))
 
     return [{"name": "bengal.yaml", "note": "single-file config"}]
 
@@ -368,8 +390,9 @@ def config_inspect(
     """Advanced configuration inspection and comparison."""
     import json
 
-    from bengal.cli.utils import configure_traceback, get_cli_output, load_site_from_cli
+    from bengal.cli.utils import configure_traceback, load_site_from_cli
     from bengal.debug import ConfigInspector
+    from bengal.output import get_cli_output
 
     source = source or "."
     traceback_val = traceback or None

@@ -14,6 +14,15 @@ from bengal.health.report import CheckStatus
 from bengal.health.validators.menu import MenuValidator
 
 
+def result_text(results) -> str:
+    """Return searchable human text from result messages and details."""
+    lines: list[str] = []
+    for result in results:
+        lines.append(result.message)
+        lines.extend(result.details or [])
+    return "\n".join(lines)
+
+
 @pytest.fixture
 def validator():
     """Create MenuValidator instance."""
@@ -56,9 +65,7 @@ class TestMenuValidatorConsistency:
         """Item count is correct when builder is available."""
         results = validator.validate(mock_site_with_builder)
 
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        # Should report 1 item
-        assert any("1" in r.message for r in success_results)
+        assert "1" in result_text(results)
 
     def test_same_item_count_without_builder(self, validator, mock_site_with_builder):
         """Item count is correct when builder is NOT available."""
@@ -66,9 +73,7 @@ class TestMenuValidatorConsistency:
 
         results = validator.validate(mock_site_with_builder)
 
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        # Should still report 1 item
-        assert any("1" in r.message for r in success_results)
+        assert "1" in result_text(results)
 
     def test_broken_links_checked_with_builder(self, validator, mock_site_with_builder):
         """Broken links are checked when builder is available."""
@@ -135,9 +140,7 @@ class TestMenuValidatorNestedItems:
 
         results = validator.validate(site)
 
-        success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
-        # Should count 3 items total (grandparent + parent + child)
-        assert any("3" in r.message for r in success_results)
+        assert "3" in result_text(results)
 
     def test_checks_broken_links_in_nested_items(self, validator):
         """Checks broken links in nested items."""
@@ -217,11 +220,13 @@ class TestMenuValidatorMultipleMenus:
 
         results = validator.validate(site)
 
-        # Should have success for main, warning for footer
+        # Should have a compact success for item counts and warning for footer.
         success_results = [r for r in results if r.status == CheckStatus.SUCCESS]
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
 
-        assert len(success_results) >= 2  # Item counts for both menus
+        assert len(success_results) == 1
+        assert "main" in result_text(results)
+        assert "footer" in result_text(results)
         assert len(warning_results) >= 1  # Broken link in footer
 
     def test_reports_correct_menu_names(self, validator):
@@ -243,9 +248,9 @@ class TestMenuValidatorMultipleMenus:
 
         results = validator.validate(site)
 
-        messages = " ".join(r.message for r in results)
-        assert "primary_nav" in messages
-        assert "sidebar" in messages
+        text = result_text(results)
+        assert "primary_nav" in text
+        assert "sidebar" in text
 
 
 class TestMenuValidatorURLMatching:

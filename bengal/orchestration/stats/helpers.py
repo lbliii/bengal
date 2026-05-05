@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.output import CLIOutput
+from bengal.output import get_cli_output
 
 if TYPE_CHECKING:
     from bengal.orchestration.stats.models import BuildStats
@@ -29,13 +29,13 @@ def show_building_indicator(text: str = "Building") -> None:
 
 def show_error(message: str, show_art: bool = True) -> None:
     """Show an error message with mouse emoji (errors that Bengal needs to catch!)."""
-    cli = CLIOutput()
+    cli = get_cli_output()
     cli.error_header(message, mouse=show_art)
 
 
 def show_welcome() -> None:
     """Show welcome banner with Bengal cat mascot."""
-    cli = CLIOutput()
+    cli = get_cli_output()
     cli.header("BENGAL SSG", mascot=True, leading_blank=True, trailing_blank=False)
 
 
@@ -46,7 +46,7 @@ def show_clean_success(output_dir: str) -> None:
     Regular clean uses inline success message after prompt confirmation.
 
     """
-    cli = CLIOutput(quiet=False, verbose=False)
+    cli = get_cli_output(quiet=False, verbose=False)
 
     cli.blank()
     cli.header("Cleaning output directory...")
@@ -69,7 +69,7 @@ def display_template_errors(stats: BuildStats) -> None:
 
     from bengal.errors.display import display_template_render_error
 
-    cli = CLIOutput()
+    cli = get_cli_output()
     error_count = len(stats.template_errors)
 
     cli.error_header(f"❌ Template Errors ({error_count})")

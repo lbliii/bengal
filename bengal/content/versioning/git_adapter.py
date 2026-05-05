@@ -386,9 +386,9 @@ class GitVersionAdapter:
             record_error(error, file_path=str(self.repo_path))
             # Display user-friendly error with suggestion
             from bengal.errors.display import display_bengal_error
-            from bengal.output import CLIOutput
+            from bengal.output import get_cli_output
 
-            display_bengal_error(error, CLIOutput())
+            display_bengal_error(error, get_cli_output())
 
         # Get tags
         try:
@@ -428,9 +428,9 @@ class GitVersionAdapter:
             record_error(error, file_path=str(self.repo_path))
             # Display user-friendly error with suggestion
             from bengal.errors.display import display_bengal_error
-            from bengal.output import CLIOutput
+            from bengal.output import get_cli_output
 
-            display_bengal_error(error, CLIOutput())
+            display_bengal_error(error, get_cli_output())
 
         self._refs_cache = refs
         return refs

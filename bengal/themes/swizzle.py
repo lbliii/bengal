@@ -361,8 +361,9 @@ class SwizzleManager:
                             target=rec.get("target"),
                             diff_lines=diff_text.count("\n"),
                         )
-                        # Print diff for user visibility
-                        print(diff_text.rstrip())
+                        from bengal.output import get_cli_output
+
+                        get_cli_output().raw(diff_text.rstrip(), level=None)
                     # Proceed to write (falls through to the write below)
                 else:
                     skipped_changed += 1

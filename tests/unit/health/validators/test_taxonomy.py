@@ -19,6 +19,15 @@ from bengal.health.report import CheckStatus
 from bengal.health.validators.taxonomy import TaxonomyValidator
 
 
+def result_text(results) -> str:
+    """Return searchable human text from result messages and details."""
+    lines: list[str] = []
+    for result in results:
+        lines.append(result.message)
+        lines.extend(result.details or [])
+    return "\n".join(lines)
+
+
 class TestTaxonomyValidator:
     """Tests for TaxonomyValidator."""
 
@@ -86,8 +95,7 @@ class TestTaxonomyValidator:
         """Test validation when all tags have corresponding pages."""
         results = validator.validate(mock_site)
 
-        # Should have success results for tag pages
-        assert any(r.status == CheckStatus.SUCCESS and "tag" in r.message.lower() for r in results)
+        assert "tag" in result_text(results).lower()
 
     def test_missing_tag_page(self, validator, mock_site):
         """Test detection of missing tag page."""

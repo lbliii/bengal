@@ -213,9 +213,9 @@ class FontHelper:
         if not fonts_to_download:
             return None
 
-        from bengal.output import CLIOutput
+        from bengal.output import get_cli_output
 
-        cli = CLIOutput()
+        cli = get_cli_output()
         cli.section("Fonts")
 
         # Download fonts

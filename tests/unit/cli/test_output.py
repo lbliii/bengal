@@ -179,7 +179,7 @@ class TestGlobalCLIOutput:
 
     def test_cli_utils_and_output_share_singleton(self):
         """CLI utility imports should use the output package singleton."""
-        from bengal.cli.utils.output import get_cli_output as get_cli_output_from_utils
+        from bengal.output import get_cli_output as get_cli_output_from_utils
 
         cli1 = init_cli_output(quiet=True)
         cli2 = get_cli_output_from_utils()
@@ -189,7 +189,7 @@ class TestGlobalCLIOutput:
 
     def test_cli_utils_reset_clears_output_singleton(self):
         """Resetting through the CLI utility path should clear the shared singleton."""
-        from bengal.cli.utils.output import reset_cli_output as reset_cli_output_from_utils
+        from bengal.output import reset_cli_output as reset_cli_output_from_utils
 
         cli1 = init_cli_output()
         reset_cli_output_from_utils()
@@ -226,6 +226,18 @@ class TestBridgeOutput:
 
         captured = capsys.readouterr()
         assert "Interrupted." in captured.out
+
+    def test_error_header_normalizes_text_in_ci_mode(self, capsys):
+        """Raw Unicode in error header text should not leak into CI output."""
+        cli = CLIOutput(use_rich=False)
+
+        with cli.output_mode("ci"):
+            cli.error_header("❌ Template Errors", mouse=False)
+
+        captured = capsys.readouterr()
+        assert "x Template Errors" in captured.out
+        assert "❌" not in captured.out
+        assert "?" not in captured.out
 
     def test_prompt_uses_bridge_even_when_quiet(self, monkeypatch, capsys):
         """Interactive prompts remain visible in quiet mode."""

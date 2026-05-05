@@ -14,8 +14,8 @@
         issues: list[{level, message, detail}]|none
         performance: {total_ms, breakdown: list[{label, value}]}|none
 -#}
-{% from "_bengal.kida" import bengal_header %}
-{% from "components/_defs.kida" import section, kv_list, kv_pair, panel, summary_box, issue_list, status_line %}
+{% from "_bengal.kida" import bengal_header, bengal_panel %}
+{% from "components/_defs.kida" import section, kv_list, kv_pair, summary_box, issue_list, status_line %}
 
 {{ bengal_header("Page Explanation: " ~ source.path) }}
 
@@ -28,7 +28,7 @@
 {%- endif %}
 {{ "Encoding" | kv(source.encoding, width=40) }}
 {%- endcapture -%}
-{{ panel(source_content | trim, title="Source") }}
+{{ bengal_panel(source_content | trim, title="Source") }}
 
 {#- ── Frontmatter ─────────────────────────────────────── -#}
 {%- if frontmatter %}
@@ -38,7 +38,7 @@
 {{ item.label | kv(item.value, width=40) }}
 {% endfor -%}
 {%- endcapture -%}
-{{ panel(fm_content | trim, title="Frontmatter") }}
+{{ bengal_panel(fm_content | trim, title="Frontmatter") }}
 {%- endif -%}
 
 {#- ── Template Chain ──────────────────────────────────── -#}
@@ -55,7 +55,7 @@
 {%- endfor -%}
 {%- endfor -%}
 {%- endcapture -%}
-{{ panel(chain_content | trim, title="Template Chain") }}
+{{ bengal_panel(chain_content | trim, title="Template Chain") }}
 {%- endif -%}
 
 {#- ── Dependencies ────────────────────────────────────── -#}
@@ -69,7 +69,7 @@
 {%- endfor -%}
 {%- endfor -%}
 {%- endcapture -%}
-{{ panel(deps_content | trim, title="Dependencies") }}
+{{ bengal_panel(deps_content | trim, title="Dependencies") }}
 {%- endif -%}
 
 {#- ── Shortcodes ──────────────────────────────────────── -#}
@@ -80,7 +80,7 @@
 {{ sc.name | pad(20) }} {{ (sc.count | string) | pad(5) }}  {{ sc.lines_str | dim }}
 {% endfor -%}
 {%- endcapture -%}
-{{ panel(sc_content | trim, title="Directives") }}
+{{ bengal_panel(sc_content | trim, title="Directives") }}
 {%- endif -%}
 
 {#- ── Cache Status ────────────────────────────────────── -#}
@@ -105,7 +105,7 @@
 {{ "Cached" | kv(cache.layers | join(", "), width=40) }}
 {%- endif -%}
 {%- endcapture -%}
-{{ panel(cache_content | trim, title="Cache") }}
+{{ bengal_panel(cache_content | trim, title="Cache") }}
 
 {#- ── Output ──────────────────────────────────────────── -#}
 
@@ -118,7 +118,7 @@
 {{ "Size" | kv(output.size, width=40) }}
 {%- endif -%}
 {%- endcapture -%}
-{{ panel(output_content | trim, title="Output") }}
+{{ bengal_panel(output_content | trim, title="Output") }}
 
 {#- ── Issues ──────────────────────────────────────────── -#}
 {%- if issues %}
@@ -136,5 +136,5 @@
 {{ ("  " ~ item.label) | kv(item.value, width=38) }}
 {%- endfor -%}
 {%- endcapture -%}
-{{ panel(perf_content | trim, title="Performance") }}
+{{ bengal_panel(perf_content | trim, title="Performance") }}
 {%- endif -%}

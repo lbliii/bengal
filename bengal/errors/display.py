@@ -19,7 +19,7 @@ Note:
 Example:
     >>> from bengal.errors import BengalRenderingError, ErrorCode
     >>> from bengal.errors.display import display_bengal_error
-    >>> from bengal.output import CLIOutput
+    >>> from bengal.output import get_cli_output
     >>>
     >>> error = BengalRenderingError(
     ...     "Template not found: single.html",
@@ -27,7 +27,7 @@ Example:
     ...     file_path=Path("content/post.md"),
     ...     suggestion="Check templates/ directory",
     ... )
-    >>> display_bengal_error(error, CLIOutput())
+    >>> display_bengal_error(error, get_cli_output())
 
 See Also:
 - bengal/errors/exceptions.py: BengalError exception hierarchy

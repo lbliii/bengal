@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.health.results import compact_successes
 
 if TYPE_CHECKING:
     from bengal.orchestration.build_context import BuildContext
@@ -66,7 +67,12 @@ class PerformanceValidator(BaseValidator):
         # Check 3: Slow pages (if available)
         results.extend(self._check_slow_pages(site, build_stats))
 
-        return results
+        success_count = sum(1 for result in results if result.status.value == "success")
+        return compact_successes(
+            results,
+            f"{success_count} performance checks passed",
+            metadata_key="performance_checks",
+        )
 
     def _check_build_time(self, site: SiteLike, build_stats: dict[str, Any]) -> list[CheckResult]:
         """Check if overall build time is reasonable."""

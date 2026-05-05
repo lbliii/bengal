@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
+from bengal.health.results import compact_successes
 
 if TYPE_CHECKING:
     from bengal.orchestration.build_context import BuildContext
@@ -53,7 +54,12 @@ class MenuValidator(BaseValidator):
         for menu_name, items in site.menu.items():
             results.extend(self._validate_menu(site, menu_name, items))
 
-        return results
+        success_count = sum(1 for result in results if result.status.value == "success")
+        return compact_successes(
+            results,
+            f"{success_count} navigation menus valid",
+            metadata_key="menus",
+        )
 
     def _validate_menu(self, site: SiteLike, menu_name: str, items: list[Any]) -> list[CheckResult]:
         """Validate a single menu."""
@@ -83,7 +89,6 @@ class MenuValidator(BaseValidator):
                     details=broken_links[:3],
                 )
             )
-
         return results
 
     def _count_menu_items(self, items: list[Any], count: int = 0) -> int:
