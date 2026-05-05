@@ -199,6 +199,21 @@ def test_command_output_matrix_covers_priority_commands():
         "config diff missing config": "command_empty.kida",
         "unknown command": "command_error.kida",
         "unknown group command": "command_error.kida",
+        "serve option conflicts": "message_line.kida",
+        "fix no-op": "message_line.kida",
+        "upgrade status": "upgrade_status.kida",
+        "theme install validation": "message_line.kida",
+        "theme new": "scaffold_result.kida",
+        "theme test": "kv_detail.kida / validation_report.kida / json_output.kida",
+        "theme assets": "command_list.kida / message_line.kida",
+        "inspect links": "validation_report.kida / json_output.kida",
+        "inspect graph": "json_output.kida / message_line.kida debug report",
+        "inspect perf": "message_line.kida performance report",
+        "debug incremental": "json_output.kida / message_line.kida debug report",
+        "debug delta": "json_output.kida / message_line.kida debug report",
+        "debug deps": "item_list.kida / message_line.kida debug report",
+        "debug migrate": "message_line.kida debug report",
+        "debug sandbox": "item_list.kida / kv_detail.kida / validation_report.kida",
     }
 
     assert len(matrix) >= 12
@@ -225,3 +240,121 @@ def test_build_ci_style_applies_to_memory_incremental_warning(monkeypatch, capsy
     output = capsys.readouterr().out
     assert "! --memory-optimized with --incremental may not fully utilize cache" in output
     assert "▲" not in output
+
+
+def test_serve_conflict_uses_cli_output_not_argparse(capsys):
+    """Serve preflight conflicts should render through CLIOutput before site loading."""
+    from bengal.cli.milo_commands.serve import serve
+    from bengal.output import reset_cli_output
+
+    reset_cli_output()
+    with pytest.raises(SystemExit) as exc:
+        serve(verbose=True, debug=True)
+    reset_cli_output()
+
+    assert exc.value.code == 2
+    output = capsys.readouterr().out
+    assert "--verbose and --debug cannot be used together" in output
+    assert "Pick one" in output
+    assert "usage:" not in output
+
+
+def test_fix_noop_branch_uses_cli_output(monkeypatch, tmp_path, capsys):
+    """Fix should report no-op states through Bengal output helpers."""
+    from bengal.cli.milo_commands.fix import fix
+    from bengal.output import reset_cli_output
+
+    class FakeSite:
+        root_path = tmp_path
+
+        def discover_content(self):
+            return None
+
+        def discover_assets(self):
+            return None
+
+    class FakeHealthCheck:
+        def __init__(self, site):
+            self.site = site
+
+        def run(self, profile):
+            return SimpleNamespace()
+
+    class FakeAutoFixer:
+        def __init__(self, report, site_root):
+            self.report = report
+            self.site_root = site_root
+
+        def suggest_fixes(self):
+            return []
+
+    reset_cli_output()
+    monkeypatch.setattr("bengal.cli.utils.load_site_from_cli", lambda **kwargs: FakeSite())
+    monkeypatch.setattr("bengal.health.HealthCheck", FakeHealthCheck)
+    monkeypatch.setattr("bengal.health.remediation.AutoFixer", FakeAutoFixer)
+
+    result = fix(dry_run=True)
+    reset_cli_output()
+
+    output = capsys.readouterr().out
+    assert result["status"] == "ok"
+    assert "Auto-Fix" in output
+    assert "No fixes available" in output
+    assert "usage:" not in output
+
+
+def test_upgrade_dry_run_uses_status_template(monkeypatch, capsys):
+    """Upgrade dry runs should render the dedicated status template."""
+    from bengal.cli.milo_commands.upgrade import upgrade
+    from bengal.output import reset_cli_output
+
+    installer = SimpleNamespace(
+        name="pipx",
+        display_command="pipx upgrade bengal",
+        command=["pipx", "upgrade", "bengal"],
+    )
+
+    reset_cli_output()
+    monkeypatch.setattr("bengal.cli.helpers.upgrade_check.fetch_latest_version", lambda: "9.9.9")
+    monkeypatch.setattr("bengal.cli.helpers.upgrade_installers.detect_installer", lambda: installer)
+
+    result = upgrade(dry_run=True)
+    reset_cli_output()
+
+    output = capsys.readouterr().out
+    assert result["dry_run"] is True
+    assert "9.9.9" in output
+    assert "pipx upgrade bengal" in output
+    assert "usage:" not in output
+
+
+def test_theme_install_invalid_name_uses_actionable_error(capsys):
+    """Theme install validation should fail before invoking installers."""
+    from bengal.cli.milo_commands.theme import theme_install
+    from bengal.output import reset_cli_output
+
+    reset_cli_output()
+    with pytest.raises(SystemExit):
+        theme_install("../not-safe")
+    reset_cli_output()
+
+    output = capsys.readouterr().out
+    assert "doesn't match safe pattern" in output
+    assert "Use --force to override" in output
+    assert "usage:" not in output
+
+
+def test_debug_sandbox_empty_state_is_actionable(capsys):
+    """Debug sandbox empty input should give a bounded usage hint."""
+    from bengal.cli.milo_commands.debug import debug_sandbox
+    from bengal.output import reset_cli_output
+
+    reset_cli_output()
+    result = debug_sandbox()
+    reset_cli_output()
+
+    output = capsys.readouterr().out
+    assert result["status"] == "skipped"
+    assert "No content provided" in output
+    assert "bengal debug sandbox" in output
+    assert "usage:" not in output

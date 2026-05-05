@@ -141,6 +141,67 @@ def test_wheel_bengal_help_succeeds(installed_venv: Path) -> None:
     assert "bengal" in result.stdout.lower()
 
 
+def test_wheel_bengal_llms_txt_succeeds(installed_venv: Path) -> None:
+    """``bengal --llms-txt`` must expose the installed Milo command tree."""
+    bengal = _bengal_bin(installed_venv)
+    result = subprocess.run(
+        [str(bengal), "--llms-txt"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, (
+        f"bengal --llms-txt failed with code {result.returncode}\n"
+        f"stdout={result.stdout[-1000:]!r}\nstderr={result.stderr[-1000:]!r}"
+    )
+    assert "# bengal" in result.stdout
+    assert "**build**" in result.stdout
+    assert "**cache**" not in result.stderr
+
+
+def test_wheel_python_m_bengal_cli_routes_to_milo(installed_venv: Path) -> None:
+    """``python -m bengal.cli`` should match the installed console script route."""
+    py = installed_venv / ("Scripts" if os.name == "nt" else "bin") / "python"
+    result = subprocess.run(
+        [str(py), "-m", "bengal.cli", "--help"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, (
+        f"python -m bengal.cli --help failed with code {result.returncode}\n"
+        f"stderr={result.stderr[-1000:]!r}"
+    )
+    assert "Core workflow" in result.stdout
+    assert "--llms-txt" in result.stdout
+
+
+def test_wheel_does_not_install_bengal_next(installed_venv: Path) -> None:
+    """The closed migration should install only the ``bengal`` console script."""
+    script_dir = installed_venv / ("Scripts" if os.name == "nt" else "bin")
+    assert not (script_dir / "bengal-next").exists()
+    assert not (script_dir / "bengal-next.exe").exists()
+
+    py = script_dir / "python"
+    result = subprocess.run(
+        [
+            str(py),
+            "-c",
+            (
+                "from importlib.metadata import entry_points; "
+                "print('\\n'.join(sorted("
+                "ep.name for ep in entry_points(group='console_scripts') "
+                "if ep.value.startswith('bengal.cli.'))))"
+            ),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.strip().splitlines() == ["bengal"]
+
+
 def test_wheel_cache_hash_help_succeeds(installed_venv: Path) -> None:
     """``bengal cache hash --help`` — the specific command that crashed in v0.3.1.
 

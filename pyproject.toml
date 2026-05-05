@@ -32,8 +32,8 @@ classifiers = [
     "Topic :: Software Development :: Documentation",
 ]
 dependencies = [
-    "click>=8.1.7",
-    "milo-cli>=0.3.0",                         # B-stack CLI framework (replaces Click — migration in progress)
+    "click>=8.1.7",                            # Autodoc compatibility for documenting Click apps
+    "milo-cli>=0.3.0",                         # B-stack CLI framework for Bengal commands
 
     "rosettes>=0.2.0",
     "kida-templates>=0.7.0",                   # Kida template engine (AST-native, free-threading ready)
@@ -203,9 +203,8 @@ ignore = [
     "S110",  # try-except-pass is fine in test setup/teardown
     "S112",  # try-except-continue is fine in test iteration
 ]
-# CLI layer — print() is the primary output mechanism, callbacks have fixed signatures
-"bengal/cli/**/*.py" = ["T201", "ARG"]
-"bengal/__main__.py" = ["T201"]
+# CLI layer — callbacks have fixed signatures; terminal output routes through CLIOutput/Milo.
+"bengal/cli/**/*.py" = ["ARG"]
 # Dev server / build output — print for output, callbacks have fixed signatures
 "bengal/server/**/*.py" = ["T201", "S108", "S603", "S607", "ARG"]
 "bengal/build/**/*.py" = ["T201"]
