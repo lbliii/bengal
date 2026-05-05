@@ -12,7 +12,7 @@ Every layer — markdown parsing, syntax highlighting, templates, dev server —
 
 ```bash
 pip install bengal
-bengal new site mysite && cd mysite && bengal serve
+bengal new site --name mysite && cd mysite && bengal serve
 ```
 
 ---
@@ -45,11 +45,11 @@ Bengal is a static site generator where the entire stack is Python you can read,
 |---------|-------------|
 | `bengal build` | Production build |
 | `bengal serve` | Dev server with live reload |
-| `bengal validate` | Health checks and validation |
+| `bengal check` | Health checks and validation |
 | `bengal fix` | Auto-fix common issues |
-| `bengal graph report` | Site structure analysis |
+| `bengal inspect graph` | Site structure analysis |
 
-Aliases: `b` (build), `s` (serve), `v` (validate)
+Aliases: `b` (build), `s` (serve), `v` (check)
 
 ---
 
@@ -87,9 +87,9 @@ Each preset creates a complete site with appropriate sections, sample content, a
 Create sites non-interactively with `--template`:
 
 ```bash
-bengal new site my-docs --template docs
-bengal new site my-blog --template blog
-bengal new site portfolio --template portfolio
+bengal new site --name my-docs --template docs
+bengal new site --name my-blog --template blog
+bengal new site --name portfolio --template portfolio
 ```
 
 **Available templates:**
@@ -108,110 +108,39 @@ bengal new site portfolio --template portfolio
 </details>
 
 <details>
-<summary><strong>Add Sections to Existing Sites</strong> — Expand without recreating</summary>
+<summary><strong>Add Pages and Templates</strong> — Expand without recreating</summary>
 
-Add new content sections to an existing Bengal site:
+Add content and template files to an existing Bengal site:
 
 ```bash
-# Add multiple sections
-bengal init --sections docs --sections tutorials
+# Add a page under a section
+bengal new page --name getting-started --section docs
 
-# Add sections with sample content
-bengal init --sections blog --with-content --pages-per-section 5
+# Add template files
+bengal new layout --name docs-page
+bengal new partial --name docs-sidebar
 
-# Preview without creating files
-bengal init --sections api --dry-run
+# Add a content type strategy scaffold
+bengal new content-type --name tutorial
 ```
 
-**Section type inference:**
-
-| Name Pattern | Inferred Type | Behavior |
-|--------------|---------------|----------|
-| blog, posts, articles, news | `blog` | Date-sorted, post-style |
-| docs, documentation, guides, tutorials | `doc` | Weight-sorted, doc-style |
-| projects, portfolio | `section` | Standard section |
-| about, contact | `section` | Standard section |
+Use frontmatter, content type strategies, and section index pages to shape how
+new content is grouped and rendered.
 
 </details>
 
 <details>
-<summary><strong>Custom Skeleton Manifests</strong> — YAML-defined site structures</summary>
+<summary><strong>Content Type Scaffolds</strong> — Python-defined content behavior</summary>
 
-For complex or repeatable scaffolding, define structures in YAML manifests:
+Generate a starter `ContentTypeStrategy` when a section needs custom matching,
+template selection, summaries, or pagination behavior:
 
 ```bash
-# Preview what would be created
-bengal project skeleton apply my-structure.yaml --dry-run
-
-# Apply the skeleton
-bengal project skeleton apply my-structure.yaml
-
-# Overwrite existing files
-bengal project skeleton apply my-structure.yaml --force
+bengal new content-type --name changelog
 ```
 
-**Example manifest** (`docs-skeleton.yaml`):
-
-```yaml
-name: Documentation Site
-description: Technical docs with navigation sections
-version: "1.0"
-
-cascade:
-  type: doc  # Applied to all pages
-
-structure:
-  - path: _index.md
-    props:
-      title: Documentation
-      description: Project documentation
-      weight: 100
-    content: |
-      # Documentation
-      Welcome! Start with our [Quick Start](getting-started/quickstart/).
-
-  - path: getting-started/_index.md
-    props:
-      title: Getting Started
-      weight: 10
-    cascade:
-      type: doc
-    pages:
-      - path: installation.md
-        props:
-          title: Installation
-          weight: 20
-        content: |
-          # Installation
-          ```bash
-          pip install your-package
-          ```
-
-      - path: quickstart.md
-        props:
-          title: Quick Start
-          weight: 30
-        content: |
-          # Quick Start
-          Your first project in 5 minutes.
-
-  - path: api/_index.md
-    props:
-      title: API Reference
-      weight: 30
-    content: |
-      # API Reference
-      Complete API documentation.
-```
-
-**Component Model:**
-- `path` — File or directory path
-- `type` — Component identity (blog, doc, landing)
-- `variant` — Visual style variant
-- `props` — Frontmatter data (title, weight, etc.)
-- `content` — Markdown body content
-- `pages` — Child components (makes this a section)
-- `cascade` — Values inherited by all descendants
+The generated file contains TODO markers for matching, template selection,
+excerpt generation, and pagination so custom content behavior stays in Python.
 
 </details>
 
@@ -266,7 +195,7 @@ config/
 ```
 
 ```bash
-bengal build -e production    # Production environment
+bengal build --environment production    # Production environment
 bengal build --profile dev    # Development profile
 ```
 

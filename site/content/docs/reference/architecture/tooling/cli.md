@@ -119,7 +119,7 @@ bengal serve --port 8080
 bengal serve --no-watch
 
 # Open browser automatically (default)
-bengal serve --open
+bengal serve --open-browser
 
 # ASCII-safe server lifecycle output for CI or log capture
 bengal serve --style ci
@@ -128,63 +128,32 @@ bengal serve --style ci
 bengal serve --verbose
 ```
 
-**Graph Analysis Commands**:
+**Inspection Commands**:
 ```bash
-# Top-level graph command group
-bengal graph
+# Explain how a page is built
+bengal inspect page --page-path index
 
-# Unified site analysis report
-bengal graph report
-bengal graph report --brief          # CI-friendly compact output
-bengal graph report --format json    # Export as JSON
+# Check internal and external links
+bengal inspect links
+bengal inspect links --internal-only
+bengal inspect links --external-only
 
-# CI integration with thresholds
-bengal graph report --ci --threshold-isolated 5
+# Analyze site structure and link graph
+bengal inspect graph
 
-# Connectivity analysis by level
-bengal graph orphans                 # Show isolated pages (score < 0.25)
-bengal graph orphans --level lightly # Show lightly-linked pages
-bengal graph orphans --level all     # Show all under-linked pages
-bengal graph orphans --format json   # Export with detailed metrics
-
-# Analyze site structure and connectivity
-bengal graph analyze
-bengal graph analyze --tree          # Show site structure as tree
-bengal graph analyze --output public/graph.html  # Interactive viz
-
-# Compute PageRank scores
-bengal graph pagerank --top 20
-
-# Detect topical communities
-bengal graph communities --min-size 3
-
-# Find bridge pages (navigation bottlenecks)
-bengal graph bridges --top 10
-
-# Get link suggestions
-bengal graph suggest --min-score 0.5
-
-# Short aliases
-bengal g report                      # g → graph
-bengal analyze                       # Top-level alias for graph analyze
+# Visualize dependency relationships
+bengal debug deps
 ```
 
-:::{example-label} bengal graph report Output
+:::{example-label} bengal inspect graph Output
 :::
 
 ```text
-📊 Site Analysis Report
-================================================================================
-📈 Overview
-   Total pages:        124
-   Avg conn. score:    1.46
+ᓚᘏᗢ Site Graph
 
-🔗 Connectivity Distribution
-   🟢 Well-Connected:      39 pages (31.5%)
-   🟡 Adequately:          38 pages (30.6%)
-   🟠 Lightly Linked:      26 pages (21.0%)
-   🔴 Isolated:            21 pages (16.9%) ⚠️
-================================================================================
+Pages: 124
+Links: 428
+Orphans: 3
 ```
 
 Refer to [Graph Analysis](../../../content/analysis/graph.md) for details and [Analyze site connectivity](../../../../tutorials/operations/analyze-site-connectivity/) for a guided walkthrough.
@@ -192,16 +161,16 @@ Refer to [Graph Analysis](../../../content/analysis/graph.md) for details and [A
 **Performance Commands**:
 ```bash
 # Show recent build performance metrics
-bengal perf
+bengal inspect perf
 
 # Show last N builds
-bengal perf --last 20
+bengal inspect perf --last 20
 
 # Compare last two builds
-bengal perf --compare
+bengal inspect perf --compare
 
 # Export as JSON
-bengal perf --format json
+bengal inspect perf --output-format json
 ```
 
 **Utility Commands**:
@@ -234,10 +203,10 @@ bengal clean
 bengal clean --cache
 
 # Create new site
-bengal new site mysite
+bengal new site --name mysite
 
 # Create new page
-bengal new page content/blog/post.md
+bengal new page --name post --section blog
 
 # Show version
 bengal --version
@@ -307,6 +276,80 @@ new.lazy_command(
     display_result=False,
 )
 ```
+
+## Command Inventory
+
+The public command inventory is generated from the Milo registry and guarded by
+unit tests against this documentation, `--llms-txt`, README command snippets,
+and runtime smoke coverage.
+
+```text cli-command-inventory
+build
+serve
+clean
+check
+audit
+health
+fix
+upgrade
+codemod
+new.site
+new.theme
+new.page
+new.layout
+new.partial
+new.content-type
+config.show
+config.doctor
+config.diff
+config.init
+config.inspect
+theme.list
+theme.info
+theme.discover
+theme.swizzle
+theme.install
+theme.validate
+theme.new
+theme.debug
+theme.directives
+theme.test
+theme.assets
+content.sources
+content.fetch
+content.collections
+content.schemas
+version.list
+version.info
+version.create
+version.diff
+i18n.init
+i18n.extract
+i18n.compile
+i18n.sync
+i18n.status
+plugin.list
+plugin.info
+plugin.validate
+inspect.page
+inspect.links
+inspect.graph
+inspect.perf
+debug.incremental
+debug.delta
+debug.deps
+debug.migrate
+debug.sandbox
+cache.inputs
+cache.hash
+```
+
+Root aliases are part of the contract: `b` for `build`, `s` and `dev` for
+`serve`, `c` for `clean`, and `v` for `check`. Group aliases are `n` for `new`
+and `plugins` for `plugin`.
+
+`health` remains a top-level legacy alias for `check`. It is kept for existing
+automation, but new docs and examples should use `check`.
 
 ## Themed Help
 
