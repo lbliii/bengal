@@ -41,12 +41,10 @@ jobs:
         env:
           PYTHON_GIL: "0"
 
-      # Use bengal cache hash for accurate cache invalidation
-      # This includes all build inputs: content, config, autodoc sources, templates, etc.
-      - name: Get cache hash
-        id: cache
-        working-directory: site
-        run: echo "hash=$(uv run bengal cache hash)" >> $GITHUB_OUTPUT
+      # Use Bengal's own input discovery so CI cache invalidation matches build semantics.
+      - name: Get Bengal cache hash
+        id: bengal-cache
+        run: echo "hash=$(uv run bengal cache hash --source site)" >> $GITHUB_OUTPUT
         env:
           PYTHON_GIL: "0"
 
@@ -54,12 +52,11 @@ jobs:
         uses: actions/cache@v5
         with:
           path: site/.bengal
-          key: bengal-${{ runner.os }}-${{ steps.cache.outputs.hash }}
+          key: bengal-${{ runner.os }}-${{ steps.bengal-cache.outputs.hash }}
           # No restore-keys - we want exact match for correctness
 
       - name: Build site
-        working-directory: site
-        run: uv run bengal build --environment production --clean-output
+        run: uv run bengal build --source site --environment production --clean-output
         env:
           PYTHON_GIL: "0"
 
