@@ -113,6 +113,7 @@ __all__ = [
     "clear_manifest_cache",
     "drain_asset_fallback_aggregator",
     "get_asset_manifest",
+    "get_asset_manifest_revision",
     # Observability exports (Phase 2)
     "get_resolution_stats",
     "reset_asset_manifest",
@@ -239,6 +240,41 @@ def asset_manifest_context(ctx: AssetManifestContext):
         The context that was set (same as input).
     """
     return _asset_manifest(ctx)
+
+
+def get_asset_manifest_revision(site: AssetSiteLike | None = None) -> str | None:
+    """Return the current asset manifest revision for cache key namespacing.
+
+    Fragment caches can outlive a single page render. If a cached fragment
+    contains ``asset_url()``, its output depends on the active asset manifest.
+    Namespacing fragment keys by this revision prevents a cache hit from
+    replaying URLs from an older manifest.
+    """
+    ctx = get_asset_manifest()
+    if ctx is not None:
+        if ctx.mtime is not None:
+            return f"context-mtime:{ctx.mtime}"
+        if ctx.entries:
+            import hashlib
+
+            digest = hashlib.sha256()
+            for logical_path, output_path in sorted(ctx.entries.items()):
+                digest.update(logical_path.encode("utf-8", "surrogateescape"))
+                digest.update(b"\0")
+                digest.update(output_path.encode("utf-8", "surrogateescape"))
+                digest.update(b"\0")
+            return f"context-entries:{digest.hexdigest()[:16]}"
+        return "context-empty"
+
+    if site is None or getattr(site, "dev_mode", False):
+        return None
+
+    manifest_path = site.output_dir / "asset-manifest.json"
+    try:
+        stat = manifest_path.stat()
+    except OSError:
+        return None
+    return f"file:{stat.st_mtime_ns}:{stat.st_size}"
 
 
 # =============================================================================

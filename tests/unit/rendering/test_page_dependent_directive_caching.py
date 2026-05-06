@@ -17,6 +17,7 @@ on the current page's position in the site tree.
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock
 
@@ -172,14 +173,12 @@ class TestChildCardsNotCachedAcrossPages:
 """
 
         # Render page A (site needs root_path for child-cards current_page_dir resolution)
-        site_a = Mock()
-        site_a.root_path = "/tmp/site"
+        site_a = SimpleNamespace(root_path="/tmp/site")
         context_a = {"page": page_a, "site": site_a}
         result_a = patitas.parse_with_context(content, {}, context_a)
 
         # Render page B (if caching is broken, this would show page A's content)
-        site_b = Mock()
-        site_b.root_path = "/tmp/site"
+        site_b = SimpleNamespace(root_path="/tmp/site")
         context_b = {"page": page_b, "site": site_b}
         result_b = patitas.parse_with_context(content, {}, context_b)
 
@@ -206,8 +205,7 @@ class TestChildCardsNotCachedAcrossPages:
         page = create_mock_page(title="Index", source_path="test/_index.md")
         page._section = section
 
-        site = Mock()
-        site.root_path = "/tmp/site"
+        site = SimpleNamespace(root_path="/tmp/site")
         context = {"page": page, "site": site}
         content = ":::{child-cards}\n:::"
 

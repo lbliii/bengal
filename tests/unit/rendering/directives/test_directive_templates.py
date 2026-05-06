@@ -19,6 +19,12 @@ import pytest
 from bengal.parsing.backends.patitas.directives.builtins.admonition import (
     AdmonitionDirective,
 )
+from bengal.parsing.backends.patitas.directives.builtins.cards import (
+    CardDirective,
+    CardOptions,
+    CardsDirective,
+    CardsOptions,
+)
 
 
 class TestAdmonitionTemplateContext:
@@ -91,6 +97,36 @@ class TestAdmonitionTemplateContext:
         node = self._make_node()
         ctx = handler.get_template_context(node, "<p>x</p>", page_context="fake", site="fake")
         assert ctx["children"] == "<p>x</p>"
+
+
+class TestCardTemplateContext:
+    """Tests for card directive template contexts."""
+
+    def test_cards_context_exposes_chirpui_gap(self):
+        handler = CardsDirective()
+        node = MagicMock()
+        node.options = CardsOptions(columns="2", gap="large", variant="navigation")
+
+        ctx = handler.get_template_context(node, "<p>cards</p>")
+
+        assert ctx["columns"] == "2"
+        assert ctx["gap"] == "large"
+        assert ctx["chirpui_gap"] == "lg"
+        assert ctx["children"] == "<p>cards</p>"
+
+    def test_card_context_preserves_resolved_shape(self):
+        handler = CardDirective()
+        node = MagicMock()
+        node.title = "Docs"
+        node.options = CardOptions(icon="book", link="/docs/", description="Read docs")
+
+        ctx = handler.get_template_context(node, "<p>body</p>")
+
+        assert ctx["title"] == "Docs"
+        assert ctx["icon"] == "book"
+        assert ctx["href"] == "/docs/"
+        assert ctx["description"] == "Read docs"
+        assert ctx["children"] == "<p>body</p>"
 
 
 class TestDirectiveTemplateRendering:

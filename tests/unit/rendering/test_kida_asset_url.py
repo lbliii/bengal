@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 import pytest
 
+from bengal.core.site import Site
 from bengal.rendering.assets import resolve_asset_url
 
 if TYPE_CHECKING:
@@ -192,3 +193,39 @@ class TestManifestCaching:
         site = MockSite(output_dir=tmp_path)  # No manifest file
         result = resolve_asset_url("css/style.css", site)
         assert result == "/assets/css/style.css"  # Fallback
+
+    def test_fragment_cache_keys_include_asset_manifest_revision(self, tmp_path: Path) -> None:
+        """Cached fragments containing asset_url() must not replay stale fingerprints."""
+        from bengal.rendering.assets import AssetManifestContext, asset_manifest_context
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        site_root = tmp_path / "site"
+        site_root.mkdir()
+        (site_root / "content").mkdir()
+        (site_root / "content" / "_index.md").write_text("# Home", encoding="utf-8")
+        (site_root / "bengal.toml").write_text(
+            '[site]\ntitle = "Fragment Cache Test"\nbaseurl = ""\n',
+            encoding="utf-8",
+        )
+        site = Site.from_config(site_root)
+        site.output_dir.mkdir(parents=True, exist_ok=True)
+
+        engine = KidaTemplateEngine(site)
+        template = "{% cache 'asset-fragment' %}{{ asset_url('css/style.css') }}{% end %}"
+
+        first_ctx = AssetManifestContext(
+            entries={"css/style.css": "assets/css/style.11111111.css"},
+            mtime=1.0,
+        )
+        second_ctx = AssetManifestContext(
+            entries={"css/style.css": "assets/css/style.22222222.css"},
+            mtime=2.0,
+        )
+
+        with asset_manifest_context(first_ctx):
+            first = engine.render_string(template, {})
+        with asset_manifest_context(second_ctx):
+            second = engine.render_string(template, {})
+
+        assert first == "/assets/css/style.11111111.css"
+        assert second == "/assets/css/style.22222222.css"

@@ -1,0 +1,12 @@
+[site]
+title = "Chirp UI Test"
+description = "A fixture for the bundled Chirp UI theme."
+baseurl = "/preview"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "chirpui"
+
+[markdown]
+parser = "patitas"

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container %}
+{% from "chirpui/empty.html" import empty_state %}
+
+{% block content %}
+{% call container(max_width="48rem") %}
+    {% call empty_state(title="Page not found", action_label="Go Home", action_href="/" | absolute_url) %}
+        <p>The page may have moved, or the link may be out of date.</p>
+    {% end %}
+{% end %}
+{% end %}

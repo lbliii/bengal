@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container %}
+{% from "chirpui/resource_index.html" import resource_index %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+{% from "partials/cards.html" import searchable_post_feed %}
+
+{% block content %}
+{% let title = page?.title ?? section?.title ?? "Archive" %}
+{% let description = page?.description ?? section?.description ?? "Browse published content." %}
+{% let archive_posts = posts ?? section?.regular_pages ?? section?.pages ?? site.listable_pages ?? [] %}
+
+{% call container(max_width="76rem") %}
+    {% call resource_index(title, page?.href ?? page?._path ?? "/archive/", subtitle=description, search_placeholder="Filter archive...", button_icon="search", results_title="Archive", results_subtitle=(archive_posts | length) ~ " entries", has_results=archive_posts | length > 0, empty_title="No archived content yet", cls="chirpui-bengal-resource-index") %}
+        <p class="chirpui-text-muted chirpui-bengal-search-count" id="chirpui-bengal-search-count" aria-live="polite">{{ archive_posts | length }} results</p>
+        {% if content %}
+        {% call rendered_content(compact=true, cls="chirpui-bengal-rendered") %}{{ content | safe }}{% end %}
+        {% end %}
+        {{ searchable_post_feed(archive_posts, "No archived content yet.") }}
+        <div id="chirpui-bengal-search-empty" class="chirpui-bengal-search-empty" hidden>
+            <p class="chirpui-text-muted">No matching archive entries.</p>
+        </div>
+    {% end %}
+{% end %}
+{% end %}

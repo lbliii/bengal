@@ -456,6 +456,12 @@ class KidaTemplateEngine:
             pure_filters=_PURE_FILTERS,
             **env_kwargs,
         )
+        from bengal.rendering.fragment_cache import AssetManifestFragmentCache
+
+        self._env._fragment_cache = AssetManifestFragmentCache(
+            self._env._fragment_cache,
+            self.site,
+        )
 
         # Register Bengal-specific globals and filters
         # Uses register_all() which works because Kida has same interface as Jinja2

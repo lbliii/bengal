@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container, stack %}
+{% from "chirpui/document_header.html" import document_header %}
+{% from "chirpui/panel.html" import panel %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+{% from "partials/cards.html" import page_grid, tag_badges %}
+{% from "partials/navigation.html" import docs_mobile_nav, docs_sidebar %}
+
+{% block content %}
+{% let page_title = page?.title ?? section?.title ?? "Documentation" %}
+{% let page_description = page?.description ?? section?.description ?? none %}
+{% let section_pages = posts ?? section?.regular_pages ?? section?.pages ?? page?.children ?? [] %}
+{% let subsections = subsections ?? section?.subsections ?? [] %}
+{% let doc_breadcrumbs = [{"label": "Home", "href": "/" | absolute_url}, {"label": "Docs", "href": "/docs/" | absolute_url}, {"label": page_title}] %}
+
+{% call container(max_width="96rem") %}
+{{ docs_mobile_nav(page) }}
+<div class="chirpui-bengal-docs">
+    {{ docs_sidebar(page) }}
+
+    <article class="chirpui-bengal-docs__article">
+        {% call stack(gap="lg") %}
+            {% call document_header(page_title, subtitle=page_description, breadcrumb_items=doc_breadcrumbs, status="section", cls="chirpui-bengal-doc-header") %}
+                {% slot actions %}
+                {{ tag_badges(page?.tags ?? []) }}
+                {% end %}
+            {% end %}
+
+            <section class="chirpui-bengal-article-surface">
+                {% call rendered_content(cls="chirpui-bengal-rendered") %}
+                    {{ content | safe }}
+                {% end %}
+            </section>
+
+            {{ page_grid(subsections, "No subsections yet.") }}
+            {{ page_grid(section_pages, "No pages yet.") }}
+        {% end %}
+    </article>
+
+    {% if toc %}
+    <aside class="chirpui-bengal-docs__toc">
+        {% call panel(title="On This Page", surface_variant="muted", scroll_body=true, cls="chirpui-bengal-toc-panel") %}
+            <nav class="chirpui-bengal-toc" aria-label="Table of contents">
+                {{ toc | safe }}
+            </nav>
+        {% end %}
+    </aside>
+    {% end %}
+</div>
+{% end %}
+{% end %}

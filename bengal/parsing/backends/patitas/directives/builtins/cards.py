@@ -93,6 +93,12 @@ VALID_COLORS = frozenset(
     ]
 )
 
+GAP_TO_CHIRPUI = {
+    "small": "sm",
+    "medium": "md",
+    "large": "lg",
+}
+
 
 # =============================================================================
 # Utility functions
@@ -337,13 +343,12 @@ class CardsDirective:
         sb: StringBuilder,
     ) -> None:
         """Render cards grid container to HTML."""
-        opts = node.options  # Direct typed access!
-
-        columns = opts.columns
-        gap = opts.gap
-        style = opts.style
-        variant = opts.variant
-        layout = opts.layout
+        ctx = self.get_template_context(node, rendered_children)
+        columns = ctx["columns"]
+        gap = ctx["gap"]
+        style = ctx["style"]
+        variant = ctx["variant"]
+        layout = ctx["layout"]
 
         sb.append(
             f'<div class="card-grid" '
@@ -355,6 +360,25 @@ class CardsDirective:
         )
         sb.append(rendered_children)
         sb.append("</div>\n")
+
+    def get_template_context(
+        self,
+        node: Directive[CardsOptions],
+        rendered_children: str,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Return template context for theme-overridable cards grid rendering."""
+        opts = node.options
+        return {
+            "columns": opts.columns,
+            "gap": opts.gap,
+            "chirpui_gap": GAP_TO_CHIRPUI.get(opts.gap, "md"),
+            "style": opts.style,
+            "variant": opts.variant,
+            "layout": opts.layout,
+            "extra_class": opts.class_,
+            "children": rendered_children,
+        }
 
 
 # =============================================================================
@@ -433,31 +457,21 @@ class CardDirective:
             xref_index: Optional cross-reference index for link resolution
             current_page_dir: Content-relative directory for resolving ./ and ../
         """
-        opts = node.options  # Direct typed access!
-
-        # Title comes from node.title (directive title)
-        title = node.title or ""
-        icon = opts.icon
-        link = opts.link
-        description = opts.description
-        badge = opts.badge
-        color = opts.color
-        image = opts.image
-        footer = opts.footer
-        layout = opts.layout
-        pull_fields = [f.strip() for f in opts.pull.split(",") if f.strip()]
-
-        # Resolve link and pull data from linked page if xref_index is available
-        resolved_link = link
-        linked_page = None
-        if link and xref_index:
-            resolved_link, linked_page = _resolve_link(link, xref_index, current_page_dir)
-
-        # Pull data from linked page
-        if linked_page and pull_fields:
-            title, description, icon = _pull_from_page(
-                linked_page, pull_fields, title, description, icon
-            )
+        ctx = self.get_template_context(
+            node,
+            rendered_children,
+            xref_index=xref_index,
+            current_page_dir=current_page_dir,
+        )
+        title = ctx["title"]
+        icon = ctx["icon"]
+        resolved_link = ctx["href"]
+        description = ctx["description"]
+        badge = ctx["badge"]
+        color = ctx["color"]
+        image = ctx["image"]
+        footer = ctx["footer"]
+        layout = ctx["layout"]
 
         # Card wrapper (link or div)
         if resolved_link:
@@ -518,6 +532,49 @@ class CardDirective:
             sb.append("  </div>\n")
 
         sb.append(f"</{card_tag}>\n")
+
+    def get_template_context(
+        self,
+        node: Directive[CardOptions],
+        rendered_children: str,
+        *,
+        xref_index: dict[str, Any] | None = None,
+        current_page_dir: str | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Return template context for theme-overridable card rendering."""
+        opts = node.options
+
+        title = node.title or ""
+        icon = opts.icon
+        link = opts.link
+        description = opts.description
+        pull_fields = [f.strip() for f in opts.pull.split(",") if f.strip()]
+
+        resolved_link = link
+        linked_page = None
+        if link and xref_index:
+            resolved_link, linked_page = _resolve_link(link, xref_index, current_page_dir)
+
+        if linked_page and pull_fields:
+            title, description, icon = _pull_from_page(
+                linked_page, pull_fields, title, description, icon
+            )
+
+        return {
+            "title": title,
+            "icon": icon,
+            "icon_html": _render_icon(icon, card_title=title) if icon else "",
+            "href": resolved_link,
+            "description": description,
+            "badge": opts.badge,
+            "color": opts.color,
+            "image": opts.image,
+            "footer": opts.footer,
+            "layout": opts.layout,
+            "extra_class": opts.class_,
+            "children": rendered_children,
+        }
 
 
 # =============================================================================
@@ -656,3 +713,76 @@ class ChildCardsDirective:
             sb.append(card_html)
 
         sb.append("</div>\n")
+
+    def get_template_context(
+        self,
+        node: Directive[ChildCardsOptions],
+        rendered_children: str,
+        *,
+        page_context: Any | None = None,
+        xref_index: dict[str, Any] | None = None,
+        current_page_dir: str | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Return template context for theme-overridable child-card rendering."""
+        from bengal.parsing.backends.patitas.directives.builtins.cards_utils import (
+            _render_description_html,
+            collect_children,
+        )
+
+        opts = node.options
+        fields = [f.strip() for f in opts.fields.split(",") if f.strip()]
+        context: dict[str, Any] = {
+            "columns": opts.columns,
+            "gap": opts.gap,
+            "chirpui_gap": GAP_TO_CHIRPUI.get(opts.gap, "md"),
+            "style": opts.style,
+            "variant": "navigation",
+            "layout": opts.layout,
+            "include": opts.include,
+            "fields": fields,
+            "cards": [],
+            "empty_message": "",
+            "children": rendered_children,
+        }
+
+        if not page_context:
+            context["empty_message"] = "No page context available"
+            return context
+
+        section = getattr(page_context, "_section", None)
+        if not section:
+            context["empty_message"] = "Page has no section"
+            return context
+
+        children_items = collect_children(
+            section, page_context, opts.include, xref_index, current_page_dir
+        )
+        if not children_items:
+            context["empty_message"] = "No child content found"
+            return context
+
+        cards: list[dict[str, Any]] = []
+        for child in children_items:
+            child_type = child.get("type", "page")
+            icon = child.get("icon", "") if "icon" in fields else ""
+            if not icon and "icon" in fields:
+                icon = "folder" if child_type == "section" else "file"
+            title = child.get("title", "") if "title" in fields else ""
+            description = child.get("description", "") if "description" in fields else ""
+            cards.append(
+                {
+                    "title": title,
+                    "description": description,
+                    "description_html": _render_description_html(description)
+                    if description
+                    else "",
+                    "icon": icon,
+                    "icon_html": _render_icon(icon, card_title=title) if icon else "",
+                    "href": child.get("url", ""),
+                    "type": child_type,
+                    "layout": opts.layout,
+                }
+            )
+        context["cards"] = cards
+        return context

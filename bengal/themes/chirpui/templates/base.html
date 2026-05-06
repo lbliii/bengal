@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+{% from "chirpui/navbar.html" import navbar, navbar_link, navbar_dropdown %}
+{% from "chirpui/button.html" import btn %}
+{% from "chirpui/layout.html" import cluster %}
+{% from "chirpui/nav_progress.html" import nav_progress %}
+{% from "chirpui/site_shell.html" import site_shell %}
+{% from "chirpui/site_footer.html" import site_footer, footer_column, footer_link %}
+
+{% let _current_lang = current_lang() %}
+{% let _direction = direction() %}
+{% let _site_title = site.title %}
+{% let _page_title = page?.title ?? _site_title %}
+{% let _page_url = page?._path ?? page?.href ?? "/" %}
+{% let _main_menu = get_menu_lang("main", _current_lang) %}
+{% let _auto_nav = get_auto_nav() if _main_menu | length == 0 else [] %}
+
+<html lang="{{ _current_lang }}" dir="{{ _direction }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ _page_title }}{% if _page_title != _site_title %} - {{ _site_title }}{% end %}</title>
+    <meta name="description" content="{{ meta_desc ?? site.description }}">
+    {% if site.baseurl %}
+    <link rel="canonical" href="{{ canonical_url(_page_url) }}">
+    {% end %}
+    <link rel="stylesheet" href="{{ asset_url('chirp_ui/chirpui.css') }}">
+    <link rel="stylesheet" href="{{ asset_url('chirp_ui/chirpui-transitions.css') }}">
+    <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
+    <script src="{{ asset_url('chirp_ui/chirpui.js') }}"></script>
+    {% block extra_head %}{% end %}
+</head>
+<body data-type="{{ page?.type ?? '' }}">
+    {% call site_shell(cls="chirpui-bengal-shell") %}
+    {% slot header %}
+        {% if "accessibility.skip_link" in (theme.features ?? []) %}
+        <a class="chirpui-btn chirpui-btn--primary chirpui-bengal-skip" href="#main">Skip to main content</a>
+        {% end %}
+        {{ nav_progress() }}
+
+        {% call navbar(brand=_site_title, brand_url="/" | absolute_url, cls="chirpui-navbar--sticky", use_slots=true, current_path=_page_url) %}
+            {% for item in _main_menu %}
+                {% let item_href = item?.href ?? item?.url ?? "#" %}
+                {% let item_name = item?.name ?? item?.title ?? "Untitled" %}
+                {% set active_children = [] %}
+                {% for child in item?.children ?? [] %}
+                    {% let child_href = child?.href ?? child?.url ?? "#" %}
+                    {% if child_href != "#" and (_page_url == child_href or (child_href != "/" and _page_url.startswith(child_href))) %}
+                        {% set _ = active_children.append(true) %}
+                    {% end %}
+                {% end %}
+                {% let item_active = (item?.active ?? false) or (_page_url == item_href) or (item_href != "/" and item_href != "#" and _page_url.startswith(item_href)) or (active_children | length > 0) %}
+                {% if item?.children ?? [] %}
+                    {% call navbar_dropdown(item_name, active=item_active) %}
+                        {% for child in item.children %}
+                        {% let child_href = child?.href ?? child?.url ?? "#" %}
+                        {% let child_active = child_href != "#" and (_page_url == child_href or (child_href != "/" and child_href != "#" and _page_url.startswith(child_href))) %}
+                        <a class="chirpui-dropdown__item{% if child_active %} chirpui-dropdown__item--active{% end %}" href="{{ child_href | absolute_url }}"{% if child_active %} aria-current="page"{% end %}>{{ child?.name ?? child?.title ?? "Untitled" }}</a>
+                        {% end %}
+                    {% end %}
+                {% else %}
+                    {{ navbar_link(item_href | absolute_url, item_name, active=item_active) }}
+                {% end %}
+            {% end %}
+            {% for item in _auto_nav %}
+                {% let item_href = item?.href ?? item?.url ?? "#" %}
+                {% let item_name = item?.name ?? item?.title ?? "Untitled" %}
+                {% let item_active = (_page_url == item_href) or (item_href != "/" and item_href != "#" and _page_url.startswith(item_href)) %}
+                {{ navbar_link(item_href | absolute_url, item_name, active=item_active) }}
+            {% end %}
+            {% slot end %}
+            {% call cluster(gap="xs", cls="chirpui-bengal-topbar-actions") %}
+                {{ btn("Search", href="/search/" | absolute_url, variant="ghost", size="sm", icon="search") }}
+                <button type="button" class="chirpui-btn chirpui-btn--ghost chirpui-btn--sm chirpui-bengal-icon-btn" data-chirpui-theme-cycle aria-label="Cycle color theme" title="Theme">
+                    <span aria-hidden="true" data-chirpui-theme-icon>◐</span>
+                </button>
+            {% end %}
+            {% end %}
+        {% end %}
+    {% end %}
+
+        <main id="main" class="chirpui-bengal-main">
+            {% block content %}{% end %}
+        </main>
+
+    {% slot footer %}
+        {% block site_footer %}
+        {% call site_footer(layout="simple", cls="chirpui-bengal-footer") %}
+            {% slot brand %}
+            <a href="{{ "/" | absolute_url }}">{{ _site_title }}</a>
+            {% end %}
+            {% call footer_column() %}
+                {{ footer_link("/search/" | absolute_url, "Search") }}
+                {{ footer_link("https://github.com/lbliii/bengal", "Bengal", external=true) }}
+            {% end %}
+            {% slot colophon %}&copy; {{ site.build_time | dateformat("%Y") }} {{ _site_title }}{% end %}
+        {% end %}
+        {% end %}
+    {% end %}
+    {% end %}
+    <script defer src="{{ asset_url('js/chirpui-bengal.js') }}"></script>
+    {% block extra_js %}{% end %}
+</body>
+</html>

@@ -1,0 +1,29 @@
+name: chirpui
+version: 0.1.0
+parent: null
+
+features:
+  navigation:
+    breadcrumbs: true
+    toc: true
+    prev_next: true
+  content:
+    code.copy: false
+    lightbox: false
+    reading_time: true
+    excerpts: true
+    children: true
+  search:
+    suggest: false
+    highlight: false
+  accessibility:
+    skip_link: true
+
+appearance:
+  default_mode: system
+  default_palette: ""
+
+header:
+  nav_position: left
+  sticky: true
+  autohide: false

@@ -57,6 +57,13 @@ Full control. Start from scratch or fork existing.
 :::
 :::{/cards}
 
+## Bundled Themes
+
+| Theme | Use when |
+|-------|----------|
+| `default` | You want Bengal's built-in documentation theme with no extra packages. |
+| `chirpui` | You want a site rendered with Chirp UI components and can install `chirp-ui` in the build environment. |
+
 ## Quick Reference
 
 :::{tab-set}

@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container, stack %}
+{% from "chirpui/hero.html" import page_hero %}
+{% from "chirpui/timeline.html" import timeline, timeline_item %}
+{% from "chirpui/button.html" import btn %}
+{% from "chirpui/empty.html" import empty_state %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+
+{% block content %}
+{% let title = page?.title ?? section?.title ?? "Changelog" %}
+{% let description = page?.description ?? section?.description ?? "Release notes and project changes." %}
+{% let releases = pages ?? section?.regular_pages ?? section?.pages ?? page?.children ?? [] %}
+
+{% call container(max_width="76rem") %}
+    {% call stack(gap="lg") %}
+        {% call page_hero(title=title, subtitle=description, variant="minimal", background="muted") %}
+            {% call rendered_content(compact=true, cls="chirpui-bengal-rendered") %}{{ content | safe }}{% end %}
+        {% end %}
+
+        {% if releases %}
+        {% call timeline(cls="chirpui-bengal-release-timeline") %}
+            {% for release in releases %}
+            {% let release_date = release.date ?? none %}
+            {% let release_date_text = "" %}
+            {% if release_date %}{% let release_date_text = release_date | dateformat("%B %d, %Y") %}{% end %}
+            {% call timeline_item(release.title, release_date_text) %}
+                {% slot content %}
+                {% if release.description ?? release.summary ?? none %}
+                <p>{{ release.description ?? release.summary }}</p>
+                {% end %}
+                {{ btn("Read notes", href=release.href, variant="ghost", size="sm") }}
+                {% end %}
+            {% end %}
+            {% end %}
+        {% end %}
+        {% else %}
+        {{ empty_state(title="No releases yet") }}
+        {% end %}
+    {% end %}
+{% end %}
+{% end %}

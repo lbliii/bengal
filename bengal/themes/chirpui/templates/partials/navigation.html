@@ -1,0 +1,50 @@
+{% from "chirpui/button.html" import btn %}
+{% from "chirpui/drawer.html" import drawer %}
+{% from "chirpui/nav_tree.html" import nav_tree %}
+
+{% def collect_nav_items(nodes, target) %}
+{% for node in nodes %}
+{% let children = node?.children ?? [] %}
+{% let has_children = children | length > 0 %}
+{% let href = node?.href ?? "#" %}
+{% let title = node?.title ?? node?.name ?? "Untitled" %}
+{% let active = node?.is_current ?? node?.active ?? false %}
+{% let open = active or (node?.is_in_trail ?? false) or (node?.is_expanded ?? false) %}
+{% let child_items = [] %}
+{% if has_children %}
+{{ collect_nav_items(children, child_items) }}
+{% end %}
+{% set _ = target.append({
+    "title": title,
+    "href": href,
+    "active": active,
+    "open": open,
+    "children": child_items
+}) %}
+{% end %}
+{% end %}
+
+{% def docs_nav_tree(page, cls="") %}
+{% let root_section = page?._section?.root ?? none %}
+{% let nav_nodes = get_nav_tree(page, root_section=root_section) if page else [] %}
+{% let nav_items = [] %}
+{{ collect_nav_items(nav_nodes, nav_items) }}
+{% call nav_tree(items=nav_items, branch_mode="linked", cls=cls) %}
+    {% slot header %}
+    <span class="chirpui-sidebar__section-title">Documentation</span>
+    {% end %}
+{% end %}
+{% end %}
+
+{% def docs_sidebar(page) %}
+{{ docs_nav_tree(page, cls="chirpui-bengal-docs__nav") }}
+{% end %}
+
+{% def docs_mobile_nav(page) %}
+<div class="chirpui-bengal-docs__mobile-nav">
+    {{ btn("Docs menu", type="button", variant="secondary", size="sm", icon="list", attrs_map={"data-chirpui-drawer-open": "chirpui-docs-nav-drawer", "aria-controls": "chirpui-docs-nav-drawer"}) }}
+</div>
+{% call drawer("chirpui-docs-nav-drawer", title="Documentation", side="left", cls="chirpui-bengal-docs-drawer") %}
+    {{ docs_nav_tree(page, cls="chirpui-bengal-docs__drawer-nav") }}
+{% end %}
+{% end %}

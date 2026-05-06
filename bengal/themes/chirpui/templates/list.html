@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container %}
+{% from "chirpui/resource_index.html" import resource_index %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+{% from "partials/cards.html" import searchable_page_grid %}
+
+{% block content %}
+{% let page_title = page?.title ?? section?.title ?? "Index" %}
+{% let page_description = page?.description ?? section?.description ?? none %}
+{% let section_pages = section?.regular_pages ?? section?.pages ?? page?.children ?? [] %}
+
+{% call container(max_width="76rem") %}
+    {% call resource_index(page_title, page?.href ?? page?._path ?? "/", subtitle=page_description, search_placeholder="Filter entries...", button_icon="search", results_title="Entries", results_subtitle=(section_pages | length) ~ " available", has_results=section_pages | length > 0, empty_title="No entries yet", cls="chirpui-bengal-resource-index") %}
+        <p class="chirpui-text-muted chirpui-bengal-search-count" id="chirpui-bengal-search-count" aria-live="polite">{{ section_pages | length }} results</p>
+        {% if content %}
+        {% call rendered_content(compact=true, cls="chirpui-bengal-rendered") %}{{ content | safe }}{% end %}
+        {% end %}
+        {{ searchable_page_grid(section_pages, "No entries yet.") }}
+        <div id="chirpui-bengal-search-empty" class="chirpui-bengal-search-empty" hidden>
+            <p class="chirpui-text-muted">No matching entries.</p>
+        </div>
+    {% end %}
+{% end %}
+{% end %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container %}
+{% from "chirpui/resource_index.html" import resource_index %}
+{% from "chirpui/badge.html" import badge %}
+{% from "chirpui/empty.html" import empty_state %}
+
+{% block content %}
+{% let pages = site.listable_pages ?? [] %}
+{% let query = query ?? "" %}
+{% set result_types = [] %}
+{% for item in pages %}
+    {% let item_type = item.type if item.type else "page" %}
+    {% if item_type not in result_types %}
+        {% set _ = result_types.append(item_type) %}
+    {% end %}
+{% end %}
+
+{% call container(max_width="76rem") %}
+    {% call resource_index(
+        page?.title ?? "Search",
+        "/search/" | absolute_url,
+        query=query,
+        subtitle=(pages | length) ~ " pages indexed",
+        search_placeholder="Search documentation...",
+        button_icon="search",
+        results_title="Results",
+        results_subtitle="Grouped by content type",
+        results_layout="stack",
+        has_results=pages | length > 0,
+        empty_title="No pages indexed",
+        empty_icon="search",
+        cls="chirpui-bengal-resource-index"
+    ) %}
+            <p class="chirpui-text-muted chirpui-bengal-search-count" id="chirpui-bengal-search-count" aria-live="polite">{{ pages | length }} results</p>
+            <div id="chirpui-bengal-search-results" class="chirpui-bengal-search-results" aria-live="polite">
+                {% for result_type in result_types %}
+                <section class="chirpui-bengal-search-group" data-chirpui-search-group data-search-group="{{ result_type }}">
+                    <header class="chirpui-bengal-search-group__header">
+                        <h2>{{ result_type | title }}</h2>
+                        {{ badge(result_type, variant="muted") }}
+                    </header>
+                    <div class="chirpui-bengal-search-group__items">
+                    {% for item in pages %}
+                    {% let item_type = item.type if item.type else "page" %}
+                    {% if item_type == result_type %}
+                    <article class="chirpui-bengal-search-result" data-chirpui-search-item data-search-type="{{ item_type }}" data-search-text="{{ item.title }} {{ item.description ?? item.summary ?? '' }} {{ item.type ?? '' }} {{ item.tags | join(' ') if item.tags else '' }}">
+                        <div class="chirpui-bengal-search-result__meta">
+                            {{ badge(item_type, variant="muted") }}
+                            {% if item._section?.title ?? none %}<span>{{ item._section.title }}</span>{% end %}
+                        </div>
+                        <a href="{{ item.href }}" class="chirpui-bengal-search-result__title">{{ item.title }}</a>
+                        {% if item.description ?? item.summary ?? none %}
+                        <p>{{ item.description ?? item.summary }}</p>
+                        {% end %}
+                    </article>
+                    {% end %}
+                    {% end %}
+                    </div>
+                </section>
+                {% end %}
+            </div>
+            <div id="chirpui-bengal-search-empty" class="chirpui-bengal-search-empty" hidden>
+                {{ empty_state(title="No results found", icon="search", search_hint="Try a page title, section name, tag, or content type.") }}
+            </div>
+    {% end %}
+{% end %}
+{% end %}

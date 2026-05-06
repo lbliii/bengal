@@ -69,6 +69,18 @@ def test_asset_copying(site, build_site):
     assert (site.output_dir / "assets/images/test.png").exists()
 ```
 
+### test-chirpui-theme
+**Purpose**: Tests the optional Chirp UI theme integration  
+**Structure**: Home, nested docs, blog, changelog, archive, author, tags, and search with `baseurl="/preview"`  
+**Use for**: Provider templates/assets, baseurl-safe asset links, template alias coverage, and theme isolation from `default`
+
+```python
+def test_chirpui_theme_builds_with_provider_assets(site):
+    site.build(BuildOptions(incremental=False, quiet=True))
+    html = (site.output_dir / "docs/guide/index.html").read_text()
+    assert "/preview/assets/chirp_ui/chirpui." in html
+```
+
 ## Design Principles
 
 1. **Minimal**: Each root has ≤5 files (keep focused)

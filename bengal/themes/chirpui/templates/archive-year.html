@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container %}
+{% from "chirpui/resource_index.html" import resource_index %}
+{% from "chirpui/metric_grid.html" import metric_grid, metric_card %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+{% from "partials/cards.html" import searchable_post_feed %}
+
+{% block content %}
+{% let year = params?.year ?? page?.title ?? "Archive" %}
+{% let year_posts = posts ?? section?.regular_pages ?? section?.pages ?? site.listable_pages ?? [] %}
+
+{% call container(max_width="76rem") %}
+    {% call resource_index(year ~ " Archive", page?.href ?? page?._path ?? "/archive/", subtitle=page?.description ?? "Content published during this year.", search_placeholder="Filter this year...", button_icon="search", results_title="Entries", results_subtitle=(year_posts | length) ~ " entries", has_results=year_posts | length > 0, empty_title="No content for this year yet", cls="chirpui-bengal-resource-index") %}
+        <p class="chirpui-text-muted chirpui-bengal-search-count" id="chirpui-bengal-search-count" aria-live="polite">{{ year_posts | length }} results</p>
+        {% if content %}
+        {% call rendered_content(compact=true, cls="chirpui-bengal-rendered") %}{{ content | safe }}{% end %}
+        {% end %}
+        {% call metric_grid(cols=2, gap="md") %}
+            {{ metric_card(value=year_posts | length, label="Entries") }}
+            {{ metric_card(value=year, label="Year") }}
+        {% end %}
+        {{ searchable_post_feed(year_posts, "No content for this year yet.") }}
+        <div id="chirpui-bengal-search-empty" class="chirpui-bengal-search-empty" hidden>
+            <p class="chirpui-text-muted">No matching entries.</p>
+        </div>
+    {% end %}
+{% end %}
+{% end %}
