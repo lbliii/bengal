@@ -24,6 +24,8 @@ Quick reference for RFC status. Run `rg "^\*\*Status\*\*" plan/rfc-*.md` to refr
 | rfc-bengal-v2-architecture | Draft | Large; protocol-first, composition |
 | rfc-remaining-coupling-fixes | Draft | Depends on module-coupling-reduction (unverified) |
 | rfc-health-diagnostics-audit | Active implementation | Splits health policy, rendering registries, artifact audit, and Kida output |
+| rfc-theme-library-assets | Draft | First-class package/library assets for themes |
+| rfc-template-view-model-contracts | Draft | Engine-neutral view data for Kida and BYO templates |
 
 ## Implemented
 
