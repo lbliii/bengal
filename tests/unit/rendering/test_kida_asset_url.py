@@ -204,7 +204,7 @@ class TestManifestCaching:
         (site_root / "content").mkdir()
         (site_root / "content" / "_index.md").write_text("# Home", encoding="utf-8")
         (site_root / "bengal.toml").write_text(
-            '[site]\ntitle = "Fragment Cache Test"\n',
+            '[site]\ntitle = "Fragment Cache Test"\nbaseurl = ""\n',
             encoding="utf-8",
         )
         site = Site.from_config(site_root)
