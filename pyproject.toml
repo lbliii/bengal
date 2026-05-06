@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bengal"
-version = "0.3.2"
+version = "0.3.3"
 description = "Python static site generator built on free-threading — every layer pure Python, scales with your cores, zero npm"
 readme = "README.md"
 requires-python = ">=3.14"
