@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container, stack, grid, block %}
+{% from "chirpui/detail_header.html" import detail_header %}
+{% from "chirpui/card.html" import card %}
+{% from "chirpui/callout.html" import callout %}
+{% from "chirpui/status.html" import status_indicator %}
+{% from "chirpui/breadcrumbs.html" import breadcrumbs %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+
+{% def change_group(title, items, variant="neutral") %}
+{% if items %}
+{% call block() %}
+    {% call callout(title=title, variant=variant) %}
+        <ul class="chirpui-bengal-change-list">
+            {% for item in items %}
+            <li>{{ item }}</li>
+            {% end %}
+        </ul>
+    {% end %}
+{% end %}
+{% end %}
+{% end %}
+
+{% block content %}
+{% let title = page?.title ?? "Release" %}
+{% let description = page?.description ?? params?.summary ?? params?.description ?? none %}
+{% let status = params?.status ?? "released" %}
+{% let release_date = page?.date ?? none %}
+
+{% call container(max_width="76rem") %}
+    {% call stack(gap="lg") %}
+        {{ breadcrumbs([{"label": "Home", "href": "/" | absolute_url}, {"label": "Changelog", "href": "/changelog/" | absolute_url}, {"label": title}]) }}
+        {% call detail_header(title, summary=description, eyebrow="Release", cls="chirpui-bengal-detail-header") %}
+            {% slot badges %}
+            {{ status_indicator(status, variant="success") }}
+            {% end %}
+            {% slot meta %}
+            {% if release_date %}<span class="chirpui-text-muted">{{ release_date | dateformat("%B %d, %Y") }}</span>{% end %}
+            {% end %}
+        {% end %}
+
+        {% call grid(cols=2, gap="md") %}
+            {{ change_group("Added", params?.added ?? [], "success") }}
+            {{ change_group("Changed", params?.changed ?? [], "info") }}
+            {{ change_group("Fixed", params?.fixed ?? [], "neutral") }}
+            {{ change_group("Breaking", params?.breaking ?? [], "warning") }}
+        {% end %}
+
+        {% call card(cls="chirpui-bengal-content-card") %}
+            {% call rendered_content(cls="chirpui-bengal-rendered") %}
+                {{ content | safe }}
+            {% end %}
+        {% end %}
+    {% end %}
+{% end %}
+{% end %}

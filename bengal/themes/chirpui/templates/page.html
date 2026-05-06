@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container, stack %}
+{% from "chirpui/document_header.html" import document_header %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+{% from "chirpui/button.html" import btn %}
+{% from "partials/cards.html" import tag_badges %}
+
+{% block content %}
+{% let page_title = page?.title ?? "Page" %}
+{% let page_description = page?.description ?? params?.description ?? none %}
+{% let page_tags = page?.tags ?? [] %}
+{% let page_breadcrumbs = [{"label": "Home", "href": "/" | absolute_url}, {"label": page_title}] %}
+
+{% call container(max_width="72rem") %}
+    {% call stack(gap="lg") %}
+        {% call document_header(page_title, subtitle=page_description, breadcrumb_items=page_breadcrumbs, status=page?.type ?? none, cls="chirpui-bengal-doc-header") %}
+            {% slot actions %}
+            {{ tag_badges(page_tags) }}
+            {% end %}
+        {% end %}
+
+        <section class="chirpui-bengal-article-surface">
+            {% call rendered_content(cls="chirpui-bengal-rendered") %}
+                {{ content | safe }}
+            {% end %}
+        </section>
+
+        {% if page?.next_page ?? none or page?.prev_page ?? none %}
+        <nav class="chirpui-bengal-page-nav" aria-label="Page navigation">
+            {% if page?.prev_page ?? none %}
+            {{ btn("Previous", href=page.prev_page.href, variant="ghost") }}
+            {% else %}<span></span>{% end %}
+            {% if page?.next_page ?? none %}
+            {{ btn("Next", href=page.next_page.href, variant="primary", icon="arrow") }}
+            {% end %}
+        </nav>
+        {% end %}
+    {% end %}
+{% end %}
+{% end %}

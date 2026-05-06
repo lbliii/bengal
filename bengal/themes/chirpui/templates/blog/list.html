@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container %}
+{% from "chirpui/resource_index.html" import resource_index %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+{% from "partials/cards.html" import searchable_post_feed %}
+
+{% block content %}
+{% let title = page?.title ?? section?.title ?? "Blog" %}
+{% let description = page?.description ?? section?.description ?? "Latest posts and updates." %}
+{% let posts = section?.regular_pages ?? section?.pages ?? page?.children ?? [] %}
+
+{% call container(max_width="76rem") %}
+    {% call resource_index(title, page?.href ?? section?.href ?? "/blog/", subtitle=description, search_placeholder="Filter posts...", button_icon="search", results_title="Posts", results_subtitle=(posts | length) ~ " published", has_results=posts | length > 0, empty_title="No posts yet", cls="chirpui-bengal-resource-index") %}
+        <p class="chirpui-text-muted chirpui-bengal-search-count" id="chirpui-bengal-search-count" aria-live="polite">{{ posts | length }} results</p>
+        {% if content %}
+        {% call rendered_content(compact=true, cls="chirpui-bengal-rendered") %}{{ content | safe }}{% end %}
+        {% end %}
+        {{ searchable_post_feed(posts, "No posts yet.") }}
+        <div id="chirpui-bengal-search-empty" class="chirpui-bengal-search-empty" hidden>
+            <p class="chirpui-text-muted">No matching posts.</p>
+        </div>
+    {% end %}
+{% end %}
+{% end %}

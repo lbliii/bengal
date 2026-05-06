@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container, stack %}
+{% from "chirpui/document_header.html" import document_header %}
+{% from "chirpui/panel.html" import panel %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+{% from "chirpui/button.html" import btn %}
+{% from "partials/cards.html" import tag_badges %}
+{% from "partials/navigation.html" import docs_mobile_nav, docs_sidebar %}
+
+{% block content %}
+{% let page_title = page?.title ?? "Documentation" %}
+{% let page_description = page?.description ?? params?.description ?? none %}
+{% let page_tags = page?.tags ?? [] %}
+{% let doc_breadcrumbs = [{"label": "Home", "href": "/" | absolute_url}, {"label": "Docs", "href": "/docs/" | absolute_url}, {"label": page_title}] %}
+
+{% call container(max_width="96rem") %}
+{{ docs_mobile_nav(page) }}
+<div class="chirpui-bengal-docs">
+    {{ docs_sidebar(page) }}
+
+    <article class="chirpui-bengal-docs__article">
+        {% call stack(gap="lg") %}
+            {% call document_header(page_title, subtitle=page_description, breadcrumb_items=doc_breadcrumbs, status=page?.type ?? "doc", cls="chirpui-bengal-doc-header") %}
+                {% slot actions %}
+                {{ tag_badges(page_tags) }}
+                {% end %}
+            {% end %}
+
+            <section class="chirpui-bengal-article-surface">
+                {% call rendered_content(cls="chirpui-bengal-rendered") %}
+                    {{ content | safe }}
+                {% end %}
+            </section>
+
+            {% if page?.next_page ?? none or page?.prev_page ?? none %}
+            <nav class="chirpui-bengal-page-nav" aria-label="Page navigation">
+                {% if page?.prev_page ?? none %}
+                {{ btn("Previous", href=page.prev_page.href, variant="ghost") }}
+                {% else %}<span></span>{% end %}
+                {% if page?.next_page ?? none %}
+                {{ btn("Next", href=page.next_page.href, variant="primary", icon="arrow") }}
+                {% end %}
+            </nav>
+            {% end %}
+        {% end %}
+    </article>
+
+    {% if toc %}
+    <aside class="chirpui-bengal-docs__toc">
+        {% call panel(title="On This Page", surface_variant="muted", scroll_body=true, cls="chirpui-bengal-toc-panel") %}
+            <nav class="chirpui-bengal-toc" aria-label="Table of contents">
+                {{ toc | safe }}
+            </nav>
+        {% end %}
+    </aside>
+    {% end %}
+</div>
+{% end %}
+{% end %}

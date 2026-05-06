@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container, stack, cluster %}
+{% from "chirpui/hero.html" import page_hero %}
+{% from "chirpui/badge.html" import badge %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+
+{% block content %}
+{% let title = page?.title ?? "Tags" %}
+{% let all_tags = tags ?? [] %}
+
+{% call container(max_width="72rem") %}
+    {% call stack(gap="lg") %}
+        {% call page_hero(title=title, subtitle="Browse content by tag.", variant="minimal", background="muted") %}
+            {% call rendered_content(compact=true, cls="chirpui-bengal-rendered") %}{{ content | safe }}{% end %}
+        {% end %}
+        {% call cluster(gap="sm") %}
+            {% for tag in all_tags %}
+            {% let tag_name = tag?.name ?? tag %}
+            <a href="{{ (tag?.href ?? tag_url(tag_name)) | absolute_url }}">{{ badge(tag_name, variant="primary") }}</a>
+            {% end %}
+        {% end %}
+    {% end %}
+{% end %}
+{% end %}

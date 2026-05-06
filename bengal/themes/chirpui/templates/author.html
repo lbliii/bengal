@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container, stack %}
+{% from "chirpui/profile_header.html" import profile_header %}
+{% from "chirpui/metric_grid.html" import metric_grid, metric_card %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+{% from "partials/cards.html" import post_feed %}
+
+{% block content %}
+{% let author_name = params?.author_name ?? page?.title ?? "Author" %}
+{% let author_bio = params?.bio ?? page?.description ?? none %}
+{% let author_posts = posts ?? section?.regular_pages ?? section?.pages ?? site.listable_pages ?? [] %}
+
+{% call container(max_width="76rem") %}
+    {% call stack(gap="lg") %}
+        {% call profile_header(name=author_name, use_slots=true, cls="chirpui-bengal-author-header") %}
+            {% slot bio %}
+            {% if author_bio %}<p>{{ author_bio }}</p>{% end %}
+            {% end %}
+            {% slot stats %}
+            <span>{{ author_posts | length }} published</span>
+            {% end %}
+        {% end %}
+        {% if content %}
+            {% call rendered_content(compact=true, cls="chirpui-bengal-rendered") %}{{ content | safe }}{% end %}
+        {% end %}
+        {% call metric_grid(cols=2, gap="md") %}
+            {{ metric_card(value=author_posts | length, label="Published Pages") }}
+            {{ metric_card(value=author_name, label="Author") }}
+        {% end %}
+        {{ post_feed(author_posts, "No author content yet.") }}
+    {% end %}
+{% end %}
+{% end %}

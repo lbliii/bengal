@@ -807,6 +807,18 @@ class ContentOrchestrator:
             for asset in discovery.discover():
                 if asset.output_path:
                     asset.output_path = Path(prefix) / asset.output_path
+                    asset.logical_path = asset.output_path
+                # Some libraries expose CSS and Kida templates from the same package
+                # root; only browser-downloadable assets should enter the manifest.
+                if asset.source_path.suffix.lower() == ".html":
+                    continue
+                # Provider CSS files such as chirpui.css are standalone static files,
+                # not modules imported by a site/theme style.css entry point.
+                if (
+                    asset.source_path.suffix.lower() == ".css"
+                    and asset.source_path.name != "style.css"
+                ):
+                    asset.asset_type = "other"
                 self.site.assets.append(asset)
 
     def _setup_page_references(self) -> None:

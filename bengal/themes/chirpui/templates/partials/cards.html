@@ -1,0 +1,94 @@
+{% from "chirpui/layout.html" import grid, block, cluster %}
+{% from "chirpui/index_card.html" import index_card %}
+{% from "chirpui/post_card.html" import post_card %}
+{% from "chirpui/badge.html" import badge %}
+
+{% def tag_badges(tags) %}
+{% if tags %}
+{% call cluster(gap="xs") %}
+    {% for tag in tags %}
+    {{ badge(tag, variant="muted") }}
+{% end %}
+{% end %}
+{% end %}
+{% end %}
+
+{% def post_feed(posts, empty_message="No posts yet.") %}
+{% if posts %}
+<div class="chirpui-bengal-post-feed">
+    {% for item in posts %}
+    {% call post_card(name=item.title, handle=item.type ?? "post", href=item.href, cls="chirpui-bengal-post-card") %}
+        <p>{{ item.description ?? item.summary ?? "" }}</p>
+        {% slot actions %}
+        {{ tag_badges(item.tags ?? []) }}
+        {% end %}
+    {% end %}
+    {% end %}
+</div>
+{% else %}
+<p class="chirpui-text-muted">{{ empty_message }}</p>
+{% end %}
+{% end %}
+
+{% def searchable_post_feed(posts, empty_message="No posts yet.") %}
+{% if posts %}
+<div class="chirpui-bengal-post-feed">
+    {% for item in posts %}
+    <div data-chirpui-search-item data-search-text="{{ item.title }} {{ item.description ?? item.summary ?? '' }} {{ item.type ?? item.kind ?? '' }} {{ item.tags | join(' ') if item.tags else '' }}">
+        {% call post_card(name=item.title, handle=item.type ?? "post", href=item.href, cls="chirpui-bengal-post-card") %}
+            <p>{{ item.description ?? item.summary ?? "" }}</p>
+            {% slot actions %}
+            {{ tag_badges(item.tags ?? []) }}
+            {% end %}
+        {% end %}
+    </div>
+    {% end %}
+</div>
+{% else %}
+<p class="chirpui-text-muted">{{ empty_message }}</p>
+{% end %}
+{% end %}
+
+{% def page_grid(pages, empty_message="No pages yet.", exclude_href=none) %}
+{% if pages %}
+{% call grid(cols=3, gap="md") %}
+    {% for item in pages %}
+    {% if not exclude_href or item.href != exclude_href %}
+    {% call block() %}
+        {{ index_card(
+            href=item.href,
+            title=item.title,
+            description=item.description ?? item.summary ?? none,
+            badge=item.type ?? item.kind ?? none
+        ) }}
+    {% end %}
+    {% end %}
+    {% end %}
+{% end %}
+{% else %}
+<p class="chirpui-text-muted">{{ empty_message }}</p>
+{% end %}
+{% end %}
+
+{% def searchable_page_grid(pages, empty_message="No pages yet.", exclude_href=none) %}
+{% if pages %}
+{% call grid(cols=3, gap="md", cls="chirpui-bengal-browse-grid") %}
+    {% for item in pages %}
+    {% if not exclude_href or item.href != exclude_href %}
+    {% call block(cls="chirpui-bengal-browse-grid__item") %}
+        <div data-chirpui-search-item data-search-text="{{ item.title }} {{ item.description ?? item.summary ?? '' }} {{ item.type ?? item.kind ?? '' }} {{ item.tags | join(' ') if item.tags else '' }}">
+            {{ index_card(
+                href=item.href,
+                title=item.title,
+                description=item.description ?? item.summary ?? none,
+                badge=item.type ?? item.kind ?? none
+            ) }}
+        </div>
+    {% end %}
+    {% end %}
+    {% end %}
+{% end %}
+{% else %}
+<p class="chirpui-text-muted">{{ empty_message }}</p>
+{% end %}
+{% end %}

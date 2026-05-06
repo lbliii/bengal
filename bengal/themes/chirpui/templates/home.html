@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "chirpui/layout.html" import container, stack %}
+{% from "chirpui/hero.html" import hero %}
+{% from "chirpui/metric_grid.html" import metric_grid, metric_card %}
+{% from "chirpui/button.html" import btn %}
+{% from "chirpui/rendered_content.html" import rendered_content %}
+{% from "partials/cards.html" import page_grid %}
+
+{% block content %}
+{% let title = page?.title ?? site.title %}
+{% let subtitle = page?.description ?? site.description %}
+{% let pages = (site.listable_pages ?? [])[:6] %}
+{% let page_count = site.pages | length %}
+{% let listable_count = site.listable_pages | length %}
+
+{% call container(max_width="76rem") %}
+    {% call stack(gap="xl") %}
+        {% call hero(title=title, subtitle=subtitle, background="muted") %}
+            {% call rendered_content(compact=true, cls="chirpui-bengal-rendered") %}{{ content | safe }}{% end %}
+            {% slot action %}
+            {{ btn("Read Docs", href="/docs/" | absolute_url, variant="primary", icon="arrow") }}
+            {{ btn("Search", href="/search/" | absolute_url, variant="ghost", icon="search") }}
+            {% end %}
+        {% end %}
+
+        {% call metric_grid(cols=3, gap="md", cls="chirpui-bengal-home-metrics") %}
+            {{ metric_card(value=page_count, label="Pages", href="/search/" | absolute_url) }}
+            {{ metric_card(value=listable_count, label="Browsable", href="/search/" | absolute_url) }}
+            {{ metric_card(value=_current_lang, label="Language") }}
+        {% end %}
+
+        {{ page_grid(pages, "No pages yet.", page.href) }}
+    {% end %}
+{% end %}
+{% end %}

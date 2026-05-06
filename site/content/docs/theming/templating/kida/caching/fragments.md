@@ -149,6 +149,12 @@ Fragment cache uses a global TTL configured at the environment level. All cached
 
 ## Cache Invalidation
 
+### Asset URLs
+
+Bengal namespaces fragment cache entries by the active asset manifest revision.
+That means a cached fragment that calls `asset_url()` will re-render after asset
+fingerprints change instead of replaying stale CSS or JavaScript URLs.
+
 ### Version-Based
 
 ```kida
