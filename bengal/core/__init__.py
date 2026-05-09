@@ -66,6 +66,7 @@ from bengal.core.version import (
     GitVersionConfig,
     Version,
     VersionConfig,
+    VersionStatus,
 )
 
 __all__ = [
@@ -93,4 +94,5 @@ __all__ = [
     "URLRegistry",
     "Version",
     "VersionConfig",
+    "VersionStatus",
 ]

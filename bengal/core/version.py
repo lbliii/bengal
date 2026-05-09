@@ -62,7 +62,32 @@ from __future__ import annotations
 import threading
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, Literal, TypedDict, cast
+
+VersionStatus = Literal["current", "legacy", "deprecated", "preview", "eol"]
+VERSION_STATUSES: frozenset[str] = frozenset({"current", "legacy", "deprecated", "preview", "eol"})
+DEPRECATED_VERSION_STATUSES: frozenset[str] = frozenset({"deprecated", "eol"})
+
+
+def normalize_version_status(
+    status: str | None,
+    *,
+    deprecated: bool,
+    latest: bool,
+) -> VersionStatus:
+    """Normalize version status while preserving deprecated as a legacy alias."""
+    if status is not None:
+        normalized = status.strip().lower()
+        if normalized not in VERSION_STATUSES:
+            expected = ", ".join(sorted(VERSION_STATUSES))
+            raise ValueError(f"Unsupported version status {status!r}. Expected one of: {expected}.")
+        return cast("VersionStatus", normalized)
+
+    if deprecated:
+        return "deprecated"
+    if latest:
+        return "current"
+    return "legacy"
 
 
 @dataclass
@@ -164,6 +189,7 @@ class VersionDict(TypedDict):
     id: str
     label: str
     latest: bool
+    status: VersionStatus
     deprecated: bool
     url_prefix: str
     release_date: str | None
@@ -181,6 +207,9 @@ class Version:
         label: Display label (e.g., '3.0', '2.0 LTS')
         latest: Whether this is the latest/default version
         banner: Optional banner configuration for this version
+        status: Version lifecycle status exposed to templates and docs tooling.
+            When omitted, Bengal derives it from latest/deprecated for backward
+            compatibility. Explicit status wins over deprecated.
         deprecated: Whether this version is deprecated
         release_date: Optional release date for this version
         end_of_life: Optional end-of-life date
@@ -198,12 +227,22 @@ class Version:
     label: str = ""
     latest: bool = False
     banner: VersionBanner | None = None
+    status: str | None = None
     deprecated: bool = False
     release_date: str | None = None
     end_of_life: str | None = None
+    _status_explicit: bool = field(init=False, repr=False, compare=False)
 
     def __post_init__(self) -> None:
         """Initialize defaults."""
+        self._status_explicit = self.status is not None
+        self.status = normalize_version_status(
+            self.status,
+            deprecated=self.deprecated,
+            latest=self.latest,
+        )
+        self.deprecated = self.status in DEPRECATED_VERSION_STATUSES
+
         # Default label to id if not provided
         if not self.label:
             self.label = self.id
@@ -216,6 +255,18 @@ class Version:
             else:
                 # Older versions use _versions/<id>
                 self.source = f"_versions/{self.id}"
+
+    def refresh_derived_status(self) -> None:
+        """Refresh status after inferred latest values change."""
+        if self._status_explicit:
+            return
+
+        self.status = normalize_version_status(
+            None,
+            deprecated=self.deprecated,
+            latest=self.latest,
+        )
+        self.deprecated = self.status in DEPRECATED_VERSION_STATUSES
 
     @property
     def url_prefix(self) -> str:
@@ -242,6 +293,7 @@ class Version:
             "id": self.id,
             "label": self.label,
             "latest": self.latest,
+            "status": cast("VersionStatus", self.status),
             "deprecated": self.deprecated,
             "url_prefix": self.url_prefix,
             "release_date": self.release_date,
@@ -312,6 +364,7 @@ class VersionConfig:
         # Ensure at least one version is marked as latest
         if self.versions and not any(v.latest for v in self.versions):
             self.versions[0].latest = True
+            self.versions[0].refresh_derived_status()
             self._version_map[self.versions[0].id] = self.versions[0]
 
         # Auto-add 'latest' alias if not present
@@ -525,6 +578,7 @@ class VersionConfig:
                         label=v.get("label", ""),
                         latest=v.get("latest", i == 0),
                         banner=banner,
+                        status=v.get("status"),
                         deprecated=v.get("deprecated", False),
                         release_date=v.get("release_date"),
                         end_of_life=v.get("end_of_life"),

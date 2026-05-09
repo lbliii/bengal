@@ -242,6 +242,42 @@ class I18nConfig(TypedDict, total=False):
 
 
 # =============================================================================
+# Versioning
+# =============================================================================
+
+
+VersionStatus = Literal["current", "legacy", "deprecated", "preview", "eol"]
+
+
+class VersionEntryConfig(TypedDict, total=False):
+    """Single configured documentation version."""
+
+    id: str
+    source: str
+    label: str
+    latest: bool
+    status: VersionStatus
+    deprecated: bool
+    release_date: str
+    end_of_life: str
+    banner: str | dict[str, str | bool]
+
+
+class VersioningConfig(TypedDict, total=False):
+    """Versioned documentation configuration."""
+
+    enabled: bool
+    mode: Literal["folder", "git"]
+    versions: list[str | VersionEntryConfig]
+    aliases: dict[str, str]
+    sections: list[str]
+    shared: list[str]
+    emit_versions_json: bool
+    default_redirect: bool
+    default_redirect_target: str
+
+
+# =============================================================================
 # Output Formats
 # =============================================================================
 
@@ -518,6 +554,7 @@ class SiteConfig(TypedDict, total=False):
     features: FeaturesConfig
     graph: GraphConfig | bool
     i18n: I18nConfig
+    versioning: VersioningConfig
     output_formats: OutputFormatsConfig | bool
     markdown: MarkdownConfig
     link_previews: LinkPreviewsConfig | bool

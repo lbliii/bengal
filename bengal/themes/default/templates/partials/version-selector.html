@@ -6,7 +6,7 @@ Only renders when versioning is enabled.
 
 Available context:
 - versioning_enabled: bool - Whether versioning is enabled
-- versions: list[dict] - All versions with id, label, latest, url_prefix
+- versions: list[dict] - All versions with id, label, latest, status, deprecated, url_prefix
 - current_version: dict|None - Current page's version info
 - is_latest_version: bool - Whether current page is latest version
 
@@ -51,10 +51,10 @@ engine (Jinja2, Mako, or BYORenderer). No global function dependency.
   #}
   <select id="version-select" class="version-selector__select" aria-label="Select documentation version">
     {% for v in versions %}
-    <option value="{{ v.url_prefix or '/' }}" data-target="{{ site.get_version_target_url(page, v) }}" {% if
+    <option value="{{ v.url_prefix or '/' }}" data-target="{{ site.get_version_target_url(page, v) }}" data-status="{{ v.status or (v.deprecated and 'deprecated' or 'legacy') }}" {% if
       current_version and current_version.id==v.id %}selected{% end %} {% if v.deprecated %}class="version-deprecated"
       {% end %}>
-      {{ v.label }}{% if v.latest %} (Latest){% end %}{% if v.deprecated %} ⚠️{% end %}
+      {{ v.label }}{% if v.latest %} (Latest){% end %}{% if v.status == 'preview' %} (Preview){% end %}{% if v.deprecated %} ⚠️{% end %}
     </option>
     {% end %}
   </select>
