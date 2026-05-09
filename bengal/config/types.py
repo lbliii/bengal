@@ -128,7 +128,9 @@ class SearchConfig(TypedDict, total=False):
     """Search configuration."""
 
     enabled: bool
+    backend: Literal["lunr"]
     lunr: LunrConfig
+    backends: dict[str, dict[str, object]]
     ui: SearchUIConfig
     analytics: SearchAnalyticsConfig
 

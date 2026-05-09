@@ -102,6 +102,10 @@ pip install "bengal[search]"
 ```
 
 This generates `search-index.json` (a pre-serialized Lunr index) in addition to `index.json`, which loads faster in the browser.
+Bengal's search backend is explicit and defaults to `search.backend: lunr`.
+`index.json` remains the stable source artifact for client-side search, and
+`search-index.json` is emitted only by the Lunr backend when prebuilding is
+enabled.
 :::
 
 ```html

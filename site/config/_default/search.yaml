@@ -4,6 +4,7 @@
 
 search:
   enabled: true  # Enable search functionality
+  backend: lunr  # Built-in local backend. Additional backends must declare their artifact contract.
 
   # Lunr.js settings (client-side search engine)
   lunr:

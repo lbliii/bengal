@@ -44,6 +44,10 @@ from bengal.postprocess.output_formats.lunr_index_generator import LunrIndexGene
 from bengal.postprocess.output_formats.md_generator import PageMarkdownGenerator
 from bengal.postprocess.output_formats.txt_generator import PageTxtGenerator
 from bengal.postprocess.output_formats.utils import get_i18n_output_path
+from bengal.postprocess.search_backends import (
+    create_search_backend,
+    resolve_search_backend_config,
+)
 from bengal.postprocess.utils import get_section_name
 from bengal.utils.observability.logger import get_logger
 
@@ -386,29 +390,21 @@ class OutputFormatsGenerator:
                 generated.append("index.json")
                 logger.debug("generated_site_index_json")
 
-            # Generate pre-built Lunr index if enabled
-            search_config = self.site.config.get("search", {})
-            lunr_config = search_config.get("lunr", {})
-            prebuilt_enabled = lunr_config.get("prebuilt", True)  # Default: enabled
-
-            if prebuilt_enabled:
-                lunr_gen = LunrIndexGenerator(self.site)
-                if lunr_gen.is_available():
-                    # Generate Lunr index for each version index
-                    for index_path in index_paths:
-                        lunr_path = self._timed_generate(
-                            timings,
-                            "site_lunr_index",
-                            lambda index_path=index_path: lunr_gen.generate(index_path),
-                        )
-                        if lunr_path:
-                            generated.append("search-index.json")
-                            logger.debug("generated_prebuilt_lunr_index", path=str(lunr_path))
-                else:
-                    logger.debug(
-                        "lunr_prebuilt_skipped",
-                        reason="lunr package not installed",
-                    )
+            search_backend_config = resolve_search_backend_config(
+                self.site.config.get("search", {})
+            )
+            search_backend = create_search_backend(self.site, search_backend_config)
+            generated_search = search_backend.generate(
+                index_paths,
+                lambda label, factory: self._timed_generate(timings, label, factory),
+            )
+            generated.extend(generated_search)
+            if generated_search:
+                logger.debug(
+                    "generated_search_backend_artifacts",
+                    backend=search_backend.name,
+                    count=len(generated_search),
+                )
 
         if "llm_full" in site_wide:
             separator_width = options.get("llm_separator_width", 80)
