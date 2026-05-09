@@ -31,6 +31,7 @@ def _make_library_module(
     has_register_filters: bool = False,
     loader_value: object = None,
     static_path_value: Path | None = None,
+    library_contract: dict | None = None,
 ) -> types.ModuleType:
     """Create a fake library module with configurable convention hooks."""
     mod = types.ModuleType("fake_lib")
@@ -40,6 +41,8 @@ def _make_library_module(
         mod.static_path = lambda: static_path_value  # type: ignore[attr-defined]
     if has_register_filters:
         mod.register_filters = lambda app: None  # type: ignore[attr-defined]
+    if library_contract is not None:
+        mod.get_library_contract = lambda: library_contract  # type: ignore[attr-defined]
     return mod
 
 
@@ -134,6 +137,57 @@ class TestResolveProvider:
             provider = resolve_provider("my-ui-kit")
 
         assert provider.asset_prefix == "my_ui_kit"
+
+    def test_consumes_library_contract_assets(self, tmp_path):
+        static = tmp_path / "static"
+        static.mkdir()
+        (static / "ui.css").write_text(".ui{}", encoding="utf-8")
+        (static / "ui.js").write_text("window.ui=true", encoding="utf-8")
+        (static / "tokens.css").write_text(":root{}", encoding="utf-8")
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": static,
+                "assets": [
+                    {"path": "ui.css", "mode": "link", "type": "css"},
+                    {
+                        "path": "ui.js",
+                        "mode": "bundle",
+                        "type": "javascript",
+                        "output": "bundle.js",
+                    },
+                    {"path": "tokens.css", "mode": "none", "type": "css"},
+                ],
+                "runtime": ["ui-runtime"],
+            }
+        )
+
+        with patch("bengal.core.theme.providers.importlib.import_module", return_value=mod):
+            provider = resolve_provider("fake_ui")
+
+        assert provider.asset_root == static
+        assert provider.runtime == ("ui-runtime",)
+        assert [asset.mode for asset in provider.assets] == ["link", "bundle", "none"]
+        assert [asset.logical_path.as_posix() for asset in provider.assets] == [
+            "fake_ui/ui.css",
+            "fake_ui/bundle.js",
+            "fake_ui/tokens.css",
+        ]
+
+    def test_invalid_library_contract_mode_raises_config_error(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.css", "mode": "copy"}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="asset mode 'copy' is invalid"),
+        ):
+            resolve_provider("fake_ui")
 
 
 class TestResolveThemeProviders:

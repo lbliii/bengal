@@ -23,10 +23,8 @@
     {% if site.baseurl %}
     <link rel="canonical" href="{{ canonical_url(_page_url) }}">
     {% end %}
-    <link rel="stylesheet" href="{{ asset_url('chirp_ui/chirpui.css') }}">
-    <link rel="stylesheet" href="{{ asset_url('chirp_ui/chirpui-transitions.css') }}">
+    {{ library_asset_tags() }}
     <link rel="stylesheet" href="{{ asset_url('css/style.css') }}">
-    <script src="{{ asset_url('chirp_ui/chirpui.js') }}"></script>
     {% block extra_head %}{% end %}
 </head>
 <body data-type="{{ page?.type ?? '' }}">

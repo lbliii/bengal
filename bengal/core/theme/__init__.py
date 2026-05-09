@@ -55,8 +55,10 @@ from bengal.core.theme.compatibility import (
 )
 from bengal.core.theme.config import Theme
 from bengal.core.theme.providers import (
+    LibraryAsset,
     ThemeLibraryProvider,
     get_provider_asset_dirs,
+    get_provider_assets,
     resolve_theme_providers,
 )
 from bengal.core.theme.registry import (
@@ -74,6 +76,7 @@ from bengal.core.theme.resolution import (
 
 __all__ = [
     "FEATURE_SUPPORT",
+    "LibraryAsset",
     "Theme",
     "ThemeLibraryProvider",
     "ThemePackage",
@@ -85,6 +88,7 @@ __all__ = [
     "get_installed_themes",
     "get_minimum_engine_level",
     "get_provider_asset_dirs",
+    "get_provider_assets",
     "get_theme_package",
     "iter_theme_asset_dirs",
     "resolve_theme_chain",

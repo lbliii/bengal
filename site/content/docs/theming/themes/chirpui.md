@@ -25,10 +25,12 @@ Then select the theme:
 theme = "chirpui"
 ```
 
-The theme loads Chirp UI through `theme.toml` provider libraries and fingerprints
-`chirp_ui/chirpui.css` through Bengal's normal asset manifest. Bengal does not
-bundle `chirp-ui` as a hard dependency, so builds that use this theme should
-fail fast if the package is missing.
+The theme loads Chirp UI through `theme.toml` provider libraries. When the
+package exposes `get_library_contract()`, Bengal uses that contract to emit
+declared CSS and JavaScript under `chirp_ui/`, fingerprint them through the
+normal asset manifest, and render the provider tags from the theme library
+metadata. Bengal does not bundle `chirp-ui` as a hard dependency, so builds
+that use this theme should fail fast if the package is missing.
 
 ## Scope
 
