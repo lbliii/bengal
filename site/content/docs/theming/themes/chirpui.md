@@ -29,8 +29,10 @@ The theme loads Chirp UI through `theme.toml` provider libraries. When the
 package exposes `get_library_contract()`, Bengal uses that contract to emit
 declared CSS and JavaScript under `chirp_ui/`, fingerprint them through the
 normal asset manifest, and render the provider tags from the theme library
-metadata. Bengal does not bundle `chirp-ui` as a hard dependency, so builds
-that use this theme should fail fast if the package is missing.
+metadata. See [Theme Library Assets](./library-assets/) for the provider
+contract shape, asset modes, tag attributes, runtime metadata, and strict build
+diagnostics. Bengal does not bundle `chirp-ui` as a hard dependency, so builds
+that use this theme fail fast if the package is missing.
 
 ## Scope
 

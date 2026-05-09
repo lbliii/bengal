@@ -1,1 +1,1 @@
-Add theme library asset contracts with provider-managed CSS/JS emission and missing rendered-asset diagnostics.
+Add theme library asset contracts with provider-managed CSS/JS emission, tag attributes, runtime metadata, strict missing-asset diagnostics, and vendor-facing documentation.
