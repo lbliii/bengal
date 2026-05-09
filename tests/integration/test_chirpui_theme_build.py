@@ -301,6 +301,21 @@ async def _asgi_get(app, path: str) -> tuple[int, bytes]:
     return status, b"".join(body_parts)
 
 
+def test_chirpui_theme_delegates_library_assets_to_contract() -> None:
+    """The bundled theme should not hard-code Chirp UI browser asset paths."""
+    theme_dir = ROOT.parent / "bengal" / "themes" / "chirpui"
+    template_text = "\n".join(
+        path.read_text(encoding="utf-8") for path in (theme_dir / "templates").rglob("*.html")
+    )
+    bridge_css = (theme_dir / "assets" / "css" / "style.css").read_text(encoding="utf-8")
+
+    assert template_text.count("library_asset_tags()") == 1
+    assert "chirpui.css" not in template_text
+    assert "chirpui-transitions.css" not in template_text
+    assert "chirpui.js" not in template_text
+    assert "@import" not in bridge_css
+
+
 def test_chirpui_theme_builds_with_provider_assets(tmp_path, monkeypatch) -> None:
     """The bundled chirpui theme renders without default assets when chirp_ui is present."""
     package_root = tmp_path / "pkg"
