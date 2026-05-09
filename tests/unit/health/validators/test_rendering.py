@@ -60,6 +60,9 @@ VALID_HTML = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="description" _raw_content="Test page">
+    <meta property="og:title" content="Test Page">
+    <meta property="og:url" content="https://example.com/test/">
+    <meta name="twitter:card" content="summary_large_image">
     <title>Test Page</title>
 </head>
 <body>
@@ -231,6 +234,85 @@ class TestRenderingValidatorSEOMetadata:
         warning_results = [r for r in results if r.status == CheckStatus.WARNING]
         seo_warnings = [r for r in warning_results if "seo" in r.message.lower()]
         assert len(seo_warnings) == 0
+
+
+class TestRenderingValidatorSocialMetadata:
+    """Tests for social metadata validation."""
+
+    def test_success_when_social_metadata_present(self, validator, mock_site, tmp_path):
+        """Returns success when Open Graph and Twitter metadata are present."""
+        page = create_page(mock_site.output_dir, "social.html", VALID_HTML)
+        mock_site.pages = [page]
+
+        results = validator.validate(mock_site)
+
+        assert "social metadata" in result_text(results).lower()
+
+    def test_warning_for_missing_social_metadata(self, validator, mock_site, tmp_path):
+        """Returns warning for pages missing share-card metadata."""
+        no_social = """<!DOCTYPE html>
+<html><head><title>Test</title>
+<meta name="description" _raw_content="Test"></head><body></body></html>"""
+        page = create_page(mock_site.output_dir, "no-social.html", no_social)
+        mock_site.pages = [page]
+
+        results = validator.validate(mock_site)
+
+        warning_results = [r for r in results if r.status == CheckStatus.WARNING]
+        assert any(r.code == "H034" for r in warning_results)
+
+    def test_skips_generated_pages_for_social_metadata(self, validator, mock_site, tmp_path):
+        """Generated pages do not need share-card metadata."""
+        no_social = """<!DOCTYPE html>
+<html><head><title>Generated</title>
+<meta name="description" _raw_content="Generated"></head><body></body></html>"""
+        page = create_page(mock_site.output_dir, "generated.html", no_social, generated=True)
+        mock_site.pages = [page]
+
+        results = validator.validate(mock_site)
+
+        warning_results = [r for r in results if r.status == CheckStatus.WARNING]
+        assert all(r.code != "H034" for r in warning_results)
+
+
+class TestRenderingValidatorJsonLd:
+    """Tests for JSON-LD validation."""
+
+    def test_success_when_json_ld_is_valid(self, validator, mock_site, tmp_path):
+        """Returns success for valid application/ld+json scripts."""
+        html = VALID_HTML.replace(
+            "</head>",
+            '<script type="application/ld+json">{"@context":"https://schema.org"}</script></head>',
+        )
+        page = create_page(mock_site.output_dir, "jsonld.html", html)
+        mock_site.pages = [page]
+
+        results = validator.validate(mock_site)
+
+        assert "json-ld" in result_text(results).lower()
+
+    def test_warning_for_invalid_json_ld(self, validator, mock_site, tmp_path):
+        """Returns warning for malformed application/ld+json scripts."""
+        html = VALID_HTML.replace(
+            "</head>",
+            '<script type="application/ld+json">{"@context":</script></head>',
+        )
+        page = create_page(mock_site.output_dir, "bad-jsonld.html", html)
+        mock_site.pages = [page]
+
+        results = validator.validate(mock_site)
+
+        warning_results = [r for r in results if r.status == CheckStatus.WARNING]
+        assert any(r.code == "H035" for r in warning_results)
+
+    def test_skips_pages_without_json_ld(self, validator, mock_site, tmp_path):
+        """Pages without JSON-LD scripts still get a JSON-LD success result."""
+        page = create_page(mock_site.output_dir, "no-jsonld.html", VALID_HTML)
+        mock_site.pages = [page]
+
+        results = validator.validate(mock_site)
+
+        assert "json-ld" in result_text(results).lower()
 
 
 class TestRenderingValidatorPrivateMethods:

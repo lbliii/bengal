@@ -12,6 +12,8 @@ cause immediate template errors during build.
 
 from __future__ import annotations
 
+import json
+from html.parser import HTMLParser
 from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
@@ -26,6 +28,34 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from bengal.orchestration.build_context import BuildContext
     from bengal.protocols import SiteLike
+
+
+class _JsonLdExtractor(HTMLParser):
+    """Extract application/ld+json script bodies from rendered HTML."""
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=False)
+        self.blocks: list[str] = []
+        self._capturing = False
+        self._current: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag.lower() != "script":
+            return
+        attr_map = {name.lower(): value for name, value in attrs if value is not None}
+        if attr_map.get("type", "").lower() == "application/ld+json":
+            self._capturing = True
+            self._current = []
+
+    def handle_data(self, data: str) -> None:
+        if self._capturing:
+            self._current.append(data)
+
+    def handle_endtag(self, tag: str) -> None:
+        if self._capturing and tag.lower() == "script":
+            self.blocks.append("".join(self._current))
+            self._capturing = False
+            self._current = []
 
 
 class RenderingValidator(BaseValidator):
@@ -64,6 +94,12 @@ class RenderingValidator(BaseValidator):
 
         # Check 3: SEO metadata (catches missing titles/descriptions)
         results.extend(self._check_seo_metadata(site))
+
+        # Check 4: Social metadata (catches incomplete share cards)
+        results.extend(self._check_social_metadata(site))
+
+        # Check 5: JSON-LD validity (catches malformed structured data)
+        results.extend(self._check_json_ld(site))
 
         success_count = sum(1 for result in results if result.status.value == "success")
         return compact_successes(
@@ -113,6 +149,95 @@ class RenderingValidator(BaseValidator):
                 CheckResult.success(
                     f"HTML structure validated (sampled {len(pages_to_check)} pages)"
                 )
+            )
+
+        return results
+
+    def _check_social_metadata(self, site: SiteLike) -> list[CheckResult]:
+        """Check for social sharing metadata in rendered pages."""
+        results = []
+        issues = []
+        pages_to_check = sample_pages(site, count=10, exclude_generated=True)
+
+        for page in pages_to_check:
+            content = read_output_content(page)
+            if content is None:
+                continue
+
+            missing_elements = []
+            if 'property="og:title"' not in content:
+                missing_elements.append("og:title")
+            if 'property="og:url"' not in content:
+                missing_elements.append("og:url")
+            if 'name="twitter:card"' not in content:
+                missing_elements.append("twitter:card")
+
+            if missing_elements:
+                issues.append(f"{page.output_path.name}: missing {', '.join(missing_elements)}")
+
+        if issues:
+            results.append(
+                CheckResult.warning(
+                    f"{len(issues)} page(s) missing social sharing metadata",
+                    code="H034",
+                    recommendation="Add Open Graph and Twitter card metadata to the base template.",
+                    details=issues[:5],
+                )
+            )
+        else:
+            results.append(
+                CheckResult.success(
+                    f"Social metadata validated (sampled {len(pages_to_check)} pages)"
+                )
+            )
+
+        return results
+
+    def _check_json_ld(self, site: SiteLike) -> list[CheckResult]:
+        """Check JSON-LD script blocks for valid JSON syntax."""
+        results = []
+        issues = []
+        pages_to_check = sample_pages(site, count=10, exclude_generated=True)
+
+        for page in pages_to_check:
+            content = read_output_content(page)
+            if content is None or "application/ld+json" not in content:
+                continue
+
+            extractor = _JsonLdExtractor()
+            try:
+                extractor.feed(content)
+            except Exception as e:
+                logger.debug(
+                    "rendering_validator_json_ld_parse_failed",
+                    page=str(page.output_path),
+                    error=str(e),
+                    error_type=type(e).__name__,
+                    action="skipping_json_ld_check",
+                )
+                continue
+
+            for index, raw_json in enumerate(extractor.blocks, start=1):
+                try:
+                    json.loads(raw_json)
+                except json.JSONDecodeError as e:
+                    issues.append(
+                        f"{page.output_path.name}: JSON-LD block {index} is invalid JSON "
+                        f"({e.msg} at line {e.lineno}, column {e.colno})"
+                    )
+
+        if issues:
+            results.append(
+                CheckResult.warning(
+                    f"{len(issues)} JSON-LD block(s) are invalid",
+                    code="H035",
+                    recommendation="Fix JSON-LD template output so each application/ld+json script contains valid JSON.",
+                    details=issues[:5],
+                )
+            )
+        else:
+            results.append(
+                CheckResult.success(f"JSON-LD validated (sampled {len(pages_to_check)} pages)")
             )
 
         return results

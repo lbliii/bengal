@@ -110,7 +110,7 @@ Bengal includes validators organized by phase:
 
 | Validator | Checks | Common Issues |
 |-----------|--------|---------------|
-| **Rendering** | HTML output quality | Template errors, undefined variables |
+| **Rendering** | HTML output quality | Template errors, undefined variables, missing social tags, malformed JSON-LD |
 | **Output** | Generated pages, assets | Missing output, structure errors |
 | **Asset URLs** | Asset references in HTML | Broken asset paths, fingerprinting mismatches, case issues |
 | **Performance** | Build metrics | Slow builds, large pages |
