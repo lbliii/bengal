@@ -189,6 +189,92 @@ class TestResolveProvider:
         ):
             resolve_provider("fake_ui")
 
+    def test_library_contract_rejects_absolute_output_path(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.css", "output": "/tmp/ui.css"}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="output must be relative"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_output_traversal(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.css", "output": "../ui.css"}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match=r"output must not contain '\.\.'"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_source_traversal(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "../ui.css"}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match=r"path must not contain '\.\.'"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_non_path_asset_value(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [object()],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="path must be path-like"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_non_string_runtime_entries(self):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(library_contract={"runtime": ["loader", 3]})
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="runtime entries must be strings"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_bytes_runtime(self):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(library_contract={"runtime": b"loader"})
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="runtime must be a string"),
+        ):
+            resolve_provider("fake_ui")
+
 
 class TestResolveThemeProviders:
     """Tests for resolve_theme_providers() chain accumulation."""

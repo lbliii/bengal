@@ -389,10 +389,20 @@ def _contract_assets(
                 ),
             )
 
-        source_path = Path(path_raw)
+        source_path = _normalize_contract_path(
+            package_name,
+            path_raw,
+            field_name="path",
+            allow_absolute=True,
+        )
         if not source_path.is_absolute():
             source_path = asset_root / source_path
-        output_path = Path(str(output_raw))
+        output_path = _normalize_contract_path(
+            package_name,
+            output_raw,
+            field_name="output",
+            allow_absolute=False,
+        )
         logical_path = Path(asset_prefix) / output_path
         if not asset_type:
             asset_type = _asset_type_from_path(source_path)
@@ -405,6 +415,91 @@ def _contract_assets(
             )
         )
     return tuple(assets)
+
+
+def _normalize_contract_path(
+    package_name: str,
+    raw_path: Any,
+    *,
+    field_name: str,
+    allow_absolute: bool,
+) -> Path:
+    """Normalize a path-like contract field and reject ambiguous output paths."""
+    from bengal.errors import ErrorCode
+    from bengal.errors.exceptions import BengalConfigError
+
+    if isinstance(raw_path, str) and not raw_path.strip():
+        raw_path = None
+    if raw_path is None:
+        raise BengalConfigError(
+            f"Theme library '{package_name}' has a library asset without a {field_name}",
+            code=ErrorCode.C003,
+            suggestion=f"Give each library asset a non-empty {field_name}.",
+            debug_payload=_theme_library_debug_payload(
+                package_name,
+                hook_name="get_library_contract",
+                returned_type=type(raw_path).__name__,
+            ),
+        )
+
+    try:
+        path = Path(raw_path)
+    except TypeError as e:
+        raise BengalConfigError(
+            f"Theme library '{package_name}' asset {field_name} must be path-like, "
+            f"got {type(raw_path).__name__}",
+            code=ErrorCode.C003,
+            suggestion=f"Use a string or pathlib.Path for asset {field_name}.",
+            debug_payload=_theme_library_debug_payload(
+                package_name,
+                hook_name="get_library_contract",
+                returned_type=type(raw_path).__name__,
+            ),
+        ) from e
+    except ValueError as e:
+        raise BengalConfigError(
+            f"Theme library '{package_name}' asset {field_name} must be path-like, "
+            f"got {type(raw_path).__name__}",
+            code=ErrorCode.C003,
+            suggestion=f"Use a string or pathlib.Path for asset {field_name}.",
+            debug_payload=_theme_library_debug_payload(
+                package_name,
+                hook_name="get_library_contract",
+                returned_type=type(raw_path).__name__,
+            ),
+        ) from e
+
+    if path == Path("."):
+        raise BengalConfigError(
+            f"Theme library '{package_name}' has an empty asset {field_name}",
+            code=ErrorCode.C003,
+            suggestion=f"Give each library asset a non-empty {field_name}.",
+            debug_payload=_theme_library_debug_payload(
+                package_name,
+                hook_name="get_library_contract",
+            ),
+        )
+    if not allow_absolute and path.is_absolute():
+        raise BengalConfigError(
+            f"Theme library '{package_name}' asset {field_name} must be relative: {path}",
+            code=ErrorCode.C003,
+            suggestion="Use a relative output path so Bengal can namespace emitted assets.",
+            debug_payload=_theme_library_debug_payload(
+                package_name,
+                hook_name="get_library_contract",
+            ),
+        )
+    if ".." in path.parts:
+        raise BengalConfigError(
+            f"Theme library '{package_name}' asset {field_name} must not contain '..': {path}",
+            code=ErrorCode.C003,
+            suggestion="Use a path inside the library asset namespace.",
+            debug_payload=_theme_library_debug_payload(
+                package_name,
+                hook_name="get_library_contract",
+            ),
+        )
+    return path
 
 
 def _iter_contract_asset_entries(contract: Mapping[str, Any]) -> Sequence[Any]:
@@ -441,7 +536,7 @@ def _contract_runtime(package_name: str, runtime_raw: Any) -> tuple[str, ...]:
         return ()
     if isinstance(runtime_raw, str):
         return (runtime_raw,)
-    if not isinstance(runtime_raw, Sequence):
+    if isinstance(runtime_raw, bytes) or not isinstance(runtime_raw, Sequence):
         raise BengalConfigError(
             f"Theme library '{package_name}': runtime must be a string or list of strings",
             code=ErrorCode.C003,
@@ -452,7 +547,22 @@ def _contract_runtime(package_name: str, runtime_raw: Any) -> tuple[str, ...]:
                 returned_type=type(runtime_raw).__name__,
             ),
         )
-    return tuple(str(item) for item in runtime_raw if item)
+    runtime: list[str] = []
+    for item in runtime_raw:
+        if not isinstance(item, str):
+            raise BengalConfigError(
+                f"Theme library '{package_name}': runtime entries must be strings",
+                code=ErrorCode.C003,
+                suggestion="Use runtime = ['alpine'] style metadata in the library contract.",
+                debug_payload=_theme_library_debug_payload(
+                    package_name,
+                    hook_name="get_library_contract",
+                    returned_type=type(item).__name__,
+                ),
+            )
+        if item:
+            runtime.append(item)
+    return tuple(runtime)
 
 
 def _asset_type_from_path(path: Path) -> str:
