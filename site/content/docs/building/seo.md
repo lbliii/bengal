@@ -75,6 +75,10 @@ For projects that rely on docs links shared in Slack, Discord, X, or GitHub,
 social cards are one of the highest-leverage discovery features after page titles and
 descriptions.
 
+Social card generation stores content fingerprints in Bengal's build cache. A
+full build reuses an existing generated card when the page title, description,
+site branding, image format, or card styling inputs have not changed.
+
 ### On-Site Discovery
 
 Bengal also improves discovery inside the site itself:

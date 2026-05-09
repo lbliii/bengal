@@ -43,8 +43,9 @@ builds, not during dev server operation.
 from __future__ import annotations
 
 import hashlib
+import json
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from threading import Lock
 from typing import TYPE_CHECKING, Any
 
@@ -54,7 +55,7 @@ from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import MutableMapping, Sequence
     from pathlib import Path
 
     from bengal.core.output import OutputCollector
@@ -65,6 +66,7 @@ logger = get_logger(__name__)
 # Standard OG image dimensions
 CARD_WIDTH = 1200
 CARD_HEIGHT = 630
+SOCIAL_CARD_FINGERPRINT_PREFIX = "social_card:"
 
 
 # Check if running in free-threading (no-GIL) mode
@@ -168,6 +170,11 @@ def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
     return tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))  # type: ignore[return-value]
 
 
+def _string_attr(value: Any) -> str:
+    """Return a stable string for optional site/page presentation values."""
+    return value if isinstance(value, str) else ""
+
+
 class SocialCardGenerator:
     """
     Generates social card (Open Graph) images for pages.
@@ -207,6 +214,7 @@ class SocialCardGenerator:
         site: SiteLike,
         config: SocialCardConfig,
         collector: OutputCollector | None = None,
+        fingerprint_cache: MutableMapping[str, str] | None = None,
     ) -> None:
         """
         Initialize social card generator.
@@ -215,11 +223,14 @@ class SocialCardGenerator:
             site: Site instance with pages and configuration
             config: SocialCardConfig with styling options
             collector: Optional output collector for hot reload tracking
+            fingerprint_cache: Optional persisted cache mapping for card hashes
         """
         self.site = site
         self.config = config
         self._collector = collector
-        self._cache: dict[str, str] = {}
+        self._cache: MutableMapping[str, str] = (
+            fingerprint_cache if fingerprint_cache is not None else {}
+        )
         self._cache_lock = Lock()
         self._title_font: ImageFont.FreeTypeFont | None = None
         self._body_font: ImageFont.FreeTypeFont | None = None
@@ -403,6 +414,23 @@ class SocialCardGenerator:
 
         return None
 
+    def _cache_key(self, page: PageLike) -> str:
+        """Return the persisted fingerprint cache key for a page."""
+        return f"{SOCIAL_CARD_FINGERPRINT_PREFIX}{page.source_path}"
+
+    def _effective_config(self, page: PageLike) -> SocialCardConfig:
+        """Apply supported per-page social card overrides without mutating defaults."""
+        social_card_meta = page.metadata.get("social_card")
+        if not isinstance(social_card_meta, dict):
+            return self.config
+
+        overrides = {}
+        if "background_color" in social_card_meta:
+            overrides["background_color"] = social_card_meta["background_color"]
+        if "accent_color" in social_card_meta:
+            overrides["accent_color"] = social_card_meta["accent_color"]
+        return replace(self.config, **overrides) if overrides else self.config
+
     def _compute_card_hash(self, page: PageLike) -> str:
         """
         Compute content hash for cache key.
@@ -418,14 +446,26 @@ class SocialCardGenerator:
         """
         title = page.title or ""
         description = page.description or ""
-        config_str = (
-            f"{self.config.background_color}|"
-            f"{self.config.text_color}|"
-            f"{self.config.accent_color}|"
-            f"{self.config.template}"
-        )
-        content = f"{title}|{description}|{config_str}"
-        return hashlib.md5(content.encode()).hexdigest()[:12]
+        config = self._effective_config(page)
+        payload = {
+            "accent_color": config.accent_color,
+            "background_color": config.background_color,
+            "body_font": config.body_font,
+            "description": description,
+            "format": config.format,
+            "logo": config.logo,
+            "quality": config.quality,
+            "secondary_color": config.secondary_color,
+            "show_site_name": config.show_site_name,
+            "site_name": _string_attr(getattr(self.site, "title", "")),
+            "site_url": _string_attr(getattr(self.site, "baseurl", "")),
+            "template": config.template,
+            "text_color": config.text_color,
+            "title": title,
+            "title_font": config.title_font,
+        }
+        content = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(content.encode()).hexdigest()[:16]
 
     def _should_regenerate(self, page: PageLike, output_path: Path) -> bool:
         """
@@ -448,7 +488,7 @@ class SocialCardGenerator:
             return True
 
         current_hash = self._compute_card_hash(page)
-        page_key = str(page.source_path)
+        page_key = self._cache_key(page)
 
         with self._cache_lock:
             cached_hash = self._cache.get(page_key)
@@ -728,22 +768,12 @@ class SocialCardGenerator:
         # Get content
         title = page.title or "Untitled"
         description = page.description or ""
-        site_name = self.site.title or ""
-        site_url = self.site.baseurl or ""
+        site_name = _string_attr(getattr(self.site, "title", ""))
+        site_url = _string_attr(getattr(self.site, "baseurl", ""))
 
         # Apply per-page overrides using a local copy to avoid mutating shared config
         # This prevents one page's overrides from affecting subsequent pages
-        config = self.config
-        if isinstance(social_card_meta, dict):
-            from dataclasses import replace
-
-            overrides = {}
-            if "background_color" in social_card_meta:
-                overrides["background_color"] = social_card_meta["background_color"]
-            if "accent_color" in social_card_meta:
-                overrides["accent_color"] = social_card_meta["accent_color"]
-            if overrides:
-                config = replace(self.config, **overrides)
+        config = self._effective_config(page)
 
         # Select template (use local config for per-page overrides)
         template = config.template
@@ -771,7 +801,7 @@ class SocialCardGenerator:
             self._collector.record(output_path, OutputType.IMAGE, phase="postprocess")
 
         # Update cache
-        page_key = str(page.source_path)
+        page_key = self._cache_key(page)
         current_hash = self._compute_card_hash(page)
         with self._cache_lock:
             self._cache[page_key] = current_hash

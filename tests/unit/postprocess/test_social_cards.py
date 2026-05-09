@@ -26,6 +26,7 @@ import pytest
 from bengal.postprocess.social_cards import (
     CARD_HEIGHT,
     CARD_WIDTH,
+    SOCIAL_CARD_FINGERPRINT_PREFIX,
     SocialCardConfig,
     SocialCardGenerator,
     get_social_card_path,
@@ -198,6 +199,34 @@ class TestSocialCardGeneratorContentHash:
 
         assert hash1 != hash2
 
+    def test_page_override_changes_hash(self) -> None:
+        """Per-page social card color overrides affect the cached fingerprint."""
+        site = MagicMock()
+        config = SocialCardConfig(background_color="#000000")
+        generator = SocialCardGenerator(site, config)
+
+        page1 = self._create_mock_page(title="Test")
+        page2 = self._create_mock_page(title="Test")
+        page2.metadata = {"social_card": {"background_color": "#ffffff"}}
+
+        assert generator._compute_card_hash(page1) != generator._compute_card_hash(page2)
+
+    def test_site_branding_changes_hash(self) -> None:
+        """Site title/baseurl are part of the rendered card fingerprint."""
+        page = self._create_mock_page(title="Test")
+        site1 = MagicMock()
+        site1.title = "Site A"
+        site1.baseurl = "https://a.example"
+        site2 = MagicMock()
+        site2.title = "Site B"
+        site2.baseurl = "https://b.example"
+        config = SocialCardConfig()
+
+        hash1 = SocialCardGenerator(site1, config)._compute_card_hash(page)
+        hash2 = SocialCardGenerator(site2, config)._compute_card_hash(page)
+
+        assert hash1 != hash2
+
 
 class TestSocialCardGeneratorOutputPath:
     """Test output path generation."""
@@ -257,6 +286,58 @@ class TestSocialCardGeneratorOutputPath:
         path = generator._get_output_path(page, output_dir)
 
         assert path == Path("/output/my-page.jpg")
+
+
+class TestSocialCardGeneratorPersistentCache:
+    """Test persisted social-card fingerprints."""
+
+    def _create_mock_page(self, title: str = "Test Page") -> MagicMock:
+        page = MagicMock()
+        page.title = title
+        page.description = "Description"
+        page.source_path = Path("content/test.md")
+        page.metadata = {}
+        page._path = "test"
+        return page
+
+    def _create_mock_site(self) -> MagicMock:
+        site = MagicMock()
+        site.title = "Test Site"
+        site.baseurl = "https://example.com"
+        return site
+
+    def test_existing_file_with_matching_persisted_hash_is_cached(self, tmp_path: Path) -> None:
+        """A new generator can skip output when the persisted fingerprint matches."""
+        site = self._create_mock_site()
+        config = SocialCardConfig()
+        page = self._create_mock_page()
+        output_path = tmp_path / "test.png"
+        output_path.write_bytes(b"existing")
+
+        first_generator = SocialCardGenerator(site, config)
+        cache_key = f"{SOCIAL_CARD_FINGERPRINT_PREFIX}{page.source_path}"
+        persisted_cache = {cache_key: first_generator._compute_card_hash(page)}
+
+        second_generator = SocialCardGenerator(
+            site,
+            config,
+            fingerprint_cache=persisted_cache,
+        )
+
+        assert second_generator._should_regenerate(page, output_path) is False
+
+    def test_existing_file_with_stale_persisted_hash_regenerates(self, tmp_path: Path) -> None:
+        """Changed content invalidates a persisted social-card fingerprint."""
+        site = self._create_mock_site()
+        config = SocialCardConfig()
+        page = self._create_mock_page(title="New title")
+        output_path = tmp_path / "test.png"
+        output_path.write_bytes(b"existing")
+        persisted_cache = {f"{SOCIAL_CARD_FINGERPRINT_PREFIX}{page.source_path}": "old"}
+
+        generator = SocialCardGenerator(site, config, fingerprint_cache=persisted_cache)
+
+        assert generator._should_regenerate(page, output_path) is True
 
 
 class TestSocialCardGeneratorTextWrapping:

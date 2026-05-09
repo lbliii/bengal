@@ -213,3 +213,5 @@ with ThreadPoolExecutor(max_workers=len(tasks)) as executor:
 - Social cards (if enabled)
 
 **Incremental builds**: Skip expensive tasks (sitemap, RSS, social cards) for faster dev server response. Output formats always regenerate to keep search index current.
+
+**Social card cache**: Full builds persist social-card input fingerprints in the build cache and skip writing cards whose generated file still exists and whose rendered inputs are unchanged.

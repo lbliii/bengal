@@ -194,7 +194,7 @@ class PostprocessOrchestrator:
             # Only on full builds, not dev server reloads
             social_cards_config = parse_social_cards_config(self.site.config)
             if social_cards_config.enabled:
-                tasks.append(("social cards", self._generate_social_cards))
+                tasks.append(("social cards", lambda: self._generate_social_cards(build_context)))
 
             if self.site.config.get("generate_rss", True):
                 tasks.append(("rss", self._generate_rss))
@@ -471,7 +471,7 @@ class PostprocessOrchestrator:
         generator = RedirectGenerator(self.site, collector=collector)
         generator.generate()
 
-    def _generate_social_cards(self) -> None:
+    def _generate_social_cards(self, build_context: BuildContext | None = None) -> None:
         """
         Generate social card (Open Graph) images for pages.
 
@@ -489,7 +489,15 @@ class PostprocessOrchestrator:
             return
 
         collector = getattr(self, "_collector", None)
-        generator = SocialCardGenerator(self.site, social_config, collector=collector)
+        fingerprint_cache = None
+        if build_context is not None and build_context.cache is not None:
+            fingerprint_cache = build_context.cache.output_format_fingerprints
+        generator = SocialCardGenerator(
+            self.site,
+            social_config,
+            collector=collector,
+            fingerprint_cache=fingerprint_cache,
+        )
         output_dir = self.site.output_dir / social_config.output_dir
 
         generated, cached = generator.generate_all(self.site.pages, output_dir)
