@@ -154,6 +154,9 @@ class TestResolveProvider:
                         "mode": "bundle",
                         "type": "javascript",
                         "output": "bundle.js",
+                        "defer": True,
+                        "module": True,
+                        "attributes": {"crossorigin": "anonymous"},
                     },
                     {"path": "tokens.css", "mode": "none", "type": "css"},
                 ],
@@ -172,6 +175,11 @@ class TestResolveProvider:
             "fake_ui/bundle.js",
             "fake_ui/tokens.css",
         ]
+        assert dict(provider.assets[1].tag_attrs) == {
+            "crossorigin": "anonymous",
+            "defer": True,
+            "type": "module",
+        }
 
     def test_invalid_library_contract_mode_raises_config_error(self, tmp_path):
         from bengal.errors.exceptions import BengalConfigError
@@ -272,6 +280,54 @@ class TestResolveProvider:
         with (
             patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
             pytest.raises(BengalConfigError, match="runtime must be a string"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_non_mapping_asset_attributes(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.js", "attributes": ["defer"]}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="attributes must be a mapping"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_reserved_asset_attribute(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.js", "attributes": {"src": "/bad.js"}}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="must not set 'src'"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_invalid_asset_attribute_value(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.css", "attributes": {"media": ["print"]}}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="values must be strings or booleans"),
         ):
             resolve_provider("fake_ui")
 

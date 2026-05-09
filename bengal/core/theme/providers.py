@@ -76,6 +76,7 @@ class LibraryAsset:
     logical_path: Path
     asset_type: str
     mode: str
+    tag_attrs: tuple[tuple[str, str | bool], ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True, slots=True)
@@ -364,9 +365,11 @@ def _contract_assets(
             output_raw = entry.get("output") or entry.get("logical_path") or path_raw
             mode = str(entry.get("mode") or mode)
             asset_type = str(entry.get("type") or entry.get("kind") or "")
+            tag_attrs = _contract_tag_attrs(package_name, entry)
         else:
             path_raw = entry
             output_raw = entry
+            tag_attrs = ()
 
         if not path_raw:
             raise BengalConfigError(
@@ -412,6 +415,7 @@ def _contract_assets(
                 logical_path=logical_path,
                 asset_type=asset_type,
                 mode=mode,
+                tag_attrs=tag_attrs,
             )
         )
     return tuple(assets)
@@ -500,6 +504,106 @@ def _normalize_contract_path(
             ),
         )
     return path
+
+
+def _contract_tag_attrs(
+    package_name: str,
+    entry: Mapping[str, Any],
+) -> tuple[tuple[str, str | bool], ...]:
+    """Normalize optional HTML attributes for provider-rendered asset tags."""
+    from bengal.errors import ErrorCode
+    from bengal.errors.exceptions import BengalConfigError
+
+    raw_attrs = entry.get("attributes", entry.get("attrs"))
+    attrs: dict[str, str | bool] = {}
+    if raw_attrs is not None:
+        if not isinstance(raw_attrs, Mapping):
+            raise BengalConfigError(
+                f"Theme library '{package_name}' asset attributes must be a mapping",
+                code=ErrorCode.C003,
+                suggestion="Use attributes = {'defer': True, 'crossorigin': 'anonymous'}.",
+                debug_payload=_theme_library_debug_payload(
+                    package_name,
+                    hook_name="get_library_contract",
+                    returned_type=type(raw_attrs).__name__,
+                ),
+            )
+        for raw_name, raw_value in raw_attrs.items():
+            attrs[_normalize_attribute_name(package_name, raw_name)] = _normalize_attribute_value(
+                package_name, raw_value
+            )
+
+    for bool_attr in ("async", "defer", "nomodule"):
+        if bool_attr in entry and bool(entry[bool_attr]):
+            attrs[bool_attr] = True
+    if entry.get("module"):
+        attrs["type"] = "module"
+    if media := entry.get("media"):
+        attrs["media"] = _normalize_attribute_value(package_name, media)
+
+    for reserved in ("href", "src"):
+        if reserved in attrs:
+            raise BengalConfigError(
+                f"Theme library '{package_name}' asset attributes must not set '{reserved}'",
+                code=ErrorCode.C003,
+                suggestion=(
+                    "Use path/output for asset locations; Bengal owns href/src so "
+                    "fingerprinted URLs stay correct."
+                ),
+                debug_payload=_theme_library_debug_payload(
+                    package_name,
+                    hook_name="get_library_contract",
+                ),
+            )
+    return tuple(attrs.items())
+
+
+def _normalize_attribute_name(package_name: str, raw_name: Any) -> str:
+    from bengal.errors import ErrorCode
+    from bengal.errors.exceptions import BengalConfigError
+
+    if not isinstance(raw_name, str) or not raw_name:
+        raise BengalConfigError(
+            f"Theme library '{package_name}' asset attribute names must be non-empty strings",
+            code=ErrorCode.C003,
+            suggestion="Use HTML attribute names such as defer, media, integrity, or data-*.",
+            debug_payload=_theme_library_debug_payload(
+                package_name,
+                hook_name="get_library_contract",
+                returned_type=type(raw_name).__name__,
+            ),
+        )
+    if not all(ch.isalnum() or ch in "-_:." for ch in raw_name):
+        raise BengalConfigError(
+            f"Theme library '{package_name}' asset attribute name is invalid: {raw_name}",
+            code=ErrorCode.C003,
+            suggestion="Use plain HTML attribute names without whitespace or quotes.",
+            debug_payload=_theme_library_debug_payload(
+                package_name,
+                hook_name="get_library_contract",
+            ),
+        )
+    return raw_name
+
+
+def _normalize_attribute_value(package_name: str, raw_value: Any) -> str | bool:
+    from bengal.errors import ErrorCode
+    from bengal.errors.exceptions import BengalConfigError
+
+    if isinstance(raw_value, bool):
+        return raw_value
+    if isinstance(raw_value, str):
+        return raw_value
+    raise BengalConfigError(
+        f"Theme library '{package_name}' asset attribute values must be strings or booleans",
+        code=ErrorCode.C003,
+        suggestion="Use True for boolean HTML attributes or a string for valued attributes.",
+        debug_payload=_theme_library_debug_payload(
+            package_name,
+            hook_name="get_library_contract",
+            returned_type=type(raw_value).__name__,
+        ),
+    )
 
 
 def _iter_contract_asset_entries(contract: Mapping[str, Any]) -> Sequence[Any]:
