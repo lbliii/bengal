@@ -351,6 +351,15 @@ def create_pages(
             page._raw_metadata["doc_content_hash"] = doc_hash
             result.add_dependency(str(source_file_for_tracking), source_id, content_hash=doc_hash)
 
+            source_dependencies = element.metadata.get("source_dependencies", ())
+            if isinstance(source_dependencies, (list, tuple)):
+                for dependency in source_dependencies:
+                    if not isinstance(dependency, str):
+                        continue
+                    if dependency == str(source_file_for_tracking):
+                        continue
+                    result.add_dependency(dependency, source_id, content_hash=doc_hash)
+
     # Note: HTML rendering is now DEFERRED to the rendering phase
     # This ensures menus and full template context are available.
     # See: RenderingPipeline._process_virtual_page() and _render_autodoc_page()

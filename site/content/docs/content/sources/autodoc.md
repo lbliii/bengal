@@ -103,6 +103,11 @@ Extracts:
 - Endpoint documentation
 - Request/response schemas
 - Authentication requirements
+
+Local OpenAPI `$ref` files are supported relative to the document that declares
+the reference, such as `./schemas.yaml#/User`. Bengal tracks those files as
+autodoc dependencies for incremental rebuilds. Remote URL refs are intentionally
+left unresolved.
 :::{/tab-item}
 :::{/tab-set}
 

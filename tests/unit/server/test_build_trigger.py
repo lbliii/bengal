@@ -53,6 +53,53 @@ class TestBuildTrigger:
         assert trigger.port == 5173
         assert trigger._executor is mock_executor
 
+    def test_openapi_ref_dependency_triggers_autodoc_regeneration(
+        self, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Changed OpenAPI ref files should regenerate autodoc, not only the root spec."""
+        from bengal.cache.paths import BengalPaths
+
+        root = tmp_path / "site"
+        api_dir = root / "api"
+        api_dir.mkdir(parents=True)
+        spec_path = api_dir / "openapi.yaml"
+        schema_path = api_dir / "schemas.yaml"
+        spec_path.write_text("openapi: 3.1.0\n", encoding="utf-8")
+        schema_path.write_text("User:\n  type: object\n", encoding="utf-8")
+
+        paths = BengalPaths(root)
+        paths.ensure_dirs()
+        cache = BuildCache()
+        cache.autodoc_tracker.add_autodoc_dependency(
+            schema_path.resolve(),
+            "api/demo/schemas/User.md",
+            site_root=root,
+            source_hash="schema-hash",
+            source_mtime=schema_path.stat().st_mtime,
+            content_hash="doc-hash",
+        )
+        cache.save(paths.build_cache)
+
+        site = MagicMock()
+        site.root_path = root
+        site.output_dir = root / "public"
+        site.config = {
+            "autodoc": {
+                "openapi": {
+                    "enabled": True,
+                    "spec_file": "api/openapi.yaml",
+                }
+            }
+        }
+        site.theme = None
+        site._cache = cache
+        site.config_service.paths.build_cache = paths.build_cache
+
+        trigger = BuildTrigger(site=site, executor=mock_executor)
+
+        with patch("bengal.server.build_trigger.SiteLike", object):
+            assert trigger._should_regenerate_autodoc({schema_path}) is True
+
     def test_shutdown_calls_executor_shutdown(
         self, mock_site: MagicMock, mock_executor: MagicMock
     ) -> None:
