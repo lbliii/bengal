@@ -264,6 +264,38 @@ class TestBuildTrigger:
 
         assert trigger._is_template_change({template_file}) is False
 
+    @patch("bengal.server.build_trigger.logger")
+    @patch("bengal.rendering.engines.create_engine")
+    def test_template_change_logs_incremental_decision(
+        self,
+        mock_create_engine: MagicMock,
+        mock_logger: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Template changes with known dependents explain the incremental path."""
+        mock_site.root_path = tmp_path
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir()
+        template_file = templates_dir / "base.html"
+        template_file.write_text("<html></html>")
+
+        page_path = tmp_path / "content" / "page.md"
+        cache = BuildCache(site_root=tmp_path)
+        cache.record_page_templates(str(page_path), frozenset({"base.html"}))
+        mock_site._cache = cache
+        mock_create_engine.return_value.has_capability.return_value = True
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._is_template_change({template_file}) is False
+        mock_logger.info.assert_any_call(
+            "template_change_incremental",
+            template=str(template_file),
+            affected_pages=1,
+        )
+
     def test_template_change_without_dependency_data_stays_conservative(
         self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
     ) -> None:
@@ -278,6 +310,33 @@ class TestBuildTrigger:
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
 
         assert trigger._is_template_change({template_file}) is True
+
+    @patch("bengal.server.build_trigger.logger")
+    def test_template_change_logs_missing_dependency_data(
+        self,
+        mock_logger: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Template dependency cache misses explain why a full rebuild is needed."""
+        mock_site.root_path = tmp_path
+        templates_dir = tmp_path / "templates"
+        templates_dir.mkdir()
+        template_file = templates_dir / "base.html"
+        template_file.write_text("<html></html>")
+        mock_site._cache = BuildCache(site_root=tmp_path)
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._is_template_change({template_file}) is True
+        mock_logger.info.assert_any_call(
+            "template_change_full_rebuild",
+            template=str(template_file),
+            affected_pages=0,
+            reason="dependency_data_missing",
+            suggestion="Run one full build to populate template dependency data.",
+        )
 
     def test_template_change_with_known_orphan_template_is_ignored(
         self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path

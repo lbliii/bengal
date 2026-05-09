@@ -1052,11 +1052,18 @@ class BuildTrigger:
                     affected_pages=0,
                     reason="dependency_data_missing",
                 )
+                logger.info(
+                    "template_change_full_rebuild",
+                    template=str(path),
+                    affected_pages=0,
+                    reason="dependency_data_missing",
+                    suggestion="Run one full build to populate template dependency data.",
+                )
                 return True
 
             # Has dependents - check if we can do incremental update
             if self._can_use_incremental_template_update(path, cache):
-                logger.debug(
+                logger.info(
                     "template_change_incremental",
                     template=str(path),
                     affected_pages=len(affected),
@@ -1064,7 +1071,7 @@ class BuildTrigger:
                 continue  # Will be handled by incremental build
 
             # Must do full rebuild
-            logger.debug(
+            logger.info(
                 "template_change_full_rebuild",
                 template=str(path),
                 affected_pages=len(affected),
