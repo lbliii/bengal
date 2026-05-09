@@ -82,7 +82,7 @@ from bengal.postprocess.output_formats import (
 )
 from bengal.postprocess.redirects import RedirectGenerator
 from bengal.postprocess.robots_txt import RobotsTxtGenerator
-from bengal.postprocess.rss import RSSGenerator
+from bengal.postprocess.rss import AtomGenerator, RSSGenerator
 from bengal.postprocess.sitemap import SitemapGenerator
 from bengal.postprocess.social_cards import (
     SocialCardConfig,
@@ -98,6 +98,7 @@ from bengal.postprocess.speculation import (
 )
 
 __all__ = [
+    "AtomGenerator",
     # Output Formats
     "OutputFormatsGenerator",
     "PageJSONGenerator",

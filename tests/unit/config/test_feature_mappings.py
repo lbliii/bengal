@@ -20,6 +20,14 @@ class TestExpandFeatures:
         assert "rss" in result.get("output_formats", {}).get("site_wide", [])
         assert "features" not in result  # Features removed after expansion
 
+    def test_expand_atom_feature(self):
+        """Test Atom feature expansion."""
+        config = {"features": {"atom": True}}
+
+        result = expand_features(config)
+
+        assert result["generate_atom"] is True
+
     def test_expand_search_feature(self):
         """Test search feature expansion."""
         config = {"features": {"search": True}}
@@ -150,7 +158,7 @@ class TestGetAvailableFeatures:
         """Test returned list contains expected features."""
         features = get_available_features()
 
-        expected = ["rss", "sitemap", "search", "json", "llm_txt", "validate_links"]
+        expected = ["rss", "atom", "sitemap", "search", "json", "llm_txt", "validate_links"]
         for feature in expected:
             assert feature in features
 

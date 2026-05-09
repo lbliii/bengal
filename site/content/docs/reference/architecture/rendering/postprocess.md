@@ -69,13 +69,14 @@ Sitemap behavior is automatic:
 </urlset>
 ```
 
-## RSS Generator (`bengal/postprocess/rss.py`)
+## RSS And Atom Generators (`bengal/postprocess/rss.py`)
 
 ### Purpose
-Generates RSS feed for blog posts
+Generates RSS and Atom feeds for blog posts
 
 ### Features
-- Generates RSS 2.0 feed
+- Generates RSS 2.0 feed as `rss.xml`
+- Generates Atom 1.0 feed as `atom.xml` when enabled
 - Includes 20 most recent posts with dates
 - Uses page description or excerpt (first 200 chars)
 - Sorted by date (newest first)
@@ -87,6 +88,9 @@ Generates RSS feed for blog posts
 ```toml
 # Enable/disable RSS generation (default: true)
 generate_rss = true
+
+# Enable/disable Atom generation (default: false)
+generate_atom = false
 ```
 
 RSS behavior is automatic:

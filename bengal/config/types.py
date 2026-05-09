@@ -196,6 +196,7 @@ class FeaturesConfig(TypedDict, total=False):
     """Feature toggles for output generation."""
 
     rss: bool
+    atom: bool
     sitemap: bool
     search: bool
     json: bool

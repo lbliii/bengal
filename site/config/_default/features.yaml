@@ -6,6 +6,7 @@
 features:
   # Output Formats (files generated during build)
   rss: true        # Generate rss.xml feed
+  atom: false      # Generate atom.xml feed
   sitemap: true    # Generate sitemap.xml for SEO
   search: true     # Generate search index (index.json)
   json: true       # Generate per-page JSON files (page.json)

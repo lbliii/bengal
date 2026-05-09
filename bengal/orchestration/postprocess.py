@@ -42,7 +42,7 @@ if TYPE_CHECKING:
 from bengal.postprocess.output_formats import OutputFormatsGenerator
 from bengal.postprocess.redirects import RedirectGenerator
 from bengal.postprocess.robots_txt import RobotsTxtGenerator
-from bengal.postprocess.rss import RSSGenerator
+from bengal.postprocess.rss import AtomGenerator, RSSGenerator
 from bengal.postprocess.sitemap import SitemapGenerator
 from bengal.postprocess.social_cards import (
     SocialCardGenerator,
@@ -198,6 +198,8 @@ class PostprocessOrchestrator:
 
             if self.site.config.get("generate_rss", True):
                 tasks.append(("rss", self._generate_rss))
+            if self.site.config.get("generate_atom", False):
+                tasks.append(("atom", self._generate_atom))
 
             redirects_config = self.site.config.get("redirects", {})
             if redirects_config.get("generate_html", True):
@@ -447,6 +449,12 @@ class PostprocessOrchestrator:
         """
         collector = getattr(self, "_collector", None)
         generator = RSSGenerator(self.site, collector=collector)
+        generator.generate()
+
+    def _generate_atom(self) -> None:
+        """Generate Atom feed."""
+        collector = getattr(self, "_collector", None)
+        generator = AtomGenerator(self.site, collector=collector)
         generator.generate()
 
     def _generate_redirects(self) -> None:

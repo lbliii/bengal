@@ -10,6 +10,7 @@ configuration is used by the build system.
 
 Supported Features:
 - ``rss``: RSS feed generation
+- ``atom``: Atom feed generation
 - ``sitemap``: XML sitemap generation
 - ``search``: Site search functionality
 - ``json``: Per-page JSON output
@@ -56,6 +57,9 @@ FEATURE_MAPPINGS: dict[str, dict[str, Any]] = {
     "rss": {
         "generate_rss": True,
         "output_formats.site_wide": ["rss"],
+    },
+    "atom": {
+        "generate_atom": True,
     },
     "sitemap": {
         "generate_sitemap": True,
