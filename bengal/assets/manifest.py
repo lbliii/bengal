@@ -27,7 +27,13 @@ The manifest is stored as JSON with the following structure::
                 "output_path": "assets/css/style.abc123.css",
                 "fingerprint": "abc123def456",
                 "size_bytes": 4096,
-                "updated_at": "2025-01-15T10:30:00Z"
+                "updated_at": "2025-01-15T10:30:00Z",
+                "provenance": {
+                    "kind": "theme_library",
+                    "package": "vendor_ui",
+                    "mode": "bundle",
+                    "sources": ["vendor.css", "transitions.css"]
+                }
             }
         }
     }
@@ -46,16 +52,16 @@ Related:
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.io.atomic_write import atomic_write_text
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
     from pathlib import Path
 
 logger = get_logger(__name__)
@@ -81,6 +87,13 @@ def _isoformat(timestamp: float | None) -> str | None:
     return datetime.fromtimestamp(timestamp, tz=UTC).isoformat().replace("+00:00", "Z")
 
 
+def _normalize_provenance(raw: object) -> dict[str, Any] | None:
+    """Return JSON object provenance with string keys, ignoring malformed values."""
+    if not isinstance(raw, Mapping):
+        return None
+    return {key: value for key, value in raw.items() if isinstance(key, str)}
+
+
 @dataclass(frozen=True, slots=True)
 class AssetManifestEntry:
     """
@@ -97,6 +110,7 @@ class AssetManifestEntry:
         fingerprint: Content hash used for cache-busting, or None if disabled.
         size_bytes: File size in bytes for visibility and debugging.
         updated_at: ISO-8601 timestamp of the last file write.
+        provenance: Optional owner/source metadata for generated assets.
 
     Example:
             >>> entry = AssetManifestEntry(
@@ -116,8 +130,9 @@ class AssetManifestEntry:
     fingerprint: str | None = None
     size_bytes: int | None = None
     updated_at: str | None = None
+    provenance: dict[str, Any] | None = None
 
-    def to_dict(self) -> dict[str, str | int]:
+    def to_dict(self) -> dict[str, Any]:
         """
         Serialize entry to a JSON-friendly dictionary.
 
@@ -126,7 +141,7 @@ class AssetManifestEntry:
         Returns:
             Dictionary with 'output_path' and any present optional fields.
         """
-        data: dict[str, str | int] = {
+        data: dict[str, Any] = {
             "output_path": self.output_path,
         }
         if self.fingerprint:
@@ -135,6 +150,8 @@ class AssetManifestEntry:
             data["size_bytes"] = self.size_bytes
         if self.updated_at:
             data["updated_at"] = self.updated_at
+        if self.provenance:
+            data["provenance"] = self.provenance
         return data
 
     @classmethod
@@ -150,6 +167,7 @@ class AssetManifestEntry:
             Populated AssetManifestEntry with normalized paths.
         """
         size_bytes_val = data.get("size_bytes")
+        provenance = data.get("provenance")
         return cls(
             logical_path=to_posix(logical_path),
             output_path=to_posix(str(data.get("output_path", ""))),
@@ -158,6 +176,7 @@ class AssetManifestEntry:
             if size_bytes_val is not None and isinstance(size_bytes_val, (int, str))
             else None,
             updated_at=str(data["updated_at"]) if data.get("updated_at") else None,
+            provenance=_normalize_provenance(provenance),
         )
 
 
@@ -207,6 +226,7 @@ class AssetManifest:
         fingerprint: str | None,
         size_bytes: int | None,
         updated_at: float | None,
+        provenance: dict[str, Any] | None = None,
     ) -> None:
         """
         Add or replace a manifest entry for a logical asset.
@@ -225,6 +245,7 @@ class AssetManifest:
             fingerprint=fingerprint,
             size_bytes=size_bytes,
             updated_at=_isoformat(updated_at),
+            provenance=provenance,
         )
 
     def get(self, logical_path: str) -> AssetManifestEntry | None:

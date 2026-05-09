@@ -85,6 +85,7 @@ class Asset:
     optimized: bool = False
     bundled: bool = False
     logical_path: Path | None = None
+    manifest_provenance: dict[str, Any] | None = None
 
     # Processing state (set during asset processing)
     _bundled_content: str | None = None  # CSS content after @import resolution

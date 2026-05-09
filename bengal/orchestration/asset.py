@@ -839,6 +839,7 @@ class AssetOrchestrator:
                 fingerprint=asset.fingerprint,
                 size_bytes=stat.st_size,
                 updated_at=stat.st_mtime,
+                provenance=asset.manifest_provenance,
             )
 
         manifest_path = self.site.output_dir / "asset-manifest.json"

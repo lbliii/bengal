@@ -61,6 +61,32 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _library_asset_manifest_provenance(
+    library_asset: Any,
+    *,
+    sources: tuple[Any, ...],
+) -> dict[str, Any]:
+    """Return sanitized manifest provenance for a theme-library asset."""
+    package = str(getattr(library_asset, "package", "") or "")
+    mode = str(getattr(library_asset, "mode", "") or "")
+    source_paths: list[str] = []
+    for source in sources:
+        contract_path = getattr(source, "contract_path", None)
+        if isinstance(contract_path, Path) and contract_path != Path("."):
+            source_paths.append(contract_path.as_posix())
+        else:
+            source_paths.append(Path(source.source_path).name)
+
+    provenance: dict[str, Any] = {"kind": "theme_library"}
+    if package:
+        provenance["package"] = package
+    if mode:
+        provenance["mode"] = mode
+    if source_paths:
+        provenance["sources"] = source_paths
+    return provenance
+
+
 class ContentOrchestrator:
     """
     Handles content and asset discovery.
@@ -844,6 +870,10 @@ class ContentOrchestrator:
                     output_path=output_path,
                     asset_type=asset_type,
                     logical_path=output_path,
+                    manifest_provenance=_library_asset_manifest_provenance(
+                        library_asset,
+                        sources=(library_asset,),
+                    ),
                 )
             )
 
@@ -868,6 +898,10 @@ class ContentOrchestrator:
                     output_path=logical_path,
                     asset_type=output_asset_type,
                     logical_path=logical_path,
+                    manifest_provenance=_library_asset_manifest_provenance(
+                        assets[0],
+                        sources=tuple(assets),
+                    ),
                 )
             )
 

@@ -76,6 +76,8 @@ class LibraryAsset:
     logical_path: Path
     asset_type: str
     mode: str
+    package: str = ""
+    contract_path: Path | None = None
     tag_attrs: tuple[tuple[str, str | bool], ...] = field(default_factory=tuple)
 
 
@@ -400,6 +402,9 @@ def _contract_assets(
         )
         if not source_path.is_absolute():
             source_path = asset_root / source_path
+            contract_path = Path(path_raw)
+        else:
+            contract_path = Path(source_path.name)
         output_path = _normalize_contract_path(
             package_name,
             output_raw,
@@ -415,6 +420,8 @@ def _contract_assets(
                 logical_path=logical_path,
                 asset_type=asset_type,
                 mode=mode,
+                package=package_name,
+                contract_path=contract_path,
                 tag_attrs=tag_attrs,
             )
         )

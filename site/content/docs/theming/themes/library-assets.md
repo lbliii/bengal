@@ -95,6 +95,31 @@ CSS and JavaScript emitted through `link` or `bundle` use the normal Bengal
 asset manifest. In development, URLs stay stable. In static builds, URLs are
 fingerprinted.
 
+## Manifest Provenance
+
+Provider-managed assets add optional provenance to `asset-manifest.json`:
+
+```json
+{
+  "assets": {
+    "vendor_ui/vendor.css": {
+      "output_path": "assets/vendor_ui/vendor.350f9b04.css",
+      "fingerprint": "350f9b04",
+      "size_bytes": 12345,
+      "provenance": {
+        "kind": "theme_library",
+        "package": "vendor_ui",
+        "mode": "bundle",
+        "sources": ["vendor.css", "transitions.css"]
+      }
+    }
+  }
+}
+```
+
+`sources` contains contract-relative paths only. Bengal does not write absolute
+local filesystem paths into the manifest.
+
 ## Tag Attributes
 
 Use `attributes` or the common shorthands to control the generated HTML tag:

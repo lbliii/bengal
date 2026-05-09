@@ -410,6 +410,20 @@ def test_chirpui_theme_builds_with_provider_assets(tmp_path, monkeypatch) -> Non
     css_output = site.output_dir / css_entry.output_path
     assert css_output.exists()
     assert "chirpui-transition" in css_output.read_text(encoding="utf-8")
+    assert css_entry.provenance == {
+        "kind": "theme_library",
+        "package": "chirp_ui",
+        "mode": "bundle",
+        "sources": ["chirpui.css", "chirpui-transitions.css"],
+    }
+    js_entry = manifest.get("chirp_ui/chirpui.js")
+    assert js_entry is not None
+    assert js_entry.provenance == {
+        "kind": "theme_library",
+        "package": "chirp_ui",
+        "mode": "link",
+        "sources": ["chirpui.js"],
+    }
     assert manifest.get("chirp_ui/chirpui-transitions.css") is None
     assert manifest.get("chirp_ui/unused.css") is None
     assert manifest.get("chirp_ui/chirpui/navbar.html") is None
