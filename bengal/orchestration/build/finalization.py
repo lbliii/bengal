@@ -105,7 +105,7 @@ def phase_postprocess(
                 first = missing_refs[0]
                 raise BengalAssetError(
                     f"Build emitted {len(missing_refs)} local CSS/JS reference(s) "
-                    "without matching output files.",
+                    f"without matching output files. First missing reference: {first.url}",
                     code=ErrorCode.X001,
                     suggestion=(
                         "Declare the asset through the theme library contract, use asset_url(), "
@@ -116,6 +116,7 @@ def phase_postprocess(
             orchestrator.logger.warning(
                 "rendered_asset_reference_missing",
                 count=len(missing_refs),
+                url=missing_refs[0].url,
                 samples=samples,
                 hint="Declare missing assets or route references through asset_url().",
             )
