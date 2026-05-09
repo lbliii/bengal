@@ -748,7 +748,8 @@ class KidaTemplateEngine:
         Invalidate the menu dict cache.
 
         Call this after menus are rebuilt to ensure fresh dicts are generated.
-        This ensures active menu states are correct for each page render.
+        Page-specific active state is computed in templates from the current
+        page URL so cached menu dictionaries can be reused across renders.
         """
         self._menu_dict_cache.clear()
 
