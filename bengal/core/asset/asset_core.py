@@ -85,6 +85,8 @@ class Asset:
     optimized: bool = False
     bundled: bool = False
     logical_path: Path | None = None
+    standalone: bool = False
+    manifest_provenance: dict[str, Any] | None = None
 
     # Processing state (set during asset processing)
     _bundled_content: str | None = None  # CSS content after @import resolution
@@ -154,7 +156,7 @@ class Asset:
         Returns:
             True if this is a CSS module (e.g., components/buttons.css)
         """
-        return self.asset_type == "css" and not self.is_css_entry_point()
+        return self.asset_type == "css" and not self.is_css_entry_point() and not self.standalone
 
     def is_js_entry_point(self) -> bool:
         """

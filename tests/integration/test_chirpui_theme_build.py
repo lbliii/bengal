@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import re
 import shutil
+import sys
 from pathlib import Path
 from textwrap import dedent
 from urllib.parse import urlparse
@@ -9,6 +11,7 @@ from urllib.parse import urlparse
 from bengal.assets.manifest import AssetManifest
 from bengal.core.site import Site
 from bengal.orchestration.build.options import BuildOptions
+from bengal.server.asgi_app import create_bengal_dev_app
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCAL_CSS_JS_RE = re.compile(r"""(?:href|src)=["']([^"']+\.(?:css|js)(?:\?[^"']*)?)["']""")
@@ -33,6 +36,24 @@ def _write_fake_chirp_ui(package_root) -> None:
         def static_path():
             return Path(__file__).parent / "templates"
 
+        def get_library_contract():
+            root = static_path()
+            return {
+                "asset_root": root,
+                "assets": [
+                    {"path": "chirpui.css", "mode": "bundle", "type": "css"},
+                    {
+                        "path": "chirpui-transitions.css",
+                        "mode": "bundle",
+                        "type": "css",
+                        "output": "chirpui.css",
+                    },
+                    {"path": "chirpui.js", "mode": "link", "type": "javascript"},
+                    {"path": "unused.css", "mode": "none", "type": "css"},
+                ],
+                "runtime": ["chirpui"],
+            }
+
         def get_loader():
             return PackageLoader("chirp_ui", "templates")
 
@@ -43,6 +64,7 @@ def _write_fake_chirp_ui(package_root) -> None:
     _write_text(templates / "chirpui.css", ".chirpui-navbar{}.chirpui-rendered-content{}")
     _write_text(templates / "chirpui-transitions.css", ".chirpui-transition{}")
     _write_text(templates / "chirpui.js", "window.__chirpui_test__=true;")
+    _write_text(templates / "unused.css", ".unused{}")
     _write_text(
         components / "navbar.html",
         """
@@ -248,10 +270,57 @@ def _local_css_js_asset_paths(html: str, baseurl: str) -> set[str]:
     return paths
 
 
+def _local_css_js_asset_paths_for_output(output_dir: Path, baseurl: str) -> set[str]:
+    paths: set[str] = set()
+    for html_path in output_dir.rglob("*.html"):
+        paths.update(_local_css_js_asset_paths(html_path.read_text(encoding="utf-8"), baseurl))
+    return paths
+
+
+async def _asgi_get(app, path: str) -> tuple[int, bytes]:
+    messages = []
+
+    async def receive():
+        return {"type": "http.request", "body": b"", "more_body": False}
+
+    async def send(message):
+        messages.append(message)
+
+    await app(
+        {"type": "http", "method": "GET", "path": path, "headers": []},
+        receive,
+        send,
+    )
+    status = 0
+    body_parts: list[bytes] = []
+    for message in messages:
+        if message["type"] == "http.response.start":
+            status = message["status"]
+        elif message["type"] == "http.response.body":
+            body_parts.append(message.get("body", b""))
+    return status, b"".join(body_parts)
+
+
+def test_chirpui_theme_delegates_library_assets_to_contract() -> None:
+    """The bundled theme should not hard-code Chirp UI browser asset paths."""
+    theme_dir = ROOT.parent / "bengal" / "themes" / "chirpui"
+    template_text = "\n".join(
+        path.read_text(encoding="utf-8") for path in (theme_dir / "templates").rglob("*.html")
+    )
+    bridge_css = (theme_dir / "assets" / "css" / "style.css").read_text(encoding="utf-8")
+
+    assert template_text.count("library_asset_tags()") == 1
+    assert "chirpui.css" not in template_text
+    assert "chirpui-transitions.css" not in template_text
+    assert "chirpui.js" not in template_text
+    assert "@import" not in bridge_css
+
+
 def test_chirpui_theme_builds_with_provider_assets(tmp_path, monkeypatch) -> None:
     """The bundled chirpui theme renders without default assets when chirp_ui is present."""
     package_root = tmp_path / "pkg"
     _write_fake_chirp_ui(package_root)
+    sys.modules.pop("chirp_ui", None)
     monkeypatch.syspath_prepend(str(package_root))
 
     site_root = tmp_path / "site"
@@ -279,15 +348,6 @@ def test_chirpui_theme_builds_with_provider_assets(tmp_path, monkeypatch) -> Non
         encoding="utf-8"
     )
     manifest = AssetManifest.load(site.output_dir / "asset-manifest.json")
-    representative_html = {
-        "index.html": index_html,
-        "docs/index.html": docs_index_html,
-        "docs/getting-started/index.html": getting_started_html,
-        "docs/guide/index.html": guide_html,
-        "blog/index.html": blog_index_html,
-        "search/index.html": search_html,
-    }
-
     for html_path in site.output_dir.rglob("*.html"):
         html = html_path.read_text(encoding="utf-8")
         assert "Build Error" not in html, html_path
@@ -320,7 +380,6 @@ def test_chirpui_theme_builds_with_provider_assets(tmp_path, monkeypatch) -> Non
     assert 'href="/preview/docs/"' in index_html
     assert "/preview/assets/chirp_ui/chirpui." in guide_html
     assert "/preview/assets/chirp_ui/chirpui." in index_html
-    assert "/preview/assets/chirp_ui/chirpui-" in index_html
     assert re.search(r"/preview/assets/chirp_ui/chirpui\.[0-9a-f]+\.js", index_html)
     assert "/preview/assets/js/chirpui-bengal." in guide_html
     assert "chirpui-rendered-content" in blog_html
@@ -348,14 +407,65 @@ def test_chirpui_theme_builds_with_provider_assets(tmp_path, monkeypatch) -> Non
     assert manifest is not None
     css_entry = manifest.get("chirp_ui/chirpui.css")
     assert css_entry is not None
-    assert (site.output_dir / css_entry.output_path).exists()
+    css_output = site.output_dir / css_entry.output_path
+    assert css_output.exists()
+    assert "chirpui-transition" in css_output.read_text(encoding="utf-8")
+    assert "/* chirpui.css */" not in css_output.read_text(encoding="utf-8")
+    assert css_entry.provenance == {
+        "kind": "theme_library",
+        "package": "chirp_ui",
+        "mode": "bundle",
+        "sources": ["chirpui.css", "chirpui-transitions.css"],
+    }
+    js_entry = manifest.get("chirp_ui/chirpui.js")
+    assert js_entry is not None
+    assert js_entry.provenance == {
+        "kind": "theme_library",
+        "package": "chirp_ui",
+        "mode": "link",
+        "sources": ["chirpui.js"],
+    }
+    assert manifest.get("chirp_ui/chirpui-transitions.css") is None
+    assert manifest.get("chirp_ui/unused.css") is None
     assert manifest.get("chirp_ui/chirpui/navbar.html") is None
 
-    asset_paths = {
-        path
-        for html in representative_html.values()
-        for path in _local_css_js_asset_paths(html, site.baseurl)
-    }
-    assert asset_paths, "Representative Chirp UI pages should reference local CSS/JS assets"
+    asset_paths = _local_css_js_asset_paths_for_output(site.output_dir, site.baseurl)
+    assert asset_paths, "Chirp UI pages should reference local CSS/JS assets"
     missing_assets = sorted(path for path in asset_paths if not (site.output_dir / path).exists())
     assert not missing_assets, f"Local CSS/JS asset URLs should be serveable: {missing_assets}"
+
+
+def test_chirpui_provider_assets_are_serveable_at_dev_urls(tmp_path, monkeypatch) -> None:
+    """Declared library assets resolve to stable dev URLs and server routes."""
+    package_root = tmp_path / "pkg"
+    _write_fake_chirp_ui(package_root)
+    sys.modules.pop("chirp_ui", None)
+    monkeypatch.syspath_prepend(str(package_root))
+
+    site_root = tmp_path / "site"
+    shutil.copytree(ROOT / "roots" / "test-chirpui-theme", site_root)
+
+    site = Site.from_config(site_root)
+    site.config["baseurl"] = ""
+    site.config.setdefault("site", {})["baseurl"] = ""
+    site.config["fingerprint_assets"] = False
+    site.config["minify_assets"] = False
+    site.dev_mode = True
+    site.build(BuildOptions(incremental=False, quiet=True))
+
+    index_html = (site.output_dir / "index.html").read_text(encoding="utf-8")
+    assert 'href="/assets/chirp_ui/chirpui.css"' in index_html
+    assert 'src="/assets/chirp_ui/chirpui.js"' in index_html
+
+    asset_paths = _local_css_js_asset_paths_for_output(site.output_dir, site.baseurl)
+    assert "assets/chirp_ui/chirpui.css" in asset_paths
+    assert "assets/chirp_ui/chirpui.js" in asset_paths
+
+    app = create_bengal_dev_app(
+        output_dir=site.output_dir,
+        build_in_progress=lambda: False,
+    )
+    for path in sorted(asset_paths):
+        status, body = asyncio.run(_asgi_get(app, f"/{path}"))
+        assert status == 200, path
+        assert body, path

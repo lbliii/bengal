@@ -31,6 +31,7 @@ def _make_library_module(
     has_register_filters: bool = False,
     loader_value: object = None,
     static_path_value: Path | None = None,
+    library_contract: dict | None = None,
 ) -> types.ModuleType:
     """Create a fake library module with configurable convention hooks."""
     mod = types.ModuleType("fake_lib")
@@ -40,6 +41,8 @@ def _make_library_module(
         mod.static_path = lambda: static_path_value  # type: ignore[attr-defined]
     if has_register_filters:
         mod.register_filters = lambda app: None  # type: ignore[attr-defined]
+    if library_contract is not None:
+        mod.get_library_contract = lambda: library_contract  # type: ignore[attr-defined]
     return mod
 
 
@@ -134,6 +137,218 @@ class TestResolveProvider:
             provider = resolve_provider("my-ui-kit")
 
         assert provider.asset_prefix == "my_ui_kit"
+
+    def test_consumes_library_contract_assets(self, tmp_path):
+        static = tmp_path / "static"
+        static.mkdir()
+        (static / "ui.css").write_text(".ui{}", encoding="utf-8")
+        (static / "ui.js").write_text("window.ui=true", encoding="utf-8")
+        (static / "tokens.css").write_text(":root{}", encoding="utf-8")
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": static,
+                "assets": [
+                    {"path": "ui.css", "mode": "link", "type": "css"},
+                    {
+                        "path": "ui.js",
+                        "mode": "bundle",
+                        "type": "javascript",
+                        "output": "bundle.js",
+                        "defer": True,
+                        "module": True,
+                        "attributes": {"crossorigin": "anonymous"},
+                    },
+                    {"path": "tokens.css", "mode": "none", "type": "css"},
+                ],
+                "runtime": ["ui-runtime"],
+            }
+        )
+
+        with patch("bengal.core.theme.providers.importlib.import_module", return_value=mod):
+            provider = resolve_provider("fake_ui")
+
+        assert provider.asset_root == static
+        assert provider.runtime == ("ui-runtime",)
+        assert [asset.mode for asset in provider.assets] == ["link", "bundle", "none"]
+        assert [asset.logical_path.as_posix() for asset in provider.assets] == [
+            "fake_ui/ui.css",
+            "fake_ui/bundle.js",
+            "fake_ui/tokens.css",
+        ]
+        assert dict(provider.assets[1].tag_attrs) == {
+            "crossorigin": "anonymous",
+            "defer": True,
+            "type": "module",
+        }
+
+    def test_invalid_library_contract_mode_raises_config_error(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.css", "mode": "copy"}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="asset mode 'copy' is invalid"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_absolute_output_path(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.css", "output": "/tmp/ui.css"}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="output must be relative"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_output_traversal(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.css", "output": "../ui.css"}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match=r"output must not contain '\.\.'"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_source_traversal(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "../ui.css"}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match=r"path must not contain '\.\.'"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_non_path_asset_value(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [object()],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="path must be path-like"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_non_string_runtime_entries(self):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(library_contract={"runtime": ["loader", 3]})
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="runtime entries must be strings"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_bytes_runtime(self):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(library_contract={"runtime": b"loader"})
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="runtime must be a string"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_non_mapping_asset_attributes(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.js", "attributes": ["defer"]}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="attributes must be a mapping"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_reserved_asset_attribute(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.js", "attributes": {"src": "/bad.js"}}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="must not set 'src'"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_invalid_asset_attribute_value(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [{"path": "ui.css", "attributes": {"media": ["print"]}}],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="values must be strings or booleans"),
+        ):
+            resolve_provider("fake_ui")
+
+    def test_library_contract_rejects_duplicate_non_bundle_outputs(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [
+                    {"path": "ui.css", "output": "vendor.css", "mode": "link"},
+                    {"path": "theme.css", "output": "vendor.css", "mode": "link"},
+                ],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="duplicate asset output"),
+        ):
+            resolve_provider("fake_ui")
 
 
 class TestResolveThemeProviders:

@@ -17,6 +17,12 @@ def test_manifest_roundtrip(tmp_path: Path) -> None:
         fingerprint="12345678",
         size_bytes=1024,
         updated_at=1_700_000_000.0,
+        provenance={
+            "kind": "theme_library",
+            "package": "chirp_ui",
+            "mode": "bundle",
+            "sources": ["chirpui.css", "chirpui-transitions.css"],
+        },
     )
 
     manifest_path = tmp_path / "asset-manifest.json"
@@ -30,6 +36,38 @@ def test_manifest_roundtrip(tmp_path: Path) -> None:
     assert entry.fingerprint == "12345678"
     assert entry.size_bytes == 1024
     assert entry.updated_at.endswith("Z")
+    assert entry.provenance == {
+        "kind": "theme_library",
+        "package": "chirp_ui",
+        "mode": "bundle",
+        "sources": ["chirpui.css", "chirpui-transitions.css"],
+    }
+
+
+def test_manifest_loads_entries_without_provenance(tmp_path: Path) -> None:
+    """Older manifests without provenance should remain readable."""
+    manifest_path = tmp_path / "asset-manifest.json"
+    manifest_path.write_text(
+        """
+{
+  "version": 1,
+  "generated_at": "2025-01-15T10:30:00Z",
+  "assets": {
+    "css/style.css": {
+      "output_path": "assets/css/style.12345678.css",
+      "fingerprint": "12345678"
+    }
+  }
+}
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    loaded = AssetManifest.load(manifest_path)
+    assert loaded is not None
+    entry = loaded.get("css/style.css")
+    assert entry is not None
+    assert entry.provenance is None
 
 
 def test_inspect_asset_outputs_detects_missing_manifest_output(tmp_path: Path) -> None:

@@ -61,6 +61,32 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _library_asset_manifest_provenance(
+    library_asset: Any,
+    *,
+    sources: tuple[Any, ...],
+) -> dict[str, Any]:
+    """Return sanitized manifest provenance for a theme-library asset."""
+    package = str(getattr(library_asset, "package", "") or "")
+    mode = str(getattr(library_asset, "mode", "") or "")
+    source_paths: list[str] = []
+    for source in sources:
+        contract_path = getattr(source, "contract_path", None)
+        if isinstance(contract_path, Path) and contract_path != Path("."):
+            source_paths.append(contract_path.as_posix())
+        else:
+            source_paths.append(Path(source.source_path).name)
+
+    provenance: dict[str, Any] = {"kind": "theme_library"}
+    if package:
+        provenance["package"] = package
+    if mode:
+        provenance["mode"] = mode
+    if source_paths:
+        provenance["sources"] = source_paths
+    return provenance
+
+
 class ContentOrchestrator:
     """
     Handles content and asset discovery.
@@ -790,8 +816,16 @@ class ContentOrchestrator:
 
     def _discover_provider_assets(self) -> None:
         """Discover assets from theme library providers, namespaced by prefix."""
+        from collections import defaultdict
+
         from bengal.content.discovery.asset_discovery import AssetDiscovery
-        from bengal.core.theme.providers import get_provider_asset_dirs, resolve_theme_providers
+        from bengal.core.asset import Asset
+        from bengal.core.theme.providers import (
+            LibraryAsset,
+            get_provider_asset_dirs,
+            get_provider_assets,
+            resolve_theme_providers,
+        )
         from bengal.core.theme.resolution import resolve_theme_chain
 
         if not self.site.theme:
@@ -801,6 +835,72 @@ class ContentOrchestrator:
         providers = resolve_theme_providers(self.site.root_path, theme_chain)
         if not providers:
             return
+
+        bundle_groups: dict[tuple[Path, str], list[LibraryAsset]] = defaultdict(list)
+
+        for library_asset in get_provider_assets(providers):
+            if library_asset.mode == "none":
+                continue
+            if not library_asset.source_path.exists():
+                from bengal.errors import BengalAssetError, ErrorCode
+
+                raise BengalAssetError(
+                    f"Theme library asset not found: {library_asset.source_path}",
+                    code=ErrorCode.X001,
+                    suggestion=(
+                        "Check the provider get_library_contract() asset path or remove "
+                        "the asset from the contract."
+                    ),
+                    file_path=library_asset.source_path,
+                )
+            if library_asset.mode == "bundle":
+                bundle_groups[(library_asset.logical_path, library_asset.asset_type)].append(
+                    library_asset
+                )
+                continue
+            output_path = library_asset.logical_path
+            asset_type = library_asset.asset_type
+            self.site.assets.append(
+                Asset(
+                    source_path=library_asset.source_path,
+                    output_path=output_path,
+                    asset_type=asset_type,
+                    logical_path=output_path,
+                    standalone=asset_type == "css",
+                    manifest_provenance=_library_asset_manifest_provenance(
+                        library_asset,
+                        sources=(library_asset,),
+                    ),
+                )
+            )
+
+        for (logical_path, asset_type), assets in bundle_groups.items():
+            if asset_type not in {"css", "javascript"}:
+                from bengal.errors import BengalAssetError, ErrorCode
+
+                raise BengalAssetError(
+                    f"Theme library bundle target '{logical_path.as_posix()}' has "
+                    f"unsupported asset type '{asset_type}'.",
+                    code=ErrorCode.X003,
+                    suggestion="Use bundle mode only for CSS or JavaScript provider assets.",
+                )
+
+            bundle_dir = self.site.root_path / ".bengal" / "cache" / "library-assets"
+            bundle_path = bundle_dir / logical_path
+            self._write_library_asset_bundle(bundle_path, assets, asset_type)
+            self.site.assets.append(
+                Asset(
+                    source_path=bundle_path,
+                    output_path=logical_path,
+                    asset_type=asset_type,
+                    logical_path=logical_path,
+                    standalone=asset_type == "css",
+                    manifest_provenance=_library_asset_manifest_provenance(
+                        assets[0],
+                        sources=tuple(assets),
+                    ),
+                )
+            )
 
         for prefix, asset_root in get_provider_asset_dirs(providers):
             discovery = AssetDiscovery(asset_root)
@@ -818,8 +918,28 @@ class ContentOrchestrator:
                     asset.source_path.suffix.lower() == ".css"
                     and asset.source_path.name != "style.css"
                 ):
-                    asset.asset_type = "other"
+                    asset.standalone = True
                 self.site.assets.append(asset)
+
+    def _write_library_asset_bundle(
+        self,
+        bundle_path: Path,
+        assets: list[Any],
+        asset_type: str,
+    ) -> None:
+        """Concatenate declared library assets into a generated bundle source."""
+        from bengal.utils.io.atomic_write import atomic_write_text
+
+        comment_open, comment_close = ("/*", "*/") if asset_type == "css" else ("//", "")
+        chunks: list[str] = []
+        for asset in assets:
+            content = asset.source_path.read_text(encoding="utf-8")
+            if comment_close:
+                chunks.append(f"{comment_open} {asset.source_path.name} {comment_close}\n{content}")
+            else:
+                chunks.append(f"{comment_open} {asset.source_path.name}\n{content}")
+        separator = "\n\n" if asset_type == "css" else "\n;\n"
+        atomic_write_text(bundle_path, separator.join(chunks), encoding="utf-8")
 
     def _setup_page_references(self) -> None:
         """

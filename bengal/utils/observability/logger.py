@@ -213,6 +213,9 @@ class LogEvent:
             "icon_not_found_summary": "{count} missing icon{plural}: {icons}",
             "unknown_config_summary": "{count} unknown config entr{plural}: {entries}",
             "found_broken_links": "{total_broken} broken internal link(s) across {pages_affected} page(s)",
+            "rendered_asset_reference_missing": (
+                "{count} rendered local CSS/JS asset reference(s) are not serveable: {url}"
+            ),
             "url_collision": "URL collision: {url}",
             "url_collision_detected": "URL collision: {url}",
             "url_collision_summary": "{count} URL collision(s): {urls}",

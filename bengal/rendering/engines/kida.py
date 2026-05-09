@@ -602,9 +602,23 @@ class KidaTemplateEngine:
         self._env.globals["get_menu"] = self._get_menu
         self._env.globals["get_menu_lang"] = self._get_menu_lang
         self._env.globals["url_for"] = self._url_for
+        self._env.globals["library_asset_tags"] = self._library_asset_tags
+        self._env.globals["library_runtime"] = self._library_runtime
 
         # === Step 4: Theme library provider filters/globals ===
         self._register_provider_extensions()
+
+    def _library_asset_tags(self):
+        """Render tags for assets declared by active theme libraries."""
+        from bengal.rendering.library_assets import render_library_asset_tags
+
+        return render_library_asset_tags(self._providers, self.site)
+
+    def _library_runtime(self) -> tuple[str, ...]:
+        """Return runtime metadata declared by active theme libraries."""
+        from bengal.rendering.library_assets import library_runtime_metadata
+
+        return library_runtime_metadata(self._providers)
 
     def _register_provider_extensions(self) -> None:
         """Register filters/globals from theme library providers.

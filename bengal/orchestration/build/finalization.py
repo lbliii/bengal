@@ -81,10 +81,60 @@ def phase_postprocess(
                 hint="ContextVar not set in some paths - check asset_manifest_context() coverage",
             )
 
+        from bengal.rendering.asset_audit import find_missing_local_asset_references
+
+        missing_refs = find_missing_local_asset_references(
+            orchestrator.site.output_dir,
+            baseurl=getattr(orchestrator.site, "baseurl", "") or "",
+        )
+        if missing_refs:
+            samples = [
+                {
+                    "html": str(ref.html_path.relative_to(orchestrator.site.output_dir)),
+                    "url": ref.url,
+                    "expected": _relative_output_path(
+                        ref.expected_path,
+                        orchestrator.site.output_dir,
+                    ),
+                }
+                for ref in missing_refs[:5]
+            ]
+            strict = getattr(ctx, "strict", False) or getattr(
+                orchestrator.stats, "strict_mode", False
+            )
+            if strict:
+                from bengal.errors import BengalAssetError, ErrorCode
+
+                first = missing_refs[0]
+                raise BengalAssetError(
+                    f"Build emitted {len(missing_refs)} local CSS/JS reference(s) "
+                    f"without matching output files. First missing reference: {first.url}",
+                    code=ErrorCode.X001,
+                    suggestion=(
+                        "Declare the asset through the theme library contract, use asset_url(), "
+                        "or remove the stale HTML reference."
+                    ),
+                    file_path=first.html_path,
+                )
+            orchestrator.logger.warning(
+                "rendered_asset_reference_missing",
+                count=len(missing_refs),
+                url=missing_refs[0].url,
+                samples=samples,
+                hint="Declare missing assets or route references through asset_url().",
+            )
+
         # Show phase completion
         cli.phase("Post-process", duration_ms=orchestrator.stats.postprocess_time_ms)
 
         orchestrator.logger.info("postprocessing_complete")
+
+
+def _relative_output_path(path: Any, output_dir: Any) -> str:
+    try:
+        return str(path.relative_to(output_dir))
+    except ValueError:
+        return str(path)
 
 
 def phase_cache_save(
