@@ -40,6 +40,14 @@ class DirectivePlugin:
         registry.add_directive(object())
 
 
+class RolePlugin:
+    name = "role-plugin"
+    version = "1.0.0"
+
+    def register(self, registry):
+        registry.add_role(object())
+
+
 class ExplodingPlugin:
     def __init__(self):
         msg = "boom"
@@ -61,15 +69,24 @@ def test_template_and_phase_plugin_reports_ready_capabilities() -> None:
     assert report.pending_capabilities == ()
 
 
-def test_pending_capability_reports_partial_status() -> None:
+def test_directive_plugin_reports_ready_capability() -> None:
     report = inspect_entry_point(
         FakeEntryPoint("directive", "example:DirectivePlugin", DirectivePlugin)
     )
 
-    assert report.status == "partial"
-    assert report.ready is False
+    assert report.status == "ready"
+    assert report.ready is True
     assert report.capabilities["directives"] == 1
-    assert report.pending_capabilities == ("directives",)
+    assert report.pending_capabilities == ()
+
+
+def test_role_plugin_reports_ready_capability() -> None:
+    report = inspect_entry_point(FakeEntryPoint("role", "example:RolePlugin", RolePlugin))
+
+    assert report.status == "ready"
+    assert report.ready is True
+    assert report.capabilities["roles"] == 1
+    assert report.pending_capabilities == ()
 
 
 def test_load_error_is_reported_without_raising() -> None:
@@ -97,10 +114,12 @@ def test_instantiation_error_is_reported_without_raising() -> None:
     assert report.errors == ("RuntimeError: boom",)
 
 
-def test_capability_details_mark_pending_integrations() -> None:
-    details = capability_details({"directives": 1, "template_filters": 1})
+def test_capability_details_mark_ready_integrations() -> None:
+    details = capability_details({"directives": 1, "roles": 1, "template_filters": 1})
     by_name = {item["name"]: item for item in details}
 
-    assert CAPABILITY_INTEGRATION_STATUS["directives"] == "pending"
-    assert by_name["directives"]["ready"] is False
+    assert CAPABILITY_INTEGRATION_STATUS["directives"] == "ready"
+    assert CAPABILITY_INTEGRATION_STATUS["roles"] == "ready"
+    assert by_name["directives"]["ready"] is True
+    assert by_name["roles"]["ready"] is True
     assert by_name["template_filters"]["ready"] is True

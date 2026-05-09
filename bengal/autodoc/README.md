@@ -238,6 +238,7 @@ Autodoc integrates with Bengal's incremental build system for fast dev server re
 **File Watching**: The dev server automatically watches autodoc source directories:
 - Python `source_dirs` configured in `autodoc.python.source_dirs`
 - OpenAPI spec files configured in `autodoc.openapi.spec_file`
+- Local OpenAPI `$ref` files resolved from those specs
 
 **Selective Rebuilds**: When a Python/OpenAPI source file changes:
 - Only the autodoc pages generated from that file are rebuilt

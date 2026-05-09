@@ -78,6 +78,9 @@ def populate_artifact_inventory(site: Any, build_context: Any | None) -> None:
     for path in _rss_output_paths(site):
         _record_existing(collector, site, path, OutputType.XML, "postprocess", seen)
 
+    for path in _feed_output_paths(site, "atom", "generate_atom", default_enabled=False):
+        _record_existing(collector, site, path, OutputType.XML, "postprocess", seen)
+
 
 def _record_output_format_artifacts(
     site: Any,
@@ -140,8 +143,19 @@ def _output_type_for_filename(filename: str) -> OutputType:
 
 def _rss_output_paths(site: Any) -> list[Path]:
     """Return possible RSS output paths for the site's i18n configuration."""
+    return _feed_output_paths(site, "rss", "generate_rss", default_enabled=True)
+
+
+def _feed_output_paths(
+    site: Any,
+    filename_prefix: str,
+    config_key: str,
+    *,
+    default_enabled: bool,
+) -> list[Path]:
+    """Return possible feed output paths for the site's i18n configuration."""
     config = getattr(site, "config", {})
-    if not config.get("generate_rss", True):
+    if not config.get(config_key, default_enabled):
         return []
 
     output_dir = site.output_dir
@@ -157,11 +171,11 @@ def _rss_output_paths(site: Any) -> list[Path]:
         if not code:
             continue
         if strategy == "prefix" and (default_in_subdir or code != default_lang):
-            paths.append(output_dir / code / "rss.xml")
+            paths.append(output_dir / code / f"{filename_prefix}.xml")
         elif code == default_lang:
-            paths.append(output_dir / "rss.xml")
+            paths.append(output_dir / f"{filename_prefix}.xml")
         else:
-            paths.append(output_dir / code / "rss.xml")
+            paths.append(output_dir / code / f"{filename_prefix}.xml")
     return paths
 
 

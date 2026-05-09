@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import heapq
 import xml.etree.ElementTree as ET
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.errors import BengalRenderingError, ErrorCode, record_error
 from bengal.postprocess.utils import indent_xml
@@ -261,3 +261,162 @@ class RSSGenerator:
                     suggestion="Verify pages have valid dates in frontmatter. Add 'date:' to include in RSS.",
                 )
                 raise error from e
+
+
+class AtomGenerator:
+    """Generate Atom 1.0 feeds for content syndication."""
+
+    def __init__(self, site: SiteLike, collector: OutputCollector | None = None) -> None:
+        self.site = site
+        self.logger = get_logger(__name__)
+        self._collector = collector
+
+    def generate(self) -> None:
+        """Generate and write atom.xml to the output directory."""
+        pages_with_dates = [p for p in self.site.pages if p.date and p.in_rss]
+        if not pages_with_dates:
+            self.logger.info(
+                "atom_skipped",
+                reason="no_pages_with_dates",
+                total_pages=len(self.site.pages),
+                hint="No pages have dates set. Add 'date:' to frontmatter to include in Atom feed.",
+            )
+            return
+
+        i18n = self.site.config.get("i18n", {}) or {}
+        strategy = i18n.get("strategy") or "none"
+        default_lang = i18n.get("default_language", "en")
+        default_in_subdir = bool(i18n.get("default_in_subdir", False))
+        lang_codes = self._language_codes(i18n.get("languages") or [], default_lang)
+
+        for code in sorted(set(lang_codes)):
+            pages_for_lang = [
+                p
+                for p in self.site.pages
+                if p.date
+                and p.in_rss
+                and (strategy == "none" or getattr(p, "lang", default_lang) == code)
+            ]
+            sorted_pages = heapq.nlargest(20, pages_for_lang, key=lambda p: p.date)
+            if not sorted_pages:
+                continue
+
+            feed = ET.Element("feed")
+            feed.set("xmlns", "http://www.w3.org/2005/Atom")
+            title = str(self.site.title or "Bengal Site")
+            baseurl = str(self.site.baseurl or "").rstrip("/")
+            description = str(self.site.description or f"{title} Atom Feed")
+            feed_url = self._feed_url(baseurl, code, default_lang, strategy, default_in_subdir)
+
+            ET.SubElement(feed, "title").text = title
+            ET.SubElement(feed, "id").text = baseurl or "/"
+            ET.SubElement(feed, "subtitle").text = description
+            ET.SubElement(feed, "updated").text = sorted_pages[0].date.strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            )
+            ET.SubElement(
+                feed,
+                "link",
+                {"href": feed_url, "rel": "self", "type": "application/atom+xml"},
+            )
+            ET.SubElement(feed, "link", {"href": baseurl or "/", "rel": "alternate"})
+
+            for page in sorted_pages:
+                entry = ET.SubElement(feed, "entry")
+                link = self._page_url(page, baseurl)
+                ET.SubElement(entry, "title").text = page.title
+                ET.SubElement(entry, "id").text = link
+                ET.SubElement(entry, "link", {"href": link, "rel": "alternate"})
+                ET.SubElement(entry, "updated").text = page.date.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+                desc = page.metadata.get("description")
+                if not isinstance(desc, str):
+                    desc = getattr(page, "description", None) or getattr(page, "excerpt", "")
+                ET.SubElement(entry, "summary").text = str(desc or "").strip()
+
+            self._write_feed(
+                feed, self._atom_path(code, default_lang, strategy, default_in_subdir), code
+            )
+
+    def _write_feed(self, feed: ET.Element, atom_path: Any, code: str) -> None:
+        from bengal.utils.io.atomic_write import AtomicFile
+
+        atom_path.parent.mkdir(parents=True, exist_ok=True)
+        indent_xml(feed)
+        tree = ET.ElementTree(feed)
+        try:
+            with AtomicFile(atom_path, "wb") as f:
+                tree.write(f, encoding="utf-8", xml_declaration=True)
+
+            if self._collector:
+                from bengal.core.output import OutputType
+
+                self._collector.record(atom_path, OutputType.XML, phase="postprocess")
+
+            self.logger.info("atom_generation_complete", lang=code, atom_path=str(atom_path))
+        except Exception as e:
+            error = BengalRenderingError(
+                f"Atom generation failed for language '{code}': {e}",
+                code=ErrorCode.B008,
+                file_path=atom_path,
+                suggestion="Verify pages have valid dates in frontmatter. Add 'date:' to include in Atom.",
+                original_error=e,
+            )
+            record_error(error, build_phase="postprocess:atom")
+            self.logger.error(
+                "atom_generation_failed",
+                lang=code,
+                atom_path=str(atom_path),
+                error=str(e),
+                error_type=type(e).__name__,
+                error_code=ErrorCode.B008.value,
+            )
+            raise error from e
+
+    def _language_codes(self, languages_cfg: Any, default_lang: str) -> list[str]:
+        lang_codes = []
+        for entry in languages_cfg:
+            if isinstance(entry, dict) and "code" in entry:
+                lang_codes.append(entry["code"])
+            elif isinstance(entry, str):
+                lang_codes.append(entry)
+        if default_lang and default_lang not in lang_codes:
+            lang_codes.append(default_lang)
+        return lang_codes or [default_lang]
+
+    def _atom_path(
+        self,
+        code: str,
+        default_lang: str,
+        strategy: str,
+        default_in_subdir: bool,
+    ) -> Any:
+        if strategy == "prefix" and (default_in_subdir or code != default_lang):
+            return self.site.output_dir / code / "atom.xml"
+        if code == default_lang:
+            return self.site.output_dir / "atom.xml"
+        return self.site.output_dir / code / "atom.xml"
+
+    def _feed_url(
+        self,
+        baseurl: str,
+        code: str,
+        default_lang: str,
+        strategy: str,
+        default_in_subdir: bool,
+    ) -> str:
+        if (strategy == "prefix" and (default_in_subdir or code != default_lang)) or (
+            code != default_lang
+        ):
+            return f"{baseurl}/{code}/atom.xml" if baseurl else f"/{code}/atom.xml"
+        return f"{baseurl}/atom.xml" if baseurl else "/atom.xml"
+
+    def _page_url(self, page: Any, baseurl: str) -> str:
+        if page.output_path:
+            try:
+                rel_path = page.output_path.relative_to(self.site.output_dir)
+                link = f"{baseurl}/{to_posix(rel_path)}" if baseurl else f"/{to_posix(rel_path)}"
+                return link.replace("/index.html", "/")
+            except ValueError:
+                pass
+        return f"{baseurl}/{page.slug}/" if baseurl else f"/{page.slug}/"

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import unquote, urlparse
 
 import yaml
 
@@ -45,8 +46,140 @@ class OpenAPIExtractor(Extractor):
     def __init__(self) -> None:
         """Initialize the extractor."""
         self._spec: dict[str, Any] = {}
+        self._documents: dict[Path, dict[str, Any]] = {}
+        self._source: Path | None = None
+        self.resolved_files: set[Path] = set()
 
-    def _resolve_ref(self, ref_or_obj: dict[str, Any]) -> dict[str, Any]:
+    def _parse_document(self, path: Path) -> dict[str, Any]:
+        """Parse an OpenAPI document from YAML or JSON."""
+        content = path.read_text(encoding="utf-8")
+        if path.suffix in (".yaml", ".yml"):
+            parsed = yaml.safe_load(content)
+        else:
+            parsed = json.loads(content)
+        return parsed if isinstance(parsed, dict) else {}
+
+    def _load_document(self, path: Path) -> dict[str, Any] | None:
+        """Load and cache a local OpenAPI reference document."""
+        document_path = path.resolve()
+        if document_path in self._documents:
+            return self._documents[document_path]
+
+        if not document_path.exists():
+            logger.warning("openapi_ref_file_missing", path=str(document_path))
+            return None
+
+        try:
+            document = self._parse_document(document_path)
+        except yaml.YAMLError as exc:
+            logger.warning(
+                "openapi_ref_yaml_parse_failed",
+                path=str(document_path),
+                error=str(exc),
+            )
+            return None
+        except json.JSONDecodeError as exc:
+            logger.warning(
+                "openapi_ref_json_parse_failed",
+                path=str(document_path),
+                error=str(exc),
+            )
+            return None
+        except OSError as exc:
+            logger.warning(
+                "openapi_ref_file_read_failed",
+                path=str(document_path),
+                error=str(exc),
+            )
+            return None
+
+        self._documents[document_path] = document
+        self.resolved_files.add(document_path)
+        return document
+
+    def _resolve_ref_document(
+        self, ref_path: str, current_document: Path
+    ) -> tuple[Path, str] | None:
+        """Return local document path and JSON pointer for a ref."""
+        file_part, _, pointer = ref_path.partition("#")
+        pointer = pointer or ""
+
+        parsed = urlparse(file_part)
+        if parsed.scheme and parsed.scheme != "file":
+            logger.warning(
+                "openapi_external_ref_unsupported",
+                ref=ref_path,
+                reason="Only local file references are supported",
+            )
+            return None
+
+        if parsed.scheme == "file":
+            document_path = Path(unquote(parsed.path))
+        elif file_part:
+            document_path = Path(file_part)
+            if not document_path.is_absolute():
+                document_path = current_document.parent / document_path
+        else:
+            document_path = current_document
+
+        return document_path.resolve(), pointer
+
+    def _resolve_json_pointer(
+        self,
+        document: dict[str, Any],
+        pointer: str,
+        ref_path: str,
+    ) -> Any:
+        """Resolve a JSON pointer inside a loaded document."""
+        if pointer in ("", "#"):
+            return document
+
+        if not pointer.startswith("/"):
+            logger.warning(
+                "openapi_ref_pointer_invalid",
+                ref=ref_path,
+                pointer=pointer,
+            )
+            return None
+
+        result: Any = document
+        for raw_part in pointer.lstrip("/").split("/"):
+            part = raw_part.replace("~1", "/").replace("~0", "~")
+            if isinstance(result, dict) and part in result:
+                result = result[part]
+            else:
+                logger.warning("openapi_ref_pointer_missing", ref=ref_path, part=part)
+                return None
+
+        return result
+
+    def _resolve_refs_in_obj(
+        self,
+        obj: Any,
+        current_document: Path,
+        stack: tuple[tuple[Path, str], ...],
+    ) -> Any:
+        """Resolve local $ref entries recursively inside an object."""
+        if isinstance(obj, list):
+            return [self._resolve_refs_in_obj(item, current_document, stack) for item in obj]
+
+        if not isinstance(obj, dict):
+            return obj
+
+        if "$ref" in obj:
+            return self._resolve_ref(obj, current_document, stack)
+
+        return {
+            key: self._resolve_refs_in_obj(value, current_document, stack)
+            for key, value in obj.items()
+        }
+
+    def _resolve_ref(
+        self,
+        ref_or_obj: dict[str, Any],
+        current_document: Path | None = None,
+        stack: tuple[tuple[Path, str], ...] = (),
+    ) -> dict[str, Any]:
         """
         Resolve a $ref reference to its actual definition.
 
@@ -63,22 +196,35 @@ class OpenAPIExtractor(Extractor):
             return ref_or_obj
 
         ref_path = ref_or_obj["$ref"]
-        if not ref_path.startswith("#/"):
-            # External references not supported
-            logger.warning(f"External $ref not supported: {ref_path}")
+        document_path = current_document or self._source
+        if document_path is None:
+            logger.warning("openapi_ref_no_source", ref=ref_path)
             return ref_or_obj
 
-        # Parse the JSON pointer (e.g., "#/components/parameters/UserId")
-        parts = ref_path[2:].split("/")  # Remove "#/" and split
-        result = self._spec
-        for part in parts:
-            if isinstance(result, dict) and part in result:
-                result = result[part]
-            else:
-                logger.warning(f"Could not resolve $ref: {ref_path}")
-                return ref_or_obj
+        target = self._resolve_ref_document(ref_path, document_path)
+        if target is None:
+            return ref_or_obj
 
-        return result if isinstance(result, dict) else ref_or_obj
+        target_document_path, pointer = target
+        key = (target_document_path, pointer)
+        if key in stack:
+            logger.warning(
+                "openapi_ref_cycle",
+                ref=ref_path,
+                document=str(target_document_path),
+            )
+            return ref_or_obj
+
+        document = self._load_document(target_document_path)
+        if document is None:
+            return ref_or_obj
+
+        result = self._resolve_json_pointer(document, pointer, ref_path)
+        if result is None:
+            return ref_or_obj
+
+        resolved = self._resolve_refs_in_obj(result, target_document_path, (*stack, key))
+        return resolved if isinstance(resolved, dict) else ref_or_obj
 
     def extract(self, source: Path) -> list[DocElement]:
         """
@@ -101,11 +247,7 @@ class OpenAPIExtractor(Extractor):
             )
 
         try:
-            content = source.read_text(encoding="utf-8")
-            if source.suffix in (".yaml", ".yml"):
-                spec = yaml.safe_load(content)
-            else:
-                spec = json.loads(content)
+            spec = self._parse_document(source)
         except yaml.YAMLError as e:
             from bengal.errors import BengalContentError, ErrorCode
 
@@ -126,7 +268,10 @@ class OpenAPIExtractor(Extractor):
             ) from e
 
         # Store spec for $ref resolution
+        self._source = source.resolve()
         self._spec = spec
+        self._documents[self._source] = spec
+        self.resolved_files = {self._source}
 
         elements: list[DocElement] = []
 
@@ -143,7 +288,14 @@ class OpenAPIExtractor(Extractor):
         schemas = self._extract_schemas(spec)
         elements.extend(schemas)
 
+        self._attach_source_dependencies(elements)
         return elements
+
+    def _attach_source_dependencies(self, elements: list[DocElement]) -> None:
+        """Attach OpenAPI source dependency files to extracted elements."""
+        dependencies = tuple(str(path) for path in sorted(self.resolved_files))
+        for element in elements:
+            element.metadata["source_dependencies"] = dependencies
 
     def get_output_path(self, element: DocElement) -> Path | None:
         """
@@ -218,7 +370,10 @@ class OpenAPIExtractor(Extractor):
 
         for path, path_item in paths.items():
             # Handle common parameters at path level (resolve $refs)
-            path_params = [self._resolve_ref(p) for p in path_item.get("parameters", [])]
+            path_params = [
+                self._resolve_refs_in_obj(p, self._source or Path(), ())
+                for p in path_item.get("parameters", [])
+            ]
 
             for method in ["get", "post", "put", "delete", "patch", "head", "options"]:
                 if method not in path_item:
@@ -227,7 +382,10 @@ class OpenAPIExtractor(Extractor):
                 operation = path_item[method]
 
                 # Merge path-level parameters with operation-level parameters (resolve $refs)
-                op_params = [self._resolve_ref(p) for p in operation.get("parameters", [])]
+                op_params = [
+                    self._resolve_refs_in_obj(p, self._source or Path(), ())
+                    for p in operation.get("parameters", [])
+                ]
                 all_params = path_params + op_params
 
                 # Construct name like "GET /users"
@@ -249,10 +407,16 @@ class OpenAPIExtractor(Extractor):
                 typed_request_body = None
                 req_body = operation.get("requestBody")
                 if req_body:
-                    req_body = self._resolve_ref(req_body)
+                    raw_req_body = req_body
+                    req_body = self._resolve_refs_in_obj(req_body, self._source or Path(), ())
                     content = req_body.get("content", {})
                     content_type = next(iter(content.keys()), "application/json")
-                    schema_ref = content.get(content_type, {}).get("schema", {}).get("$ref")
+                    schema_ref = (
+                        raw_req_body.get("content", {})
+                        .get(content_type, {})
+                        .get("schema", {})
+                        .get("$ref")
+                    )
                     typed_request_body = OpenAPIRequestBodyMetadata(
                         content_type=content_type,
                         schema_ref=schema_ref,
@@ -263,7 +427,8 @@ class OpenAPIExtractor(Extractor):
                 # Build typed responses (resolve $refs)
                 raw_responses = operation.get("responses") or {}
                 resolved_responses = {
-                    status: self._resolve_ref(resp) for status, resp in raw_responses.items()
+                    status: self._resolve_refs_in_obj(resp, self._source or Path(), ())
+                    for status, resp in raw_responses.items()
                 }
                 typed_responses = tuple(
                     OpenAPIResponseMetadata(
@@ -273,11 +438,18 @@ class OpenAPIExtractor(Extractor):
                         if isinstance(resp, dict)
                         else None,
                         schema_ref=(
-                            resp.get("content", {})
-                            .get(next(iter(resp.get("content", {}).keys()), ""), {})
+                            raw_responses.get(status, {})
+                            .get("content", {})
+                            .get(
+                                next(
+                                    iter(raw_responses.get(status, {}).get("content", {}).keys()),
+                                    "",
+                                ),
+                                {},
+                            )
                             .get("schema", {})
                             .get("$ref")
-                            if isinstance(resp, dict)
+                            if isinstance(raw_responses.get(status), dict)
                             else None
                         ),
                     )
@@ -305,6 +477,7 @@ class OpenAPIExtractor(Extractor):
                     qualified_name=f"openapi.paths.{path}.{method}",
                     description=operation.get("description") or operation.get("summary", ""),
                     element_type="openapi_endpoint",
+                    source_file=self._source,
                     metadata={
                         "method": method,
                         "path": path,
@@ -332,6 +505,7 @@ class OpenAPIExtractor(Extractor):
         schemas = components.get("schemas", {})
 
         for name, schema in schemas.items():
+            schema = self._resolve_refs_in_obj(schema, self._source or Path(), ())
             # Build typed metadata
             typed_meta = OpenAPISchemaMetadata(
                 schema_type=schema.get("type"),
@@ -346,6 +520,7 @@ class OpenAPIExtractor(Extractor):
                 qualified_name=f"openapi.components.schemas.{name}",
                 description=schema.get("description", ""),
                 element_type="openapi_schema",
+                source_file=self._source,
                 metadata={
                     "type": schema.get("type"),
                     "properties": schema.get("properties", {}),

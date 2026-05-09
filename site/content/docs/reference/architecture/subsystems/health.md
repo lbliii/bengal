@@ -128,7 +128,7 @@ Validators are registered in phases based on execution cost and dependencies.
 **Phase 2 - Content Validation:**
 | Validator | Validates |
 |-----------|-----------|
-| **RenderingValidator** | HTML quality, template function usage, SEO metadata |
+| **RenderingValidator** | HTML quality, unrendered template syntax, SEO/social metadata, JSON-LD syntax |
 | **DirectiveValidator** | Directive syntax, completeness, and performance |
 | **NavigationValidator** | Page navigation (next/prev, breadcrumbs, ancestors) |
 | **MenuValidator** | Menu structure integrity, circular reference detection |

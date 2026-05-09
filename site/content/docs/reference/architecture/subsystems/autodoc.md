@@ -136,3 +136,9 @@ spec_file = "openapi.yaml"  # Or openapi.json
 ```
 
 This generates endpoint documentation with request/response schemas, parameters, and examples.
+
+OpenAPI `$ref` entries may point to local files relative to the document that
+contains the reference, for example `./schemas.yaml#/User`. Bengal resolves
+those local YAML/JSON files during extraction and records them as autodoc
+dependencies so warm and dev-server builds regenerate API pages when shared
+schema files change. Remote `http` and `https` refs are not fetched.

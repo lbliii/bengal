@@ -1052,11 +1052,18 @@ class BuildTrigger:
                     affected_pages=0,
                     reason="dependency_data_missing",
                 )
+                logger.info(
+                    "template_change_full_rebuild",
+                    template=str(path),
+                    affected_pages=0,
+                    reason="dependency_data_missing",
+                    suggestion="Run one full build to populate template dependency data.",
+                )
                 return True
 
             # Has dependents - check if we can do incremental update
             if self._can_use_incremental_template_update(path, cache):
-                logger.debug(
+                logger.info(
                     "template_change_incremental",
                     template=str(path),
                     affected_pages=len(affected),
@@ -1064,7 +1071,7 @@ class BuildTrigger:
                 continue  # Will be handled by incremental build
 
             # Must do full rebuild
-            logger.debug(
+            logger.info(
                 "template_change_full_rebuild",
                 template=str(path),
                 affected_pages=len(affected),
@@ -1199,6 +1206,37 @@ class BuildTrigger:
                 for path in changed_paths:
                     if path == spec_path or path.resolve() == spec_path.resolve():
                         return True
+
+            try:
+                cache = getattr(self.site, "_cache", None)
+                if cache is None:
+                    from bengal.cache import BuildCache
+
+                    cache_path = self.site.config_service.paths.build_cache
+                    if cache_path.exists():
+                        cache = BuildCache.load(cache_path)
+
+                if cache is not None and hasattr(cache, "autodoc_tracker"):
+                    for source in cache.autodoc_tracker.get_autodoc_source_files():
+                        source_path = Path(source)
+                        candidates = [source_path]
+                        if not source_path.is_absolute():
+                            candidates.extend(
+                                [
+                                    self.site.root_path / source_path,
+                                    self.site.root_path.parent / source_path,
+                                ]
+                            )
+                        resolved_candidates = {candidate.resolve() for candidate in candidates}
+                        for path in changed_paths:
+                            if path.resolve() in resolved_candidates:
+                                return True
+            except Exception as exc:
+                logger.debug(
+                    "autodoc_dependency_change_check_failed",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                )
 
         return False
 

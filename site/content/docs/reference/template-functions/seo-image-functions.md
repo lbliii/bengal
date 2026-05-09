@@ -53,6 +53,8 @@ Generate Open Graph image URL. Supports manual image, auto-generated social card
 ## get_social_card_url
 
 Get URL to generated social card for a page (if social cards are enabled).
+Generated cards are cached by rendered inputs, so repeated full builds reuse
+unchanged card files.
 
 ```kida
 {% let card = get_social_card_url(page) %}

@@ -53,12 +53,12 @@ def test_plugin_list_reports_no_plugins(monkeypatch) -> None:
 def test_plugin_validate_fails_on_pending_capability(monkeypatch) -> None:
     cli = FakeCLI()
     report = PluginInspection(
-        entry_point="directive",
-        value="example:DirectivePlugin",
-        plugin_name="directive-plugin",
+        entry_point="content-source",
+        value="example:ContentSourcePlugin",
+        plugin_name="content-source-plugin",
         version="1.0.0",
         status="partial",
-        capabilities={"directives": 1},
+        capabilities={"content_sources": 1},
     )
     monkeypatch.setattr(plugin_command, "_load_reports", lambda: [report])
     monkeypatch.setattr("bengal.output.get_cli_output", lambda: cli)
@@ -69,4 +69,4 @@ def test_plugin_validate_fails_on_pending_capability(monkeypatch) -> None:
     assert cli.renders
     _template, context = cli.renders[0]
     assert context["summary"]["warnings"] == 1
-    assert "directives registered" in context["issues"][0]["message"]
+    assert "content_sources registered" in context["issues"][0]["message"]

@@ -122,7 +122,8 @@ versioning:
 
     - id: v1
       label: "1.0"
-      deprecated: true          # Marks version as deprecated
+      status: deprecated        # current, legacy, deprecated, preview, or eol
+      deprecated: true          # Backward-compatible alias for status: deprecated
       end_of_life: "2024-12-31" # Optional: EOL date
 
   # Aliases for version IDs

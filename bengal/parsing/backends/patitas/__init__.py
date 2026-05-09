@@ -512,9 +512,11 @@ class Markdown:
         from bengal.parsing.backends.patitas.roles.registry import (
             create_default_registry as create_default_role_registry,
         )
+        from bengal.plugins import get_active_registry
 
-        directive_registry = create_default_registry()
-        role_registry = create_default_role_registry()
+        plugin_registry = get_active_registry()
+        directive_registry = create_default_registry(plugin_registry=plugin_registry)
+        role_registry = create_default_role_registry(plugin_registry=plugin_registry)
 
         # Build immutable configs once (reused for all parses)
         # text_transformer is set per-call, so we use None here as base

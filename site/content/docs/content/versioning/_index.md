@@ -121,12 +121,15 @@ Older versions automatically display a warning banner linking to the latest docs
 ```yaml
 versions:
   - id: v2
+    status: legacy
     banner:
       type: warning  # or: info, danger
       message: "You're viewing docs for v2. See the latest version."
 ```
 
 Banner types: `info` (blue), `warning` (yellow), `danger` (red for deprecated versions).
+Version status can be `current`, `legacy`, `deprecated`, `preview`, or `eol`.
+The older `deprecated: true` key still works and is treated like `status: deprecated`.
 
 ### Cross-Version Links
 

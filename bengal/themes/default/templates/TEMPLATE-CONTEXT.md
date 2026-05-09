@@ -230,7 +230,7 @@ Properties available on `site`:
 | `site.sections` | All sections |
 | `site.theme_config` | Theme configuration |
 | `site.versioning_enabled` | Is versioning on? |
-| `site.versions` | Available versions |
+| `site.versions` | Available versions; each item includes `id`, `label`, `latest`, `status`, `deprecated`, `url_prefix`, `release_date`, and `end_of_life` |
 
 ---
 

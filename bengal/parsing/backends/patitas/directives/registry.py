@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.directives.protocol import DirectiveHandler
+    from bengal.plugins.registry import FrozenPluginRegistry
 
 
 class DirectiveRegistry:
@@ -185,7 +186,9 @@ class DirectiveRegistryBuilder:
         return len(self._handlers)
 
 
-def create_default_registry() -> DirectiveRegistry:
+def create_default_registry(
+    plugin_registry: FrozenPluginRegistry | None = None,
+) -> DirectiveRegistry:
     """Create registry with all built-in directives.
 
     Returns:
@@ -359,5 +362,10 @@ def create_default_registry() -> DirectiveRegistry:
 
     # Marimo (executable Python)
     builder.register(MarimoDirective())
+
+    if plugin_registry is not None:
+        from bengal.plugins.integration import apply_plugin_directives
+
+        apply_plugin_directives(plugin_registry, builder)
 
     return builder.build()
