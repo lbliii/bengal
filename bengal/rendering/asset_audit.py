@@ -58,6 +58,8 @@ def find_missing_local_asset_references(
 
 
 def _normalized_base_prefix(baseurl: str) -> str:
+    if not isinstance(baseurl, str):
+        return "/"
     base = baseurl.strip()
     if not base:
         return "/"
