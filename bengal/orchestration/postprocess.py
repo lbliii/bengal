@@ -45,6 +45,7 @@ from bengal.postprocess.robots_txt import RobotsTxtGenerator
 from bengal.postprocess.rss import AtomGenerator, RSSGenerator
 from bengal.postprocess.sitemap import SitemapGenerator
 from bengal.postprocess.social_cards import (
+    SOCIAL_CARD_FINGERPRINT_PREFIX,
     SocialCardGenerator,
     parse_social_cards_config,
 )
@@ -187,6 +188,8 @@ class PostprocessOrchestrator:
         if cs_config.get("enabled", True):
             tasks.append(("robots.txt", self._generate_robots_txt))
 
+        social_cards_task = None
+
         if not incremental:
             # Full build: run all expensive tasks
 
@@ -194,7 +197,13 @@ class PostprocessOrchestrator:
             # Only on full builds, not dev server reloads
             social_cards_config = parse_social_cards_config(self.site.config)
             if social_cards_config.enabled:
-                tasks.append(("social cards", lambda: self._generate_social_cards(build_context)))
+                # Run after parallel postprocess tasks so social-card fingerprints
+                # never mutate the build-cache fingerprint map concurrently with
+                # output-format generation on free-threaded Python.
+                def run_social_cards() -> None:
+                    self._generate_social_cards(build_context)
+
+                social_cards_task = run_social_cards
 
             if self.site.config.get("generate_rss", True):
                 tasks.append(("rss", self._generate_rss))
@@ -217,15 +226,16 @@ class PostprocessOrchestrator:
                 sitemap="always_generated",
             )
 
-        if not tasks:
-            return
+        if tasks:
+            # Run in parallel if enabled and multiple tasks
+            # Threshold of 2 tasks (always parallel if multiple tasks since they're independent)
+            if parallel and len(tasks) > 1:
+                self._run_parallel(tasks, progress_manager, reporter)
+            else:
+                self._run_sequential(tasks, progress_manager, reporter)
 
-        # Run in parallel if enabled and multiple tasks
-        # Threshold of 2 tasks (always parallel if multiple tasks since they're independent)
-        if parallel and len(tasks) > 1:
-            self._run_parallel(tasks, progress_manager, reporter)
-        else:
-            self._run_sequential(tasks, progress_manager, reporter)
+        if social_cards_task is not None:
+            self._run_sequential([("social cards", social_cards_task)], progress_manager, reporter)
 
     def _run_sequential(
         self,
@@ -491,7 +501,11 @@ class PostprocessOrchestrator:
         collector = getattr(self, "_collector", None)
         fingerprint_cache = None
         if build_context is not None and build_context.cache is not None:
-            fingerprint_cache = build_context.cache.output_format_fingerprints
+            fingerprint_cache = {
+                key: value
+                for key, value in build_context.cache.output_format_fingerprints.items()
+                if key.startswith(SOCIAL_CARD_FINGERPRINT_PREFIX)
+            }
         generator = SocialCardGenerator(
             self.site,
             social_config,
@@ -501,6 +515,12 @@ class PostprocessOrchestrator:
         output_dir = self.site.output_dir / social_config.output_dir
 
         generated, cached = generator.generate_all(self.site.pages, output_dir)
+        if (
+            build_context is not None
+            and build_context.cache is not None
+            and fingerprint_cache is not None
+        ):
+            build_context.cache.output_format_fingerprints.update(fingerprint_cache)
 
         # Log results using CLI output pattern
         cli = get_cli_output()

@@ -405,7 +405,9 @@ class AtomGenerator:
         strategy: str,
         default_in_subdir: bool,
     ) -> str:
-        if strategy == "prefix" and (default_in_subdir or code != default_lang):
+        if (strategy == "prefix" and (default_in_subdir or code != default_lang)) or (
+            code != default_lang
+        ):
             return f"{baseurl}/{code}/atom.xml" if baseurl else f"/{code}/atom.xml"
         return f"{baseurl}/atom.xml" if baseurl else "/atom.xml"
 

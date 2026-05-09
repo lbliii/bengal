@@ -339,6 +339,57 @@ class TestSocialCardGeneratorPersistentCache:
 
         assert generator._should_regenerate(page, output_path) is True
 
+    def test_orchestrator_isolates_social_fingerprints_before_merging(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path,
+    ) -> None:
+        """Social cards do not mutate the shared output-format fingerprint map while running."""
+        from bengal.orchestration.postprocess import PostprocessOrchestrator
+
+        cache_key = f"{SOCIAL_CARD_FINGERPRINT_PREFIX}content/test.md"
+
+        class FakeSocialCardGenerator:
+            def __init__(
+                self,
+                site: MagicMock,
+                config: SocialCardConfig,
+                collector: Any | None = None,
+                fingerprint_cache: dict[str, str] | None = None,
+            ) -> None:
+                assert fingerprint_cache is not None
+                assert "site_index_json" not in fingerprint_cache
+                self.fingerprint_cache = fingerprint_cache
+
+            def generate_all(
+                self,
+                pages: list[MagicMock],
+                output_dir: Path,
+            ) -> tuple[int, int]:
+                self.fingerprint_cache[cache_key] = "new"
+                return (1, 0)
+
+        monkeypatch.setattr(
+            "bengal.orchestration.postprocess.SocialCardGenerator",
+            FakeSocialCardGenerator,
+        )
+
+        site = MagicMock()
+        site.config = {"social_cards": {"enabled": True}}
+        site.output_dir = tmp_path
+        site.pages = []
+
+        build_context = MagicMock()
+        build_context.cache.output_format_fingerprints = {
+            "site_index_json": "existing",
+            f"{SOCIAL_CARD_FINGERPRINT_PREFIX}old.md": "old",
+        }
+
+        PostprocessOrchestrator(site)._generate_social_cards(build_context)
+
+        assert build_context.cache.output_format_fingerprints["site_index_json"] == "existing"
+        assert build_context.cache.output_format_fingerprints[cache_key] == "new"
+
 
 class TestSocialCardGeneratorTextWrapping:
     """Test text wrapping functionality."""

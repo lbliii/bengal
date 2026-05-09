@@ -1,1 +1,1 @@
-Social cards now persist rendered-input fingerprints in the build cache so full builds can reuse unchanged generated card files.
+Social cards now persist rendered-input fingerprints in the build cache so full builds can reuse unchanged generated card files without sharing the output-format fingerprint map during card generation.
