@@ -860,16 +860,13 @@ class ContentOrchestrator:
                 continue
             output_path = library_asset.logical_path
             asset_type = library_asset.asset_type
-            # Provider CSS is a standalone browser asset unless a later bundle
-            # phase explicitly opts into concatenation semantics.
-            if asset_type == "css":
-                asset_type = "other"
             self.site.assets.append(
                 Asset(
                     source_path=library_asset.source_path,
                     output_path=output_path,
                     asset_type=asset_type,
                     logical_path=output_path,
+                    standalone=asset_type == "css",
                     manifest_provenance=_library_asset_manifest_provenance(
                         library_asset,
                         sources=(library_asset,),
@@ -891,13 +888,13 @@ class ContentOrchestrator:
             bundle_dir = self.site.root_path / ".bengal" / "cache" / "library-assets"
             bundle_path = bundle_dir / logical_path
             self._write_library_asset_bundle(bundle_path, assets, asset_type)
-            output_asset_type = "other" if asset_type == "css" else "javascript"
             self.site.assets.append(
                 Asset(
                     source_path=bundle_path,
                     output_path=logical_path,
-                    asset_type=output_asset_type,
+                    asset_type=asset_type,
                     logical_path=logical_path,
+                    standalone=asset_type == "css",
                     manifest_provenance=_library_asset_manifest_provenance(
                         assets[0],
                         sources=tuple(assets),
@@ -921,7 +918,7 @@ class ContentOrchestrator:
                     asset.source_path.suffix.lower() == ".css"
                     and asset.source_path.name != "style.css"
                 ):
-                    asset.asset_type = "other"
+                    asset.standalone = True
                 self.site.assets.append(asset)
 
     def _write_library_asset_bundle(
@@ -941,7 +938,8 @@ class ContentOrchestrator:
                 chunks.append(f"{comment_open} {asset.source_path.name} {comment_close}\n{content}")
             else:
                 chunks.append(f"{comment_open} {asset.source_path.name}\n{content}")
-        atomic_write_text(bundle_path, "\n\n".join(chunks), encoding="utf-8")
+        separator = "\n\n" if asset_type == "css" else "\n;\n"
+        atomic_write_text(bundle_path, separator.join(chunks), encoding="utf-8")
 
     def _setup_page_references(self) -> None:
         """

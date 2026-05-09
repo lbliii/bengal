@@ -38,3 +38,17 @@ def test_accepts_existing_baseurl_and_relative_asset_references(tmp_path) -> Non
     missing = find_missing_local_asset_references(output, baseurl="/preview")
 
     assert missing == []
+
+
+def test_accepts_path_only_baseurl_without_false_missing_assets(tmp_path) -> None:
+    output = tmp_path / "public"
+    (output / "assets").mkdir(parents=True)
+    (output / "assets" / "app.css").write_text(".app{}", encoding="utf-8")
+    (output / "index.html").write_text(
+        '<link rel="stylesheet" href="/preview/assets/app.css">',
+        encoding="utf-8",
+    )
+
+    missing = find_missing_local_asset_references(output, baseurl="preview")
+
+    assert missing == []

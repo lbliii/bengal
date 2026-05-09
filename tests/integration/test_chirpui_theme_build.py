@@ -410,6 +410,7 @@ def test_chirpui_theme_builds_with_provider_assets(tmp_path, monkeypatch) -> Non
     css_output = site.output_dir / css_entry.output_path
     assert css_output.exists()
     assert "chirpui-transition" in css_output.read_text(encoding="utf-8")
+    assert "/* chirpui.css */" not in css_output.read_text(encoding="utf-8")
     assert css_entry.provenance == {
         "kind": "theme_library",
         "package": "chirp_ui",

@@ -92,7 +92,10 @@ def phase_postprocess(
                 {
                     "html": str(ref.html_path.relative_to(orchestrator.site.output_dir)),
                     "url": ref.url,
-                    "expected": str(ref.expected_path),
+                    "expected": _relative_output_path(
+                        ref.expected_path,
+                        orchestrator.site.output_dir,
+                    ),
                 }
                 for ref in missing_refs[:5]
             ]
@@ -125,6 +128,13 @@ def phase_postprocess(
         cli.phase("Post-process", duration_ms=orchestrator.stats.postprocess_time_ms)
 
         orchestrator.logger.info("postprocessing_complete")
+
+
+def _relative_output_path(path: Any, output_dir: Any) -> str:
+    try:
+        return str(path.relative_to(output_dir))
+    except ValueError:
+        return str(path)
 
 
 def phase_cache_save(

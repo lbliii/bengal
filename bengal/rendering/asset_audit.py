@@ -29,7 +29,7 @@ def find_missing_local_asset_references(
         return []
 
     missing: list[MissingAssetReference] = []
-    base_prefix = f"{baseurl.rstrip('/')}/" if baseurl else "/"
+    base_prefix = _normalized_base_prefix(baseurl)
     for html_path in output_dir.rglob("*.html"):
         try:
             html = html_path.read_text(encoding="utf-8")
@@ -55,6 +55,20 @@ def find_missing_local_asset_references(
                     )
                 )
     return missing
+
+
+def _normalized_base_prefix(baseurl: str) -> str:
+    base = baseurl.strip()
+    if not base:
+        return "/"
+    parsed = urlparse(base)
+    if parsed.scheme or parsed.netloc:
+        base = parsed.path
+    if not base:
+        return "/"
+    if not base.startswith("/"):
+        base = f"/{base}"
+    return f"{base.rstrip('/')}/"
 
 
 def _resolve_asset_path(path: str, html_rel: Path) -> str:

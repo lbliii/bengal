@@ -331,6 +331,25 @@ class TestResolveProvider:
         ):
             resolve_provider("fake_ui")
 
+    def test_library_contract_rejects_duplicate_non_bundle_outputs(self, tmp_path):
+        from bengal.errors.exceptions import BengalConfigError
+
+        mod = _make_library_module(
+            library_contract={
+                "asset_root": tmp_path,
+                "assets": [
+                    {"path": "ui.css", "output": "vendor.css", "mode": "link"},
+                    {"path": "theme.css", "output": "vendor.css", "mode": "link"},
+                ],
+            }
+        )
+
+        with (
+            patch("bengal.core.theme.providers.importlib.import_module", return_value=mod),
+            pytest.raises(BengalConfigError, match="duplicate asset output"),
+        ):
+            resolve_provider("fake_ui")
+
 
 class TestResolveThemeProviders:
     """Tests for resolve_theme_providers() chain accumulation."""

@@ -241,10 +241,12 @@ class AssetOrchestrator:
         else:
             self.site._asset_manifest_previous = prev_manifest
 
-        # Separate CSS entry points, CSS modules, and other assets
+        # Separate CSS entry points, CSS modules, and other assets. Standalone
+        # provider CSS remains CSS so minification still applies, but is not
+        # treated as an import-only module.
         css_entries = [a for a in assets if a.is_css_entry_point()]
         css_modules = [a for a in assets if a.is_css_module()]
-        other_assets = [a for a in assets if a.asset_type != "css"]
+        other_assets = [a for a in assets if not a.is_css_entry_point() and not a.is_css_module()]
 
         # Check if JS bundling is enabled
         assets_cfg = self.site.config_service.assets_config

@@ -357,6 +357,7 @@ def _contract_assets(
         )
 
     assets: list[LibraryAsset] = []
+    seen_logical: dict[Path, tuple[str, str]] = {}
     for entry in raw_assets:
         path_raw: Any
         output_raw: Any
@@ -414,6 +415,25 @@ def _contract_assets(
         logical_path = Path(asset_prefix) / output_path
         if not asset_type:
             asset_type = _asset_type_from_path(source_path)
+        previous = seen_logical.get(logical_path)
+        if previous is not None:
+            previous_mode, previous_type = previous
+            if mode != "bundle" or previous_mode != "bundle" or asset_type != previous_type:
+                raise BengalConfigError(
+                    f"Theme library '{package_name}' declares duplicate asset output "
+                    f"'{logical_path.as_posix()}'",
+                    code=ErrorCode.C003,
+                    suggestion=(
+                        "Use unique output paths, or use bundle mode for every asset "
+                        "that should concatenate into the same output file."
+                    ),
+                    debug_payload=_theme_library_debug_payload(
+                        package_name,
+                        hook_name="get_library_contract",
+                    ),
+                )
+        else:
+            seen_logical[logical_path] = (mode, asset_type)
         assets.append(
             LibraryAsset(
                 source_path=source_path,

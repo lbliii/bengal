@@ -51,8 +51,11 @@ def test_missing_rendered_asset_reference_warns_without_strict(tmp_path, capsys)
 
 
 def test_missing_rendered_asset_reference_fails_in_strict_mode(tmp_path) -> None:
+    from bengal.rendering.assets import resolve_asset_url
+
     _write_site_with_missing_asset_reference(tmp_path)
     site = Site.from_config(tmp_path)
+    resolve_asset_url("stale/previous-build.css", site)
 
     with pytest.raises(BengalAssetError, match=r"vendor/missing\.css"):
         site.build(BuildOptions(incremental=False, quiet=True, strict=True))

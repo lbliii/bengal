@@ -322,6 +322,12 @@ class BuildOrchestrator:
 
         reset_fast_write_tracker()
 
+        # Reset asset fallback diagnostics so strict-mode failures are scoped to
+        # the current build, not earlier tests or dev-server rebuilds.
+        from bengal.rendering.assets import drain_asset_fallback_aggregator
+
+        drain_asset_fallback_aggregator()
+
         # Create fresh BuildState for this build
         build_state = BuildState(
             build_time=self.site.build_time,
