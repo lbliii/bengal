@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from bengal.parsing.backends.patitas.roles.protocol import RoleHandler
+    from bengal.plugins.registry import FrozenPluginRegistry
 
 
 class RoleRegistry:
@@ -185,7 +186,9 @@ class RoleRegistryBuilder:
         return len(self._handlers)
 
 
-def create_default_registry() -> RoleRegistry:
+def create_default_registry(
+    plugin_registry: FrozenPluginRegistry | None = None,
+) -> RoleRegistry:
     """Create registry with all built-in roles.
 
     Returns:
@@ -212,5 +215,10 @@ def create_default_registry() -> RoleRegistry:
     builder.register(SubRole())
     builder.register(SupRole())
     builder.register(IconRole())
+
+    if plugin_registry is not None:
+        from bengal.plugins.integration import apply_plugin_roles
+
+        apply_plugin_roles(plugin_registry, builder)
 
     return builder.build()

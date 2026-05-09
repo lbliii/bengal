@@ -26,8 +26,8 @@ CAPABILITY_FIELDS = (
 # Whether each registered plugin capability is currently wired into builds.
 CAPABILITY_INTEGRATION_STATUS = MappingProxyType(
     {
-        "directives": "pending",
-        "roles": "pending",
+        "directives": "ready",
+        "roles": "ready",
         "template_functions": "ready",
         "template_filters": "ready",
         "template_tests": "ready",
@@ -40,8 +40,8 @@ CAPABILITY_INTEGRATION_STATUS = MappingProxyType(
 
 CAPABILITY_NOTES = MappingProxyType(
     {
-        "directives": "Registered, but directive builder plugin hooks are not wired yet.",
-        "roles": "Registered, but role builder plugin hooks are not wired yet.",
+        "directives": "Applied to the Patitas directive registry during parser setup.",
+        "roles": "Applied to the Patitas role registry during parser setup.",
         "template_functions": "Applied to template environments during registration.",
         "template_filters": "Applied to template environments during registration.",
         "template_tests": "Applied to template environments during registration.",
