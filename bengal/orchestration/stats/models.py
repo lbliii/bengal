@@ -75,6 +75,7 @@ class BuildStats:
     incremental: bool = False
     skipped: bool = False
     dry_run: bool = False
+    completion_policy: str = "complete"
 
     # Directive statistics
     total_directives: int = 0
@@ -400,6 +401,7 @@ class BuildStats:
             "parallel": self.parallel,
             "incremental": self.incremental,
             "skipped": self.skipped,
+            "completion_policy": self.completion_policy,
             # Phase timings
             "fonts_time_ms": self.fonts_time_ms,
             "discovery_time_ms": self.discovery_time_ms,

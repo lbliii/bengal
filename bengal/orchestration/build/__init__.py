@@ -278,6 +278,7 @@ class BuildOrchestrator:
         # Initialize stats (incremental may be None, resolve later)
         self.stats = BuildStats(parallel=False, incremental=bool(incremental))
         self.stats.strict_mode = strict
+        self.stats.completion_policy = options.completion_policy.value
 
         logger.info(
             "build_start",

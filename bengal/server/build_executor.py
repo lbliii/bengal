@@ -94,6 +94,7 @@ class BuildRequest:
         explain: Show detailed incremental build decisions
         dry_run: Preview build without writing files
         profile_templates: Enable template profiling
+        completion_policy: Serialized BuildCompletionPolicy value
 
     """
 
@@ -109,6 +110,7 @@ class BuildRequest:
     explain: bool = False
     dry_run: bool = False
     profile_templates: bool = False
+    completion_policy: str = "complete"
 
 
 @dataclass(frozen=True, slots=True)

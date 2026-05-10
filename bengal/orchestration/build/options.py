@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -27,6 +28,25 @@ if TYPE_CHECKING:
 # on_phase_complete receives: (phase_name, duration_ms, details)
 type PhaseStartCallback = Callable[[str], None]
 type PhaseCompleteCallback = Callable[[str, float, str], None]
+
+
+class BuildCompletionPolicy(StrEnum):
+    """Which build products must finish before a build is considered ready."""
+
+    COMPLETE = "complete"
+    SERVE_READY = "serve_ready"
+
+    @classmethod
+    def from_value(cls, value: str | BuildCompletionPolicy | None) -> BuildCompletionPolicy:
+        """Normalize serialized policy values."""
+        if isinstance(value, cls):
+            return value
+        if value is None:
+            return cls.COMPLETE
+        try:
+            return cls(str(value))
+        except ValueError:
+            return cls.COMPLETE
 
 
 @dataclass
@@ -59,6 +79,7 @@ class BuildOptions:
         changed_sources: Set of paths to content files that changed (for dev server)
         nav_changed_sources: Set of paths to nav-affecting files that changed
         structural_changed: Whether structural changes occurred (file create/delete/move)
+        completion_policy: Which build products must complete before readiness
 
     Example:
             >>> # Preferred: Use resolver for proper precedence
@@ -82,6 +103,7 @@ class BuildOptions:
     verbose: bool = False
     quiet: bool = False
     memory_optimized: bool = False
+    completion_policy: BuildCompletionPolicy = BuildCompletionPolicy.COMPLETE
 
     # Output behavior
     strict: bool = False

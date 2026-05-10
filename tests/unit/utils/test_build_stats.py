@@ -260,6 +260,7 @@ class TestBuildStatsToDict:
         assert result["build_time_ms"] == 1000.0
         assert "parallel" in result
         assert "incremental" in result
+        assert result["completion_policy"] == "complete"
 
 
 class TestFormatTime:

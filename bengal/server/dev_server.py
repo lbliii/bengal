@@ -317,11 +317,15 @@ class DevServer:
 
                 # Initial build (process-isolated for clean Ctrl+C shutdown)
                 show_building_indicator("Initial build")
-                from bengal.orchestration.build.options import BuildOptions
+                from bengal.orchestration.build.options import (
+                    BuildCompletionPolicy,
+                    BuildOptions,
+                )
 
                 build_opts = BuildOptions(
                     profile=BuildProfile.WRITER,
                     incremental=not baseurl_was_cleared,
+                    completion_policy=BuildCompletionPolicy.SERVE_READY,
                 )
                 stats = self._run_build_via_executor(build_opts, "Initial build")
                 display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
@@ -553,6 +557,7 @@ class DevServer:
             incremental=incremental,
             profile=profile_str,
             version_scope=self.version_scope,
+            completion_policy=build_opts.completion_policy.value,
         )
         executor = BuildExecutor(max_workers=1)
         try:

@@ -379,7 +379,7 @@ class BuildTrigger:
 
             # Warm build: reuse the existing site object instead of creating a new one
             # This eliminates Site.from_config() overhead (~250ms per rebuild)
-            from bengal.orchestration.build.options import BuildOptions
+            from bengal.orchestration.build.options import BuildCompletionPolicy, BuildOptions
             from bengal.utils.observability.profile import BuildProfile
 
             # Reset all per-build mutable state in one call.
@@ -392,6 +392,7 @@ class BuildTrigger:
                 force_sequential=False,  # Auto-detect based on page count
                 incremental=use_incremental,
                 profile=BuildProfile.WRITER,
+                completion_policy=BuildCompletionPolicy.SERVE_READY,
                 changed_sources={Path(p) for p in changed_files} if changed_files else None,
                 nav_changed_sources=nav_changed_files,
                 structural_changed=structural_changed,

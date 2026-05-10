@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from bengal.cache import BuildCache
+from bengal.orchestration.build.options import BuildCompletionPolicy
 from bengal.orchestration.stats import ReloadHint
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.reload_types import BuildReloadInfo, SerializedOutputRecord
@@ -716,6 +717,7 @@ class TestBuildTriggerIntegration:
         mock_site.build.assert_called_once()
         build_opts = mock_site.build.call_args[1]["options"]
         assert Path("test.md") in build_opts.changed_sources
+        assert build_opts.completion_policy is BuildCompletionPolicy.SERVE_READY
 
 
 class TestBuildTriggerCaching:
