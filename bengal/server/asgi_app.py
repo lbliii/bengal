@@ -50,6 +50,36 @@ _DEFERRED_GENERATED_ARTIFACT_NAMES = frozenset(
     }
 )
 
+_POUNCE_STATIC_ASSET_EXTENSIONS = frozenset(
+    {
+        ".avif",
+        ".css",
+        ".eot",
+        ".gif",
+        ".ico",
+        ".jpeg",
+        ".jpg",
+        ".js",
+        ".map",
+        ".mjs",
+        ".mp3",
+        ".mp4",
+        ".ogg",
+        ".otf",
+        ".pdf",
+        ".png",
+        ".svg",
+        ".ttf",
+        ".wasm",
+        ".wav",
+        ".webm",
+        ".webmanifest",
+        ".webp",
+        ".woff",
+        ".woff2",
+    }
+)
+
 
 def create_bengal_dev_app(
     *,
@@ -83,6 +113,7 @@ def create_bengal_dev_app(
         ASGI application callable
     """
     _resolve_dir: Callable[[], Path] = output_dir if callable(output_dir) else lambda: output_dir
+    _static_asset_handlers: dict[Path, ASGIApp] = {}
 
     async def app(scope: dict[str, Any], receive: Any, send: Any) -> None:
         if scope.get("type") != "http":
@@ -98,6 +129,17 @@ def create_bengal_dev_app(
         # Snapshot the serving directory once per request so all file reads
         # within this request use the same buffer (double-buffer consistency).
         serving_dir = _resolve_dir()
+
+        if method in {"GET", "HEAD"} and _should_delegate_to_pounce_static(path):
+            served = await _serve_pounce_static_asset(
+                scope,
+                receive,
+                send,
+                output_dir=serving_dir,
+                static_asset_handlers=_static_asset_handlers,
+            )
+            if served:
+                return
 
         if method == "GET":
             # Content negotiation: serve .md when Accept prefers text/markdown
@@ -122,6 +164,48 @@ def create_bengal_dev_app(
     if request_callback is not None:
         return _request_logging_middleware(app, request_callback)
     return app
+
+
+def _should_delegate_to_pounce_static(path: str) -> bool:
+    """True when a request can use Pounce's optimized static asset handler."""
+    raw_path = path.split("?", 1)[0].lower()
+    if is_deferred_generated_artifact_path(raw_path) or _is_html_path(raw_path):
+        return False
+    return any(raw_path.endswith(ext) for ext in _POUNCE_STATIC_ASSET_EXTENSIONS)
+
+
+async def _serve_pounce_static_asset(
+    scope: dict[str, Any],
+    receive: Any,
+    send: Any,
+    *,
+    output_dir: Path,
+    static_asset_handlers: dict[Path, ASGIApp],
+) -> bool:
+    """Serve static assets through Pounce when the active output dir exists."""
+    try:
+        key = output_dir.resolve()
+    except OSError:
+        return False
+
+    if not key.is_dir():
+        return False
+
+    handler = static_asset_handlers.get(key)
+    if handler is None:
+        from pounce import create_static_handler
+
+        handler = create_static_handler(
+            {"/": str(key)},
+            cache_control="no-cache, must-revalidate",
+            precompressed=True,
+            follow_symlinks=False,
+            index_file="index.html",
+        )
+        static_asset_handlers[key] = handler
+
+    await handler(scope, receive, send)
+    return True
 
 
 def _prefers_markdown(accept: str) -> bool:

@@ -6,6 +6,7 @@ SSE endpoint streams live reload events; static files served with HTML injection
 
 from __future__ import annotations
 
+import gzip
 from typing import TYPE_CHECKING
 
 import pytest
@@ -29,6 +30,16 @@ def _make_send_capture() -> tuple[list[dict], object]:
         sent.append(message)
 
     return sent, send
+
+
+def _headers(message: dict) -> dict[bytes, bytes]:
+    return {name.lower(): value for name, value in message["headers"]}
+
+
+def _body(sent: list[dict]) -> bytes:
+    return b"".join(
+        message.get("body", b"") for message in sent if message.get("type") == "http.response.body"
+    )
 
 
 @pytest.mark.asyncio
@@ -130,7 +141,108 @@ async def test_get_static_asset_serves_file(tmp_path: Path) -> None:
 
     assert sent[0]["status"] == 200
     assert any(h[0] == b"content-type" and b"text/css" in h[1] for h in sent[0]["headers"])
-    assert sent[1]["body"] == b"body { color: red; }"
+    assert _body(sent) == b"body { color: red; }"
+
+
+@pytest.mark.asyncio
+async def test_static_asset_uses_pounce_etag_and_304(tmp_path: Path) -> None:
+    """Static assets use Pounce conditional request handling."""
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "style.css").write_text("body { color: red; }")
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+
+    first, first_send = _make_send_capture()
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/assets/style.css"},
+        receive=_noop_receive,
+        send=first_send,
+    )
+
+    first_headers = _headers(first[0])
+    etag = first_headers[b"etag"]
+    assert first[0]["status"] == 200
+    assert first_headers[b"accept-ranges"] == b"bytes"
+    assert first_headers[b"cache-control"] == b"no-cache, must-revalidate"
+
+    second, second_send = _make_send_capture()
+    await app(
+        scope={
+            "type": "http",
+            "method": "GET",
+            "path": "/assets/style.css",
+            "headers": [(b"if-none-match", etag)],
+        },
+        receive=_noop_receive,
+        send=second_send,
+    )
+
+    assert second[0]["status"] == 304
+    assert _body(second) == b""
+
+
+@pytest.mark.asyncio
+async def test_static_asset_range_request_returns_partial_content(tmp_path: Path) -> None:
+    """Static assets use Pounce range request handling."""
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "app.js").write_text("0123456789")
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={
+            "type": "http",
+            "method": "GET",
+            "path": "/assets/app.js",
+            "headers": [(b"range", b"bytes=2-5")],
+        },
+        receive=_noop_receive,
+        send=send,
+    )
+
+    headers = _headers(sent[0])
+    assert sent[0]["status"] == 206
+    assert headers[b"content-range"] == b"bytes 2-5/10"
+    assert _body(sent) == b"2345"
+
+
+@pytest.mark.asyncio
+async def test_static_asset_serves_precompressed_gzip_variant(tmp_path: Path) -> None:
+    """Static assets use Pounce precompressed variant negotiation."""
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "style.css").write_text("body { color: red; }")
+    gz_body = gzip.compress(b"body { color: red; }")
+    (assets / "style.css.gz").write_bytes(gz_body)
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={
+            "type": "http",
+            "method": "GET",
+            "path": "/assets/style.css",
+            "headers": [(b"accept-encoding", b"gzip")],
+        },
+        receive=_noop_receive,
+        send=send,
+    )
+
+    headers = _headers(sent[0])
+    assert sent[0]["status"] == 200
+    assert headers[b"content-encoding"] == b"gzip"
+    assert headers[b"vary"].lower() == b"accept-encoding"
+    assert _body(sent) == gz_body
 
 
 @pytest.mark.asyncio
@@ -391,6 +503,33 @@ async def test_callable_output_dir_resolves_per_request(tmp_path: Path) -> None:
     await app(scope=scope, receive=_noop_receive, send=send2)
     body_b = sent2[1]["body"]
     assert b"buffer-b" in body_b
+
+
+@pytest.mark.asyncio
+async def test_static_asset_callable_output_dir_resolves_per_request(tmp_path: Path) -> None:
+    """Pounce-backed static assets still follow double-buffer swaps."""
+    dir_a = tmp_path / "a"
+    dir_b = tmp_path / "b"
+    (dir_a / "assets").mkdir(parents=True)
+    (dir_b / "assets").mkdir(parents=True)
+    (dir_a / "assets" / "style.css").write_text("body { color: red; }")
+    (dir_b / "assets" / "style.css").write_text("body { color: blue; }")
+
+    current = [dir_a]
+    app = create_bengal_dev_app(
+        output_dir=lambda: current[0],
+        build_in_progress=lambda: False,
+    )
+    scope = {"type": "http", "method": "GET", "path": "/assets/style.css"}
+
+    sent, send = _make_send_capture()
+    await app(scope=scope, receive=_noop_receive, send=send)
+    assert _body(sent) == b"body { color: red; }"
+
+    current[0] = dir_b
+    sent2, send2 = _make_send_capture()
+    await app(scope=scope, receive=_noop_receive, send=send2)
+    assert _body(sent2) == b"body { color: blue; }"
 
 
 # ---------------------------------------------------------------------------
