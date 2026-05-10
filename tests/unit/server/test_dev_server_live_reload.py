@@ -11,12 +11,15 @@ from __future__ import annotations
 import errno
 import socket
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
 from bengal.assets.manifest import AssetManifest
+from bengal.orchestration.build.options import BuildCompletionPolicy
 from bengal.server.dev_server import DevServer
+from bengal.utils.observability.profile import BuildProfile
+from bengal.utils.stats_minimal import MinimalStats
 
 
 class TestDevServerContentHashCacheSeeding:
@@ -42,6 +45,7 @@ class TestDevServerContentHashCacheSeeding:
             patch.object(DevServer, "_create_server") as mock_create,
             patch.object(DevServer, "_create_watcher") as mock_create_watcher,
             patch.object(DevServer, "_init_reload_controller"),
+            patch.object(DevServer, "_start_background_completion_build") as mock_background,
             patch(
                 "bengal.server.dev_server.PIDManager.get_pid_file", return_value=tmp_path / "pid"
             ),
@@ -70,6 +74,44 @@ class TestDevServerContentHashCacheSeeding:
             assert call_args == list(site.pages), (
                 "seed_content_hash_cache should be called with list(site.pages)"
             )
+            mock_background.assert_called_once_with(
+                ANY,
+                watcher_runner=mock_watcher,
+            )
+            mock_watcher.start.assert_not_called()
+
+    def test_background_completion_runs_complete_policy_then_starts_watcher(
+        self, tmp_path: Path
+    ) -> None:
+        """Background completion should finish deferred work before watching edits."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.output_dir.mkdir()
+        site.config = {}
+        site.pages = []
+        mock_watcher = MagicMock()
+        stats = MinimalStats(total_pages=1, build_time_ms=10.0, incremental=True)
+
+        server = DevServer(site, watch=False, auto_port=False)
+
+        with (
+            patch.object(server, "_run_build_via_executor", return_value=stats) as mock_build,
+            patch.object(server, "_clear_html_cache_after_build"),
+            patch.object(server, "_set_active_palette"),
+            patch.object(server, "_init_reload_controller"),
+            patch("bengal.server.dev_server.display_build_stats"),
+        ):
+            thread = server._start_background_completion_build(
+                BuildProfile.WRITER,
+                watcher_runner=mock_watcher,
+            )
+            thread.join(timeout=2)
+
+        assert not thread.is_alive()
+        build_opts = mock_build.call_args.args[0]
+        assert build_opts.completion_policy is BuildCompletionPolicy.COMPLETE
+        mock_watcher.start.assert_called_once()
 
 
 class TestDevServerServeFirstWatcherOrder:

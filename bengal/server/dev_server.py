@@ -356,15 +356,14 @@ class DevServer:
                 rm.register_sse_shutdown()
                 actual_port = backend.port
 
-                # Start file watcher if enabled
+                watcher_runner = None
+                build_trigger = None
                 if self.watch:
                     watcher_runner, build_trigger = self._create_watcher(actual_port)
                     rm.register_watcher_runner(watcher_runner)
                     rm.register_build_trigger(build_trigger)
                     # Seed content hash cache so first edit can use reactive path
                     build_trigger.seed_content_hash_cache(list(self.site.pages))
-                    watcher_runner.start()
-                    logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
 
                 # Print startup message
                 self._print_startup_message(actual_port)
@@ -381,6 +380,15 @@ class DevServer:
                 # Open browser when server is ready (runs in background thread)
                 if self.open_browser:
                     self._open_browser_when_ready(actual_port)
+
+                if build_opts.completion_policy is BuildCompletionPolicy.SERVE_READY:
+                    self._start_background_completion_build(
+                        BuildProfile.WRITER,
+                        watcher_runner=watcher_runner,
+                    )
+                elif watcher_runner is not None:
+                    watcher_runner.start()
+                    logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
 
                 # Run until interrupted
                 try:
@@ -569,6 +577,51 @@ class DevServer:
             return MinimalStats.from_build_result(result, incremental=incremental)
         finally:
             executor.shutdown(wait=True)
+
+    def _start_background_completion_build(
+        self,
+        profile: Any,
+        *,
+        watcher_runner: WatcherRunner | None = None,
+    ) -> threading.Thread:
+        """Finish non-browse-critical build work without blocking server startup."""
+        from bengal.orchestration.build.options import BuildCompletionPolicy, BuildOptions
+        from bengal.orchestration.stats import show_error
+
+        def run_completion() -> None:
+            cli = get_cli_output()
+            cli.detail("completing artifacts and health checks in background...", indent=1)
+            try:
+                build_opts = BuildOptions(
+                    profile=profile,
+                    incremental=True,
+                    completion_policy=BuildCompletionPolicy.COMPLETE,
+                )
+                stats = self._run_build_via_executor(build_opts, "Background completion")
+                display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
+                self._clear_html_cache_after_build()
+                self._set_active_palette()
+                self._init_reload_controller()
+                cli.success("Background completion finished")
+            except BengalServerError as exc:
+                show_error(f"Background completion failed: {exc}", show_art=False)
+                logger.warning(
+                    "background_completion_failed",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                )
+            finally:
+                if watcher_runner is not None:
+                    watcher_runner.start()
+                    logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
+
+        thread = threading.Thread(
+            target=run_completion,
+            name="bengal-background-completion",
+            daemon=True,
+        )
+        thread.start()
+        return thread
 
     def _clear_html_cache_after_build(self) -> None:
         """Clear HTML injection cache after a build to ensure fresh pages."""
