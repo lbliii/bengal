@@ -99,6 +99,7 @@ class TestReactiveContentHandler:
         page._raw_content = "---\ntitle: Test\n---\nBody"
         page.html_content = "<p>Body</p>"
         page.output_path = output_path
+        page._section = None
         mock_site.pages = [page]
         mock_site.output_dir = output_dir
 
