@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.health.scope import get_validation_scope
 from bengal.utils.autodoc import is_autodoc_page
 from bengal.utils.observability.logger import get_logger
 
@@ -97,6 +98,7 @@ class DirectiveAnalyzer:
             "completeness_errors": [],
             "performance_warnings": [],
             "fence_nesting_warnings": [],
+            "_analyzed_paths": [],
         }
 
         # Use cached content if available (build-integrated validation)
@@ -112,12 +114,16 @@ class DirectiveAnalyzer:
         skip_no_path = 0
         skip_generated = 0
         skip_autodoc = 0
-        skip_no_changes = 0
+        skip_unscoped = 0
         cache_hits = 0
         disk_reads = 0
+        scope = get_validation_scope(build_context)
+        pages_to_analyze = scope.pages_to_validate(site) if scope is not None else list(site.pages)
+        if scope is not None:
+            skip_unscoped = max(0, len(site.pages) - len(pages_to_analyze))
 
         # Analyze each page's source content
-        for page in site.pages:
+        for page in pages_to_analyze:
             if not page.source_path or not page.source_path.exists():
                 skip_no_path += 1
                 continue
@@ -132,22 +138,8 @@ class DirectiveAnalyzer:
                 skip_autodoc += 1
                 continue
 
-            # Incremental fast path: when build context provides changed pages, only analyze those.
-            # This keeps dev-server rebuilds fast when only templates/assets changed.
-            if (
-                build_context is not None
-                and getattr(build_context, "incremental", False)
-                and hasattr(build_context, "changed_page_paths")
-            ):
-                changed_page_paths = getattr(build_context, "changed_page_paths", None)
-                if (
-                    isinstance(changed_page_paths, set)
-                    and page.source_path not in changed_page_paths
-                ):
-                    skip_no_changes += 1
-                    continue
-
             pages_processed += 1
+            data["_analyzed_paths"].append(page.source_path)
 
             try:
                 # Use cached content if available (eliminates disk I/O)
@@ -237,7 +229,7 @@ class DirectiveAnalyzer:
                 "no_path": skip_no_path,
                 "generated": skip_generated,
                 "autodoc": skip_autodoc,
-                "no_changes": skip_no_changes,
+                "unscoped": skip_unscoped,
             },
             "cache_hits": cache_hits,
             "cache_misses": disk_reads,

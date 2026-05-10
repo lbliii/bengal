@@ -17,6 +17,7 @@ Structure:
 from __future__ import annotations
 
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, override
 
 from bengal.health.base import BaseValidator
@@ -89,6 +90,7 @@ class DirectiveValidator(BaseValidator):
 
     # Store stats from last validation for observability
     last_stats: ValidatorStats | None = None
+    last_file_results: dict[Path, list[CheckResult]] | None = None
 
     @override
     def validate(self, site: SiteLike, build_context: Any = None) -> list[CheckResult]:
@@ -109,6 +111,7 @@ class DirectiveValidator(BaseValidator):
         """
         results = []
         sub_timings: dict[str, float] = {}
+        self.last_file_results = None
 
         # Gather all directive data from source files
         # Uses cached content if build_context is provided (build-integrated validation)
@@ -131,6 +134,7 @@ class DirectiveValidator(BaseValidator):
         t3 = time.time()
         results.extend(check_directive_performance(directive_data))
         sub_timings["performance"] = (time.time() - t3) * 1000
+        self.last_file_results = _file_results_by_source(directive_data)
 
         # Note: Rendering validation (H207) was removed - it parsed all HTML output
         # files which took ~1.2s and never caught any issues. Syntax validation (H201)
@@ -158,3 +162,48 @@ class DirectiveValidator(BaseValidator):
         )
 
         return results
+
+
+def _file_results_by_source(directive_data: dict[str, Any]) -> dict[Path, list[CheckResult]]:
+    """Build per-source directive results for incremental health caching."""
+    results_by_source: dict[Path, list[CheckResult]] = {}
+    for source_path in directive_data.get("_analyzed_paths", []):
+        if not isinstance(source_path, Path):
+            continue
+        file_data = _directive_data_for_source(directive_data, source_path)
+        results: list[CheckResult] = []
+        results.extend(check_directive_syntax(file_data))
+        results.extend(check_directive_completeness(file_data))
+        results.extend(check_directive_performance(file_data))
+        results_by_source[source_path] = results
+    return results_by_source
+
+
+def _directive_data_for_source(directive_data: dict[str, Any], source_path: Path) -> dict[str, Any]:
+    """Filter aggregate directive data down to one source path."""
+    source_key = str(source_path)
+    return {
+        "total_directives": len(directive_data.get("by_page", {}).get(source_key, [])),
+        "by_type": {},
+        "by_page": {source_key: directive_data.get("by_page", {}).get(source_key, [])},
+        "syntax_errors": [
+            item
+            for item in directive_data.get("syntax_errors", [])
+            if item.get("page") == source_path
+        ],
+        "completeness_errors": [
+            item
+            for item in directive_data.get("completeness_errors", [])
+            if item.get("page") == source_path
+        ],
+        "performance_warnings": [
+            item
+            for item in directive_data.get("performance_warnings", [])
+            if item.get("page") == source_path
+        ],
+        "fence_nesting_warnings": [
+            item
+            for item in directive_data.get("fence_nesting_warnings", [])
+            if item.get("page") == source_path
+        ],
+    }
