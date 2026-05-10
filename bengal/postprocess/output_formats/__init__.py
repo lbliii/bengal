@@ -145,6 +145,7 @@ class OutputFormatsGenerator:
         self.graph_data = graph_data
         self._graph_data_provider = graph_data_provider
         self._graph_data_loaded = graph_data is not None
+        self._pending_site_wide_page_hashes: dict[str, dict[str, str]] = {}
         self.build_context = build_context
 
     def _normalize_config(self, config: dict[str, Any]) -> dict[str, Any]:
@@ -626,6 +627,7 @@ class OutputFormatsGenerator:
             and fingerprints.get(format_name) == fingerprint
         )
         if can_skip:
+            self._pending_site_wide_page_hashes.pop(format_name, None)
             timings[format_name] = 0.0
             stats = getattr(self.build_context, "stats", None)
             if stats is not None:
@@ -642,6 +644,13 @@ class OutputFormatsGenerator:
         result = self._timed_generate(timings, format_name, generate_fn)
         if fingerprint is not None and isinstance(fingerprints, dict):
             fingerprints[format_name] = fingerprint
+            page_hashes = self._pending_site_wide_page_hashes.pop(format_name, None)
+            if page_hashes is not None:
+                fingerprints[_page_hash_manifest_key(format_name)] = json.dumps(
+                    page_hashes,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                )
         return result
 
     def _generate_search_backend_if_needed(
@@ -712,25 +721,44 @@ class OutputFormatsGenerator:
         if not accumulated_data:
             return None
 
-        by_source = {data.source_path: data for data in accumulated_data}
-        records = []
+        cache = getattr(self.build_context, "cache", None)
+        fingerprints = getattr(cache, "output_format_fingerprints", None)
+        if not isinstance(fingerprints, dict):
+            return None
+
+        prior_hashes = _load_page_hash_manifest(
+            fingerprints.get(_page_hash_manifest_key(format_name))
+        )
+        changed_keys = self._changed_page_source_keys()
+        data_by_source = _accumulated_data_by_source(self.site, accumulated_data)
+        page_hashes: dict[str, str] = {}
+
         for page in pages:
             source_path = getattr(page, "source_path", None)
             if not source_path:
                 return None
-            data = by_source.get(source_path)
+            source_key = _source_manifest_key(self.site, source_path)
+            lookup_keys = _source_lookup_keys(self.site, source_path)
+            prior_hash = prior_hashes.get(source_key)
+            if prior_hash is not None and not (lookup_keys & changed_keys):
+                page_hashes[source_key] = prior_hash
+                continue
+
+            data = _lookup_accumulated_data(data_by_source, lookup_keys)
             if data is None:
                 return None
-            records.append(_fingerprint_page_artifact(data))
+            page_hashes[source_key] = _hash_page_artifact(data)
 
         payload = {
             "format": format_name,
             "options": options,
             "site": _site_fingerprint(self.site),
-            "pages": records,
+            "pages": sorted(page_hashes.items()),
         }
         encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
-        return hashlib.sha256(encoded).hexdigest()
+        fingerprint = hashlib.sha256(encoded).hexdigest()
+        self._pending_site_wide_page_hashes[format_name] = page_hashes
+        return fingerprint
 
     def _expected_site_wide_outputs(self, format_name: str) -> list[Path] | None:
         """Return outputs that must exist before a site-wide generator can be skipped."""
@@ -911,12 +939,85 @@ def _path_matches(path: Path | str, keys: set[str]) -> bool:
     return bool(_path_keys(path) & keys)
 
 
+def _source_manifest_key(site: SiteLike, source_path: Path | str) -> str:
+    """Return a stable source key for persisted per-page aggregate hashes."""
+    path = Path(source_path)
+    root_path = getattr(site, "root_path", None)
+    if path.is_absolute() and root_path is not None:
+        with suppress(ValueError):
+            return str(path.relative_to(root_path))
+    return str(path)
+
+
+def _source_lookup_keys(site: SiteLike, source_path: Path | str) -> set[str]:
+    """Return relative and absolute source variants for artifact lookup."""
+    path = Path(source_path)
+    keys = _path_keys(path)
+    root_path = getattr(site, "root_path", None)
+    if root_path is not None:
+        if path.is_absolute():
+            with suppress(ValueError):
+                keys.update(_path_keys(path.relative_to(root_path)))
+        else:
+            keys.update(_path_keys(root_path / path))
+    return keys
+
+
+def _accumulated_data_by_source(site: SiteLike, accumulated_data: list[Any]) -> dict[str, Any]:
+    """Index accumulated page data by normalized source path variants."""
+    by_source: dict[str, Any] = {}
+    for data in accumulated_data:
+        source_path = getattr(data, "source_path", None)
+        if source_path is None:
+            continue
+        for key in _source_lookup_keys(site, source_path):
+            by_source[key] = data
+    return by_source
+
+
+def _lookup_accumulated_data(data_by_source: dict[str, Any], lookup_keys: set[str]) -> Any | None:
+    """Return accumulated data matching any source path variant."""
+    for key in lookup_keys:
+        data = data_by_source.get(key)
+        if data is not None:
+            return data
+    return None
+
+
 def _fingerprint_page_artifact(data: Any) -> dict[str, Any]:
     """Return stable page artifact fields that affect site-wide output formats."""
     from bengal.rendering.page_artifact import PageArtifact
 
     artifact = data if isinstance(data, PageArtifact) else PageArtifact.from_accumulated(data)
     return artifact.fingerprint_record()
+
+
+def _hash_page_artifact(data: Any) -> str:
+    """Hash a page artifact fingerprint record for aggregate manifests."""
+    encoded = json.dumps(
+        _fingerprint_page_artifact(data),
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _page_hash_manifest_key(format_name: str) -> str:
+    """Return the cache key for a format's per-page aggregate hash manifest."""
+    return f"{format_name}:page_hashes"
+
+
+def _load_page_hash_manifest(value: Any) -> dict[str, str]:
+    """Load a persisted per-page hash manifest, falling back to empty on mismatch."""
+    if not isinstance(value, str) or not value:
+        return {}
+    try:
+        loaded = json.loads(value)
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(loaded, dict):
+        return {}
+    return {str(key): str(hash_value) for key, hash_value in loaded.items()}
 
 
 def _site_fingerprint(site: SiteLike) -> dict[str, Any]:

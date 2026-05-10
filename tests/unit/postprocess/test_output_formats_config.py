@@ -674,6 +674,56 @@ class TestConfigNormalizationEdgeCases:
         assert result == output_dir / "index.json"
         assert stats.postprocess_output_timings_ms["site_index_json"] == 0.0
 
+    def test_site_wide_fingerprint_reuses_prior_page_hashes(self, tmp_path: Path) -> None:
+        """Unchanged pages reuse small per-page hashes instead of rehashing artifacts."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page_a = self._create_mock_page(
+            title="A",
+            url="/a/",
+            content="A",
+            output_path=output_dir / "a/index.html",
+        )
+        page_b = self._create_mock_page(
+            title="B",
+            url="/b/",
+            content="B",
+            output_path=output_dir / "b/index.html",
+        )
+        page_a.source_path = Path("content/a.md")
+        page_b.source_path = Path("content/b.md")
+        cache = BuildCache(site_root=tmp_path)
+        cache.output_format_fingerprints["site_index_json:page_hashes"] = '{"content/a.md":"old-a"}'
+        build_context = SimpleNamespace(
+            incremental=True,
+            cache=cache,
+            stats=BuildStats(),
+            pages_to_build=[page_b],
+        )
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
+        data = [
+            _accumulated_page_data(Path("content/a.md"), "/a/"),
+            _accumulated_page_data(Path("content/b.md"), "/b/"),
+        ]
+
+        with patch(
+            "bengal.postprocess.output_formats._fingerprint_page_artifact",
+            return_value={"uri": "/b/"},
+        ) as fingerprint_page:
+            fingerprint = generator._site_wide_input_fingerprint(
+                "site_index_json", [page_a, page_b], data, {"json_indent": None}
+            )
+
+        assert fingerprint is not None
+        fingerprint_page.assert_called_once()
+        assert generator._pending_site_wide_page_hashes["site_index_json"]["content/a.md"] == (
+            "old-a"
+        )
+        assert "content/b.md" in generator._pending_site_wide_page_hashes["site_index_json"]
+
     def test_changelog_site_wide_generation_does_not_skip_on_matching_fingerprint(
         self, tmp_path: Path
     ) -> None:
