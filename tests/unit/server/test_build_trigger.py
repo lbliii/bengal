@@ -53,6 +53,17 @@ class TestBuildTrigger:
         assert trigger.port == 5173
         assert trigger._executor is mock_executor
 
+    def test_skips_content_hash_baseline_for_typed_watcher_rebuild(
+        self, mock_site: MagicMock, mock_executor: MagicMock
+    ) -> None:
+        """Normal watcher rebuilds use typed outputs instead of pre-build tree scans."""
+        controller = MagicMock()
+        controller._use_content_hashes = True
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor, controller=controller)
+
+        assert trigger._should_capture_content_hash_baseline(["content/page.md"]) is False
+        assert trigger._should_capture_content_hash_baseline([]) is True
+
     def test_openapi_ref_dependency_triggers_autodoc_regeneration(
         self, mock_executor: MagicMock, tmp_path: Path
     ) -> None:

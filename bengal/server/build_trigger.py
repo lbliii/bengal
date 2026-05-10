@@ -86,6 +86,8 @@ from bengal.utils.paths.normalize import to_posix
 from bengal.utils.stats_minimal import MinimalStats
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.server.buffer_manager import BufferManager
     from bengal.server.reload_protocols import ReloadNotifier
 
@@ -295,7 +297,7 @@ class BuildTrigger:
 
             # RFC: Output Cache Architecture - Capture content hash baseline BEFORE build
             # This enables accurate change detection vs regeneration noise
-            if self._reload_controller._use_content_hashes:
+            if self._should_capture_content_hash_baseline(changed_files):
                 self._reload_controller.capture_content_hash_baseline(self.site.output_dir)
 
             # Run pre-build hooks
@@ -1469,7 +1471,11 @@ class BuildTrigger:
                 reason=decision.reason,
                 source=decision_source,
             )
-            self._reload_notifier.send(decision.action, decision.reason, decision.changed_paths)
+        self._reload_notifier.send(decision.action, decision.reason, decision.changed_paths)
+
+    def _should_capture_content_hash_baseline(self, changed_files: Sequence[str]) -> bool:
+        """Return whether this build still needs pre-build output hash scanning."""
+        return self._reload_controller._use_content_hashes and not changed_files
 
     def _set_build_in_progress(self, building: bool) -> None:
         """Signal build state to shared registry (handler and ASGI app read from it)."""
