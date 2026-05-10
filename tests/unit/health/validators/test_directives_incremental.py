@@ -6,17 +6,16 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.health.scope import ValidationScope, with_validation_scope
 from bengal.health.validators.directives.analysis import DirectiveAnalyzer
-from bengal.orchestration.build_context import BuildContext
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-def test_directive_analyzer_skips_unchanged_pages_in_incremental_mode(tmp_path: Path) -> None:
+def test_directive_analyzer_uses_shared_validation_scope(tmp_path: Path) -> None:
     """
-    When incremental mode is enabled and changed_page_paths is empty, directive analysis should
-    skip all pages (no disk reads / parsing work).
+    Directive analysis scopes through ValidationScope instead of private changed-page skips.
 
     """
     # Arrange: create 2 content files and fake pages pointing at them
@@ -36,13 +35,16 @@ def test_directive_analyzer_skips_unchanged_pages_in_incremental_mode(tmp_path: 
     site = type("S", (), {})()
     site.pages = [page_a, page_b]
 
-    ctx = BuildContext(incremental=True, changed_page_paths=set())
+    ctx = with_validation_scope(
+        None,
+        ValidationScope(incremental=True, files_to_validate=frozenset({a})),
+    )
 
     # Act
     data = DirectiveAnalyzer().analyze(site, build_context=ctx)
 
-    # Assert: nothing processed, everything skipped by no_changes
+    # Assert: only the scoped file is processed.
     stats = data.get("_stats") or {}
-    assert stats.get("pages_processed") == 0
-    skipped = (stats.get("pages_skipped") or {}).get("no_changes")
-    assert skipped == 2
+    assert stats.get("pages_processed") == 1
+    skipped = (stats.get("pages_skipped") or {}).get("unscoped")
+    assert skipped == 1

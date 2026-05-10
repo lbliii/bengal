@@ -64,6 +64,7 @@ Related:
 from __future__ import annotations
 
 import hashlib
+import json
 from datetime import datetime
 from typing import TYPE_CHECKING
 
@@ -153,12 +154,7 @@ class SiteLlmTxtGenerator:
         llm_path = self.site.output_dir / "llm-full.txt"
         hash_path = self.site.output_dir / ".llm-full.hash"
 
-        # OPTIMIZATION: Compute content hash incrementally to detect changes
-        # without loading entire file into memory. O(n) time but O(1) memory.
-        hasher = hashlib.sha256()
-        for page in pages:
-            hasher.update(page.plain_text.encode("utf-8"))
-        new_hash = hasher.hexdigest()
+        new_hash = self._emitted_content_hash(pages)
 
         # Check if content unchanged via hash comparison (O(1) instead of O(n))
         if self._is_unchanged(hash_path, new_hash):
@@ -241,3 +237,34 @@ class SiteLlmTxtGenerator:
                 error_type=type(e).__name__,
             )
         return False
+
+    def _emitted_content_hash(self, pages: Sequence[PageLike]) -> str:
+        """Hash all fields that affect the emitted llm-full.txt content."""
+        build_time = getattr(self.site, "build_time", None)
+        dev_mode = bool(getattr(self.site, "dev_mode", False))
+        payload = {
+            "separator_width": self.separator_width,
+            "site": {
+                "title": str(getattr(self.site, "title", None) or "Bengal Site"),
+                "baseurl": str(getattr(self.site, "baseurl", None) or ""),
+                "dev_mode": dev_mode,
+                "build_time": build_time.isoformat()
+                if not dev_mode and isinstance(build_time, datetime)
+                else None,
+            },
+            "pages": [
+                {
+                    "index": idx,
+                    "total": len(pages),
+                    "title": page.title,
+                    "url": get_page_url(page, self.site),
+                    "section": get_section_name(page),
+                    "tags": [str(tag) for tag in tags_to_list(page.tags)],
+                    "date": page.date.strftime("%Y-%m-%d") if page.date else None,
+                    "plain_text": page.plain_text,
+                }
+                for idx, page in enumerate(pages, 1)
+            ],
+        }
+        encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        return hashlib.sha256(encoded).hexdigest()

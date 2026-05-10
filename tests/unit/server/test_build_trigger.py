@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from bengal.cache import BuildCache
+from bengal.orchestration.build.options import BuildCompletionPolicy
 from bengal.orchestration.stats import ReloadHint
 from bengal.server.build_trigger import BuildTrigger
 from bengal.server.reload_types import BuildReloadInfo, SerializedOutputRecord
@@ -52,6 +53,32 @@ class TestBuildTrigger:
         assert trigger.host == "localhost"
         assert trigger.port == 5173
         assert trigger._executor is mock_executor
+        assert trigger.completion_policy is BuildCompletionPolicy.SERVE_READY
+
+    def test_init_with_completion_policy(
+        self, mock_site: MagicMock, mock_executor: MagicMock
+    ) -> None:
+        """Test BuildTrigger initialization with complete rebuild policy."""
+        trigger = BuildTrigger(
+            site=mock_site,
+            host="localhost",
+            port=5173,
+            executor=mock_executor,
+            completion_policy=BuildCompletionPolicy.COMPLETE,
+        )
+
+        assert trigger.completion_policy is BuildCompletionPolicy.COMPLETE
+
+    def test_skips_content_hash_baseline_for_typed_watcher_rebuild(
+        self, mock_site: MagicMock, mock_executor: MagicMock
+    ) -> None:
+        """Normal watcher rebuilds use typed outputs instead of pre-build tree scans."""
+        controller = MagicMock()
+        controller._use_content_hashes = True
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor, controller=controller)
+
+        assert trigger._should_capture_content_hash_baseline(["content/page.md"]) is False
+        assert trigger._should_capture_content_hash_baseline([]) is True
 
     def test_openapi_ref_dependency_triggers_autodoc_regeneration(
         self, mock_executor: MagicMock, tmp_path: Path
@@ -705,6 +732,49 @@ class TestBuildTriggerIntegration:
         mock_site.build.assert_called_once()
         build_opts = mock_site.build.call_args[1]["options"]
         assert Path("test.md") in build_opts.changed_sources
+        assert build_opts.completion_policy is BuildCompletionPolicy.SERVE_READY
+
+    @patch("bengal.server.build_trigger.run_pre_build_hooks")
+    @patch("bengal.server.build_trigger.run_post_build_hooks")
+    @patch("bengal.server.build_trigger.show_building_indicator")
+    @patch("bengal.server.build_trigger.get_cli_output")
+    @patch("bengal.server.build_trigger.display_build_stats")
+    @patch("bengal.server.build_trigger.default_reload_controller")
+    @patch("bengal.server.live_reload.notification.send_reload_payload")
+    def test_trigger_build_uses_configured_completion_policy(
+        self,
+        mock_send_reload: MagicMock,
+        mock_controller: MagicMock,
+        mock_display: MagicMock,
+        mock_cli: MagicMock,
+        mock_building: MagicMock,
+        mock_post_hooks: MagicMock,
+        mock_pre_hooks: MagicMock,
+        mock_site: MagicMock,
+        mock_executor: MagicMock,
+    ) -> None:
+        """Watched builds should honor the dev server completion policy."""
+        mock_pre_hooks.return_value = True
+        mock_post_hooks.return_value = True
+
+        mock_stats = MagicMock()
+        mock_stats.total_pages = 5
+        mock_stats.changed_outputs = []
+        mock_site.build.return_value = mock_stats
+
+        trigger = BuildTrigger(
+            site=mock_site,
+            executor=mock_executor,
+            completion_policy=BuildCompletionPolicy.COMPLETE,
+        )
+
+        trigger.trigger_build(
+            changed_paths={Path("test.md")},
+            event_types={"modified"},
+        )
+
+        build_opts = mock_site.build.call_args[1]["options"]
+        assert build_opts.completion_policy is BuildCompletionPolicy.COMPLETE
 
 
 class TestBuildTriggerCaching:

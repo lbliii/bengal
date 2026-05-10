@@ -16,10 +16,15 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from bengal.cache.build_cache import BuildCache
+from bengal.health.report import CheckResult, HealthReport, ValidatorReport
 from bengal.orchestration.build.artifacts import (
     normalize_build_badge_config,
 )
 from bengal.orchestration.build.finalization import (
+    _health_report_fingerprint,
+    _load_cached_health_report,
+    _store_cached_health_report,
     phase_cache_save,
     phase_collect_stats,
     phase_finalize,
@@ -49,6 +54,9 @@ class MockPhaseContext:
 
         orchestrator.stats = MagicMock()
         orchestrator.stats.postprocess_time_ms = 0
+        orchestrator.stats.postprocess_task_timings_ms = {}
+        orchestrator.stats.postprocess_output_timings_ms = {}
+        orchestrator.stats.post_render_timings_ms = {}
         orchestrator.stats.build_time_ms = 0
         orchestrator.stats.health_check_time_ms = 0
         orchestrator.stats.rendering_time_ms = 100
@@ -56,6 +64,15 @@ class MockPhaseContext:
         orchestrator.stats.memory_heap_mb = 0
         orchestrator.stats.total_pages = 0
         orchestrator.stats.total_assets = 0
+        orchestrator.stats.parallel = True
+        orchestrator.stats.incremental = False
+        orchestrator.stats.skipped = False
+        orchestrator.stats.cache_hits = 0
+        orchestrator.stats.cache_misses = 0
+        orchestrator.stats.block_cache_hits = 0
+        orchestrator.stats.block_cache_misses = 0
+        orchestrator.stats.block_cache_site_blocks = 0
+        orchestrator.stats.block_cache_time_saved_ms = 0
 
         orchestrator.logger = MagicMock()
         orchestrator.logger.phase = MagicMock(
@@ -90,6 +107,7 @@ class TestPhasePostprocess:
             build_context=ctx,
             incremental=False,
             collector=None,
+            enabled_task_names=None,
         )
 
     def test_updates_postprocess_time_stats(self, tmp_path):
@@ -111,6 +129,44 @@ class TestPhasePostprocess:
         phase_postprocess(orchestrator, cli, parallel=False, ctx=ctx, incremental=False)
 
         cli.phase.assert_called_once()
+
+    def test_records_asset_audit_timing(self, tmp_path):
+        """Records post-render timing for the asset audit tail."""
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        orchestrator.site.output_dir.mkdir(parents=True)
+        cli = MockPhaseContext.create_cli()
+        ctx = MagicMock()
+        ctx.strict = False
+
+        phase_postprocess(orchestrator, cli, parallel=False, ctx=ctx, incremental=True)
+
+        assert "asset_audit" in orchestrator.stats.post_render_timings_ms
+
+    def test_can_limit_tasks_and_skip_asset_audit(self, tmp_path):
+        """Serve-ready builds can run only browse-critical postprocess tasks."""
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        cli = MockPhaseContext.create_cli()
+        ctx = MagicMock()
+
+        phase_postprocess(
+            orchestrator,
+            cli,
+            parallel=False,
+            ctx=ctx,
+            incremental=False,
+            enabled_task_names={"special pages"},
+            run_asset_audit=False,
+        )
+
+        orchestrator.postprocess.run.assert_called_once_with(
+            parallel=False,
+            progress_manager=None,
+            build_context=ctx,
+            incremental=False,
+            collector=None,
+            enabled_task_names={"special pages"},
+        )
+        assert orchestrator.stats.post_render_timings_ms["asset_audit"] == 0
 
 
 class TestPhaseCacheSave:
@@ -135,6 +191,20 @@ class TestPhaseCacheSave:
         phase_cache_save(orchestrator, [], [])
 
         orchestrator.logger.info.assert_called_with("cache_saved")
+
+    def test_raises_when_cache_save_fails(self, tmp_path):
+        """Cache persistence failures stop the build instead of being hidden."""
+        from bengal.errors import BengalCacheError
+
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        orchestrator.incremental.save_cache.return_value = False
+        phase_context = MagicMock()
+        phase_context.__enter__.return_value = None
+        phase_context.__exit__.return_value = False
+        orchestrator.logger.phase.return_value = phase_context
+
+        with pytest.raises(BengalCacheError):
+            phase_cache_save(orchestrator, [], [])
 
 
 class TestPhaseCollectStats:
@@ -540,6 +610,9 @@ class TestRunHealthCheck:
             mock_config.return_value = {"enabled": True}
 
             mock_cli = MagicMock()
+            mock_cli.icons.success = "⚡"
+            mock_cli.icons.info = "🔎"
+            mock_cli.icons.warning = "⚠️"
             mock_get_cli.return_value = mock_cli
 
             mock_health = MagicMock()
@@ -621,6 +694,37 @@ class TestRunHealthCheck:
         call_args = mock_health.run.call_args
         assert call_args.kwargs["cache"] is mock_cache
 
+    def test_reuses_cached_health_report_for_matching_incremental_fingerprint(self, tmp_path):
+        """Incremental health can reuse a whole cached report without running validators."""
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        report = HealthReport()
+        report.validator_reports.append(
+            ValidatorReport("Directives", [CheckResult.warning("cached", code="H201")])
+        )
+
+        with (
+            patch("bengal.config.defaults.get_feature_config") as mock_config,
+            patch("bengal.health.HealthCheck") as MockHealth,
+            patch("bengal.output.get_cli_output"),
+            patch(
+                "bengal.orchestration.build.finalization._health_report_fingerprint",
+                return_value="fingerprint",
+            ),
+            patch(
+                "bengal.orchestration.build.finalization._load_cached_health_report",
+                return_value=report,
+            ),
+        ):
+            mock_config.return_value = {"enabled": True}
+            mock_health = MagicMock()
+            mock_health.last_stats = None
+            MockHealth.return_value = mock_health
+
+            run_health_check(orchestrator, incremental=True)
+
+        mock_health.run.assert_not_called()
+        assert orchestrator.stats.health_report is report
+
     def test_raises_in_strict_mode_with_errors(self, tmp_path):
         """Raises exception in strict mode with health check errors."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
@@ -664,6 +768,39 @@ class TestRunHealthCheck:
             run_health_check(orchestrator)
 
         assert orchestrator.stats.health_report is mock_report
+
+    def test_cached_health_report_round_trips(self, tmp_path):
+        """Cached health reports preserve prior findings for reuse."""
+        cache = BuildCache(site_root=tmp_path)
+        report = HealthReport()
+        report.validator_reports.append(
+            ValidatorReport("Links", [CheckResult.error("broken", code="H101")])
+        )
+
+        _store_cached_health_report(cache, "fingerprint", report)
+        loaded = _load_cached_health_report(cache, "fingerprint")
+
+        assert loaded is not None
+        assert loaded.total_errors == 1
+        assert loaded.validator_reports[0].results[0].message == "broken"
+
+    def test_health_report_fingerprint_changes_with_source_fingerprint(self, tmp_path):
+        """Health report reuse is invalidated by source content changes."""
+        source = tmp_path / "content" / "page.md"
+        source.parent.mkdir()
+        source.write_text("# Page\n", encoding="utf-8")
+        site = MagicMock()
+        site.pages = [MagicMock(source_path=source)]
+        site.link_registry = MagicMock(fingerprint="links")
+        cache = BuildCache(site_root=tmp_path)
+        cache.update_file(source)
+
+        first = _health_report_fingerprint(site, cache, {"enabled": True}, None)
+        source.write_text("# Changed\n", encoding="utf-8")
+        cache.update_file(source)
+        second = _health_report_fingerprint(site, cache, {"enabled": True}, None)
+
+        assert first != second
 
     def test_updates_health_check_time_stats(self, tmp_path):
         """Updates health check time statistics."""

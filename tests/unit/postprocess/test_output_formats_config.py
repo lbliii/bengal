@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from bengal.cache.build_cache import BuildCache
 from bengal.orchestration.build_context import AccumulatedPageData
@@ -167,6 +167,186 @@ class TestConfigNormalizationEdgeCases:
         assert "json" in generator.config["per_page"]
         # llm_txt was not explicitly set, so it should not be added
         # (because we're in simple config mode and json key was present)
+
+    def test_incremental_per_page_outputs_are_changed_page_scoped(self, tmp_path: Path) -> None:
+        """Incremental per-page outputs only regenerate changed or missing companions."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        unchanged = self._create_mock_page(
+            title="Unchanged",
+            url="/unchanged/",
+            content="Old content",
+            output_path=output_dir / "unchanged/index.html",
+        )
+        unchanged.source_path = Path("content/unchanged.md")
+        changed = self._create_mock_page(
+            title="Changed",
+            url="/changed/",
+            content="New content",
+            output_path=output_dir / "changed/index.html",
+        )
+        changed.source_path = Path("content/changed.md")
+        mock_site.pages = [unchanged, changed]
+
+        (output_dir / "unchanged").mkdir()
+        unchanged_json = output_dir / "unchanged/index.json"
+        unchanged_json.write_text("old-json", encoding="utf-8")
+
+        ctx = Mock()
+        ctx.incremental = True
+        ctx.config_changed = False
+        ctx.pages_to_build = [changed]
+        ctx.changed_page_paths = {changed.source_path}
+        ctx.has_accumulated_page_data = False
+        ctx.get_accumulated_page_data.return_value = []
+        ctx.stats = BuildStats()
+        ctx.cache = None
+
+        config = {"enabled": True, "per_page": ["json"], "site_wide": []}
+        generator = OutputFormatsGenerator(mock_site, config, build_context=ctx)
+        generator.generate()
+
+        assert unchanged_json.read_text(encoding="utf-8") == "old-json"
+        assert (output_dir / "changed/index.json").exists()
+
+    def test_incremental_per_page_outputs_skip_noop_when_outputs_exist(
+        self, tmp_path: Path
+    ) -> None:
+        """No-op incremental builds do not regenerate per-page companion files."""
+        output_dir = tmp_path / "public"
+        (output_dir / "page").mkdir(parents=True)
+        (output_dir / "page/index.json").write_text("{}", encoding="utf-8")
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Page",
+            url="/page/",
+            content="Page",
+            output_path=output_dir / "page/index.html",
+        )
+        page.source_path = Path("content/page.md")
+        mock_site.pages = [page]
+        build_context = SimpleNamespace(incremental=True, cache=BuildCache(site_root=tmp_path))
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
+
+        targets = generator._per_page_target_pages([page], "json")
+
+        assert targets == []
+
+    def test_graph_data_provider_not_called_when_json_outputs_are_unchanged(
+        self, tmp_path: Path
+    ) -> None:
+        """No-op incremental JSON generation does not build graph data first."""
+        output_dir = tmp_path / "public"
+        (output_dir / "page").mkdir(parents=True)
+        (output_dir / "page/index.json").write_text("{}", encoding="utf-8")
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Page",
+            url="/page/",
+            content="Page",
+            output_path=output_dir / "page/index.html",
+        )
+        page.source_path = Path("content/page.md")
+        mock_site.pages = [page]
+        build_context = SimpleNamespace(
+            incremental=True,
+            cache=BuildCache(site_root=tmp_path),
+            stats=BuildStats(),
+            has_accumulated_page_data=False,
+            get_accumulated_page_data=list,
+        )
+        provider = Mock(side_effect=AssertionError("graph should stay lazy"))
+        generator = OutputFormatsGenerator(
+            mock_site,
+            {"enabled": True, "per_page": ["json"], "site_wide": []},
+            graph_data_provider=provider,
+            build_context=build_context,
+        )
+
+        generator.generate()
+
+        provider.assert_not_called()
+        assert "graph data" not in build_context.stats.postprocess_task_timings_ms
+
+    def test_graph_data_provider_called_when_json_output_writes(self, tmp_path: Path) -> None:
+        """Changed page JSON still receives graph data when graph connections are enabled."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Page",
+            url="/page/",
+            content="Page",
+            output_path=output_dir / "page/index.html",
+        )
+        page.source_path = Path("content/page.md")
+        mock_site.pages = [page]
+        build_context = SimpleNamespace(
+            incremental=True,
+            cache=BuildCache(site_root=tmp_path),
+            stats=BuildStats(),
+            pages_to_build=[page],
+            has_accumulated_page_data=False,
+            get_accumulated_page_data=list,
+        )
+        provider = Mock(return_value={"nodes": [], "edges": []})
+        generator = OutputFormatsGenerator(
+            mock_site,
+            {"enabled": True, "per_page": ["json"], "site_wide": []},
+            graph_data_provider=provider,
+            build_context=build_context,
+        )
+
+        generator.generate()
+
+        provider.assert_called_once_with()
+        assert "graph data" in build_context.stats.postprocess_task_timings_ms
+
+    def test_incremental_missing_json_output_uses_cached_page_artifact(
+        self, tmp_path: Path
+    ) -> None:
+        """Missing unchanged page JSON can be restored without recomputing page JSON."""
+        output_dir = tmp_path / "public"
+        (output_dir / "unchanged").mkdir(parents=True)
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Unchanged",
+            url="/unchanged/",
+            content="Unchanged",
+            output_path=output_dir / "unchanged/index.html",
+        )
+        page.source_path = Path("content/unchanged.md")
+        mock_site.pages = [page]
+        cache = BuildCache(site_root=tmp_path)
+        record = _artifact_record("content/unchanged.md")
+        record["json_output_path"] = str(output_dir / "unchanged/index.json")
+        record["full_json_data"] = {"url": "/unchanged/", "title": "Cached"}
+        cache.page_artifacts["content/unchanged.md"] = record
+        build_context = SimpleNamespace(
+            incremental=True,
+            cache=cache,
+            stats=BuildStats(),
+            has_accumulated_page_data=False,
+            get_accumulated_page_data=list,
+        )
+        generator = OutputFormatsGenerator(
+            mock_site,
+            {"enabled": True, "per_page": ["json"], "site_wide": []},
+            build_context=build_context,
+        )
+
+        with patch(
+            "bengal.postprocess.output_formats.json_generator.PageJSONGenerator.page_to_json",
+            side_effect=AssertionError("should use cached artifact"),
+        ):
+            generator.generate()
+
+        content = (output_dir / "unchanged/index.json").read_text(encoding="utf-8")
+        assert '"title":"Cached"' in content
 
     def test_empty_config_uses_all_defaults(self, tmp_path: Path) -> None:
         """Empty config dict should use all defaults."""
@@ -383,6 +563,76 @@ class TestConfigNormalizationEdgeCases:
         assert index_path.read_text(encoding="utf-8") == "sentinel"
         assert build_context.stats.postprocess_output_timings_ms["site_index_json"] == 0.0
 
+    def test_incremental_search_backend_skips_when_input_fingerprint_matches(
+        self, tmp_path: Path
+    ) -> None:
+        """Derived search backend artifacts skip when aggregate inputs are unchanged."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        index_path = output_dir / "index.json"
+        search_path = output_dir / "search-index.json"
+        index_path.write_text("sentinel", encoding="utf-8")
+        search_path.write_text("search", encoding="utf-8")
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Unchanged",
+            url="/unchanged/",
+            content="Unchanged",
+            output_path=output_dir / "unchanged/index.html",
+        )
+        page.source_path = Path("content/unchanged.md")
+        mock_site.pages = [page]
+        cache = BuildCache(site_root=tmp_path)
+        cache.page_artifacts["content/unchanged.md"] = _artifact_record("content/unchanged.md")
+        stats = BuildStats()
+        build_context = SimpleNamespace(
+            incremental=True,
+            cache=cache,
+            stats=stats,
+            has_accumulated_page_data=False,
+            get_accumulated_page_data=list,
+        )
+        generator = OutputFormatsGenerator(
+            mock_site,
+            {"enabled": True, "per_page": [], "site_wide": ["index_json"]},
+            build_context=build_context,
+        )
+        cached_data = generator._merge_cached_page_artifacts([page], [])
+        index_fingerprint = generator._site_wide_input_fingerprint(
+            "site_index_json",
+            [page],
+            cached_data,
+            {
+                "excerpt_length": 200,
+                "json_indent": None,
+                "include_full_content": False,
+            },
+        )
+        assert index_fingerprint is not None
+        search_backend_config = type(
+            "SearchConfig",
+            (),
+            {"enabled": True, "prebuilt_enabled": True, "backend": "lunr", "lunr": {}},
+        )()
+        search_fingerprint = generator._site_wide_input_fingerprint(
+            "site_lunr_index",
+            [page],
+            cached_data,
+            generator._search_backend_fingerprint_options(search_backend_config, [index_path]),
+        )
+        assert search_fingerprint is not None
+        cache.output_format_fingerprints["site_index_json"] = index_fingerprint
+        cache.output_format_fingerprints["site_lunr_index"] = search_fingerprint
+
+        with patch(
+            "bengal.postprocess.search_backends.LunrSearchBackend.generate",
+            side_effect=AssertionError("search backend should skip"),
+        ):
+            generator.generate()
+
+        assert stats.postprocess_output_timings_ms["site_lunr_index"] == 0.0
+        assert search_path.read_text(encoding="utf-8") == "search"
+
     def test_site_wide_generation_skips_when_input_fingerprint_matches(
         self, tmp_path: Path
     ) -> None:
@@ -423,6 +673,56 @@ class TestConfigNormalizationEdgeCases:
 
         assert result == output_dir / "index.json"
         assert stats.postprocess_output_timings_ms["site_index_json"] == 0.0
+
+    def test_site_wide_fingerprint_reuses_prior_page_hashes(self, tmp_path: Path) -> None:
+        """Unchanged pages reuse small per-page hashes instead of rehashing artifacts."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page_a = self._create_mock_page(
+            title="A",
+            url="/a/",
+            content="A",
+            output_path=output_dir / "a/index.html",
+        )
+        page_b = self._create_mock_page(
+            title="B",
+            url="/b/",
+            content="B",
+            output_path=output_dir / "b/index.html",
+        )
+        page_a.source_path = Path("content/a.md")
+        page_b.source_path = Path("content/b.md")
+        cache = BuildCache(site_root=tmp_path)
+        cache.output_format_fingerprints["site_index_json:page_hashes"] = '{"content/a.md":"old-a"}'
+        build_context = SimpleNamespace(
+            incremental=True,
+            cache=cache,
+            stats=BuildStats(),
+            pages_to_build=[page_b],
+        )
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
+        data = [
+            _accumulated_page_data(Path("content/a.md"), "/a/"),
+            _accumulated_page_data(Path("content/b.md"), "/b/"),
+        ]
+
+        with patch(
+            "bengal.postprocess.output_formats._fingerprint_page_artifact",
+            return_value={"uri": "/b/"},
+        ) as fingerprint_page:
+            fingerprint = generator._site_wide_input_fingerprint(
+                "site_index_json", [page_a, page_b], data, {"json_indent": None}
+            )
+
+        assert fingerprint is not None
+        fingerprint_page.assert_called_once()
+        assert generator._pending_site_wide_page_hashes["site_index_json"]["content/a.md"] == (
+            "old-a"
+        )
+        assert "content/b.md" in generator._pending_site_wide_page_hashes["site_index_json"]
 
     def test_changelog_site_wide_generation_does_not_skip_on_matching_fingerprint(
         self, tmp_path: Path

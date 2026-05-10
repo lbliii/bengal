@@ -18,7 +18,7 @@ Related Modules:
 from __future__ import annotations
 
 import shutil
-from datetime import date, datetime
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -69,6 +69,8 @@ class CacheManager:
         self.cache: BuildCache | None = None
         self.coordinator: CacheCoordinator | None = None
         self._effect_tracer: EffectTracer | None = None
+        self._dirty_page_artifact_keys: set[str] | None = None
+        self._deleted_page_artifact_keys: set[str] | None = None
 
     @property
     def effect_tracer(self) -> EffectTracer | None:
@@ -127,6 +129,7 @@ class CacheManager:
                         "cache_migration_failed", error=str(e), action="using_fresh_cache"
                     )
             self.cache = BuildCache.load(cache_path, site_root=self.site.root_path)
+            self.cache.page_artifacts.update(self._page_artifact_store().load())
             cache_exists = cache_path.exists()
             try:
                 file_count = len(self.cache.file_fingerprints)
@@ -233,7 +236,7 @@ class CacheManager:
         pages_built: Sequence[PageLike],
         assets_processed: list[Asset],
         build_context: Any | None = None,
-    ) -> None:
+    ) -> bool:
         """
         Update cache with processed files.
 
@@ -245,7 +248,7 @@ class CacheManager:
             build_context: Optional BuildContext with rendered page artifacts.
         """
         if not self.cache:
-            return
+            return False
 
         # Use same cache location as initialize()
         paths = self.site.config_service.paths
@@ -364,8 +367,19 @@ class CacheManager:
                 path=str(effects_path),
             )
 
-        # Save cache
-        self.cache.save(cache_path)
+        # Save large post-render page artifacts separately so the hot cache-save
+        # path does not rewrite every page artifact inside cache.json.zst.
+        page_artifacts = self.cache.page_artifacts
+        self._page_artifact_store().save(
+            page_artifacts,
+            dirty_keys=self._dirty_page_artifact_keys,
+            deleted_keys=self._deleted_page_artifact_keys,
+        )
+        self.cache.page_artifacts = {}
+        try:
+            return self.cache.save(cache_path)
+        finally:
+            self.cache.page_artifacts = page_artifacts
 
     def _store_page_artifacts(self, build_context: Any | None) -> None:
         """Persist post-render page artifacts accumulated during rendering."""
@@ -375,27 +389,46 @@ class CacheManager:
         if not callable(get_accumulated):
             return
 
+        previous_keys = set(self.cache.page_artifacts)
         current_keys = {
             str(self.cache._cache_key(_site_relative_path(self.site.root_path, page.source_path)))
             for page in getattr(self.site, "pages", [])
             if getattr(page, "source_path", None)
         }
+        deleted_keys = previous_keys - current_keys
         self.cache.page_artifacts = {
             key: value for key, value in self.cache.page_artifacts.items() if key in current_keys
         }
+        dirty_keys = set[str]()
 
         anchors_by_source = _page_anchor_ids_by_source(
             getattr(self.site, "pages", []), self.site.root_path, self.cache
         )
+        changed_keys = _changed_page_artifact_keys(self.site.root_path, build_context, self.cache)
         for data in get_accumulated():
             source_path = getattr(data, "source_path", None)
             if not source_path:
                 continue
             key_path = _site_relative_path(self.site.root_path, source_path)
             artifact_key = str(self.cache._cache_key(key_path))
-            self.cache.page_artifacts[artifact_key] = _serialize_page_artifact(
+            serialized = _serialize_page_artifact(
                 data, anchors_by_source.get(artifact_key, frozenset())
             )
+            if (
+                artifact_key in changed_keys
+                or artifact_key not in self.cache.page_artifacts
+                or self.cache.page_artifacts[artifact_key] != serialized
+            ):
+                dirty_keys.add(artifact_key)
+            self.cache.page_artifacts[artifact_key] = serialized
+        self._dirty_page_artifact_keys = dirty_keys
+        self._deleted_page_artifact_keys = deleted_keys
+
+    def _page_artifact_store(self) -> Any:
+        """Return the sharded page artifact store for this site's state dir."""
+        from bengal.cache.page_artifact_store import PageArtifactStore
+
+        return PageArtifactStore(self.site.config_service.paths.state_dir / "page-artifacts")
 
     def _get_theme_templates_dir(self) -> Path | None:
         """
@@ -462,33 +495,27 @@ class CacheManager:
             )
 
 
+def _changed_page_artifact_keys(root_path: Path, build_context: Any, cache: BuildCache) -> set[str]:
+    """Return cache keys for pages rendered or marked changed in this build."""
+    changed: set[str] = set()
+    for page in getattr(build_context, "pages_to_build", None) or []:
+        source_path = getattr(page, "source_path", None)
+        if source_path:
+            changed.add(str(cache._cache_key(_site_relative_path(root_path, source_path))))
+    for source_path in getattr(build_context, "changed_page_paths", None) or set():
+        changed.add(str(cache._cache_key(_site_relative_path(root_path, Path(source_path)))))
+    return changed
+
+
 def _serialize_page_artifact(data: Any, anchors: frozenset[str]) -> dict[str, Any]:
     """Convert AccumulatedPageData into a JSON-serializable cache record."""
-    source_path = data.source_path
-    json_output_path = getattr(data, "json_output_path", None)
-    return {
-        "source_path": str(source_path),
-        "url": data.url,
-        "uri": data.uri,
-        "title": data.title,
-        "description": data.description,
-        "date": data.date,
-        "date_iso": data.date_iso,
-        "plain_text": data.plain_text,
-        "excerpt": data.excerpt,
-        "content_preview": data.content_preview,
-        "word_count": data.word_count,
-        "reading_time": data.reading_time,
-        "section": data.section,
-        "tags": list(data.tags),
-        "dir": data.dir,
-        "enhanced_metadata": _json_safe(data.enhanced_metadata),
-        "is_autodoc": data.is_autodoc,
-        "full_json_data": _json_safe(data.full_json_data),
-        "json_output_path": str(json_output_path) if json_output_path else None,
-        "raw_metadata": _json_safe(data.raw_metadata),
-        "anchors": sorted(anchors),
-    }
+    from bengal.rendering.page_artifact import PageArtifact
+
+    if isinstance(data, PageArtifact):
+        artifact = replace(data, anchors=tuple(sorted(str(anchor) for anchor in anchors)))
+    else:
+        artifact = PageArtifact.from_accumulated(data, anchors)
+    return artifact.to_cache_record()
 
 
 def _site_relative_path(root_path: Path, source_path: Path) -> Path:
@@ -515,18 +542,3 @@ def _page_anchor_ids_by_source(
             key_path = _site_relative_path(root_path, source_path)
             anchors[str(cache._cache_key(key_path))] = ids
     return anchors
-
-
-def _json_safe(value: Any) -> Any:
-    """Return a JSON-serializable representation for cache persistence."""
-    if isinstance(value, str | int | float | bool | type(None)):
-        return value
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, date | datetime):
-        return value.isoformat()
-    if isinstance(value, dict):
-        return {str(key): _json_safe(item) for key, item in value.items()}
-    if isinstance(value, list | tuple | set | frozenset):
-        return [_json_safe(item) for item in value]
-    return str(value)

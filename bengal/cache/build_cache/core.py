@@ -42,6 +42,7 @@ from bengal.cache.build_cache.parsed_content_cache import ParsedContentCacheMixi
 from bengal.cache.build_cache.rendered_output_cache import RenderedOutputCacheMixin
 from bengal.cache.build_cache.taxonomy_index_mixin import BuildTaxonomyIndex
 from bengal.cache.build_cache.validation_cache import ValidationCacheMixin
+from bengal.utils.io import json_compat
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
@@ -49,6 +50,15 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 logger = get_logger(__name__)
+
+HOT_STORE_FIELDS = frozenset(
+    {
+        "parsed_content",
+        "rendered_output",
+        "validation_results",
+        "synthetic_pages",
+    }
+)
 
 
 @dataclass
@@ -283,6 +293,8 @@ class BuildCache(
                 )
                 return cls()
 
+            cls._load_external_stores(cache_path, data)
+
             # Convert lists back to sets in dependencies
             if "dependencies" in data:
                 data["dependencies"] = {k: set(v) for k, v in data["dependencies"].items()}
@@ -436,6 +448,7 @@ class BuildCache(
             # Inject default version if missing
             if "version" not in data:
                 data["version"] = cls.VERSION
+            data.pop("external_stores", None)
 
             return cls(**data)
         except (json.JSONDecodeError, KeyError, TypeError) as e:
@@ -499,7 +512,42 @@ class BuildCache(
 
         return None
 
-    def save(self, cache_path: Path, use_lock: bool = True) -> None:
+    @classmethod
+    def _load_external_stores(cls, cache_path: Path, data: dict[str, Any]) -> None:
+        """Load split hot cache stores referenced by the main cache payload."""
+        external_stores = data.get("external_stores")
+        if not isinstance(external_stores, dict):
+            return
+
+        for field_name, relative_path in external_stores.items():
+            if field_name not in HOT_STORE_FIELDS or not isinstance(relative_path, str):
+                continue
+            store_path = cache_path.parent / relative_path
+            if not store_path.exists():
+                logger.warning(
+                    "cache_external_store_missing",
+                    field=field_name,
+                    path=str(store_path),
+                    action="using_inline_or_empty_store",
+                )
+                data.setdefault(field_name, {})
+                continue
+            try:
+                store_data = json_compat.load(store_path)
+            except Exception as e:
+                logger.warning(
+                    "cache_external_store_load_failed",
+                    field=field_name,
+                    path=str(store_path),
+                    error=str(e),
+                    action="using_inline_or_empty_store",
+                )
+                data.setdefault(field_name, {})
+                continue
+            if isinstance(store_data, dict):
+                data[field_name] = store_data
+
+    def save(self, cache_path: Path, use_lock: bool = True) -> bool:
         """
         Save build cache to disk with optional file locking.
 
@@ -513,10 +561,9 @@ class BuildCache(
             cache_path: Path to cache file
             use_lock: Whether to use file locking (default: True)
 
-        Raises:
-            IOError: If cache file cannot be written
-            json.JSONEncodeError: If cache data cannot be serialized
-            LockAcquisitionError: If lock cannot be acquired (when use_lock=True)
+        Returns:
+            True when the cache was persisted, False when persistence failed
+            and the error was recorded.
         """
         # Ensure parent directory exists
         cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -530,6 +577,7 @@ class BuildCache(
                     self._save_to_file(cache_path)
             else:
                 self._save_to_file(cache_path)
+            return True
 
         except Exception as e:
             from bengal.errors import (
@@ -558,6 +606,7 @@ class BuildCache(
                 error_code=ErrorCode.A004.value,
                 impact="incremental_builds_disabled",
             )
+            return False
 
     def _save_to_file(self, cache_path: Path, compress: bool = True) -> None:
         """
@@ -586,6 +635,7 @@ class BuildCache(
 
         ti = self.taxonomy_index
         at = self.autodoc_tracker
+        external_stores = self._save_external_stores(cache_path)
 
         data = {
             "version": self.VERSION,
@@ -599,9 +649,9 @@ class BuildCache(
             "page_tags": {k: list(v) for k, v in ti.page_tags.items()},
             "tag_to_pages": {k: list(v) for k, v in ti.tag_to_pages.items()},
             "known_tags": list(ti.known_tags),
-            "parsed_content": self.parsed_content,  # Already in dict format
-            "rendered_output": self.rendered_output,  # Already in dict format (Optimization #3)
-            "validation_results": self.validation_results,  # Already in dict format
+            "parsed_content": {},
+            "rendered_output": {},
+            "validation_results": {},
             "page_artifacts": self.page_artifacts,  # Serialized post-render page records
             "output_format_fingerprints": self.output_format_fingerprints,
             "autodoc_dependencies": {
@@ -611,14 +661,14 @@ class BuildCache(
             "autodoc_source_metadata": {k: list(v) for k, v in at.autodoc_source_metadata.items()},
             # Autodoc content cache (CachedModuleInfo serialized to dict)
             "autodoc_content_cache": autodoc_content_serialized,
-            # Cached synthetic payloads (e.g., autodoc elements)
-            "synthetic_pages": self.synthetic_pages,
+            "synthetic_pages": {},
             "template_dependencies": {
                 k: list(v) for k, v in self.template_dependencies.items()
             },  # Per-page template deps
             "url_claims": self.url_claims,  # URL ownership claims (already dict format)
             "discovered_assets": self.discovered_assets,  # Discovered assets
             "config_hash": self.config_hash,  # Config hash for auto-invalidation
+            "external_stores": external_stores,
             "last_build": datetime.now(UTC).isoformat(),
         }
 
@@ -650,6 +700,23 @@ class BuildCache(
                 dependencies=len(self.dependencies),
                 cached_content=len(self.parsed_content),
             )
+
+    def _save_external_stores(self, cache_path: Path) -> dict[str, str]:
+        """Save hot cache maps outside the compressed monolithic cache payload."""
+        stores_dir = cache_path.parent / "stores"
+        stores_dir.mkdir(parents=True, exist_ok=True)
+        stores = {
+            "parsed_content": self.parsed_content,
+            "rendered_output": self.rendered_output,
+            "validation_results": self.validation_results,
+            "synthetic_pages": self.synthetic_pages,
+        }
+        relative_paths: dict[str, str] = {}
+        for field_name, payload in stores.items():
+            store_path = stores_dir / f"{field_name}.json"
+            json_compat.dump(payload, store_path, indent=None)
+            relative_paths[field_name] = str(store_path.relative_to(cache_path.parent))
+        return relative_paths
 
     def clear(self) -> None:
         """Clear all cache data."""

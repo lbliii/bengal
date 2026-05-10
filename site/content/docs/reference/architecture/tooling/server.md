@@ -26,10 +26,12 @@ Provide a local development environment with automatic rebuilds.
 - Automatic rebuild on changes
 - Live reload via SSE (Server-Sent Events)
 - CSS hot reload (no full page refresh for CSS changes)
+- Browse-ready cold start: local `serve` starts once HTML is ready, then finishes
+  generated artifacts, health checks, and cache writes in the background
 - Automatic browser opening
 - Stale process detection and cleanup
 - Automatic port fallback if port is in use
-- In-process builds for clean Ctrl+C shutdown
+- Process-isolated builds for clean Ctrl+C shutdown
 
 ### Architecture
 
@@ -69,8 +71,11 @@ bengal serve --no-watch
 # Disable automatic browser opening
 bengal serve --no-open
 
+# Wait for deploy-quality artifacts, health checks, and caches before serving
+bengal serve --complete
+
 # Focus rebuilds on a single version (faster for versioned docs)
-bengal serve --version v2
+bengal serve --version-scope v2
 
 # Verbose output for debugging
 bengal serve --verbose
@@ -143,11 +148,15 @@ The dev server uses a double-buffered output strategy to prevent flash-of-unstyl
 
 ### Performance Considerations
 
+- **Serve-ready startup**: Cold `bengal serve` blocks on HTML and special pages,
+  then completes search indexes, feeds, health checks, and cache persistence in
+  the background. Use `--complete` when validating deploy-quality output before
+  the server starts.
 - **Incremental builds**: Only rebuild changed files (5-10x faster than full builds)
 - **Debouncing**: Groups rapid changes (300ms delay) to avoid multiple rebuilds
 - **Efficient watching**: Uses watchfiles with native file system events
 - **Selective injection**: Reload script only in HTML, not assets
-- **In-process builds**: Builds run in the server process for clean Ctrl+C shutdown
+- **Process-isolated builds**: Builds run outside the server process for clean Ctrl+C shutdown
 
 ### Configuration
 
@@ -160,8 +169,7 @@ exclude_patterns = ["*.tmp", "*.log", ".git/**"]
 
 # Pre-build hooks (run before each rebuild)
 pre_build = [
-    "npm run build:icons",
-    "npx tailwindcss -i src/input.css -o assets/css/tailwind.css"
+    "python scripts/check-content.py"
 ]
 
 # Post-build hooks (run after each rebuild)
@@ -207,6 +215,7 @@ server = DevServer(
     watch=True,
     auto_port=True,      # Find available port if 5173 is taken
     open_browser=False,  # Don't auto-open browser
+    completion_policy="serve_ready",  # Use "complete" for production parity
 )
 server.start()  # Runs until Ctrl+C
 ```

@@ -6,7 +6,11 @@ Phases 17-21: Post-processing, cache save, collect stats, health check, finalize
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
+from datetime import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -25,6 +29,8 @@ def phase_postprocess(
     ctx: BuildContext | Any | None,
     incremental: bool,
     collector: OutputCollector | None = None,
+    enabled_task_names: set[str] | None = None,
+    run_asset_audit: bool = True,
 ) -> None:
     """
     Phase 17: Post-processing.
@@ -38,6 +44,8 @@ def phase_postprocess(
         ctx: Build context
         incremental: Whether this is an incremental build
         collector: Optional output collector for hot reload tracking
+        enabled_task_names: Optional postprocess task allow list
+        run_asset_audit: Whether to run rendered asset-reference audit
 
     """
     # Enable parallel post-processing for independent tasks (sitemap, RSS, output formats)
@@ -51,6 +59,7 @@ def phase_postprocess(
             build_context=ctx,
             incremental=incremental,
             collector=collector,
+            enabled_task_names=enabled_task_names,
         )
 
         orchestrator.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
@@ -81,48 +90,61 @@ def phase_postprocess(
                 hint="ContextVar not set in some paths - check asset_manifest_context() coverage",
             )
 
-        from bengal.rendering.asset_audit import find_missing_local_asset_references
+        if run_asset_audit:
+            from bengal.rendering.asset_audit import find_missing_local_asset_references
 
-        missing_refs = find_missing_local_asset_references(
-            orchestrator.site.output_dir,
-            baseurl=getattr(orchestrator.site, "baseurl", "") or "",
-        )
-        if missing_refs:
-            samples = [
-                {
-                    "html": str(ref.html_path.relative_to(orchestrator.site.output_dir)),
-                    "url": ref.url,
-                    "expected": _relative_output_path(
-                        ref.expected_path,
-                        orchestrator.site.output_dir,
-                    ),
-                }
-                for ref in missing_refs[:5]
-            ]
+            audit_start = time.perf_counter()
             strict = getattr(ctx, "strict", False) or getattr(
                 orchestrator.stats, "strict_mode", False
             )
-            if strict:
-                from bengal.errors import BengalAssetError, ErrorCode
-
-                first = missing_refs[0]
-                raise BengalAssetError(
-                    f"Build emitted {len(missing_refs)} local CSS/JS reference(s) "
-                    f"without matching output files. First missing reference: {first.url}",
-                    code=ErrorCode.X001,
-                    suggestion=(
-                        "Declare the asset through the theme library contract, use asset_url(), "
-                        "or remove the stale HTML reference."
-                    ),
-                    file_path=first.html_path,
-                )
-            orchestrator.logger.warning(
-                "rendered_asset_reference_missing",
-                count=len(missing_refs),
-                url=missing_refs[0].url,
-                samples=samples,
-                hint="Declare missing assets or route references through asset_url().",
+            html_paths = (
+                None if strict or not incremental else _changed_html_output_paths(collector)
             )
+            missing_refs = find_missing_local_asset_references(
+                orchestrator.site.output_dir,
+                baseurl=getattr(orchestrator.site, "baseurl", "") or "",
+                html_paths=html_paths,
+            )
+            _record_post_render_timing(
+                orchestrator,
+                "asset_audit",
+                (time.perf_counter() - audit_start) * 1000,
+            )
+            if missing_refs:
+                samples = [
+                    {
+                        "html": str(ref.html_path.relative_to(orchestrator.site.output_dir)),
+                        "url": ref.url,
+                        "expected": _relative_output_path(
+                            ref.expected_path,
+                            orchestrator.site.output_dir,
+                        ),
+                    }
+                    for ref in missing_refs[:5]
+                ]
+                if strict:
+                    from bengal.errors import BengalAssetError, ErrorCode
+
+                    first = missing_refs[0]
+                    raise BengalAssetError(
+                        f"Build emitted {len(missing_refs)} local CSS/JS reference(s) "
+                        f"without matching output files. First missing reference: {first.url}",
+                        code=ErrorCode.X001,
+                        suggestion=(
+                            "Declare the asset through the theme library contract, use asset_url(), "
+                            "or remove the stale HTML reference."
+                        ),
+                        file_path=first.html_path,
+                    )
+                orchestrator.logger.warning(
+                    "rendered_asset_reference_missing",
+                    count=len(missing_refs),
+                    url=missing_refs[0].url,
+                    samples=samples,
+                    hint="Declare missing assets or route references through asset_url().",
+                )
+        else:
+            _record_post_render_timing(orchestrator, "asset_audit", 0)
 
         # Show phase completion
         cli.phase("Post-process", duration_ms=orchestrator.stats.postprocess_time_ms)
@@ -135,6 +157,36 @@ def _relative_output_path(path: Any, output_dir: Any) -> str:
         return str(path.relative_to(output_dir))
     except ValueError:
         return str(path)
+
+
+def _changed_html_output_paths(collector: OutputCollector | None) -> list[Any] | None:
+    """Return changed HTML output paths from the build collector, or None for full audit."""
+    if collector is None:
+        return None
+    get_outputs = getattr(collector, "get_outputs", None)
+    if not callable(get_outputs):
+        return None
+    try:
+        outputs = get_outputs()
+    except Exception:
+        return None
+    html_paths = [
+        record.path
+        for record in outputs
+        if getattr(getattr(record, "output_type", None), "value", None) == "html"
+    ]
+    return html_paths
+
+
+def _record_post_render_timing(
+    orchestrator: BuildOrchestrator,
+    name: str,
+    duration_ms: float,
+) -> None:
+    """Record a post-render/finalization timing when supported by BuildStats."""
+    timings = getattr(orchestrator.stats, "post_render_timings_ms", None)
+    if isinstance(timings, dict):
+        timings[name] = round(duration_ms, 1)
 
 
 def phase_cache_save(
@@ -159,7 +211,18 @@ def phase_cache_save(
     """
     with orchestrator.logger.phase("cache_save"):
         start = time.perf_counter()
-        orchestrator.incremental.save_cache(pages_to_build, assets_to_process)
+        saved = orchestrator.incremental.save_cache(pages_to_build, assets_to_process)
+        if saved is False:
+            from bengal.errors import BengalCacheError, ErrorCode
+
+            raise BengalCacheError(
+                "Build cache could not be saved.",
+                code=ErrorCode.A004,
+                suggestion=(
+                    "Check disk space and permissions. Incremental builds may be stale "
+                    "until the cache can be saved."
+                ),
+            )
         duration_ms = (time.perf_counter() - start) * 1000
         if cli is not None:
             cli.phase("Cache save", duration_ms=duration_ms)
@@ -272,6 +335,9 @@ def run_health_check(
     if not health_config.get("enabled", True):
         return
 
+    health_start = time.time()
+    cli.detail("health check: preparing reference registry...", indent=2, icon=cli.icons.arrow)
+
     # Build rendering-owned link registry before health checks (zero-cost: reuses toc_items)
     from bengal.rendering.reference_registry import (
         build_link_registry,
@@ -294,25 +360,43 @@ def run_health_check(
         orchestrator.site, output_records=output_records
     )
 
-    health_start = time.time()
-
     # Run health checks with profile filtering
     health_check = HealthCheck(orchestrator.site)
+    cli.detail("health check: running validators...", indent=2, icon=cli.icons.arrow)
 
     # Pass cache for incremental validation if available
     cache = None
     if incremental and orchestrator.incremental.cache:
         cache = orchestrator.incremental.cache
 
-    report = health_check.run(
-        profile=profile,
-        incremental=incremental,
-        cache=cache,
-        build_context=build_context,
+    health_fingerprint = _health_report_fingerprint(
+        orchestrator.site,
+        cache,
+        health_config,
+        profile,
     )
+    report = (
+        _load_cached_health_report(cache, health_fingerprint)
+        if incremental and health_fingerprint is not None
+        else None
+    )
+    reused_health_report = report is not None
+    if reused_health_report:
+        cli.detail("health check: reused cached report", indent=2, icon=cli.icons.success)
+    else:
+        report = health_check.run(
+            profile=profile,
+            incremental=incremental,
+            context=_health_validation_context(build_context) if incremental else None,
+            cache=cache,
+            build_context=build_context,
+        )
+        if health_fingerprint is not None:
+            _store_cached_health_report(cache, health_fingerprint, report)
 
     health_time_ms = (time.time() - health_start) * 1000
     orchestrator.stats.health_check_time_ms = health_time_ms
+    orchestrator.stats.record_phase_timing("Health check", health_time_ms)
 
     # Show phase completion timing (before report)
     cli.phase("Health check", duration_ms=health_time_ms)
@@ -375,6 +459,127 @@ def run_health_check(
             "Review output or disable strict_mode.",
             suggestion="Review the health check report above and fix the errors, or set health_check.strict_mode=false",
         )
+
+
+def _health_report_fingerprint(
+    site: Any,
+    cache: Any,
+    health_config: dict[str, Any],
+    profile: BuildProfile | Any | None,
+) -> str | None:
+    """Fingerprint inputs that affect build health validation."""
+    if cache is None:
+        return None
+    page_fingerprints = []
+    for page in getattr(site, "pages", []):
+        source_path = getattr(page, "source_path", None)
+        if source_path is None:
+            return None
+        key = str(cache._cache_key(Path(source_path)))
+        fingerprint = cache.file_fingerprints.get(key)
+        if fingerprint is None:
+            fingerprint = cache.file_fingerprints.get(str(source_path))
+        if fingerprint is None:
+            return None
+        page_fingerprints.append((key, fingerprint))
+    link_registry = getattr(site, "link_registry", None)
+    payload = {
+        "version": 1,
+        "health_config": health_config,
+        "profile": getattr(profile, "value", str(profile)),
+        "link_registry": getattr(link_registry, "fingerprint", None),
+        "pages": sorted(page_fingerprints),
+    }
+    encoded = json.dumps(payload, sort_keys=True, default=str, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _load_cached_health_report(cache: Any, fingerprint: str | None) -> Any | None:
+    """Return a cached HealthReport when the fingerprint matches."""
+    if cache is None or fingerprint is None:
+        return None
+    record = cache.validation_results.get("__bengal_health_report__")
+    if not isinstance(record, dict) or record.get("fingerprint") != fingerprint:
+        return None
+    report_data = record.get("report")
+    if not isinstance(report_data, dict):
+        return None
+    try:
+        return _health_report_from_cache_dict(report_data)
+    except KeyError, TypeError, ValueError:
+        return None
+
+
+def _store_cached_health_report(cache: Any, fingerprint: str, report: Any) -> None:
+    """Persist a whole-report health cache entry."""
+    if cache is None:
+        return
+    try:
+        cache.validation_results["__bengal_health_report__"] = {
+            "fingerprint": fingerprint,
+            "report": _health_report_to_cache_dict(report),
+        }
+    except AttributeError, TypeError, ValueError:
+        return
+
+
+def _health_report_to_cache_dict(report: Any) -> dict[str, Any]:
+    """Serialize a HealthReport for cache reuse."""
+    return {
+        "timestamp": report.timestamp.isoformat(),
+        "build_stats": report.build_stats,
+        "validator_reports": [
+            {
+                "validator_name": validator_report.validator_name,
+                "duration_ms": validator_report.duration_ms,
+                "results": [result.to_cache_dict() for result in validator_report.results],
+            }
+            for validator_report in report.validator_reports
+        ],
+    }
+
+
+def _health_report_from_cache_dict(data: dict[str, Any]) -> Any:
+    """Deserialize a cached HealthReport."""
+    from bengal.health.report import CheckResult, HealthReport, ValidatorReport
+
+    report = HealthReport(
+        timestamp=datetime.fromisoformat(data["timestamp"]),
+        build_stats=data.get("build_stats"),
+    )
+    for item in data.get("validator_reports", []):
+        results = [
+            CheckResult.from_cache_dict(result)
+            for result in item.get("results", [])
+            if isinstance(result, dict)
+        ]
+        report.validator_reports.append(
+            ValidatorReport(
+                validator_name=item["validator_name"],
+                results=results,
+                duration_ms=float(item.get("duration_ms", 0.0)),
+            )
+        )
+    return report
+
+
+def _health_validation_context(build_context: BuildContext | Any | None) -> list[Any] | None:
+    """Return changed source paths for incremental health validation."""
+    if build_context is None:
+        return None
+    paths: list[Any] = []
+    pages_to_build = getattr(build_context, "pages_to_build", None)
+    if pages_to_build:
+        for page in pages_to_build:
+            source_path = getattr(page, "source_path", None)
+            if source_path is not None:
+                paths.append(source_path)
+    if paths:
+        return paths
+    changed_page_paths = getattr(build_context, "changed_page_paths", None)
+    if changed_page_paths:
+        return list(changed_page_paths)
+    return None
 
 
 def phase_finalize(

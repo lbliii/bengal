@@ -46,6 +46,7 @@ if TYPE_CHECKING:
     from bengal.protocols.core import PageLike
     from bengal.rendering.api_doc_enhancer import APIDocEnhancerProtocol
     from bengal.rendering.assets import AssetManifestContext
+    from bengal.rendering.page_artifact import PageArtifact
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
     from bengal.services.data import DataService
     from bengal.services.query import QueryService
@@ -282,6 +283,8 @@ class BuildContext:
     _accumulated_page_index: dict[Path, AccumulatedPageData] = field(
         default_factory=dict, repr=False
     )
+    _page_artifacts: list[PageArtifact] = field(default_factory=list, repr=False)
+    _page_artifact_index: dict[Path, PageArtifact] = field(default_factory=dict, repr=False)
 
     @property
     def knowledge_graph(self) -> KnowledgeGraph | None:
@@ -684,6 +687,11 @@ class BuildContext:
         with self._accumulated_page_data_lock:
             self._accumulated_page_data.append(data)
             self._accumulated_page_index[data.source_path] = data
+            from bengal.rendering.page_artifact import PageArtifact
+
+            artifact = PageArtifact.from_accumulated(data)
+            self._page_artifacts.append(artifact)
+            self._page_artifact_index[artifact.source_path] = artifact
 
     def get_accumulated_page_data(self) -> list[AccumulatedPageData]:
         """
@@ -702,6 +710,20 @@ class BuildContext:
         """
         with self._accumulated_page_data_lock:
             return list(self._accumulated_page_data)
+
+    def get_page_artifacts(self) -> list[PageArtifact]:
+        """
+        Get frozen page artifacts for post-processing and cache persistence.
+
+        Returns a copy so callers cannot mutate the build-context collection.
+        """
+        with self._accumulated_page_data_lock:
+            return list(self._page_artifacts)
+
+    def get_artifact_for_page(self, source_path: Path) -> PageArtifact | None:
+        """Get the frozen artifact for a specific rendered page."""
+        with self._accumulated_page_data_lock:
+            return self._page_artifact_index.get(source_path)
 
     def get_accumulated_for_page(self, source_path: Path) -> AccumulatedPageData | None:
         """
@@ -765,3 +787,5 @@ class BuildContext:
         with self._accumulated_page_data_lock:
             self._accumulated_page_data.clear()
             self._accumulated_page_index.clear()
+            self._page_artifacts.clear()
+            self._page_artifact_index.clear()

@@ -140,6 +140,7 @@ class DevServer:
         auto_port: bool = True,
         open_browser: bool = False,
         version_scope: str | None = None,
+        completion_policy: Any | None = None,
     ) -> None:
         """
         Initialize the dev server.
@@ -154,7 +155,11 @@ class DevServer:
             open_browser: Whether to automatically open the browser
             version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
+            completion_policy: Build completion policy. Defaults to serve-ready
+                for fast local browsing; pass "complete" for production parity.
         """
+        from bengal.orchestration.build.options import BuildCompletionPolicy
+
         self.site = site
         self.host = host
         self.port = port
@@ -162,6 +167,10 @@ class DevServer:
         self.auto_port = auto_port
         self.open_browser = open_browser
         self.version_scope = version_scope
+        self.completion_policy = BuildCompletionPolicy.from_value(
+            completion_policy or BuildCompletionPolicy.SERVE_READY
+        )
+        self._deferred_artifact_request_count = 0
 
         # Mark site as running in dev mode to prevent timestamp churn in output files
         self.site.dev_mode = True
@@ -225,6 +234,7 @@ class DevServer:
             os.environ["BENGAL_BUILD_EXECUTOR"] = "process"
 
             # 2. Prepare dev-specific configuration
+            from bengal.orchestration.build.options import BuildCompletionPolicy
             from bengal.utils.observability.profile import BuildProfile
 
             baseurl_was_cleared = self._prepare_dev_config()
@@ -232,7 +242,11 @@ class DevServer:
             # 3. Determine startup strategy: serve-first or build-first
             # Serve-first when: cache exists AND baseurl wasn't cleared
             has_cache = self._has_cached_output()
-            can_serve_first = not baseurl_was_cleared and has_cache
+            can_serve_first = (
+                self.completion_policy is BuildCompletionPolicy.SERVE_READY
+                and not baseurl_was_cleared
+                and has_cache
+            )
 
             logger.debug(
                 "serve_first_decision",
@@ -322,6 +336,7 @@ class DevServer:
                 build_opts = BuildOptions(
                     profile=BuildProfile.WRITER,
                     incremental=not baseurl_was_cleared,
+                    completion_policy=self.completion_policy,
                 )
                 stats = self._run_build_via_executor(build_opts, "Initial build")
                 display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
@@ -352,15 +367,14 @@ class DevServer:
                 rm.register_sse_shutdown()
                 actual_port = backend.port
 
-                # Start file watcher if enabled
+                watcher_runner = None
+                build_trigger = None
                 if self.watch:
                     watcher_runner, build_trigger = self._create_watcher(actual_port)
                     rm.register_watcher_runner(watcher_runner)
                     rm.register_build_trigger(build_trigger)
                     # Seed content hash cache so first edit can use reactive path
                     build_trigger.seed_content_hash_cache(list(self.site.pages))
-                    watcher_runner.start()
-                    logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
 
                 # Print startup message
                 self._print_startup_message(actual_port)
@@ -377,6 +391,15 @@ class DevServer:
                 # Open browser when server is ready (runs in background thread)
                 if self.open_browser:
                     self._open_browser_when_ready(actual_port)
+
+                if build_opts.completion_policy is BuildCompletionPolicy.SERVE_READY:
+                    self._start_background_completion_build(
+                        BuildProfile.WRITER,
+                        watcher_runner=watcher_runner,
+                    )
+                elif watcher_runner is not None:
+                    watcher_runner.start()
+                    logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
 
                 # Run until interrupted
                 try:
@@ -553,6 +576,8 @@ class DevServer:
             incremental=incremental,
             profile=profile_str,
             version_scope=self.version_scope,
+            completion_policy=build_opts.completion_policy.value,
+            quiet=bool(getattr(build_opts, "quiet", False)),
         )
         executor = BuildExecutor(max_workers=1)
         try:
@@ -564,6 +589,55 @@ class DevServer:
             return MinimalStats.from_build_result(result, incremental=incremental)
         finally:
             executor.shutdown(wait=True)
+
+    def _start_background_completion_build(
+        self,
+        profile: Any,
+        *,
+        watcher_runner: WatcherRunner | None = None,
+    ) -> threading.Thread:
+        """Finish non-browse-critical build work without blocking server startup."""
+        from bengal.orchestration.build.options import BuildCompletionPolicy, BuildOptions
+        from bengal.orchestration.stats import show_error
+
+        def run_completion() -> None:
+            cli = get_cli_output()
+            cli.detail("completing artifacts and health checks in background...", indent=1)
+            build_state.set_build_in_progress(True)
+            try:
+                build_opts = BuildOptions(
+                    profile=profile,
+                    incremental=True,
+                    quiet=True,
+                    completion_policy=BuildCompletionPolicy.COMPLETE,
+                )
+                stats = self._run_build_via_executor(build_opts, "Background completion")
+                self._clear_html_cache_after_build()
+                self._set_active_palette()
+                self._init_reload_controller()
+                from bengal.orchestration.stats.helpers import format_time
+
+                cli.success(f"Background completion finished in {format_time(stats.build_time_ms)}")
+            except BengalServerError as exc:
+                show_error(f"Background completion failed: {exc}", show_art=False)
+                logger.warning(
+                    "background_completion_failed",
+                    error=str(exc),
+                    error_type=type(exc).__name__,
+                )
+            finally:
+                build_state.set_build_in_progress(False)
+                if watcher_runner is not None:
+                    watcher_runner.start()
+                    logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
+
+        thread = threading.Thread(
+            target=run_completion,
+            name="bengal-background-completion",
+            daemon=True,
+        )
+        thread.start()
+        return thread
 
     def _clear_html_cache_after_build(self) -> None:
         """Clear HTML injection cache after a build to ensure fresh pages."""
@@ -806,6 +880,7 @@ class DevServer:
             port=actual_port,
             version_scope=self.version_scope,
             buffer_manager=self._buffer_manager,
+            completion_policy=self.completion_policy,
         )
 
         # Create ignore filter from config using class method
@@ -1182,8 +1257,26 @@ class DevServer:
         # Request log header
         from datetime import datetime
 
+        from bengal.server.asgi_app import is_deferred_generated_artifact_path
+
         def _log_request(method: str, path: str, status: int, _duration_ms: float) -> None:
+            if path == "/__bengal_reload__":
+                return
             ts = datetime.now().strftime("%H:%M:%S")
+            if status == 503 and is_deferred_generated_artifact_path(path):
+                self._deferred_artifact_request_count += 1
+                count = self._deferred_artifact_request_count
+                if count != 1 and count % 10 != 0:
+                    return
+                suffix = "" if count == 1 else f" ({count} requests)"
+                cli.http_request(
+                    ts,
+                    method,
+                    "PND",
+                    f"generated artifacts still completing{suffix}",
+                    is_asset=True,
+                )
+                return
             cli.http_request(ts, method, str(status), path, is_asset=False)
 
         if hasattr(self, "_request_callback_holder"):

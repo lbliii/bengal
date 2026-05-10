@@ -55,7 +55,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import yaml
 
@@ -86,6 +86,8 @@ from bengal.utils.paths.normalize import to_posix
 from bengal.utils.stats_minimal import MinimalStats
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from bengal.server.buffer_manager import BufferManager
     from bengal.server.reload_protocols import ReloadNotifier
 
@@ -152,6 +154,7 @@ class BuildTrigger:
         notifier: ReloadNotifier | None = None,
         version_scope: str | None = None,
         buffer_manager: BufferManager | None = None,
+        completion_policy: Any | None = None,
     ) -> None:
         """
         Initialize build trigger.
@@ -167,11 +170,17 @@ class BuildTrigger:
                 If None, all versions are rebuilt on changes.
             buffer_manager: Optional BufferManager for double-buffered output.
                 When set, full builds write to staging and swap on completion.
+            completion_policy: Build completion policy for watched rebuilds.
         """
+        from bengal.orchestration.build.options import BuildCompletionPolicy
+
         self.site = site
         self.host = host
         self.port = port
         self.version_scope = version_scope
+        self.completion_policy = BuildCompletionPolicy.from_value(
+            completion_policy or BuildCompletionPolicy.SERVE_READY
+        )
         self._buffer_manager = buffer_manager
         self._executor = executor or BuildExecutor(max_workers=1)
         self._reload_controller = controller or default_reload_controller
@@ -191,6 +200,9 @@ class BuildTrigger:
         # Track whether the previous build surfaced template errors so we
         # know when to push a `build_ok` message that dismisses the overlay.
         self._had_template_errors_last_build: bool = False
+        # Paths changed by the previous successful incremental buffered build.
+        # The next staging buffer can be repaired by syncing only these paths.
+        self._last_buffer_delta_paths: tuple[Path, ...] | None = None
 
     def trigger_build(
         self,
@@ -295,7 +307,7 @@ class BuildTrigger:
 
             # RFC: Output Cache Architecture - Capture content hash baseline BEFORE build
             # This enables accurate change detection vs regeneration noise
-            if self._reload_controller._use_content_hashes:
+            if self._should_capture_content_hash_baseline(changed_files):
                 self._reload_controller.capture_content_hash_baseline(self.site.output_dir)
 
             # Run pre-build hooks
@@ -303,6 +315,12 @@ class BuildTrigger:
             # run_pre_build_hooks expects a dict, use .raw for serialization
             raw = getattr(config, "raw", config)
             config_dict: dict[str, Any] = raw if isinstance(raw, dict) else {}
+
+            if not needs_full_rebuild and self._try_fast_asset_reload(
+                changed_paths, event_types, config_dict
+            ):
+                return
+
             if not run_pre_build_hooks(config_dict, self.site.root_path):
                 show_error("Pre-build hook failed - skipping build", show_art=False)
                 cli.request_log_header()
@@ -381,6 +399,7 @@ class BuildTrigger:
                 force_sequential=False,  # Auto-detect based on page count
                 incremental=use_incremental,
                 profile=BuildProfile.WRITER,
+                completion_policy=self.completion_policy,
                 changed_sources={Path(p) for p in changed_files} if changed_files else None,
                 nav_changed_sources=nav_changed_files,
                 structural_changed=structural_changed,
@@ -395,7 +414,12 @@ class BuildTrigger:
             original_output_dir = self.site.output_dir
             swapped = False
             if self._buffer_manager is not None:
-                staging = self._buffer_manager.prepare_staging()
+                if use_incremental and self._last_buffer_delta_paths is not None:
+                    staging = self._buffer_manager.prepare_delta_staging(
+                        self._last_buffer_delta_paths
+                    )
+                else:
+                    staging = self._buffer_manager.prepare_staging()
                 self.site.output_dir = staging
                 logger.debug(
                     "build_to_staging",
@@ -423,7 +447,12 @@ class BuildTrigger:
 
                 # Build succeeded - convert stats to result-like object for display
                 class WarmBuildResult:
-                    def __init__(self, stats: Any, build_time: float) -> None:
+                    def __init__(
+                        self,
+                        stats: Any,
+                        build_time: float,
+                        completion_policy: Any,
+                    ) -> None:
                         from bengal.server.reload_types import (
                             SerializedOutputRecord,
                         )
@@ -432,6 +461,7 @@ class BuildTrigger:
                         self.pages_built = stats.total_pages
                         self.build_time_ms = build_time * 1000
                         self.error_message = None
+                        self.completion_policy = completion_policy
                         self.changed_outputs = (
                             tuple(
                                 SerializedOutputRecord(
@@ -447,7 +477,13 @@ class BuildTrigger:
                         self.reload_hint = stats.reload_hint
                         self._stats = stats
 
-                result = WarmBuildResult(stats, build_duration)
+                result = WarmBuildResult(stats, build_duration, self.completion_policy)
+                if self._buffer_manager is not None:
+                    self._last_buffer_delta_paths = (
+                        self._buffer_delta_paths(result.changed_outputs)
+                        if use_incremental
+                        else None
+                    )
 
                 # Seed content hash cache so first edit can use reactive path
                 self.seed_content_hash_cache(list(self.site.pages))
@@ -461,6 +497,7 @@ class BuildTrigger:
                         self.site.output_dir = self._buffer_manager.active_dir
                     else:
                         self.site.output_dir = original_output_dir
+                    self._last_buffer_delta_paths = None
 
                 # Build crashed - log error and reinitialize site for next build
                 build_duration = time.time() - build_start
@@ -654,6 +691,232 @@ class BuildTrigger:
         if path.suffix.lower() not in {".md", ".markdown"}:
             return False
         return self._is_content_only_change(path) and not self._has_rendered_dependents(path)
+
+    def _try_fast_asset_reload(
+        self,
+        changed_paths: set[Path],
+        event_types: set[str],
+        config: dict[str, Any],
+    ) -> bool:
+        """Copy direct asset/static edits to output without running a warm build."""
+        mapped = self._direct_asset_output_mappings(changed_paths, event_types, config)
+        if mapped is None:
+            return False
+
+        from bengal.core.output import OutputRecord, OutputType
+        from bengal.server.reload_types import SerializedOutputRecord
+        from bengal.utils.io.atomic_write import atomic_write_bytes
+
+        changed_outputs: list[SerializedOutputRecord] = []
+        written = 0
+
+        try:
+            for source, rel_output, phase in mapped:
+                source_mode = source.stat().st_mode & 0o777
+                content = source.read_bytes()
+                for output_root in self._served_output_roots():
+                    atomic_write_bytes(output_root / rel_output, content, mode=source_mode)
+                    written += 1
+
+                record = OutputRecord.from_path(rel_output, phase=phase)
+                changed_outputs.append(
+                    SerializedOutputRecord(
+                        path=str(rel_output),
+                        type_value=record.output_type.value,
+                        phase=record.phase,
+                    )
+                )
+
+            reload_hint = (
+                ReloadHint.CSS_ONLY
+                if changed_outputs
+                and all(record.type_value == OutputType.CSS.value for record in changed_outputs)
+                else ReloadHint.FULL
+            )
+            self._handle_reload(
+                BuildReloadInfo(
+                    changed_files=tuple(str(path) for path in changed_paths),
+                    changed_outputs=tuple(changed_outputs),
+                    reload_hint=reload_hint,
+                )
+            )
+            self._clear_html_cache()
+            logger.info(
+                "fast_asset_reload_complete",
+                changed_files=len(changed_paths),
+                outputs=len(changed_outputs),
+                writes=written,
+                reload_hint=reload_hint.value,
+            )
+            return True
+        except OSError as exc:
+            logger.warning(
+                "fast_asset_reload_failed",
+                error=str(exc),
+                fallback="warm_build",
+            )
+            return False
+
+    def _direct_asset_output_mappings(
+        self,
+        changed_paths: set[Path],
+        event_types: set[str],
+        config: dict[str, Any],
+    ) -> tuple[tuple[Path, Path, Literal["asset"]], ...] | None:
+        """Return source-to-output mappings when a direct asset copy is safe."""
+        if not changed_paths or event_types != {"modified"}:
+            return None
+        if self._has_configured_build_hooks(config):
+            return None
+
+        mappings: list[tuple[Path, Path, Literal["asset"]]] = []
+        static_root = self._static_source_root(config)
+        asset_root = self.site.root_path / "assets"
+
+        for changed_path in changed_paths:
+            source = changed_path
+            if not source.is_file():
+                return None
+
+            static_rel = self._relative_to(source, static_root)
+            if static_rel is not None:
+                if not self._active_output_exists(static_rel):
+                    return None
+                mappings.append((source, static_rel, "asset"))
+                continue
+
+            asset_rel = self._relative_to(source, asset_root)
+            if asset_rel is None:
+                return None
+            if not self._can_copy_site_asset_directly(source):
+                return None
+
+            output_rel = Path("assets") / asset_rel
+            if not self._active_output_exists(output_rel):
+                return None
+            mappings.append((source, output_rel, "asset"))
+
+        return tuple(mappings)
+
+    def _has_configured_build_hooks(self, config: dict[str, Any]) -> bool:
+        """Return True when external hooks must participate in rebuilds."""
+        dev_server = config.get("dev_server", {})
+        if not isinstance(dev_server, dict):
+            return False
+        return bool(dev_server.get("pre_build") or dev_server.get("post_build"))
+
+    def _static_source_root(self, config: dict[str, Any]) -> Path:
+        """Return configured static source root."""
+        static_config = config.get("static", {})
+        if not isinstance(static_config, dict):
+            static_config = {}
+        static_dir_name = static_config.get("dir", "static")
+        return self.site.root_path / str(static_dir_name)
+
+    def _can_copy_site_asset_directly(self, source: Path) -> bool:
+        """Return True when the asset pipeline would preserve this file verbatim."""
+        config = self.site.config or {}
+        if config.get("fingerprint_assets", True):
+            return False
+
+        suffix = source.suffix.lower()
+        if suffix in {".css", ".js", ".mjs"} and config.get("minify_assets", True):
+            return False
+        if suffix in {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico"} and config.get(
+            "optimize_assets", True
+        ):
+            return False
+
+        asset = self._site_asset_for_source(source)
+        if asset is None:
+            return False
+        if suffix == ".css" and (
+            asset.is_css_entry_point() or (asset.is_css_module() and not asset.standalone)
+        ):
+            return False
+
+        assets_config = getattr(getattr(self.site, "config_service", None), "assets_config", {})
+        if isinstance(assets_config, dict) and assets_config.get("bundle_js", False):
+            with suppress(AttributeError):
+                if asset.is_js_module():
+                    return False
+
+        return True
+
+    def _site_asset_for_source(self, source: Path) -> Any | None:
+        """Find the discovered site asset for a source path."""
+        try:
+            resolved = source.resolve()
+        except OSError:
+            resolved = source
+
+        for asset in getattr(self.site, "assets", []):
+            asset_source = getattr(asset, "source_path", None)
+            if asset_source is None:
+                continue
+            try:
+                if Path(asset_source).resolve() == resolved:
+                    return asset
+            except OSError, TypeError, ValueError:
+                continue
+        return None
+
+    def _served_output_roots(self) -> tuple[Path, ...]:
+        """Return output roots that should stay current for direct asset edits."""
+        if self._buffer_manager is None:
+            return (self.site.output_dir,)
+
+        roots: list[Path] = []
+        for root in (self._buffer_manager.active_dir, self._buffer_manager.staging_dir):
+            if root not in roots:
+                roots.append(root)
+        return tuple(roots)
+
+    def _buffer_delta_paths(
+        self,
+        changed_outputs: tuple[Any, ...],
+    ) -> tuple[Path, ...] | None:
+        """Normalize changed output records for the next buffered rebuild."""
+        paths: list[Path] = []
+        seen: set[Path] = set()
+        active_root = (
+            self._buffer_manager.active_dir
+            if self._buffer_manager is not None
+            else self.site.output_dir
+        )
+
+        for output in changed_outputs:
+            raw_path = Path(getattr(output, "path", ""))
+            if raw_path == Path("."):
+                continue
+            if raw_path.is_absolute():
+                try:
+                    raw_path = raw_path.resolve().relative_to(active_root.resolve())
+                except OSError, ValueError:
+                    return None
+            if any(part == ".." for part in raw_path.parts):
+                return None
+            if raw_path not in seen:
+                seen.add(raw_path)
+                paths.append(raw_path)
+
+        return tuple(paths)
+
+    def _active_output_exists(self, rel_output: Path) -> bool:
+        """Return True when the currently served output already exists."""
+        output_root = (
+            self._buffer_manager.active_dir
+            if self._buffer_manager is not None
+            else self.site.output_dir
+        )
+        return (output_root / rel_output).is_file()
+
+    def _relative_to(self, path: Path, root: Path) -> Path | None:
+        """Return path relative to root, resolving symlinks where possible."""
+        try:
+            return path.resolve().relative_to(root.resolve())
+        except OSError, ValueError:
+            return None
 
     def _has_rendered_dependents(self, path: Path) -> bool:
         """Return True when a content edit should rebuild dependent pages."""
@@ -1462,14 +1725,19 @@ class BuildTrigger:
                     changed_count=len(changed_files),
                 )
                 self._reload_notifier.send("reload", "source-changes-bypass", ())
-        else:
-            logger.info(
-                "reload_decision",
-                action=decision.action,
-                reason=decision.reason,
-                source=decision_source,
-            )
-            self._reload_notifier.send(decision.action, decision.reason, decision.changed_paths)
+            return
+
+        logger.info(
+            "reload_decision",
+            action=decision.action,
+            reason=decision.reason,
+            source=decision_source,
+        )
+        self._reload_notifier.send(decision.action, decision.reason, decision.changed_paths)
+
+    def _should_capture_content_hash_baseline(self, changed_files: Sequence[str]) -> bool:
+        """Return whether this build still needs pre-build output hash scanning."""
+        return self._reload_controller._use_content_hashes and not changed_files
 
     def _set_build_in_progress(self, building: bool) -> None:
         """Signal build state to shared registry (handler and ASGI app read from it)."""

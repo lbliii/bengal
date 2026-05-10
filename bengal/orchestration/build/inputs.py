@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from bengal.orchestration.build.options import BuildOptions
+from bengal.orchestration.build.options import BuildCompletionPolicy, BuildOptions
 
 if TYPE_CHECKING:
     from bengal.server.build_executor import BuildRequest
@@ -96,6 +96,10 @@ class BuildInput:
             incremental=request.incremental,
             profile=profile,
             memory_optimized=getattr(request, "memory_optimized", False),
+            quiet=getattr(request, "quiet", False),
+            completion_policy=BuildCompletionPolicy.from_value(
+                getattr(request, "completion_policy", None)
+            ),
             explain=getattr(request, "explain", False),
             dry_run=getattr(request, "dry_run", False),
             profile_templates=getattr(request, "profile_templates", False),
@@ -128,7 +132,9 @@ class BuildInput:
             force_sequential=self.options.force_sequential,
             version_scope=self.version_scope,
             memory_optimized=self.options.memory_optimized,
+            completion_policy=self.options.completion_policy.value,
             explain=self.options.explain,
             dry_run=self.options.dry_run,
             profile_templates=self.options.profile_templates,
+            quiet=self.options.quiet,
         )

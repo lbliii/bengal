@@ -67,7 +67,7 @@ from bengal.utils.observability.logger import get_logger
 
 from . import content, finalization, initialization, parsing, rendering
 from .inputs import BuildInput
-from .options import BuildOptions  # noqa: TC001 — runtime re-export for health.py et al.
+from .options import BuildCompletionPolicy, BuildOptions
 
 logger = get_logger(__name__)
 
@@ -185,6 +185,7 @@ class BuildOrchestrator:
         changed_sources = options.changed_sources or None
         nav_changed_sources = options.nav_changed_sources or None
         structural_changed = options.structural_changed
+        serve_ready_policy = options.completion_policy is BuildCompletionPolicy.SERVE_READY
 
         # Explain mode options (RFC: rfc-incremental-build-observability Phase 2)
         explain = options.explain
@@ -278,6 +279,7 @@ class BuildOrchestrator:
         # Initialize stats (incremental may be None, resolve later)
         self.stats = BuildStats(parallel=False, incremental=bool(incremental))
         self.stats.strict_mode = strict
+        self.stats.completion_policy = options.completion_policy.value
 
         logger.info(
             "build_start",
@@ -338,8 +340,13 @@ class BuildOrchestrator:
 
         # Initialize cache (ALWAYS, even for full builds)
         # We need cache for cleanup of deleted files and auto-mode decision
+        initialization_start = time.perf_counter()
         with logger.phase("initialization"):
             cache = self.incremental.initialize(enabled=True)  # Always load cache
+        self.stats.record_phase_timing(
+            "Initialization",
+            (time.perf_counter() - initialization_start) * 1000,
+        )
 
         # RFC: Output Cache Architecture - Initialize GeneratedPageCache for tag page caching
         # This enables skipping unchanged tag pages based on member content hashes
@@ -454,6 +461,7 @@ class BuildOrchestrator:
         initialization.phase_cache_metadata(self)
 
         discovery_duration_ms = (time.time() - discovery_start) * 1000
+        self.stats.record_phase_timing("Discovery", discovery_duration_ms)
 
         notify_phase_complete(
             "discovery",
@@ -463,6 +471,7 @@ class BuildOrchestrator:
         run_plugin_phase("post_discovery")
 
         # Phase 4: Config Check and Cleanup
+        filter_start = time.perf_counter()
         config_result = initialization.phase_config_check(self, cli, cache, incremental)
         incremental = config_result.incremental
         config_changed = config_result.config_changed
@@ -483,6 +492,10 @@ class BuildOrchestrator:
             changed_sources=changed_sources,
             nav_changed_sources=nav_changed_sources,
         )
+        self.stats.record_phase_timing(
+            "Config/filter",
+            (time.perf_counter() - filter_start) * 1000,
+        )
 
         if filter_result is None:
             # No changes detected - early exit
@@ -498,6 +511,7 @@ class BuildOrchestrator:
         # health validators) can make safe incremental decisions without re-scanning everything.
         early_ctx.incremental = bool(incremental)
         early_ctx.changed_page_paths = set(changed_page_paths)
+        early_ctx.config_changed = bool(config_changed)
 
         # === CONTENT PHASE GROUP (dashboard-integrated) ===
         run_plugin_phase("pre_content")
@@ -549,6 +563,7 @@ class BuildOrchestrator:
             self._filter_sections_by_variant(self.site.sections, variant)
             if hasattr(self.site, "invalidate_regular_pages_cache"):
                 self.site.invalidate_regular_pages_cache()
+        early_ctx.pages_to_build = list(pages_to_build)
 
         # Phase 12.5: URL Collision Detection (proactive validation)
         collisions = self.site.validate_no_url_collisions(strict=options.strict)
@@ -563,6 +578,7 @@ class BuildOrchestrator:
             )
 
         content_duration_ms = (time.time() - content_start) * 1000
+        self.stats.record_phase_timing("Content", content_duration_ms)
         taxonomy_count = len(self.site.taxonomies) if hasattr(self.site, "taxonomies") else 0
         notify_phase_complete(
             "content",
@@ -584,6 +600,7 @@ class BuildOrchestrator:
                 parallel=not force_sequential,
             )
         parsing_duration_ms = (time.time() - parsing_start) * 1000
+        self.stats.record_phase_timing("Parsing", parsing_duration_ms)
         if hasattr(self.stats, "parsing_time_ms"):
             self.stats.parsing_time_ms = parsing_duration_ms
 
@@ -603,6 +620,7 @@ class BuildOrchestrator:
         with self.logger.phase("snapshot"):
             site_snapshot = create_site_snapshot(self.site)
             snapshot_duration_ms = (time.time() - snapshot_start) * 1000
+            self.stats.record_phase_timing("Snapshot", snapshot_duration_ms)
             # Store snapshot in build context for rendering phase
             early_ctx.snapshot = site_snapshot
             # Store snapshot time in stats if available
@@ -682,6 +700,7 @@ class BuildOrchestrator:
         )
 
         assets_duration_ms = (time.time() - assets_start) * 1000
+        self.stats.record_phase_timing("Assets", assets_duration_ms)
         notify_phase_complete(
             "assets",
             assets_duration_ms,
@@ -746,6 +765,7 @@ class BuildOrchestrator:
             record_all_page_builds(self, pages_to_build, parallel=not force_sequential)
 
         rendering_duration_ms = (time.time() - rendering_start) * 1000
+        self.stats.record_phase_timing("Rendering", rendering_duration_ms)
         notify_phase_complete(
             "rendering",
             rendering_duration_ms,
@@ -762,20 +782,38 @@ class BuildOrchestrator:
         # Phase 17: Post-processing
         # Enable parallel post-processing for independent tasks (sitemap, RSS, output formats)
         finalization.phase_postprocess(
-            self, cli, not force_sequential, ctx, incremental, collector=output_collector
+            self,
+            cli,
+            not force_sequential,
+            ctx,
+            incremental,
+            collector=output_collector,
+            enabled_task_names={"special pages"} if serve_ready_policy else None,
+            run_asset_audit=not serve_ready_policy,
         )
+        self.stats.record_phase_timing("Post-process", self.stats.postprocess_time_ms)
 
         from bengal.orchestration.build.artifact_inventory import populate_artifact_inventory
 
-        if ctx is not None:
-            ctx.output_collector = output_collector
-            ctx.artifact_collector = artifact_collector
-        populate_artifact_inventory(self.site, ctx)
+        if not serve_ready_policy:
+            if ctx is not None:
+                ctx.output_collector = output_collector
+                ctx.artifact_collector = artifact_collector
+            artifact_inventory_start = time.perf_counter()
+            populate_artifact_inventory(self.site, ctx)
+            self.stats.post_render_timings_ms["artifact_inventory"] = round(
+                (time.perf_counter() - artifact_inventory_start) * 1000,
+                1,
+            )
+            self.stats.record_phase_timing(
+                "Artifact inventory",
+                self.stats.post_render_timings_ms["artifact_inventory"],
+            )
 
         # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered
         # This enables skipping them on future builds if member content hasn't changed
         # Note: Update on ALL builds (not just incremental) to populate cache for first build
-        if generated_page_cache:
+        if generated_page_cache and not serve_ready_policy:
             # Build content hash lookup from parsed_content cache
             content_hash_lookup: dict[str, str] = {}
             if cache and hasattr(cache, "parsed_content"):
@@ -822,7 +860,22 @@ class BuildOrchestrator:
         cache_start = time.perf_counter()
 
         def _save_main_cache() -> None:
-            self.incremental.save_cache(pages_to_build, assets_to_process, build_context=ctx)
+            saved = self.incremental.save_cache(
+                pages_to_build,
+                assets_to_process,
+                build_context=ctx,
+            )
+            if saved is False:
+                from bengal.errors import BengalCacheError, ErrorCode
+
+                raise BengalCacheError(
+                    "Build cache could not be saved.",
+                    code=ErrorCode.A004,
+                    suggestion=(
+                        "Check disk space and permissions. Incremental builds may be stale "
+                        "until the cache can be saved."
+                    ),
+                )
 
         def _save_generated_cache() -> None:
             if generated_page_cache:
@@ -831,20 +884,36 @@ class BuildOrchestrator:
         # Run cache saves in parallel
         from bengal.utils.concurrency.work_scope import WorkScope
 
-        with WorkScope("CacheSave", max_workers=2) as scope:
-            results = scope.map(lambda fn: fn(), [_save_main_cache, _save_generated_cache])
+        if serve_ready_policy:
+            self.stats.post_render_timings_ms["cache_save"] = 0
+            if cli is not None:
+                cli.detail(
+                    "cache save deferred for serve-ready build", indent=1, icon=cli.icons.arrow
+                )
+            self.logger.info("cache_save_deferred", policy=options.completion_policy.value)
+        else:
+            with WorkScope("CacheSave", max_workers=2) as scope:
+                results = scope.map(lambda fn: fn(), [_save_main_cache, _save_generated_cache])
 
-        for r in results:
-            if r.error:
-                raise r.error
+            for r in results:
+                if r.error:
+                    raise r.error
 
-        cache_duration_ms = (time.perf_counter() - cache_start) * 1000
-        if cli is not None:
-            cli.phase("Cache save", duration_ms=cache_duration_ms)
-        self.logger.info("cache_saved")
+            cache_duration_ms = (time.perf_counter() - cache_start) * 1000
+            self.stats.post_render_timings_ms["cache_save"] = round(cache_duration_ms, 1)
+            self.stats.record_phase_timing("Cache save", cache_duration_ms)
+            if cli is not None:
+                cli.phase("Cache save", duration_ms=cache_duration_ms)
+            self.logger.info("cache_saved")
 
         # Phase 19: Collect Final Stats
+        stats_start = time.perf_counter()
         finalization.phase_collect_stats(self, build_start, cli=cli)
+        self.stats.post_render_timings_ms["stats"] = round(
+            (time.perf_counter() - stats_start) * 1000,
+            1,
+        )
+        self.stats.record_phase_timing("Stats", self.stats.post_render_timings_ms["stats"])
 
         # Phase 19.5: Finalize Error Session (track build errors for pattern detection)
         self._finalize_error_session()
@@ -894,38 +963,63 @@ class BuildOrchestrator:
         )
         run_plugin_phase("post_finalization")
 
-        # === HEALTH PHASE GROUP (dashboard-integrated) ===
-        run_plugin_phase("pre_health")
-        notify_phase_start("health")
-        health_start = time.time()
+        if serve_ready_policy:
+            self.stats.post_render_timings_ms["health"] = 0
+            if cli is not None:
+                cli.detail(
+                    "health check deferred for serve-ready build", indent=1, icon=cli.icons.arrow
+                )
+            self.logger.info("health_check_deferred", policy=options.completion_policy.value)
+        else:
+            # === HEALTH PHASE GROUP (dashboard-integrated) ===
+            run_plugin_phase("pre_health")
+            notify_phase_start("health")
+            health_start = time.time()
 
-        # Phase 20: Health Check
-        with logger.phase("health_check"):
-            finalization.run_health_check(
-                self,
-                profile=profile,
-                incremental=incremental,
-                build_context=ctx,
-            )
+            # Phase 20: Health Check
+            with logger.phase("health_check"):
+                finalization.run_health_check(
+                    self,
+                    profile=profile,
+                    incremental=incremental,
+                    build_context=ctx,
+                )
 
-        health_duration_ms = (time.time() - health_start) * 1000
-        health_report = getattr(self.stats, "health_report", None)
-        health_summary = ""
-        if health_report:
-            passed = health_report.total_passed
-            total = health_report.total_checks
-            health_summary = f"{passed}/{total} checks passed"
-        notify_phase_complete("health", health_duration_ms, health_summary)
-        run_plugin_phase("post_health")
-
-        # Phase 21: Finalize Build
-        finalization.phase_finalize(self, verbose, collector)
+            health_duration_ms = (time.time() - health_start) * 1000
+            self.stats.post_render_timings_ms["health"] = round(health_duration_ms, 1)
+            health_report = getattr(self.stats, "health_report", None)
+            health_summary = ""
+            if health_report:
+                passed = health_report.total_passed
+                total = health_report.total_checks
+                health_summary = f"{passed}/{total} checks passed"
+            notify_phase_complete("health", health_duration_ms, health_summary)
+            run_plugin_phase("post_health")
 
         # Save provenance cache if using provenance-based filtering
-        if hasattr(self, "_provenance_filter"):
+        if hasattr(self, "_provenance_filter") and not serve_ready_policy:
             from bengal.orchestration.build.provenance_filter import save_provenance_cache
 
+            provenance_save_start = time.perf_counter()
             save_provenance_cache(self)
+            self.stats.post_render_timings_ms["provenance_save"] = round(
+                (time.perf_counter() - provenance_save_start) * 1000,
+                1,
+            )
+            self.stats.record_phase_timing(
+                "Provenance save",
+                self.stats.post_render_timings_ms["provenance_save"],
+            )
+
+        # Phase 21: Finalize Build
+        finalization_start = time.perf_counter()
+        self.stats.build_time_ms = (time.time() - build_start) * 1000
+        finalization.phase_finalize(self, verbose, collector)
+        self.stats.record_phase_timing(
+            "Finalize",
+            (time.perf_counter() - finalization_start) * 1000,
+        )
+        self.stats.build_time_ms = (time.time() - build_start) * 1000
 
         # Clean up partial fast-write files if build had errors
         if self.stats.template_errors or (isinstance(self.stats, HasErrors) and self.stats.errors):

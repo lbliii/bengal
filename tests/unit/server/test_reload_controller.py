@@ -258,7 +258,7 @@ def test_decide_from_outputs_js_only_triggers_full_reload():
 
 
 def test_decide_from_outputs_xml_sitemap():
-    """XML outputs (sitemap) trigger full reload."""
+    """Aggregate-only postprocess outputs suppress browser reload."""
     ctl = ReloadController(min_notify_interval_ms=0)
 
     outputs = [
@@ -266,8 +266,21 @@ def test_decide_from_outputs_xml_sitemap():
     ]
     decision = ctl.decide_from_outputs(outputs)
 
-    assert decision.action == "reload"
-    assert decision.reason == "content-changed"
+    assert decision.action == "none"
+    assert decision.reason == "aggregate-only"
+
+
+def test_decide_from_outputs_postprocess_html_still_reloads():
+    """Postprocess HTML outputs are visible pages and still reload."""
+    ctl = ReloadController(min_notify_interval_ms=0)
+
+    outputs = [
+        OutputRecord(Path("search/index.html"), OutputType.HTML, "postprocess"),
+    ]
+    decision = ctl.decide_from_outputs(outputs)
+
+    assert decision.action == "reload-page"
+    assert decision.reason == "single-page-content"
 
 
 def test_decide_from_outputs_reload_hint_none_returns_none():

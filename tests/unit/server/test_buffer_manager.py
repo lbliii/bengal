@@ -139,6 +139,41 @@ class TestBufferManager:
 
         assert (staging / "keep.html").exists()
 
+    def test_prepare_delta_staging_syncs_changed_files(self, mgr: BufferManager) -> None:
+        active = mgr.active_dir
+        staging = mgr.staging_dir
+        (active / "index.html").write_text("<html>v2</html>")
+        (active / "unchanged.html").write_text("<html>same</html>")
+        staging.mkdir(parents=True, exist_ok=True)
+        (staging / "index.html").write_text("<html>v1</html>")
+        (staging / "unchanged.html").write_text("<html>same</html>")
+
+        result = mgr.prepare_delta_staging([Path("index.html")])
+
+        assert result == staging
+        assert (staging / "index.html").read_text() == "<html>v2</html>"
+        assert (staging / "unchanged.html").read_text() == "<html>same</html>"
+        assert (active / "index.html").stat().st_ino == (staging / "index.html").stat().st_ino
+
+    def test_prepare_delta_staging_removes_missing_outputs(self, mgr: BufferManager) -> None:
+        active = mgr.active_dir
+        staging = mgr.staging_dir
+        (active / "index.html").write_text("<html>keep</html>")
+        staging.mkdir(parents=True, exist_ok=True)
+        (staging / "stale.html").write_text("<html>old</html>")
+
+        mgr.prepare_delta_staging([Path("stale.html")])
+
+        assert not (staging / "stale.html").exists()
+
+    def test_prepare_delta_staging_falls_back_when_staging_empty(self, mgr: BufferManager) -> None:
+        active = mgr.active_dir
+        (active / "index.html").write_text("<html>seeded</html>")
+
+        staging = mgr.prepare_delta_staging([Path("index.html")])
+
+        assert (staging / "index.html").read_text() == "<html>seeded</html>"
+
     def test_full_cycle(self, mgr: BufferManager) -> None:
         """Simulate: build to staging, swap, build again to new staging.
 

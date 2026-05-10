@@ -42,25 +42,40 @@ def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> di
     # Throughput
     render_ms = stats.rendering_time_ms if stats.rendering_time_ms > 0 else stats.build_time_ms
     pages_per_sec = (stats.total_pages / render_ms) * 1000 if render_ms > 0 else 0
+    completion_policy = getattr(stats, "completion_policy", "complete")
+    ready_label = "HTML ready" if completion_policy == "serve_ready" else "Built"
 
-    # Phase breakdown — collect non-zero phases
-    phases = []
-    if stats.fonts_time_ms > 0:
-        phases.append(f"Fonts {format_time(stats.fonts_time_ms)}")
-    if stats.discovery_time_ms > 0:
-        phases.append(f"Discovery {format_time(stats.discovery_time_ms)}")
-    if stats.menu_time_ms > 0:
-        phases.append(f"Menus {format_time(stats.menu_time_ms)}")
-    if stats.related_posts_time_ms > 0:
-        phases.append(f"Related {format_time(stats.related_posts_time_ms)}")
-    if stats.rendering_time_ms > 0:
-        phases.append(f"Render {format_time(stats.rendering_time_ms)}")
-    if stats.assets_time_ms > 0:
-        phases.append(f"Assets {format_time(stats.assets_time_ms)}")
-    if stats.postprocess_time_ms > 0:
-        phases.append(f"Post {format_time(stats.postprocess_time_ms)}")
-    if stats.health_check_time_ms > 0:
-        phases.append(f"Health {format_time(stats.health_check_time_ms)}")
+    # Phase breakdown — show the slowest phases, not insertion order.
+    recorded_phases = getattr(stats, "phase_timings_ms", None)
+    if isinstance(recorded_phases, dict) and recorded_phases:
+        phase_items = [
+            (str(name), float(duration_ms))
+            for name, duration_ms in recorded_phases.items()
+            if isinstance(duration_ms, int | float)
+        ]
+    else:
+        phase_items = [
+            ("Fonts", getattr(stats, "fonts_time_ms", 0)),
+            ("Discovery", getattr(stats, "discovery_time_ms", 0)),
+            ("Menus", getattr(stats, "menu_time_ms", 0)),
+            ("Related", getattr(stats, "related_posts_time_ms", 0)),
+            ("Render", getattr(stats, "rendering_time_ms", 0)),
+            ("Assets", getattr(stats, "assets_time_ms", 0)),
+            ("Post", getattr(stats, "postprocess_time_ms", 0)),
+            ("Health", getattr(stats, "health_check_time_ms", 0)),
+        ]
+    phases = [
+        f"{name} {format_time(duration_ms)}"
+        for name, duration_ms in sorted(phase_items, key=lambda item: item[1], reverse=True)
+        if duration_ms > 0
+    ]
+    postprocess_detail = _format_slowest_postprocess(stats)
+    if postprocess_detail:
+        phases.append(postprocess_detail)
+    unaccounted_ms = getattr(stats, "overhead_ms", 0)
+    if isinstance(unaccounted_ms, int | float) and unaccounted_ms > 250:
+        phases.append(f"Unaccounted {format_time(unaccounted_ms)}")
+    visible_phases = phases[:8]
 
     # Breakdown string
     breakdown = f"{stats.regular_pages}+{stats.generated_pages}"
@@ -121,13 +136,14 @@ def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> di
         "glyphs": glyphs,
         "has_errors": stats.has_errors,
         "has_warnings": len(stats.warnings) > 0,
+        "ready_label": ready_label,
         "total_pages": stats.total_pages,
         "breakdown": breakdown,
         "build_time": format_time(stats.build_time_ms),
         "mode": mode_text,
         "pages_per_sec": pages_per_sec,
         "content_parts": content_parts,
-        "phases": phases[:4],
+        "phases": visible_phases,
         "render_dist": render_dist,
         "regression": regression,
         "regression_positive": regression_positive,
@@ -140,6 +156,25 @@ def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> di
         else len(stats.warnings),
         "error_code_summary": error_code_summary,
     }
+
+
+def _format_slowest_postprocess(stats: DisplayableStats) -> str | None:
+    """Return a compact detail for the slowest post-render subtask."""
+    timing_maps = [
+        getattr(stats, "postprocess_task_timings_ms", None),
+        getattr(stats, "postprocess_output_timings_ms", None),
+        getattr(stats, "post_render_timings_ms", None),
+    ]
+    combined: dict[str, float] = {}
+    for timings in timing_maps:
+        if isinstance(timings, dict):
+            for name, duration_ms in timings.items():
+                if isinstance(duration_ms, int | float) and duration_ms > 0:
+                    combined[str(name)] = float(duration_ms)
+    if not combined:
+        return None
+    name, duration_ms = max(combined.items(), key=lambda item: item[1])
+    return f"Slowest post {name} {format_time(duration_ms)}"
 
 
 def _build_warning_groups(stats: DisplayableStats) -> list[dict]:

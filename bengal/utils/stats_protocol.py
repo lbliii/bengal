@@ -79,6 +79,9 @@ class DisplayableStats(CoreStats, Protocol):
         rendering_time_ms: Template rendering phase duration
         assets_time_ms: Asset processing phase duration
         postprocess_time_ms: Post-processing phase duration
+        postprocess_task_timings_ms: Post-processing task timings by task name
+        post_render_timings_ms: Finalization/cache/audit timings after rendering
+        phase_timings_ms: Named build phase timings for full cold-build accounting
         health_check_time_ms: Health check phase duration
 
     Methods:
@@ -113,6 +116,9 @@ class DisplayableStats(CoreStats, Protocol):
     rendering_time_ms: float
     assets_time_ms: float
     postprocess_time_ms: float
+    postprocess_task_timings_ms: dict[str, float]
+    post_render_timings_ms: dict[str, float]
+    phase_timings_ms: dict[str, float]
     health_check_time_ms: float
 
     # Error tracking

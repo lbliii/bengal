@@ -335,6 +335,27 @@ class TestHealthCheckHelperMethods:
         assert [result.message for result in report.results] == ["cached broken", "fresh broken"]
         cache.get_cached_validation_results.assert_called_once_with(unchanged.source_path, "Links")
 
+    def test_missing_unchanged_validation_cache_disables_incremental_scope(self, mock_site):
+        """Missing cached unchanged-file findings fall back to full validation."""
+        changed = MagicMock()
+        changed.source_path = Path("content/changed.md")
+        unchanged = MagicMock()
+        unchanged.source_path = Path("content/unchanged.md")
+        mock_site.pages = [changed, unchanged]
+
+        cache = MagicMock()
+        cache.get_cached_validation_results.return_value = None
+        validator = MockValidator("Links", results=[])
+        health_check = HealthCheck(mock_site, auto_register=False)
+
+        scope = health_check._build_validation_scope(
+            validator,
+            cache,
+            files_to_validate={changed.source_path},
+        )
+
+        assert scope is None
+
     def test_run_single_validator_caches_file_results(self, mock_site):
         """Validator-provided per-file results are persisted for changed files."""
         page = MagicMock()
@@ -356,6 +377,35 @@ class TestHealthCheckHelperMethods:
         cache.cache_validation_results.assert_called_once_with(
             page.source_path, "Links", [file_result]
         )
+
+    def test_run_single_validator_caches_full_run_file_results(self, mock_site):
+        """Full validation seeds per-file result cache for future incremental runs."""
+        page1 = MagicMock()
+        page1.source_path = Path("content/one.md")
+        page2 = MagicMock()
+        page2.source_path = Path("content/two.md")
+        mock_site.pages = [page1, page2]
+
+        result1 = CheckResult.error("first broken", code="H101")
+        result2 = CheckResult.warning("second warning", code="H102")
+        validator = MockValidator("Links", results=[result1, result2])
+        validator.last_file_results = {
+            page1.source_path: [result1],
+            page2.source_path: [result2],
+        }
+        cache = MagicMock()
+        health_check = HealthCheck(mock_site, auto_register=False)
+
+        health_check._run_single_validator(
+            validator,
+            build_context=None,
+            cache=cache,
+            files_to_validate=None,
+        )
+
+        assert cache.cache_validation_results.call_count == 2
+        cache.cache_validation_results.assert_any_call(page1.source_path, "Links", [result1])
+        cache.cache_validation_results.assert_any_call(page2.source_path, "Links", [result2])
 
     def test_link_validation_cache_uses_registry_fingerprint_context(self, mock_site):
         """Links cache keys include rendered URL and anchor truth when available."""

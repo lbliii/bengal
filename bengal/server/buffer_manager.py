@@ -27,12 +27,13 @@ from __future__ import annotations
 import os
 import shutil
 import threading
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from collections.abc import Iterable
 
 logger = get_logger(__name__)
 
@@ -105,6 +106,73 @@ class BufferManager:
 
         return staging
 
+    def prepare_delta_staging(self, changed_paths: Iterable[Path | str]) -> Path:
+        """Bring staging up to date by syncing only known changed outputs.
+
+        The inactive buffer is usually a complete snapshot from the previous
+        generation. After one successful incremental swap it only differs from
+        active by that build's changed outputs, so copying just those paths is
+        enough to make staging a complete base for the next incremental build.
+        If staging is empty or a path cannot be made relative safely, this
+        falls back to the full hardlink seed.
+        """
+        staging = self.staging_dir
+        active = self.active_dir
+
+        if not staging.exists() or not any(staging.iterdir()):
+            return self.prepare_staging()
+
+        staging.mkdir(parents=True, exist_ok=True)
+
+        synced = 0
+        removed = 0
+        for raw_path in changed_paths:
+            rel_path = self._normalize_relative_output_path(Path(raw_path), active)
+            if rel_path is None:
+                logger.debug(
+                    "staging_delta_seed_fallback",
+                    reason="unsafe_path",
+                    path=str(raw_path),
+                )
+                return self.prepare_staging()
+
+            src_path = active / rel_path
+            dst_path = staging / rel_path
+
+            if src_path.is_dir():
+                dst_path.mkdir(parents=True, exist_ok=True)
+                continue
+
+            if not src_path.exists():
+                if dst_path.is_dir():
+                    shutil.rmtree(dst_path)
+                    removed += 1
+                elif dst_path.exists():
+                    dst_path.unlink()
+                    removed += 1
+                continue
+
+            dst_path.parent.mkdir(parents=True, exist_ok=True)
+            if dst_path.is_dir():
+                shutil.rmtree(dst_path)
+            elif dst_path.exists():
+                dst_path.unlink()
+
+            try:
+                os.link(src_path, dst_path)
+            except OSError:
+                shutil.copy2(src_path, dst_path)
+            synced += 1
+
+        logger.debug(
+            "staging_delta_seeded",
+            files=synced,
+            removed=removed,
+            active=str(active),
+            staging=str(staging),
+        )
+        return staging
+
     def swap(self) -> int:
         """Atomically swap staging to active.
 
@@ -149,3 +217,15 @@ class BufferManager:
             count += 1
 
         logger.debug("staging_seeded", files=count, src=str(src), dst=str(dst))
+
+    def _normalize_relative_output_path(self, path: Path, active: Path) -> Path | None:
+        """Normalize an output path so it cannot escape the buffer root."""
+        if path.is_absolute():
+            try:
+                path = path.resolve().relative_to(active.resolve())
+            except OSError, ValueError:
+                return None
+
+        if any(part == ".." for part in path.parts):
+            return None
+        return path

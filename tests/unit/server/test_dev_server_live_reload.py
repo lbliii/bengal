@@ -11,12 +11,16 @@ from __future__ import annotations
 import errno
 import socket
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 
 from bengal.assets.manifest import AssetManifest
+from bengal.orchestration.build.options import BuildCompletionPolicy
+from bengal.server.build_state import build_state
 from bengal.server.dev_server import DevServer
+from bengal.utils.observability.profile import BuildProfile
+from bengal.utils.stats_minimal import MinimalStats
 
 
 class TestDevServerContentHashCacheSeeding:
@@ -42,6 +46,7 @@ class TestDevServerContentHashCacheSeeding:
             patch.object(DevServer, "_create_server") as mock_create,
             patch.object(DevServer, "_create_watcher") as mock_create_watcher,
             patch.object(DevServer, "_init_reload_controller"),
+            patch.object(DevServer, "_start_background_completion_build") as mock_background,
             patch(
                 "bengal.server.dev_server.PIDManager.get_pid_file", return_value=tmp_path / "pid"
             ),
@@ -70,6 +75,95 @@ class TestDevServerContentHashCacheSeeding:
             assert call_args == list(site.pages), (
                 "seed_content_hash_cache should be called with list(site.pages)"
             )
+            mock_background.assert_called_once_with(
+                ANY,
+                watcher_runner=mock_watcher,
+            )
+            mock_watcher.start.assert_not_called()
+
+    def test_background_completion_runs_complete_policy_then_starts_watcher(
+        self, tmp_path: Path
+    ) -> None:
+        """Background completion should finish deferred work before watching edits."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.output_dir.mkdir()
+        site.config = {}
+        site.pages = []
+        mock_watcher = MagicMock()
+        stats = MinimalStats(total_pages=1, build_time_ms=10.0, incremental=True)
+
+        server = DevServer(site, watch=False, auto_port=False)
+
+        with (
+            patch.object(server, "_run_build_via_executor", return_value=stats) as mock_build,
+            patch.object(server, "_clear_html_cache_after_build"),
+            patch.object(server, "_set_active_palette"),
+            patch.object(server, "_init_reload_controller"),
+            patch("bengal.server.dev_server.display_build_stats"),
+        ):
+            thread = server._start_background_completion_build(
+                BuildProfile.WRITER,
+                watcher_runner=mock_watcher,
+            )
+            thread.join(timeout=2)
+
+        assert not thread.is_alive()
+        assert build_state.get_build_in_progress() is False
+        build_opts = mock_build.call_args.args[0]
+        assert build_opts.completion_policy is BuildCompletionPolicy.COMPLETE
+        assert build_opts.quiet is True
+        mock_watcher.start.assert_called_once()
+
+    def test_complete_policy_blocks_startup_tail_and_starts_watcher(self, tmp_path: Path) -> None:
+        """Complete mode should not schedule a serve-ready background tail."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.output_dir.mkdir()
+        site.config = {}
+        site.pages = []
+        mock_watcher = MagicMock()
+        mock_build_trigger = MagicMock()
+        stats = MinimalStats(total_pages=1, build_time_ms=10.0, incremental=True)
+
+        with (
+            patch.object(DevServer, "_check_stale_processes"),
+            patch.object(DevServer, "_has_cached_output", return_value=False),
+            patch.object(DevServer, "_prepare_dev_config", return_value=False),
+            patch.object(DevServer, "_run_build_via_executor", return_value=stats) as mock_build,
+            patch.object(DevServer, "_create_server") as mock_create,
+            patch.object(DevServer, "_create_watcher") as mock_create_watcher,
+            patch.object(DevServer, "_init_reload_controller"),
+            patch.object(DevServer, "_start_background_completion_build") as mock_background,
+            patch(
+                "bengal.server.dev_server.PIDManager.get_pid_file", return_value=tmp_path / "pid"
+            ),
+            patch("bengal.server.dev_server.PIDManager.write_pid_file"),
+            patch("bengal.server.dev_server.ResourceManager") as mock_rm_class,
+        ):
+            mock_create_watcher.return_value = (mock_watcher, mock_build_trigger)
+            mock_backend = MagicMock()
+            mock_backend.port = 5173
+            mock_backend.start.side_effect = KeyboardInterrupt
+            mock_create.return_value = mock_backend
+            mock_rm = MagicMock()
+            mock_rm_class.return_value.__enter__ = MagicMock(return_value=mock_rm)
+            mock_rm_class.return_value.__exit__ = MagicMock(return_value=False)
+
+            server = DevServer(
+                site,
+                watch=True,
+                auto_port=False,
+                completion_policy=BuildCompletionPolicy.COMPLETE,
+            )
+            server.start()
+
+        build_opts = mock_build.call_args.args[0]
+        assert build_opts.completion_policy is BuildCompletionPolicy.COMPLETE
+        mock_background.assert_not_called()
+        mock_watcher.start.assert_called_once()
 
 
 class TestDevServerServeFirstWatcherOrder:
@@ -125,6 +219,91 @@ class TestDevServerServeFirstWatcherOrder:
             assert validation_called, "Validation should have run"
             mock_watcher.start.assert_called_once()
             mock_build_trigger.seed_content_hash_cache.assert_called_once()
+
+    def test_complete_policy_does_not_serve_cached_output_first(self, tmp_path: Path) -> None:
+        """Complete mode should block on an initial complete build even with cache."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.output_dir.mkdir()
+        site.config = {}
+        site.pages = []
+        stats = MinimalStats(total_pages=1, build_time_ms=10.0, incremental=True)
+
+        with (
+            patch.object(DevServer, "_check_stale_processes"),
+            patch.object(DevServer, "_has_cached_output", return_value=True),
+            patch.object(DevServer, "_prepare_dev_config", return_value=False),
+            patch.object(DevServer, "_run_build_via_executor", return_value=stats) as mock_build,
+            patch.object(DevServer, "_run_validation_build") as mock_validation,
+            patch.object(DevServer, "_create_server") as mock_create,
+            patch.object(DevServer, "_init_reload_controller"),
+            patch(
+                "bengal.server.dev_server.PIDManager.get_pid_file", return_value=tmp_path / "pid"
+            ),
+            patch("bengal.server.dev_server.PIDManager.write_pid_file"),
+            patch("bengal.server.dev_server.ResourceManager") as mock_rm_class,
+        ):
+            mock_backend = MagicMock()
+            mock_backend.port = 5173
+            mock_backend.start.side_effect = KeyboardInterrupt
+            mock_create.return_value = mock_backend
+            mock_rm = MagicMock()
+            mock_rm_class.return_value.__enter__ = MagicMock(return_value=mock_rm)
+            mock_rm_class.return_value.__exit__ = MagicMock(return_value=False)
+
+            server = DevServer(
+                site,
+                watch=False,
+                auto_port=False,
+                completion_policy=BuildCompletionPolicy.COMPLETE,
+            )
+            server.start()
+
+        build_opts = mock_build.call_args.args[0]
+        assert build_opts.completion_policy is BuildCompletionPolicy.COMPLETE
+        mock_validation.assert_not_called()
+
+
+class TestDevServerRequestLogging:
+    """Tests for serve dashboard request-log filtering."""
+
+    def test_deferred_artifact_requests_are_coalesced(self, tmp_path: Path) -> None:
+        """Deferred artifact polling should not spam scary 503 request lines."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.output_dir.mkdir()
+        site.config = {}
+        cli = MagicMock()
+        cli.icons.success = "✓"
+        cli.icons.info = "·"
+        server = DevServer(site, watch=False, auto_port=False)
+        server._request_callback_holder = [None]
+
+        with (
+            patch("bengal.server.dev_server.get_cli_output", return_value=cli),
+            patch("bengal.utils.dx.collect_hints", return_value=[]),
+        ):
+            server._print_startup_message(5173)
+
+        callback = server._request_callback_holder[0]
+        assert callback is not None
+
+        callback("GET", "/__bengal_reload__", 200, 1.0)
+        callback("GET", "/index.json", 503, 1.0)
+        for _ in range(8):
+            callback("GET", "/docs/page/index.json", 503, 1.0)
+        callback("GET", "/llms.txt", 503, 1.0)
+        callback("GET", "/", 200, 1.0)
+
+        request_calls = cli.http_request.call_args_list
+        assert len(request_calls) == 3
+        assert request_calls[0].args[2] == "PND"
+        assert "generated artifacts still completing" in request_calls[0].args[3]
+        assert request_calls[1].args[2] == "PND"
+        assert "10 requests" in request_calls[1].args[3]
+        assert request_calls[2].args[1:4] == ("GET", "200", "/")
 
 
 class TestDevServerCachedOutputIntegrity:

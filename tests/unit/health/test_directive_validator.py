@@ -332,6 +332,7 @@ Just regular markdown content here.
         # No issues = no results (silence is golden)
         # OR if there are results, none should be errors
         assert all(r.status != CheckStatus.ERROR for r in results)
+        assert validator.last_file_results == {source_file: []}
 
     def test_validate_with_valid_directives(self, tmp_path):
         """Test validation with valid directives."""

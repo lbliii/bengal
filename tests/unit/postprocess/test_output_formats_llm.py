@@ -377,6 +377,31 @@ class TestSiteWideLLMFullGeneration:
         assert "## Page 2/3:" in content
         assert "## Page 3/3:" in content
 
+    def test_llm_full_regenerates_when_emitted_metadata_changes(self, tmp_path):
+        """llm-full.txt hash includes metadata that affects emitted content."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            "Original Title",
+            "/test/",
+            "Unchanged plain text",
+            output_dir / "test/index.html",
+        )
+        mock_site.pages = [page]
+
+        config = {"enabled": True, "per_page": [], "site_wide": ["llm_full"]}
+        generator = OutputFormatsGenerator(mock_site, config)
+        generator.generate()
+
+        page.title = "Updated Title"
+        generator.generate()
+
+        content = (output_dir / "llm-full.txt").read_text()
+        assert "Updated Title" in content
+        assert "Original Title" not in content
+
     def test_llm_full_disabled_by_config(self, tmp_path):
         """Test that llm-full.txt is not generated when disabled."""
         output_dir = tmp_path / "public"

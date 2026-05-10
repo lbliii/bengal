@@ -76,7 +76,7 @@ Build Failed
 
 {%- elif has_warnings -%}
 {#- Built with warnings -#}
-{{ warn | yellow }} {{ brand | fg("#FF9D00") | bold }}  {{ ("Built " ~ (total_pages | string) ~ " pages in " ~ build_time ~ " (" ~ mode ~ ") with warnings") | yellow }}
+{{ warn | yellow }} {{ brand | fg("#FF9D00") | bold }}  {{ ((ready_label | default("Built")) ~ " " ~ (total_pages | string) ~ " pages in " ~ build_time ~ " (" ~ mode ~ ") with warnings") | yellow }}
    {{ content_parts | join(", ") | dim }}
 {%- if phases %}
    {{ phases | join(", ") | dim }}
@@ -84,7 +84,7 @@ Build Failed
 
 {%- else -%}
 {#- Clean success -#}
-{{ ok | green }} {{ brand | fg("#FF9D00") | bold }}  {{ ("Built " ~ (total_pages | string) ~ " pages") | green }} {{ ("(" ~ breakdown ~ ")") | dim }} in {{ build_time | fg("#F1C40F") | bold }} {{ ("(" ~ mode ~ ")") | dim }} {{ sep }} {{ (pages_per_sec | round(1) | string) | fg("#F1C40F") | bold }} {{ "pages/sec" | dim }}
+{{ ok | green }} {{ brand | fg("#FF9D00") | bold }}  {{ ((ready_label | default("Built")) ~ " " ~ (total_pages | string) ~ " pages") | green }} {{ ("(" ~ breakdown ~ ")") | dim }} in {{ build_time | fg("#F1C40F") | bold }} {{ ("(" ~ mode ~ ")") | dim }} {{ sep }} {{ (pages_per_sec | round(1) | string) | fg("#F1C40F") | bold }} {{ "pages/sec" | dim }}
    {{ content_parts | join(", ") | dim }}
 {%- if phases %}
    {{ phases | join(", ") | dim }}

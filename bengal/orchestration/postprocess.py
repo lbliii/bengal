@@ -25,6 +25,7 @@ See Also:
 
 from __future__ import annotations
 
+import time
 from threading import Lock
 from typing import TYPE_CHECKING
 
@@ -67,6 +68,32 @@ def _emit_postprocess_line(message: str) -> None:
     from bengal.output import get_cli_output
 
     get_cli_output().raw(message, stream="stderr", level=None)
+
+
+def _emit_task_started(task_name: str) -> None:
+    """Show long-running postprocess work before it completes."""
+    from bengal.output import get_cli_output
+
+    cli = get_cli_output()
+    cli.detail(f"{task_name}...", icon=cli.icons.arrow)
+
+
+def _emit_task_finished(task_name: str, duration_ms: float) -> None:
+    """Show a completed postprocess subtask with its elapsed time."""
+    from bengal.output import get_cli_output
+
+    cli = get_cli_output()
+    duration = f"{int(duration_ms)}ms"
+    cli.detail(f"{task_name} {duration}", icon=cli.icons.success)
+
+
+def _emit_task_failed(task_name: str, duration_ms: float) -> None:
+    """Show a failed postprocess subtask with its elapsed time."""
+    from bengal.output import get_cli_output
+
+    cli = get_cli_output()
+    duration = f"{int(duration_ms)}ms"
+    cli.detail(f"{task_name} failed {duration}", icon=cli.icons.warning)
 
 
 class PostprocessOrchestrator:
@@ -118,6 +145,7 @@ class PostprocessOrchestrator:
         build_context: BuildContext | None = None,
         incremental: bool = False,
         collector: OutputCollector | None = None,
+        enabled_task_names: set[str] | None = None,
     ) -> None:
         """
         Perform post-processing tasks (sitemap, RSS, output formats, link validation, etc.).
@@ -127,9 +155,11 @@ class PostprocessOrchestrator:
             progress_manager: Live progress manager (optional)
             incremental: Whether this is an incremental build (can skip some tasks)
             collector: Optional output collector for hot reload tracking
+            enabled_task_names: Optional task-name allow list for serve-ready builds
         """
         # Store collector for use in task methods
         self._collector = collector
+        self._stats = getattr(build_context, "stats", None) if build_context else None
         # Resolve from context if absent
         if (
             not progress_manager
@@ -147,23 +177,21 @@ class PostprocessOrchestrator:
             cli = get_cli_output()
             cli.section("Post-processing")
 
+        def task_enabled(name: str) -> bool:
+            return enabled_task_names is None or name in enabled_task_names
+
         # Collect enabled tasks
         tasks = []
 
         # Always generate special pages (404, etc.) - important for deployment
-        tasks.append(("special pages", lambda: self._generate_special_pages(build_context)))
+        if task_enabled("special pages"):
+            tasks.append(("special pages", lambda: self._generate_special_pages(build_context)))
 
         # CRITICAL: Always generate output formats (index.json, llm-full.txt)
         # These are essential for search functionality and must reflect current site state
         output_formats_config = self.site.config.get("output_formats", {})
-        if output_formats_config.get("enabled", True):
-            # Build graph first if we want to include graph data in page JSON
-            graph_data = None
-            if output_formats_config.get("options", {}).get("include_graph_connections", True):
-                graph_data = self._build_graph_data(build_context)
-            tasks.append(
-                ("output formats", lambda: self._generate_output_formats(graph_data, build_context))
-            )
+        if output_formats_config.get("enabled", True) and task_enabled("output formats"):
+            tasks.append(("output formats", lambda: self._generate_output_formats(build_context)))
 
         # OPTIMIZATION: For incremental builds, skip expensive post-processing
         # except for sitemap which must always be regenerated for correctness.
@@ -180,12 +208,12 @@ class PostprocessOrchestrator:
         # - Redirects: Regenerated on full builds (aliases rarely change)
 
         # Sitemap: Always regenerate for correctness (fast: ~10ms for 1K pages)
-        if self.site.config.get("generate_sitemap", True):
+        if self.site.config.get("generate_sitemap", True) and task_enabled("sitemap"):
             tasks.append(("sitemap", self._generate_sitemap))
 
         # robots.txt with Content-Signal directives (fast, always regenerated)
         cs_config = self.site.config.get("content_signals", {})
-        if cs_config.get("enabled", True):
+        if cs_config.get("enabled", True) and task_enabled("robots.txt"):
             tasks.append(("robots.txt", self._generate_robots_txt))
 
         social_cards_task = None
@@ -203,19 +231,20 @@ class PostprocessOrchestrator:
                 def run_social_cards() -> None:
                     self._generate_social_cards(build_context)
 
-                social_cards_task = run_social_cards
+                if task_enabled("social cards"):
+                    social_cards_task = run_social_cards
 
-            if self.site.config.get("generate_rss", True):
+            if self.site.config.get("generate_rss", True) and task_enabled("rss"):
                 tasks.append(("rss", self._generate_rss))
-            if self.site.config.get("generate_atom", False):
+            if self.site.config.get("generate_atom", False) and task_enabled("atom"):
                 tasks.append(("atom", self._generate_atom))
 
             redirects_config = self.site.config.get("redirects", {})
-            if redirects_config.get("generate_html", True):
+            if redirects_config.get("generate_html", True) and task_enabled("redirects"):
                 tasks.append(("redirects", self._generate_redirects))
 
             # Generate xref.json for cross-project linking (RFC: External References)
-            if should_export_xref_index(self.site):
+            if should_export_xref_index(self.site) and task_enabled("xref index"):
                 tasks.append(("xref index", self._generate_xref_index))
         else:
             # Incremental: skip expensive tasks for dev server responsiveness
@@ -237,6 +266,13 @@ class PostprocessOrchestrator:
         if social_cards_task is not None:
             self._run_sequential([("social cards", social_cards_task)], progress_manager, reporter)
 
+    def _record_task_timing(self, task_name: str, duration_ms: float) -> None:
+        """Record postprocess task timing when build stats are available."""
+        stats = getattr(self, "_stats", None)
+        timings = getattr(stats, "postprocess_task_timings_ms", None)
+        if isinstance(timings, dict):
+            timings[task_name] = round(duration_ms, 1)
+
     def _run_sequential(
         self,
         tasks: list[tuple[str, Callable[[], None]]],
@@ -251,6 +287,12 @@ class PostprocessOrchestrator:
             progress_manager: Live progress manager (optional)
         """
         for i, (task_name, task_fn) in enumerate(tasks):
+            task_start = time.perf_counter()
+            failed = False
+            emit_cli_task_progress = progress_manager is None
+            if emit_cli_task_progress:
+                with _print_lock:
+                    _emit_task_started(task_name)
             try:
                 if progress_manager:
                     progress_manager.update_phase(
@@ -258,6 +300,7 @@ class PostprocessOrchestrator:
                     )
                 task_fn()
             except Exception as e:
+                failed = True
                 from bengal.errors import (
                     BengalError,
                     ErrorCode,
@@ -304,6 +347,18 @@ class PostprocessOrchestrator:
                                 _emit_postprocess_line(f"  ✗ {task_name}: {e}")
                         else:
                             _emit_postprocess_line(f"  ✗ {task_name}: {e}")
+            finally:
+                duration_ms = (time.perf_counter() - task_start) * 1000
+                self._record_task_timing(
+                    task_name,
+                    duration_ms,
+                )
+                if emit_cli_task_progress:
+                    with _print_lock:
+                        if failed:
+                            _emit_task_failed(task_name, duration_ms)
+                        else:
+                            _emit_task_finished(task_name, duration_ms)
 
     def _run_parallel(
         self,
@@ -323,12 +378,25 @@ class PostprocessOrchestrator:
 
         def _run_task(name_fn_tuple: tuple[str, Callable[[], None]]) -> str:
             name, fn = name_fn_tuple
+            start = time.perf_counter()
+            if progress_manager is None:
+                with _print_lock:
+                    _emit_task_started(name)
             try:
                 fn()
             except Exception as e:
+                duration_ms = (time.perf_counter() - start) * 1000
                 e.__task_name__ = name  # type: ignore[attr-defined]
+                e.__duration_ms__ = duration_ms  # type: ignore[attr-defined]
+                if progress_manager is None:
+                    with _print_lock:
+                        _emit_task_failed(name, duration_ms)
                 raise
-            return name
+            duration_ms = (time.perf_counter() - start) * 1000
+            if progress_manager is None:
+                with _print_lock:
+                    _emit_task_finished(name, duration_ms)
+            return f"{name}\0{duration_ms}"
 
         from bengal.utils.concurrency.work_scope import WorkScope
 
@@ -337,7 +405,10 @@ class PostprocessOrchestrator:
 
         for r in results:
             if r.ok:
-                task_name = r.value
+                encoded = r.value or ""
+                task_name, _, duration = encoded.partition("\0")
+                if duration:
+                    self._record_task_timing(task_name, float(duration))
                 if progress_manager:
                     completed_count += 1
                     progress_manager.update_phase(
@@ -351,6 +422,9 @@ class PostprocessOrchestrator:
 
                 # Extract task name from the error if possible
                 task_name = getattr(e, "__task_name__", "unknown")
+                duration_ms = getattr(e, "__duration_ms__", None)
+                if isinstance(duration_ms, int | float):
+                    self._record_task_timing(task_name, float(duration_ms))
                 error_msg = str(e)
                 errors.append((task_name, error_msg))
 
@@ -582,14 +656,12 @@ class PostprocessOrchestrator:
 
     def _generate_output_formats(
         self,
-        graph_data: dict[str, object] | None = None,
         build_context: BuildContext | None = None,
     ) -> None:
         """
         Generate custom output formats like JSON, plain text (extracted for parallel execution).
 
         Args:
-            graph_data: Optional pre-computed graph data to include in page JSON
             build_context: Optional BuildContext with accumulated JSON data from rendering phase
 
         Raises:
@@ -597,7 +669,10 @@ class PostprocessOrchestrator:
         """
         config = self.site.config.get("output_formats", {})
         generator = OutputFormatsGenerator(
-            self.site, config, graph_data=graph_data, build_context=build_context
+            self.site,
+            config,
+            graph_data_provider=lambda: self._build_graph_data(build_context),
+            build_context=build_context,
         )
         generator.generate()
 

@@ -88,6 +88,7 @@ class TestBuildResult:
         assert result.build_time_ms == 1234.5
         assert result.error_message is None
         assert result.changed_outputs == ()
+        assert result.completion_policy == "complete"
 
     def test_creation_with_failure(self) -> None:
         """Test that BuildResult can be created for failure."""
@@ -101,6 +102,7 @@ class TestBuildResult:
         assert result.success is False
         assert result.pages_built == 0
         assert result.error_message == "Build failed: missing config"
+        assert result.completion_policy == "complete"
 
     def test_is_frozen(self) -> None:
         """Test that BuildResult is immutable."""
