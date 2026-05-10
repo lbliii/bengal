@@ -372,6 +372,8 @@ class KidaTemplateEngine:
               fragment_ttl: 3600.0  # Fragment TTL seconds (default 1h for SSG)
               max_extends_depth: 50  # (optional) {% extends %} chain limit
               max_include_depth: 50  # (optional) {% include %}/{% embed %} limit
+              template_aliases:  # (optional) @alias/ template include roots
+                components: ui/components
 
         Note:
             Strict mode (raising UndefinedError for undefined variables) is
@@ -425,6 +427,8 @@ class KidaTemplateEngine:
             env_kwargs["max_extends_depth"] = kida_config["max_extends_depth"]
         if "max_include_depth" in kida_config:
             env_kwargs["max_include_depth"] = kida_config["max_include_depth"]
+        if "template_aliases" in kida_config:
+            env_kwargs["template_aliases"] = kida_config["template_aliases"]
 
         # Compile-time optimization (kida 0.4.1+)
         # Pass site config as static_context so the partial evaluator can fold

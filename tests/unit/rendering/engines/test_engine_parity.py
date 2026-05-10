@@ -71,6 +71,26 @@ class TestKidaConfiguration:
 
         assert environment.call_args.kwargs["static_context"] == {"config": mock_site.config}
 
+    def test_template_aliases_config_resolves_at_alias_includes(self, tmp_path: Path) -> None:
+        """kida.template_aliases exposes Kida's @alias/ include roots."""
+        templates = tmp_path / "templates"
+        components = templates / "ui" / "components"
+        components.mkdir(parents=True)
+        (templates / "page.html").write_text(
+            '{% include "@components/card.html" %}',
+            encoding="utf-8",
+        )
+        (components / "card.html").write_text("CARD", encoding="utf-8")
+        site = make_mock_site(root_path=tmp_path)
+        site.theme = ""
+        site.config["kida"]["template_aliases"] = {"components": "ui/components"}
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+
+        assert engine.render_template("page.html", {}) == "CARD"
+
 
 class TestEngineCommonInterface:
     """Test that the Kida engine implements the required interface."""

@@ -59,9 +59,9 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
   <title>{% block title %}{{ page.title }}{% end %}</title>
 </head>
 <body>
-  {% block header %}{% include "partials/header.html" %}{% end %}
+  {% block header %}{% include "./partials/header.html" %}{% end %}
   {% block content %}{% end %}
-  {% block footer %}{% include "partials/footer.html" %}{% end %}
+  {% block footer %}{% include "./partials/footer.html" %}{% end %}
 </body>
 </html>
 ```
@@ -87,9 +87,13 @@ Bengal searches: **Your project** → **Theme** → **Bengal defaults**
 |---------|--------|---------|
 | **Extends** | `{% extends "base.html" %}` | Inherit from parent template |
 | **Block** | `{% block name %}...{% end %}` | Replaceable section |
-| **Include** | `{% include "partial.html" %}` | Insert another template |
+| **Include** | `{% include "./partial.html" %}` | Insert another template |
 | **Variable** | `{{ page.title }}` | Output a value |
 | **Filter** | `{{ text \| truncate(100) }}` | Transform a value |
+
+Kida resolves `./` and `../` relative template paths from the current template.
+For shared component libraries, configure `kida.template_aliases` and include
+templates with `@alias/` prefixes such as `{% include "@components/card.html" %}`.
 
 ## Template Inheritance
 

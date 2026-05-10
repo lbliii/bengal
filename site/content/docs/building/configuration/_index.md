@@ -200,6 +200,23 @@ dynamic customization roots like `params.*` and `site.data.*` as author-provided
 data.
 :::
 
+### Kida Options
+
+Kida-specific options live under `[kida]` in `bengal.toml` or `kida:` in YAML
+config files. `template_aliases` maps `@alias/` prefixes to paths relative to
+the active template roots:
+
+```toml
+[kida]
+bytecode_cache = true
+static_context = false
+
+[kida.template_aliases]
+components = "ui/components"
+```
+
+Templates can then include shared files with `{% include "@components/card.html" %}`.
+
 ## Multi-Variant Builds
 
 Build different site variants (OSS vs Enterprise, brand1 vs brand2) from one content tree. Set `params.edition` per environment and add `edition` to page frontmatter to filter content.
