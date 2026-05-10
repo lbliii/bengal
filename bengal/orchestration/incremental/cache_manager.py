@@ -127,6 +127,7 @@ class CacheManager:
                         "cache_migration_failed", error=str(e), action="using_fresh_cache"
                     )
             self.cache = BuildCache.load(cache_path, site_root=self.site.root_path)
+            self.cache.page_artifacts.update(self._page_artifact_store().load())
             cache_exists = cache_path.exists()
             try:
                 file_count = len(self.cache.file_fingerprints)
@@ -364,8 +365,15 @@ class CacheManager:
                 path=str(effects_path),
             )
 
-        # Save cache
-        return self.cache.save(cache_path)
+        # Save large post-render page artifacts separately so the hot cache-save
+        # path does not rewrite every page artifact inside cache.json.zst.
+        page_artifacts = self.cache.page_artifacts
+        self._page_artifact_store().save(page_artifacts)
+        self.cache.page_artifacts = {}
+        try:
+            return self.cache.save(cache_path)
+        finally:
+            self.cache.page_artifacts = page_artifacts
 
     def _store_page_artifacts(self, build_context: Any | None) -> None:
         """Persist post-render page artifacts accumulated during rendering."""
@@ -396,6 +404,12 @@ class CacheManager:
             self.cache.page_artifacts[artifact_key] = _serialize_page_artifact(
                 data, anchors_by_source.get(artifact_key, frozenset())
             )
+
+    def _page_artifact_store(self) -> Any:
+        """Return the sharded page artifact store for this site's state dir."""
+        from bengal.cache.page_artifact_store import PageArtifactStore
+
+        return PageArtifactStore(self.site.config_service.paths.state_dir / "page-artifacts")
 
     def _get_theme_templates_dir(self) -> Path | None:
         """
