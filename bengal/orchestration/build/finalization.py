@@ -320,6 +320,7 @@ def run_health_check(
         return
 
     health_start = time.time()
+    cli.detail("health check: preparing reference registry...", indent=2, icon=cli.icons.arrow)
 
     # Build rendering-owned link registry before health checks (zero-cost: reuses toc_items)
     from bengal.rendering.reference_registry import (
@@ -345,6 +346,7 @@ def run_health_check(
 
     # Run health checks with profile filtering
     health_check = HealthCheck(orchestrator.site)
+    cli.detail("health check: running validators...", indent=2, icon=cli.icons.arrow)
 
     # Pass cache for incremental validation if available
     cache = None

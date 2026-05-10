@@ -62,7 +62,7 @@ import time
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from bengal.orchestration.stats import ReloadHint
 from bengal.utils.primitives.hashing import hash_file
@@ -809,6 +809,13 @@ class ReloadController:
         filtered_path_set = set(filtered_paths)
         filtered_outputs = [o for o in outputs if str(o.path) in filtered_path_set]
 
+        if _outputs_are_aggregate_only(filtered_outputs):
+            return ReloadDecision(
+                action="none",
+                reason="aggregate-only",
+                changed_paths=(),
+            )
+
         # Record notification time
         self._record_notification()
 
@@ -869,6 +876,19 @@ class ReloadController:
         css_paths = [p for p in paths if p.lower().endswith(".css")]
 
         return self._make_css_decision(paths, css_paths)
+
+
+def _outputs_are_aggregate_only(outputs: list[Any]) -> bool:
+    """Return whether outputs only contain non-visible aggregate artifacts."""
+    if not outputs:
+        return False
+    from bengal.orchestration.build.output_types import classify_output, is_aggregate_output
+
+    return all(
+        getattr(output, "phase", None) == "postprocess"
+        and is_aggregate_output(classify_output(output.path))
+        for output in outputs
+    )
 
 
 # Global controller for dev server
