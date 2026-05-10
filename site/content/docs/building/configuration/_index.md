@@ -193,6 +193,11 @@ For Kida templates, `bengal check --templates-security` runs Kida's static escap
 and privacy analysis. It reports trust-boundary warnings such as unexplained
 `| safe` use and sensitive-looking context paths without failing the check unless
 Kida reports an error-level finding.
+
+`bengal check --templates-context` also uses Kida's dotted-path context contract
+checker. It can catch missing nested context such as `page.title` while treating
+dynamic customization roots like `params.*` and `site.data.*` as author-provided
+data.
 :::
 
 ## Multi-Variant Builds
