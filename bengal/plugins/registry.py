@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-@dataclass
+@dataclass(frozen=True, slots=True)
 class FrozenPluginRegistry:
     """Immutable snapshot of all registered plugin extensions.
 
@@ -42,6 +42,19 @@ class FrozenPluginRegistry:
     health_validators: tuple[Any, ...] = ()
     shortcodes: tuple[tuple[str, str], ...] = ()  # (name, template_str)
     phase_hooks: tuple[tuple[str, Callable], ...] = ()  # (phase_name, callback)
+
+
+def _validate_name(kind: str, name: str) -> str:
+    if not isinstance(name, str) or not name.strip():
+        msg = f"Plugin {kind} name must be a non-empty string"
+        raise ValueError(msg)
+    return name
+
+
+def _validate_callable(kind: str, name: str, fn: Callable) -> None:
+    if not callable(fn):
+        msg = f"Plugin {kind} '{name}' must be callable"
+        raise TypeError(msg)
 
 
 class PluginRegistry:
@@ -104,21 +117,34 @@ class PluginRegistry:
 
         """
         self._check_mutable()
+        name = _validate_name("template function", name)
+        _validate_callable("template function", name, fn)
+        if not isinstance(phase, int) or not 1 <= phase <= 9:
+            msg = f"Plugin template function '{name}' phase must be an integer from 1 to 9"
+            raise ValueError(msg)
         self._template_functions.append((name, fn, phase))
 
     def add_template_filter(self, name: str, fn: Callable) -> None:
         """Register a template filter (value transformer)."""
         self._check_mutable()
+        name = _validate_name("template filter", name)
+        _validate_callable("template filter", name, fn)
         self._template_filters.append((name, fn))
 
     def add_template_test(self, name: str, fn: Callable) -> None:
         """Register a template test (boolean predicate)."""
         self._check_mutable()
+        name = _validate_name("template test", name)
+        _validate_callable("template test", name, fn)
         self._template_tests.append((name, fn))
 
     def add_content_source(self, name: str, source_cls: type) -> None:
         """Register a content source type."""
         self._check_mutable()
+        name = _validate_name("content source", name)
+        if not isinstance(source_cls, type):
+            msg = f"Plugin content source '{name}' must be a class"
+            raise TypeError(msg)
         self._content_sources.append((name, source_cls))
 
     def add_health_validator(self, validator: BaseValidator) -> None:
@@ -129,6 +155,10 @@ class PluginRegistry:
     def add_shortcode(self, name: str, template_str: str) -> None:
         """Register a shortcode template."""
         self._check_mutable()
+        name = _validate_name("shortcode", name)
+        if not isinstance(template_str, str) or not template_str:
+            msg = f"Plugin shortcode '{name}' template must be a non-empty string"
+            raise ValueError(msg)
         self._shortcodes.append((name, template_str))
 
     def on_phase(self, phase_name: str, callback: Callable) -> None:
@@ -140,6 +170,8 @@ class PluginRegistry:
 
         """
         self._check_mutable()
+        phase_name = _validate_name("phase hook", phase_name)
+        _validate_callable("phase hook", phase_name, callback)
         self._phase_hooks.append((phase_name, callback))
 
     def freeze(self) -> FrozenPluginRegistry:
