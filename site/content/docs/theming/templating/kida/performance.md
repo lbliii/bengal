@@ -109,6 +109,22 @@ kida:
 3. Subsequent builds: Kida loads cached bytecode (skips parsing/compilation)
 4. Template changes: Kida detects source changes via hash comparison and recompiles only changed templates
 
+## Static Context Optimization
+
+Kida can fold constant `config.*` expressions during template compilation. Bengal
+keeps this disabled by default because configuration-heavy themes should verify
+their full template surface before adopting compile-time folding.
+
+```yaml
+# config/_default/ or bengal.toml
+kida:
+  static_context: true
+```
+
+Use `static_context` for sites with many repeated `config.*` branches in
+templates, then run `bengal check --templates --templates-context` and a normal
+build before shipping the change.
+
 ## Optimization Strategies
 
 ### Structure templates for automatic caching

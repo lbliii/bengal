@@ -53,6 +53,25 @@ def make_kida_engine(mock_site: MagicMock):
         return KidaTemplateEngine(mock_site)
 
 
+class TestKidaConfiguration:
+    """Kida-specific engine configuration."""
+
+    def test_static_context_opt_in_passes_site_config_to_kida(self) -> None:
+        """kida.static_context enables Kida's compile-time config folding."""
+        mock_site = make_mock_site()
+        mock_site.config["kida"]["static_context"] = True
+
+        with (
+            patch("bengal.rendering.engines.kida.FileSystemLoader"),
+            patch("bengal.rendering.engines.kida.Environment") as environment,
+        ):
+            from bengal.rendering.engines.kida import KidaTemplateEngine
+
+            KidaTemplateEngine(mock_site)
+
+        assert environment.call_args.kwargs["static_context"] == {"config": mock_site.config}
+
+
 class TestEngineCommonInterface:
     """Test that the Kida engine implements the required interface."""
 

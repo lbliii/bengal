@@ -432,9 +432,8 @@ class KidaTemplateEngine:
         # The evaluator eliminates dead branches and resolves scalar constants,
         # reducing work on every page render.
         #
-        # Disabled by default — kida's partial evaluator loses loop variable
-        # bindings in complex templates when static_context is active (kida#78).
-        # Enable with kida.static_context: true once the fix lands.
+        # Opt-in until Bengal's default theme and docs benchmarks prove there is
+        # no semantic drift across the full template surface.
         static_context: dict[str, Any] | None = None
         if kida_config.get("static_context", False):
             static_context = {"config": site.config}

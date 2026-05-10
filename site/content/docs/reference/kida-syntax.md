@@ -868,11 +868,13 @@ Kida is Bengal's default template engine. Configure in `bengal.toml` or `config/
 ```yaml
 kida:
   bytecode_cache: true      # Persistent compiled template cache (default)
+  static_context: false     # Opt-in compile-time folding for config.* branches
 ```
 
-| Option            | Default | Description                         |
-|-------------------|---------|-------------------------------------|
-| `bytecode_cache`  | `true`  | Cache compiled templates to disk    |
+| Option            | Default | Description                                    |
+|-------------------|---------|------------------------------------------------|
+| `bytecode_cache`  | `true`  | Cache compiled templates to disk               |
+| `static_context`  | `false` | Fold constant `config.*` expressions at compile time |
 
 **Switching template engines**:
 
