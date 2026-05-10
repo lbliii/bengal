@@ -159,10 +159,68 @@ def create_bengal_dev_app(
             )
             return
 
+        if method == "HEAD":
+            await _serve_static(
+                send,
+                output_dir=serving_dir,
+                path=path,
+                build_in_progress=build_in_progress,
+                active_palette=active_palette,
+                method=method,
+            )
+            return
+
         await _send_404(send, output_dir=serving_dir)
 
     if request_callback is not None:
         return _request_logging_middleware(app, request_callback)
+    return app
+
+
+def create_bengal_preview_app(
+    *,
+    output_dir: Path,
+    health_path: str = "/__bengal_pounce_health__",
+) -> ASGIApp:
+    """Create a production-like preview app for completed static output."""
+    from pounce._static import StaticFiles, StaticMount
+
+    output_root = output_dir.resolve()
+    fallback = _create_preview_fallback_app(output_root=output_root, health_path=health_path)
+    return StaticFiles(
+        fallback,
+        mounts=[
+            StaticMount(
+                url_path="/",
+                directory=output_root,
+                cache_control="no-cache, must-revalidate",
+                precompressed=True,
+                follow_symlinks=False,
+                index_file="index.html",
+            )
+        ],
+    )
+
+
+def _create_preview_fallback_app(*, output_root: Path, health_path: str) -> ASGIApp:
+    """Return fallback responses for preview paths Pounce does not serve."""
+
+    async def app(scope: dict[str, Any], _receive: Any, send: Any) -> None:
+        if scope.get("type") != "http":
+            return
+
+        method = scope.get("method", "")
+        path = scope.get("path", "")
+        if method not in {"GET", "HEAD"}:
+            await _send_404(send, output_dir=output_root, method=method)
+            return
+
+        if path == health_path:
+            await _send_plain_response(send, method=method, status=200, body=b"ok\n")
+            return
+
+        await _send_404(send, output_dir=output_root, method=method, inject_live_reload=False)
+
     return app
 
 
@@ -417,6 +475,33 @@ async def _serve_markdown_negotiated(
     return True
 
 
+async def _send_plain_response(
+    send: Any,
+    *,
+    method: str,
+    status: int,
+    body: bytes,
+    content_type: bytes = b"text/plain; charset=utf-8",
+    headers: list[list[bytes]] | None = None,
+) -> None:
+    """Send a plain response, preserving GET content-length for HEAD."""
+    response_headers = [
+        [b"content-type", content_type],
+        [b"content-length", str(len(body)).encode()],
+    ]
+    if headers is not None:
+        response_headers.extend(headers)
+
+    await send(
+        {
+            "type": "http.response.start",
+            "status": status,
+            "headers": response_headers,
+        }
+    )
+    await send({"type": "http.response.body", "body": b"" if method == "HEAD" else body})
+
+
 async def _serve_static(
     send: Any,
     *,
@@ -424,6 +509,7 @@ async def _serve_static(
     path: str,
     build_in_progress: Callable[[], bool],
     active_palette: Callable[[], str | None] | str | None,
+    method: str = "GET",
 ) -> None:
     """Serve static files with HTML injection and build-aware behavior.
 
@@ -435,7 +521,12 @@ async def _serve_static(
     """
     resolved = _resolve_file_path(output_dir, path)
     if resolved is None:
-        await _send_404(send, output_dir=output_dir, build_in_progress=build_in_progress)
+        await _send_404(
+            send,
+            output_dir=output_dir,
+            build_in_progress=build_in_progress,
+            method=method,
+        )
         return
 
     # Directory -> try index.html
@@ -451,9 +542,14 @@ async def _serve_static(
     # File doesn't exist: always 404 (with badge when build in progress)
     if not resolved.is_file():
         if build_in_progress() and is_deferred_generated_artifact_path(path):
-            await _send_deferred_artifact_response(send)
+            await _send_deferred_artifact_response(send, method=method)
             return
-        await _send_404(send, output_dir=output_dir, build_in_progress=build_in_progress)
+        await _send_404(
+            send,
+            output_dir=output_dir,
+            build_in_progress=build_in_progress,
+            method=method,
+        )
         return
 
     content = await asyncio.to_thread(resolved.read_bytes)
@@ -476,7 +572,7 @@ async def _serve_static(
             ],
         }
     )
-    await send({"type": "http.response.body", "body": content})
+    await send({"type": "http.response.body", "body": b"" if method == "HEAD" else content})
 
 
 async def _send_404(
@@ -484,6 +580,8 @@ async def _send_404(
     *,
     output_dir: Path | None = None,
     build_in_progress: Callable[[], bool] | None = None,
+    method: str = "GET",
+    inject_live_reload: bool = True,
 ) -> None:
     """Send 404. If output_dir has 404.html, serve it with injection."""
     body = b"Not Found"
@@ -492,7 +590,8 @@ async def _send_404(
         custom_404 = output_dir / "404.html"
         if custom_404.is_file():
             body = await asyncio.to_thread(custom_404.read_bytes)
-            body = _inject_live_reload_into_html(body)
+            if inject_live_reload:
+                body = _inject_live_reload_into_html(body)
             if build_in_progress is not None and build_in_progress():
                 body = _inject_rebuilding_badge_into_html(body)
             content_type = b"text/html; charset=utf-8"
@@ -507,10 +606,10 @@ async def _send_404(
             ],
         }
     )
-    await send({"type": "http.response.body", "body": body})
+    await send({"type": "http.response.body", "body": b"" if method == "HEAD" else body})
 
 
-async def _send_deferred_artifact_response(send: Any) -> None:
+async def _send_deferred_artifact_response(send: Any, *, method: str = "GET") -> None:
     """Tell clients that a generated artifact is still being prepared."""
     body = b"Generated artifact is still being prepared by the Bengal dev server.\n"
     await send(
@@ -525,7 +624,7 @@ async def _send_deferred_artifact_response(send: Any) -> None:
             ],
         }
     )
-    await send({"type": "http.response.body", "body": body})
+    await send({"type": "http.response.body", "body": b"" if method == "HEAD" else body})
 
 
 async def _handle_sse(send: Any, *, keepalive_interval: float | None = None) -> None:

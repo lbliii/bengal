@@ -11,7 +11,11 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from bengal.server.asgi_app import _prefers_markdown, create_bengal_dev_app
+from bengal.server.asgi_app import (
+    _prefers_markdown,
+    create_bengal_dev_app,
+    create_bengal_preview_app,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -243,6 +247,233 @@ async def test_static_asset_serves_precompressed_gzip_variant(tmp_path: Path) ->
     assert headers[b"content-encoding"] == b"gzip"
     assert headers[b"vary"].lower() == b"accept-encoding"
     assert _body(sent) == gz_body
+
+
+@pytest.mark.asyncio
+async def test_head_index_html_serves_headers_without_body(tmp_path: Path) -> None:
+    """HEAD / mirrors the document response headers without a body."""
+    (tmp_path / "index.html").write_text("<html><body>Hello</body></html>")
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "HEAD", "path": "/"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    headers = _headers(sent[0])
+    assert sent[0]["status"] == 200
+    assert int(headers[b"content-length"]) > len("<html><body>Hello</body></html>")
+    assert _body(sent) == b""
+
+
+@pytest.mark.asyncio
+async def test_head_custom_404_serves_headers_without_body(tmp_path: Path) -> None:
+    """HEAD missing documents preserve custom 404 headers without a body."""
+    (tmp_path / "404.html").write_text("<html><body>Missing</body></html>")
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "HEAD", "path": "/missing"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    headers = _headers(sent[0])
+    assert sent[0]["status"] == 404
+    assert headers[b"content-type"] == b"text/html; charset=utf-8"
+    assert int(headers[b"content-length"]) > len("<html><body>Missing</body></html>")
+    assert _body(sent) == b""
+
+
+@pytest.mark.asyncio
+async def test_head_missing_deferred_artifact_returns_503_without_body(tmp_path: Path) -> None:
+    """HEAD generated artifacts preserve the serve-ready pending status."""
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: True,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "HEAD", "path": "/search-index.json"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 503
+    assert _headers(sent[0])[b"retry-after"] == b"1"
+    assert _body(sent) == b""
+
+
+@pytest.mark.asyncio
+async def test_preview_app_serves_root_without_live_reload(tmp_path: Path) -> None:
+    """Preview serves completed output through Pounce without dev injection."""
+    (tmp_path / "index.html").write_text("<html><body>Preview</body></html>")
+    app = create_bengal_preview_app(output_dir=tmp_path)
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    headers = _headers(sent[0])
+    assert sent[0]["status"] == 200
+    assert headers[b"accept-ranges"] == b"bytes"
+    assert b"Preview" in _body(sent)
+    assert b"__bengal_reload__" not in _body(sent)
+
+
+@pytest.mark.asyncio
+async def test_preview_app_serves_nested_index(tmp_path: Path) -> None:
+    """Preview static root resolves directory indexes."""
+    docs = tmp_path / "docs"
+    docs.mkdir()
+    (docs / "index.html").write_text("<html><body>Docs</body></html>")
+    app = create_bengal_preview_app(output_dir=tmp_path)
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/docs/"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200
+    assert b"Docs" in _body(sent)
+
+
+@pytest.mark.asyncio
+async def test_preview_app_serves_custom_404_without_live_reload(tmp_path: Path) -> None:
+    """Preview keeps generated custom 404 content unchanged."""
+    (tmp_path / "404.html").write_text("<html><body>Custom 404</body></html>")
+    app = create_bengal_preview_app(output_dir=tmp_path)
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/missing"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 404
+    assert b"Custom 404" in _body(sent)
+    assert b"__bengal_reload__" not in _body(sent)
+
+
+@pytest.mark.asyncio
+async def test_preview_app_health_path(tmp_path: Path) -> None:
+    """Preview exposes a Bengal-namespaced health response."""
+    (tmp_path / "index.html").write_text("ok")
+    app = create_bengal_preview_app(output_dir=tmp_path)
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/__bengal_pounce_health__"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200
+    assert _body(sent) == b"ok\n"
+
+
+@pytest.mark.asyncio
+async def test_preview_app_serves_generated_artifact_as_static_file(tmp_path: Path) -> None:
+    """Preview serves generated artifacts as completed static output."""
+    (tmp_path / "search-index.json").write_text('{"pages":[]}')
+    app = create_bengal_preview_app(output_dir=tmp_path)
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/search-index.json"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200
+    assert _body(sent) == b'{"pages":[]}'
+
+
+@pytest.mark.asyncio
+async def test_preview_app_serves_precompressed_zstd_variant(tmp_path: Path) -> None:
+    """Preview uses Pounce zstd precompressed sidecar negotiation."""
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "style.css").write_text("body { color: red; }")
+    zstd_body = b"fake-zstd-body"
+    (assets / "style.css.zst").write_bytes(zstd_body)
+    app = create_bengal_preview_app(output_dir=tmp_path)
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={
+            "type": "http",
+            "method": "GET",
+            "path": "/assets/style.css",
+            "headers": [(b"accept-encoding", b"zstd")],
+        },
+        receive=_noop_receive,
+        send=send,
+    )
+
+    headers = _headers(sent[0])
+    assert sent[0]["status"] == 200
+    assert headers[b"content-encoding"] == b"zstd"
+    assert _body(sent) == zstd_body
+
+
+@pytest.mark.asyncio
+async def test_preview_app_rejects_symlinked_files(tmp_path: Path) -> None:
+    """Preview inherits Pounce's refusal for symlinks escaping the output root."""
+    output_root = tmp_path / "public"
+    output_root.mkdir()
+    target = tmp_path / "target.txt"
+    target.write_text("secret")
+    link = output_root / "link.txt"
+    link.symlink_to(target)
+    app = create_bengal_preview_app(output_dir=output_root)
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/link.txt"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 404
+    assert _body(sent) == b"Not Found"
+
+
+@pytest.mark.asyncio
+async def test_preview_app_head_static_file_has_no_body(tmp_path: Path) -> None:
+    """Preview HEAD requests are handled by Pounce's static responder."""
+    (tmp_path / "index.html").write_text("<html><body>Preview</body></html>")
+    app = create_bengal_preview_app(output_dir=tmp_path)
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "HEAD", "path": "/"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200
+    assert (
+        _headers(sent[0])[b"content-length"]
+        == str(len("<html><body>Preview</body></html>")).encode()
+    )
+    assert _body(sent) == b""
 
 
 @pytest.mark.asyncio

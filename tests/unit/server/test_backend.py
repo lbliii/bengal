@@ -7,7 +7,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
-from bengal.server.backend import PounceBackend, create_pounce_backend
+from bengal.server.backend import (
+    PounceBackend,
+    create_pounce_backend,
+    create_pounce_preview_backend,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -24,6 +28,18 @@ def test_create_pounce_backend_returns_backend(tmp_path: Path) -> None:
     )
     assert isinstance(backend, PounceBackend)
     assert backend.port == 8080
+
+
+def test_create_pounce_preview_backend_returns_backend(tmp_path: Path) -> None:
+    """create_pounce_preview_backend returns a preview backend."""
+    (tmp_path / "index.html").write_text("ok")
+    backend = create_pounce_preview_backend(
+        host="127.0.0.1",
+        port=4173,
+        output_dir=tmp_path,
+    )
+    assert isinstance(backend, PounceBackend)
+    assert backend.port == 4173
 
 
 def test_pounce_backend_shutdown_calls_server_shutdown() -> None:
