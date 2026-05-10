@@ -138,6 +138,22 @@ class TestPrintDeprecationWarnings:
         result = capsys.readouterr().out
         assert "may be removed in a future version" in result
 
+    def test_prints_future_removal_notice_in_quiet_mode(self, capsys):
+        """Future-removal notice is warning-level, not quiet-only guidance."""
+        from bengal.output import get_cli_output, reset_cli_output
+
+        reset_cli_output()
+        get_cli_output(quiet=True)
+        deprecated = [("minify_assets", "assets.minify", "Note")]
+
+        try:
+            print_deprecation_warnings(deprecated)
+            result = capsys.readouterr().out
+        finally:
+            reset_cli_output()
+
+        assert "may be removed in a future version" in result
+
 
 class TestMigrateDeprecatedKeys:
     """Tests for migrate_deprecated_keys function."""
