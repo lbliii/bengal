@@ -61,6 +61,9 @@ class TemplateError:
     path: Path | None = None
     original_exception: Exception | None = None  # Original exception for type checking
     error_type: str = "other"  # Type: 'syntax', 'filter', 'undefined', 'runtime', 'other'
+    severity: str = "error"
+    suggestion: str | None = None
+    diagnostic_code: str | None = None
 
     @property
     def template_context(self):

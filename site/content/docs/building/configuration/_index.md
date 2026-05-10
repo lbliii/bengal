@@ -188,6 +188,11 @@ strict_mode = true
 
 :::{note}
 Template validation adds a small overhead to build time. For large sites, consider enabling it only in development and CI environments.
+
+For Kida templates, `bengal check --templates-security` runs Kida's static escape
+and privacy analysis. It reports trust-boundary warnings such as unexplained
+`| safe` use and sensitive-looking context paths without failing the check unless
+Kida reports an error-level finding.
 :::
 
 ## Multi-Variant Builds

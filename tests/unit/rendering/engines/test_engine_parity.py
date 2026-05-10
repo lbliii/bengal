@@ -91,6 +91,28 @@ class TestEngineCommonInterface:
         assert hasattr(engine, "list_templates")
         assert callable(engine.list_templates)
 
+    def test_validate_security_reports_kida_static_findings(self, tmp_path: Path) -> None:
+        """Kida 0.9 static analysis should surface trust-boundary warnings."""
+        templates = tmp_path / "templates"
+        templates.mkdir()
+        (templates / "page.html").write_text(
+            "{{ user.password | safe }}",
+            encoding="utf-8",
+        )
+        site = make_mock_site(root_path=tmp_path)
+        site.theme = ""
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+        findings = engine.validate_security(["page.html"])
+
+        codes = {finding.diagnostic_code for finding in findings}
+        assert "K-ESC-002" in codes
+        assert "K-PRI-001" in codes
+        assert all(finding.severity == "warning" for finding in findings)
+        assert any("safe" in (finding.suggestion or "") for finding in findings)
+
 
 class TestEngineMenuCache:
     """Test that the Kida engine has menu caching."""

@@ -1212,6 +1212,67 @@ class KidaTemplateEngine:
 
         return errors
 
+    def validate_security(
+        self,
+        patterns: list[str] | None = None,
+    ) -> list[TemplateError]:
+        """Run Kida static escape and privacy analysis for templates.
+
+        This intentionally reports only warning/error findings, not every
+        escaped output site, so authors get actionable trust-boundary feedback
+        without a dump of normal autoescape facts.
+        """
+        from fnmatch import fnmatch
+
+        from kida.analysis import audit_escaping, lint_privacy
+
+        findings: list[TemplateError] = []
+
+        for name in self.list_templates():
+            if patterns and not any(fnmatch(name, p) for p in patterns):
+                continue
+
+            try:
+                template = self._env.get_template(name)
+            except KidaTemplateSyntaxError, KidaTemplateNotFoundError:
+                # Syntax validation reports compile failures. Static analysis
+                # only runs on templates Kida can parse.
+                continue
+            except Exception as e:
+                findings.append(
+                    TemplateError(
+                        template=name,
+                        message=f"Kida static analysis failed: {e}",
+                        error_type="kida_static_analysis",
+                        severity="error",
+                        original_exception=e,
+                    )
+                )
+                continue
+
+            raw_findings = [
+                *audit_escaping(template, include_output_sites=False),
+                *lint_privacy(template),
+            ]
+            for finding in raw_findings:
+                severity = getattr(finding, "severity", "warning")
+                if severity == "info":
+                    continue
+                findings.append(
+                    TemplateError(
+                        template=getattr(finding, "template_name", name) or name,
+                        message=getattr(finding, "message", str(finding)),
+                        line=getattr(finding, "lineno", None),
+                        column=getattr(finding, "col_offset", None),
+                        error_type=getattr(finding, "kind", "kida_static_analysis"),
+                        severity=severity,
+                        suggestion=getattr(finding, "suggestion", None),
+                        diagnostic_code=getattr(finding, "code", None),
+                    )
+                )
+
+        return findings
+
     # =========================================================================
     # ENGINE CAPABILITIES
     # =========================================================================
