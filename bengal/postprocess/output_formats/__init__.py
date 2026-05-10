@@ -409,9 +409,13 @@ class OutputFormatsGenerator:
                 self.site.config.get("search", {})
             )
             search_backend = create_search_backend(self.site, search_backend_config)
-            generated_search = search_backend.generate(
+            generated_search = self._generate_search_backend_if_needed(
+                timings,
+                search_backend,
+                search_backend_config,
                 index_paths,
-                lambda label, factory: self._timed_generate(timings, label, factory),
+                search_pages,
+                accumulated_data,
             )
             generated.extend(generated_search)
             if generated_search:
@@ -579,6 +583,7 @@ class OutputFormatsGenerator:
         options: dict[str, Any],
         expected_outputs: list[Path] | None,
         generate_fn: Callable[[], Any],
+        skip_result: Any = None,
     ) -> Any:
         """Skip unchanged site-wide generators when their artifact input fingerprint matches."""
         fingerprint = self._site_wide_input_fingerprint(
@@ -603,12 +608,67 @@ class OutputFormatsGenerator:
                 format=format_name,
                 reason="input_fingerprint_unchanged",
             )
+            if skip_result is not None:
+                return skip_result
             return expected_outputs if len(expected_outputs) > 1 else expected_outputs[0]
 
         result = self._timed_generate(timings, format_name, generate_fn)
         if fingerprint is not None and isinstance(fingerprints, dict):
             fingerprints[format_name] = fingerprint
         return result
+
+    def _generate_search_backend_if_needed(
+        self,
+        timings: dict[str, float],
+        search_backend: Any,
+        search_backend_config: Any,
+        index_paths: list[Path],
+        pages: list[PageLike],
+        accumulated_data: list[Any] | None,
+    ) -> list[str]:
+        """Skip derived search backend artifacts when aggregate inputs are unchanged."""
+        if not search_backend_config.enabled or not search_backend_config.prebuilt_enabled:
+            return search_backend.generate(
+                index_paths,
+                lambda label, factory: self._timed_generate(timings, label, factory),
+            )
+
+        result = self._generate_site_wide_if_needed(
+            timings,
+            "site_lunr_index",
+            pages,
+            accumulated_data,
+            self._search_backend_fingerprint_options(search_backend_config, index_paths),
+            self._expected_search_backend_outputs(search_backend_config, index_paths),
+            lambda: search_backend.generate(
+                index_paths,
+                lambda label, factory: self._timed_generate(timings, label, factory),
+            ),
+            skip_result=[],
+        )
+        return list(result or [])
+
+    def _search_backend_fingerprint_options(
+        self,
+        search_backend_config: Any,
+        index_paths: list[Path],
+    ) -> dict[str, Any]:
+        """Return search backend options that affect derived aggregate outputs."""
+        return {
+            "backend": search_backend_config.backend,
+            "lunr": search_backend_config.lunr,
+            "index_paths": [_output_relative_path(self.site, path) for path in index_paths],
+        }
+
+    def _expected_search_backend_outputs(
+        self,
+        search_backend_config: Any,
+        index_paths: list[Path],
+    ) -> list[Path] | None:
+        """Return backend outputs that must exist before derived search can skip."""
+        if search_backend_config.backend == "lunr" and search_backend_config.prebuilt_enabled:
+            return [path.parent / "search-index.json" for path in index_paths]
+        return None
 
     def _site_wide_input_fingerprint(
         self,
@@ -788,6 +848,15 @@ def _site_relative_path(site: SiteLike, source_path: Path) -> Path:
         return source_path
     root_path = getattr(site, "root_path", None)
     return root_path / source_path if root_path else source_path
+
+
+def _output_relative_path(site: SiteLike, path: Path) -> str:
+    """Return an output-relative path for stable fingerprint payloads."""
+    output_dir = getattr(site, "output_dir", None)
+    if output_dir is not None:
+        with suppress(ValueError):
+            return str(path.relative_to(output_dir))
+    return str(path)
 
 
 def _per_page_output_path(page: PageLike, output_format: str) -> Path | None:

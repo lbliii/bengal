@@ -493,6 +493,76 @@ class TestConfigNormalizationEdgeCases:
         assert index_path.read_text(encoding="utf-8") == "sentinel"
         assert build_context.stats.postprocess_output_timings_ms["site_index_json"] == 0.0
 
+    def test_incremental_search_backend_skips_when_input_fingerprint_matches(
+        self, tmp_path: Path
+    ) -> None:
+        """Derived search backend artifacts skip when aggregate inputs are unchanged."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        index_path = output_dir / "index.json"
+        search_path = output_dir / "search-index.json"
+        index_path.write_text("sentinel", encoding="utf-8")
+        search_path.write_text("search", encoding="utf-8")
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Unchanged",
+            url="/unchanged/",
+            content="Unchanged",
+            output_path=output_dir / "unchanged/index.html",
+        )
+        page.source_path = Path("content/unchanged.md")
+        mock_site.pages = [page]
+        cache = BuildCache(site_root=tmp_path)
+        cache.page_artifacts["content/unchanged.md"] = _artifact_record("content/unchanged.md")
+        stats = BuildStats()
+        build_context = SimpleNamespace(
+            incremental=True,
+            cache=cache,
+            stats=stats,
+            has_accumulated_page_data=False,
+            get_accumulated_page_data=list,
+        )
+        generator = OutputFormatsGenerator(
+            mock_site,
+            {"enabled": True, "per_page": [], "site_wide": ["index_json"]},
+            build_context=build_context,
+        )
+        cached_data = generator._merge_cached_page_artifacts([page], [])
+        index_fingerprint = generator._site_wide_input_fingerprint(
+            "site_index_json",
+            [page],
+            cached_data,
+            {
+                "excerpt_length": 200,
+                "json_indent": None,
+                "include_full_content": False,
+            },
+        )
+        assert index_fingerprint is not None
+        search_backend_config = type(
+            "SearchConfig",
+            (),
+            {"enabled": True, "prebuilt_enabled": True, "backend": "lunr", "lunr": {}},
+        )()
+        search_fingerprint = generator._site_wide_input_fingerprint(
+            "site_lunr_index",
+            [page],
+            cached_data,
+            generator._search_backend_fingerprint_options(search_backend_config, [index_path]),
+        )
+        assert search_fingerprint is not None
+        cache.output_format_fingerprints["site_index_json"] = index_fingerprint
+        cache.output_format_fingerprints["site_lunr_index"] = search_fingerprint
+
+        with patch(
+            "bengal.postprocess.search_backends.LunrSearchBackend.generate",
+            side_effect=AssertionError("search backend should skip"),
+        ):
+            generator.generate()
+
+        assert stats.postprocess_output_timings_ms["site_lunr_index"] == 0.0
+        assert search_path.read_text(encoding="utf-8") == "search"
+
     def test_site_wide_generation_skips_when_input_fingerprint_matches(
         self, tmp_path: Path
     ) -> None:
