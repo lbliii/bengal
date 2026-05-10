@@ -137,12 +137,13 @@ class EffectBasedDetector:
         template_name = template_path.name
 
         # Check EffectTracer for pages using this template
-        for effect in self.tracer.effects:
-            if template_name in effect.depends_on or template_path in effect.depends_on:
-                # Find source path in dependencies
-                for dep in effect.depends_on:
-                    if isinstance(dep, Path) and dep.suffix == ".md":
-                        pages.add(dep)
+        effects = self.tracer.get_effects_depending_on(template_path)
+        effects.extend(self.tracer.get_effects_depending_on(Path(template_name)))
+        for effect in effects:
+            # Find source path in dependencies
+            for dep in effect.depends_on:
+                if isinstance(dep, Path) and dep.suffix == ".md":
+                    pages.add(dep)
 
         # Fallback: scan all pages if tracer doesn't have info
         if not pages:
@@ -159,13 +160,12 @@ class EffectBasedDetector:
         # Check EffectTracer for render_page effects using this data file.
         # Use metadata["source_path"] to identify the page rather than
         # scanning depends_on for .md files (which includes cascade sources).
-        for effect in self.tracer.effects:
+        for effect in self.tracer.get_effects_depending_on(data_path, include_name=False):
             if effect.operation != "render_page":
                 continue
-            if data_path in effect.depends_on:
-                source = effect.metadata.get("source_path")
-                if source:
-                    pages.add(Path(source))
+            source = effect.metadata.get("source_path")
+            if source:
+                pages.add(Path(source))
 
         return pages
 

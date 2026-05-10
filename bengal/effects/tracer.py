@@ -16,13 +16,13 @@ Thread-safe because it only reads frozen SiteSnapshot.
 
 import json
 import threading
-import time
 from collections import defaultdict
 from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from bengal.effects.effect import Effect
+from bengal.utils.io import json_compat
 
 
 class EffectTracerDict(TypedDict):
@@ -102,6 +102,12 @@ class EffectTracer:
         Args:
             effect: Effect to index
         """
+        replaced_effects = {
+            existing for output in effect.outputs if (existing := self._output_index.get(output))
+        }
+        for existing in replaced_effects:
+            self._remove_effect(existing)
+
         self._effects.append(effect)
 
         # Update dependency index
@@ -116,7 +122,26 @@ class EffectTracer:
         for key in effect.invalidates:
             self._invalidation_index[key].append(effect)
 
-    def _effects_for_path(self, path: Path) -> list[Effect]:
+    def _remove_effect(self, effect: Effect) -> None:
+        """Remove an existing effect from all indexes before replacement."""
+        self._effects = [candidate for candidate in self._effects if candidate is not effect]
+        for dep in effect.depends_on:
+            effects = self._dep_index.get(dep)
+            if effects is not None:
+                effects[:] = [candidate for candidate in effects if candidate is not effect]
+                if not effects:
+                    self._dep_index.pop(dep, None)
+        for output in effect.outputs:
+            if self._output_index.get(output) is effect:
+                self._output_index.pop(output, None)
+        for key in effect.invalidates:
+            effects = self._invalidation_index.get(key)
+            if effects is not None:
+                effects[:] = [candidate for candidate in effects if candidate is not effect]
+                if not effects:
+                    self._invalidation_index.pop(key, None)
+
+    def _effects_for_path(self, path: Path, *, include_name: bool = True) -> list[Effect]:
         """
         Get effects depending on a path (checks both Path and name forms).
 
@@ -133,8 +158,16 @@ class EffectTracer:
         """
         effects = list(self._dep_index.get(path, []))
         # Also check template name form
-        effects.extend(self._dep_index.get(path.name, []))
+        if include_name:
+            effects.extend(self._dep_index.get(path.name, []))
         return effects
+
+    def get_effects_depending_on(self, path: Path, *, include_name: bool = True) -> list[Effect]:
+        """Return effects that depend on a path using the tracer dependency index."""
+        with self._lock:
+            effects = self._effects_for_path(path, include_name=include_name)
+            deduped = dict.fromkeys(effects)
+            return list(deduped)
 
     def record(self, effect: Effect) -> None:
         """
@@ -333,15 +366,7 @@ class EffectTracer:
     def save(self, path: Path) -> None:
         """Save tracer state to a JSON file."""
         data = self.to_dict()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        tmp_path = path.with_name(f"{path.name}.{threading.get_ident()}.{time.time_ns()}.tmp")
-        try:
-            with open(tmp_path, "w") as f:
-                json.dump(data, f, separators=(",", ":"))
-            tmp_path.replace(path)
-        finally:
-            with suppress(Exception):
-                tmp_path.unlink(missing_ok=True)
+        json_compat.dump(data, path, indent=None)
 
     @classmethod
     def load(cls, path: Path) -> EffectTracer:
@@ -353,8 +378,7 @@ class EffectTracer:
         if not path.exists():
             return cls()
         try:
-            with open(path) as f:
-                data = json.load(f)
+            data = json_compat.load(path)
         except json.JSONDecodeError:
             import logging
 

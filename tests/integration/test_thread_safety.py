@@ -95,6 +95,36 @@ class TestConcurrentEffectRecording:
         assert stats["unique_outputs"] == 800
         assert stats["by_operation"]["render_page"] == 800
 
+    def test_effect_recording_replaces_existing_output(self) -> None:
+        """Repeated warm renders replace stale effect edges for the same output."""
+        from bengal.effects.effect import Effect
+        from bengal.effects.tracer import EffectTracer
+
+        tracer = EffectTracer()
+        output_path = Path("public/page/index.html")
+        tracer.record(
+            Effect.for_page_render(
+                source_path=Path("content/page.md"),
+                output_path=output_path,
+                template_name="old.html",
+                template_includes=frozenset(),
+                page_href="/page/",
+            )
+        )
+        tracer.record(
+            Effect.for_page_render(
+                source_path=Path("content/page.md"),
+                output_path=output_path,
+                template_name="new.html",
+                template_includes=frozenset(),
+                page_href="/page/",
+            )
+        )
+
+        assert tracer.get_statistics()["total_effects"] == 1
+        assert tracer.get_effects_depending_on(Path("old.html")) == []
+        assert len(tracer.get_effects_depending_on(Path("new.html"))) == 1
+
 
 class TestConcurrentTaxonomyUpdates:
     """Verify BuildTaxonomyIndex is safe under concurrent tag updates."""
