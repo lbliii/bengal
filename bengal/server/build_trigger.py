@@ -154,6 +154,7 @@ class BuildTrigger:
         notifier: ReloadNotifier | None = None,
         version_scope: str | None = None,
         buffer_manager: BufferManager | None = None,
+        completion_policy: Any | None = None,
     ) -> None:
         """
         Initialize build trigger.
@@ -169,11 +170,17 @@ class BuildTrigger:
                 If None, all versions are rebuilt on changes.
             buffer_manager: Optional BufferManager for double-buffered output.
                 When set, full builds write to staging and swap on completion.
+            completion_policy: Build completion policy for watched rebuilds.
         """
+        from bengal.orchestration.build.options import BuildCompletionPolicy
+
         self.site = site
         self.host = host
         self.port = port
         self.version_scope = version_scope
+        self.completion_policy = BuildCompletionPolicy.from_value(
+            completion_policy or BuildCompletionPolicy.SERVE_READY
+        )
         self._buffer_manager = buffer_manager
         self._executor = executor or BuildExecutor(max_workers=1)
         self._reload_controller = controller or default_reload_controller
@@ -379,7 +386,7 @@ class BuildTrigger:
 
             # Warm build: reuse the existing site object instead of creating a new one
             # This eliminates Site.from_config() overhead (~250ms per rebuild)
-            from bengal.orchestration.build.options import BuildCompletionPolicy, BuildOptions
+            from bengal.orchestration.build.options import BuildOptions
             from bengal.utils.observability.profile import BuildProfile
 
             # Reset all per-build mutable state in one call.
@@ -392,7 +399,7 @@ class BuildTrigger:
                 force_sequential=False,  # Auto-detect based on page count
                 incremental=use_incremental,
                 profile=BuildProfile.WRITER,
-                completion_policy=BuildCompletionPolicy.SERVE_READY,
+                completion_policy=self.completion_policy,
                 changed_sources={Path(p) for p in changed_files} if changed_files else None,
                 nav_changed_sources=nav_changed_files,
                 structural_changed=structural_changed,

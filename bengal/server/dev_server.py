@@ -140,6 +140,7 @@ class DevServer:
         auto_port: bool = True,
         open_browser: bool = False,
         version_scope: str | None = None,
+        completion_policy: Any | None = None,
     ) -> None:
         """
         Initialize the dev server.
@@ -154,7 +155,11 @@ class DevServer:
             open_browser: Whether to automatically open the browser
             version_scope: Focus rebuilds on a single version (e.g., "v2", "latest").
                 If None, all versions are rebuilt on changes.
+            completion_policy: Build completion policy. Defaults to serve-ready
+                for fast local browsing; pass "complete" for production parity.
         """
+        from bengal.orchestration.build.options import BuildCompletionPolicy
+
         self.site = site
         self.host = host
         self.port = port
@@ -162,6 +167,9 @@ class DevServer:
         self.auto_port = auto_port
         self.open_browser = open_browser
         self.version_scope = version_scope
+        self.completion_policy = BuildCompletionPolicy.from_value(
+            completion_policy or BuildCompletionPolicy.SERVE_READY
+        )
 
         # Mark site as running in dev mode to prevent timestamp churn in output files
         self.site.dev_mode = True
@@ -325,7 +333,7 @@ class DevServer:
                 build_opts = BuildOptions(
                     profile=BuildProfile.WRITER,
                     incremental=not baseurl_was_cleared,
-                    completion_policy=BuildCompletionPolicy.SERVE_READY,
+                    completion_policy=self.completion_policy,
                 )
                 stats = self._run_build_via_executor(build_opts, "Initial build")
                 display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
@@ -866,6 +874,7 @@ class DevServer:
             port=actual_port,
             version_scope=self.version_scope,
             buffer_manager=self._buffer_manager,
+            completion_policy=self.completion_policy,
         )
 
         # Create ignore filter from config using class method

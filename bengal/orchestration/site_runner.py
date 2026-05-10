@@ -22,6 +22,7 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from typing import Any
 
     from bengal.core.site import Site
     from bengal.orchestration.build.inputs import BuildInput
@@ -71,6 +72,7 @@ class SiteRunner:
         auto_port: bool = True,
         open_browser: bool = False,
         version_scope: str | None = None,
+        completion_policy: Any | None = None,
     ) -> None:
         """
         Start a development server.
@@ -82,6 +84,7 @@ class SiteRunner:
             auto_port: Whether to automatically find an available port
             open_browser: Whether to automatically open the browser
             version_scope: Focus rebuilds on a single version
+            completion_policy: Initial and watched build completion policy
 
         """
         from bengal.server.dev_server import DevServer
@@ -94,6 +97,7 @@ class SiteRunner:
             auto_port=auto_port,
             open_browser=open_browser,
             version_scope=version_scope,
+            completion_policy=completion_policy,
         )
         server.start()
 

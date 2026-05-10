@@ -1185,6 +1185,7 @@ class Site:
         auto_port: bool = True,
         open_browser: bool = False,
         version_scope: str | None = None,
+        completion_policy: Any | None = None,
     ) -> None:
         """
         Start a development server with file watching and live reload.
@@ -1202,6 +1203,7 @@ class Site:
             auto_port=auto_port,
             open_browser=open_browser,
             version_scope=version_scope,
+            completion_policy=completion_policy,
         )
 
     def clean(self) -> None:

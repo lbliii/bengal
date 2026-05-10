@@ -115,6 +115,55 @@ class TestDevServerContentHashCacheSeeding:
         assert build_opts.completion_policy is BuildCompletionPolicy.COMPLETE
         mock_watcher.start.assert_called_once()
 
+    def test_complete_policy_blocks_startup_tail_and_starts_watcher(self, tmp_path: Path) -> None:
+        """Complete mode should not schedule a serve-ready background tail."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.output_dir.mkdir()
+        site.config = {}
+        site.pages = []
+        mock_watcher = MagicMock()
+        mock_build_trigger = MagicMock()
+        stats = MinimalStats(total_pages=1, build_time_ms=10.0, incremental=True)
+
+        with (
+            patch.object(DevServer, "_check_stale_processes"),
+            patch.object(DevServer, "_has_cached_output", return_value=False),
+            patch.object(DevServer, "_prepare_dev_config", return_value=False),
+            patch.object(DevServer, "_run_build_via_executor", return_value=stats) as mock_build,
+            patch.object(DevServer, "_create_server") as mock_create,
+            patch.object(DevServer, "_create_watcher") as mock_create_watcher,
+            patch.object(DevServer, "_init_reload_controller"),
+            patch.object(DevServer, "_start_background_completion_build") as mock_background,
+            patch(
+                "bengal.server.dev_server.PIDManager.get_pid_file", return_value=tmp_path / "pid"
+            ),
+            patch("bengal.server.dev_server.PIDManager.write_pid_file"),
+            patch("bengal.server.dev_server.ResourceManager") as mock_rm_class,
+        ):
+            mock_create_watcher.return_value = (mock_watcher, mock_build_trigger)
+            mock_backend = MagicMock()
+            mock_backend.port = 5173
+            mock_backend.start.side_effect = KeyboardInterrupt
+            mock_create.return_value = mock_backend
+            mock_rm = MagicMock()
+            mock_rm_class.return_value.__enter__ = MagicMock(return_value=mock_rm)
+            mock_rm_class.return_value.__exit__ = MagicMock(return_value=False)
+
+            server = DevServer(
+                site,
+                watch=True,
+                auto_port=False,
+                completion_policy=BuildCompletionPolicy.COMPLETE,
+            )
+            server.start()
+
+        build_opts = mock_build.call_args.args[0]
+        assert build_opts.completion_policy is BuildCompletionPolicy.COMPLETE
+        mock_background.assert_not_called()
+        mock_watcher.start.assert_called_once()
+
 
 class TestDevServerServeFirstWatcherOrder:
     """Tests that serve-first watcher starts after validation (bug fix)."""

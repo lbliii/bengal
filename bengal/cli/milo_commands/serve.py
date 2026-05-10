@@ -20,6 +20,10 @@ def serve(
     profile: Annotated[str, Description("Config profile: writer, theme-dev, dev")] = "",
     version_scope: Annotated[str, Description("Focus on single version (e.g., v2, latest)")] = "",
     all_versions: Annotated[bool, Description("Build all versions (git versioning mode)")] = False,
+    complete: Annotated[
+        bool,
+        Description("Wait for deploy-quality artifacts, health checks, and caches before serving"),
+    ] = False,
     verbose: Annotated[bool, Description("Show detailed server activity")] = False,
     debug: Annotated[bool, Description("Show debug output and full tracebacks")] = False,
     style: Annotated[str, Description("Output style: dense, ascii, or ci")] = "dense",
@@ -93,6 +97,7 @@ def serve(
             cfg["build"]["debug"] = True
 
         try:
+            from bengal.orchestration.build.options import BuildCompletionPolicy
             from bengal.orchestration.site_runner import SiteRunner
 
             SiteRunner(site).serve(
@@ -102,6 +107,11 @@ def serve(
                 auto_port=auto_port,
                 open_browser=open_browser,
                 version_scope=version_scope_val,
+                completion_policy=(
+                    BuildCompletionPolicy.COMPLETE
+                    if complete
+                    else BuildCompletionPolicy.SERVE_READY
+                ),
             )
 
             return {"status": "ok", "message": "Server stopped"}
