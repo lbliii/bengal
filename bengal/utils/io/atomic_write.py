@@ -197,3 +197,28 @@ class AtomicFile:
 
         # Success - rename atomically
         self.tmp_path.replace(self.path)
+
+
+def write_if_changed_atomic(
+    path: Path | str,
+    content: str,
+    atomic_file_cls: type[AtomicFile] = AtomicFile,
+    *,
+    encoding: str = "utf-8",
+) -> None:
+    """
+    Write text atomically, but skip the write when existing content matches.
+
+    This preserves unchanged file mtimes for deterministic generated outputs
+    while keeping the normal write path crash-safe.
+    """
+    path = Path(path)
+    try:
+        if path.exists() and path.read_text(encoding=encoding) == content:
+            return
+    except OSError, UnicodeError:
+        # Unreadable existing output should be replaced through the atomic path.
+        pass
+
+    with atomic_file_cls(path, "w", encoding=encoding) as f:
+        f.write(content)
