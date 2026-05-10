@@ -14,15 +14,74 @@ See Also:
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, Sequence
+    from collections.abc import Iterable, Mapping, Sequence
 
     from bengal.core.page.page_core import PageCore
+
+
+class FrozenList(list[Any]):
+    """List-compatible immutable sequence for record boundary payloads."""
+
+    def __init__(self, values: Iterable[Any] = ()) -> None:
+        super().__init__(values)
+
+    def _blocked(self, *_args: Any, **_kwargs: Any) -> None:
+        raise TypeError("FrozenList is immutable")
+
+    __setitem__ = _blocked
+    __delitem__ = _blocked
+    append = _blocked
+    clear = _blocked
+    extend = _blocked
+    insert = _blocked
+    pop = _blocked
+    remove = _blocked
+    reverse = _blocked
+    sort = _blocked
+    __iadd__ = _blocked
+    __imul__ = _blocked
+
+
+def _deep_freeze(value: Any) -> Any:
+    """Recursively freeze JSON-like containers at record boundaries."""
+    if isinstance(value, MappingProxyType):
+        return value
+    if isinstance(value, dict):
+        return MappingProxyType({str(k): _deep_freeze(v) for k, v in value.items()})
+    if isinstance(value, FrozenList):
+        return value
+    if isinstance(value, list | tuple):
+        return FrozenList(_deep_freeze(v) for v in value)
+    if isinstance(value, set | frozenset):
+        return frozenset(_deep_freeze(v) for v in value)
+    return value
+
+
+def _deep_thaw(value: Any) -> Any:
+    """Return mutable JSON-like containers from frozen record payloads."""
+    if isinstance(value, MappingProxyType):
+        return {k: _deep_thaw(v) for k, v in value.items()}
+    if isinstance(value, FrozenList | tuple | list):
+        return [_deep_thaw(v) for v in value]
+    if isinstance(value, frozenset | set):
+        return [_deep_thaw(v) for v in value]
+    return value
+
+
+def _freeze_page_core(core: PageCore) -> PageCore:
+    """Return a PageCore copy whose nested containers are immutable."""
+    frozen_core = replace(core)
+    object.__setattr__(frozen_core, "tags", FrozenList(core.tags))
+    object.__setattr__(frozen_core, "aliases", FrozenList(core.aliases))
+    object.__setattr__(frozen_core, "props", _deep_freeze(core.props))
+    object.__setattr__(frozen_core, "cascade", _deep_freeze(core.cascade))
+    return frozen_core
 
 
 PAGE_CORE_MIGRATION_MAP = MappingProxyType(
@@ -111,6 +170,15 @@ class ParsedPage:
     links: tuple[str, ...]
     ast_cache: dict[str, Any] | list[Any] | None = None
 
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            "toc_items",
+            tuple(_deep_freeze(dict(item)) for item in self.toc_items),
+        )
+        object.__setattr__(self, "links", tuple(str(link) for link in self.links))
+        object.__setattr__(self, "ast_cache", _deep_freeze(self.ast_cache))
+
     def to_cache_dict(self) -> dict[str, Any]:
         """Serialize to a cache-storable dict.
 
@@ -120,14 +188,14 @@ class ParsedPage:
         return {
             "html": self.html_content,
             "toc": self.toc,
-            "toc_items": list(self.toc_items),
+            "toc_items": [_deep_thaw(item) for item in self.toc_items],
             "excerpt": self.excerpt,
             "meta_description": self.meta_description,
             "plain_text": self.plain_text,
             "word_count": self.word_count,
             "reading_time": self.reading_time,
             "links": list(self.links),
-            "ast": self.ast_cache,
+            "ast": _deep_thaw(self.ast_cache),
         }
 
     @classmethod
@@ -170,6 +238,9 @@ class RenderedPage:
     render_time_ms: float
     dependencies: frozenset[str] = frozenset()
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "dependencies", frozenset(str(dep) for dep in self.dependencies))
+
 
 @dataclass(frozen=True, slots=True)
 class SourcePage:
@@ -185,11 +256,8 @@ class SourcePage:
     content loading is deferred to the parse stage and ``raw_content`` becomes
     optional.
 
-    The record itself is frozen (field reassignment raises).  Composed
-    ``PageCore`` contains mutable containers (``tags``, ``props``,
-    ``cascade``) and ``raw_metadata`` is a shallow read-only view —
-    callers must not mutate nested values.  Full deep-freeze is deferred
-    to Sprint 6 when ``PageCore`` is replaced.
+    The record itself is frozen (field reassignment raises), and nested
+    metadata containers are recursively frozen when the record is constructed.
     """
 
     # Composed cache-compatible metadata (same contract as Page.core)
@@ -213,6 +281,10 @@ class SourcePage:
     lang: str | None = None
     translation_key: str | None = None
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "core", _freeze_page_core(self.core))
+        object.__setattr__(self, "raw_metadata", _deep_freeze(dict(self.raw_metadata)))
+
     # ------------------------------------------------------------------
     # Convenience delegates (avoid core.field in hot paths)
     # ------------------------------------------------------------------
@@ -232,12 +304,8 @@ class SourcePage:
     # ------------------------------------------------------------------
 
     def raw_metadata_dict(self) -> dict[str, Any]:
-        """Return a shallow mutable copy of the frozen metadata.
-
-        Only the top-level mapping is copied; nested mutable values remain
-        shared with ``raw_metadata`` and must not be mutated in place.
-        """
-        return dict(self.raw_metadata)
+        """Return a deep mutable copy of the frozen metadata."""
+        return _deep_thaw(self.raw_metadata)
 
 
 def create_virtual_source_page(
