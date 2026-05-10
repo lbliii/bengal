@@ -92,6 +92,9 @@ class MinimalStats:
     rendering_time_ms: float = 0.0
     assets_time_ms: float = 0.0
     postprocess_time_ms: float = 0.0
+    postprocess_task_timings_ms: dict[str, float] = field(default_factory=dict)
+    postprocess_output_timings_ms: dict[str, float] = field(default_factory=dict)
+    post_render_timings_ms: dict[str, float] = field(default_factory=dict)
     health_check_time_ms: float = 0.0
 
     # Per-page render time aggregates

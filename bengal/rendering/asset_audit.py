@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlparse
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
     from pathlib import Path
 
 LOCAL_CSS_JS_RE = re.compile(r"""(?:href|src)=["']([^"']+\.(?:css|js)(?:\?[^"']*)?)["']""")
@@ -22,7 +23,9 @@ class MissingAssetReference:
 
 
 def find_missing_local_asset_references(
-    output_dir: Path, baseurl: str = ""
+    output_dir: Path,
+    baseurl: str = "",
+    html_paths: Iterable[Path] | None = None,
 ) -> list[MissingAssetReference]:
     """Find local CSS/JS URLs in rendered HTML that do not exist on disk."""
     if not output_dir.exists():
@@ -30,12 +33,22 @@ def find_missing_local_asset_references(
 
     missing: list[MissingAssetReference] = []
     base_prefix = _normalized_base_prefix(baseurl)
-    for html_path in output_dir.rglob("*.html"):
+    candidates = html_paths if html_paths is not None else output_dir.rglob("*.html")
+    for html_path in candidates:
+        if html_path.suffix.lower() != ".html":
+            continue
+        if not html_path.is_absolute():
+            html_path = output_dir / html_path
+        if not html_path.exists():
+            continue
         try:
             html = html_path.read_text(encoding="utf-8")
         except OSError:
             continue
-        html_rel = html_path.relative_to(output_dir)
+        try:
+            html_rel = html_path.relative_to(output_dir)
+        except ValueError:
+            continue
         for raw_url in LOCAL_CSS_JS_RE.findall(html):
             parsed = urlparse(raw_url)
             if parsed.scheme or parsed.netloc or parsed.path.startswith("//"):

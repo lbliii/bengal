@@ -168,6 +168,49 @@ class TestConfigNormalizationEdgeCases:
         # llm_txt was not explicitly set, so it should not be added
         # (because we're in simple config mode and json key was present)
 
+    def test_incremental_per_page_outputs_are_changed_page_scoped(self, tmp_path: Path) -> None:
+        """Incremental per-page outputs only regenerate changed or missing companions."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        unchanged = self._create_mock_page(
+            title="Unchanged",
+            url="/unchanged/",
+            content="Old content",
+            output_path=output_dir / "unchanged/index.html",
+        )
+        unchanged.source_path = Path("content/unchanged.md")
+        changed = self._create_mock_page(
+            title="Changed",
+            url="/changed/",
+            content="New content",
+            output_path=output_dir / "changed/index.html",
+        )
+        changed.source_path = Path("content/changed.md")
+        mock_site.pages = [unchanged, changed]
+
+        (output_dir / "unchanged").mkdir()
+        unchanged_json = output_dir / "unchanged/index.json"
+        unchanged_json.write_text("old-json", encoding="utf-8")
+
+        ctx = Mock()
+        ctx.incremental = True
+        ctx.config_changed = False
+        ctx.pages_to_build = [changed]
+        ctx.changed_page_paths = {changed.source_path}
+        ctx.has_accumulated_page_data = False
+        ctx.get_accumulated_page_data.return_value = []
+        ctx.stats = BuildStats()
+        ctx.cache = None
+
+        config = {"enabled": True, "per_page": ["json"], "site_wide": []}
+        generator = OutputFormatsGenerator(mock_site, config, build_context=ctx)
+        generator.generate()
+
+        assert unchanged_json.read_text(encoding="utf-8") == "old-json"
+        assert (output_dir / "changed/index.json").exists()
+
     def test_empty_config_uses_all_defaults(self, tmp_path: Path) -> None:
         """Empty config dict should use all defaults."""
         output_dir = tmp_path / "public"

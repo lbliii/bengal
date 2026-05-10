@@ -83,9 +83,18 @@ def phase_postprocess(
 
         from bengal.rendering.asset_audit import find_missing_local_asset_references
 
+        audit_start = time.perf_counter()
+        strict = getattr(ctx, "strict", False) or getattr(orchestrator.stats, "strict_mode", False)
+        html_paths = None if strict or not incremental else _changed_html_output_paths(collector)
         missing_refs = find_missing_local_asset_references(
             orchestrator.site.output_dir,
             baseurl=getattr(orchestrator.site, "baseurl", "") or "",
+            html_paths=html_paths,
+        )
+        _record_post_render_timing(
+            orchestrator,
+            "asset_audit",
+            (time.perf_counter() - audit_start) * 1000,
         )
         if missing_refs:
             samples = [
@@ -99,9 +108,6 @@ def phase_postprocess(
                 }
                 for ref in missing_refs[:5]
             ]
-            strict = getattr(ctx, "strict", False) or getattr(
-                orchestrator.stats, "strict_mode", False
-            )
             if strict:
                 from bengal.errors import BengalAssetError, ErrorCode
 
@@ -135,6 +141,36 @@ def _relative_output_path(path: Any, output_dir: Any) -> str:
         return str(path.relative_to(output_dir))
     except ValueError:
         return str(path)
+
+
+def _changed_html_output_paths(collector: OutputCollector | None) -> list[Any] | None:
+    """Return changed HTML output paths from the build collector, or None for full audit."""
+    if collector is None:
+        return None
+    get_outputs = getattr(collector, "get_outputs", None)
+    if not callable(get_outputs):
+        return None
+    try:
+        outputs = get_outputs()
+    except Exception:
+        return None
+    html_paths = [
+        record.path
+        for record in outputs
+        if getattr(getattr(record, "output_type", None), "value", None) == "html"
+    ]
+    return html_paths
+
+
+def _record_post_render_timing(
+    orchestrator: BuildOrchestrator,
+    name: str,
+    duration_ms: float,
+) -> None:
+    """Record a post-render/finalization timing when supported by BuildStats."""
+    timings = getattr(orchestrator.stats, "post_render_timings_ms", None)
+    if isinstance(timings, dict):
+        timings[name] = round(duration_ms, 1)
 
 
 def phase_cache_save(
@@ -307,6 +343,7 @@ def run_health_check(
     report = health_check.run(
         profile=profile,
         incremental=incremental,
+        context=_health_validation_context(build_context) if incremental else None,
         cache=cache,
         build_context=build_context,
     )
@@ -375,6 +412,25 @@ def run_health_check(
             "Review output or disable strict_mode.",
             suggestion="Review the health check report above and fix the errors, or set health_check.strict_mode=false",
         )
+
+
+def _health_validation_context(build_context: BuildContext | Any | None) -> list[Any] | None:
+    """Return changed source paths for incremental health validation."""
+    if build_context is None:
+        return None
+    paths: list[Any] = []
+    pages_to_build = getattr(build_context, "pages_to_build", None)
+    if pages_to_build:
+        for page in pages_to_build:
+            source_path = getattr(page, "source_path", None)
+            if source_path is not None:
+                paths.append(source_path)
+    if paths:
+        return paths
+    changed_page_paths = getattr(build_context, "changed_page_paths", None)
+    if changed_page_paths:
+        return list(changed_page_paths)
+    return None
 
 
 def phase_finalize(

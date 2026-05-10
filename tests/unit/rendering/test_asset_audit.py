@@ -66,3 +66,19 @@ def test_ignores_non_string_baseurl_from_loose_test_doubles(tmp_path) -> None:
     missing = find_missing_local_asset_references(output, baseurl=object())
 
     assert missing == []
+
+
+def test_can_scope_audit_to_changed_html_paths(tmp_path) -> None:
+    output = tmp_path / "public"
+    (output / "docs").mkdir(parents=True)
+    (output / "blog").mkdir(parents=True)
+    (output / "docs" / "index.html").write_text(
+        '<link rel="stylesheet" href="/assets/missing.css">',
+        encoding="utf-8",
+    )
+    changed = output / "blog" / "index.html"
+    changed.write_text("<p>No assets here</p>", encoding="utf-8")
+
+    missing = find_missing_local_asset_references(output, html_paths=[changed])
+
+    assert missing == []

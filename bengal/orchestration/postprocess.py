@@ -25,6 +25,7 @@ See Also:
 
 from __future__ import annotations
 
+import time
 from threading import Lock
 from typing import TYPE_CHECKING
 
@@ -67,6 +68,23 @@ def _emit_postprocess_line(message: str) -> None:
     from bengal.output import get_cli_output
 
     get_cli_output().raw(message, stream="stderr", level=None)
+
+
+def _emit_task_started(task_name: str) -> None:
+    """Show long-running postprocess work before it completes."""
+    from bengal.output import get_cli_output
+
+    cli = get_cli_output()
+    cli.detail(f"{task_name}...", icon=cli.icons.arrow)
+
+
+def _emit_task_finished(task_name: str, duration_ms: float) -> None:
+    """Show a completed postprocess subtask with its elapsed time."""
+    from bengal.output import get_cli_output
+
+    cli = get_cli_output()
+    duration = f"{int(duration_ms)}ms"
+    cli.detail(f"{task_name} {duration}", icon=cli.icons.success)
 
 
 class PostprocessOrchestrator:
@@ -130,6 +148,7 @@ class PostprocessOrchestrator:
         """
         # Store collector for use in task methods
         self._collector = collector
+        self._stats = getattr(build_context, "stats", None) if build_context else None
         # Resolve from context if absent
         if (
             not progress_manager
@@ -146,6 +165,7 @@ class PostprocessOrchestrator:
 
             cli = get_cli_output()
             cli.section("Post-processing")
+        emit_cli_task_progress = progress_manager is None
 
         # Collect enabled tasks
         tasks = []
@@ -160,7 +180,14 @@ class PostprocessOrchestrator:
             # Build graph first if we want to include graph data in page JSON
             graph_data = None
             if output_formats_config.get("options", {}).get("include_graph_connections", True):
+                graph_start = time.perf_counter()
+                if emit_cli_task_progress:
+                    _emit_task_started("graph data")
                 graph_data = self._build_graph_data(build_context)
+                graph_duration_ms = (time.perf_counter() - graph_start) * 1000
+                self._record_task_timing("graph data", graph_duration_ms)
+                if emit_cli_task_progress:
+                    _emit_task_finished("graph data", graph_duration_ms)
             tasks.append(
                 ("output formats", lambda: self._generate_output_formats(graph_data, build_context))
             )
@@ -237,6 +264,13 @@ class PostprocessOrchestrator:
         if social_cards_task is not None:
             self._run_sequential([("social cards", social_cards_task)], progress_manager, reporter)
 
+    def _record_task_timing(self, task_name: str, duration_ms: float) -> None:
+        """Record postprocess task timing when build stats are available."""
+        stats = getattr(self, "_stats", None)
+        timings = getattr(stats, "postprocess_task_timings_ms", None)
+        if isinstance(timings, dict):
+            timings[task_name] = round(duration_ms, 1)
+
     def _run_sequential(
         self,
         tasks: list[tuple[str, Callable[[], None]]],
@@ -251,6 +285,11 @@ class PostprocessOrchestrator:
             progress_manager: Live progress manager (optional)
         """
         for i, (task_name, task_fn) in enumerate(tasks):
+            task_start = time.perf_counter()
+            emit_cli_task_progress = progress_manager is None
+            if emit_cli_task_progress:
+                with _print_lock:
+                    _emit_task_started(task_name)
             try:
                 if progress_manager:
                     progress_manager.update_phase(
@@ -304,6 +343,15 @@ class PostprocessOrchestrator:
                                 _emit_postprocess_line(f"  ✗ {task_name}: {e}")
                         else:
                             _emit_postprocess_line(f"  ✗ {task_name}: {e}")
+            finally:
+                duration_ms = (time.perf_counter() - task_start) * 1000
+                self._record_task_timing(
+                    task_name,
+                    duration_ms,
+                )
+                if emit_cli_task_progress:
+                    with _print_lock:
+                        _emit_task_finished(task_name, duration_ms)
 
     def _run_parallel(
         self,
@@ -323,12 +371,25 @@ class PostprocessOrchestrator:
 
         def _run_task(name_fn_tuple: tuple[str, Callable[[], None]]) -> str:
             name, fn = name_fn_tuple
+            start = time.perf_counter()
+            if progress_manager is None:
+                with _print_lock:
+                    _emit_task_started(name)
             try:
                 fn()
             except Exception as e:
+                duration_ms = (time.perf_counter() - start) * 1000
                 e.__task_name__ = name  # type: ignore[attr-defined]
+                e.__duration_ms__ = duration_ms  # type: ignore[attr-defined]
+                if progress_manager is None:
+                    with _print_lock:
+                        _emit_task_finished(name, duration_ms)
                 raise
-            return name
+            duration_ms = (time.perf_counter() - start) * 1000
+            if progress_manager is None:
+                with _print_lock:
+                    _emit_task_finished(name, duration_ms)
+            return f"{name}\0{duration_ms}"
 
         from bengal.utils.concurrency.work_scope import WorkScope
 
@@ -337,7 +398,10 @@ class PostprocessOrchestrator:
 
         for r in results:
             if r.ok:
-                task_name = r.value
+                encoded = r.value or ""
+                task_name, _, duration = encoded.partition("\0")
+                if duration:
+                    self._record_task_timing(task_name, float(duration))
                 if progress_manager:
                     completed_count += 1
                     progress_manager.update_phase(
@@ -351,6 +415,9 @@ class PostprocessOrchestrator:
 
                 # Extract task name from the error if possible
                 task_name = getattr(e, "__task_name__", "unknown")
+                duration_ms = getattr(e, "__duration_ms__", None)
+                if isinstance(duration_ms, int | float):
+                    self._record_task_timing(task_name, float(duration_ms))
                 error_msg = str(e)
                 errors.append((task_name, error_msg))
 

@@ -49,6 +49,9 @@ class MockPhaseContext:
 
         orchestrator.stats = MagicMock()
         orchestrator.stats.postprocess_time_ms = 0
+        orchestrator.stats.postprocess_task_timings_ms = {}
+        orchestrator.stats.postprocess_output_timings_ms = {}
+        orchestrator.stats.post_render_timings_ms = {}
         orchestrator.stats.build_time_ms = 0
         orchestrator.stats.health_check_time_ms = 0
         orchestrator.stats.rendering_time_ms = 100
@@ -56,6 +59,15 @@ class MockPhaseContext:
         orchestrator.stats.memory_heap_mb = 0
         orchestrator.stats.total_pages = 0
         orchestrator.stats.total_assets = 0
+        orchestrator.stats.parallel = True
+        orchestrator.stats.incremental = False
+        orchestrator.stats.skipped = False
+        orchestrator.stats.cache_hits = 0
+        orchestrator.stats.cache_misses = 0
+        orchestrator.stats.block_cache_hits = 0
+        orchestrator.stats.block_cache_misses = 0
+        orchestrator.stats.block_cache_site_blocks = 0
+        orchestrator.stats.block_cache_time_saved_ms = 0
 
         orchestrator.logger = MagicMock()
         orchestrator.logger.phase = MagicMock(
@@ -111,6 +123,18 @@ class TestPhasePostprocess:
         phase_postprocess(orchestrator, cli, parallel=False, ctx=ctx, incremental=False)
 
         cli.phase.assert_called_once()
+
+    def test_records_asset_audit_timing(self, tmp_path):
+        """Records post-render timing for the asset audit tail."""
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        orchestrator.site.output_dir.mkdir(parents=True)
+        cli = MockPhaseContext.create_cli()
+        ctx = MagicMock()
+        ctx.strict = False
+
+        phase_postprocess(orchestrator, cli, parallel=False, ctx=ctx, incremental=True)
+
+        assert "asset_audit" in orchestrator.stats.post_render_timings_ms
 
 
 class TestPhaseCacheSave:

@@ -89,15 +89,34 @@ class PageMarkdownGenerator:
         Returns:
             Number of .md files generated.
         """
-        page_items: list[tuple[Path, str]] = []
+        page_targets: list[tuple[Path, PageLike]] = []
         for page in pages:
             md_path = get_page_md_path(page)
             if not md_path:
                 continue
+            page_targets.append((md_path, page))
 
+        if not page_targets:
+            return 0
+
+        def render_markdown(item: tuple[Path, PageLike]) -> tuple[Path, str] | None:
+            md_path, page = item
             content = self._page_to_markdown(page)
             if content:
-                page_items.append((md_path, content))
+                return md_path, content
+            return None
+
+        from bengal.utils.concurrency.work_scope import WorkScope
+
+        with WorkScope("MarkdownOutput", max_workers=8) as scope:
+            results = scope.map(render_markdown, page_targets)
+
+        page_items: list[tuple[Path, str]] = []
+        for result in results:
+            if result.error:
+                raise result.error
+            if result.value is not None:
+                page_items.append(result.value)
 
         if not page_items:
             return 0

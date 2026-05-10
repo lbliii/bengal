@@ -498,6 +498,7 @@ class BuildOrchestrator:
         # health validators) can make safe incremental decisions without re-scanning everything.
         early_ctx.incremental = bool(incremental)
         early_ctx.changed_page_paths = set(changed_page_paths)
+        early_ctx.config_changed = bool(config_changed)
 
         # === CONTENT PHASE GROUP (dashboard-integrated) ===
         run_plugin_phase("pre_content")
@@ -549,6 +550,7 @@ class BuildOrchestrator:
             self._filter_sections_by_variant(self.site.sections, variant)
             if hasattr(self.site, "invalidate_regular_pages_cache"):
                 self.site.invalidate_regular_pages_cache()
+        early_ctx.pages_to_build = list(pages_to_build)
 
         # Phase 12.5: URL Collision Detection (proactive validation)
         collisions = self.site.validate_no_url_collisions(strict=options.strict)
@@ -770,7 +772,12 @@ class BuildOrchestrator:
         if ctx is not None:
             ctx.output_collector = output_collector
             ctx.artifact_collector = artifact_collector
+        artifact_inventory_start = time.perf_counter()
         populate_artifact_inventory(self.site, ctx)
+        self.stats.post_render_timings_ms["artifact_inventory"] = round(
+            (time.perf_counter() - artifact_inventory_start) * 1000,
+            1,
+        )
 
         # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered
         # This enables skipping them on future builds if member content hasn't changed
@@ -839,12 +846,18 @@ class BuildOrchestrator:
                 raise r.error
 
         cache_duration_ms = (time.perf_counter() - cache_start) * 1000
+        self.stats.post_render_timings_ms["cache_save"] = round(cache_duration_ms, 1)
         if cli is not None:
             cli.phase("Cache save", duration_ms=cache_duration_ms)
         self.logger.info("cache_saved")
 
         # Phase 19: Collect Final Stats
+        stats_start = time.perf_counter()
         finalization.phase_collect_stats(self, build_start, cli=cli)
+        self.stats.post_render_timings_ms["stats"] = round(
+            (time.perf_counter() - stats_start) * 1000,
+            1,
+        )
 
         # Phase 19.5: Finalize Error Session (track build errors for pattern detection)
         self._finalize_error_session()
@@ -909,6 +922,7 @@ class BuildOrchestrator:
             )
 
         health_duration_ms = (time.time() - health_start) * 1000
+        self.stats.post_render_timings_ms["health"] = round(health_duration_ms, 1)
         health_report = getattr(self.stats, "health_report", None)
         health_summary = ""
         if health_report:
@@ -925,7 +939,12 @@ class BuildOrchestrator:
         if hasattr(self, "_provenance_filter"):
             from bengal.orchestration.build.provenance_filter import save_provenance_cache
 
+            provenance_save_start = time.perf_counter()
             save_provenance_cache(self)
+            self.stats.post_render_timings_ms["provenance_save"] = round(
+                (time.perf_counter() - provenance_save_start) * 1000,
+                1,
+            )
 
         # Clean up partial fast-write files if build had errors
         if self.stats.template_errors or (isinstance(self.stats, HasErrors) and self.stats.errors):

@@ -27,6 +27,7 @@ from __future__ import annotations
 import hashlib
 import json
 import time
+from contextlib import suppress
 from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -43,7 +44,12 @@ from bengal.postprocess.output_formats.llms_txt_generator import SiteLlmsTxtGene
 from bengal.postprocess.output_formats.lunr_index_generator import LunrIndexGenerator
 from bengal.postprocess.output_formats.md_generator import PageMarkdownGenerator
 from bengal.postprocess.output_formats.txt_generator import PageTxtGenerator
-from bengal.postprocess.output_formats.utils import get_i18n_output_path
+from bengal.postprocess.output_formats.utils import (
+    get_i18n_output_path,
+    get_page_json_path,
+    get_page_md_path,
+    get_page_txt_path,
+)
 from bengal.postprocess.search_backends import (
     create_search_backend,
     resolve_search_backend_config,
@@ -276,6 +282,7 @@ class OutputFormatsGenerator:
         generated = []
         timings: dict[str, float] = {}
         options = self.config.get("options", {})
+        per_page_targets: dict[str, list[PageLike]] = {}
 
         # Get accumulated page data once (shared by multiple generators)
         # See: plan/drafted/rfc-unified-page-data-accumulation.md
@@ -294,6 +301,7 @@ class OutputFormatsGenerator:
 
         # Per-page outputs — use ai_input_pages (machine-readable for AI)
         if "json" in per_page:
+            per_page_targets["json"] = self._per_page_target_pages(ai_input_pages, "json")
             # Get config options for HTML/text inclusion
             include_html = options.get("include_html_content", False)
             include_text = options.get("include_plain_text", True)
@@ -311,7 +319,7 @@ class OutputFormatsGenerator:
             accumulated_json = None
             if accumulated_data:
                 # Filter accumulated data to ai_input-permitted pages
-                ai_input_urls = {p.href for p in ai_input_pages}
+                ai_input_urls = {p.href for p in per_page_targets["json"]}
                 accumulated_json = [
                     (data.json_output_path, data.full_json_data)
                     for data in accumulated_data
@@ -321,28 +329,36 @@ class OutputFormatsGenerator:
             count = self._timed_generate(
                 timings,
                 "page_json",
-                lambda: json_gen.generate(ai_input_pages, accumulated_json=accumulated_json),
+                lambda: json_gen.generate(
+                    per_page_targets["json"],
+                    accumulated_json=accumulated_json,
+                ),
             )
             generated.append(f"JSON ({count} files)")
             logger.debug("generated_page_json", file_count=count)
 
         if "llm_txt" in per_page:
+            per_page_targets["llm_txt"] = self._per_page_target_pages(ai_input_pages, "llm_txt")
             separator_width = options.get("llm_separator_width", 80)
             txt_gen = PageTxtGenerator(self.site, separator_width=separator_width)
             count = self._timed_generate(
                 timings,
                 "page_llm_txt",
-                lambda: txt_gen.generate(ai_input_pages),
+                lambda: txt_gen.generate(per_page_targets["llm_txt"]),
             )
             generated.append(f"LLM text ({count} files)")
             logger.debug("generated_page_txt", file_count=count)
 
         if "markdown" in per_page:
+            per_page_targets["markdown"] = self._per_page_target_pages(
+                ai_input_pages,
+                "markdown",
+            )
             md_gen = PageMarkdownGenerator(self.site)
             count = self._timed_generate(
                 timings,
                 "page_markdown",
-                lambda: md_gen.generate(ai_input_pages),
+                lambda: md_gen.generate(per_page_targets["markdown"]),
             )
             generated.append(f"Markdown ({count} files)")
             logger.debug("generated_page_markdown", file_count=count)
@@ -497,6 +513,51 @@ class OutputFormatsGenerator:
             merged.append(_page_artifact_to_accumulated(record, AccumulatedPageData))
         return merged
 
+    def _per_page_target_pages(self, pages: list[PageLike], output_format: str) -> list[PageLike]:
+        """Return pages that need per-page companion artifacts for this build."""
+        if not self.build_context or not getattr(self.build_context, "incremental", False):
+            return pages
+        if getattr(self.build_context, "config_changed", False):
+            return pages
+
+        changed_keys = self._changed_page_source_keys()
+        if not changed_keys:
+            return pages
+
+        targets = []
+        for page in pages:
+            source_path = getattr(page, "source_path", None)
+            if source_path is None:
+                continue
+            output_path = _per_page_output_path(page, output_format)
+            if output_path is None:
+                continue
+            if _path_matches(source_path, changed_keys) or not output_path.exists():
+                targets.append(page)
+        logger.debug(
+            "per_page_output_targets_selected",
+            format=output_format,
+            targets=len(targets),
+            total=len(pages),
+            reason="incremental_changed_pages",
+        )
+        return targets
+
+    def _changed_page_source_keys(self) -> set[str]:
+        """Return normalized source path keys for pages rendered in this build."""
+        changed: set[str] = set()
+        pages_to_build = getattr(self.build_context, "pages_to_build", None)
+        if pages_to_build:
+            for page in pages_to_build:
+                source_path = getattr(page, "source_path", None)
+                if source_path is not None:
+                    changed.update(_path_keys(source_path))
+
+        changed_page_paths = getattr(self.build_context, "changed_page_paths", set()) or set()
+        for path in changed_page_paths:
+            changed.update(_path_keys(path))
+        return changed
+
     def _generate_site_wide_if_needed(
         self,
         timings: dict[str, float],
@@ -596,7 +657,13 @@ class OutputFormatsGenerator:
     ) -> Any:
         """Run one output-format generator and record its elapsed time."""
         start = time.perf_counter()
-        result = generate_fn()
+        self._emit_output_format_started(format_name)
+        try:
+            result = generate_fn()
+        except Exception:
+            duration_ms = (time.perf_counter() - start) * 1000
+            self._emit_output_format_finished(format_name, duration_ms)
+            raise
         duration_ms = (time.perf_counter() - start) * 1000
         timings[format_name] = round(duration_ms, 1)
         stats = getattr(self.build_context, "stats", None)
@@ -607,7 +674,35 @@ class OutputFormatsGenerator:
             format=format_name,
             duration_ms=timings[format_name],
         )
+        self._emit_output_format_finished(format_name, duration_ms)
         return result
+
+    def _emit_output_format_started(self, format_name: str) -> None:
+        """Show long-running output-format work before it completes."""
+        if not self._should_emit_cli_progress():
+            return
+        from bengal.output import get_cli_output
+
+        cli = get_cli_output()
+        cli.detail(f"output formats: {format_name}...", indent=2, icon=cli.icons.arrow)
+
+    def _emit_output_format_finished(self, format_name: str, duration_ms: float) -> None:
+        """Show a completed output-format generator with elapsed time."""
+        if not self._should_emit_cli_progress():
+            return
+        from bengal.output import get_cli_output
+
+        cli = get_cli_output()
+        cli.detail(
+            f"output formats: {format_name} {int(duration_ms)}ms",
+            indent=2,
+            icon=cli.icons.success,
+        )
+
+    def _should_emit_cli_progress(self) -> bool:
+        """Return whether output-format progress should be printed directly."""
+        progress_manager = getattr(self.build_context, "progress_manager", None)
+        return progress_manager is None
 
     def _filter_pages(self) -> list[PageLike]:
         """
@@ -701,6 +796,31 @@ def _site_relative_path(site: SiteLike, source_path: Path) -> Path:
         return source_path
     root_path = getattr(site, "root_path", None)
     return root_path / source_path if root_path else source_path
+
+
+def _per_page_output_path(page: PageLike, output_format: str) -> Path | None:
+    """Return the expected per-page artifact path for a configured output format."""
+    if output_format == "json":
+        return get_page_json_path(page)
+    if output_format == "llm_txt":
+        return get_page_txt_path(page)
+    if output_format == "markdown":
+        return get_page_md_path(page)
+    return None
+
+
+def _path_keys(path: Path | str) -> set[str]:
+    """Return stable path keys for matching absolute/relative source paths."""
+    path = Path(path)
+    keys = {str(path)}
+    with suppress(OSError):
+        keys.add(str(path.resolve()))
+    return keys
+
+
+def _path_matches(path: Path | str, keys: set[str]) -> bool:
+    """Return whether path matches one of the normalized changed-path keys."""
+    return bool(_path_keys(path) & keys)
 
 
 def _fingerprint_page_artifact(data: Any) -> dict[str, Any]:
