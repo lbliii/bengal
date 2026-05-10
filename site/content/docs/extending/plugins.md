@@ -109,6 +109,13 @@ def register(self, registry: PluginRegistry) -> None:
 
 The `phase` parameter on `add_template_function` controls registration order (1–9), matching Bengal's internal template function phases.
 
+Registry validation happens during `register()`. Bengal raises explicit errors
+for empty extension names, non-callable template helpers or phase hooks, content
+sources that are not classes, shortcode templates that are not non-empty
+strings, and template function phases outside `1..9`. The frozen registry
+returned after registration is immutable and safe to share across parallel
+build workers.
+
 ### Directives and Roles
 
 ```python
@@ -192,7 +199,8 @@ Bengal discovers plugins via the `bengal.plugins` [entry point group](https://pa
 3. Valid plugins call `register()` on a mutable `PluginRegistry`
 4. The registry is frozen into an immutable `FrozenPluginRegistry` before rendering begins
 
-The frozen registry is a dataclass with tuple fields — safe to share across threads during parallel rendering.
+The frozen registry is a frozen dataclass with tuple fields — safe to share
+across threads during parallel rendering.
 
 ## Combining Multiple Extensions
 

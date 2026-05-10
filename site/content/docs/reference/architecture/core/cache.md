@@ -176,6 +176,26 @@ Instead of relying on ad-hoc flags, the provenance store tracks content-addresse
 inputs and outputs so the detection pipeline can quickly prove what is fresh and
 what must be rebuilt.
 
+### Stale-Output Guards
+
+Warm builds should be conservative when freshness is uncertain. Bengal uses
+several guards before trusting cached output:
+
+- **Nanosecond fingerprints**: file fingerprints include `mtime_ns`, size, and
+  SHA256 content hash. Older cache entries without nanosecond data fall back to
+  the legacy mtime+size comparison, then hash verification.
+- **Build-start provenance time**: provenance mtime short-circuit data records
+  the build start timestamp, not the later cache-save timestamp. If a file
+  changes while a build is running, the next warm build verifies content instead
+  of incorrectly trusting the previous record.
+- **Missing output repair**: page outputs and site-wide postprocess artifacts
+  are checked before an incremental skip is accepted.
+- **Atomic cache persistence**: cache and provenance indexes use atomic writes
+  so interrupted builds do not leave partially-written JSON behind.
+
+If Bengal cannot resolve an input path, read a fingerprint, or prove an output
+exists, it treats the page or artifact as stale and rebuilds it.
+
 ## Zstandard Compression
 
 Bengal uses **Zstandard (zstd)** compression for all cache files, leveraging Python 3.14's new `compression.zstd` module (PEP 784).
