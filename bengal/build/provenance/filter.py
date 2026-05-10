@@ -14,6 +14,7 @@ from __future__ import annotations
 import contextlib
 import os
 import threading
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -113,6 +114,8 @@ class ProvenanceFilter:
     ) -> None:
         self.site = site
         self.cache = cache
+        self._build_started_at = time.time()
+        self._build_started_at_ns = time.time_ns()
 
         # Precompute site config hash (affects all pages)
         self._config_hash = hash_dict(dict(site.config))
@@ -276,6 +279,7 @@ class ProvenanceFilter:
         page_path = self._get_page_key(page)
         input_paths = self.cache.get_input_paths(page_path)
         last_build = self.cache.get_last_build_time()
+        last_build_ns = self.cache.get_last_build_time_ns()
 
         if not input_paths or last_build is None:
             return False
@@ -287,7 +291,12 @@ class ProvenanceFilter:
                 try:
                     if full_path.exists():
                         found = True
-                        if full_path.stat().st_mtime > last_build:
+                        stat = full_path.stat()
+                        if last_build_ns is not None:
+                            changed_after_build = stat.st_mtime_ns > last_build_ns
+                        else:
+                            changed_after_build = stat.st_mtime > last_build
+                        if changed_after_build:
                             return False  # File changed, need full verification
                         break
                 except OSError:
@@ -402,7 +411,10 @@ class ProvenanceFilter:
 
     def save(self) -> None:
         """Save the provenance cache to disk."""
-        self.cache.save()
+        self.cache.save(
+            last_build_time=self._build_started_at,
+            last_build_time_ns=self._build_started_at_ns,
+        )
         self._save_asset_hashes()
 
     def _load_asset_hashes(self) -> None:
@@ -485,7 +497,7 @@ class ProvenanceFilter:
 
             # Check if section has an index page
             index_page = getattr(section, "index_page", None)
-            if index_page is not None and not getattr(index_page, "virtual", False):
+            if index_page is not None and getattr(index_page, "virtual", False) is not True:
                 # Only check filesystem for real (non-virtual) pages.
                 # Virtual pages (autodoc, section-indexes) have synthetic
                 # source paths that intentionally don't exist on disk.
@@ -833,7 +845,11 @@ class ProvenanceFilter:
         if (
             stored is not None
             and isinstance(stored, dict)
-            and stored.get("mtime") == current_mtime
+            and (
+                stored.get("mtime_ns") == stat.st_mtime_ns
+                if "mtime_ns" in stored
+                else stored.get("mtime") == current_mtime
+            )
             and stored.get("size") == current_size
         ):
             return False
@@ -853,6 +869,7 @@ class ProvenanceFilter:
             self._asset_hashes[asset_path] = {
                 "hash": current_hash,
                 "mtime": current_mtime,
+                "mtime_ns": stat.st_mtime_ns,
                 "size": current_size,
             }
             return True
@@ -862,6 +879,7 @@ class ProvenanceFilter:
             self._asset_hashes[asset_path] = {
                 "hash": current_hash,
                 "mtime": current_mtime,
+                "mtime_ns": stat.st_mtime_ns,
                 "size": current_size,
             }
             return True
@@ -871,6 +889,7 @@ class ProvenanceFilter:
             self._asset_hashes[asset_path] = {
                 "hash": current_hash,
                 "mtime": current_mtime,
+                "mtime_ns": stat.st_mtime_ns,
                 "size": current_size,
             }
         else:
@@ -878,6 +897,7 @@ class ProvenanceFilter:
             self._asset_hashes[asset_path] = {
                 "hash": current_hash,
                 "mtime": current_mtime,
+                "mtime_ns": stat.st_mtime_ns,
                 "size": current_size,
             }
         return False
@@ -903,6 +923,7 @@ class ProvenanceFilter:
             self._asset_hashes[asset_key] = {
                 "hash": current_hash,
                 "mtime": stat.st_mtime,
+                "mtime_ns": stat.st_mtime_ns,
                 "size": stat.st_size,
             }
         except OSError:

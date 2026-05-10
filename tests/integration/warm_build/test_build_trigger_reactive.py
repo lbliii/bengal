@@ -204,15 +204,10 @@ title: Home
         # Updated HTML written to disk
         warm_build_site.assert_output_contains("index.html", updated_body)
 
-    def test_reactive_path_does_not_update_dependent_pages(
+    def test_reactive_path_refuses_pages_with_rendered_dependents(
         self, site_with_nav: WarmBuildTestSite
     ) -> None:
-        """Reactive path updates only the edited page; section index stays stale.
-
-        Edge case (RFC Phase 7): When editing blog/post1.md, handle_content_change
-        re-renders only post1. The blog section index (blog/index.html) lists
-        post1 but is NOT re-rendered; it remains stale until full build.
-        """
+        """Reactive handler refuses leaf edits that would stale a section index."""
         site_dir = site_with_nav.site_dir
         output_dir = site_with_nav.output_dir
 
@@ -225,6 +220,7 @@ title: Home
         post1_output = output_dir / "blog" / "post1" / "index.html"
         section_index_output = output_dir / "blog" / "index.html"
         section_index_mtime_before = section_index_output.stat().st_mtime
+        post1_mtime_before = post1_output.stat().st_mtime
 
         # Edit post1 body only (content that affects post1 page)
         unique_content = "REACTIVE_EDGE_CASE_UNIQUE_STRING"
@@ -241,24 +237,14 @@ date: 2026-01-01
         handler = ReactiveContentHandler(site_with_nav.site, output_dir)
         result = handler.handle_content_change(post1_path)
 
-        assert result is not None
-        # Result may be relative or absolute; resolve for comparison
-        assert result.output_path.resolve() == post1_output.resolve()
+        assert result is None
 
-        # Post1 output updated with new content
-        site_with_nav.assert_output_contains("blog/post1/index.html", unique_content)
-
-        # Section index unchanged (mtime unchanged, content not updated)
+        # Nothing was rewritten; BuildTrigger will fall through to warm build.
+        assert post1_output.stat().st_mtime == post1_mtime_before
         section_index_mtime_after = section_index_output.stat().st_mtime
-        assert section_index_mtime_before == section_index_mtime_after, (
-            "Section index should not be touched by reactive path"
-        )
-        # Section index does not contain the new post1 body (excerpt would be stale)
+        assert section_index_mtime_before == section_index_mtime_after
         section_html = section_index_output.read_text()
-        assert unique_content not in section_html, (
-            "Section index should not include post1 body; reactive path doesn't "
-            "re-render dependent pages"
-        )
+        assert unique_content not in section_html
 
 
 class TestDevServerStyleFirstEdit:

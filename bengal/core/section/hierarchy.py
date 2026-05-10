@@ -75,12 +75,16 @@ def add_subsection(section: Section, child: Section) -> None:
     Sets the parent reference on the child section and invalidates cached
     hierarchy/depth values on the child because they depend on the parent chain.
     """
-    child.parent = section
-    section.subsections.append(child)
-    child.__dict__.pop("hierarchy", None)
-    child.__dict__.pop("depth", None)
+    from bengal.core.section.cache import (
+        invalidate_section_derived_caches,
+        invalidate_section_hierarchy_caches,
+    )
     from bengal.core.section.navigation import invalidate_version_content_cache
 
+    child.parent = section
+    section.subsections.append(child)
+    invalidate_section_hierarchy_caches(child)
+    invalidate_section_derived_caches(section)
     invalidate_version_content_cache(section)
 
 

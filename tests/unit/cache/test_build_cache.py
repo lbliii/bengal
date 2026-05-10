@@ -53,6 +53,7 @@ class TestBuildCache:
 
         assert str(test_file) in cache.file_fingerprints
         assert cache.file_fingerprints[str(test_file)].get("hash") is not None
+        assert cache.file_fingerprints[str(test_file)].get("mtime_ns") is not None
         assert len(cache.file_fingerprints[str(test_file)].get("hash", "")) == 64
 
     def test_is_changed_new_file(self, tmp_path):
@@ -93,6 +94,23 @@ class TestBuildCache:
         test_file.write_text("This is modified content with a different length!")
 
         # Should be detected as changed
+        assert cache.is_changed(test_file) is True
+
+    def test_is_changed_uses_mtime_ns_when_seconds_match(self, tmp_path):
+        """Nanosecond mtime differences bypass stale same-second fast paths."""
+        cache = BuildCache()
+
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("new!")
+        stat = test_file.stat()
+
+        cache.file_fingerprints[str(test_file)] = {
+            "mtime": stat.st_mtime,
+            "mtime_ns": stat.st_mtime_ns - 1,
+            "size": stat.st_size,
+            "hash": "0" * 64,
+        }
+
         assert cache.is_changed(test_file) is True
 
     def test_is_changed_deleted_file(self, tmp_path):

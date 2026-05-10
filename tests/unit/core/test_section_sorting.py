@@ -47,6 +47,30 @@ class TestSectionSortedPagesProperty:
         assert sorted_pages[1] == page3
         assert sorted_pages[2] == page1
 
+    def test_add_page_invalidates_ancestor_recursive_cache(self, tmp_path):
+        """Adding a page to a child section refreshes ancestor recursive listings."""
+        root = Section(name="root", path=tmp_path)
+        docs = Section(name="docs", path=tmp_path / "docs")
+        root.add_subsection(docs)
+
+        first = Page(
+            source_path=tmp_path / "docs/first.md",
+            _raw_content="First",
+            _raw_metadata={"title": "First"},
+        )
+        docs.add_page(first)
+
+        assert root.regular_pages_recursive == [first]
+
+        second = Page(
+            source_path=tmp_path / "docs/second.md",
+            _raw_content="Second",
+            _raw_metadata={"title": "Second"},
+        )
+        docs.add_page(second)
+
+        assert root.regular_pages_recursive == [first, second]
+
     def test_sorted_pages_no_weights(self, tmp_path):
         """Pages without weights default to weight=0 and sort by title."""
         section = Section(name="docs", path=tmp_path / "docs")
@@ -219,6 +243,27 @@ class TestSectionSortedPagesProperty:
 
 class TestSectionSortedSubsectionsProperty:
     """Test Section.sorted_subsections property."""
+
+    def test_add_subsection_invalidates_sorted_subsections_cache(self, tmp_path):
+        """Adding a subsection refreshes sorted_subsections."""
+        root = Section(name="root", path=tmp_path)
+        first = Section(
+            name="first",
+            path=tmp_path / "first",
+            metadata={"title": "First", "weight": 10},
+        )
+        root.add_subsection(first)
+
+        assert root.sorted_subsections == [first]
+
+        second = Section(
+            name="second",
+            path=tmp_path / "second",
+            metadata={"title": "Second", "weight": 1},
+        )
+        root.add_subsection(second)
+
+        assert root.sorted_subsections == [second, first]
 
     def test_sorted_subsections_basic(self, tmp_path):
         """Subsections are sorted by weight (ascending)."""

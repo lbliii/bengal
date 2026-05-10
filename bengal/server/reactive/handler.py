@@ -69,6 +69,13 @@ class ReactiveContentHandler:
         if page is None:
             logger.debug("reactive_page_not_found", path=str(path))
             return None
+        if self._has_rendered_dependents(page):
+            logger.debug(
+                "reactive_page_has_dependents",
+                path=str(path),
+                fallback="warm_build",
+            )
+            return None
 
         try:
             raw_file = path.read_text(encoding="utf-8")
@@ -133,3 +140,13 @@ class ReactiveContentHandler:
             return self._page_index.get(path.resolve())
         except OSError, ValueError:
             return None
+
+    def _has_rendered_dependents(self, page: PageLike) -> bool:
+        """Return True when a single-page render would leave dependent HTML stale."""
+        section = getattr(page, "_section", None)
+        if section is None:
+            return False
+        index_page = getattr(section, "index_page", None)
+        if index_page is None or index_page is page:
+            return False
+        return getattr(index_page, "output_path", None) is not None
