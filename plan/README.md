@@ -27,6 +27,7 @@ Quick reference for RFC status. Run `rg "^\*\*Status\*\*" plan/rfc-*.md` to refr
 | rfc-theme-library-assets | Draft | First-class package/library assets for themes |
 | rfc-template-view-model-contracts | Draft | Engine-neutral view data for Kida and BYO templates |
 | rfc-incremental-dependency-indexes | Draft | Normalized dependency-to-output read model for warm-build correctness |
+| rfc-snapshot-build-plan-handoff | Draft | Frozen build/incremental plans for worker-safe handoff |
 
 ## Implemented
 
