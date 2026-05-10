@@ -87,6 +87,15 @@ def _emit_task_finished(task_name: str, duration_ms: float) -> None:
     cli.detail(f"{task_name} {duration}", icon=cli.icons.success)
 
 
+def _emit_task_failed(task_name: str, duration_ms: float) -> None:
+    """Show a failed postprocess subtask with its elapsed time."""
+    from bengal.output import get_cli_output
+
+    cli = get_cli_output()
+    duration = f"{int(duration_ms)}ms"
+    cli.detail(f"{task_name} failed {duration}", icon=cli.icons.warning)
+
+
 class PostprocessOrchestrator:
     """
     Orchestrates post-processing tasks after page rendering.
@@ -279,6 +288,7 @@ class PostprocessOrchestrator:
         """
         for i, (task_name, task_fn) in enumerate(tasks):
             task_start = time.perf_counter()
+            failed = False
             emit_cli_task_progress = progress_manager is None
             if emit_cli_task_progress:
                 with _print_lock:
@@ -290,6 +300,7 @@ class PostprocessOrchestrator:
                     )
                 task_fn()
             except Exception as e:
+                failed = True
                 from bengal.errors import (
                     BengalError,
                     ErrorCode,
@@ -344,7 +355,10 @@ class PostprocessOrchestrator:
                 )
                 if emit_cli_task_progress:
                     with _print_lock:
-                        _emit_task_finished(task_name, duration_ms)
+                        if failed:
+                            _emit_task_failed(task_name, duration_ms)
+                        else:
+                            _emit_task_finished(task_name, duration_ms)
 
     def _run_parallel(
         self,
@@ -376,7 +390,7 @@ class PostprocessOrchestrator:
                 e.__duration_ms__ = duration_ms  # type: ignore[attr-defined]
                 if progress_manager is None:
                     with _print_lock:
-                        _emit_task_finished(name, duration_ms)
+                        _emit_task_failed(name, duration_ms)
                 raise
             duration_ms = (time.perf_counter() - start) * 1000
             if progress_manager is None:

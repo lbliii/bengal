@@ -6,7 +6,8 @@ from pathlib import Path
 
 from bengal.orchestration.build.inputs import BuildInput
 from bengal.orchestration.build.options import BuildCompletionPolicy, BuildOptions
-from bengal.server.build_executor import BuildRequest
+from bengal.server.build_executor import BuildRequest, BuildResult
+from bengal.utils.stats_minimal import MinimalStats
 
 
 def test_build_options_default_to_complete() -> None:
@@ -34,3 +35,16 @@ def test_unknown_serialized_completion_policy_falls_back_to_complete() -> None:
     restored = BuildInput.from_build_request(request)
 
     assert restored.options.completion_policy is BuildCompletionPolicy.COMPLETE
+
+
+def test_minimal_stats_preserves_build_result_completion_policy() -> None:
+    result = BuildResult(
+        success=True,
+        pages_built=3,
+        build_time_ms=100.0,
+        completion_policy="serve_ready",
+    )
+
+    stats = MinimalStats.from_build_result(result)
+
+    assert stats.completion_policy == "serve_ready"

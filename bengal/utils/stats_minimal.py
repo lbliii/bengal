@@ -75,6 +75,7 @@ class MinimalStats:
     # Flags
     parallel: bool = True
     skipped: bool = False
+    completion_policy: str = "complete"
 
     # Dev server / reload
     reload_hint: ReloadHint | None = None
@@ -179,4 +180,5 @@ class MinimalStats:
             incremental=incremental,
             reload_hint=result.reload_hint,
             pages_rebuilt=result.pages_built,
+            completion_policy=result.completion_policy,
         )

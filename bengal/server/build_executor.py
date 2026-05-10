@@ -128,6 +128,7 @@ class BuildResult:
         build_time_ms: Build duration in milliseconds
         error_message: Error message if build failed
         changed_outputs: Serialized output records for reload decision.
+        completion_policy: Serialized BuildCompletionPolicy value used by the build.
 
     """
 
@@ -138,6 +139,7 @@ class BuildResult:
     changed_outputs: tuple[SerializedOutputRecord, ...] = field(default_factory=tuple)
     # Advisory reload hint from build for smarter dev server decisions
     reload_hint: ReloadHint | None = None
+    completion_policy: str = "complete"
 
 
 def _execute_build(request: BuildRequest) -> BuildResult:
@@ -202,6 +204,7 @@ def _execute_build(request: BuildRequest) -> BuildResult:
             build_time_ms=build_time_ms,
             changed_outputs=changed_outputs,
             reload_hint=stats.reload_hint,
+            completion_policy=request.completion_policy,
         )
 
     except Exception as e:
@@ -212,6 +215,7 @@ def _execute_build(request: BuildRequest) -> BuildResult:
             pages_built=0,
             build_time_ms=build_time_ms,
             error_message=str(e),
+            completion_policy=request.completion_policy,
         )
 
 
