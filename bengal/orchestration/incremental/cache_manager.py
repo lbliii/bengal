@@ -18,7 +18,7 @@ Related Modules:
 from __future__ import annotations
 
 import shutil
-from datetime import date, datetime
+from dataclasses import replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -464,31 +464,13 @@ class CacheManager:
 
 def _serialize_page_artifact(data: Any, anchors: frozenset[str]) -> dict[str, Any]:
     """Convert AccumulatedPageData into a JSON-serializable cache record."""
-    source_path = data.source_path
-    json_output_path = getattr(data, "json_output_path", None)
-    return {
-        "source_path": str(source_path),
-        "url": data.url,
-        "uri": data.uri,
-        "title": data.title,
-        "description": data.description,
-        "date": data.date,
-        "date_iso": data.date_iso,
-        "plain_text": data.plain_text,
-        "excerpt": data.excerpt,
-        "content_preview": data.content_preview,
-        "word_count": data.word_count,
-        "reading_time": data.reading_time,
-        "section": data.section,
-        "tags": list(data.tags),
-        "dir": data.dir,
-        "enhanced_metadata": _json_safe(data.enhanced_metadata),
-        "is_autodoc": data.is_autodoc,
-        "full_json_data": _json_safe(data.full_json_data),
-        "json_output_path": str(json_output_path) if json_output_path else None,
-        "raw_metadata": _json_safe(data.raw_metadata),
-        "anchors": sorted(anchors),
-    }
+    from bengal.rendering.page_artifact import PageArtifact
+
+    if isinstance(data, PageArtifact):
+        artifact = replace(data, anchors=tuple(sorted(str(anchor) for anchor in anchors)))
+    else:
+        artifact = PageArtifact.from_accumulated(data, anchors)
+    return artifact.to_cache_record()
 
 
 def _site_relative_path(root_path: Path, source_path: Path) -> Path:
@@ -515,18 +497,3 @@ def _page_anchor_ids_by_source(
             key_path = _site_relative_path(root_path, source_path)
             anchors[str(cache._cache_key(key_path))] = ids
     return anchors
-
-
-def _json_safe(value: Any) -> Any:
-    """Return a JSON-serializable representation for cache persistence."""
-    if isinstance(value, str | int | float | bool | type(None)):
-        return value
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, date | datetime):
-        return value.isoformat()
-    if isinstance(value, dict):
-        return {str(key): _json_safe(item) for key, item in value.items()}
-    if isinstance(value, list | tuple | set | frozenset):
-        return [_json_safe(item) for item in value]
-    return str(value)

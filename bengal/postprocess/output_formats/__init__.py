@@ -28,7 +28,6 @@ import hashlib
 import json
 import time
 from contextlib import suppress
-from datetime import date, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -765,29 +764,9 @@ class OutputFormatsGenerator:
 
 def _page_artifact_to_accumulated(record: dict[str, Any], accumulated_type: Any) -> Any:
     """Rehydrate a cached page artifact into an AccumulatedPageData record."""
-    json_output_path = record.get("json_output_path")
-    return accumulated_type(
-        source_path=Path(record["source_path"]),
-        url=record["url"],
-        uri=record["uri"],
-        title=record["title"],
-        description=record.get("description", ""),
-        date=record.get("date"),
-        date_iso=record.get("date_iso"),
-        plain_text=record.get("plain_text", ""),
-        excerpt=record.get("excerpt", ""),
-        content_preview=record.get("content_preview", ""),
-        word_count=int(record.get("word_count") or 0),
-        reading_time=int(record.get("reading_time") or 0),
-        section=record.get("section", ""),
-        tags=list(record.get("tags") or []),
-        dir=record.get("dir", ""),
-        enhanced_metadata=dict(record.get("enhanced_metadata") or {}),
-        is_autodoc=bool(record.get("is_autodoc", False)),
-        full_json_data=record.get("full_json_data"),
-        json_output_path=Path(json_output_path) if json_output_path else None,
-        raw_metadata=dict(record.get("raw_metadata") or {}),
-    )
+    from bengal.rendering.page_artifact import PageArtifact
+
+    return PageArtifact.from_cache_record(record).to_accumulated(accumulated_type)
 
 
 def _site_relative_path(site: SiteLike, source_path: Path) -> Path:
@@ -825,27 +804,10 @@ def _path_matches(path: Path | str, keys: set[str]) -> bool:
 
 def _fingerprint_page_artifact(data: Any) -> dict[str, Any]:
     """Return stable page artifact fields that affect site-wide output formats."""
-    return {
-        "source_path": str(data.source_path),
-        "url": data.url,
-        "uri": data.uri,
-        "title": data.title,
-        "description": data.description,
-        "date": data.date,
-        "date_iso": data.date_iso,
-        "plain_text": data.plain_text,
-        "excerpt": data.excerpt,
-        "content_preview": data.content_preview,
-        "word_count": data.word_count,
-        "reading_time": data.reading_time,
-        "section": data.section,
-        "tags": list(data.tags),
-        "dir": data.dir,
-        "enhanced_metadata": _json_safe(data.enhanced_metadata),
-        "is_autodoc": data.is_autodoc,
-        "full_json_data": _json_safe(data.full_json_data),
-        "raw_metadata": _json_safe(data.raw_metadata),
-    }
+    from bengal.rendering.page_artifact import PageArtifact
+
+    artifact = data if isinstance(data, PageArtifact) else PageArtifact.from_accumulated(data)
+    return artifact.fingerprint_record()
 
 
 def _site_fingerprint(site: SiteLike) -> dict[str, Any]:
@@ -859,23 +821,3 @@ def _site_fingerprint(site: SiteLike) -> dict[str, Any]:
         "dev_mode": bool(getattr(site, "dev_mode", False)),
         "build_time": None if getattr(site, "dev_mode", False) else build_time_value,
     }
-
-
-def _json_safe(value: Any) -> Any:
-    """Return a stable JSON-serializable representation for fingerprinting."""
-    if isinstance(value, str | int | float | bool | type(None)):
-        return value
-    if isinstance(value, Path):
-        return str(value)
-    if isinstance(value, date | datetime):
-        return value.isoformat()
-    if isinstance(value, dict):
-        return {
-            str(key): _json_safe(item)
-            for key, item in sorted(value.items(), key=lambda item: str(item[0]))
-        }
-    if isinstance(value, list | tuple):
-        return [_json_safe(item) for item in value]
-    if isinstance(value, set | frozenset):
-        return sorted(_json_safe(item) for item in value)
-    return str(value)
