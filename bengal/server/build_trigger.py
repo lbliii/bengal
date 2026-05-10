@@ -193,6 +193,9 @@ class BuildTrigger:
         # Track whether the previous build surfaced template errors so we
         # know when to push a `build_ok` message that dismisses the overlay.
         self._had_template_errors_last_build: bool = False
+        # Paths changed by the previous successful incremental buffered build.
+        # The next staging buffer can be repaired by syncing only these paths.
+        self._last_buffer_delta_paths: tuple[Path, ...] | None = None
 
     def trigger_build(
         self,
@@ -403,7 +406,12 @@ class BuildTrigger:
             original_output_dir = self.site.output_dir
             swapped = False
             if self._buffer_manager is not None:
-                staging = self._buffer_manager.prepare_staging()
+                if use_incremental and self._last_buffer_delta_paths is not None:
+                    staging = self._buffer_manager.prepare_delta_staging(
+                        self._last_buffer_delta_paths
+                    )
+                else:
+                    staging = self._buffer_manager.prepare_staging()
                 self.site.output_dir = staging
                 logger.debug(
                     "build_to_staging",
@@ -456,6 +464,12 @@ class BuildTrigger:
                         self._stats = stats
 
                 result = WarmBuildResult(stats, build_duration)
+                if self._buffer_manager is not None:
+                    self._last_buffer_delta_paths = (
+                        self._buffer_delta_paths(result.changed_outputs)
+                        if use_incremental
+                        else None
+                    )
 
                 # Seed content hash cache so first edit can use reactive path
                 self.seed_content_hash_cache(list(self.site.pages))
@@ -469,6 +483,7 @@ class BuildTrigger:
                         self.site.output_dir = self._buffer_manager.active_dir
                     else:
                         self.site.output_dir = original_output_dir
+                    self._last_buffer_delta_paths = None
 
                 # Build crashed - log error and reinitialize site for next build
                 build_duration = time.time() - build_start
@@ -842,6 +857,36 @@ class BuildTrigger:
             if root not in roots:
                 roots.append(root)
         return tuple(roots)
+
+    def _buffer_delta_paths(
+        self,
+        changed_outputs: tuple[Any, ...],
+    ) -> tuple[Path, ...] | None:
+        """Normalize changed output records for the next buffered rebuild."""
+        paths: list[Path] = []
+        seen: set[Path] = set()
+        active_root = (
+            self._buffer_manager.active_dir
+            if self._buffer_manager is not None
+            else self.site.output_dir
+        )
+
+        for output in changed_outputs:
+            raw_path = Path(getattr(output, "path", ""))
+            if raw_path == Path("."):
+                continue
+            if raw_path.is_absolute():
+                try:
+                    raw_path = raw_path.resolve().relative_to(active_root.resolve())
+                except OSError, ValueError:
+                    return None
+            if any(part == ".." for part in raw_path.parts):
+                return None
+            if raw_path not in seen:
+                seen.add(raw_path)
+                paths.append(raw_path)
+
+        return tuple(paths)
 
     def _active_output_exists(self, rel_output: Path) -> bool:
         """Return True when the currently served output already exists."""

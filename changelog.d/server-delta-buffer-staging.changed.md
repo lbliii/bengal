@@ -1,0 +1,1 @@
+Dev server double buffering now delta-seeds the inactive output buffer after successful incremental builds, avoiding full-tree staging copies on the next rebuild when typed output records identify the changed files.
