@@ -22,8 +22,9 @@ Developer interfaces for working with Bengal.
 bengal
 ├── build (b)     # Build site
 ├── serve (s)     # Dev server
+├── preview       # Static output preview
 ├── clean (c)     # Clean output
-├── validate (v)  # Health checks
+├── check (v)     # Health checks
 ├── new           # Scaffolding
 └── ...           # Many more
 ```

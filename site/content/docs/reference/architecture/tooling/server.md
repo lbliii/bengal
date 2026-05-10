@@ -8,9 +8,14 @@ tags: [tooling, server, dev-server, live-reload, file-watching, development]
 keywords: [development server, dev server, live reload, file watching, SSE, development]
 ---
 
-# Development Server
+# Development And Preview Server
 
-Bengal includes a built-in development server with file watching and live reload capabilities.
+Bengal includes two local serving modes:
+
+- `bengal serve` is the authoring loop with file watching, live reload, markdown
+  negotiation, rebuild badges, and serve-ready startup.
+- `bengal preview` builds first, then serves the completed output directory
+  read-only through Pounce's static file path.
 
 ## Dev Server (`bengal/server/dev_server.py`)
 
@@ -69,7 +74,7 @@ bengal serve --port 8080
 bengal serve --no-watch
 
 # Disable automatic browser opening
-bengal serve --no-open
+bengal serve --no-open-browser
 
 # Wait for deploy-quality artifacts, health checks, and caches before serving
 bengal serve --complete
@@ -80,6 +85,40 @@ bengal serve --version-scope v2
 # Verbose output for debugging
 bengal serve --verbose
 ```
+
+## Static Preview (`bengal preview`)
+
+Use preview when you want local serving behavior closer to a deployed static
+host:
+
+```bash
+# Build with the preview environment, then serve public/
+bengal preview
+
+# Build with production settings before serving locally
+bengal preview --environment production
+
+# Bind a specific address and port
+bengal preview --host 127.0.0.1 --port 8080
+
+# Keep the browser closed
+bengal preview --no-open-browser
+```
+
+Preview always runs a complete build before starting the server. The server then
+mounts the generated output directory as a Pounce static root. That gives local
+requests the static-serving behavior Bengal relies on for deployment checks:
+directory indexes, ETags, `304 Not Modified`, byte-range responses, `HEAD`,
+precompressed `.gz`/`.zst` sidecars when they already exist, symlink/path
+guardrails, and generated JSON/XML/TXT artifacts as ordinary completed files.
+
+Preview deliberately leaves out development behavior: no watcher, no live
+reload script injection, no markdown negotiation, no rebuild badge, and no
+serve-ready pending-artifact responses. Missing routes use the generated
+`404.html` when present, without dev injection.
+
+The preview server also exposes a Bengal-namespaced health path at
+`/__bengal_pounce_health__` for local readiness checks.
 
 ### File Watching
 
@@ -152,6 +191,8 @@ The dev server uses a double-buffered output strategy to prevent flash-of-unstyl
   then completes search indexes, feeds, health checks, and cache persistence in
   the background. Use `--complete` when validating deploy-quality output before
   the server starts.
+- **Preview static root**: `bengal preview` skips dev-server routing after the
+  build and lets Pounce serve the completed output directory directly.
 - **Incremental builds**: Only rebuild changed files (5-10x faster than full builds)
 - **Debouncing**: Groups rapid changes (300ms delay) to avoid multiple rebuilds
 - **Efficient watching**: Uses watchfiles with native file system events
@@ -186,6 +227,9 @@ Server options (port, host, watch) are CLI arguments, not config options.
 - **Caching**: Browser caching can interfere with updates (use hard refresh)
 - **HTTPS**: Dev server uses HTTP only (use reverse proxy for HTTPS testing)
 - **Production**: Dev server not suitable for production (use proper web server)
+- **Precompression**: Bengal serves existing `.gz` and `.zst` sidecars in
+  preview, but build-time sidecar generation is a separate output contract and
+  is not enabled by this command.
 
 ## Integration with Build System
 
