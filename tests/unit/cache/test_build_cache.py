@@ -330,6 +330,39 @@ class TestBuildCache:
         assert str(template) in loaded_cache.dependencies[str(page)]
         assert "tag:python" in loaded_cache.taxonomy_index.taxonomy_deps
 
+    def test_hot_cache_stores_save_outside_main_payload(self, tmp_path):
+        """Large hot-path stores are split from the compressed build cache."""
+        from bengal.cache.compression import load_compressed
+
+        cache = BuildCache()
+        cache.parsed_content["content/page.md"] = {"frontmatter": {"title": "Page"}}
+        cache.rendered_output["content/page.md"] = {"html": "<h1>Page</h1>"}
+        cache.validation_results["content/page.md"] = {"Links": {"results": []}}
+        cache.synthetic_pages["autodoc/module.md"] = {"title": "Module"}
+        cache_file = tmp_path / ".bengal" / "cache.json"
+
+        assert cache.save(cache_file, use_lock=False) is True
+
+        main_payload = load_compressed(cache_file.with_suffix(".json.zst"))
+        assert main_payload["parsed_content"] == {}
+        assert main_payload["rendered_output"] == {}
+        assert main_payload["validation_results"] == {}
+        assert main_payload["synthetic_pages"] == {}
+        assert set(main_payload["external_stores"]) == {
+            "parsed_content",
+            "rendered_output",
+            "validation_results",
+            "synthetic_pages",
+        }
+        assert (cache_file.parent / "stores" / "parsed_content.json").exists()
+
+        loaded_cache = BuildCache.load(cache_file)
+
+        assert loaded_cache.parsed_content["content/page.md"]["frontmatter"]["title"] == "Page"
+        assert loaded_cache.rendered_output["content/page.md"]["html"] == "<h1>Page</h1>"
+        assert loaded_cache.validation_results["content/page.md"]["Links"]["results"] == []
+        assert loaded_cache.synthetic_pages["autodoc/module.md"]["title"] == "Module"
+
     def test_page_artifacts_survive_save_load(self, tmp_path):
         """Post-render page artifact records are persisted in the build cache."""
         cache = BuildCache()
