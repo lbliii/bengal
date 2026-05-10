@@ -219,6 +219,50 @@ class TestDevServerServeFirstWatcherOrder:
             mock_watcher.start.assert_called_once()
             mock_build_trigger.seed_content_hash_cache.assert_called_once()
 
+    def test_complete_policy_does_not_serve_cached_output_first(self, tmp_path: Path) -> None:
+        """Complete mode should block on an initial complete build even with cache."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.output_dir.mkdir()
+        site.config = {}
+        site.pages = []
+        stats = MinimalStats(total_pages=1, build_time_ms=10.0, incremental=True)
+
+        with (
+            patch.object(DevServer, "_check_stale_processes"),
+            patch.object(DevServer, "_has_cached_output", return_value=True),
+            patch.object(DevServer, "_prepare_dev_config", return_value=False),
+            patch.object(DevServer, "_run_build_via_executor", return_value=stats) as mock_build,
+            patch.object(DevServer, "_run_validation_build") as mock_validation,
+            patch.object(DevServer, "_create_server") as mock_create,
+            patch.object(DevServer, "_init_reload_controller"),
+            patch(
+                "bengal.server.dev_server.PIDManager.get_pid_file", return_value=tmp_path / "pid"
+            ),
+            patch("bengal.server.dev_server.PIDManager.write_pid_file"),
+            patch("bengal.server.dev_server.ResourceManager") as mock_rm_class,
+        ):
+            mock_backend = MagicMock()
+            mock_backend.port = 5173
+            mock_backend.start.side_effect = KeyboardInterrupt
+            mock_create.return_value = mock_backend
+            mock_rm = MagicMock()
+            mock_rm_class.return_value.__enter__ = MagicMock(return_value=mock_rm)
+            mock_rm_class.return_value.__exit__ = MagicMock(return_value=False)
+
+            server = DevServer(
+                site,
+                watch=False,
+                auto_port=False,
+                completion_policy=BuildCompletionPolicy.COMPLETE,
+            )
+            server.start()
+
+        build_opts = mock_build.call_args.args[0]
+        assert build_opts.completion_policy is BuildCompletionPolicy.COMPLETE
+        mock_validation.assert_not_called()
+
 
 class TestDevServerCachedOutputIntegrity:
     """Tests that serve-first rejects incomplete cached asset trees."""

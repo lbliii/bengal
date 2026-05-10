@@ -233,6 +233,7 @@ class DevServer:
             os.environ["BENGAL_BUILD_EXECUTOR"] = "process"
 
             # 2. Prepare dev-specific configuration
+            from bengal.orchestration.build.options import BuildCompletionPolicy
             from bengal.utils.observability.profile import BuildProfile
 
             baseurl_was_cleared = self._prepare_dev_config()
@@ -240,7 +241,11 @@ class DevServer:
             # 3. Determine startup strategy: serve-first or build-first
             # Serve-first when: cache exists AND baseurl wasn't cleared
             has_cache = self._has_cached_output()
-            can_serve_first = not baseurl_was_cleared and has_cache
+            can_serve_first = (
+                self.completion_policy is BuildCompletionPolicy.SERVE_READY
+                and not baseurl_was_cleared
+                and has_cache
+            )
 
             logger.debug(
                 "serve_first_decision",
@@ -325,10 +330,7 @@ class DevServer:
 
                 # Initial build (process-isolated for clean Ctrl+C shutdown)
                 show_building_indicator("Initial build")
-                from bengal.orchestration.build.options import (
-                    BuildCompletionPolicy,
-                    BuildOptions,
-                )
+                from bengal.orchestration.build.options import BuildOptions
 
                 build_opts = BuildOptions(
                     profile=BuildProfile.WRITER,
