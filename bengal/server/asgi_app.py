@@ -277,7 +277,7 @@ def _resolve_file_path(output_dir: Path, path: str) -> Path | None:
     return full
 
 
-def _is_deferred_generated_artifact_path(path: str) -> bool:
+def is_deferred_generated_artifact_path(path: str) -> bool:
     """True for generated artifacts that serve-ready builds may finish later."""
     raw = path.split("?")[0].rstrip("/")
     if not raw:
@@ -366,7 +366,7 @@ async def _serve_static(
 
     # File doesn't exist: always 404 (with badge when build in progress)
     if not resolved.is_file():
-        if build_in_progress() and _is_deferred_generated_artifact_path(path):
+        if build_in_progress() and is_deferred_generated_artifact_path(path):
             await _send_deferred_artifact_response(send)
             return
         await _send_404(send, output_dir=output_dir, build_in_progress=build_in_progress)

@@ -96,6 +96,7 @@ class BuildInput:
             incremental=request.incremental,
             profile=profile,
             memory_optimized=getattr(request, "memory_optimized", False),
+            quiet=getattr(request, "quiet", False),
             completion_policy=BuildCompletionPolicy.from_value(
                 getattr(request, "completion_policy", None)
             ),
@@ -135,4 +136,5 @@ class BuildInput:
             explain=self.options.explain,
             dry_run=self.options.dry_run,
             profile_templates=self.options.profile_templates,
+            quiet=self.options.quiet,
         )

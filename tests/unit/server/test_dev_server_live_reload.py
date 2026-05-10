@@ -113,6 +113,7 @@ class TestDevServerContentHashCacheSeeding:
         assert build_state.get_build_in_progress() is False
         build_opts = mock_build.call_args.args[0]
         assert build_opts.completion_policy is BuildCompletionPolicy.COMPLETE
+        assert build_opts.quiet is True
         mock_watcher.start.assert_called_once()
 
     def test_complete_policy_blocks_startup_tail_and_starts_watcher(self, tmp_path: Path) -> None:
@@ -262,6 +263,47 @@ class TestDevServerServeFirstWatcherOrder:
         build_opts = mock_build.call_args.args[0]
         assert build_opts.completion_policy is BuildCompletionPolicy.COMPLETE
         mock_validation.assert_not_called()
+
+
+class TestDevServerRequestLogging:
+    """Tests for serve dashboard request-log filtering."""
+
+    def test_deferred_artifact_requests_are_coalesced(self, tmp_path: Path) -> None:
+        """Deferred artifact polling should not spam scary 503 request lines."""
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.output_dir = tmp_path / "public"
+        site.output_dir.mkdir()
+        site.config = {}
+        cli = MagicMock()
+        cli.icons.success = "✓"
+        cli.icons.info = "·"
+        server = DevServer(site, watch=False, auto_port=False)
+        server._request_callback_holder = [None]
+
+        with (
+            patch("bengal.server.dev_server.get_cli_output", return_value=cli),
+            patch("bengal.utils.dx.collect_hints", return_value=[]),
+        ):
+            server._print_startup_message(5173)
+
+        callback = server._request_callback_holder[0]
+        assert callback is not None
+
+        callback("GET", "/__bengal_reload__", 200, 1.0)
+        callback("GET", "/index.json", 503, 1.0)
+        for _ in range(8):
+            callback("GET", "/docs/page/index.json", 503, 1.0)
+        callback("GET", "/llms.txt", 503, 1.0)
+        callback("GET", "/", 200, 1.0)
+
+        request_calls = cli.http_request.call_args_list
+        assert len(request_calls) == 3
+        assert request_calls[0].args[2] == "PND"
+        assert "generated artifacts still completing" in request_calls[0].args[3]
+        assert request_calls[1].args[2] == "PND"
+        assert "10 requests" in request_calls[1].args[3]
+        assert request_calls[2].args[1:4] == ("GET", "200", "/")
 
 
 class TestDevServerCachedOutputIntegrity:

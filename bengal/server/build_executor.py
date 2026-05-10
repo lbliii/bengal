@@ -95,6 +95,7 @@ class BuildRequest:
         dry_run: Preview build without writing files
         profile_templates: Enable template profiling
         completion_policy: Serialized BuildCompletionPolicy value
+        quiet: Suppress routine build transcript output
 
     """
 
@@ -111,6 +112,7 @@ class BuildRequest:
     dry_run: bool = False
     profile_templates: bool = False
     completion_policy: str = "complete"
+    quiet: bool = False
 
 
 @dataclass(frozen=True, slots=True)

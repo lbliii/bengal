@@ -16,14 +16,16 @@ def test_build_options_default_to_complete() -> None:
 
 
 def test_build_input_round_trips_completion_policy() -> None:
-    options = BuildOptions(completion_policy=BuildCompletionPolicy.SERVE_READY)
+    options = BuildOptions(completion_policy=BuildCompletionPolicy.SERVE_READY, quiet=True)
     build_input = BuildInput.from_options(options, Path("/site"))
 
     request = build_input.to_build_request()
     restored = BuildInput.from_build_request(request)
 
     assert request.completion_policy == "serve_ready"
+    assert request.quiet is True
     assert restored.options.completion_policy is BuildCompletionPolicy.SERVE_READY
+    assert restored.options.quiet is True
 
 
 def test_unknown_serialized_completion_policy_falls_back_to_complete() -> None:

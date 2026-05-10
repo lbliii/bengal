@@ -170,6 +170,7 @@ class DevServer:
         self.completion_policy = BuildCompletionPolicy.from_value(
             completion_policy or BuildCompletionPolicy.SERVE_READY
         )
+        self._deferred_artifact_request_count = 0
 
         # Mark site as running in dev mode to prevent timestamp churn in output files
         self.site.dev_mode = True
@@ -576,6 +577,7 @@ class DevServer:
             profile=profile_str,
             version_scope=self.version_scope,
             completion_policy=build_opts.completion_policy.value,
+            quiet=bool(getattr(build_opts, "quiet", False)),
         )
         executor = BuildExecutor(max_workers=1)
         try:
@@ -606,14 +608,16 @@ class DevServer:
                 build_opts = BuildOptions(
                     profile=profile,
                     incremental=True,
+                    quiet=True,
                     completion_policy=BuildCompletionPolicy.COMPLETE,
                 )
                 stats = self._run_build_via_executor(build_opts, "Background completion")
-                display_build_stats(stats, show_art=False, output_dir=str(self.site.output_dir))
                 self._clear_html_cache_after_build()
                 self._set_active_palette()
                 self._init_reload_controller()
-                cli.success("Background completion finished")
+                from bengal.orchestration.stats.helpers import format_time
+
+                cli.success(f"Background completion finished in {format_time(stats.build_time_ms)}")
             except BengalServerError as exc:
                 show_error(f"Background completion failed: {exc}", show_art=False)
                 logger.warning(
@@ -1253,8 +1257,26 @@ class DevServer:
         # Request log header
         from datetime import datetime
 
+        from bengal.server.asgi_app import is_deferred_generated_artifact_path
+
         def _log_request(method: str, path: str, status: int, _duration_ms: float) -> None:
+            if path == "/__bengal_reload__":
+                return
             ts = datetime.now().strftime("%H:%M:%S")
+            if status == 503 and is_deferred_generated_artifact_path(path):
+                self._deferred_artifact_request_count += 1
+                count = self._deferred_artifact_request_count
+                if count != 1 and count % 10 != 0:
+                    return
+                suffix = "" if count == 1 else f" ({count} requests)"
+                cli.http_request(
+                    ts,
+                    method,
+                    "PND",
+                    f"generated artifacts still completing{suffix}",
+                    is_asset=True,
+                )
+                return
             cli.http_request(ts, method, str(status), path, is_asset=False)
 
         if hasattr(self, "_request_callback_holder"):
