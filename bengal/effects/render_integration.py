@@ -182,15 +182,21 @@ class RenderEffectRecorder:
 
 class BuildEffectTracer:
     """
-    Global effect tracer for a build.
+    Effect tracer for the active build context.
 
-    Singleton-ish per build. Stores effects for post-build analysis
-    and incremental build planning.
+    Stores effects for post-build analysis and incremental build planning.
+    The active instance is held in a ContextVar so concurrent builds in the
+    same process do not share dependency state. Bengal's parallel executors
+    propagate context to worker threads, so workers inherit the right tracer.
 
     Thread-safe: Uses lock for effect storage.
     """
 
     _instance: BuildEffectTracer | None = None
+    _current: ContextVar[BuildEffectTracer | None] = ContextVar(
+        "bengal_build_effect_tracer",
+        default=None,
+    )
     _lock = threading.Lock()
 
     def __init__(self) -> None:
@@ -200,17 +206,36 @@ class BuildEffectTracer:
 
     @classmethod
     def get_instance(cls) -> BuildEffectTracer:
-        """Get or create the singleton instance."""
+        """Get or create the tracer for the current build context."""
+        current = cls._current.get()
+        if current is not None:
+            return current
+
         with cls._lock:
             if cls._instance is None:
                 cls._instance = cls()
-            return cls._instance
+            current = cls._instance
+        cls._current.set(current)
+        return current
 
     @classmethod
     def reset(cls) -> None:
-        """Reset singleton (for testing)."""
+        """Reset singleton and current context instance (for testing)."""
         with cls._lock:
             cls._instance = None
+        cls._current.set(None)
+
+    @classmethod
+    def activate(cls) -> BuildEffectTracer:
+        """Create and activate a fresh tracer for the current build context."""
+        tracer = cls()
+        cls._current.set(tracer)
+        return tracer
+
+    @classmethod
+    def clear_current(cls) -> None:
+        """Clear the tracer bound to the current context."""
+        cls._current.set(None)
 
     @property
     def tracer(self) -> EffectTracer:

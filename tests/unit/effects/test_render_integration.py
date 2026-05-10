@@ -2,6 +2,8 @@
 Unit tests for render_integration module.
 """
 
+import contextvars
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -19,6 +21,8 @@ from bengal.effects.render_integration import (
     record_template_include,
 )
 from bengal.effects.tracer import EffectTracer
+
+pytestmark = pytest.mark.parallel_unsafe
 
 
 @dataclass
@@ -230,6 +234,26 @@ class TestBuildEffectTracer:
         BuildEffectTracer.reset()
         instance2 = BuildEffectTracer.get_instance()
         assert instance1 is not instance2
+
+    def test_activate_creates_context_scoped_instance(self) -> None:
+        """activate() binds a fresh tracer to the current context."""
+        instance1 = BuildEffectTracer.get_instance()
+        active = BuildEffectTracer.activate()
+        instance2 = BuildEffectTracer.get_instance()
+
+        assert active is instance2
+        assert instance1 is not instance2
+
+    def test_context_scoped_instance_propagates_to_worker_context(self) -> None:
+        """Worker contexts inherit the active build tracer."""
+        active = BuildEffectTracer.activate()
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(
+                contextvars.copy_context().run,
+                BuildEffectTracer.get_instance,
+            )
+            assert future.result() is active
 
     def test_disabled_by_default(self) -> None:
         """Tracing is disabled by default."""

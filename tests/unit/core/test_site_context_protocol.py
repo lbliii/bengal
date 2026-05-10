@@ -13,11 +13,15 @@ between them is what these tests catch.
 
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 
 from bengal.core.registry import ContentRegistry
 from bengal.core.site import Site
 from bengal.core.site.context import RegistryContext, SiteContext
+
+pytestmark = pytest.mark.parallel_unsafe
 
 
 @pytest.fixture
@@ -71,6 +75,59 @@ def test_registry_page_index_invalidates_on_length_change():
     second = registry.page_index(pages)
     assert first is not second
     assert second[pages[2]] == 2
+
+
+def test_registry_page_index_invalidates_on_same_length_reorder():
+    """Reordering pages with the same length rebuilds the index."""
+    registry = ContentRegistry()
+
+    class FakePage:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    pages = [FakePage("a"), FakePage("b")]
+    first = registry.page_index(pages)
+    reordered = [pages[1], pages[0]]
+    second = registry.page_index(reordered)
+
+    assert first is not second
+    assert second[pages[1]] == 0
+    assert second[pages[0]] == 1
+
+
+def test_registry_page_index_invalidates_on_same_length_replacement():
+    """Replacing pages with the same length rebuilds the index."""
+    registry = ContentRegistry()
+
+    class FakePage:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    pages = [FakePage("a"), FakePage("b")]
+    first = registry.page_index(pages)
+    replacement = [FakePage("c"), pages[1]]
+    second = registry.page_index(replacement)
+
+    assert first is not second
+    assert replacement[0] in second
+    assert pages[0] not in second
+
+
+def test_registry_page_index_concurrent_first_access():
+    """Concurrent first access returns a complete index without racing lazy construction."""
+    registry = ContentRegistry()
+
+    class FakePage:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    pages = [FakePage(str(i)) for i in range(25)]
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        indexes = list(executor.map(lambda _: registry.page_index(pages), range(16)))
+
+    assert all(index is indexes[0] for index in indexes)
+    assert indexes[0][pages[-1]] == 24
 
 
 def test_registry_page_index_resets_on_clear():
