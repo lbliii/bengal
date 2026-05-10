@@ -42,6 +42,8 @@ def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> di
     # Throughput
     render_ms = stats.rendering_time_ms if stats.rendering_time_ms > 0 else stats.build_time_ms
     pages_per_sec = (stats.total_pages / render_ms) * 1000 if render_ms > 0 else 0
+    completion_policy = getattr(stats, "completion_policy", "complete")
+    ready_label = "HTML ready" if completion_policy == "serve_ready" else "Built"
 
     # Phase breakdown — show the slowest phases, not insertion order.
     recorded_phases = getattr(stats, "phase_timings_ms", None)
@@ -134,6 +136,7 @@ def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> di
         "glyphs": glyphs,
         "has_errors": stats.has_errors,
         "has_warnings": len(stats.warnings) > 0,
+        "ready_label": ready_label,
         "total_pages": stats.total_pages,
         "breakdown": breakdown,
         "build_time": format_time(stats.build_time_ms),

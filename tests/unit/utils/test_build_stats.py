@@ -398,6 +398,23 @@ class TestDisplayFunctions:
         assert "Slowest post output formats 250 ms" in phases
         assert "Unaccounted 700 ms" in phases
 
+    @patch("bengal.orchestration.stats.display.get_cli_output")
+    def test_display_build_stats_labels_serve_ready_as_html_ready(
+        self, mock_cli_class: MagicMock
+    ) -> None:
+        """Serve-ready summaries should not imply full artifact completion."""
+        from bengal.orchestration.stats import BuildStats, display_build_stats
+
+        stats = BuildStats(total_pages=3, regular_pages=3, build_time_ms=1000.0)
+        stats.completion_policy = "serve_ready"
+        mock_cli = MagicMock()
+        mock_cli_class.return_value = mock_cli
+
+        display_build_stats(stats)
+
+        ctx = mock_cli.render_write.call_args.kwargs
+        assert ctx["ready_label"] == "HTML ready"
+
     def test_show_building_indicator_does_nothing(self) -> None:
         """Test show_building_indicator does nothing (header shown elsewhere)."""
         from bengal.orchestration.stats import show_building_indicator
