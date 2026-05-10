@@ -16,10 +16,15 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
+from bengal.cache.build_cache import BuildCache
+from bengal.health.report import CheckResult, HealthReport, ValidatorReport
 from bengal.orchestration.build.artifacts import (
     normalize_build_badge_config,
 )
 from bengal.orchestration.build.finalization import (
+    _health_report_fingerprint,
+    _load_cached_health_report,
+    _store_cached_health_report,
     phase_cache_save,
     phase_collect_stats,
     phase_finalize,
@@ -578,6 +583,9 @@ class TestRunHealthCheck:
             mock_config.return_value = {"enabled": True}
 
             mock_cli = MagicMock()
+            mock_cli.icons.success = "⚡"
+            mock_cli.icons.info = "🔎"
+            mock_cli.icons.warning = "⚠️"
             mock_get_cli.return_value = mock_cli
 
             mock_health = MagicMock()
@@ -659,6 +667,37 @@ class TestRunHealthCheck:
         call_args = mock_health.run.call_args
         assert call_args.kwargs["cache"] is mock_cache
 
+    def test_reuses_cached_health_report_for_matching_incremental_fingerprint(self, tmp_path):
+        """Incremental health can reuse a whole cached report without running validators."""
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        report = HealthReport()
+        report.validator_reports.append(
+            ValidatorReport("Directives", [CheckResult.warning("cached", code="H201")])
+        )
+
+        with (
+            patch("bengal.config.defaults.get_feature_config") as mock_config,
+            patch("bengal.health.HealthCheck") as MockHealth,
+            patch("bengal.output.get_cli_output"),
+            patch(
+                "bengal.orchestration.build.finalization._health_report_fingerprint",
+                return_value="fingerprint",
+            ),
+            patch(
+                "bengal.orchestration.build.finalization._load_cached_health_report",
+                return_value=report,
+            ),
+        ):
+            mock_config.return_value = {"enabled": True}
+            mock_health = MagicMock()
+            mock_health.last_stats = None
+            MockHealth.return_value = mock_health
+
+            run_health_check(orchestrator, incremental=True)
+
+        mock_health.run.assert_not_called()
+        assert orchestrator.stats.health_report is report
+
     def test_raises_in_strict_mode_with_errors(self, tmp_path):
         """Raises exception in strict mode with health check errors."""
         orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
@@ -702,6 +741,39 @@ class TestRunHealthCheck:
             run_health_check(orchestrator)
 
         assert orchestrator.stats.health_report is mock_report
+
+    def test_cached_health_report_round_trips(self, tmp_path):
+        """Cached health reports preserve prior findings for reuse."""
+        cache = BuildCache(site_root=tmp_path)
+        report = HealthReport()
+        report.validator_reports.append(
+            ValidatorReport("Links", [CheckResult.error("broken", code="H101")])
+        )
+
+        _store_cached_health_report(cache, "fingerprint", report)
+        loaded = _load_cached_health_report(cache, "fingerprint")
+
+        assert loaded is not None
+        assert loaded.total_errors == 1
+        assert loaded.validator_reports[0].results[0].message == "broken"
+
+    def test_health_report_fingerprint_changes_with_source_fingerprint(self, tmp_path):
+        """Health report reuse is invalidated by source content changes."""
+        source = tmp_path / "content" / "page.md"
+        source.parent.mkdir()
+        source.write_text("# Page\n", encoding="utf-8")
+        site = MagicMock()
+        site.pages = [MagicMock(source_path=source)]
+        site.link_registry = MagicMock(fingerprint="links")
+        cache = BuildCache(site_root=tmp_path)
+        cache.update_file(source)
+
+        first = _health_report_fingerprint(site, cache, {"enabled": True}, None)
+        source.write_text("# Changed\n", encoding="utf-8")
+        cache.update_file(source)
+        second = _health_report_fingerprint(site, cache, {"enabled": True}, None)
+
+        assert first != second
 
     def test_updates_health_check_time_stats(self, tmp_path):
         """Updates health check time statistics."""

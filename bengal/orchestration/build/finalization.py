@@ -6,7 +6,11 @@ Phases 17-21: Post-processing, cache save, collect stats, health check, finalize
 
 from __future__ import annotations
 
+import hashlib
+import json
 import time
+from datetime import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -353,13 +357,30 @@ def run_health_check(
     if incremental and orchestrator.incremental.cache:
         cache = orchestrator.incremental.cache
 
-    report = health_check.run(
-        profile=profile,
-        incremental=incremental,
-        context=_health_validation_context(build_context) if incremental else None,
-        cache=cache,
-        build_context=build_context,
+    health_fingerprint = _health_report_fingerprint(
+        orchestrator.site,
+        cache,
+        health_config,
+        profile,
     )
+    report = (
+        _load_cached_health_report(cache, health_fingerprint)
+        if incremental and health_fingerprint is not None
+        else None
+    )
+    reused_health_report = report is not None
+    if reused_health_report:
+        cli.detail("health check: reused cached report", indent=2, icon=cli.icons.success)
+    else:
+        report = health_check.run(
+            profile=profile,
+            incremental=incremental,
+            context=_health_validation_context(build_context) if incremental else None,
+            cache=cache,
+            build_context=build_context,
+        )
+        if health_fingerprint is not None:
+            _store_cached_health_report(cache, health_fingerprint, report)
 
     health_time_ms = (time.time() - health_start) * 1000
     orchestrator.stats.health_check_time_ms = health_time_ms
@@ -425,6 +446,108 @@ def run_health_check(
             "Review output or disable strict_mode.",
             suggestion="Review the health check report above and fix the errors, or set health_check.strict_mode=false",
         )
+
+
+def _health_report_fingerprint(
+    site: Any,
+    cache: Any,
+    health_config: dict[str, Any],
+    profile: BuildProfile | Any | None,
+) -> str | None:
+    """Fingerprint inputs that affect build health validation."""
+    if cache is None:
+        return None
+    page_fingerprints = []
+    for page in getattr(site, "pages", []):
+        source_path = getattr(page, "source_path", None)
+        if source_path is None:
+            return None
+        key = str(cache._cache_key(Path(source_path)))
+        fingerprint = cache.file_fingerprints.get(key)
+        if fingerprint is None:
+            fingerprint = cache.file_fingerprints.get(str(source_path))
+        if fingerprint is None:
+            return None
+        page_fingerprints.append((key, fingerprint))
+    link_registry = getattr(site, "link_registry", None)
+    payload = {
+        "version": 1,
+        "health_config": health_config,
+        "profile": getattr(profile, "value", str(profile)),
+        "link_registry": getattr(link_registry, "fingerprint", None),
+        "pages": sorted(page_fingerprints),
+    }
+    encoded = json.dumps(payload, sort_keys=True, default=str, separators=(",", ":")).encode()
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _load_cached_health_report(cache: Any, fingerprint: str | None) -> Any | None:
+    """Return a cached HealthReport when the fingerprint matches."""
+    if cache is None or fingerprint is None:
+        return None
+    record = cache.validation_results.get("__bengal_health_report__")
+    if not isinstance(record, dict) or record.get("fingerprint") != fingerprint:
+        return None
+    report_data = record.get("report")
+    if not isinstance(report_data, dict):
+        return None
+    try:
+        return _health_report_from_cache_dict(report_data)
+    except KeyError, TypeError, ValueError:
+        return None
+
+
+def _store_cached_health_report(cache: Any, fingerprint: str, report: Any) -> None:
+    """Persist a whole-report health cache entry."""
+    if cache is None:
+        return
+    try:
+        cache.validation_results["__bengal_health_report__"] = {
+            "fingerprint": fingerprint,
+            "report": _health_report_to_cache_dict(report),
+        }
+    except AttributeError, TypeError, ValueError:
+        return
+
+
+def _health_report_to_cache_dict(report: Any) -> dict[str, Any]:
+    """Serialize a HealthReport for cache reuse."""
+    return {
+        "timestamp": report.timestamp.isoformat(),
+        "build_stats": report.build_stats,
+        "validator_reports": [
+            {
+                "validator_name": validator_report.validator_name,
+                "duration_ms": validator_report.duration_ms,
+                "results": [result.to_cache_dict() for result in validator_report.results],
+            }
+            for validator_report in report.validator_reports
+        ],
+    }
+
+
+def _health_report_from_cache_dict(data: dict[str, Any]) -> Any:
+    """Deserialize a cached HealthReport."""
+    from bengal.health.report import CheckResult, HealthReport, ValidatorReport
+
+    report = HealthReport(
+        timestamp=datetime.fromisoformat(data["timestamp"]),
+        build_stats=data.get("build_stats"),
+    )
+    for item in data.get("validator_reports", []):
+        results = [
+            CheckResult.from_cache_dict(result)
+            for result in item.get("results", [])
+            if isinstance(result, dict)
+        ]
+        report.validator_reports.append(
+            ValidatorReport(
+                validator_name=item["validator_name"],
+                results=results,
+                duration_ms=float(item.get("duration_ms", 0.0)),
+            )
+        )
+    return report
 
 
 def _health_validation_context(build_context: BuildContext | Any | None) -> list[Any] | None:
