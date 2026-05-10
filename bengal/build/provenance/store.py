@@ -56,6 +56,7 @@ class ProvenanceCache:
     _index: dict[CacheKey, ContentHash] = field(default_factory=dict)
     _input_paths: dict[CacheKey, list[str]] = field(default_factory=dict)
     _last_build_time: float | None = field(default=None)
+    _last_build_time_ns: int | None = field(default=None)
     _records: dict[ContentHash, ProvenanceRecord] = field(default_factory=dict)
     _subvenance: dict[ContentHash, set[CacheKey]] = field(default_factory=dict)
     _loaded: bool = False
@@ -79,7 +80,7 @@ class ProvenanceCache:
             return
 
         # Load index and subvenance outside lock (I/O can block)
-        index_data, input_paths_data, last_build = self._load_index_data()
+        index_data, input_paths_data, last_build, last_build_ns = self._load_index_data()
         subvenance_data = self._load_subvenance_data()
 
         with self._lock:
@@ -88,12 +89,13 @@ class ProvenanceCache:
             self._index = index_data
             self._input_paths = input_paths_data
             self._last_build_time = last_build
+            self._last_build_time_ns = last_build_ns
             self._subvenance = subvenance_data
             self._loaded = True
 
     def _load_index_data(
         self,
-    ) -> tuple[dict[CacheKey, ContentHash], dict[CacheKey, list[str]], float | None]:
+    ) -> tuple[dict[CacheKey, ContentHash], dict[CacheKey, list[str]], float | None, int | None]:
         """Load page index, input_paths, and last_build_time from disk (no lock)."""
         index_path = self.cache_dir / "index.json"
         try:
@@ -104,9 +106,12 @@ class ProvenanceCache:
                 for k, v in data["input_paths"].items():
                     input_paths[CacheKey(k)] = list(v) if isinstance(v, list) else []
             last_build = data.get("last_build_time")
-            return (pages, input_paths, last_build)
+            last_build_ns = data.get("last_build_time_ns")
+            if last_build_ns is not None:
+                last_build_ns = int(last_build_ns)
+            return (pages, input_paths, last_build, last_build_ns)
         except FileNotFoundError, JSONDecodeError, KeyError:
-            return ({}, {}, None)
+            return ({}, {}, None, None)
 
     def _load_subvenance_data(self) -> dict[ContentHash, set[CacheKey]]:
         """Load reverse index (input → pages) from disk (no lock)."""
@@ -192,6 +197,17 @@ class ProvenanceCache:
 
         with self._lock:
             return self._last_build_time
+
+    def get_last_build_time_ns(self) -> int | None:
+        """
+        Get last build timestamp in nanoseconds for mtime short-circuit.
+
+        Returns None for older provenance indexes that only stored seconds.
+        """
+        self._ensure_loaded()
+
+        with self._lock:
+            return self._last_build_time_ns
 
     def store(
         self,
@@ -309,7 +325,12 @@ class ProvenanceCache:
 
         return self.get_affected_by(current_hash)
 
-    def save(self) -> None:
+    def save(
+        self,
+        *,
+        last_build_time: float | None = None,
+        last_build_time_ns: int | None = None,
+    ) -> None:
         """Persist indexes to disk (thread-safe)."""
         with self._lock:
             if not self._dirty:
@@ -319,6 +340,10 @@ class ProvenanceCache:
             index_copy = dict(self._index)
             input_paths_copy = {k: list(v) for k, v in self._input_paths.items()}
             subvenance_copy = {k: sorted(v) for k, v in self._subvenance.items()}
+            saved_time = time.time() if last_build_time is None else last_build_time
+            saved_time_ns = time.time_ns() if last_build_time_ns is None else last_build_time_ns
+            self._last_build_time = saved_time
+            self._last_build_time_ns = saved_time_ns
             self._dirty = False
 
         # File writes outside lock
@@ -328,8 +353,9 @@ class ProvenanceCache:
         index_path = self.cache_dir / "index.json"
         json_dump(
             {
-                "version": 2,
-                "last_build_time": time.time(),
+                "version": 3,
+                "last_build_time": saved_time,
+                "last_build_time_ns": saved_time_ns,
                 "pages": index_copy,
                 "input_paths": input_paths_copy,
             },

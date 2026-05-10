@@ -36,6 +36,7 @@ from __future__ import annotations
 import platform
 from dataclasses import dataclass, field
 from pathlib import Path
+from threading import Lock
 from typing import TYPE_CHECKING
 
 from bengal.core.url_ownership import URLRegistry
@@ -94,6 +95,8 @@ class ContentRegistry:
     # Site attribute. Invalidated on clear() and rebuilt when pages length
     # changes (covers taxonomy/archive page generation).
     _page_index_cache: dict[PageLike, int] | None = field(default=None, repr=False)
+    _page_index_cache_key: tuple[int, ...] = field(default=(), repr=False)
+    _page_index_lock: Lock = field(default_factory=Lock, repr=False)
 
     def get_page(self, path: Path) -> PageLike | None:
         """
@@ -167,9 +170,8 @@ class ContentRegistry:
         """
         Memoized page→index map for next/prev navigation.
 
-        Built lazily on first access and rebuilt whenever the pages list
-        length changes (covers taxonomy/archive page generation that appends
-        pages after initial discovery). Invalidated by clear().
+        Built lazily on first access and rebuilt whenever the page object
+        ordering changes. Invalidated by clear().
 
         Args:
             pages: Current ordered list of pages (typically site.pages)
@@ -177,11 +179,18 @@ class ContentRegistry:
         Returns:
             Dict mapping each Page to its index in the list
         """
+        cache_key = tuple(id(page) for page in pages)
         cached = self._page_index_cache
-        if cached is None or len(cached) != len(pages):
-            cached = {p: i for i, p in enumerate(pages)}
-            self._page_index_cache = cached
-        return cached
+        if cached is not None and self._page_index_cache_key == cache_key:
+            return cached
+
+        with self._page_index_lock:
+            cached = self._page_index_cache
+            if cached is None or self._page_index_cache_key != cache_key:
+                cached = {p: i for i, p in enumerate(pages)}
+                self._page_index_cache = cached
+                self._page_index_cache_key = cache_key
+            return cached
 
     def register_page(self, page: PageLike) -> None:
         """
@@ -282,6 +291,7 @@ class ContentRegistry:
         self._sections_by_url.clear()
         self.url_ownership = URLRegistry()
         self._page_index_cache = None
+        self._page_index_cache_key = ()
         self._frozen = False
         self._epoch += 1
 

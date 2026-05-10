@@ -49,6 +49,7 @@ from __future__ import annotations
 
 import contextlib
 from dataclasses import dataclass, field
+from threading import Lock
 from typing import Literal, Protocol
 
 type DiagnosticLevel = Literal["debug", "info", "warning", "error"]
@@ -74,13 +75,16 @@ class DiagnosticsCollector:
 
     def __init__(self) -> None:
         self._events: list[DiagnosticEvent] = []
+        self._lock = Lock()
 
     def emit(self, event: DiagnosticEvent) -> None:
-        self._events.append(event)
+        with self._lock:
+            self._events.append(event)
 
     def drain(self) -> list[DiagnosticEvent]:
-        events = list(self._events)
-        self._events.clear()
+        with self._lock:
+            events = list(self._events)
+            self._events.clear()
         return events
 
 

@@ -65,6 +65,46 @@ class TestSourcePageImmutability:
         with pytest.raises(TypeError):
             sp.raw_metadata["new_key"] = "value"
 
+    def test_nested_metadata_is_readonly(self):
+        original = {
+            "title": "Hello",
+            "tags": ["a"],
+            "nested": {"items": ["one"]},
+        }
+        sp = SourcePage(
+            core=make_page_core(metadata=original),
+            raw_content="# Hello",
+            raw_metadata=MappingProxyType(original),
+            content_hash="abc123",
+        )
+
+        original["nested"]["items"].append("source-mutated")
+
+        with pytest.raises(TypeError):
+            sp.raw_metadata["nested"]["items"].append("record-mutated")
+        assert sp.raw_metadata["nested"]["items"] == ["one"]
+
+    def test_core_payloads_are_readonly_on_source_page(self):
+        sp = create_virtual_source_page(
+            source_id="__virtual__/tags/go.md",
+            title="Go Posts",
+            metadata={
+                "tags": ["go"],
+                "aliases": ["/old-go/"],
+                "custom_field": {"items": ["value"]},
+                "cascade": {"type": "doc", "items": ["a"]},
+            },
+        )
+
+        with pytest.raises(TypeError):
+            sp.core.tags.append("python")
+        with pytest.raises(TypeError):
+            sp.core.aliases.append("/older-go/")
+        with pytest.raises(TypeError):
+            sp.core.props["custom_field"]["items"].append("other")
+        with pytest.raises(TypeError):
+            sp.core.cascade["items"].append("b")
+
 
 class TestSourcePageDelegates:
     """Property delegates forward to core."""
@@ -97,9 +137,11 @@ class TestSourcePageMetadataRoundTrip:
         result = sp.raw_metadata_dict()
         assert result == original
         assert isinstance(result, dict)
-        # Mutating the copy doesn't affect the record
+        # Mutating the copy doesn't affect the record, including nested values.
         result["new_key"] = "new_value"
+        result["tags"].append("c")
         assert "new_key" not in sp.raw_metadata
+        assert sp.raw_metadata["tags"] == ["a", "b"]
 
 
 class TestSourcePageCoreCache:

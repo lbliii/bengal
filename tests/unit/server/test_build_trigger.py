@@ -169,6 +169,7 @@ class TestBuildTrigger:
 
         page = MagicMock()
         page.source_path = md_file
+        page._section = None
         mock_site.pages = [page]
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
@@ -189,6 +190,7 @@ class TestBuildTrigger:
 
         page = MagicMock()
         page.source_path = md_file
+        page._section = None
         mock_site.pages = [page]
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)
@@ -198,6 +200,30 @@ class TestBuildTrigger:
         md_file.write_text("---\ntitle: Test\n---\nEdited body")
         result = trigger._can_use_reactive_path({md_file}, {"modified"})
         assert result is True
+
+    def test_reactive_path_rejects_page_with_rendered_section_index(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Leaf pages with rendered section indexes need the warm build path."""
+        md_file = tmp_path / "content" / "docs" / "page.md"
+        md_file.parent.mkdir(parents=True)
+        md_file.write_text("---\ntitle: Test\n---\nOriginal body")
+
+        index_page = MagicMock()
+        index_page.output_path = tmp_path / "public" / "docs" / "index.html"
+        section = MagicMock()
+        section.index_page = index_page
+        page = MagicMock()
+        page.source_path = md_file
+        page._section = section
+        mock_site.pages = [page]
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+        trigger.seed_content_hash_cache([page])
+
+        md_file.write_text("---\ntitle: Test\n---\nEdited body")
+
+        assert trigger._can_use_reactive_path({md_file}, {"modified"}) is False
 
     def test_seed_content_hash_cache_section_page(
         self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
@@ -209,6 +235,7 @@ class TestBuildTrigger:
 
         page = MagicMock()
         page.source_path = index_file
+        page._section = None
         mock_site.pages = [page]
 
         trigger = BuildTrigger(site=mock_site, executor=mock_executor)

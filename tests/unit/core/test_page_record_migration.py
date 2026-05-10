@@ -13,6 +13,8 @@ from bengal.core.records import (
     PARSED_PAGE_MIGRATION_MAP,
     RENDERED_PAGE_MIGRATION_MAP,
     SOURCE_PAGE_MIGRATION_MAP,
+    ParsedPage,
+    RenderedPage,
     build_page_core,
     build_source_page,
     parsed_page_from_page_state,
@@ -73,13 +75,20 @@ def test_build_page_core_matches_page_field_rules():
 
 
 def test_build_source_page_freezes_metadata_and_preserves_hashes():
+    metadata = {
+        "title": "Hello",
+        "translation_key": "posts/hello",
+        "nested": {"items": ["one"]},
+    }
     source = build_source_page(
         source_path=Path("content/posts/hello.md"),
         raw_content="# Hello",
-        metadata={"title": "Hello", "translation_key": "posts/hello"},
+        metadata=metadata,
         content_hash="body123",
         file_hash="file123",
     )
+
+    metadata["nested"]["items"].append("source-mutated")
 
     assert source.core.file_hash == "file123"
     assert source.content_hash == "body123"
@@ -87,6 +96,9 @@ def test_build_source_page_freezes_metadata_and_preserves_hashes():
     assert isinstance(source.raw_metadata, MappingProxyType)
     with pytest.raises(TypeError):
         source.raw_metadata["title"] = "Changed"
+    with pytest.raises(TypeError):
+        source.raw_metadata["nested"]["items"].append("Changed")
+    assert source.raw_metadata["nested"]["items"] == ["one"]
 
 
 def test_build_source_page_does_not_compute_hashes_in_core():
@@ -133,6 +145,43 @@ def test_parsed_page_adapter_uses_supplied_toc_items_without_rendering_imports()
     assert parsed.toc_items == ({"id": "intro", "title": "Intro"},)
     assert parsed.links == ("/guide/", "42")
     assert parsed.ast_cache == {"_type": "Document"}
+
+
+def test_parsed_page_deep_freezes_nested_payloads():
+    ast = {"children": [{"type": "paragraph", "text": "Hello"}]}
+    parsed = ParsedPage(
+        html_content="<p>Hello</p>",
+        toc="",
+        toc_items=({"id": "intro", "children": [{"id": "child"}]},),
+        excerpt="Hello",
+        meta_description="Hello",
+        plain_text="Hello",
+        word_count=1,
+        reading_time=1,
+        links=["/guide/"],
+        ast_cache=ast,
+    )
+
+    ast["children"][0]["text"] = "Mutated"
+
+    with pytest.raises(TypeError):
+        parsed.toc_items[0]["children"].append({"id": "other"})
+    with pytest.raises(TypeError):
+        parsed.ast_cache["children"][0]["text"] = "Changed"
+    assert parsed.ast_cache["children"][0]["text"] == "Hello"
+    assert parsed.to_cache_dict()["ast"]["children"][0]["text"] == "Hello"
+
+
+def test_rendered_page_freezes_dependencies():
+    rendered = RenderedPage(
+        source_path=Path("content/index.md"),
+        output_path=Path("public/index.html"),
+        rendered_html="<html></html>",
+        render_time_ms=1.0,
+        dependencies=["templates/base.html"],
+    )
+
+    assert rendered.dependencies == frozenset({"templates/base.html"})
 
 
 def test_rendered_page_adapter_requires_output_path():

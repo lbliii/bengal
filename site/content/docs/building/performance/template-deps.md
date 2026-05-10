@@ -50,9 +50,19 @@ On a 1,000-page site where you edit a partial used by 50 pages:
 
 The dependency data is stored in the build cache alongside content hashes. The lookup is O(1) per template via a lazy reverse index.
 
+Selective rebuilds are a correctness feature first. When dependency provenance
+is missing, unreadable, or ambiguous, Bengal falls back to a broader rebuild
+rather than serving stale HTML. The fast path is only taken after the cache can
+prove the source page, templates, cascade inputs, and expected outputs are fresh.
+
 ## Interaction with Dev Server
 
 Template dependency tracking works with `bengal serve`. When you save a template file, the dev server triggers a selective rebuild and hot-reloads only the affected pages.
+
+For markdown body-only edits, the dev server may use a reactive single-page
+render. That fast path is disabled when the edited page has a rendered section
+index or listing that may need updated excerpts or navigation data; Bengal then
+uses the normal warm build path so dependent HTML stays in sync.
 
 ## See Also
 

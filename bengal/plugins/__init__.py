@@ -13,6 +13,8 @@ Example:
 
 """
 
+from contextvars import ContextVar, Token
+
 from bengal.plugins.loader import load_plugins
 from bengal.plugins.protocol import Plugin
 from bengal.plugins.registry import FrozenPluginRegistry, PluginRegistry
@@ -23,20 +25,34 @@ __all__ = [
     "PluginRegistry",
     "get_active_registry",
     "load_plugins",
+    "reset_active_registry",
     "set_active_registry",
 ]
 
-# Module-level holder for the frozen registry active during a build.
-# Set by BuildOrchestrator before Phase 1; read by template registration.
-_active_registry: FrozenPluginRegistry | None = None
+# Context-scoped holder for the frozen registry active during a build.
+# Build parallelism uses context propagation, so worker threads inherit the
+# registry for their build without sharing it with concurrent builds.
+_active_registry: ContextVar[FrozenPluginRegistry | None] = ContextVar(
+    "bengal_active_plugin_registry",
+    default=None,
+)
 
 
-def set_active_registry(registry: FrozenPluginRegistry | None) -> None:
+def set_active_registry(
+    registry: FrozenPluginRegistry | None,
+) -> Token[FrozenPluginRegistry | None]:
     """Set the active plugin registry for the current build."""
-    global _active_registry
-    _active_registry = registry
+    return _active_registry.set(registry)
+
+
+def reset_active_registry(token: Token[FrozenPluginRegistry | None]) -> None:
+    """Restore the active plugin registry to a previous context value."""
+    _active_registry.reset(token)
 
 
 def get_active_registry() -> FrozenPluginRegistry | None:
     """Get the active plugin registry, or None if no plugins loaded."""
-    return _active_registry
+    registry = _active_registry.get()
+    if registry == FrozenPluginRegistry():
+        return None
+    return registry

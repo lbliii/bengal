@@ -107,6 +107,7 @@ def test_store_persists_input_paths(provenance_dir: Path, site_root: Path) -> No
         "content/_index.md",
     ]
     assert cache2.get_last_build_time() is not None
+    assert cache2.get_last_build_time_ns() is not None
 
 
 def test_backward_compat_v1_index_skips_mtime_short_circuit(
@@ -226,6 +227,73 @@ def test_mtime_short_circuit_returns_false_when_content_changed(
 
     filter_obj = ProvenanceFilter(site, cache)
     assert filter_obj._mtime_short_circuit(page, ContentHash("abc123")) is False
+
+
+def test_mtime_short_circuit_uses_nanosecond_timestamp(
+    provenance_dir: Path, site_root: Path
+) -> None:
+    """Nanosecond build time prevents same-second edits from short-circuiting."""
+    from bengal.build.provenance.filter import ProvenanceFilter
+
+    content_file = site_root / "content" / "index.md"
+    stat = content_file.stat()
+
+    index_path = provenance_dir / "index.json"
+    index_path.write_text(
+        json.dumps(
+            {
+                "version": 3,
+                "last_build_time": 9999999999.0,
+                "last_build_time_ns": stat.st_mtime_ns - 1,
+                "pages": {"content/index.md": "abc123"},
+                "input_paths": {"content/index.md": ["content/index.md"]},
+            }
+        )
+    )
+
+    site = MagicMock()
+    site.root_path = site_root
+    site.config = {"site": {"title": "Test"}}
+
+    cache = ProvenanceCache(provenance_dir)
+    cache._ensure_loaded()
+
+    page = MagicMock()
+    page.source_path = content_file
+    page.virtual = False
+
+    filter_obj = ProvenanceFilter(site, cache)
+    assert filter_obj._mtime_short_circuit(page, ContentHash("abc123")) is False
+
+
+def test_filter_save_uses_filter_creation_time(provenance_dir: Path, site_root: Path) -> None:
+    """Saving provenance records uses build-start time, not cache-save time."""
+    from bengal.build.provenance.filter import ProvenanceFilter
+
+    site = MagicMock()
+    site.root_path = site_root
+    site.config = {}
+
+    cache = ProvenanceCache(provenance_dir)
+    filter_obj = ProvenanceFilter(site, cache)
+    filter_obj._build_started_at = 100.0
+    filter_obj._build_started_at_ns = 100_000_000_000
+
+    provenance = Provenance().with_input(
+        "content", CacheKey("content/index.md"), ContentHash("abc123")
+    )
+    record = ProvenanceRecord(
+        page_path=CacheKey("content/index.md"),
+        provenance=provenance,
+        output_hash=ContentHash("_rendered_"),
+    )
+    cache.store(record, input_paths=["content/index.md"])
+
+    filter_obj.save()
+
+    data = json.loads((provenance_dir / "index.json").read_text())
+    assert data["last_build_time"] == 100.0
+    assert data["last_build_time_ns"] == 100_000_000_000
 
 
 def test_extract_input_paths_skips_taxonomy(provenance_dir: Path, site_root: Path) -> None:

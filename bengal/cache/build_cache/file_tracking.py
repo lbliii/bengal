@@ -160,10 +160,16 @@ class FileTrackingMixin:
             current_mtime = stat.st_mtime
             current_size = stat.st_size
             cached_mtime = cached.get("mtime")
+            cached_mtime_ns = cached.get("mtime_ns")
             cached_size = cached.get("size")
 
             # Fast path: mtime + size unchanged = definitely no change
-            if cached_mtime == current_mtime and cached_size == current_size:
+            mtime_matches = (
+                cached_mtime_ns == stat.st_mtime_ns
+                if cached_mtime_ns is not None
+                else cached_mtime == current_mtime
+            )
+            if mtime_matches and cached_size == current_size:
                 logger.debug("cache_hit", file=file_key, reason="mtime_size_match")
                 return False
 
@@ -176,6 +182,7 @@ class FileTrackingMixin:
                     # Update mtime/size in fingerprint for future fast path
                     self.file_fingerprints[file_key] = {
                         "mtime": current_mtime,
+                        "mtime_ns": stat.st_mtime_ns,
                         "size": current_size,
                         "hash": cached_hash,
                     }
@@ -227,6 +234,7 @@ class FileTrackingMixin:
             # Store full fingerprint
             self.file_fingerprints[file_key] = {
                 "mtime": stat.st_mtime,
+                "mtime_ns": stat.st_mtime_ns,
                 "size": stat.st_size,
                 "hash": file_hash,
             }

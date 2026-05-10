@@ -115,12 +115,11 @@ def add_page(section: Section, page: PageLike) -> None:
 
     section.pages.append(page)
 
-    # Invalidate cached properties that depend on pages list.
-    section.__dict__.pop("regular_pages", None)
-    section.__dict__.pop("sorted_pages", None)
-    section.__dict__.pop("regular_pages_recursive", None)
+    # Invalidate cached properties that depend on page membership.
+    from bengal.core.section.cache import invalidate_section_derived_caches
     from bengal.core.section.navigation import invalidate_version_content_cache
 
+    invalidate_section_derived_caches(section)
     invalidate_version_content_cache(section)
 
     # Set as index page if it's named index.md or _index.md.
@@ -175,6 +174,10 @@ def sort_children_by_weight(section: Section) -> None:
 
     # Sort subsections by weight (ascending), then title (alphabetically).
     section.subsections.sort(key=weight_sort_key)
+
+    from bengal.core.section.cache import invalidate_section_derived_caches
+
+    invalidate_section_derived_caches(section)
 
 
 def needs_auto_index(section: Section) -> bool:

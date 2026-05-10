@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from bengal.utils.io.atomic_write import AtomicFile
+from bengal.utils.io.atomic_write import write_if_changed_atomic
 
 
 def write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> None:
@@ -100,8 +100,8 @@ def write_build_time_artifacts(site: Any, last_build_stats: dict[str, Any]) -> N
         target_dir = Path(root) / build_badge_cfg["dir_name"]
         target_dir.mkdir(parents=True, exist_ok=True)
 
-        write_if_changed_atomic(target_dir / "build.svg", svg, AtomicFile)
-        write_if_changed_atomic(target_dir / "build.json", json_text, AtomicFile)
+        write_if_changed_atomic(target_dir / "build.svg", svg)
+        write_if_changed_atomic(target_dir / "build.json", json_text)
 
 
 def write_versioning_artifacts(site: Any) -> None:
@@ -120,26 +120,6 @@ def write_versioning_artifacts(site: Any) -> None:
 
     write_versions_json(site, Path(output_dir))
     write_root_redirect(site, Path(output_dir))
-
-
-def write_if_changed_atomic(path: Any, content: str, atomic_file_cls: Any) -> None:
-    """
-    Write file atomically, but only if content differs.
-
-    This prevents unnecessary touching of outputs across builds.
-
-    """
-    try:
-        if path.exists():
-            existing = path.read_text(encoding="utf-8")
-            if existing == content:
-                return
-    except Exception:  # noqa: S110
-        # Best-effort; if read fails, proceed to write.
-        pass
-
-    with atomic_file_cls(path, "w", encoding="utf-8") as f:
-        f.write(content)
 
 
 def normalize_build_badge_config(value: Any) -> dict[str, Any]:

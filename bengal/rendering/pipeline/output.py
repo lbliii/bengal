@@ -12,14 +12,9 @@ Key Functions:
 - embed_content_hash(): Embed content hash in HTML meta tag
 - extract_content_hash(): Extract content hash from HTML
 
-Write Strategies:
-The module supports two write modes controlled by ``build.fast_writes``:
-
-- **Atomic writes (default)**: Crash-safe using temporary files and rename.
-  Slightly slower but ensures output is never corrupted on interruption.
-
-- **Fast writes**: Direct file writes without atomicity. Used by dev server
-  for maximum performance during rapid iteration.
+Write Strategy:
+HTML output uses atomic writes: content is written to a temporary file and
+renamed into place so readers never observe partial output.
 
 Content Hash Embedding (RFC: Output Cache Architecture):
 HTML pages include a content hash meta tag for accurate change detection.
@@ -249,42 +244,38 @@ def write_output(
     if mark_dir_created(str(parent_dir)):
         parent_dir.mkdir(parents=True, exist_ok=True)
 
-    # Write rendered HTML (atomic for safety, fast mode for performance)
-    # Fast mode skips atomic writes for dev server (PERFORMANCE OPTIMIZATION)
+    # Write rendered HTML atomically. ``fast_writes`` is retained as a
+    # compatibility knob for cleanup tracking, but the final write is always
+    # temp-then-rename so served output is never partial.
     fast_writes = site.config.get("build", {}).get("fast_writes", False)
 
     try:
-        if fast_writes:
-            # Direct write (faster, but not crash-safe)
-            output_path.write_text(rendered_html, encoding="utf-8")
-            track_fast_write(output_path)
-        else:
-            # Atomic write (crash-safe, slightly slower)
-            from bengal.utils.io.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
-            atomic_write_text(
-                output_path,
-                rendered_html,
-                encoding="utf-8",
-                ensure_parent=False,  # parent dir already ensured above (cached)
-            )
+        atomic_write_text(
+            output_path,
+            rendered_html,
+            encoding="utf-8",
+            ensure_parent=False,  # parent dir already ensured above (cached)
+        )
+        if fast_writes:
+            track_fast_write(output_path)
     except FileNotFoundError:
         # Robustness fallback: if write fails due to missing parent directory
         # (can happen if output_dir was cleaned but our thread-safe cache is stale),
         # force directory creation and retry once.
         parent_dir.mkdir(parents=True, exist_ok=True)
 
-        if fast_writes:
-            output_path.write_text(rendered_html, encoding="utf-8")
-        else:
-            from bengal.utils.io.atomic_write import atomic_write_text
+        from bengal.utils.io.atomic_write import atomic_write_text
 
-            atomic_write_text(
-                output_path,
-                rendered_html,
-                encoding="utf-8",
-                ensure_parent=False,
-            )
+        atomic_write_text(
+            output_path,
+            rendered_html,
+            encoding="utf-8",
+            ensure_parent=False,
+        )
+        if fast_writes:
+            track_fast_write(output_path)
 
     _copy_notebook_source(page)
     _track_and_record(

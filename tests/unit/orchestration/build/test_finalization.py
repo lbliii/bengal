@@ -18,7 +18,6 @@ import pytest
 
 from bengal.orchestration.build.artifacts import (
     normalize_build_badge_config,
-    write_if_changed_atomic,
 )
 from bengal.orchestration.build.finalization import (
     phase_cache_save,
@@ -27,6 +26,7 @@ from bengal.orchestration.build.finalization import (
     phase_postprocess,
     run_health_check,
 )
+from bengal.utils.io.atomic_write import write_if_changed_atomic
 
 
 class MockPhaseContext:
@@ -428,20 +428,18 @@ class TestBuildBadgeIncremental:
 
     def test_write_if_changed_skips_identical_content(self, tmp_path):
         """write_if_changed_atomic skips write when content is identical."""
-        from bengal.utils.io.atomic_write import AtomicFile
-
         test_file = tmp_path / "test.txt"
         content = "test content"
 
         # First write
-        write_if_changed_atomic(test_file, content, AtomicFile)
+        write_if_changed_atomic(test_file, content)
         first_mtime = test_file.stat().st_mtime
 
         # Small delay to ensure mtime could differ
         time.sleep(0.1)
 
         # Second write with identical content
-        write_if_changed_atomic(test_file, content, AtomicFile)
+        write_if_changed_atomic(test_file, content)
         second_mtime = test_file.stat().st_mtime
 
         # mtime should NOT change (file not rewritten)
@@ -449,19 +447,17 @@ class TestBuildBadgeIncremental:
 
     def test_write_if_changed_updates_on_different_content(self, tmp_path):
         """write_if_changed_atomic updates when content differs."""
-        from bengal.utils.io.atomic_write import AtomicFile
-
         test_file = tmp_path / "test.txt"
 
         # First write
-        write_if_changed_atomic(test_file, "content v1", AtomicFile)
+        write_if_changed_atomic(test_file, "content v1")
         first_mtime = test_file.stat().st_mtime
 
         # Small delay to ensure mtime could differ
         time.sleep(0.1)
 
         # Second write with different content
-        write_if_changed_atomic(test_file, "content v2", AtomicFile)
+        write_if_changed_atomic(test_file, "content v2")
         second_mtime = test_file.stat().st_mtime
 
         # mtime should change (file rewritten)

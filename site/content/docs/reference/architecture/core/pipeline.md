@@ -106,6 +106,26 @@ It short-circuits on full rebuild triggers for speed and clarity.
 bengal build --incremental
 ```
 
+## Immutable Page Records
+
+The render pipeline moves page data through immutable records:
+
+1. `SourcePage`: discovery output, including `PageCore`, raw body, metadata,
+   language, and source hashes.
+2. `ParsedPage`: parse output, including HTML fragments, TOC items, excerpts,
+   links, plain text, and AST cache data.
+3. `RenderedPage`: render output, including output path, rendered HTML,
+   render timing, and render dependencies.
+
+These records are frozen at construction time, and nested JSON-like payloads are
+deep-frozen. That means a cached AST node, metadata list, cascade mapping, or
+dependency collection cannot be mutated later by another pipeline stage or
+worker thread. Serialization helpers thaw those structures back into plain
+JSON-compatible containers when writing caches.
+
+Mutable `Page` compatibility objects still exist for public and template-facing
+APIs, but cross-stage handoff should prefer the records above.
+
 ## File Watching (Development Server)
 
 Bengal uses **`watchfiles`** (Rust-based) for fast file change detection:

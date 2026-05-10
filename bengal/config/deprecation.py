@@ -152,7 +152,8 @@ def print_deprecation_warnings(
     from bengal.output import get_cli_output
 
     source_str = f" in {source}" if source else ""
-    get_cli_output().render_write(
+    cli = get_cli_output()
+    cli.render_write(
         "validation_report.kida",
         title=f"Deprecated configuration keys found{source_str}",
         issues=[
@@ -165,8 +166,8 @@ def print_deprecation_warnings(
         ],
         summary={"errors": 0, "warnings": len(deprecated_keys), "passed": 0},
     )
-    get_cli_output().tip("These keys may be removed in a future version.")
-    get_cli_output().tip("See `bengal config deprecations` for a full list.")
+    cli.warning("These keys may be removed in a future version.")
+    cli.tip("See `bengal config deprecations` for a full list.")
 
 
 def migrate_deprecated_keys(config: dict[str, Any], in_place: bool = False) -> dict[str, Any]:

@@ -209,12 +209,11 @@ class CacheStore:
                 f"(version {version}, compressed)"
             )
         else:
-            # Create parent directory if missing
-            self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+            from bengal.utils.io.atomic_write import atomic_write_text
 
             # Write uncompressed JSON
             json_str = json.dumps(data, indent=indent)
-            self.cache_path.write_text(json_str, encoding="utf-8")
+            atomic_write_text(self.cache_path, json_str, encoding="utf-8")
 
             logger.debug(f"Saved {len(entries)} entries to {self.cache_path} (version {version})")
 

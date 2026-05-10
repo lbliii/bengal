@@ -97,6 +97,7 @@ class FrontmatterCacheEntry:
     """Cache entry for frontmatter nav-key detection (mtime, has_nav_keys)."""
 
     mtime: float
+    mtime_ns: int
     has_nav_keys: bool
 
 
@@ -105,6 +106,7 @@ class ContentHashCacheEntry:
     """Cache entry for content-only change detection (mtime, fm_hash, content_hash)."""
 
     mtime: float
+    mtime_ns: int
     frontmatter_hash: str
     content_hash: str
 
@@ -642,16 +644,44 @@ class BuildTrigger:
     def _can_use_reactive_path(self, changed_paths: set[Path], event_types: set[str]) -> bool:
         """Check if content-only reactive path can be used (skips full build).
 
-        Content-only = frontmatter unchanged, body changed. Safe for leaf AND
-        section pages. Cascade, nav, and structure keys are in frontmatter;
-        if unchanged, no downstream impact.
+        Content-only = frontmatter unchanged, body changed. The fast reactive
+        path is only safe when no rendered dependents need excerpts/listings
+        refreshed; otherwise use the warm build path for parity.
         """
         if len(changed_paths) != 1 or event_types != {"modified"}:
             return False
         path = next(iter(changed_paths))
         if path.suffix.lower() not in {".md", ".markdown"}:
             return False
-        return self._is_content_only_change(path)
+        return self._is_content_only_change(path) and not self._has_rendered_dependents(path)
+
+    def _has_rendered_dependents(self, path: Path) -> bool:
+        """Return True when a content edit should rebuild dependent pages."""
+        try:
+            changed = path.resolve()
+        except OSError:
+            changed = path
+
+        for page in getattr(self.site, "pages", []):
+            source_path = getattr(page, "source_path", None)
+            if source_path is None:
+                continue
+            try:
+                page_path = Path(source_path).resolve()
+            except OSError, TypeError, ValueError:
+                continue
+            if page_path != changed:
+                continue
+
+            section = getattr(page, "_section", None)
+            if section is None:
+                return False
+            index_page = getattr(section, "index_page", None)
+            if index_page is None or index_page is page:
+                return False
+            return getattr(index_page, "output_path", None) is not None
+
+        return False
 
     def _is_shared_content_change(self, changed_paths: set[Path]) -> bool:
         """
@@ -799,11 +829,12 @@ class BuildTrigger:
         try:
             stat = path.stat()
             mtime = stat.st_mtime
+            mtime_ns = stat.st_mtime_ns
             resolved = path.resolve()
 
             # Check cache (keyed by resolved path for watcher/discovery consistency)
             cached = self._frontmatter_cache.get(resolved)
-            if cached is not None and cached.mtime == mtime:
+            if cached is not None and cached.mtime_ns == mtime_ns:
                 return cached.has_nav_keys
 
             # Read only first 4KB (frontmatter is at start)
@@ -832,7 +863,7 @@ class BuildTrigger:
                 first_key = next(iter(self._frontmatter_cache))
                 del self._frontmatter_cache[first_key]
             self._frontmatter_cache[resolved] = FrontmatterCacheEntry(
-                mtime=mtime, has_nav_keys=result
+                mtime=mtime, mtime_ns=mtime_ns, has_nav_keys=result
             )
 
             return result
@@ -854,7 +885,9 @@ class BuildTrigger:
             return None
 
         try:
-            mtime = path.stat().st_mtime
+            stat = path.stat()
+            mtime = stat.st_mtime
+            mtime_ns = stat.st_mtime_ns
             with open(path, encoding="utf-8") as f:
                 text = f.read()
 
@@ -866,6 +899,7 @@ class BuildTrigger:
             content_hash = hashlib.sha256(match.group(2).encode()).hexdigest()[:16]
             return ContentHashCacheEntry(
                 mtime=mtime,
+                mtime_ns=mtime_ns,
                 frontmatter_hash=fm_hash,
                 content_hash=content_hash,
             )

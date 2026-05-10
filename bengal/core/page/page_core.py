@@ -97,12 +97,26 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from types import MappingProxyType
 from typing import Any
 
 from bengal.protocols import Cacheable
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def _to_cache_value(value: Any) -> Any:
+    """Convert immutable container views back to JSON-compatible values."""
+    if isinstance(value, MappingProxyType):
+        return {k: _to_cache_value(v) for k, v in value.items()}
+    if isinstance(value, dict):
+        return {k: _to_cache_value(v) for k, v in value.items()}
+    if isinstance(value, list | tuple):
+        return [_to_cache_value(v) for v in value]
+    if isinstance(value, set | frozenset):
+        return [_to_cache_value(v) for v in value]
+    return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -311,7 +325,7 @@ class PageCore(Cacheable):
             "source_path": self.source_path,
             "title": self.title,
             "date": self.date.isoformat() if self.date else None,
-            "tags": self.tags,
+            "tags": _to_cache_value(self.tags),
             "slug": self.slug,
             "weight": self.weight,
             "lang": self.lang,
@@ -319,12 +333,12 @@ class PageCore(Cacheable):
             "type": self.type,
             "variant": self.variant,
             "description": self.description,
-            "props": self.props,
+            "props": _to_cache_value(self.props),
             "section": self.section,
             "file_hash": self.file_hash,
-            "aliases": self.aliases,
+            "aliases": _to_cache_value(self.aliases),
             "version": self.version,
-            "cascade": self.cascade,
+            "cascade": _to_cache_value(self.cascade),
         }
 
     @classmethod

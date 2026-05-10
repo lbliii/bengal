@@ -123,6 +123,32 @@ class TestCacheStoreSave:
         assert cache_path.exists()
         assert cache_path.parent.exists()
 
+    def test_save_uncompressed_uses_atomic_write(self, tmp_path, monkeypatch):
+        """Uncompressed cache saves should still use crash-safe writes."""
+        cache_path = tmp_path / "test.json"
+        store = CacheStore(cache_path, compress=False)
+        calls = []
+
+        def fake_atomic_write_text(path, content, encoding="utf-8"):
+            calls.append((path, content, encoding))
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding=encoding)
+
+        monkeypatch.setattr(
+            "bengal.utils.io.atomic_write.atomic_write_text",
+            fake_atomic_write_text,
+        )
+
+        store.save([SimpleEntry(key="test", value=1)], version=1)
+
+        assert len(calls) == 1
+        assert calls[0][0] == cache_path
+        assert calls[0][2] == "utf-8"
+        assert json.loads(calls[0][1]) == {
+            "version": 1,
+            "entries": [{"key": "test", "value": 1}],
+        }
+
     def test_save_with_version(self, tmp_path):
         """Save should store specified version."""
         cache_path = tmp_path / "test.json"

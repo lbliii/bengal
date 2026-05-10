@@ -179,7 +179,7 @@ class CacheManager:
         # so that RenderingPipeline._render_and_write() records to our tracer.
         # Previous effects are preserved for EffectBasedDetector change detection;
         # new effects recorded during rendering accumulate alongside them.
-        build_effect_tracer = BuildEffectTracer.get_instance()
+        build_effect_tracer = BuildEffectTracer.activate()
         build_effect_tracer.set_tracer(self._effect_tracer)
         build_effect_tracer.enable()
 
