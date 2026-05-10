@@ -46,6 +46,24 @@ def test_cache_manager_prunes_deleted_page_artifacts(tmp_path: Path) -> None:
     manager._store_page_artifacts(build_context)
 
     assert set(manager.cache.page_artifacts) == {"content/docs.md"}
+    assert manager._deleted_page_artifact_keys == {"content/deleted.md"}
+
+
+def test_cache_manager_tracks_dirty_page_artifact_keys(tmp_path: Path) -> None:
+    """CacheManager exposes dirty artifact keys for shard-limited persistence."""
+    source_path = Path("content/docs.md")
+    site = SimpleNamespace(root_path=tmp_path, pages=[SimpleNamespace(source_path=source_path)])
+    manager = CacheManager(site)
+    manager.cache = BuildCache(site_root=tmp_path)
+    manager.cache.page_artifacts = {"content/docs.md": {"uri": "/old/"}}
+    build_context = SimpleNamespace(
+        get_accumulated_page_data=lambda: [_artifact(source_path)],
+        pages_to_build=[SimpleNamespace(source_path=source_path)],
+    )
+
+    manager._store_page_artifacts(build_context)
+
+    assert manager._dirty_page_artifact_keys == {"content/docs.md"}
 
 
 def test_cache_manager_sanitizes_page_artifact_metadata(tmp_path: Path) -> None:

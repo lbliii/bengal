@@ -69,6 +69,8 @@ class CacheManager:
         self.cache: BuildCache | None = None
         self.coordinator: CacheCoordinator | None = None
         self._effect_tracer: EffectTracer | None = None
+        self._dirty_page_artifact_keys: set[str] | None = None
+        self._deleted_page_artifact_keys: set[str] | None = None
 
     @property
     def effect_tracer(self) -> EffectTracer | None:
@@ -368,7 +370,11 @@ class CacheManager:
         # Save large post-render page artifacts separately so the hot cache-save
         # path does not rewrite every page artifact inside cache.json.zst.
         page_artifacts = self.cache.page_artifacts
-        self._page_artifact_store().save(page_artifacts)
+        self._page_artifact_store().save(
+            page_artifacts,
+            dirty_keys=self._dirty_page_artifact_keys,
+            deleted_keys=self._deleted_page_artifact_keys,
+        )
         self.cache.page_artifacts = {}
         try:
             return self.cache.save(cache_path)
@@ -383,27 +389,40 @@ class CacheManager:
         if not callable(get_accumulated):
             return
 
+        previous_keys = set(self.cache.page_artifacts)
         current_keys = {
             str(self.cache._cache_key(_site_relative_path(self.site.root_path, page.source_path)))
             for page in getattr(self.site, "pages", [])
             if getattr(page, "source_path", None)
         }
+        deleted_keys = previous_keys - current_keys
         self.cache.page_artifacts = {
             key: value for key, value in self.cache.page_artifacts.items() if key in current_keys
         }
+        dirty_keys = set[str]()
 
         anchors_by_source = _page_anchor_ids_by_source(
             getattr(self.site, "pages", []), self.site.root_path, self.cache
         )
+        changed_keys = _changed_page_artifact_keys(self.site.root_path, build_context, self.cache)
         for data in get_accumulated():
             source_path = getattr(data, "source_path", None)
             if not source_path:
                 continue
             key_path = _site_relative_path(self.site.root_path, source_path)
             artifact_key = str(self.cache._cache_key(key_path))
-            self.cache.page_artifacts[artifact_key] = _serialize_page_artifact(
+            serialized = _serialize_page_artifact(
                 data, anchors_by_source.get(artifact_key, frozenset())
             )
+            if (
+                artifact_key in changed_keys
+                or artifact_key not in self.cache.page_artifacts
+                or self.cache.page_artifacts[artifact_key] != serialized
+            ):
+                dirty_keys.add(artifact_key)
+            self.cache.page_artifacts[artifact_key] = serialized
+        self._dirty_page_artifact_keys = dirty_keys
+        self._deleted_page_artifact_keys = deleted_keys
 
     def _page_artifact_store(self) -> Any:
         """Return the sharded page artifact store for this site's state dir."""
@@ -474,6 +493,18 @@ class CacheManager:
                 "data_file_fingerprints_updated",
                 count=updated_count,
             )
+
+
+def _changed_page_artifact_keys(root_path: Path, build_context: Any, cache: BuildCache) -> set[str]:
+    """Return cache keys for pages rendered or marked changed in this build."""
+    changed: set[str] = set()
+    for page in getattr(build_context, "pages_to_build", None) or []:
+        source_path = getattr(page, "source_path", None)
+        if source_path:
+            changed.add(str(cache._cache_key(_site_relative_path(root_path, source_path))))
+    for source_path in getattr(build_context, "changed_page_paths", None) or set():
+        changed.add(str(cache._cache_key(_site_relative_path(root_path, Path(source_path)))))
+    return changed
 
 
 def _serialize_page_artifact(data: Any, anchors: frozenset[str]) -> dict[str, Any]:

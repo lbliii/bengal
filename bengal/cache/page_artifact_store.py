@@ -43,9 +43,20 @@ class PageArtifactStore:
                         records[str(key)] = value
         return records
 
-    def save(self, records: dict[str, dict[str, Any]]) -> None:
+    def save(
+        self,
+        records: dict[str, dict[str, Any]],
+        *,
+        dirty_keys: set[str] | None = None,
+        deleted_keys: set[str] | None = None,
+    ) -> None:
         """Write records into deterministic shards and prune stale shards."""
         self.root.mkdir(parents=True, exist_ok=True)
+
+        if dirty_keys is not None or deleted_keys is not None:
+            self._save_dirty(records, dirty_keys or set(), deleted_keys or set())
+            return
+
         shards: dict[str, dict[str, dict[str, Any]]] = {}
         for key, record in records.items():
             shard = self._shard_name(key)
@@ -65,6 +76,33 @@ class PageArtifactStore:
             "page_artifact_shards_saved",
             records=len(records),
             shards=len(shards),
+            path=str(self.root),
+        )
+
+    def _save_dirty(
+        self,
+        records: dict[str, dict[str, Any]],
+        dirty_keys: set[str],
+        deleted_keys: set[str],
+    ) -> None:
+        """Rewrite only shards affected by dirty or deleted record keys."""
+        affected_shards = {self._shard_name(key) for key in dirty_keys | deleted_keys}
+        for shard in affected_shards:
+            shard_path = self.root / f"{shard}.json"
+            shard_records = {
+                key: record for key, record in records.items() if self._shard_name(key) == shard
+            }
+            if shard_records:
+                json_compat.dump(shard_records, shard_path, indent=None)
+            elif shard_path.exists():
+                shard_path.unlink()
+
+        logger.debug(
+            "page_artifact_dirty_shards_saved",
+            records=len(records),
+            dirty_keys=len(dirty_keys),
+            deleted_keys=len(deleted_keys),
+            shards=len(affected_shards),
             path=str(self.root),
         )
 
