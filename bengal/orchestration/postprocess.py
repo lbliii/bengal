@@ -165,7 +165,6 @@ class PostprocessOrchestrator:
 
             cli = get_cli_output()
             cli.section("Post-processing")
-        emit_cli_task_progress = progress_manager is None
 
         # Collect enabled tasks
         tasks = []
@@ -177,20 +176,7 @@ class PostprocessOrchestrator:
         # These are essential for search functionality and must reflect current site state
         output_formats_config = self.site.config.get("output_formats", {})
         if output_formats_config.get("enabled", True):
-            # Build graph first if we want to include graph data in page JSON
-            graph_data = None
-            if output_formats_config.get("options", {}).get("include_graph_connections", True):
-                graph_start = time.perf_counter()
-                if emit_cli_task_progress:
-                    _emit_task_started("graph data")
-                graph_data = self._build_graph_data(build_context)
-                graph_duration_ms = (time.perf_counter() - graph_start) * 1000
-                self._record_task_timing("graph data", graph_duration_ms)
-                if emit_cli_task_progress:
-                    _emit_task_finished("graph data", graph_duration_ms)
-            tasks.append(
-                ("output formats", lambda: self._generate_output_formats(graph_data, build_context))
-            )
+            tasks.append(("output formats", lambda: self._generate_output_formats(build_context)))
 
         # OPTIMIZATION: For incremental builds, skip expensive post-processing
         # except for sitemap which must always be regenerated for correctness.
@@ -649,14 +635,12 @@ class PostprocessOrchestrator:
 
     def _generate_output_formats(
         self,
-        graph_data: dict[str, object] | None = None,
         build_context: BuildContext | None = None,
     ) -> None:
         """
         Generate custom output formats like JSON, plain text (extracted for parallel execution).
 
         Args:
-            graph_data: Optional pre-computed graph data to include in page JSON
             build_context: Optional BuildContext with accumulated JSON data from rendering phase
 
         Raises:
@@ -664,7 +648,10 @@ class PostprocessOrchestrator:
         """
         config = self.site.config.get("output_formats", {})
         generator = OutputFormatsGenerator(
-            self.site, config, graph_data=graph_data, build_context=build_context
+            self.site,
+            config,
+            graph_data_provider=lambda: self._build_graph_data(build_context),
+            build_context=build_context,
         )
         generator.generate()
 

@@ -127,6 +127,7 @@ class OutputFormatsGenerator:
         site: SiteLike,
         config: dict[str, Any] | None = None,
         graph_data: dict[str, Any] | None = None,
+        graph_data_provider: Callable[[], dict[str, Any] | None] | None = None,
         build_context: BuildContext | Any | None = None,
     ) -> None:
         """
@@ -136,11 +137,14 @@ class OutputFormatsGenerator:
             site: Site instance
             config: Configuration dict from bengal.toml
             graph_data: Optional pre-computed graph data for including in page JSON
+            graph_data_provider: Optional lazy graph builder for page JSON
             build_context: Optional BuildContext with accumulated JSON data from rendering phase
         """
         self.site = site
         self.config = self._normalize_config(config or {})
         self.graph_data = graph_data
+        self._graph_data_provider = graph_data_provider
+        self._graph_data_loaded = graph_data is not None
         self.build_context = build_context
 
     def _normalize_config(self, config: dict[str, Any]) -> dict[str, Any]:
@@ -301,13 +305,14 @@ class OutputFormatsGenerator:
         # Per-page outputs — use ai_input_pages (machine-readable for AI)
         if "json" in per_page:
             per_page_targets["json"] = self._per_page_target_pages(ai_input_pages, "json")
+            graph_data = self._get_graph_data_if_needed(per_page_targets["json"])
             # Get config options for HTML/text inclusion
             include_html = options.get("include_html_content", False)
             include_text = options.get("include_plain_text", True)
             include_chunks = options.get("include_chunks", True)
             json_gen = PageJSONGenerator(
                 self.site,
-                graph_data=self.graph_data,
+                graph_data=graph_data,
                 include_html=include_html,
                 include_text=include_text,
                 include_chunks=include_chunks,
@@ -573,6 +578,28 @@ class OutputFormatsGenerator:
         for path in changed_page_paths:
             changed.update(_path_keys(path))
         return changed
+
+    def _get_graph_data_if_needed(self, pages: list[PageLike]) -> dict[str, Any] | None:
+        """Build graph data lazily only when page JSON will actually use it."""
+        if not pages:
+            return None
+        if not self.config.get("options", {}).get("include_graph_connections", True):
+            return None
+        if self._graph_data_loaded:
+            return self.graph_data
+        if self._graph_data_provider is None:
+            self._graph_data_loaded = True
+            return self.graph_data
+
+        start = time.perf_counter()
+        self.graph_data = self._graph_data_provider()
+        self._graph_data_loaded = True
+        duration_ms = (time.perf_counter() - start) * 1000
+        stats = getattr(self.build_context, "stats", None)
+        timings = getattr(stats, "postprocess_task_timings_ms", None)
+        if isinstance(timings, dict):
+            timings["graph data"] = round(duration_ms, 1)
+        return self.graph_data
 
     def _generate_site_wide_if_needed(
         self,

@@ -236,6 +236,76 @@ class TestConfigNormalizationEdgeCases:
 
         assert targets == []
 
+    def test_graph_data_provider_not_called_when_json_outputs_are_unchanged(
+        self, tmp_path: Path
+    ) -> None:
+        """No-op incremental JSON generation does not build graph data first."""
+        output_dir = tmp_path / "public"
+        (output_dir / "page").mkdir(parents=True)
+        (output_dir / "page/index.json").write_text("{}", encoding="utf-8")
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Page",
+            url="/page/",
+            content="Page",
+            output_path=output_dir / "page/index.html",
+        )
+        page.source_path = Path("content/page.md")
+        mock_site.pages = [page]
+        build_context = SimpleNamespace(
+            incremental=True,
+            cache=BuildCache(site_root=tmp_path),
+            stats=BuildStats(),
+            has_accumulated_page_data=False,
+            get_accumulated_page_data=list,
+        )
+        provider = Mock(side_effect=AssertionError("graph should stay lazy"))
+        generator = OutputFormatsGenerator(
+            mock_site,
+            {"enabled": True, "per_page": ["json"], "site_wide": []},
+            graph_data_provider=provider,
+            build_context=build_context,
+        )
+
+        generator.generate()
+
+        provider.assert_not_called()
+        assert "graph data" not in build_context.stats.postprocess_task_timings_ms
+
+    def test_graph_data_provider_called_when_json_output_writes(self, tmp_path: Path) -> None:
+        """Changed page JSON still receives graph data when graph connections are enabled."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Page",
+            url="/page/",
+            content="Page",
+            output_path=output_dir / "page/index.html",
+        )
+        page.source_path = Path("content/page.md")
+        mock_site.pages = [page]
+        build_context = SimpleNamespace(
+            incremental=True,
+            cache=BuildCache(site_root=tmp_path),
+            stats=BuildStats(),
+            pages_to_build=[page],
+            has_accumulated_page_data=False,
+            get_accumulated_page_data=list,
+        )
+        provider = Mock(return_value={"nodes": [], "edges": []})
+        generator = OutputFormatsGenerator(
+            mock_site,
+            {"enabled": True, "per_page": ["json"], "site_wide": []},
+            graph_data_provider=provider,
+            build_context=build_context,
+        )
+
+        generator.generate()
+
+        provider.assert_called_once_with()
+        assert "graph data" in build_context.stats.postprocess_task_timings_ms
+
     def test_incremental_missing_json_output_uses_cached_page_artifact(
         self, tmp_path: Path
     ) -> None:
