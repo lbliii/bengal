@@ -521,7 +521,20 @@ class OutputFormatsGenerator:
 
         changed_keys = self._changed_page_source_keys()
         if not changed_keys:
-            return pages
+            targets = [
+                page
+                for page in pages
+                if (output_path := _per_page_output_path(page, output_format)) is not None
+                and not output_path.exists()
+            ]
+            logger.debug(
+                "per_page_output_targets_selected",
+                format=output_format,
+                targets=len(targets),
+                total=len(pages),
+                reason="incremental_missing_outputs_only",
+            )
+            return targets
 
         targets = []
         for page in pages:

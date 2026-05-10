@@ -15,7 +15,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from bengal.cache.build_cache import BuildCache
 from bengal.orchestration.build_context import AccumulatedPageData
@@ -210,6 +210,73 @@ class TestConfigNormalizationEdgeCases:
 
         assert unchanged_json.read_text(encoding="utf-8") == "old-json"
         assert (output_dir / "changed/index.json").exists()
+
+    def test_incremental_per_page_outputs_skip_noop_when_outputs_exist(
+        self, tmp_path: Path
+    ) -> None:
+        """No-op incremental builds do not regenerate per-page companion files."""
+        output_dir = tmp_path / "public"
+        (output_dir / "page").mkdir(parents=True)
+        (output_dir / "page/index.json").write_text("{}", encoding="utf-8")
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Page",
+            url="/page/",
+            content="Page",
+            output_path=output_dir / "page/index.html",
+        )
+        page.source_path = Path("content/page.md")
+        mock_site.pages = [page]
+        build_context = SimpleNamespace(incremental=True, cache=BuildCache(site_root=tmp_path))
+        generator = OutputFormatsGenerator(
+            mock_site, {"enabled": True}, build_context=build_context
+        )
+
+        targets = generator._per_page_target_pages([page], "json")
+
+        assert targets == []
+
+    def test_incremental_missing_json_output_uses_cached_page_artifact(
+        self, tmp_path: Path
+    ) -> None:
+        """Missing unchanged page JSON can be restored without recomputing page JSON."""
+        output_dir = tmp_path / "public"
+        (output_dir / "unchanged").mkdir(parents=True)
+        mock_site = self._create_mock_site(tmp_path, output_dir)
+        page = self._create_mock_page(
+            title="Unchanged",
+            url="/unchanged/",
+            content="Unchanged",
+            output_path=output_dir / "unchanged/index.html",
+        )
+        page.source_path = Path("content/unchanged.md")
+        mock_site.pages = [page]
+        cache = BuildCache(site_root=tmp_path)
+        record = _artifact_record("content/unchanged.md")
+        record["json_output_path"] = str(output_dir / "unchanged/index.json")
+        record["full_json_data"] = {"url": "/unchanged/", "title": "Cached"}
+        cache.page_artifacts["content/unchanged.md"] = record
+        build_context = SimpleNamespace(
+            incremental=True,
+            cache=cache,
+            stats=BuildStats(),
+            has_accumulated_page_data=False,
+            get_accumulated_page_data=list,
+        )
+        generator = OutputFormatsGenerator(
+            mock_site,
+            {"enabled": True, "per_page": ["json"], "site_wide": []},
+            build_context=build_context,
+        )
+
+        with patch(
+            "bengal.postprocess.output_formats.json_generator.PageJSONGenerator.page_to_json",
+            side_effect=AssertionError("should use cached artifact"),
+        ):
+            generator.generate()
+
+        content = (output_dir / "unchanged/index.json").read_text(encoding="utf-8")
+        assert '"title":"Cached"' in content
 
     def test_empty_config_uses_all_defaults(self, tmp_path: Path) -> None:
         """Empty config dict should use all defaults."""
