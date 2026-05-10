@@ -447,7 +447,12 @@ class BuildTrigger:
 
                 # Build succeeded - convert stats to result-like object for display
                 class WarmBuildResult:
-                    def __init__(self, stats: Any, build_time: float) -> None:
+                    def __init__(
+                        self,
+                        stats: Any,
+                        build_time: float,
+                        completion_policy: Any,
+                    ) -> None:
                         from bengal.server.reload_types import (
                             SerializedOutputRecord,
                         )
@@ -456,6 +461,7 @@ class BuildTrigger:
                         self.pages_built = stats.total_pages
                         self.build_time_ms = build_time * 1000
                         self.error_message = None
+                        self.completion_policy = completion_policy
                         self.changed_outputs = (
                             tuple(
                                 SerializedOutputRecord(
@@ -471,7 +477,7 @@ class BuildTrigger:
                         self.reload_hint = stats.reload_hint
                         self._stats = stats
 
-                result = WarmBuildResult(stats, build_duration)
+                result = WarmBuildResult(stats, build_duration, self.completion_policy)
                 if self._buffer_manager is not None:
                     self._last_buffer_delta_paths = (
                         self._buffer_delta_paths(result.changed_outputs)

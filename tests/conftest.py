@@ -430,6 +430,13 @@ def reset_bengal_state(request):
     # Setup: Clear all registered caches before test (ensures fresh state)
     # This is done before test to ensure clean state, and again after test for cleanup
     try:
+        from bengal.output import reset_cli_output
+
+        reset_cli_output()
+    except ImportError:
+        logger.debug("CLI output reset skipped: reset_cli_output not available")
+
+    try:
         from bengal.utils.cache_registry import clear_all_caches
 
         clear_all_caches()
@@ -447,6 +454,12 @@ def reset_bengal_state(request):
     yield
 
     # Teardown: Reset all stateful components after each test
+    try:
+        from bengal.output import reset_cli_output
+
+        reset_cli_output()
+    except ImportError:
+        logger.debug("CLI output reset skipped: reset_cli_output not available")
 
     # 0. Kill leaked WriteBehind threads from builds
     # WriteBehindCollector spawns 8 daemon threads per build that poll forever
