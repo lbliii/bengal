@@ -44,16 +44,24 @@ def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> di
     pages_per_sec = (stats.total_pages / render_ms) * 1000 if render_ms > 0 else 0
 
     # Phase breakdown — show the slowest phases, not insertion order.
-    phase_items = [
-        ("Fonts", getattr(stats, "fonts_time_ms", 0)),
-        ("Discovery", getattr(stats, "discovery_time_ms", 0)),
-        ("Menus", getattr(stats, "menu_time_ms", 0)),
-        ("Related", getattr(stats, "related_posts_time_ms", 0)),
-        ("Render", getattr(stats, "rendering_time_ms", 0)),
-        ("Assets", getattr(stats, "assets_time_ms", 0)),
-        ("Post", getattr(stats, "postprocess_time_ms", 0)),
-        ("Health", getattr(stats, "health_check_time_ms", 0)),
-    ]
+    recorded_phases = getattr(stats, "phase_timings_ms", None)
+    if isinstance(recorded_phases, dict) and recorded_phases:
+        phase_items = [
+            (str(name), float(duration_ms))
+            for name, duration_ms in recorded_phases.items()
+            if isinstance(duration_ms, int | float)
+        ]
+    else:
+        phase_items = [
+            ("Fonts", getattr(stats, "fonts_time_ms", 0)),
+            ("Discovery", getattr(stats, "discovery_time_ms", 0)),
+            ("Menus", getattr(stats, "menu_time_ms", 0)),
+            ("Related", getattr(stats, "related_posts_time_ms", 0)),
+            ("Render", getattr(stats, "rendering_time_ms", 0)),
+            ("Assets", getattr(stats, "assets_time_ms", 0)),
+            ("Post", getattr(stats, "postprocess_time_ms", 0)),
+            ("Health", getattr(stats, "health_check_time_ms", 0)),
+        ]
     phases = [
         f"{name} {format_time(duration_ms)}"
         for name, duration_ms in sorted(phase_items, key=lambda item: item[1], reverse=True)
@@ -62,7 +70,10 @@ def _build_context(stats: DisplayableStats, output_dir: str | None = None) -> di
     postprocess_detail = _format_slowest_postprocess(stats)
     if postprocess_detail:
         phases.append(postprocess_detail)
-    visible_phases = [*phases[:3], postprocess_detail] if postprocess_detail else phases[:4]
+    unaccounted_ms = getattr(stats, "overhead_ms", 0)
+    if isinstance(unaccounted_ms, int | float) and unaccounted_ms > 250:
+        phases.append(f"Unaccounted {format_time(unaccounted_ms)}")
+    visible_phases = phases[:8]
 
     # Breakdown string
     breakdown = f"{stats.regular_pages}+{stats.generated_pages}"

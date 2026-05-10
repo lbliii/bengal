@@ -338,8 +338,13 @@ class BuildOrchestrator:
 
         # Initialize cache (ALWAYS, even for full builds)
         # We need cache for cleanup of deleted files and auto-mode decision
+        initialization_start = time.perf_counter()
         with logger.phase("initialization"):
             cache = self.incremental.initialize(enabled=True)  # Always load cache
+        self.stats.record_phase_timing(
+            "Initialization",
+            (time.perf_counter() - initialization_start) * 1000,
+        )
 
         # RFC: Output Cache Architecture - Initialize GeneratedPageCache for tag page caching
         # This enables skipping unchanged tag pages based on member content hashes
@@ -454,6 +459,7 @@ class BuildOrchestrator:
         initialization.phase_cache_metadata(self)
 
         discovery_duration_ms = (time.time() - discovery_start) * 1000
+        self.stats.record_phase_timing("Discovery", discovery_duration_ms)
 
         notify_phase_complete(
             "discovery",
@@ -463,6 +469,7 @@ class BuildOrchestrator:
         run_plugin_phase("post_discovery")
 
         # Phase 4: Config Check and Cleanup
+        filter_start = time.perf_counter()
         config_result = initialization.phase_config_check(self, cli, cache, incremental)
         incremental = config_result.incremental
         config_changed = config_result.config_changed
@@ -482,6 +489,10 @@ class BuildOrchestrator:
             build_start,
             changed_sources=changed_sources,
             nav_changed_sources=nav_changed_sources,
+        )
+        self.stats.record_phase_timing(
+            "Config/filter",
+            (time.perf_counter() - filter_start) * 1000,
         )
 
         if filter_result is None:
@@ -565,6 +576,7 @@ class BuildOrchestrator:
             )
 
         content_duration_ms = (time.time() - content_start) * 1000
+        self.stats.record_phase_timing("Content", content_duration_ms)
         taxonomy_count = len(self.site.taxonomies) if hasattr(self.site, "taxonomies") else 0
         notify_phase_complete(
             "content",
@@ -586,6 +598,7 @@ class BuildOrchestrator:
                 parallel=not force_sequential,
             )
         parsing_duration_ms = (time.time() - parsing_start) * 1000
+        self.stats.record_phase_timing("Parsing", parsing_duration_ms)
         if hasattr(self.stats, "parsing_time_ms"):
             self.stats.parsing_time_ms = parsing_duration_ms
 
@@ -605,6 +618,7 @@ class BuildOrchestrator:
         with self.logger.phase("snapshot"):
             site_snapshot = create_site_snapshot(self.site)
             snapshot_duration_ms = (time.time() - snapshot_start) * 1000
+            self.stats.record_phase_timing("Snapshot", snapshot_duration_ms)
             # Store snapshot in build context for rendering phase
             early_ctx.snapshot = site_snapshot
             # Store snapshot time in stats if available
@@ -684,6 +698,7 @@ class BuildOrchestrator:
         )
 
         assets_duration_ms = (time.time() - assets_start) * 1000
+        self.stats.record_phase_timing("Assets", assets_duration_ms)
         notify_phase_complete(
             "assets",
             assets_duration_ms,
@@ -748,6 +763,7 @@ class BuildOrchestrator:
             record_all_page_builds(self, pages_to_build, parallel=not force_sequential)
 
         rendering_duration_ms = (time.time() - rendering_start) * 1000
+        self.stats.record_phase_timing("Rendering", rendering_duration_ms)
         notify_phase_complete(
             "rendering",
             rendering_duration_ms,
@@ -766,6 +782,7 @@ class BuildOrchestrator:
         finalization.phase_postprocess(
             self, cli, not force_sequential, ctx, incremental, collector=output_collector
         )
+        self.stats.record_phase_timing("Post-process", self.stats.postprocess_time_ms)
 
         from bengal.orchestration.build.artifact_inventory import populate_artifact_inventory
 
@@ -777,6 +794,10 @@ class BuildOrchestrator:
         self.stats.post_render_timings_ms["artifact_inventory"] = round(
             (time.perf_counter() - artifact_inventory_start) * 1000,
             1,
+        )
+        self.stats.record_phase_timing(
+            "Artifact inventory",
+            self.stats.post_render_timings_ms["artifact_inventory"],
         )
 
         # RFC: Output Cache Architecture - Update GeneratedPageCache for tag pages that were rendered
@@ -862,6 +883,7 @@ class BuildOrchestrator:
 
         cache_duration_ms = (time.perf_counter() - cache_start) * 1000
         self.stats.post_render_timings_ms["cache_save"] = round(cache_duration_ms, 1)
+        self.stats.record_phase_timing("Cache save", cache_duration_ms)
         if cli is not None:
             cli.phase("Cache save", duration_ms=cache_duration_ms)
         self.logger.info("cache_saved")
@@ -873,6 +895,7 @@ class BuildOrchestrator:
             (time.perf_counter() - stats_start) * 1000,
             1,
         )
+        self.stats.record_phase_timing("Stats", self.stats.post_render_timings_ms["stats"])
 
         # Phase 19.5: Finalize Error Session (track build errors for pattern detection)
         self._finalize_error_session()
@@ -947,9 +970,6 @@ class BuildOrchestrator:
         notify_phase_complete("health", health_duration_ms, health_summary)
         run_plugin_phase("post_health")
 
-        # Phase 21: Finalize Build
-        finalization.phase_finalize(self, verbose, collector)
-
         # Save provenance cache if using provenance-based filtering
         if hasattr(self, "_provenance_filter"):
             from bengal.orchestration.build.provenance_filter import save_provenance_cache
@@ -960,6 +980,20 @@ class BuildOrchestrator:
                 (time.perf_counter() - provenance_save_start) * 1000,
                 1,
             )
+            self.stats.record_phase_timing(
+                "Provenance save",
+                self.stats.post_render_timings_ms["provenance_save"],
+            )
+
+        # Phase 21: Finalize Build
+        finalization_start = time.perf_counter()
+        self.stats.build_time_ms = (time.time() - build_start) * 1000
+        finalization.phase_finalize(self, verbose, collector)
+        self.stats.record_phase_timing(
+            "Finalize",
+            (time.perf_counter() - finalization_start) * 1000,
+        )
+        self.stats.build_time_ms = (time.time() - build_start) * 1000
 
         # Clean up partial fast-write files if build had errors
         if self.stats.template_errors or (isinstance(self.stats, HasErrors) and self.stats.errors):

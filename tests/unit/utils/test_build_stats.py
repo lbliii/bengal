@@ -368,6 +368,35 @@ class TestDisplayFunctions:
 
         reset_cli_output()
 
+    @patch("bengal.orchestration.stats.display.get_cli_output")
+    def test_display_build_stats_uses_recorded_phase_timings(
+        self, mock_cli_class: MagicMock
+    ) -> None:
+        """Build summaries should prefer named phase timings when present."""
+        from bengal.orchestration.stats import BuildStats, display_build_stats
+
+        stats = BuildStats(
+            total_pages=3,
+            regular_pages=3,
+            build_time_ms=1000.0,
+            rendering_time_ms=100.0,
+            postprocess_task_timings_ms={"output formats": 250.0},
+        )
+        stats.record_phase_timing("Discovery", 200.0)
+        stats.record_phase_timing("Rendering", 100.0)
+
+        mock_cli = MagicMock()
+        mock_cli_class.return_value = mock_cli
+
+        display_build_stats(stats)
+
+        ctx = mock_cli.render_write.call_args.kwargs
+        phases = ctx["phases"]
+        assert "Discovery 200 ms" in phases
+        assert "Rendering 100 ms" in phases
+        assert "Slowest post output formats 250 ms" in phases
+        assert "Unaccounted 700 ms" in phases
+
     def test_show_building_indicator_does_nothing(self) -> None:
         """Test show_building_indicator does nothing (header shown elsewhere)."""
         from bengal.orchestration.stats import show_building_indicator

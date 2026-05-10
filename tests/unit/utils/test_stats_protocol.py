@@ -84,6 +84,7 @@ class TestDisplayableStatsProtocol:
         assert hasattr(stats, "rendering_time_ms")
         assert hasattr(stats, "assets_time_ms")
         assert hasattr(stats, "postprocess_time_ms")
+        assert hasattr(stats, "phase_timings_ms")
         assert hasattr(stats, "health_check_time_ms")
 
 

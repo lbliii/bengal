@@ -384,6 +384,7 @@ def run_health_check(
 
     health_time_ms = (time.time() - health_start) * 1000
     orchestrator.stats.health_check_time_ms = health_time_ms
+    orchestrator.stats.record_phase_timing("Health check", health_time_ms)
 
     # Show phase completion timing (before report)
     cli.phase("Health check", duration_ms=health_time_ms)

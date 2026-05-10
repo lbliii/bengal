@@ -90,6 +90,7 @@ class BuildStats:
     postprocess_task_timings_ms: dict[str, float] = field(default_factory=dict)
     postprocess_output_timings_ms: dict[str, float] = field(default_factory=dict)
     post_render_timings_ms: dict[str, float] = field(default_factory=dict)
+    phase_timings_ms: dict[str, float] = field(default_factory=dict)
     health_check_time_ms: float = 0
 
     # Memory metrics (Phase 1 - Performance Tracking)
@@ -259,6 +260,12 @@ class BuildStats:
             },
         }
 
+    def record_phase_timing(self, name: str, duration_ms: float) -> None:
+        """Record a named build phase timing for cold-build accounting."""
+        if duration_ms <= 0:
+            return
+        self.phase_timings_ms[name] = round(duration_ms, 1)
+
     def add_directive(self, directive_type: str) -> None:
         """Track a directive usage."""
         with self._lock:
@@ -352,17 +359,20 @@ class BuildStats:
     @property
     def overhead_ms(self) -> float:
         """Unaccounted time: build_time minus sum of all phase timings."""
-        phase_sum = (
-            self.fonts_time_ms
-            + self.discovery_time_ms
-            + self.taxonomy_time_ms
-            + self.menu_time_ms
-            + self.related_posts_time_ms
-            + self.rendering_time_ms
-            + self.assets_time_ms
-            + self.postprocess_time_ms
-            + self.health_check_time_ms
-        )
+        if self.phase_timings_ms:
+            phase_sum = sum(self.phase_timings_ms.values())
+        else:
+            phase_sum = (
+                self.fonts_time_ms
+                + self.discovery_time_ms
+                + self.taxonomy_time_ms
+                + self.menu_time_ms
+                + self.related_posts_time_ms
+                + self.rendering_time_ms
+                + self.assets_time_ms
+                + self.postprocess_time_ms
+                + self.health_check_time_ms
+            )
         return max(0, self.build_time_ms - phase_sum)
 
     @property
@@ -403,6 +413,7 @@ class BuildStats:
             "postprocess_task_timings_ms": self.postprocess_task_timings_ms,
             "postprocess_output_timings_ms": self.postprocess_output_timings_ms,
             "post_render_timings_ms": self.post_render_timings_ms,
+            "phase_timings_ms": self.phase_timings_ms,
             "health_check_time_ms": self.health_check_time_ms,
             # Memory
             "memory_rss_mb": self.memory_rss_mb,
