@@ -195,7 +195,18 @@ def phase_cache_save(
     """
     with orchestrator.logger.phase("cache_save"):
         start = time.perf_counter()
-        orchestrator.incremental.save_cache(pages_to_build, assets_to_process)
+        saved = orchestrator.incremental.save_cache(pages_to_build, assets_to_process)
+        if saved is False:
+            from bengal.errors import BengalCacheError, ErrorCode
+
+            raise BengalCacheError(
+                "Build cache could not be saved.",
+                code=ErrorCode.A004,
+                suggestion=(
+                    "Check disk space and permissions. Incremental builds may be stale "
+                    "until the cache can be saved."
+                ),
+            )
         duration_ms = (time.perf_counter() - start) * 1000
         if cli is not None:
             cli.phase("Cache save", duration_ms=duration_ms)
@@ -308,6 +319,8 @@ def run_health_check(
     if not health_config.get("enabled", True):
         return
 
+    health_start = time.time()
+
     # Build rendering-owned link registry before health checks (zero-cost: reuses toc_items)
     from bengal.rendering.reference_registry import (
         build_link_registry,
@@ -329,8 +342,6 @@ def run_health_check(
     orchestrator.site.link_registry = artifact_registry or build_link_registry(
         orchestrator.site, output_records=output_records
     )
-
-    health_start = time.time()
 
     # Run health checks with profile filtering
     health_check = HealthCheck(orchestrator.site)

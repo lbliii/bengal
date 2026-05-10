@@ -381,7 +381,8 @@ class ProvenanceFilter:
         page_path = self._get_page_key(page)
 
         # Thread-safe access to session cache
-        provenance = self._computed_provenance.get(page_path)
+        with self._session_lock:
+            provenance = self._computed_provenance.get(page_path)
 
         if provenance is None:
             provenance = self._compute_provenance(page)
@@ -439,8 +440,9 @@ class ProvenanceFilter:
 
     def _get_file_hash(self, path: Path) -> ContentHash:
         """Get file hash from session cache or compute it (thread-safe)."""
-        # Fast path: check without lock
-        cached = self._file_hashes.get(path)
+        # Fast path: protect reads as well as writes for free-threaded builds.
+        with self._session_lock:
+            cached = self._file_hashes.get(path)
         if cached is not None:
             return cached
 
@@ -569,9 +571,10 @@ class ProvenanceFilter:
         if is_virtual:
             return None  # Need full computation for virtual pages
 
-        # Check if already computed for this page (fast path without lock)
+        # Check if already computed for this page.
         page_path = self._get_page_key(page)
-        cached = self._computed_provenance.get(page_path)
+        with self._session_lock:
+            cached = self._computed_provenance.get(page_path)
         if cached is not None:
             return cached
 
@@ -630,8 +633,9 @@ class ProvenanceFilter:
         """
         page_path = self._get_page_key(page)
 
-        # Check cache first (fast path without lock)
-        cached = self._computed_provenance.get(page_path)
+        # Check cache first.
+        with self._session_lock:
+            cached = self._computed_provenance.get(page_path)
         if cached is not None:
             return cached
 

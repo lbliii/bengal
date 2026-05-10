@@ -499,7 +499,7 @@ class BuildCache(
 
         return None
 
-    def save(self, cache_path: Path, use_lock: bool = True) -> None:
+    def save(self, cache_path: Path, use_lock: bool = True) -> bool:
         """
         Save build cache to disk with optional file locking.
 
@@ -513,10 +513,9 @@ class BuildCache(
             cache_path: Path to cache file
             use_lock: Whether to use file locking (default: True)
 
-        Raises:
-            IOError: If cache file cannot be written
-            json.JSONEncodeError: If cache data cannot be serialized
-            LockAcquisitionError: If lock cannot be acquired (when use_lock=True)
+        Returns:
+            True when the cache was persisted, False when persistence failed
+            and the error was recorded.
         """
         # Ensure parent directory exists
         cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -530,6 +529,7 @@ class BuildCache(
                     self._save_to_file(cache_path)
             else:
                 self._save_to_file(cache_path)
+            return True
 
         except Exception as e:
             from bengal.errors import (
@@ -558,6 +558,7 @@ class BuildCache(
                 error_code=ErrorCode.A004.value,
                 impact="incremental_builds_disabled",
             )
+            return False
 
     def _save_to_file(self, cache_path: Path, compress: bool = True) -> None:
         """

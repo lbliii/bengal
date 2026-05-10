@@ -233,7 +233,7 @@ class CacheManager:
         pages_built: Sequence[PageLike],
         assets_processed: list[Asset],
         build_context: Any | None = None,
-    ) -> None:
+    ) -> bool:
         """
         Update cache with processed files.
 
@@ -245,7 +245,7 @@ class CacheManager:
             build_context: Optional BuildContext with rendered page artifacts.
         """
         if not self.cache:
-            return
+            return False
 
         # Use same cache location as initialize()
         paths = self.site.config_service.paths
@@ -365,7 +365,7 @@ class CacheManager:
             )
 
         # Save cache
-        self.cache.save(cache_path)
+        return self.cache.save(cache_path)
 
     def _store_page_artifacts(self, build_context: Any | None) -> None:
         """Persist post-render page artifacts accumulated during rendering."""

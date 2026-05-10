@@ -538,6 +538,7 @@ class HealthCheck:
         cached_results_by_file: dict[Path, tuple[CheckResult, ...]] = {}
         use_cache = cache is not None and len(files_to_validate) < len(self.site.pages)
         cache_context = self._validation_cache_context(validator)
+        missing_cached_files = 0
         if use_cache:
             for page in self.site.pages:
                 source_path = getattr(page, "source_path", None)
@@ -551,6 +552,11 @@ class HealthCheck:
                     cached_results_by_file[source_path] = tuple(
                         CheckResult.from_cache_dict(result) for result in cached
                     )
+                else:
+                    missing_cached_files += 1
+
+        if use_cache and missing_cached_files:
+            return None
 
         return ValidationScope(
             incremental=True,
@@ -565,7 +571,7 @@ class HealthCheck:
         scope: ValidationScope | None,
     ) -> None:
         """Persist validator-provided per-file results for changed files."""
-        if cache is None or scope is None or scope.files_to_validate is None:
+        if cache is None:
             return
 
         file_results = getattr(validator, "last_file_results", None)
@@ -573,7 +579,12 @@ class HealthCheck:
             return
 
         cache_context = self._validation_cache_context(validator)
-        for source_path in scope.files_to_validate:
+        source_paths = (
+            scope.files_to_validate
+            if scope is not None and scope.files_to_validate is not None
+            else frozenset(file_results)
+        )
+        for source_path in source_paths:
             fresh_results = list(file_results.get(source_path, []))
             if cache_context is None:
                 cache.cache_validation_results(source_path, validator.name, fresh_results)

@@ -160,6 +160,20 @@ class TestPhaseCacheSave:
 
         orchestrator.logger.info.assert_called_with("cache_saved")
 
+    def test_raises_when_cache_save_fails(self, tmp_path):
+        """Cache persistence failures stop the build instead of being hidden."""
+        from bengal.errors import BengalCacheError
+
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        orchestrator.incremental.save_cache.return_value = False
+        phase_context = MagicMock()
+        phase_context.__enter__.return_value = None
+        phase_context.__exit__.return_value = False
+        orchestrator.logger.phase.return_value = phase_context
+
+        with pytest.raises(BengalCacheError):
+            phase_cache_save(orchestrator, [], [])
+
 
 class TestPhaseCollectStats:
     """Tests for phase_collect_stats function."""

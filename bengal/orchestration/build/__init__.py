@@ -829,7 +829,22 @@ class BuildOrchestrator:
         cache_start = time.perf_counter()
 
         def _save_main_cache() -> None:
-            self.incremental.save_cache(pages_to_build, assets_to_process, build_context=ctx)
+            saved = self.incremental.save_cache(
+                pages_to_build,
+                assets_to_process,
+                build_context=ctx,
+            )
+            if saved is False:
+                from bengal.errors import BengalCacheError, ErrorCode
+
+                raise BengalCacheError(
+                    "Build cache could not be saved.",
+                    code=ErrorCode.A004,
+                    suggestion=(
+                        "Check disk space and permissions. Incremental builds may be stale "
+                        "until the cache can be saved."
+                    ),
+                )
 
         def _save_generated_cache() -> None:
             if generated_page_cache:

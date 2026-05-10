@@ -20,6 +20,17 @@ class TestBuildCache:
         assert cache.taxonomy_index.taxonomy_deps == {}
         assert cache.last_build is None
 
+    def test_save_reports_persistence_failure(self, tmp_path, monkeypatch):
+        """Cache save failures are visible to build orchestration."""
+        cache = BuildCache()
+
+        def fail_save(_cache_path):
+            raise OSError("disk full")
+
+        monkeypatch.setattr(cache, "_save_to_file", fail_save)
+
+        assert cache.save(tmp_path / "cache.json", use_lock=False) is False
+
     def test_hash_file(self, tmp_path):
         """Test file hashing."""
         cache = BuildCache()
