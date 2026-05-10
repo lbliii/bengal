@@ -1711,13 +1711,14 @@ class BuildTrigger:
                     changed_count=len(changed_files),
                 )
                 self._reload_notifier.send("reload", "source-changes-bypass", ())
-        else:
-            logger.info(
-                "reload_decision",
-                action=decision.action,
-                reason=decision.reason,
-                source=decision_source,
-            )
+            return
+
+        logger.info(
+            "reload_decision",
+            action=decision.action,
+            reason=decision.reason,
+            source=decision_source,
+        )
         self._reload_notifier.send(decision.action, decision.reason, decision.changed_paths)
 
     def _should_capture_content_hash_baseline(self, changed_files: Sequence[str]) -> bool:
