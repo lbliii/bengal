@@ -74,7 +74,7 @@ class BuildSection:
         validate_templates: Proactive template syntax validation
         validate_links: Validate internal links
         transform_links: Transform markdown links to permalinks
-        fast_writes: Use faster but less safe file writes
+        fast_writes: Compatibility flag for write cleanup tracking
         fast_mode: Skip non-essential processing for speed
         stable_section_references: Use stable section references
         min_page_size: Minimum page size for parallel processing

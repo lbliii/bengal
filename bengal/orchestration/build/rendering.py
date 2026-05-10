@@ -168,7 +168,9 @@ def _optimize_css(
         cache_dir = orchestrator.site.root_path / ".bengal" / "cache" / "assets"
         cache_dir.mkdir(parents=True, exist_ok=True)
         optimized_file = cache_dir / "optimized-style.css"
-        optimized_file.write_text(optimized_css, encoding="utf-8")
+        from bengal.utils.io.atomic_write import atomic_write_text
+
+        atomic_write_text(optimized_file, optimized_css, encoding="utf-8", ensure_parent=False)
 
         # Find and update the style.css asset to use optimized content
         for asset in assets_to_process:

@@ -21,7 +21,7 @@ enqueue simultaneously while the writer pool drains.
 
 Performance Optimizations:
 - Multiple writer threads (8 by default) for SSD parallelism
-- Auto-enables fast_writes in dev server mode (skips atomic rename)
+- Uses atomic temp-then-rename writes for every output
 - Pre-create directories to reduce lock contention
 - Atomic counter for temp file names (faster than uuid4)
 
@@ -99,7 +99,7 @@ class WriteBehindCollector:
     Benefits:
         - Overlaps CPU (rendering) with I/O (writing)
         - 8 writer threads for better I/O parallelism on SSDs
-        - Auto-enables fast_writes in dev server mode
+        - Keeps final output writes atomic in every mode
         - Pre-creates directories to reduce lock contention
         - Uses atomic counter instead of uuid4 for temp files
 
@@ -162,25 +162,9 @@ class WriteBehindCollector:
         cpu_count = os.cpu_count() or 8
         self._num_writers = num_writers if num_writers else min(8, cpu_count)
 
-        # Determine fast_writes mode:
-        # 1. Explicit config setting takes precedence
-        # 2. Auto-enable in dev server mode (crash safety less important)
-        # 3. Default to False (safe atomic writes) for production
+        # ``fast_writes`` is kept as a compatibility attribute for callers that
+        # report it, but output writes remain atomic in every mode.
         self._fast_writes = False
-        if site:
-            config_fast_writes = site.config.get("build", {}).get("fast_writes")
-            if config_fast_writes is not None:
-                # Explicit config setting
-                self._fast_writes = bool(config_fast_writes)
-            elif dev_mode is not None:
-                # Explicit dev_mode passed
-                self._fast_writes = dev_mode
-            else:
-                # Auto-detect from site's build state
-                build_state = getattr(site, "_current_build_state", None)
-                if build_state and getattr(build_state, "dev_mode", False):
-                    self._fast_writes = True
-                    logger.debug("fast_writes_auto_enabled", reason="dev_server_mode")
 
         # Start writer threads
         self._writer_threads: list[threading.Thread] = []
@@ -305,12 +289,8 @@ class WriteBehindCollector:
                     path.parent.mkdir(parents=True, exist_ok=True)
                     self._created_dirs.add(parent)
 
-        if self._fast_writes:
-            # Direct write (faster, not crash-safe) - used in dev server mode
-            path.write_text(content, encoding="utf-8")
-        else:
-            # Atomic write with fast temp file naming (counter instead of uuid4)
-            self._atomic_write_fast(path, content)
+        # Atomic write with fast temp file naming (counter instead of uuid4)
+        self._atomic_write_fast(path, content)
 
     def _atomic_write_fast(self, path: Path, content: str) -> None:
         """Atomic write using counter-based temp file names.

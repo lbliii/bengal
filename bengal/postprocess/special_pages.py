@@ -251,6 +251,7 @@ class SpecialPagesGenerator:
                     return False
 
             output_path.parent.mkdir(parents=True, exist_ok=True)
+            from bengal.utils.io.atomic_write import atomic_write_text
 
             try:
                 existing = ""
@@ -258,8 +259,12 @@ class SpecialPagesGenerator:
                     with open(output_path, encoding="utf-8") as f:
                         existing = f.read()
                 if existing != rendered_html:
-                    with open(output_path, "w", encoding="utf-8") as f:
-                        f.write(rendered_html)
+                    atomic_write_text(
+                        output_path,
+                        rendered_html,
+                        encoding="utf-8",
+                        ensure_parent=False,
+                    )
             except Exception as e:
                 # Best-effort diff; on any error just write
                 logger.debug(
@@ -269,8 +274,12 @@ class SpecialPagesGenerator:
                     error_type=type(e).__name__,
                     action="writing_without_diff",
                 )
-                with open(output_path, "w", encoding="utf-8") as f:
-                    f.write(rendered_html)
+                atomic_write_text(
+                    output_path,
+                    rendered_html,
+                    encoding="utf-8",
+                    ensure_parent=False,
+                )
 
                 if self._collector:
                     from bengal.core.output import OutputType
@@ -400,8 +409,9 @@ class SpecialPagesGenerator:
                     return False
 
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w", encoding="utf-8") as f:
-                f.write(rendered_html)
+            from bengal.utils.io.atomic_write import atomic_write_text
+
+            atomic_write_text(output_path, rendered_html, encoding="utf-8", ensure_parent=False)
 
             if self._collector:
                 from bengal.core.output import OutputType

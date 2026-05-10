@@ -220,7 +220,9 @@ class SiteLlmTxtGenerator:
                 f.write("\n\n" + separator + "\n")
 
         # Save hash for next build
-        hash_path.write_text(new_hash, encoding="utf-8")
+        from bengal.utils.io.atomic_write import atomic_write_text
+
+        atomic_write_text(hash_path, new_hash, encoding="utf-8")
 
         logger.info("site_llm_txt_generated", path=str(llm_path), page_count=len(pages))
         return llm_path
