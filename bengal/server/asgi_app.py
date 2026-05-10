@@ -34,6 +34,22 @@ type RequestCallback = Callable[[str, str, int, float], None]
 # Getter for lazy callback resolution (set after backend creation)
 type RequestCallbackGetter = Callable[[], RequestCallback | None]
 
+_DEFERRED_GENERATED_ARTIFACT_NAMES = frozenset(
+    {
+        "agent.json",
+        "atom.xml",
+        "changelog.json",
+        "index.json",
+        "llm-full.txt",
+        "llms.txt",
+        "robots.txt",
+        "rss.xml",
+        "search-index.json",
+        "sitemap.xml",
+        "xref.json",
+    }
+)
+
 
 def create_bengal_dev_app(
     *,
@@ -261,6 +277,14 @@ def _resolve_file_path(output_dir: Path, path: str) -> Path | None:
     return full
 
 
+def _is_deferred_generated_artifact_path(path: str) -> bool:
+    """True for generated artifacts that serve-ready builds may finish later."""
+    raw = path.split("?")[0].rstrip("/")
+    if not raw:
+        return False
+    return raw.rsplit("/", 1)[-1] in _DEFERRED_GENERATED_ARTIFACT_NAMES
+
+
 async def _serve_markdown_negotiated(
     send: Any,
     *,
@@ -342,6 +366,9 @@ async def _serve_static(
 
     # File doesn't exist: always 404 (with badge when build in progress)
     if not resolved.is_file():
+        if build_in_progress() and _is_deferred_generated_artifact_path(path):
+            await _send_deferred_artifact_response(send)
+            return
         await _send_404(send, output_dir=output_dir, build_in_progress=build_in_progress)
         return
 
@@ -393,6 +420,24 @@ async def _send_404(
             "headers": [
                 [b"content-type", content_type],
                 [b"content-length", str(len(body)).encode()],
+            ],
+        }
+    )
+    await send({"type": "http.response.body", "body": body})
+
+
+async def _send_deferred_artifact_response(send: Any) -> None:
+    """Tell clients that a generated artifact is still being prepared."""
+    body = b"Generated artifact is still being prepared by the Bengal dev server.\n"
+    await send(
+        {
+            "type": "http.response.start",
+            "status": 503,
+            "headers": [
+                [b"content-type", b"text/plain; charset=utf-8"],
+                [b"content-length", str(len(body)).encode()],
+                [b"cache-control", b"no-store, no-cache, must-revalidate, max-age=0"],
+                [b"retry-after", b"1"],
             ],
         }
     )

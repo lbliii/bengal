@@ -17,6 +17,7 @@ import pytest
 
 from bengal.assets.manifest import AssetManifest
 from bengal.orchestration.build.options import BuildCompletionPolicy
+from bengal.server.build_state import build_state
 from bengal.server.dev_server import DevServer
 from bengal.utils.observability.profile import BuildProfile
 from bengal.utils.stats_minimal import MinimalStats
@@ -109,6 +110,7 @@ class TestDevServerContentHashCacheSeeding:
             thread.join(timeout=2)
 
         assert not thread.is_alive()
+        assert build_state.get_build_in_progress() is False
         build_opts = mock_build.call_args.args[0]
         assert build_opts.completion_policy is BuildCompletionPolicy.COMPLETE
         mock_watcher.start.assert_called_once()

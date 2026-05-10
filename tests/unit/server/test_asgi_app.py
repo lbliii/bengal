@@ -153,6 +153,45 @@ async def test_build_in_progress_missing_file_returns_404(tmp_path: Path) -> Non
 
 
 @pytest.mark.asyncio
+async def test_build_in_progress_missing_deferred_artifact_returns_503(tmp_path: Path) -> None:
+    """Known generated artifacts should say they are still being prepared."""
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: True,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/index.json"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 503
+    assert any(h[0] == b"retry-after" and h[1] == b"1" for h in sent[0]["headers"])
+    assert b"still being prepared" in sent[1]["body"]
+
+
+@pytest.mark.asyncio
+async def test_missing_deferred_artifact_returns_404_when_not_building(tmp_path: Path) -> None:
+    """Deferred artifact handling is only active during a build."""
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/docs/v1/search-index.json"},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 404
+    assert sent[1]["body"] == b"Not Found"
+
+
+@pytest.mark.asyncio
 async def test_build_in_progress_404_html_gets_badge(tmp_path: Path) -> None:
     """When build in progress and 404.html exists, serve it with rebuilding badge."""
     (tmp_path / "404.html").write_text("<html><body>Custom 404</body></html>")

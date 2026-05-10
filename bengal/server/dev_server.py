@@ -591,6 +591,7 @@ class DevServer:
         def run_completion() -> None:
             cli = get_cli_output()
             cli.detail("completing artifacts and health checks in background...", indent=1)
+            build_state.set_build_in_progress(True)
             try:
                 build_opts = BuildOptions(
                     profile=profile,
@@ -611,6 +612,7 @@ class DevServer:
                     error_type=type(exc).__name__,
                 )
             finally:
+                build_state.set_build_in_progress(False)
                 if watcher_runner is not None:
                     watcher_runner.start()
                     logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
