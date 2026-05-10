@@ -79,3 +79,9 @@ bengal validate             # or: bengal v
 # Clean cache and rebuild from scratch
 bengal clean --cache && bengal build
 ```
+
+`bengal serve` keeps HTML, markdown negotiation, custom 404 pages, and live
+reload under Bengal's dev-server path. Static assets such as CSS, JavaScript,
+images, fonts, media, PDFs, and WebAssembly are served through Pounce's static
+file handler, so browsers get ETags, `304 Not Modified` revalidation, byte-range
+responses, and precompressed `.gz`/`.zst` variants when those files exist.
