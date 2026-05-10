@@ -286,6 +286,7 @@ and runtime smoke coverage.
 ```text cli-command-inventory
 build
 serve
+preview
 clean
 check
 audit
