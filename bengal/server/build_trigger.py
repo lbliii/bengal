@@ -55,7 +55,7 @@ from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import yaml
 
@@ -305,6 +305,12 @@ class BuildTrigger:
             # run_pre_build_hooks expects a dict, use .raw for serialization
             raw = getattr(config, "raw", config)
             config_dict: dict[str, Any] = raw if isinstance(raw, dict) else {}
+
+            if not needs_full_rebuild and self._try_fast_asset_reload(
+                changed_paths, event_types, config_dict
+            ):
+                return
+
             if not run_pre_build_hooks(config_dict, self.site.root_path):
                 show_error("Pre-build hook failed - skipping build", show_art=False)
                 cli.request_log_header()
@@ -656,6 +662,202 @@ class BuildTrigger:
         if path.suffix.lower() not in {".md", ".markdown"}:
             return False
         return self._is_content_only_change(path) and not self._has_rendered_dependents(path)
+
+    def _try_fast_asset_reload(
+        self,
+        changed_paths: set[Path],
+        event_types: set[str],
+        config: dict[str, Any],
+    ) -> bool:
+        """Copy direct asset/static edits to output without running a warm build."""
+        mapped = self._direct_asset_output_mappings(changed_paths, event_types, config)
+        if mapped is None:
+            return False
+
+        from bengal.core.output import OutputRecord, OutputType
+        from bengal.server.reload_types import SerializedOutputRecord
+        from bengal.utils.io.atomic_write import atomic_write_bytes
+
+        changed_outputs: list[SerializedOutputRecord] = []
+        written = 0
+
+        try:
+            for source, rel_output, phase in mapped:
+                source_mode = source.stat().st_mode & 0o777
+                content = source.read_bytes()
+                for output_root in self._served_output_roots():
+                    atomic_write_bytes(output_root / rel_output, content, mode=source_mode)
+                    written += 1
+
+                record = OutputRecord.from_path(rel_output, phase=phase)
+                changed_outputs.append(
+                    SerializedOutputRecord(
+                        path=str(rel_output),
+                        type_value=record.output_type.value,
+                        phase=record.phase,
+                    )
+                )
+
+            reload_hint = (
+                ReloadHint.CSS_ONLY
+                if changed_outputs
+                and all(record.type_value == OutputType.CSS.value for record in changed_outputs)
+                else ReloadHint.FULL
+            )
+            self._handle_reload(
+                BuildReloadInfo(
+                    changed_files=tuple(str(path) for path in changed_paths),
+                    changed_outputs=tuple(changed_outputs),
+                    reload_hint=reload_hint,
+                )
+            )
+            self._clear_html_cache()
+            logger.info(
+                "fast_asset_reload_complete",
+                changed_files=len(changed_paths),
+                outputs=len(changed_outputs),
+                writes=written,
+                reload_hint=reload_hint.value,
+            )
+            return True
+        except OSError as exc:
+            logger.warning(
+                "fast_asset_reload_failed",
+                error=str(exc),
+                fallback="warm_build",
+            )
+            return False
+
+    def _direct_asset_output_mappings(
+        self,
+        changed_paths: set[Path],
+        event_types: set[str],
+        config: dict[str, Any],
+    ) -> tuple[tuple[Path, Path, Literal["asset"]], ...] | None:
+        """Return source-to-output mappings when a direct asset copy is safe."""
+        if not changed_paths or event_types != {"modified"}:
+            return None
+        if self._has_configured_build_hooks(config):
+            return None
+
+        mappings: list[tuple[Path, Path, Literal["asset"]]] = []
+        static_root = self._static_source_root(config)
+        asset_root = self.site.root_path / "assets"
+
+        for changed_path in changed_paths:
+            source = changed_path
+            if not source.is_file():
+                return None
+
+            static_rel = self._relative_to(source, static_root)
+            if static_rel is not None:
+                if not self._active_output_exists(static_rel):
+                    return None
+                mappings.append((source, static_rel, "asset"))
+                continue
+
+            asset_rel = self._relative_to(source, asset_root)
+            if asset_rel is None:
+                return None
+            if not self._can_copy_site_asset_directly(source):
+                return None
+
+            output_rel = Path("assets") / asset_rel
+            if not self._active_output_exists(output_rel):
+                return None
+            mappings.append((source, output_rel, "asset"))
+
+        return tuple(mappings)
+
+    def _has_configured_build_hooks(self, config: dict[str, Any]) -> bool:
+        """Return True when external hooks must participate in rebuilds."""
+        dev_server = config.get("dev_server", {})
+        if not isinstance(dev_server, dict):
+            return False
+        return bool(dev_server.get("pre_build") or dev_server.get("post_build"))
+
+    def _static_source_root(self, config: dict[str, Any]) -> Path:
+        """Return configured static source root."""
+        static_config = config.get("static", {})
+        if not isinstance(static_config, dict):
+            static_config = {}
+        static_dir_name = static_config.get("dir", "static")
+        return self.site.root_path / str(static_dir_name)
+
+    def _can_copy_site_asset_directly(self, source: Path) -> bool:
+        """Return True when the asset pipeline would preserve this file verbatim."""
+        config = self.site.config or {}
+        if config.get("fingerprint_assets", True):
+            return False
+
+        suffix = source.suffix.lower()
+        if suffix in {".css", ".js", ".mjs"} and config.get("minify_assets", True):
+            return False
+        if suffix in {".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico"} and config.get(
+            "optimize_assets", True
+        ):
+            return False
+
+        asset = self._site_asset_for_source(source)
+        if asset is None:
+            return False
+        if suffix == ".css" and (
+            asset.is_css_entry_point() or (asset.is_css_module() and not asset.standalone)
+        ):
+            return False
+
+        assets_config = getattr(getattr(self.site, "config_service", None), "assets_config", {})
+        if isinstance(assets_config, dict) and assets_config.get("bundle_js", False):
+            with suppress(AttributeError):
+                if asset.is_js_module():
+                    return False
+
+        return True
+
+    def _site_asset_for_source(self, source: Path) -> Any | None:
+        """Find the discovered site asset for a source path."""
+        try:
+            resolved = source.resolve()
+        except OSError:
+            resolved = source
+
+        for asset in getattr(self.site, "assets", []):
+            asset_source = getattr(asset, "source_path", None)
+            if asset_source is None:
+                continue
+            try:
+                if Path(asset_source).resolve() == resolved:
+                    return asset
+            except OSError, TypeError, ValueError:
+                continue
+        return None
+
+    def _served_output_roots(self) -> tuple[Path, ...]:
+        """Return output roots that should stay current for direct asset edits."""
+        if self._buffer_manager is None:
+            return (self.site.output_dir,)
+
+        roots: list[Path] = []
+        for root in (self._buffer_manager.active_dir, self._buffer_manager.staging_dir):
+            if root not in roots:
+                roots.append(root)
+        return tuple(roots)
+
+    def _active_output_exists(self, rel_output: Path) -> bool:
+        """Return True when the currently served output already exists."""
+        output_root = (
+            self._buffer_manager.active_dir
+            if self._buffer_manager is not None
+            else self.site.output_dir
+        )
+        return (output_root / rel_output).is_file()
+
+    def _relative_to(self, path: Path, root: Path) -> Path | None:
+        """Return path relative to root, resolving symlinks where possible."""
+        try:
+            return path.resolve().relative_to(root.resolve())
+        except OSError, ValueError:
+            return None
 
     def _has_rendered_dependents(self, path: Path) -> bool:
         """Return True when a content edit should rebuild dependent pages."""

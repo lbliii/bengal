@@ -168,3 +168,89 @@ def test_mixed_change_triggers_full_reload(
     assert call_args[0][1] == "source-change"
 
     trigger.shutdown()
+
+
+def test_static_css_modified_uses_direct_fast_path(
+    mock_site: MagicMock,
+    mock_executor: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """Static CSS edits copy directly to output and request CSS reload."""
+    source = tmp_path / "static" / "styles" / "site.css"
+    output = tmp_path / "public" / "styles" / "site.css"
+    source.parent.mkdir(parents=True)
+    output.parent.mkdir(parents=True)
+    source.write_text("body{color:green}")
+    output.write_text("body{color:black}")
+
+    trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+    with (
+        patch.object(trigger, "_handle_reload") as handle_reload,
+        patch.object(trigger, "_clear_html_cache"),
+    ):
+        handled = trigger._try_fast_asset_reload({source}, {"modified"}, {})
+
+    assert handled is True
+    assert output.read_text() == "body{color:green}"
+    handle_reload.assert_called_once()
+    info = handle_reload.call_args.args[0]
+    assert info.reload_hint.value == "css-only"
+    assert info.changed_outputs[0].path == "styles/site.css"
+    assert info.changed_outputs[0].type_value == "css"
+    mock_site.build.assert_not_called()
+
+    trigger.shutdown()
+
+
+def test_static_fast_path_requires_existing_output(
+    mock_site: MagicMock,
+    mock_executor: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """New static files fall back so the normal build owns structural output."""
+    source = tmp_path / "static" / "styles" / "site.css"
+    source.parent.mkdir(parents=True)
+    source.write_text("body{color:green}")
+
+    trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+    with patch.object(trigger, "_handle_reload") as handle_reload:
+        handled = trigger._try_fast_asset_reload({source}, {"modified"}, {})
+
+    assert handled is False
+    handle_reload.assert_not_called()
+
+    trigger.shutdown()
+
+
+def test_site_asset_fast_path_respects_fingerprinted_assets(
+    mock_site: MagicMock,
+    mock_executor: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """Default fingerprinted assets fall back to preserve manifest semantics."""
+    source = tmp_path / "assets" / "images" / "logo.svg"
+    output = tmp_path / "public" / "assets" / "images" / "logo.svg"
+    source.parent.mkdir(parents=True)
+    output.parent.mkdir(parents=True)
+    source.write_text("<svg><circle r='2'/></svg>")
+    output.write_text("<svg><circle r='1'/></svg>")
+
+    asset = MagicMock()
+    asset.source_path = source
+    asset.is_css_entry_point.return_value = False
+    asset.is_css_module.return_value = False
+    asset.standalone = False
+    mock_site.assets = [asset]
+
+    trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+    with patch.object(trigger, "_handle_reload") as handle_reload:
+        handled = trigger._try_fast_asset_reload({source}, {"modified"}, {})
+
+    assert handled is False
+    assert output.read_text() == "<svg><circle r='1'/></svg>"
+    handle_reload.assert_not_called()
+
+    trigger.shutdown()
