@@ -89,7 +89,30 @@ python tests/performance/benchmark_full_build.py
 
 ---
 
-### 5. Incremental Build Scaling ⭐ NEW (`benchmark_incremental_scale.py`)
+### 5. Post-Render Pipeline (`benchmark_post_render_pipeline.py`) ⭐ NEW
+**Purpose:** Measure the tail after rendering, including postprocess, artifact inventory, health, and cache stores
+
+Tests:
+- Cold build
+- Warm no-op build
+- Single-page edit
+- Section-index edit
+- CSS-only edit
+
+Produces structured metrics for:
+- Postprocess task/output timings
+- Post-render finalization timings
+- Pages rendered and changed outputs
+- Cache/store sizes by state area
+
+```bash
+python tests/performance/benchmark_post_render_pipeline.py --scales 100,1000,5000
+pytest -o addopts= -n 0 -q -m performance tests/performance/test_post_render_pipeline_budget.py
+```
+
+---
+
+### 6. Incremental Build Scaling ⭐ NEW (`benchmark_incremental_scale.py`)
 **Purpose:** Validate incremental build performance at documentation site scale
 
 Tests:
