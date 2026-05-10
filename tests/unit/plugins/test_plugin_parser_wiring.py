@@ -72,6 +72,15 @@ def test_active_plugin_registry_is_context_scoped() -> None:
     assert get_active_registry() is None
 
 
+def test_empty_active_plugin_registry_reads_as_none() -> None:
+    registry = PluginRegistry().freeze()
+    token = set_active_registry(registry)
+    try:
+        assert get_active_registry() is None
+    finally:
+        reset_active_registry(token)
+
+
 def test_active_plugin_registry_propagates_to_worker_context() -> None:
     registry = _plugin_registry()
     token = set_active_registry(registry)

@@ -52,4 +52,7 @@ def reset_active_registry(token: Token[FrozenPluginRegistry | None]) -> None:
 
 def get_active_registry() -> FrozenPluginRegistry | None:
     """Get the active plugin registry, or None if no plugins loaded."""
-    return _active_registry.get()
+    registry = _active_registry.get()
+    if registry == FrozenPluginRegistry():
+        return None
+    return registry
