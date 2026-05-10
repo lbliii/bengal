@@ -107,6 +107,7 @@ class TestPhasePostprocess:
             build_context=ctx,
             incremental=False,
             collector=None,
+            enabled_task_names=None,
         )
 
     def test_updates_postprocess_time_stats(self, tmp_path):
@@ -140,6 +141,32 @@ class TestPhasePostprocess:
         phase_postprocess(orchestrator, cli, parallel=False, ctx=ctx, incremental=True)
 
         assert "asset_audit" in orchestrator.stats.post_render_timings_ms
+
+    def test_can_limit_tasks_and_skip_asset_audit(self, tmp_path):
+        """Serve-ready builds can run only browse-critical postprocess tasks."""
+        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
+        cli = MockPhaseContext.create_cli()
+        ctx = MagicMock()
+
+        phase_postprocess(
+            orchestrator,
+            cli,
+            parallel=False,
+            ctx=ctx,
+            incremental=False,
+            enabled_task_names={"special pages"},
+            run_asset_audit=False,
+        )
+
+        orchestrator.postprocess.run.assert_called_once_with(
+            parallel=False,
+            progress_manager=None,
+            build_context=ctx,
+            incremental=False,
+            collector=None,
+            enabled_task_names={"special pages"},
+        )
+        assert orchestrator.stats.post_render_timings_ms["asset_audit"] == 0
 
 
 class TestPhaseCacheSave:

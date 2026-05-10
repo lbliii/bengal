@@ -231,6 +231,43 @@ class TestBuildOrchestrator:
         mock_orchestrators["taxonomy"].return_value.collect_and_generate.assert_not_called()
         assert mock_health.call_args.kwargs["incremental"] is True
 
+    def test_serve_ready_policy_skips_quality_and_persistence_tail(
+        self, mock_site, mock_orchestrators
+    ):
+        """Serve-ready builds should not block on health or cache persistence."""
+        from bengal.orchestration.build.options import BuildCompletionPolicy
+        from bengal.orchestration.build.results import FilterResult
+
+        orchestrator = BuildOrchestrator(mock_site)
+        mock_inc = mock_orchestrators["incremental"].return_value
+        mock_cache = MagicMock()
+        mock_cache.parsed_content = {}
+        mock_inc.initialize.return_value = mock_cache
+        filter_result = FilterResult(
+            pages_to_build=[Mock()],
+            assets_to_process=[],
+            affected_tags=set(),
+            changed_page_paths=set(),
+            affected_sections=None,
+        )
+
+        with (
+            patch(
+                "bengal.orchestration.build.provenance_filter.phase_incremental_filter_provenance",
+                return_value=filter_result,
+            ),
+            patch("bengal.orchestration.build.finalization.run_health_check") as mock_health,
+        ):
+            options = BuildOptions(
+                incremental=True,
+                force_sequential=False,
+                completion_policy=BuildCompletionPolicy.SERVE_READY,
+            )
+            orchestrator.build(options)
+
+        mock_health.assert_not_called()
+        mock_inc.save_cache.assert_not_called()
+
     def test_section_validation_error_strict(self, mock_site, mock_orchestrators):
         """Test that section validation errors raise exception in strict mode."""
         # Enable strict mode in config

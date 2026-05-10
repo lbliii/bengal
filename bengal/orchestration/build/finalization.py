@@ -29,6 +29,8 @@ def phase_postprocess(
     ctx: BuildContext | Any | None,
     incremental: bool,
     collector: OutputCollector | None = None,
+    enabled_task_names: set[str] | None = None,
+    run_asset_audit: bool = True,
 ) -> None:
     """
     Phase 17: Post-processing.
@@ -42,6 +44,8 @@ def phase_postprocess(
         ctx: Build context
         incremental: Whether this is an incremental build
         collector: Optional output collector for hot reload tracking
+        enabled_task_names: Optional postprocess task allow list
+        run_asset_audit: Whether to run rendered asset-reference audit
 
     """
     # Enable parallel post-processing for independent tasks (sitemap, RSS, output formats)
@@ -55,6 +59,7 @@ def phase_postprocess(
             build_context=ctx,
             incremental=incremental,
             collector=collector,
+            enabled_task_names=enabled_task_names,
         )
 
         orchestrator.stats.postprocess_time_ms = (time.time() - postprocess_start) * 1000
@@ -85,54 +90,61 @@ def phase_postprocess(
                 hint="ContextVar not set in some paths - check asset_manifest_context() coverage",
             )
 
-        from bengal.rendering.asset_audit import find_missing_local_asset_references
+        if run_asset_audit:
+            from bengal.rendering.asset_audit import find_missing_local_asset_references
 
-        audit_start = time.perf_counter()
-        strict = getattr(ctx, "strict", False) or getattr(orchestrator.stats, "strict_mode", False)
-        html_paths = None if strict or not incremental else _changed_html_output_paths(collector)
-        missing_refs = find_missing_local_asset_references(
-            orchestrator.site.output_dir,
-            baseurl=getattr(orchestrator.site, "baseurl", "") or "",
-            html_paths=html_paths,
-        )
-        _record_post_render_timing(
-            orchestrator,
-            "asset_audit",
-            (time.perf_counter() - audit_start) * 1000,
-        )
-        if missing_refs:
-            samples = [
-                {
-                    "html": str(ref.html_path.relative_to(orchestrator.site.output_dir)),
-                    "url": ref.url,
-                    "expected": _relative_output_path(
-                        ref.expected_path,
-                        orchestrator.site.output_dir,
-                    ),
-                }
-                for ref in missing_refs[:5]
-            ]
-            if strict:
-                from bengal.errors import BengalAssetError, ErrorCode
-
-                first = missing_refs[0]
-                raise BengalAssetError(
-                    f"Build emitted {len(missing_refs)} local CSS/JS reference(s) "
-                    f"without matching output files. First missing reference: {first.url}",
-                    code=ErrorCode.X001,
-                    suggestion=(
-                        "Declare the asset through the theme library contract, use asset_url(), "
-                        "or remove the stale HTML reference."
-                    ),
-                    file_path=first.html_path,
-                )
-            orchestrator.logger.warning(
-                "rendered_asset_reference_missing",
-                count=len(missing_refs),
-                url=missing_refs[0].url,
-                samples=samples,
-                hint="Declare missing assets or route references through asset_url().",
+            audit_start = time.perf_counter()
+            strict = getattr(ctx, "strict", False) or getattr(
+                orchestrator.stats, "strict_mode", False
             )
+            html_paths = (
+                None if strict or not incremental else _changed_html_output_paths(collector)
+            )
+            missing_refs = find_missing_local_asset_references(
+                orchestrator.site.output_dir,
+                baseurl=getattr(orchestrator.site, "baseurl", "") or "",
+                html_paths=html_paths,
+            )
+            _record_post_render_timing(
+                orchestrator,
+                "asset_audit",
+                (time.perf_counter() - audit_start) * 1000,
+            )
+            if missing_refs:
+                samples = [
+                    {
+                        "html": str(ref.html_path.relative_to(orchestrator.site.output_dir)),
+                        "url": ref.url,
+                        "expected": _relative_output_path(
+                            ref.expected_path,
+                            orchestrator.site.output_dir,
+                        ),
+                    }
+                    for ref in missing_refs[:5]
+                ]
+                if strict:
+                    from bengal.errors import BengalAssetError, ErrorCode
+
+                    first = missing_refs[0]
+                    raise BengalAssetError(
+                        f"Build emitted {len(missing_refs)} local CSS/JS reference(s) "
+                        f"without matching output files. First missing reference: {first.url}",
+                        code=ErrorCode.X001,
+                        suggestion=(
+                            "Declare the asset through the theme library contract, use asset_url(), "
+                            "or remove the stale HTML reference."
+                        ),
+                        file_path=first.html_path,
+                    )
+                orchestrator.logger.warning(
+                    "rendered_asset_reference_missing",
+                    count=len(missing_refs),
+                    url=missing_refs[0].url,
+                    samples=samples,
+                    hint="Declare missing assets or route references through asset_url().",
+                )
+        else:
+            _record_post_render_timing(orchestrator, "asset_audit", 0)
 
         # Show phase completion
         cli.phase("Post-process", duration_ms=orchestrator.stats.postprocess_time_ms)

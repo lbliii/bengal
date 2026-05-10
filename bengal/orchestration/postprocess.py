@@ -136,6 +136,7 @@ class PostprocessOrchestrator:
         build_context: BuildContext | None = None,
         incremental: bool = False,
         collector: OutputCollector | None = None,
+        enabled_task_names: set[str] | None = None,
     ) -> None:
         """
         Perform post-processing tasks (sitemap, RSS, output formats, link validation, etc.).
@@ -145,6 +146,7 @@ class PostprocessOrchestrator:
             progress_manager: Live progress manager (optional)
             incremental: Whether this is an incremental build (can skip some tasks)
             collector: Optional output collector for hot reload tracking
+            enabled_task_names: Optional task-name allow list for serve-ready builds
         """
         # Store collector for use in task methods
         self._collector = collector
@@ -166,16 +168,20 @@ class PostprocessOrchestrator:
             cli = get_cli_output()
             cli.section("Post-processing")
 
+        def task_enabled(name: str) -> bool:
+            return enabled_task_names is None or name in enabled_task_names
+
         # Collect enabled tasks
         tasks = []
 
         # Always generate special pages (404, etc.) - important for deployment
-        tasks.append(("special pages", lambda: self._generate_special_pages(build_context)))
+        if task_enabled("special pages"):
+            tasks.append(("special pages", lambda: self._generate_special_pages(build_context)))
 
         # CRITICAL: Always generate output formats (index.json, llm-full.txt)
         # These are essential for search functionality and must reflect current site state
         output_formats_config = self.site.config.get("output_formats", {})
-        if output_formats_config.get("enabled", True):
+        if output_formats_config.get("enabled", True) and task_enabled("output formats"):
             tasks.append(("output formats", lambda: self._generate_output_formats(build_context)))
 
         # OPTIMIZATION: For incremental builds, skip expensive post-processing
@@ -193,12 +199,12 @@ class PostprocessOrchestrator:
         # - Redirects: Regenerated on full builds (aliases rarely change)
 
         # Sitemap: Always regenerate for correctness (fast: ~10ms for 1K pages)
-        if self.site.config.get("generate_sitemap", True):
+        if self.site.config.get("generate_sitemap", True) and task_enabled("sitemap"):
             tasks.append(("sitemap", self._generate_sitemap))
 
         # robots.txt with Content-Signal directives (fast, always regenerated)
         cs_config = self.site.config.get("content_signals", {})
-        if cs_config.get("enabled", True):
+        if cs_config.get("enabled", True) and task_enabled("robots.txt"):
             tasks.append(("robots.txt", self._generate_robots_txt))
 
         social_cards_task = None
@@ -216,19 +222,20 @@ class PostprocessOrchestrator:
                 def run_social_cards() -> None:
                     self._generate_social_cards(build_context)
 
-                social_cards_task = run_social_cards
+                if task_enabled("social cards"):
+                    social_cards_task = run_social_cards
 
-            if self.site.config.get("generate_rss", True):
+            if self.site.config.get("generate_rss", True) and task_enabled("rss"):
                 tasks.append(("rss", self._generate_rss))
-            if self.site.config.get("generate_atom", False):
+            if self.site.config.get("generate_atom", False) and task_enabled("atom"):
                 tasks.append(("atom", self._generate_atom))
 
             redirects_config = self.site.config.get("redirects", {})
-            if redirects_config.get("generate_html", True):
+            if redirects_config.get("generate_html", True) and task_enabled("redirects"):
                 tasks.append(("redirects", self._generate_redirects))
 
             # Generate xref.json for cross-project linking (RFC: External References)
-            if should_export_xref_index(self.site):
+            if should_export_xref_index(self.site) and task_enabled("xref index"):
                 tasks.append(("xref index", self._generate_xref_index))
         else:
             # Incremental: skip expensive tasks for dev server responsiveness
