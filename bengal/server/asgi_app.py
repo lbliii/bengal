@@ -183,22 +183,17 @@ def create_bengal_preview_app(
     health_path: str = "/__bengal_pounce_health__",
 ) -> ASGIApp:
     """Create a production-like preview app for completed static output."""
-    from pounce._static import StaticFiles, StaticMount
+    from bengal.server.pounce_static import create_static_app_with_fallback
 
     output_root = output_dir.resolve()
     fallback = _create_preview_fallback_app(output_root=output_root, health_path=health_path)
-    return StaticFiles(
+    return create_static_app_with_fallback(
         fallback,
-        mounts=[
-            StaticMount(
-                url_path="/",
-                directory=output_root,
-                cache_control="no-cache, must-revalidate",
-                precompressed=True,
-                follow_symlinks=False,
-                index_file="index.html",
-            )
-        ],
+        mounts={"/": output_root},
+        cache_control="no-cache, must-revalidate",
+        precompressed=True,
+        follow_symlinks=False,
+        index_file="index.html",
     )
 
 
