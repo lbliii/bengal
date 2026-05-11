@@ -583,6 +583,14 @@ cli.lazy_command(
 )
 
 cli.lazy_command(
+    "preview",
+    import_path="bengal.cli.milo_commands.preview:preview",
+    description="Build and serve completed output",
+    annotations={"readOnlyHint": True},
+    display_result=False,
+)
+
+cli.lazy_command(
     "clean",
     import_path="bengal.cli.milo_commands.clean:clean",
     description="Clean output directory and cache",

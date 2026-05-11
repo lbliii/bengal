@@ -32,6 +32,7 @@ keywords:
 - `bengal/output/templates/` - Kida templates for terminal output
   - `build.py` - Build commands
   - `serve.py` - Development server
+  - `preview.py` - Build-then-static local preview
   - `check.py` - Author-facing validation checks
   - `audit.py` - Generated artifact audit
   - `clean.py` - Cleanup utilities
@@ -126,6 +127,15 @@ bengal serve --style ci
 
 # Verbose output (show file watch events)
 bengal serve --verbose
+
+# Build completely, then serve generated output read-only
+bengal preview
+
+# Preview with production environment settings
+bengal preview --environment production
+
+# Preview on a custom port without opening the browser
+bengal preview --port 8080 --no-open-browser
 ```
 
 **Inspection Commands**:
@@ -286,6 +296,7 @@ and runtime smoke coverage.
 ```text cli-command-inventory
 build
 serve
+preview
 clean
 check
 audit
@@ -367,6 +378,7 @@ Static site generator for Python teams — every layer pure Python, scales with 
 Core workflow
   build (b)               Build your site
   serve (s, dev)          Start dev server with hot reload
+  preview                  Build and serve completed output
   check (v)               Validate your site
 
 Site systems

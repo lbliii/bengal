@@ -372,6 +372,8 @@ class KidaTemplateEngine:
               fragment_ttl: 3600.0  # Fragment TTL seconds (default 1h for SSG)
               max_extends_depth: 50  # (optional) {% extends %} chain limit
               max_include_depth: 50  # (optional) {% include %}/{% embed %} limit
+              template_aliases:  # (optional) @alias/ template include roots
+                components: ui/components
 
         Note:
             Strict mode (raising UndefinedError for undefined variables) is
@@ -425,6 +427,8 @@ class KidaTemplateEngine:
             env_kwargs["max_extends_depth"] = kida_config["max_extends_depth"]
         if "max_include_depth" in kida_config:
             env_kwargs["max_include_depth"] = kida_config["max_include_depth"]
+        if "template_aliases" in kida_config:
+            env_kwargs["template_aliases"] = kida_config["template_aliases"]
 
         # Compile-time optimization (kida 0.4.1+)
         # Pass site config as static_context so the partial evaluator can fold
@@ -432,9 +436,8 @@ class KidaTemplateEngine:
         # The evaluator eliminates dead branches and resolves scalar constants,
         # reducing work on every page render.
         #
-        # Disabled by default — kida's partial evaluator loses loop variable
-        # bindings in complex templates when static_context is active (kida#78).
-        # Enable with kida.static_context: true once the fix lands.
+        # Opt-in until Bengal's default theme and docs benchmarks prove there is
+        # no semantic drift across the full template surface.
         static_context: dict[str, Any] | None = None
         if kida_config.get("static_context", False):
             static_context = {"config": site.config}
@@ -1211,6 +1214,67 @@ class KidaTemplateEngine:
                 )
 
         return errors
+
+    def validate_security(
+        self,
+        patterns: list[str] | None = None,
+    ) -> list[TemplateError]:
+        """Run Kida static escape and privacy analysis for templates.
+
+        This intentionally reports only warning/error findings, not every
+        escaped output site, so authors get actionable trust-boundary feedback
+        without a dump of normal autoescape facts.
+        """
+        from fnmatch import fnmatch
+
+        from kida.analysis import audit_escaping, lint_privacy
+
+        findings: list[TemplateError] = []
+
+        for name in self.list_templates():
+            if patterns and not any(fnmatch(name, p) for p in patterns):
+                continue
+
+            try:
+                template = self._env.get_template(name)
+            except KidaTemplateSyntaxError, KidaTemplateNotFoundError:
+                # Syntax validation reports compile failures. Static analysis
+                # only runs on templates Kida can parse.
+                continue
+            except Exception as e:
+                findings.append(
+                    TemplateError(
+                        template=name,
+                        message=f"Kida static analysis failed: {e}",
+                        error_type="kida_static_analysis",
+                        severity="error",
+                        original_exception=e,
+                    )
+                )
+                continue
+
+            raw_findings = [
+                *audit_escaping(template, include_output_sites=False),
+                *lint_privacy(template),
+            ]
+            for finding in raw_findings:
+                severity = getattr(finding, "severity", "warning")
+                if severity == "info":
+                    continue
+                findings.append(
+                    TemplateError(
+                        template=getattr(finding, "template_name", name) or name,
+                        message=getattr(finding, "message", str(finding)),
+                        line=getattr(finding, "lineno", None),
+                        column=getattr(finding, "col_offset", None),
+                        error_type=getattr(finding, "kind", "kida_static_analysis"),
+                        severity=severity,
+                        suggestion=getattr(finding, "suggestion", None),
+                        diagnostic_code=getattr(finding, "code", None),
+                    )
+                )
+
+        return findings
 
     # =========================================================================
     # ENGINE CAPABILITIES

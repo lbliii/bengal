@@ -2,6 +2,9 @@ version = 1
 revision = 3
 requires-python = ">=3.14"
 
+[manifest]
+overrides = [{ name = "kida-templates", specifier = ">=0.9.0" }]
+
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -205,13 +208,13 @@ requires-dist = [
     { name = "aiohttp", marker = "extra == 'github'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'notion'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'rest'", specifier = ">=3.9.0" },
-    { name = "bengal-pounce", specifier = ">=0.6.0" },
+    { name = "bengal-pounce", specifier = ">=0.7.0" },
     { name = "cachetools", marker = "extra == 'all-sources'", specifier = ">=5.0.0" },
     { name = "cachetools", marker = "extra == 'notion'", specifier = ">=5.0.0" },
     { name = "click", specifier = ">=8.1.7" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "jsmin", specifier = ">=3.0.1" },
-    { name = "kida-templates", specifier = ">=0.7.0" },
+    { name = "kida-templates", specifier = ">=0.9.0" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
     { name = "milo-cli", git = "https://github.com/lbliii/milo-cli.git?rev=36d64cf03c96186e3cf3da77fde4ea59e92f19a6" },
     { name = "packaging", specifier = ">=23.0" },
@@ -268,15 +271,15 @@ dev = [
 
 [[package]]
 name = "bengal-pounce"
-version = "0.6.0"
+version = "0.7.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "h11" },
     { name = "milo-cli" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a9/99/3bf019a9c1c4a0f710d897c72e669b2133cc3be7278b6d53d9548753cab8/bengal_pounce-0.6.0.tar.gz", hash = "sha256:3c5834a3ba7e5822f292661286e77ad7c651d80b34149a1dc02f653532acdde6", size = 181583, upload-time = "2026-04-14T00:27:59.006Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/60/d2/8e1e453bfd520a4af72e6f4bd3a55880cbf3a55fe22757148a47784673ac/bengal_pounce-0.7.0.tar.gz", hash = "sha256:421bd68013d0c51b0907c32585c6dccf9dd64d5e883479dc13098a090f5b8f35", size = 199187, upload-time = "2026-05-09T23:33:18.897Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b2/4e/b28ad5fcf2e6ef8152738e8982aadeeb24f81035521774a87af69d495c06/bengal_pounce-0.6.0-py3-none-any.whl", hash = "sha256:48a192de4b926aefd1f053aca25271c9b8e6e637e1e617e92b449aca8f72b5e9", size = 210857, upload-time = "2026-04-14T00:27:57.346Z" },
+    { url = "https://files.pythonhosted.org/packages/cf/33/3951fdd3959160907c01009d0630bd5ecb8d624f5b280529ae4f537a813e/bengal_pounce-0.7.0-py3-none-any.whl", hash = "sha256:625fe43a0046a1384304a6434dee5550964dc870bba2c252c955ecd1f73cf9f6", size = 230735, upload-time = "2026-05-09T23:33:17.288Z" },
 ]
 
 [[package]]
@@ -589,11 +592,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/5e/73/e01e4c5e11ad0494f
 
 [[package]]
 name = "kida-templates"
-version = "0.7.0"
+version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/7e/d0/261198d9c8667272ee87c2012fa42fea6628053e34c1ec7bf66ed147ece8/kida_templates-0.7.0.tar.gz", hash = "sha256:81fcbc167f9754e0fc503d46ea50b4e558f0da1c468bcf28b57f670152856f65", size = 570668, upload-time = "2026-04-20T21:40:22.864Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/17/36/814b5f445180d25bb80d77daeee63e4c7048aededa3eaea5239ad4cc7866/kida_templates-0.9.0.tar.gz", hash = "sha256:e2ba0a8dc887a8b2a2ca1c0e94f3c17665afda61ba619f372195f777af83f37e", size = 601273, upload-time = "2026-05-10T22:47:34.431Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/b6/fb/52359cf08ed6547f03be43958af2ebfd5df2bb65cda08e68dd3e6ab6f27b/kida_templates-0.7.0-py3-none-any.whl", hash = "sha256:b7b7e1061dbf21ba5ba296efcba40f003576c4428006ff4531fa5861e34dbc60", size = 400534, upload-time = "2026-04-20T21:40:20.927Z" },
+    { url = "https://files.pythonhosted.org/packages/75/bf/65b8bcfab2205f0df06b4ac7f9fc2ddd3fff049fa0a03fec1c181a1ada40/kida_templates-0.9.0-py3-none-any.whl", hash = "sha256:ad53aa98317f990159c23e5b40f1ba5733f0911e272d2398e3f424f0a59b623e", size = 417647, upload-time = "2026-05-10T22:47:32.633Z" },
 ]
 
 [[package]]

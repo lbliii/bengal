@@ -45,6 +45,7 @@ Bengal is a static site generator where the entire stack is Python you can read,
 |---------|-------------|
 | `bengal build` | Production build |
 | `bengal serve` | Dev server with live reload |
+| `bengal preview` | Build, then serve completed output locally |
 | `bengal check` | Health checks and validation |
 | `bengal fix` | Auto-fix common issues |
 | `bengal inspect graph` | Site structure analysis |
