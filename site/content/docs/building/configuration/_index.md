@@ -188,7 +188,34 @@ strict_mode = true
 
 :::{note}
 Template validation adds a small overhead to build time. For large sites, consider enabling it only in development and CI environments.
+
+For Kida templates, `bengal check --templates-security` runs Kida's static escape
+and privacy analysis. It reports trust-boundary warnings such as unexplained
+`| safe` use and sensitive-looking context paths without failing the check unless
+Kida reports an error-level finding.
+
+`bengal check --templates-context` also uses Kida's dotted-path context contract
+checker. It can catch missing nested context such as `page.title` while treating
+dynamic customization roots like `params.*` and `site.data.*` as author-provided
+data.
 :::
+
+### Kida Options
+
+Kida-specific options live under `[kida]` in `bengal.toml` or `kida:` in YAML
+config files. `template_aliases` maps `@alias/` prefixes to paths relative to
+the active template roots:
+
+```toml
+[kida]
+bytecode_cache = true
+static_context = false
+
+[kida.template_aliases]
+components = "ui/components"
+```
+
+Templates can then include shared files with `{% include "@components/card.html" %}`.
 
 ## Multi-Variant Builds
 

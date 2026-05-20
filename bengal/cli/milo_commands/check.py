@@ -151,6 +151,9 @@ def check(
     templates_context: Annotated[
         bool, Description("Validate template context (Kida only)")
     ] = False,
+    templates_security: Annotated[
+        bool, Description("Run static escape/privacy checks on templates (Kida only)")
+    ] = False,
     templates_pattern: Annotated[str, Description("Glob pattern for templates")] = "",
     fix: Annotated[bool, Description("Show migration hints for template errors")] = False,
     focus: Annotated[str, Description("Show one health finding by code, e.g. H101-001")] = "",
@@ -221,8 +224,16 @@ def check(
 
         cli.success(f"Loaded {len(site.pages)} pages")
 
-        if templates or templates_context:
-            _validate_templates(site, templates_pattern_val, fix, cli, templates, templates_context)
+        if templates or templates_context or templates_security:
+            _validate_templates(
+                site,
+                templates_pattern_val,
+                fix,
+                cli,
+                templates,
+                templates_context,
+                templates_security,
+            )
             return {"status": "ok", "message": "Template validation complete"}
 
         context: list[Path] | None = None
@@ -413,7 +424,15 @@ def _run_watch_mode(site, build_profile, verbose, suggestions, incremental, cli)
         signal_handler(signal.SIGINT, None)
 
 
-def _validate_templates(site, pattern, show_hints, cli, templates, validate_context):
+def _validate_templates(
+    site,
+    pattern,
+    show_hints,
+    cli,
+    templates,
+    validate_context,
+    validate_security,
+):
     """Validate template syntax and context."""
     from fnmatch import fnmatch
 
@@ -438,6 +457,12 @@ def _validate_templates(site, pattern, show_hints, cli, templates, validate_cont
         context_errors = validate_template_contexts(engine, site, template_names)
         errors.extend(context_errors_to_template_errors(context_errors))
 
+    if validate_security:
+        if hasattr(engine, "validate_security"):
+            errors.extend(engine.validate_security(patterns))
+        else:
+            cli.info("Template security analysis is only available for Kida templates.")
+
     if not errors:
         cli.render_write(
             "validation_report.kida",
@@ -449,6 +474,9 @@ def _validate_templates(site, pattern, show_hints, cli, templates, validate_cont
     issues = []
     for error in errors:
         detail_parts = [f"Template: {error.template}"]
+        diagnostic_code = getattr(error, "diagnostic_code", None)
+        if diagnostic_code:
+            detail_parts.append(diagnostic_code)
         if error.line:
             detail_parts.append(f"Line {error.line}: {error.message}")
         else:
@@ -457,16 +485,22 @@ def _validate_templates(site, pattern, show_hints, cli, templates, validate_cont
             suggestion = getattr(error, "suggestion", None)
             if suggestion:
                 detail_parts.append(f"Hint: {suggestion}")
+        level = "warning" if getattr(error, "severity", "error") == "warning" else "error"
         issues.append(
-            {"level": "error", "message": error.template, "detail": " — ".join(detail_parts[1:])}
+            {"level": level, "message": error.template, "detail": " — ".join(detail_parts[1:])}
         )
 
+    error_count = sum(1 for issue in issues if issue["level"] == "error")
+    warning_count = sum(1 for issue in issues if issue["level"] == "warning")
     cli.render_write(
         "validation_report.kida",
         title="Template Validation",
         issues=issues,
-        summary={"errors": len(errors), "warnings": 0, "passed": 0},
+        summary={"errors": error_count, "warnings": warning_count, "passed": 0},
     )
-    cli.error(f"Template validation failed: {len(errors)} error(s)")
-    cli.tip("See the validation report above — each issue includes a suggestion for how to fix it.")
-    raise SystemExit(1)
+    if error_count:
+        cli.error(f"Template validation failed: {error_count} error(s)")
+        cli.tip(
+            "See the validation report above — each issue includes a suggestion for how to fix it."
+        )
+        raise SystemExit(1)

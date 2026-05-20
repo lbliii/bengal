@@ -96,6 +96,16 @@ def test_leaf_help_uses_bengal_kida_command_template():
     assert "options:" not in result.output
 
 
+def test_check_help_exposes_kida_security_analysis_flag():
+    """Template security checks should be discoverable from check help."""
+    from bengal.cli.milo_app import cli
+
+    result = cli.invoke(["check", "--help"])
+
+    assert result.exit_code == 0
+    assert "--templates-security" in result.output
+
+
 def test_every_registered_leaf_help_uses_bengal_kida_template():
     """Every registered command should get branded Kida help."""
     from bengal.cli.milo_app import cli

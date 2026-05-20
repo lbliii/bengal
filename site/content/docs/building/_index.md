@@ -67,6 +67,9 @@ flowchart LR
 # Development server with live reload
 bengal serve                # or: bengal s
 
+# Build, then preview completed output with static serving semantics
+bengal preview
+
 # Production build (recommended for deployment)
 bengal build --environment production --strict
 
@@ -74,8 +77,19 @@ bengal build --environment production --strict
 bengal build --fast --environment production
 
 # Validate content before building
-bengal validate             # or: bengal v
+bengal check                # or: bengal v
 
 # Clean cache and rebuild from scratch
 bengal clean --cache && bengal build
 ```
+
+`bengal serve` keeps HTML, markdown negotiation, custom 404 pages, and live
+reload under Bengal's dev-server path. Static assets such as CSS, JavaScript,
+images, fonts, media, PDFs, and WebAssembly are served through Pounce's static
+file handler, so browsers get ETags, `304 Not Modified` revalidation, byte-range
+responses, and precompressed `.gz`/`.zst` variants when those files exist.
+
+`bengal preview` runs a complete build first and then serves the generated
+output directory read-only through Pounce static handling. It does not watch
+files, inject live reload, rewrite local development URLs, or serve pending
+generated artifacts; it is the local check for what a static host will receive.

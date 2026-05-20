@@ -259,6 +259,85 @@ def test_serve_conflict_uses_cli_output_not_argparse(capsys):
     assert "usage:" not in output
 
 
+def test_preview_conflict_uses_cli_output_not_argparse(capsys):
+    """Preview preflight conflicts should render through CLIOutput before site loading."""
+    from bengal.cli.milo_commands.preview import preview
+    from bengal.output import reset_cli_output
+
+    reset_cli_output()
+    with pytest.raises(SystemExit) as exc:
+        preview(verbose=True, debug=True)
+    reset_cli_output()
+
+    assert exc.value.code == 2
+    output = capsys.readouterr().out
+    assert "--verbose and --debug cannot be used together" in output
+    assert "Pick one" in output
+    assert "usage:" not in output
+
+
+def test_preview_builds_complete_then_starts_server(monkeypatch, tmp_path):
+    """Preview runs a complete build before starting the static preview server."""
+    from bengal.cli.milo_commands.preview import preview
+    from bengal.orchestration.build.options import BuildCompletionPolicy
+    from bengal.output import reset_cli_output
+
+    site = SimpleNamespace(config={}, output_dir=tmp_path)
+    loaded = {}
+    built = []
+    started = []
+
+    class FakeSiteRunner:
+        def __init__(self, runner_site):
+            self.site = runner_site
+
+        def build(self, options):
+            built.append(options)
+            return SimpleNamespace(total_pages=1, build_time_ms=1)
+
+    class FakePreviewServer:
+        def __init__(self, server_site, **kwargs):
+            started.append((server_site, kwargs))
+
+        def start(self):
+            return None
+
+    def fake_load_site_from_cli(**kwargs):
+        loaded.update(kwargs)
+        return site
+
+    reset_cli_output()
+    monkeypatch.setattr("bengal.cli.utils.load_site_from_cli", fake_load_site_from_cli)
+    monkeypatch.setattr("bengal.orchestration.site_runner.SiteRunner", FakeSiteRunner)
+    monkeypatch.setattr("bengal.server.preview_server.PreviewServer", FakePreviewServer)
+    monkeypatch.setattr("bengal.orchestration.stats.show_building_indicator", lambda *a, **k: None)
+    monkeypatch.setattr("bengal.orchestration.stats.display_build_stats", lambda *a, **k: None)
+
+    result = preview(
+        source=str(tmp_path),
+        port=9999,
+        open_browser=False,
+        style="ci",
+    )
+    reset_cli_output()
+
+    assert result["status"] == "ok"
+    assert loaded["environment"] == "preview"
+    assert built[0].completion_policy is BuildCompletionPolicy.COMPLETE
+    assert built[0].strict is True
+    assert started == [
+        (
+            site,
+            {
+                "host": "localhost",
+                "port": 9999,
+                "auto_port": True,
+                "open_browser": False,
+            },
+        )
+    ]
+
+
 def test_fix_noop_branch_uses_cli_output(monkeypatch, tmp_path, capsys):
     """Fix should report no-op states through Bengal output helpers."""
     from bengal.cli.milo_commands.fix import fix

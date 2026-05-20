@@ -53,6 +53,45 @@ def make_kida_engine(mock_site: MagicMock):
         return KidaTemplateEngine(mock_site)
 
 
+class TestKidaConfiguration:
+    """Kida-specific engine configuration."""
+
+    def test_static_context_opt_in_passes_site_config_to_kida(self) -> None:
+        """kida.static_context enables Kida's compile-time config folding."""
+        mock_site = make_mock_site()
+        mock_site.config["kida"]["static_context"] = True
+
+        with (
+            patch("bengal.rendering.engines.kida.FileSystemLoader"),
+            patch("bengal.rendering.engines.kida.Environment") as environment,
+        ):
+            from bengal.rendering.engines.kida import KidaTemplateEngine
+
+            KidaTemplateEngine(mock_site)
+
+        assert environment.call_args.kwargs["static_context"] == {"config": mock_site.config}
+
+    def test_template_aliases_config_resolves_at_alias_includes(self, tmp_path: Path) -> None:
+        """kida.template_aliases exposes Kida's @alias/ include roots."""
+        templates = tmp_path / "templates"
+        components = templates / "ui" / "components"
+        components.mkdir(parents=True)
+        (templates / "page.html").write_text(
+            '{% include "@components/card.html" %}',
+            encoding="utf-8",
+        )
+        (components / "card.html").write_text("CARD", encoding="utf-8")
+        site = make_mock_site(root_path=tmp_path)
+        site.theme = ""
+        site.config["kida"]["template_aliases"] = {"components": "ui/components"}
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+
+        assert engine.render_template("page.html", {}) == "CARD"
+
+
 class TestEngineCommonInterface:
     """Test that the Kida engine implements the required interface."""
 
@@ -90,6 +129,28 @@ class TestEngineCommonInterface:
         engine = make_kida_engine(mock_site)
         assert hasattr(engine, "list_templates")
         assert callable(engine.list_templates)
+
+    def test_validate_security_reports_kida_static_findings(self, tmp_path: Path) -> None:
+        """Kida 0.9 static analysis should surface trust-boundary warnings."""
+        templates = tmp_path / "templates"
+        templates.mkdir()
+        (templates / "page.html").write_text(
+            "{{ user.password | safe }}",
+            encoding="utf-8",
+        )
+        site = make_mock_site(root_path=tmp_path)
+        site.theme = ""
+
+        from bengal.rendering.engines.kida import KidaTemplateEngine
+
+        engine = KidaTemplateEngine(site)
+        findings = engine.validate_security(["page.html"])
+
+        codes = {finding.diagnostic_code for finding in findings}
+        assert "K-ESC-002" in codes
+        assert "K-PRI-001" in codes
+        assert all(finding.severity == "warning" for finding in findings)
+        assert any("safe" in (finding.suggestion or "") for finding in findings)
 
 
 class TestEngineMenuCache:

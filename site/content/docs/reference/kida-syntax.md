@@ -263,6 +263,15 @@ Make a variable from an inner scope available to the outer scope:
 {% include "partials/footer.html" with context %}
 ```
 
+Includes and extends can be relative to the current template with `./` and
+`../`. Bengal can also expose Kida `@alias/` roots with `kida.template_aliases`:
+
+```kida
+{% include "./card.html" %}
+{% include "../shared/sidebar.html" %}
+{% include "@components/button.html" %}
+```
+
 ### Imports
 
 ```kida
@@ -868,11 +877,16 @@ Kida is Bengal's default template engine. Configure in `bengal.toml` or `config/
 ```yaml
 kida:
   bytecode_cache: true      # Persistent compiled template cache (default)
+  static_context: false     # Opt-in compile-time folding for config.* branches
+  template_aliases:         # Optional @alias/ include roots
+    components: ui/components
 ```
 
-| Option            | Default | Description                         |
-|-------------------|---------|-------------------------------------|
-| `bytecode_cache`  | `true`  | Cache compiled templates to disk    |
+| Option             | Default | Description                                            |
+|--------------------|---------|--------------------------------------------------------|
+| `bytecode_cache`   | `true`  | Cache compiled templates to disk                       |
+| `static_context`   | `false` | Fold constant `config.*` expressions at compile time   |
+| `template_aliases` | unset   | Map `@alias/` prefixes to template-root-relative paths |
 
 **Switching template engines**:
 

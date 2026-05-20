@@ -93,6 +93,7 @@ CLI_SMOKE_CASES = [
 
 CLI_SMOKE_EXEMPTIONS = {
     "serve": "starts a long-running development server; server smoke tests own lifecycle checks",
+    "preview": "starts a long-running static server after build; preview server tests own lifecycle checks",
     "upgrade": "checks PyPI and can run an installer; release tests cover installed-wheel startup",
     "theme.install": "installs packages from PyPI; networked installer behavior needs a dedicated test",
 }

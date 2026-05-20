@@ -100,3 +100,34 @@ def create_pounce_backend(
     )
     server = Server(config, app)
     return PounceBackend(server, port)
+
+
+def create_pounce_preview_backend(
+    host: str,
+    port: int,
+    output_dir: Path,
+) -> PounceBackend:
+    """
+    Create a PounceBackend for production-like static preview serving.
+
+    Preview serving has no live reload or build-aware routing: the completed
+    output directory is mounted as a Pounce static root and Bengal only handles
+    fallback responses such as custom 404 pages.
+    """
+    from pounce import ServerConfig
+    from pounce.server import Server
+
+    from bengal.server.asgi_app import create_bengal_preview_app
+
+    app = create_bengal_preview_app(output_dir=output_dir)
+    config = ServerConfig(
+        host=host,
+        port=port,
+        access_log=True,
+        compression=True,
+        debug=False,
+        health_check_path="/__bengal_pounce_health__",
+        shutdown_timeout=5.0,
+    )
+    server = Server(config, app)
+    return PounceBackend(server, port)
