@@ -166,6 +166,10 @@ If your docs live in a subdirectory such as `site/`, run `bengal build
 root. Bengal discovers the site subdirectory for each worktree and writes output
 under that site's configured `output_dir`.
 
+Bengal's own docs site uses this mode: the live docs are built from `main`, and
+the previous docs are selected automatically from the newest stable release
+tags.
+
 ### Full Configuration Reference
 
 ```yaml
