@@ -71,3 +71,24 @@ def test_git_latest_config_accepts_branch_shorthand() -> None:
     assert config.git_config.previous.source == "tags"
     assert config.git_config.previous.count == 2
     assert config.git_config.previous.pattern == "v*"
+
+
+def test_git_previous_config_accepts_release_tag_source_alias() -> None:
+    config = VersionConfig.from_config(
+        {
+            "versioning": {
+                "enabled": True,
+                "mode": "git",
+                "git": {
+                    "previous": {
+                        "source": "releases/tags",
+                        "count": 3,
+                    },
+                },
+            }
+        }
+    )
+
+    assert config.git_config is not None
+    assert config.git_config.previous is not None
+    assert config.git_config.previous.source == "tags"

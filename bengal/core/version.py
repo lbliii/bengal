@@ -157,6 +157,11 @@ class GitBranchPattern:
 
 GitPreviousSource = Literal["tags"]
 GitPreviousSort = Literal["semver-desc", "name-desc"]
+GIT_PREVIOUS_SOURCE_ALIASES: dict[str, GitPreviousSource] = {
+    "tags": "tags",
+    "git-tags": "tags",
+    "releases/tags": "tags",
+}
 
 
 @dataclass
@@ -191,12 +196,22 @@ class GitPreviousConfig:
 
     """
 
-    source: GitPreviousSource = "tags"
+    source: str = "tags"
     count: int = 0
     pattern: str = "v*"
     strip_prefix: str = "v"
     sort: GitPreviousSort = "semver-desc"
     include_prereleases: bool = False
+
+    def __post_init__(self) -> None:
+        """Normalize accepted source aliases to the internal source id."""
+        normalized = GIT_PREVIOUS_SOURCE_ALIASES.get(self.source)
+        if normalized is None:
+            expected = ", ".join(sorted(GIT_PREVIOUS_SOURCE_ALIASES))
+            raise ValueError(
+                f"Unsupported git previous source {self.source!r}. Expected one of: {expected}."
+            )
+        self.source = normalized
 
 
 @dataclass
