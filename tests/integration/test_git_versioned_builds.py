@@ -69,10 +69,10 @@ versioning:
     _write(site_root / "content" / "docs" / "_index.md", "---\ntitle: Docs\n---\n# Docs\n")
 
 
-def _write_auto_tag_versioning(site_root: Path) -> None:
+def _write_auto_tag_versioning(site_root: Path, *, count: int = 2) -> None:
     _write(
         site_root / "config" / "_default" / "versioning.yaml",
-        """
+        f"""
 versioning:
   enabled: true
   mode: git
@@ -85,7 +85,7 @@ versioning:
       label: Latest
     previous:
       source: tags
-      count: 2
+      count: {count}
       pattern: "v*"
       strip_prefix: "v"
       sort: semver-desc
@@ -216,6 +216,24 @@ def test_git_auto_previous_tags_build_latest_and_recent_tag_paths(tmp_path: Path
     assert '"version": "0.3.1"' in versions_json
     assert '"version": "0.3.0"' not in versions_json
     assert '"version": "0.4.0-rc.1"' not in versions_json
+
+
+def test_git_all_versions_prunes_unselected_version_outputs(tmp_path: Path) -> None:
+    site_root = _make_git_tag_versioned_site(tmp_path)
+    _write_auto_tag_versioning(site_root, count=3)
+
+    first = run_cli(["build", "--all-versions", "--quiet"], cwd=str(site_root), timeout=120)
+    first.assert_ok()
+    public = site_root / "public"
+    assert (public / "docs" / "0.3.0" / "guide" / "index.html").exists()
+
+    _write_auto_tag_versioning(site_root, count=2)
+    second = run_cli(["build", "--all-versions", "--quiet"], cwd=str(site_root), timeout=120)
+
+    second.assert_ok()
+    assert (public / "docs" / "0.3.2" / "guide" / "index.html").exists()
+    assert (public / "docs" / "0.3.1" / "guide" / "index.html").exists()
+    assert not (public / "docs" / "0.3.0").exists()
 
 
 def test_git_specific_version_build_outputs_only_requested_version(tmp_path: Path) -> None:
