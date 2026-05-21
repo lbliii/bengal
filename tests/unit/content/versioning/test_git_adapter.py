@@ -6,7 +6,7 @@ import subprocess
 from typing import TYPE_CHECKING
 
 from bengal.content.versioning.git_adapter import GitVersionAdapter
-from bengal.core.version import GitVersionConfig
+from bengal.core.version import GitLatestConfig, GitPreviousConfig, GitVersionConfig
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -66,3 +66,57 @@ def test_detects_ref_at_current_checkout(tmp_path: Path) -> None:
 
     assert adapter.is_ref_current_checkout("main") is True
     assert adapter.is_ref_current_checkout("release/v1") is False
+
+
+def test_discovers_latest_branch_and_previous_semver_tags(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path)
+    _run_git(repo, "checkout", "main")
+
+    for version in ("0.3.0", "0.3.1", "0.3.2", "0.4.0-rc.1"):
+        _write(repo / "content" / "docs" / "guide.md", f"# {version}\n")
+        _run_git(repo, "add", "content/docs/guide.md")
+        _run_git(repo, "commit", "-m", f"{version} docs")
+        _run_git(repo, "tag", f"v{version}")
+
+    adapter = GitVersionAdapter(
+        repo,
+        GitVersionConfig(
+            latest=GitLatestConfig(branch="main", id="main", label="Latest"),
+            previous=GitPreviousConfig(count=2, pattern="v*", strip_prefix="v"),
+        ),
+    )
+
+    versions = adapter.discover_versions()
+
+    assert [version.id for version in versions] == ["main", "0.3.2", "0.3.1"]
+    assert versions[0].latest is True
+    assert versions[0].source == "git:main"
+    assert versions[1].source == "git:v0.3.2"
+
+
+def test_previous_tags_can_include_prereleases(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path)
+    _run_git(repo, "checkout", "main")
+
+    for version in ("0.3.0", "0.4.0-rc.1"):
+        _write(repo / "content" / "docs" / "guide.md", f"# {version}\n")
+        _run_git(repo, "add", "content/docs/guide.md")
+        _run_git(repo, "commit", "-m", f"{version} docs")
+        _run_git(repo, "tag", f"v{version}")
+
+    adapter = GitVersionAdapter(
+        repo,
+        GitVersionConfig(
+            latest=GitLatestConfig(branch="main", id="main"),
+            previous=GitPreviousConfig(
+                count=1,
+                pattern="v*",
+                strip_prefix="v",
+                include_prereleases=True,
+            ),
+        ),
+    )
+
+    versions = adapter.discover_versions()
+
+    assert [version.id for version in versions] == ["main", "0.4.0-rc.1"]

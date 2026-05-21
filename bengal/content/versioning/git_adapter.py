@@ -46,6 +46,7 @@ Example:
 
 from __future__ import annotations
 
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -59,6 +60,14 @@ if TYPE_CHECKING:
     from bengal.core.version import GitVersionConfig, Version
 
 logger = get_logger(__name__)
+
+_SEMVER_RE = re.compile(
+    r"^(?P<major>0|[1-9]\d*)"
+    r"(?:\.(?P<minor>0|[1-9]\d*))?"
+    r"(?:\.(?P<patch>0|[1-9]\d*))?"
+    r"(?:-(?P<prerelease>[0-9A-Za-z.-]+))?"
+    r"(?:\+[0-9A-Za-z.-]+)?$"
+)
 
 
 @dataclass
@@ -170,6 +179,7 @@ class GitVersionAdapter:
         from bengal.core.version import Version
 
         versions: list[Version] = []
+        seen_ids: set[str] = set()
         refs = self._get_refs()
 
         # Match branches
@@ -179,20 +189,18 @@ class GitVersionAdapter:
                     continue
                 if pattern.matches(ref.short_name):
                     version_id = pattern.extract_version_id(ref.short_name)
-                    versions.append(
+                    if not self._append_version(
+                        versions,
+                        seen_ids,
                         Version(
                             id=version_id,
                             source=f"git:{ref.short_name}",
                             label=version_id,
                             latest=pattern.latest,
-                        )
-                    )
-                    logger.debug(
-                        "git_version_discovered",
-                        version_id=version_id,
-                        ref=ref.short_name,
-                        type="branch",
-                    )
+                        ),
+                    ):
+                        continue
+                    self._log_discovered(version_id, ref, type_="branch")
 
         # Match tags
         for pattern in self.config.tags:
@@ -201,23 +209,23 @@ class GitVersionAdapter:
                     continue
                 if pattern.matches(ref.short_name):
                     version_id = pattern.extract_version_id(ref.short_name)
-                    versions.append(
+                    if not self._append_version(
+                        versions,
+                        seen_ids,
                         Version(
                             id=version_id,
                             source=f"git:{ref.short_name}",
                             label=version_id,
                             latest=pattern.latest,
-                        )
-                    )
-                    logger.debug(
-                        "git_version_discovered",
-                        version_id=version_id,
-                        ref=ref.short_name,
-                        type="tag",
-                    )
+                        ),
+                    ):
+                        continue
+                    self._log_discovered(version_id, ref, type_="tag")
 
-        # Sort by version ID (reverse for semantic versioning)
-        versions.sort(key=lambda v: v.id, reverse=True)
+        self._discover_latest(versions, seen_ids, refs)
+        self._discover_previous(versions, seen_ids, refs)
+
+        versions.sort(key=self._version_sort_key)
 
         logger.info(
             "git_versions_discovered",
@@ -226,6 +234,178 @@ class GitVersionAdapter:
         )
 
         return versions
+
+    def _append_version(
+        self,
+        versions: list[Version],
+        seen_ids: set[str],
+        version: Version,
+    ) -> bool:
+        if version.id in seen_ids:
+            logger.debug(
+                "git_version_duplicate_skipped", version_id=version.id, source=version.source
+            )
+            return False
+        versions.append(version)
+        seen_ids.add(version.id)
+        return True
+
+    def _discover_latest(
+        self,
+        versions: list[Version],
+        seen_ids: set[str],
+        refs: list[GitRef],
+    ) -> None:
+        latest = self.config.latest
+        if latest is None:
+            return
+
+        from bengal.core.version import Version
+
+        ref = self._find_ref(refs, latest.branch, ref_type="branch")
+        if ref is None:
+            logger.warning("git_latest_ref_not_found", branch=latest.branch)
+            return
+
+        version_id = latest.id or latest.branch
+        if not self._append_version(
+            versions,
+            seen_ids,
+            Version(
+                id=version_id,
+                source=f"git:{ref.short_name}",
+                label=latest.label or version_id,
+                latest=True,
+            ),
+        ):
+            return
+        self._log_discovered(version_id, ref, type_="latest")
+
+    def _discover_previous(
+        self,
+        versions: list[Version],
+        seen_ids: set[str],
+        refs: list[GitRef],
+    ) -> None:
+        previous = self.config.previous
+        if previous is None or previous.count <= 0:
+            return
+        if previous.source != "tags":
+            logger.warning("git_previous_source_unsupported", source=previous.source)
+            return
+
+        from bengal.core.version import Version
+
+        candidates = []
+        for ref in refs:
+            if ref.ref_type != "tag":
+                continue
+            if not self._matches_glob(ref.short_name, previous.pattern):
+                continue
+
+            version_id = self._strip_prefix(ref.short_name, previous.strip_prefix)
+            semver_key = self._parse_semver(version_id)
+            if previous.sort == "semver-desc":
+                if semver_key is None:
+                    logger.debug(
+                        "git_previous_tag_skipped",
+                        tag=ref.short_name,
+                        reason="not_semver",
+                    )
+                    continue
+                if semver_key[3] and not previous.include_prereleases:
+                    logger.debug(
+                        "git_previous_tag_skipped",
+                        tag=ref.short_name,
+                        reason="prerelease",
+                    )
+                    continue
+            candidates.append((ref, version_id, semver_key))
+
+        if previous.sort == "semver-desc":
+            candidates.sort(
+                key=lambda candidate: (
+                    (
+                        candidate[2][0],
+                        candidate[2][1],
+                        candidate[2][2],
+                        candidate[2][3] == "",
+                        candidate[2][3],
+                    )
+                    if candidate[2] is not None
+                    else (-1, -1, -1, False, "")
+                ),
+                reverse=True,
+            )
+        else:
+            candidates.sort(key=lambda candidate: candidate[0].short_name, reverse=True)
+
+        selected_count = 0
+        for ref, version_id, _semver_key in candidates:
+            if selected_count >= previous.count:
+                break
+            if not self._append_version(
+                versions,
+                seen_ids,
+                Version(
+                    id=version_id,
+                    source=f"git:{ref.short_name}",
+                    label=version_id,
+                ),
+            ):
+                continue
+            selected_count += 1
+            self._log_discovered(version_id, ref, type_="previous")
+
+    def _log_discovered(self, version_id: str, ref: GitRef, *, type_: str) -> None:
+        logger.debug(
+            "git_version_discovered",
+            version_id=version_id,
+            ref=ref.short_name,
+            type=type_,
+        )
+
+    def _find_ref(self, refs: list[GitRef], name: str, *, ref_type: str) -> GitRef | None:
+        for ref in refs:
+            if ref.ref_type == ref_type and ref.short_name == name:
+                return ref
+        return None
+
+    def _matches_glob(self, value: str, pattern: str) -> bool:
+        import fnmatch
+
+        return fnmatch.fnmatch(value, pattern)
+
+    def _strip_prefix(self, value: str, prefix: str) -> str:
+        if prefix and value.startswith(prefix):
+            return value[len(prefix) :]
+        return value
+
+    def _parse_semver(self, version_id: str) -> tuple[int, int, int, str] | None:
+        if version_id.startswith(("v", "V")):
+            version_id = version_id[1:]
+        match = _SEMVER_RE.match(version_id)
+        if match is None:
+            return None
+        return (
+            int(match.group("major")),
+            int(match.group("minor") or 0),
+            int(match.group("patch") or 0),
+            match.group("prerelease") or "",
+        )
+
+    def _version_sort_key(self, version: Version) -> tuple[int, int, int, int, str, str]:
+        semver_key = self._parse_semver(version.id)
+        if semver_key is None:
+            return (0 if version.latest else 1, -1, -1, -1, "", version.id)
+        return (
+            0 if version.latest else 1,
+            -semver_key[0],
+            -semver_key[1],
+            -semver_key[2],
+            semver_key[3],
+            version.id,
+        )
 
     def get_or_create_worktree(self, version_id: str, ref: str) -> GitWorktree:
         """
