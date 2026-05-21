@@ -185,6 +185,36 @@ def _make_git_tag_versioned_site(tmp_path: Path) -> Path:
     return site_root
 
 
+def _make_git_tag_versioned_repo_with_site_subdir(tmp_path: Path) -> Path:
+    repo_root = tmp_path / "git-tag-versioned-repo"
+    site_root = repo_root / "site"
+    site_root.mkdir(parents=True)
+    _write_site(site_root)
+    _write_auto_tag_versioning(site_root)
+    _write_docs_page(site_root, "0.3.0")
+
+    _run_git(repo_root, "init", "-b", "main")
+    _run_git(repo_root, "config", "user.email", "bengal-test@example.test")
+    _run_git(repo_root, "config", "user.name", "Bengal Test")
+    _run_git(repo_root, "config", "commit.gpgsign", "false")
+    _run_git(repo_root, "add", ".")
+    _run_git(repo_root, "commit", "-m", "0.3.0 docs")
+    _run_git(repo_root, "tag", "v0.3.0")
+
+    _write_docs_page(site_root, "0.3.1")
+    _write_disabled_versioning(site_root)
+    _run_git(repo_root, "add", ".")
+    _run_git(repo_root, "commit", "-m", "0.3.1 docs")
+    _run_git(repo_root, "tag", "v0.3.1")
+
+    _write_docs_page(site_root, "main")
+    _write_auto_tag_versioning(site_root, count=1)
+    _run_git(repo_root, "add", ".")
+    _run_git(repo_root, "commit", "-m", "main docs")
+
+    return repo_root
+
+
 def test_git_all_versions_build_outputs_canonical_version_paths(tmp_path: Path) -> None:
     site_root = _make_git_versioned_site(tmp_path)
 
@@ -220,6 +250,18 @@ def test_git_auto_previous_tags_build_latest_and_recent_tag_paths(tmp_path: Path
     guide_page = (public / "docs" / "guide" / "index.html").read_text(encoding="utf-8")
     assert 'class="version-selector"' in docs_index
     assert 'class="version-selector"' in guide_page
+
+
+def test_git_auto_previous_tags_builds_when_site_is_subdirectory(tmp_path: Path) -> None:
+    repo_root = _make_git_tag_versioned_repo_with_site_subdir(tmp_path)
+
+    result = run_cli(["build", "--all-versions", "--quiet"], cwd=str(repo_root), timeout=120)
+
+    result.assert_ok()
+    public = repo_root / "site" / "public"
+    assert (public / "docs" / "guide" / "index.html").exists()
+    assert (public / "docs" / "0.3.1" / "guide" / "index.html").exists()
+    assert not (repo_root / "public").exists()
 
 
 def test_git_all_versions_prunes_unselected_version_outputs(tmp_path: Path) -> None:
