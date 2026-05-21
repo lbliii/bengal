@@ -731,7 +731,7 @@ def _merge_staged_version_output(*, source_dir, root_output_dir, sections, versi
 
     assets_source = source_dir / "assets"
     if assets_source.exists():
-        _copy_tree_atomic(assets_source, root_output_dir / "assets")
+        _copy_tree_atomic(assets_source, root_output_dir / "assets", overwrite=False)
 
 
 def _prune_unselected_version_outputs(
@@ -825,7 +825,7 @@ def _is_safe_version_segment(version_id: str) -> bool:
     )
 
 
-def _copy_tree_atomic(source_dir, target_dir) -> None:
+def _copy_tree_atomic(source_dir, target_dir, *, overwrite: bool = True) -> None:
     """Copy generated files with atomic file replacement."""
     from bengal.utils.io.atomic_write import atomic_write_bytes
 
@@ -834,6 +834,8 @@ def _copy_tree_atomic(source_dir, target_dir) -> None:
             continue
         rel_path = source_path.relative_to(source_dir)
         target_path = target_dir / rel_path
+        if target_path.exists() and not overwrite:
+            continue
         mode = source_path.stat().st_mode & 0o777
         atomic_write_bytes(target_path, source_path.read_bytes(), mode=mode)
 

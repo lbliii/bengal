@@ -6,7 +6,12 @@ import subprocess
 from typing import TYPE_CHECKING
 
 from bengal.content.versioning.git_adapter import GitVersionAdapter
-from bengal.core.version import GitLatestConfig, GitPreviousConfig, GitVersionConfig
+from bengal.core.version import (
+    GitBranchPattern,
+    GitLatestConfig,
+    GitPreviousConfig,
+    GitVersionConfig,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -92,6 +97,27 @@ def test_discovers_latest_branch_and_previous_semver_tags(tmp_path: Path) -> Non
     assert versions[0].latest is True
     assert versions[0].source == "git:main"
     assert versions[1].source == "git:v0.3.2"
+
+
+def test_latest_config_overrides_duplicate_branch_pattern(tmp_path: Path) -> None:
+    repo = _make_repo(tmp_path)
+
+    adapter = GitVersionAdapter(
+        repo,
+        GitVersionConfig(
+            latest=GitLatestConfig(branch="main", id="main", label="Latest"),
+            branches=[
+                GitBranchPattern(name="main", latest=False),
+            ],
+        ),
+    )
+
+    versions = adapter.discover_versions()
+
+    assert [version.id for version in versions] == ["main"]
+    assert versions[0].latest is True
+    assert versions[0].label == "Latest"
+    assert versions[0].source == "git:main"
 
 
 def test_previous_tags_can_include_prereleases(tmp_path: Path) -> None:

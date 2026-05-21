@@ -250,6 +250,25 @@ class GitVersionAdapter:
         seen_ids.add(version.id)
         return True
 
+    def _replace_version(
+        self,
+        versions: list[Version],
+        seen_ids: set[str],
+        version: Version,
+    ) -> None:
+        for index, existing in enumerate(versions):
+            if existing.id == version.id:
+                versions[index] = version
+                seen_ids.add(version.id)
+                logger.debug(
+                    "git_version_duplicate_replaced",
+                    version_id=version.id,
+                    source=version.source,
+                )
+                return
+        versions.append(version)
+        seen_ids.add(version.id)
+
     def _discover_latest(
         self,
         versions: list[Version],
@@ -268,7 +287,7 @@ class GitVersionAdapter:
             return
 
         version_id = latest.id or latest.branch
-        if not self._append_version(
+        self._replace_version(
             versions,
             seen_ids,
             Version(
@@ -277,8 +296,7 @@ class GitVersionAdapter:
                 label=latest.label or version_id,
                 latest=True,
             ),
-        ):
-            return
+        )
         self._log_discovered(version_id, ref, type_="latest")
 
     def _discover_previous(

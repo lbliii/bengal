@@ -30,7 +30,7 @@ engine (Jinja2, Mako, or BYORenderer). No global function dependency.
 #}
 {% set
     is_autodoc = is_autodoc_page(page) if is_autodoc_page else false,
-    page_is_versioned = page.version is not none
+    page_is_versioned = page?.version is not none
 %}
 {% if versioning_enabled and versions | length > 1 and page_is_versioned and not is_autodoc %}
 <div class="version-selector">
