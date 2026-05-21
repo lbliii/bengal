@@ -15,9 +15,16 @@ Bengal supports **versioned documentation**, allowing you to maintain multiple v
 - **Enterprise support**: Some users stay on LTS versions for years
 - **Migration guides**: Link between versions to help users upgrade
 
-## Two Modes
+## Modes and Behaviors
 
-Bengal supports two versioning modes:
+Bengal supports folder snapshots and Git-backed builds. Git mode can either use
+explicit branch/tag patterns or select recent release tags automatically.
+
+| Mode | Source of versions | Latest URL | Older version URLs | Best fit |
+|------|--------------------|------------|--------------------|----------|
+| Folder snapshots | `content/docs/` plus `content/_versions/{version}/docs/` | `/docs/page/` | `/docs/{version}/page/` | Simple sites and manual snapshots |
+| Git explicit refs | Configured branch/tag patterns | Branch marked `latest: true` | Matching branches or tags | Release branches, long-lived support lines |
+| Git latest + previous tags | One latest branch plus the newest matching tags | Configured latest branch | Newest stable tags after prefix stripping | Projects that publish semver release tags |
 
 ### Folder Mode (Default)
 
@@ -58,6 +65,35 @@ versioning:
 **Best for**: Projects that already use release branches, CI/CD pipelines.
 
 → [Set up Git Mode](./git-mode.md)
+
+Git mode can also track the latest branch plus recent release tags:
+
+```yaml
+versioning:
+  enabled: true
+  mode: git
+  git:
+    latest:
+      branch: main
+      id: main
+      label: Latest
+    previous:
+      source: tags
+      count: 3
+      pattern: "v*"
+      strip_prefix: "v"
+      sort: semver-desc
+      include_prereleases: false
+```
+
+With tags `v0.3.2`, `v0.3.1`, and `v0.3.0`, this builds `/docs/` from
+`main` plus `/docs/0.3.2/`, `/docs/0.3.1/`, and `/docs/0.3.0/`.
+You can also write `source: releases/tags` if that wording better matches your
+release process; Bengal still reads Git tags, not the GitHub Releases API.
+
+When the selected tag set changes, `bengal build --all-versions` removes stale
+version directories it previously managed so old docs do not linger after
+`count`, `pattern`, or prerelease settings change.
 
 ## Quick Start (Folder Mode)
 
@@ -217,7 +253,7 @@ bengal version create v2 --dry-run
 bengal version diff v2 v3
 
 # Compare git branches directly
-bengal version diff main release/0.1.6 --git
+bengal version diff --old-version main --new-version release/0.1.6 --git
 ```
 
 ## Next Steps

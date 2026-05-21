@@ -226,7 +226,15 @@ class URLStrategy:
             return Path(version_id)
 
         # Content is in main content directory but has version set
-        # (shouldn't normally happen, but handle gracefully)
+        # (Git mode builds each ref from its own content/ tree.)
+        if parts:
+            section = parts[0]
+            if version_config.is_versioned_section(section):
+                rest = parts[1:]
+                if rest:
+                    return Path(section) / page_version / Path(*rest)
+                return Path(section) / page_version
+
         return rel_path
 
     @staticmethod

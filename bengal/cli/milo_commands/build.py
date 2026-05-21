@@ -528,14 +528,16 @@ def _build_versions(
         version_config.git_config,
     )
 
+    cli.info("Discovering versions from git...")
+    discovered_versions = git_adapter.discover_versions()
+
+    if not discovered_versions:
+        cli.warning("No versions found matching git patterns")
+        raise SystemExit(1)
+
+    _install_discovered_versions(site, discovered_versions, base_config=version_config)
+
     if all_versions:
-        cli.info("Discovering versions from git...")
-        discovered_versions = git_adapter.discover_versions()
-
-        if not discovered_versions:
-            cli.warning("No versions found matching git patterns")
-            raise SystemExit(1)
-
         cli.info(
             f"Found {len(discovered_versions)} versions: {', '.join(v.id for v in discovered_versions)}"
         )
@@ -543,24 +545,40 @@ def _build_versions(
         from bengal.orchestration.build.options import BuildOptions
         from bengal.orchestration.site_runner import SiteRunner
 
-        for v in discovered_versions:
+        root_output_dir = Path(site.output_dir)
+        staging_root = Path(source).resolve() / ".bengal" / "version-builds"
+        _prune_unselected_version_outputs(
+            root_output_dir=root_output_dir,
+            manifest_path=staging_root / "manifest.json",
+            sections=version_config.sections,
+            selected_versions=discovered_versions,
+            cli=cli,
+        )
+
+        for v in _version_build_order(discovered_versions):
             cli.blank()
             cli.info(f"{cli.icons.info} Building version {v.id}...")
 
             ref = v.source.replace("git:", "") if v.source.startswith("git:") else v.id
-            worktree = git_adapter.get_or_create_worktree(v.id, ref)
+            use_root_checkout = v.latest and git_adapter.is_ref_current_checkout(ref)
+            if use_root_checkout:
+                worktree_site = site
+            else:
+                worktree = git_adapter.get_or_create_worktree(v.id, ref)
+                worktree_site = load_site_from_cli(
+                    source=str(worktree.path),
+                    config=config_path,
+                    environment=environment_val,
+                    profile=profile_val,
+                )
 
-            worktree_site = load_site_from_cli(
-                source=str(worktree.path),
-                config=config_path,
-                environment=environment_val,
-                profile=profile_val,
+            _prepare_git_version_site(
+                worktree_site,
+                discovered_versions=discovered_versions,
+                current_version=v,
+                output_dir=root_output_dir if v.latest else staging_root / v.id / "public",
+                base_config=version_config,
             )
-
-            if not v.latest:
-                if "build" not in worktree_site.config:
-                    worktree_site.config["build"] = {}
-                worktree_site.config["build"]["output_dir"] = str(Path(site.output_dir) / v.id)
 
             worktree_build_opts = BuildOptions(
                 force_sequential=False,
@@ -573,29 +591,253 @@ def _build_versions(
                 full_output=full_output,
             )
             SiteRunner(worktree_site).build(worktree_build_opts)
+            if not v.latest:
+                _merge_staged_version_output(
+                    source_dir=Path(worktree_site.output_dir),
+                    root_output_dir=root_output_dir,
+                    sections=version_config.sections,
+                    version_id=v.id,
+                )
 
         git_adapter.cleanup_worktrees(keep_cached=True)
+        _write_version_build_manifest(
+            manifest_path=staging_root / "manifest.json",
+            sections=version_config.sections,
+            selected_versions=discovered_versions,
+        )
         cli.blank()
         cli.success(f"Built {len(discovered_versions)} versions")
         return {"versions": [v.id for v in discovered_versions], "count": len(discovered_versions)}
 
     # Build specific version
     cli.info(f"Looking for version {build_version}...")
-    discovered = git_adapter.discover_versions()
-    matching = [v for v in discovered if v.id == build_version]
+    matching = [v for v in discovered_versions if v.id == build_version]
 
     if not matching:
         cli.error(f"Version {build_version} not found")
-        cli.info(f"Available: {', '.join(v.id for v in discovered[:10])}")
+        cli.info(f"Available: {', '.join(v.id for v in discovered_versions[:10])}")
         raise SystemExit(1)
+
+    from bengal.orchestration.build.options import BuildOptions
+    from bengal.orchestration.site_runner import SiteRunner
 
     v = matching[0]
     ref = v.source.replace("git:", "") if v.source.startswith("git:") else v.id
-    worktree = git_adapter.get_or_create_worktree(v.id, ref)
     cli.info(f"{cli.icons.info} Building version {v.id} from {ref}")
 
-    # Continue with normal build using worktree site
-    return {"version": v.id, "ref": ref}
+    root_output_dir = Path(site.output_dir)
+    if v.latest and git_adapter.is_ref_current_checkout(ref):
+        version_site = site
+    else:
+        worktree = git_adapter.get_or_create_worktree(v.id, ref)
+        version_site = load_site_from_cli(
+            source=str(worktree.path),
+            config=config_path,
+            environment=environment_val,
+            profile=profile_val,
+        )
+
+    output_dir = (
+        root_output_dir
+        if v.latest
+        else Path(source).resolve() / ".bengal" / "version-builds" / v.id / "public"
+    )
+    _prepare_git_version_site(
+        version_site,
+        discovered_versions=discovered_versions,
+        current_version=v,
+        output_dir=output_dir,
+        base_config=version_config,
+    )
+
+    version_build_opts = BuildOptions(
+        force_sequential=build_options.force_sequential,
+        incremental=incremental,
+        verbose=profile_config["verbose_build_stats"],
+        quiet=quiet,
+        profile=build_profile,
+        memory_optimized=memory_optimized,
+        strict=strict,
+        full_output=full_output,
+    )
+    SiteRunner(version_site).build(version_build_opts)
+    if not v.latest:
+        _merge_staged_version_output(
+            source_dir=Path(version_site.output_dir),
+            root_output_dir=root_output_dir,
+            sections=version_config.sections,
+            version_id=v.id,
+        )
+    git_adapter.cleanup_worktrees(keep_cached=True)
+    cli.success(f"Built version {v.id}")
+    return {"version": v.id, "ref": ref, "output_dir": str(root_output_dir)}
+
+
+def _version_build_order(versions):
+    """Build latest first so root output owns global artifacts."""
+    return sorted(versions, key=lambda v: (not v.latest, v.id))
+
+
+def _install_discovered_versions(site, versions, *, base_config=None) -> None:
+    """Install dynamically discovered Git versions into a loaded site."""
+    version_config = getattr(site, "version_config", None)
+    if not version_config:
+        return
+    if base_config is not None:
+        version_config.enabled = True
+        version_config.mode = base_config.mode
+        version_config.sections = list(base_config.sections)
+        version_config.shared = list(base_config.shared)
+        version_config.url_config = dict(base_config.url_config)
+        version_config.seo_config = dict(base_config.seo_config)
+        version_config.git_config = base_config.git_config
+    version_config.versions = list(versions)
+    version_config._version_map = {v.id: v for v in versions}
+    latest = version_config.latest_version
+    if latest:
+        if base_config is not None:
+            version_config.aliases = dict(base_config.aliases)
+        version_config.aliases.setdefault("latest", latest.id)
+    if hasattr(site, "invalidate_version_caches"):
+        site.invalidate_version_caches()
+
+
+def _prepare_git_version_site(
+    site, *, discovered_versions, current_version, output_dir, base_config=None
+) -> None:
+    """Prepare a site instance to render one discovered Git version."""
+    _install_discovered_versions(site, discovered_versions, base_config=base_config)
+    site.current_version = current_version
+    site.output_dir = output_dir
+    if "build" not in site.config:
+        site.config["build"] = {}
+    site.config["build"]["output_dir"] = str(output_dir)
+
+
+def _merge_staged_version_output(*, source_dir, root_output_dir, sections, version_id: str) -> None:
+    """Merge one staged non-latest version into the root versioned output tree."""
+    import shutil
+
+    source_dir = source_dir.resolve()
+    root_output_dir = root_output_dir.resolve()
+
+    for section in sections:
+        section_source = source_dir / section / version_id
+        section_target = root_output_dir / section / version_id
+        if section_source.exists():
+            if section_target.exists():
+                shutil.rmtree(section_target)
+            _copy_tree_atomic(section_source, section_target)
+
+    assets_source = source_dir / "assets"
+    if assets_source.exists():
+        _copy_tree_atomic(assets_source, root_output_dir / "assets", overwrite=False)
+
+
+def _prune_unselected_version_outputs(
+    *,
+    root_output_dir,
+    manifest_path,
+    sections,
+    selected_versions,
+    cli=None,
+) -> None:
+    """Remove stale non-latest version directories from prior git version builds."""
+    import shutil
+
+    expected_ids = {v.id for v in selected_versions if not v.latest}
+    stale_ids = (
+        _previous_output_version_ids(
+            root_output_dir=root_output_dir,
+            manifest_path=manifest_path,
+        )
+        - expected_ids
+    )
+
+    for version_id in sorted(stale_ids):
+        if not _is_safe_version_segment(version_id):
+            if cli is not None:
+                cli.warning(f"Skipping unsafe stale version id: {version_id!r}")
+            continue
+        for section in sections:
+            section_dir = root_output_dir / section / version_id
+            if section_dir.exists() and section_dir.is_dir():
+                shutil.rmtree(section_dir)
+
+
+def _previous_output_version_ids(*, root_output_dir, manifest_path) -> set[str]:
+    """Collect version ids generated by previous git version builds."""
+    previous: set[str] = set()
+
+    try:
+        from bengal.utils.io import json_compat
+
+        if manifest_path.exists():
+            manifest = json_compat.load(manifest_path)
+            for version_id in manifest.get("versions", []):
+                if isinstance(version_id, str):
+                    previous.add(version_id)
+
+        versions_json = root_output_dir / "versions.json"
+        if versions_json.exists():
+            versions = json_compat.load(versions_json)
+            if isinstance(versions, list):
+                for item in versions:
+                    if isinstance(item, dict):
+                        version_id = item.get("version")
+                        url_prefix = item.get("url_prefix")
+                        if isinstance(version_id, str) and url_prefix:
+                            previous.add(version_id)
+    except (OSError, json_compat.JSONDecodeError) as exc:
+        from bengal.utils.observability.logger import get_logger
+
+        get_logger(__name__).warning(
+            "git_version_prune_manifest_unreadable",
+            path=str(manifest_path),
+            error=str(exc),
+        )
+
+    return previous
+
+
+def _write_version_build_manifest(*, manifest_path, sections, selected_versions) -> None:
+    """Record generated git version outputs for future stale-output pruning."""
+    from bengal.utils.io import json_compat
+
+    json_compat.dump(
+        {
+            "schema": 1,
+            "sections": list(sections),
+            "versions": [v.id for v in selected_versions if not v.latest],
+        },
+        manifest_path,
+        indent=2,
+    )
+
+
+def _is_safe_version_segment(version_id: str) -> bool:
+    """Return whether a version id is safe to use as a single output path segment."""
+    return (
+        bool(version_id)
+        and "/" not in version_id
+        and "\\" not in version_id
+        and version_id not in {".", ".."}
+    )
+
+
+def _copy_tree_atomic(source_dir, target_dir, *, overwrite: bool = True) -> None:
+    """Copy generated files with atomic file replacement."""
+    from bengal.utils.io.atomic_write import atomic_write_bytes
+
+    for source_path in source_dir.rglob("*"):
+        if not source_path.is_file():
+            continue
+        rel_path = source_path.relative_to(source_dir)
+        target_path = target_dir / rel_path
+        if target_path.exists() and not overwrite:
+            continue
+        mode = source_path.stat().st_mode & 0o777
+        atomic_write_bytes(target_path, source_path.read_bytes(), mode=mode)
 
 
 def _build_with_profiling(

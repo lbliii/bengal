@@ -2,28 +2,34 @@
 # See: docs/content/versioning/ for full documentation
 
 versioning:
-  enabled: false
+  enabled: true
+  mode: git
 
   # Sections to version (only these sections get version prefixes)
   sections:
     - docs
 
-  # Version definitions
-  versions:
-    - id: v0.1.5
-      label: "0.1.5"
-      latest: true
-      # Latest version uses main content/docs/ (no source override needed)
+  # Dogfood Bengal's automatic Git tag versioning on the real docs site:
+  # build /docs/ from main, plus the newest three stable release tags.
+  git:
+    latest:
+      branch: main
+      id: main
+      label: Latest
 
-    - id: v0.1.4
-      label: "0.1.4"
-      deprecated: true
-      banner:
-        type: warning
-        message: "You're viewing docs for Bengal v0.1.4, which is no longer maintained."
-      # Older versions live in _versions/<id>/
+    previous:
+      source: releases/tags
+      count: 3
+      pattern: "v*"
+      strip_prefix: "v"
+      sort: semver-desc
+      include_prereleases: false
+
+    default_branch: main
+    cache_worktrees: true
+    parallel_builds: 2
 
   # Aliases for friendly URLs
   aliases:
-    latest: v0.1.5
-    stable: v0.1.5
+    latest: main
+    stable: main

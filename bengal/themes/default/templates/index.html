@@ -33,6 +33,7 @@ related: false # disable related entirely
 <div class="section-index">
     <header class="section-header">
         <h1>{{ page.title if page else section.title if section else site.title }}</h1>
+        {% include 'partials/version-selector.html' %}
 
         {% if page and (params?.description ?? none) %}
         <p class="section-description">{{ params.description }}</p>

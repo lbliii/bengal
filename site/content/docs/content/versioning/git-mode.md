@@ -6,12 +6,13 @@ weight: 20
 
 # Git Mode Setup
 
-Git mode builds documentation from **Git branches or tags** instead of folder copies. This is ideal for projects that already use release branches.
+Git mode builds documentation from **Git branches or tags** instead of folder copies. This is ideal for projects that already use release branches or release tags.
 
 ## When to Use Git Mode
 
 ✅ **Use Git Mode if**:
 - You already have release branches (e.g., `release/1.0`, `release/2.0`)
+- You publish stable release tags (e.g., `v1.0.0`, `v1.1.0`, `v2.0.0`)
 - You want versions tied to Git history
 - You prefer not to duplicate content in folders
 - Your CI/CD pipeline builds from branches
@@ -38,9 +39,9 @@ Git mode builds documentation from **Git branches or tags** instead of folder co
 ┌─────────────────────────────────────────────────────────┐
 │                    Bengal Build                         │
 ├─────────────────────────────────────────────────────────┤
-│  1. Discover branches matching patterns                 │
+│  1. Discover branches/tags matching configuration       │
 │  2. Create worktrees for each version                   │
-│  3. Build each version in parallel                      │
+│  3. Build each version into a staging output            │
 │  4. Merge outputs into single site                      │
 └─────────────────────────────────────────────────────────┘
                           │
@@ -113,6 +114,62 @@ git:
       strip_prefix: "v"    # v1.0.0 → version "1.0.0"
 ```
 
+### Latest + Previous Tags
+
+Use this when `main` should be the unversioned latest docs and the older docs
+should come from the newest release tags:
+
+```yaml
+versioning:
+  enabled: true
+  mode: git
+  sections:
+    - docs
+
+  git:
+    latest:
+      branch: main
+      id: main
+      label: Latest
+
+    previous:
+      source: tags
+      count: 3
+      pattern: "v*"
+      strip_prefix: "v"
+      sort: semver-desc
+      include_prereleases: false
+
+    cache_worktrees: true
+
+  aliases:
+    latest: main
+```
+
+If the repository has `v0.3.2`, `v0.3.1`, `v0.3.0`, and `v0.4.0-rc.1`,
+Bengal builds `main` as `/docs/` and the three stable tags as
+`/docs/0.3.2/`, `/docs/0.3.1/`, and `/docs/0.3.0/`. The prerelease tag is
+skipped unless `include_prereleases: true`.
+
+`source: tags`, `source: git-tags`, and `source: releases/tags` are equivalent.
+They all select Git tags from the repository. Bengal does not call the GitHub
+Releases API, so this mode also works for projects that tag releases without
+creating GitHub release objects.
+
+The current checkout's versioning config controls the whole build. Older tags
+can disable versioning or use older settings; Bengal overlays the current
+version list onto each worktree so old docs still build into the selected URL
+layout.
+
+If your docs live in a subdirectory such as `site/`, run `bengal build
+--all-versions` from the repository root or pass `--source` to the repository
+root. Bengal discovers the site subdirectory for each worktree and writes output
+under that site's configured `output_dir`.
+
+Bengal's own docs site uses this mode: the live docs are built from `main`, and
+the previous docs are selected automatically from the newest stable release
+tags.
+
 ### Full Configuration Reference
 
 ```yaml
@@ -121,6 +178,21 @@ versioning:
   mode: git
 
   git:
+    # Latest branch selector (optional shorthand for the latest branch)
+    latest:
+      branch: main
+      id: main
+      label: Latest
+
+    # Automatic previous-version selector (optional)
+    previous:
+      source: tags              # Supports tags, git-tags, or releases/tags
+      count: 3                  # Number of previous tags to include
+      pattern: "v*"             # Glob for candidate tags
+      strip_prefix: "v"         # v1.2.3 → version "1.2.3"
+      sort: semver-desc         # or: name-desc
+      include_prereleases: false
+
     # Branch patterns
     branches:
       - name: main              # Explicit branch name
@@ -144,7 +216,7 @@ versioning:
     # Settings
     default_branch: main        # Fallback if no latest specified (default: "main")
     cache_worktrees: true       # Keep worktrees for faster rebuilds (default: true)
-    parallel_builds: 4          # Number of concurrent builds (default: 4)
+    parallel_builds: 4          # Reserved for concurrent version builds
 
   # Standard versioning options still apply
   sections:
@@ -188,13 +260,13 @@ Found 3 versions to build
 
 ```bash
 # Build only version 2.0
-bengal build --version 2.0
+bengal build --build-version 2.0
 ```
 
 ### Regular Build (Current Branch Only)
 
 ```bash
-# Build current branch as unversioned site
+# Build current branch only
 bengal build
 ```
 
@@ -204,13 +276,13 @@ Compare content between Git refs:
 
 ```bash
 # Compare branches
-bengal version diff main release/2.0 --git
+bengal version diff --old-version main --new-version release/2.0 --git
 
 # Output as markdown (for release notes)
-bengal version diff main release/2.0 --git --output markdown
+bengal version diff --old-version main --new-version release/2.0 --git --output markdown
 
 # Output as JSON (for automation)
-bengal version diff main release/2.0 --git --output json
+bengal version diff --old-version main --new-version release/2.0 --git --output json
 ```
 
 Example output:
@@ -308,10 +380,20 @@ By default, worktrees are cached for faster rebuilds:
 
 ```yaml
 git:
-  cache_worktrees: true    # Keep worktrees between builds
+  cache_worktrees: true    # Reuse matching worktrees between builds
 ```
 
-Set to `false` to always create fresh worktrees (slower but cleaner).
+When a cached worktree already points at the expected commit, Bengal reuses it.
+If the ref moved, Bengal refreshes that worktree before building.
+Set `cache_worktrees: false` to remove worktrees after the build.
+
+### Output Cleanup
+
+`bengal build --all-versions` also tracks the version directories it manages.
+When a later build selects fewer tags, Bengal removes stale version directories
+from configured versioned sections before writing the new output. Cleanup is
+conservative: it only removes version IDs from Bengal's previous version build
+manifest or the generated `versions.json`.
 
 ### Manual Cleanup
 
@@ -367,11 +449,16 @@ If running in CI, ensure the checkout step has write permissions.
 
 ### Slow Builds
 
-Reduce parallel builds if memory is limited:
+Keep cached worktrees enabled so unchanged refs do not need a fresh checkout:
 ```yaml
 git:
-  parallel_builds: 2    # Reduce from default 4
+  cache_worktrees: true
 ```
+
+An all-version build still runs the build once per selected version, so wall
+time scales with the number of versions and the size of the docs. Worktree
+caching avoids repeated checkouts, but it does not skip rendering a version once
+it is selected.
 
 ## Next Steps
 
