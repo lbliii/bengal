@@ -15,6 +15,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.rendering.section_urls import get_path_for_version
 from bengal.rendering.template_functions.memo import site_scoped_memoize
 from bengal.rendering.template_functions.navigation.helpers import get_nav_title
 from bengal.utils.paths.normalize import to_posix
@@ -83,9 +84,10 @@ def _build_section_menu_item(
         if section.name in excluded_sections:
             return None
 
-    # Build nav item
-    # Use _path for menu items (templates apply baseurl via | absolute_url filter)
-    section_url = getattr(section, "_path", None) or f"/{section.name}/"
+    # Build nav item. Templates apply baseurl via | absolute_url.
+    current_version = getattr(site, "current_version", None)
+    current_version_id = getattr(current_version, "id", None)
+    section_url = get_path_for_version(section, current_version_id)
     section_identifier = section.name
 
     # Get section icon from Section.icon property (reads from _index.md frontmatter)

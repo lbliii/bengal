@@ -12,7 +12,9 @@ from bengal.rendering.section_urls import (
     apply_version_path_transform,
     get_absolute_href,
     get_href,
+    get_href_for_version,
     get_path,
+    get_path_for_version,
     subsection_index_urls,
 )
 
@@ -89,3 +91,31 @@ def test_version_path_transform_removes_latest_version(tmp_path: Path) -> None:
     )
 
     assert apply_version_path_transform(section, "/_versions/v3/docs/about/") == "/docs/about/"
+
+
+def test_git_section_path_for_version_inserts_version_after_section(tmp_path: Path) -> None:
+    section = Section(name="guide", path=tmp_path / "content" / "docs" / "guide")
+    section.__dict__["_path"] = "/docs/guide/"
+    section._site = Site(
+        root_path=tmp_path,
+        config={
+            "baseurl": "/bengal",
+            "versioning": {
+                "enabled": True,
+                "mode": "git",
+                "sections": ["docs"],
+                "versions": [
+                    {"id": "main", "latest": True},
+                    {"id": "0.3.2", "latest": False},
+                ],
+                "git": {
+                    "latest": {"branch": "main", "id": "main"},
+                    "previous": {"count": 1},
+                },
+            },
+        },
+    )
+
+    assert get_path_for_version(section, "0.3.2") == "/docs/0.3.2/guide/"
+    assert get_href_for_version(section, "0.3.2") == "/bengal/docs/0.3.2/guide/"
+    assert get_path_for_version(section, "main") == "/docs/guide/"

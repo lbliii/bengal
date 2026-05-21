@@ -36,6 +36,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from bengal.rendering.section_urls import get_href_for_version
 from bengal.rendering.template_functions.navigation.auto_nav import (
     get_auto_nav,
 )
@@ -118,6 +119,18 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
         """Wrapper with site closure."""
         return section_pages(path, site, recursive)
 
+    def section_href(section: SectionLike | None, page: PageLike | None = None) -> str:
+        """Return a section href in the current rendered page/version context."""
+        if section is None:
+            return ""
+
+        version_id = getattr(page, "version", None) if page is not None else None
+        if version_id is None:
+            current_version = getattr(site, "current_version", None)
+            version_id = getattr(current_version, "id", None)
+
+        return get_href_for_version(section, version_id, site)
+
     env.globals.update(
         {
             "get_breadcrumbs": get_breadcrumbs,
@@ -130,5 +143,6 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "combine_track_toc": combine_track_toc_with_get_page,
             "get_section": get_section_wrapper,
             "section_pages": section_pages_wrapper,
+            "section_href": section_href,
         }
     )
