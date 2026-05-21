@@ -151,6 +151,21 @@ Bengal builds `main` as `/docs/` and the three stable tags as
 `/docs/0.3.2/`, `/docs/0.3.1/`, and `/docs/0.3.0/`. The prerelease tag is
 skipped unless `include_prereleases: true`.
 
+`source: tags`, `source: git-tags`, and `source: releases/tags` are equivalent.
+They all select Git tags from the repository. Bengal does not call the GitHub
+Releases API, so this mode also works for projects that tag releases without
+creating GitHub release objects.
+
+The current checkout's versioning config controls the whole build. Older tags
+can disable versioning or use older settings; Bengal overlays the current
+version list onto each worktree so old docs still build into the selected URL
+layout.
+
+If your docs live in a subdirectory such as `site/`, run `bengal build
+--all-versions` from the repository root or pass `--source` to the repository
+root. Bengal discovers the site subdirectory for each worktree and writes output
+under that site's configured `output_dir`.
+
 ### Full Configuration Reference
 
 ```yaml
@@ -167,7 +182,7 @@ versioning:
 
     # Automatic previous-version selector (optional)
     previous:
-      source: tags              # Currently supports tags
+      source: tags              # Supports tags, git-tags, or releases/tags
       count: 3                  # Number of previous tags to include
       pattern: "v*"             # Glob for candidate tags
       strip_prefix: "v"         # v1.2.3 → version "1.2.3"
@@ -368,6 +383,14 @@ When a cached worktree already points at the expected commit, Bengal reuses it.
 If the ref moved, Bengal refreshes that worktree before building.
 Set `cache_worktrees: false` to remove worktrees after the build.
 
+### Output Cleanup
+
+`bengal build --all-versions` also tracks the version directories it manages.
+When a later build selects fewer tags, Bengal removes stale version directories
+from configured versioned sections before writing the new output. Cleanup is
+conservative: it only removes version IDs from Bengal's previous version build
+manifest or the generated `versions.json`.
+
 ### Manual Cleanup
 
 ```bash
@@ -427,6 +450,11 @@ Keep cached worktrees enabled so unchanged refs do not need a fresh checkout:
 git:
   cache_worktrees: true
 ```
+
+An all-version build still runs the build once per selected version, so wall
+time scales with the number of versions and the size of the docs. Worktree
+caching avoids repeated checkouts, but it does not skip rendering a version once
+it is selected.
 
 ## Next Steps
 

@@ -88,6 +88,12 @@ versioning:
 
 With tags `v0.3.2`, `v0.3.1`, and `v0.3.0`, this builds `/docs/` from
 `main` plus `/docs/0.3.2/`, `/docs/0.3.1/`, and `/docs/0.3.0/`.
+You can also write `source: releases/tags` if that wording better matches your
+release process; Bengal still reads Git tags, not the GitHub Releases API.
+
+When the selected tag set changes, `bengal build --all-versions` removes stale
+version directories it previously managed so old docs do not linger after
+`count`, `pattern`, or prerelease settings change.
 
 ## Quick Start (Folder Mode)
 
