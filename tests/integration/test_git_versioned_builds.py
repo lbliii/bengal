@@ -216,6 +216,10 @@ def test_git_auto_previous_tags_build_latest_and_recent_tag_paths(tmp_path: Path
     assert '"version": "0.3.1"' in versions_json
     assert '"version": "0.3.0"' not in versions_json
     assert '"version": "0.4.0-rc.1"' not in versions_json
+    docs_index = (public / "docs" / "index.html").read_text(encoding="utf-8")
+    guide_page = (public / "docs" / "guide" / "index.html").read_text(encoding="utf-8")
+    assert 'class="version-selector"' in docs_index
+    assert 'class="version-selector"' in guide_page
 
 
 def test_git_all_versions_prunes_unselected_version_outputs(tmp_path: Path) -> None:
