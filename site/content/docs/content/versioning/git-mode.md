@@ -6,12 +6,13 @@ weight: 20
 
 # Git Mode Setup
 
-Git mode builds documentation from **Git branches or tags** instead of folder copies. This is ideal for projects that already use release branches.
+Git mode builds documentation from **Git branches or tags** instead of folder copies. This is ideal for projects that already use release branches or release tags.
 
 ## When to Use Git Mode
 
 ✅ **Use Git Mode if**:
 - You already have release branches (e.g., `release/1.0`, `release/2.0`)
+- You publish stable release tags (e.g., `v1.0.0`, `v1.1.0`, `v2.0.0`)
 - You want versions tied to Git history
 - You prefer not to duplicate content in folders
 - Your CI/CD pipeline builds from branches
@@ -38,7 +39,7 @@ Git mode builds documentation from **Git branches or tags** instead of folder co
 ┌─────────────────────────────────────────────────────────┐
 │                    Bengal Build                         │
 ├─────────────────────────────────────────────────────────┤
-│  1. Discover branches matching patterns                 │
+│  1. Discover branches/tags matching configuration       │
 │  2. Create worktrees for each version                   │
 │  3. Build each version into a staging output            │
 │  4. Merge outputs into single site                      │
@@ -113,6 +114,43 @@ git:
       strip_prefix: "v"    # v1.0.0 → version "1.0.0"
 ```
 
+### Latest + Previous Tags
+
+Use this when `main` should be the unversioned latest docs and the older docs
+should come from the newest release tags:
+
+```yaml
+versioning:
+  enabled: true
+  mode: git
+  sections:
+    - docs
+
+  git:
+    latest:
+      branch: main
+      id: main
+      label: Latest
+
+    previous:
+      source: tags
+      count: 3
+      pattern: "v*"
+      strip_prefix: "v"
+      sort: semver-desc
+      include_prereleases: false
+
+    cache_worktrees: true
+
+  aliases:
+    latest: main
+```
+
+If the repository has `v0.3.2`, `v0.3.1`, `v0.3.0`, and `v0.4.0-rc.1`,
+Bengal builds `main` as `/docs/` and the three stable tags as
+`/docs/0.3.2/`, `/docs/0.3.1/`, and `/docs/0.3.0/`. The prerelease tag is
+skipped unless `include_prereleases: true`.
+
 ### Full Configuration Reference
 
 ```yaml
@@ -121,6 +159,21 @@ versioning:
   mode: git
 
   git:
+    # Latest branch selector (optional shorthand for the latest branch)
+    latest:
+      branch: main
+      id: main
+      label: Latest
+
+    # Automatic previous-version selector (optional)
+    previous:
+      source: tags              # Currently supports tags
+      count: 3                  # Number of previous tags to include
+      pattern: "v*"             # Glob for candidate tags
+      strip_prefix: "v"         # v1.2.3 → version "1.2.3"
+      sort: semver-desc         # or: name-desc
+      include_prereleases: false
+
     # Branch patterns
     branches:
       - name: main              # Explicit branch name
