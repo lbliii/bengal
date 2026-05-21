@@ -253,9 +253,25 @@ class GitVersionAdapter:
         # Create worktree directory
         worktree_path = self.worktrees_dir / version_id
         worktree_path.parent.mkdir(parents=True, exist_ok=True)
+        expected_commit = self._get_commit_sha(ref)
 
-        # Remove existing worktree if it exists but is stale
         if worktree_path.exists():
+            if self._worktree_matches(worktree_path, expected_commit):
+                worktree = GitWorktree(
+                    version_id=version_id,
+                    path=worktree_path,
+                    ref=ref,
+                    commit=expected_commit,
+                )
+                self._worktrees[version_id] = worktree
+                logger.debug(
+                    "git_worktree_reused",
+                    version_id=version_id,
+                    ref=ref,
+                    path=str(worktree_path),
+                    commit=expected_commit,
+                )
+                return worktree
             self._remove_worktree(worktree_path)
 
         # Create new worktree
@@ -291,18 +307,19 @@ class GitVersionAdapter:
                 code=ErrorCode.D007,
             ) from e
 
-        # Get commit SHA
-        commit = self._get_commit_sha(ref)
-
         worktree = GitWorktree(
             version_id=version_id,
             path=worktree_path,
             ref=ref,
-            commit=commit,
+            commit=expected_commit,
         )
         self._worktrees[version_id] = worktree
 
         return worktree
+
+    def is_ref_current_checkout(self, ref: str) -> bool:
+        """Return True when ref already points at the main checkout HEAD."""
+        return self._get_commit_sha(ref) == self._get_commit_sha("HEAD")
 
     def cleanup_worktrees(self, keep_cached: bool = False) -> None:
         """
@@ -449,6 +466,23 @@ class GitVersionAdapter:
             return result.stdout.strip()
         except subprocess.CalledProcessError, subprocess.TimeoutExpired:
             return ""
+
+    def _worktree_matches(self, path: Path, expected_commit: str) -> bool:
+        """Check whether an existing cached worktree is at the expected commit."""
+        if not expected_commit:
+            return False
+        try:
+            result = subprocess.run(
+                ["git", "-C", str(path), "rev-parse", "HEAD"],
+                cwd=self.repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+                timeout=10,
+            )
+        except subprocess.CalledProcessError, subprocess.TimeoutExpired:
+            return False
+        return result.stdout.strip() == expected_commit
 
     def _remove_worktree(self, path: Path) -> None:
         """Remove a worktree."""

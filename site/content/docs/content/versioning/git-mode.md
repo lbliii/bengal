@@ -40,7 +40,7 @@ Git mode builds documentation from **Git branches or tags** instead of folder co
 ├─────────────────────────────────────────────────────────┤
 │  1. Discover branches matching patterns                 │
 │  2. Create worktrees for each version                   │
-│  3. Build each version in parallel                      │
+│  3. Build each version into a staging output            │
 │  4. Merge outputs into single site                      │
 └─────────────────────────────────────────────────────────┘
                           │
@@ -144,7 +144,7 @@ versioning:
     # Settings
     default_branch: main        # Fallback if no latest specified (default: "main")
     cache_worktrees: true       # Keep worktrees for faster rebuilds (default: true)
-    parallel_builds: 4          # Number of concurrent builds (default: 4)
+    parallel_builds: 4          # Reserved for concurrent version builds
 
   # Standard versioning options still apply
   sections:
@@ -188,13 +188,13 @@ Found 3 versions to build
 
 ```bash
 # Build only version 2.0
-bengal build --version 2.0
+bengal build --build-version 2.0
 ```
 
 ### Regular Build (Current Branch Only)
 
 ```bash
-# Build current branch as unversioned site
+# Build current branch only
 bengal build
 ```
 
@@ -204,13 +204,13 @@ Compare content between Git refs:
 
 ```bash
 # Compare branches
-bengal version diff main release/2.0 --git
+bengal version diff --old-version main --new-version release/2.0 --git
 
 # Output as markdown (for release notes)
-bengal version diff main release/2.0 --git --output markdown
+bengal version diff --old-version main --new-version release/2.0 --git --output markdown
 
 # Output as JSON (for automation)
-bengal version diff main release/2.0 --git --output json
+bengal version diff --old-version main --new-version release/2.0 --git --output json
 ```
 
 Example output:
@@ -308,10 +308,12 @@ By default, worktrees are cached for faster rebuilds:
 
 ```yaml
 git:
-  cache_worktrees: true    # Keep worktrees between builds
+  cache_worktrees: true    # Reuse matching worktrees between builds
 ```
 
-Set to `false` to always create fresh worktrees (slower but cleaner).
+When a cached worktree already points at the expected commit, Bengal reuses it.
+If the ref moved, Bengal refreshes that worktree before building.
+Set `cache_worktrees: false` to remove worktrees after the build.
 
 ### Manual Cleanup
 
@@ -367,10 +369,10 @@ If running in CI, ensure the checkout step has write permissions.
 
 ### Slow Builds
 
-Reduce parallel builds if memory is limited:
+Keep cached worktrees enabled so unchanged refs do not need a fresh checkout:
 ```yaml
 git:
-  parallel_builds: 2    # Reduce from default 4
+  cache_worktrees: true
 ```
 
 ## Next Steps

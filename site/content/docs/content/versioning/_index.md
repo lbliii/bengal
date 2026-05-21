@@ -217,7 +217,7 @@ bengal version create v2 --dry-run
 bengal version diff v2 v3
 
 # Compare git branches directly
-bengal version diff main release/0.1.6 --git
+bengal version diff --old-version main --new-version release/0.1.6 --git
 ```
 
 ## Next Steps

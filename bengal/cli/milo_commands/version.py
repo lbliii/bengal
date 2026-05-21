@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from milo import Description
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 def version_list(
@@ -273,11 +276,12 @@ def version_diff(
     if git:
         from bengal.content.discovery.version_diff import diff_git_versions
 
+        content_dir = _git_diff_content_dir(root_path)
         result = diff_git_versions(
             repo_path=root_path,
             old_ref=old_version,
             new_ref=new_version,
-            content_dir="docs",
+            content_dir=content_dir,
         )
     else:
         version_config = _load_version_config(root_path)
@@ -393,6 +397,34 @@ def version_diff(
         "modified": len(result.modified_pages),
         "has_changes": result.has_changes,
     }
+
+
+def _git_diff_content_dir(root_path: Path) -> str:
+    """Resolve the configured Git diff content path."""
+    from pathlib import Path
+
+    from bengal.config import UnifiedConfigLoader
+
+    try:
+        config = UnifiedConfigLoader().load(root_path)
+    except Exception:
+        return "content/docs"
+
+    raw = config.raw if hasattr(config, "raw") else config
+    build = raw.get("build", {}) or {}
+    content_root = build.get("content_dir", "content") if isinstance(build, dict) else "content"
+
+    versioning = raw.get("versioning", {}) or {}
+    if hasattr(versioning, "_data"):
+        versioning = versioning._data
+    sections: list[str] = ["docs"]
+    if isinstance(versioning, dict):
+        versioning_map = cast("dict[str, Any]", versioning)
+        configured_sections = versioning_map.get("sections")
+        if isinstance(configured_sections, list) and configured_sections:
+            sections = [str(section) for section in configured_sections]
+    section = sections[0]
+    return str(Path(content_root) / section)
 
 
 # --- Helpers ---

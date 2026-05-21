@@ -861,7 +861,18 @@ class ContentDiscovery:
         if version_config is None:
             return
 
-        version = version_config.get_version_for_path(file_path)
+        version = None
+        current_version = getattr(self.site, "current_version", None)
+        if current_version is not None and getattr(version_config, "is_git_mode", False):
+            try:
+                rel_path = file_path.relative_to(self.content_dir)
+            except ValueError:
+                rel_path = file_path
+            if rel_path.parts and version_config.is_versioned_section(rel_path.parts[0]):
+                version = current_version
+
+        if version is None:
+            version = version_config.get_version_for_path(file_path)
         if version:
             # Set version on page and core (metadata is now immutable CascadeView)
             page.version = version.id
