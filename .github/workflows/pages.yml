@@ -22,6 +22,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7
@@ -51,12 +54,14 @@ jobs:
       - name: Cache Bengal build state
         uses: actions/cache@v5
         with:
-          path: site/.bengal
+          path: |
+            .bengal
+            site/.bengal
           key: bengal-${{ runner.os }}-${{ steps.bengal-cache.outputs.hash }}
           # No restore-keys - we want exact match for correctness
 
       - name: Build site
-        run: uv run bengal build --source site --environment production --clean-output
+        run: uv run bengal build --source . --all-versions --environment production --clean-output
         env:
           PYTHON_GIL: "0"
 
