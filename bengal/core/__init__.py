@@ -63,6 +63,8 @@ from bengal.core.theme import Theme
 from bengal.core.url_ownership import URLClaim, URLCollisionError, URLRegistry
 from bengal.core.version import (
     GitBranchPattern,
+    GitLatestConfig,
+    GitPreviousConfig,
     GitVersionConfig,
     Version,
     VersionConfig,
@@ -75,6 +77,8 @@ __all__ = [
     "BuildState",
     # Versioning
     "GitBranchPattern",
+    "GitLatestConfig",
+    "GitPreviousConfig",
     "GitVersionConfig",
     # Navigation
     "MenuBuilder",

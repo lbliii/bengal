@@ -19,8 +19,9 @@ Folder Mode (default):
 
 Git Mode:
     Versions discovered from Git branches/tags via pattern matching.
-    No folder duplication—builds directly from Git history. Supports
+    No folder duplication--builds directly from Git history. Supports
     parallel builds for all versions.
+    Can discover the latest branch plus the previous N release tags.
 
 URL Structure:
 Latest version: /docs/guide/ (no version prefix)
@@ -53,7 +54,7 @@ Example:
 Related Packages:
 bengal.config.loader: Configuration loading from bengal.toml
 bengal.content.discovery.content_discovery: Version discovery during content scan
-bengal.content.discovery.git_version_adapter: Git branch/tag discovery
+bengal.content.versioning.git_adapter: Git branch/tag discovery
 
 """
 
@@ -154,6 +155,50 @@ class GitBranchPattern:
         return ref_name
 
 
+GitPreviousSource = Literal["tags"]
+GitPreviousSort = Literal["semver-desc", "name-desc"]
+
+
+@dataclass
+class GitLatestConfig:
+    """
+    Configuration for the latest Git-backed documentation version.
+
+    Attributes:
+        branch: Git branch to treat as latest
+        id: Version id to expose in version metadata and aliases
+        label: Display label for the version selector
+
+    """
+
+    branch: str = "main"
+    id: str = ""
+    label: str = ""
+
+
+@dataclass
+class GitPreviousConfig:
+    """
+    Configuration for automatically selecting previous Git versions.
+
+    Attributes:
+        source: Git ref source to inspect. Currently supports tags.
+        count: Number of previous versions to include after latest
+        pattern: Glob pattern used to select candidate tags
+        strip_prefix: Prefix to remove from tag names for version ids
+        sort: Candidate ordering before count is applied
+        include_prereleases: Whether semver prerelease tags are eligible
+
+    """
+
+    source: GitPreviousSource = "tags"
+    count: int = 0
+    pattern: str = "v*"
+    strip_prefix: str = "v"
+    sort: GitPreviousSort = "semver-desc"
+    include_prereleases: bool = False
+
+
 @dataclass
 class GitVersionConfig:
     """
@@ -162,6 +207,8 @@ class GitVersionConfig:
     Attributes:
         branches: List of branch patterns to match
         tags: List of tag patterns to match
+        latest: Optional branch-based latest version selection
+        previous: Optional automatic previous version selection
         default_branch: Branch to use as "latest" (default: main)
         cache_worktrees: Whether to cache git worktrees for speed
         parallel_builds: Number of parallel version builds
@@ -178,6 +225,8 @@ class GitVersionConfig:
 
     branches: list[GitBranchPattern] = field(default_factory=list)
     tags: list[GitBranchPattern] = field(default_factory=list)
+    latest: GitLatestConfig | None = None
+    previous: GitPreviousConfig | None = None
     default_branch: str = "main"
     cache_worktrees: bool = True
     parallel_builds: int = 4
@@ -596,6 +645,33 @@ class VersionConfig:
             if hasattr(git_raw, "_data"):
                 git_raw = git_raw._data
             if git_raw:
+                latest_config = None
+                latest_raw = git_raw.get("latest")
+                if hasattr(latest_raw, "_data"):
+                    latest_raw = latest_raw._data
+                if isinstance(latest_raw, str):
+                    latest_config = GitLatestConfig(branch=latest_raw)
+                elif isinstance(latest_raw, dict):
+                    latest_config = GitLatestConfig(
+                        branch=latest_raw.get("branch", git_raw.get("default_branch", "main")),
+                        id=latest_raw.get("id", ""),
+                        label=latest_raw.get("label", ""),
+                    )
+
+                previous_config = None
+                previous_raw = git_raw.get("previous")
+                if hasattr(previous_raw, "_data"):
+                    previous_raw = previous_raw._data
+                if isinstance(previous_raw, dict):
+                    previous_config = GitPreviousConfig(
+                        source=previous_raw.get("source", "tags"),
+                        count=previous_raw.get("count", previous_raw.get("number", 0)),
+                        pattern=previous_raw.get("pattern", "v*"),
+                        strip_prefix=previous_raw.get("strip_prefix", "v"),
+                        sort=previous_raw.get("sort", "semver-desc"),
+                        include_prereleases=previous_raw.get("include_prereleases", False),
+                    )
+
                 branches: list[GitBranchPattern] = []
                 for b in git_raw.get("branches", []):
                     if isinstance(b, str):
@@ -630,6 +706,8 @@ class VersionConfig:
                 git_config = GitVersionConfig(
                     branches=branches,
                     tags=tags,
+                    latest=latest_config,
+                    previous=previous_config,
                     default_branch=git_raw.get("default_branch", "main"),
                     cache_worktrees=git_raw.get("cache_worktrees", True),
                     parallel_builds=git_raw.get("parallel_builds", 4),
