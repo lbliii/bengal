@@ -55,7 +55,12 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            .bengal
+            .bengal/cache
+            .bengal/content_cache
+            .bengal/indexes
+            .bengal/provenance
+            .bengal/version-builds/manifest.json
+            .bengal/worktrees
             site/.bengal
           key: bengal-${{ runner.os }}-${{ steps.bengal-cache.outputs.hash }}
           # No restore-keys - we want exact match for correctness
