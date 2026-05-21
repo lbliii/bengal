@@ -18,6 +18,14 @@ from pathlib import Path
 from types import SimpleNamespace
 
 
+def _implementation_name(value: object) -> str:
+    """Return a stable implementation label for generated docs."""
+    name = getattr(value, "__name__", None)
+    if isinstance(name, str):
+        return name
+    return value.__class__.__name__
+
+
 def _collect_registrations() -> tuple[dict[str, str], dict[str, str]]:
     """Run register_all with mock env/site and collect filter/function names.
 
@@ -35,13 +43,13 @@ def _collect_registrations() -> tuple[dict[str, str], dict[str, str]]:
 
         def __setitem__(self, key: str, value: object) -> None:
             super().__setitem__(key, value)
-            self._out[key] = getattr(value, "__name__", str(value))
+            self._out[key] = _implementation_name(value)
 
         def update(self, other: object = (), /, **kw: object) -> None:
             super().update(other, **kw)
             d = dict(other) if isinstance(other, dict) else kw
             for k, v in d.items():
-                self._out[k] = getattr(v, "__name__", str(v))
+                self._out[k] = _implementation_name(v)
 
     env = SimpleNamespace()
     env.filters = CapturingDict(filters_out)
@@ -138,7 +146,9 @@ def main() -> None:
     )
     out_path.parent.mkdir(parents=True, exist_ok=True)
     content = generate()
-    out_path.write_text(content, encoding="utf-8")
+    from bengal.utils.io.atomic_write import atomic_write_text
+
+    atomic_write_text(out_path, content, encoding="utf-8")
     print(f"Wrote {out_path}")
 
 

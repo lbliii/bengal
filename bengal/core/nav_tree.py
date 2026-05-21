@@ -398,9 +398,14 @@ class NavTree:
     @staticmethod
     def _section_path_for_version(section: SectionLike, version_id: str | None) -> str:
         """Return the section path for a specific navigation tree version."""
-        from bengal.rendering.section_urls import get_path_for_version
+        from bengal.rendering.urls import RenderURLContext
+        from bengal.rendering.urls import url_for as resolve_url_for
 
-        return get_path_for_version(section, version_id)
+        return resolve_url_for(
+            section,
+            RenderURLContext(site=getattr(section, "_site", None), version_id=version_id),
+            baseurl=False,
+        )
 
 
 class NavTreeContext:

@@ -36,7 +36,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from bengal.rendering.section_urls import get_href_for_version
 from bengal.rendering.template_functions.navigation.auto_nav import (
     get_auto_nav,
 )
@@ -66,6 +65,8 @@ from bengal.rendering.template_functions.navigation.tree import (
     get_nav_context,
     get_nav_tree,
 )
+from bengal.rendering.urls import RenderURLContext
+from bengal.rendering.urls import url_for as resolve_url_for
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SectionLike, SiteLike, TemplateEnvironment
@@ -129,7 +130,10 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             current_version = getattr(site, "current_version", None)
             version_id = getattr(current_version, "id", None)
 
-        return get_href_for_version(section, version_id, site)
+        return resolve_url_for(
+            section,
+            RenderURLContext(site=site, page=page, version_id=version_id),
+        )
 
     env.globals.update(
         {

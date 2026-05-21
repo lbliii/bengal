@@ -13,6 +13,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
+from bengal.rendering.urls import RenderURLContext
+from bengal.rendering.urls import url_for as resolve_url_for
+from bengal.rendering.urls import url_for_path as resolve_url_for_path
 from bengal.utils.paths.url_strategy import URLStrategy
 
 if TYPE_CHECKING:
@@ -71,6 +74,26 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
     def build_artifact_url_with_site(filename: str = "build.json", dir_name: str = "") -> str:
         return build_artifact_url(site, filename, dir_name)
 
+    def url_for_with_site(
+        target,
+        page=None,
+        version: str | None = "current",
+        baseurl: bool = True,
+    ) -> str:
+        return resolve_url_for(
+            target,
+            RenderURLContext.for_page(site, page),
+            version=version,
+            baseurl=baseurl,
+        )
+
+    def url_for_path_with_site(path: str, baseurl: bool = True) -> str:
+        return resolve_url_for_path(
+            path,
+            RenderURLContext.for_page(site),
+            baseurl=baseurl,
+        )
+
     env.filters.update(
         {
             "absolute_url": absolute_url_with_site,
@@ -102,6 +125,8 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
         {
             "ensure_trailing_slash": ensure_trailing_slash,
             "build_artifact_url": build_artifact_url_with_site,
+            "url_for": url_for_with_site,
+            "url_for_path": url_for_path_with_site,
             "notebook_download_url": notebook_download_url_with_site,
             "notebook_colab_url": notebook_colab_url_with_site,
             "cursor_mcp_install_url": cursor_mcp_install_url_with_site,

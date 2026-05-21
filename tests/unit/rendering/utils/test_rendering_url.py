@@ -5,6 +5,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from unittest.mock import Mock
 
+from bengal.core.page import Page
+from bengal.core.section import Section
+from bengal.core.site import Site
+from bengal.rendering.urls import RenderURLContext, url_for, url_for_path
 from bengal.rendering.utils.url import apply_baseurl, normalize_url_path
 
 
@@ -144,3 +148,81 @@ class TestImportLocations:
 
         site = MockSite(baseurl="/bengal")
         assert apply_baseurl("/docs/page/", site) == "/bengal/docs/page/"
+
+
+class TestRenderURLContext:
+    """Tests for render-context-aware URL resolution."""
+
+    def test_url_for_page_applies_baseurl(self, tmp_path):
+        site = Site(root_path=tmp_path, config={"baseurl": "/bengal"})
+        page = Page(source_path=tmp_path / "content" / "docs" / "guide.md")
+        page.__dict__["_path"] = "/docs/guide/"
+
+        assert url_for(page, RenderURLContext.for_page(site, page)) == "/bengal/docs/guide/"
+
+    def test_url_for_object_does_not_double_baseurl(self):
+        site = MockSite(baseurl="bengal")
+        target = Mock(spec=["href"])
+        target.href = "/bengal/docs/guide/"
+
+        assert url_for(target, RenderURLContext(site=site)) == "/bengal/docs/guide/"
+
+    def test_url_for_path_does_not_apply_version_rewrite(self, tmp_path):
+        site = Site(
+            root_path=tmp_path,
+            config={
+                "baseurl": "/bengal",
+                "versioning": {
+                    "enabled": True,
+                    "mode": "git",
+                    "sections": ["docs"],
+                    "versions": [
+                        {"id": "main", "latest": True},
+                        {"id": "0.3.2", "latest": False},
+                    ],
+                    "git": {
+                        "latest": {"branch": "main", "id": "main"},
+                        "previous": {"count": 1},
+                    },
+                },
+            },
+        )
+        context = RenderURLContext(site=site, version_id="0.3.2")
+
+        assert url_for_path("/docs/start/", context) == "/bengal/docs/start/"
+
+    def test_url_for_git_section_uses_current_version(self, tmp_path):
+        site = Site(
+            root_path=tmp_path,
+            config={
+                "baseurl": "/bengal",
+                "versioning": {
+                    "enabled": True,
+                    "mode": "git",
+                    "sections": ["docs"],
+                    "versions": [
+                        {"id": "main", "latest": True},
+                        {"id": "0.3.2", "latest": False},
+                    ],
+                    "git": {
+                        "latest": {"branch": "main", "id": "main"},
+                        "previous": {"count": 1},
+                    },
+                },
+            },
+        )
+        section = Section(name="start", path=tmp_path / "content" / "docs" / "start")
+        section._site = site
+        section.__dict__["_path"] = "/docs/start/"
+
+        context = RenderURLContext(site=site, version_id="0.3.2")
+
+        assert url_for(section, context) == "/bengal/docs/0.3.2/start/"
+        assert url_for(section, context, baseurl=False) == "/docs/0.3.2/start/"
+        assert url_for(section, context, version="latest") == "/bengal/docs/start/"
+
+    def test_url_for_special_url_returns_unchanged(self):
+        context = RenderURLContext(site=MockSite(baseurl="/bengal"))
+
+        assert url_for("#install", context) == "#install"
+        assert url_for("https://example.com/docs/", context) == "https://example.com/docs/"

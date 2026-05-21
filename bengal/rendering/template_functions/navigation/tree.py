@@ -13,7 +13,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.core.nav_tree import NavTreeCache, NavTreeContext
-from bengal.rendering.section_urls import get_path_for_version
+from bengal.rendering.urls import RenderURLContext
+from bengal.rendering.urls import url_for as resolve_url_for
 
 if TYPE_CHECKING:
     from bengal.core.nav_tree import NavNodeProxy
@@ -73,7 +74,11 @@ def get_nav_tree(
     # If root_section is provided, scope navigation to only that section and its descendants.
     root_node = None
     if root_section is not None:
-        root_url = get_path_for_version(root_section, version_id)
+        root_url = resolve_url_for(
+            root_section,
+            RenderURLContext(site=site, page=page, version_id=version_id),
+            baseurl=False,
+        )
         root_node = tree.find(root_url)
         if root_node is None:
             return []
@@ -126,7 +131,11 @@ def get_nav_context(page: PageLike, root_section: SectionLike | None = None) -> 
     tree = NavTreeCache.get(site, version_id)
     root_node = None
     if root_section is not None:
-        root_url = get_path_for_version(root_section, version_id)
+        root_url = resolve_url_for(
+            root_section,
+            RenderURLContext(site=site, page=page, version_id=version_id),
+            baseurl=False,
+        )
         root_node = tree.find(root_url)
         # If root_section not found (e.g., _versions/ folder for versioned content),
         # fall back to unscoped navigation rather than raising an error.

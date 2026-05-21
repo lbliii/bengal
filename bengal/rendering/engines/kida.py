@@ -756,17 +756,22 @@ class KidaTemplateEngine:
         """
         self._menu_dict_cache.clear()
 
-    def _url_for(self, page: Any) -> str:
-        """Generate URL for a page with base URL support."""
-        # If page has _path, use it to apply baseurl (for MockPage and similar)
-        # Otherwise, use href property which should already include baseurl
-        if hasattr(page, "_path") and page._path:
-            from bengal.rendering.utils.url import apply_baseurl
+    def _url_for(
+        self,
+        target: Any,
+        page: Any = None,
+        version: str | None = "current",
+        baseurl: bool = True,
+    ) -> str:
+        """Generate a render-context-aware URL for pages, sections, and paths."""
+        from bengal.rendering.urls import RenderURLContext, url_for
 
-            return apply_baseurl(page._path, self.site)
-        from bengal.rendering.template_engine.url_helpers import href_for
-
-        return href_for(page, self.site)
+        return url_for(
+            target,
+            RenderURLContext.for_page(self.site, page),
+            version=version,
+            baseurl=baseurl,
+        )
 
     def render_template(
         self,
