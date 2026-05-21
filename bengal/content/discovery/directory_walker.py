@@ -74,6 +74,14 @@ class DirectoryWalker:
         """
         return file_path.suffix.lower() in CONTENT_EXTENSIONS
 
+    def _uses_folder_versioning(self) -> bool:
+        """Return true when _versions/_shared should be discovered as content."""
+        if not getattr(self.site, "versioning_enabled", False):
+            return False
+
+        version_config = getattr(self.site, "version_config", None)
+        return not bool(getattr(version_config, "is_git_mode", False))
+
     def should_skip_item(self, item_path: Path) -> bool:
         """
         Check if an item should be skipped during discovery.
@@ -88,8 +96,8 @@ class DirectoryWalker:
         Returns:
             True if item should be skipped
         """
-        is_versioning_dir = item_path.name in ("_versions", "_shared") and getattr(
-            self.site, "versioning_enabled", False
+        is_versioning_dir = item_path.name in ("_versions", "_shared") and (
+            self._uses_folder_versioning()
         )
         return (
             item_path.name.startswith((".", "_"))
@@ -107,9 +115,7 @@ class DirectoryWalker:
         Returns:
             True if this is a versioning directory
         """
-        return item_path.name in ("_versions", "_shared") and getattr(
-            self.site, "versioning_enabled", False
-        )
+        return item_path.name in ("_versions", "_shared") and self._uses_folder_versioning()
 
     def check_symlink_loop(self, directory: Path) -> bool:
         """
