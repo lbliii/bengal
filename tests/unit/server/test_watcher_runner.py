@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -90,6 +91,26 @@ class TestWatcherRunner:
         runner.start()
         runner.stop()
         runner.stop()  # Should not error
+
+        assert runner._thread is None
+
+    def test_stop_handles_closed_loop_race(self) -> None:
+        """Test stop tolerates the watcher thread closing its loop first."""
+        runner = WatcherRunner(
+            paths=[Path(".")],
+            ignore_filter=IgnoreFilter(),
+            on_changes=MagicMock(),
+        )
+        loop = asyncio.new_event_loop()
+        loop.close()
+        thread = MagicMock()
+        thread.is_alive.return_value = False
+
+        runner._thread = thread
+        runner._loop = loop
+        runner._async_stop_event = MagicMock()
+
+        runner.stop()
 
         assert runner._thread is None
 

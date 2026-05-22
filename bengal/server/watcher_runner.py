@@ -143,14 +143,24 @@ class WatcherRunner:
 
         # Set the async stop event (must be done from the loop's thread)
         if self._loop is not None and self._async_stop_event is not None:
-            self._loop.call_soon_threadsafe(self._async_stop_event.set)
+            try:
+                self._loop.call_soon_threadsafe(self._async_stop_event.set)
+            except RuntimeError as e:
+                if "Event loop is closed" not in str(e):
+                    raise
+                logger.debug("watcher_runner_loop_closed_before_stop_event")
 
         # Wait for thread to finish (the loop will exit via stop_event check)
         self._thread.join(timeout=5.0)
         if self._thread.is_alive():
             # Force stop the loop if thread didn't exit gracefully
             if self._loop is not None:
-                self._loop.call_soon_threadsafe(self._loop.stop)
+                try:
+                    self._loop.call_soon_threadsafe(self._loop.stop)
+                except RuntimeError as e:
+                    if "Event loop is closed" not in str(e):
+                        raise
+                    logger.debug("watcher_runner_loop_closed_before_force_stop")
             self._thread.join(timeout=1.0)
             if self._thread.is_alive():
                 logger.warning("watcher_runner_thread_did_not_stop")
