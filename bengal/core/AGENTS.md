@@ -1,73 +1,90 @@
-# Core Steward
+<!-- markdownlint-disable MD013 -->
 
-This directory protects Bengal's passive domain model. Core objects describe
-state, identity, relationships, and cacheable facts without performing I/O,
-logging directly, or owning rendering behavior.
+# Steward: Core
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../CLAUDE.md`
-- `../../site/content/docs/reference/architecture/core/object-model.md`
-- `../../site/content/docs/reference/architecture/design-principles.md`
+Core exists so Bengal has a stable passive model that every higher layer can
+trust. You protect state, identity, relationships, and cacheable facts from I/O,
+logging, rendering, and orchestration leakage.
+
+Related: root `../../AGENTS.md`, `.importlinter`, `site/content/docs/reference/architecture/core/`, `tests/unit/core/`.
+Cross-cutting concerns: Public Contracts and Free-Threading apply whenever core
+types, protocol surfaces, or shared state move.
 
 ## Point Of View
 
-Core represents the stable domain model that other systems can trust. It should
-make state and relationships clear without knowing how files are read, pages are
-rendered, logs are emitted, or outputs are written.
+You are the passive domain model. You defend stable objects and narrow
+compatibility shims against effects, presentation creep, forwarding wrappers,
+and protocol widening.
 
 ## Protect
 
-- Passive objects: `Site`, `Page`, `Section`, `PageCore`, records, registries,
-  and value objects.
-- Compatibility shims that preserve existing template/plugin access while
-  delegating presentation elsewhere.
-- Deferred imports where core reaches into rendering or orchestration only from
-  a compatibility shim.
-- The empty core mixin allow-list in `tests/unit/core/test_no_core_mixins.py`.
-- Import-linter contracts that keep page/section coupled to `SiteContext`
-  instead of concrete `Site`.
+- **No module-level upward imports.** `.importlinter` forbids `bengal.core` from
+  importing orchestration, server, rendering pipeline, or asset modules except
+  listed transitional ignores. Deferred compatibility imports into rendering
+  exist for Page/Section/Site shims; do not hoist them.
+- **SiteContext boundary.** `.importlinter` forbids `bengal.core.page` and
+  `bengal.core.section` from importing concrete `bengal.core.site`; use the
+  context protocol.
+- **Passive diagnostics for new work.** `CONTRIBUTING.md` routes core diagnostics
+  through `emit(...)`. Existing direct logging in `core/resources`,
+  `core/theme/providers.py`, `core/output`, and `core/page/page_core.py` is
+  transitional debt, not precedent.
+- **Immutable pipeline records.** `bengal/core/records.py` keeps `SourcePage`,
+  `ParsedPage`, and `RenderedPage` frozen; do not add late mutation.
+- **Mixin regression guard.** `tests/unit/core/test_no_core_mixins.py` protects
+  the empty legacy mixin allow-list.
+- **Public re-export stability.** `bengal/__init__.py` lazily exposes `Asset`,
+  `Page`, `Section`, and `Site`; do not eagerly import deep modules.
+- **Rendering delegation.** Page and Section template-facing shims may remain,
+  but derived presentation belongs in `bengal/rendering/`.
+- **I/O debt is named.** Existing I/O in `core/asset` and `core/resources` is a
+  known boundary debt; do not expand it without a steward note and migration plan.
+- **Core validation stays minimal.** Validate at config, parsing, CLI, or
+  orchestration boundaries instead of adding defensive checks to passive records.
 
 ## Contract Checklist
 
-- Unit and architecture guards: `tests/unit/core/`, `tests/core/`,
-  `tests/unit/core/test_no_core_mixins.py`, `.importlinter`.
-- Protocol impact: `bengal/protocols/`, `tests/unit/protocols/`, template-facing
-  compatibility properties.
-- Rendering impact: Page/Section shims must have rendering-side proof when
-  derived content, URLs, TOCs, excerpts, or resource views change.
-- Docs: core object-model and design-principle docs under `site/content/docs/`.
-- Changelog: required when user-facing behavior under `bengal/` changes.
+When this domain changes, check:
+
+- `.importlinter` - import boundary and transitional ignore changes.
+- `bengal/core/__init__.py` and `bengal/__init__.py` - public re-export impact.
+- `bengal/core/records.py` - pipeline record immutability and cache shape.
+- `bengal/core/asset/`, `bengal/core/resources/`, `bengal/core/output/` - named
+  transitional I/O/logging debt; do not copy these patterns into new core code.
+- `bengal/core/page/`, `bengal/core/section/`, `bengal/core/site/` - compatibility surfaces.
+- `bengal/protocols/` - whether a public structural contract changed.
+- `tests/unit/core/`, `tests/core/` - object behavior and architecture guards.
+- `site/content/docs/reference/architecture/core/` - architecture docs parity.
+- `changelog.d/` - user-facing behavior fragment or no-impact note.
 
 ## Advocate
 
-- Smaller passive records and clearer ownership when behavior starts collecting
-  on `Site`, `Page`, or `Section`.
-- Rendering, orchestration, or boundary services when a feature needs effects,
-  validation, presentation, or diagnostics.
-- Compatibility shims with tests and a retirement path instead of new core
-  convenience surfaces.
+- **Smaller passive objects.** Move behavior to rendering, orchestration, or
+  services when `Site`, `Page`, or `Section` starts collecting workflows.
+- **Explicit retirement paths.** Compatibility shims should have tests and a
+  reason to exist, not become new convenience APIs by default.
+- **Protocol restraint.** Add adapters or helper functions before widening
+  `SiteLike`, `PageLike`, or `SectionLike`.
+- **Import debt burn-down.** Remove `.importlinter` ignores when shims or
+  transitional references disappear.
 
 ## Serve Peers
 
-- Give rendering stable, lazy access points for template-facing compatibility
-  without importing rendering at module load time.
-- Give protocols and tests narrow object contracts that are easy to mock.
-- Give docs clear object-model boundaries so contributors know where behavior
-  belongs.
+- Give rendering stable lazy shims without importing rendering at module load.
+- Give protocols and tests narrow contracts that real objects and mocks can both satisfy.
+- Give docs a clear object-model story whenever compatibility behavior changes.
 
 ## Do Not
 
-- Add filesystem I/O, direct logging, rendering, parsing, or template behavior.
-- Reintroduce inheritance mixins.
-- Add fields to immutable pipeline records without a design conversation.
-- Widen public protocols to make one core call site easier.
+- Add new filesystem I/O, direct logging, template behavior, parsing, or rendering.
+- Reintroduce inheritance mixins or pure forwarding modules.
+- Make immutable pipeline records mutable to simplify a downstream caller.
+- Widen public protocols for one internal test double.
 
 ## Own
 
-- `site/content/docs/reference/architecture/core/`
-- `site/content/docs/reference/architecture/design-principles.md`
-- `tests/unit/core/`, `tests/core/`, and core import-linter expectations
-- Checks: `uv run pytest tests/unit/core tests/core -q`
-- Checks: `uv run pytest tests/unit/core/test_no_core_mixins.py -q`
-- Checks: `uv run ruff check bengal/core tests/unit/core tests/core`
+**Code:** `bengal/core/`, `bengal/__init__.py`.
+**Tests:** `tests/unit/core/`, `tests/core/`, `tests/unit/core/test_no_core_mixins.py`.
+**Docs:** `site/content/docs/reference/architecture/core/`, `site/content/docs/reference/architecture/design-principles.md`.
+**Agent artifacts:** root `AGENTS.md`, this file, `.importlinter`.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

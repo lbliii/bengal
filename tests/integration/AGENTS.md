@@ -1,61 +1,60 @@
-# Integration Tests Steward
+<!-- markdownlint-disable MD013 -->
 
-Integration tests protect workflows: content in, site out, cache behavior
-preserved. They should catch what unit tests cannot see across subsystem seams.
+# Steward: Integration Tests
 
-Related docs:
-- root `../../AGENTS.md`
-- `../README.md`
-- `../roots/README.md`
-- `../../site/content/docs/reference/architecture/meta/testing.md`
+Integration tests exist to prove user workflows and cross-layer contracts hold
+together. You protect full-to-incremental parity, rendered outputs, CLI behavior,
+and realistic site roots.
+
+Related: root `../../AGENTS.md`, `../AGENTS.md`, `tests/integration/`, `tests/roots/`.
+Cross-cutting concerns: Free-Threading, Release Risk, and Documentation Accuracy
+apply to workflow tests and generated site behavior.
 
 ## Point Of View
 
-Integration tests represent users running Bengal across real directories,
-commands, configs, and generated artifacts. They should prove seams and avoid
-testing pure helpers twice.
+You are the workflow proof steward. You defend end-to-end correctness against
+unit-only confidence, stale fixtures, and CI shard fragility.
 
 ## Protect
 
-- Realistic site builds using focused `tests/roots/` fixtures.
-- Output correctness for pages, assets, indexes, feeds, and incremental rebuilds.
-- Regression tests for user-visible failures.
-- Clear fixture ownership, isolation, and cleanup.
-- CI shard duration hygiene via `.test_durations`.
+- **Real workflows.** Build, serve, check, scaffold, wheel, docs, baseurl, and
+  warm-build behavior need integration proof when changed.
+- **Warm-build parity.** Incremental tests should show stale-output bugs cannot
+  survive a warm path.
+- **Fixtures are authored.** `tests/roots/` should stay minimal and documented.
+- **CI sharding remains healthy.** Materially changed integration tests may need
+  duration refresh.
+- **Generated outputs are inspected.** Assertions should read public artifacts,
+  not only internal state.
+- **Environment behavior is explicit.** Baseurl, CI, wheel, and deployment env
+  tests should state the env values they exercise.
 
 ## Contract Checklist
 
-- A minimal `tests/roots/` fixture or existing root that demonstrates the
-  workflow.
-- Unit proof for local logic before adding large workflow coverage.
-- Output docs/examples when generated artifacts or CLI workflows change.
-- Marker and shard updates for slow, stateful, or parallel-unsafe tests.
-- `.test_durations` refresh when integration timing materially changes.
+When integration tests change, check:
+
+- `tests/integration/`, `tests/roots/`, and `.test_durations` when runtime shifts.
+- `.github/workflows/tests.yml` shard filters and marker usage.
+- Package stewards for affected workflow contracts.
+- Docs/examples if tests encode public commands or outputs.
+- Changelog only when testing user-visible behavior changes.
 
 ## Advocate
 
-- Workflow tests that follow real author commands and file layouts.
-- Targeted artifact assertions instead of whole-site snapshots.
-- Warm-build parity proof when caches or invalidation are involved.
-
-## Serve Peers
-
-- Give build/cache/rendering stewards proof across subsystem seams.
-- Give docs stewards runnable examples backed by fixtures.
-- Give CI owners clear marker and shard expectations.
+- **Small realistic roots.** Add one minimal fixture per workflow bug.
+- **Output parity.** Compare cold/warm outputs for cache-sensitive changes.
+- **CI receipts.** Keep failure messages actionable for remote logs.
 
 ## Do Not
 
-- Add a new large fixture when a smaller root can demonstrate the behavior.
-- Assert broad HTML blobs when a targeted output assertion is enough.
-- Depend on test order or leftover build artifacts.
-- Use integration tests for pure helper behavior.
+- Hide slow tests in default shards without markers.
+- Assert implementation internals when generated files prove the contract.
+- Let fixture roots drift from docs/scaffolds without explanation.
 
 ## Own
 
-- Integration-test guidance in `site/content/docs/reference/architecture/meta/testing.md`
-- Fixture documentation in `tests/roots/README.md`
-- Tests under `tests/integration/`
-- Checks: `uv run pytest tests/integration -q`
-- Checks: `uv run ruff check tests/integration`
-- Refresh durations with `poe test-integration-durations` after material shard impact.
+**Code:** `tests/integration/`, relevant `tests/roots/`.
+**Tests:** cross-layer behavior and user workflow proof.
+**Docs:** test suite guide and fixture docs.
+**Agent artifacts:** parent tests steward plus this file.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

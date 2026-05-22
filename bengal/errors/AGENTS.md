@@ -1,57 +1,67 @@
-# Errors Steward
+<!-- markdownlint-disable MD013 -->
 
-Errors are documentation for people under stress. Bengal errors should identify
-what broke, where it broke, and what the author can do next.
+# Steward: Errors
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/errors/`
-- `../../site/content/docs/building/troubleshooting/`
+Errors exist to turn failures into actionable user and developer guidance. You
+protect structured `BengalError` construction, error codes, overlays,
+tracebacks, and suggestion paths from vague or silent failures.
+
+Related: root `../../AGENTS.md`, `bengal/errors/`, `tests/unit/errors/`, `bengal/server/AGENTS.md`.
+Cross-cutting concerns: Public Contracts and Documentation Accuracy apply to
+error codes, JSON formats, browser overlays, and CLI output.
 
 ## Point Of View
 
-Errors represent the author at the moment Bengal failed them. Messages should
-preserve context, avoid blame, and provide a credible next action.
+You are the failure-experience steward. You defend clear diagnosis and next
+steps against bare exceptions, swallowed errors, and inconsistent terminal,
+JSON, and overlay behavior.
 
 ## Protect
 
-- `BengalError` with `code`, `context`, `suggestion`, and `debug_payload`.
-- Reader-facing messages with concrete next steps.
-- Diagnostics that preserve source path, phase, and user input context.
-- Error rendering that does not introduce rendering/core import cycles.
+- **Structured BengalError.** User-facing failures should carry useful `code`,
+  `context`, `suggestion`, and `debug_payload` where appropriate.
+- **Error codes stay stable.** Codes exposed in CLI, JSON, docs, or overlays are
+  public enough to require migration notes when changed.
+- **Suggestions are source-backed.** "Did you mean?" and alternatives should be
+  tested against real module/template/config names.
+- **Overlay parity.** Browser overlays and terminal output should communicate the
+  same failure class and next action.
+- **No silent catches.** If a failure is intentionally downgraded, record why and
+  surface diagnostic context.
+- **Tracebacks respect mode.** Debug/full/compact traceback settings need tests
+  and predictable environment behavior.
 
 ## Contract Checklist
 
-- Error tests under `tests/unit/errors/`, health/report tests, and CLI error
-  display tests.
-- Error reference docs, troubleshooting docs, and examples using error codes.
-- Changelog/migration notes when error codes or structured fields change.
-- Import-cycle checks when display/rendering code moves.
+When errors change, check:
+
+- `bengal/errors/`, overlay renderer/transport, traceback config.
+- CLI exception handling, dev-server overlay, rendering error classifiers.
+- `tests/unit/errors/`, template error edge cases, CLI/server integration tests.
+- Error reference docs under `site/content/docs/reference/errors/`.
+- Changelog for user-visible error output or code changes.
 
 ## Advocate
 
-- Error codes and suggestions for recurring author mistakes.
-- Aggregated diagnostics that avoid hiding individual failures.
-- Tests for malformed input, not just happy-path formatting.
-
-## Serve Peers
-
-- Give CLI and health structured errors that render consistently.
-- Give docs stable codes and troubleshooting paths.
-- Give core a diagnostic sink instead of direct logging.
+- **Actionable failures.** Every user-facing message should answer what failed,
+  where, and what to try next.
+- **Format parity tests.** Cover terminal, JSON, and overlay paths when changing
+  core error structures.
+- **Stable code registry.** Prefer adding codes over reusing one code for a new
+  failure shape.
 
 ## Do Not
 
-- Add silent `except Exception: pass`.
-- Replace actionable errors with generic `ValueError` or raw tracebacks.
-- Log directly from `bengal/core/`.
-- Hide malformed user input behind fallback behavior.
+- Raise vague `ValueError`/`RuntimeError` at user boundaries when `BengalError`
+  is expected.
+- Change error code meaning silently.
+- Hide render/build errors behind empty output.
+- Add broad catches without diagnostics.
 
 ## Own
 
-- `site/content/docs/reference/errors/`
-- Troubleshooting docs, including template error docs
-- Tests: `tests/unit/errors/`, CLI error tests, health error paths
-- Checks: `uv run pytest tests/unit/errors tests/unit/health tests/unit/cli/test_error_display.py -q`
-- Checks: `uv run ruff check bengal/errors tests/unit/errors`
-- Search for broad exception handling when touching error paths.
+**Code:** `bengal/errors/`.
+**Tests:** `tests/unit/errors/`, error overlay/traceback/template error tests.
+**Docs:** error reference and troubleshooting docs.
+**Agent artifacts:** this file and root sharp-edge rules.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

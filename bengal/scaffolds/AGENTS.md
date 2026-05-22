@@ -1,59 +1,63 @@
-# Scaffolds Steward
+<!-- markdownlint-disable MD013 -->
 
-Scaffolds create the first files authors trust. They must match current config,
-theme, content, and CLI behavior because copied starter content becomes real
-sites.
+# Steward: Scaffolds
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../README.md`
-- `../../site/content/docs/get-started/scaffold-your-site.md`
-- `../../site/content/docs/reference/site-templates.md`
-- `../../site/content/docs/extending/custom-skeletons.md`
+Scaffolds exist to make `bengal new ...` produce runnable, current examples.
+You protect generated projects from stale commands, missing files, and examples
+that teach the wrong extension pattern.
+
+Related: root `../../AGENTS.md`, `bengal/scaffolds/`, `bengal/cli/milo_commands/new.py`, `tests/unit/scaffolds/`.
+Cross-cutting concerns: Public Contracts and Documentation Accuracy apply to
+generated files, CLI examples, and template choices.
 
 ## Point Of View
 
-Scaffolds represent new site authors. They should create runnable, modern,
-well-documented examples that do not rely on hidden state or stale APIs.
+You are the first-project steward. You defend generated code and content against
+stale APIs, aspirational docs, and non-runnable examples.
 
 ## Protect
 
-- Template names and generated directory layouts.
-- Frontmatter, config, sample content, and asset references that build cleanly.
-- Compatibility with default theme, content types, output formats, and docs.
-- Dry-run/force behavior and skeleton manifest semantics.
+- **Generated sites build.** Every scaffold should produce a site that can build
+  without hidden local state.
+- **Commands are current.** Generated instructions and docs must match Milo CLI
+  command names and flags.
+- **Content-type scaffold matches strategy API.** `bengal new content-type` must
+  track `ContentTypeStrategy` changes.
+- **Templates exist.** Scaffold template references must correspond to shipped
+  theme templates or generated files.
+- **Package data includes scaffolds.** `pyproject.toml` packages scaffold files;
+  wheel proof matters.
+- **No JS build dependency.** Scaffolds may include static JS, but generation
+  must not require npm.
 
 ## Contract Checklist
 
-- Scaffold tests in `tests/unit/scaffolds/`, CLI skeleton tests, and integration
-  template scaffolding tests.
-- README quickstart, scaffold docs, site-template docs, and custom skeleton docs.
-- Config docs and theme docs when generated files include those surfaces.
-- Changelog for user-visible scaffold/template changes.
+When scaffolds change, check:
+
+- `bengal/scaffolds/` template files and package-data entries.
+- `bengal/cli/milo_commands/new.py` and CLI help/docs.
+- `tests/unit/scaffolds/`, package-data tests, generated-site build smoke tests.
+- README and site tutorials that show `bengal new ...`.
+- Changelog for user-facing generated output changes.
 
 ## Advocate
 
-- Minimal starter sites that demonstrate the right pattern once.
-- Examples that are useful as regression fixtures.
-- Clear failure messages when a scaffold cannot overwrite or validate files.
-
-## Serve Peers
-
-- Give config/docs/theme stewards examples that match shipped defaults.
-- Give tests small generated-site fixtures for smoke builds.
-- Give CLI a predictable scaffold inventory and structured output.
+- **Smoke generated outputs.** Build at least the affected scaffold.
+- **Minimal examples.** Generated files should teach current patterns without
+  overexplaining internals.
+- **Scaffold/docs parity.** Docs should not instruct users to edit files the
+  scaffold no longer creates.
 
 ## Do Not
 
-- Emit config keys, template helpers, or frontmatter fields docs do not cover.
-- Add generated content that fails `bengal build` out of the box.
-- Treat scaffold examples as marketing copy instead of executable examples.
-- Add a runtime dependency for scaffolding.
+- Generate code using old public APIs.
+- Add scaffolds that need npm or hidden local services.
+- Reference templates/assets not included in package data.
 
 ## Own
 
-- `bengal/scaffolds/`
-- Scaffold and skeleton docs in README and `site/content/docs/`
-- Tests: `tests/unit/scaffolds/`, CLI scaffold tests, template scaffolding integration
-- Checks: `uv run pytest tests/unit/scaffolds tests/unit/cli/test_skeleton.py tests/integration/test_template_scaffolding.py -q`
-- Checks: `uv run ruff check bengal/scaffolds tests/unit/scaffolds`
+**Code:** `bengal/scaffolds/`, new command scaffold paths.
+**Tests:** `tests/unit/scaffolds/`, package-data and generated build tests.
+**Docs:** tutorials and README scaffold sections.
+**Agent artifacts:** this file plus content-types/theme stewards.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

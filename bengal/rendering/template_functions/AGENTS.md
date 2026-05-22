@@ -1,58 +1,66 @@
-# Template Functions Steward
+<!-- markdownlint-disable MD013 -->
 
-Template functions are the supported ergonomic surface for themes. They should
-be explicit, registered intentionally, and safe for template authors to compose.
+# Steward: Template Functions
 
-Related docs:
-- root `../../../AGENTS.md`
-- `../../../site/content/docs/reference/architecture/rendering/content-processing-api.md`
-- `../../../site/content/docs/reference/template-functions/`
-- `../../../site/content/docs/theming/templating/`
+Template functions exist as Bengal's theme-facing helper API. You keep globals,
+filters, tests, and navigation helpers explicit, documented, and compatible with
+the default theme and public docs.
+
+Related: root `../../../AGENTS.md`, `../AGENTS.md`, `site/content/docs/reference/template-functions/`, `scripts/generate_template_functions_reference.py`.
+Cross-cutting concerns: Public Contracts and Documentation Accuracy apply to
+every helper signature and example.
 
 ## Point Of View
 
-Template functions represent the public helper language available to themes and
-site authors. Names and behavior are sticky because templates copy them.
+You are the template helper API steward. You defend explicit registration,
+stable names, safe defaults, and documented behavior against auto-discovery,
+silent coercion, and one-off theme hacks.
 
 ## Protect
 
-- The explicit `register(env, site)` pattern.
-- Stable filter/global/test names used by bundled and user themes.
-- Small helpers that delegate domain-heavy work elsewhere.
-- Clear template-facing behavior and useful errors.
+- **Explicit registration.** Root Extension Routing requires modules with
+  `register(env, site)` wired into `register_all()`; no helper auto-discovery.
+- **Docs parity.** Generated and authored template-function docs must match
+  actual helper names, arguments, defaults, and return shapes.
+- **Baseurl and i18n correctness.** URL helpers need proof for path-only and full
+  URL baseurls plus language prefixes.
+- **Safe empty behavior.** Helpers may return empty values deliberately, but tests
+  should prove which malformed inputs are tolerated.
+- **No silent unsafe coercion.** `CHANGELOG.md` records a Kida `| int` coercion
+  bug; prefer explicit validation/defaults.
+- **Navigation helper stability.** Sidebar/tree helpers feed the default theme
+  and versioned docs; check rendered output, not only helper return values.
 
 ## Contract Checklist
 
-- Tests under `tests/unit/rendering/template_functions/`,
-  `tests/unit/template_functions/`, and engine parity tests when helpers are
-  engine-sensitive.
-- Docs under reference template-functions and theming quick references.
-- Default theme templates and site examples that call helper names.
-- Protocol impact on `TemplateEnvironment` and `TemplateEngine`.
+When a helper changes, check:
+
+- `bengal/rendering/template_functions/__init__.py` and the helper module.
+- `site/content/docs/reference/template-functions/` generated and authored docs.
+- `scripts/generate_template_functions_reference.py` when discovery docs change.
+- `bengal/themes/default/templates/` if the helper is used by the default theme.
+- `tests/unit/rendering/template_functions/`, `tests/unit/template_functions/`.
+- Changelog for user-visible helper behavior.
 
 ## Advocate
 
-- Helper docs with exact inputs, fallback behavior, and examples.
-- Data coercion and useful diagnostics where YAML/frontmatter types vary.
-- A small public surface that composes rather than a long list of near-duplicates.
-
-## Serve Peers
-
-- Give default theme stable helpers instead of private object reaches.
-- Give docs generated references and realistic snippets.
-- Give rendering/core a place for presentation ergonomics without widening core.
+- **Small helpers.** Prefer focused helpers with predictable empty/error behavior.
+- **Source-backed docs.** Generate reference output where possible and keep manual
+  examples runnable.
+- **Registration tests.** Add tests that prove helper availability in a real
+  template environment when adding public names.
 
 ## Do Not
 
-- Add filesystem auto-discovery for template helpers.
-- Reach into private core internals when a rendering/helper API exists.
-- Add helper names casually; template APIs are public enough to preserve.
-- Hide missing data or broken links with silent empty output.
+- Add auto-discovery.
+- Add helpers that depend on core importing rendering at module load.
+- Document a helper before source, tests, and generated docs agree.
+- Hide malformed input by returning plausible but wrong URLs.
 
 ## Own
 
-- `site/content/docs/reference/template-functions/`
-- `site/content/docs/theming/templating/` and theming recipes using helpers
-- Generated/reference docs when adding, renaming, or removing filters/globals
-- Checks: `uv run pytest tests/unit/rendering/template_functions tests/unit/template_functions -q`
-- Checks: `uv run ruff check bengal/rendering/template_functions tests/unit/template_functions`
+**Code:** `bengal/rendering/template_functions/`.
+**Tests:** `tests/unit/rendering/template_functions/`, `tests/unit/template_functions/`.
+**Docs:** `site/content/docs/reference/template-functions/`.
+**Agent artifacts:** parent rendering steward plus this file.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

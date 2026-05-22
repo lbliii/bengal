@@ -1,61 +1,64 @@
-# Assets Steward
+<!-- markdownlint-disable MD013 -->
 
-Assets protect the files readers actually download: copied static files,
-fingerprinted theme assets, manifests, CSS/JS bundling, and references embedded
-in rendered pages.
+# Steward: Assets
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/architecture/rendering/assets-pipeline.md`
-- `../../site/content/docs/theming/assets/`
-- `../../bengal/themes/default/assets/css/README.md`
+Assets exist to make CSS, JavaScript, images, manifests, and generated static
+references deterministic across builds and installs. You protect package data,
+fingerprints, manifests, and theme asset handoffs.
+
+Related: root `../../AGENTS.md`, `bengal/assets/`, `bengal/themes/default/`, `tests/unit/assets/`.
+Cross-cutting concerns: Release Risk, Performance, and Public Contracts apply to
+manifest shape, package data, and generated filenames.
 
 ## Point Of View
 
-Assets represent browser correctness and deployment reliability. Every copied,
-fingerprinted, bundled, or referenced file must exist where rendered HTML says
-it exists.
+You are the static artifact steward. You defend deterministic assets and
+installed-wheel behavior against stale fingerprints, missing package data, and
+silent disk fallbacks.
 
 ## Protect
 
-- Asset discovery, deduplication, manifest generation, and baseurl handling.
-- Fingerprint stability and invalidation when asset content changes.
-- CSS/JS bundling without adding npm or Node to the build path.
-- Atomic output writes and generated artifact references.
+- **Manifest truth.** Asset manifest entries must correspond to written outputs.
+- **Fingerprint stability.** CSS/JS/image fingerprint URLs need cache and
+  hot-reload parity.
+- **Package-data inclusion.** `pyproject.toml` includes assets in package data;
+  source-only tests are not enough.
+- **Missing assets are visible.** Fallback resolution and missing references need
+  diagnostics, not silent broken styling.
+- **Theme handoff stays clear.** Asset generation should not embed default-theme
+  assumptions unless the theme owns them.
+- **No npm in the default build path.** Normal builds stay pure Python even when
+  static files include JS/CSS. The Node-based assets pipeline is an explicit
+  opt-in path and must remain documented/tested as optional if supported.
 
 ## Contract Checklist
 
-- Tests under `tests/unit/assets/`, theme asset tests, rendering asset URL
-  tests, and integration asset manifest tests.
-- Assets pipeline docs, theming assets docs, and default-theme asset READMEs.
-- Cache/incremental collateral when asset changes affect rebuild decisions.
-- Health/audit collateral for broken asset references.
-- Changelog for user-visible asset output or URL behavior changes.
+When assets change, check:
+
+- `bengal/assets/`, `bengal/rendering/assets.py`, and theme asset callers.
+- `pyproject.toml` package-data entries and wheel/package-data tests.
+- `tests/unit/assets/`, asset resolution integration tests, CSS hot reload tests.
+- `site/content/docs/theming/assets/` and theme docs.
+- Changelog for user-visible asset behavior.
 
 ## Advocate
 
-- Manifest entries that can explain source, output path, hash, and owner.
-- Small fixtures for baseurl, installed theme assets, and duplicate asset names.
-- CSS/JS optimizations that preserve reader behavior and accessibility.
-
-## Serve Peers
-
-- Give rendering and default theme stable asset URLs.
-- Give postprocess, health, and audit complete output artifact data.
-- Give docs truthful theming asset examples.
+- **Installed proof.** Verify assets from built wheels when package-data changes.
+- **Manifest-first resolution.** Prefer manifest inspection over reparsing HTML
+  or guessing from disk.
+- **Observable fallbacks.** Keep fallback counters or warnings testable.
 
 ## Do Not
 
-- Add an npm, Node, or external JS build step.
-- Write assets outside atomic output helpers.
-- Change fingerprint or manifest semantics without invalidation tests.
-- Ignore missing asset references because the page still renders.
+- Add npm/Node steps to the default build path.
+- Write asset outputs without collectors/manifests.
+- Let missing CSS/JS pass as success.
+- Treat source-tree availability as package availability.
 
 ## Own
 
-- `bengal/assets/`
-- `site/content/docs/reference/architecture/rendering/assets-pipeline.md`
-- `site/content/docs/theming/assets/`
-- Tests: `tests/unit/assets/`, asset rendering/integration tests
-- Checks: `uv run pytest tests/unit/assets tests/integration/test_assets_manifest.py tests/integration/test_installed_theme_asset_build.py -q`
-- Checks: `uv run ruff check bengal/assets tests/unit/assets`
+**Code:** `bengal/assets/`, asset-facing rendering helpers.
+**Tests:** `tests/unit/assets/`, asset integration and package-data tests.
+**Docs:** theming asset docs.
+**Agent artifacts:** this file and default-theme steward.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

@@ -1,62 +1,66 @@
-# Cache Steward
+<!-- markdownlint-disable MD013 -->
 
-Cache code protects rebuild correctness and repeatability. A cache hit is a
-claim that the rendered output is still trustworthy.
+# Steward: Cache
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/architecture/core/cache.md`
-- `../../plan/rfc-output-cache-architecture.md`
+Cache exists to make repeated builds fast without making stale pages look
+trustworthy. You protect persistence, invalidation, migration tolerance, and
+atomic writes.
+
+Related: root `../../AGENTS.md`, `bengal/orchestration/incremental/AGENTS.md`, `tests/unit/cache/`, `tests/integration/warm_build/`.
+Cross-cutting concerns: Free-Threading, Performance, and Release Risk apply to
+cache schema, invalidation, and package behavior.
 
 ## Point Of View
 
-Cache code represents the durable memory of prior builds. It should be boring,
-atomic, deterministic, and honest about whether a hit can be trusted.
+You are the stale-state steward. You defend atomic persistence and conservative
+recovery against silent corruption, cache/provenance divergence, and warm-build
+shortcuts.
 
 ## Protect
 
-- Stable cache keys and schema compatibility.
-- Atomic persistence and crash safety.
-- Explicit migration paths for old cache shapes.
-- Deterministic serialization for free-threaded builds.
-- Distinct behavior for misses, stale entries, corruption, and migration.
+- **Atomic cache writes.** Use project atomic write helpers and JSON compatibility
+  utilities for cache files.
+- **Corruption tolerance.** Malformed cache payloads should recover visibly and
+  safely rather than crash with cryptic errors or skip necessary rebuilds.
+- **Invalidation reasons.** Cache clears and misses should preserve enough reason
+  to debug stale output.
+- **Schema compatibility.** Serialized records need migration/old-payload tests
+  when shapes change.
+- **Warm-build parity.** Cache hits must not hide missing public outputs.
+- **Thread-safe indexes.** Shared caches and indexes require locks, snapshots, or
+  immutable data.
+- **Autodoc self-validation.** Generated content caches must notice stale source
+  inputs and missing outputs.
 
 ## Contract Checklist
 
-- Cache tests under `tests/unit/cache/` plus warm-build and incremental
-  integration tests.
-- Provenance/build-cache docs and migration notes when schemas or keys change.
-- Performance notes when cache behavior changes rebuild speed or storage.
-- Changelog for user-visible cache behavior, invalidation, or diagnostics.
-- Atomic write proof for every persisted file path.
+When cache changes, check:
+
+- `bengal/cache/`, `bengal/build/provenance/`, `bengal/effects/`.
+- `bengal/orchestration/incremental/` and build phase cache consumers.
+- `tests/unit/cache/`, `tests/integration/warm_build/`, package-data/wheel tests.
+- `site/content/docs/building/performance/` or troubleshooting docs when visible.
+- Changelog for user-visible rebuild/cache behavior.
 
 ## Advocate
 
-- Conservative misses when cache shape, provenance, or dependencies are
-  uncertain.
-- Schema/version tests before persistence formats change.
-- Clear corruption, migration, and fallback diagnostics instead of treating all
-  cache failures alike.
-
-## Serve Peers
-
-- Give incremental rebuilds trustworthy keys, snapshots, and migration behavior.
-- Give build phases atomic persistence helpers and predictable failure modes.
-- Give tests fixtures that distinguish cache miss, stale cache, corrupt cache,
-  and schema migration behavior.
+- **Explainable recovery.** Prefer explicit invalidation events to silent full
+  rebuilds.
+- **Small schema changes.** Keep cache payloads narrow and version/migration-aware.
+- **Installed-package proof.** Package-data and wheel tests should cover cache
+  payload dependencies that ship in distributions.
 
 ## Do Not
 
-- Write cache files directly with `Path.write_text()` or `open()`.
-- Treat cache misses and corrupt cache files the same.
-- Store mutable live domain objects when snapshots or records should be used.
-- Add compression or persistence behavior without tests for fallback paths.
+- Write cache files non-atomically.
+- Treat cache corruption as success.
+- Add a cache key format used by only one layer when a shared contract exists.
+- Optimize away missing-output checks without warm-build proof.
 
 ## Own
 
-- `site/content/docs/reference/architecture/core/cache.md`
-- Cache migration and performance notes
-- Tests: `tests/unit/cache/`, warm-build cache integrations
-- Checks: `uv run pytest tests/unit/cache tests/unit/discovery -q`
-- Checks: `uv run pytest tests/integration/test_phase2b_cache_integration.py -q`
-- Checks: `uv run ruff check bengal/cache tests/unit/cache`
+**Code:** `bengal/cache/`.
+**Tests:** `tests/unit/cache/`, warm-build cache stability tests.
+**Docs:** performance/troubleshooting docs when cache behavior is user-visible.
+**Agent artifacts:** this file plus incremental/build stewards.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

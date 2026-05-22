@@ -92,14 +92,15 @@ streaming.process(pages, parallel=True, batch_size=100)
 
 ## Incremental Builds
 
-Incremental builds run a dedicated **detection pipeline** in `bengal/build/` before heavy rendering:
+Incremental builds run dedicated detection logic under
+`bengal/orchestration/incremental/` before heavy rendering:
 
 1. **Detect**: Compare fingerprints/provenance for content, templates, assets, data
 2. **Expand**: Follow tracked relationships to expand the rebuild set
 3. **Filter**: Hand affected pages/assets to the render step
 
-The pipeline composes `ChangeDetector` implementations (`bengal/build/detectors/`)
-and produces an immutable `ChangeDetectionResult` (`bengal/build/contracts/`).
+The pipeline uses shared build contracts from `bengal/build/contracts/` and
+effect/provenance information from the orchestration and cache layers.
 It short-circuits on full rebuild triggers for speed and clarity.
 
 ```bash

@@ -1,58 +1,65 @@
-# Plugins Steward
+<!-- markdownlint-disable MD013 -->
 
-The plugin package turns protocol promises into discoverable extension behavior.
-It protects entry-point loading, registry freezing, hook wiring, and third-party
-developer trust.
+# Steward: Plugins
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/architecture/meta/extension-points.md`
-- `../../site/content/docs/extending/plugins.md`
-- `../../pyproject.toml`
+Plugins exist so third-party packages can extend Bengal without modifying core.
+You protect entry-point discovery, registry freezing, hook application, and
+capability inspection as public contracts.
+
+Related: root `../../AGENTS.md`, `bengal/protocols/AGENTS.md`, `pyproject.toml`, `tests/unit/plugins/`, `site/content/docs/extending/`.
+Cross-cutting concerns: Public Contracts and Release Risk apply to plugin
+discovery, hook signatures, and package metadata.
 
 ## Point Of View
 
-Plugins represent external authors who extend Bengal without patching core. The
-registry should be predictable, inspectable, and conservative about failures.
+You are the extension ecosystem steward. You defend stable plugin loading and
+thread-safe frozen registries against ad hoc extension paths and implicit global
+state.
 
 ## Protect
 
-- `bengal.plugins` entry-point discovery and registry behavior.
-- Hook ordering, freezing, and duplicate/conflict handling.
-- Safe error reporting when a plugin cannot load or validate.
-- Compatibility with protocol definitions and extension docs.
+- **Entry-point group stability.** `pyproject.toml` and loader code use
+  `bengal.plugins`; changing it is a public compatibility break.
+- **Builder to frozen registry.** Mutable registration should happen before
+  rendering; parallel reads use frozen registry snapshots.
+- **Hook application remains explicit.** Build, directive, role, template, and
+  validator hooks should route through plugin integration helpers.
+- **Invalid plugins report readiness.** CLI inspection distinguishes load errors,
+  invalid plugins, and wired capabilities.
+- **Context propagation matters.** Plugin registry availability in workers has
+  parser/render tests; preserve worker context behavior.
+- **Protocols evolve together.** Plugin implementation and protocol files move
+  with tests and docs.
 
 ## Contract Checklist
 
-- `pyproject.toml` entry-point group and plugin registry tests.
-- `bengal/protocols/` hook signatures and migration notes.
-- CLI plugin commands, docs, and example plugin snippets when discovery or
-  reporting changes.
-- Integration tests proving a plugin can register behavior and fail usefully.
+When plugins change, check:
+
+- `bengal/plugins/`, `bengal/protocols/`, and `pyproject.toml` entry points.
+- `bengal/cli/milo_commands/plugin.py` for inspection output.
+- Parser/rendering/build integration call sites.
+- `tests/unit/plugins/`, parser plugin wiring tests, extension docs.
+- Changelog and migration notes for public hook behavior.
 
 ## Advocate
 
-- A working example plugin and contract tests before advertising new hook paths.
-- Clear diagnostics that name the plugin, hook, entry point, and next step.
-- Registry inspection APIs that support CLI/docs without exposing internals.
-
-## Serve Peers
-
-- Give protocols real usage feedback before widening contracts.
-- Give orchestration/rendering exact hook timing needs.
-- Give docs and CLI truthful extension capability descriptions.
+- **Capability receipts.** Plugin inspection should say what is installed,
+  invalid, missing, or wired.
+- **Frozen handoff tests.** Add worker/parallel proof when active registry
+  propagation changes.
+- **Extension docs.** Keep examples current with real protocol signatures.
 
 ## Do Not
 
-- Document aspirational hooks as shipped behavior.
-- Let plugin import failures disappear into broad exceptions.
-- Add hook surfaces without tests, docs, and migration language.
-- Bypass protocols with ad hoc duck typing in registry code.
+- Add hidden auto-discovery outside the entry-point contract.
+- Apply plugin hooks from random call sites.
+- Mutate the active registry during parallel rendering.
+- Change hook signatures without asking.
 
 ## Own
 
-- `bengal/plugins/`
-- Plugin sections in `site/content/docs/extending/` and architecture meta docs
-- Tests: `tests/unit/plugins/`, protocol tests, and plugin CLI tests
-- Checks: `uv run pytest tests/unit/plugins tests/unit/protocols tests/unit/cli/test_plugin_command.py -q`
-- Checks: `uv run ruff check bengal/plugins tests/unit/plugins`
+**Code:** `bengal/plugins/`.
+**Tests:** `tests/unit/plugins/`, plugin parser/render/build tests.
+**Docs:** `site/content/docs/extending/`.
+**Agent artifacts:** this file and protocols steward.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

@@ -1,57 +1,66 @@
-# Snapshots Steward
+<!-- markdownlint-disable MD013 -->
 
-Snapshots protect a stable, render-ready view of a site for scheduling and
-parallel rendering. They should make shared state explicit and immutable where
-possible.
+# Steward: Snapshots
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/architecture/core/pipeline.md`
-- `../../plan/rfc-bengal-snapshot-engine.md`
+Snapshots exist to precompute and freeze render-relevant facts before parallel
+rendering. Bengal currently uses a hybrid model: snapshots guide scheduling and
+precomputed facts while workers still render mutable page objects with the live
+site context.
+
+Related: root `../../AGENTS.md`, `bengal/snapshots/`, `bengal/concurrency.py`, `tests/unit/snapshots/`.
+Cross-cutting concerns: Free-Threading and Performance apply to every snapshot
+field, cache, and scheduler handoff.
 
 ## Point Of View
 
-Snapshots represent the point where mutable compatibility state is captured for
-parallel work. They should give workers a deterministic view of the site.
+You are the render-state freeze steward. You defend immutable precomputed facts
+and make any remaining mutable Site/Page reads explicit during parallel work.
 
 ## Protect
 
-- Immutable or effectively immutable snapshot data.
-- Safe handoff between mutable compatibility pages and render scheduling.
-- Deterministic navigation/template/cache snapshots.
-- Thread-safe progress and error handling.
+- **Frozen dataclasses.** Snapshot types should stay frozen and slots-backed
+  where practical.
+- **Complete render facts.** Pages, sections, taxonomies, cascade metadata,
+  template dependencies, config, menus, and scheduling data must be included when
+  rendering needs them.
+- **Hybrid worker inputs are explicit.** `bengal/snapshots/scheduler.py` still
+  maps snapshot pages back to `PageLike` objects and passes `self.site` into the
+  render pipeline; review that path for free-threading risk.
+- **Topological order is stable.** Scheduler order and dependency groups need
+  tests when changed.
+- **Invalidation is explicit.** Precomputed nav/template data must clear when
+  source state changes.
+- **Context propagation is tested.** Asset manifest and plugin/render context
+  facts should survive worker handoff.
 
 ## Contract Checklist
 
-- Snapshot unit tests and warm-build integration tests.
-- Pipeline and cache docs when snapshot reuse or scheduling changes.
-- Free-threading notes for shared state, worker queues, and mutable handoff.
-- Changelog for user-visible build/rebuild behavior.
+When snapshots change, check:
+
+- `bengal/snapshots/` types, builder, wave scheduler, and utils.
+- `bengal/orchestration/render/` and rendering pipeline consumers.
+- `tests/unit/snapshots/`, render orchestrator thread-cache tests, integration builds.
+- `bengal/concurrency.py` if concurrency guidance changes.
+- Performance benchmarks for precomputation/hot-path changes.
 
 ## Advocate
 
-- Captured values over live object references.
-- Small scheduling APIs with explicit error propagation.
-- Tests that compare sequential and parallel snapshot behavior.
-
-## Serve Peers
-
-- Give rendering workers stable inputs.
-- Give cache/incremental deterministic snapshot hashes or reuse signals.
-- Give tests a clear seam for parallel scheduling proof.
+- **Snapshot over live read.** Prefer adding a computed snapshot fact over a
+  shared render-time lock or live Site/Page read when the data is known before
+  rendering.
+- **Small immutable fields.** Keep snapshot payloads minimal and serializable.
+- **Parallel tests.** Use multi-page and dependency-order tests for scheduler changes.
 
 ## Do Not
 
-- Store live mutable objects when a snapshot value should be captured.
-- Add shared mutable scheduler state without synchronization.
-- Mutate page pipeline records.
-- Hide worker exceptions without page/source context.
+- Store mutable containers directly in snapshot records.
+- Add new worker reads of mutable Site/Page state when a snapshot can carry the fact.
+- Change ordering without deterministic tests.
 
 ## Own
 
-- Snapshot explanations in `site/content/docs/reference/architecture/core/pipeline.md`
-- Cache and warm-build docs when snapshot reuse behavior changes
-- Tests: `tests/unit/snapshots/`, warm-build integrations
-- Checks: `uv run pytest tests/unit/snapshots -q`
-- Checks: `uv run pytest tests/integration/warm_build -q`
-- Checks: `uv run ruff check bengal/snapshots tests/unit/snapshots`
+**Code:** `bengal/snapshots/`.
+**Tests:** `tests/unit/snapshots/`, render scheduler and context propagation tests.
+**Docs:** concurrency/build architecture docs when snapshot behavior changes.
+**Agent artifacts:** this file plus orchestration/rendering stewards.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.
