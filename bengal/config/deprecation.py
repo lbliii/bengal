@@ -39,7 +39,8 @@ from __future__ import annotations
 import copy
 from typing import Any
 
-from bengal.errors import BengalConfigError, ErrorCode, record_error
+from bengal.errors.codes import ErrorCode
+from bengal.errors.exceptions import BengalConfigError
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
@@ -107,6 +108,8 @@ def check_deprecated_keys(
                     code=ErrorCode.C008,  # config_deprecated_key
                     suggestion=note,
                 )
+                from bengal.errors.session import record_error
+
                 record_error(warning, file_path=source)
 
                 # Keep existing logger.warning() for console output

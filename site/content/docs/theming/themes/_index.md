@@ -75,8 +75,8 @@ HTML references missing local assets.
 :::{tab-item} Use a Theme
 ```toml
 # bengal.toml
-[theme]
-name = "default"
+[build]
+theme = "default"
 ```
 :::
 
@@ -117,7 +117,7 @@ your-project/
         └── header.html  # Your version wins
 ```
 
-Use `bengal theme swizzle partials/header.html` (or `bengal utils theme swizzle`) to copy the original, then modify as needed.
+Use `bengal theme swizzle --template-path partials/header.html` to copy the original, then modify as needed.
 :::
 :::{/tab-set}
 

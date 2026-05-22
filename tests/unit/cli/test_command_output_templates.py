@@ -194,6 +194,8 @@ def test_command_output_matrix_covers_priority_commands():
         "report primitives": "_report_primitives.kida",
         "theme list": "command_list.kida",
         "theme discover": "command_list.kida",
+        "theme swizzle-list": "command_empty.kida / command_list.kida",
+        "theme swizzle-update": "validation_report.kida",
         "config show missing config": "command_empty.kida",
         "config doctor missing config": "command_empty.kida",
         "config diff missing config": "command_empty.kida",

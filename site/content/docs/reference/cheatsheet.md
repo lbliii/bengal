@@ -63,7 +63,7 @@ bengal new page post --section blog    # Page at content/blog/post.md
 # New templates
 bengal new layout article              # templates/layouts/article.html
 bengal new partial sidebar             # templates/partials/sidebar.html
-bengal new theme mytheme               # themes/mytheme/
+bengal theme new --slug mytheme               # themes/mytheme/
 ```
 
 ### Validation & Health
@@ -93,9 +93,9 @@ bengal config init                     # Create config directory
 ### Utilities
 
 ```bash
-bengal utils theme list                # List available themes
-bengal utils theme debug               # Debug theme resolution
-bengal utils theme swizzle TEMPLATE    # Copy template for customization
+bengal theme list                # List available themes
+bengal theme debug               # Debug theme resolution
+bengal theme swizzle --template-path TEMPLATE    # Copy template for customization
 bengal utils perf                      # Performance metrics
 bengal graph analyze                   # Site structure analysis
 bengal graph analyze --tree            # Tree visualization

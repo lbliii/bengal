@@ -1,0 +1,1 @@
+- **cli(theme)**: list and inspect bundled themes consistently, add `theme swizzle-list`, `theme swizzle-update`, and `theme preview`, and make `theme new --mode package` produce an installable package skeleton.

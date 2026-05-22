@@ -25,7 +25,8 @@ import yaml
 
 from bengal.config.environment import get_environment_file_candidates
 from bengal.config.utils import get_default_config
-from bengal.errors import BengalConfigError, ErrorCode, record_error
+from bengal.errors.codes import ErrorCode
+from bengal.errors.exceptions import BengalConfigError
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -69,6 +70,8 @@ def load_yaml_file(path: Path) -> dict[str, Any]:
             suggestion="Check YAML syntax, indentation, and ensure all quotes are properly closed",
             original_error=e,
         )
+        from bengal.errors.session import record_error
+
         record_error(error, file_path=str(path))
         raise error from e
     except Exception as e:
@@ -79,6 +82,8 @@ def load_yaml_file(path: Path) -> dict[str, Any]:
             suggestion="Check file permissions and encoding (must be UTF-8)",
             original_error=e if isinstance(e, Exception) else None,
         )
+        from bengal.errors.session import record_error
+
         record_error(error, file_path=str(path))
         raise error from e
 

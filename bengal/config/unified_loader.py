@@ -39,7 +39,8 @@ from bengal.config.origin_tracker import ConfigWithOrigin
 from bengal.config.snapshot import ConfigSnapshot
 from bengal.config.utils import get_default_config
 from bengal.config.validators import validate_config
-from bengal.errors import ErrorCode, format_suggestion, record_error
+from bengal.errors.codes import ErrorCode
+from bengal.errors.suggestions import format_suggestion
 from bengal.utils.io.file_io import load_toml, load_yaml
 from bengal.utils.observability.logger import get_logger
 
@@ -266,6 +267,8 @@ class UnifiedConfigLoader:
                     suggestion="Check YAML syntax and file encoding (must be UTF-8)",
                     original_error=e if isinstance(e, Exception) else None,
                 )
+                from bengal.errors.session import record_error
+
                 record_error(error, file_path=str(yaml_file))
                 raise error from e
 

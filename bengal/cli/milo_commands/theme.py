@@ -7,6 +7,21 @@ from typing import Annotated
 from milo import Description
 
 
+def _bundled_theme_dirs():
+    from bengal.themes.utils import THEMES_ROOT
+
+    return sorted(
+        path
+        for path in THEMES_ROOT.iterdir()
+        if path.is_dir()
+        and (
+            (path / "templates").is_dir()
+            or (path / "theme.toml").is_file()
+            or (path / "theme.yaml").is_file()
+        )
+    )
+
+
 def _site_local_theme_dirs(site_root):
     themes_dir = site_root / "themes"
     if not themes_dir.is_dir():
@@ -25,17 +40,34 @@ def _site_local_theme_dirs(site_root):
 
 def _site_theme_metadata(theme_path):
     manifest = theme_path / "theme.toml"
+    if manifest.is_file():
+        import tomllib
+
+        try:
+            with manifest.open("rb") as handle:
+                data = tomllib.load(handle)
+        except OSError, tomllib.TOMLDecodeError:
+            return {}
+        return data if isinstance(data, dict) else {}
+
+    manifest = theme_path / "theme.yaml"
     if not manifest.is_file():
         return {}
 
-    import tomllib
-
     try:
-        with manifest.open("rb") as handle:
-            data = tomllib.load(handle)
-    except OSError, tomllib.TOMLDecodeError:
+        import yaml
+
+        data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
+    except OSError, yaml.YAMLError:
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def _theme_display_name(slug, metadata):
+    raw = metadata.get("name")
+    if isinstance(raw, dict):
+        return str(raw.get("name") or slug)
+    return str(raw or slug)
 
 
 def theme_list(
@@ -54,12 +86,20 @@ def theme_list(
 
     installed_themes = get_installed_themes()
     local_themes = _site_local_theme_dirs(site.root_path)
-    items = [{"name": "default", "description": "Bundled theme"}]
+    bundled_themes = _bundled_theme_dirs()
+    local_slugs = {path.name for path in local_themes}
+    bundled_slugs = {path.name for path in bundled_themes}
+
+    items = [
+        {"name": path.name, "description": "Bundled theme"}
+        for path in bundled_themes
+        if path.name not in local_slugs
+    ]
     items.extend({"name": path.name, "description": "Site-local theme"} for path in local_themes)
     items.extend(
         {"name": slug, "description": theme.distribution or theme.package}
         for slug, theme in sorted(installed_themes.items())
-        if slug not in {path.name for path in local_themes}
+        if slug not in local_slugs and slug not in bundled_slugs
     )
 
     cli.render_write(
@@ -71,7 +111,11 @@ def theme_list(
 
     return {
         "themes": [
-            {"slug": "default", "name": "default", "source": "bundled"},
+            *[
+                {"slug": path.name, "name": path.name, "source": "bundled"}
+                for path in bundled_themes
+                if path.name not in local_slugs
+            ],
             *[
                 {"slug": path.name, "name": path.name, "source": "site-local"}
                 for path in local_themes
@@ -79,7 +123,7 @@ def theme_list(
             *[
                 {"slug": slug, "name": slug, "source": theme.distribution or theme.package}
                 for slug, theme in sorted(installed_themes.items())
-                if slug not in {path.name for path in local_themes}
+                if slug not in local_slugs and slug not in bundled_slugs
             ],
         ]
     }
@@ -97,18 +141,6 @@ def theme_info(
     source = source or "."
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
-
-    if slug == "default":
-        from pathlib import Path
-
-        path = Path(__file__).resolve().parents[2] / "themes" / "default"
-        items = [
-            {"label": "Name", "value": "default"},
-            {"label": "Location", "value": str(path)},
-            {"label": "Source", "value": "bundled"},
-        ]
-        cli.render_write("kv_detail.kida", title="Theme: default", items=items)
-        return {"slug": "default", "name": "default", "path": str(path)}
 
     site_theme_path = site.root_path / "themes" / slug
     if site_theme_path.is_dir():
@@ -129,6 +161,33 @@ def theme_info(
             "path": str(site_theme_path),
             "source": "site-local",
         }
+
+    for path in _bundled_theme_dirs():
+        if path.name != slug:
+            continue
+        metadata = _site_theme_metadata(path)
+        items = [
+            {"label": "Name", "value": _theme_display_name(slug, metadata)},
+            {"label": "Location", "value": str(path)},
+            {"label": "Source", "value": "bundled"},
+        ]
+        parent = metadata.get("extends") or metadata.get("parent")
+        if parent:
+            items.append({"label": "Extends", "value": str(parent)})
+        if metadata.get("version"):
+            items.append({"label": "Version", "value": str(metadata["version"])})
+        cli.render_write("kv_detail.kida", title=f"Theme: {slug}", items=items)
+        return {
+            "slug": slug,
+            "name": _theme_display_name(slug, metadata),
+            "path": str(path),
+            "source": "bundled",
+        }
+
+    if slug == "default":
+        cli.error("Bundled default theme could not be resolved.")
+        cli.tip("Check the Bengal installation and reinstall if the bundled theme is missing.")
+        raise SystemExit(1)
 
     theme = get_theme_package(slug)
     if theme is None:
@@ -191,10 +250,116 @@ def theme_swizzle(
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
     manager = SwizzleManager(site)
-    result = manager.swizzle(template_path)
+    destination = manager.swizzle(template_path)
 
-    cli.success(f"Swizzled: {template_path} -> {result.destination}")
-    return {"template": template_path, "destination": str(result.destination)}
+    cli.success(f"Swizzled: {template_path} -> {destination}")
+    return {"template": template_path, "destination": str(destination)}
+
+
+def theme_swizzle_list(
+    source: Annotated[str, Description("Source directory path")] = "",
+) -> dict:
+    """List templates that have been swizzled into the project."""
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
+    from bengal.themes.swizzle import SwizzleManager
+
+    source = source or "."
+    cli = get_cli_output()
+    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
+    records = SwizzleManager(site).list()
+
+    if not records:
+        cli.render_write(
+            "command_empty.kida",
+            title="Swizzled Templates",
+            message="No swizzled templates found.",
+            hint="Run `bengal theme swizzle --template-path <template>` to customize one.",
+        )
+        return {"templates": [], "count": 0}
+
+    cli.render_write(
+        "command_list.kida",
+        title=f"Swizzled Templates ({len(records)})",
+        items=[
+            {
+                "name": record.target,
+                "description": f"from {record.theme}",
+            }
+            for record in records
+        ],
+    )
+    return {
+        "templates": [
+            {"target": record.target, "theme": record.theme, "source": record.source}
+            for record in records
+        ],
+        "count": len(records),
+    }
+
+
+def theme_swizzle_update(
+    source: Annotated[str, Description("Source directory path")] = "",
+    force: Annotated[bool, Description("Overwrite locally modified swizzled templates")] = False,
+) -> dict:
+    """Update unchanged swizzled templates from their theme sources."""
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
+    from bengal.themes.swizzle import SwizzleManager
+
+    source = source or "."
+    cli = get_cli_output()
+    site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
+    result = SwizzleManager(site).update(force=force)
+
+    issues = []
+    if result["skipped_changed"]:
+        issues.append(
+            {
+                "level": "warning",
+                "message": f"{result['skipped_changed']} locally modified template(s) skipped",
+            }
+        )
+    if result["skipped_error"]:
+        issues.append(
+            {
+                "level": "warning",
+                "message": f"{result['skipped_error']} template(s) skipped due to checksum errors",
+            }
+        )
+    if result["missing_upstream"]:
+        issues.append(
+            {
+                "level": "warning",
+                "message": f"{result['missing_upstream']} upstream template(s) were not found",
+            }
+        )
+    if result["updated"] or result["force_updated"]:
+        issues.append(
+            {
+                "level": "success",
+                "message": (
+                    f"Updated {result['updated']} template(s)"
+                    f" and force-updated {result['force_updated']} template(s)"
+                ),
+            }
+        )
+    if not issues:
+        issues.append({"level": "success", "message": "No swizzled templates needed updates"})
+
+    cli.render_write(
+        "validation_report.kida",
+        title="Swizzle Update",
+        issues=issues,
+        summary={
+            "errors": 0,
+            "warnings": result["skipped_changed"]
+            + result["skipped_error"]
+            + result["missing_upstream"],
+            "passed": result["updated"] + result["force_updated"],
+        },
+    )
+    return result
 
 
 def theme_install(
@@ -229,6 +394,7 @@ def theme_validate(
     theme_path: Annotated[str, Description("Path to theme directory")],
 ) -> dict:
     """Validate theme directory structure."""
+    import tomllib
     from pathlib import Path
 
     from bengal.output import get_cli_output
@@ -242,11 +408,33 @@ def theme_validate(
         raise SystemExit(1)
 
     errors = []
+    warnings = []
 
     # Check for theme config
-    has_config = (path / "theme.toml").exists() or (path / "theme.yaml").exists()
-    if not has_config:
+    theme_toml = path / "theme.toml"
+    theme_yaml = path / "theme.yaml"
+    has_config = theme_toml.exists() or theme_yaml.exists()
+    metadata = {}
+    if theme_toml.exists():
+        try:
+            with theme_toml.open("rb") as handle:
+                loaded = tomllib.load(handle)
+            metadata = loaded if isinstance(loaded, dict) else {}
+        except (OSError, tomllib.TOMLDecodeError) as exc:
+            errors.append(f"Invalid theme.toml: {exc}")
+    elif theme_yaml.exists():
+        try:
+            import yaml
+
+            loaded = yaml.safe_load(theme_yaml.read_text(encoding="utf-8")) or {}
+            metadata = loaded if isinstance(loaded, dict) else {}
+        except (OSError, yaml.YAMLError) as exc:
+            errors.append(f"Invalid theme.yaml: {exc}")
+    else:
         errors.append("Missing theme.toml or theme.yaml")
+
+    if has_config and not metadata.get("name"):
+        warnings.append("Theme metadata should define a name")
 
     # Check for templates
     templates_dir = path / "templates"
@@ -258,19 +446,30 @@ def theme_validate(
             if not found:
                 errors.append(f"Missing required template: {required}")
 
+    assets_dir = path / "assets"
+    if not assets_dir.exists():
+        warnings.append("Missing assets/ directory; theme will rely entirely on parent assets")
+
     if errors:
         cli.render_write(
             "validation_report.kida",
             title="Theme Validation",
-            issues=[{"level": "error", "message": e} for e in errors],
-            summary={"errors": len(errors), "warnings": 0, "passed": 0},
+            issues=[
+                *[{"level": "error", "message": e} for e in errors],
+                *[{"level": "warning", "message": warning} for warning in warnings],
+            ],
+            summary={"errors": len(errors), "warnings": len(warnings), "passed": 0},
         )
         raise SystemExit(1)
 
     cli.render_write(
         "validation_report.kida",
-        issues=[{"level": "success", "message": f"Theme at {path} is valid"}],
-        summary={"errors": 0, "warnings": 0, "passed": 1},
+        title="Theme Validation",
+        issues=[
+            {"level": "success", "message": f"Theme at {path} is valid"},
+            *[{"level": "warning", "message": warning} for warning in warnings],
+        ],
+        summary={"errors": 0, "warnings": len(warnings), "passed": 1},
     )
     return {"path": str(path), "valid": True}
 
@@ -291,55 +490,181 @@ def theme_new(
 
     cli = get_cli_output()
     slug = re.sub(r"[^a-z0-9_-]", "-", slug.lower().strip())
-    output_dir = Path(output).resolve() / slug if mode == "site" else Path(output).resolve()
+    package_name = f"bengal-theme-{slug}"
+    output_root = Path(output).resolve()
+    if mode == "site":
+        output_dir = output_root / "themes" / slug
+    elif mode == "package":
+        output_dir = output_root / package_name
+    else:
+        cli.error(f"Unknown scaffold mode: {mode}")
+        cli.tip("Use --mode site or --mode package.")
+        raise SystemExit(2)
 
     if output_dir.exists() and not force:
         cli.error(f"Directory already exists: {output_dir}")
         cli.info("Use --force to overwrite")
         raise SystemExit(1)
 
+    theme_root = output_dir
+    if mode == "package":
+        package_slug = slug.replace("-", "_")
+        theme_root = output_dir / "bengal_themes" / package_slug
+        (output_dir / "bengal_themes").mkdir(parents=True, exist_ok=True)
+        atomic_write_text(output_dir / "bengal_themes" / "__init__.py", "")
+        atomic_write_text(theme_root / "__init__.py", "")
+        atomic_write_text(
+            output_dir / "pyproject.toml",
+            (
+                "[build-system]\n"
+                'requires = ["setuptools>=68"]\n'
+                'build-backend = "setuptools.build_meta"\n\n'
+                "[project]\n"
+                f'name = "{package_name}"\n'
+                'version = "0.1.0"\n'
+                f'description = "Bengal theme: {slug}"\n'
+                'requires-python = ">=3.14"\n\n'
+                "[tool.setuptools.packages.find]\n"
+                'include = ["bengal_themes*"]\n\n'
+                "[tool.setuptools.package-data]\n"
+                f'"bengal_themes.{package_slug}" = ["theme.toml", "templates/**/*.html", "assets/**/*"]\n\n'
+                '[project.entry-points."bengal.themes"]\n'
+                f'{slug} = "bengal_themes.{package_slug}"\n'
+            ),
+        )
+
     # Create scaffold
-    output_dir.mkdir(parents=True, exist_ok=True)
-    (output_dir / "templates").mkdir(exist_ok=True)
-    (output_dir / "templates" / "partials").mkdir(exist_ok=True)
-    (output_dir / "assets" / "css").mkdir(parents=True, exist_ok=True)
+    theme_root.mkdir(parents=True, exist_ok=True)
+    (theme_root / "templates").mkdir(exist_ok=True)
+    (theme_root / "templates" / "partials").mkdir(exist_ok=True)
+    (theme_root / "assets" / "css").mkdir(parents=True, exist_ok=True)
 
-    # Theme config
-    theme_config = f'[theme]\nname = "{slug}"\nextends = "{extends}"\n'
-    atomic_write_text(output_dir / "theme.toml", theme_config)
+    theme_config = f'name = "{slug}"\nextends = "{extends}"\nversion = "0.1.0"\n'
+    atomic_write_text(theme_root / "theme.toml", theme_config)
 
-    # Base template
     atomic_write_text(
-        output_dir / "templates" / "base.html",
-        "<!DOCTYPE html>\n<html>\n<head><title>{{ page.title }}</title></head>\n<body>{% block content %}{% endblock %}</body>\n</html>\n",
+        theme_root / "templates" / "base.html",
+        (
+            "<!DOCTYPE html>\n"
+            '<html lang="en">\n'
+            "<head>\n"
+            '  <meta charset="utf-8">\n'
+            '  <meta name="viewport" content="width=device-width, initial-scale=1">\n'
+            "  <title>{% block title %}{{ page.title ?? site.title }}{% endblock %}</title>\n"
+            '  <link rel="stylesheet" href="{{ asset_url(\'css/style.css\') }}">\n'
+            "</head>\n"
+            "<body>\n"
+            "  {% block content %}{% endblock %}\n"
+            "</body>\n"
+            "</html>\n"
+        ),
     )
     atomic_write_text(
-        output_dir / "templates" / "page.html",
-        '{% extends "base.html" %}\n{% block content %}{{ page.content }}{% endblock %}\n',
+        theme_root / "templates" / "page.html",
+        (
+            '{% extends "base.html" %}\n'
+            "{% block content %}\n"
+            '<main class="theme-page">\n'
+            "  <h1>{{ page.title }}</h1>\n"
+            "  {{ content | safe }}\n"
+            "</main>\n"
+            "{% endblock %}\n"
+        ),
     )
     atomic_write_text(
-        output_dir / "templates" / "home.html",
-        '{% extends "base.html" %}\n{% block content %}<h1>Welcome</h1>{{ page.content }}{% endblock %}\n',
+        theme_root / "templates" / "home.html",
+        (
+            '{% extends "base.html" %}\n'
+            "{% block content %}\n"
+            '<main class="theme-home">\n'
+            "  <h1>{{ site.title }}</h1>\n"
+            "  {{ content | safe }}\n"
+            "</main>\n"
+            "{% endblock %}\n"
+        ),
+    )
+    atomic_write_text(
+        theme_root / "assets" / "css" / "style.css",
+        (
+            f"/* Theme: {slug} */\n"
+            ":root {\n"
+            "  --color-primary: #2563eb;\n"
+            "  --color-text: #1f2937;\n"
+            "  --color-background: #ffffff;\n"
+            "}\n\n"
+            "body {\n"
+            "  margin: 0;\n"
+            "  color: var(--color-text);\n"
+            "  background: var(--color-background);\n"
+            "  font-family: system-ui, sans-serif;\n"
+            "  line-height: 1.6;\n"
+            "}\n\n"
+            ".theme-page,\n"
+            ".theme-home {\n"
+            "  max-width: 72rem;\n"
+            "  margin-inline: auto;\n"
+            "  padding: 2rem;\n"
+            "}\n"
+        ),
+    )
+    atomic_write_text(
+        theme_root / "README.md",
+        (
+            f"# {slug}\n\n"
+            "A Bengal theme scaffold.\n\n"
+            "## Use\n\n"
+            "```toml\n"
+            "[build]\n"
+            f'theme = "{slug}"\n'
+            "```\n"
+        ),
     )
 
     cli.render_write(
         "scaffold_result.kida",
         title=f"Theme scaffold: {slug}",
         entries=[
-            {"name": "theme.toml", "note": "theme config"},
+            {"name": str(output_dir), "note": mode},
+            {"name": "theme.toml", "note": "theme metadata"},
             {"name": "templates/", "note": "3 files"},
             {"name": "templates/partials/", "note": ""},
             {"name": "assets/css/", "note": ""},
         ],
         steps=[
-            f"Edit {output_dir}/theme.toml",
-            f"Customize templates in {output_dir}/templates/",
+            f"Edit {theme_root}/theme.toml",
+            f"Customize templates in {theme_root}/templates/",
             "Run: bengal serve",
         ],
         summary="Theme scaffold created!",
     )
 
-    return {"slug": slug, "path": str(output_dir), "mode": mode, "extends": extends}
+    return {
+        "slug": slug,
+        "path": str(output_dir),
+        "theme_path": str(theme_root),
+        "mode": mode,
+        "extends": extends,
+    }
+
+
+def theme_preview(
+    source: Annotated[str, Description("Source directory path")] = "",
+    host: Annotated[str, Description("Server host address")] = "localhost",
+    port: Annotated[int, Description("Server port number")] = 5173,
+    open_browser: Annotated[bool, Description("Open browser after server starts")] = True,
+) -> dict:
+    """Start a theme-focused dev server with live reload."""
+    from bengal.cli.milo_commands.serve import serve
+
+    return serve(
+        source=source,
+        host=host,
+        port=port,
+        watch=True,
+        auto_port=True,
+        open_browser=open_browser,
+        profile="theme-dev",
+    )
 
 
 def theme_debug(

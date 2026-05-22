@@ -47,26 +47,23 @@ You only need to override what you want to change.
 ## Create a Custom Theme
 
 ```bash
-bengal new theme my-theme
+bengal theme new --slug my-theme
 ```
 
 This creates:
 
 ```tree
 themes/my-theme/
+├── theme.toml
+├── README.md
 ├── templates/
 │   ├── base.html
 │   ├── home.html
 │   ├── page.html
 │   └── partials/
-│       ├── header.html
-│       └── footer.html
 └── assets/
-    ├── css/
-    │   └── style.css
-    ├── js/
-    │   └── main.js
-    └── images/
+    └── css/
+        └── style.css
 ```
 
 ## Configure Your Theme
@@ -74,15 +71,14 @@ themes/my-theme/
 Update `bengal.toml`:
 
 ```toml
-[theme]
-name = "my-theme"
+[build]
+theme = "my-theme"
 ```
 
-Or use `config/_default/theme.yaml` for split configuration:
+Or use `config/_default/build.yaml` for split configuration:
 
 ```yaml
-theme:
-  name: "my-theme"
+theme: "my-theme"
 ```
 
 ## Override Templates Selectively
@@ -162,19 +158,19 @@ Bengal provides 80+ template functions. Common ones:
 
 ```bash
 # List available themes
-bengal utils theme list
+bengal theme list
 
 # Get theme info
-bengal utils theme info default
+bengal theme info --slug default
 
 # Debug theme resolution
-bengal utils theme debug
+bengal theme debug
 
 # Discover installed themes
-bengal utils theme discover
+bengal theme discover
 
 # Swizzle a template for customization
-bengal utils theme swizzle partials/header.html
+bengal theme swizzle --template-path partials/header.html
 ```
 
 ## Next Steps

@@ -66,7 +66,7 @@ Copy theme templates for customization with provenance tracking:
 
 ```bash
 # Copy a component to your project
-bengal theme swizzle partials/article-card.html
+bengal theme swizzle --template-path partials/article-card.html
 
 # List swizzled components
 bengal theme swizzle-list

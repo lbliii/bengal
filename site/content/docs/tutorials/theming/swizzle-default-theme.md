@@ -104,7 +104,7 @@ The `templates/` directory starts empty because Bengal uses templates from the d
 Before swizzling, let's see what templates are available in the default theme.
 
 ```bash
-bengal utils theme discover
+bengal theme discover
 ```
 
 This lists all templates you can swizzle. You'll see output like:
@@ -144,7 +144,7 @@ The default theme organizes templates into:
 Let's swizzle the navigation components template. This is a good starting point because navigation is often customized.
 
 ```bash
-bengal utils theme swizzle partials/navigation-components.html
+bengal theme swizzle --template-path partials/navigation-components.html
 ```
 
 You should see:
@@ -168,7 +168,7 @@ You should see `navigation-components.html` in your project's `templates/partial
 Bengal tracks swizzled templates in `.bengal/themes/sources.json`. Let's see what's tracked:
 
 ```bash
-bengal utils theme swizzle-list
+bengal theme swizzle-list
 ```
 
 Output:
@@ -238,7 +238,7 @@ Let's swizzle the search modal and customize it.
 **Swizzle the Search Modal**
 
 ```bash
-bengal utils theme swizzle partials/search-modal.html
+bengal theme swizzle --template-path partials/search-modal.html
 ```
 
 **Customize the Search Modal**
@@ -277,7 +277,7 @@ Change the placeholder attribute:
 Check your swizzled templates:
 
 ```bash
-bengal utils theme swizzle-list
+bengal theme swizzle-list
 ```
 
 You should see both templates:
@@ -297,7 +297,7 @@ Swizzling copies the entire template. But you can also use **template inheritanc
 **Swizzle the Base Template**
 
 ```bash
-bengal utils theme swizzle base.html
+bengal theme swizzle --template-path base.html
 ```
 
 **Use Inheritance Instead**
@@ -360,7 +360,7 @@ When you swizzle a template, Bengal records a checksum of the copied file. If yo
 The `swizzle-update` command only updates templates where your local file matches the original swizzled checksum (meaning you haven't modified it):
 
 ```bash
-bengal utils theme swizzle-update
+bengal theme swizzle-update
 ```
 
 Output:
@@ -426,14 +426,14 @@ Don't swizzle everything at once. Start with one template, customize it, then mo
 
 ```bash
 # ✅ Good: Swizzle one at a time
-bengal utils theme swizzle partials/navigation-components.html
+bengal theme swizzle --template-path partials/navigation-components.html
 # Customize it
 # Then swizzle the next one
 
 # ❌ Avoid: Swizzling everything
-# bengal utils theme swizzle base.html
-# bengal utils theme swizzle page.html
-# bengal utils theme swizzle partials/*.html
+# bengal theme swizzle --template-path base.html
+# bengal theme swizzle --template-path page.html
+# bengal theme swizzle --template-path partials/*.html
 # (Too many files to maintain)
 ```
 
@@ -474,7 +474,7 @@ Periodically run `swizzle-update` to get bug fixes and improvements:
 
 ```bash
 # Check what would be updated
-bengal utils theme swizzle-update
+bengal theme swizzle-update
 
 # Review changes, then rebuild
 bengal build
@@ -501,10 +501,10 @@ bengal serve
 
 ```bash
 # List available templates
-bengal utils theme discover
+bengal theme discover
 
 # Use the exact path shown
-bengal utils theme swizzle partials/navigation-components.html
+bengal theme swizzle --template-path partials/navigation-components.html
 ```
 :::
 
@@ -539,9 +539,9 @@ bengal utils theme swizzle partials/navigation-components.html
 
 **Solutions**:
 
-- Verify theme name: Use `bengal utils theme info default` to confirm
+- Verify theme name: Use `bengal theme info --slug default` to confirm
 - Check syntax: Use `"default/base.html"` format (theme name, forward slash, template path)
-- Verify template exists: Use `bengal utils theme discover` to list available templates
+- Verify template exists: Use `bengal theme discover` to list available templates
 - Clear cache: `bengal clean --cache`
 :::
 
@@ -549,11 +549,11 @@ bengal utils theme swizzle partials/navigation-components.html
 
 In this tutorial, you:
 
-1. ✅ Discovered available templates with `bengal utils theme discover`
-2. ✅ Swizzled templates with `bengal utils theme swizzle`
+1. ✅ Discovered available templates with `bengal theme discover`
+2. ✅ Swizzled templates with `bengal theme swizzle`
 3. ✅ Customized swizzled templates to match your needs
-4. ✅ Tracked swizzled templates with `bengal utils theme swizzle-list`
-5. ✅ Updated templates safely with `bengal utils theme swizzle-update`
+4. ✅ Tracked swizzled templates with `bengal theme swizzle-list`
+5. ✅ Updated templates safely with `bengal theme swizzle-update`
 6. ✅ Built a customized site using swizzled templates
 
 ## Next Steps
@@ -569,10 +569,10 @@ Now that you can swizzle templates, explore further:
 
 Swizzling lets you customize Bengal's default theme safely:
 
-- **Discover** templates with `bengal utils theme discover`
-- **Swizzle** templates with `bengal utils theme swizzle <path>`
+- **Discover** templates with `bengal theme discover`
+- **Swizzle** templates with `bengal theme swizzle --template-path <path>`
 - **Customize** swizzled templates in `templates/`
-- **Track** swizzled templates with `bengal utils theme swizzle-list`
-- **Update** safely with `bengal utils theme swizzle-update`
+- **Track** swizzled templates with `bengal theme swizzle-list`
+- **Update** safely with `bengal theme swizzle-update`
 
 Your customizations are preserved while you can still benefit from theme updates. Use template inheritance when possible to minimize maintenance overhead.

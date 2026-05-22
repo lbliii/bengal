@@ -34,13 +34,13 @@ Bengal resolves themes in this order:
 
 ```bash
 # List available themes
-bengal utils theme list
+bengal theme list
 
 # Get theme info
-bengal utils theme info default
+bengal theme info --slug default
 
 # Debug theme resolution
-bengal utils theme debug
+bengal theme debug
 ```
 
 ## Create a Project Theme
@@ -48,24 +48,22 @@ bengal utils theme debug
 ### Option 1: Start from Scratch
 
 ```bash
-bengal new theme my-custom-theme
+bengal theme new --slug my-custom-theme
 ```
 
 This creates:
 ```tree
 themes/my-custom-theme/
-├── theme.yaml
+├── theme.toml
+├── README.md
 ├── templates/
 │   ├── base.html
+│   ├── home.html
 │   ├── page.html
 │   └── partials/
-│       ├── header.html
-│       └── footer.html
-└── static/
-    ├── css/
-    │   └── style.css
-    └── js/
-        └── main.js
+└── assets/
+    └── css/
+        └── style.css
 ```
 
 ### Configure Your Theme
@@ -73,9 +71,8 @@ themes/my-custom-theme/
 Edit `bengal.toml`:
 
 ```toml
-[theme]
-name = "my-custom-theme"
-default_appearance = "light"
+[build]
+theme = "my-custom-theme"
 ```
 
 ## Override Templates Selectively
@@ -291,10 +288,10 @@ color_scheme: light
 Override theme defaults in your site's `bengal.toml`:
 
 ```toml
-[theme]
-name = "my-custom-theme"
+[build]
+theme = "my-custom-theme"
 
-# Override theme config values
+[theme]
 show_author = true
 sidebar_position = "right"
 color_scheme = "dark"
@@ -331,7 +328,7 @@ vim $(python -m site --user-site)/bengal/themes/default/templates/base.html
 ✅ **Good:**
 ```bash
 # Create project theme that extends default
-bengal new theme my-theme
+bengal theme new --slug my-theme
 # Override only what you need
 ```
 
@@ -364,7 +361,7 @@ bengal new theme my-theme
 **Solutions:**
 - Verify theme directory exists: `themes/my-theme/`
 - Check `theme.toml` has correct `name` field
-- Run `bengal utils theme list` to see available themes
+- Run `bengal theme list` to see available themes
 :::
 
 :::{dropdown} Template Inheritance Not Working
@@ -374,7 +371,7 @@ bengal new theme my-theme
 
 **Solutions:**
 - Verify `extends` path is correct: `"default/base.html"`
-- Check theme chain: `bengal utils theme debug`
+- Check theme chain: `bengal theme debug`
 - Clear cache: `bengal clean --cache`
 :::
 

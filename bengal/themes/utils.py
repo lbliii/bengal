@@ -32,7 +32,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-from bengal.errors import BengalConfigError, ErrorCode, record_error
+from bengal.errors.codes import ErrorCode
+from bengal.errors.exceptions import BengalConfigError
 
 # ============================================================================
 # Path Constants
@@ -97,6 +98,8 @@ def validate_enum_field(
         suggestion=f"Set {field_name} to one of: {sorted_values}",
     )
     if do_record_error:
+        from bengal.errors.session import record_error
+
         record_error(error)
     raise error
 

@@ -54,7 +54,7 @@ flowchart TB
 | **Custom Theme** | High | Full control over all templates and assets |
 
 :::{tip}
-**Quick wins**: Start with [CSS Variables](./themes/customize/) to change colors and fonts without touching templates. Use `bengal utils theme swizzle` to copy and customize specific templates when you need structural changes.
+**Quick wins**: Start with [CSS Variables](./themes/customize/) to change colors and fonts without touching templates. Use `bengal theme swizzle` to copy and customize specific templates when you need structural changes.
 :::
 
 ## Reference
