@@ -49,6 +49,40 @@ class TestThemeChainResolution:
         if len(chain) > 1:
             assert chain[1] == "parent"
 
+    def test_resolve_template_dirs_includes_site_theme_chain(self, tmp_path):
+        """Template directory discovery follows the active theme inheritance chain."""
+        from bengal.rendering.template_engine.environment import (
+            resolve_template_dirs,
+            template_name_for_path,
+        )
+
+        site = MagicMock()
+        site.root_path = tmp_path
+        site.theme = "child"
+
+        site_templates = tmp_path / "templates"
+        site_templates.mkdir()
+
+        themes_dir = tmp_path / "themes"
+        parent_templates = themes_dir / "parent" / "templates"
+        parent_templates.mkdir(parents=True)
+        (themes_dir / "parent" / "theme.toml").write_text('name = "parent"\n')
+        parent_base = parent_templates / "base.html"
+        parent_base.write_text("<html>{% block content %}{% endblock %}</html>")
+
+        child_templates = themes_dir / "child" / "templates"
+        child_templates.mkdir(parents=True)
+        (themes_dir / "child" / "theme.toml").write_text('name = "child"\nextends = "parent"\n')
+
+        with patch(
+            "bengal.rendering.template_engine.environment.get_theme_package",
+            return_value=None,
+        ):
+            dirs = resolve_template_dirs(site)
+
+        assert dirs[:3] == [site_templates, child_templates, parent_templates]
+        assert template_name_for_path(parent_base, dirs) == "base.html"
+
 
 class TestParentTemplateChanges:
     """Test detection of changes to parent templates."""

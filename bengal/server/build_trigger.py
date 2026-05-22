@@ -1260,28 +1260,15 @@ class BuildTrigger:
         if self._template_dirs is not None:
             return self._template_dirs
 
-        import bengal
-
-        assert bengal.__file__ is not None, "bengal module has no __file__"
-        bengal_dir = Path(bengal.__file__).parent
         root_path = self.site.root_path
 
         if not root_path:
             self._template_dirs = []
             return self._template_dirs
 
-        dirs = [
-            root_path / "templates",
-            root_path / "themes",
-        ]
+        from bengal.rendering.template_engine.environment import resolve_template_dirs
 
-        theme = self.site.theme
-        if theme:
-            bundled = bengal_dir / "themes" / theme / "templates"
-            dirs.append(bundled)
-
-        # Filter to existing directories (cached)
-        self._template_dirs = [d for d in dirs if d.exists()]
+        self._template_dirs = resolve_template_dirs(self.site)
         return self._template_dirs
 
     def _is_template_change(self, changed_paths: set[Path]) -> bool:
@@ -1380,12 +1367,9 @@ class BuildTrigger:
 
     def _template_name_for_path(self, path: Path, template_dirs: list[Path]) -> str:
         """Return the template name used by BuildCache dependency indexes."""
-        for template_dir in template_dirs:
-            try:
-                return to_posix(path.resolve().relative_to(template_dir.resolve()))
-            except OSError, ValueError:
-                continue
-        return path.name
+        from bengal.rendering.template_engine.environment import template_name_for_path
+
+        return template_name_for_path(path, template_dirs)
 
     def _get_template_dependents(
         self,

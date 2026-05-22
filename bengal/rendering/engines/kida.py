@@ -38,7 +38,6 @@ from bengal.protocols import EngineCapability, TemplateEngineProtocol
 from bengal.protocols.capabilities import has_clear_template_cache
 from bengal.rendering.context.lazy import LazyPageContext
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
-from bengal.themes.utils import DEFAULT_THEME_PATH, THEMES_ROOT
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -481,49 +480,9 @@ class KidaTemplateEngine:
         1. Site-level custom templates (highest priority)
         2. Theme chain (child themes first, then parent themes)
         """
-        from bengal.core.theme.registry import get_theme_package
-        from bengal.rendering.template_engine.environment import resolve_theme_chain
+        from bengal.rendering.template_engine.environment import resolve_template_dirs
 
-        dirs: list[Path] = []
-
-        # Site-level custom templates (highest priority)
-        custom_templates = self.site.root_path / "templates"
-        if custom_templates.exists():
-            dirs.append(custom_templates)
-
-        # Resolve theme chain (handles theme inheritance)
-        theme_chain = resolve_theme_chain(self.site.theme, self.site)
-
-        for theme_name in theme_chain:
-            # Site-level theme directory
-            site_theme_templates = self.site.root_path / "themes" / theme_name / "templates"
-            if site_theme_templates.exists():
-                dirs.append(site_theme_templates)
-                continue
-
-            # Installed theme directory (via entry point)
-            try:
-                pkg = get_theme_package(theme_name)
-                if pkg:
-                    resolved = pkg.resolve_resource_path("templates")
-                    if resolved and resolved.exists():
-                        dirs.append(resolved)
-                        continue
-            except ImportError, AttributeError, OSError:
-                pass
-
-            # Bundled theme directory
-            bundled_theme_templates = THEMES_ROOT / theme_name / "templates"
-            if bundled_theme_templates.exists():
-                dirs.append(bundled_theme_templates)
-
-        # Ensure default theme exists as ultimate fallback
-        # (resolve_theme_chain filters out 'default' to avoid duplicates)
-        default_templates = DEFAULT_THEME_PATH / "templates"
-        if default_templates not in dirs and default_templates.exists():
-            dirs.append(default_templates)
-
-        return dirs
+        return resolve_template_dirs(self.site)
 
     def _resolve_providers(self) -> tuple:
         """Resolve theme library providers from the theme chain."""

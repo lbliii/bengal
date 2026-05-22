@@ -344,11 +344,13 @@ class CacheManager:
 
         self._store_page_artifacts(build_context)
 
-        # Update template hashes (even if not changed, to track them)
-        theme_templates_dir = self._get_theme_templates_dir()
-        if theme_templates_dir and theme_templates_dir.exists():
-            for template_file in theme_templates_dir.rglob("*.html"):
-                self.cache.update_file(template_file)
+        # Update template hashes (even if not changed) for every render-visible
+        # directory: site overrides, active theme chain, installed/bundled theme,
+        # and default fallback.
+        from bengal.rendering.template_engine.environment import iter_template_files
+
+        for template_file in iter_template_files(self.site):
+            self.cache.update_file(template_file)
 
         # Update data file fingerprints for incremental detection
         # Without this, data files always appear "changed" on incremental builds
@@ -429,34 +431,6 @@ class CacheManager:
         from bengal.cache.page_artifact_store import PageArtifactStore
 
         return PageArtifactStore(self.site.config_service.paths.state_dir / "page-artifacts")
-
-    def _get_theme_templates_dir(self) -> Path | None:
-        """
-        Get the templates directory for the current theme.
-
-        Returns:
-            Path to theme templates or None if not found
-        """
-        # Be defensive: site.theme may be None, a string, or a Mock in tests
-        theme = self.site.theme
-        if not theme or not isinstance(theme, str):
-            return None
-
-        # Check in site's themes directory first
-        site_theme_dir = self.site.root_path / "themes" / theme / "templates"
-        if site_theme_dir.exists():
-            return site_theme_dir
-
-        # Check in Bengal's bundled themes
-        import bengal
-
-        assert bengal.__file__ is not None, "bengal module has no __file__"
-        bengal_dir = Path(bengal.__file__).parent
-        bundled_theme_dir = bengal_dir / "themes" / theme / "templates"
-        if bundled_theme_dir.exists():
-            return bundled_theme_dir
-
-        return None
 
     def _update_data_file_fingerprints(self) -> None:
         """

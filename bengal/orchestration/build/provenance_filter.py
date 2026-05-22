@@ -33,6 +33,11 @@ from bengal.orchestration.build.results import (
     RebuildReasonCode,
     SkipReasonCode,
 )
+from bengal.rendering.template_engine.environment import (
+    iter_template_files,
+    resolve_template_dirs,
+    template_name_for_path,
+)
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_file
 
@@ -235,51 +240,36 @@ def _detect_changed_templates(
         Set of changed template file paths
     """
     changed: set[Path] = set()
-    templates_dir = site.root_path / "templates"
+    for tpl_file in iter_template_files(site):
+        try:
+            file_changed = cache.is_changed(tpl_file)
+        except OSError:
+            # File error - treat as changed, skip fingerprint update
+            changed.add(tpl_file)
+            continue
 
-    if not templates_dir.exists():
-        return changed
-
-    # Also check theme templates if theme is set
-    theme_templates_dirs = []
-    _theme_path = getattr(site, "theme_path", None)
-    if _theme_path:
-        theme_templates = _theme_path / "templates"
-        if theme_templates.exists():
-            theme_templates_dirs.append(theme_templates)
-
-    # Scan all template directories
-    for tpl_dir in [templates_dir, *theme_templates_dirs]:
-        for tpl_file in tpl_dir.glob("**/*.html"):
+        if file_changed:
+            changed.add(tpl_file)
+            # Store current fingerprint so the next incremental build can use
+            # the mtime/size fast path. Unchanged files already have a valid
+            # fingerprint, and cache.is_changed() refreshes touch-only files.
             try:
-                file_changed = cache.is_changed(tpl_file)
-            except OSError:
-                # File error - treat as changed, skip fingerprint update
-                changed.add(tpl_file)
-                continue
-
-            if file_changed:
-                changed.add(tpl_file)
-                # Store current fingerprint so the next incremental build can use
-                # the mtime/size fast path. Unchanged files already have a valid
-                # fingerprint, and cache.is_changed() refreshes touch-only files.
-                try:
-                    stat = tpl_file.stat()
-                    current_hash = hash_file(tpl_file)
-                    cache.set_file_fingerprint(
-                        tpl_file,
-                        {
-                            "mtime": stat.st_mtime,
-                            "size": stat.st_size,
-                            "hash": current_hash,
-                        },
-                    )
-                except OSError as e:
-                    logger.debug(
-                        "template_fingerprint_update_failed",
-                        file=str(tpl_file),
-                        error=str(e),
-                    )
+                stat = tpl_file.stat()
+                current_hash = hash_file(tpl_file)
+                cache.set_file_fingerprint(
+                    tpl_file,
+                    {
+                        "mtime": stat.st_mtime,
+                        "size": stat.st_size,
+                        "hash": current_hash,
+                    },
+                )
+            except OSError as e:
+                logger.debug(
+                    "template_fingerprint_update_failed",
+                    file=str(tpl_file),
+                    error=str(e),
+                )
 
     if changed:
         logger.debug(
@@ -461,23 +451,16 @@ def _expand_forced_changed(
     changed_templates = _detect_changed_templates(cache, site)
     if changed_templates:
         # Resolve template names relative to template dirs (matches determine_template() format)
-        templates_dir = site.root_path / "templates"
-        _theme_path = getattr(site, "theme_path", None)
-        theme_templates_dir = _theme_path / "templates" if _theme_path else None
+        template_dirs = resolve_template_dirs(site)
 
-        def _template_rel_name(tpl_path: Path) -> str:
-            """Get template name relative to its templates dir (POSIX separators)."""
-            for tpl_dir in (templates_dir, theme_templates_dir):
-                if tpl_dir and tpl_path.is_relative_to(tpl_dir):
-                    return tpl_path.relative_to(tpl_dir).as_posix()
-            return tpl_path.name
-
-        template_names_str = ", ".join(_template_rel_name(t) for t in changed_templates)
+        template_names_str = ", ".join(
+            template_name_for_path(t, template_dirs) for t in changed_templates
+        )
         if cache.template_dependencies:
             # Selective rebuild: only rebuild pages that depend on changed templates
             needs_full_rebuild = False
             for changed_template in changed_templates:
-                template_name = _template_rel_name(changed_template)
+                template_name = template_name_for_path(changed_template, template_dirs)
                 affected = cache.get_pages_for_template(template_name)
                 if affected:
                     for page_path_str in affected:
