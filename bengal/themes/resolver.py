@@ -8,8 +8,6 @@ from typing import Any, Literal
 
 ThemeSource = Literal["site-local", "bundled", "installed", "path"]
 
-METADATA_FILENAMES = ("theme.toml", "theme.yaml")
-
 
 @dataclass(frozen=True, slots=True)
 class ThemeRecord:
@@ -36,28 +34,12 @@ def is_theme_dir(path: Path) -> bool:
 
 def read_theme_metadata(theme_path: Path) -> dict[str, Any]:
     """Read best-effort metadata from ``theme.toml`` or ``theme.yaml``."""
-    manifest = theme_path / "theme.toml"
-    if manifest.is_file():
-        import tomllib
+    from bengal.themes.metadata import load_theme_metadata
 
-        try:
-            with manifest.open("rb") as handle:
-                data = tomllib.load(handle)
-        except OSError, tomllib.TOMLDecodeError:
-            return {}
-        return data if isinstance(data, dict) else {}
-
-    manifest = theme_path / "theme.yaml"
-    if not manifest.is_file():
+    result = load_theme_metadata(theme_path)
+    if result.errors:
         return {}
-
-    try:
-        import yaml
-
-        data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
-    except OSError, yaml.YAMLError:
-        return {}
-    return data if isinstance(data, dict) else {}
+    return result.metadata.raw
 
 
 def theme_display_name(slug: str, metadata: dict[str, Any]) -> str:

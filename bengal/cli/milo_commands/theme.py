@@ -283,10 +283,10 @@ def theme_validate(
     theme_path: Annotated[str, Description("Path to theme directory")],
 ) -> dict:
     """Validate theme directory structure."""
-    import tomllib
     from pathlib import Path
 
     from bengal.output import get_cli_output
+    from bengal.themes.metadata import load_theme_metadata
 
     cli = get_cli_output()
     path = Path(theme_path).resolve()
@@ -296,34 +296,9 @@ def theme_validate(
         cli.tip("Pass a valid path, or run `bengal theme list` to see available themes.")
         raise SystemExit(1)
 
-    errors = []
-    warnings = []
-
-    # Check for theme config
-    theme_toml = path / "theme.toml"
-    theme_yaml = path / "theme.yaml"
-    has_config = theme_toml.exists() or theme_yaml.exists()
-    metadata = {}
-    if theme_toml.exists():
-        try:
-            with theme_toml.open("rb") as handle:
-                loaded = tomllib.load(handle)
-            metadata = loaded if isinstance(loaded, dict) else {}
-        except (OSError, tomllib.TOMLDecodeError) as exc:
-            errors.append(f"Invalid theme.toml: {exc}")
-    elif theme_yaml.exists():
-        try:
-            import yaml
-
-            loaded = yaml.safe_load(theme_yaml.read_text(encoding="utf-8")) or {}
-            metadata = loaded if isinstance(loaded, dict) else {}
-        except (OSError, yaml.YAMLError) as exc:
-            errors.append(f"Invalid theme.yaml: {exc}")
-    else:
-        errors.append("Missing theme.toml or theme.yaml")
-
-    if has_config and not metadata.get("name"):
-        warnings.append("Theme metadata should define a name")
+    metadata_result = load_theme_metadata(path)
+    errors = [issue.message for issue in metadata_result.errors]
+    warnings = [issue.message for issue in metadata_result.warnings]
 
     # Check for templates
     templates_dir = path / "templates"

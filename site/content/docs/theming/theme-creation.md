@@ -136,12 +136,33 @@ The dev server watches your theme directory and rebuilds on changes.
 
 ## Theme Configuration
 
-Your `theme.toml` declares metadata and feature flags:
+Your `theme.toml` declares theme metadata:
 
 ```toml
 name = "my-theme"
+version = "1.0.0"
+description = "Documentation theme for the project"
+author = "Docs Team"
+license = "MIT"
 extends = "default"
+libraries = ["chirp_ui"]
 ```
+
+Supported metadata fields:
+
+| Field | Type | Purpose |
+|---|---|---|
+| `name` | string | Display name for `bengal theme list` and `bengal theme info` |
+| `version` | string | Theme version shown by theme tooling |
+| `description` | string | Human-readable package or project description |
+| `author` | string | Theme author or owning team |
+| `license` | string | Theme license identifier |
+| `extends` | string | Parent theme slug |
+| `parent` | string | Legacy parent theme slug, used when `extends` is absent |
+| `libraries` | list of strings | Python theme libraries to load, such as `chirp_ui` |
+
+`bengal theme validate --theme-path themes/my-theme` checks this metadata before
+checking templates and assets, so malformed fields fail with direct messages.
 
 For richer configuration (feature flags, appearance, icons), use `theme.yaml`:
 
