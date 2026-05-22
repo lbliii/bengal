@@ -124,6 +124,9 @@ pre code {
 # Start dev server with live reload
 bengal serve
 
+# Start theme-focused preview with active theme preflight
+bengal theme preview
+
 # Validate theme structure
 bengal theme validate --theme-path themes/my-theme
 
@@ -132,7 +135,10 @@ bengal theme debug
 bengal theme debug --template page.html
 ```
 
-The dev server watches your theme directory and rebuilds on changes.
+`bengal theme preview` resolves the active theme, shows whether it came from
+the site, Bengal's bundled themes, or an installed package, validates its
+metadata and required templates, then starts the live-reload server. It also
+prints the content, template, and theme paths the preview workflow watches.
 
 ## Theme Configuration
 

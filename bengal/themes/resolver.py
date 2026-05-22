@@ -114,7 +114,7 @@ class ThemeResolver:
     def resolve(self, theme: str) -> ThemeRecord | None:
         """Resolve a theme slug or explicit directory path."""
         path = Path(theme).expanduser()
-        if path.is_dir():
+        if is_theme_dir(path):
             return self._record_from_path(path.resolve(), "path")
 
         for record in self.iter_available():

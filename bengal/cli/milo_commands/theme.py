@@ -7,6 +7,40 @@ from typing import Annotated
 from milo import Description
 
 
+def _active_theme_slug(site) -> str:
+    config = site.config
+    if hasattr(config, "get"):
+        build = config.get("build", {})
+        if isinstance(build, dict) and build.get("theme"):
+            return str(build["theme"])
+        if config.get("theme"):
+            return str(config["theme"])
+    return "default"
+
+
+def _validate_theme_directory(path):
+    from bengal.themes.metadata import load_theme_metadata
+
+    metadata_result = load_theme_metadata(path)
+    errors = [issue.message for issue in metadata_result.errors]
+    warnings = [issue.message for issue in metadata_result.warnings]
+
+    templates_dir = path / "templates"
+    if not templates_dir.exists():
+        errors.append("Missing templates/ directory")
+    else:
+        for required in ["base.html", "page.html", "home.html"]:
+            found = list(templates_dir.rglob(required))
+            if not found:
+                errors.append(f"Missing required template: {required}")
+
+    assets_dir = path / "assets"
+    if not assets_dir.exists():
+        warnings.append("Missing assets/ directory; theme will rely entirely on parent assets")
+
+    return errors, warnings
+
+
 def theme_list(
     source: Annotated[str, Description("Source directory path")] = "",
 ) -> dict:
@@ -286,7 +320,6 @@ def theme_validate(
     from pathlib import Path
 
     from bengal.output import get_cli_output
-    from bengal.themes.metadata import load_theme_metadata
 
     cli = get_cli_output()
     path = Path(theme_path).resolve()
@@ -296,23 +329,7 @@ def theme_validate(
         cli.tip("Pass a valid path, or run `bengal theme list` to see available themes.")
         raise SystemExit(1)
 
-    metadata_result = load_theme_metadata(path)
-    errors = [issue.message for issue in metadata_result.errors]
-    warnings = [issue.message for issue in metadata_result.warnings]
-
-    # Check for templates
-    templates_dir = path / "templates"
-    if not templates_dir.exists():
-        errors.append("Missing templates/ directory")
-    else:
-        for required in ["base.html", "page.html", "home.html"]:
-            found = list(templates_dir.rglob(required))
-            if not found:
-                errors.append(f"Missing required template: {required}")
-
-    assets_dir = path / "assets"
-    if not assets_dir.exists():
-        warnings.append("Missing assets/ directory; theme will rely entirely on parent assets")
+    errors, warnings = _validate_theme_directory(path)
 
     if errors:
         cli.render_write(
@@ -519,6 +536,59 @@ def theme_preview(
 ) -> dict:
     """Start a theme-focused dev server with live reload."""
     from bengal.cli.milo_commands.serve import serve
+    from bengal.cli.utils import load_site_from_cli
+    from bengal.output import get_cli_output
+    from bengal.themes.resolver import ThemeResolver
+
+    source = source or "."
+    cli = get_cli_output()
+    site = load_site_from_cli(
+        source=source,
+        config=None,
+        environment="local",
+        profile="theme-dev",
+        cli=cli,
+    )
+    active_theme = _active_theme_slug(site)
+    resolver = ThemeResolver(site.root_path)
+    record = resolver.resolve(active_theme)
+    if record is None:
+        cli.error(f"Theme not found: {active_theme}")
+        cli.tip("Run `bengal theme list` to see available themes.")
+        raise SystemExit(1)
+
+    items = [
+        {"label": "Active theme", "value": record.slug},
+        {"label": "Source", "value": record.source},
+        {"label": "Server", "value": f"http://{host}:{port}"},
+        {"label": "Watch", "value": "enabled"},
+    ]
+    watched_dirs = [str(site.root_path / "content"), str(site.root_path / "templates")]
+    if record.path is not None:
+        watched_dirs.append(str(record.path))
+        items.append({"label": "Theme path", "value": str(record.path)})
+
+    cli.render_write("kv_detail.kida", title="Theme Preview", items=items)
+    cli.render_write(
+        "command_list.kida",
+        title="Watched Paths",
+        items=[{"name": path, "description": ""} for path in watched_dirs],
+    )
+
+    if record.path is not None:
+        errors, warnings = _validate_theme_directory(record.path)
+        if errors or warnings:
+            cli.render_write(
+                "validation_report.kida",
+                title="Theme Preview Preflight",
+                issues=[
+                    *[{"level": "error", "message": error} for error in errors],
+                    *[{"level": "warning", "message": warning} for warning in warnings],
+                ],
+                summary={"errors": len(errors), "warnings": len(warnings), "passed": 0},
+            )
+        if errors:
+            raise SystemExit(1)
 
     return serve(
         source=source,
