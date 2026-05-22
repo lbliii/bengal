@@ -53,6 +53,7 @@ class BuildOutputCollector:
         """
         self._output_dir = output_dir
         self._outputs: list[OutputRecord] = []
+        self._counts_by_type: dict[OutputType, int] = {}
         self._lock = Lock()
         self._logger = get_logger(__name__)
 
@@ -84,6 +85,9 @@ class BuildOutputCollector:
 
         with self._lock:
             self._outputs.append(record)
+            self._counts_by_type[record.output_type] = (
+                self._counts_by_type.get(record.output_type, 0) + 1
+            )
 
     def get_outputs(
         self,
@@ -130,7 +134,7 @@ class BuildOutputCollector:
         with self._lock:
             if not self._outputs:
                 return False
-            return all(o.output_type == OutputType.CSS for o in self._outputs)
+            return self._counts_by_type.get(OutputType.CSS, 0) == len(self._outputs)
 
     def clear(self) -> None:
         """Clear all recorded outputs.
@@ -139,6 +143,7 @@ class BuildOutputCollector:
         """
         with self._lock:
             self._outputs.clear()
+            self._counts_by_type.clear()
 
     def validate(self, changed_sources: list[str] | None = None) -> None:
         """Validate tracking integrity and emit diagnostics.

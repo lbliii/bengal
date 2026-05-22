@@ -193,6 +193,20 @@ class TestBuildOutputCollector:
         collector.clear()
         assert len(collector) == 0
         assert collector.get_outputs() == []
+        assert collector.css_only() is False
+
+    def test_css_only_uses_updated_type_counts_after_clear(self) -> None:
+        """css_only() stays correct when records are cleared and reused."""
+        collector = BuildOutputCollector()
+        collector.record(Path("index.html"), OutputType.HTML, phase="render")
+        collector.record(Path("style.css"), OutputType.CSS, phase="asset")
+
+        assert collector.css_only() is False
+
+        collector.clear()
+        collector.record(Path("reset.css"), OutputType.CSS, phase="asset")
+
+        assert collector.css_only() is True
 
     def test_len(self) -> None:
         """__len__ returns count of recorded outputs."""
