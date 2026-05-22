@@ -312,12 +312,16 @@ class WatcherRunner:
         if loop is None:
             return False
 
+        if self._loop_is_closed(loop):
+            logger.debug(reason)
+            return False
+
         try:
             loop.call_soon_threadsafe(callback)
-        except RuntimeError as e:
+        except RuntimeError:
             with self._state_lock:
                 state = self._state
-            if "Event loop is closed" in str(e) and state in {
+            if self._loop_is_closed(loop) and state in {
                 _WatcherState.STOPPING,
                 _WatcherState.STOPPED,
                 _WatcherState.FAILED,
@@ -326,6 +330,14 @@ class WatcherRunner:
                 return False
             raise
         return True
+
+    @staticmethod
+    def _loop_is_closed(loop: asyncio.AbstractEventLoop) -> bool:
+        is_closed = getattr(loop, "is_closed", None)
+        if not callable(is_closed):
+            return False
+        closed = is_closed()
+        return closed if isinstance(closed, bool) else False
 
     async def _watch_loop(self) -> None:
         """

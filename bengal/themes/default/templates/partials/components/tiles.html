@@ -44,7 +44,7 @@ page=none
 'group': 'children',
 'obj': subsection,
 'title': subsection?.title ?? 'Untitled',
-'href': url_for(subsection, page) if url_for is defined else (subsection?.href ?? ''),
+'href': url_for(subsection, page) if url_for is defined else (subsection?.href ?? subsection?._path ?? ''),
 'description': subsection?.metadata?.description ?? '',
 'weight': subsection?.weight ?? 999,
 'page_count': sub_pages | length,

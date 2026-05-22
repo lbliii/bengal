@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol
 
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.core.utils.url import apply_baseurl, get_baseurl, get_site_origin
+from bengal.core.utils.url import get_baseurl, get_site_origin
+from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.paths.url_normalization import join_url_paths, normalize_url, split_url_path
 
 if TYPE_CHECKING:
@@ -38,15 +39,8 @@ class SectionURLTarget(Protocol):
 def get_href(section: SectionURLTarget) -> str:
     """Return template-ready section URL with baseurl applied."""
     rel = section._path or "/"
-
-    try:
-        site = getattr(section, "_site", None)
-        baseurl = get_baseurl(site) if site else ""
-    except Exception as e:
-        emit_diagnostic(section, "debug", "section_baseurl_lookup_failed", error=str(e))
-        baseurl = ""
-
-    return apply_baseurl(rel, baseurl)
+    site = getattr(section, "_site", None)
+    return apply_baseurl(rel, site)
 
 
 def get_path(section: SectionURLTarget) -> str:
@@ -79,7 +73,7 @@ def get_path_for_version(
     rel = getattr(section, "_path", None) or getattr(section, "href", None) or "/"
     site = site or getattr(section, "_site", None)
     if site and rel.startswith("/"):
-        baseurl = get_baseurl(site).rstrip("/")
+        baseurl = _normal_baseurl_for_path(site)
         if baseurl and baseurl != "/" and rel.startswith(f"{baseurl}/"):
             rel = rel[len(baseurl) :]
         elif baseurl and rel == baseurl:
@@ -123,13 +117,21 @@ def get_href_for_version(
     site = site or getattr(section, "_site", None)
     rel = get_path_for_version(section, version_id, site)
 
-    try:
-        baseurl = get_baseurl(site) if site else ""
-    except Exception as e:
-        emit_diagnostic(section, "debug", "section_baseurl_lookup_failed", error=str(e))
-        baseurl = ""
+    return apply_baseurl(rel, site)
 
-    return apply_baseurl(rel, baseurl)
+
+def _normal_baseurl_for_path(site: Any) -> str:
+    """Return the path-style baseurl prefix used in rendered URLs."""
+    try:
+        baseurl = get_baseurl(site).rstrip("/")
+    except Exception as e:
+        emit_diagnostic(site, "debug", "section_baseurl_lookup_failed", error=str(e))
+        return ""
+    if not baseurl or baseurl == "/":
+        return ""
+    if not baseurl.startswith(("/", "//")) and "://" not in baseurl:
+        return f"/{baseurl}"
+    return baseurl
 
 
 def get_absolute_href(section: SectionURLTarget) -> str:

@@ -119,3 +119,55 @@ def test_git_section_path_for_version_inserts_version_after_section(tmp_path: Pa
     assert get_path_for_version(section, "0.3.2") == "/docs/0.3.2/guide/"
     assert get_href_for_version(section, "0.3.2") == "/bengal/docs/0.3.2/guide/"
     assert get_path_for_version(section, "main") == "/docs/guide/"
+
+
+def test_git_section_path_for_version_strips_normalized_baseurl(tmp_path: Path) -> None:
+    section = Section(name="guide", path=tmp_path / "content" / "docs" / "guide")
+    section.__dict__["_path"] = "/bengal/docs/guide/"
+    section._site = Site(
+        root_path=tmp_path,
+        config={
+            "baseurl": "bengal",
+            "versioning": {
+                "enabled": True,
+                "mode": "git",
+                "sections": ["docs"],
+                "versions": [
+                    {"id": "main", "latest": True},
+                    {"id": "0.3.2", "latest": False},
+                ],
+                "git": {
+                    "latest": {"branch": "main", "id": "main"},
+                    "previous": {"count": 1},
+                },
+            },
+        },
+    )
+
+    assert get_path_for_version(section, "0.3.2") == "/docs/0.3.2/guide/"
+
+
+def test_git_section_href_for_version_normalizes_baseurl(tmp_path: Path) -> None:
+    section = Section(name="guide", path=tmp_path / "content" / "docs" / "guide")
+    section.__dict__["_path"] = "/docs/guide/"
+    section._site = Site(
+        root_path=tmp_path,
+        config={
+            "baseurl": "bengal",
+            "versioning": {
+                "enabled": True,
+                "mode": "git",
+                "sections": ["docs"],
+                "versions": [
+                    {"id": "main", "latest": True},
+                    {"id": "0.3.2", "latest": False},
+                ],
+                "git": {
+                    "latest": {"branch": "main", "id": "main"},
+                    "previous": {"count": 1},
+                },
+            },
+        },
+    )
+
+    assert get_href_for_version(section, "0.3.2") == "/bengal/docs/0.3.2/guide/"
