@@ -193,5 +193,5 @@ site:
 See [Bring Your Own Template Engine](/docs/theming/templating/custom-engine/) for the complete guide.
 
 :::{tip}
-**Override sparingly**: You only need to create templates you want to customize. Use `bengal utils theme swizzle <template>` to copy a template for customization. Let the rest fall through to theme defaults.
+**Override sparingly**: You only need to create templates you want to customize. Use `bengal theme swizzle --template-path <template>` to copy a template for customization. Let the rest fall through to theme defaults.
 :::

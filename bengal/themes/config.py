@@ -38,7 +38,8 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from bengal.errors import BengalConfigError, ErrorCode, record_error
+from bengal.errors.codes import ErrorCode
+from bengal.errors.exceptions import BengalConfigError
 from bengal.themes.tokens import PALETTE_VARIANTS
 from bengal.themes.utils import validate_enum_field
 from bengal.utils.observability.logger import get_logger
@@ -378,6 +379,8 @@ class ThemeConfig:
                 suggestion="Ensure theme directory contains theme.yaml. "
                 "Run 'bengal theme new <name>' to create a new theme.",
             )
+            from bengal.errors.session import record_error
+
             record_error(error, file_path=str(yaml_path))
             raise error
 
@@ -392,6 +395,8 @@ class ThemeConfig:
                 suggestion="Check YAML syntax and indentation",
                 original_error=e,
             )
+            from bengal.errors.session import record_error
+
             record_error(error, file_path=str(yaml_path))
             raise error from e
 

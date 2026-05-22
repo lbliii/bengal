@@ -41,7 +41,8 @@ import difflib
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.config.utils import coerce_bool
-from bengal.errors import BengalConfigError, ErrorCode, record_error
+from bengal.errors.codes import ErrorCode
+from bengal.errors.exceptions import BengalConfigError
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -319,6 +320,8 @@ class ConfigValidator:
                 f"{len(errors)} validation error(s)",
                 code=ErrorCode.C004,  # config_type_mismatch
             )
+            from bengal.errors.session import record_error
+
             record_error(error, file_path=str(source_file) if source_file else None)
             raise error
 

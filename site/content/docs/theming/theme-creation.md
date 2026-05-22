@@ -22,13 +22,13 @@ Bengal's theme system supports inheritance, so you can build on the default them
 
 ```bash
 # Create a site-local theme (lives in your project)
-bengal theme new my-theme
+bengal theme new --slug my-theme
 
 # Create an installable package (publishable to PyPI)
-bengal theme new my-theme --mode package
+bengal theme new --slug my-theme --mode package
 
 # Extend a specific parent theme
-bengal theme new my-theme --extends default
+bengal theme new --slug my-theme --extends default
 ```
 
 Site mode creates this structure:
@@ -36,16 +36,15 @@ Site mode creates this structure:
 ```
 themes/my-theme/
 ├── theme.toml              # Name and inheritance
+├── README.md
 ├── templates/
-│   ├── page.html           # Extends parent page.html
+│   ├── base.html
+│   ├── home.html
+│   ├── page.html
 │   └── partials/
-│       └── example.html
 ├── assets/
 │   └── css/
 │       └── style.css       # Your styles (directive base CSS is automatic)
-└── dev/
-    └── components/
-        └── example.yaml    # Component variants for dev preview
 ```
 
 ## Configure Your Site
@@ -54,7 +53,7 @@ Point your site config at the new theme:
 
 ```toml
 # bengal.toml
-[site]
+[build]
 theme = "my-theme"
 ```
 
@@ -69,7 +68,7 @@ Copy a template from the active theme to customize it:
 bengal theme discover
 
 # Copy a specific template
-bengal theme swizzle partials/header.html
+bengal theme swizzle --template-path partials/header.html
 ```
 
 Swizzled templates are tracked with checksums. When the parent theme updates, `bengal theme swizzle-update` refreshes unchanged templates while preserving your modifications.
@@ -125,24 +124,51 @@ pre code {
 # Start dev server with live reload
 bengal serve
 
+# Start theme-focused preview with active theme preflight
+bengal theme preview
+
 # Validate theme structure
-bengal theme validate themes/my-theme
+bengal theme validate --theme-path themes/my-theme
 
 # Debug template resolution
 bengal theme debug
 bengal theme debug --template page.html
 ```
 
-The dev server watches your theme directory and rebuilds on changes.
+`bengal theme preview` resolves the active theme, shows whether it came from
+the site, Bengal's bundled themes, or an installed package, validates its
+metadata and required templates, then starts the live-reload server. It also
+prints the content, template, and theme paths the preview workflow watches.
 
 ## Theme Configuration
 
-Your `theme.toml` declares metadata and feature flags:
+Your `theme.toml` declares theme metadata:
 
 ```toml
 name = "my-theme"
+version = "1.0.0"
+description = "Documentation theme for the project"
+author = "Docs Team"
+license = "MIT"
 extends = "default"
+libraries = ["chirp_ui"]
 ```
+
+Supported metadata fields:
+
+| Field | Type | Purpose |
+|---|---|---|
+| `name` | string | Display name for `bengal theme list` and `bengal theme info` |
+| `version` | string | Theme version shown by theme tooling |
+| `description` | string | Human-readable package or project description |
+| `author` | string | Theme author or owning team |
+| `license` | string | Theme license identifier |
+| `extends` | string | Parent theme slug |
+| `parent` | string | Legacy parent theme slug, used when `extends` is absent |
+| `libraries` | list of strings | Python theme libraries to load, such as `chirp_ui` |
+
+`bengal theme validate --theme-path themes/my-theme` checks this metadata before
+checking templates and assets, so malformed fields fail with direct messages.
 
 For richer configuration (feature flags, appearance, icons), use `theme.yaml`:
 
@@ -186,7 +212,7 @@ Once installed, any Bengal site can use it:
 
 ```toml
 # bengal.toml
-[site]
+[build]
 theme = "my-theme"
 ```
 
@@ -196,14 +222,15 @@ Publish to PyPI with `uv publish` or `python -m build && twine upload dist/*`.
 
 | Command | Purpose |
 |---------|---------|
-| `bengal theme new <slug>` | Scaffold a new theme |
-| `bengal theme validate <path>` | Check required files and structure |
+| `bengal theme new --slug <slug>` | Scaffold a new theme |
+| `bengal theme validate --theme-path <path>` | Check required files and structure |
 | `bengal theme list` | Show available themes |
-| `bengal theme info <slug>` | Theme details and paths |
+| `bengal theme info --slug <slug>` | Theme details and paths |
 | `bengal theme discover` | List swizzlable templates |
-| `bengal theme swizzle <template>` | Copy template for customization |
+| `bengal theme swizzle --template-path <template>` | Copy template for customization |
 | `bengal theme swizzle-list` | List swizzled templates |
 | `bengal theme swizzle-update` | Update unchanged swizzled templates |
+| `bengal theme preview` | Start a theme-focused live preview server |
 | `bengal theme debug` | Debug theme resolution chain |
 
 :::{seealso}

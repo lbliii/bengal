@@ -133,20 +133,20 @@ The Mistune backend was already deleted. What remains: 1 deprecation shim in `be
 
 ---
 
-## Epic 5: Theme Ecosystem Phase 1
+## Epic 5: Theme Ecosystem Phase 1 ✅
 
 **Lifts**: J2 (Customize Theme/Templates, 4.4 -> 5.0)
 **Effort**: 16-20h | **Risk**: Low
 
-Bengal has one built-in theme (`default`). Library providers and directive template overrides (swizzle system) are implemented. Rich theme CLI exists (`theme list`, `theme validate`, `theme swizzle`, `theme assets`, etc.). Now: ship a second theme, theme preview command, and token documentation.
+Bengal ships bundled `default` and `chirpui` themes. Library providers, directive template overrides (swizzle system), packaged theme discovery, theme scaffolding, validation, preview, and token documentation are implemented. The remaining work belongs to later polish: deeper visual regression coverage and a public theme gallery.
 
 **Key tasks**:
-- Sprint 1: `bengal theme preview` command — live-reloading theme development mode
-- Sprint 2: Second built-in theme (minimal/documentation-focused, using Kida library providers)
-- Sprint 3: CSS token contract documentation (design tokens, customization guide)
-- Sprint 4: Theme test coverage for existing CLI commands
+- Sprint 1: `bengal theme preview` command — live-reloading theme development mode ✅
+- Sprint 2: Second built-in theme (`chirpui`, using Kida library providers) ✅
+- Sprint 3: CSS token contract documentation (design tokens, customization guide) ✅
+- Sprint 4: Theme test coverage for existing CLI commands ✅
 
-**Acceptance**: `bengal theme list` shows 2 themes. `bengal theme preview` starts a dev server with theme hot-reload.
+**Acceptance**: `bengal theme list` shows 2 bundled themes. `bengal theme preview` starts a theme-dev profile server with hot reload.
 
 **Existing RFC**: rfc-theme-ecosystem.md
 

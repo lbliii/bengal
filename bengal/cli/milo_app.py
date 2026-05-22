@@ -708,28 +708,41 @@ config.lazy_command(
 # --- theme ---
 theme = cli.group("theme", description="Theme development, directives, and assets")
 
-for name, desc in [
-    ("list", "List available themes"),
-    ("info", "Show theme details"),
-    ("discover", "List swizzlable templates"),
-    ("swizzle", "Copy template from theme to project"),
-    ("install", "Install theme from PyPI"),
-    ("validate", "Validate theme directory structure"),
-    ("new", "Create new theme scaffold"),
-    ("debug", "Debug theme resolution and inheritance"),
-    ("directives", "List available directives"),
-    ("test", "Render a directive in isolation"),
-    ("assets", "Build CSS/JS assets"),
+for name, func_name, desc in [
+    ("list", "list", "List available themes"),
+    ("info", "info", "Show theme details"),
+    ("discover", "discover", "List swizzlable templates"),
+    ("swizzle", "swizzle", "Copy template from theme to project"),
+    ("swizzle-list", "swizzle_list", "List swizzled templates"),
+    ("swizzle-update", "swizzle_update", "Update unchanged swizzled templates"),
+    ("install", "install", "Install theme from PyPI"),
+    ("validate", "validate", "Validate theme directory structure"),
+    ("new", "new", "Create new theme scaffold"),
+    ("preview", "preview", "Start theme development preview server"),
+    ("debug", "debug", "Debug theme resolution and inheritance"),
+    ("directives", "directives", "List available directives"),
+    ("test", "test", "Render a directive in isolation"),
+    ("assets", "assets", "Build CSS/JS assets"),
 ]:
     theme.lazy_command(
         name,
-        import_path=f"bengal.cli.milo_commands.theme:theme_{name}",
+        import_path=f"bengal.cli.milo_commands.theme:theme_{func_name}",
         description=desc,
         annotations={
             "readOnlyHint": name
-            in {"list", "info", "discover", "validate", "debug", "directives", "test"},
-            "destructiveHint": name in {"swizzle", "install", "new", "assets"},
-            "idempotentHint": name in {"assets", "validate"},
+            in {
+                "list",
+                "info",
+                "discover",
+                "swizzle-list",
+                "validate",
+                "debug",
+                "directives",
+                "test",
+            },
+            "destructiveHint": name
+            in {"swizzle", "swizzle-update", "install", "new", "preview", "assets"},
+            "idempotentHint": name in {"assets", "validate", "preview"},
         },
         display_result=False,
     )

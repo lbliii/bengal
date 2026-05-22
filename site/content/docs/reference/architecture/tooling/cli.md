@@ -318,7 +318,10 @@ config.inspect
 theme.list
 theme.info
 theme.discover
+theme.preview
 theme.swizzle
+theme.swizzle-list
+theme.swizzle-update
 theme.install
 theme.validate
 theme.new

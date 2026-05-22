@@ -50,6 +50,8 @@ CLI_SMOKE_CASES = [
     CLISmokeCase(
         ("theme", "swizzle", "--template-path", "base.html"), acceptable_exit_codes=(0, 1)
     ),
+    CLISmokeCase(("theme", "swizzle-list")),
+    CLISmokeCase(("theme", "swizzle-update")),
     CLISmokeCase(("theme", "validate", "--theme-path", "."), acceptable_exit_codes=(0, 1)),
     CLISmokeCase(("theme", "new", "--slug", "runtime-smoke")),
     CLISmokeCase(("theme", "debug")),
@@ -94,6 +96,7 @@ CLI_SMOKE_CASES = [
 CLI_SMOKE_EXEMPTIONS = {
     "serve": "starts a long-running development server; server smoke tests own lifecycle checks",
     "preview": "starts a long-running static server after build; preview server tests own lifecycle checks",
+    "theme.preview": "starts a long-running theme development server; help/parser tests cover exposure",
     "upgrade": "checks PyPI and can run an installer; release tests cover installed-wheel startup",
     "theme.install": "installs packages from PyPI; networked installer behavior needs a dedicated test",
 }
@@ -256,8 +259,16 @@ class TestCLICommandSmoke:
 
         listed = run_cli(["theme", "list", "--source", str(site_root)])
         listed.assert_ok()
+        assert "default" in listed.stdout
+        assert "chirpui" in listed.stdout
+        assert "Bundled theme" in listed.stdout
         assert "custom" in listed.stdout
         assert "Site-local theme" in listed.stdout
+
+        bundled_info = run_cli(["theme", "info", "--slug", "chirpui", "--source", str(site_root)])
+        bundled_info.assert_ok()
+        assert "Source" in bundled_info.stdout
+        assert "bundled" in bundled_info.stdout
 
         info = run_cli(["theme", "info", "--slug", "custom", "--source", str(site_root)])
         info.assert_ok()
