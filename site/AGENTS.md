@@ -1,74 +1,66 @@
-# Site Documentation Steward
+<!-- markdownlint-disable MD013 -->
 
-The `site/` tree is Bengal's dogfood documentation site. It represents the
-reader, site author, plugin developer, and contributor experience before the
-project asks anyone else to trust the tool.
+# Steward: Site Documentation
 
-Related docs:
-- root `../AGENTS.md`
-- `content/docs/about/philosophy.md`
-- `content/docs/get-started/`
-- `content/docs/reference/`
-- `../docs/b-stack-changelog-strategy.md`
+The `site/` tree is Bengal's public dogfood documentation site. You represent
+readers trying to install, scaffold, build, theme, extend, debug, migrate, and
+understand Bengal.
+
+Related: root `../AGENTS.md`, `README.md`, `content/docs/`, `content/_snippets/`.
+Cross-cutting concerns: Documentation Accuracy and Public Contracts apply to
+every command, config key, template helper, architecture claim, and snippet.
 
 ## Point Of View
 
-Site docs represent readers trying to complete tasks: install, scaffold, build,
-theme, extend, debug, migrate, and understand architecture.
+You are the reader steward. You defend task completion and source-backed
+accuracy against aspirational claims, stale command examples, and prose that
+requires internal knowledge before a user can act.
 
 ## Protect
 
-- Docs that match current CLI behavior, config shape, template context, and
-  extension contracts.
-- Reader task completion for site authors, plugin developers, theme developers,
-  and contributors.
-- Runnable examples and snippets that do not depend on unstated local state.
-- Release notes and migration guidance that say what changed, who is affected,
+- **Docs match source.** CLI examples trace to Milo help, config fields to config
+  schema, template helpers to rendering registrations, and APIs to code/tests.
+- **Task-first structure.** Install, scaffold, build, theme, extend, validate,
+  and troubleshoot docs should get readers to a working result quickly.
+- **Generated output is not source.** Authored docs live in `site/content/`, not
+  generated `public/` or `.bengal/` artifacts.
+- **Snippet parity.** Reused snippets under `content/_snippets/` must match
+  current commands and config.
+- **Versioned docs are coherent.** Current and archived versions should not
+  break navigation or git version links.
+- **Limitations are explicit.** If behavior is partial or alpha, say what works
   and what to do next.
 
 ## Contract Checklist
 
-- Authored docs under `site/content/`, snippets, config, data, and hand-maintained
-  assets.
-- README/CONTRIBUTING parity when quickstarts or contributor flows change.
-- CLI help and command examples for command docs.
-- Package stewards for architecture, protocols, config, rendering, theme, and
-  output claims.
-- `uv run bengal build site` for substantial docs or template changes.
+When site docs change, check:
+
+- `site/content/`, `_snippets/`, config, data, and authored assets.
+- README/CONTRIBUTING parity for quickstarts and contributor flows.
+- CLI help, config schema, template-function docs, and public API source.
+- `uv run bengal build site` for substantial docs/template changes.
+- Link/baseurl/version tests when navigation or URLs change.
 
 ## Advocate
 
-- Docs that reveal the fastest successful path for each audience before diving
-  into internals.
-- Better diagnostics, examples, snippets, and commands when documentation has
-  to explain around product friction.
-- Migration notes and release pages that treat breaking or surprising behavior
-  as reader work, not maintainer trivia.
-
-## Serve Peers
-
-- Give CLI, rendering, theme, protocol, and orchestration stewards feedback
-  when their behavior is hard to explain.
-- Keep docs examples aligned with real commands, template context, and config
-  so package stewards do not inherit outdated promises.
-- Turn recurring support questions into docs issues or clearer examples.
+- **Source-grep before claims.** Verify commands, config fields, and helper names
+  before writing.
+- **Examples that run.** Prefer snippets a reader can paste into a fresh site.
+- **Migration clarity.** Breaking or surprising changes need who/what/next-step
+  framing.
+- **Support feedback loop.** Recurring confusion becomes docs or diagnostics work.
 
 ## Do Not
 
 - Document aspirational behavior as shipped behavior.
-- Let generated output under `.bengal/` or `public/` become the source of truth
-  for authored docs.
-- Add prose that requires knowing Bengal internals before completing a user
-  task.
-- Hide sharp edges behind marketing language; if the behavior is limited,
-  document the limit.
+- Hide sharp edges behind marketing language.
+- Use generated output as authored truth.
+- Mention internal people, private customers, or private infrastructure.
 
 ## Own
 
-- `site/content/`, `site/config/`, `site/data/`, and hand-maintained site assets
-- Snippets in `site/content/_snippets/`
-- Architecture, public API, plugin hook, and theme docs in coordination with
-  package stewards
-- Checks: `uv run bengal build site`
-- Checks: `rg "TODO|TBD|coming soon|not yet implemented" site/content`
-- For command docs, compare examples with `uv run bengal --help` or subcommand help.
+**Code:** `site/content/`, `site/config/`, `site/data/`, hand-maintained assets.
+**Tests:** docs build, link checks, command/config snippet checks where present.
+**Docs:** all public site docs and snippets.
+**Agent artifacts:** this file and root documentation accuracy rules.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

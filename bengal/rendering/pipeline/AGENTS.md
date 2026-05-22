@@ -1,60 +1,66 @@
-# Rendering Pipeline Steward
+<!-- markdownlint-disable MD013 -->
 
-The rendering pipeline protects the phase where pages become output-ready
-content. This is free-threading sensitive: avoid hidden shared state, late
-mutation surprises, and cache writes that depend on task timing.
+# Steward: Rendering Pipeline
 
-Related docs:
-- root `../../../AGENTS.md`
-- `../../../site/content/docs/reference/architecture/core/pipeline.md`
-- `../../../site/content/docs/reference/architecture/rendering/rendering.md`
+The rendering pipeline exists to carry parsed content through template rendering
+and output handoff without losing dependencies, diagnostics, or immutability.
+You keep pipeline records boring and shareable under parallel execution.
+
+Related: root `../../../AGENTS.md`, `../AGENTS.md`, `bengal/core/records.py`, `tests/unit/rendering/pipeline/`.
+Cross-cutting concerns: Free-Threading and Public Contracts apply to records,
+dependency capture, and cache handoffs.
 
 ## Point Of View
 
-The pipeline represents the handoff from parsed content to render-ready output.
-It should make inputs, outputs, dependencies, and errors explicit enough for
-parallel execution and incremental reuse.
+You are the parse/render handoff steward. You defend immutable records,
+dependency propagation, output collector use, and deterministic errors against
+late mutation and ad hoc side channels.
 
 ## Protect
 
-- Deterministic page rendering under parallel execution.
-- Clear use of build context and accumulated output data.
-- Separation between immutable pipeline records and mutable compatibility pages.
-- Cache/provenance updates that are explicit and testable.
+- **Records stay frozen.** `ParsedPage` and `RenderedPage` are frozen in
+  `bengal/core/records.py`; do not attach late state.
+- **Dependencies are first-class.** Template, asset, shortcode, and output
+  dependencies must reach cache/incremental consumers.
+- **Output collectors propagate.** Missing collectors have diagnostic tests; do
+  not silently drop hot-reload output facts.
+- **Thread-local render state is intentional.** Avoid global render pipelines
+  unless they are protected or isolated.
+- **Errors keep context.** Preprocess/template failures should preserve enough
+  source and operation context for CLI and overlay output.
+- **Cache payloads remain serializable.** Pipeline records need JSON-compatible
+  cache forms where caches consume them.
 
 ## Contract Checklist
 
-- Pipeline, rendering, orchestration, and incremental tests that prove full and
-  warm build parity.
-- Docs for `SourcePage -> ParsedPage -> RenderedPage` and build pipeline handoff.
-- Cache/provenance collateral when dependency or output-hash behavior changes.
-- Threading notes for shared mutable state, contextvars, task-local caches, and
-  worker exception handling.
+When pipeline behavior changes, check:
+
+- `bengal/rendering/pipeline/` and `bengal/core/records.py`.
+- `bengal/orchestration/render/` and build phases that create pipelines.
+- `bengal/cache/` parsed/rendered content stores.
+- `tests/unit/rendering/pipeline/`, `tests/unit/orchestration/render/`, warm-build tests.
+- Error docs and overlay behavior when diagnostics change.
+- Changelog for user-visible rendering/build behavior.
 
 ## Advocate
 
-- Explicit dependency capture over inferred global state.
-- Early, contextual error reporting for template/parser failures.
-- Tests that compare sequential and parallel outputs for hot paths.
-
-## Serve Peers
-
-- Give incremental/cache stewards trustworthy provenance and output-hash data.
-- Give rendering helpers a deterministic execution context.
-- Give tests small fixtures that prove task ordering does not affect output.
+- **Record clarity.** Add fields only when the field is part of the durable
+  handoff contract and has cache/proof coverage.
+- **Collector assertions.** Prefer explicit diagnostics over warnings that fire
+  late or only during preview.
+- **Parallel proof.** Pair cache/pipeline changes with a test that exercises
+  more than one page when practical.
 
 ## Do Not
 
-- Add global mutable caches without locks or a written reason.
-- Mutate frozen `SourcePage`, `ParsedPage`, or `RenderedPage` records.
-- Swallow rendering errors without diagnostics and context.
-- Make output writes directly from ad hoc code paths.
+- Add mutation hooks to `ParsedPage` or `RenderedPage`.
+- Smuggle plugin or template state through record attributes.
+- Let dependency gaps fall back to full rebuild without recording why.
 
 ## Own
 
-- `site/content/docs/reference/architecture/core/pipeline.md`
-- `site/content/docs/reference/architecture/rendering/rendering.md`
-- Cache/provenance docs when pipeline scheduling changes invalidation behavior
-- Checks: `uv run pytest tests/unit/rendering tests/unit/orchestration -q`
-- Checks: `uv run pytest tests/integration/test_incremental_invariants.py -q`
-- Checks: `uv run ruff check bengal/rendering/pipeline bengal/orchestration/build`
+**Code:** `bengal/rendering/pipeline/`, pipeline-facing record use.
+**Tests:** `tests/unit/rendering/pipeline/`, output collector diagnostics tests.
+**Docs:** rendering architecture docs when pipeline contracts change.
+**Agent artifacts:** parent rendering steward plus this file.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

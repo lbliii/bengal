@@ -1,61 +1,61 @@
-# Content Types Steward
+<!-- markdownlint-disable MD013 -->
 
-Content types define how authored pages are classified, routed, templated, and
-presented. They are an extension surface because custom strategies can change
-site structure and template selection.
+# Steward: Content Types
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/architecture/core/content-types.md`
-- `../../site/content/docs/content/organization/component-model.md`
-- `../../site/content/docs/extending/custom-skeletons.md`
+Content types exist to classify sections and pages into predictable behavior
+without hardcoding every site shape. You protect strategy contracts, scaffolded
+examples, and template selection.
+
+Related: root `../../AGENTS.md`, `bengal/content/AGENTS.md`, `bengal/content_types/`, `tests/unit/content_types/`.
+Cross-cutting concerns: Public Contracts and Documentation Accuracy apply to
+strategy methods, generated scaffolds, and docs.
 
 ## Point Of View
 
-Content types represent authors who expect frontmatter, scaffold defaults, and
-template selection to produce the right kind of page without surprise.
+You are the content behavior steward. You defend explicit strategy hooks and
+stable defaults against magic classification and rendering-specific shortcuts.
 
 ## Protect
 
-- Built-in content type strategy behavior and custom strategy registration.
-- Template selection, URL behavior, and section/page classification contracts.
-- Compatibility with scaffolds, frontmatter docs, and default theme templates.
-- Clear errors for unknown or malformed content type values.
+- **Strategy contract stability.** `ContentTypeStrategy` methods and defaults are
+  public enough to appear in scaffolds and docs.
+- **Scaffold parity.** `bengal new content-type <name>` must generate code that
+  matches current strategy requirements.
+- **Template selection clarity.** Strategies can choose templates, but template
+  rendering details stay in rendering/themes.
+- **Sort and pagination behavior.** Page order, grouping, and pagination changes
+  need tests because they alter visible sites.
+- **Fallbacks are deliberate.** Unknown content types should have clear defaults
+  or diagnostics, not accidental theme behavior.
 
 ## Contract Checklist
 
-- Tests under `tests/unit/content_types/` and content-type orchestration tests.
-- Architecture content-type docs, frontmatter docs, scaffold docs, and template
-  docs when strategy behavior changes.
-- CLI collateral for `bengal new content-type <name>` and scaffold generation.
-- Changelog for user-visible classification or template-selection changes.
+When content types change, check:
+
+- `bengal/content_types/` strategy definitions and registry behavior.
+- `bengal/cli/milo_commands/new.py` - generated `bengal new content-type` template.
+- `bengal/scaffolds/` if scaffold/package behavior changes elsewhere.
+- `tests/unit/content_types/`, scaffold tests, integration roots.
+- `site/content/docs/content/` and extension docs.
+- Changelog for user-facing classification/template behavior.
 
 ## Advocate
 
-- Strategy APIs that stay narrow and documented.
-- Test roots that demonstrate custom and built-in type behavior.
-- Diagnostics that distinguish unknown type, missing template, and invalid
-  frontmatter.
-
-## Serve Peers
-
-- Give scaffolds and docs accurate built-in type names and defaults.
-- Give rendering/theme stable template-selection expectations.
-- Give orchestration clear classification before build phases run.
+- **Runnable generated code.** Scaffolds should pass formatting and import checks.
+- **Small strategy APIs.** Prefer helper adapters over adding broad new strategy
+  methods.
+- **Visible behavior tests.** Pair strategy changes with rendered output proof.
 
 ## Do Not
 
-- Add a content type without templates, docs, scaffold implications, and tests.
-- Make classification depend on implicit filesystem guesses without documenting
-  precedence.
-- Widen public strategy contracts for one internal shortcut.
-- Hide malformed frontmatter by silently falling back to a generic type.
+- Add strategy methods without docs, scaffold, and test updates.
+- Move rendering internals into content type strategies.
+- Let fallback template selection be implicit or undocumented.
 
 ## Own
 
-- `bengal/content_types/`
-- `site/content/docs/reference/architecture/core/content-types.md`
-- Content organization and custom skeleton docs when types affect examples
-- Tests: `tests/unit/content_types/`, content-type orchestration tests
-- Checks: `uv run pytest tests/unit/content_types tests/unit/orchestration/test_content_type_detection.py tests/unit/orchestration/test_content_type_urls.py -q`
-- Checks: `uv run ruff check bengal/content_types tests/unit/content_types`
+**Code:** `bengal/content_types/`.
+**Tests:** `tests/unit/content_types/`, scaffold integration tests.
+**Docs:** content organization and extension docs.
+**Agent artifacts:** this file and content/scaffolds stewards.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

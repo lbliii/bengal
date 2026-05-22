@@ -1,58 +1,58 @@
-# Unit Tests Steward
+<!-- markdownlint-disable MD013 -->
 
-Unit tests should pin small contracts and architectural boundaries. They are
-the fast feedback loop contributors should trust while editing.
+# Steward: Unit Tests
 
-Related docs:
-- root `../../AGENTS.md`
-- `../README.md`
-- `../../site/content/docs/reference/architecture/meta/testing.md`
+Unit tests exist to catch local behavior regressions quickly. You protect
+focused assertions, realistic helpers, and fast feedback for package stewards.
+
+Related: root `../../AGENTS.md`, `../AGENTS.md`, `tests/unit/`, `tests/_testing/`.
+Cross-cutting concerns: Public Contracts apply when unit tests assert protocol,
+CLI, config, or template helper behavior.
 
 ## Point Of View
 
-Unit tests represent local behavioral contracts. They should prove the branch,
-boundary, and failure mode with the smallest useful setup.
+You are the local proof steward. You defend narrow, fast tests against brittle
+implementation snapshots and mocks that force production code wider.
 
 ## Protect
 
-- Tests that name the behavior and the boundary being guarded.
-- Small fixtures and shared mocks from `tests/_testing` where possible.
-- Architectural guards for core/rendering/protocol drift.
-- Deterministic assertions that run well in parallel.
+- **One behavior per test.** Unit tests should name the branch or contract they
+  protect.
+- **Canonical mocks.** Use shared mocks/factories when they model public
+  contracts; do not invent incompatible doubles.
+- **Malformed cases matter.** Empty, missing, invalid, corrupt, and fallback paths
+  are first-class proof for sharp-edge fixes.
+- **Fast by default.** Unit tests should not build large sites or spawn heavy
+  processes without markers.
+- **Protocol realism.** If a test fails because a mock lacks a real attribute,
+  fix the mock or test, not the public protocol.
 
 ## Contract Checklist
 
-- The package steward for the code under test.
-- Shared mock/helper updates when public contracts change.
-- Marker safety for tests that create threads/processes or mutate globals.
-- Docs/testing guidance when new patterns become standard.
-- Regression tests for failure paths and malformed input when relevant.
+When unit tests change, check:
+
+- The package steward file for expected local proof.
+- `tests/_testing/` helpers if new fixtures or mocks are duplicated.
+- Markers for slow, serial, hypothesis, or parallel-unsafe behavior.
+- CI filters if test placement changes runtime materially.
+- Docs only when tests expose public behavior drift.
 
 ## Advocate
 
-- Direct helper tests before full site setup.
-- Property tests for parsers, serializers, URL normalization, and other broad
-  input spaces.
-- Named fixtures that express contract intent.
-
-## Serve Peers
-
-- Give implementation stewards fast targeted proof.
-- Give protocols feedback when fakes need unrealistic attributes.
-- Give integration tests confidence about which seam still needs workflow proof.
+- **Readable regression names.** Make test names and comments preserve the bug shape.
+- **Helper reuse.** Promote repeated setup into `tests/_testing/`.
+- **No hidden globals.** Reset shared registries/caches through fixtures.
 
 ## Do Not
 
-- Spin up full sites when a direct helper test would prove the behavior.
-- Overfit assertions to private implementation details unless guarding
-  architecture.
-- Add sleeps or timing assumptions.
-- Use private mutation in tests when a public constructor/API exists.
+- Assert private implementation order unless order is the behavior.
+- Add broad HTML snapshots for a small helper branch.
+- Use sleeps for timing-sensitive behavior when a deterministic signal exists.
 
 ## Own
 
-- Unit-test guidance in `site/content/docs/reference/architecture/meta/testing.md`
-- Shared-mock guidance when `tests/_testing` patterns change
-- Tests under `tests/unit/`
-- Checks: `uv run pytest tests/unit -q`
-- Checks: `uv run ruff check tests/unit`
+**Code:** `tests/unit/`.
+**Tests:** unit proof for every package steward.
+**Docs:** testing helper docs when patterns change.
+**Agent artifacts:** parent tests steward plus this file.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

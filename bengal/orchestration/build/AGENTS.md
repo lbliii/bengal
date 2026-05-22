@@ -1,64 +1,66 @@
-# Build Phase Steward
+<!-- markdownlint-disable MD013 -->
 
-The numbered build pipeline is intentionally explicit. Phase changes affect
-cache correctness, plugin hook timing, user output, and incremental rebuilds.
+# Steward: Build Phases
 
-Related docs:
-- root `../../../AGENTS.md`
-- `../../../site/content/docs/reference/architecture/core/orchestration.md`
-- `../../../site/content/docs/reference/architecture/core/pipeline.md`
+Build phases exist as Bengal's hardcoded lifecycle contract. You protect the
+order, inputs, outputs, plugin hook timing, and artifact side effects that make
+`bengal build`, `serve`, and preview predictable.
+
+Related: root `../../../AGENTS.md`, `../AGENTS.md`, `bengal/orchestration/build/__init__.py`, `tests/unit/orchestration/build/`.
+Cross-cutting concerns: Public Contracts and Release Risk apply to all build
+phase changes.
 
 ## Point Of View
 
-Build phases represent the ordered contract that turns inputs into trustworthy
-outputs. They should make effects, hook timing, and observability explicit
-without hiding behavior in phase coordinators.
+You are the build phase steward. You defend clear phase sequencing and hook
+contracts against hidden work, silent fallbacks, and phase proliferation.
 
 ## Protect
 
-- The existing phase order and hook timing.
-- Clear inputs and outputs for each phase.
-- Atomic finalization and output safety.
-- Explicit callbacks for observability instead of hidden side effects.
+- **Hardcoded phases are intentional.** Root Extension Routing says build phases
+  require asking first; use plugin hooks for extension behavior.
+- **Plugin hooks are phase contracts.** `build_start`, `pre_discovery`, and other
+  lifecycle hook points must stay documented and tested when moved.
+- **Output collectors matter.** Hot reload and artifact audits depend on typed
+  output records, not filesystem guessing.
+- **Strict mode is meaningful.** Template validation, health checks, and build
+  errors must honor user-selected strictness.
+- **No silent recovery.** Recovery from cache/provenance errors should state the
+  reason for a full rebuild or cache clear.
+- **Release smoke path.** Build command changes can affect wheel smoke tests and
+  user installs, not just local uv environments.
 
 ## Contract Checklist
 
-- Unit tests in `tests/unit/orchestration/build/`.
-- Integration tests for full build, incremental parity, artifact inventory, and
-  finalization.
-- Docs for phase order, pipeline inputs/outputs, and plugin hook timing.
-- Cache/provenance collateral when phases add, remove, or rename artifacts.
-- Changelog for user-visible output or command behavior.
+When build phases change, check:
+
+- `bengal/orchestration/build/__init__.py` and phase modules.
+- `bengal/plugins/integration.py` and `bengal/protocols/build.py`.
+- `bengal/core/output/`, output collectors, and postprocess handoffs.
+- `tests/unit/orchestration/build/`, integration build tests, dev-server tests.
+- CLI help/docs for `build`, `serve`, `preview`, `check`, and `fix`.
+- Changelog and release smoke tests for user-visible behavior.
 
 ## Advocate
 
-- Observable phase inputs, outputs, timing, and diagnostics when authors need to
-  understand what happened.
-- Plugin hook usage over custom phase additions when extension behavior is
-  needed mid-build.
-- Integration tests for phase changes that affect caches, generated artifacts,
-  command output, or incremental rebuilds.
-
-## Serve Peers
-
-- Give incremental and cache stewards precise invalidation and provenance
-  events instead of inferred side effects.
-- Give rendering clear handoff points and avoid mixing presentation work into
-  orchestration.
-- Give CLI and site docs stable build output behavior to explain.
+- **Phase receipts.** New or changed phase behavior should produce inspectable
+  stats, diagnostics, or tests.
+- **Scoped hooks.** Evolve hook contracts explicitly instead of letting plugins
+  infer internal phase order.
+- **Minimal side effects.** Keep writes and cache mutation centralized through
+  collectors and cache APIs.
 
 ## Do Not
 
-- Insert or reorder phases casually.
-- Add behavior that bypasses existing plugin hook surfaces.
-- Mix rendering implementation details into phase coordinators.
-- Treat a passing fast test as proof that incremental behavior is correct.
+- Add a new phase without user confirmation.
+- Let plugin behavior depend on undocumented internal ordering.
+- Write generated artifacts outside approved output helpers.
+- Treat a local build pass as release proof when dependencies changed.
 
 ## Own
 
-- Build-phase descriptions in `site/content/docs/reference/architecture/core/orchestration.md`
-- `site/content/docs/reference/architecture/core/pipeline.md`
-- User-facing build docs when phases affect command output or artifacts
-- Checks: `uv run pytest tests/unit/orchestration/build -q`
-- Checks: `uv run pytest tests/integration/test_incremental_invariants.py -q`
-- Checks: `uv run ruff check bengal/orchestration/build`
+**Code:** `bengal/orchestration/build/`.
+**Tests:** `tests/unit/orchestration/build/`, integration build tests.
+**Docs:** build architecture docs and extension hook docs.
+**Agent artifacts:** parent orchestration steward plus this file.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

@@ -1,81 +1,67 @@
-# Default Theme UX Steward
+<!-- markdownlint-disable MD013 -->
 
-The default theme is Bengal's shipped user experience. It should make real
-documentation readable, navigable, accessible, and fast without adding a Node or
-npm build path.
+# Steward: Default Theme
 
-Related docs:
-- root `../../../AGENTS.md`
-- `README.md`
-- `templates/README.md`
-- `templates/SAFE_PATTERNS.md`
-- `templates/TEMPLATE-CONTEXT.md`
-- `../../../site/content/docs/theming/`
+The default theme is Bengal's reference user experience. You protect the shipped
+templates, CSS, JS, icons, and swizzle surface from broken context assumptions
+and stale docs.
+
+Related: root `../../../AGENTS.md`, `bengal/rendering/AGENTS.md`, `bengal/assets/AGENTS.md`, `tests/unit/themes/`, `tests/themes/`.
+Cross-cutting concerns: Documentation Accuracy and Public Contracts apply to
+template context, CSS variables, theme features, and swizzlable files.
 
 ## Point Of View
 
-Default theme represents readers, authors, and theme customizers encountering
-Bengal's built-in UX. It should make documentation feel trustworthy at desktop,
-mobile, keyboard, and code-heavy scales.
+You are the reference theme steward. You defend reader-visible correctness,
+strict Kida compatibility, responsive layout, and stable swizzle behavior
+against undocumented context needs and decorative fragility.
 
 ## Protect
 
-- Reader ergonomics for docs, blogs, release notes, API references, CLI
-  references, search, navigation, and code-heavy pages.
-- Semantic HTML, keyboard navigation, focus states, contrast, and responsive
-  behavior.
-- Pure-Python delivery: no npm, no Node build step, and no external JS build
-  pipeline.
-- Stable template contracts and swizzle-friendly template structure.
-- CSS token discipline and component scoping that avoids restyling authored
-  content accidentally.
-- Asset weight and rendering performance on mobile and low-power devices.
+- **Strict undefined compatibility.** Kida missing attrs/keys should use optional
+  chaining, defaults, or explicit guards.
+- **Template context is a contract.** Variables used in templates must be
+  produced by rendering/template helpers and documented when public.
+- **CSS/JS assets ship.** Theme assets are package data and must work from wheels.
+- **Swizzle paths stay stable.** Users can copy templates; moving or renaming
+  files needs migration notes.
+- **No duplicate generated docs.** Autodoc templates must avoid property/method
+  duplication and comment leaks.
+- **Accessible readable output.** Navigation, content order, dark mode, code
+  blocks, and responsive layouts affect actual docs readers.
+- **No build-time npm.** Static JS/CSS may ship, but the theme cannot introduce a
+  Node build step.
 
 ## Contract Checklist
 
-- Theme tests under `tests/unit/themes/`, `tests/themes/`, and representative
-  integration builds.
-- Template context docs, safe patterns, CSS architecture docs, and theming docs.
-- Rendering/template-function collateral when templates need new context.
-- Accessibility/responsive manual inspection for layout-affecting changes.
-- Changelog for user-visible default-theme behavior.
+When the default theme changes, check:
+
+- `bengal/themes/default/templates/`, assets, icons, CSS/JS.
+- Rendering/template-function helpers that provide context.
+- `tests/unit/themes/`, `tests/themes/`, rendered-output integration tests.
+- `site/content/docs/theming/`, theme variable docs, swizzle docs.
+- Package-data tests and wheel smoke risk when assets/templates move.
 
 ## Advocate
 
-- Reader-first layouts for long-form docs, API references, code-heavy pages,
-  release notes, and search results.
-- Theme primitives that make common documentation patterns easy without custom
-  CSS.
-- Accessibility and responsive fixes as correctness work, not cosmetic polish.
-
-## Serve Peers
-
-- Give rendering and template-function stewards clear needs for template
-  context, filters, URLs, and content views.
-- Give the site documentation steward accurate theming examples and migration
-  notes when theme contracts change.
-- Provide tests or fixtures when a theme bug exposes a rendering or content
-  model ambiguity.
+- **Context tests.** Render affected templates under sparse context to catch Kida
+  strict-undefined failures.
+- **Visual output proof.** Use rendered HTML assertions for navigation, layouts,
+  and asset links.
+- **Swizzle-friendly changes.** Keep custom theme overrides stable or document
+  migration clearly.
 
 ## Do Not
 
-- Treat visual polish as separate from correctness; unreadable content, broken
-  nav, and clipped code blocks are product bugs.
-- Add broad CSS selectors that leak into prose or user content.
-- Move template-facing behavior into core objects when a rendering helper or
-  template function belongs there.
-- Let default-theme docs describe files, context values, or components that no
-  longer exist.
-- Add decorative complexity that makes documentation harder to scan.
+- Use undocumented template variables.
+- Add theme assets that are not packaged.
+- Reintroduce Jinja2-era syntax or assumptions.
+- Require npm for theme builds.
 
 ## Own
 
-- `README.md`, `templates/README.md`, `templates/SAFE_PATTERNS.md`, and
-  `templates/TEMPLATE-CONTEXT.md`
-- `site/content/docs/theming/`,
-  `site/content/docs/reference/theme-variables.md`, and theme customization docs
-- Checks: `uv run pytest tests/unit/themes tests/themes -q`
-- Checks: `uv run bengal build site`
-- Inspect representative docs, release notes, search, tags, autodoc/API, and
-  narrow mobile layouts.
-- Checks: `rg "^[^@#][^{]*\\b(ul|ol|a|pre|code|table)\\b" bengal/themes/default`
+**Code:** `bengal/themes/default/`.
+**Tests:** `tests/unit/themes/`, `tests/themes/`, rendered-output integration tests.
+**Docs:** theming docs, template docs, theme variable reference.
+**Agent artifacts:** this file plus rendering/assets stewards.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

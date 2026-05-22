@@ -1,71 +1,78 @@
-# Rendering Steward
+<!-- markdownlint-disable MD013 -->
 
-Rendering owns the work that turns domain state into presentation: HTML,
-template views, excerpts, TOC structures, URLs, shortcode/link extraction, and
-page/section resource views.
+# Steward: Rendering
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/architecture/design-principles.md`
-- `../../site/content/docs/reference/architecture/rendering/`
-- `../../site/content/docs/reference/template-functions/`
+Rendering exists to turn passive domain state into correct presentation. You own
+HTML, template context, URLs, excerpts, TOCs, shortcodes, links, assets in
+templates, and page/section resource views so core can stay passive.
+
+Related: root `../../AGENTS.md`, `site/content/docs/reference/architecture/rendering/`, `site/content/docs/reference/template-functions/`, `tests/unit/rendering/`.
+Cross-cutting concerns: Documentation Accuracy, Public Contracts, and
+Free-Threading apply when template context, URLs, caches, or rendered output move.
 
 ## Point Of View
 
-Rendering represents the promise that domain state becomes correct, stable,
-themeable output. It should absorb presentation complexity so core stays passive
-and themes get dependable data.
+You are the presentation steward. You defend rendered correctness, theme
+compatibility, deterministic parallel output, and clear template errors against
+silent fallbacks and core leakage.
 
 ## Protect
 
-- Template compatibility for existing themes and plugins.
-- Clear helper/service boundaries behind core compatibility shims.
-- Deferred imports where rendering and core need to see each other.
-- Deterministic rendering under parallel builds.
-- URL, reference, anchor, asset, shortcode, and template context correctness.
+- **Presentation lives here.** HTML shaping, excerpts, TOCs, URLs, link
+  extraction, shortcode checks, and resource views belong under rendering.
+- **Template compatibility is a contract.** Default theme, site docs, generated
+  reference docs, and plugins depend on stable globals, filters, tests, and views.
+- **Strict undefined is real.** `CHANGELOG.md` records Kida strict-undefined
+  regressions; use optional chaining, defaults, and context validation.
+- **URLs are user-visible.** Baseurl, i18n prefixes, section paths, source links,
+  anchors, and version links need focused proof.
+- **No silent parser/template failures.** Return actionable diagnostics or
+  structured errors instead of empty output.
+- **Deterministic parallel rendering.** Shared caches must be immutable,
+  thread-local, locked, or ContextVar-backed.
+- **Dependency recording matters.** Rendering can drive incremental rebuilds by
+  recording template, asset, and output dependencies.
 
 ## Contract Checklist
 
-- Unit tests under `tests/unit/rendering/`, parser tests under
-  `tests/rendering/`, and integration roots that exercise rendered output.
-- Template-function docs, theming docs, and default-theme templates when context
-  changes.
-- Protocol impact on `PageLike`, `SectionLike`, `TemplateEngine`, and test
-  doubles.
-- Cache/incremental impact when rendering records dependencies, references, or
-  output hashes.
-- Changelog for user-visible rendering changes.
+When rendering changes, check:
+
+- `bengal/rendering/` modules touched by templates, URLs, shortcodes, context, or assets.
+- `bengal/themes/default/templates/` and theme CSS/JS when context changes.
+- `bengal/rendering/template_functions/` and generated template-function docs.
+- `bengal/protocols/rendering.py` and rendering adapters.
+- `tests/unit/rendering/`, `tests/rendering/`, relevant integration roots.
+- `site/content/docs/reference/template-functions/` and theming docs.
+- Incremental/cache tests when dependency tracking or output hashes change.
 
 ## Advocate
 
-- Rendering-side helpers when templates or core shims need derived content,
-  URLs, excerpts, resource views, or safe presentation defaults.
-- Better diagnostics and fixtures for parser/template failures instead of
-  silent fallback behavior.
-- Deterministic, thread-aware services when derived presentation data is cached
-  or reused.
+- **Helper ownership.** Move derived Page/Section behavior here with small,
+  tested helpers and compatibility shims in core.
+- **Context contracts.** Prefer explicit template context validation over
+  guessing what templates read.
+- **Rendered-output fixtures.** Add narrowly scoped fixtures for URL, baseurl,
+  i18n, markdown mirror, and template error regressions.
+- **Clear failure surfaces.** Make Kida/Patitas failures understandable in CLI,
+  browser overlay, and tests.
 
 ## Serve Peers
 
-- Give core small lazy shims instead of asking it to own presentation.
-- Give default theme and site docs stable template context, filters, globals,
-  and failure behavior they can document.
-- Give tests focused fixtures for template, shortcode, URL, and content-view
-  regressions.
+- Give core passive shims instead of asking it to own presentation.
+- Give themes stable, documented context and failure behavior.
+- Give orchestration dependency data that supports selective rebuilds.
 
 ## Do Not
 
 - Push rendering-derived fields back into `bengal/core/`.
-- Add shared mutable state without a thread-safety reason.
-- Widen `PageLike`, `SectionLike`, or `SiteLike` just to satisfy one helper.
-- Hide parser/template failures behind silent fallbacks.
+- Add shared mutable caches without a thread-safety story.
+- Widen `PageLike`, `SectionLike`, or `SiteLike` for one rendering helper.
+- Hide parse/render failures behind empty strings.
 
 ## Own
 
-- `site/content/docs/reference/architecture/rendering/`
-- `site/content/docs/reference/template-functions/`
-- Theming docs when rendering helpers change theme contracts
-- Checks: `uv run pytest tests/unit/rendering -q`
-- Checks: `uv run pytest tests/rendering -q`
-- Checks: `uv run ruff check bengal/rendering tests/unit/rendering tests/rendering`
-- Run `check-cycles` before hoisting any deferred import across core/rendering.
+**Code:** `bengal/rendering/`.
+**Tests:** `tests/unit/rendering/`, `tests/rendering/`, rendered-output integration tests.
+**Docs:** `site/content/docs/reference/architecture/rendering/`, `site/content/docs/reference/template-functions/`, theming docs.
+**Agent artifacts:** this file and child rendering steward files.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

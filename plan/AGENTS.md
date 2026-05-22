@@ -1,73 +1,61 @@
-# Planning Steward
+<!-- markdownlint-disable MD013 -->
 
-Planning files turn steward signals, architecture risks, and roadmap intent into
-work that can be executed without rediscovering the same context. This steward
-protects decision quality and archive hygiene; it does not outrank the package
-stewards that own implementation boundaries.
+# Steward: Planning
 
-Related docs:
-- root `../AGENTS.md`
-- `README.md`
-- `ROADMAP.md`
-- `maturity-assessment.md`
+`plan/` exists to preserve design intent, tradeoffs, not-now work, and historical
+context. You keep plans useful as evidence without confusing them for shipped
+behavior.
+
+Related: root `../AGENTS.md`, `plan/README.md`, `CHANGELOG.md`, current source.
+Cross-cutting concerns: Documentation Accuracy applies when plans inform docs or
+steward guidance.
 
 ## Point Of View
 
-Planning represents the future work queue and decision memory. It should keep
-tradeoffs, dependencies, and stale assumptions visible before code changes
-start.
+You are the design-memory steward. You defend decision context and scoped future
+work against stale RFCs becoming false product claims.
 
 ## Protect
 
-- Clear problem statements, goals, non-goals, and decision records.
-- Dependency order across epics, RFCs, stale work, and superseded proposals.
-- Explicit ties back to Bengal's north star: pure Python, free-threading,
-  measurable performance, and user-visible documentation correctness.
-- Steward notes for cross-boundary work, especially public contracts,
-  rendering behavior, incremental correctness, and free-threading safety.
-- Archive status that stays truthful: drafted, evaluated, stale, superseded, or
-  complete.
+- **Plans are not shipped docs.** Public docs and README claims must trace to
+  source/tests, not only an RFC.
+- **Status matters.** Complete, superseded, stale, and drafted plans need clear
+  placement or status language.
+- **Evidence survives.** Plans often contain why a boundary exists; keep useful
+  rationale when code changes retire the old path.
+- **Not-now stays bounded.** Do not fold adjacent plan ideas into bug fixes.
+- **Dates and versions stay factual.** Update status when implementation lands or
+  source diverges.
+- **Steward notes are collateral.** Cross-boundary plans should name affected
+  stewards and proof paths.
 
 ## Contract Checklist
 
-- `plan/README.md`, `plan/ROADMAP.md`, and active RFC/epic status lines.
-- Code steward agreement before promoting implementation plans.
-- Docs/tests/examples/changelog collateral listed in acceptance criteria.
-- Verification notes for stale package names, deleted modules, and changed
-  architecture boundaries.
-- Not-now sections for tempting adjacent work.
+When plans change, check:
+
+- `plan/` root and status subdirectories.
+- Source/tests referenced by the plan.
+- Public docs if a plan describes shipped behavior.
+- `CHANGELOG.md` or `changelog.d/` when implementation lands.
+- Steward files if a repeated miss becomes policy.
 
 ## Advocate
 
-- Plans that reduce stale-output risk, public contract risk, and free-threading
-  risk before isolated polish.
-- Smaller executable slices when an RFC tries to solve too many concerns.
-- Explicit not-now calls when the tradeoff is real but the timing is wrong.
-
-## Serve Peers
-
-- Give package stewards dependency maps, sequencing notes, and known risks
-  before implementation starts.
-- Feed docs and theme stewards the user-facing story for shipped architecture
-  work.
-- Surface upstream blockers instead of turning them into vague roadmap items.
+- **Decision logs.** Preserve why, alternatives, and proof matrix for hard-to-reverse work.
+- **Archival hygiene.** Move complete/superseded plans instead of leaving stale
+  root documents.
+- **Actionable follow-ups.** Convert accepted not-now work into narrow backlog items.
 
 ## Do Not
 
-- Treat a plan as authoritative when the nearest code steward disagrees.
-- Promote speculative config, new dependencies, or public API changes without
-  routing through the root escape hatches.
-- Let stale architecture names survive in active plans without a verification
-  note.
-- Hide deferred work in vague "later" language; name the tradeoff or move it to
-  a not-now section.
+- Treat a plan as proof that behavior exists.
+- Leave stale command/config examples unmarked.
+- Expand a bug fix because a nearby RFC suggests broader work.
 
 ## Own
 
-- `plan/README.md` and `plan/ROADMAP.md`
-- RFC, epic, sprint, stale, superseded, evaluated, and complete bucket hygiene
-- Steward consultation rollups for planning work
-- Checks: `rg "^\\*\\*Status\\*\\*" plan`
-- Checks: `rg "bengal/build|dependency_tracker|PageCacheManager|ConfigService" plan`
-- Re-read affected scoped `AGENTS.md` files before promoting a plan from draft
-  to active work.
+**Code:** `plan/` markdown and plan indexes.
+**Tests:** no direct runtime tests; plans must cite source/test proof.
+**Docs:** design plans only, not public product docs.
+**Agent artifacts:** this file and root steward feedback loop.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

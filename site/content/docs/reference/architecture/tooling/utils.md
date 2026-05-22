@@ -170,7 +170,7 @@ bengal/utils/
 
 ## Section Utilities
 - **Section model + hierarchy/navigation/queries**: `bengal/core/section/`
-- **Fast lookups (registry)**: `bengal/core/registry.py` and `bengal/core/site/section_registry.py`
+- **Fast lookups (registry)**: `bengal/core/registry.py`
 
 ## File Utilities
 - **Robust reads/writes**: `bengal/utils/io/file_io.py`

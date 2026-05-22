@@ -78,7 +78,7 @@ Represents folder-based grouping of pages with hierarchical organization.
 
 **Features:**
 - **Hierarchy**: Parent/child relationships (`subsections`)
-- **Navigation**: Access to `regular_pages` and `sections`
+- **Navigation**: Access to `regular_pages` and `subsections`
 - **Cascade**: Inheritance of frontmatter metadata to descendants
 - **Path-based Registry**: O(1) lookup via `Site.registry` (ContentRegistry) using normalized paths
 - **Stable References**: Sections referenced by path strings (not object identity) for reliable incremental builds
@@ -181,7 +181,8 @@ class Site:
 - Sections stored as path strings in `PageCore.section` (not Section objects)
 - Registry built during `Site.register_sections()`
 
-Refer to `bengal/core/site/section_registry.py` for the registry implementation.
+Refer to `bengal/core/registry.py` for the registry implementation and
+`Site.register_sections()` for the compatibility entrypoint.
 
 ## Object Model Relationships
 

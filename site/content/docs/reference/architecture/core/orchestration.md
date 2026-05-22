@@ -128,8 +128,10 @@ The coordinator ensures that when a dependency changes (data file, template, tax
 
 ### Detection Pipeline (Phase 5)
 
-Phase 5 (`phase_incremental_filter`) uses the **provenance-based filter** (`bengal/orchestration/build/provenance_filter.py`)
-and composes detectors from `bengal/build/` (e.g., `bengal/build/detectors/`):
+Phase 5 (`phase_incremental_filter`) uses the **provenance-based filter**
+(`bengal/orchestration/build/provenance_filter.py`) and current detector logic
+under `bengal/orchestration/incremental/`, with shared result/key contracts in
+`bengal/build/contracts/`:
 
 - `DetectionPipeline` composes ordered `ChangeDetector` implementations.
 - Each detector returns a `ChangeDetectionResult`, merged as the pipeline runs.

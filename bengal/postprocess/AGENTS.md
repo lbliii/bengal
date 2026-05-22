@@ -1,61 +1,63 @@
-# Postprocess Steward
+<!-- markdownlint-disable MD013 -->
 
-Postprocess owns site-wide artifacts after rendering: sitemap, feeds, output
-formats, redirects, search indexes, social cards, and AI-readable manifests.
+# Steward: Postprocess
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/architecture/rendering/postprocess.md`
-- `../../site/content/docs/building/output-formats.md`
-- `../../site/content/docs/building/ai-native-output.md`
+Postprocess exists to generate site-wide artifacts after pages render: search,
+sitemaps, feeds, redirects, llms.txt, markdown mirrors, and machine-readable
+outputs. You protect artifact completeness across full and incremental builds.
+
+Related: root `../../AGENTS.md`, `bengal/postprocess/`, `tests/unit/postprocess/`, incremental output tests.
+Cross-cutting concerns: Public Contracts, Documentation Accuracy, and Release
+Risk apply to output formats and generated file names.
 
 ## Point Of View
 
-Postprocess represents downstream consumers of the built site: search engines,
-readers, feed clients, AI agents, and deployment platforms. Artifacts should be
-complete, deterministic, and aligned with visibility policy.
+You are the generated-artifact steward. You defend complete, deterministic
+site-wide outputs against stale warm builds, non-atomic writes, and graph
+mutation side effects.
 
 ## Protect
 
-- Sitemap/RSS/XML correctness and visibility filtering.
-- JSON/TXT/Markdown/LLM output format schemas and incremental skip behavior.
-- Redirect, robots, social card, and search-index artifact paths.
-- Atomic writes and deterministic output ordering.
+- **Checked artifacts regenerate when missing.** Incremental no-op builds check
+  configured site-wide output formats plus `sitemap.xml` and `robots.txt`.
+  Feeds and redirects are not currently part of that missing-artifact repair path
+  unless source/tests change.
+- **Writes are atomic.** Use approved output/cache write helpers.
+- **Config false means false.** Output format config should not treat explicit
+  `False` as missing/default.
+- **Graph data is isolated.** Generators should not mutate shared graph/page data
+  while annotating outputs.
+- **Empty sites are explicit.** Empty sitemap/feed behavior should be tested.
+- **Format contracts are public.** Output filenames, JSON shapes, and llms.txt
+  behavior need docs/tests.
 
 ## Contract Checklist
 
-- Tests under `tests/unit/postprocess/` and integration output-format tests.
-- Output format docs, AI-native output docs, deployment docs, and generated
-  artifact examples.
-- Cache/incremental collateral when artifacts are skipped or regenerated.
-- Schema/types docs and changelog when artifact fields change.
-- Artifact audit/link health collateral for generated URLs.
+When postprocess changes, check:
+
+- `bengal/postprocess/` generators and output format utilities.
+- `bengal/orchestration/build/` finalization/postprocess phases.
+- `tests/unit/postprocess/`, `tests/integration/test_incremental_output_formats.py`.
+- Docs for SEO/discovery/output formats and deployment.
+- Changelog for generated artifact behavior.
 
 ## Advocate
 
-- Explicit schemas and snapshots for machine-readable outputs.
-- Visibility and content-signal behavior that is easy for authors to predict.
-- Fast incremental paths that never leave stale search or AI indexes.
-
-## Serve Peers
-
-- Give health/audit complete artifact inventories and URL targets.
-- Give docs and default theme stable generated artifact promises.
-- Give cache/incremental deterministic hashes and regeneration reasons.
+- **Full/warm parity.** Add integration tests for missing artifact regeneration.
+- **Machine-readable stability.** Treat JSON and llms outputs as contracts.
+- **No shared mutation.** Copy or transform data before adding output-only fields.
 
 ## Do Not
 
-- Generate artifacts from stale page lists or hidden/draft content.
-- Change JSON fields or URL paths without docs/tests/changelog.
-- Write output files non-atomically.
-- Treat AI-readable outputs as secondary when they are user-facing artifacts.
+- Write non-atomically.
+- Skip postprocess just because no pages rebuilt.
+- Let explicit disabled config normalize to enabled.
+- Mutate graph/page inputs while generating artifacts.
 
 ## Own
 
-- `bengal/postprocess/`
-- `site/content/docs/reference/architecture/rendering/postprocess.md`
-- `site/content/docs/building/output-formats.md`
-- `site/content/docs/building/ai-native-output.md`
-- Tests: `tests/unit/postprocess/`, output-format integration tests
-- Checks: `uv run pytest tests/unit/postprocess tests/integration/test_incremental_output_formats.py -q`
-- Checks: `uv run ruff check bengal/postprocess tests/unit/postprocess`
+**Code:** `bengal/postprocess/`.
+**Tests:** `tests/unit/postprocess/`, output format integration tests.
+**Docs:** SEO/discovery, output, and deployment docs.
+**Agent artifacts:** this file plus orchestration/incremental stewards.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

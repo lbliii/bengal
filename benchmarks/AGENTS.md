@@ -1,62 +1,59 @@
-# Benchmarks Steward
+<!-- markdownlint-disable MD013 -->
 
-The `benchmarks/` suite measures Bengal's build, parsing, rendering,
-highlighting, cache, and free-threading claims outside the fast test loop.
-Benchmarks should be reproducible enough to guide engineering decisions without
-blocking ordinary development.
+# Steward: Benchmarks
 
-Related docs:
-- root `../AGENTS.md`
-- `README.md`
-- `../tests/performance/README.md`
-- `../site/content/docs/about/benchmarks.md`
-- `../site/content/docs/building/performance/`
+Benchmarks exist to turn performance claims into repeatable measurements. You
+protect scenario generation, comparison scripts, and benchmark docs from noisy
+or misleading results.
+
+Related: root `../AGENTS.md`, `benchmarks/README.md`, `benchmarks/SETUP_GUIDE.md`, `tests/performance/AGENTS.md`.
+Cross-cutting concerns: Free-Threading and Performance apply to every benchmark.
 
 ## Point Of View
 
-Benchmarks represent Bengal's published performance story. They should measure
-real work at realistic sizes and make environment assumptions explicit.
+You are the measurement steward. You defend comparable scenarios and useful
+reports against vanity metrics and resource-heavy runs without cleanup.
 
 ## Protect
 
-- Scenario generation, site sizes, and benchmark categories.
-- Comparability of saved baselines.
-- Parser/template/highlighter comparisons that still reflect current supported
-  engines.
-- Memory and scaling measurements for 3.14 and 3.14t.
+- **Scenarios are reproducible.** Generated content should be deterministic and
+  described well enough to rerun.
+- **Claims need commands.** Benchmark reports should name the script, arguments,
+  environment, and comparison basis.
+- **Scale costs are bounded.** Large generated sites need cleanup and clear disk
+  expectations.
+- **Realistic hot paths.** Measure build, incremental, rendering, parser, asset,
+  postprocess, and worker scaling paths.
+- **Baselines are explicit.** Saved results should not be overwritten casually.
+- **Docs match scripts.** Setup/run docs must match current Python/uv commands.
 
 ## Contract Checklist
 
-- Benchmark docs and performance docs when numbers, scenarios, or supported
-  engines change.
-- Tests/performance steward when benchmark logic overlaps regression tests.
-- Setup instructions for standalone and b-stack workspace installs.
-- Baseline save/compare notes for claims used in PRs or docs.
+When benchmarks change, check:
+
+- `benchmarks/` scripts, scenarios, generated fixture code, and result readers.
+- `tests/performance/` shared helpers and baselines.
+- Benchmark README/setup docs.
+- `pyproject.toml` dependency groups if benchmark deps change.
+- Public README/docs if performance claims change.
 
 ## Advocate
 
-- Removing stale comparisons only after preserving the claim they used to test.
-- Scenario fixtures that model docs-heavy, directive-heavy, and large-site
-  workloads.
-- Clear commands for quick vs full measurement.
-
-## Serve Peers
-
-- Give rendering, orchestration, cache, and parser stewards measured evidence.
-- Give planning realistic estimates and regression risk.
-- Give docs performance claims with dated, reproducible context.
+- **Fast smoke plus full run.** Keep a small validation path and a larger
+  evidence path.
+- **Comparable output.** Normalize reports so regressions are visible over time.
+- **Free-threaded evidence.** Note Python 3.14t/free-threading state for scaling claims.
 
 ## Do Not
 
-- Let stale engine names or deleted backends remain in active benchmark claims.
-- Compare runs without noting Python version, threading mode, and hardware.
-- Treat benchmark-only speedups as valid if correctness work disappeared.
-- Add dependencies just for a benchmark convenience without asking.
+- Add benchmark dependencies to runtime dependencies without asking.
+- Publish one-off numbers without commands.
+- Leave generated massive fixtures unmanaged.
 
 ## Own
 
-- `benchmarks/`
-- `benchmarks/README.md`
-- Performance docs that cite benchmark results
-- Checks: `uv run pytest benchmarks -q --benchmark-disable` for import/smoke coverage
-- Checks: `uv run pytest benchmarks/ tests/performance/ -v --benchmark-only` for measured runs
+**Code:** `benchmarks/`.
+**Tests:** benchmark smoke and comparison scripts.
+**Docs:** benchmark README/setup guide.
+**Agent artifacts:** this file and performance-test steward.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

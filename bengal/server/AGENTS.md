@@ -1,61 +1,64 @@
-# Development Server Steward
+<!-- markdownlint-disable MD013 -->
 
-The server owns local author feedback: watching files, rebuilding safely,
-serving stable output, and reloading browsers without making production build
-semantics fuzzy.
+# Steward: Server
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/architecture/tooling/server.md`
-- `../../docs/live-reload-pipeline-review.md`
-- `../../plan/reload-tier-architecture.md`
+The server exists to give authors fast, correct local feedback while builds and
+files change underneath it. You protect live reload, watcher lifecycle, reactive
+preview, and Pounce integration from races and stale content.
+
+Related: root `../../AGENTS.md`, `bengal/server/`, `tests/unit/server/`, dev-server integration tests.
+Cross-cutting concerns: Free-Threading, Performance, and Public Contracts apply
+to watcher, lifecycle, reload, and served asset behavior.
 
 ## Point Of View
 
-The dev server represents the editing loop. It should be fast and calm while
-never serving half-written output or hiding rebuild failures.
+You are the local feedback steward. You defend serve correctness and graceful
+shutdown against torn outputs, stale buffers, route-wide reloads, and hidden
+watcher failures.
 
 ## Protect
 
-- Watcher scope, debounce behavior, rebuild trigger classification, and CSS hot
-  reload semantics.
-- Double-buffered output and atomic active-directory swaps.
-- SSE reload protocol and browser injection safety.
-- Clean lifecycle behavior for Ctrl+C, stale processes, and port fallback.
+- **Serve current output.** Double-buffering, callable output dirs, and reactive
+  paths must avoid FOUC and torn content.
+- **Typed reload decisions.** Hot reload should use output collectors and route
+  awareness, not broad page reloads by default.
+- **Watcher lifecycle closes.** Closed loops, cancellation, and Ctrl+C behavior
+  need deterministic cleanup.
+- **Port behavior is user-facing.** Stale process detection, IPv4/IPv6 probing,
+  and aliases such as `bengal s` need tests.
+- **Static assets stay optimized.** Preserve tested ETag, range, and
+  precompressed static handling without assuming dev static responses use
+  Pounce sendfile; current ASGI tests require body-frame behavior.
+- **Errors reach overlays and terminal.** Dev server failures should stay
+  actionable in both browser overlay and CLI output.
 
 ## Contract Checklist
 
-- Tests under `tests/unit/server/` and warm-build/dev-server integration tests.
-- Server architecture docs, live-reload docs, and build performance docs.
-- Config/CLI docs for serve flags and watcher settings.
-- Incremental/cache collateral when file changes alter rebuild decisions.
-- Changelog for user-visible server behavior.
+When server changes, check:
+
+- `bengal/server/`, `bengal/orchestration/site_runner.py`, output collectors.
+- `tests/unit/server/`, dev-server integration tests, CSS hot reload tests.
+- CLI `serve`/`preview` docs and help output.
+- Pounce dependency/version behavior in `pyproject.toml` and release smoke risk.
+- Changelog for user-visible serve behavior.
 
 ## Advocate
 
-- Rebuild explanations that distinguish content, template, asset, config, and
-  theme changes.
-- Small reproducible tests for race conditions and lifecycle bugs.
-- Fast-path improvements that keep full-build fallback correct.
-
-## Serve Peers
-
-- Give orchestration exact rebuild requests and lifecycle boundaries.
-- Give incremental/cache stewards file-change evidence.
-- Give CLI/docs stable serve behavior and troubleshooting language.
+- **Route-specific proof.** Prefer tests that show which open page reloads.
+- **Lifecycle receipts.** Log or test why watcher/build loops stop.
+- **Small async boundaries.** Keep ASGI, watcher, and build-trigger responsibilities separate.
 
 ## Do Not
 
-- Serve directly from a directory while it is being written.
-- Add browser-side behavior that requires npm or a JS build step.
-- Hide rebuild failures behind reload success.
-- Use sleeps as synchronization without a testable reason.
+- Serve from a directory being written without buffering/atomicity.
+- Fall back to full-page reload for every edit without a reason.
+- Hide watcher exceptions.
+- Change lifecycle/concurrency behavior without asking.
 
 ## Own
 
-- `bengal/server/`
-- `site/content/docs/reference/architecture/tooling/server.md`
-- Live reload and dev-server planning docs
-- Tests: `tests/unit/server/`, warm-build integration tests
-- Checks: `uv run pytest tests/unit/server tests/integration/warm_build -q`
-- Checks: `uv run ruff check bengal/server tests/unit/server`
+**Code:** `bengal/server/`.
+**Tests:** `tests/unit/server/`, dev-server integration tests.
+**Docs:** serve/preview/troubleshooting docs.
+**Agent artifacts:** this file plus orchestration steward.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

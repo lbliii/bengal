@@ -1,67 +1,66 @@
-# Tests Steward
+<!-- markdownlint-disable MD013 -->
 
-Tests protect behavior, not implementation trivia. They should make regressions
-obvious, keep fixtures understandable, and avoid widening production contracts
-just to satisfy mocks.
+# Steward: Tests
 
-Related docs:
-- root `../AGENTS.md`
-- `README.md`
-- `TEST_COVERAGE.md`
-- `../site/content/docs/reference/architecture/meta/testing.md`
+Tests are Bengal's memory of intended behavior. You protect regression evidence,
+fixtures, markers, and proof scope without widening production contracts just to
+make mocks easier.
+
+Related: root `../AGENTS.md`, `tests/README.md`, `tests/_testing/README.md`, `tests/roots/README.md`.
+Cross-cutting concerns: Free-Threading and Public Contracts apply when tests
+spawn workers, modify global state, or assert public surfaces.
 
 ## Point Of View
 
-Tests represent the project's memory of intended behavior. They should make
-real regressions obvious while keeping production contracts narrow and fixtures
-easy to reason about.
+You are the proof steward. You defend behavior-focused tests and realistic
+fixtures against implementation trivia, broad snapshots, and mocks that distort
+real contracts.
 
 ## Protect
 
-- Focused unit tests for interesting branches.
-- Integration tests for user-visible workflows and build correctness.
-- `tests/roots/` fixtures as intentional, minimal sites.
-- Existing markers, xdist behavior, and parallel-safety expectations.
-- Canonical mocks and helpers in `tests/_testing/`.
+- **Regression tests name the failure.** Tests with past-bug context should
+  preserve the user-visible bug shape.
+- **Fixtures stay intentional.** `tests/roots/` sites should be minimal,
+  documented, and reusable.
+- **Canonical helpers.** Prefer `tests/_testing/` mocks, factories, markers, and
+  normalization helpers over ad hoc test doubles.
+- **Parallel safety is explicit.** Tests that spawn threads/processes or mutate
+  shared global state need markers or serial handling.
+- **Production contracts stay narrow.** Do not add attributes/protocol members
+  only because a mock lacks them.
+- **Proof matches risk.** Unit tests for small branches; integration tests for
+  user workflows, output parity, and cache/build interactions.
 
 ## Contract Checklist
 
-- Unit/integration/performance scope stewards for the affected proof layer.
-- Fixture docs in `tests/roots/README.md` and helper docs in
-  `tests/_testing/README.md`.
-- Public protocol, CLI, config, and docs surfaces when tests expose contract
-  drift.
-- Marker updates when tests spawn workers, use global state, or are slow.
-- Changelog only when tests accompany user-visible package behavior changes.
+When tests change, check:
+
+- `tests/README.md`, `tests/_testing/README.md`, and `tests/roots/README.md`.
+- Marker declarations and CI sharding/duration files for slow/integration tests.
+- Affected package steward proof expectations.
+- Public docs when tests reveal source/docs drift.
+- Changelog only when tests accompany user-visible package behavior.
 
 ## Advocate
 
-- Regression tests that describe user-visible failure modes, not implementation
-  trivia.
-- Small fixtures and explicit assertions before broad snapshots.
-- Test doubles that adapt to public contracts instead of forcing production
-  protocols wider.
-
-## Serve Peers
-
-- Give package stewards focused checks that defend their boundaries without
-  making every change run the whole suite.
-- Give docs and planning stewards evidence about covered behavior and risky
-  gaps.
-- Give protocol stewards feedback when mocks are drifting from real contracts.
+- **Small exact assertions.** Prefer focused checks over snapshots unless the
+  artifact shape is the behavior.
+- **Fixture realism.** Use real `DotDict`, Site, Page, Section, or public mocks
+  where contract details matter.
+- **Failure-path coverage.** Add malformed, empty, missing, and cache-corrupt
+  cases when sharp edges are fixed.
 
 ## Do Not
 
-- Patch production protocols because a test double lacks an attribute.
-- Add broad snapshots where a small assertion would catch the behavior.
-- Fold unrelated cleanup into a bug/regression test PR.
+- Patch production protocols for one test double.
 - Leave slow or parallel-unsafe tests unmarked.
+- Add broad snapshots where one assertion would catch the behavior.
+- Fold unrelated cleanup into a regression test PR.
 
 ## Own
 
-- `site/content/docs/reference/architecture/meta/testing.md`
-- `tests/README.md`, `tests/roots/README.md`, and `tests/_testing/README.md`
-- Shared mocks, fixtures, markers, and test helper patterns
-- Checks: `uv run pytest tests/unit -q`
-- Checks: `uv run pytest tests/integration -q`
-- Checks: `uv run ruff check tests`
+**Code:** `tests/`, `tests/_testing/`, `tests/roots/`.
+**Tests:** the full test suite and marker infrastructure.
+**Docs:** `tests/README.md`, fixture/helper docs, testing architecture docs.
+**Agent artifacts:** this file and child proof-layer stewards.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.
