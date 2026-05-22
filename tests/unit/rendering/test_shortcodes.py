@@ -222,6 +222,51 @@ class TestExpandShortcodes:
         result = expand_shortcodes(content, engine, page, site)
         assert '<img src="cat.jpg" class="thumbnails">' in result
 
+    def test_nested_same_name_shortcodes_pair_with_stack(self) -> None:
+        """Nested shortcodes with the same name pair with their own closers."""
+        engine = MagicMock()
+        engine.template_exists.return_value = True
+
+        def render_shortcode(template_name: str, context: dict) -> str:
+            shortcode = context["shortcode"]
+            return f'<div data-id="{shortcode.Get("id")}">{shortcode.Inner}</div>'
+
+        engine.render_template.side_effect = render_shortcode
+        page = MagicMock()
+        page.source_path = "test.md"
+        site = MagicMock()
+        site.config = {}
+        site.xref_index = {}
+        content = (
+            '{{< box id="outer" >}}'
+            "before "
+            '{{< box id="inner" >}}inside{{< /box >}}'
+            " after"
+            "{{< /box >}}"
+        )
+
+        result = expand_shortcodes(content, engine, page, site)
+
+        assert '<div data-id="outer">' in result
+        assert '<div data-id="inner">inside</div>' in result
+        assert " after</div>" in result
+
+    def test_unclosed_markdown_shortcode_is_unchanged(self) -> None:
+        """Unclosed {{% %}} shortcodes remain literal content."""
+        engine = MagicMock()
+        engine.template_exists.return_value = True
+        page = MagicMock()
+        page.source_path = "test.md"
+        site = MagicMock()
+        site.config = {}
+        site.xref_index = {}
+        content = "Before {{% note %}}missing close"
+
+        result = expand_shortcodes(content, engine, page, site)
+
+        assert result == content
+        engine.render_template.assert_not_called()
+
     def test_shortcodes_used_in_content(self) -> None:
         """_shortcodes_used_in_content extracts shortcode names."""
         content = "{{< audio src=x >}} {{% blockquote %}}x{{% /blockquote %}}"

@@ -32,23 +32,20 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# Self-closing: {{< name args >}} or {{< name args />}}
-# Paired opening: {{< name args >}} or {{% name args %}}
-# Paired closing: {{< /name >}} or {{% /name %}}
-# Args: [^>]* allows / in paths (e.g. src=/audio/test.mp3)
-# /? = optional slash before > (for {{< name />}})
-SHORTCODE_SELF_CLOSING = re.compile(
-    r"\{\{<\s*([\w/.-]+)(?:\s+([^>]*))?\s*/?\s*>\s*\}\}",
-    re.DOTALL,
-)
-SHORTCODE_OPENING = re.compile(
-    r"\{\{([<%])\s*([\w/.-]+)(?:\s+([^>%]*?))?\s*[>%]\s*\}\}",
-    re.DOTALL,
-)
-SHORTCODE_CLOSING = re.compile(
-    r"\{\{([<%])\s*/\s*([\w/.-]+)\s*[>%]\s*\}\}",
-    re.DOTALL,
-)
+_SHORTCODE_NAME = re.compile(r"([\w/.-]+)(?:\s+(.*))?\Z", re.DOTALL)
+
+
+@dataclass(frozen=True, slots=True)
+class _ShortcodeToken:
+    """A shortcode delimiter found by the single-pass scanner."""
+
+    start: int
+    end: int
+    delim: str
+    name: str
+    args: str
+    closing: bool = False
+    self_closing: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -254,13 +251,7 @@ def _page_dir(page: PageLike) -> str | None:
 
 def _shortcodes_used_in_content(content: str) -> frozenset[str]:
     """Extract shortcode names used in content ({{< name or {{% name)."""
-    names: set[str] = set()
-    for pattern in (SHORTCODE_OPENING, SHORTCODE_SELF_CLOSING):
-        for m in pattern.finditer(content):
-            name = m.group(2).strip()
-            if name and not name.startswith("/"):
-                names.add(name)
-    return frozenset(names)
+    return frozenset(token.name for token in _scan_shortcode_tokens(content) if not token.closing)
 
 
 def has_shortcode(page: PageLike, name: str) -> bool:
@@ -304,20 +295,82 @@ def _deindent(text: str) -> str:
     return "\n".join(line[min_indent:] if len(line) >= min_indent else line for line in lines)
 
 
-def _find_paired_content(
-    content: str, start: int, open_delim: str, name: str
-) -> tuple[str, int] | None:
-    """Find inner content and end position for paired shortcode."""
-    delim_char = "<" if open_delim == "<" else "%"
-    close_pattern = re.compile(
-        rf"\{{{{[{delim_char}]\s*/\s*{re.escape(name)}\s*[>%]\s*\}}\}}",
-        re.DOTALL,
-    )
-    close_m = close_pattern.search(content, start)
-    if not close_m:
+def _parse_shortcode_token(content: str, start: int, delim: str) -> _ShortcodeToken | None:
+    """Parse a shortcode token that starts at ``start``."""
+    close = ">}}" if delim == "<" else "%}}"
+    body_start = start + 3
+    body_end = content.find(close, body_start)
+    if body_end < 0:
         return None
-    inner = content[start : close_m.start()]
-    return inner, close_m.end()
+
+    raw_body = content[body_start:body_end].strip()
+    end = body_end + len(close)
+    if not raw_body:
+        return None
+
+    closing = raw_body.startswith("/")
+    if closing:
+        raw_body = raw_body[1:].strip()
+
+    self_closing = False
+    if not closing and delim == "<" and raw_body.endswith("/"):
+        self_closing = True
+        raw_body = raw_body[:-1].rstrip()
+
+    match = _SHORTCODE_NAME.match(raw_body)
+    if not match:
+        return None
+
+    return _ShortcodeToken(
+        start=start,
+        end=end,
+        delim=delim,
+        name=match.group(1),
+        args=match.group(2) or "",
+        closing=closing,
+        self_closing=self_closing,
+    )
+
+
+def _scan_shortcode_tokens(content: str) -> list[_ShortcodeToken]:
+    """Scan shortcode delimiters in one pass."""
+    tokens: list[_ShortcodeToken] = []
+    pos = 0
+    length = len(content)
+    while pos < length:
+        start = content.find("{{", pos)
+        if start < 0:
+            break
+        if start + 2 >= length or content[start + 2] not in ("<", "%"):
+            pos = start + 2
+            continue
+        delim = content[start + 2]
+        token = _parse_shortcode_token(content, start, delim)
+        if token is None:
+            pos = start + 2
+            continue
+        tokens.append(token)
+        pos = token.end
+    return tokens
+
+
+def _match_shortcode_pairs(tokens: list[_ShortcodeToken]) -> dict[int, int]:
+    """Match opening and closing shortcode token indexes using a stack."""
+    stack: list[int] = []
+    pairs: dict[int, int] = {}
+    for idx, token in enumerate(tokens):
+        if token.self_closing:
+            continue
+        if token.closing:
+            for stack_pos in range(len(stack) - 1, -1, -1):
+                opener = tokens[stack[stack_pos]]
+                if opener.name == token.name and opener.delim == token.delim:
+                    pairs[stack[stack_pos]] = idx
+                    del stack[stack_pos:]
+                    break
+            continue
+        stack.append(idx)
+    return pairs
 
 
 _MAX_SHORTCODE_DEPTH = 20
@@ -367,78 +420,52 @@ def expand_shortcodes(
         )
         return content
 
+    tokens = _scan_shortcode_tokens(content)
+    if not tokens:
+        return content
+    pairs = _match_shortcode_pairs(tokens)
     result_parts: list[str] = []
     pos = 0
 
-    while True:
-        # Find next shortcode (self-closing or opening)
-        self_m = SHORTCODE_SELF_CLOSING.search(content, pos)
-        open_m = SHORTCODE_OPENING.search(content, pos)
+    def _line_at(offset: int) -> int:
+        return content[:offset].count("\n") + 1
 
-        # Prefer paired over self-closing when both match (e.g. {{< blockquote >}}...{{< /blockquote >}})
-        start, kind, name, args_str, delim = -1, "", "", "", None
-        if open_m:
-            open_end = open_m.end()
-            inner_result = _find_paired_content(content, open_end, open_m.group(1), open_m.group(2))
-            if inner_result is not None:
-                kind, start, name, args_str, delim = (
-                    "paired",
-                    open_m.start(),
-                    open_m.group(2),
-                    open_m.group(3) or "",
-                    open_m.group(1),
-                )
-        if kind != "paired" and self_m and (start < 0 or self_m.start() <= start):
-            kind, start, name, args_str, delim = (
-                "self",
-                self_m.start(),
-                self_m.group(1),
-                self_m.group(2) or "",
-                None,
-            )
+    for idx, token in enumerate(tokens):
+        if token.start < pos or token.closing:
+            continue
 
-        if kind == "":
-            result_parts.append(content[pos:])
-            break
+        pair_idx = pairs.get(idx)
+        is_paired = pair_idx is not None
+        is_self = token.self_closing or (token.delim == "<" and not is_paired)
 
-        params = _parse_args(args_str)
+        if not is_paired and not is_self:
+            continue
 
-        # Emit content before this shortcode
-        result_parts.append(content[pos:start])
+        params = _parse_args(token.args)
+        result_parts.append(content[pos : token.start])
 
-        def _line_at(pos: int) -> int:
-            return content[:pos].count("\n") + 1
-
-        if kind == "self":
-            # Self-closing: {{< name args >}} or {{< name args />}}
-            assert self_m is not None
-            end = self_m.end()
-            fallback = content[start:end]
+        if is_self:
+            fallback = content[token.start : token.end]
             html = _render_shortcode(
                 template_engine,
                 site,
                 page,
-                name,
+                token.name,
                 params,
                 "",
                 fallback,
                 parent_ctx,
                 strict=strict,
                 source_path=page.source_path,
-                line_number=_line_at(start),
+                line_number=_line_at(token.start),
             )
             result_parts.append(html)
-            pos = end
+            pos = token.end
             continue
 
-        # Paired: we have inner_result from above
-        assert open_m is not None
-        assert inner_result is not None
-        open_end = open_m.end()
-        inner, close_end = inner_result
-        fallback = content[start:close_end]
-        inner = _deindent(inner)
-        # Recursive expansion: shortcodes in inner get this shortcode as parent
+        close_token = tokens[pair_idx]
+        inner = _deindent(content[token.end : close_token.start])
+        fallback = content[token.start : close_token.end]
         outer_ctx = ShortcodeContext(params, "", site, page, parent_ctx)
         inner = expand_shortcodes(
             inner,
@@ -449,24 +476,25 @@ def expand_shortcodes(
             parent_ctx=outer_ctx,
             _depth=_depth + 1,
         )
-        # {{% %}} = Markdown notation: parse inner after expansion
-        if delim == "%" and parse_markdown is not None:
+        if token.delim == "%" and parse_markdown is not None:
             inner = parse_markdown(inner)
         html = _render_shortcode(
             template_engine,
             site,
             page,
-            name,
+            token.name,
             params,
             inner,
             fallback,
             parent_ctx,
             strict=strict,
             source_path=page.source_path,
-            line_number=_line_at(start),
+            line_number=_line_at(token.start),
         )
         result_parts.append(html)
-        pos = close_end
+        pos = close_token.end
+
+    result_parts.append(content[pos:])
 
     return "".join(result_parts)
 
