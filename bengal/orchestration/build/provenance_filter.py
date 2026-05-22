@@ -1151,6 +1151,8 @@ def record_all_page_builds(
     if pf is None:
         return
 
+    record_entries = []
+
     # Parallelize when many pages (full rebuild) - provenance computation is I/O bound
     use_parallel = parallel and len(pages) > 50
     if use_parallel:
@@ -1158,13 +1160,24 @@ def record_all_page_builds(
         from bengal.utils.concurrency.work_scope import WorkScope
 
         with WorkScope("provenance", max_workers=max_workers) as scope:
-            results = scope.map(pf.record_build, pages)
+            results = scope.map(pf.build_record, pages)
             for r in results:
                 if r.error:
                     raise r.error
+                if r.value is not None:
+                    record_entries.append(r.value)
     else:
         for page in pages:
-            pf.record_build(page)
+            record_with_paths = pf.build_record(page)
+            if record_with_paths is not None:
+                record_entries.append(record_with_paths)
+
+    if not record_entries:
+        return
+
+    records = [record for record, _input_paths in record_entries]
+    input_paths_map = {record.page_path: input_paths for record, input_paths in record_entries}
+    pf.cache.store_batch(records, input_paths_map)
 
 
 def save_provenance_cache(orchestrator: BuildOrchestrator) -> None:

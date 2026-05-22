@@ -377,6 +377,16 @@ class ProvenanceFilter:
             page: The page that was built
             output_hash: Hash of the rendered output (optional)
         """
+        record_with_paths = self.build_record(page, output_hash)
+        if record_with_paths is None:
+            return
+        record, input_paths = record_with_paths
+        self.cache.store(record, input_paths)
+
+    def build_record(
+        self, page: PageLike, output_hash: ContentHash | None = None
+    ) -> tuple[ProvenanceRecord, list[str]] | None:
+        """Build a provenance record without persisting it."""
         # OPTIMIZATION: Use already computed provenance if available from filter phase
         page_path = self._get_page_key(page)
 
@@ -400,7 +410,7 @@ class ProvenanceFilter:
                 has_section=getattr(page, "_section", None) is not None,
                 source_path=str(getattr(page, "source_path", None)),
             )
-            return
+            return None
 
         record = ProvenanceRecord(
             page_path=page_path,
@@ -408,7 +418,7 @@ class ProvenanceFilter:
             output_hash=output_hash or ContentHash("_rendered_"),
         )
         input_paths = self._extract_input_paths_for_mtime(record)
-        self.cache.store(record, input_paths)
+        return record, input_paths
 
     def save(self) -> None:
         """Save the provenance cache to disk."""
