@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+_MANIFEST_NAME = "manifest.json"
+
 
 class PageArtifactStore:
     """Persist page artifacts in small shards outside the main build cache."""
@@ -20,13 +22,41 @@ class PageArtifactStore:
     def __init__(self, root: Path) -> None:
         self.root = root
 
-    def load(self) -> dict[str, dict[str, Any]]:
-        """Load all page artifact shards."""
+    def load(self, keys: set[str] | None = None) -> dict[str, dict[str, Any]]:
+        """Load page artifact shards, optionally limited to selected keys."""
         if not self.root.exists():
             return {}
 
+        manifest = self._load_manifest()
+        if manifest is not None:
+            if keys is None:
+                shard_names = set(manifest.values())
+                wanted_keys: set[str] | None = None
+            else:
+                shard_names = {manifest[key] for key in keys if key in manifest}
+                wanted_keys = keys
+            return self._load_shards(shard_names, wanted_keys)
+
+        return self._load_legacy_shards(keys)
+
+    def _load_legacy_shards(self, keys: set[str] | None) -> dict[str, dict[str, Any]]:
+        """Load shards by scanning the directory when no manifest exists."""
+        shard_names = {
+            shard_path.stem
+            for shard_path in self.root.glob("*.json")
+            if shard_path.name != _MANIFEST_NAME
+        }
+        return self._load_shards(shard_names, keys)
+
+    def _load_shards(
+        self,
+        shard_names: set[str],
+        keys: set[str] | None = None,
+    ) -> dict[str, dict[str, Any]]:
+        """Load selected shard files."""
         records: dict[str, dict[str, Any]] = {}
-        for shard_path in self.root.glob("*.json"):
+        for shard in sorted(shard_names):
+            shard_path = self.root / f"{shard}.json"
             try:
                 data = json_compat.load(shard_path)
             except Exception as e:
@@ -39,7 +69,7 @@ class PageArtifactStore:
                 continue
             if isinstance(data, dict):
                 for key, value in data.items():
-                    if isinstance(value, dict):
+                    if (keys is None or str(key) in keys) and isinstance(value, dict):
                         records[str(key)] = value
         return records
 
@@ -69,8 +99,10 @@ class PageArtifactStore:
             json_compat.dump(shard_records, shard_path, indent=None)
 
         for shard_path in self.root.glob("*.json"):
-            if shard_path not in live_paths:
+            if shard_path.name != _MANIFEST_NAME and shard_path not in live_paths:
                 shard_path.unlink()
+
+        self._save_manifest(records)
 
         logger.debug(
             "page_artifact_shards_saved",
@@ -97,6 +129,8 @@ class PageArtifactStore:
             elif shard_path.exists():
                 shard_path.unlink()
 
+        self._save_manifest(records)
+
         logger.debug(
             "page_artifact_dirty_shards_saved",
             records=len(records),
@@ -108,3 +142,46 @@ class PageArtifactStore:
 
     def _shard_name(self, key: str) -> str:
         return hashlib.sha256(key.encode("utf-8")).hexdigest()[:2]
+
+    def _manifest_path(self) -> Path:
+        return self.root / _MANIFEST_NAME
+
+    def _load_manifest(self) -> dict[str, str] | None:
+        """Load key-to-shard manifest, returning None for missing/invalid data."""
+        manifest_path = self._manifest_path()
+        try:
+            data = json_compat.load(manifest_path)
+        except FileNotFoundError:
+            return None
+        except Exception as e:
+            logger.warning(
+                "page_artifact_manifest_load_failed",
+                path=str(manifest_path),
+                error=str(e),
+                action="falling_back_to_shard_scan",
+            )
+            return None
+
+        if not isinstance(data, dict) or data.get("version") != 1:
+            return None
+        records = data.get("records")
+        if not isinstance(records, dict):
+            return None
+        return {str(key): str(shard) for key, shard in records.items()}
+
+    def _save_manifest(self, records: dict[str, dict[str, Any]]) -> None:
+        """Persist the key-to-shard manifest."""
+        manifest_path = self._manifest_path()
+        if not records:
+            if manifest_path.exists():
+                manifest_path.unlink()
+            return
+
+        json_compat.dump(
+            {
+                "version": 1,
+                "records": {key: self._shard_name(key) for key in sorted(records)},
+            },
+            manifest_path,
+            indent=None,
+        )

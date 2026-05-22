@@ -18,6 +18,7 @@ def test_page_artifact_store_round_trips_records(tmp_path):
     store.save(records)
 
     assert store.load() == records
+    assert (store.root / "manifest.json").exists()
 
 
 def test_page_artifact_store_prunes_stale_shards(tmp_path):
@@ -66,6 +67,32 @@ def test_page_artifact_store_dirty_save_deletes_empty_shard(tmp_path):
     store.save({}, dirty_keys=set(), deleted_keys={"content/a.md"})
 
     assert not shard_path.exists()
+    assert not (store.root / "manifest.json").exists()
+
+
+def test_page_artifact_store_loads_selected_keys_from_manifest(tmp_path):
+    """Targeted loads only return requested records from manifest-backed shards."""
+    store = PageArtifactStore(tmp_path / "page-artifacts")
+    records = {
+        "content/a.md": {"uri": "/a/"},
+        "content/b.md": {"uri": "/b/"},
+    }
+    store.save(records)
+
+    assert store.load(keys={"content/b.md"}) == {"content/b.md": {"uri": "/b/"}}
+
+
+def test_page_artifact_store_falls_back_without_manifest(tmp_path):
+    """Legacy shard directories without a manifest still load."""
+    store = PageArtifactStore(tmp_path / "page-artifacts")
+    store.root.mkdir(parents=True)
+    shard = store._shard_name("content/a.md")
+    (store.root / f"{shard}.json").write_text(
+        '{"content/a.md": {"uri": "/a/"}}',
+        encoding="utf-8",
+    )
+
+    assert store.load() == {"content/a.md": {"uri": "/a/"}}
 
 
 def _key_in_different_shard(store: PageArtifactStore, key: str) -> str:
