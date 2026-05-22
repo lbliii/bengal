@@ -15,78 +15,13 @@ Related Modules:
 
 from __future__ import annotations
 
-import re
 import traceback
-from typing import TYPE_CHECKING, Any
+from typing import Any
+
+from bengal.errors.template_callables import scan_template_for_callables
 
 from .classifier import find_first_code_line
 from .context import TemplateErrorContext
-
-if TYPE_CHECKING:
-    from pathlib import Path
-
-# Identifiers that are commonly registered globals/builtins — excluded from
-# the "suspect callables" list so we don't flag obvious safe names like
-# ``len``, ``range``, or Jinja control-flow keywords.
-_KNOWN_SAFE_CALLABLES: frozenset[str] = frozenset(
-    {
-        # Builtins
-        "range",
-        "len",
-        "dict",
-        "list",
-        "str",
-        "int",
-        "float",
-        "bool",
-        "set",
-        "tuple",
-        "enumerate",
-        "zip",
-        "sorted",
-        "reversed",
-        "min",
-        "max",
-        "sum",
-        "abs",
-        "round",
-        "type",
-        "isinstance",
-        "getattr",
-        "hasattr",
-        "callable",
-        "print",
-        "super",
-        # Jinja/template builtins
-        "loop",
-        "self",
-        "caller",
-        # Control flow
-        "if",
-        "else",
-        "elif",
-        "for",
-        "endfor",
-        "endif",
-        "block",
-        "endblock",
-        "macro",
-        "endmacro",
-        "call",
-        "endcall",
-        "include",
-        "import",
-        "from",
-        "extends",
-        "with",
-        "endwith",
-    }
-)
-
-# {{ func( ... }} — function calls inside expression delimiters.
-_FUNC_CALL_PATTERN = re.compile(r"\{\{[^}]*\b(\w+)\s*\([^}]*\}\}")
-# | filter — filter applications anywhere on a line.
-_FILTER_PATTERN = re.compile(r"\|\s*(\w+)")
 
 
 class SourceContextExtractor:
@@ -171,38 +106,6 @@ class SourceContextExtractor:
                 continue
 
         return line_number, filename
-
-
-def scan_template_for_callables(template_path: Path) -> list[str]:
-    """Scan a template file for likely-None callable suspects.
-
-    Returns the list of `function 'name'` / `filter 'name'` strings that
-    appear in the template and are *not* in the known-safe set. Used by
-    the suggestion engine to enrich `TypeError: 'NoneType' is not
-    callable` messages.
-
-    Free function rather than a class method — scanning is a one-shot
-    string operation with no instance state to share.
-    """
-    try:
-        with open(template_path, encoding="utf-8") as fh:
-            content = fh.read()
-    except OSError:
-        return []
-
-    suspects: list[str] = []
-
-    for match in _FUNC_CALL_PATTERN.finditer(content):
-        func_name = match.group(1)
-        if func_name.lower() not in _KNOWN_SAFE_CALLABLES:
-            suspects.append(f"function '{func_name}'")
-
-    for match in _FILTER_PATTERN.finditer(content):
-        filter_name = match.group(1)
-        if filter_name.lower() not in _KNOWN_SAFE_CALLABLES:
-            suspects.append(f"filter '{filter_name}'")
-
-    return suspects
 
 
 __all__ = [

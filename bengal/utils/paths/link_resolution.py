@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from bengal.rendering.reference_resolution import (
+from bengal.utils.paths.reference_resolution import (
     base_url_from_page_url,
     resolve_internal_link,
 )
-from bengal.rendering.reference_resolution import (
+from bengal.utils.paths.reference_resolution import (
     resolved_path_url_variants as _resolved_path_url_variants,
 )
 

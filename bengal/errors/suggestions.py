@@ -920,7 +920,7 @@ def identify_none_callable(error: BaseException, template_path: Path | None = No
 
     if template_path and template_path.exists():
         try:
-            from bengal.rendering.errors.context_extractor import (
+            from bengal.errors.template_callables import (
                 scan_template_for_callables,
             )
 

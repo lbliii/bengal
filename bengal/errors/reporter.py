@@ -53,14 +53,19 @@ See Also
 
 from __future__ import annotations
 
+import os
 from typing import TYPE_CHECKING
 
 from bengal.errors.utils import get_error_message
 from bengal.output.icons import get_icon_set
-from bengal.utils.observability.terminal import should_use_emoji
 
 if TYPE_CHECKING:
     from bengal.orchestration.stats.models import BuildStats
+
+
+def _should_use_emoji() -> bool:
+    """Check BENGAL_EMOJI without importing terminal infrastructure."""
+    return os.getenv("BENGAL_EMOJI", "").strip() == "1"
 
 
 def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
@@ -82,7 +87,7 @@ def format_error_report(stats: BuildStats, verbose: bool = False) -> str:
     """
     summary = stats.get_error_summary()
 
-    icons = get_icon_set(should_use_emoji())
+    icons = get_icon_set(_should_use_emoji())
 
     # If no errors or warnings, return success message
     if summary["total_errors"] == 0 and summary["total_warnings"] == 0:
@@ -154,7 +159,7 @@ def format_error_summary(stats: BuildStats) -> str:
         Brief summary string
 
     """
-    icons = get_icon_set(should_use_emoji())
+    icons = get_icon_set(_should_use_emoji())
     summary = stats.get_error_summary()
     if summary["total_errors"] == 0 and summary["total_warnings"] == 0:
         return f"{icons.success} Build completed successfully"

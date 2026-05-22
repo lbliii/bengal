@@ -87,7 +87,9 @@ class SiteRunner:
             completion_policy: Initial and watched build completion policy
 
         """
-        from bengal.server.dev_server import DevServer
+        from importlib import import_module
+
+        DevServer = import_module("bengal.server.dev_server").DevServer
 
         server = DevServer(
             self.site,
