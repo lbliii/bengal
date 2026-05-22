@@ -153,17 +153,16 @@ class WatcherRunner:
             thread = threading.Thread(target=self._run, daemon=True)
             self._thread = thread
 
-        try:
-            thread.start()
-        except Exception as e:
-            with self._state_lock:
+            try:
+                thread.start()
+            except Exception as e:
                 if self._thread is thread:
                     self._thread = None
                 self._failure = e
                 self._state = _WatcherState.FAILED
                 self._ready_event.set()
                 self._stopped_event.set()
-            raise
+                raise
 
         logger.info(
             "watcher_runner_started",

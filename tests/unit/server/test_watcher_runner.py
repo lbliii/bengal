@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+import threading
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
@@ -207,6 +209,66 @@ class TestWatcherRunner:
         runner.start()
 
         assert runner._thread is thread
+
+    def test_concurrent_stop_during_thread_start_does_not_join_unstarted_thread(
+        self, fake_watcher: None, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Test stop cannot join the watcher thread before start() starts it."""
+        runner = WatcherRunner(
+            paths=[Path(".")],
+            ignore_filter=IgnoreFilter(),
+            on_changes=MagicMock(),
+        )
+        real_thread_class = threading.Thread
+        thread_start_entered = threading.Event()
+        stop_attempt_started = threading.Event()
+        stop_errors: list[BaseException] = []
+
+        class SlowStartThread:
+            def __init__(self, target, daemon=False):
+                self._thread = real_thread_class(target=target, daemon=daemon)
+                self._started = False
+
+            def start(self) -> None:
+                thread_start_entered.set()
+                stop_attempt_started.wait(timeout=1.0)
+                time.sleep(0.01)
+                self._thread.start()
+                self._started = True
+
+            def join(self, timeout=None) -> None:
+                if not self._started:
+                    msg = "cannot join thread before it is started"
+                    raise RuntimeError(msg)
+                self._thread.join(timeout=timeout)
+
+            def is_alive(self) -> bool:
+                return self._started and self._thread.is_alive()
+
+        def stop_runner() -> None:
+            stop_attempt_started.set()
+            try:
+                runner.stop()
+            except BaseException as e:
+                stop_errors.append(e)
+
+        monkeypatch.setattr("bengal.server.watcher_runner.threading.Thread", SlowStartThread)
+
+        starter = real_thread_class(target=runner.start)
+        stopper = real_thread_class(target=stop_runner)
+
+        starter.start()
+        assert thread_start_entered.wait(timeout=1.0)
+        stopper.start()
+        starter.join(timeout=2.0)
+        stopper.join(timeout=2.0)
+
+        try:
+            assert not starter.is_alive()
+            assert not stopper.is_alive()
+            assert stop_errors == []
+        finally:
+            runner.stop()
 
     def test_run_failure_before_ready_marks_failed(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test thread startup failures unblock waiters and record failure state."""
