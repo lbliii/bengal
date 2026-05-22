@@ -218,6 +218,41 @@ async def test_static_asset_range_request_returns_partial_content(tmp_path: Path
 
 
 @pytest.mark.asyncio
+async def test_static_asset_ignores_pounce_sendfile_extension(tmp_path: Path) -> None:
+    """Dev static assets stay on ASGI body frames when Pounce offers sendfile."""
+    assets = tmp_path / "assets"
+    assets.mkdir()
+    (assets / "app.js").write_text("console.log('ok')")
+    sendfile_calls: list[tuple[Path, int, int]] = []
+
+    async def sendfile(path: Path, offset: int, count: int) -> None:
+        sendfile_calls.append((path, offset, count))
+
+    app = create_bengal_dev_app(
+        output_dir=tmp_path,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+    extensions = {"pounce.sendfile": sendfile, "request_id": "request-1"}
+
+    await app(
+        scope={
+            "type": "http",
+            "method": "GET",
+            "path": "/assets/app.js",
+            "extensions": extensions,
+        },
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sendfile_calls == []
+    assert extensions["pounce.sendfile"] is sendfile
+    assert sent[0]["status"] == 200
+    assert _body(sent) == b"console.log('ok')"
+
+
+@pytest.mark.asyncio
 async def test_static_asset_serves_precompressed_gzip_variant(tmp_path: Path) -> None:
     """Static assets use Pounce precompressed variant negotiation."""
     assets = tmp_path / "assets"
@@ -403,6 +438,36 @@ async def test_preview_app_serves_generated_artifact_as_static_file(tmp_path: Pa
 
     assert sent[0]["status"] == 200
     assert _body(sent) == b'{"pages":[]}'
+
+
+@pytest.mark.asyncio
+async def test_preview_app_ignores_pounce_sendfile_extension(tmp_path: Path) -> None:
+    """Preview static files stay on ASGI body frames when Pounce offers sendfile."""
+    (tmp_path / "app.js").write_text("console.log('preview')")
+    sendfile_calls: list[tuple[Path, int, int]] = []
+
+    async def sendfile(path: Path, offset: int, count: int) -> None:
+        sendfile_calls.append((path, offset, count))
+
+    app = create_bengal_preview_app(output_dir=tmp_path)
+    sent, send = _make_send_capture()
+    extensions = {"pounce.sendfile": sendfile}
+
+    await app(
+        scope={
+            "type": "http",
+            "method": "GET",
+            "path": "/app.js",
+            "extensions": extensions,
+        },
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sendfile_calls == []
+    assert extensions["pounce.sendfile"] is sendfile
+    assert sent[0]["status"] == 200
+    assert _body(sent) == b"console.log('preview')"
 
 
 @pytest.mark.asyncio

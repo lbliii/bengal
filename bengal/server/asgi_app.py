@@ -187,7 +187,7 @@ def create_bengal_preview_app(
 
     output_root = output_dir.resolve()
     fallback = _create_preview_fallback_app(output_root=output_root, health_path=health_path)
-    return create_static_app_with_fallback(
+    static_app = create_static_app_with_fallback(
         fallback,
         mounts={"/": output_root},
         cache_control="no-cache, must-revalidate",
@@ -195,6 +195,7 @@ def create_bengal_preview_app(
         follow_symlinks=False,
         index_file="index.html",
     )
+    return _without_pounce_sendfile(static_app)
 
 
 def _create_preview_fallback_app(*, output_root: Path, health_path: str) -> ASGIApp:
@@ -257,8 +258,40 @@ async def _serve_pounce_static_asset(
         )
         static_asset_handlers[key] = handler
 
-    await handler(scope, receive, send)
+    await handler(_scope_without_pounce_sendfile(scope), receive, send)
     return True
+
+
+def _without_pounce_sendfile(app: ASGIApp) -> ASGIApp:
+    """Wrap a Pounce static app so static sends stay inside ASGI body frames."""
+
+    async def wrapped(scope: dict[str, Any], receive: Any, send: Any) -> None:
+        await app(_scope_without_pounce_sendfile(scope), receive, send)
+
+    return wrapped
+
+
+def _scope_without_pounce_sendfile(scope: dict[str, Any]) -> dict[str, Any]:
+    """Return a shallow scope copy without Pounce's raw socket sendfile hook.
+
+    Pounce's current sendfile extension writes file bytes directly to the
+    socket while the HTTP/1 bridge still accounts only ASGI body frames for
+    Content-Length. Keeping Bengal static responses on regular ASGI body
+    frames avoids h11 LocalProtocolError while preserving Pounce's static
+    response semantics.
+    """
+    extensions = scope.get("extensions")
+    if not isinstance(extensions, dict) or "pounce.sendfile" not in extensions:
+        return scope
+
+    next_scope = dict(scope)
+    next_extensions = dict(extensions)
+    next_extensions.pop("pounce.sendfile", None)
+    if next_extensions:
+        next_scope["extensions"] = next_extensions
+    else:
+        next_scope.pop("extensions", None)
+    return next_scope
 
 
 def _prefers_markdown(accept: str) -> bool:
