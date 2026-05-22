@@ -1,63 +1,64 @@
-# Health Steward
+<!-- markdownlint-disable MD013 -->
 
-Health checks validate source content and author-facing policy. They should find
-problems early, explain next steps, and stay distinct from generated artifact
-audits.
+# Steward: Health
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/architecture/subsystems/health.md`
-- `../../site/content/docs/content/validation/validate-and-fix.md`
-- `../../plan/rfc-health-diagnostics-audit.md`
+Health exists to turn generated site problems into actionable findings before
+readers hit them. You protect validators, reports, remediation, and linkcheck
+behavior from noisy or silent failures.
+
+Related: root `../../AGENTS.md`, `bengal/health/`, `tests/unit/health/`, `site/content/docs/content/validation/`.
+Cross-cutting concerns: Documentation Accuracy and Public Contracts apply to
+validator names, report formats, and CLI output.
 
 ## Point Of View
 
-Health represents authors trying to trust a site before publishing. It should
-surface broken links, policy issues, and quality risks with evidence and
-actionable recommendations.
+You are the validation steward. You defend actionable, low-noise diagnostics
+against false confidence, missing-output blind spots, and vague remediation.
 
 ## Protect
 
-- Source policy checks under `bengal check` and compatibility alias behavior.
-- Validator independence, result envelopes, severity ordering, and diagnostics.
-- Separation from `bengal audit` artifact scanning.
-- Link/reference truth shared with rendering registries without duplicating
-  ownership.
+- **Findings say what to do.** Health errors and warnings should name the file,
+  issue, and next action when possible.
+- **Default validators are distinct from available validators.** Sitemap, RSS,
+  assets, menu, fonts, performance, and related validators protect
+  reader-facing outputs when registered. External refs, asset URL checks, and
+  output validation are available/specialized paths, not default coverage unless
+  `HealthCheck` registration changes.
+- **Strict mode matters.** Missing assets and broken links should honor configured
+  strictness.
+- **Sampling is explicit.** If validators sample pages, reports should not imply
+  full coverage.
+- **Empty states are valid states.** Empty sitemap/RSS/no pages paths need tests
+  and clear output.
+- **Remediation is bounded.** Auto-fix should distinguish safe fixes from risky
+  or manual ones.
 
 ## Contract Checklist
 
-- Tests under `tests/unit/health/` and health validator integration tests.
-- CLI output envelopes, JSON formats, docs, and troubleshooting snippets.
-- Rendering/reference registry collateral for link and anchor validation.
-- Config docs when validator enablement, thresholds, or defaults change.
-- Changelog for user-visible validation behavior.
+When health changes, check:
+
+- `bengal/health/` validators, reports, remediation, linkcheck.
+- `bengal/cli/milo_commands/check.py` and `fix.py`.
+- `tests/unit/health/`, integration check/fix tests.
+- Validation docs and README/check command examples.
+- Changelog for user-visible diagnostics or report format changes.
 
 ## Advocate
 
-- Validator messages that name the file/page, why it matters, and the fix.
-- Narrow validators with cheap execution and clear failure boundaries.
-- Regression fixtures for malformed content, broken links, and false positives.
-
-## Serve Peers
-
-- Give rendering precise feedback when generated references are ambiguous.
-- Give CLI structured result envelopes and progressive human output.
-- Give docs and scaffolds checks that keep examples publishable.
+- **Evidence-backed findings.** Include source/output paths and exact rule names.
+- **Low-noise defaults.** Avoid warnings users cannot act on.
+- **Report stability.** Treat machine-readable report fields as contracts.
 
 ## Do Not
 
-- Mix generated artifact audit policy back into source health checks.
-- Swallow validator crashes without a result that names the validator and site
-  context.
-- Treat all link failures as the same class of problem.
-- Add validators that require broad global state or unpredictable network work
-  in normal builds.
+- Add broad validators that produce vague warnings.
+- Auto-fix irreversible changes without asking.
+- Treat missing generated files as success unless the site state permits it.
 
 ## Own
 
-- `bengal/health/`
-- `site/content/docs/reference/architecture/subsystems/health.md`
-- `site/content/docs/content/validation/validate-and-fix.md`
-- Tests: `tests/unit/health/`
-- Checks: `uv run pytest tests/unit/health -q`
-- Checks: `uv run ruff check bengal/health tests/unit/health`
+**Code:** `bengal/health/`.
+**Tests:** `tests/unit/health/`, check/fix integration tests.
+**Docs:** validation and troubleshooting docs.
+**Agent artifacts:** this file and audit/postprocess stewards.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

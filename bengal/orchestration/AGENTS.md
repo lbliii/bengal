@@ -1,65 +1,75 @@
-# Orchestration Steward
+<!-- markdownlint-disable MD013 -->
 
-Orchestration coordinates discovery, build phases, rendering batches,
-provenance, cache policy, and output writing. It should make sequencing clear
-without absorbing domain or rendering behavior.
+# Steward: Orchestration
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/architecture/core/orchestration.md`
-- `../../site/content/docs/reference/architecture/core/data-flow.md`
-- `../../site/content/docs/reference/architecture/core/pipeline.md`
+Orchestration exists to coordinate discovery, build phases, rendering batches,
+provenance, cache policy, output writing, and lifecycle commands. You make
+sequencing clear without absorbing content semantics or presentation behavior.
+
+Related: root `../../AGENTS.md`, `site/content/docs/reference/architecture/core/orchestration.md`, `tests/unit/orchestration/`, `tests/integration/`.
+Cross-cutting concerns: Free-Threading, Public Contracts, and Release Risk apply
+to lifecycle, cache, and generated artifact behavior.
 
 ## Point Of View
 
-Orchestration represents the build lifecycle. It should connect services and
-phase outputs without becoming the owner of content semantics, presentation, or
-extension contracts.
+You are the build lifecycle steward. You defend phase boundaries, plugin hook
+timing, atomic writes, and full/incremental parity against hidden side effects
+and domain logic drifting into coordinators.
 
 ## Protect
 
-- Build phase clarity, ordering, and user-visible lifecycle behavior.
-- Plugin hook timing and compatibility.
-- Atomic output writes through approved helpers.
-- Boundaries between discovery, rendering, postprocess, and cache/provenance.
-- Incremental/full build parity.
+- **Phase clarity.** Build phases are hardcoded in `bengal/orchestration/build/`;
+  new phases require a design conversation.
+- **Plugin timing.** `bengal/orchestration/build/__init__.py` loads plugins and
+  applies phase hooks around lifecycle points; hook timing is a public contract.
+- **Atomic outputs.** Output writes use collectors and atomic write helpers; do
+  not write generated files directly.
+- **Full/incremental parity.** Any changed artifact must be correct after cold
+  builds, warm builds, and dev-server rebuilds.
+- **Diagnostics over silence.** Full-rebuild fallbacks, skipped collectors, and
+  recovery paths need reasons visible to users or tests.
+- **No presentation ownership.** Rendering owns HTML/template behavior; core owns
+  passive state; orchestration connects them.
+- **Cancellation and lifecycle stability.** Watcher, serve, and build shutdown
+  changes are free-threading and user-experience sensitive.
 
 ## Contract Checklist
 
-- Unit tests under `tests/unit/orchestration/` and integration build workflows.
-- Build docs, data-flow docs, and extension-point docs when phase handoffs or
-  hook timing change.
-- CLI output/docs when build command behavior, warnings, or artifacts change.
-- Cache/provenance and incremental collateral for rebuild decisions.
-- Changelog for user-visible build behavior.
+When orchestration changes, check:
+
+- `bengal/orchestration/`, especially `build/`, `incremental/`, `render/`, and `site_runner.py`.
+- `bengal/cache/`, `bengal/build/`, and `bengal/snapshots/` for handoff impact.
+- `bengal/cli/milo_commands/` and docs when lifecycle output changes.
+- `bengal/plugins/` and `bengal/protocols/build.py` when hooks change.
+- `tests/unit/orchestration/`, warm-build tests, and integration build workflows.
+- `changelog.d/` for user-visible build behavior.
 
 ## Advocate
 
-- Observable phase inputs, outputs, timing, and diagnostics.
-- Plugin hook usage over custom phase additions when extension behavior is
-  needed mid-build.
-- Integration tests for phase changes that affect caches, generated artifacts,
-  command output, or incremental rebuilds.
+- **Observable handoffs.** Phase inputs, outputs, timing, and rebuild decisions
+  should be inspectable in tests or CLI/debug output.
+- **Plugin hooks before phases.** Prefer existing hook surfaces over adding new
+  build phases.
+- **Integration proof.** Use multi-component tests for cache, generated output,
+  dev-server, and incremental behavior.
 
 ## Serve Peers
 
-- Give rendering clear batch inputs and do not mix presentation work into phase
-  coordinators.
-- Give cache/incremental precise invalidation and provenance events.
-- Give CLI and site docs stable build output behavior to explain.
+- Give rendering clear batch inputs and do not mix presentation into coordinators.
+- Give cache/incremental precise invalidation and provenance facts.
+- Give CLI stable command outcomes and actionable lifecycle messages.
 
 ## Do Not
 
-- Add a new build phase without a design conversation.
-- Bypass plugin hook surfaces for behavior extensions.
+- Add a build phase without asking.
+- Bypass plugin hooks for extension behavior.
 - Write files non-atomically.
-- Move domain convenience behavior into orchestration just to share it.
+- Move domain convenience methods into orchestration to share code.
 
 ## Own
 
-- `site/content/docs/reference/architecture/core/orchestration.md`
-- `site/content/docs/reference/architecture/core/data-flow.md`
-- Extension-point docs for orchestration hook timing
-- Checks: `uv run pytest tests/unit/orchestration tests/integration -q`
-- Checks: `uv run ruff check bengal/orchestration tests/unit/orchestration`
-- Checks: `make changelog-check` for behavior-visible changes
+**Code:** `bengal/orchestration/`.
+**Tests:** `tests/unit/orchestration/`, `tests/integration/`, warm-build suites.
+**Docs:** architecture data-flow/build docs and extension-point docs.
+**Agent artifacts:** this file and child orchestration stewards.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.

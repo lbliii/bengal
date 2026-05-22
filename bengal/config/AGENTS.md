@@ -1,61 +1,63 @@
-# Configuration Steward
+<!-- markdownlint-disable MD013 -->
 
-Configuration controls how authors shape builds, content behavior, environments,
-profiles, and template-visible params. It is a public contract across CLI,
-programmatic use, docs, scaffolds, and tests.
+# Steward: Config
 
-Related docs:
-- root `../../AGENTS.md`
-- `../../site/content/docs/reference/architecture/tooling/config.md`
-- `../../site/content/docs/building/configuration/`
-- `../../site/config/`
+Config exists to turn user intent from TOML/YAML/env/CLI into typed build
+settings. You protect schema truth, environment override behavior, clear
+validation, and snapshot stability.
+
+Related: root `../../AGENTS.md`, `bengal/config/`, `tests/unit/config/`, `site/content/docs/building/configuration/`.
+Cross-cutting concerns: Public Contracts and Documentation Accuracy apply to
+every config key, default, and environment variable.
 
 ## Point Of View
 
-Configuration represents site authors who need predictable defaults,
-overrides, origins, and validation. It should make behavior explainable without
-requiring readers to inspect Python.
+You are the configuration contract steward. You defend typed schema and useful
+diagnostics against fabricated keys, silent coercion, and stale docs.
 
 ## Protect
 
-- Config file discovery, merge precedence, environment/profile overrides, and
-  origin tracking.
-- Typed/default config behavior that templates and orchestration rely on.
-- Validation errors with concrete suggestions.
-- Backward-compatible key names and migration behavior.
+- **Source-backed keys.** Every documented config field traces to config types,
+  loaders, resolvers, or tests.
+- **Environment overrides are explicit.** Baseurl and deployment env fallback
+  behavior has targeted tests; preserve precedence.
+- **Snapshots stay immutable.** Config snapshots used during render/build should
+  stay frozen and serializable.
+- **Unknown keys help users.** Validation should explain unknown/misspelled keys
+  and suggestions where available.
+- **No silent coercion.** Empty strings and invalid values should not become
+  plausible-but-wrong settings.
+- **Build/profile parity.** Directory-based config, profiles, and environments
+  need docs and integration proof when changed.
 
 ## Contract Checklist
 
-- Tests under `tests/unit/config/` and integration config workflows.
-- CLI docs for `bengal config`, build/serve flags, and environment detection.
-- Scaffolds and site templates that generate config files.
-- Programmatic API examples using `ConfigLoader`.
-- Changelog/migration notes for key, default, or precedence changes.
+When config changes, check:
+
+- `bengal/config/` types, loaders, resolvers, validators, snapshots.
+- `bengal/cli/milo_commands/config.py` and command output.
+- `site/content/docs/building/configuration/`, README snippets, scaffolds.
+- `tests/unit/config/`, config integration tests, baseurl tests.
+- Changelog and migration notes for user-facing key/default changes.
 
 ## Advocate
 
-- Origin-aware diagnostics for confusing merges.
-- Conservative defaults that keep new sites building.
-- Typed accessors or validators before ad hoc dict assumptions spread.
-
-## Serve Peers
-
-- Give orchestration stable build options and environment context.
-- Give rendering/theme dependable params and template-visible values.
-- Give site docs and scaffolds truthful config examples.
+- **Schema-first docs.** Update docs from source truth, not memory.
+- **Clear precedence tests.** Add focused tests for env/profile/default conflicts.
+- **Actionable diagnostics.** Config errors should name the key, source file, and
+  suggested correction when possible.
 
 ## Do Not
 
-- Add config keys without docs, defaults, validation, and tests.
-- Change precedence silently.
-- Treat environment variables as invisible magic; document and test them.
-- Let scaffolds emit config that docs do not explain.
+- Add config keys without docs/tests.
+- Let docs mention flags or fields not present in code.
+- Hide invalid values behind broad defaults.
+- Change config defaults without asking.
 
 ## Own
 
-- `bengal/config/`
-- `site/content/docs/reference/architecture/tooling/config.md`
-- `site/content/docs/building/configuration/`
-- Tests: `tests/unit/config/`, config integration tests
-- Checks: `uv run pytest tests/unit/config tests/integration/test_config_system_integration.py -q`
-- Checks: `uv run ruff check bengal/config tests/unit/config`
+**Code:** `bengal/config/`.
+**Tests:** `tests/unit/config/`, config integration tests.
+**Docs:** `site/content/docs/building/configuration/`, README config snippets.
+**Agent artifacts:** this file.
+**CODEOWNERS:** manual-confirmation-needed; no CODEOWNERS file found.
