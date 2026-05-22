@@ -14,12 +14,17 @@ from unittest.mock import MagicMock
 from bengal.core.page_cache import PageCacheManager
 
 
-def _make_mock_page(source_path: Path | str) -> MagicMock:
+def _make_mock_page(
+    source_path: Path | str,
+    *,
+    generated: bool = False,
+    in_listings: bool = True,
+) -> MagicMock:
     """Create mock page with source_path."""
     p = MagicMock()
     p.source_path = Path(source_path) if isinstance(source_path, str) else source_path
-    p.metadata = {}
-    p.in_listings = True
+    p.metadata = {"_generated": True} if generated else {}
+    p.in_listings = in_listings
     return p
 
 
@@ -85,3 +90,49 @@ class TestGetPagePathMapPathKeys:
         # Lookup with absolute path string - misses (map key is relative)
         resolved = path_map.get(str(tax_member.source_path))
         assert resolved is None  # Current behavior: format mismatch = miss
+
+    def test_same_length_page_replacement_rebuilds_path_map(self) -> None:
+        """Replacing pages without changing count should not reuse stale maps."""
+        pages = [_make_mock_page("content/old.md")]
+        cache = PageCacheManager(pages_fn=lambda: pages)
+
+        first_map = cache.get_page_path_map()
+        assert first_map["content/old.md"] is pages[0]
+
+        pages[:] = [_make_mock_page("content/new.md")]
+        second_map = cache.get_page_path_map()
+
+        assert "content/old.md" not in second_map
+        assert second_map["content/new.md"] is pages[0]
+        assert second_map is not first_map
+
+    def test_same_length_page_replacement_rebuilds_source_path_map(self) -> None:
+        """Path-keyed lookup maps track same-length page-list replacements."""
+        pages = [_make_mock_page("content/old.md")]
+        cache = PageCacheManager(pages_fn=lambda: pages)
+
+        first_map = cache.page_by_source_path
+        assert first_map[Path("content/old.md")] is pages[0]
+
+        pages[:] = [_make_mock_page("content/new.md")]
+        second_map = cache.page_by_source_path
+
+        assert Path("content/old.md") not in second_map
+        assert second_map[Path("content/new.md")] is pages[0]
+        assert second_map is not first_map
+
+    def test_metadata_reclassification_rebuilds_filtered_views(self) -> None:
+        """Generated/listable views refresh when page classification changes."""
+        page = _make_mock_page("content/page.md")
+        cache = PageCacheManager(pages_fn=lambda: [page])
+
+        assert cache.regular_pages == [page]
+        assert cache.generated_pages == []
+        assert cache.listable_pages == [page]
+
+        page.metadata["_generated"] = True
+        page.in_listings = False
+
+        assert cache.regular_pages == []
+        assert cache.generated_pages == [page]
+        assert cache.listable_pages == []
