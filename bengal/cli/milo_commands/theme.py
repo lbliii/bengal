@@ -7,69 +7,6 @@ from typing import Annotated
 from milo import Description
 
 
-def _bundled_theme_dirs():
-    from bengal.themes.utils import THEMES_ROOT
-
-    return sorted(
-        path
-        for path in THEMES_ROOT.iterdir()
-        if path.is_dir()
-        and (
-            (path / "templates").is_dir()
-            or (path / "theme.toml").is_file()
-            or (path / "theme.yaml").is_file()
-        )
-    )
-
-
-def _site_local_theme_dirs(site_root):
-    themes_dir = site_root / "themes"
-    if not themes_dir.is_dir():
-        return []
-    return sorted(
-        path
-        for path in themes_dir.iterdir()
-        if path.is_dir()
-        and (
-            (path / "templates").is_dir()
-            or (path / "theme.toml").is_file()
-            or (path / "theme.yaml").is_file()
-        )
-    )
-
-
-def _site_theme_metadata(theme_path):
-    manifest = theme_path / "theme.toml"
-    if manifest.is_file():
-        import tomllib
-
-        try:
-            with manifest.open("rb") as handle:
-                data = tomllib.load(handle)
-        except OSError, tomllib.TOMLDecodeError:
-            return {}
-        return data if isinstance(data, dict) else {}
-
-    manifest = theme_path / "theme.yaml"
-    if not manifest.is_file():
-        return {}
-
-    try:
-        import yaml
-
-        data = yaml.safe_load(manifest.read_text(encoding="utf-8")) or {}
-    except OSError, yaml.YAMLError:
-        return {}
-    return data if isinstance(data, dict) else {}
-
-
-def _theme_display_name(slug, metadata):
-    raw = metadata.get("name")
-    if isinstance(raw, dict):
-        return str(raw.get("name") or slug)
-    return str(raw or slug)
-
-
 def theme_list(
     source: Annotated[str, Description("Source directory path")] = "",
 ) -> dict:
@@ -82,25 +19,22 @@ def theme_list(
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
 
-    from bengal.core.theme import get_installed_themes
+    from bengal.themes.resolver import ThemeResolver
 
-    installed_themes = get_installed_themes()
-    local_themes = _site_local_theme_dirs(site.root_path)
-    bundled_themes = _bundled_theme_dirs()
-    local_slugs = {path.name for path in local_themes}
-    bundled_slugs = {path.name for path in bundled_themes}
-
+    records = ThemeResolver(site.root_path).iter_available()
     items = [
-        {"name": path.name, "description": "Bundled theme"}
-        for path in bundled_themes
-        if path.name not in local_slugs
+        {
+            "name": record.slug,
+            "description": (
+                "Bundled theme"
+                if record.source == "bundled"
+                else "Site-local theme"
+                if record.source == "site-local"
+                else record.distribution or record.package or "Installed theme"
+            ),
+        }
+        for record in records
     ]
-    items.extend({"name": path.name, "description": "Site-local theme"} for path in local_themes)
-    items.extend(
-        {"name": slug, "description": theme.distribution or theme.package}
-        for slug, theme in sorted(installed_themes.items())
-        if slug not in local_slugs and slug not in bundled_slugs
-    )
 
     cli.render_write(
         "command_list.kida",
@@ -111,20 +45,8 @@ def theme_list(
 
     return {
         "themes": [
-            *[
-                {"slug": path.name, "name": path.name, "source": "bundled"}
-                for path in bundled_themes
-                if path.name not in local_slugs
-            ],
-            *[
-                {"slug": path.name, "name": path.name, "source": "site-local"}
-                for path in local_themes
-            ],
-            *[
-                {"slug": slug, "name": slug, "source": theme.distribution or theme.package}
-                for slug, theme in sorted(installed_themes.items())
-                if slug not in local_slugs and slug not in bundled_slugs
-            ],
+            {"slug": record.slug, "name": record.name, "source": record.source}
+            for record in records
         ]
     }
 
@@ -135,83 +57,50 @@ def theme_info(
 ) -> dict:
     """Show theme details."""
     from bengal.cli.utils import load_site_from_cli
-    from bengal.core.theme import get_theme_package
     from bengal.output import get_cli_output
+    from bengal.themes.resolver import ThemeResolver
 
     source = source or "."
     cli = get_cli_output()
     site = load_site_from_cli(source=source, config=None, environment=None, profile=None, cli=cli)
 
-    site_theme_path = site.root_path / "themes" / slug
-    if site_theme_path.is_dir():
-        metadata = _site_theme_metadata(site_theme_path)
-        items = [
-            {"label": "Name", "value": str(metadata.get("name") or slug)},
-            {"label": "Location", "value": str(site_theme_path)},
-            {"label": "Source", "value": "site-local"},
-        ]
-        if metadata.get("extends"):
-            items.append({"label": "Extends", "value": str(metadata["extends"])})
-        if metadata.get("version"):
-            items.append({"label": "Version", "value": str(metadata["version"])})
-        cli.render_write("kv_detail.kida", title=f"Theme: {slug}", items=items)
-        return {
-            "slug": slug,
-            "name": str(metadata.get("name") or slug),
-            "path": str(site_theme_path),
-            "source": "site-local",
-        }
-
-    for path in _bundled_theme_dirs():
-        if path.name != slug:
-            continue
-        metadata = _site_theme_metadata(path)
-        items = [
-            {"label": "Name", "value": _theme_display_name(slug, metadata)},
-            {"label": "Location", "value": str(path)},
-            {"label": "Source", "value": "bundled"},
-        ]
-        parent = metadata.get("extends") or metadata.get("parent")
-        if parent:
-            items.append({"label": "Extends", "value": str(parent)})
-        if metadata.get("version"):
-            items.append({"label": "Version", "value": str(metadata["version"])})
-        cli.render_write("kv_detail.kida", title=f"Theme: {slug}", items=items)
-        return {
-            "slug": slug,
-            "name": _theme_display_name(slug, metadata),
-            "path": str(path),
-            "source": "bundled",
-        }
-
-    if slug == "default":
-        cli.error("Bundled default theme could not be resolved.")
-        cli.tip("Check the Bengal installation and reinstall if the bundled theme is missing.")
-        raise SystemExit(1)
-
-    theme = get_theme_package(slug)
-    if theme is None:
+    record = ThemeResolver(site.root_path).resolve(slug)
+    if record is None:
         cli.error(f"Theme not found: {slug}")
         cli.tip("Run `bengal theme list` to see available themes.")
         raise SystemExit(1)
 
     items = [
-        {"label": "Name", "value": theme.slug},
-        {"label": "Package", "value": theme.package},
+        {"label": "Name", "value": record.name},
+        {"label": "Source", "value": record.source},
     ]
-    if theme.distribution:
-        items.append({"label": "Distribution", "value": theme.distribution})
-    if theme.version:
-        items.append({"label": "Version", "value": str(theme.version)})
+    if record.path is not None:
+        items.append({"label": "Location", "value": str(record.path)})
+    if record.package:
+        items.append({"label": "Package", "value": record.package})
+    if record.distribution:
+        items.append({"label": "Distribution", "value": record.distribution})
+    parent = record.metadata.get("extends") or record.metadata.get("parent")
+    if parent:
+        items.append({"label": "Extends", "value": str(parent)})
+    if record.version:
+        items.append({"label": "Version", "value": str(record.version)})
     cli.render_write("kv_detail.kida", title=f"Theme: {slug}", items=items)
 
-    return {
-        "slug": slug,
-        "name": theme.slug,
-        "package": theme.package,
-        "distribution": theme.distribution,
-        "version": theme.version,
+    result = {
+        "slug": record.slug,
+        "name": record.name,
+        "source": record.source,
     }
+    if record.path is not None:
+        result["path"] = str(record.path)
+    if record.package:
+        result["package"] = record.package
+    if record.distribution:
+        result["distribution"] = record.distribution
+    if record.version:
+        result["version"] = record.version
+    return result
 
 
 def theme_discover(
