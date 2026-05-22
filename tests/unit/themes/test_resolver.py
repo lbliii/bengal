@@ -52,7 +52,9 @@ def test_theme_resolver_accepts_explicit_theme_path(tmp_path):
 def test_theme_resolver_does_not_treat_plain_directory_as_slug_path(tmp_path):
     from bengal.themes.resolver import ThemeResolver
 
-    (tmp_path / "docs").mkdir()
+    docs_dir = tmp_path / "docs"
+    (docs_dir / "templates").mkdir(parents=True)
+    (docs_dir / "theme.toml").write_text('name = "Plain Docs Directory"\n', encoding="utf-8")
     theme_path = tmp_path / "themes" / "docs"
     (theme_path / "templates").mkdir(parents=True)
     (theme_path / "theme.toml").write_text('name = "Docs Theme"\n', encoding="utf-8")

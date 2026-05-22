@@ -32,6 +32,10 @@ def is_theme_dir(path: Path) -> bool:
     )
 
 
+def _is_explicit_path(value: str, path: Path) -> bool:
+    return path.is_absolute() or value.startswith((".", "~")) or "/" in value or "\\" in value
+
+
 def read_theme_metadata(theme_path: Path) -> dict[str, Any]:
     """Read best-effort metadata from ``theme.toml`` or ``theme.yaml``."""
     from bengal.themes.metadata import load_theme_metadata
@@ -114,7 +118,7 @@ class ThemeResolver:
     def resolve(self, theme: str) -> ThemeRecord | None:
         """Resolve a theme slug or explicit directory path."""
         path = Path(theme).expanduser()
-        if is_theme_dir(path):
+        if _is_explicit_path(theme, path) and is_theme_dir(path):
             return self._record_from_path(path.resolve(), "path")
 
         for record in self.iter_available():

@@ -78,7 +78,8 @@ theme = "my-theme"
 Or use `config/_default/build.yaml` for split configuration:
 
 ```yaml
-theme: "my-theme"
+build:
+  theme: "my-theme"
 ```
 
 ## Override Templates Selectively

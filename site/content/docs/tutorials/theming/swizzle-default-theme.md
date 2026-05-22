@@ -550,7 +550,7 @@ bengal theme swizzle --template-path partials/navigation-components.html
 In this tutorial, you:
 
 1. ✅ Discovered available templates with `bengal theme discover`
-2. ✅ Swizzled templates with `bengal theme swizzle`
+2. ✅ Swizzled templates with `bengal theme swizzle --template-path <path>`
 3. ✅ Customized swizzled templates to match your needs
 4. ✅ Tracked swizzled templates with `bengal theme swizzle-list`
 5. ✅ Updated templates safely with `bengal theme swizzle-update`
