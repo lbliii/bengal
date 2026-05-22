@@ -205,11 +205,12 @@ Generates a fingerprint-aware URL for an asset.
 <!-- Outputs: /assets/css/style.a1b2c3d4.css -->
 ```
 
-### `url_for(page_or_slug)`
-Generates a URL for a page object or slug. Applies baseurl automatically.
+### `url_for(target, page=none, version="current", baseurl=true)`
+Generates a URL for a page, section, snapshot, or literal path. Applies baseurl automatically and keeps section links version-aware in multi-version docs.
 ```html
 <a href="{{ url_for(page) }}">Link</a>
 <a href="{{ url_for('/docs/getting-started/') }}">Getting Started</a>
+<a href="{{ url_for(section, page) }}">Current-version section</a>
 ```
 
 ### `dateformat(date, format)`

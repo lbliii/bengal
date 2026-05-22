@@ -446,6 +446,77 @@ class TestNavTree:
         docs_node = tree_v1.find("/docs/")
         assert docs_node is not None, "Section with subsections should be in nav tree"
 
+    def test_git_versioned_section_nodes_use_version_prefix(self, tmp_path):
+        """Git-mode section nav links should point at the rendered version path."""
+        site = Site(
+            root_path=tmp_path,
+            config={
+                "title": "Git Versioned Site",
+                "baseurl": "/bengal",
+                "versioning": {
+                    "enabled": True,
+                    "mode": "git",
+                    "sections": ["docs"],
+                    "versions": [
+                        {"id": "main", "latest": True},
+                        {"id": "0.3.2", "latest": False},
+                    ],
+                    "git": {
+                        "latest": {"branch": "main", "id": "main"},
+                        "previous": {"count": 1},
+                    },
+                },
+            },
+        )
+
+        docs = Section(name="docs", path=tmp_path / "content" / "docs")
+        docs._site = site
+        docs.__dict__["_path"] = "/docs/"
+
+        start = Section(name="start", path=tmp_path / "content" / "docs" / "start")
+        start._site = site
+        start.__dict__["_path"] = "/docs/start/"
+        docs.add_subsection(start)
+
+        docs_index = Page(
+            source_path=tmp_path / "content" / "docs" / "_index.md",
+            _raw_content="# Docs 0.3.2",
+            _raw_metadata={"title": "Docs"},
+        )
+        docs_index._site = site
+        docs_index._section = docs
+        docs_index.version = "0.3.2"
+        docs_index.__dict__["_path"] = "/docs/0.3.2/"
+        docs.add_page(docs_index)
+
+        start_index = Page(
+            source_path=tmp_path / "content" / "docs" / "start" / "_index.md",
+            _raw_content="# Start 0.3.2",
+            _raw_metadata={"title": "Start"},
+        )
+        start_index._site = site
+        start_index._section = start
+        start_index.version = "0.3.2"
+        start_index.__dict__["_path"] = "/docs/0.3.2/start/"
+        start.add_page(start_index)
+
+        site.sections = [docs]
+        site.pages = [docs_index, start_index]
+        site.register_sections()
+
+        tree = NavTree.build(site, version_id="0.3.2")
+
+        docs_node = tree.find("/docs/0.3.2/")
+        start_node = tree.find("/docs/0.3.2/start/")
+        assert docs_node is not None
+        assert start_node is not None
+        assert tree.find("/docs/start/") is None
+
+        context = NavTreeContext(tree, start_index)
+        assert context.is_active(docs_node) is True
+        assert context.is_active(start_node) is True
+        assert context._wrap_node(start_node).href == "/bengal/docs/0.3.2/start/"
+
     def test_flat_nodes_property(self, simple_site):
         """Test flat_nodes cached property."""
         tree = NavTree.build(simple_site)

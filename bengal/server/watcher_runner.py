@@ -29,6 +29,7 @@ import asyncio
 import contextlib
 import threading
 import time
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 from bengal.protocols import SiteLike
@@ -41,6 +42,15 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 logger = get_logger(__name__)
+
+
+class _WatcherState(Enum):
+    NEW = "new"
+    STARTING = "starting"
+    RUNNING = "running"
+    STOPPING = "stopping"
+    STOPPED = "stopped"
+    FAILED = "failed"
 
 
 class WatcherRunner:
@@ -67,6 +77,10 @@ class WatcherRunner:
             >>> runner.stop()
 
     """
+
+    _READY_TIMEOUT_SECONDS = 1.0
+    _JOIN_TIMEOUT_SECONDS = 5.0
+    _FORCE_JOIN_TIMEOUT_SECONDS = 1.0
 
     def __init__(
         self,
@@ -102,6 +116,11 @@ class WatcherRunner:
         self._stop_event = threading.Event()
         self._async_stop_event: asyncio.Event | None = None
         self._loop: asyncio.AbstractEventLoop | None = None
+        self._state = _WatcherState.NEW
+        self._state_lock = threading.Lock()
+        self._ready_event = threading.Event()
+        self._stopped_event = threading.Event()
+        self._failure: Exception | None = None
 
         # Change accumulation (thread-safe)
         self._changes_lock = threading.Lock()
@@ -116,12 +135,34 @@ class WatcherRunner:
         Creates an asyncio event loop in the thread and runs the
         FileWatcher until stop() is called.
         """
-        if self._thread is not None:
-            return
+        with self._state_lock:
+            if self._state in {
+                _WatcherState.STARTING,
+                _WatcherState.RUNNING,
+                _WatcherState.STOPPING,
+            }:
+                return
 
-        self._stop_event.clear()
-        self._thread = threading.Thread(target=self._run, daemon=True)
-        self._thread.start()
+            self._stop_event.clear()
+            self._ready_event.clear()
+            self._stopped_event.clear()
+            self._failure = None
+            self._loop = None
+            self._async_stop_event = None
+            self._state = _WatcherState.STARTING
+            thread = threading.Thread(target=self._run, daemon=True)
+            self._thread = thread
+
+            try:
+                thread.start()
+            except Exception as e:
+                if self._thread is thread:
+                    self._thread = None
+                self._failure = e
+                self._state = _WatcherState.FAILED
+                self._ready_event.set()
+                self._stopped_event.set()
+                raise
 
         logger.info(
             "watcher_runner_started",
@@ -135,49 +176,167 @@ class WatcherRunner:
 
         Gracefully shuts down the async event loop and joins the thread.
         """
-        if self._thread is None:
-            return
+        with self._state_lock:
+            if self._thread is None and self._state in {
+                _WatcherState.NEW,
+                _WatcherState.STOPPED,
+                _WatcherState.FAILED,
+            }:
+                return
+
+            thread = self._thread
+            loop = self._loop
+            async_stop_event = self._async_stop_event
+            should_wait_ready = self._state is _WatcherState.STARTING and (
+                loop is None or async_stop_event is None
+            )
+            if self._state is not _WatcherState.STOPPING:
+                self._state = _WatcherState.STOPPING
 
         # Signal the watch loop to exit gracefully
         self._stop_event.set()
 
+        if should_wait_ready:
+            self._ready_event.wait(timeout=self._READY_TIMEOUT_SECONDS)
+            with self._state_lock:
+                loop = self._loop
+                async_stop_event = self._async_stop_event
+
         # Set the async stop event (must be done from the loop's thread)
-        if self._loop is not None and self._async_stop_event is not None:
-            self._loop.call_soon_threadsafe(self._async_stop_event.set)
+        if loop is not None and async_stop_event is not None:
+            self._call_loop_threadsafe(
+                async_stop_event.set,
+                reason="watcher_runner_loop_closed_before_stop_event",
+                loop=loop,
+            )
+
+        if thread is None:
+            self._finish_stop(thread)
+            return
 
         # Wait for thread to finish (the loop will exit via stop_event check)
-        self._thread.join(timeout=5.0)
-        if self._thread.is_alive():
+        thread.join(timeout=self._JOIN_TIMEOUT_SECONDS)
+        if thread.is_alive():
             # Force stop the loop if thread didn't exit gracefully
-            if self._loop is not None:
-                self._loop.call_soon_threadsafe(self._loop.stop)
-            self._thread.join(timeout=1.0)
-            if self._thread.is_alive():
+            with self._state_lock:
+                loop = self._loop
+            if loop is not None:
+                self._call_loop_threadsafe(
+                    loop.stop,
+                    reason="watcher_runner_loop_closed_before_force_stop",
+                    loop=loop,
+                )
+            thread.join(timeout=self._FORCE_JOIN_TIMEOUT_SECONDS)
+            if thread.is_alive():
                 logger.warning("watcher_runner_thread_did_not_stop")
         else:
             logger.debug("watcher_runner_stopped")
 
-        self._thread = None
-        self._loop = None
-        self._async_stop_event = None
+        self._finish_stop(thread)
 
     def _run(self) -> None:
         """
         Thread target - runs the async watcher loop.
         """
+        loop: asyncio.AbstractEventLoop | None = None
+        failure: Exception | None = None
         try:
-            self._loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self._loop)
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
 
             # Create the async stop event in the loop's context
-            self._async_stop_event = asyncio.Event()
+            async_stop_event = asyncio.Event()
+            self._publish_loop(loop, async_stop_event)
 
-            self._loop.run_until_complete(self._watch_loop())
+            loop.run_until_complete(self._watch_loop())
         except Exception as e:
+            failure = e
             logger.error("watcher_runner_error", error=str(e), error_type=type(e).__name__)
         finally:
-            if self._loop is not None:
-                self._loop.close()
+            if loop is not None:
+                loop.close()
+            self._mark_stopped(failure)
+
+    def _publish_loop(
+        self,
+        loop: asyncio.AbstractEventLoop,
+        async_stop_event: asyncio.Event,
+    ) -> None:
+        """Publish loop handles created by the watcher thread."""
+        with self._state_lock:
+            self._loop = loop
+            self._async_stop_event = async_stop_event
+            if self._state is _WatcherState.STARTING:
+                self._state = _WatcherState.RUNNING
+            self._ready_event.set()
+
+    def _mark_stopped(self, failure: Exception | None) -> None:
+        """Record that the watcher thread has exited."""
+        with self._state_lock:
+            self._loop = None
+            self._async_stop_event = None
+            if failure is not None:
+                self._failure = failure
+                self._state = _WatcherState.FAILED
+            elif self._state is not _WatcherState.FAILED:
+                self._state = _WatcherState.STOPPED
+            self._ready_event.set()
+            self._stopped_event.set()
+
+    def _finish_stop(self, thread: threading.Thread | None) -> None:
+        """Clear lifecycle handles after a stop attempt completes."""
+        with self._state_lock:
+            if thread is not None and thread.is_alive():
+                self._failure = RuntimeError("watcher runner thread did not stop")
+                self._state = _WatcherState.FAILED
+            elif self._state is _WatcherState.STOPPING:
+                self._state = _WatcherState.STOPPED
+            if self._thread is thread:
+                self._thread = None
+            self._loop = None
+            self._async_stop_event = None
+            self._stopped_event.set()
+
+    def _call_loop_threadsafe(
+        self,
+        callback: Callable[[], Any],
+        *,
+        reason: str,
+        loop: asyncio.AbstractEventLoop | None = None,
+    ) -> bool:
+        """Post a callback to the watcher loop if it is still accepting work."""
+        if loop is None:
+            with self._state_lock:
+                loop = self._loop
+        if loop is None:
+            return False
+
+        if self._loop_is_closed(loop):
+            logger.debug(reason)
+            return False
+
+        try:
+            loop.call_soon_threadsafe(callback)
+        except RuntimeError:
+            with self._state_lock:
+                state = self._state
+            if self._loop_is_closed(loop) and state in {
+                _WatcherState.STOPPING,
+                _WatcherState.STOPPED,
+                _WatcherState.FAILED,
+            }:
+                logger.debug(reason)
+                return False
+            raise
+        return True
+
+    @staticmethod
+    def _loop_is_closed(loop: asyncio.AbstractEventLoop) -> bool:
+        is_closed = getattr(loop, "is_closed", None)
+        if not callable(is_closed):
+            return False
+        closed = is_closed()
+        return closed if isinstance(closed, bool) else False
 
     async def _watch_loop(self) -> None:
         """

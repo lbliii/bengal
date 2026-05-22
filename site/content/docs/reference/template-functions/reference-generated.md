@@ -220,6 +220,7 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `method_color_class` | `method_color_class` |
 | `notebook_colab_url` | `notebook_colab_url_with_site` |
 | `notebook_download_url` | `notebook_download_url_with_site` |
+| `nt` | `nt` |
 | `og_image` | `og_image_with_site` |
 | `option_view` | `option_view_filter` |
 | `options` | `options_filter` |
@@ -237,14 +238,17 @@ Call directly: `{{ function_name() }}` or `{{ function_name(arg) }}`
 | `related_posts` | `related_posts_with_site` |
 | `relref` | `relref_with_site` |
 | `render_icon` | `icon` |
-| `resources` | `<bengal.rendering.template_functions.resources.ResourcesProxy object at 0x2048e9e1990>` |
+| `resources` | `ResourcesProxy` |
 | `return_type` | `return_type` |
+| `section_href` | `section_href` |
 | `section_pages` | `section_pages_wrapper` |
 | `share_url` | `share_url_with_site` |
 | `status_code_class` | `status_code_class` |
 | `t` | `t` |
 | `tag_url` | `tag_url` |
 | `twitter_share_url` | `twitter_share_url` |
+| `url_for` | `url_for_with_site` |
+| `url_for_path` | `url_for_path_with_site` |
 | `xref` | `ref_with_site` |
 
 ## See Also

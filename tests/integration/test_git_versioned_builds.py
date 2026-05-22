@@ -67,6 +67,10 @@ versioning:
     )
     _write(site_root / "content" / "index.md", "---\ntitle: Home\n---\n# Home\n")
     _write(site_root / "content" / "docs" / "_index.md", "---\ntitle: Docs\n---\n# Docs\n")
+    _write(
+        site_root / "content" / "docs" / "start" / "_index.md",
+        "---\ntitle: Start\n---\n# Start\n",
+    )
 
 
 def _write_auto_tag_versioning(site_root: Path, *, count: int = 2) -> None:
@@ -237,6 +241,7 @@ def test_git_auto_previous_tags_build_latest_and_recent_tag_paths(tmp_path: Path
     public = site_root / "public"
     assert (public / "docs" / "guide" / "index.html").exists()
     assert (public / "docs" / "0.3.2" / "guide" / "index.html").exists()
+    assert (public / "docs" / "0.3.2" / "start" / "index.html").exists()
     assert (public / "docs" / "0.3.1" / "guide" / "index.html").exists()
     assert not (public / "docs" / "0.3.0" / "guide" / "index.html").exists()
     assert not (public / "docs" / "0.4.0-rc.1" / "guide" / "index.html").exists()
@@ -250,6 +255,10 @@ def test_git_auto_previous_tags_build_latest_and_recent_tag_paths(tmp_path: Path
     guide_page = (public / "docs" / "guide" / "index.html").read_text(encoding="utf-8")
     assert 'class="version-selector"' in docs_index
     assert 'class="version-selector"' in guide_page
+
+    old_docs_index = (public / "docs" / "0.3.2" / "index.html").read_text(encoding="utf-8")
+    assert "/docs/0.3.2/start/" in old_docs_index
+    assert "/docs/start/" not in old_docs_index
 
 
 def test_git_auto_previous_tags_builds_when_site_is_subdirectory(tmp_path: Path) -> None:

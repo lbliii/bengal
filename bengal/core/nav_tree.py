@@ -338,7 +338,7 @@ class NavTree:
     ) -> NavNode:
         """Recursively build NavNode tree from sections and pages."""
         # Create node for the section itself (using its index page if available)
-        node_url = getattr(section, "_path", None) or f"/{section.name}/"
+        node_url = cls._section_path_for_version(section, version_id)
         node_title = section.nav_title
         node_icon = section.icon
 
@@ -395,6 +395,18 @@ class NavTree:
 
         return node
 
+    @staticmethod
+    def _section_path_for_version(section: SectionLike, version_id: str | None) -> str:
+        """Return the section path for a specific navigation tree version."""
+        from bengal.rendering.urls import RenderURLContext
+        from bengal.rendering.urls import url_for as resolve_url_for
+
+        return resolve_url_for(
+            section,
+            RenderURLContext(site=getattr(section, "_site", None), version_id=version_id),
+            baseurl=False,
+        )
+
 
 class NavTreeContext:
     """
@@ -433,7 +445,9 @@ class NavTreeContext:
         # Walk up from current section (use _section - the private attribute)
         section = getattr(self.page, "_section", None)
         while section:
-            self.active_trail_urls.add(getattr(section, "_path", None) or f"/{section.name}/")
+            self.active_trail_urls.add(
+                NavTree._section_path_for_version(section, self.tree.version_id)
+            )
             section = section.parent
 
     def is_active(self, node: NavNode) -> bool:

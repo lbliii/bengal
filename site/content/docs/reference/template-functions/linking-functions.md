@@ -14,6 +14,63 @@ category: reference
 
 These functions generate links to pages and headings. All use O(1) lookups from pre-built indexes.
 
+## url_for
+
+Resolve a page, section, section snapshot, page snapshot, or literal path to a public URL. `url_for` applies `baseurl` automatically and keeps section links in the current render version for git-backed multi-version docs.
+
+```kida
+{{ url_for(page) }}
+{{ url_for(section, page) }}
+{{ url_for(section, page, version="latest") }}
+{{ url_for(page, baseurl=false) }}
+```
+
+**Parameters**:
+- `target`: Page, section, page snapshot, section snapshot, or literal URL path
+- `page`: Optional current page, used to infer the active render version
+- `version`: `current` (default), `latest`, an explicit version id, or `none`
+- `baseurl`: Whether to apply the configured site base URL (default: `true`)
+
+**Returns**: Template-ready URL string
+
+**Use cases**:
+- Theme links to generated pages and sections
+- Version-aware sidebar and section tile URLs
+- Links that need to opt out of `baseurl` for later processing
+- Compatibility with both page objects and literal paths
+
+:::{example-label} Usage
+:::
+
+```kida
+{# Page link with baseurl #}
+<a href="{{ url_for(page) }}">{{ page.title }}</a>
+
+{# Section link in the current version #}
+<a href="{{ url_for(subsection, page) }}">{{ subsection.title }}</a>
+
+{# Latest-version link from a historical docs page #}
+<a href="{{ url_for(docs_section, page, version='latest') }}">Latest docs</a>
+
+{# Site-relative path for helpers that apply baseurl later #}
+{{ url_for(docs_section, page, baseurl=false) }}
+```
+
+## url_for_path
+
+Resolve a literal path without applying version rewrites. Use this for hard-coded template paths that should stay exactly where the template points them.
+
+```kida
+{{ url_for_path('/docs/getting-started/') }}
+{{ url_for_path('/docs/getting-started/', baseurl=false) }}
+```
+
+**Parameters**:
+- `path`: Literal path or special URL
+- `baseurl`: Whether to apply the configured site base URL (default: `true`)
+
+**Returns**: Template-ready URL string
+
 ## ref
 
 Generate a cross-reference link to a page.

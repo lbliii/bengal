@@ -65,6 +65,8 @@ from bengal.rendering.template_functions.navigation.tree import (
     get_nav_context,
     get_nav_tree,
 )
+from bengal.rendering.urls import RenderURLContext
+from bengal.rendering.urls import url_for as resolve_url_for
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SectionLike, SiteLike, TemplateEnvironment
@@ -118,6 +120,21 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
         """Wrapper with site closure."""
         return section_pages(path, site, recursive)
 
+    def section_href(section: SectionLike | None, page: PageLike | None = None) -> str:
+        """Return a section href in the current rendered page/version context."""
+        if section is None:
+            return ""
+
+        version_id = getattr(page, "version", None) if page is not None else None
+        if version_id is None:
+            current_version = getattr(site, "current_version", None)
+            version_id = getattr(current_version, "id", None)
+
+        return resolve_url_for(
+            section,
+            RenderURLContext(site=site, page=page, version_id=version_id),
+        )
+
     env.globals.update(
         {
             "get_breadcrumbs": get_breadcrumbs,
@@ -130,5 +147,6 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "combine_track_toc": combine_track_toc_with_get_page,
             "get_section": get_section_wrapper,
             "section_pages": section_pages_wrapper,
+            "section_href": section_href,
         }
     )

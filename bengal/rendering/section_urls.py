@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Protocol
 
 from bengal.core.diagnostics import emit as emit_diagnostic
-from bengal.core.utils.url import apply_baseurl, get_baseurl, get_site_origin
+from bengal.core.utils.url import get_baseurl, get_site_origin
+from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.paths.url_normalization import join_url_paths, normalize_url, split_url_path
 
 if TYPE_CHECKING:
@@ -38,15 +39,8 @@ class SectionURLTarget(Protocol):
 def get_href(section: SectionURLTarget) -> str:
     """Return template-ready section URL with baseurl applied."""
     rel = section._path or "/"
-
-    try:
-        site = getattr(section, "_site", None)
-        baseurl = get_baseurl(site) if site else ""
-    except Exception as e:
-        emit_diagnostic(section, "debug", "section_baseurl_lookup_failed", error=str(e))
-        baseurl = ""
-
-    return apply_baseurl(rel, baseurl)
+    site = getattr(section, "_site", None)
+    return apply_baseurl(rel, site)
 
 
 def get_path(section: SectionURLTarget) -> str:
@@ -70,6 +64,74 @@ def get_path(section: SectionURLTarget) -> str:
     url = join_url_paths(parent_rel, section.name)
 
     return apply_version_path_transform(section, url)
+
+
+def get_path_for_version(
+    section: SectionURLTarget, version_id: str | None, site: Any | None = None
+) -> str:
+    """Return the section URL path as it should appear for a rendered version."""
+    rel = getattr(section, "_path", None) or getattr(section, "href", None) or "/"
+    site = site or getattr(section, "_site", None)
+    if site and rel.startswith("/"):
+        baseurl = _normal_baseurl_for_path(site)
+        if baseurl and baseurl != "/" and rel.startswith(f"{baseurl}/"):
+            rel = rel[len(baseurl) :]
+        elif baseurl and rel == baseurl:
+            rel = "/"
+
+    if not version_id:
+        return rel
+
+    if not site or not getattr(site, "versioning_enabled", False):
+        return rel
+
+    version_config = getattr(site, "version_config", None)
+    if not version_config or not getattr(version_config, "is_git_mode", False):
+        return rel
+
+    version_obj = version_config.get_version(version_id)
+    if not version_obj or version_obj.latest:
+        return rel
+
+    segments = split_url_path(rel)
+    if not segments:
+        return rel
+
+    section_name = segments[0]
+    if not version_config.is_versioned_section(section_name):
+        return rel
+
+    if len(segments) > 1 and segments[1] == version_id:
+        return rel
+
+    rest = segments[1:]
+    if rest:
+        return f"/{section_name}/{version_id}/" + "/".join(rest) + "/"
+    return f"/{section_name}/{version_id}/"
+
+
+def get_href_for_version(
+    section: SectionURLTarget, version_id: str | None, site: Any | None = None
+) -> str:
+    """Return a template-ready section URL for a rendered version."""
+    site = site or getattr(section, "_site", None)
+    rel = get_path_for_version(section, version_id, site)
+
+    return apply_baseurl(rel, site)
+
+
+def _normal_baseurl_for_path(site: Any) -> str:
+    """Return the path-style baseurl prefix used in rendered URLs."""
+    try:
+        baseurl = get_baseurl(site).rstrip("/")
+    except Exception as e:
+        emit_diagnostic(site, "debug", "section_baseurl_lookup_failed", error=str(e))
+        return ""
+    if not baseurl or baseurl == "/":
+        return ""
+    if not baseurl.startswith(("/", "//")) and "://" not in baseurl:
+        return f"/{baseurl}"
+    return baseurl
 
 
 def get_absolute_href(section: SectionURLTarget) -> str:

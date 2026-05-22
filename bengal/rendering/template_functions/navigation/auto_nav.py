@@ -17,6 +17,8 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.rendering.template_functions.memo import site_scoped_memoize
 from bengal.rendering.template_functions.navigation.helpers import get_nav_title
+from bengal.rendering.urls import RenderURLContext
+from bengal.rendering.urls import url_for as resolve_url_for
 from bengal.utils.paths.normalize import to_posix
 
 if TYPE_CHECKING:
@@ -83,9 +85,14 @@ def _build_section_menu_item(
         if section.name in excluded_sections:
             return None
 
-    # Build nav item
-    # Use _path for menu items (templates apply baseurl via | absolute_url filter)
-    section_url = getattr(section, "_path", None) or f"/{section.name}/"
+    # Build nav item. Templates apply baseurl via | absolute_url.
+    current_version = getattr(site, "current_version", None)
+    current_version_id = getattr(current_version, "id", None)
+    section_url = resolve_url_for(
+        section,
+        RenderURLContext(site=site, version_id=current_version_id),
+        baseurl=False,
+    )
     section_identifier = section.name
 
     # Get section icon from Section.icon property (reads from _index.md frontmatter)
