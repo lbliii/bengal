@@ -6,6 +6,7 @@ Tests the theme-aware icon resolution system.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
@@ -147,6 +148,101 @@ class TestIconCaching:
         # Should get new version
         content2 = icon_resolver.load_icon("reload")
         assert "<!-- v2 -->" in content2
+
+
+class TestScopedIconCaching:
+    """Site-scoped icon caches do not leak across theme roots."""
+
+    def _site(self, root_path: Path, aliases: dict[str, str] | None = None):
+        theme_config = SimpleNamespace(
+            icons=SimpleNamespace(extend_defaults=False),
+            config={"icons": {"aliases": aliases or {}}},
+        )
+        return SimpleNamespace(
+            root_path=root_path,
+            theme="custom",
+            theme_config=theme_config,
+        )
+
+    def test_site_context_keeps_same_icon_name_isolated(self, tmp_path: Path, monkeypatch) -> None:
+        """The active site context chooses the matching theme icon cache."""
+        site1 = self._site(tmp_path / "site1")
+        site2 = self._site(tmp_path / "site2")
+        for site, marker in [(site1, "site-one"), (site2, "site-two")]:
+            icons_dir = site.root_path / "theme" / "assets" / "icons"
+            icons_dir.mkdir(parents=True)
+            (icons_dir / "shared.svg").write_text(
+                f"<svg><!-- {marker} --></svg>",
+                encoding="utf-8",
+            )
+
+        monkeypatch.setattr(
+            "bengal.services.theme.get_theme_assets_chain",
+            lambda root_path, theme: [root_path / "theme" / "assets"],
+        )
+
+        with icon_resolver.site_context(site1):
+            assert "<!-- site-one -->" in icon_resolver.load_icon("shared")
+
+        with icon_resolver.site_context(site2):
+            assert "<!-- site-two -->" in icon_resolver.load_icon("shared")
+
+    def test_render_svg_cache_is_scoped_by_site(self, tmp_path: Path, monkeypatch) -> None:
+        """Rendered SVG cache keys include the active icon resolver scope."""
+        from bengal.icons.svg import render_svg_icon
+
+        site1 = self._site(tmp_path / "site1")
+        site2 = self._site(tmp_path / "site2")
+        for site, marker in [(site1, "site-one"), (site2, "site-two")]:
+            icons_dir = site.root_path / "theme" / "assets" / "icons"
+            icons_dir.mkdir(parents=True)
+            (icons_dir / "shared.svg").write_text(
+                f"<svg><!-- {marker} --></svg>",
+                encoding="utf-8",
+            )
+
+        monkeypatch.setattr(
+            "bengal.services.theme.get_theme_assets_chain",
+            lambda root_path, theme: [root_path / "theme" / "assets"],
+        )
+
+        with icon_resolver.site_context(site1):
+            first = render_svg_icon("shared", size=16)
+        with icon_resolver.site_context(site2):
+            second = render_svg_icon("shared", size=16)
+
+        assert "<!-- site-one -->" in first
+        assert "<!-- site-two -->" in second
+
+    def test_template_icon_aliases_are_site_scoped(self, tmp_path: Path, monkeypatch) -> None:
+        """Registered template helpers capture each site's aliases and icon scope."""
+        from bengal.rendering.template_functions.icons import register
+
+        site1 = self._site(tmp_path / "site1", aliases={"docs": "one"})
+        site2 = self._site(tmp_path / "site2", aliases={"docs": "two"})
+        for site, icon_name, marker in [
+            (site1, "one", "site-one"),
+            (site2, "two", "site-two"),
+        ]:
+            icons_dir = site.root_path / "theme" / "assets" / "icons"
+            icons_dir.mkdir(parents=True)
+            (icons_dir / f"{icon_name}.svg").write_text(
+                f"<svg><!-- {marker} --></svg>",
+                encoding="utf-8",
+            )
+
+        monkeypatch.setattr(
+            "bengal.services.theme.get_theme_assets_chain",
+            lambda root_path, theme: [root_path / "theme" / "assets"],
+        )
+
+        env1 = SimpleNamespace(globals={})
+        env2 = SimpleNamespace(globals={})
+        register(env1, site1)
+        register(env2, site2)
+
+        assert "<!-- site-one -->" in str(env1.globals["icon"]("docs"))
+        assert "<!-- site-two -->" in str(env2.globals["icon"]("docs"))
 
 
 class TestMissingIconWarningAggregation:

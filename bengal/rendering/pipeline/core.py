@@ -976,7 +976,10 @@ class RenderingPipeline:
                         break
 
         # Get cached global contexts (site/config are stateless wrappers)
-        global_contexts = _get_global_contexts(cast("SiteLike", self.site))
+        global_contexts = _get_global_contexts(
+            cast("SiteLike", self.site),
+            build_context=self.build_context,
+        )
 
         context: dict[str, Any] = {
             # Core objects with cached smart wrappers

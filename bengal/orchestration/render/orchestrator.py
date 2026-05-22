@@ -238,6 +238,7 @@ class RenderOrchestrator(
 
         # Set build context for template function memoization (RFC: template-function-memoization)
         # This enables site-scoped memoization for functions like get_auto_nav()
+        from bengal.icons import resolver as icon_resolver
         from bengal.rendering.template_functions.memo import set_build_context
 
         set_build_context(build_context)
@@ -299,14 +300,15 @@ class RenderOrchestrator(
         try:
             # Use parallel rendering only when worthwhile (avoid thread overhead for small batches)
             # WorkloadType.MIXED because rendering involves both I/O (templates) and CPU (parsing)
-            if use_parallel:
-                self._render_parallel(
-                    pages, quiet, stats, progress_manager, build_context, changed_sources
-                )
-            else:
-                self._render_sequential(
-                    pages, quiet, stats, progress_manager, build_context, changed_sources
-                )
+            with icon_resolver.site_context(self.site):
+                if use_parallel:
+                    self._render_parallel(
+                        pages, quiet, stats, progress_manager, build_context, changed_sources
+                    )
+                else:
+                    self._render_sequential(
+                        pages, quiet, stats, progress_manager, build_context, changed_sources
+                    )
         finally:
             # Flush write-behind queue and wait for all writes to complete
             if write_behind:

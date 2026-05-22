@@ -31,55 +31,45 @@ from bengal.utils.primitives.lru_cache import LRUCache
 
 logger = get_logger(__name__)
 
-# Track warned icons to avoid duplicate warnings (reset per build)
-# Thread-safe: protected by _warned_lock for concurrent access
+# Track warned icons to avoid duplicate warnings (reset per build).
+# Thread-safe: protected by _warned_lock for concurrent access.
 _warned_lock = threading.Lock()
-_warned_icons: set[str] = set()
-
-# Site instance for theme config access (set during registration)
-# Thread-safe: protected by _site_lock for concurrent access
-_site_lock = threading.Lock()
-_site_instance: SiteConfig | None = None
+_warned_icons: set[tuple[tuple[str, ...], str]] = set()
 
 
-def _get_mapped_icon_name(name: str) -> str:
+def _get_icon_aliases(site: SiteConfig | None) -> dict[str, str]:
+    """Return a copy of theme-level icon aliases for a site."""
+    if site is None:
+        return {}
+    try:
+        theme_config = site.theme_config
+        if theme_config.config is None:
+            return {}
+        aliases = theme_config.config.get("icons", {}).get("aliases", {})
+        return dict(aliases) if isinstance(aliases, dict) else {}
+    except Exception as e:
+        logger.debug(
+            "icon_alias_load_failed",
+            error=str(e),
+            error_type=type(e).__name__,
+            action="falling_back_to_icon_map",
+        )
+        return {}
+
+
+def _get_mapped_icon_name(name: str, aliases: dict[str, str] | None = None) -> str:
     """
     Get mapped icon name from theme config or ICON_MAP.
 
-    Thread-safe: All site access happens under lock to prevent TOCTOU race.
-    Copies needed values while holding lock, then releases before return.
-
     Args:
         name: Original icon name
+        aliases: Optional site/theme alias mapping
 
     Returns:
         Mapped icon name (may be same as input if no mapping found)
     """
-    # Thread-safe: read _site_instance and extract needed config under lock
-    with _site_lock:
-        site = _site_instance
-        if site is None:
-            # No site instance, use ICON_MAP
-            return ICON_MAP.get(name, name)
-
-        # Extract icon aliases while holding lock
-        try:
-            theme_config = site.theme_config
-            if theme_config.config is not None:
-                icon_aliases = theme_config.config.get("icons", {}).get("aliases", {})
-                if icon_aliases and name in icon_aliases:
-                    return icon_aliases[name]
-        except Exception as e:
-            # Graceful degradation: fall back to ICON_MAP
-            logger.debug(
-                "icon_mapping_failed",
-                icon_name=name,
-                error=str(e),
-                error_type=type(e).__name__,
-                action="falling_back_to_icon_map",
-            )
-
-    # Fall back to ICON_MAP (outside lock, ICON_MAP is module-level constant)
+    if aliases and name in aliases:
+        return aliases[name]
     return ICON_MAP.get(name, name)
 
 
@@ -100,7 +90,7 @@ _RE_CLASS = re.compile(r'\s+class="[^"]*"')
 _RE_SVG_TAG = re.compile(r"<svg\s")
 
 # Thread-safe LRU cache for icon rendering (replaces @lru_cache for free-threading)
-_icon_render_cache: LRUCache[tuple[str, int, str, str], str] = LRUCache(
+_icon_render_cache: LRUCache[tuple[tuple[str, ...], str, int, str, str], str] = LRUCache(
     maxsize=512, name="icon_render"
 )
 
@@ -110,6 +100,8 @@ def _render_icon_cached(
     size: int,
     css_class: str,
     aria_label: str,
+    scope_key: tuple[str, ...],
+    site: SiteConfig | None = None,
 ) -> str:
     """
     Render an icon with LRU caching for repeated calls.
@@ -131,11 +123,11 @@ def _render_icon_cached(
         Rendered SVG HTML string, or empty string if icon not found
 
     """
-    key = (name, size, css_class, aria_label)
+    key = (scope_key, name, size, css_class, aria_label)
 
     def _render_impl() -> str:
         # Load icon via theme-aware resolver
-        svg_content = icon_resolver.load_icon(name)
+        svg_content = icon_resolver.load_icon(name, site=site)
         if svg_content is None:
             return ""
 
@@ -167,7 +159,16 @@ def _render_icon_cached(
     return _icon_render_cache.get_or_set(key, _render_impl)
 
 
-def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -> Markup:
+def _render_icon(
+    name: str,
+    size: int = 24,
+    css_class: str = "",
+    aria_label: str = "",
+    *,
+    site: SiteConfig | None = None,
+    aliases: dict[str, str] | None = None,
+    scope_key: tuple[str, ...] | None = None,
+) -> Markup:
     """
     Render an SVG icon for use in templates.
 
@@ -196,26 +197,69 @@ def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -
     if not name:
         return Markup("")
 
-    # Get icon aliases from theme config (if available)
-    # Thread-safe: copy all needed values under lock to prevent TOCTOU race
-    mapped_name = _get_mapped_icon_name(name)
+    resolved_scope_key = scope_key or icon_resolver.get_scope_key(site)
+    mapped_name = _get_mapped_icon_name(name, aliases)
 
     # Try the mapped name first (uses LRU cache)
-    svg_html = _render_icon_cached(mapped_name, size, css_class, aria_label)
+    svg_html = _render_icon_cached(
+        mapped_name,
+        size,
+        css_class,
+        aria_label,
+        resolved_scope_key,
+        site=site,
+    )
 
     # If mapped name didn't work and it's different from original, try the original
     if not svg_html and mapped_name != name:
-        svg_html = _render_icon_cached(name, size, css_class, aria_label)
+        svg_html = _render_icon_cached(
+            name,
+            size,
+            css_class,
+            aria_label,
+            resolved_scope_key,
+            site=site,
+        )
 
     # Warn if icon not found (deduplicated per icon name, thread-safe)
     if not svg_html:
         with _warned_lock:
-            if name not in _warned_icons:
-                _warned_icons.add(name)
+            warned_key = (resolved_scope_key, name)
+            if warned_key not in _warned_icons:
+                _warned_icons.add(warned_key)
                 warn_missing_icon(name, directive="template-function:icon")
 
     # Return as Markup to prevent Jinja2 auto-escaping
     return Markup(svg_html)
+
+
+def icon(name: str, size: int = 24, css_class: str = "", aria_label: str = "") -> Markup:
+    """Render an SVG icon using the active icon resolver scope."""
+    return _render_icon(name, size=size, css_class=css_class, aria_label=aria_label)
+
+
+def _make_site_icon(site: SiteConfig):
+    """Create a site-scoped icon helper for a template environment."""
+    aliases = _get_icon_aliases(site)
+    scope_key = icon_resolver.get_scope_key(site)
+
+    def site_icon(
+        name: str,
+        size: int = 24,
+        css_class: str = "",
+        aria_label: str = "",
+    ) -> Markup:
+        return _render_icon(
+            name,
+            size=size,
+            css_class=css_class,
+            aria_label=aria_label,
+            site=site,
+            aliases=aliases,
+            scope_key=scope_key,
+        )
+
+    return site_icon
 
 
 def register(env: TemplateEnvironment, site: SiteConfig) -> None:
@@ -225,22 +269,17 @@ def register(env: TemplateEnvironment, site: SiteConfig) -> None:
     Icons are loaded on-demand via the theme-aware resolver, which is
     initialized during Site setup.
 
-    Thread-safe: Site instance assignment protected by lock.
-
     Args:
         env: Jinja2 environment
-        site: Site instance (stored for theme config access)
+        site: Site instance used to scope aliases and icon lookup
 
     """
-    global _site_instance
-    with _site_lock:
-        _site_instance = site
-
-    env.globals["icon"] = icon
-    env.globals["render_icon"] = icon  # Alias
+    site_icon = _make_site_icon(site)
+    env.globals["icon"] = site_icon
+    env.globals["render_icon"] = site_icon  # Alias
 
 
-def get_icon_cache_stats() -> dict[str, int]:
+def get_icon_cache_stats(site: SiteConfig | None = None) -> dict[str, int]:
     """
     Get icon cache statistics for debugging/profiling.
 
@@ -249,8 +288,13 @@ def get_icon_cache_stats() -> dict[str, int]:
 
     """
     stats = _icon_render_cache.stats()
+    if site is not None:
+        with icon_resolver.site_context(site):
+            available_icons = len(icon_resolver.get_available_icons())
+    else:
+        available_icons = len(icon_resolver.get_available_icons())
     return {
-        "available_icons": len(icon_resolver.get_available_icons()),
+        "available_icons": available_icons,
         "cache_hits": stats["hits"],
         "cache_misses": stats["misses"],
         "cache_size": stats["size"],
