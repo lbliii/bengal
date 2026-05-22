@@ -49,6 +49,14 @@ Use the matrix before making or reviewing performance claims:
 uv run pytest tests/unit/benchmarks/test_benchmark_matrix.py -q
 ```
 
+Run or list matrix rows by tier:
+
+```bash
+uv run python benchmarks/run_matrix.py --tier smoke --dry-run
+uv run python benchmarks/run_matrix.py --tier smoke
+uv run python benchmarks/run_matrix.py --list
+```
+
 Treat the overview below as explanatory. When adding, removing, or renaming a
 benchmark that should guide decisions, update `benchmark_matrix.toml` in the same
 change.

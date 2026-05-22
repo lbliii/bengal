@@ -425,6 +425,7 @@ benchmark-compare = { cmd = "pytest benchmarks/ tests/performance/ --benchmark-c
 benchmark-save = { cmd = "pytest benchmarks/ tests/performance/ --benchmark-save=baseline -v", help = "Save baseline" }
 benchmark-scenarios = { cmd = "python scripts/generate_benchmark_scenarios.py", help = "Generate cached benchmark scenarios" }
 benchmark-smoke = { cmd = "pytest -o addopts= -n 0 -q tests/unit/benchmarks/test_benchmark_matrix.py tests/performance/test_autodoc_render_regression.py tests/performance/test_asset_fallback_cost.py tests/performance/test_post_render_pipeline_budget.py", help = "Run canonical smoke performance guards without full benchmark timings" }
+benchmark-matrix = { cmd = "python benchmarks/run_matrix.py", help = "Run benchmark rows from benchmarks/benchmark_matrix.toml" }
 
 # Type Checking
 ty = { cmd = "ty check bengal/", help = "Run ty type checker (fast, Rust-based)" }
