@@ -4,10 +4,41 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
+import pytest
+
 from bengal.server.ignore_filter import IgnoreFilter
-from bengal.server.watcher_runner import WatcherRunner, create_watcher_runner
+from bengal.server.watcher_runner import WatcherRunner, _WatcherState, create_watcher_runner
+
+if TYPE_CHECKING:
+    from collections.abc import AsyncIterator
+
+
+class _FakeWatcher:
+    def __init__(self, stop_event: asyncio.Event | None) -> None:
+        self.stop_event = stop_event
+
+    async def watch(self) -> AsyncIterator[tuple[set[Path], set[str]]]:
+        while self.stop_event is not None and not self.stop_event.is_set():
+            await asyncio.sleep(0.01)
+        if False:
+            yield set(), set()
+
+
+@pytest.fixture
+def fake_watcher(monkeypatch: pytest.MonkeyPatch) -> None:
+    def create_fake_watcher(
+        paths: list[Path],
+        ignore_filter: IgnoreFilter,
+        stop_event: asyncio.Event | None,
+        force_polling: bool | None = None,
+    ) -> _FakeWatcher:
+        _ = paths, ignore_filter, force_polling
+        return _FakeWatcher(stop_event)
+
+    monkeypatch.setattr("bengal.server.watcher_runner.create_watcher", create_fake_watcher)
 
 
 class TestWatcherRunner:
@@ -30,8 +61,9 @@ class TestWatcherRunner:
         assert runner.ignore_filter == ignore_filter
         assert runner.on_changes == callback
         assert runner.debounce_ms == 100
+        assert runner._state is _WatcherState.NEW
 
-    def test_start_creates_thread(self) -> None:
+    def test_start_creates_thread(self, fake_watcher: None) -> None:
         """Test that start creates a background thread."""
         runner = WatcherRunner(
             paths=[Path(".")],
@@ -43,12 +75,14 @@ class TestWatcherRunner:
 
         runner.start()
         try:
+            assert runner._ready_event.wait(timeout=5.0)
             assert runner._thread is not None
             assert runner._thread.is_alive()
+            assert runner._state is _WatcherState.RUNNING
         finally:
             runner.stop()
 
-    def test_stop_cleans_up(self) -> None:
+    def test_stop_cleans_up(self, fake_watcher: None) -> None:
         """Test that stop cleans up the thread."""
         runner = WatcherRunner(
             paths=[Path(".")],
@@ -60,8 +94,9 @@ class TestWatcherRunner:
         runner.stop()
 
         assert runner._thread is None
+        assert runner._state is _WatcherState.STOPPED
 
-    def test_double_start_is_idempotent(self) -> None:
+    def test_double_start_is_idempotent(self, fake_watcher: None) -> None:
         """Test that calling start twice doesn't create two threads."""
         runner = WatcherRunner(
             paths=[Path(".")],
@@ -80,7 +115,7 @@ class TestWatcherRunner:
         finally:
             runner.stop()
 
-    def test_double_stop_is_idempotent(self) -> None:
+    def test_double_stop_is_idempotent(self, fake_watcher: None) -> None:
         """Test that calling stop twice doesn't error."""
         runner = WatcherRunner(
             paths=[Path(".")],
@@ -109,10 +144,115 @@ class TestWatcherRunner:
         runner._thread = thread
         runner._loop = loop
         runner._async_stop_event = MagicMock()
+        runner._state = _WatcherState.RUNNING
 
         runner.stop()
 
         assert runner._thread is None
+        assert runner._state is _WatcherState.STOPPED
+
+    def test_stop_before_loop_is_published(self) -> None:
+        """Test stop can complete before the watcher thread publishes its loop."""
+        runner = WatcherRunner(
+            paths=[Path(".")],
+            ignore_filter=IgnoreFilter(),
+            on_changes=MagicMock(),
+        )
+        thread = MagicMock()
+        thread.is_alive.return_value = False
+
+        runner._thread = thread
+        runner._state = _WatcherState.STARTING
+        runner._READY_TIMEOUT_SECONDS = 0.01
+
+        runner.stop()
+
+        assert runner._thread is None
+        assert runner._loop is None
+        assert runner._async_stop_event is None
+        assert runner._state is _WatcherState.STOPPED
+
+    def test_double_stop_during_stopping_is_idempotent(self) -> None:
+        """Test a second stop call during shutdown joins and cleans up."""
+        runner = WatcherRunner(
+            paths=[Path(".")],
+            ignore_filter=IgnoreFilter(),
+            on_changes=MagicMock(),
+        )
+        thread = MagicMock()
+        thread.is_alive.return_value = False
+
+        runner._thread = thread
+        runner._state = _WatcherState.STOPPING
+        runner._JOIN_TIMEOUT_SECONDS = 0.01
+
+        runner.stop()
+
+        thread.join.assert_called_once_with(timeout=0.01)
+        assert runner._thread is None
+        assert runner._state is _WatcherState.STOPPED
+
+    def test_start_while_starting_is_idempotent(self) -> None:
+        """Test start does not create a second thread while startup is in progress."""
+        runner = WatcherRunner(
+            paths=[Path(".")],
+            ignore_filter=IgnoreFilter(),
+            on_changes=MagicMock(),
+        )
+        thread = MagicMock()
+
+        runner._thread = thread
+        runner._state = _WatcherState.STARTING
+
+        runner.start()
+
+        assert runner._thread is thread
+
+    def test_run_failure_before_ready_marks_failed(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Test thread startup failures unblock waiters and record failure state."""
+        runner = WatcherRunner(
+            paths=[Path(".")],
+            ignore_filter=IgnoreFilter(),
+            on_changes=MagicMock(),
+        )
+
+        def fail_new_event_loop():
+            msg = "loop unavailable"
+            raise RuntimeError(msg)
+
+        monkeypatch.setattr(asyncio, "new_event_loop", fail_new_event_loop)
+
+        runner._run()
+
+        assert runner._ready_event.is_set()
+        assert runner._stopped_event.is_set()
+        assert runner._state is _WatcherState.FAILED
+        assert isinstance(runner._failure, RuntimeError)
+
+    def test_force_stop_timeout_marks_failed(self) -> None:
+        """Test a watcher thread that ignores force-stop is marked failed."""
+        runner = WatcherRunner(
+            paths=[Path(".")],
+            ignore_filter=IgnoreFilter(),
+            on_changes=MagicMock(),
+        )
+        loop = MagicMock()
+        thread = MagicMock()
+        thread.is_alive.return_value = True
+
+        runner._thread = thread
+        runner._loop = loop
+        runner._state = _WatcherState.RUNNING
+        runner._JOIN_TIMEOUT_SECONDS = 0.01
+        runner._FORCE_JOIN_TIMEOUT_SECONDS = 0.01
+
+        runner.stop()
+
+        assert thread.join.call_count == 2
+        assert loop.call_soon_threadsafe.call_count == 1
+        assert runner._thread is None
+        assert runner._state is _WatcherState.FAILED
+        assert isinstance(runner._failure, RuntimeError)
 
 
 class TestCreateWatcherRunner:
