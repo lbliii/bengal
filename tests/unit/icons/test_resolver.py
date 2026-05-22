@@ -6,15 +6,21 @@ Tests the theme-aware icon resolution system.
 
 from __future__ import annotations
 
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from bengal.icons import resolver as icon_resolver
 from bengal.icons.svg import clear_icon_cache, flush_missing_icon_warnings, warn_missing_icon
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+pytestmark = pytest.mark.parallel_unsafe
 
 
 class TestIconResolutionOrder:
@@ -186,6 +192,48 @@ class TestScopedIconCaching:
 
         with icon_resolver.site_context(site2):
             assert "<!-- site-two -->" in icon_resolver.load_icon("shared")
+
+    def test_site_context_is_thread_local_for_same_icon_name(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+    ) -> None:
+        """Concurrent site contexts keep per-site icon caches isolated."""
+        site1 = self._site(tmp_path / "site1")
+        site2 = self._site(tmp_path / "site2")
+        for site, marker in [(site1, "site-one"), (site2, "site-two")]:
+            icons_dir = site.root_path / "theme" / "assets" / "icons"
+            icons_dir.mkdir(parents=True)
+            (icons_dir / "shared.svg").write_text(
+                f"<svg><!-- {marker} --></svg>",
+                encoding="utf-8",
+            )
+
+        monkeypatch.setattr(
+            "bengal.services.theme.get_theme_assets_chain",
+            lambda root_path, theme: [root_path / "theme" / "assets"],
+        )
+
+        barrier = threading.Barrier(2)
+
+        def load_many(site, marker: str) -> list[str]:
+            loaded: list[str] = []
+            with icon_resolver.site_context(site):
+                barrier.wait(timeout=10)
+                for _ in range(50):
+                    content = icon_resolver.load_icon("shared")
+                    assert content is not None
+                    loaded.append(content)
+            assert all(marker in content for content in loaded)
+            return loaded
+
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [
+                executor.submit(load_many, site1, "site-one"),
+                executor.submit(load_many, site2, "site-two"),
+            ]
+
+        assert sum(len(future.result()) for future in futures) == 100
 
     def test_render_svg_cache_is_scoped_by_site(self, tmp_path: Path, monkeypatch) -> None:
         """Rendered SVG cache keys include the active icon resolver scope."""
