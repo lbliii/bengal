@@ -141,8 +141,31 @@ class TestWriteOutputRenderedPage:
 
         write_output(page, site, collector=collector)
 
-        assert collector.get_outputs() == []
+        outputs = collector.get_outputs()
+        assert len(outputs) == 1
+        assert str(outputs[0].path) == "same/analysis.ipynb"
         assert (out.parent / "analysis.ipynb").read_text(encoding="utf-8") == '{"cells":[]}'
+
+    def test_does_not_record_unchanged_notebook_sidecar(self, tmp_path):
+        """Notebook sidecars are recorded only when sidecar bytes change."""
+        src = tmp_path / "content" / "analysis.ipynb"
+        src.parent.mkdir(parents=True)
+        src.write_text('{"cells":[]}', encoding="utf-8")
+        out = tmp_path / "same" / "index.html"
+        out.parent.mkdir(parents=True)
+        out.write_text("<p>same</p>", encoding="utf-8")
+        (out.parent / "analysis.ipynb").write_text('{"cells":[]}', encoding="utf-8")
+        page = _make_page(
+            source_path=src,
+            output_path=out,
+            rendered_html="<p>same</p>",
+        )
+        site = _make_site(tmp_path)
+        collector = BuildOutputCollector(output_dir=tmp_path)
+
+        write_output(page, site, collector=collector)
+
+        assert collector.get_outputs() == []
 
     def test_full_rebuild_can_skip_existing_output_compare(self, tmp_path):
         """Full rebuilds can record outputs without reading old HTML first."""
