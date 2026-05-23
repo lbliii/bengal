@@ -21,6 +21,7 @@ def mock_site():
     site = Mock()
     site.root_path = Path("/fake/site")
     site.output_dir = Path("/fake/site/public")
+    site.theme = None
     site.config = {}
     site.pages = []
     site.data = Mock()

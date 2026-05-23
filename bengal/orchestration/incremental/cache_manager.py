@@ -432,6 +432,25 @@ class CacheManager:
 
         return PageArtifactStore(self.site.config_service.paths.state_dir / "page-artifacts")
 
+    def _get_theme_templates_dir(self) -> Path | None:
+        """Return the active theme templates directory when it exists."""
+        theme = self.site.theme
+        if not isinstance(theme, str) or not theme:
+            return None
+
+        site_theme_dir = self.site.root_path / "themes" / theme / "templates"
+        if site_theme_dir.exists():
+            return site_theme_dir
+
+        import bengal
+
+        assert bengal.__file__ is not None, "bengal module has no __file__"
+        bundled_theme_dir = Path(bengal.__file__).parent / "themes" / theme / "templates"
+        if bundled_theme_dir.exists():
+            return bundled_theme_dir
+
+        return None
+
     def _update_data_file_fingerprints(self) -> None:
         """
         Update fingerprints for all data files.

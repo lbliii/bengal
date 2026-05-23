@@ -82,6 +82,7 @@ class TestLRUCacheThreadSafety:
                         size=20 + (i % 3),
                         css_class=f"class_{i % 2}",
                         aria_label="",
+                        scope_key=(),
                     )
                     with lock:
                         results.append(result)
