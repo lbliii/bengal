@@ -15,6 +15,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  performance-evidence:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Validate Performance Evidence section
+        run: python scripts/check_performance_evidence.py --github-event "$GITHUB_EVENT_PATH"
+
   # Detect whether code paths changed — skip tests for docs-only PRs
   detect-changes:
     if: github.event_name == 'pull_request' || github.event_name == 'push'

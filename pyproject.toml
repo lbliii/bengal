@@ -421,6 +421,7 @@ proof-pr = { sequence = [
 proof-pr-plan = { cmd = "python scripts/proof_pr_plan.py --format json", help = "Print the resolved bounded PR proof path as JSON" }
 output-write-audit = { cmd = "python scripts/check_output_writes.py", help = "Audit direct writes in generated-output and cache-adjacent code" }
 core-surface-audit = { cmd = "python scripts/check_core_surface_usage.py", help = "Audit internal use of core compatibility surfaces marked for retirement" }
+performance-evidence-check = { cmd = "python scripts/check_performance_evidence.py --body-file .github/pull_request_template.md --allow-template", help = "Validate Performance Evidence fields in a PR body markdown file" }
 
 # Benchmarks
 benchmark = { cmd = "pytest benchmarks/ tests/performance/ -v --benchmark-only", help = "Run all benchmarks" }
