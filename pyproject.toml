@@ -418,6 +418,7 @@ proof-pr = { sequence = [
     "test-unit",
     "benchmark-smoke",
 ], help = "Bounded PR proof path: lint, format, types, unit tests, and benchmark smoke guards" }
+proof-pr-plan = { cmd = "python scripts/proof_pr_plan.py --format json", help = "Print the resolved bounded PR proof path as JSON" }
 
 # Benchmarks
 benchmark = { cmd = "pytest benchmarks/ tests/performance/ -v --benchmark-only", help = "Run all benchmarks" }
