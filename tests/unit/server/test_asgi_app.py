@@ -218,22 +218,19 @@ async def test_static_asset_range_request_returns_partial_content(tmp_path: Path
 
 
 @pytest.mark.asyncio
-async def test_static_asset_ignores_pounce_sendfile_extension(tmp_path: Path) -> None:
-    """Dev static assets stay on ASGI body frames when Pounce offers sendfile."""
+async def test_static_asset_uses_protocol_owned_pounce_sendfile(tmp_path: Path) -> None:
+    """Dev static assets use Pounce's h11-accounted sendfile message."""
     assets = tmp_path / "assets"
     assets.mkdir()
-    (assets / "app.js").write_text("console.log('ok')")
-    sendfile_calls: list[tuple[Path, int, int]] = []
-
-    async def sendfile(path: Path, offset: int, count: int) -> None:
-        sendfile_calls.append((path, offset, count))
+    asset_path = assets / "app.js"
+    asset_path.write_text("console.log('ok')")
 
     app = create_bengal_dev_app(
         output_dir=tmp_path,
         build_in_progress=lambda: False,
     )
     sent, send = _make_send_capture()
-    extensions = {"pounce.sendfile": sendfile, "request_id": "request-1"}
+    extensions = {"pounce.sendfile": {"version": 1}, "request_id": "request-1"}
 
     await app(
         scope={
@@ -246,10 +243,15 @@ async def test_static_asset_ignores_pounce_sendfile_extension(tmp_path: Path) ->
         send=send,
     )
 
-    assert sendfile_calls == []
-    assert extensions["pounce.sendfile"] is sendfile
+    assert extensions["pounce.sendfile"] == {"version": 1}
     assert sent[0]["status"] == 200
-    assert _body(sent) == b"console.log('ok')"
+    assert sent[1] == {
+        "type": "pounce.response.sendfile",
+        "path": asset_path,
+        "offset": 0,
+        "count": asset_path.stat().st_size,
+        "more_body": False,
+    }
 
 
 @pytest.mark.asyncio
@@ -441,17 +443,14 @@ async def test_preview_app_serves_generated_artifact_as_static_file(tmp_path: Pa
 
 
 @pytest.mark.asyncio
-async def test_preview_app_ignores_pounce_sendfile_extension(tmp_path: Path) -> None:
-    """Preview static files stay on ASGI body frames when Pounce offers sendfile."""
-    (tmp_path / "app.js").write_text("console.log('preview')")
-    sendfile_calls: list[tuple[Path, int, int]] = []
-
-    async def sendfile(path: Path, offset: int, count: int) -> None:
-        sendfile_calls.append((path, offset, count))
+async def test_preview_app_uses_protocol_owned_pounce_sendfile(tmp_path: Path) -> None:
+    """Preview static files use Pounce's h11-accounted sendfile message."""
+    asset_path = tmp_path / "app.js"
+    asset_path.write_text("console.log('preview')")
 
     app = create_bengal_preview_app(output_dir=tmp_path)
     sent, send = _make_send_capture()
-    extensions = {"pounce.sendfile": sendfile}
+    extensions = {"pounce.sendfile": {"version": 1}}
 
     await app(
         scope={
@@ -464,10 +463,15 @@ async def test_preview_app_ignores_pounce_sendfile_extension(tmp_path: Path) -> 
         send=send,
     )
 
-    assert sendfile_calls == []
-    assert extensions["pounce.sendfile"] is sendfile
+    assert extensions["pounce.sendfile"] == {"version": 1}
     assert sent[0]["status"] == 200
-    assert _body(sent) == b"console.log('preview')"
+    assert sent[1] == {
+        "type": "pounce.response.sendfile",
+        "path": asset_path,
+        "offset": 0,
+        "count": asset_path.stat().st_size,
+        "more_body": False,
+    }
 
 
 @pytest.mark.asyncio

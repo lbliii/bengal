@@ -1,1 +1,0 @@
-Tightened stale-output prevention for incremental builds by using build-start provenance timestamps, nanosecond file mtimes, section derived-cache invalidation, and conservative dev-server reactive fallbacks.

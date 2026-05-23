@@ -1,3 +1,111 @@
+## [0.3.3] - 2026-05-23
+
+### Added
+
+- Added `bengal audit` to scan generated artifacts for missing internal file
+  references with Kida-rendered and JSON output. (`#artifact-audit-command`)
+- Add a pre-discovery build change census for no-op and single-edit rebuilds. (`#build-change-census`)
+- Added a separate bundled `chirpui` theme that renders Bengal pages with Chirp UI macros and assets without modifying the existing `default` theme. (`#chirpui-theme`)
+- Added Git versioning configuration for building the latest branch plus the newest matching release tags. (`#git-previous-tags`)
+- Added `bengal preview`, which runs a complete build and then serves the completed
+  output directory through Pounce static handling for production-like local checks. (`#preview-static-serving`)
+- Added a version-aware `url_for` template helper for pages, sections, snapshots, and literal paths. (`#render-url-for`)
+- Add theme library asset contracts with provider-managed CSS/JS emission, tag attributes, runtime metadata, strict missing-asset diagnostics, manifest provenance, and vendor-facing documentation. (`#theme-library-assets`)
+
+### Changed
+
+- Route health link target discovery through an explicit generated artifact inventory when available. (`#artifact-inventory-link-registry`)
+- Sites can now opt into Atom feed generation with `generate_atom` or `features.atom`, producing `atom.xml` alongside existing RSS support with language-specific self links. (`#atom-feed`)
+- Made additional rendered output, special page, optimized CSS, and output-format sidecar writes atomic so interrupted builds do not leave partial files behind. (`#atomic-output-writes`)
+- Build requests now carry an explicit completion policy so `bengal serve` can distinguish browse-ready work from complete deployable builds. (`#build-completion-policy`)
+- Post-render build work now has explicit finalization task contracts, separating serve-ready, artifact, quality, and persistence responsibilities. (`#build-finalization-task-policy`)
+- Build summaries now use recorded phase timings for colder builds, including previously hidden parsing, snapshot, filtering, artifact inventory, cache-save, and stats work. (`#build-phase-accounting`)
+- Scoped active plugin and effect-tracing state to the current build context so concurrent builds do not share dependency or extension state. (`#build-scoped-state`)
+- Page artifact persistence now rewrites only shards affected by changed or deleted page artifacts during warm builds. (`#cache-dirty-page-artifact-shards`)
+- Build cache saves now split parsed content, rendered output, validation results, and synthetic pages into separate hot-store files to reduce the main cache payload rewritten after builds. (`#cache-split-hot-stores`)
+- Render debug and inspect report summaries through shared Kida templates instead
+  of forwarding preformatted summary strings to the CLI. (`#cli-debug-report-output`)
+- Bengal's Milo CLI bridge now renders root, group, and every registered command help path through Bengal-owned Kida templates backed by Milo's command registry, routes semantic CLI messages, structured logger console events, phase summaries, and runtime output call sites through `bengal.output.get_cli_output()`, aggregates repeated missing-icon, unknown-config, valid-track, navigation, taxonomy, menu, cache, performance, and rendering health messages into compact notices, renders URL collisions from structured records instead of raw multi-line strings, gives `bengal clean` branded Kida output, adds reusable command empty/list/error templates for plugin, content, cache, theme, config, codemod, content schema, i18n, and version output states, gives `bengal build`, `bengal serve`, `bengal check`, and `bengal audit` ASCII-safe `--style` output through scoped output modes that do not leak between embedded command invocations, gives check/audit verdict-first reports with `--focus` and bounded `--limit` output where findings can be long, annotates command read/write intent for MCP clients, documents the built-in `--llms-txt`, `--completions`, and MCP modes, keeps CLI output/scaffold writes atomic, and guards Bengal package code against direct terminal writes outside the live progress cursor-control sink. (`#cli-milo-builtins`)
+- Route performance reporting and fallback live-progress output through the
+  shared CLI output bridge instead of direct terminal writes. (`#cli-observability-output`)
+- Add a unit-test guard that blocks direct terminal writes in CLI-facing Bengal
+  packages so output continues to route through the shared CLI renderer. (`#cli-output-boundary-guard`)
+- Route CLI progress, prompts, interrupt messages, and Milo compatibility output
+  through the shared `CLIOutput` bridge so CLI utility imports and output package
+  imports use the same renderer singleton. (`#cli-output-bridge`)
+- During dev-server background completion, requests for missing generated artifacts now return a short retryable response instead of looking like ordinary missing pages. (`#deferred-artifact-response`)
+- Git versioned builds now prune previously managed stale version outputs, preserve latest assets when merging older staged outputs, accept `releases/tags` and `git-tags` as aliases for tag-based previous-version discovery, make `git.latest` override duplicate branch-pattern discoveries, show the version selector on generic versioned pages, cover repository-root builds where the Bengal site lives in a subdirectory, and dogfood automatic release-tag versioning on Bengal's own docs site. (`#git-version-hardening`)
+- Kept `bengal health` as a compatibility alias for `bengal check` while the new
+  artifact-focused `bengal audit` command is introduced. (`#health-command-alias`)
+- Invalidate cached Links health results when rendered URLs, anchors, source paths, or auxiliary outputs change. (`#health-link-cache-registry-fingerprint`)
+- Cache repeated health link-validation results during each run and report cache hit stats in validator output. (`#health-link-result-cache`)
+- Teach the Links health validator to validate only scoped changed pages on incremental runs while preserving cached unchanged-page findings. (`#health-links-incremental-scope`)
+- Health check reports now expose a versioned result envelope for future Milo/Kida
+  validation and audit output. (`#health-report-envelope`)
+- Incremental health checks can now reuse a cached whole-report result when source, configuration, and link-registry inputs are unchanged. (`#health-report-reuse`)
+- Add internal scoped validation plumbing so incremental health checks can pass changed-file context and cached validation results to file-specific validators. (`#health-validation-scope`)
+- Effect tracing now replaces stale records for regenerated outputs and uses dependency indexes for template/data invalidation lookups. (`#incremental-effect-trace-replacement`)
+- Documented the Milo CLI as Bengal's settled command entry point and removed stale migration alias references. (`#milo-cli-closure`)
+- OpenAPI autodoc now resolves local file-relative `$ref` entries and tracks the resolved files as incremental build dependencies. (`#openapi-local-ref-dependencies`)
+- Skip rewriting unchanged per-page JSON, text, and Markdown output-format files during post-processing. (`#output-formats-skip-unchanged`)
+- Deep-froze nested payloads on pipeline records so cached page metadata, parsed AST data, TOC items, and render dependencies cannot be mutated after construction. (`#pipeline-record-freeze`)
+- Wire plugin-provided Patitas directives and roles into parser setup and mark those plugin capabilities ready in plugin inspection. (`#plugin-directive-role-wiring`)
+- Hardened plugin registry validation so malformed extension names, non-callable hooks, invalid template phases, and mutable frozen snapshots fail early with explicit errors. (`#plugin-registry-contract`)
+- Improve post-render build diagnostics and reduce incremental per-page output work. (`#post-render-build-tail`)
+- Incremental site-wide output fingerprints now reuse cached per-page artifact hashes, reducing no-op aggregate skip work on large sites. (`#postprocess-delta-aggregate-fingerprints`)
+- Output-format graph data is now built lazily, avoiding graph construction when incremental JSON outputs are already up to date. (`#postprocess-lazy-graph`)
+- Reuse cached post-render page artifacts for incremental output formats and link-registry health setup. (`#postrender-artifact-cache`)
+- Internal link target registries are now owned by rendering, with health keeping
+  compatibility imports while validation migrates to the shared resolver. (`#rendering-reference-registry`)
+- Rendering health checks now warn about missing share-card metadata and malformed JSON-LD blocks in generated HTML. (`#rendering-social-jsonld-validation`)
+- Search configuration now has an explicit `search.backend` contract, defaulting to the existing Lunr backend without changing generated artifact paths. (`#search-backend-contract`)
+- `bengal serve` now starts a background completion build after the browse-ready cold start so deferred artifacts, health checks, and caches finish without blocking first paint. (`#serve-background-completion`)
+- Background completion for `bengal serve` now runs in quiet mode, reports one concise completion line, and coalesces deferred generated-artifact polling in the request log. (`#serve-background-console`)
+- `bengal serve` now exposes `--complete` for users who want dev-server startup and watched rebuilds to wait for the full artifact, health, and cache tail instead of the default browse-ready fast path. (`#serve-complete-policy`)
+- `bengal serve` builds now honor the serve-ready policy by deferring non-browse-critical post-render work such as artifact inventories, cache persistence, provenance saves, health checks, and asset audits. (`#serve-ready-defers-tail`)
+- Serve-ready build summaries now say `HTML ready` instead of `Built` so local dev output distinguishes first paint from full background artifact completion. (`#serve-ready-summary`)
+- Dev server static/CSS edits can now use a direct atomic output copy and reload without running the full warm build when Bengal can prove the output is an existing verbatim asset. (`#server-asset-fast-path`)
+- Dev server double buffering now delta-seeds the inactive output buffer after successful incremental builds, avoiding full-tree staging copies on the next rebuild when typed output records identify the changed files. (`#server-delta-buffer-staging`)
+- Improve dev-server reload and health-check feedback by suppressing aggregate-only reloads and showing health-check progress before validators finish. (`#server-reload-health-ux`)
+- Dev-server watcher rebuilds now skip the pre-build output content-hash scan when typed build outputs can drive the reload decision. (`#server-skip-reload-baseline`)
+- Explain dev-server template rebuild decisions at info level, including template dependency cache misses and incremental template rebuilds. (`#server-template-rebuild-diagnostics`)
+- Social cards now persist rendered-input fingerprints in the build cache so full builds can reuse unchanged generated card files without sharing the output-format fingerprint map during card generation. (`#social-card-persistent-fingerprints`)
+- Tightened stale-output prevention for incremental builds by using build-start provenance timestamps, nanosecond file mtimes, section derived-cache invalidation, and conservative dev-server reactive fallbacks. (`#stale-output-prevention`)
+- List and inspect bundled themes consistently, add `theme swizzle-list`, `theme swizzle-update`, and `theme preview`, and make `theme new --mode package` produce an installable package skeleton. (`#theme-cli-parity`)
+- Added an internal theme metadata model so theme validation reports malformed metadata fields before checking template and asset structure. (`#theme-metadata-contract`)
+- Improved `bengal theme preview` so it reports the active theme, watched paths, and validation issues before starting the live preview server. (`#theme-preview-preflight`)
+- Versioned documentation configs can now set `status` to `current`, `legacy`, `deprecated`, `preview`, or `eol`; existing `deprecated: true` configs remain supported. (`#version-status-config`)
+- Upgrade Bengal's `milo-cli` requirement to the Kida 0.9-compatible 0.3.1 release, and make Bengal resolve as its own uv workspace root for local development. (`#milo-cli-0-3`)
+
+### Fixed
+
+- Made notebook sidecar and generated font CSS writes atomic and output-collector visible, and routed downloaded font files through the shared atomic write helper. (`#atomic-sidecar-font-writes`)
+- Restore `bengal cache inputs` and `bengal cache hash` runtime execution by moving CI cache input discovery into the cache package, fix cache hashing for cwd-relative `--config` paths, keep site-local themes visible in `bengal theme list/info`, and add published CLI runtime smoke coverage for advertised commands. (`#cache-hash-runtime`)
+- Fix menu hierarchy rebuild idempotence and mixed-type section weight sorting. (`#core-menu-section-sorting`)
+- Preserve descendant selector whitespace before pseudo, attribute, and universal selectors during CSS minification. (`#css-minifier-selector-whitespace`)
+- Fix Git-mode versioned builds so release-branch outputs merge into canonical versioned documentation paths and cached worktrees are reused when refs have not moved. (`#git-version-builds`)
+- Fix git-versioned documentation sidebar links so older versions point at their versioned section paths. (`#git-version-sidebar-links`)
+- Directive health validation now uses the shared validation scope and seeds per-file cached results, preventing stale directive findings from disappearing during incremental checks. (`#health-directive-scope-cache`)
+- Restored incremental theme-template directory detection used by warm-build template invalidation. (`#incremental-theme-template-helper`)
+- Internal link validation now uses the rendering reference resolver and correctly
+  handles `./` links from directory-style page URLs. (`#link-validator-rendering-resolver`)
+- Sanitize cached page artifact metadata before output-format fingerprinting and cache persistence. (`#page-artifact-json-safety`)
+- Add a manifest for page artifact shards and support targeted artifact loads. (`#page-artifact-manifest`)
+- Fix stale page lookup caches after same-length page-list replacements. (`#page-cache-epoch`)
+- Harden post-render correctness around aggregate LLM text hashing, incremental validation caching, cache-save failures, and provenance session caches. (`#post-render-correctness`)
+- Batch page provenance persistence after render instead of storing each record individually. (`#provenance-batch-persistence`)
+- Scoped icon resolver caches, rendered icon caches, template icon aliases, and page context wrappers to the active site/build so concurrent or repeated builds cannot reuse stale rendering state from another site. (`#render-cache-scoping`)
+- Fixed Kida fragment cache entries that include `asset_url()` so asset fingerprint changes cannot replay stale CSS or JavaScript URLs. (`#rendering-asset-fragment-cache`)
+- `bengal serve --complete` now blocks through the full initial build even when cached output exists instead of taking the cached serve-first shortcut. (`#serve-complete-cached-blocking`)
+- Dev server reload suppression no longer emits a follow-up `"none"` reload event after deciding no browser reload should be sent. (`#server-none-reload-suppressed`)
+- Update Poe build, serve, and deploy-test helpers to use the current `--source site` CLI shape. (`#release-0.3.3-prep`)
+- Upgrade Bengal's Pounce dependency to the release with protocol-owned sendfile handling, allowing dev and preview static assets to use sendfile without HTTP/1 Content-Length errors. (`#server-static-sendfile`)
+- Replaced shortcode pairing with a single-pass stack scanner so nested paired shortcodes, including nested shortcodes with the same name, expand correctly without repeated full-content searches. (`#shortcode-stack-scanner`)
+- Treat generated site-wide output-format files like `/llms.txt` as valid internal link targets. (`#site-wide-output-link-targets`)
+- Fix incremental template invalidation for active theme inheritance chains. (`#template-invalidation`)
+- Hardened dev-server watcher shutdown with explicit lifecycle states, including the race where the background event loop closes before `stop()` posts its final stop callback. (`#watcher-stop-closed-loop`)
+
+
 ## [0.3.2] - 2026-05-02
 
 ### Added

@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
     type ASGIApp = Callable[..., Any]
 
-_MIN_POUNCE_STATIC_FALLBACK_VERSION = "0.7.0"
+_MIN_POUNCE_STATIC_FALLBACK_VERSION = "0.7.1"
 
 
 def create_static_app_with_fallback(
@@ -28,7 +28,7 @@ def create_static_app_with_fallback(
     but that helper does not accept a fallback ASGI app. Bengal preview needs
     fallback handling for generated custom 404 pages and health checks, so keep
     the private Pounce import isolated here. ``pyproject.toml`` pins
-    ``bengal-pounce>=0.7.0`` for the ``StaticFiles(app, mounts=...)`` contract.
+    ``bengal-pounce>=0.7.1`` for the ``StaticFiles(app, mounts=...)`` contract.
     """
     try:
         from pounce._static import StaticFiles, StaticMount

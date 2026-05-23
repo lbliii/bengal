@@ -375,7 +375,7 @@ annotated command signatures.
 
 ```bash
 $ bengal --help
-bengal 0.3.2
+bengal 0.3.3
 Static site generator for Python teams — every layer pure Python, scales with your cores
 
 Core workflow

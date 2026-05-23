@@ -2,9 +2,6 @@ version = 1
 revision = 3
 requires-python = ">=3.14"
 
-[manifest]
-overrides = [{ name = "kida-templates", specifier = ">=0.9.0" }]
-
 [[package]]
 name = "aiohappyeyeballs"
 version = "2.6.1"
@@ -208,7 +205,7 @@ requires-dist = [
     { name = "aiohttp", marker = "extra == 'github'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'notion'", specifier = ">=3.9.0" },
     { name = "aiohttp", marker = "extra == 'rest'", specifier = ">=3.9.0" },
-    { name = "bengal-pounce", specifier = ">=0.7.0" },
+    { name = "bengal-pounce", specifier = ">=0.7.1" },
     { name = "cachetools", marker = "extra == 'all-sources'", specifier = ">=5.0.0" },
     { name = "cachetools", marker = "extra == 'notion'", specifier = ">=5.0.0" },
     { name = "click", specifier = ">=8.1.7" },
@@ -216,7 +213,7 @@ requires-dist = [
     { name = "jsmin", specifier = ">=3.0.1" },
     { name = "kida-templates", specifier = ">=0.9.0" },
     { name = "lunr", marker = "extra == 'search'", specifier = ">=0.7.0" },
-    { name = "milo-cli", git = "https://github.com/lbliii/milo-cli.git?rev=36d64cf03c96186e3cf3da77fde4ea59e92f19a6" },
+    { name = "milo-cli", specifier = ">=0.3.1" },
     { name = "packaging", specifier = ">=23.0" },
     { name = "patitas", specifier = ">=0.3.5" },
     { name = "pillow", specifier = ">=10.0.0" },
@@ -271,15 +268,15 @@ dev = [
 
 [[package]]
 name = "bengal-pounce"
-version = "0.7.0"
+version = "0.7.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "h11" },
     { name = "milo-cli" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/60/d2/8e1e453bfd520a4af72e6f4bd3a55880cbf3a55fe22757148a47784673ac/bengal_pounce-0.7.0.tar.gz", hash = "sha256:421bd68013d0c51b0907c32585c6dccf9dd64d5e883479dc13098a090f5b8f35", size = 199187, upload-time = "2026-05-09T23:33:18.897Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/1e/89/987fe874d2aa008b8a777676f34a524aea04d8f5c0066854aae6fc940a9d/bengal_pounce-0.7.1.tar.gz", hash = "sha256:326452f317351488319292ee5b1032e98054993a146f63ba3550275eab853331", size = 201077, upload-time = "2026-05-23T16:49:26.62Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/cf/33/3951fdd3959160907c01009d0630bd5ecb8d624f5b280529ae4f537a813e/bengal_pounce-0.7.0-py3-none-any.whl", hash = "sha256:625fe43a0046a1384304a6434dee5550964dc870bba2c252c955ecd1f73cf9f6", size = 230735, upload-time = "2026-05-09T23:33:17.288Z" },
+    { url = "https://files.pythonhosted.org/packages/6e/0b/868403f83e95b3048a244014eff1f932a522372eccb699fca5f5040c01fd/bengal_pounce-0.7.1-py3-none-any.whl", hash = "sha256:63a04aab2596be51dbccba4146a8ab44223f9451f59fe16206ce05ffbed8b2ca", size = 232327, upload-time = "2026-05-23T16:49:24.372Z" },
 ]
 
 [[package]]
@@ -682,10 +679,14 @@ wheels = [
 
 [[package]]
 name = "milo-cli"
-version = "0.3.0"
-source = { git = "https://github.com/lbliii/milo-cli.git?rev=36d64cf03c96186e3cf3da77fde4ea59e92f19a6#36d64cf03c96186e3cf3da77fde4ea59e92f19a6" }
+version = "0.3.1"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "kida-templates" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/e2/21/58f8d65fcd0f9ec4b4bfdfa68c231711bb8060e23e07e41be53d52dc2aa0/milo_cli-0.3.1.tar.gz", hash = "sha256:aa925e16bde657b977f1fc68906b60e51a25a3b3995921b0d80ec87a99088854", size = 248662, upload-time = "2026-05-23T18:53:21.577Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/84/f2/b20eeef19562652314d0dc950d0ff360953b00d2eb68c573998b343d625d/milo_cli-0.3.1-py3-none-any.whl", hash = "sha256:5eb7a5232dae515d905935379efd35a6fa494f7905d45ea2c41bfff8b138992a", size = 149625, upload-time = "2026-05-23T18:53:19.882Z" },
 ]
 
 [[package]]

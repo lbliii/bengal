@@ -1,1 +1,0 @@
-`bengal serve` builds now honor the serve-ready policy by deferring non-browse-critical post-render work such as artifact inventories, cache persistence, provenance saves, health checks, and asset audits.
