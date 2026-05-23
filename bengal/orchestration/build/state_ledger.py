@@ -106,4 +106,31 @@ def get_state_surface(surface_id: str) -> BuildStateSurface:
     raise KeyError(surface_id)
 
 
-__all__ = ["BUILD_STATE_LEDGER", "BuildStateSurface", "get_state_surface"]
+def warm_build_surfaces() -> tuple[BuildStateSurface, ...]:
+    """Return surfaces that participate in warm-build correctness."""
+    return tuple(surface for surface in BUILD_STATE_LEDGER if surface.participates_in_warm_build)
+
+
+def state_surfaces_by_owner(owner: str) -> tuple[BuildStateSurface, ...]:
+    """Return surfaces owned by a module or package prefix."""
+    owner_prefix = f"{owner}."
+    return tuple(
+        surface
+        for surface in BUILD_STATE_LEDGER
+        if surface.owner == owner or surface.owner.startswith(owner_prefix)
+    )
+
+
+def proof_paths_for_surface(surface_id: str) -> tuple[str, ...]:
+    """Return proof paths attached to one surface."""
+    return get_state_surface(surface_id).proof
+
+
+__all__ = [
+    "BUILD_STATE_LEDGER",
+    "BuildStateSurface",
+    "get_state_surface",
+    "proof_paths_for_surface",
+    "state_surfaces_by_owner",
+    "warm_build_surfaces",
+]
