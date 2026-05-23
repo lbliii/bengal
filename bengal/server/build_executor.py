@@ -50,6 +50,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+# Runtime re-export for existing ``bengal.server.build_executor.BuildRequest`` callers.
+from bengal.orchestration.build.requests import BuildRequest  # noqa: TC001
 from bengal.server.reload_types import SerializedOutputRecord
 from bengal.utils.observability.logger import get_logger
 
@@ -69,50 +71,6 @@ def _get_mp_context() -> multiprocessing.context.BaseContext:
     if _mp_context is None:
         _mp_context = multiprocessing.get_context("spawn")
     return _mp_context
-
-
-@dataclass(frozen=True, slots=True)
-class BuildRequest:
-    """
-    Serializable build request for cross-process execution.
-
-    All fields must be picklable for use with ProcessPoolExecutor.
-    Uses strings instead of Path objects for serialization.
-
-    Attributes:
-        site_root: Path to site root directory (as string)
-        changed_paths: Tuple of changed file paths (as strings)
-        incremental: Whether to use incremental build
-        profile: Build profile name (e.g., "WRITER", "PUBLISHER")
-        nav_changed_paths: Paths with navigation-affecting frontmatter changes
-        structural_changed: Whether structural changes (create/delete/move) occurred
-        force_sequential: If True, force sequential processing (bypasses auto-detection)
-        version_scope: RFC: rfc-versioned-docs-pipeline-integration (Phase 3)
-            Focus rebuilds on a single version (e.g., "v2", "latest").
-            If None, all versions are rebuilt on changes.
-        memory_optimized: Use streaming build for memory efficiency
-        explain: Show detailed incremental build decisions
-        dry_run: Preview build without writing files
-        profile_templates: Enable template profiling
-        completion_policy: Serialized BuildCompletionPolicy value
-        quiet: Suppress routine build transcript output
-
-    """
-
-    site_root: str
-    changed_paths: tuple[str, ...] = field(default_factory=tuple)
-    incremental: bool = True
-    profile: str = "WRITER"
-    nav_changed_paths: tuple[str, ...] = field(default_factory=tuple)
-    structural_changed: bool = False
-    force_sequential: bool = False
-    version_scope: str | None = None
-    memory_optimized: bool = False
-    explain: bool = False
-    dry_run: bool = False
-    profile_templates: bool = False
-    completion_policy: str = "complete"
-    quiet: bool = False
 
 
 @dataclass(frozen=True, slots=True)

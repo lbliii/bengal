@@ -7,7 +7,7 @@ enabling serialization, logging, and replay for debugging.
 See Also:
 - plan/analysis-pipeline-inputs-and-vertical-stacks.md
 - bengal.orchestration.build.options: BuildOptions
-- bengal.server.build_executor: BuildRequest (serializable view)
+- bengal.orchestration.build.requests: BuildRequest (serializable view)
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING
 from bengal.orchestration.build.options import BuildCompletionPolicy, BuildOptions
 
 if TYPE_CHECKING:
-    from bengal.server.build_executor import BuildRequest
+    from bengal.orchestration.build.requests import BuildRequest
 
 
 _CONTENT_EXTENSIONS = frozenset({".md", ".markdown", ".html", ".txt", ".ipynb"})
@@ -205,7 +205,7 @@ class BuildInput:
 
     def to_build_request(self) -> BuildRequest:
         """Convert to BuildRequest for process-isolated builds."""
-        from bengal.server.build_executor import BuildRequest
+        from bengal.orchestration.build.requests import BuildRequest
 
         return BuildRequest(
             site_root=str(self.site_root),
