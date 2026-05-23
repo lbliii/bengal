@@ -2,9 +2,17 @@
 
 from __future__ import annotations
 
+import json
 import shlex
 import tomllib
 from pathlib import Path
+
+from benchmarks.run_matrix import (
+    MatrixEntry,
+    execute_entries,
+    load_entries,
+    write_receipt,
+)
 
 ROOT = Path(__file__).resolve().parents[3]
 MATRIX_PATH = ROOT / "benchmarks" / "benchmark_matrix.toml"
@@ -96,3 +104,55 @@ def test_benchmark_matrix_covers_required_hot_paths() -> None:
     covered_tags = {tag for entry in matrix["benchmarks"] for tag in entry["tags"]}
 
     assert REQUIRED_TAGS.issubset(covered_tags)
+
+
+def test_matrix_runner_dry_run_returns_normalized_results() -> None:
+    entry = MatrixEntry(
+        id="render-output-regression",
+        tier="smoke",
+        command="uv run pytest tests/performance/test_autodoc_render_regression.py",
+        purpose="Guard render output shape.",
+    )
+
+    exit_code, results = execute_entries([entry], dry_run=True)
+
+    assert exit_code == 0
+    assert len(results) == 1
+    assert results[0].id == entry.id
+    assert results[0].returncode == 0
+    assert results[0].duration_seconds == 0.0
+    assert results[0].skipped is True
+
+
+def test_matrix_runner_writes_receipt(tmp_path: Path) -> None:
+    entry = MatrixEntry(
+        id="post-render-budget",
+        tier="smoke",
+        command="uv run pytest tests/performance/test_post_render_pipeline_budget.py",
+        purpose="Guard post-render budget.",
+    )
+    exit_code, results = execute_entries([entry], dry_run=True)
+    receipt_path = tmp_path / "matrix" / "receipt.json"
+
+    write_receipt(
+        receipt_path,
+        entries=[entry],
+        results=results,
+        dry_run=True,
+        exit_code=exit_code,
+    )
+
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+
+    assert receipt["version"] == 1
+    assert receipt["dry_run"] is True
+    assert receipt["exit_code"] == 0
+    assert receipt["selected_ids"] == [entry.id]
+    assert receipt["results"][0]["id"] == entry.id
+
+
+def test_matrix_runner_loads_canonical_rows() -> None:
+    entries = load_entries(MATRIX_PATH)
+
+    assert entries
+    assert {entry.tier for entry in entries} == {"smoke", "release", "investigation"}
