@@ -39,10 +39,14 @@ from __future__ import annotations
 
 import re
 import threading
+from typing import TYPE_CHECKING
 
 from bengal.icons import resolver as icon_resolver
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.lru_cache import LRUCache
+
+if TYPE_CHECKING:
+    from bengal.protocols import SiteConfig
 
 __all__ = [
     "ICON_MAP",
@@ -66,7 +70,9 @@ _missing_icon_lock = threading.Lock()
 _missing_icon_warnings: dict[str, dict[str, object]] = {}
 
 # Thread-safe LRU cache for SVG icon rendering (replaces @lru_cache for free-threading)
-_svg_icon_cache: LRUCache[tuple[str, int, str, str], str] = LRUCache(maxsize=512, name="svg_icon")
+_svg_icon_cache: LRUCache[tuple[tuple[str, ...], str, int, str, str], str] = LRUCache(
+    maxsize=512, name="svg_icon"
+)
 
 
 def get_icon_svg(name: str) -> str | None:
@@ -99,6 +105,8 @@ def render_svg_icon(
     size: int = 20,
     css_class: str = "",
     aria_label: str = "",
+    *,
+    site: SiteConfig | None = None,
 ) -> str:
     """
     Render an SVG icon for use in directives.
@@ -128,13 +136,14 @@ def render_svg_icon(
             '<svg ...'
 
     """
-    key = (name, size, css_class, aria_label)
+    scope_key = icon_resolver.get_scope_key(site)
+    key = (scope_key, name, size, css_class, aria_label)
 
     def _render_impl() -> str:
         # Map semantic name to actual icon name (e.g., "alert" -> "warning")
         icon_name = ICON_MAP.get(name, name)
 
-        svg_content = icon_resolver.load_icon(icon_name)
+        svg_content = icon_resolver.load_icon(icon_name, site=site)
         if svg_content is None:
             return ""
 

@@ -173,7 +173,9 @@ class MenuItem:
             item.sort_children()  # No-op (already sorted)
         """
         if self._children_dirty:
-            self.children.sort(key=lambda x: x.weight)
+            from bengal.core.utils.sorting import weight_sort_key
+
+            self.children.sort(key=weight_sort_key)
             self._children_dirty = False
 
     def get_sorted_children(self) -> list[MenuItem]:
@@ -516,8 +518,9 @@ class MenuBuilder:
             items_with_parents=sum(1 for i in self.items if i.parent),
         )
 
-        # Create lookup by identifier
-        by_id = {item.identifier: item for item in self.items}
+        # Create lookup by identifier. Items without identifiers can still be roots,
+        # but cannot participate in parent-link validation.
+        by_id = {item.identifier: item for item in self.items if item.identifier is not None}
 
         # Validate parent references
         orphaned_items = [
@@ -539,6 +542,9 @@ class MenuBuilder:
                 items=[(name, parent) for name, parent in orphaned_items[:5]],
             )
 
+        self._validate_parent_links_are_acyclic(by_id)
+        self._clear_existing_hierarchy()
+
         # Build tree
         roots = []
         for item in self.items:
@@ -552,19 +558,19 @@ class MenuBuilder:
             else:
                 roots.append(item)
 
-        # Detect cycles
+        # Detect cycles in the materialized tree as a second line of defense.
         visited: set[str] = set()
-        for root in roots:
-            if self._has_cycle(root, visited, set()):
+        for item in self.items:
+            if item.identifier not in visited and self._has_cycle(item, visited, set()):
                 emit_diagnostic(
                     self,
                     "error",
                     "menu_cycle_detected",
-                    root_item=root.name,
-                    root_identifier=root.identifier,
+                    root_item=item.name,
+                    root_identifier=item.identifier,
                 )
                 raise BengalContentError(
-                    f"Menu has circular reference involving '{root.name}'",
+                    f"Menu has circular reference involving '{item.name}'",
                     code=ErrorCode.C007,
                     suggestion="Check menu configuration for circular parent-child relationships",
                 )
@@ -579,7 +585,9 @@ class MenuBuilder:
             sort_recursive(root)
 
         # Sort roots by weight
-        roots.sort(key=lambda x: x.weight)
+        from bengal.core.utils.sorting import weight_sort_key
+
+        roots.sort(key=weight_sort_key)
 
         emit_diagnostic(
             self,
@@ -591,6 +599,55 @@ class MenuBuilder:
         )
 
         return roots
+
+    def _clear_existing_hierarchy(self) -> None:
+        """Remove previously materialized child links before rebuilding."""
+        for item in self.items:
+            item.children.clear()
+            item._children_dirty = False
+
+    def _validate_parent_links_are_acyclic(self, by_id: dict[str, MenuItem]) -> None:
+        """Validate the flat parent graph before materializing children."""
+        visiting: set[str] = set()
+        visited: set[str] = set()
+
+        def visit(item: MenuItem, path: list[str]) -> None:
+            identifier = item.identifier
+            if identifier is None:
+                return
+            if identifier in visited:
+                return
+            if identifier in visiting:
+                cycle_start = path.index(identifier) if identifier in path else 0
+                cycle = " -> ".join([*path[cycle_start:], identifier])
+                emit_diagnostic(
+                    self,
+                    "error",
+                    "menu_parent_cycle_detected",
+                    cycle=cycle,
+                    item=item.name,
+                    identifier=identifier,
+                )
+                raise BengalContentError(
+                    f"Menu has circular parent reference involving '{item.name}'",
+                    code=ErrorCode.C007,
+                    suggestion=(
+                        "Check menu configuration for circular parent-child relationships "
+                        f"such as: {cycle}"
+                    ),
+                )
+
+            visiting.add(identifier)
+            parent_id = item.parent
+            if parent_id is not None:
+                parent = by_id.get(parent_id)
+                if parent is not None:
+                    visit(parent, [*path, identifier])
+            visiting.discard(identifier)
+            visited.add(identifier)
+
+        for item in self.items:
+            visit(item, [])
 
     def _has_cycle(self, item: MenuItem, visited: set[str], path: set[str]) -> bool:
         """

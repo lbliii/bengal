@@ -10,6 +10,7 @@ Related RFC: plan/drafted/rfc-engine-agnostic-context-layer.md
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
@@ -200,6 +201,26 @@ class TestGetEngineGlobalsCaching:
         # Different sites should have different wrappers
         assert result1["site"] is not result2["site"]
         assert result1["config"] is not result2["config"]
+
+    def test_page_context_cache_is_build_scoped(self, mock_site):
+        """Page context wrappers are reused within a build, not across builds."""
+        from bengal.orchestration.build_context import BuildContext
+        from bengal.rendering.context import build_page_context
+
+        page = SimpleNamespace(
+            metadata={},
+            title="Page",
+            source_path=Path("/tmp/test-site/content/page.md"),
+        )
+        first_build = BuildContext(site=mock_site)
+        second_build = BuildContext(site=mock_site)
+
+        first_context = build_page_context(page, mock_site, build_context=first_build)
+        first_again = build_page_context(page, mock_site, build_context=first_build)
+        second_context = build_page_context(page, mock_site, build_context=second_build)
+
+        assert first_context["site"] is first_again["site"]
+        assert first_context["site"] is not second_context["site"]
 
 
 class TestGetEngineGlobalsThreadSafety:

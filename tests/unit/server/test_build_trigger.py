@@ -412,6 +412,29 @@ class TestBuildTrigger:
 
         assert trigger._is_template_change({template_file}) is True
 
+    def test_parent_theme_template_change_without_dependency_data_is_detected(
+        self, mock_site: MagicMock, mock_executor: MagicMock, tmp_path: Path
+    ) -> None:
+        """Dev-server template change checks use the active theme chain."""
+        mock_site.root_path = tmp_path
+        mock_site.theme = "child"
+
+        themes_dir = tmp_path / "themes"
+        parent_templates = themes_dir / "parent" / "templates"
+        parent_templates.mkdir(parents=True)
+        (themes_dir / "parent" / "theme.toml").write_text('name = "parent"\n')
+        template_file = parent_templates / "base.html"
+        template_file.write_text("<html></html>")
+
+        child_templates = themes_dir / "child" / "templates"
+        child_templates.mkdir(parents=True)
+        (themes_dir / "child" / "theme.toml").write_text('name = "child"\nextends = "parent"\n')
+        mock_site._cache = BuildCache(site_root=tmp_path)
+
+        trigger = BuildTrigger(site=mock_site, executor=mock_executor)
+
+        assert trigger._is_template_change({template_file}) is True
+
     @patch("bengal.server.build_trigger.logger")
     def test_template_change_logs_missing_dependency_data(
         self,

@@ -112,6 +112,7 @@ class BuildStats:
     # Cache bypass statistics
     cache_bypass_hits: int = 0  # Pages that bypassed cache (in changed_sources or is_changed)
     cache_bypass_misses: int = 0  # Pages that used cache (not changed)
+    change_census: dict[str, object] = field(default_factory=dict)
 
     # Block cache statistics - tracks site-wide template block caching (nav, footer, etc.)
     block_cache_hits: int = 0  # Times cached block was reused

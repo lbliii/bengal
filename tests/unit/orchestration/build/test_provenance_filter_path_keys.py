@@ -58,6 +58,7 @@ def mock_site(tmp_path: Path):
     """Site mock with root_path."""
     site = MagicMock()
     site.root_path = tmp_path
+    site.theme = None
     site.theme_path = None
     return site
 
@@ -162,8 +163,30 @@ class TestDetectChangedTemplatesPathKeys:
         changed = _detect_changed_templates(mock_cache, mock_site)
 
         assert tpl_file not in changed
-        mock_cache.is_changed.assert_called_once_with(tpl_file)
+        mock_cache.is_changed.assert_any_call(tpl_file)
         mock_cache.set_file_fingerprint.assert_not_called()
+
+    def test_detects_active_parent_theme_template_changes(
+        self, mock_cache: MagicMock, mock_site: MagicMock, tmp_path: Path
+    ) -> None:
+        """Template invalidation scans the full active theme chain."""
+        themes_dir = tmp_path / "themes"
+        parent_templates = themes_dir / "parent" / "templates"
+        parent_templates.mkdir(parents=True)
+        (themes_dir / "parent" / "theme.toml").write_text('name = "parent"\n')
+        parent_template = parent_templates / "base.html"
+        parent_template.write_text("<html>v2</html>")
+
+        child_templates = themes_dir / "child" / "templates"
+        child_templates.mkdir(parents=True)
+        (themes_dir / "child" / "theme.toml").write_text('name = "child"\nextends = "parent"\n')
+        mock_site.theme = "child"
+
+        mock_cache.is_changed = MagicMock(side_effect=lambda path: Path(path) == parent_template)
+
+        changed = _detect_changed_templates(mock_cache, mock_site)
+
+        assert parent_template in changed
 
 
 class TestGetTaxonomyTermPagesForMemberPathKeys:

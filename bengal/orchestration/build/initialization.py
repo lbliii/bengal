@@ -184,9 +184,8 @@ def phase_fonts(
     with orchestrator.logger.phase("fonts"):
         fonts_start = time.time()
         try:
-            import shutil
-
             from bengal.fonts import FontHelper
+            from bengal.utils.io.atomic_write import atomic_write_bytes
 
             # Ensure assets directory exists (source)
             assets_dir = orchestrator.site.root_path / "assets"
@@ -202,15 +201,18 @@ def phase_fonts(
                 output_assets = orchestrator.site.output_dir / "assets"
                 output_assets.mkdir(parents=True, exist_ok=True)
                 output_css = output_assets / "fonts.css"
-                # Only copy if destination doesn't exist or source is newer
-                # (prevents triggering file watcher when nothing changed)
-                if not output_css.exists() or css_path.stat().st_mtime > output_css.stat().st_mtime:
-                    shutil.copy2(css_path, output_css)
+                css_bytes = css_path.read_bytes()
+                output_changed = True
+                if output_css.exists():
+                    output_changed = output_css.read_bytes() != css_bytes
+                if output_changed:
+                    mode = css_path.stat().st_mode & 0o777
+                    atomic_write_bytes(output_css, css_bytes, mode=mode)
                     if collector is not None:
                         from bengal.core.output.types import OutputType
 
                         collector.record(
-                            output_css.relative_to(orchestrator.site.output_dir),
+                            output_css,
                             OutputType.CSS,
                             phase="asset",
                         )

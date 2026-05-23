@@ -87,6 +87,9 @@ def process_page_with_pipeline(
         if current_generation is not None:
             _thread_local.pipeline_generation = current_generation
 
+    from bengal.icons import resolver as icon_resolver
+
     _start = time.perf_counter()
-    _thread_local.pipeline.process_page(page)
+    with icon_resolver.site_context(site):
+        _thread_local.pipeline.process_page(page)
     page.render_time_ms = (time.perf_counter() - _start) * 1000

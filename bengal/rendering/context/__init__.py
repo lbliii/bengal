@@ -410,7 +410,7 @@ def build_page_context(
         page_params.update(metadata["params"])
 
     # Get cached global contexts (site/config/theme/menus are stateless wrappers)
-    global_contexts = _get_global_contexts(site)
+    global_contexts = _get_global_contexts(site, build_context=build_context)
 
     # Use SectionSnapshot directly (no wrapper needed)
     # SectionSnapshot has params property and __bool__ for template compatibility

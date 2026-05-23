@@ -1,0 +1,1 @@
+Scoped icon resolver caches, rendered icon caches, template icon aliases, and page context wrappers to the active site/build so concurrent or repeated builds cannot reuse stale rendering state from another site.

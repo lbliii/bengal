@@ -334,6 +334,35 @@ class TestSectionSortedSubsectionsProperty:
         assert sorted_subs[0] == sub2
         assert sorted_subs[1] == sub1
 
+    def test_sorted_subsections_normalizes_mixed_weight_values(self, tmp_path):
+        """String, numeric, malformed, and missing weights stay sortable."""
+        section = Section(name="docs", path=tmp_path / "docs")
+
+        numeric = Section(
+            name="numeric",
+            path=tmp_path / "docs/numeric",
+            metadata={"title": "Numeric", "weight": 2},
+        )
+        string = Section(
+            name="string",
+            path=tmp_path / "docs/string",
+            metadata={"title": "String", "weight": "10"},
+        )
+        malformed = Section(
+            name="malformed",
+            path=tmp_path / "docs/malformed",
+            metadata={"title": "Malformed", "weight": "later"},
+        )
+        missing = Section(
+            name="missing",
+            path=tmp_path / "docs/missing",
+            metadata={"title": "Missing"},
+        )
+
+        section.subsections = [missing, string, malformed, numeric]
+
+        assert section.sorted_subsections == [numeric, string, malformed, missing]
+
 
 class TestSectionSortChildrenByWeight:
     """Test Section.sort_children_by_weight() method."""

@@ -1,0 +1,201 @@
+version = 1
+updated = "2026-05-22"
+owner = "benchmarks"
+description = "Canonical benchmark matrix for Bengal performance evidence."
+
+[environment]
+python = "Run on Python 3.14+; repeat worker-scaling rows on Python 3.14t when available."
+runner = "uv run"
+baseline_policy = "Save named baselines before release comparisons; never overwrite baseline results without recording the commit and machine."
+artifacts = [
+  "benchmarks/.benchmarks/",
+  "tests/performance/benchmark_results/",
+  ".pytest_cache/",
+]
+
+[tiers.smoke]
+cadence = "Every performance-sensitive PR before review."
+duration = "Less than 10 minutes on a developer laptop."
+purpose = "Catch shape, budget, and obvious hot-path regressions without running the full suite."
+
+[tiers.release]
+cadence = "Before releases and after broad build, render, cache, or concurrency changes."
+duration = "30 to 90 minutes depending on selected scales."
+purpose = "Produce comparable evidence for Bengal's public performance claims."
+
+[tiers.investigation]
+cadence = "When diagnosing a suspected bottleneck or justifying a major redesign."
+duration = "Variable; may require optional external SSGs or larger generated fixtures."
+purpose = "Explain where time, memory, or scaling behavior is coming from."
+
+[[benchmarks]]
+id = "render-output-regression"
+tier = "smoke"
+tags = ["rendering", "assets", "autodoc"]
+purpose = "Guard output shape and fallback asset parsing cost before broader timing runs."
+command = "uv run pytest -o addopts= -n 0 -q tests/performance/test_autodoc_render_regression.py tests/performance/test_asset_fallback_cost.py"
+paths = [
+  "tests/performance/test_autodoc_render_regression.py",
+  "tests/performance/test_asset_fallback_cost.py",
+  "tests/performance/fixtures/autodoc_render_baseline.json",
+]
+metrics = ["rendered bytes", "card counts", "fallback parser invocations", "fallback parser duration"]
+evidence = ["pytest output", ".pytest_cache/render_output_metrics.json", ".pytest_cache/fallback_parser_metrics.json"]
+budget = "Hard budgets live in the tests and baseline fixture."
+triggers = ["autodoc rendering", "theme template output", "asset inventory", "fallback parser behavior"]
+
+[[benchmarks]]
+id = "post-render-budget"
+tier = "smoke"
+tags = ["postprocess", "cache", "incremental", "outputs"]
+purpose = "Measure the post-render tail for cold, no-op, single-page, section-index, and CSS-only changes."
+command = "uv run pytest -o addopts= -n 0 -q -m performance tests/performance/test_post_render_pipeline_budget.py"
+paths = [
+  "tests/performance/test_post_render_pipeline_budget.py",
+  "tests/performance/post_render_harness.py",
+]
+metrics = ["postprocess task time", "post-render finalization time", "changed outputs", "state store sizes"]
+evidence = ["pytest output", ".pytest_cache/post_render_pipeline_metrics.json"]
+budget = "Hard budgets live in tests/performance/test_post_render_pipeline_budget.py."
+triggers = ["postprocess", "artifact inventory", "search/feed/sitemap output", "incremental cache state"]
+
+[[benchmarks]]
+id = "build-incremental-smoke"
+tier = "smoke"
+tags = ["build", "incremental", "cache"]
+purpose = "Keep core full-build, no-op, and edit rebuild paths visible in pytest-benchmark output."
+command = "uv run pytest benchmarks/test_build.py -k 'build_performance or incremental' -v --benchmark-only"
+paths = [
+  "benchmarks/test_build.py",
+  "benchmarks/conftest.py",
+]
+metrics = ["cold build mean", "incremental mean", "no-op mean", "memory deltas"]
+evidence = ["pytest-benchmark table", "saved pytest-benchmark JSON when comparing"]
+budget = "Compare against the latest named baseline for the same machine and Python build."
+triggers = ["build orchestration", "content discovery", "cache invalidation", "provenance"]
+
+[[benchmarks]]
+id = "phase-breakdown-release"
+tier = "release"
+tags = ["build", "rendering", "postprocess", "assets", "cache"]
+purpose = "Produce phase-level timing evidence so regressions have an owning subsystem."
+command = "uv run python tests/performance/benchmark_phase_breakdown.py"
+paths = [
+  "tests/performance/benchmark_phase_breakdown.py",
+  "tests/performance/results_manager.py",
+]
+metrics = ["phase wall time", "phase percentage", "total build time"]
+evidence = ["tests/performance/benchmark_results/phase_breakdown/latest.json"]
+budget = "No hard gate; compare phase deltas to the prior release baseline."
+triggers = ["build lifecycle", "phase ordering", "output writing", "theme or asset behavior"]
+
+[[benchmarks]]
+id = "incremental-scale-release"
+tier = "release"
+tags = ["incremental", "cache", "build", "outputs"]
+purpose = "Validate no-op, single-edit, template-edit, and cache-size behavior at documentation-site scales."
+command = "uv run python tests/performance/benchmark_incremental_scale.py"
+paths = [
+  "tests/performance/benchmark_incremental_scale.py",
+  "tests/performance/benchmark_warm_build_consistency.py",
+  "tests/performance/results_manager.py",
+]
+metrics = ["full build time", "single-page rebuild time", "template rebuild time", "cache bytes per page", "speedup"]
+evidence = ["tests/performance/benchmark_results/incremental_scale/latest.json"]
+budget = "Incremental speedup should stay at or above 15x at the measured scales unless an accepted design note explains the tradeoff."
+triggers = ["incremental invalidation", "cache format", "template dependency tracking", "output artifact tracking"]
+
+[[benchmarks]]
+id = "worker-scaling-release"
+tier = "release"
+tags = ["worker-scaling", "free-threading", "rendering", "postprocess"]
+purpose = "Show whether parallel rendering and postprocess work scale with cores on Python 3.14 and 3.14t."
+command = "uv run python tests/performance/benchmark_worker_scaling.py"
+paths = [
+  "tests/performance/benchmark_worker_scaling.py",
+  "tests/performance/benchmark_parallel.py",
+]
+metrics = ["speedup by worker count", "throughput", "worker count knee", "parallel overhead"]
+evidence = ["tests/performance/benchmark_results/worker_scaling/latest.json", "console summary with Python build"]
+budget = "Parallel paths should not regress below the prior release baseline without a recorded bottleneck or correctness tradeoff."
+triggers = ["concurrency", "executor selection", "shared state", "free-threaded Python behavior"]
+
+[[benchmarks]]
+id = "realistic-scale-release"
+tier = "release"
+tags = ["build", "rendering", "parser", "assets", "postprocess"]
+purpose = "Measure Bengal on realistic content mixes instead of only synthetic minimal pages."
+command = "uv run python tests/performance/benchmark_realistic_scale.py"
+paths = [
+  "tests/performance/benchmark_realistic_scale.py",
+  "tests/performance/benchmark_content_complexity.py",
+  "tests/performance/results_manager.py",
+]
+metrics = ["pages per second", "content complexity slope", "peak memory", "changed output count"]
+evidence = ["tests/performance/benchmark_results/realistic_scale/latest.json"]
+budget = "Compare slope and throughput to the prior release baseline for the same scale."
+triggers = ["parser", "shortcodes", "directives", "template context", "large-site behavior"]
+
+[[benchmarks]]
+id = "parser-render-investigation"
+tier = "investigation"
+tags = ["parser", "rendering", "syntax-highlighting"]
+purpose = "Isolate parse, render, directive, and highlighting hot paths when full-build results move."
+command = "uv run pytest benchmarks/benchmark_render.py benchmarks/test_patitas_performance.py benchmarks/test_directive_performance.py benchmarks/test_highlighting_performance.py -v --benchmark-only"
+paths = [
+  "benchmarks/benchmark_render.py",
+  "benchmarks/test_patitas_performance.py",
+  "benchmarks/test_directive_performance.py",
+  "benchmarks/test_highlighting_performance.py",
+]
+metrics = ["parse time", "render time", "directive expansion time", "highlighting time", "throughput"]
+evidence = ["pytest-benchmark table", "saved pytest-benchmark JSON when comparing"]
+budget = "Use named pytest-benchmark baselines for the same Python and machine."
+triggers = ["parser changes", "renderer changes", "directive cache changes", "syntax highlighting changes"]
+
+[[benchmarks]]
+id = "template-engine-investigation"
+tier = "investigation"
+tags = ["template", "rendering", "worker-scaling"]
+purpose = "Separate Kida/template compilation and render behavior from page orchestration cost."
+command = "uv run pytest benchmarks/test_kida_real_templates.py benchmarks/test_kida_vs_jinja.py benchmarks/bench_render_tiers.py -v --benchmark-only"
+paths = [
+  "benchmarks/test_kida_real_templates.py",
+  "benchmarks/test_kida_vs_jinja.py",
+  "benchmarks/bench_render_tiers.py",
+]
+metrics = ["template render mean", "compile overhead", "concurrent render throughput"]
+evidence = ["pytest-benchmark table", "manual notes for template corpus"]
+budget = "Compare against the named template baseline before changing default theme or template helpers."
+triggers = ["template helpers", "default theme templates", "Kida integration", "render context scoping"]
+
+[[benchmarks]]
+id = "github-pages-ci-investigation"
+tier = "investigation"
+tags = ["build", "worker-scaling", "memory", "ci"]
+purpose = "Evaluate build flags under GitHub Pages-like CPU and memory limits."
+command = "uv run pytest benchmarks/test_github_pages_optimization.py -v --benchmark-only --benchmark-json=benchmarks/.benchmarks/github_pages_results.json"
+paths = [
+  "benchmarks/test_github_pages_optimization.py",
+  "benchmarks/analyze_github_pages_results.py",
+  "benchmarks/GITHUB_PAGES_BENCHMARK_GUIDE.md",
+]
+metrics = ["best flag set by site size", "parallel speedup", "peak memory", "build duration"]
+evidence = ["benchmarks/.benchmarks/github_pages_results.json", "uv run python benchmarks/analyze_github_pages_results.py benchmarks/.benchmarks/github_pages_results.json"]
+budget = "No hard gate; use to choose documented CI recommendations."
+triggers = ["CLI build flags", "CI guidance", "memory-optimized mode", "parallel defaults"]
+
+[[benchmarks]]
+id = "cross-ssg-investigation"
+tier = "investigation"
+tags = ["build", "comparison", "parser"]
+purpose = "Compare Bengal against other SSGs with an explicit external-tool setup and normalized content."
+command = "uv run python tests/performance/benchmark_ssg_comparison.py"
+paths = [
+  "tests/performance/benchmark_ssg_comparison.py",
+  "tests/performance/benchmark_ssg_comparison_tagged.py",
+]
+metrics = ["cold build time by file count", "pages per second", "scaling slope"]
+evidence = ["tests/performance/benchmark_results/ssg_comparison/latest.json", "environment notes for external SSG versions"]
+budget = "No hard gate; use only for external positioning with complete environment metadata."
+triggers = ["public performance claims", "release notes", "SSG comparison docs"]

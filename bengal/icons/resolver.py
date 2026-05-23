@@ -20,12 +20,17 @@ Usage:
 from __future__ import annotations
 
 import threading
+from contextlib import contextmanager
+from contextvars import ContextVar, Token
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Iterator
+
     from bengal.protocols import SiteConfig
 
 logger = get_logger(__name__)
@@ -33,18 +38,41 @@ logger = get_logger(__name__)
 __all__ = [
     "clear_cache",
     "get_available_icons",
+    "get_scope_key",
     "get_search_paths",
     "initialize",
     "load_icon",
+    "site_context",
 ]
 
-# Module-level state (set during Site initialization)
-# Thread-safe: All state access protected by _icon_lock for concurrent access
+# Legacy default state (set during Site initialization). Scoped rendering paths
+# should use site_context() or pass site=... to avoid cross-site contamination.
+# Thread-safe: All state access protected by _icon_lock for concurrent access.
 _icon_lock = threading.Lock()
 _search_paths: list[Path] = []
 _icon_cache: dict[str, str] = {}
 _not_found_cache: set[str] = set()  # Avoid repeated disk checks
 _initialized: bool = False
+
+
+@dataclass
+class _IconResolverState:
+    """Per-search-path icon resolver cache."""
+
+    search_paths: tuple[Path, ...]
+    icon_cache: dict[str, str] = field(default_factory=dict)
+    not_found_cache: set[str] = field(default_factory=set)
+
+    @property
+    def scope_key(self) -> tuple[str, ...]:
+        return tuple(str(path) for path in self.search_paths)
+
+
+_scoped_states: dict[tuple[str, ...], _IconResolverState] = {}
+_active_state: ContextVar[_IconResolverState | None] = ContextVar(
+    "bengal_icon_resolver_state",
+    default=None,
+)
 
 # Characters that are not allowed in icon names (path traversal prevention)
 _INVALID_CHARS = frozenset("/\\.\x00")
@@ -89,15 +117,46 @@ def initialize(site: SiteConfig, preload: bool = False) -> None:
     global _search_paths, _initialized
     # Compute paths outside lock (expensive I/O)
     paths = _get_icon_search_paths(site)
+    state = _get_or_create_state(paths)
 
     with _icon_lock:
         _search_paths = paths
         _icon_cache.clear()
         _not_found_cache.clear()
+        state.icon_cache.clear()
+        state.not_found_cache.clear()
         _initialized = True
 
     if preload:
+        _preload_state(state)
         _preload_all_icons()
+
+
+def _get_or_create_state(paths: list[Path] | tuple[Path, ...]) -> _IconResolverState:
+    """Return the per-scope resolver state for a search path chain."""
+    search_paths = tuple(paths)
+    key = tuple(str(path) for path in search_paths)
+    with _icon_lock:
+        state = _scoped_states.get(key)
+        if state is None:
+            state = _IconResolverState(search_paths=search_paths)
+            _scoped_states[key] = state
+        return state
+
+
+def _state_for_site(site: SiteConfig) -> _IconResolverState:
+    return _get_or_create_state(_get_icon_search_paths(site))
+
+
+@contextmanager
+def site_context(site: SiteConfig) -> Iterator[None]:
+    """Temporarily scope icon resolution to a site/theme search path chain."""
+    state = _state_for_site(site)
+    token: Token[_IconResolverState | None] = _active_state.set(state)
+    try:
+        yield
+    finally:
+        _active_state.reset(token)
 
 
 def _get_icon_search_paths(site: SiteConfig) -> list[Path]:
@@ -150,7 +209,7 @@ def _get_fallback_path() -> Path:
     return Path(bengal_file).parent / "themes" / "default" / "assets" / "icons"
 
 
-def load_icon(name: str) -> str | None:
+def load_icon(name: str, *, site: SiteConfig | None = None) -> str | None:
     """
     Load icon from first matching path in search chain.
 
@@ -178,7 +237,12 @@ def load_icon(name: str) -> str | None:
         )
         return None
 
-    # Check caches under lock
+    state = _state_for_site(site) if site is not None else _active_state.get()
+
+    if state is not None:
+        return _load_icon_from_state(name, state)
+
+    # Legacy fallback for callers outside an explicit site/build scope.
     with _icon_lock:
         if name in _icon_cache:
             return _icon_cache[name]
@@ -217,6 +281,42 @@ def load_icon(name: str) -> str | None:
     return None
 
 
+def _load_icon_from_state(name: str, state: _IconResolverState) -> str | None:
+    """Load an icon using a site-scoped resolver state."""
+    with _icon_lock:
+        if name in state.icon_cache:
+            return state.icon_cache[name]
+        if name in state.not_found_cache:
+            return None
+        search_paths = state.search_paths
+
+    for icons_dir in search_paths:
+        icon_path = icons_dir / f"{name}.svg"
+        if icon_path.exists():
+            try:
+                content = icon_path.read_text(encoding="utf-8")
+                with _icon_lock:
+                    state.icon_cache[name] = content
+                return content
+            except OSError as e:
+                logger.debug(
+                    "icon_read_error",
+                    icon=name,
+                    path=str(icon_path),
+                    error=str(e),
+                )
+                continue
+
+    logger.debug(
+        "icon_not_found_in_resolver",
+        icon=name,
+        search_paths=[str(p) for p in search_paths],
+    )
+    with _icon_lock:
+        state.not_found_cache.add(name)
+    return None
+
+
 def get_search_paths() -> list[Path]:
     """
     Get current search paths (for error messages).
@@ -227,10 +327,27 @@ def get_search_paths() -> list[Path]:
         Copy of the current search paths list
 
     """
+    state = _active_state.get()
+    if state is not None:
+        return list(state.search_paths)
+
     with _icon_lock:
         if _initialized:
             return _search_paths.copy()
     return [_get_fallback_path()]
+
+
+def get_scope_key(site: SiteConfig | None = None) -> tuple[str, ...]:
+    """Return the active icon resolver scope key for render-cache namespacing."""
+    if site is not None:
+        return _state_for_site(site).scope_key
+    state = _active_state.get()
+    if state is not None:
+        return state.scope_key
+    with _icon_lock:
+        if _initialized:
+            return tuple(str(path) for path in _search_paths)
+    return (str(_get_fallback_path()),)
 
 
 def get_available_icons() -> list[str]:
@@ -249,9 +366,13 @@ def get_available_icons() -> list[str]:
     seen: set[str] = set()
     icons: list[str] = []
 
-    # Copy search paths under lock
-    with _icon_lock:
-        search_paths = _search_paths.copy() if _initialized else [_get_fallback_path()]
+    state = _active_state.get()
+    if state is not None:
+        search_paths = list(state.search_paths)
+    else:
+        # Copy search paths under lock
+        with _icon_lock:
+            search_paths = _search_paths.copy() if _initialized else [_get_fallback_path()]
 
     # Disk I/O outside lock
     for icons_dir in search_paths:
@@ -277,6 +398,9 @@ def clear_cache() -> None:
     with _icon_lock:
         _icon_cache.clear()
         _not_found_cache.clear()
+        for state in _scoped_states.values():
+            state.icon_cache.clear()
+            state.not_found_cache.clear()
 
 
 def _preload_all_icons() -> None:
@@ -317,6 +441,34 @@ def _preload_all_icons() -> None:
     # Batch update cache under lock
     with _icon_lock:
         _icon_cache.update(loaded)
+
+
+def _preload_state(state: _IconResolverState) -> None:
+    """Preload all icons into a site-scoped resolver state."""
+    search_paths = state.search_paths
+    seen: set[str] = set()
+    loaded: dict[str, str] = {}
+
+    for icons_dir in search_paths:
+        if not icons_dir.exists():
+            continue
+        for icon_path in icons_dir.glob("*.svg"):
+            name = icon_path.stem
+            if name in seen:
+                continue
+            try:
+                loaded[name] = icon_path.read_text(encoding="utf-8")
+                seen.add(name)
+            except OSError as e:
+                logger.debug(
+                    "icon_preload_error",
+                    icon=name,
+                    path=str(icon_path),
+                    error=str(e),
+                )
+
+    with _icon_lock:
+        state.icon_cache.update(loaded)
 
 
 def is_initialized() -> bool:

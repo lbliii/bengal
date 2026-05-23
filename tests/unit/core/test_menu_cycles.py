@@ -7,32 +7,52 @@ from bengal.errors import BengalContentError
 class TestMenuCircularDependencies:
     def test_menu_parent_child_cycle_raises(self):
         builder = MenuBuilder()
-        # Build a cycle via identifiers: p -> c -> p
         builder.add_from_config(
             [
-                {"name": "Parent", "url": "/parent", "identifier": "p"},
+                {"name": "Parent", "url": "/parent", "parent": "c", "identifier": "p"},
                 {"name": "Child", "url": "/child", "parent": "p", "identifier": "c"},
             ]
         )
-        # Inject the cycle by marking parent of "p" as "c" via an additional child that uses
-        # the same identifier. Since MenuBuilder uses identifier as key, simulate by building then
-        # manually linking children to force a cycle.
-        builder.build_hierarchy()
-        # Find nodes
-        by_id = {item.identifier: item for item in builder.items}
-        p = by_id["p"]
-        c = by_id["c"]
-        # Force a cycle
-        if c not in p.children:
-            p.children.append(c)
-        c.children.append(p)
-
-        # Now the cycle should be detected by the cycle checker when rebuilding
-        with pytest.raises(BengalContentError):
-            builder.build_hierarchy()
 
         with pytest.raises(BengalContentError):
             builder.build_hierarchy()
+
+    def test_rootless_parent_cycle_raises(self):
+        builder = MenuBuilder()
+        builder.add_from_config(
+            [
+                {"name": "A", "url": "/a", "parent": "b", "identifier": "a"},
+                {"name": "B", "url": "/b", "parent": "a", "identifier": "b"},
+            ]
+        )
+
+        with pytest.raises(BengalContentError):
+            builder.build_hierarchy()
+
+    def test_self_parent_cycle_raises(self):
+        builder = MenuBuilder()
+        builder.add_from_config(
+            [{"name": "Self", "url": "/self", "parent": "self", "identifier": "self"}]
+        )
+
+        with pytest.raises(BengalContentError):
+            builder.build_hierarchy()
+
+    def test_repeated_build_hierarchy_is_idempotent(self):
+        builder = MenuBuilder()
+        builder.add_from_config(
+            [
+                {"name": "Root", "url": "/", "identifier": "root"},
+                {"name": "Child", "url": "/child", "parent": "root", "identifier": "child"},
+            ]
+        )
+
+        first_roots = builder.build_hierarchy()
+        second_roots = builder.build_hierarchy()
+
+        assert first_roots == second_roots
+        assert len(second_roots) == 1
+        assert [child.identifier for child in second_roots[0].children] == ["child"]
 
     def test_valid_tree_builds(self):
         builder = MenuBuilder()
@@ -58,13 +78,9 @@ class TestCycleDetectionEdgeCases:
     def test_self_referencing_item(self):
         """Test that a self-referencing item is detected as a cycle."""
         builder = MenuBuilder()
-        builder.add_from_config([{"name": "Self", "url": "/self", "identifier": "self"}])
-        builder.build_hierarchy()
-
-        # Manually create self-reference
-        by_id = {item.identifier: item for item in builder.items}
-        self_item = by_id["self"]
-        self_item.children.append(self_item)
+        builder.add_from_config(
+            [{"name": "Self", "url": "/self", "parent": "self", "identifier": "self"}]
+        )
 
         with pytest.raises(BengalContentError):
             builder.build_hierarchy()
@@ -74,16 +90,11 @@ class TestCycleDetectionEdgeCases:
         builder = MenuBuilder()
         builder.add_from_config(
             [
-                {"name": "A", "url": "/a", "identifier": "a"},
+                {"name": "A", "url": "/a", "parent": "c", "identifier": "a"},
                 {"name": "B", "url": "/b", "parent": "a", "identifier": "b"},
                 {"name": "C", "url": "/c", "parent": "b", "identifier": "c"},
             ]
         )
-        builder.build_hierarchy()
-
-        # Create cycle: C → A
-        by_id = {item.identifier: item for item in builder.items}
-        by_id["c"].children.append(by_id["a"])
 
         with pytest.raises(BengalContentError):
             builder.build_hierarchy()

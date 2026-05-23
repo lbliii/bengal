@@ -103,6 +103,9 @@ changelog-draft = { cmd = "towncrier build --draft", help = "Preview changelog f
 - **Require a fragment** when the PR changes user-facing code under `src/` (or the repo's published package path).
 - **Allow skipping** for docs-only, chore-only, or internal refactors with no release note: use a **label** (e.g. `skip-changelog`) or documented PR keyword, consistent per repo.
 - **Release:** Run `poe changelog` (or documented equivalent) as part of the version bump / tag checklist so `CHANGELOG.md` updates atomically with the release commit.
+- **Performance claims:** Name the benchmark matrix row, exact command, Python
+  build, machine/OS, baseline, current result, artifact path, and interpretation
+  in the PR before repeating the claim in release notes.
 
 ## Voice (brand)
 

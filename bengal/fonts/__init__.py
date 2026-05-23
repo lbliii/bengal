@@ -57,6 +57,7 @@ from typing import Any
 from bengal.fonts.downloader import FontVariant, GoogleFontsDownloader
 from bengal.fonts.generator import FontCSSGenerator
 from bengal.fonts.utils import make_font_filename, make_safe_name
+from bengal.utils.io.atomic_write import atomic_write_text
 
 
 def rewrite_font_urls_with_fingerprints(
@@ -128,7 +129,7 @@ def rewrite_font_urls_with_fingerprints(
             css_content = re.sub(pattern, replacement, css_content)
 
     if css_content != original_content:
-        fonts_css_path.write_text(css_content, encoding="utf-8")
+        atomic_write_text(fonts_css_path, css_content, encoding="utf-8")
         return True
 
     return False
@@ -254,7 +255,7 @@ class FontHelper:
                 )
                 return css_path
 
-        css_path.write_text(css_content, encoding="utf-8")
+        atomic_write_text(css_path, css_content, encoding="utf-8")
         cli.detail(
             f"Generated: fonts.css ({total_variants} variants)", indent=1, icon=cli.icons.tree_end
         )

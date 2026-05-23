@@ -17,11 +17,14 @@ import tomllib
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.protocols import SiteLike
 
 # Imported at module level so tests can patch this target:
 #   bengal.rendering.template_engine.environment.get_theme_package
 from bengal.core.theme import get_theme_package
+from bengal.themes.utils import DEFAULT_THEME_PATH, THEMES_ROOT
 
 
 def resolve_theme_chain(active_theme: str | None, site: SiteLike) -> list[str]:
@@ -64,6 +67,74 @@ def resolve_theme_chain(active_theme: str | None, site: SiteLike) -> list[str]:
     if (active_theme or "default") == "default":
         return chain
     return [t for t in chain if t != "default"]
+
+
+def resolve_template_dirs(site: SiteLike) -> list[Path]:
+    """Return template search directories in render precedence order."""
+    dirs: list[Path] = []
+    root_path = getattr(site, "root_path", None)
+
+    if root_path:
+        custom_templates = root_path / "templates"
+        if custom_templates.exists():
+            dirs.append(custom_templates)
+
+        active_theme = getattr(site, "theme", None)
+        if not isinstance(active_theme, str):
+            active_theme = None
+
+        for theme_name in resolve_theme_chain(active_theme, site):
+            site_theme_templates = root_path / "themes" / theme_name / "templates"
+            if site_theme_templates.exists():
+                dirs.append(site_theme_templates)
+                continue
+
+            try:
+                pkg = get_theme_package(theme_name)
+                if pkg:
+                    resolved = pkg.resolve_resource_path("templates")
+                    if resolved and resolved.exists():
+                        dirs.append(resolved)
+                        continue
+            except ImportError, AttributeError, OSError:
+                pass
+
+            bundled_theme_templates = THEMES_ROOT / theme_name / "templates"
+            if bundled_theme_templates.exists():
+                dirs.append(bundled_theme_templates)
+
+    default_templates = DEFAULT_THEME_PATH / "templates"
+    if default_templates not in dirs and default_templates.exists():
+        dirs.append(default_templates)
+
+    return dirs
+
+
+def template_name_for_path(path: Path, template_dirs: list[Path]) -> str:
+    """Return the cache/template dependency key for a template path."""
+    for template_dir in template_dirs:
+        try:
+            return path.resolve().relative_to(template_dir.resolve()).as_posix()
+        except OSError, ValueError:
+            continue
+    return path.name
+
+
+def iter_template_files(site: SiteLike, pattern: str = "**/*.html") -> tuple[Path, ...]:
+    """Return template files from all render-visible template directories."""
+    files: list[Path] = []
+    seen: set[Path] = set()
+    for template_dir in resolve_template_dirs(site):
+        for template_file in template_dir.glob(pattern):
+            try:
+                key = template_file.resolve()
+            except OSError:
+                key = template_file
+            if key in seen:
+                continue
+            seen.add(key)
+            files.append(template_file)
+    return tuple(files)
 
 
 def read_theme_extends(theme_name: str, site: SiteLike) -> str | None:

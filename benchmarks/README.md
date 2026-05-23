@@ -36,6 +36,31 @@ bengal --version
 
 If this fails with `ModuleNotFoundError` (e.g. `No module named 'bengal'` or `No module named 'kida'`), the install is broken. Reinstall: `pip uninstall bengal` then run `uv sync` from the workspace root (or `pip install -e .` from bengal).
 
+## Canonical Benchmark Matrix
+
+`benchmark_matrix.toml` is the source of truth for which benchmark rows count as
+canonical evidence. It divides runs into smoke, release, and investigation tiers,
+and each row names the command, source paths, metrics, evidence artifacts, and
+change triggers it protects.
+
+Use the matrix before making or reviewing performance claims:
+
+```bash
+uv run pytest tests/unit/benchmarks/test_benchmark_matrix.py -q
+```
+
+Run or list matrix rows by tier:
+
+```bash
+uv run python benchmarks/run_matrix.py --tier smoke --dry-run
+uv run python benchmarks/run_matrix.py --tier smoke
+uv run python benchmarks/run_matrix.py --list
+```
+
+Treat the overview below as explanatory. When adding, removing, or renaming a
+benchmark that should guide decisions, update `benchmark_matrix.toml` in the same
+change.
+
 ## Running the Benchmarks
 
 To run the benchmarks, simply run `pytest` from the `benchmarks` directory:

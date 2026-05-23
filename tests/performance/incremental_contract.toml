@@ -1,0 +1,71 @@
+version = 1
+updated = "2026-05-22"
+owner = "tests/performance"
+description = "Canonical incremental correctness cases that warm-build changes must preserve."
+
+[invariants]
+outputs = "Changed output accounting must match files written or intentionally skipped."
+caches = "Cache/provenance/artifact state must explain rebuild decisions without stale page data."
+parity = "Warm builds must produce the same user-visible artifacts as clean cold builds."
+diagnostics = "A changed source should leave enough stats or logs to explain why work did or did not run."
+
+[[cases]]
+id = "no-op"
+change = "No source, template, config, asset, or cache input changes."
+expected = "No pages render, no outputs are rewritten, and caches stay readable."
+proof_paths = [
+  "tests/performance/benchmark_warm_build_consistency.py",
+  "tests/performance/test_post_render_pipeline_budget.py",
+]
+state_surfaces = ["change census", "provenance", "page artifacts", "output collector"]
+
+[[cases]]
+id = "single-content-edit"
+change = "One content page changes without navigation or taxonomy fallout."
+expected = "The edited page and its required derived outputs update; unrelated pages remain unchanged."
+proof_paths = [
+  "benchmarks/test_build.py",
+  "tests/performance/benchmark_incremental.py",
+  "tests/performance/test_post_render_pipeline_budget.py",
+]
+state_surfaces = ["change census", "provenance", "page cache", "output collector"]
+
+[[cases]]
+id = "template-edit"
+change = "An active theme or project template changes."
+expected = "Pages depending on the template rebuild, including inherited-theme templates."
+proof_paths = [
+  "tests/unit/rendering/test_template_inheritance_detection.py",
+  "tests/unit/orchestration/build/test_provenance_filter_path_keys.py",
+  "tests/performance/benchmark_incremental_scale.py",
+]
+state_surfaces = ["template path keys", "provenance", "cache invalidation"]
+
+[[cases]]
+id = "asset-edit"
+change = "A tracked asset or CSS-only source changes."
+expected = "Asset outputs and dependent post-render outputs update without forcing unrelated page renders."
+proof_paths = [
+  "tests/performance/test_asset_fallback_cost.py",
+  "tests/performance/test_post_render_pipeline_budget.py",
+]
+state_surfaces = ["tracked assets", "artifact inventory", "output collector"]
+
+[[cases]]
+id = "sidecar-edit"
+change = "A notebook or page sidecar changes while rendered HTML is unchanged."
+expected = "The sidecar output is written atomically, recorded as changed, and skipped on identical reruns."
+proof_paths = [
+  "tests/unit/rendering/test_write_output_rendered_page.py",
+]
+state_surfaces = ["output collector", "sidecar bytes", "rendered page output"]
+
+[[cases]]
+id = "config-edit"
+change = "A build-affecting config file changes."
+expected = "The build chooses a full or structurally broad rebuild and records why."
+proof_paths = [
+  "benchmarks/test_build.py",
+  "tests/unit/orchestration/build/test_completion_policy.py",
+]
+state_surfaces = ["change census", "build options", "provenance"]

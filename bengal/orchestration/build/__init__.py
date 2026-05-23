@@ -280,12 +280,14 @@ class BuildOrchestrator:
         self.stats = BuildStats(parallel=False, incremental=bool(incremental))
         self.stats.strict_mode = strict
         self.stats.completion_policy = options.completion_policy.value
+        self.stats.change_census = build_input.change_census.to_dict()
 
         logger.info(
             "build_start",
             force_sequential=force_sequential,
             incremental=incremental,
             root_path=str(self.site.root_path),
+            change_census=self.stats.change_census,
         )
 
         # Attach a diagnostics collector for core-model events (core must not log).

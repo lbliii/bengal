@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from bengal.snapshots.scout import ScoutThread
     from bengal.snapshots.types import SiteSnapshot
 
+from bengal.snapshots.handoff import create_render_snapshot_handoff
 from bengal.snapshots.utils import (
     ProgressManagerProtocol,
     RenderProgressTracker,
@@ -91,6 +92,7 @@ class WaveScheduler:
         self._strategy = strategy
         self._progress_manager = progress_manager
         self._block_cache = block_cache
+        self.snapshot_handoff = create_render_snapshot_handoff(snapshot, site.pages)
 
         # Create mapping from snapshot pages to actual pages
         self._page_map: dict[Path, PageLike] = {}

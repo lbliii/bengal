@@ -411,12 +411,25 @@ test-cov = { cmd = "pytest tests/ --cov=bengal --cov-report=term-missing", help 
 test-parallel = { cmd = "pytest tests/ -n auto -x -q", help = "Run tests in parallel (pytest-xdist)" }
 test-random = { cmd = "pytest tests/ -p randomly --randomly-seed=random -x -q", help = "Run tests in random order" }
 test-verbose = { cmd = "pytest tests/ -v --tb=long", help = "Run tests with verbose output" }
+proof-pr = { sequence = [
+    "lint",
+    "format-check",
+    "ty",
+    "test-unit",
+    "benchmark-smoke",
+], help = "Bounded PR proof path: lint, format, types, unit tests, and benchmark smoke guards" }
+proof-pr-plan = { cmd = "python scripts/proof_pr_plan.py --format json", help = "Print the resolved bounded PR proof path as JSON" }
+output-write-audit = { cmd = "python scripts/check_output_writes.py", help = "Audit direct writes in generated-output and cache-adjacent code" }
+core-surface-audit = { cmd = "python scripts/check_core_surface_usage.py", help = "Audit internal use of core compatibility surfaces marked for retirement" }
+performance-evidence-check = { cmd = "python scripts/check_performance_evidence.py --body-file .github/pull_request_template.md --allow-template", help = "Validate Performance Evidence fields in a PR body markdown file" }
 
 # Benchmarks
 benchmark = { cmd = "pytest benchmarks/ tests/performance/ -v --benchmark-only", help = "Run all benchmarks" }
 benchmark-compare = { cmd = "pytest benchmarks/ tests/performance/ --benchmark-compare=baseline -v", help = "Compare to baseline" }
 benchmark-save = { cmd = "pytest benchmarks/ tests/performance/ --benchmark-save=baseline -v", help = "Save baseline" }
 benchmark-scenarios = { cmd = "python scripts/generate_benchmark_scenarios.py", help = "Generate cached benchmark scenarios" }
+benchmark-smoke = { cmd = "pytest -o addopts= -n 0 -q tests/unit/benchmarks/test_benchmark_matrix.py tests/performance/test_autodoc_render_regression.py tests/performance/test_asset_fallback_cost.py tests/performance/test_post_render_pipeline_budget.py", help = "Run canonical smoke performance guards without full benchmark timings" }
+benchmark-matrix = { cmd = "python benchmarks/run_matrix.py", help = "Run benchmark rows from benchmarks/benchmark_matrix.toml" }
 
 # Type Checking
 ty = { cmd = "ty check bengal/", help = "Run ty type checker (fast, Rust-based)" }

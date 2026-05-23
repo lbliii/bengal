@@ -211,7 +211,7 @@ def write_output(
         except UnicodeDecodeError, OSError:
             record_output = True
         if not record_output:
-            _copy_notebook_source(page, output_path=output_path)
+            _copy_notebook_source(page, output_path=output_path, collector=collector)
             _track_and_record(
                 page,
                 site,
@@ -225,7 +225,7 @@ def write_output(
     # Write-behind mode: queue for async write (RFC: rfc-path-to-200-pgs)
     if write_behind is not None:
         write_behind.enqueue(output_path, rendered_html)
-        _copy_notebook_source(page, output_path=output_path)
+        _copy_notebook_source(page, output_path=output_path, collector=collector)
         _track_and_record(
             page,
             site,
@@ -277,7 +277,7 @@ def write_output(
         if fast_writes:
             track_fast_write(output_path)
 
-    _copy_notebook_source(page)
+    _copy_notebook_source(page, collector=collector)
     _track_and_record(
         page,
         site,
@@ -288,7 +288,11 @@ def write_output(
     )
 
 
-def _copy_notebook_source(page: PageLike, output_path: Path | None = None) -> None:
+def _copy_notebook_source(
+    page: PageLike,
+    output_path: Path | None = None,
+    collector: OutputCollector | None = None,
+) -> None:
     """Copy notebook .ipynb to output directory for download link."""
     effective_output_path = output_path or page.output_path
     if not effective_output_path or not getattr(page, "source_path", None):
@@ -297,11 +301,17 @@ def _copy_notebook_source(page: PageLike, output_path: Path | None = None) -> No
     if not str(src).lower().endswith(".ipynb") or not src.exists():
         return
     dest = effective_output_path.parent / f"{src.stem}.ipynb"
-    dest.parent.mkdir(parents=True, exist_ok=True)
     try:
-        import shutil
+        data = src.read_bytes()
+        if dest.exists() and dest.read_bytes() == data:
+            return
 
-        shutil.copy2(src, dest)
+        from bengal.utils.io.atomic_write import atomic_write_bytes
+
+        mode = src.stat().st_mode & 0o777
+        atomic_write_bytes(dest, data, mode=mode)
+        if collector is not None:
+            collector.record(dest, phase="render")
     except OSError as e:
         logger.warning(
             "notebook_copy_failed",

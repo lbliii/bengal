@@ -504,18 +504,15 @@ class GoogleFontsDownloader:
         ua = user_agent or self.USER_AGENT_WOFF2
         data = urlopen_with_ssl_fallback(url, timeout=30, user_agent=ua, decode=False)
 
-        # Atomic write for safety
-        tmp_path = output_path.with_suffix(".tmp")
         try:
-            tmp_path.write_bytes(data)
-            tmp_path.replace(output_path)
+            from bengal.utils.io.atomic_write import atomic_write_bytes
+
+            atomic_write_bytes(output_path, data)
         except Exception as e:
             logger.debug(
                 "font_downloader_atomic_write_failed",
                 output_path=str(output_path),
                 error=str(e),
                 error_type=type(e).__name__,
-                action="cleaning_up_temp_file",
             )
-            tmp_path.unlink(missing_ok=True)
             raise

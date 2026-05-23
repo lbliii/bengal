@@ -2,6 +2,19 @@
 
 This directory contains performance benchmarks for Bengal SSG to validate performance claims and track improvements.
 
+## Incremental Correctness Contract
+
+`incremental_contract.toml` names the canonical warm-build cases that must remain
+correct as the build pipeline changes: no-op, single content edit, template edit,
+asset edit, sidecar edit, and config edit. Each row records the expected behavior,
+state surfaces involved, and proof paths that should move with related changes.
+
+Validate the contract metadata with:
+
+```bash
+uv run pytest tests/unit/performance/test_incremental_contract.py -q
+```
+
 ## Available Benchmarks
 
 ### 1. SSG Comparison (`benchmark_ssg_comparison.py`) ⭐ NEW
