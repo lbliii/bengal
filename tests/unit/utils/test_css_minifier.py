@@ -17,6 +17,8 @@ Covers:
 
 from __future__ import annotations
 
+import pytest
+
 
 class TestMinifyCssBasics:
     """Test basic minify_css functionality."""
@@ -184,6 +186,54 @@ class TestMinifyCssSelectorHandling:
 
         # Should preserve selector structure
         assert "div.class" in result or "div.class#id" in result
+
+    @pytest.mark.parametrize(
+        ("source", "expected"),
+        [
+            (".a :where(h1, h2) { color: red; }", ".a :where(h1, h2){color:red;}"),
+            (".a :is(h1, h2) { color: red; }", ".a :is(h1, h2){color:red;}"),
+            (".a :not(pre) > code { color: red; }", ".a :not(pre)>code{color:red;}"),
+            (".a :has(> img) { color: red; }", ".a :has(>img){color:red;}"),
+            (".a :hover { color: red; }", ".a :hover{color:red;}"),
+            (".a ::before { content: ''; }", ".a ::before{content:'';}"),
+            (".a [data-x] { color: red; }", ".a [data-x]{color:red;}"),
+            (".a * { color: red; }", ".a *{color:red;}"),
+            (".a .b { color: red; }", ".a .b{color:red;}"),
+            (".a #b { color: red; }", ".a #b{color:red;}"),
+            (".a button { color: red; }", ".a button{color:red;}"),
+        ],
+    )
+    def test_preserves_descendant_selector_space_before_compound_starts(
+        self,
+        source: str,
+        expected: str,
+    ) -> None:
+        """Test that minification does not turn descendant selectors into same-element selectors."""
+        from bengal.assets.css_minifier import minify_css
+
+        assert minify_css(source) == expected
+
+    @pytest.mark.parametrize(
+        ("source", "expected"),
+        [
+            (".a:where(h1, h2) { color: red; }", ".a:where(h1, h2){color:red;}"),
+            (".a:is(h1, h2) { color: red; }", ".a:is(h1, h2){color:red;}"),
+            (".a:not(pre) > code { color: red; }", ".a:not(pre)>code{color:red;}"),
+            (".a:has(> img) { color: red; }", ".a:has(>img){color:red;}"),
+            (".a:hover { color: red; }", ".a:hover{color:red;}"),
+            (".a::before { content: ''; }", ".a::before{content:'';}"),
+            (".a[data-x] { color: red; }", ".a[data-x]{color:red;}"),
+        ],
+    )
+    def test_preserves_same_element_selector_compaction(
+        self,
+        source: str,
+        expected: str,
+    ) -> None:
+        """Test that same-element pseudo and attribute selectors stay compact."""
+        from bengal.assets.css_minifier import minify_css
+
+        assert minify_css(source) == expected
 
 
 class TestMinifyCssCalcFunction:
