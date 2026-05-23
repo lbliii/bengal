@@ -26,9 +26,8 @@ watcher failures.
   need deterministic cleanup.
 - **Port behavior is user-facing.** Stale process detection, IPv4/IPv6 probing,
   and aliases such as `bengal s` need tests.
-- **Static assets stay optimized.** Preserve tested ETag, range, and
-  precompressed static handling without assuming dev static responses use
-  Pounce sendfile; current ASGI tests require body-frame behavior.
+- **Static assets stay optimized.** Preserve tested ETag, range, precompressed
+  static handling, and Pounce's protocol-owned sendfile path.
 - **Errors reach overlays and terminal.** Dev server failures should stay
   actionable in both browser overlay and CLI output.
 
