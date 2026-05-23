@@ -116,6 +116,7 @@ def minify_css(css: str) -> str:
     # Context tracking (O(1) updates instead of O(n) lookbacks)
     paren_depth = 0  # Track function nesting
     current_property = ""  # Current CSS property name
+    in_declaration_value = False  # After a property colon, before ; or }
     in_calc_function = False  # Inside calc/clamp/min/max
     in_multi_value = False  # Inside multi-value property
     in_function_list = False  # Inside filter/transform etc
@@ -136,16 +137,81 @@ def minify_css(css: str) -> str:
 
     def reset_property_context() -> None:
         """Reset context at end of declaration."""
-        nonlocal current_property, in_multi_value, in_function_list, in_slash_prop, in_font
+        nonlocal current_property, in_declaration_value
+        nonlocal in_multi_value, in_function_list, in_slash_prop, in_font
         nonlocal in_calc_function
         current_property = ""
+        in_declaration_value = False
         in_multi_value = False
         in_function_list = False
         in_slash_prop = False
         in_font = False
         in_calc_function = False
 
-    def needs_space_before(next_char: str) -> bool:
+    def starts_selector_component(next_char: str) -> bool:
+        """Return whether a character can start a selector component."""
+        return next_char.isalpha() or next_char in ".#[:*"
+
+    def ends_selector_component(prev_char: str) -> bool:
+        """Return whether a character can end a selector component."""
+        return prev_char.isalnum() or prev_char in ")]_*&"
+
+    def should_preserve_descendant_space(next_char: str, *, property_colon: bool) -> bool:
+        """Preserve source whitespace when removing it would merge selector components."""
+        if in_declaration_value or property_colon:
+            return False
+        if not pending_whitespace or not starts_selector_component(next_char):
+            return False
+        prev = result[-1]
+        return ends_selector_component(prev)
+
+    def colon_starts_declaration(pos: int) -> bool:
+        """Determine whether a colon begins a declaration value, not a pseudo selector."""
+        if paren_depth > 0 or not last_token:
+            return False
+
+        j = pos + 1
+        nested_depth = 0
+        local_string = ""
+
+        while j < length:
+            next_char = css[j]
+
+            if local_string:
+                if next_char == "\\" and j + 1 < length:
+                    j += 2
+                    continue
+                if next_char == local_string:
+                    local_string = ""
+                j += 1
+                continue
+
+            if next_char in {"'", '"'}:
+                local_string = next_char
+                j += 1
+                continue
+
+            if next_char == "/" and j + 1 < length and css[j + 1] == "*":
+                j += 2
+                while j + 1 < length and not (css[j] == "*" and css[j + 1] == "/"):
+                    j += 1
+                j += 2
+                continue
+
+            if next_char in "([":
+                nested_depth += 1
+            elif next_char in ")]":
+                nested_depth = max(0, nested_depth - 1)
+            elif nested_depth == 0 and next_char == "{":
+                return False
+            elif nested_depth == 0 and next_char in ";}":
+                return True
+
+            j += 1
+
+        return True
+
+    def needs_space_before(next_char: str, *, property_colon: bool) -> bool:
         """Determine if space is needed before next character. O(1) complexity."""
         if not result:
             return False
@@ -202,6 +268,11 @@ def minify_css(css: str) -> str:
         if in_font and prev == ")" and next_char.isalpha():
             return True
 
+        # Descendant selectors use a real space combinator. Removing whitespace before
+        # pseudo, attribute, or universal selector starts changes which element matches.
+        if should_preserve_descendant_space(next_char, property_colon=property_colon):
+            return True
+
         # Standard no-space characters
         if prev in _NO_SPACE_CHARS or next_char in _NO_SPACE_CHARS:
             return False
@@ -236,7 +307,7 @@ def minify_css(css: str) -> str:
 
         # Start of string
         if char in {"'", '"'}:
-            if pending_whitespace and needs_space_before(char):
+            if pending_whitespace and needs_space_before(char, property_colon=False):
                 result.append(" ")
             pending_whitespace = False
             in_string = True
@@ -270,10 +341,13 @@ def minify_css(css: str) -> str:
             if paren_depth == 0:
                 in_calc_function = False
 
+        property_colon = char == ":" and colon_starts_declaration(i)
+
         # Track property declarations
-        if char == ":":
+        if property_colon:
             # We just finished a property name
             current_property = last_token
+            in_declaration_value = True
             update_property_context(current_property)
 
         # Reset context at end of declaration
@@ -282,12 +356,15 @@ def minify_css(css: str) -> str:
 
         # Decide whether to emit space
         if pending_whitespace:
-            if needs_space_before(char):
+            if needs_space_before(char, property_colon=property_colon):
                 result.append(" ")
             pending_whitespace = False
 
         # Emit the character
         result.append(char)
+
+        if char == "{" and paren_depth == 0:
+            reset_property_context()
 
         # Track last token (for keyword detection)
         if char.isalnum() or char in "-_":

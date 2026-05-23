@@ -73,6 +73,26 @@ body { color: blue; }
         minified = asset._minified_content
         assert "Bundled" not in minified
 
+    def test_minifies_bundled_css_without_merging_descendant_selectors(self, temp_asset_dir):
+        """Test bundled CSS keeps descendant selector spaces during minification."""
+        css_file = temp_asset_dir / "style.css"
+        css_file.write_text(".unused { color: black; }")
+
+        asset = Asset(source_path=css_file)
+        asset._bundled_content = """
+.docs :where(h1, h2) { color: red; }
+.docs [data-x] { color: blue; }
+.docs * { box-sizing: border-box; }
+.docs:not(.compact) { margin: 0; }
+"""
+        asset.minify()
+
+        minified = asset._minified_content
+        assert ".docs :where(h1, h2){color:red;}" in minified
+        assert ".docs [data-x]{color:blue;}" in minified
+        assert ".docs *{box-sizing:border-box;}" in minified
+        assert ".docs:not(.compact){margin:0;}" in minified
+
     def test_handles_css_nesting_transformation(self, temp_asset_dir):
         """Test that CSS nesting is transformed when lightningcss unavailable."""
         css_file = temp_asset_dir / "nested.css"
