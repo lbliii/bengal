@@ -20,11 +20,12 @@ from __future__ import annotations
 
 import os
 import time
+from contextlib import suppress
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from bengal.assets.manifest import inspect_asset_outputs
-from bengal.build.contracts.keys import content_key
+from bengal.build.contracts.keys import CacheKey, content_key
 from bengal.build.provenance import ProvenanceCache, ProvenanceFilter
 from bengal.build.provenance.filter import ProvenanceFilterResult
 from bengal.orchestration.build.results import (
@@ -44,6 +45,7 @@ from bengal.utils.primitives.hashing import hash_file
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
+    from bengal.build.contracts import DependencyReadIndex
     from bengal.protocols import SiteLike
 
 logger = get_logger(__name__)
@@ -148,6 +150,19 @@ def _missing_postprocess_artifacts(site: SiteLike) -> tuple[Path, ...]:
         except OSError:
             missing.append(path)
     return tuple(missing)
+
+
+def _output_dir_empty(output_dir: Path) -> bool:
+    """Return True when the output directory is missing, inaccessible, or empty."""
+    if not output_dir.exists():
+        return True
+    try:
+        next(output_dir.iterdir())
+    except StopIteration:
+        return True
+    except OSError:
+        return True
+    return False
 
 
 def _page_output_counts(pages: Sequence[PageLike]) -> tuple[int, int]:
@@ -284,6 +299,7 @@ def _detect_changed_templates(
 def _get_pages_for_data_file(
     cache: BuildCache,
     data_file: Path,
+    dependency_index: DependencyReadIndex | None = None,
 ) -> set[Path]:
     """
     Find pages that depend on a data file.
@@ -300,6 +316,18 @@ def _get_pages_for_data_file(
         Set of page source paths that depend on this data file
     """
     pages: set[Path] = set()
+    index_pages = _get_pages_from_dependency_index(
+        dependency_index,
+        ("data",),
+        _dependency_key_candidates(cache, data_file),
+    )
+    if index_pages:
+        logger.debug(
+            "dependency_index_data_hit",
+            data_file=str(data_file),
+            affected_pages=len(index_pages),
+        )
+        return index_pages
 
     # Primary: query EffectTracer for data file dependencies.
     # During rendering, TrackedData records data file access via
@@ -337,6 +365,7 @@ def _get_pages_for_data_file(
 def _get_pages_for_template(
     cache: BuildCache,
     template_path: Path,
+    dependency_index: DependencyReadIndex | None = None,
 ) -> set[Path]:
     """
     Find pages that use a template.
@@ -352,6 +381,19 @@ def _get_pages_for_template(
         Set of page source paths that use this template
     """
     pages: set[Path] = set()
+    index_pages = _get_pages_from_dependency_index(
+        dependency_index,
+        ("template",),
+        _dependency_key_candidates(cache, template_path),
+    )
+    if index_pages:
+        logger.debug(
+            "dependency_index_template_hit",
+            template=str(template_path),
+            affected_pages=len(index_pages),
+        )
+        return index_pages
+
     template_key = cache._cache_key(template_path)
 
     # Check reverse dependencies
@@ -364,6 +406,35 @@ def _get_pages_for_template(
         if template_key in deps:
             pages.add(Path(page_str))
 
+    return pages
+
+
+def _dependency_key_candidates(cache: BuildCache, path: Path) -> tuple[str, ...]:
+    """Return stable key candidates for dependency-index lookups."""
+    candidates: list[str] = []
+    with suppress(OSError, ValueError):
+        candidates.append(str(cache._cache_key(path)))
+    candidates.append(path.as_posix())
+    candidates.append(path.name)
+    return tuple(dict.fromkeys(candidates))
+
+
+def _get_pages_from_dependency_index(
+    dependency_index: DependencyReadIndex | None,
+    dependency_kinds: tuple[str, ...],
+    dependency_keys: tuple[str, ...],
+) -> set[Path]:
+    """Return affected page paths from the read index, or empty for fallback."""
+    if dependency_index is None or dependency_index.is_empty:
+        return set()
+
+    pages: set[Path] = set()
+    for dependency_kind in dependency_kinds:
+        for dependency_key in dependency_keys:
+            pages.update(
+                Path(page_key)
+                for page_key in dependency_index.affected_page_keys(dependency_kind, dependency_key)
+            )
     return pages
 
 
@@ -412,6 +483,7 @@ def _expand_forced_changed(
     cache: BuildCache,
     site: SiteLike,
     pages: Sequence[PageLike],
+    dependency_index: DependencyReadIndex | None = None,
 ) -> tuple[set[Path], dict[str, list[str]]]:
     """
     Expand forced_changed set to include dependency-triggered rebuilds.
@@ -438,7 +510,7 @@ def _expand_forced_changed(
     # Gap 1: Detect data file changes
     changed_data_files = _detect_changed_data_files(cache, site)
     for data_file in changed_data_files:
-        affected_pages = _get_pages_for_data_file(cache, data_file)
+        affected_pages = _get_pages_for_data_file(cache, data_file, dependency_index)
         for page_path in affected_pages:
             if page_path not in expanded:
                 expanded.add(page_path)
@@ -456,14 +528,40 @@ def _expand_forced_changed(
         template_names_str = ", ".join(
             template_name_for_path(t, template_dirs) for t in changed_templates
         )
-        if cache.template_dependencies:
+        index_template_hits: dict[str, set[Path]] = {}
+        for changed_template in changed_templates:
+            template_name = template_name_for_path(changed_template, template_dirs)
+            affected = _get_pages_from_dependency_index(
+                dependency_index,
+                ("template",),
+                (*_dependency_key_candidates(cache, changed_template), template_name),
+            )
+            if not affected:
+                index_template_hits = {}
+                break
+            index_template_hits[template_name] = affected
+
+        if index_template_hits:
+            for template_name, affected_paths in index_template_hits.items():
+                logger.debug(
+                    "dependency_index_template_hit",
+                    template=template_name,
+                    affected_pages=len(affected_paths),
+                )
+                for page_path in affected_paths:
+                    if page_path not in expanded:
+                        expanded.add(page_path)
+                        reasons.setdefault(str(page_path), []).append(
+                            f"template_changed:{template_name}"
+                        )
+        elif cache.template_dependencies:
             # Selective rebuild: only rebuild pages that depend on changed templates
             needs_full_rebuild = False
             for changed_template in changed_templates:
                 template_name = template_name_for_path(changed_template, template_dirs)
-                affected = cache.get_pages_for_template(template_name)
-                if affected:
-                    for page_path_str in affected:
+                affected_paths = cache.get_pages_for_template(template_name)
+                if affected_paths:
+                    for page_path_str in affected_paths:
                         page_path = Path(page_path_str)
                         if page_path not in expanded:
                             expanded.add(page_path)
@@ -556,6 +654,7 @@ def phase_incremental_filter_provenance(
     """
     with orchestrator.logger.phase("incremental_filtering_provenance", enabled=incremental):
         site = orchestrator.site
+        site_like = cast("SiteLike", site)
 
         # Initialize provenance cache
         provenance_cache = ProvenanceCache(site.root_path / ".bengal" / "provenance")
@@ -577,8 +676,9 @@ def phase_incremental_filter_provenance(
         forced_changed, dependency_reasons = _expand_forced_changed(
             forced_changed,
             cache,
-            site,
+            site_like,
             pages_list,
+            provenance_cache.get_dependency_index(),
         )
 
         # Filter pages and assets
@@ -592,7 +692,7 @@ def phase_incremental_filter_provenance(
         # Font/theme setup may create files in public/ before this phase, so an output
         # directory that is merely non-empty is not proof that page HTML can be reused.
         output_dir = site.output_dir
-        output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
+        output_html_missing = _output_dir_empty(output_dir)
         asset_integrity = inspect_asset_outputs(output_dir)
         output_assets_missing = not asset_integrity.is_complete
         page_outputs_checked, page_outputs_missing = _page_output_counts(pages_list)
@@ -937,7 +1037,7 @@ def phase_incremental_filter_provenance(
 
         # Check if output directory is missing
         output_dir = site.output_dir
-        output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir())) == 0
+        output_html_missing = _output_dir_empty(output_dir)
         asset_integrity = inspect_asset_outputs(output_dir)
         output_assets_missing = not asset_integrity.is_complete
 
@@ -978,7 +1078,7 @@ def phase_incremental_filter_provenance(
             missing_pages: list = []
 
             for rel_output, source_str in (cache.output_sources or {}).items():
-                page = skipped_by_source.get(source_str)
+                page = skipped_by_source.get(CacheKey(str(source_str)))
                 if not page:
                     continue
                 output_path = site.output_dir / rel_output
@@ -1012,7 +1112,7 @@ def phase_incremental_filter_provenance(
 
         # Check for skip condition
         missing_postprocess_artifacts = (
-            _missing_postprocess_artifacts(site) if result.is_skip else ()
+            _missing_postprocess_artifacts(site_like) if result.is_skip else ()
         )
         if result.is_skip and not missing_postprocess_artifacts:
             cli.success("✓ No changes detected - build skipped")

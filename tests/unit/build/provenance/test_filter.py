@@ -14,6 +14,8 @@ import pytest
 
 from bengal.build.provenance.filter import ProvenanceFilter, ProvenanceFilterResult
 from bengal.build.provenance.store import ProvenanceCache
+from bengal.effects.effect import Effect
+from bengal.effects.render_integration import BuildEffectTracer
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -141,6 +143,121 @@ class TestCacheHitMiss:
 
         assert len(result.pages_to_build) == 1
         assert result.cache_misses == 1
+
+
+class TestRenderDependencyProvenance:
+    """Tests for producer-side template/data provenance coverage."""
+
+    def test_build_record_includes_rendered_template_and_data_inputs(
+        self, provenance_filter: ProvenanceFilter, mock_site: MagicMock
+    ) -> None:
+        """Stored page records include render-observed template and data dependencies."""
+        BuildEffectTracer.reset()
+        tracer = BuildEffectTracer.activate()
+        try:
+            template_dir = mock_site.root_path / "templates"
+            template_dir.mkdir()
+            template_path = template_dir / "page.html"
+            template_path.write_text("{{ content }}")
+
+            data_dir = mock_site.root_path / "data"
+            data_dir.mkdir()
+            data_path = data_dir / "team.yaml"
+            data_path.write_text("name: docs")
+
+            page_path = mock_site.root_path / "content" / "about.md"
+            page_path.parent.mkdir(parents=True)
+            page_path.write_text("# About")
+
+            page = MagicMock()
+            page.source_path = page_path
+            page.output_path = mock_site.root_path / "public" / "about" / "index.html"
+            page.href = "/about/"
+            page.title = "About"
+            page.metadata = {}
+            page.template = None
+            page.virtual = False
+            page._section = None
+
+            tracer.tracer.record(
+                Effect(
+                    outputs=frozenset({page.output_path}),
+                    depends_on=frozenset({page_path, "page.html", data_path}),
+                    operation="render_page",
+                    metadata={"source_path": str(page_path), "template": "page.html"},
+                )
+            )
+
+            record_with_paths = provenance_filter.build_record(page)
+
+            assert record_with_paths is not None
+            record, input_paths = record_with_paths
+            template_inputs = record.provenance.inputs_by_type("template")
+            data_inputs = record.provenance.inputs_by_type("data")
+            assert [str(inp.path) for inp in template_inputs] == ["page.html"]
+            assert [str(inp.path) for inp in data_inputs] == ["data/team.yaml"]
+            assert "data/team.yaml" in input_paths
+
+            provenance_filter.cache.store(record, input_paths)
+            provenance_filter.cache.save()
+            dependency_index = provenance_filter.cache.get_dependency_index()
+            assert dependency_index.affected_page_keys("template", "page.html") == (
+                "content/about.md",
+            )
+            assert dependency_index.affected_page_keys("data", "data/team.yaml") == (
+                "content/about.md",
+            )
+        finally:
+            BuildEffectTracer.reset()
+
+    def test_build_record_refreshes_pre_render_provenance_cache(
+        self, provenance_filter: ProvenanceFilter, mock_site: MagicMock
+    ) -> None:
+        """Post-render records are recomputed after new render dependencies appear."""
+        BuildEffectTracer.reset()
+        tracer = BuildEffectTracer.activate()
+        try:
+            template_dir = mock_site.root_path / "templates"
+            template_dir.mkdir()
+            (template_dir / "page.html").write_text("{{ content }}")
+
+            data_dir = mock_site.root_path / "data"
+            data_dir.mkdir()
+            data_path = data_dir / "team.yaml"
+            data_path.write_text("name: docs")
+
+            page_path = mock_site.root_path / "content" / "about.md"
+            page_path.parent.mkdir(parents=True)
+            page_path.write_text("# About")
+
+            page = MagicMock()
+            page.source_path = page_path
+            page.metadata = {}
+            page.template = None
+            page.virtual = False
+            page._section = None
+
+            pre_render = provenance_filter._compute_provenance_fast(page)
+            assert pre_render is not None
+            assert pre_render.inputs_by_type("data") == []
+
+            tracer.tracer.record(
+                Effect(
+                    depends_on=frozenset({data_path}),
+                    operation="render_page",
+                    metadata={"source_path": str(page_path)},
+                )
+            )
+
+            record_with_paths = provenance_filter.build_record(page)
+
+            assert record_with_paths is not None
+            record, _ = record_with_paths
+            assert [str(inp.path) for inp in record.provenance.inputs_by_type("data")] == [
+                "data/team.yaml"
+            ]
+        finally:
+            BuildEffectTracer.reset()
 
 
 # =============================================================================

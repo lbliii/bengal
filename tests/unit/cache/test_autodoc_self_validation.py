@@ -297,3 +297,47 @@ class TestCachePersistence:
         assert loaded_hash == source_hash
         assert loaded_mtime == source_mtime
         assert loaded_doc_hashes == {}
+
+    def test_save_and_load_preserves_doc_content_hashes(self, tmp_path):
+        """Fine-grained autodoc page content hashes survive save/load."""
+        cache_path = tmp_path / "cache.json"
+        site_root = tmp_path / "site"
+        site_root.mkdir()
+        source_file = tmp_path / "src" / "module.py"
+        source_file.parent.mkdir()
+        source_file.write_text('def foo():\n    """Hello."""\n')
+
+        cache1 = BuildCache()
+        source_hash = hash_file(source_file, truncate=16)
+        source_mtime = source_file.stat().st_mtime
+
+        cache1.autodoc_tracker.add_autodoc_dependency(
+            source_file,
+            "api/module/index.md",
+            site_root=site_root,
+            source_hash=source_hash,
+            source_mtime=source_mtime,
+            content_hash="doc-hash-v1",
+        )
+
+        cache1.save(cache_path, use_lock=False)
+
+        cache2 = BuildCache.load(cache_path, use_lock=False)
+
+        normalized_key = str(source_file.relative_to(tmp_path))
+        assert (
+            cache2.autodoc_tracker.is_doc_content_changed(
+                normalized_key,
+                "api/module/index.md",
+                "doc-hash-v1",
+            )
+            is False
+        )
+        assert (
+            cache2.autodoc_tracker.is_doc_content_changed(
+                normalized_key,
+                "api/module/index.md",
+                "doc-hash-v2",
+            )
+            is True
+        )

@@ -37,13 +37,15 @@ BUILD_STATE_LEDGER: tuple[BuildStateSurface, ...] = (
     BuildStateSurface(
         id="provenance",
         owner="bengal.build.provenance",
-        storage=".bengal/cache/provenance.json",
+        storage=".bengal/provenance/index.json, records/, subvenance.json, dependency-index.json",
         write_phase="post-render",
         read_phase="incremental filtering",
-        incremental_role="Maps output pages to source, template, and config inputs for rebuild decisions.",
+        incremental_role="Maps output pages to source, dependency, and config inputs for rebuild decisions.",
         proof=(
+            "tests/unit/build/provenance/test_store.py",
             "tests/unit/build/provenance/test_filter.py",
             "tests/unit/orchestration/build/test_provenance_batch.py",
+            "tests/unit/orchestration/build/test_provenance_dependency_index.py",
         ),
     ),
     BuildStateSurface(

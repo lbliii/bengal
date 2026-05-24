@@ -15,19 +15,28 @@ from __future__ import annotations
 
 import threading
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from bengal.build.contracts.dependency_index import (
+    DependencyReadIndex,
+    build_dependency_read_index,
+)
 from bengal.build.contracts.keys import CacheKey
 from bengal.build.provenance.types import (
     ContentHash,
     Provenance,
     ProvenanceRecord,
 )
+from bengal.errors import ErrorCode
 from bengal.utils.io.json_compat import JSONDecodeError
 from bengal.utils.io.json_compat import dump as json_dump
 from bengal.utils.io.json_compat import load as json_load
+from bengal.utils.observability.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -57,6 +66,7 @@ class ProvenanceCache:
     _input_paths: dict[CacheKey, list[str]] = field(default_factory=dict)
     _last_build_time: float | None = field(default=None)
     _last_build_time_ns: int | None = field(default=None)
+    _dependency_index: DependencyReadIndex = field(default_factory=DependencyReadIndex)
     _records: dict[ContentHash, ProvenanceRecord] = field(default_factory=dict)
     _subvenance: dict[ContentHash, set[CacheKey]] = field(default_factory=dict)
     _loaded: bool = False
@@ -70,6 +80,17 @@ class ProvenanceCache:
         # Lock for thread-safe access to in-memory indexes
         self._lock = threading.Lock()
 
+    def _warn_load_failed(self, *, path: Path, error: Exception, action: str) -> None:
+        """Log tolerant provenance cache recovery for corrupt or unreadable files."""
+        logger.warning(
+            "provenance_cache_load_failed",
+            path=str(path),
+            error=str(error),
+            error_type=type(error).__name__,
+            action=action,
+            error_code=ErrorCode.A003.value,
+        )
+
     def _ensure_loaded(self) -> None:
         """Load indexes from disk if not already loaded (thread-safe).
 
@@ -82,6 +103,7 @@ class ProvenanceCache:
         # Load index and subvenance outside lock (I/O can block)
         index_data, input_paths_data, last_build, last_build_ns = self._load_index_data()
         subvenance_data = self._load_subvenance_data()
+        dependency_index_data = self._load_dependency_index_data()
 
         with self._lock:
             if self._loaded:
@@ -90,6 +112,7 @@ class ProvenanceCache:
             self._input_paths = input_paths_data
             self._last_build_time = last_build
             self._last_build_time_ns = last_build_ns
+            self._dependency_index = dependency_index_data
             self._subvenance = subvenance_data
             self._loaded = True
 
@@ -100,17 +123,24 @@ class ProvenanceCache:
         index_path = self.cache_dir / "index.json"
         try:
             data = json_load(index_path)
+            if not isinstance(data, Mapping):
+                raise TypeError("Provenance index payload must be a mapping.")
             pages = {CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()}
             input_paths: dict[CacheKey, list[str]] = {}
             if "input_paths" in data:
                 for k, v in data["input_paths"].items():
-                    input_paths[CacheKey(k)] = list(v) if isinstance(v, list) else []
+                    input_paths[CacheKey(k)] = (
+                        [str(path) for path in v] if isinstance(v, list) else []
+                    )
             last_build = data.get("last_build_time")
             last_build_ns = data.get("last_build_time_ns")
             if last_build_ns is not None:
                 last_build_ns = int(last_build_ns)
             return (pages, input_paths, last_build, last_build_ns)
-        except FileNotFoundError, JSONDecodeError, KeyError:
+        except FileNotFoundError:
+            return ({}, {}, None, None)
+        except (JSONDecodeError, KeyError, TypeError, ValueError) as e:
+            self._warn_load_failed(path=index_path, error=e, action="using_empty_index")
             return ({}, {}, None, None)
 
     def _load_subvenance_data(self) -> dict[ContentHash, set[CacheKey]]:
@@ -118,9 +148,43 @@ class ProvenanceCache:
         subvenance_path = self.cache_dir / "subvenance.json"
         try:
             data = json_load(subvenance_path)
+            if not isinstance(data, Mapping):
+                raise TypeError("Provenance subvenance payload must be a mapping.")
             return {ContentHash(k): set(v) for k, v in data.items()}
-        except FileNotFoundError, JSONDecodeError, KeyError:
+        except FileNotFoundError:
             return {}
+        except (JSONDecodeError, KeyError, TypeError, ValueError) as e:
+            self._warn_load_failed(path=subvenance_path, error=e, action="using_empty_subvenance")
+            return {}
+
+    def _load_dependency_index_data(self) -> DependencyReadIndex:
+        """Load dependency read index from disk (no lock)."""
+        dependency_index_path = self.cache_dir / "dependency-index.json"
+        try:
+            data = json_load(dependency_index_path)
+            if not isinstance(data, Mapping):
+                raise TypeError("Provenance dependency index payload must be a mapping.")
+            if data.get("version") != 1:
+                return DependencyReadIndex()
+            dependencies = data.get("dependencies", {})
+            if not isinstance(dependencies, dict):
+                logger.warning(
+                    "provenance_dependency_index_malformed",
+                    path=str(dependency_index_path),
+                    action="using_empty_dependency_index",
+                    error_code=ErrorCode.A001.value,
+                )
+                return DependencyReadIndex()
+            return DependencyReadIndex.from_cache_dict(dependencies)
+        except FileNotFoundError:
+            return DependencyReadIndex()
+        except (JSONDecodeError, KeyError, TypeError, ValueError) as e:
+            self._warn_load_failed(
+                path=dependency_index_path,
+                error=e,
+                action="using_empty_dependency_index",
+            )
+            return DependencyReadIndex()
 
     def _get_record(self, combined_hash: ContentHash) -> ProvenanceRecord | None:
         """Load a provenance record by hash."""
@@ -135,7 +199,14 @@ class ProvenanceCache:
             record = ProvenanceRecord.from_dict(data)
             self._records[combined_hash] = record
             return record
-        except FileNotFoundError, JSONDecodeError, KeyError:
+        except FileNotFoundError:
+            return None
+        except (JSONDecodeError, KeyError, TypeError, ValueError) as e:
+            self._warn_load_failed(
+                path=record_path,
+                error=e,
+                action="treating_record_as_missing",
+            )
             return None
 
     def get(self, page_path: CacheKey) -> ProvenanceRecord | None:
@@ -325,6 +396,37 @@ class ProvenanceCache:
 
         return self.get_affected_by(current_hash)
 
+    def get_dependency_index(self) -> DependencyReadIndex:
+        """Return the persisted dependency read index, if available."""
+        self._ensure_loaded()
+
+        with self._lock:
+            return self._dependency_index
+
+    def rebuild_dependency_index(self) -> DependencyReadIndex:
+        """Rebuild the dependency read index from stored provenance records."""
+        self._ensure_loaded()
+
+        with self._lock:
+            index_copy = dict(self._index)
+
+        dependency_index = self._build_dependency_index(index_copy)
+        with self._lock:
+            self._dependency_index = dependency_index
+            self._dirty = True
+        return dependency_index
+
+    def _build_dependency_index(
+        self, index_data: dict[CacheKey, ContentHash]
+    ) -> DependencyReadIndex:
+        """Build a dependency read index from the current page index snapshot."""
+        records: list[ProvenanceRecord] = []
+        for combined_hash in index_data.values():
+            record = self._get_record(combined_hash)
+            if record is not None:
+                records.append(record)
+        return build_dependency_read_index(records)
+
     def save(
         self,
         *,
@@ -346,6 +448,10 @@ class ProvenanceCache:
             self._last_build_time_ns = saved_time_ns
             self._dirty = False
 
+        dependency_index = self._build_dependency_index(index_copy)
+        with self._lock:
+            self._dependency_index = dependency_index
+
         # File writes outside lock
         # Uses atomic write for crash safety (json_dump creates parent dirs)
 
@@ -366,6 +472,16 @@ class ProvenanceCache:
         subvenance_path = self.cache_dir / "subvenance.json"
         json_dump(subvenance_copy, subvenance_path)
 
+        # Save dependency read index for O(changed dependency) warm-build queries.
+        dependency_index_path = self.cache_dir / "dependency-index.json"
+        json_dump(
+            {
+                "version": 1,
+                "dependencies": dependency_index.to_cache_dict(),
+            },
+            dependency_index_path,
+        )
+
     def stats(self) -> dict[str, Any]:
         """Get store statistics (thread-safe)."""
         self._ensure_loaded()
@@ -375,6 +491,7 @@ class ProvenanceCache:
             pages_tracked = len(self._index)
             records_cached = len(self._records)
             subvenance_entries = len(self._subvenance)
+            dependency_index_entries = len(self._dependency_index)
 
         total_inputs = 0
         for h in index_values:
@@ -386,6 +503,7 @@ class ProvenanceCache:
             "pages_tracked": pages_tracked,
             "records_cached": records_cached,
             "subvenance_entries": subvenance_entries,
+            "dependency_index_entries": dependency_index_entries,
             "total_input_references": total_inputs,
         }
 

@@ -251,13 +251,37 @@ class GeneratedPageCache(PersistentCacheMixin):
 
         """
         # Sort for deterministic ordering
-        member_hashes = sorted(
-            content_cache.get(str(p.source_path), "")
-            for p in member_pages
-            if hasattr(p, "source_path")
-        )
+        member_hashes, _missing = self._member_hash_values(member_pages, content_cache)
         combined = "|".join(member_hashes)
         return hash_str(combined, truncate=16)
+
+    def _member_hash_values(
+        self,
+        member_pages: Sequence[PageLike],
+        content_cache: dict[str, str],
+    ) -> tuple[tuple[str, ...], bool]:
+        """Return deterministic member content hashes and missing-fact status."""
+        member_hashes: list[str] = []
+        missing = False
+        for page in member_pages:
+            if not hasattr(page, "source_path"):
+                continue
+            page_path = str(page.source_path)
+            content_hash = content_cache.get(page_path) or getattr(page, "content_hash", None)
+            if content_hash:
+                member_hashes.append(str(content_hash))
+            else:
+                missing = True
+        return tuple(sorted(member_hashes)), missing
+
+    def _has_missing_member_hashes(
+        self,
+        member_pages: Sequence[PageLike],
+        content_cache: dict[str, str],
+    ) -> bool:
+        """Return True when a generated page lacks member content facts."""
+        _member_hashes, missing = self._member_hash_values(member_pages, content_cache)
+        return missing
 
     # =========================================================================
     # Cache operations
@@ -297,6 +321,14 @@ class GeneratedPageCache(PersistentCacheMixin):
             entry = self.entries.get(key)
 
         if entry is None:
+            return True
+
+        if self._has_missing_member_hashes(member_pages, content_cache):
+            logger.debug(
+                "generated_page_cache_missing_member_hash",
+                page_type=page_type,
+                page_id=page_id,
+            )
             return True
 
         # Check template hash first (fast path for template changes)

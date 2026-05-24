@@ -450,6 +450,7 @@ class TestBuildCache:
         # Should return empty cache
         assert len(cache.file_fingerprints) == 0
         assert len(cache.dependencies) == 0
+        assert cache._recovered_from_error is False
 
     def test_load_corrupted_cache(self, tmp_path):
         """Test loading a corrupted cache file."""
@@ -460,6 +461,23 @@ class TestBuildCache:
 
         # Should return empty cache
         assert len(cache.file_fingerprints) == 0
+        assert cache._recovered_from_error is True
+
+    def test_track_output_uses_posix_relative_keys(self, tmp_path):
+        """Output cleanup keys are normalized for portable cache payloads."""
+        cache = BuildCache(site_root=tmp_path)
+        source_path = tmp_path / "content" / "docs" / "page.md"
+        output_dir = tmp_path / "public"
+        output_path = output_dir / "docs" / "page" / "index.html"
+        source_path.parent.mkdir(parents=True)
+        output_path.parent.mkdir(parents=True)
+        source_path.write_text("# Page")
+        output_path.write_text("<h1>Page</h1>")
+
+        cache.track_output(source_path, output_path, output_dir)
+
+        assert "docs/page/index.html" in cache.output_sources
+        assert "\\" not in next(iter(cache.output_sources))
 
     def test_get_stats(self, tmp_path):
         """Test getting cache statistics."""

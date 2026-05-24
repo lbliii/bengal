@@ -664,7 +664,15 @@ class RenderingPipeline:
                     if hasattr(self.parser, "parse_to_document"):
                         import patitas
 
-                        doc = self.parser.parse_to_document(source, metadata_for_parser)
+                        parser_with_document = cast("Any", self.parser)
+                        doc = None
+                        consume_last_document = getattr(self.parser, "consume_last_document", None)
+                        if callable(consume_last_document):
+                            doc = consume_last_document()
+                        if doc is None:
+                            doc = parser_with_document.parse_to_document(
+                                source, metadata_for_parser
+                            )
                         page._ast_cache = patitas.to_dict(doc)
                     elif hasattr(self.parser, "parse_to_ast"):
                         ast_tokens = self.parser.parse_to_ast(source, metadata_for_parser)

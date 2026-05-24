@@ -5,6 +5,31 @@
 **Author**: Codex
 **Related**: `rfc-effect-traced-incremental-builds.md`, `rfc-output-cache-architecture.md`, `rfc-incremental-build-observability.md`
 
+## Current Status — 2026-05-24
+
+Read-only contract groundwork exists in
+`bengal/build/contracts/dependency_index.py`: `DependencyIndexEntry` and
+`DependencyReadIndex` provide deterministic serialization and side-effect-free
+dependency-to-page/output lookups. `build_dependency_read_index()` can now build
+that read model from existing `ProvenanceRecord` inputs, including optional
+output-key mappings.
+
+`ProvenanceCache` now persists the read model to
+`.bengal/provenance/dependency-index.json` with migration-tolerant loading for
+missing or malformed payloads. The active provenance filtering path and the
+legacy effect detector consult the read model for positive data/template
+dependency hits, then fall back to existing tracer/cache/template-dependency
+paths when the index is absent or incomplete. This slice does not yet replace
+fallback scans or change plugin hook surfaces.
+
+Producer coverage for the first useful dependency kinds now exists:
+`ProvenanceFilter.build_record()` recomputes provenance after render so current
+render effects can contribute inputs, page records include resolved template
+files and data files observed during rendering, and mtime short-circuit input
+paths include those file-backed template/data inputs. This means warm builds can
+persist dependency-index entries from real page renders, not just from tests or
+synthetic records.
+
 ## Problem
 
 Bengal already records provenance and effects, but some warm-build paths still
@@ -67,8 +92,11 @@ Indexes should be grouped by normalized dependency kind:
 | `track` | track/data item key | pages whose listings or route pages depend on it |
 | `asset` | asset/source path | outputs whose HTML or manifests reference it |
 
-The first implementation slice should be template/data/generated indexes because
-those have the clearest existing provenance and user-visible stale-output risk.
+The implemented slices persist and consult the read model for template/data
+lookups where those dependency kinds are present, and producer coverage now
+captures render-time template/data facts in provenance. The next slice should
+broaden parity tests across theme override/include chains, generated pages, and
+site-wide output artifacts before fallback scans are removed.
 
 ## Detector Flow
 

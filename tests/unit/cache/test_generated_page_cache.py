@@ -20,6 +20,7 @@ def make_mock_page(source_path: str) -> MagicMock:
     """Create a mock Page with source_path."""
     page = MagicMock()
     page.source_path = Path(source_path)
+    page.content_hash = ""
     return page
 
 
@@ -141,6 +142,30 @@ class TestGeneratedPageCache:
         result = cache.should_regenerate("tag", "python", pages, {"a.md": "hash2"})
 
         assert result is True
+
+    def test_should_regenerate_true_when_member_hash_missing(self, tmp_path: Path) -> None:
+        """Missing member content hashes are conservative cache misses."""
+        cache = GeneratedPageCache(tmp_path / "cache.json")
+
+        pages = [make_mock_page("a.md")]
+        cache.update("tag", "python", pages, {"a.md": "hash1"}, "<html>v1</html>", 100)
+
+        result = cache.should_regenerate("tag", "python", pages, {})
+
+        assert result is True
+
+    def test_should_regenerate_uses_page_content_hash_fallback(self, tmp_path: Path) -> None:
+        """SourcePage content_hash avoids false misses when content_cache is sparse."""
+        cache = GeneratedPageCache(tmp_path / "cache.json")
+
+        page = make_mock_page("a.md")
+        page.content_hash = "hash1"
+        pages = [page]
+        cache.update("tag", "python", pages, {}, "<html>v1</html>", 100)
+
+        result = cache.should_regenerate("tag", "python", pages, {})
+
+        assert result is False
 
     def test_should_regenerate_true_when_template_changed(self, tmp_path: Path) -> None:
         """Returns True when template hash changed."""

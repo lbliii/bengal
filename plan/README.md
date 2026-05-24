@@ -26,8 +26,11 @@ Quick reference for RFC status. Run `rg "^\*\*Status\*\*" plan/rfc-*.md` to refr
 | rfc-health-diagnostics-audit | Active implementation | Splits health policy, rendering registries, artifact audit, and Kida output |
 | rfc-theme-library-assets | Draft | First-class package/library assets for themes |
 | rfc-template-view-model-contracts | Draft | Engine-neutral view data for Kida and BYO templates |
-| rfc-incremental-dependency-indexes | Draft | Normalized dependency-to-output read model for warm-build correctness |
+| rfc-incremental-dependency-indexes | Partially Implemented | Dependency index contracts, provenance persistence, conservative detector consultation, and template/data producer coverage exist |
 | rfc-snapshot-build-plan-handoff | Draft | Frozen build/incremental plans for worker-safe handoff |
+| rfc-output-cache-architecture | Partially Implemented | Content hashes, generated-page cache, page artifacts, and registry exist; split before more work |
+| rfc-autodoc-incremental-caching | Implemented / Audit Remaining | Doc-content hashes and autodoc metadata tracking exist |
+| rfc-provenance-mtime-short-circuit | Implemented | Kept as design record and proof checklist |
 
 ## Implemented
 
@@ -58,9 +61,9 @@ Archived 2026-04-20 (epic-agent-dx-polish S5):
 - `plan/complete/rfc-kida-reserved-keyword-subscript.md` — closed as documentation; no code change shipped.
 - `plan/complete/sprint-0-ty-triage.md` — triage feeds `plan/complete/epic-ty-diagnostic-reduction.md`.
 
-## Current Architecture (2026-02-14)
+## Current Architecture (2026-05-24)
 
 - **Build pipeline**: `bengal/orchestration/build/` (BuildOrchestrator, phases, coordinator)
+- **Build provenance contracts**: `bengal/build/provenance/`
 - **Incremental**: `bengal/orchestration/incremental/` (EffectBasedDetector, CacheManager)
 - **Cache**: `bengal/cache/build_cache/` (file_tracking, core)
-- **No** `bengal/build/` package

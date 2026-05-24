@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.paths.normalize import to_posix
 from bengal.utils.primitives.hashing import hash_file
 
 if TYPE_CHECKING:
@@ -270,7 +271,7 @@ class FileTrackingMixin:
         """
         # Store as relative path from output_dir for portability
         try:
-            rel_output = str(output_path.relative_to(output_dir))
+            rel_output = to_posix(output_path.relative_to(output_dir))
             self.output_sources[rel_output] = self._cache_key(source_path)
         except ValueError:
             # output_path not relative to output_dir, skip

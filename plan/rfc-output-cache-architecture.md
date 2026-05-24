@@ -1,10 +1,38 @@
 # RFC: Output Cache Architecture
 
-**Status**: Draft (Revised)  
-**Created**: 2026-01-14  
-**Revised**: 2026-01-14  
-**Author**: AI Assistant  
+**Status**: Partially Implemented / Needs Split Before Further Work
+**Created**: 2026-01-14
+**Revised**: 2026-01-14
+**Author**: AI Assistant
 **Related**: `rfc-incremental-build-observability.md`, `rfc-rebuild-decision-hardening.md`
+
+## Current Status — 2026-05-24
+
+This RFC overlaps with shipped work and should not be implemented wholesale.
+
+Implemented or partially implemented:
+
+- HTML content-hash embedding and extraction live in
+  `bengal/rendering/pipeline/output.py`.
+- `build.content_hash_in_html` is read by the rendering pipeline.
+- `GeneratedPageCache` and `GeneratedPageCacheEntry` live in
+  `bengal/cache/generated_page_cache.py` and are wired into build orchestration
+  for generated-page caching.
+- `ContentHashRegistry` exists under `bengal/cache/content_hash_registry.py`.
+- Page artifact persistence exists through `PageArtifactStore`,
+  `BuildCache.page_artifacts`, and incremental cache-manager integration.
+- Output classification exists, but current code also has the older
+  `bengal/core/output/` compatibility surface.
+- `GeneratedPageCache` now treats missing member content hashes as conservative
+  misses so incomplete cache facts cannot skip generated-page regeneration.
+- `GeneratedPageCache` can use member page `content_hash` as a fallback when the
+  orchestration-provided content-hash lookup is sparse, avoiding false misses
+  for page records that already carry content facts.
+
+Before further implementation, split this RFC into narrow current-state tasks.
+Do not add new config keys, cache schemas, reload-controller behavior, or public
+contracts from this document without revalidating against the current source and
+following the root stop-and-ask rules.
 
 ---
 

@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any
 from bengal.effects.block_diff import BlockDiffService
 
 if TYPE_CHECKING:
+    from bengal.build.contracts import DependencyReadIndex
     from bengal.core.site import Site
     from bengal.effects import EffectTracer
     from bengal.snapshots.types import SiteSnapshot
@@ -50,6 +51,7 @@ class EffectBasedDetector:
         tracer: EffectTracer,
         old_snapshot: SiteSnapshot | None = None,
         new_snapshot: SiteSnapshot | None = None,
+        dependency_index: DependencyReadIndex | None = None,
     ) -> None:
         """
         Initialize detector.
@@ -59,9 +61,11 @@ class EffectBasedDetector:
             tracer: EffectTracer with recorded effects from previous build
             old_snapshot: Previous build's snapshot (for content-aware diffing)
             new_snapshot: Current snapshot (for content-aware diffing)
+            dependency_index: Optional persisted dependency read model
         """
         self.site = site
         self.tracer = tracer
+        self.dependency_index = dependency_index
         self._block_diff: BlockDiffService | None = None
 
         if old_snapshot and new_snapshot:
@@ -135,6 +139,14 @@ class EffectBasedDetector:
         """Get pages affected by a template change."""
         pages: set[Path] = set()
         template_name = template_path.name
+        pages.update(
+            self._pages_from_dependency_index(
+                "template",
+                (str(template_path), template_path.as_posix(), template_name),
+            )
+        )
+        if pages:
+            return pages
 
         # Check EffectTracer for pages using this template
         effects = self.tracer.get_effects_depending_on(template_path)
@@ -156,6 +168,11 @@ class EffectBasedDetector:
     def _pages_for_data_file(self, data_path: Path) -> set[Path]:
         """Get pages affected by a data file change."""
         pages: set[Path] = set()
+        pages.update(
+            self._pages_from_dependency_index("data", (str(data_path), data_path.as_posix()))
+        )
+        if pages:
+            return pages
 
         # Check EffectTracer for render_page effects using this data file.
         # Use metadata["source_path"] to identify the page rather than
@@ -167,6 +184,23 @@ class EffectBasedDetector:
             if source:
                 pages.add(Path(source))
 
+        return pages
+
+    def _pages_from_dependency_index(
+        self, dependency_kind: str, dependency_keys: tuple[str, ...]
+    ) -> set[Path]:
+        """Return pages from the optional dependency read index."""
+        if self.dependency_index is None or self.dependency_index.is_empty:
+            return set()
+
+        pages: set[Path] = set()
+        for dependency_key in dependency_keys:
+            pages.update(
+                Path(page_key)
+                for page_key in self.dependency_index.affected_page_keys(
+                    dependency_kind, dependency_key
+                )
+            )
         return pages
 
     def _all_page_paths(self) -> set[Path]:

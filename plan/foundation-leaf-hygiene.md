@@ -1,6 +1,6 @@
 # Plan: Foundation Leaf Hygiene — `utils/primitives` + `utils/concurrency`
 
-**Status**: Draft
+**Status**: Mostly Implemented / Revalidate Remaining Items
 **Created**: 2026-04-20
 **Target**: v0.4.0 (opportunistic; no blocking dependencies)
 **Dependencies**: None
@@ -23,6 +23,32 @@ A four-lens audit (Architecture / Flow / Interaction / Micro) surfaced **16 acti
 The remainder are localized cleanups (dead code in `retry.py`, lazy-init globals not lock-guarded in `async_compat.py`, etc.).
 
 This plan is **utility-tier hygiene, not architectural refactor.** No core types change. No public API renames. The Tier-1 wins are 2-line patches.
+
+## Current Status — 2026-05-24
+
+Most low-risk items are already reflected in source. Current evidence:
+
+- `dates.py` no longer rebuilds `default_formats` inside `parse_date`.
+- `text.py` has module-level group documentation, a single-slice
+  `truncate_words()` path, and the `unicodedata` import at module scope.
+- `retry.py` no longer carries the unreachable post-loop block.
+- `dotdict.py` documents the intentional `""`-on-miss contract, warns that
+  `hasattr()` is always true, explains eager dict-in-list wrapping, and shares
+  wrapping through `_wrap_dict_value()`.
+- `orchestration/menu.py` and `health/validators/tracks.py` use membership checks
+  for `site.data` instead of `hasattr(site.data, ...)`.
+- `async_compat.py` uses `functools.cache` for uvloop lazy import, and
+  `thread_local.py` binds the per-key attribute name once in `get()`.
+
+Remaining work should be revalidated before implementation:
+
+- `lru_cache.py` now shares TTL expiry checks through `_is_expired()`. Further
+  changes to `get_or_set()` miss coalescing or second-lock behavior would affect
+  concurrent cache semantics and need focused tests.
+- `hash_dict` memoization remains benchmark-gated.
+- `generate_excerpt()` now scans HTML only until it can prove a truncated
+  excerpt, with tests for entity decoding, short-content parity, and late-tail
+  truncation behavior.
 
 ---
 
