@@ -289,6 +289,15 @@ class TestSaveLoad:
 
         assert store.get_dependency_index().is_empty
 
+    def test_non_mapping_dependency_index_loads_empty(self, cache_dir: Path) -> None:
+        """Decoded non-mapping dependency-index payloads recover as empty indexes."""
+        cache_dir.mkdir(parents=True)
+        (cache_dir / "dependency-index.json").write_text(json.dumps(["not", "a", "mapping"]))
+
+        store = ProvenanceCache(cache_dir=cache_dir)
+
+        assert store.get_dependency_index().is_empty
+
     def test_malformed_index_loads_empty(self, cache_dir: Path) -> None:
         """Corrupt page indexes recover as empty stores."""
         cache_dir.mkdir(parents=True)
@@ -297,6 +306,24 @@ class TestSaveLoad:
         store = ProvenanceCache(cache_dir=cache_dir)
 
         assert store.get_stored_hash(CacheKey("content/about.md")) is None
+
+    def test_non_mapping_index_loads_empty(self, cache_dir: Path) -> None:
+        """Decoded non-mapping page indexes recover as empty stores."""
+        cache_dir.mkdir(parents=True)
+        (cache_dir / "index.json").write_text(json.dumps(["not", "a", "mapping"]))
+
+        store = ProvenanceCache(cache_dir=cache_dir)
+
+        assert store.get_stored_hash(CacheKey("content/about.md")) is None
+
+    def test_non_mapping_subvenance_loads_empty(self, cache_dir: Path) -> None:
+        """Decoded non-mapping subvenance payloads recover as empty stores."""
+        cache_dir.mkdir(parents=True)
+        (cache_dir / "subvenance.json").write_text(json.dumps(["not", "a", "mapping"]))
+
+        store = ProvenanceCache(cache_dir=cache_dir)
+
+        assert store.get_affected_by(ContentHash("abc123")) == set()
 
     def test_malformed_record_treated_as_missing(self, cache_dir: Path) -> None:
         """Corrupt record files do not break cache reads."""

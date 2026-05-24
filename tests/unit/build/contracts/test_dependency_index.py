@@ -108,6 +108,21 @@ def test_dependency_read_index_skips_malformed_entries() -> None:
     assert restored.affected_page_keys("data", "data/good.yaml") == ("content/good.md",)
 
 
+def test_dependency_index_entry_rejects_string_key_sequences() -> None:
+    """Malformed string key lists are not split into bogus character keys."""
+    restored = DependencyIndexEntry.from_cache_dict(
+        {
+            "dependency_kind": "data",
+            "dependency_key": "data/team.yaml",
+            "page_keys": "content/page.md",
+            "output_keys": "public/page/index.html",
+        }
+    )
+
+    assert restored.page_keys == ()
+    assert restored.output_keys == ()
+
+
 def test_build_dependency_read_index_from_provenance_records() -> None:
     """Existing provenance records can produce dependency-to-page lookups."""
     page_a = ProvenanceRecord(

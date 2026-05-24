@@ -196,7 +196,7 @@ class CacheChecker:
         page._toc_items_cache = cached.get("toc_items", [])
 
         cached_plain_text = cached.get("plain_text")
-        if isinstance(cached_plain_text, str) and cached_plain_text:
+        if isinstance(cached_plain_text, str):
             if hasattr(page, "_plain_text_cache"):
                 cast("Any", page)._plain_text_cache = cached_plain_text
             plain_text = cached_plain_text

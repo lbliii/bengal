@@ -221,6 +221,61 @@ class TestPipelineCacheStorage:
         assert page._plain_text_cache == "Cached body"
         assert writes
 
+    def test_try_parsed_cache_restores_empty_plain_text(
+        self, site_with_cache, monkeypatch, tmp_path
+    ):
+        """Empty cached plain text is still a valid warm-cache value."""
+        site, _cache = site_with_cache
+
+        class PageWithEmptyPlainText:
+            def __init__(self):
+                self.source_path = tmp_path / "content" / "image-only.md"
+                self.output_path = tmp_path / "public" / "image-only" / "index.html"
+                self.metadata = {"title": "Image"}
+                self.links = []
+                self.rendered_html = ""
+                self._toc_items_cache = []
+                self._plain_text_cache = None
+                self._excerpt = ""
+                self._meta_description = ""
+
+            @property
+            def plain_text(self):
+                raise AssertionError("empty plain_text should be restored from parsed cache")
+
+        class Cache:
+            def get_parsed_content(self, *args, **kwargs):
+                return {
+                    "html": "<img alt='' src='image.png'>",
+                    "toc": "",
+                    "toc_items": [],
+                    "links": [],
+                    "plain_text": "",
+                    "word_count": 0,
+                    "reading_time": 0,
+                }
+
+        class Renderer:
+            def render_content(self, content):
+                return content
+
+            def render_page(self, page, html_content, parsed_page=None):
+                return f"<html>{html_content}</html>"
+
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.format_html",
+            lambda html, page, site: html,
+        )
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.write_output", lambda *a, **k: None
+        )
+
+        page = PageWithEmptyPlainText()
+        checker = CacheChecker(site=site, renderer=Renderer(), build_cache=Cache())
+
+        assert checker.try_parsed_cache(page, "default.html", "patitas-test-toc1") is True
+        assert page._plain_text_cache == ""
+
     def test_ast_persistence_reuses_parser_last_document(
         self, site_with_cache, mock_page, monkeypatch
     ):

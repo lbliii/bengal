@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import threading
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -122,6 +123,8 @@ class ProvenanceCache:
         index_path = self.cache_dir / "index.json"
         try:
             data = json_load(index_path)
+            if not isinstance(data, Mapping):
+                raise TypeError("Provenance index payload must be a mapping.")
             pages = {CacheKey(k): ContentHash(v) for k, v in data.get("pages", {}).items()}
             input_paths: dict[CacheKey, list[str]] = {}
             if "input_paths" in data:
@@ -145,6 +148,8 @@ class ProvenanceCache:
         subvenance_path = self.cache_dir / "subvenance.json"
         try:
             data = json_load(subvenance_path)
+            if not isinstance(data, Mapping):
+                raise TypeError("Provenance subvenance payload must be a mapping.")
             return {ContentHash(k): set(v) for k, v in data.items()}
         except FileNotFoundError:
             return {}
@@ -157,6 +162,8 @@ class ProvenanceCache:
         dependency_index_path = self.cache_dir / "dependency-index.json"
         try:
             data = json_load(dependency_index_path)
+            if not isinstance(data, Mapping):
+                raise TypeError("Provenance dependency index payload must be a mapping.")
             if data.get("version") != 1:
                 return DependencyReadIndex()
             dependencies = data.get("dependencies", {})

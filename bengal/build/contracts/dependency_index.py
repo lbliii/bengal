@@ -44,16 +44,23 @@ class DependencyIndexEntry:
             "producer": self.producer,
         }
 
+    @staticmethod
+    def _key_sequence(value: Any) -> tuple[str, ...]:
+        """Return cache keys only from list/tuple string sequences."""
+        if not isinstance(value, (list, tuple)):
+            return ()
+        if not all(isinstance(key, str) for key in value):
+            return ()
+        return tuple(value)
+
     @classmethod
     def from_cache_dict(cls, data: dict[str, Any]) -> DependencyIndexEntry:
         """Deserialize from a cache-friendly dictionary."""
-        page_keys = data.get("page_keys") or ()
-        output_keys = data.get("output_keys") or ()
         return cls(
             dependency_kind=str(data.get("dependency_kind", "")),
             dependency_key=str(data.get("dependency_key", "")),
-            page_keys=tuple(str(key) for key in page_keys),
-            output_keys=tuple(str(key) for key in output_keys),
+            page_keys=cls._key_sequence(data.get("page_keys")),
+            output_keys=cls._key_sequence(data.get("output_keys")),
             invalidation_reason=str(data.get("invalidation_reason", "")),
             producer=str(data.get("producer", "")),
         )
