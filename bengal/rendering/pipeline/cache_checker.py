@@ -195,6 +195,14 @@ class CacheChecker:
         page.toc = toc
         page._toc_items_cache = cached.get("toc_items", [])
 
+        cached_plain_text = cached.get("plain_text")
+        if isinstance(cached_plain_text, str) and cached_plain_text:
+            if hasattr(page, "_plain_text_cache"):
+                cast("Any", page)._plain_text_cache = cached_plain_text
+            plain_text = cached_plain_text
+        else:
+            plain_text = page.plain_text
+
         if hasattr(page, "_excerpt"):
             page._excerpt = cached.get("excerpt", "")
         if hasattr(page, "_meta_description"):
@@ -216,9 +224,6 @@ class CacheChecker:
                 template=template,
             )
             return False
-
-        # Pre-compute plain_text cache
-        _ = page.plain_text
 
         # Restore cached links if present; otherwise fall back to extraction.
         cached_links = cached.get("links")
@@ -243,7 +248,7 @@ class CacheChecker:
         enriched = dict(cached)
         if not enriched.get("toc_items"):
             enriched["toc_items"] = extract_toc_structure(toc)
-        enriched.setdefault("plain_text", page.plain_text)
+        enriched.setdefault("plain_text", plain_text)
         enriched.setdefault("word_count", getattr(page, "word_count", 0) or 0)
         enriched.setdefault("reading_time", getattr(page, "reading_time", 0) or 0)
         if not enriched.get("links"):
@@ -336,19 +341,24 @@ class CacheChecker:
             meta_description = getattr(page, "_meta_description", None) or ""
             cached_ast = getattr(page, "_ast_cache", None) if persist_tokens else None
 
-        cache.store_parsed_content(
-            page.source_path,
-            html_content,
-            toc,
-            toc_items,
-            links,
-            page.metadata,
-            template,
-            parser_version,
-            ast=cached_ast,
-            excerpt=excerpt,
-            meta_description=meta_description,
-        )
+        if parsed_page is not None and hasattr(cache, "store_parsed_page"):
+            cache.store_parsed_page(
+                page.source_path, parsed_page, page.metadata, template, parser_version
+            )
+        else:
+            cache.store_parsed_content(
+                page.source_path,
+                html_content,
+                toc,
+                toc_items,
+                links,
+                page.metadata,
+                template,
+                parser_version,
+                ast=cached_ast,
+                excerpt=excerpt,
+                meta_description=meta_description,
+            )
 
     def cache_rendered_output(
         self, page: PageLike, template: str, rendered_page: RenderedPage | None = None

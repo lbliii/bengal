@@ -229,6 +229,39 @@ def test_mtime_short_circuit_returns_false_when_content_changed(
     assert filter_obj._mtime_short_circuit(page, ContentHash("abc123")) is False
 
 
+def test_mtime_short_circuit_returns_false_when_input_missing(
+    provenance_dir: Path, site_root: Path
+) -> None:
+    """Missing input paths fall back to full provenance verification."""
+    from bengal.build.provenance.filter import ProvenanceFilter
+
+    index_path = provenance_dir / "index.json"
+    index_path.write_text(
+        json.dumps(
+            {
+                "version": 2,
+                "last_build_time": 9999999999.0,
+                "pages": {"content/index.md": "abc123"},
+                "input_paths": {"content/index.md": ["content/missing.md"]},
+            }
+        )
+    )
+
+    site = MagicMock()
+    site.root_path = site_root
+    site.config = {"site": {"title": "Test"}}
+
+    cache = ProvenanceCache(provenance_dir)
+    cache._ensure_loaded()
+
+    page = MagicMock()
+    page.source_path = site_root / "content" / "index.md"
+    page.virtual = False
+
+    filter_obj = ProvenanceFilter(site, cache)
+    assert filter_obj._mtime_short_circuit(page, ContentHash("abc123")) is False
+
+
 def test_mtime_short_circuit_uses_nanosecond_timestamp(
     provenance_dir: Path, site_root: Path
 ) -> None:

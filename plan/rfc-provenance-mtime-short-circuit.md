@@ -1,8 +1,20 @@
 # RFC: Provenance mtime Short-Circuit
 
-**Status**: Draft  
-**Created**: 2026-03-07  
+**Status**: Implemented (kept as design record)
+**Created**: 2026-03-07
 **Category**: Build / Performance / Provenance
+
+## Current Status — 2026-05-24
+
+The core implementation has landed. Current code in
+`bengal/build/provenance/filter.py` tracks mtime short-circuit hits, extracts
+input paths from provenance records, and attempts `_mtime_short_circuit()` before
+falling back to full provenance verification. The orchestration wrapper logs
+`mtime_short_circuit_hits` when the fast path is used.
+
+Do not use this RFC as a direct implementation plan. Use it as an acceptance
+audit for proof gaps: cache migration tolerance, missing-input fallback behavior,
+diagnostic visibility, and performance baselines for unchanged warm builds.
 
 ---
 

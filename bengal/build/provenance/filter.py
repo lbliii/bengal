@@ -15,9 +15,10 @@ import contextlib
 import os
 import threading
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.build.contracts.keys import CacheKey, content_key
 from bengal.build.provenance.types import (
@@ -35,12 +36,16 @@ from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
 
+_TEMPLATE_SUFFIXES = frozenset({".html", ".j2", ".jinja", ".jinja2", ".xml"})
+_DATA_SUFFIXES = frozenset({".yaml", ".yml", ".json", ".toml"})
+
 if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from bengal.build.provenance.store import ProvenanceCache
     from bengal.core.asset import Asset
     from bengal.core.site import Site
+    from bengal.protocols import SiteLike
     from bengal.protocols.core import PageLike
 
 
@@ -136,6 +141,12 @@ class ProvenanceFilter:
 
         # Deduplicate cascade source warnings (one per path per build)
         self._warned_cascade_paths: set[Path] = set()
+
+        # Snapshot of render effects keyed by source page. The entry is rebuilt
+        # when the tracer gains more effects during render.
+        self._render_dependency_cache: tuple[int, dict[CacheKey, tuple[Path | str, ...]]] | None = (
+            None
+        )
 
     def filter(
         self,
@@ -387,15 +398,13 @@ class ProvenanceFilter:
         self, page: PageLike, output_hash: ContentHash | None = None
     ) -> tuple[ProvenanceRecord, list[str]] | None:
         """Build a provenance record without persisting it."""
-        # OPTIMIZATION: Use already computed provenance if available from filter phase
         page_path = self._get_page_key(page)
-
-        # Thread-safe access to session cache
+        # Recompute after rendering so provenance captures dependencies observed
+        # during this render (template includes and data files), not just the
+        # pre-render verification snapshot.
         with self._session_lock:
-            provenance = self._computed_provenance.get(page_path)
-
-        if provenance is None:
-            provenance = self._compute_provenance(page)
+            self._computed_provenance.pop(page_path, None)
+        provenance = self._compute_provenance(page)
 
         # Skip pages with no meaningful provenance (fallback only)
         # This commonly happens for generated taxonomy pages during cold builds where
@@ -566,6 +575,148 @@ class ProvenanceFilter:
 
         return sources
 
+    def _template_names_for_page(self, page: PageLike) -> set[str]:
+        """Return known template names for a page from metadata and render effects."""
+        names: set[str] = set()
+        metadata = getattr(page, "metadata", {})
+        template_attr = getattr(page, "template", None)
+        if isinstance(template_attr, str) and template_attr:
+            names.add(template_attr)
+        elif isinstance(metadata, Mapping) and isinstance(metadata.get("template"), str):
+            names.add(metadata["template"])
+        elif isinstance(metadata, Mapping):
+            page_type = metadata.get("type", "page")
+            if page_type == "section" or metadata.get("is_section"):
+                names.add("list.html")
+            elif page_type == "page":
+                names.add("page.html")
+            else:
+                names.add("single.html")
+
+        for dep in self._render_dependencies_for_page(page):
+            if isinstance(dep, str) and self._looks_like_template_name(dep):
+                names.add(dep)
+
+        return names
+
+    def _looks_like_template_name(self, value: str) -> bool:
+        """Return True for dependency keys that look like template filenames."""
+        return Path(value).suffix.lower() in _TEMPLATE_SUFFIXES
+
+    def _resolve_template_path(self, template_name: str) -> Path | None:
+        """Resolve a template name against render-visible template directories."""
+        from bengal.rendering.template_engine.environment import resolve_template_dirs
+
+        site_like = cast("SiteLike", self.site)
+        for template_dir in resolve_template_dirs(site_like):
+            candidate = template_dir / template_name
+            try:
+                if candidate.exists():
+                    return candidate
+            except OSError:
+                continue
+        return None
+
+    def _add_template_inputs(self, provenance: Provenance, page: PageLike) -> Provenance:
+        """Add primary and render-observed template files to page provenance."""
+        from bengal.rendering.template_engine.environment import (
+            resolve_template_dirs,
+            template_name_for_path,
+        )
+
+        site_like = cast("SiteLike", self.site)
+        template_dirs = resolve_template_dirs(site_like)
+        template_paths: dict[str, Path] = {}
+
+        for template_name in self._template_names_for_page(page):
+            resolved = self._resolve_template_path(template_name)
+            if resolved is not None:
+                template_paths[template_name] = resolved
+
+        for dep in self._render_dependencies_for_page(page):
+            if isinstance(dep, Path) and dep.suffix.lower() in _TEMPLATE_SUFFIXES:
+                try:
+                    if dep.exists():
+                        template_paths[template_name_for_path(dep, template_dirs)] = dep
+                except OSError:
+                    continue
+
+        for template_name, template_path in sorted(template_paths.items()):
+            try:
+                provenance = provenance.with_input(
+                    "template",
+                    CacheKey(template_name),
+                    self._get_file_hash(template_path),
+                )
+            except OSError:
+                continue
+        return provenance
+
+    def _render_dependencies_for_page(self, page: PageLike) -> tuple[Path | str, ...]:
+        """Return render-time dependencies recorded for a page, if any."""
+        from bengal.effects.render_integration import BuildEffectTracer
+
+        effects = BuildEffectTracer.get_instance().tracer.effects
+        effect_count = len(effects)
+        with self._session_lock:
+            cached = self._render_dependency_cache
+        if cached is not None and cached[0] == effect_count:
+            return cached[1].get(self._get_page_key(page), ())
+
+        dependencies_by_source: dict[CacheKey, list[Path | str]] = {}
+        for effect in effects:
+            if effect.operation != "render_page":
+                continue
+            source = effect.metadata.get("source_path")
+            if not source:
+                continue
+            try:
+                source_key = content_key(Path(source), self.site.root_path)
+            except OSError, TypeError, ValueError:
+                source_key = CacheKey(str(source))
+            dependencies_by_source.setdefault(source_key, []).extend(effect.depends_on)
+
+        frozen = {key: tuple(values) for key, values in dependencies_by_source.items()}
+        with self._session_lock:
+            self._render_dependency_cache = (effect_count, frozen)
+        return frozen.get(self._get_page_key(page), ())
+
+    def _resolve_data_dependency(self, dependency: Path) -> Path | None:
+        """Resolve a render dependency if it points into the site's data directory."""
+        candidate = dependency if dependency.is_absolute() else self.site.root_path / dependency
+        try:
+            rel = candidate.resolve().relative_to((self.site.root_path / "data").resolve())
+        except OSError, ValueError:
+            return None
+        if candidate.suffix.lower() not in _DATA_SUFFIXES or ".." in rel.parts:
+            return None
+        try:
+            if candidate.exists():
+                return candidate
+        except OSError:
+            return None
+        return None
+
+    def _add_data_inputs(self, provenance: Provenance, page: PageLike) -> Provenance:
+        """Add data files observed during page rendering to page provenance."""
+        data_paths: set[Path] = set()
+        for dep in self._render_dependencies_for_page(page):
+            if isinstance(dep, Path):
+                resolved = self._resolve_data_dependency(dep)
+                if resolved is not None:
+                    data_paths.add(resolved)
+
+        for data_path in sorted(data_paths):
+            try:
+                provenance = provenance.with_input(
+                    "data",
+                    content_key(data_path, self.site.root_path),
+                    self._get_file_hash(data_path),
+                )
+            except OSError:
+                continue
+        return provenance
+
     def _compute_provenance_fast(self, page: PageLike) -> Provenance | None:
         """
         Fast-path provenance computation for simple content pages.
@@ -620,6 +771,9 @@ class ProvenanceFilter:
             except OSError, ValueError:
                 # Fall back to full computation if cascade source can't be hashed
                 return None
+
+        provenance = self._add_template_inputs(provenance, page)
+        provenance = self._add_data_inputs(provenance, page)
 
         provenance = provenance.with_input("config", CacheKey("site_config"), self._config_hash)
 
@@ -756,7 +910,11 @@ class ProvenanceFilter:
             except OSError, ValueError:
                 pass  # Skip if cascade source can't be hashed
 
-        # 3. Site config (affects all pages)
+        # 3. Render-time dependencies observed while rendering this page.
+        provenance = self._add_template_inputs(provenance, page)
+        provenance = self._add_data_inputs(provenance, page)
+
+        # 4. Site config (affects all pages)
         provenance = provenance.with_input("config", CacheKey("site_config"), self._config_hash)
 
         # Cache for later - thread-safe
@@ -777,10 +935,15 @@ class ProvenanceFilter:
         """
         result: list[str] = []
         for inp in record.provenance.inputs:
-            if inp.input_type in ("content", "autodoc_source", "cli_source"):
+            if inp.input_type in ("content", "autodoc_source", "cli_source", "data"):
                 path_str = str(inp.path)
             elif inp.input_type.startswith("cascade_"):
                 path_str = str(inp.path).replace("cascade:", "", 1)
+            elif inp.input_type == "template":
+                template_path = self._resolve_template_path(str(inp.path))
+                if template_path is None:
+                    continue
+                path_str = str(template_path)
             else:
                 continue  # Skip config, taxonomy, virtual
 

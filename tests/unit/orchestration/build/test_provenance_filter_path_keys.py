@@ -20,6 +20,7 @@ from bengal.orchestration.build.provenance_filter import (
     _get_pages_for_template,
     _get_taxonomy_term_pages_for_member,
     _missing_postprocess_artifacts,
+    _output_dir_empty,
 )
 from bengal.utils.primitives.hashing import hash_file
 
@@ -326,3 +327,26 @@ class TestMissingPostprocessArtifacts:
         (tmp_path / "llms.txt").write_text("# LLMs", encoding="utf-8")
 
         assert _missing_postprocess_artifacts(site) == ()
+
+
+class TestOutputDirEmpty:
+    """Tests for cheap output directory emptiness checks."""
+
+    def test_missing_output_dir_is_empty(self, tmp_path: Path) -> None:
+        """A missing output directory needs a cold/full build."""
+        assert _output_dir_empty(tmp_path / "public") is True
+
+    def test_empty_output_dir_is_empty(self, tmp_path: Path) -> None:
+        """Empty output directories are detected without materializing entries."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+
+        assert _output_dir_empty(output_dir) is True
+
+    def test_non_empty_output_dir_is_not_empty(self, tmp_path: Path) -> None:
+        """Any existing entry is enough to avoid the empty-dir cold-build signal."""
+        output_dir = tmp_path / "public"
+        output_dir.mkdir()
+        (output_dir / "asset.txt").write_text("ok")
+
+        assert _output_dir_empty(output_dir) is False

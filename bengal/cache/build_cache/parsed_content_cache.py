@@ -84,6 +84,9 @@ class ParsedContentCacheMixin:
         ast: list[dict[str, Any]] | None = None,
         excerpt: str = "",
         meta_description: str = "",
+        plain_text: str = "",
+        word_count: int = 0,
+        reading_time: int = 0,
     ) -> None:
         """
         Store parsed content in cache (Optimization #2 + AST caching).
@@ -138,6 +141,9 @@ class ParsedContentCacheMixin:
             "links": links or [],
             "excerpt": excerpt,
             "meta_description": meta_description,
+            "plain_text": plain_text,
+            "word_count": word_count,
+            "reading_time": reading_time,
             "ast": ast,  # Phase 3: Store true AST tokens
             "metadata_hash": metadata_hash,
             "nav_metadata_hash": nav_metadata_hash,
@@ -266,16 +272,10 @@ class ParsedContentCacheMixin:
             ast=parsed_page.ast_cache,
             excerpt=parsed_page.excerpt,
             meta_description=parsed_page.meta_description,
+            plain_text=parsed_page.plain_text,
+            word_count=parsed_page.word_count,
+            reading_time=parsed_page.reading_time,
         )
-
-        # Persist fields that ParsedPage serializes but store_parsed_content
-        # doesn't natively include, so incremental reconstruction can restore them.
-        key = self._cache_key(file_path)
-        entry = self.parsed_content.get(key)
-        if entry:
-            entry["plain_text"] = parsed_page.plain_text
-            entry["word_count"] = parsed_page.word_count
-            entry["reading_time"] = parsed_page.reading_time
 
     def get_excerpt_for_path(self, file_path: Path) -> str:
         """

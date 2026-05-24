@@ -1,8 +1,16 @@
 # RFC: Incremental Build Observability & Debugging
 
-## Status: Draft
+## Status: Partially Implemented / Revalidate
 ## Created: 2026-01-14
 ## Origin: Debugging session that took 60+ minutes to trace 5 interconnected bugs
+
+## Current Status — 2026-05-24
+
+Use this RFC as an observability audit, not a direct patch list. Some named
+paths and concepts have moved since the draft, and later rebuild-decision work
+overlaps with the proposed `--explain` and decision-log improvements. Before
+implementing a slice, verify current behavior in `bengal/orchestration/build/`,
+`bengal/orchestration/incremental/`, and the existing explain-output tests.
 
 ---
 

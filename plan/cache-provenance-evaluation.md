@@ -1,15 +1,17 @@
 # Cache & Provenance Strategy Evaluation
 
-**Status**: Code-verified analysis  
-**Date**: 2026-03-14  
-**Verified**: 2026-03-14 (line references audited against source)  
+**Status**: Partially implemented
+**Date**: 2026-03-14
+**Verified**: 2026-05-24 (line references and planned fixes re-audited against source)
 **Context**: Post-reload-fragility improvements; evaluate caching and provenance for similar brittleness, weaknesses, and inefficiencies.
 
 ---
 
 ## Executive Summary
 
-Bengal has a **dual-cache architecture** (BuildCache + ProvenanceCache) plus EffectTracer. The system is generally robust — rendered/parsed cache validation is more thorough than initially expected (asset manifest, empty-content fallback all work correctly). However, several areas of brittleness, inefficiency, and silent failure modes remain analogous to the reload pipeline issues. Priority fixes: template-change over-invalidation, provenance load silence, duplicate O(n) output dir scans, and output_sources key consistency.
+Bengal has a **dual-cache architecture** (BuildCache + ProvenanceCache) plus EffectTracer. The system is generally robust — rendered/parsed cache validation is more thorough than initially expected (asset manifest, empty-content fallback all work correctly). As of 2026-05-24, the quick wins from this evaluation have been implemented: provenance load recovery logs warnings for corrupt/unreadable payloads, output directory emptiness checks avoid materializing full listings, output source keys are POSIX-normalized, and `BuildCache.load()` marks fresh-cache recovery after load errors.
+
+Dependency-index work also reduces the template/data invalidation gap: provenance records now capture render-observed template and data inputs, and `ProvenanceCache` persists a read-only dependency index consulted by data/template detectors before conservative fallbacks. Remaining work is the larger cache-generation/divergence design, data-file fingerprint update cost, synthetic generated-key formalization, and broader parity/performance proof before removing fallback scans.
 
 ---
 
@@ -27,7 +29,7 @@ Bengal has a **dual-cache architecture** (BuildCache + ProvenanceCache) plus Eff
 
 ## 2. Brittleness & Weaknesses
 
-### 2.1 Template Change → Full Rebuild (Inefficiency)
+### 2.1 Template Change → Full Rebuild (Partially Mitigated)
 
 **Location**: `provenance_filter.py:310-323`
 
@@ -43,11 +45,11 @@ if changed_templates:
     for page in pages:  # <-- iterates ALL pages
 ```
 
-**Impact**: Any template change triggers a full rebuild. For large sites (100+ pages), a one-line footer fix rebuilds everything.
+**Impact**: Older cache states and incomplete dependency facts can still trigger a conservative full rebuild. For warm caches with dependency-index or per-page template-dependency coverage, changed templates can now rebuild only known affected pages.
 
-**Key finding**: The infrastructure to fix this already exists. `_get_pages_for_template()` (lines 200-230) checks `cache.reverse_dependencies` and `cache.dependencies` — the lookup code is written and working. The missing piece is that `add_dependency(page.source_path, template_path)` is never called during the render phase for templates. The fallback at line 316 could then be replaced with per-page template lookups.
+**Current status**: `CacheManager` records per-page template names, `ProvenanceFilter` records render-observed template inputs in page provenance, and `_expand_forced_changed()` consults the persisted dependency index before falling back to legacy template-dependency caches or full rebuilds.
 
-**Recommendation**: Wire up `cache.add_dependency(page, template)` during rendering (likely in `cache_checker.py:cache_rendered_output` or during template resolution). Then replace the all-pages fallback with `_get_pages_for_template()`. Effort: **Low-Medium** (infrastructure exists, wiring + tests needed).
+**Remaining recommendation**: Add broader warm-build parity tests for include/extend chains and theme override precedence, then remove or narrow fallback scans only where the index proves complete coverage.
 
 ---
 
@@ -75,7 +77,9 @@ except FileNotFoundError, JSONDecodeError, KeyError:
 
 **Contrast**: `BuildCache.load` (core.py:234-245) logs `cache_load_failed` at warning level with path, error type, error code, and action. ProvenanceCache has none of this.
 
-**Recommendation**: Add `logger.warning` to all three methods when the exception is NOT `FileNotFoundError` (missing file is expected on first build). Pattern:
+**Status**: Implemented 2026-05-24. `_load_index_data`, `_load_subvenance_data`, `_load_dependency_index_data`, and `_get_record` keep `FileNotFoundError` silent but log non-missing corrupt/unreadable payloads with path, error type, action, and cache error code.
+
+**Original recommendation**: Add `logger.warning` to all three methods when the exception is NOT `FileNotFoundError` (missing file is expected on first build). Pattern:
 
 ```python
 except FileNotFoundError:
@@ -127,7 +131,7 @@ self.output_sources[rel_output] = self._cache_key(source_path)
 
 **Output key risk**: `rel_output` is `str(output_path.relative_to(output_dir))`, which uses OS-native path separators. On Windows this produces `blog\post\index.html` instead of `blog/post/index.html`. Since `rel_output` is only used as a dict key (not compared with `content_key`), this is self-consistent on a single OS. But cache portability across OS would break.
 
-**Recommendation**: Normalize `rel_output` through `to_posix()` in `track_output`. Add a cross-platform test. Document the key contract in `track_output` docstring. Effort: Low.
+**Status**: Implemented 2026-05-24. `track_output()` normalizes `rel_output` through `to_posix()` and unit coverage asserts POSIX-style output keys.
 
 ---
 
@@ -170,7 +174,9 @@ output_html_missing = not output_dir.exists() or len(list(output_dir.iterdir()))
 
 `list(output_dir.iterdir())` materializes every entry in the output directory. For large sites (1000+ files), this adds latency **twice** per incremental filter call.
 
-**Recommendation**: Replace both occurrences with `next(output_dir.iterdir(), None) is None` for an O(1) emptiness check, or check for a sentinel file (e.g., `output_dir / "index.html"`). Better yet, extract a helper:
+**Status**: Implemented 2026-05-24. Both call sites use `_output_dir_empty()`, which exits after the first directory entry and treats missing/inaccessible directories conservatively as empty.
+
+**Original recommendation**: Replace both occurrences with `next(output_dir.iterdir(), None) is None` for an O(1) emptiness check, or check for a sentinel file (e.g., `output_dir / "index.html"`). Better yet, extract a helper:
 
 ```python
 def _output_dir_empty(output_dir: Path) -> bool:
@@ -265,9 +271,11 @@ except Exception as e:
     return cls()  # fresh instance — no flag indicating recovery
 ```
 
-Downstream code receives a `BuildCache()` that looks identical to a first-ever build. No way to distinguish "never built" from "cache was corrupt and discarded" without grepping logs.
+Downstream code used to receive a `BuildCache()` that looked identical to a first-ever build. There was no way to distinguish "never built" from "cache was corrupt and discarded" without grepping logs.
 
-**Recommendation**: Add a field to the returned instance:
+**Status**: Implemented 2026-05-24. `BuildCache` now has `_recovered_from_error`, which is set when load recovery returns a fresh cache after parse/read failures and remains false for truly missing cache files.
+
+**Original recommendation**: Add a field to the returned instance:
 
 ```python
 @dataclass
@@ -284,31 +292,31 @@ Set it in the `except` block. Downstream can then log/metric on `cache._recovere
 
 | # | Issue | Severity | Effort | Verified | Action |
 |---|-------|----------|--------|----------|--------|
-| 2.1 | Template change → full rebuild | High | Low-Med | Yes | Wire up existing `_get_pages_for_template()` |
-| 2.2 | Provenance load silence (3 methods) | Medium | Low | Yes | Add `logger.warning` for non-FNFE exceptions |
+| 2.1 | Template change → full rebuild | High | Low-Med | Yes | Partially mitigated by template dependencies and dependency-index producer coverage |
+| 2.2 | Provenance load silence (3 methods) | Medium | Low | Yes | Implemented: warning logs for non-FNFE exceptions |
 | 2.3 | Dual cache divergence risk | Medium | Medium | Yes | Add shared build UUID |
-| 2.4 | output_sources key: POSIX portability | Low | Low | Yes | Normalize `rel_output` via `to_posix()` |
+| 2.4 | output_sources key: POSIX portability | Low | Low | Yes | Implemented: `rel_output` normalized via `to_posix()` |
 | 2.5 | Cache version all-or-nothing | — | — | Yes | Acceptable, no action |
-| 2.6 | Duplicate O(n) iterdir on output dir | Low | Low | Yes | Replace with `next(iterdir(), None)` |
+| 2.6 | Duplicate O(n) iterdir on output dir | Low | Low | Yes | Implemented: `_output_dir_empty()` helper |
 | 2.7 | Data file full scan on save | Low | Medium | Yes | Incremental fingerprinting |
 | 2.8 | Taxonomy synthetic key convention | Low | Low | Yes | Document/formalize `synthetic_key()` |
 | 2.9 | Rendered/parsed cache validation | — | — | Yes | **No action** — already correct |
-| 2.10 | No cache-unusable observability flag | Low | Low | Yes | Add `_recovered_from_error` field |
+| 2.10 | No cache-unusable observability flag | Low | Low | Yes | Implemented: `_recovered_from_error` field |
 
 ---
 
 ## 4. Recommendations (Priority Order)
 
-### Quick wins (< 1 hour each)
+### Completed Quick Wins (2026-05-24)
 
-1. **Log when ProvenanceCache load fails** (2.2) — Add `logger.warning` to `_load_index_data`, `_load_subvenance_data`, `_get_record` for `JSONDecodeError`/`KeyError`. 1 hour.
-2. **Fix duplicate O(n) iterdir** (2.6) — Extract `_output_dir_empty()` helper using `next(iterdir(), None)`. 30 min.
-3. **Normalize output_sources keys** (2.4) — Wrap `rel_output` in `to_posix()` in `track_output`. Add cross-platform test. 30 min.
-4. **Add `_recovered_from_error` flag** (2.10) — Field on BuildCache set during load failure. 30 min.
+1. **Log when ProvenanceCache load fails** (2.2) — Implemented for index, subvenance, dependency index, and record payloads.
+2. **Fix duplicate O(n) iterdir** (2.6) — Implemented with `_output_dir_empty()`.
+3. **Normalize output_sources keys** (2.4) — Implemented with `to_posix()` in `track_output`.
+4. **Add `_recovered_from_error` flag** (2.10) — Implemented on `BuildCache`.
 
 ### Medium effort (1-2 days)
 
-5. **Template dependency tracking** (2.1) — Wire `cache.add_dependency(page, template)` during rendering. Replace all-pages fallback with `_get_pages_for_template()` lookups. Infrastructure exists; needs wiring + tests. 1-2 days.
+5. **Template dependency tracking parity** (2.1) — Dependency-index producer coverage now records render-observed templates/data in provenance. Remaining work is broader parity/performance proof before narrowing fallback scans further. 1-2 days.
 6. **Document synthetic key convention** (2.8) — Formalize `synthetic_key()` for virtual pages. Add regression test for taxonomy term key round-trip. 1 day.
 
 ### Deferred

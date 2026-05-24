@@ -1,7 +1,41 @@
 # Bengal Parse Optimizations: parse_many + AST Caching
 
-**Status**: Plan (ready for implementation)  
+**Status**: Partially Implemented (revalidate before next slice)
 **Context**: Structural changes to reduce parse overhead in Bengal builds. Complements Patitas core optimizations (str.split fix, line index).
+
+## Current Status — 2026-05-24
+
+This plan is still useful, but it is no longer a fresh implementation checklist.
+
+Implemented:
+
+- Parsed-cache hit/miss counters exist in `bengal/orchestration/stats/models.py`
+  and are surfaced by build summaries.
+- `markdown.ast_cache.persist_tokens` exists and remains opt-in.
+- Parsed-cache entries now carry plain-text metrics so warm parsed-cache hits do
+  not need to recompute `plain_text`, `word_count`, or `reading_time`.
+- `PatitasParser` retains the most recent parsed document for TOC parses and
+  exposes a one-shot consumer, so AST persistence can reuse the parse result
+  instead of parsing the same source a second time.
+- `PatitasParser.parse_many_with_toc()` now exists as a parser-level primitive
+  for simple pages. It is tested for ordering and metadata validation, but is
+  not yet wired into render orchestration and does not introduce parser-internal
+  parallelism.
+  A quick local default-Python timing was neutral (`0.98x`), so the orchestration
+  slice should be benchmarked on Python 3.14t and realistic page sizes before it
+  is treated as a shipped speedup.
+
+Still useful:
+
+- Phase 2 render-orchestrator integration for simple pages remains the main
+  unshipped optimization. The parser primitive exists, but there is no
+  pre-render page classification or batch handoff yet.
+- Phase 3 Patitas `DictParseCache` remains optional and should wait for
+  benchmark evidence after Phase 2.
+
+Before implementing another slice, update benchmark baselines for the current
+parsed-cache behavior; older expected-gain numbers predate the warm-cache
+optimizations above.
 
 ## Executive Summary
 

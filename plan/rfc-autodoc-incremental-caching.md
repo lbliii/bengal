@@ -1,10 +1,23 @@
 # RFC: Autodoc Incremental Caching Enhancement
 
-**Status**: Draft (Revised - Post-Evaluation)  
-**Author**: AI Assistant  
-**Created**: 2026-01-14  
-**Revised**: 2026-01-14  
+**Status**: Implemented / Audit Remaining
+**Author**: AI Assistant
+**Created**: 2026-01-14
+**Revised**: 2026-01-14
 **Related**: rfc-output-cache-architecture.md
+
+## Current Status — 2026-05-24
+
+The main design is implemented. `bengal/autodoc/hashing.py` computes
+documentation-content hashes, autodoc page builders attach `doc_content_hash`,
+`AutodocRunResult` carries per-page content hashes, and
+`bengal/cache/build_cache/autodoc_tracking.py` stores
+`(file_content_hash, mtime, {page_path: doc_content_hash})` metadata with
+mtime-first source validation and per-page doc-content comparison.
+
+This RFC should now be treated as a design record plus audit checklist. Remaining
+work, if any, should start by proving gaps in tests or behavior rather than
+reimplementing the proposed hashing architecture.
 
 ---
 

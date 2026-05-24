@@ -236,6 +236,7 @@ def strip_html(text: str, decode_entities: bool = True) -> str:
 
 
 _ORPHAN_MD_ENDINGS = ("**", "*", "__", "_", "``", "`", "[", "![")
+_HTML_TAG_OR_TEXT_RE = re.compile(r"<[^>]+>|[^<\s]+")
 
 
 def _strip_trailing_orphan_markdown(text: str) -> str:
@@ -383,6 +384,26 @@ def truncate_middle(text: str, max_length: int, separator: str = "...") -> str:
     return text[:left] + separator + text[-right:]
 
 
+def _generate_excerpt_from_html_prefix(html: str, word_count: int, suffix: str) -> str:
+    """Generate an excerpt while scanning only enough HTML to prove truncation."""
+    if word_count <= 0:
+        return truncate_words(strip_html(html, decode_entities=True), word_count, suffix)
+
+    words: list[str] = []
+    for match in _HTML_TAG_OR_TEXT_RE.finditer(html):
+        token = match.group(0)
+        if token.startswith("<"):
+            continue
+        for word in html_module.unescape(token).split():
+            if len(words) >= word_count:
+                before_suffix = " ".join(words)
+                cleaned = _strip_trailing_orphan_markdown(before_suffix)
+                return (cleaned if cleaned != before_suffix else before_suffix) + suffix
+            words.append(word)
+
+    return strip_html(html, decode_entities=True)
+
+
 def generate_excerpt(html: str, word_count: int = 50, suffix: str = "...") -> str:
     """
     Generate plain text excerpt from HTML content.
@@ -405,11 +426,9 @@ def generate_excerpt(html: str, word_count: int = 50, suffix: str = "...") -> st
             'Hello World...'
 
     """
-    # Strip HTML tags and decode entities
-    text = strip_html(html, decode_entities=True)
-
-    # Truncate to word count
-    return truncate_words(text, word_count, suffix)
+    if not html:
+        return ""
+    return _generate_excerpt_from_html_prefix(html, word_count, suffix)
 
 
 def normalize_whitespace(text: str, collapse: bool = True) -> str:

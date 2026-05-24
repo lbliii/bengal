@@ -94,6 +94,14 @@ class LRUCache[K, V]:
         self._enabled = True
         self._name = name
 
+    def _is_expired(self, key: K, now: float | None = None) -> bool:
+        """Return True when a cached key has exceeded the configured TTL."""
+        if self._ttl is None:
+            return False
+        timestamp = self._timestamps.get(key, 0)
+        current_time = time.monotonic() if now is None else now
+        return current_time - timestamp > self._ttl
+
     def get(self, key: K) -> V | None:
         """Get value by key, returning None if not found or expired.
 
@@ -109,13 +117,11 @@ class LRUCache[K, V]:
                 return None
 
             # Check TTL expiry
-            if self._ttl is not None:
-                ts = self._timestamps.get(key, 0)
-                if time.monotonic() - ts > self._ttl:
-                    del self._cache[key]
-                    del self._timestamps[key]
-                    self._misses += 1
-                    return None
+            if self._is_expired(key):
+                del self._cache[key]
+                del self._timestamps[key]
+                self._misses += 1
+                return None
 
             # LRU: Move to end (most recently used)
             self._cache.move_to_end(key)
@@ -160,11 +166,7 @@ class LRUCache[K, V]:
 
             if key in self._cache:
                 # Expired entries are evicted and treated as a miss.
-                expired = (
-                    self._ttl is not None
-                    and time.monotonic() - self._timestamps.get(key, 0) > self._ttl
-                )
-                if expired:
+                if self._is_expired(key):
                     del self._cache[key]
                     del self._timestamps[key]
                 else:
@@ -297,11 +299,7 @@ class LRUCache[K, V]:
         with self._lock:
             if key not in self._cache:
                 return False
-            if self._ttl is not None:
-                ts = self._timestamps.get(key, 0)
-                if time.monotonic() - ts > self._ttl:
-                    return False
-            return True
+            return not self._is_expired(key)
 
     def __len__(self) -> int:
         """Return number of entries (may include expired if TTL set)."""
