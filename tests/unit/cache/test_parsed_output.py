@@ -3,6 +3,8 @@ from types import SimpleNamespace
 from bengal.cache.parsed_output import (
     apply_parsed_links_to_page,
     apply_parsed_page_to_page,
+    cache_plain_text_on_page,
+    cache_toc_items_on_page,
     clear_parsed_page_caches,
     clear_parsed_page_state,
     with_parsed_html,
@@ -159,3 +161,20 @@ def test_apply_parsed_links_to_page_stringifies_links() -> None:
     apply_parsed_links_to_page(page, ["/guide/", 42])
 
     assert page.links == ["/guide/", "42"]
+
+
+def test_cache_plain_text_on_page_sets_plain_text_cache() -> None:
+    page = SimpleNamespace(_plain_text_cache=None)
+
+    cache_plain_text_on_page(page, "Hello")
+
+    assert page._plain_text_cache == "Hello"
+
+
+def test_cache_toc_items_on_page_sets_toc_cache() -> None:
+    page = SimpleNamespace(_toc_items_cache=None)
+    toc_items = [{"id": "intro"}]
+
+    cache_toc_items_on_page(page, toc_items)
+
+    assert page._toc_items_cache == toc_items

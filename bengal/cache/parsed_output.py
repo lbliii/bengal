@@ -69,3 +69,13 @@ def with_parsed_html(parsed_page: ParsedPage, html_content: str) -> ParsedPage:
 def apply_parsed_links_to_page(page: PageLike, links: list[object] | tuple[object, ...]) -> None:
     """Apply parsed link output to the remaining mutable page surface."""
     page.links = [str(link) for link in links]
+
+
+def cache_plain_text_on_page(page: object, plain_text: str) -> None:
+    """Cache derived plain text on the temporary mutable page surface."""
+    page._plain_text_cache = plain_text  # type: ignore[attr-defined]
+
+
+def cache_toc_items_on_page(page: object, toc_items: list[dict[str, object]]) -> None:
+    """Cache derived TOC items on the temporary mutable page surface."""
+    page._toc_items_cache = toc_items  # type: ignore[attr-defined]
