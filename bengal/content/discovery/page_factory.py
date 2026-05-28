@@ -30,9 +30,8 @@ from typing import TYPE_CHECKING
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.site import Site
-    from bengal.protocols import SectionLike
+    from bengal.protocols import PageLike, SectionLike
 
 logger = get_logger(__name__)
 
@@ -62,8 +61,8 @@ class PageInitializer:
             ...         self.site = site
             ...         self.initializer = PageInitializer(site)
             ...
-            ...     def create_page(self, source_path: Path) -> Page:
-            ...         page = Page(source_path=source_path, ...)
+            ...     def create_page(self, source_path: Path) -> PageLike:
+            ...         page = page_from_source_page(source_page, ...)
             ...         page.output_path = self.site.output_dir / "path" / "index.html"
             ...         self.initializer.ensure_initialized(page)  # Validate!
             ...         return page
@@ -79,7 +78,7 @@ class PageInitializer:
         """
         self.site = site
 
-    def ensure_initialized(self, page: Page) -> None:
+    def ensure_initialized(self, page: PageLike) -> None:
         """
         Ensure a page is correctly initialized.
 
@@ -165,7 +164,7 @@ class PageInitializer:
             enriched = enrich_error(e, context, BengalContentError)
             raise enriched from e
 
-    def ensure_initialized_for_section(self, page: Page, section: SectionLike) -> None:
+    def ensure_initialized_for_section(self, page: PageLike, section: SectionLike) -> None:
         """
         Ensure a page is initialized with section reference.
 
