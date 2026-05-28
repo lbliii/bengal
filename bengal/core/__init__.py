@@ -31,6 +31,9 @@ Architecture:
 Core models are passive data structures with computed properties.
 They do not perform I/O, logging, or side effects. Operations on
 models are handled by orchestrators (see bengal/orchestration/).
+Build code creates Page instances from immutable SourcePage records at
+the content discovery boundary; direct Page construction remains a public
+compatibility surface rather than the preferred internal production path.
 
 Organization Pattern:
 - Simple models (< 400 lines): Single file (e.g., section.py)
@@ -43,9 +46,9 @@ bengal.rendering: Template and content rendering
 bengal.cache: Build state caching
 
 Example:
-    >>> from bengal.core import Site, Page, Section
+    >>> from bengal.core import Site
     >>> site = Site.from_config(Path('/path/to/site'))
-    >>> page = Page(source_path=Path('content/post.md'))
+    >>> page = next(iter(site.pages), None)
     >>> section = site.get_section_by_path('blog')
 
 """
