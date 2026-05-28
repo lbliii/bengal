@@ -70,10 +70,12 @@ def test_apply_parsed_page_to_page_can_skip_optional_caches() -> None:
         page,
         parsed_page,
         seed_counts=False,
+        seed_links=False,
         seed_plain_text=False,
         seed_ast=False,
     )
 
+    assert page.links == []
     assert page._plain_text_cache == "old"
     assert page._ast_cache == "old-ast"
     assert "word_count" not in page.__dict__

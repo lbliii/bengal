@@ -14,6 +14,7 @@ def apply_parsed_page_to_page(
     parsed_page: ParsedPage,
     *,
     seed_counts: bool = True,
+    seed_links: bool = True,
     seed_plain_text: bool = True,
     seed_ast: bool = False,
 ) -> None:
@@ -21,10 +22,11 @@ def apply_parsed_page_to_page(
     page.html_content = parsed_page.html_content
     page.toc = parsed_page.toc
     page._toc_items_cache = [dict(item) for item in parsed_page.toc_items]
-    page.links = list(parsed_page.links)
     page._excerpt = parsed_page.excerpt
     page._meta_description = parsed_page.meta_description
 
+    if seed_links:
+        page.links = list(parsed_page.links)
     if seed_plain_text:
         page._plain_text_cache = parsed_page.plain_text
     if seed_ast:
