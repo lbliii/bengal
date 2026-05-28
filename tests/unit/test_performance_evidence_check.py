@@ -4,9 +4,13 @@ from __future__ import annotations
 
 import json
 
+import scripts.check_performance_evidence as performance_evidence
 from scripts.check_performance_evidence import (
     REQUIRED_FIELDS,
     body_from_github_event,
+    changed_files_from_file,
+    changed_files_from_github_event,
+    has_performance_sensitive_changes,
     missing_evidence_fields,
 )
 
@@ -47,3 +51,54 @@ def test_performance_evidence_reads_github_event(tmp_path) -> None:
     )
 
     assert missing_evidence_fields(body_from_github_event(event_path)) == ()
+
+
+def test_performance_evidence_skips_docs_only_changes() -> None:
+    assert (
+        missing_evidence_fields(
+            "## Summary\n\n- docs only",
+            changed_files=("plan/README.md", "site/content/index.md", "CHANGELOG.md"),
+        )
+        == ()
+    )
+
+
+def test_performance_evidence_requires_section_for_code_changes() -> None:
+    assert missing_evidence_fields(
+        "## Summary\n\n- code changed",
+        changed_files=("scripts/check_performance_evidence.py",),
+    ) == ("Performance Evidence",)
+
+
+def test_performance_evidence_treats_unknown_change_set_as_sensitive() -> None:
+    assert has_performance_sensitive_changes(()) is True
+
+
+def test_changed_files_from_file(tmp_path) -> None:
+    changed_path = tmp_path / "changed-files.txt"
+    changed_path.write_text("plan/README.md\n\nscripts/check_performance_evidence.py\n")
+
+    assert changed_files_from_file(changed_path) == (
+        "plan/README.md",
+        "scripts/check_performance_evidence.py",
+    )
+
+
+def test_changed_files_from_github_event_fetches_paginated_files(tmp_path, monkeypatch) -> None:
+    event_path = tmp_path / "event.json"
+    event_path.write_text(
+        json.dumps({"pull_request": {"url": "https://api.github.test/repos/o/r/pulls/1"}}),
+        encoding="utf-8",
+    )
+
+    def fake_github_api_json(url: str) -> object:
+        if url.endswith("page=1"):
+            return [{"filename": f"plan/file-{index}.md"} for index in range(100)]
+        return [{"filename": "scripts/check_performance_evidence.py"}]
+
+    monkeypatch.setattr(performance_evidence, "_github_api_json", fake_github_api_json)
+
+    assert changed_files_from_github_event(event_path) == (
+        *(f"plan/file-{index}.md" for index in range(100)),
+        "scripts/check_performance_evidence.py",
+    )
