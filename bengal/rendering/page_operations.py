@@ -12,6 +12,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Protocol
 
+from bengal.cache.parsed_output import apply_parsed_links_to_page
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -56,12 +58,16 @@ def extract_links(page: PageOperationTarget, plugin_links: list[str] | None = No
 
     if plugin_links is not None:
         wikilink_urls = plugin_links
-        page.links = [url for _, url in markdown_links] + html_links + wikilink_urls
+        apply_parsed_links_to_page(
+            page, [url for _, url in markdown_links] + html_links + wikilink_urls
+        )
     elif page.html_content:
-        page.links = extract_all_links_from_html(page.html_content)
+        apply_parsed_links_to_page(page, extract_all_links_from_html(page.html_content))
     else:
         wikilink_urls = extract_wikilinks_from_source(content_without_code)
-        page.links = [url for _, url in markdown_links] + html_links + wikilink_urls
+        apply_parsed_links_to_page(
+            page, [url for _, url in markdown_links] + html_links + wikilink_urls
+        )
 
     _merge_directive_links(page, plugin_links=plugin_links)
     return page.links
