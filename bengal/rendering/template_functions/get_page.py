@@ -26,7 +26,9 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.build.contracts.keys import content_key
+from bengal.cache.parsed_output import apply_parsed_page_to_page
 from bengal.config.utils import resolve_excerpt_length
+from bengal.core.records import ParsedPage
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
 
@@ -206,6 +208,8 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
 
     # Parse content
     try:
+        parsed_excerpt = ""
+        parsed_meta_description = ""
         context: dict[str, Any] = {"page": page, "site": site, "config": site.config}
         # Include xref_index so card directives resolve links to absolute URLs
         # (e.g. ./child -> /docs/guides/child/) instead of leaving relative links
@@ -225,9 +229,9 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
                     parsed_content, toc = result[0], result[1]
                     result_ext = cast("tuple[str, ...]", result)
                     if len(result_ext) > 2:
-                        page._excerpt = result_ext[2]
+                        parsed_excerpt = result_ext[2]
                     if len(result_ext) > 3:
-                        page._meta_description = result_ext[3]
+                        parsed_meta_description = result_ext[3]
                 else:
                     parsed_content = parser.parse(page._source, metadata_with_excerpt)
                     toc = ""
@@ -248,9 +252,9 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
                         parsed_content, toc = result[0], result[1]
                         result_ext = cast("tuple[str, ...]", result)
                         if len(result_ext) > 2:
-                            page._excerpt = result_ext[2]
+                            parsed_excerpt = result_ext[2]
                         if len(result_ext) > 3:
-                            page._meta_description = result_ext[3]
+                            parsed_meta_description = result_ext[3]
                     else:
                         parsed_content = page._source
                         toc = ""
@@ -271,9 +275,9 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
                 parsed_content, toc = result[0], result[1]
                 result_ext = cast("tuple[str, ...]", result)
                 if len(result_ext) > 2:
-                    page._excerpt = result_ext[2]
+                    parsed_excerpt = result_ext[2]
                 if len(result_ext) > 3:
-                    page._meta_description = result_ext[3]
+                    parsed_meta_description = result_ext[3]
             else:
                 parsed_content = parser.parse(page._source, metadata_with_excerpt)
                 toc = ""
@@ -288,19 +292,14 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
         if callable(escape_method):
             parsed_content = escape_method(parsed_content)
 
-        # Store parsed content
-        page.html_content = parsed_content
-        if need_toc:
-            page.toc = toc
-
         # Post-process: API doc enhancement (if applicable)
         try:
             from bengal.rendering.api_doc_enhancer import get_enhancer, get_enhancer_for_render
 
             enhancer = get_enhancer_for_render() or get_enhancer()
             page_type = page.metadata.get("type")
-            if enhancer and page.html_content and enhancer.should_enhance(page_type):
-                page.html_content = enhancer.enhance(page.html_content, page_type)
+            if enhancer and parsed_content and enhancer.should_enhance(page_type):
+                parsed_content = enhancer.enhance(parsed_content, page_type)
         except Exception as e:
             logger.debug(
                 "page_enhancement_failed",
@@ -310,6 +309,25 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
                 action="skipping_enhancement",
             )
             # Enhancement is optional, don't fail if it errors
+
+        parsed_page = ParsedPage(
+            html_content=parsed_content,
+            toc=toc if need_toc else "",
+            toc_items=(),
+            excerpt=parsed_excerpt,
+            meta_description=parsed_meta_description,
+            plain_text="",
+            word_count=getattr(page, "word_count", 0) or 0,
+            reading_time=getattr(page, "reading_time", 0) or 0,
+            links=(),
+        )
+        apply_parsed_page_to_page(
+            page,
+            parsed_page,
+            seed_counts=False,
+            seed_links=False,
+            seed_plain_text=False,
+        )
 
     except Exception as e:
         logger.warning(
