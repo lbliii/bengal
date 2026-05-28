@@ -20,7 +20,7 @@ be treated as the agenda.
 | `epic-ux-sharp-edges.md` | Active | User-visible CLI/error/directive/scaffold polish bucket. |
 | `rfc-effect-traced-incremental-builds.md` | Active | Long-term effect graph and template HMR direction. |
 | `rfc-health-diagnostics-audit.md` | Active implementation | Health, artifact audit, and reporting separation. |
-| `rfc-incremental-dependency-indexes.md` | Active | Narrow dependency-to-output read model for warm-build correctness. |
+| `rfc-incremental-dependency-indexes.md` | Active / partially implemented | Dependency-index contracts, provenance persistence, conservative detector consultation, and template/data producer coverage exist; fallback removal still needs proof. |
 | `rfc-snapshot-build-plan-handoff.md` | Active | Frozen build-plan handoff for worker-safe execution. |
 | `rfc-template-view-model-contracts.md` | Active | Stable rendering contracts for themes and template engines. |
 | `rfc-theme-library-assets.md` | Active | Static/dev parity for package-provided theme assets. |
@@ -60,10 +60,11 @@ be treated as the agenda.
 ## Current Architecture Snapshot
 
 - Build pipeline: `bengal/orchestration/build/`.
+- Build contracts and provenance helpers: `bengal/build/contracts/` and
+  `bengal/build/provenance/`.
 - Incremental state: `bengal/orchestration/incremental/`,
   `bengal/cache/build_cache/`, and `bengal/cache/page_artifact_store.py`.
 - Snapshot records: `bengal/snapshots/types.py`.
 - Immutable page records: `bengal/core/records.py`.
-- There is still no general-purpose `bengal/build/` package for new
-  orchestration behavior; use current ownership boundaries from root
-  `AGENTS.md`.
+- New orchestration behavior still belongs in `bengal/orchestration/` unless a
+  current active plan and steward review say otherwise.

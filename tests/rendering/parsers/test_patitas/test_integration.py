@@ -88,6 +88,56 @@ class TestPatitasParserWrapper:
         assert hasattr(doc, "children")
         assert len(doc.children) > 0
 
+    def test_parse_with_toc_exposes_last_document_once(self, patitas_parser):
+        """TOC parsing keeps the parsed Document available for AST cache storage."""
+        patitas_parser.parse_with_toc("# Heading\n\nBody", {})
+        doc = patitas_parser.consume_last_document()
+        assert doc is not None
+        assert hasattr(doc, "children")
+        assert patitas_parser.consume_last_document() is None
+
+    def test_parse_with_toc_context_exposes_last_document_once(self, patitas_parser):
+        """Context-aware TOC parsing also avoids a follow-up parse for AST cache storage."""
+        patitas_parser.parse_with_toc_and_context(
+            "# {{ title }}\n\nBody",
+            {},
+            {"title": "Heading", "config": {}, "page": None, "site": None},
+        )
+        doc = patitas_parser.consume_last_document()
+        assert doc is not None
+        assert hasattr(doc, "children")
+        assert patitas_parser.consume_last_document() is None
+
+    def test_parse_many_with_toc_preserves_order(self, patitas_parser):
+        """Batch TOC parsing returns results in source order."""
+        results = patitas_parser.parse_many_with_toc(
+            ["# First\n\nBody", "# Second\n\nBody"],
+            [{}, {}],
+            workers=1,
+        )
+
+        assert len(results) == 2
+        assert "First" in results[0][0]
+        assert "Second" in results[1][0]
+        assert "First" in results[0][1]
+        assert "Second" in results[1][1]
+
+    def test_parse_many_with_toc_validates_metadata_length(self, patitas_parser):
+        """Batch TOC metadata must line up with sources."""
+        with pytest.raises(ValueError, match="metadata_list length must match"):
+            patitas_parser.parse_many_with_toc(["# One", "# Two"], [{}])
+
+    def test_parse_many_with_toc_validates_workers(self, patitas_parser):
+        """Batch TOC worker hints must be positive until orchestration owns parallelism."""
+        with pytest.raises(ValueError, match="workers must be"):
+            patitas_parser.parse_many_with_toc(["# One"], workers=0)
+
+    def test_parse_many_with_toc_does_not_publish_ambiguous_last_document(self, patitas_parser):
+        """Batch parsing leaves the one-shot AST cache slot empty."""
+        patitas_parser.parse_many_with_toc(["# One", "# Two"], workers=1)
+
+        assert patitas_parser.consume_last_document() is None
+
     def test_render_ast_from_dict(self, patitas_parser):
         """render_ast_from_dict returns HTML and TOC from Patitas Document dict."""
         if not hasattr(patitas, "to_dict"):

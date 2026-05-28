@@ -114,6 +114,9 @@ class BuildCache(
     # Site root for canonical path key normalization (not serialized, set by CacheManager)
     site_root: Path | None = field(default=None, repr=False)
 
+    # True when load() had to fall back to a fresh cache after a read/parse failure.
+    _recovered_from_error: bool = field(default=False, repr=False)
+
     # file_fingerprints for fast mtime+size change detection
     # Structure: {CacheKey(path): {mtime: float, size: int, hash: str | None}}
     # Use get_file_fingerprint/set_file_fingerprint or _cache_key for lookups
@@ -257,6 +260,7 @@ class BuildCache(
             )
             cache = cls()
             cache.site_root = site_root
+            cache._recovered_from_error = True
             return cache
 
     @classmethod
@@ -277,7 +281,7 @@ class BuildCache(
             # Try to load data (auto-detect format)
             data = cls._load_data_auto(cache_path)
             if data is None:
-                return cls()
+                return cls(_recovered_from_error=True)
 
             # Tolerant versioning: accept missing version (pre-versioned files)
             from bengal.errors import ErrorCode
@@ -462,7 +466,7 @@ class BuildCache(
                 action="using_fresh_cache",
                 error_code=ErrorCode.A001.value,  # cache_corruption
             )
-            return cls()
+            return cls(_recovered_from_error=True)
 
     @classmethod
     def _load_data_auto(cls, cache_path: Path) -> dict[str, Any] | None:

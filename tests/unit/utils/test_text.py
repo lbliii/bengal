@@ -217,6 +217,21 @@ class TestGenerateExcerpt:
         html = "<p>One two three four</p>"
         assert generate_excerpt(html, 2, suffix="…") == "One two…"
 
+    def test_entity_whitespace_counts_as_word_boundary(self):
+        """HTML entities should decode before word-boundary decisions."""
+        html = "<p>One&nbsp;two three</p>"
+        assert generate_excerpt(html, 2) == "One two..."
+
+    def test_short_html_preserves_full_plain_text(self):
+        """Short content keeps strip_html-compatible decoded output."""
+        html = "<p>Test &amp; Code <em>works</em></p>"
+        assert generate_excerpt(html, 10) == strip_html(html)
+
+    def test_truncated_excerpt_ignores_late_html_tail(self):
+        """Long content can stop after proving another word exists."""
+        html = "<p>One <strong>two</strong> three</p><broken"
+        assert generate_excerpt(html, 2) == "One two..."
+
 
 class TestNormalizeWhitespace:
     """Tests for normalize_whitespace function."""

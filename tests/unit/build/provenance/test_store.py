@@ -6,6 +6,7 @@ Tests ProvenanceCache for provenance storage and retrieval.
 
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 import pytest
@@ -230,6 +231,26 @@ class TestSaveLoad:
         subvenance_path = cache_dir / "subvenance.json"
         assert subvenance_path.exists()
 
+    def test_save_persists_dependency_index(self, store: ProvenanceCache, cache_dir: Path) -> None:
+        """save() persists read-only dependency index entries."""
+        record = ProvenanceRecord(
+            page_path=CacheKey("content/about.md"),
+            provenance=Provenance()
+            .with_input("content", CacheKey("content/about.md"), ContentHash("content"))
+            .with_input("data", CacheKey("data/team.yaml"), ContentHash("data")),
+            output_hash=ContentHash("output"),
+        )
+
+        store.store(record)
+        store.save()
+
+        dependency_index_path = cache_dir / "dependency-index.json"
+        assert dependency_index_path.exists()
+
+        loaded = ProvenanceCache(cache_dir=cache_dir)
+        index = loaded.get_dependency_index()
+        assert index.affected_page_keys("data", "data/team.yaml") == ("content/about.md",)
+
     def test_reload_restores_state(self, cache_dir: Path, sample_record: ProvenanceRecord) -> None:
         """New store instance loads persisted state."""
         # Store and save
@@ -243,6 +264,86 @@ class TestSaveLoad:
 
         assert result is not None
         assert result.page_path == sample_record.page_path
+
+    def test_missing_dependency_index_loads_empty(
+        self, cache_dir: Path, sample_record: ProvenanceRecord
+    ) -> None:
+        """Older provenance caches without dependency-index.json remain valid."""
+        store1 = ProvenanceCache(cache_dir=cache_dir)
+        store1.store(sample_record)
+        store1.save()
+        (cache_dir / "dependency-index.json").unlink()
+
+        store2 = ProvenanceCache(cache_dir=cache_dir)
+
+        assert store2.get_dependency_index().is_empty
+
+    def test_malformed_dependency_index_loads_empty(self, cache_dir: Path) -> None:
+        """Malformed dependency-index payloads fall back to safe empty indexes."""
+        cache_dir.mkdir(parents=True)
+        (cache_dir / "dependency-index.json").write_text(
+            json.dumps({"version": 1, "dependencies": ["not", "a", "mapping"]})
+        )
+
+        store = ProvenanceCache(cache_dir=cache_dir)
+
+        assert store.get_dependency_index().is_empty
+
+    def test_non_mapping_dependency_index_loads_empty(self, cache_dir: Path) -> None:
+        """Decoded non-mapping dependency-index payloads recover as empty indexes."""
+        cache_dir.mkdir(parents=True)
+        (cache_dir / "dependency-index.json").write_text(json.dumps(["not", "a", "mapping"]))
+
+        store = ProvenanceCache(cache_dir=cache_dir)
+
+        assert store.get_dependency_index().is_empty
+
+    def test_malformed_index_loads_empty(self, cache_dir: Path) -> None:
+        """Corrupt page indexes recover as empty stores."""
+        cache_dir.mkdir(parents=True)
+        (cache_dir / "index.json").write_text("{ invalid json }")
+
+        store = ProvenanceCache(cache_dir=cache_dir)
+
+        assert store.get_stored_hash(CacheKey("content/about.md")) is None
+
+    def test_non_mapping_index_loads_empty(self, cache_dir: Path) -> None:
+        """Decoded non-mapping page indexes recover as empty stores."""
+        cache_dir.mkdir(parents=True)
+        (cache_dir / "index.json").write_text(json.dumps(["not", "a", "mapping"]))
+
+        store = ProvenanceCache(cache_dir=cache_dir)
+
+        assert store.get_stored_hash(CacheKey("content/about.md")) is None
+
+    def test_non_mapping_subvenance_loads_empty(self, cache_dir: Path) -> None:
+        """Decoded non-mapping subvenance payloads recover as empty stores."""
+        cache_dir.mkdir(parents=True)
+        (cache_dir / "subvenance.json").write_text(json.dumps(["not", "a", "mapping"]))
+
+        store = ProvenanceCache(cache_dir=cache_dir)
+
+        assert store.get_affected_by(ContentHash("abc123")) == set()
+
+    def test_malformed_record_treated_as_missing(self, cache_dir: Path) -> None:
+        """Corrupt record files do not break cache reads."""
+        cache_dir.mkdir(parents=True)
+        records_dir = cache_dir / "records"
+        records_dir.mkdir()
+        (cache_dir / "index.json").write_text(
+            json.dumps(
+                {
+                    "version": 3,
+                    "pages": {"content/about.md": "abc123"},
+                    "input_paths": {},
+                }
+            )
+        )
+        (records_dir / "abc123.json").write_text("{ invalid json }")
+
+        store = ProvenanceCache(cache_dir=cache_dir)
+
+        assert store.get(CacheKey("content/about.md")) is None
 
     def test_no_save_when_not_dirty(self, store: ProvenanceCache, cache_dir: Path) -> None:
         """save() does nothing when not dirty."""

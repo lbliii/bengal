@@ -19,8 +19,14 @@ but their paths, metrics, or architecture assumptions no longer matched current
 - UX and CLI sharp-edge ideas belong under `epic-ux-sharp-edges.md`.
 - Theme/blog/nav/release layout ideas should only come back through
   `rfc-template-view-model-contracts.md` or `rfc-theme-library-assets.md`.
-- Parser grammar and Patitas performance ideas are not Bengal default-build
-  agenda unless a fresh source audit shows a Bengal-owned bottleneck.
+- Patitas parse optimization ideas should be revalidated before another slice:
+  parsed-cache metrics, opt-in token persistence, latest-document reuse, and
+  `parse_many_with_toc()` exist, but render-orchestrator integration still needs
+  Python 3.14t benchmarks and realistic page-size proof.
+- Incremental observability and utility-leaf leftovers are audits, not direct
+  patch lists. Revalidate current behavior before reviving `--explain`
+  improvements, `lru_cache` miss coalescing, `hash_dict` memoization, or
+  excerpt hot-path work.
 
 ## Removed As Not Current
 

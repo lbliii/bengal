@@ -25,13 +25,15 @@ from bengal.parsing.base import BaseMarkdownParser
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from patitas.nodes import Block, Document
 
 logger = get_logger(__name__)
 
 
 def _slice_blocks_at_excerpt_break(
-    blocks: tuple[Block, ...] | Document,
+    blocks: Sequence[Block] | Document,
 ) -> tuple[Block, ...] | None:
     """Find an excerpt-break directive and return blocks before it.
 
@@ -42,8 +44,24 @@ def _slice_blocks_at_excerpt_break(
     children = blocks.children if isinstance(blocks, Document) else blocks
     for i, block in enumerate(children):
         if isinstance(block, Directive) and block.name == "excerpt-break":
-            return children[:i]
+            return tuple(children[:i])
     return None
+
+
+def _document_from_blocks(blocks: Sequence[Block] | Document, source: str) -> Document:
+    """Wrap parsed blocks in a Patitas Document for cache serialization."""
+    from patitas.nodes import Document, SourceLocation
+
+    if isinstance(blocks, Document):
+        return blocks
+    loc = SourceLocation(
+        lineno=1,
+        col_offset=1,
+        offset=0,
+        end_offset=len(source),
+        source_file=None,
+    )
+    return Document(location=loc, children=tuple(blocks))
 
 
 class PatitasParser(BaseMarkdownParser):
@@ -112,6 +130,13 @@ class PatitasParser(BaseMarkdownParser):
 
         # Variable substitution plugin (stored for placeholder restoration)
         self._var_plugin: Any | None = None
+        self._last_document: Any | None = None
+
+    def consume_last_document(self) -> Any | None:
+        """Return and clear the most recent parsed Document, if available."""
+        document = self._last_document
+        self._last_document = None
+        return document
 
     def parse(self, content: str, metadata: dict[str, Any]) -> str:
         """Parse Markdown content into HTML.
@@ -181,8 +206,11 @@ class PatitasParser(BaseMarkdownParser):
         if not content:
             return "", "", "", ""
 
+        self._last_document = None
+
         # Parse to AST using configured markdown instance
         ast = self._md.parse_to_ast(content)
+        self._last_document = _document_from_blocks(ast, content)
 
         # Extract excerpt and meta description from AST (parse once, use many)
         try:
@@ -217,6 +245,96 @@ class PatitasParser(BaseMarkdownParser):
 
         return html, toc, excerpt, meta_desc
 
+    def parse_many_with_toc(
+        self,
+        sources: Sequence[str],
+        metadata_list: Sequence[dict[str, Any]] | None = None,
+        *,
+        workers: int | str = "auto",
+    ) -> list[tuple[str, str, str, str]]:
+        """Parse multiple simple Markdown pages with TOCs.
+
+        This is a parser-level primitive for future render-orchestrator batching.
+        It intentionally does not handle page context or variable substitution;
+        callers with per-page context should keep using
+        ``parse_with_toc_and_context``.
+        """
+        if not sources:
+            self._last_document = None
+            return []
+
+        metadata_items = list(metadata_list or [{} for _ in sources])
+        if len(metadata_items) != len(sources):
+            raise ValueError("metadata_list length must match sources length")
+
+        self._last_document = None
+
+        if workers != "auto" and int(workers) < 1:
+            raise ValueError("workers must be 'auto' or a positive integer")
+
+        indexed_sources = list(zip(range(len(sources)), sources, metadata_items, strict=True))
+        return [
+            self._parse_source_with_toc(source, metadata) for _, source, metadata in indexed_sources
+        ]
+
+    def _parse_source_with_toc(
+        self, content: str, metadata: dict[str, Any]
+    ) -> tuple[str, str, str, str]:
+        """Parse one source without updating the one-shot last-document cache."""
+        if not content:
+            return "", "", "", ""
+
+        try:
+            ast = self._md.parse_to_ast(content)
+            excerpt, meta_desc = self._extract_excerpt_and_meta(ast, content, metadata)
+            html, toc, _toc_items = self._md.render_ast_with_toc(ast, content)
+            html = self._apply_post_processing(html, metadata)
+            return html, toc, excerpt, meta_desc
+        except Exception as e:
+            source_path = metadata.get("_source_path", "unknown")
+            logger.warning(
+                "patitas_batch_parsing_error",
+                error=str(e),
+                error_type=type(e).__name__,
+                path=source_path,
+            )
+            return (
+                f'<div class="markdown-error"><p><strong>Markdown parsing error in {source_path}:</strong> {e}</p><pre>{content[:500]}...</pre></div>',
+                "",
+                "",
+                "",
+            )
+
+    def _extract_excerpt_and_meta(
+        self,
+        ast: Sequence[Block],
+        content: str,
+        metadata: dict[str, Any],
+    ) -> tuple[str, str]:
+        """Extract excerpt and meta description from a parsed AST."""
+        try:
+            from patitas import extract_excerpt, extract_meta_description
+
+            excerpt_blocks = _slice_blocks_at_excerpt_break(ast)
+            if excerpt_blocks is not None:
+                excerpt = extract_excerpt(
+                    excerpt_blocks, content, excerpt_as_html=True, max_chars=sys.maxsize
+                )
+            else:
+                max_chars = metadata.get(
+                    "_excerpt_length", get_default("content", "excerpt_length")
+                )
+                excerpt = extract_excerpt(ast, content, excerpt_as_html=True, max_chars=max_chars)
+            meta_desc = (
+                extract_meta_description(ast, content)
+                if not metadata.get("description")
+                else str(metadata.get("description", ""))
+            )
+        except Exception:
+            excerpt = ""
+            meta_desc = ""
+        return excerpt, meta_desc
+
     def parse_with_context(
         self, content: str, metadata: dict[str, Any], context: dict[str, Any]
     ) -> str:
@@ -235,6 +353,8 @@ class PatitasParser(BaseMarkdownParser):
         """
         if not content:
             return ""
+
+        self._last_document = None
 
         from bengal.rendering.plugins import VariableSubstitutionPlugin
 
@@ -306,6 +426,8 @@ class PatitasParser(BaseMarkdownParser):
         if not content:
             return "", "", "", ""
 
+        self._last_document = None
+
         from bengal.rendering.plugins import VariableSubstitutionPlugin
 
         # Create plugin instance for this page and store for pipeline access
@@ -325,6 +447,7 @@ class PatitasParser(BaseMarkdownParser):
 
             # 2. Parse & Substitute in ONE pass (the "window thing")
             ast = self._md.parse_to_ast(content, text_transformer=var_plugin.substitute_variables)
+            self._last_document = _document_from_blocks(ast, content)
 
             # 3. Extract excerpt and meta description from AST (parse once, use many)
             try:

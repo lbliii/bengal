@@ -14,8 +14,9 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.cache import BuildCache
-from bengal.core.records import RenderedPage
+from bengal.core.records import ParsedPage, RenderedPage
 from bengal.rendering.pipeline import RenderingPipeline
+from bengal.rendering.pipeline.cache_checker import CacheChecker
 
 
 class DummyParser:
@@ -125,6 +126,208 @@ class TestPipelineCacheStorage:
         # After caching, parsed_content should have an entry
         assert str(mock_page.source_path) in cache.parsed_content
         assert cache.parsed_content[str(mock_page.source_path)]["html"] == "<p>Test content</p>"
+
+    def test_cache_parsed_content_persists_parsed_page_text_metrics(
+        self, site_with_cache, mock_page
+    ):
+        """Parsed cache stores text metrics so warm hits avoid text re-extraction."""
+        site, cache = site_with_cache
+
+        parser = DummyParser()
+        engine = DummyTemplateEngine(site)
+        ctx = SimpleNamespace(markdown_parser=parser, template_engine=engine)
+        pipeline = RenderingPipeline(site, build_context=ctx, build_cache=cache)
+
+        parsed_page = ParsedPage(
+            html_content="<p>Cached body</p>",
+            toc="<nav>TOC</nav>",
+            toc_items=(),
+            excerpt="Cached body",
+            meta_description="Cached body",
+            plain_text="Cached body",
+            word_count=2,
+            reading_time=1,
+            links=("docs/next",),
+            ast_cache=None,
+        )
+
+        pipeline._cache_checker.cache_parsed_content(
+            mock_page,
+            "default.html",
+            "patitas-test-toc1",
+            parsed_page=parsed_page,
+        )
+
+        entry = cache.parsed_content[str(mock_page.source_path)]
+        assert entry["plain_text"] == "Cached body"
+        assert entry["word_count"] == 2
+        assert entry["reading_time"] == 1
+
+    def test_try_parsed_cache_restores_plain_text_cache_without_reextracting(
+        self, site_with_cache, monkeypatch, tmp_path
+    ):
+        """Warm parsed-cache hits reuse cached plain text instead of parsing HTML again."""
+        site, _cache = site_with_cache
+
+        class PageWithExpensivePlainText:
+            def __init__(self):
+                self.source_path = tmp_path / "content" / "cached.md"
+                self.output_path = tmp_path / "public" / "cached" / "index.html"
+                self.metadata = {"title": "Cached"}
+                self.links = []
+                self.rendered_html = ""
+                self._toc_items_cache = []
+                self._plain_text_cache = None
+                self._excerpt = ""
+                self._meta_description = ""
+
+            @property
+            def plain_text(self):
+                raise AssertionError("plain_text should be restored from parsed cache")
+
+        class Cache:
+            def get_parsed_content(self, *args, **kwargs):
+                return {
+                    "html": "<p>Cached body</p>",
+                    "toc": "",
+                    "toc_items": [],
+                    "links": [],
+                    "plain_text": "Cached body",
+                    "word_count": 2,
+                    "reading_time": 1,
+                }
+
+        class Renderer:
+            def render_content(self, content):
+                return content
+
+            def render_page(self, page, html_content, parsed_page=None):
+                return f"<html>{html_content}</html>"
+
+        writes = []
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.format_html",
+            lambda html, page, site: html,
+        )
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.write_output",
+            lambda *args, **kwargs: writes.append(kwargs.get("rendered_page")),
+        )
+
+        page = PageWithExpensivePlainText()
+        checker = CacheChecker(site=site, renderer=Renderer(), build_cache=Cache())
+
+        assert checker.try_parsed_cache(page, "default.html", "patitas-test-toc1") is True
+        assert page._plain_text_cache == "Cached body"
+        assert writes
+
+    def test_try_parsed_cache_restores_empty_plain_text(
+        self, site_with_cache, monkeypatch, tmp_path
+    ):
+        """Empty cached plain text is still a valid warm-cache value."""
+        site, _cache = site_with_cache
+
+        class PageWithEmptyPlainText:
+            def __init__(self):
+                self.source_path = tmp_path / "content" / "image-only.md"
+                self.output_path = tmp_path / "public" / "image-only" / "index.html"
+                self.metadata = {"title": "Image"}
+                self.links = []
+                self.rendered_html = ""
+                self._toc_items_cache = []
+                self._plain_text_cache = None
+                self._excerpt = ""
+                self._meta_description = ""
+
+            @property
+            def plain_text(self):
+                raise AssertionError("empty plain_text should be restored from parsed cache")
+
+        class Cache:
+            def get_parsed_content(self, *args, **kwargs):
+                return {
+                    "html": "<img alt='' src='image.png'>",
+                    "toc": "",
+                    "toc_items": [],
+                    "links": [],
+                    "plain_text": "",
+                    "word_count": 0,
+                    "reading_time": 0,
+                }
+
+        class Renderer:
+            def render_content(self, content):
+                return content
+
+            def render_page(self, page, html_content, parsed_page=None):
+                return f"<html>{html_content}</html>"
+
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.format_html",
+            lambda html, page, site: html,
+        )
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.write_output", lambda *a, **k: None
+        )
+
+        page = PageWithEmptyPlainText()
+        checker = CacheChecker(site=site, renderer=Renderer(), build_cache=Cache())
+
+        assert checker.try_parsed_cache(page, "default.html", "patitas-test-toc1") is True
+        assert page._plain_text_cache == ""
+
+    def test_ast_persistence_reuses_parser_last_document(
+        self, site_with_cache, mock_page, monkeypatch
+    ):
+        """AST persistence consumes the parser's last document instead of parsing twice."""
+        site, cache = site_with_cache
+        site.config = {
+            "markdown_engine": "patitas",
+            "markdown": {"ast_cache": {"persist_tokens": True}},
+            "content": {},
+        }
+        mock_page._source = "# Cached\n\nBody"
+        mock_page.metadata = {"title": "Cached"}
+        sentinel_doc = object()
+
+        class Parser(DummyParser):
+            supports_ast = True
+
+            def __init__(self):
+                super().__init__()
+                self.parse_to_document_calls = 0
+                self.consumed = False
+
+            def parse_with_toc_and_context(self, content, metadata, context):
+                return "<h1>Cached</h1><p>Body</p>", "<nav>Cached</nav>", "Body", "Body"
+
+            def consume_last_document(self):
+                self.consumed = True
+                return sentinel_doc
+
+            def parse_to_document(self, content, metadata):
+                self.parse_to_document_calls += 1
+                raise AssertionError("last document should be reused")
+
+        parser = Parser()
+        engine = DummyTemplateEngine(site)
+        ctx = SimpleNamespace(markdown_parser=parser, template_engine=engine)
+        pipeline = RenderingPipeline(site, build_context=ctx, build_cache=cache)
+        pipeline._build_variable_context = lambda page: {
+            "page": page,
+            "site": site,
+            "config": site.config,
+        }
+
+        monkeypatch.setattr(
+            "patitas.to_dict", lambda doc: {"_type": "Document", "sentinel": doc is sentinel_doc}
+        )
+
+        pipeline._parse_with_context_aware_parser(mock_page, need_toc=True)
+
+        assert parser.consumed is True
+        assert parser.parse_to_document_calls == 0
+        assert mock_page._ast_cache == {"_type": "Document", "sentinel": True}
 
     def test_cache_rendered_output_uses_correct_attribute(
         self, site_with_cache, mock_page, tmp_path
