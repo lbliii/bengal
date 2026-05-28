@@ -1,6 +1,10 @@
 from types import SimpleNamespace
 
-from bengal.cache.parsed_output import apply_parsed_page_to_page, clear_parsed_page_state
+from bengal.cache.parsed_output import (
+    apply_parsed_page_to_page,
+    clear_parsed_page_state,
+    with_parsed_html,
+)
 from bengal.core.records import ParsedPage
 
 
@@ -104,3 +108,22 @@ def test_clear_parsed_page_state_resets_parse_compatibility_fields() -> None:
     assert page._meta_description is None
     assert page._plain_text_cache is None
     assert page._ast_cache is None
+
+
+def test_with_parsed_html_returns_record_copy() -> None:
+    parsed_page = ParsedPage(
+        html_content="<p>old</p>",
+        toc="",
+        toc_items=(),
+        excerpt="",
+        meta_description="",
+        plain_text="",
+        word_count=0,
+        reading_time=0,
+        links=(),
+    )
+
+    updated = with_parsed_html(parsed_page, "<p>new</p>")
+
+    assert parsed_page.html_content == "<p>old</p>"
+    assert updated.html_content == "<p>new</p>"

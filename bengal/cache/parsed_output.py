@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -46,3 +47,8 @@ def clear_parsed_page_state(page: PageLike) -> None:
     page._meta_description = None
     page._plain_text_cache = None
     page._ast_cache = None
+
+
+def with_parsed_html(parsed_page: ParsedPage, html_content: str) -> ParsedPage:
+    """Return a ``ParsedPage`` copy with transformed HTML content."""
+    return replace(parsed_page, html_content=html_content)
