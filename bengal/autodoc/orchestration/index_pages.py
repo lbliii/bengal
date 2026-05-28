@@ -9,9 +9,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.autodoc.utils import get_template_dir_for_type
-from bengal.core.page import Page
+from bengal.content.discovery.page_adapter import page_from_source_page
+from bengal.core.records import create_virtual_source_page
 
 if TYPE_CHECKING:
+    from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
 
@@ -79,14 +81,9 @@ def create_index_pages(
         else:
             template_name = f"{template_dir}/section-index"
 
-        # Create page with deferred rendering - HTML rendered in rendering phase
-        # NOTE: We pass autodoc_element=None for section-index pages because:
-        # - Templates expect 'element' to be a DocElement with properties like
-        #   element_type, qualified_name, children, description, etc.
-        # - Section objects don't have these properties and would cause StrictUndefined errors
-        # - The section data is already available via the 'section' template variable
-        index_page = Page.create_virtual(
-            source_id=f"__virtual__/{section_path}/section-index.md",
+        source_id = f"__virtual__/{section_path}/section-index.md"
+        source_page = create_virtual_source_page(
+            source_id=source_id,
             title=section.title,
             metadata={
                 "type": section_type,
@@ -97,15 +94,20 @@ def create_index_pages(
                 "autodoc_element": None,  # Section data available via 'section' variable
                 "_autodoc_template": template_name,
             },
-            rendered_html=None,  # Deferred - rendered in rendering phase with full context
+        )
+        # Create page with deferred rendering - HTML rendered in rendering phase
+        # NOTE: We pass autodoc_element=None for section-index pages because:
+        # - Templates expect 'element' to be a DocElement with properties like
+        #   element_type, qualified_name, children, description, etc.
+        # - Section objects don't have these properties and would cause StrictUndefined errors
+        # - The section data is already available via the 'section' template variable
+        index_page = page_from_source_page(
+            source_page,
+            site=site,
+            section=section,
             template_name=template_name,
             output_path=output_path,
         )
-
-        # Set site reference for URL computation
-        index_page._site = site
-        # Set section reference via setter (handles virtual sections with URL-based lookup)
-        index_page._section = section
 
         # Claim URL in registry for ownership enforcement
         # Priority 90 = autodoc sections (explicitly configured by user)
