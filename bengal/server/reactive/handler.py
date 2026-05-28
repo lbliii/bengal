@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING
 
 from patitas import parse_frontmatter
 
+from bengal.cache.parsed_output import clear_parsed_page_state
 from bengal.core.output import BuildOutputCollector
 from bengal.rendering.pipeline.core import RenderingPipeline
 from bengal.rendering.rendered_output import get_rendered_html
@@ -90,15 +91,9 @@ class ReactiveContentHandler:
         _, body_content = parse_frontmatter(raw_file)
 
         page._raw_content = body_content
-        page.html_content = None
-
-        # Invalidate content-derived caches so pipeline recomputes
-        if hasattr(page, "_plain_text_cache"):
-            object.__setattr__(page, "_plain_text_cache", None)
+        clear_parsed_page_state(page)
         if hasattr(page, "_html_cache"):
             object.__setattr__(page, "_html_cache", None)
-        if hasattr(page, "_ast_cache"):
-            object.__setattr__(page, "_ast_cache", None)
 
         # Use RenderingPipeline for full parse + transform + render + write
         # changed_sources={path} ensures cache bypass (skip_cache=True)

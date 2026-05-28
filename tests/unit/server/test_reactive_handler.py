@@ -98,6 +98,13 @@ class TestReactiveContentHandler:
         page.source_path = md_file
         page._raw_content = "---\ntitle: Test\n---\nBody"
         page.html_content = "<p>Body</p>"
+        page.toc = "<nav>old</nav>"
+        page._toc_items_cache = [{"id": "old"}]
+        page.links = ["/old/"]
+        page._excerpt = "old"
+        page._meta_description = "old meta"
+        page._plain_text_cache = "old plain"
+        page._ast_cache = {"old": True}
         page.output_path = output_path
         page._section = None
         mock_site.pages = [page]
@@ -113,3 +120,11 @@ class TestReactiveContentHandler:
             mock_pipeline_cls.assert_called_once()
             call_kwargs = mock_pipeline_cls.call_args[1]
             assert call_kwargs["output_collector"] is not None
+            assert page.html_content is None
+            assert page.toc == ""
+            assert page._toc_items_cache == []
+            assert page.links == []
+            assert page._excerpt is None
+            assert page._meta_description is None
+            assert page._plain_text_cache is None
+            assert page._ast_cache is None
