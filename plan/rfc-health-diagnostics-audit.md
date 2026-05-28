@@ -1,6 +1,9 @@
 # Health Diagnostics and Artifact Audit
 
-**Status**: active implementation
+**Status**: Active implementation
+**Updated**: 2026-05-28
+**2026-05-28 Check**: Kept as active because health, artifact audit, and
+terminal reporting separation still affect current build and release proof.
 
 ## Problem
 

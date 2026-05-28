@@ -1,8 +1,12 @@
 # Theme Library Assets
 
-**Status**: Draft
+**Status**: Active
 **Created**: 2026-05-06
+**Updated**: 2026-05-28
 **Scope**: Rendering assets, themes, dev server, static builds, diagnostics
+**2026-05-28 Check**: Kept active because bundled `chirpui` exists and provider
+asset parity is now a concrete static/dev contract, not a generic theme-market
+idea.
 
 ## Problem
 

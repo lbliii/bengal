@@ -2,14 +2,19 @@
 
 | Field | Value |
 |-------|-------|
-| **Status** | Draft |
+| **Status** | Active |
 | **Created** | 2026-03-13 |
+| **Updated** | 2026-05-28 |
 | **Author** | AI Assistant + Lawrence Lane |
 | **Priority** | P1 (High) |
 | **Depends On** | Kida 0.2.7+, `rfc-rest-api-autodoc-layouts.md` (Phase 1-4 complete) |
 | **Confidence** | 85% 🟡 |
 
 ---
+
+> 2026-05-28 status: kept active because `bengal/autodoc/` has substantial
+> implementation and tests, but API-doc polish remains a roadmap gap. Treat any
+> old path or template claim below as requiring source verification before work.
 
 ## Context
 

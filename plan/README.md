@@ -1,69 +1,70 @@
+<!-- markdownlint-disable MD013 MD060 -->
+
 # Bengal Plan & RFC Index
 
-Quick reference for RFC status. Run `rg "^\*\*Status\*\*" plan/rfc-*.md` to refresh.
+Updated: 2026-05-28
 
-## Status Legend
+Root `plan/` is intentionally small. It contains `AGENTS.md`, this index, the
+current roadmap, and the ten active plans that still describe work Bengal
+intends to do. Everything else belongs in an archive directory and should not
+be treated as the agenda.
 
-| Status | Meaning |
-|--------|---------|
-| Implemented | Done |
-| Partially Implemented | In progress; some parts done |
-| Draft | Not started |
-| Evaluated | Reviewed; may need path/context updates |
-| Stale | References outdated architecture; re-verify before use |
-| Superseded | Replaced by another RFC |
+## Active Root Set
 
-## Key RFCs (Architecture & Scaling)
+| File | Status | Notes |
+|------|--------|-------|
+| `ROADMAP.md` | Active | Sequencing and verification snapshot for the current plan set. |
+| `epic-immutable-page-pipeline.md` | Active | Mutable `Page` deletion remains pending. |
+| `epic-delete-forwarding-wrappers.md` | Active | Keep as follow-on architecture cleanup after Page/Site boundaries shrink. |
+| `epic-openapi-rest-layout-upgrade.md` | Active | Autodoc/API docs polish remains a production gap. |
+| `epic-ux-sharp-edges.md` | Active | User-visible CLI/error/directive/scaffold polish bucket. |
+| `rfc-effect-traced-incremental-builds.md` | Active | Long-term effect graph and template HMR direction. |
+| `rfc-health-diagnostics-audit.md` | Active implementation | Health, artifact audit, and reporting separation. |
+| `rfc-incremental-dependency-indexes.md` | Active / partially implemented | Dependency-index contracts, provenance persistence, conservative detector consultation, and template/data producer coverage exist; fallback removal still needs proof. |
+| `rfc-snapshot-build-plan-handoff.md` | Active | Frozen build-plan handoff for worker-safe execution. |
+| `rfc-template-view-model-contracts.md` | Active | Stable rendering contracts for themes and template engines. |
+| `rfc-theme-library-assets.md` | Active | Static/dev parity for package-provided theme assets. |
 
-| RFC | Status | Notes |
-|-----|--------|------|
-| rfc-pipeline-input-output-contracts | Partially Implemented | BuildInput, Discovery phase, reload hint done |
-| rfc-incremental-build-contracts | Evaluated | Paths updated; dependency_tracker removed |
-| rfc-incremental-build-dependency-gaps | Stale | References non-existent bengal/build/tracking/ |
-| rfc-build-system-package | Draft | bengal/build/ never created; uses orchestration/build/ |
-| rfc-bengal-v2-architecture | Draft | Large; protocol-first, composition |
-| rfc-remaining-coupling-fixes | Draft | Depends on module-coupling-reduction (unverified) |
-| rfc-health-diagnostics-audit | Active implementation | Splits health policy, rendering registries, artifact audit, and Kida output |
-| rfc-theme-library-assets | Draft | First-class package/library assets for themes |
-| rfc-template-view-model-contracts | Draft | Engine-neutral view data for Kida and BYO templates |
-| rfc-incremental-dependency-indexes | Partially Implemented | Dependency index contracts, provenance persistence, conservative detector consultation, and template/data producer coverage exist |
-| rfc-snapshot-build-plan-handoff | Draft | Frozen build/incremental plans for worker-safe handoff |
-| rfc-output-cache-architecture | Partially Implemented | Content hashes, generated-page cache, page artifacts, and registry exist; split before more work |
-| rfc-autodoc-incremental-caching | Implemented / Audit Remaining | Doc-content hashes and autodoc metadata tracking exist |
-| rfc-provenance-mtime-short-circuit | Implemented | Kept as design record and proof checklist |
+## Status Directories
 
-## Implemented
+| Directory | Meaning |
+|-----------|---------|
+| `complete/` | Work has shipped or the remaining idea is already covered by source/docs/changelog. |
+| `evaluated/` | Historical assessment or audit evidence; not current work. |
+| `drafted/` | Early drafts not yet promoted to active planning. |
+| `stale/` | Potentially useful idea, but paths/status/architecture need re-verification. |
+| `superseded/` | Replaced by a newer active plan or implemented architecture. |
 
-- rfc-contextvar-config-implementation
-- rfc-contextvar-downstream-patterns
-- rfc-build-performance-optimizations
-- rfc-ty-type-checker-adoption
-- rfc-error-handling-consolidation
+## 2026-05-28 Triage Notes
 
-## Deleted (superseded or redundant)
+- Root active planning files were reduced to 11: `ROADMAP.md` plus 10 active
+  plans/RFCs.
+- Finished or effectively shipped RFCs were moved to `complete/`, including CI
+  cache inputs/hash, theme ecosystem phase 1, output cache architecture,
+  pipeline input/output contracts, dev-server buffer hardening, Agent DX polish,
+  template error code/overlay work, and CLI upgrade notifications.
+- Broad v2 architecture sketches were moved to `superseded/` because the active
+  work now lives in snapshot handoff, effect-traced incremental builds,
+  dependency indexes, and wrapper deletion.
+- Older product/feature drafts were moved to `stale/` or `evaluated/` until a
+  fresh source audit promotes them back.
+- Standalone investigations, proof notes, reload/output-collector proposals,
+  and ChirpUI prototypes were also moved out of root. Draft prototypes live
+  under `drafted/`; historical analysis lives under `evaluated/`; stale
+  follow-up plans live under `stale/`.
+- Second cleanup pass distilled the completed, stale, superseded, evaluated,
+  and drafted archives into directory READMEs. Long historical bodies were
+  removed unless they remain durable references. The plan tree now has 21
+  markdown files total, plus a few CSS examples under `plan/examples/`.
 
-- rfc-patitas-extraction — superseded by rfc-patitas-external-migration
-- plan-section-protocol-migration — superseded by rfc-bengal-snapshot-engine
-- rfc-aggressive-cleanup — duplicate; kept evaluated/rfc-aggressive-cleanup.md
+## Current Architecture Snapshot
 
-## Archive Structure
-
-- `plan/complete/` — RFCs/epics whose work has shipped.
-- `plan/evaluated/` — Reviewed and validated; kept as historical analysis.
-- `plan/drafted/` — Early-stage drafts not yet promoted.
-- `plan/stale/` — References outdated architecture; re-verify before use.
-- `plan/superseded/` — Replaced by another RFC.
-
-Archived 2026-04-20 (epic-agent-dx-polish S5):
-
-- `plan/evaluated/rfc-contextvar-config-analysis.md` — benchmark validated; implementation in `plan/complete/rfc-contextvar-config-implementation.md`.
-- `plan/evaluated/rfc-free-threading-hardening.md` — evaluation complete; fixes landed via `foundation-leaf-hygiene.md` Sprint 4.
-- `plan/complete/rfc-kida-reserved-keyword-subscript.md` — closed as documentation; no code change shipped.
-- `plan/complete/sprint-0-ty-triage.md` — triage feeds `plan/complete/epic-ty-diagnostic-reduction.md`.
-
-## Current Architecture (2026-05-24)
-
-- **Build pipeline**: `bengal/orchestration/build/` (BuildOrchestrator, phases, coordinator)
-- **Build provenance contracts**: `bengal/build/provenance/`
-- **Incremental**: `bengal/orchestration/incremental/` (EffectBasedDetector, CacheManager)
-- **Cache**: `bengal/cache/build_cache/` (file_tracking, core)
+- Build pipeline: `bengal/orchestration/build/`.
+- Build contracts and provenance helpers: `bengal/build/contracts/` and
+  `bengal/build/provenance/`.
+- Incremental state: `bengal/orchestration/incremental/`,
+  `bengal/cache/build_cache/`, and `bengal/cache/page_artifact_store.py`.
+- Snapshot records: `bengal/snapshots/types.py`.
+- Immutable page records: `bengal/core/records.py`.
+- New orchestration behavior still belongs in `bengal/orchestration/` unless a
+  current active plan and steward review say otherwise.

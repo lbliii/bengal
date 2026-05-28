@@ -1,9 +1,12 @@
 # RFC: Incremental Dependency Indexes
 
-**Status**: Draft
+**Status**: Active
 **Created**: 2026-05-10
+**Updated**: 2026-05-28
 **Author**: Codex
-**Related**: `rfc-effect-traced-incremental-builds.md`, `rfc-output-cache-architecture.md`, `rfc-incremental-build-observability.md`
+**Related**: `rfc-effect-traced-incremental-builds.md`, `rfc-snapshot-build-plan-handoff.md`
+**2026-05-28 Check**: Kept as the narrow warm-build read-model plan; older
+output-cache and incremental-observability RFCs are archived background.
 
 ## Current Status — 2026-05-24
 
