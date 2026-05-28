@@ -46,6 +46,7 @@ from bengal.content.discovery.directory_walker import DirectoryWalker
 from bengal.content.discovery.page_adapter import page_from_source_page
 from bengal.content.discovery.section_builder import SectionBuilder
 from bengal.core.records import build_source_page
+from bengal.rendering.parsed_output import apply_parsed_page_to_page
 from bengal.utils.concurrency.executor import managed_executor
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
@@ -451,22 +452,9 @@ class ContentDiscovery:
                 from_cache=True,
             )
 
-            # Populate parsed fields from immutable ParsedPage record.
             # AST is intentionally NOT loaded — it can be large and the rendering
-            # pipeline retrieves it from the build cache if needed.  The
-            # _plain_text_cache short-circuits any AST-based plain_text computation.
-            page.html_content = parsed_page.html_content
-            page.toc = parsed_page.toc
-            page._toc_items_cache = list(parsed_page.toc_items)
-            page.links = list(parsed_page.links)
-            page._excerpt = parsed_page.excerpt
-            page._meta_description = parsed_page.meta_description
-            page._plain_text_cache = parsed_page.plain_text
-
-            # Seed cached_property values from ParsedPage so they don't
-            # recompute from the empty _raw_content placeholder.
-            page.__dict__["word_count"] = parsed_page.word_count
-            page.__dict__["reading_time"] = parsed_page.reading_time
+            # pipeline retrieves it from the build cache if needed.
+            apply_parsed_page_to_page(page, parsed_page, seed_ast=False)
 
             # i18n enrichment from cached core
             if current_lang:
