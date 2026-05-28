@@ -1,12 +1,14 @@
 # Epic: UX Sharp Edges — Make Failures Visible and Choices Obvious
 
-**Status**: Draft
+**Status**: Active
 **Created**: 2026-04-13
+**Updated**: 2026-05-28
 **Target**: v0.4.0 (beta)
 **Estimated Effort**: 24-36 hours
 **Dependencies**: None (all sprints ship independently against current main)
 **Source**: Codebase audit of CLI, directives, incremental build, scaffolding, and template API
 **Lifts**: J10 (Developer Experience/CLI) from 4.3 → 4.8, J4 (Custom Directives) from 4.2 → 4.5
+**2026-05-28 Check**: Kept as the current user-visible polish bucket. Completed Agent DX and template overlay work moved to `plan/complete/`; do not duplicate those shipped fixes here.
 
 ---
 

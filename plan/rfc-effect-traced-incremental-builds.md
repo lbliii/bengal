@@ -1,17 +1,20 @@
 # RFC: Effect-Traced Incremental Builds
 
-**Status**: Draft (Revised)  
+**Status**: Active  
 **Author**: AI Assistant  
 **Created**: 2026-01-14  
-**Updated**: 2026-01-14  
+**Updated**: 2026-05-28  
 **Python Version**: 3.14.2  
-**Related**: rfc-incremental-build-dependency-gaps.md, rfc-autodoc-incremental-caching.md, rfc-free-threading-patterns.md
+**Related**: rfc-incremental-dependency-indexes.md, rfc-snapshot-build-plan-handoff.md
 
 **Revision Notes**:
 - Added Goals/Non-Goals section with explicit scope
 - Added Architecture Impact section with cache integration diagram
 - Expanded Alternative Analysis with detailed comparison matrix
 - Marked performance claims as estimates pending prototype validation
+- 2026-05-28: Kept as active long-term direction; older dependency-gap,
+  autodoc-caching, and provenance-mtime RFCs were archived and should be
+  treated as background evidence only.
 - Added Validation Plan with acceptance/abort criteria
 - Added Deprecation Path for DependencyTracker migration
 

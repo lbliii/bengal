@@ -1,9 +1,12 @@
 # RFC: Snapshot Build Plan Handoff
 
-**Status**: Draft
+**Status**: Active
 **Created**: 2026-05-10
+**Updated**: 2026-05-28
 **Author**: Codex
-**Related**: `rfc-bengal-snapshot-engine.md`, `rfc-template-view-model-contracts.md`, `rfc-incremental-dependency-indexes.md`
+**Related**: `rfc-template-view-model-contracts.md`, `rfc-incremental-dependency-indexes.md`
+**2026-05-28 Check**: Kept as the current snapshot architecture plan; the broad
+v2 snapshot RFCs were moved to `plan/superseded/`.
 
 ## Problem
 

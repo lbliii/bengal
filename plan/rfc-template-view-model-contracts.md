@@ -1,8 +1,11 @@
 # Template View Model Contracts
 
-**Status**: Draft
+**Status**: Active
 **Created**: 2026-05-06
+**Updated**: 2026-05-28
 **Scope**: Rendering, Kida, themes, directives, shortcodes, content types
+**2026-05-28 Check**: Kept active because Chirp UI, directive rendering, and
+template engine parity still need stable data contracts.
 
 ## Problem
 

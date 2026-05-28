@@ -1,11 +1,13 @@
 # Epic: Delete Forwarding Wrappers — Site Shrinks Because Its API Shrinks
 
-**Status**: Draft
+**Status**: Active
 **Created**: 2026-04-20
+**Updated**: 2026-05-28
 **Target**: v0.4.0 (supersedes Sprint B3 of `plan/immutable-floating-sun.md`)
-**Dependencies**: B1 (SiteRunner) and B2 (SiteContext) from the prior epic — complete and kept.
+**Dependencies**: Run after the mutable Page and Site compatibility surface have clearer replacement paths.
 **Estimated Effort**: 28–40h
 **Source**: Three-subagent audit of `bengal/core/site/`, `bengal/core/page/`, `bengal/core/section/`, and `bengal/orchestration/` on 2026-04-20.
+**2026-05-28 Check**: Kept as active follow-on architecture work; do not start by restoring older mixin or forwarding layers.
 
 ---
 

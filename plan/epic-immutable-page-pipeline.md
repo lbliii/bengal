@@ -1,12 +1,13 @@
 # Epic: Immutable Page Pipeline — Snapshots All The Way Down
 
-**Status**: In Progress — Sprints 0-5 Complete, Sprint 6 Pending
+**Status**: Active — Sprints 0-5 Complete, Sprint 6 Pending
 **Created**: 2026-04-06
-**Updated**: 2026-04-12
+**Updated**: 2026-05-28
 **Target**: v0.4.x
 **Estimated Effort**: 60-80 hours
-**Dependencies**: Epic: Protocol Migration (Phase 1 in progress), Epic: Architecture Audit Remediation (Sprint 1-2)
+**Dependencies**: Root roadmap sequencing; older protocol and architecture audit epics are archived as stale/superseded.
 **Source**: Layered Review (2026-04-06), rfc-bengal-v2-architecture.md (Phase 3-4)
+**2026-05-28 Check**: `bengal/core/page/__init__.py` still defines `class Page`; frozen pipeline records and snapshots exist, so Sprint 6 remains valid.
 
 ---
 
