@@ -21,7 +21,8 @@ from kida.environment.exceptions import (
     TemplateSyntaxError,
 )
 
-from bengal.core.records import rendered_page_from_page_state
+from bengal.cache.parsed_output import apply_parsed_page_to_page
+from bengal.core.records import ParsedPage, rendered_page_from_page_state
 from bengal.protocols import SiteConfig, SiteLike
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
@@ -168,8 +169,7 @@ class AutodocRenderer:
             )
             return
 
-        page.html_content = page.prerendered_html
-        page.toc = ""
+        self._apply_virtual_parsed_content(page, page.prerendered_html or "")
 
         # Check if pre-rendered HTML is already a complete page (extends base.html)
         # Complete pages should not be wrapped with another template
@@ -247,8 +247,7 @@ class AutodocRenderer:
             # Fall back to rendering as regular virtual page
             fallback_desc = getattr(element, "description", "") if element else ""
             page.prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            page.html_content = page.prerendered_html
-            page.toc = ""
+            self._apply_virtual_parsed_content(page, page.prerendered_html)
             rendered_html = self.renderer.render_page(page, page.prerendered_html)
             return format_html(rendered_html, page, cast("SiteLike", self.site))
 
@@ -312,17 +311,34 @@ class AutodocRenderer:
             # Fallback minimal HTML to keep build moving
             fallback_desc = getattr(element, "description", "") if element else ""
             page.prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            page.html_content = page.prerendered_html
-            page.toc = ""
-            page._toc_items_cache = []  # Set private cache, not read-only property
+            self._apply_virtual_parsed_content(page, page.prerendered_html)
             rendered_html = self.renderer.render_page(page, page.prerendered_html)
             return format_html(rendered_html, page, cast("SiteLike", self.site))
 
         page.prerendered_html = html_content
-        page.html_content = html_content
-        page.toc = ""
-        page._toc_items_cache = []  # Set private cache, not read-only property
+        self._apply_virtual_parsed_content(page, html_content)
         return format_html(html_content, page, cast("SiteLike", self.site))
+
+    def _apply_virtual_parsed_content(self, page: PageLike, html_content: str) -> None:
+        """Apply virtual-page HTML through the immutable parsed record adapter."""
+        parsed_page = ParsedPage(
+            html_content=html_content,
+            toc="",
+            toc_items=(),
+            excerpt=getattr(page, "excerpt", "") or "",
+            meta_description=getattr(page, "meta_description", "") or "",
+            plain_text=getattr(page, "plain_text", "") or "",
+            word_count=getattr(page, "word_count", 0) or 0,
+            reading_time=getattr(page, "reading_time", 0) or 0,
+            links=(),
+        )
+        apply_parsed_page_to_page(
+            page,
+            parsed_page,
+            seed_counts=False,
+            seed_links=False,
+            seed_plain_text=False,
+        )
 
     def _load_autodoc_template(self, template_name: str) -> Template:
         """Load autodoc template with proper error handling.
