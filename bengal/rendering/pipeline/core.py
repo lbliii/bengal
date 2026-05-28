@@ -805,8 +805,25 @@ class RenderingPipeline:
         # Allow empty html_content - pages like home pages, section indexes, and
         # taxonomy pages may have no markdown body but should still render
         # (they're driven by template logic and frontmatter, not content)
-        if page.html_content is None:
-            page.html_content = ""  # Ensure it's a string, not None
+        if page.html_content is None and parsed_page is None:
+            parsed_page = ParsedPage(
+                html_content="",
+                toc="",
+                toc_items=(),
+                excerpt="",
+                meta_description="",
+                plain_text="",
+                word_count=0,
+                reading_time=0,
+                links=(),
+            )
+            apply_parsed_page_to_page(
+                page,
+                parsed_page,
+                seed_counts=False,
+                seed_links=False,
+                seed_plain_text=False,
+            )
 
         # Read source HTML from ParsedPage when available (Sprint 1: Immutable Pipeline)
         source_html = parsed_page.html_content if parsed_page else (page.html_content or "")
