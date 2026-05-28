@@ -5,6 +5,7 @@ MIGRATED_PARSED_APPLICATION_FILES = (
     "bengal/content/discovery/content_discovery.py",
     "bengal/rendering/pipeline/autodoc_renderer.py",
     "bengal/rendering/pipeline/cache_checker.py",
+    "bengal/rendering/template_functions/get_page.py",
     "bengal/snapshots/persistence.py",
 )
 
