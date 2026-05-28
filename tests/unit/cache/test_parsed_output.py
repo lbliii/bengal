@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from bengal.cache.parsed_output import apply_parsed_page_to_page
+from bengal.cache.parsed_output import apply_parsed_page_to_page, clear_parsed_page_state
 from bengal.core.records import ParsedPage
 
 
@@ -80,3 +80,27 @@ def test_apply_parsed_page_to_page_can_skip_optional_caches() -> None:
     assert page._ast_cache == "old-ast"
     assert "word_count" not in page.__dict__
     assert "reading_time" not in page.__dict__
+
+
+def test_clear_parsed_page_state_resets_parse_compatibility_fields() -> None:
+    page = SimpleNamespace(
+        html_content="<p>old</p>",
+        toc="<nav>old</nav>",
+        _toc_items_cache=[{"id": "old"}],
+        links=["/old/"],
+        _excerpt="old",
+        _meta_description="old meta",
+        _plain_text_cache="old plain",
+        _ast_cache={"old": True},
+    )
+
+    clear_parsed_page_state(page)
+
+    assert page.html_content is None
+    assert page.toc == ""
+    assert page._toc_items_cache == []
+    assert page.links == []
+    assert page._excerpt is None
+    assert page._meta_description is None
+    assert page._plain_text_cache is None
+    assert page._ast_cache is None
