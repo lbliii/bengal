@@ -31,6 +31,7 @@ import time as _time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.cache.parsed_output import apply_parsed_page_to_page
 from bengal.core.records import (
     ParsedPage,
     parsed_page_from_page_state,
@@ -509,7 +510,15 @@ class RenderingPipeline:
             if hasattr(self.parser, "parse_with_toc_and_context"):
                 self._parse_with_context_aware_parser(page, need_toc)
             else:
-                self._parse_with_legacy(page, need_toc)
+                parsed_page = self._parse_with_legacy(page, need_toc)
+                apply_parsed_page_to_page(
+                    page,
+                    parsed_page,
+                    seed_counts=False,
+                    seed_links=False,
+                    seed_plain_text=False,
+                    seed_ast=True,
+                )
 
             # Flush deferred highlighting: batch process all code blocks in parallel
             # This replaces <!--code:XXX--> placeholders with highlighted HTML
@@ -691,7 +700,7 @@ class RenderingPipeline:
         if directive_links:
             page._directive_links = directive_links
 
-    def _parse_with_legacy(self, page: PageLike, need_toc: bool) -> None:
+    def _parse_with_legacy(self, page: PageLike, need_toc: bool) -> ParsedPage:
         """Parse content using legacy python-markdown parser."""
         content = self._preprocess_content(page)
         if need_toc and hasattr(self.parser, "parse_with_toc"):
@@ -703,8 +712,17 @@ class RenderingPipeline:
         if page.metadata.get("preprocess") is False:
             parsed_content = escape_template_syntax_in_html(parsed_content)
 
-        page.html_content = parsed_content
-        page.toc = toc
+        return ParsedPage(
+            html_content=parsed_content,
+            toc=toc,
+            toc_items=(),
+            excerpt="",
+            meta_description="",
+            plain_text="",
+            word_count=getattr(page, "word_count", 0) or 0,
+            reading_time=getattr(page, "reading_time", 0) or 0,
+            links=(),
+        )
 
     def _enhance_api_docs(self, page: PageLike) -> None:
         """Enhance API documentation with badges."""
