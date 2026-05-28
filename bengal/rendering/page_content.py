@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any, Protocol
 
+from bengal.cache.parsed_output import cache_plain_text_on_page, cache_toc_items_on_page
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.utils.text import (
     strip_html_and_normalize,
@@ -84,7 +85,7 @@ def get_plain_text(page: PageContentTarget) -> str:
             html_content = getattr(page, "html_content", None) or ""
             text = strip_html_to_text(html_content) if html_content else page._raw_content or ""
 
-        page._plain_text_cache = text
+        cache_plain_text_on_page(page, text)
     return text
 
 
@@ -150,7 +151,7 @@ def get_toc_items(page: PageContentTarget) -> list[dict[str, Any]]:
             if page._toc_items_cache is None and page.toc:
                 from bengal.rendering.pipeline import extract_toc_structure
 
-                page._toc_items_cache = extract_toc_structure(page.toc)
+                cache_toc_items_on_page(page, extract_toc_structure(page.toc))
 
     return page._toc_items_cache if page._toc_items_cache is not None else []
 
