@@ -3,6 +3,7 @@ from types import SimpleNamespace
 from bengal.cache.parsed_output import (
     apply_parsed_links_to_page,
     apply_parsed_page_to_page,
+    clear_parsed_page_caches,
     clear_parsed_page_state,
     with_parsed_html,
 )
@@ -109,6 +110,28 @@ def test_clear_parsed_page_state_resets_parse_compatibility_fields() -> None:
     assert page._meta_description is None
     assert page._plain_text_cache is None
     assert page._ast_cache is None
+
+
+def test_clear_parsed_page_caches_preserves_parse_outputs() -> None:
+    page = SimpleNamespace(
+        html_content="<p>keep</p>",
+        toc="<nav>keep</nav>",
+        links=["/keep/"],
+        _toc_items_cache=[{"id": "old"}],
+        _plain_text_cache="old plain",
+        _ast_cache={"old": True},
+        _html_cache="<p>cached</p>",
+    )
+
+    clear_parsed_page_caches(page)
+
+    assert page.html_content == "<p>keep</p>"
+    assert page.toc == "<nav>keep</nav>"
+    assert page.links == ["/keep/"]
+    assert page._toc_items_cache is None
+    assert page._plain_text_cache is None
+    assert page._ast_cache is None
+    assert page._html_cache is None
 
 
 def test_with_parsed_html_returns_record_copy() -> None:

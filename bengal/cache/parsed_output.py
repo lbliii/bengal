@@ -49,6 +49,18 @@ def clear_parsed_page_state(page: PageLike) -> None:
     page._ast_cache = None
 
 
+def clear_parsed_page_caches(page: object, *, clear_html_cache: bool = True) -> None:
+    """Clear derived parsed caches while preserving parsed page output fields."""
+    if hasattr(page, "_ast_cache"):
+        page._ast_cache = None  # type: ignore[attr-defined]
+    if clear_html_cache and hasattr(page, "_html_cache"):
+        page._html_cache = None  # type: ignore[attr-defined]
+    if hasattr(page, "_plain_text_cache"):
+        page._plain_text_cache = None  # type: ignore[attr-defined]
+    if hasattr(page, "_toc_items_cache"):
+        page._toc_items_cache = None  # type: ignore[attr-defined]
+
+
 def with_parsed_html(parsed_page: ParsedPage, html_content: str) -> ParsedPage:
     """Return a ``ParsedPage`` copy with transformed HTML content."""
     return replace(parsed_page, html_content=html_content)
