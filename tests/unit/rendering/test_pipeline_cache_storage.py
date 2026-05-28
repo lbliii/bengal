@@ -221,6 +221,35 @@ class TestPipelineCacheStorage:
         assert page._plain_text_cache == "Cached body"
         assert writes
 
+    def test_try_rendered_cache_uses_render_record_without_mutating_page_html(
+        self, site_with_cache, monkeypatch, tmp_path
+    ):
+        """Rendered-cache hits write the immutable record without dual-writing Page HTML."""
+        site, _cache = site_with_cache
+
+        class Cache:
+            def get_rendered_output(self, *args, **kwargs):
+                return "<html><body>cached html</body></html>"
+
+        writes = []
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.write_output",
+            lambda *args, **kwargs: writes.append(kwargs.get("rendered_page")),
+        )
+
+        page = SimpleNamespace(
+            source_path=tmp_path / "content" / "cached.md",
+            output_path=tmp_path / "public" / "cached" / "index.html",
+            metadata={"title": "Cached"},
+            rendered_html="<html><body>stale page html</body></html>",
+        )
+        checker = CacheChecker(site=site, renderer=MagicMock(), build_cache=Cache())
+
+        assert checker.try_rendered_cache(page, "default.html") is True
+        assert page.rendered_html == "<html><body>stale page html</body></html>"
+        assert writes
+        assert writes[0].rendered_html == "<html><body>cached html</body></html>"
+
     def test_try_parsed_cache_restores_empty_plain_text(
         self, site_with_cache, monkeypatch, tmp_path
     ):
@@ -275,6 +304,66 @@ class TestPipelineCacheStorage:
 
         assert checker.try_parsed_cache(page, "default.html", "patitas-test-toc1") is True
         assert page._plain_text_cache == ""
+        assert page.rendered_html == ""
+
+    def test_try_parsed_cache_uses_render_record_without_mutating_page_html(
+        self, site_with_cache, monkeypatch, tmp_path
+    ):
+        """Parsed-cache hits render through records without dual-writing Page HTML."""
+        site, _cache = site_with_cache
+
+        class PageWithCachedParse:
+            def __init__(self):
+                self.source_path = tmp_path / "content" / "cached.md"
+                self.output_path = tmp_path / "public" / "cached" / "index.html"
+                self.metadata = {"title": "Cached"}
+                self.links = []
+                self.rendered_html = "<html><body>stale page html</body></html>"
+                self._toc_items_cache = []
+                self._plain_text_cache = None
+                self._excerpt = ""
+                self._meta_description = ""
+
+            @property
+            def plain_text(self):
+                return "Cached body"
+
+        class Cache:
+            def get_parsed_content(self, *args, **kwargs):
+                return {
+                    "html": "<p>Cached body</p>",
+                    "toc": "",
+                    "toc_items": [],
+                    "links": [],
+                    "plain_text": "Cached body",
+                    "word_count": 2,
+                    "reading_time": 1,
+                }
+
+        class Renderer:
+            def render_content(self, content):
+                return content
+
+            def render_page(self, page, html_content, parsed_page=None):
+                return f"<html>{html_content}</html>"
+
+        writes = []
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.format_html",
+            lambda html, page, site: html,
+        )
+        monkeypatch.setattr(
+            "bengal.rendering.pipeline.cache_checker.write_output",
+            lambda *args, **kwargs: writes.append(kwargs.get("rendered_page")),
+        )
+
+        page = PageWithCachedParse()
+        checker = CacheChecker(site=site, renderer=Renderer(), build_cache=Cache())
+
+        assert checker.try_parsed_cache(page, "default.html", "patitas-test-toc1") is True
+        assert page.rendered_html == "<html><body>stale page html</body></html>"
+        assert writes
+        assert writes[0].rendered_html == "<html><p>Cached body</p></html>"
 
     def test_ast_persistence_reuses_parser_last_document(
         self, site_with_cache, mock_page, monkeypatch

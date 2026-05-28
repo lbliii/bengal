@@ -743,7 +743,6 @@ class RenderingPipeline:
         Epic: Immutable Page Pipeline, Sprint 2
         Constructs a RenderedPage record after rendering. Passes it to
         write_output so the write phase reads from the immutable record.
-        Dual-writes page.rendered_html for backward compatibility.
         """
         # Allow empty html_content - pages like home pages, section indexes, and
         # taxonomy pages may have no markdown body but should still render
@@ -810,10 +809,6 @@ class RenderingPipeline:
                     rendered_html = format_html(rendered_html, page, cast("SiteLike", self.site))
 
         render_time_ms = (_time.perf_counter() - render_start) * 1000
-
-        # Dual-write: set page.rendered_html for backward compatibility
-        # (downstream code like json_accumulator, cache_checker still reads from page)
-        page.rendered_html = rendered_html
 
         # Get tracked assets from render-time tracking
         tracked_assets = tracker.get_assets()

@@ -21,6 +21,7 @@ from kida.environment.exceptions import (
     TemplateSyntaxError,
 )
 
+from bengal.core.records import rendered_page_from_page_state
 from bengal.protocols import SiteConfig, SiteLike
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
@@ -145,13 +146,19 @@ class AutodocRenderer:
             page.metadata.get("autodoc_element") is not None
             or page.metadata.get("is_section_index")
         ):
-            self._render_autodoc_page(page)
+            rendered_html = self._render_autodoc_page(page)
+            rendered_page = rendered_page_from_page_state(
+                page,
+                rendered_html=rendered_html,
+                render_time_ms=0.0,
+            )
             write_output(
                 page,
                 cast("SiteLike", self.site),
                 collector=self.output_collector,
                 write_behind=self.write_behind,
                 build_cache=self.build_cache,
+                rendered_page=rendered_page,
                 compare_existing_output=self.compare_existing_output,
             )
             logger.debug(
@@ -172,13 +179,18 @@ class AutodocRenderer:
 
         if is_complete_page:
             # Use pre-rendered HTML directly (it's already a complete page)
-            page.rendered_html = prerendered
-            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
+            rendered_html = format_html(prerendered, page, cast("SiteLike", self.site))
         else:
             # Wrap content fragment with template
             html_content = self.renderer.render_content(page.html_content or "")
-            page.rendered_html = self.renderer.render_page(page, html_content)
-            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
+            rendered_html = self.renderer.render_page(page, html_content)
+            rendered_html = format_html(rendered_html, page, cast("SiteLike", self.site))
+
+        rendered_page = rendered_page_from_page_state(
+            page,
+            rendered_html=rendered_html,
+            render_time_ms=0.0,
+        )
 
         write_output(
             page,
@@ -186,6 +198,7 @@ class AutodocRenderer:
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,
+            rendered_page=rendered_page,
             compare_existing_output=self.compare_existing_output,
         )
 
@@ -196,7 +209,7 @@ class AutodocRenderer:
             is_complete_page=is_complete_page,
         )
 
-    def _render_autodoc_page(self, page: PageLike) -> None:
+    def _render_autodoc_page(self, page: PageLike) -> str:
         """
         Render an autodoc page using the site's template engine.
 
@@ -236,9 +249,8 @@ class AutodocRenderer:
             page.prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
             page.html_content = page.prerendered_html
             page.toc = ""
-            page.rendered_html = self.renderer.render_page(page, page.prerendered_html)
-            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
-            return
+            rendered_html = self.renderer.render_page(page, page.prerendered_html)
+            return format_html(rendered_html, page, cast("SiteLike", self.site))
 
         # Render with full site context (same as regular pages)
         # Prefer explicit _section reference set by orchestrators; fall back to page.section
@@ -303,16 +315,14 @@ class AutodocRenderer:
             page.html_content = page.prerendered_html
             page.toc = ""
             page._toc_items_cache = []  # Set private cache, not read-only property
-            page.rendered_html = self.renderer.render_page(page, page.prerendered_html)
-            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
-            return
+            rendered_html = self.renderer.render_page(page, page.prerendered_html)
+            return format_html(rendered_html, page, cast("SiteLike", self.site))
 
         page.prerendered_html = html_content
         page.html_content = html_content
         page.toc = ""
         page._toc_items_cache = []  # Set private cache, not read-only property
-        page.rendered_html = html_content
-        page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
+        return format_html(html_content, page, cast("SiteLike", self.site))
 
     def _load_autodoc_template(self, template_name: str) -> Template:
         """Load autodoc template with proper error handling.

@@ -114,9 +114,6 @@ class CacheChecker:
         if not cached_html or is_missing(cached_html):
             return False
 
-        # Dual-write: set page.rendered_html for backward compatibility
-        page.rendered_html = cached_html
-
         if self.build_stats:
             self.build_stats.rendered_cache_hits += 1
 
@@ -258,9 +255,6 @@ class CacheChecker:
         html_content = self.renderer.render_content(parsed_content)
         final_html = self.renderer.render_page(page, html_content, parsed_page=parsed_page)
         final_html = format_html(final_html, page, cast("SiteLike", self.site))
-
-        # Dual-write: set page.rendered_html for backward compatibility
-        page.rendered_html = final_html
 
         # Validate rendered HTML is not empty
         if not final_html:

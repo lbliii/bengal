@@ -15,6 +15,7 @@ from patitas import parse_frontmatter
 
 from bengal.core.output import BuildOutputCollector
 from bengal.rendering.pipeline.core import RenderingPipeline
+from bengal.rendering.rendered_output import get_rendered_html
 
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteLike
@@ -119,7 +120,7 @@ class ReactiveContentHandler:
         if not page.output_path:
             return None
 
-        rendered = getattr(page, "rendered_html", None) or ""
+        rendered = get_rendered_html(page)
         return ReactiveResult(output_path=page.output_path, rendered_html=rendered)
 
     def _find_page(self, path: Path) -> PageLike | None:
