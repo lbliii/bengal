@@ -28,8 +28,8 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from bengal.autodoc.base import DocElement
-    from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols import PageLike
 
 logger = get_logger(__name__)
 
@@ -175,7 +175,7 @@ def create_pages(
     find_parent_section: Callable[..., Any],
     result: AutodocRunResult | None = None,
     consolidate: bool = False,
-) -> tuple[list[Page], AutodocRunResult]:
+) -> tuple[list[PageLike], AutodocRunResult]:
     """
     Create virtual pages for documentation elements.
 
@@ -202,7 +202,7 @@ def create_pages(
         result = AutodocRunResult()
 
     # First pass: Create pages without HTML and add to sections
-    page_data: list[Page] = []
+    page_data: list[PageLike] = []
 
     for element in elements:
         display_source_file = format_source_file_for_display(element.source_file, site.root_path)

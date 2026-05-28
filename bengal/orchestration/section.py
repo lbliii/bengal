@@ -54,7 +54,6 @@ from bengal.utils.paths.url_strategy import URLStrategy
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.protocols import PageLike, SectionLike
 
@@ -327,7 +326,7 @@ class SectionOrchestrator:
         # Sort according to content type
         return strategy.sort_pages(filtered_pages)
 
-    def _create_archive_index(self, section: SectionLike) -> Page:
+    def _create_archive_index(self, section: SectionLike) -> PageLike:
         """
         Create an auto-generated index page for a section.
 

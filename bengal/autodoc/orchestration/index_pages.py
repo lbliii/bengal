@@ -13,15 +13,15 @@ from bengal.content.discovery.page_adapter import page_from_source_page
 from bengal.core.records import create_virtual_source_page
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
+    from bengal.protocols import PageLike
 
 
 def create_index_pages(
     sections: dict[str, Section],
     site: Site,
-) -> list[Page]:
+) -> list[PageLike]:
     """
     Create index pages for sections that need them.
 
@@ -33,7 +33,7 @@ def create_index_pages(
         List of created index pages (to add to main pages list)
 
     """
-    created_pages: list[Page] = []
+    created_pages: list[PageLike] = []
 
     for section_path, section in sections.items():
         if section.index_page is not None:
