@@ -17,7 +17,8 @@ from bengal.autodoc.utils import (
     get_openapi_tags,
     resolve_cli_url_path,
 )
-from bengal.core.page import Page
+from bengal.content.discovery.page_adapter import page_from_source_page
+from bengal.core.records import create_virtual_source_page
 from bengal.core.section import Section
 from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.observability.logger import get_logger
@@ -27,6 +28,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from bengal.autodoc.base import DocElement
+    from bengal.core.page import Page
     from bengal.core.site import Site
 
 logger = get_logger(__name__)
@@ -255,8 +257,7 @@ def create_pages(
         source_id = f"{url_path}.md"
         output_path = site.output_dir / f"{url_path}/index.html"
 
-        # Create page with deferred rendering - HTML rendered in rendering phase
-        page = Page.create_virtual(
+        source_page = create_virtual_source_page(
             source_id=source_id,
             title=element.name,
             metadata={
@@ -273,13 +274,15 @@ def create_pages(
                 "_autodoc_url_path": url_path,
                 "_autodoc_page_type": page_type,
             },
-            rendered_html=None,  # Deferred - rendered in rendering phase with full context
+        )
+        # Create page with deferred rendering - HTML rendered in rendering phase
+        page = page_from_source_page(
+            source_page,
+            site=site,
+            section=parent_section,
             template_name=template_name,
             output_path=output_path,
         )
-        page._site = site
-        # Set section reference via setter (handles virtual sections with URL-based lookup)
-        page._section = parent_section
 
         # Claim URL in registry for ownership enforcement
         # Priority 80 = autodoc pages (derived from sections)
