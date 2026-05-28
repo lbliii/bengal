@@ -1,7 +1,7 @@
 from types import SimpleNamespace
 
+from bengal.cache.parsed_output import apply_parsed_page_to_page
 from bengal.core.records import ParsedPage
-from bengal.rendering.parsed_output import apply_parsed_page_to_page
 
 
 def test_apply_parsed_page_to_page_seeds_parse_fields() -> None:

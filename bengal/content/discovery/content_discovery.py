@@ -41,12 +41,12 @@ import contextvars
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.cache.parsed_output import apply_parsed_page_to_page
 from bengal.content.discovery.content_parser import ContentParser
 from bengal.content.discovery.directory_walker import DirectoryWalker
 from bengal.content.discovery.page_adapter import page_from_source_page
 from bengal.content.discovery.section_builder import SectionBuilder
 from bengal.core.records import build_source_page
-from bengal.rendering.parsed_output import apply_parsed_page_to_page
 from bengal.utils.concurrency.executor import managed_executor
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
