@@ -761,7 +761,15 @@ class RenderingPipeline:
         enhancer = self._api_doc_enhancer
         page_type = page.metadata.get("type")
         if enhancer and enhancer.should_enhance(page_type):
-            page.html_content = enhancer.enhance(page.html_content or "", page_type)
+            parsed_page = parsed_page_from_page_state(page)
+            enhanced = enhancer.enhance(parsed_page.html_content, page_type)
+            apply_parsed_page_to_page(
+                page,
+                with_parsed_html(parsed_page, enhanced),
+                seed_counts=False,
+                seed_links=False,
+                seed_plain_text=False,
+            )
 
     def _build_parsed_page(self, page: PageLike) -> ParsedPage:
         """Construct a ParsedPage from current page state after parsing.
