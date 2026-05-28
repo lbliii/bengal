@@ -5,7 +5,10 @@ MIGRATED_PARSED_APPLICATION_FILES = (
     "bengal/content/discovery/content_discovery.py",
     "bengal/rendering/pipeline/autodoc_renderer.py",
     "bengal/rendering/pipeline/cache_checker.py",
+    "bengal/rendering/page_content.py",
+    "bengal/rendering/page_operations.py",
     "bengal/rendering/template_functions/get_page.py",
+    "bengal/orchestration/streaming.py",
     "bengal/snapshots/persistence.py",
 )
 
@@ -16,6 +19,7 @@ PARSED_FIELD_NAMES = {
     "_excerpt",
     "_meta_description",
     "_plain_text_cache",
+    "links",
 }
 
 
