@@ -113,7 +113,9 @@ def changed_files_from_github_event(path: Path) -> tuple[str, ...] | None:
         files_url = f"{pull_request_url}/files?per_page=100&page={page}"
         try:
             page_payload = _github_api_json(files_url)
-        except OSError, TimeoutError, json.JSONDecodeError:
+        except OSError:
+            return None
+        except json.JSONDecodeError:
             return None
         if not isinstance(page_payload, list):
             return None
