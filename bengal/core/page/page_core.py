@@ -12,7 +12,7 @@ definitions between Page and PageMetadata.
 
 Architecture:
 PageCore = Cacheable fields only (title, date, tags, etc.)
-Page = PageCore + non-cacheable fields (content, rendered_html, toc, etc.)
+SourcePage = PageCore + immutable discovery fields (raw content, metadata, etc.)
 PageMetadata = PageCore (type alias for caching)
 
 What Goes in PageCore?
@@ -44,30 +44,31 @@ core = PageCore(
     type="doc",
 )
 
-# Using in Page (composition)
-from bengal.core.page import Page
+# Using in a SourcePage record (composition)
+from types import MappingProxyType
+from bengal.core.records import SourcePage
 
-page = Page(
+source_page = SourcePage(
     core=core,
-    content="# Hello World",
-    rendered_html="<h1>Hello World</h1>",
+    raw_content="# Hello World",
+    raw_metadata=MappingProxyType({"title": "My Post"}),
 )
 
-# Accessing fields via property delegates
-assert page.title == "My Post"  # Property delegate
-assert page.core.title == "My Post"  # Direct access
+# Accessing fields via record delegates
+assert source_page.title == "My Post"  # SourcePage delegate
+assert source_page.core.title == "My Post"  # Direct access
 ```
 
 # Caching (PageMetadata = PageCore)
 from dataclasses import asdict
 import json
 
-    metadata = page.core  # Already PageCore!
+    metadata = source_page.core  # Already PageCore!
     json_str = json.dumps(asdict(metadata), default=str)
 
 # Loading from cache
     loaded_core = PageCore(**json.loads(json_str))
-    # Use loaded_core directly or pass to Page constructor
+    # Use loaded_core directly or compose it into a SourcePage record
 
 # Accessing cached fields
 assert loaded_core.title == "My Post"  # Direct from core
