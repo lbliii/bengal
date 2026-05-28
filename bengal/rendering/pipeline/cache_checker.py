@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
-from bengal.cache.parsed_output import apply_parsed_page_to_page
+from bengal.cache.parsed_output import apply_parsed_links_to_page, apply_parsed_page_to_page
 from bengal.core.records import ParsedPage, RenderedPage, rendered_page_from_page_state
 from bengal.rendering.page_operations import extract_links
 from bengal.rendering.pipeline.output import format_html, write_output
@@ -221,9 +221,9 @@ class CacheChecker:
         cached_links = cached.get("links")
         if isinstance(cached_links, list):
             try:
-                page.links = [str(x) for x in cached_links]
+                apply_parsed_links_to_page(page, cached_links)
             except Exception:
-                page.links = []
+                apply_parsed_links_to_page(page, [])
         else:
             try:
                 extract_links(page)
