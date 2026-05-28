@@ -508,17 +508,20 @@ class RenderingPipeline:
         enable_deferred_highlighting(cache=self._highlight_cache)
         try:
             if hasattr(self.parser, "parse_with_toc_and_context"):
-                self._parse_with_context_aware_parser(page, need_toc)
+                parsed_page, directive_links = self._parse_with_context_aware_parser(page, need_toc)
             else:
                 parsed_page = self._parse_with_legacy(page, need_toc)
-                apply_parsed_page_to_page(
-                    page,
-                    parsed_page,
-                    seed_counts=False,
-                    seed_links=False,
-                    seed_plain_text=False,
-                    seed_ast=True,
-                )
+                directive_links = []
+            apply_parsed_page_to_page(
+                page,
+                parsed_page,
+                seed_counts=False,
+                seed_links=False,
+                seed_plain_text=False,
+                seed_ast=True,
+            )
+            if directive_links:
+                page._directive_links = directive_links
 
             # Flush deferred highlighting: batch process all code blocks in parallel
             # This replaces <!--code:XXX--> placeholders with highlighted HTML
@@ -575,7 +578,9 @@ class RenderingPipeline:
         likely_has_setext = re.search(r"^.+\n\s{0,3}(?:===+|---+)\s*$", content_text, re.MULTILINE)
         return bool(likely_has_setext)
 
-    def _parse_with_context_aware_parser(self, page: PageLike, need_toc: bool) -> None:
+    def _parse_with_context_aware_parser(
+        self, page: PageLike, need_toc: bool
+    ) -> tuple[ParsedPage, list[str]]:
         """Parse content using a context-aware parser (Mistune, Patitas)."""
 
         def parse_markdown(s: str) -> str:
@@ -596,6 +601,9 @@ class RenderingPipeline:
 
         # Collect directive-generated links during rendering (cards, buttons, etc.)
         directive_links: list[str] = []
+        ast_cache: Any = None
+        parsed_excerpt = ""
+        parsed_meta_description = ""
 
         if page.metadata.get("preprocess") is False:
             # Inject source_path and excerpt_length for cross-version dependency tracking
@@ -613,9 +621,9 @@ class RenderingPipeline:
                 parsed_content, toc = result[0], result[1]
                 result_ext = cast("tuple[str, ...]", result)
                 if len(result_ext) > 2:
-                    page._excerpt = result_ext[2]
+                    parsed_excerpt = result_ext[2]
                 if len(result_ext) > 3:
-                    page._meta_description = result_ext[3]
+                    parsed_meta_description = result_ext[3]
                 parsed_content = escape_template_syntax_in_html(parsed_content)
             else:
                 parsed_content = self.parser.parse(source, metadata_with_source)
@@ -649,9 +657,9 @@ class RenderingPipeline:
                     parsed_content, toc = result[0], result[1]
                     result_ext = cast("tuple[str, ...]", result)
                     if len(result_ext) > 2:
-                        page._excerpt = result_ext[2]
+                        parsed_excerpt = result_ext[2]
                     if len(result_ext) > 3:
-                        page._meta_description = result_ext[3]
+                        parsed_meta_description = result_ext[3]
                 else:
                     parsed_content = rich_parser.parse_with_context(
                         source, metadata_for_parser, context
@@ -682,10 +690,10 @@ class RenderingPipeline:
                             doc = parser_with_document.parse_to_document(
                                 source, metadata_for_parser
                             )
-                        page._ast_cache = patitas.to_dict(doc)
+                        ast_cache = patitas.to_dict(doc)
                     elif hasattr(self.parser, "parse_to_ast"):
                         ast_tokens = self.parser.parse_to_ast(source, metadata_for_parser)
-                        page._ast_cache = ast_tokens
+                        ast_cache = ast_tokens
                 except Exception as e:
                     logger.debug(
                         "ast_extraction_failed",
@@ -693,12 +701,21 @@ class RenderingPipeline:
                         error=str(e),
                     )
 
-        page.html_content = parsed_content
-        page.toc = toc
-
-        # Store directive-collected links on page for extract_links to use
-        if directive_links:
-            page._directive_links = directive_links
+        return (
+            ParsedPage(
+                html_content=parsed_content,
+                toc=toc,
+                toc_items=(),
+                excerpt=parsed_excerpt,
+                meta_description=parsed_meta_description,
+                plain_text="",
+                word_count=getattr(page, "word_count", 0) or 0,
+                reading_time=getattr(page, "reading_time", 0) or 0,
+                links=(),
+                ast_cache=ast_cache,
+            ),
+            directive_links,
+        )
 
     def _parse_with_legacy(self, page: PageLike, need_toc: bool) -> ParsedPage:
         """Parse content using legacy python-markdown parser."""

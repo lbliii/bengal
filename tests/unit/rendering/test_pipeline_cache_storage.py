@@ -412,11 +412,13 @@ class TestPipelineCacheStorage:
             "patitas.to_dict", lambda doc: {"_type": "Document", "sentinel": doc is sentinel_doc}
         )
 
-        pipeline._parse_with_context_aware_parser(mock_page, need_toc=True)
+        parsed_page, _directive_links = pipeline._parse_with_context_aware_parser(
+            mock_page, need_toc=True
+        )
 
         assert parser.consumed is True
         assert parser.parse_to_document_calls == 0
-        assert mock_page._ast_cache == {"_type": "Document", "sentinel": True}
+        assert parsed_page.ast_cache == {"_type": "Document", "sentinel": True}
 
     def test_cache_rendered_output_uses_correct_attribute(
         self, site_with_cache, mock_page, tmp_path
