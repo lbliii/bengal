@@ -31,7 +31,7 @@ import time as _time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
-from bengal.cache.parsed_output import apply_parsed_page_to_page
+from bengal.cache.parsed_output import apply_parsed_page_to_page, with_parsed_html
 from bengal.core.records import (
     ParsedPage,
     parsed_page_from_page_state,
@@ -512,14 +512,6 @@ class RenderingPipeline:
             else:
                 parsed_page = self._parse_with_legacy(page, need_toc)
                 directive_links = []
-            apply_parsed_page_to_page(
-                page,
-                parsed_page,
-                seed_counts=False,
-                seed_links=False,
-                seed_plain_text=False,
-                seed_ast=True,
-            )
             if directive_links:
                 page._directive_links = directive_links
 
@@ -527,20 +519,32 @@ class RenderingPipeline:
             # This replaces <!--code:XXX--> placeholders with highlighted HTML
             # Must run BEFORE transformer so highlighter output is also escaped/transformed
             _prof_inner = RenderProfiler.get() if _profiling_enabled() else None
-            if page.html_content:
+            if parsed_page.html_content:
                 if _prof_inner:
                     with _prof_inner.step("flush_highlight"):
-                        page.html_content = flush_deferred_highlighting(page.html_content)
+                        parsed_page = with_parsed_html(
+                            parsed_page,
+                            flush_deferred_highlighting(parsed_page.html_content),
+                        )
                 else:
-                    page.html_content = flush_deferred_highlighting(page.html_content)
+                    parsed_page = with_parsed_html(
+                        parsed_page,
+                        flush_deferred_highlighting(parsed_page.html_content),
+                    )
 
             # PERF: Unified HTML transformation (~27% faster than separate passes)
             # Handles: Jinja block escaping, .md link normalization, baseurl prefixing
             if _prof_inner:
                 with _prof_inner.step("html_transform"):
-                    page.html_content = self._html_transformer.transform(page.html_content or "")
+                    parsed_page = with_parsed_html(
+                        parsed_page,
+                        self._html_transformer.transform(parsed_page.html_content or ""),
+                    )
             else:
-                page.html_content = self._html_transformer.transform(page.html_content or "")
+                parsed_page = with_parsed_html(
+                    parsed_page,
+                    self._html_transformer.transform(parsed_page.html_content or ""),
+                )
 
             # Restore any remaining escape placeholders in code block output
             # This is needed because deferred highlighting captures code BEFORE
@@ -550,10 +554,21 @@ class RenderingPipeline:
             if hasattr(self.parser, "_var_plugin"):
                 rich_parser = cast("RichMarkdownParser", self.parser)
                 if rich_parser._var_plugin and rich_parser._var_plugin.escaped_placeholders:
-                    page.html_content = rich_parser._var_plugin.restore_placeholders(
-                        page.html_content
+                    parsed_page = with_parsed_html(
+                        parsed_page,
+                        rich_parser._var_plugin.restore_placeholders(
+                            parsed_page.html_content
+                        ),
                     )
             # fmt: on
+            apply_parsed_page_to_page(
+                page,
+                parsed_page,
+                seed_counts=False,
+                seed_links=False,
+                seed_plain_text=False,
+                seed_ast=True,
+            )
         finally:
             disable_deferred_highlighting()
 
