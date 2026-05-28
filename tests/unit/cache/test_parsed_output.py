@@ -1,6 +1,7 @@
 from types import SimpleNamespace
 
 from bengal.cache.parsed_output import (
+    apply_parsed_links_to_page,
     apply_parsed_page_to_page,
     clear_parsed_page_state,
     with_parsed_html,
@@ -127,3 +128,11 @@ def test_with_parsed_html_returns_record_copy() -> None:
 
     assert parsed_page.html_content == "<p>old</p>"
     assert updated.html_content == "<p>new</p>"
+
+
+def test_apply_parsed_links_to_page_stringifies_links() -> None:
+    page = SimpleNamespace(links=[])
+
+    apply_parsed_links_to_page(page, ["/guide/", 42])
+
+    assert page.links == ["/guide/", "42"]

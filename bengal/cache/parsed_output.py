@@ -52,3 +52,8 @@ def clear_parsed_page_state(page: PageLike) -> None:
 def with_parsed_html(parsed_page: ParsedPage, html_content: str) -> ParsedPage:
     """Return a ``ParsedPage`` copy with transformed HTML content."""
     return replace(parsed_page, html_content=html_content)
+
+
+def apply_parsed_links_to_page(page: PageLike, links: list[object] | tuple[object, ...]) -> None:
+    """Apply parsed link output to the remaining mutable page surface."""
+    page.links = [str(link) for link in links]
