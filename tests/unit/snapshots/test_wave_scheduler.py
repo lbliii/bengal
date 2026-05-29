@@ -71,7 +71,8 @@ def test_wave_scheduler_renders_pages(site, tmp_path):
         if page.output_path:
             assert page.output_path.exists(), f"HTML file not written: {page.output_path}"
             assert page.output_path.stat().st_size > 0, f"HTML file is empty: {page.output_path}"
-            assert page.rendered_html, f"Page has no rendered_html: {page.source_path}"
+            rendered_html = page.output_path.read_text(encoding="utf-8")
+            assert rendered_html.strip(), f"HTML file has no rendered content: {page.output_path}"
 
 
 @pytest.mark.bengal(testroot="test-taxonomy")

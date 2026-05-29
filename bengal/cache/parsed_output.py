@@ -35,6 +35,10 @@ def apply_parsed_page_to_page(
     if seed_counts:
         page.__dict__["word_count"] = parsed_page.word_count
         page.__dict__["reading_time"] = parsed_page.reading_time
+        if hasattr(page, "_word_count"):
+            page._word_count = parsed_page.word_count
+        if hasattr(page, "_reading_time"):
+            page._reading_time = parsed_page.reading_time
 
 
 def clear_parsed_page_state(page: PageLike) -> None:
