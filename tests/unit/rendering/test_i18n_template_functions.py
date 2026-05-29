@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from bengal.core.site import Site
 from bengal.rendering.template_engine import TemplateEngine
+from tests._testing.page_records import make_test_page
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -394,10 +395,16 @@ def test_alternate_links(tmp_path: Path) -> None:
     }
     site = Site(root_path=tmp_path, config=config)
 
-    from bengal.core.page import Page
-
-    en = Page(source_path=tmp_path / "content" / "en" / "a.md", _raw_content="x", _raw_metadata={})
-    fr = Page(source_path=tmp_path / "content" / "fr" / "a.md", _raw_content="x", _raw_metadata={})
+    en = make_test_page(
+        source_path=tmp_path / "content" / "en" / "a.md",
+        raw_content="x",
+        metadata={},
+    )
+    fr = make_test_page(
+        source_path=tmp_path / "content" / "fr" / "a.md",
+        raw_content="x",
+        metadata={},
+    )
     en.lang = "en"
     fr.lang = "fr"
     en.translation_key = "docs/a"
