@@ -5,7 +5,6 @@ from __future__ import annotations
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.rendering.section_urls import (
@@ -17,6 +16,7 @@ from bengal.rendering.section_urls import (
     get_path_for_version,
     subsection_index_urls,
 )
+from tests._testing.page_records import make_test_page
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -54,9 +54,9 @@ def test_subsection_index_urls_uses_page_paths(tmp_path: Path) -> None:
     parent = Section(name="docs", path=tmp_path / "content" / "docs")
     child = Section(name="api", path=tmp_path / "content" / "docs" / "api")
     parent.add_subsection(child)
-    child.index_page = Page(
+    child.index_page = make_test_page(
         source_path=tmp_path / "content" / "docs" / "api" / "_index.md",
-        _raw_metadata={"title": "API"},
+        metadata={"title": "API"},
     )
     child.index_page.__dict__["_path"] = "/docs/api/"
 
