@@ -53,6 +53,7 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/unit/orchestration/test_taxonomy_incremental.py",
     "tests/unit/orchestration/test_taxonomy_orchestrator.py",
     "tests/unit/template_functions/test_taxonomies_baseurl.py",
+    "tests/unit/test_nav_tree.py",
     "tests/unit/utils/test_page_initializer.py",
 )
 

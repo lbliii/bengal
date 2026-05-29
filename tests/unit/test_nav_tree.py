@@ -17,9 +17,9 @@ from unittest.mock import Mock
 import pytest
 
 from bengal.core.nav_tree import NavNode, NavTree, NavTreeCache, NavTreeContext
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
+from tests._testing.page_records import make_mutable_test_page as _page
 
 pytestmark = pytest.mark.parallel_unsafe
 
@@ -129,7 +129,7 @@ class TestNavTree:
 
         # Create pages with proper _path setup
         # cached_property stores value in __dict__ once computed, so we set it there
-        page1 = Page(
+        page1 = _page(
             source_path=tmp_path / "content" / "docs" / "page1.md",
             _raw_content="# Page 1",
             _raw_metadata={"title": "Page 1", "weight": 1},
@@ -137,7 +137,7 @@ class TestNavTree:
         page1._site = site
         page1.__dict__["_path"] = "/docs/page1/"
 
-        page2 = Page(
+        page2 = _page(
             source_path=tmp_path / "content" / "docs" / "page2.md",
             _raw_content="# Page 2",
             _raw_metadata={"title": "Page 2", "weight": 2},
@@ -145,7 +145,7 @@ class TestNavTree:
         page2._site = site
         page2.__dict__["_path"] = "/docs/page2/"
 
-        page3 = Page(
+        page3 = _page(
             source_path=tmp_path / "content" / "blog" / "post1.md",
             _raw_content="# Post 1",
             _raw_metadata={"title": "Post 1"},
@@ -184,7 +184,7 @@ class TestNavTree:
         # Create v1 section
         section_v1 = Section(name="docs", path=tmp_path / "content" / "_versions" / "v1" / "docs")
         section_v1._site = site
-        page_v1 = Page(
+        page_v1 = _page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide.md",
             _raw_content="# Guide",
             _raw_metadata={"title": "Guide"},
@@ -196,7 +196,7 @@ class TestNavTree:
         # Create v2 section
         section_v2 = Section(name="docs", path=tmp_path / "content" / "_versions" / "v2" / "docs")
         section_v2._site = site
-        page_v2 = Page(
+        page_v2 = _page(
             source_path=tmp_path / "content" / "_versions" / "v2" / "docs" / "guide.md",
             _raw_content="# Guide",
             _raw_metadata={"title": "Guide"},
@@ -263,7 +263,7 @@ class TestNavTree:
         section = Section(name="docs", path=tmp_path / "content" / "_versions" / "v1" / "docs")
         section._site = site
 
-        index_page = Page(
+        index_page = _page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "_index.md",
             _raw_content="# Docs",
             _raw_metadata={"title": "Docs"},
@@ -323,7 +323,7 @@ class TestNavTree:
         )
         section_v1_only._site = site
 
-        page_v1 = Page(
+        page_v1 = _page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide.md",
             _raw_content="# Guide",
             _raw_metadata={"title": "Guide"},
@@ -390,7 +390,7 @@ class TestNavTree:
         subsection.metadata["nav_title"] = "Guide"
         subsection.__dict__["_path"] = "/docs/guide/"
 
-        page = Page(
+        page = _page(
             source_path=tmp_path / "content" / "_versions" / "v1" / "docs" / "guide" / "page.md",
             _raw_content="# Page",
             _raw_metadata={"title": "Page"},
@@ -478,7 +478,7 @@ class TestNavTree:
         start.__dict__["_path"] = "/docs/start/"
         docs.add_subsection(start)
 
-        docs_index = Page(
+        docs_index = _page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
             _raw_content="# Docs 0.3.2",
             _raw_metadata={"title": "Docs"},
@@ -489,7 +489,7 @@ class TestNavTree:
         docs_index.__dict__["_path"] = "/docs/0.3.2/"
         docs.add_page(docs_index)
 
-        start_index = Page(
+        start_index = _page(
             source_path=tmp_path / "content" / "docs" / "start" / "_index.md",
             _raw_content="# Start 0.3.2",
             _raw_metadata={"title": "Start"},
@@ -579,7 +579,7 @@ class TestNavTreeContext:
         subsection.__dict__["_path"] = "/docs/guide/"
 
         # Create pages with proper _path
-        root_page = Page(
+        root_page = _page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
             _raw_content="# Docs",
             _raw_metadata={"title": "Docs"},
@@ -588,7 +588,7 @@ class TestNavTreeContext:
         root_page.__dict__["_path"] = "/docs/"
         root_section.index_page = root_page
 
-        sub_page = Page(
+        sub_page = _page(
             source_path=tmp_path / "content" / "docs" / "guide" / "page.md",
             _raw_content="# Page",
             _raw_metadata={"title": "Page"},
@@ -687,7 +687,7 @@ class TestNavNodeProxy:
         # Create a page in the section
         page_path = docs_path / "getting-started.md"
         page_path.write_text("---\ntitle: Getting Started\n---\n# Getting Started")
-        page = Page(source_path=page_path)
+        page = _page(source_path=page_path)
         page._site = site
         page._section = section
         page._raw_metadata = {"title": "Getting Started"}
@@ -753,7 +753,7 @@ class TestNavNodeProxy:
         # Create a page
         page_path = docs_path / "test.md"
         page_path.write_text("---\ntitle: Test\n---\n")
-        page = Page(source_path=page_path)
+        page = _page(source_path=page_path)
         page._site = site
         page._raw_metadata = {"title": "Test"}
         page.__dict__["_path"] = "/docs/test/"
@@ -941,7 +941,7 @@ class TestGetTargetUrl:
         site.discover_content()
 
         # Create a mock page
-        page = Mock(spec=Page)
+        page = Mock()
         page._path = "/v1/docs/guide/"
         page.href = "/v1/docs/guide/"
         page.version = "v1"
