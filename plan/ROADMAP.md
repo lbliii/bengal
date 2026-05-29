@@ -44,7 +44,7 @@ Machine-checked on 2026-05-29:
   `from bengal.core.page import Page` imports are isolated to
   `bengal/content/discovery/page_adapter.py`, while public `bengal.Page` and
   `bengal.core.Page` exports are lazy compatibility surfaces. The remaining
-  `bengal/` + `tests/` direct import count is 66, all but the adapter in tests.
+  `bengal/` + `tests/` direct import count is 61, all but the adapter in tests.
   `tests/unit/content/test_page_construction_boundary.py` now locks production
   constructor and direct-import isolation to the SourcePage adapter.
 
@@ -90,16 +90,56 @@ This file is the eleventh root planning file and owns sequencing.
 ## Saga Queue
 
 These are the next sensible thematic PRs, in order, if a new session asks what
-to pick up. Once the user asks to begin one, create a runtime goal for that saga
-with the source plan, commit shape, proof commands, and closure criteria from
-this table.
+to pick up. A runtime Codex goal should map to a saga-level objective, not a
+single commit. Individual commits are tasks inside that goal and should remain
+well-scoped.
 
-| Priority | Saga | Source Plan | Commit Shape | Stop/Proof Notes |
-|----------|------|-------------|--------------|------------------|
-| 1 | Page deletion proof slice | `epic-immutable-page-pipeline.md` Sprint 6 | Production imports, test factories, protocol/export cleanup, docs/changelog | Continue migrating tests that only need page-like fixtures; stop before changing public `Page` exports. Prove with `rg '^class Page\\b' bengal/core/page`, direct-import counts, boundary tests, focused page/source tests, `uv run ty check bengal/`, then broader test run. |
-| 2 | Health/audit ownership closure | `rfc-health-diagnostics-audit.md` | Resolver ownership, audit/check overlap tests, CLI/docs parity | `bengal audit` exists; remaining work is separation and duplicate-report control. |
-| 3 | OpenAPI REST polish | `epic-openapi-rest-layout-upgrade.md` | Endpoint/schema rendering, CSS polish, integration/performance proof | User-facing docs/templates; include visual/output proof and changelog. |
-| 4 | Ty floor reduction | Roadmap P1 | One diagnostic family per commit | No suppressions or public API widening just to satisfy ty. |
+### Active Saga: Mutable Page Deletion
+
+**Source plan:** `epic-immutable-page-pipeline.md` Sprint 6.
+**Goal:** remove the mutable `Page` compatibility class from Bengal's
+production architecture while preserving behavior and deferring public export
+removal until a human explicitly approves the API decision.
+
+**Epics inside the saga:**
+
+1. **Production boundary closure:** keep production `Page` construction and
+   direct imports isolated to `bengal/content/discovery/page_adapter.py`, then
+   remove that adapter when downstream consumers no longer need it.
+2. **Test fixture migration:** migrate tests that only need page-like fixtures
+   to SourcePage/page-record helpers; keep tests that intentionally prove
+   `Page` compatibility until the public API decision is made.
+3. **Protocol/type convergence:** move concrete `Page` annotations and
+   fixtures toward `PageLike` or immutable records without widening public
+   protocols just to satisfy `ty`.
+4. **Public compatibility decision:** stop and ask before removing or changing
+   `bengal.Page`, `bengal.core.Page`, plugin-facing behavior, or documented
+   public API.
+5. **Class deletion:** delete `class Page` and obsolete mixins only after
+   production, protocols, and non-compatibility tests no longer depend on them.
+6. **Collateral closure:** keep the roadmap, epic status, changelog, and proof
+   commands current after each task slice.
+
+**Completed slices:**
+
+- `ee3427abd docs: codify saga planning workflow`
+- `f50073af1 core: isolate page compatibility boundary`
+- `76a8eee30 tests: migrate analysis page fixtures`
+- `tests: migrate health and cache page fixtures`
+
+**Proof before saga close:** `rg '^class Page\\b' bengal/core/page` returns no
+hits; `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns no hits;
+public compatibility decision is recorded; boundary tests are either removed as
+obsolete or rewritten for the new invariant; focused page/source tests and the
+appropriate broader suite pass; `uv run ty check bengal/` does not regress the
+recorded floor.
+
+| Priority | Saga | Source Plan | Notes |
+|----------|------|-------------|-------|
+| 1 | Mutable Page deletion | `epic-immutable-page-pipeline.md` Sprint 6 | Active. Continue with scoped task commits under the saga goal above. |
+| 2 | Health/audit ownership closure | `rfc-health-diagnostics-audit.md` | `bengal audit` exists; remaining work is separation and duplicate-report control. |
+| 3 | OpenAPI REST polish | `epic-openapi-rest-layout-upgrade.md` | User-facing docs/templates; include visual/output proof and changelog. |
+| 4 | Ty floor reduction | Roadmap P1 | No suppressions or public API widening just to satisfy ty. |
 
 ---
 

@@ -6,9 +6,9 @@ import pytest
 
 from bengal.cache.build_cache import BuildCache
 from bengal.cache.query_index_registry import QueryIndexRegistry
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 @pytest.fixture
@@ -42,10 +42,10 @@ def sample_pages(temp_site):
 
     # Blog posts
     for i in range(3):
-        page = Page(
+        page = _page(
             source_path=Path(f"content/blog/post{i}.md"),
-            _raw_content=f"Post {i}",
-            _raw_metadata={
+            raw_content=f"Post {i}",
+            metadata={
                 "title": f"Post {i}",
                 "author": "Jane Smith",
                 "category": "tutorial",
@@ -58,10 +58,10 @@ def sample_pages(temp_site):
 
     # Docs pages
     for i in range(2):
-        page = Page(
+        page = _page(
             source_path=Path(f"content/docs/doc{i}.md"),
-            _raw_content=f"Doc {i}",
-            _raw_metadata={
+            raw_content=f"Doc {i}",
+            metadata={
                 "title": f"Doc {i}",
                 "author": "Bob Jones",
                 "category": "guide",
@@ -231,19 +231,19 @@ class TestQueryIndexRegistry:
 
         # Create pages including generated
         pages = []
-        page1 = Page(
+        page1 = _page(
             source_path=Path("content/post.md"),
-            _raw_content="Test",
-            _raw_metadata={"title": "Post", "author": "Jane"},
+            raw_content="Test",
+            metadata={"title": "Post", "author": "Jane"},
         )
         page1._section = Section(name="blog", path=Path("content/blog"))
         pages.append(page1)
 
         # Generated page (should be skipped)
-        page2 = Page(
+        page2 = _page(
             source_path=Path("tags/python.md"),
-            _raw_content="Tag page",
-            _raw_metadata={"title": "Python", "_generated": True},
+            raw_content="Tag page",
+            metadata={"title": "Python", "_generated": True},
         )
         pages.append(page2)
 

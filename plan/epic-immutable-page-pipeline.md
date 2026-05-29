@@ -16,7 +16,7 @@ now isolated to the SourcePage compatibility adapter, while `bengal.Page` and
 `bengal.core.Page` remain lazy public compatibility exports. Boundary tests now
 enforce that production `Page` construction and direct imports stay isolated to
 the adapter. The remaining direct import count across `bengal/` + `tests/` is
-66, all but the adapter in tests. Deletion remains blocked by the adapter
+61, all but the adapter in tests. Deletion remains blocked by the adapter
 boundary, public API retirement decisions, and test factories that still
 construct `Page` directly.
 
@@ -408,9 +408,37 @@ checks (8 sites) and imports (19 files). Updated `phase_update_site_pages()`,
 
 ---
 
-## Sprint 6: Delete Page Class
+## Sprint 6 Saga: Delete Page Class
 
-**Goal**: Remove the mutable Page dataclass entirely. Final cleanup.
+**Goal**: Remove the mutable Page dataclass entirely without losing public
+behavior accidentally. This is a saga-scale goal: task commits may migrate one
+domain or test cluster at a time, but the saga is not complete until the class,
+production adapter, obsolete mixins, and non-compatibility test dependencies are
+gone or explicitly retained by a recorded public API decision.
+
+### Completed Sprint 6 slices
+
+- `ee3427abd docs: codify saga planning workflow`
+- `f50073af1 core: isolate page compatibility boundary`
+- `76a8eee30 tests: migrate analysis page fixtures`
+- `tests: migrate health and cache page fixtures`
+
+### Sprint 6 epics
+
+1. **Production boundary closure:** production construction and direct imports
+   stay isolated to `bengal/content/discovery/page_adapter.py` until that
+   adapter can be deleted.
+2. **Test fixture migration:** migrate non-compatibility tests to
+   SourcePage/page-record helpers and record migrated files in
+   `tests/unit/content/test_page_construction_boundary.py`.
+3. **Protocol/type convergence:** remove concrete `Page` annotations where the
+   contract is page-like or record-like.
+4. **Public compatibility decision:** stop before removing or changing
+   `bengal.Page` and `bengal.core.Page`.
+5. **Class and mixin deletion:** delete the mutable class and obsolete files
+   only once the earlier epics prove the path is clear.
+6. **Collateral closure:** update roadmap, changelog, docs, and verification
+   evidence after each task slice.
 
 ### Task 6.1 — Audit remaining Page references
 
@@ -418,7 +446,7 @@ Search all remaining `Page` imports. As of the 2026-05-29 first saga slice,
 `rg 'from bengal\.core\.page import Page\b' bengal` finds only
 `bengal/content/discovery/page_adapter.py`, the intentional compatibility
 adapter from immutable `SourcePage` records to mutable `Page`. The broader
-`bengal/` + `tests/` sweep now finds 66 direct import sites, all but the
+`bengal/` + `tests/` sweep now finds 61 direct import sites, all but the
 adapter in tests. Next, migrate test factories and downstream adapter consumers
 to SourcePage/page-record helpers before deleting the class.
 

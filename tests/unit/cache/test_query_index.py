@@ -10,8 +10,8 @@ from bengal.cache.indexes.category_index import CategoryIndex
 from bengal.cache.indexes.date_range_index import DateRangeIndex
 from bengal.cache.indexes.section_index import SectionIndex
 from bengal.cache.query_index import IndexEntry
-from bengal.core.page import Page
 from bengal.core.section import Section
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 @pytest.fixture
@@ -31,10 +31,10 @@ def sample_page():
     """Create a sample page for testing."""
     from bengal.core.site import Site
 
-    page = Page(
+    page = _page(
         source_path=Path("content/blog/test-post.md"),
-        _raw_content="Test content",
-        _raw_metadata={
+        raw_content="Test content",
+        metadata={
             "title": "Test Post",
             "author": "Jane Smith",
             "category": "tutorial",
@@ -101,7 +101,7 @@ class TestSectionIndex:
 
     def test_extract_keys_no_section(self):
         """Test page without section."""
-        page = Page(source_path=Path("test.md"), _raw_content="Test")
+        page = _page(source_path=Path("test.md"), raw_content="Test")
         index = SectionIndex(Path("test.json"))
         keys = index.extract_keys(page)
 
@@ -142,10 +142,10 @@ class TestAuthorIndex:
 
     def test_extract_author_dict(self):
         """Test extracting author as dict."""
-        page = Page(
+        page = _page(
             source_path=Path("test.md"),
-            _raw_content="Test",
-            _raw_metadata={
+            raw_content="Test",
+            metadata={
                 "author": {
                     "name": "Bob Jones",
                     "email": "bob@example.com",
@@ -163,10 +163,10 @@ class TestAuthorIndex:
 
     def test_extract_multiple_authors(self):
         """Test multi-author support."""
-        page = Page(
+        page = _page(
             source_path=Path("test.md"),
-            _raw_content="Test",
-            _raw_metadata={"authors": ["Alice Chen", "Bob Jones"]},
+            raw_content="Test",
+            metadata={"authors": ["Alice Chen", "Bob Jones"]},
         )
 
         index = AuthorIndex(Path("test.json"))
@@ -190,10 +190,10 @@ class TestCategoryIndex:
 
     def test_category_normalization(self):
         """Test category is normalized."""
-        page = Page(
+        page = _page(
             source_path=Path("test.md"),
-            _raw_content="Test",
-            _raw_metadata={"category": "  API Reference  "},  # with whitespace
+            raw_content="Test",
+            metadata={"category": "  API Reference  "},  # with whitespace
         )
 
         index = CategoryIndex(Path("test.json"))
@@ -216,7 +216,7 @@ class TestDateRangeIndex:
 
     def test_no_date(self):
         """Test page without date."""
-        page = Page(source_path=Path("test.md"), _raw_content="Test")
+        page = _page(source_path=Path("test.md"), raw_content="Test")
         index = DateRangeIndex(Path("test.json"))
         keys = index.extract_keys(page)
 
@@ -305,7 +305,7 @@ class TestIncrementalUpdates:
         blog_section = Section(name="blog", path=Path("content/blog"))
         mock_site._mock_sections[blog_section.path] = blog_section
 
-        page = Page(source_path=Path("content/post.md"), _raw_content="Test")
+        page = _page(source_path=Path("content/post.md"), raw_content="Test")
         page._site = mock_site
         page._section = blog_section  # This stores the path
         index.update_page(page, build_cache)
@@ -328,15 +328,15 @@ class TestIncrementalUpdates:
         """Test multiple pages with same key."""
         index = AuthorIndex(temp_cache_path)
 
-        page1 = Page(
+        page1 = _page(
             source_path=Path("post1.md"),
-            _raw_content="Test",
-            _raw_metadata={"author": "Jane Smith"},
+            raw_content="Test",
+            metadata={"author": "Jane Smith"},
         )
-        page2 = Page(
+        page2 = _page(
             source_path=Path("post2.md"),
-            _raw_content="Test",
-            _raw_metadata={"author": "Jane Smith"},
+            raw_content="Test",
+            metadata={"author": "Jane Smith"},
         )
 
         index.update_page(page1, build_cache)
@@ -362,10 +362,10 @@ class TestQueryIndexThreadSafety:
             """Update pages from a specific thread."""
             try:
                 for i in range(50):
-                    page = Page(
+                    page = _page(
                         source_path=Path(f"post-{thread_id}-{i}.md"),
-                        _raw_content="Test",
-                        _raw_metadata={"author": f"Author {thread_id}"},
+                        raw_content="Test",
+                        metadata={"author": f"Author {thread_id}"},
                     )
                     index.update_page(page, build_cache)
             except Exception as e:
@@ -392,10 +392,10 @@ class TestQueryIndexThreadSafety:
         index = AuthorIndex(temp_cache_path)
         # Pre-populate
         for i in range(10):
-            page = Page(
+            page = _page(
                 source_path=Path(f"initial-{i}.md"),
-                _raw_content="Test",
-                _raw_metadata={"author": f"Author {i % 3}"},
+                raw_content="Test",
+                metadata={"author": f"Author {i % 3}"},
             )
             index.update_page(page, build_cache)
 
@@ -417,10 +417,10 @@ class TestQueryIndexThreadSafety:
             """Update pages repeatedly."""
             try:
                 for i in range(100):
-                    page = Page(
+                    page = _page(
                         source_path=Path(f"new-post-{i}.md"),
-                        _raw_content="Test",
-                        _raw_metadata={"author": f"Author {i % 3}"},
+                        raw_content="Test",
+                        metadata={"author": f"Author {i % 3}"},
                     )
                     index.update_page(page, build_cache)
             except Exception as e:
@@ -448,10 +448,10 @@ class TestQueryIndexInvariantViolation:
         index = AuthorIndex(temp_cache_path)
 
         # Add valid data
-        page = Page(
+        page = _page(
             source_path=Path("post1.md"),
-            _raw_content="Test",
-            _raw_metadata={"author": "Jane"},
+            raw_content="Test",
+            metadata={"author": "Jane"},
         )
         index.update_page(page, build_cache)
 

@@ -13,7 +13,6 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.health.report import CheckStatus
 from bengal.health.validators.connectivity import ConnectivityValidator
@@ -37,7 +36,7 @@ class TestConnectivityValidator:
         # Create test pages
         pages = []
         for i in range(5):
-            page = Mock(spec=Page)
+            page = Mock()
             page.source_path = tmp_path / f"page{i}.md"
             page.source_path.touch()
             page.output_path = tmp_path / "public" / f"page{i}.html"
@@ -154,7 +153,7 @@ class TestConnectivityValidator:
     def test_over_connected_hubs(self, mock_kg_class, validator, mock_site, mock_knowledge_graph):
         """Test detection of over-connected hub pages."""
         # Create hub pages
-        hub_page = Mock(spec=Page)
+        hub_page = Mock()
         hub_page.source_path = Path("/tmp/hub.md")
         hub_page.url = "/hub/"
 
@@ -259,7 +258,7 @@ class TestConnectivityValidator:
     ):
         """Test that orphan details are limited to first 10."""
         # Create 15 orphan pages
-        orphan_pages = [Mock(spec=Page) for _ in range(15)]
+        orphan_pages = [Mock() for _ in range(15)]
         for i, page in enumerate(orphan_pages):
             page.source_path = Path(f"/tmp/orphan{i}.md")
 

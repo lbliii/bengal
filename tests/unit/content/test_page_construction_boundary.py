@@ -37,6 +37,11 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/unit/rendering/utils/test_rendering_url.py",
     "tests/unit/core/test_site_caching.py",
     "tests/unit/core/test_site_lifecycle.py",
+    "tests/unit/cache/test_query_index.py",
+    "tests/unit/cache/test_query_index_registry.py",
+    "tests/unit/health/validators/test_connectivity.py",
+    "tests/unit/health/validators/test_navigation_validator.py",
+    "tests/unit/health/validators/test_taxonomy.py",
     "tests/unit/template_functions/test_taxonomies_baseurl.py",
 )
 
