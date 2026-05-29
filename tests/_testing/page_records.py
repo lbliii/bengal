@@ -104,10 +104,17 @@ def make_mutable_test_page(**kwargs: Any) -> Any:
     """Create a Page compatibility object from legacy Page-style keyword names."""
     raw_content = kwargs.pop("raw_content", kwargs.pop("_raw_content", ""))
     metadata = kwargs.pop("metadata", kwargs.pop("_raw_metadata", {}))
+    site = kwargs.pop("site", kwargs.pop("_site", None))
+    section = kwargs.pop("section", kwargs.pop("_section", None))
+    section_path = kwargs.pop("section_path", kwargs.pop("_section_path", None))
+    if section_path is not None:
+        kwargs["section_path"] = section_path
     return make_test_page(
         raw_content=raw_content,
         metadata=metadata,
         default_metadata=False,
+        site=site,
+        section=section,
         **kwargs,
     )
 

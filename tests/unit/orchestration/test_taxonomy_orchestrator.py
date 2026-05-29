@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 @pytest.fixture
@@ -28,7 +28,7 @@ def mock_site():
 
     # Create some mock pages with tags
     pages = [
-        Page(
+        _page(
             source_path=Path("/fake/site/content/post1.md"),
             _raw_content="Post 1",
             _raw_metadata={
@@ -37,7 +37,7 @@ def mock_site():
                 "date": datetime(2024, 1, 1),
             },
         ),
-        Page(
+        _page(
             source_path=Path("/fake/site/content/post2.md"),
             _raw_content="Post 2",
             _raw_metadata={
@@ -46,7 +46,7 @@ def mock_site():
                 "date": datetime(2024, 1, 2),
             },
         ),
-        Page(
+        _page(
             source_path=Path("/fake/site/content/post3.md"),
             _raw_content="Post 3",
             _raw_metadata={"title": "Post 3", "tags": ["testing"], "date": datetime(2024, 1, 3)},

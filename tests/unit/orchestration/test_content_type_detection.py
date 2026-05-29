@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.orchestration.section import SectionOrchestrator
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestContentTypeDetection:
@@ -105,7 +105,7 @@ class TestContentTypeDetection:
 
         # Add pages with API reference type
         for i in range(3):
-            page = Page(
+            page = _page(
                 source_path=Path(f"/content/docs/module{i}.md"),
                 _raw_content="API docs",
                 _raw_metadata={"type": "python-module"},
@@ -121,7 +121,7 @@ class TestContentTypeDetection:
 
         # Add pages with CLI command type
         for i in range(3):
-            page = Page(
+            page = _page(
                 source_path=Path(f"/content/commands/cmd{i}.md"),
                 _raw_content="Command docs",
                 _raw_metadata={"type": "command"},
@@ -137,7 +137,7 @@ class TestContentTypeDetection:
 
         # Add pages with dates (60%+ should trigger blog detection)
         for i in range(5):
-            page = Page(
+            page = _page(
                 source_path=Path(f"/content/articles/post{i}.md"),
                 _raw_content="Post content",
                 _raw_metadata={"title": f"Post {i}", "date": datetime(2025, 1, i + 1)},
@@ -153,7 +153,7 @@ class TestContentTypeDetection:
 
         # Add 2 pages with dates, 3 without (40% with dates)
         for i in range(2):
-            page = Page(
+            page = _page(
                 source_path=Path(f"/content/docs/dated{i}.md"),
                 _raw_content="Content",
                 _raw_metadata={"date": datetime(2025, 1, i + 1)},
@@ -161,7 +161,7 @@ class TestContentTypeDetection:
             section.add_page(page)
 
         for i in range(3):
-            page = Page(
+            page = _page(
                 source_path=Path(f"/content/docs/page{i}.md"),
                 _raw_content="Content",
                 _raw_metadata={},
@@ -178,7 +178,7 @@ class TestContentTypeDetection:
 
         # Add some regular pages without dates
         for i in range(3):
-            page = Page(
+            page = _page(
                 source_path=Path(f"/content/random/page{i}.md"),
                 _raw_content="Content",
                 _raw_metadata={"title": f"Page {i}"},
@@ -269,7 +269,7 @@ class TestPaginationDecision:
 
         # Add many pages
         for i in range(100):
-            page = Page(
+            page = _page(
                 source_path=Path(f"/content/api/page{i}.md"),
                 _raw_content="Content",
                 _raw_metadata={},
@@ -289,7 +289,7 @@ class TestPaginationDecision:
 
         # Add pages exceeding threshold (20)
         for i in range(25):
-            page = Page(
+            page = _page(
                 source_path=Path(f"/content/blog/post{i}.md"),
                 _raw_content="Content",
                 _raw_metadata={"date": datetime(2025, 1, 1)},
@@ -304,7 +304,7 @@ class TestPaginationDecision:
 
         # Add pages below threshold (20)
         for i in range(10):
-            page = Page(
+            page = _page(
                 source_path=Path(f"/content/blog/post{i}.md"),
                 _raw_content="Content",
                 _raw_metadata={"date": datetime(2025, 1, 1)},
@@ -319,7 +319,7 @@ class TestPaginationDecision:
 
         # Even with few pages, explicit override should enable pagination
         for i in range(5):
-            page = Page(
+            page = _page(
                 source_path=Path(f"/content/docs/page{i}.md"),
                 _raw_content="Content",
                 _raw_metadata={},

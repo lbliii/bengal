@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.orchestration.related_posts import RelatedPostsOrchestrator
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 @pytest.fixture
@@ -23,14 +23,14 @@ def mock_site(tmp_path):
 def test_related_posts_with_shared_tags(mock_site):
     """Pages with shared tags should be related."""
     # Create pages with tags
-    page1 = Page(
+    page1 = _page(
         source_path=Path("page1.md"),
         _raw_metadata={"title": "Post 1", "tags": ["python", "django"]},
     )
-    page2 = Page(
+    page2 = _page(
         source_path=Path("page2.md"), _raw_metadata={"title": "Post 2", "tags": ["python", "flask"]}
     )
-    page3 = Page(
+    page3 = _page(
         source_path=Path("page3.md"), _raw_metadata={"title": "Post 3", "tags": ["javascript"]}
     )
 
@@ -68,16 +68,16 @@ def test_related_posts_with_shared_tags(mock_site):
 def test_related_posts_sorted_by_relevance(mock_site):
     """Related posts should be sorted by number of shared tags."""
     # Create pages with varying tag overlap
-    page1 = Page(
+    page1 = _page(
         source_path=Path("page1.md"), _raw_metadata={"title": "Post 1", "tags": ["a", "b", "c"]}
     )
-    page2 = Page(
+    page2 = _page(
         source_path=Path("page2.md"), _raw_metadata={"title": "Post 2", "tags": ["a", "b", "c"]}
     )  # 3 shared
-    page3 = Page(
+    page3 = _page(
         source_path=Path("page3.md"), _raw_metadata={"title": "Post 3", "tags": ["a", "b"]}
     )  # 2 shared
-    page4 = Page(
+    page4 = _page(
         source_path=Path("page4.md"), _raw_metadata={"title": "Post 4", "tags": ["a"]}
     )  # 1 shared
 
@@ -112,7 +112,7 @@ def test_related_posts_respects_limit(mock_site):
     # Create many pages with same tag
     pages = []
     for i in range(10):
-        page = Page(
+        page = _page(
             source_path=Path(f"page{i}.md"),
             _raw_metadata={"title": f"Post {i}", "tags": ["python"]},
         )
@@ -137,10 +137,10 @@ def test_related_posts_respects_limit(mock_site):
 
 def test_related_posts_skips_generated_pages(mock_site):
     """Should skip generated pages (tag indexes, archives, etc.)."""
-    page1 = Page(
+    page1 = _page(
         source_path=Path("page1.md"), _raw_metadata={"title": "Post 1", "tags": ["python"]}
     )
-    page2 = Page(
+    page2 = _page(
         source_path=Path("page2.md"),
         _raw_metadata={"title": "Post 2", "tags": ["python"], "_generated": True},
     )
@@ -165,8 +165,8 @@ def test_related_posts_skips_generated_pages(mock_site):
 
 def test_related_posts_no_tags(mock_site):
     """Pages without tags should have no related posts."""
-    page1 = Page(source_path=Path("page1.md"), _raw_metadata={"title": "Post 1"})  # No tags
-    page2 = Page(
+    page1 = _page(source_path=Path("page1.md"), _raw_metadata={"title": "Post 1"})  # No tags
+    page2 = _page(
         source_path=Path("page2.md"), _raw_metadata={"title": "Post 2", "tags": ["python"]}
     )
 
@@ -187,7 +187,7 @@ def test_related_posts_no_tags(mock_site):
 
 def test_related_posts_no_taxonomies(mock_site):
     """Should handle sites without taxonomies gracefully."""
-    page1 = Page(
+    page1 = _page(
         source_path=Path("page1.md"), _raw_metadata={"title": "Post 1", "tags": ["python"]}
     )
     page1.__post_init__()

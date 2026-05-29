@@ -42,6 +42,15 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/unit/health/validators/test_connectivity.py",
     "tests/unit/health/validators/test_navigation_validator.py",
     "tests/unit/health/validators/test_taxonomy.py",
+    "tests/unit/orchestration/incremental/test_shadow_mode.py",
+    "tests/unit/orchestration/incremental/test_track_dependencies.py",
+    "tests/unit/orchestration/test_content_type_detection.py",
+    "tests/unit/orchestration/test_incremental_orchestrator.py",
+    "tests/unit/orchestration/test_related_posts.py",
+    "tests/unit/orchestration/test_render_orchestrator.py",
+    "tests/unit/orchestration/test_section_orchestrator.py",
+    "tests/unit/orchestration/test_taxonomy_incremental.py",
+    "tests/unit/orchestration/test_taxonomy_orchestrator.py",
     "tests/unit/template_functions/test_taxonomies_baseurl.py",
 )
 

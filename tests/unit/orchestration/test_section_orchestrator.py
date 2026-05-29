@@ -9,10 +9,10 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.orchestration.section import SectionOrchestrator
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestSectionOrchestrator:
@@ -55,7 +55,7 @@ class TestSectionOrchestrator:
         """Test that sections with explicit _index.md are not modified."""
         # Create section with explicit index page
         section = Section(name="docs", path=tmp_path / "content" / "docs")
-        index_page = Page(
+        index_page = _page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
             _raw_metadata={"title": "Documentation"},
         )
@@ -76,7 +76,7 @@ class TestSectionOrchestrator:
         """Test that sections without _index.md get auto-generated archive."""
         # Create section without index page
         section = Section(name="blog", path=tmp_path / "content" / "blog")
-        page1 = Page(
+        page1 = _page(
             source_path=tmp_path / "content" / "blog" / "post1.md",
             _raw_metadata={"title": "Post 1"},
         )
@@ -100,7 +100,7 @@ class TestSectionOrchestrator:
 
         # Create subsection with a page
         child = Section(name="guides", path=tmp_path / "content" / "docs" / "guides")
-        child_page = Page(
+        child_page = _page(
             source_path=tmp_path / "content" / "docs" / "guides" / "intro.md",
             _raw_metadata={"title": "Introduction"},
         )
@@ -162,7 +162,7 @@ class TestSectionOrchestrator:
     def test_archive_page_metadata(self, orchestrator, mock_site, tmp_path):
         """Test that generated archive pages have correct metadata."""
         section = Section(name="posts", path=tmp_path / "content" / "posts")
-        page1 = Page(
+        page1 = _page(
             source_path=tmp_path / "content" / "posts" / "hello.md",
             _raw_metadata={"title": "Hello"},
         )
@@ -237,7 +237,7 @@ class TestSectionValidation:
     def test_validate_sections_all_valid(self, orchestrator, mock_site, tmp_path):
         """Test validation with all sections having indexes."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
-        section.index_page = Page(
+        section.index_page = _page(
             source_path=tmp_path / "content" / "docs" / "_index.md", _raw_metadata={"title": "Docs"}
         )
 
@@ -266,7 +266,7 @@ class TestSectionValidation:
         child = Section(name="v1", path=tmp_path / "content" / "api" / "v1")
 
         # Parent has index, child doesn't
-        parent.index_page = Page(
+        parent.index_page = _page(
             source_path=tmp_path / "content" / "api" / "_index.md", _raw_metadata={"title": "API"}
         )
         parent.add_subsection(child)
@@ -298,7 +298,7 @@ class TestSectionValidation:
         section3 = Section(name="api", path=tmp_path / "content" / "api")
 
         # Only section3 has index
-        section3.index_page = Page(
+        section3.index_page = _page(
             source_path=tmp_path / "content" / "api" / "_index.md", _raw_metadata={"title": "API"}
         )
 
@@ -326,7 +326,7 @@ class TestSectionHelperMethods:
     def test_needs_auto_index_false_has_index(self, tmp_path):
         """Test needs_auto_index returns False when section has index."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
-        section.index_page = Page(
+        section.index_page = _page(
             source_path=tmp_path / "content" / "docs" / "_index.md", _raw_metadata={"title": "Docs"}
         )
 
@@ -341,7 +341,7 @@ class TestSectionHelperMethods:
     def test_has_index_true(self, tmp_path):
         """Test has_index returns True when index page exists."""
         section = Section(name="docs", path=tmp_path / "content" / "docs")
-        section.index_page = Page(
+        section.index_page = _page(
             source_path=tmp_path / "content" / "docs" / "_index.md", _raw_metadata={"title": "Docs"}
         )
 
@@ -381,7 +381,7 @@ class TestIntegrationScenarios:
         docs = Section(name="docs", path=tmp_path / "content" / "docs")
 
         markdown = Section(name="markdown", path=tmp_path / "content" / "docs" / "markdown")
-        kitchen_sink = Page(
+        kitchen_sink = _page(
             source_path=tmp_path / "content" / "docs" / "markdown" / "kitchen-sink.md",
             _raw_metadata={"title": "Kitchen Sink"},
         )
@@ -393,7 +393,7 @@ class TestIntegrationScenarios:
             name="function-reference",
             path=tmp_path / "content" / "docs" / "templates" / "function-reference",
         )
-        func_ref_index = Page(
+        func_ref_index = _page(
             source_path=tmp_path
             / "content"
             / "docs"
@@ -437,7 +437,7 @@ class TestIntegrationScenarios:
         """Test site with mix of explicit and auto-generated indexes."""
         # Create structure with some explicit indexes
         docs = Section(name="docs", path=tmp_path / "content" / "docs")
-        docs_index = Page(
+        docs_index = _page(
             source_path=tmp_path / "content" / "docs" / "_index.md",
             _raw_metadata={"title": "Documentation"},
         )
@@ -445,7 +445,7 @@ class TestIntegrationScenarios:
 
         # Subsection without explicit index
         guides = Section(name="guides", path=tmp_path / "content" / "docs" / "guides")
-        guide_page = Page(
+        guide_page = _page(
             source_path=tmp_path / "content" / "docs" / "guides" / "intro.md",
             _raw_metadata={"title": "Introduction"},
         )
@@ -479,7 +479,7 @@ class TestIntegrationScenarios:
         """
         # Create an API section like autodoc would (no _index.md)
         api = Section(name="api", path=tmp_path / "content" / "api")
-        api_page = Page(
+        api_page = _page(
             source_path=tmp_path / "content" / "api" / "module.md",
             _raw_metadata={"title": "Module"},
         )
@@ -487,7 +487,7 @@ class TestIntegrationScenarios:
 
         # Create subsection also without index
         apps = Section(name="apps", path=tmp_path / "content" / "api" / "apps")
-        apps_page = Page(
+        apps_page = _page(
             source_path=tmp_path / "content" / "api" / "apps" / "app1.md",
             _raw_metadata={"title": "App 1"},
         )
