@@ -2,12 +2,18 @@
 
 # Bengal Plan & RFC Index
 
-Updated: 2026-05-28
+Updated: 2026-05-29
 
 Root `plan/` is intentionally small. It contains `AGENTS.md`, this index, the
 current roadmap, and the ten active plans that still describe work Bengal
 intends to do. Everything else belongs in an archive directory and should not
 be treated as the agenda.
+
+For "what should we work on next?", read `ROADMAP.md` first. Use the saga
+workflow in `AGENTS.md` to turn one active roadmap slice into a thematic PR with
+scoped commits, steward consultation, proof commands, and an end-of-saga plan
+update. If the user asks to start the saga as a goal, the goal tracks the active
+session mission; this index and `ROADMAP.md` remain the durable source of truth.
 
 ## Active Root Set
 
@@ -56,6 +62,19 @@ be treated as the agenda.
   and drafted archives into directory READMEs. Long historical bodies were
   removed unless they remain durable references. The plan tree now has 21
   markdown files total, plus a few CSS examples under `plan/examples/`.
+
+## 2026-05-29 Triage Notes
+
+- `main` was fast-forwarded to `ab0f22339`, bringing in the SourcePage test
+  migration, narrowed performance-evidence enforcement, and notebook H1 title
+  preservation.
+- Roadmap evidence was refreshed against source: the mutable `Page` class still
+  exists, the ty floor is 558 diagnostics, and protocol annotation counts have
+  moved since the 2026-05-28 snapshot.
+- `rfc-health-diagnostics-audit.md` was updated because `bengal audit` now
+  exists as a Milo command with artifact audit primitives and Kida/JSON output.
+- `docs/live-reload-pipeline-review.md` was marked as historical where it
+  contradicted Bengal's Python 3.14 / PEP 758 exception syntax policy.
 
 ## Current Architecture Snapshot
 

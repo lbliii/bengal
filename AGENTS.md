@@ -227,6 +227,26 @@ For backlog, roadmap, or prioritization work, consult all scoped stewards and
 rank work by convergence, blast radius, dependency order, risk reduction,
 reversibility, public contracts, free-threading, and user-visible correctness.
 
+## Saga Goals
+
+When tooling supports an active goal, use it as the runtime mission tracker for
+a selected saga. Goals do not replace `plan/ROADMAP.md`, active plan files,
+commits, changelog fragments, or final plan updates.
+
+- Create a goal only after the saga is selected and the user explicitly asks to
+  start a saga, start a goal, resume a goal, or make a named saga active.
+- The goal objective should name the active plan slice, expected proof, commit
+  discipline, and required plan/archive update.
+- Do not create a goal for open-ended discovery. First answer "what should we
+  work on next?" from `plan/ROADMAP.md` and steward consultation, then start the
+  goal once the user accepts or asks to begin.
+- Keep the goal active until the saga is genuinely closed: code/docs/tests or
+  explicit no-impact notes are done, commits are scoped, proof is recorded, and
+  planning state is refreshed.
+- Mark a goal complete only when no required saga work remains. Mark it blocked
+  only when the same blocker has repeated and no meaningful progress is
+  possible without user input or external state.
+
 ## Global Sweep On Accepted P0s
 
 Before closing an accepted P0, grep the relevant docs and code trees for the

@@ -5,9 +5,9 @@ Tests for incremental taxonomy collection optimization.
 import pytest
 
 from bengal.cache.build_cache import BuildCache
-from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.orchestration.taxonomy import TaxonomyOrchestrator
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 @pytest.fixture
@@ -30,7 +30,7 @@ def mock_cache(mock_site):
 def test_incremental_collection_tag_added(mock_site, mock_cache):
     """Test adding a tag to an existing page."""
     # Setup: Existing page with one tag (source_path under site root for cache keys)
-    page1 = Page(
+    page1 = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Post 1", "tags": ["python"]},
     )
@@ -46,7 +46,7 @@ def test_incremental_collection_tag_added(mock_site, mock_cache):
     mock_cache.taxonomy_index.update_page_tags(mock_cache._cache_key(page1.source_path), {"python"})
 
     # Modify page: Add a new tag
-    page1_modified = Page(
+    page1_modified = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Post 1", "tags": ["python", "django"]},
     )
@@ -72,7 +72,7 @@ def test_incremental_collection_tag_added(mock_site, mock_cache):
 def test_incremental_collection_tag_removed(mock_site, mock_cache):
     """Test removing a tag from an existing page."""
     # Setup: Existing page with two tags
-    page1 = Page(
+    page1 = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Post 1", "tags": ["python", "django"]},
     )
@@ -93,7 +93,7 @@ def test_incremental_collection_tag_removed(mock_site, mock_cache):
     )
 
     # Modify page: Remove django tag
-    page1_modified = Page(
+    page1_modified = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Post 1", "tags": ["python"]},
     )
@@ -118,15 +118,15 @@ def test_incremental_collection_tag_removed(mock_site, mock_cache):
 def test_incremental_collection_multiple_pages(mock_site, mock_cache):
     """Test incremental collection with multiple changed pages."""
     # Setup: Three pages with various tags
-    page1 = Page(
+    page1 = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Post 1", "tags": ["python"]},
     )
-    page2 = Page(
+    page2 = _page(
         source_path=mock_site.root_path / "page2.md",
         _raw_metadata={"title": "Post 2", "tags": ["python", "flask"]},
     )
-    page3 = Page(
+    page3 = _page(
         source_path=mock_site.root_path / "page3.md",
         _raw_metadata={"title": "Post 3", "tags": ["javascript"]},
     )
@@ -151,14 +151,14 @@ def test_incremental_collection_multiple_pages(mock_site, mock_cache):
     )
 
     # Modify page1: Add django
-    page1_modified = Page(
+    page1_modified = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Post 1", "tags": ["python", "django"]},
     )
     page1_modified.__post_init__()
 
     # Modify page2: Remove flask
-    page2_modified = Page(
+    page2_modified = _page(
         source_path=mock_site.root_path / "page2.md",
         _raw_metadata={"title": "Post 2", "tags": ["python"]},
     )
@@ -187,7 +187,7 @@ def test_incremental_collection_multiple_pages(mock_site, mock_cache):
 def test_incremental_collection_no_previous_taxonomy(mock_site, mock_cache):
     """Test that first build does full collection."""
     # Setup: No existing taxonomy
-    page1 = Page(
+    page1 = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Post 1", "tags": ["python"]},
     )
@@ -209,11 +209,11 @@ def test_incremental_collection_no_previous_taxonomy(mock_site, mock_cache):
 def test_incremental_collection_skips_generated_pages(mock_site, mock_cache):
     """Test that generated pages are skipped."""
     # Setup: Regular page and generated page
-    page1 = Page(
+    page1 = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Post 1", "tags": ["python"]},
     )
-    page2 = Page(
+    page2 = _page(
         source_path=mock_site.root_path / "tags" / "python.md",
         _raw_metadata={"title": "Python Tag", "tags": ["python"], "_generated": True},
     )
@@ -230,11 +230,11 @@ def test_incremental_collection_skips_generated_pages(mock_site, mock_cache):
     mock_cache.taxonomy_index.update_page_tags(mock_cache._cache_key(page1.source_path), {"python"})
 
     # Modify both pages (adding django tag)
-    page1_modified = Page(
+    page1_modified = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Post 1", "tags": ["python", "django"]},
     )
-    page2_modified = Page(
+    page2_modified = _page(
         source_path=mock_site.root_path / "tags" / "python.md",
         _raw_metadata={"title": "Python Tag", "tags": ["python", "django"], "_generated": True},
     )
@@ -263,11 +263,11 @@ def test_incremental_collection_sorting(mock_site, mock_cache):
     from datetime import datetime
 
     # Setup: Two pages with same tag but different dates
-    page1 = Page(
+    page1 = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Old Post", "tags": ["python"], "date": datetime(2024, 1, 1)},
     )
-    page2 = Page(
+    page2 = _page(
         source_path=mock_site.root_path / "page2.md",
         _raw_metadata={"title": "New Post", "tags": ["python"], "date": datetime(2024, 12, 1)},
     )
@@ -285,7 +285,7 @@ def test_incremental_collection_sorting(mock_site, mock_cache):
     mock_cache.taxonomy_index.update_page_tags(mock_cache._cache_key(page2.source_path), {"python"})
 
     # Modify page1 content (trigger resort)
-    page1_modified = Page(
+    page1_modified = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={
             "title": "Old Post Updated",
@@ -310,7 +310,7 @@ def test_incremental_collection_sorting(mock_site, mock_cache):
 def test_collect_and_generate_incremental(mock_site, mock_cache):
     """Test the full incremental collect and generate flow."""
     # Setup: Existing page with tags
-    page1 = Page(
+    page1 = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Post 1", "tags": ["python"]},
     )
@@ -325,7 +325,7 @@ def test_collect_and_generate_incremental(mock_site, mock_cache):
     mock_cache.taxonomy_index.update_page_tags(mock_cache._cache_key(page1.source_path), {"python"})
 
     # Modify page: Add django tag
-    page1_modified = Page(
+    page1_modified = _page(
         source_path=mock_site.root_path / "page1.md",
         _raw_metadata={"title": "Post 1", "tags": ["python", "django"]},
     )

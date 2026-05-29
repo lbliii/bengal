@@ -5,8 +5,8 @@ Tests that Section objects are properly hashable based on path,
 enabling set storage, dictionary keys, and O(1) membership tests.
 """
 
-from bengal.core.page import Page
 from bengal.core.section import Section
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestSectionHashability:
@@ -39,8 +39,8 @@ class TestSectionHashability:
         initial_hash = hash(section)
 
         # Mutate various fields
-        page1 = Page(source_path=tmp_path / "blog/post1.md")
-        page2 = Page(source_path=tmp_path / "blog/post2.md")
+        page1 = _page(source_path=tmp_path / "blog/post1.md")
+        page2 = _page(source_path=tmp_path / "blog/post2.md")
         section.pages.extend([page1, page2])
         section.metadata = {"title": "Blog Section", "description": "My blog"}
         section.index_page = page1
@@ -86,7 +86,7 @@ class TestSectionHashability:
         sections = {section}
 
         # Mutate the section
-        section.pages.append(Page(source_path=tmp_path / "blog/post.md"))
+        section.pages.append(_page(source_path=tmp_path / "blog/post.md"))
         section.metadata = {"updated": True}
 
         # Should still be findable
@@ -99,8 +99,8 @@ class TestSectionHashability:
         section2 = Section(name="blog", path=path)
 
         # Add pages to only one section
-        section1.pages.append(Page(source_path=tmp_path / "blog/post1.md"))
-        section1.pages.append(Page(source_path=tmp_path / "blog/post2.md"))
+        section1.pages.append(_page(source_path=tmp_path / "blog/post1.md"))
+        section1.pages.append(_page(source_path=tmp_path / "blog/post2.md"))
 
         # Still equal despite different pages
         assert section1 == section2
@@ -218,8 +218,8 @@ class TestSectionHashStability:
 
         # Populate all fields
         section.pages = [
-            Page(source_path=tmp_path / "blog/post1.md"),
-            Page(source_path=tmp_path / "blog/post2.md"),
+            _page(source_path=tmp_path / "blog/post1.md"),
+            _page(source_path=tmp_path / "blog/post2.md"),
         ]
         section.subsections = [Section(name="tutorials", path=tmp_path / "blog/tutorials")]
         section.metadata = {"title": "Blog", "description": "My blog"}
@@ -258,10 +258,10 @@ class TestSectionPageIntegration:
 
         # Create pages
         pages = [
-            Page(source_path=tmp_path / "blog/post1.md"),
-            Page(source_path=tmp_path / "blog/post2.md"),
-            Page(source_path=tmp_path / "docs/guide1.md"),
-            Page(source_path=tmp_path / "blog/post3.md"),
+            _page(source_path=tmp_path / "blog/post1.md"),
+            _page(source_path=tmp_path / "blog/post2.md"),
+            _page(source_path=tmp_path / "docs/guide1.md"),
+            _page(source_path=tmp_path / "blog/post3.md"),
         ]
 
         # Assign pages to sections with site reference
@@ -289,9 +289,9 @@ class TestSectionPageIntegration:
         section1 = Section(name="blog", path=tmp_path / "blog")
         section2 = Section(name="docs", path=tmp_path / "docs")
 
-        page1 = Page(source_path=tmp_path / "blog/post1.md")
-        page2 = Page(source_path=tmp_path / "blog/post2.md")
-        page3 = Page(source_path=tmp_path / "docs/guide.md")
+        page1 = _page(source_path=tmp_path / "blog/post1.md")
+        page2 = _page(source_path=tmp_path / "blog/post2.md")
+        page3 = _page(source_path=tmp_path / "docs/guide.md")
 
         # Build mapping
         section_pages = {section1: [page1, page2], section2: [page3]}

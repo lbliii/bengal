@@ -5,8 +5,8 @@ Tests for index file collision detection (_index.md vs index.md).
 from pathlib import Path
 
 from bengal.core.diagnostics import DiagnosticsCollector
-from bengal.core.page import Page
 from bengal.core.section import Section
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestIndexFileCollision:
@@ -17,7 +17,7 @@ class TestIndexFileCollision:
         section = Section(name="docs", path=Path("/content/docs"))
 
         # Create _index page
-        underscore_index = Page(
+        underscore_index = _page(
             source_path=Path("/content/docs/_index.md"),
             _raw_content="Content from _index",
             _raw_metadata={"title": "Docs Index"},
@@ -33,7 +33,7 @@ class TestIndexFileCollision:
         section = Section(name="docs", path=Path("/content/docs"))
 
         # Create index page
-        regular_index = Page(
+        regular_index = _page(
             source_path=Path("/content/docs/index.md"),
             _raw_content="Content from index",
             _raw_metadata={"title": "Docs Index"},
@@ -49,7 +49,7 @@ class TestIndexFileCollision:
         section = Section(name="docs", path=Path("/content/docs"))
 
         # Add regular index first
-        regular_index = Page(
+        regular_index = _page(
             source_path=Path("/content/docs/index.md"),
             _raw_content="Content from index",
             _raw_metadata={"title": "Index"},
@@ -57,7 +57,7 @@ class TestIndexFileCollision:
         section.add_page(regular_index)
 
         # Add underscore index second
-        underscore_index = Page(
+        underscore_index = _page(
             source_path=Path("/content/docs/_index.md"),
             _raw_content="Content from _index",
             _raw_metadata={"title": "Underscore Index"},
@@ -84,7 +84,7 @@ class TestIndexFileCollision:
         section = Section(name="docs", path=Path("/content/docs"))
 
         # Add underscore index first
-        underscore_index = Page(
+        underscore_index = _page(
             source_path=Path("/content/docs/_index.md"),
             _raw_content="Content from _index",
             _raw_metadata={"title": "Underscore Index"},
@@ -92,7 +92,7 @@ class TestIndexFileCollision:
         section.add_page(underscore_index)
 
         # Add regular index second
-        regular_index = Page(
+        regular_index = _page(
             source_path=Path("/content/docs/index.md"),
             _raw_content="Content from index",
             _raw_metadata={"title": "Index"},
@@ -116,12 +116,12 @@ class TestIndexFileCollision:
         section = Section(name="docs", path=Path("/content/docs"))
 
         # Add some regular pages
-        page1 = Page(
+        page1 = _page(
             source_path=Path("/content/docs/guide.md"),
             _raw_content="Guide content",
             _raw_metadata={"title": "Guide"},
         )
-        page2 = Page(
+        page2 = _page(
             source_path=Path("/content/docs/tutorial.md"),
             _raw_content="Tutorial content",
             _raw_metadata={"title": "Tutorial"},
@@ -139,7 +139,7 @@ class TestIndexFileCollision:
         section = Section(name="docs", path=Path("/content/docs"))
 
         # Add regular index with cascade
-        regular_index = Page(
+        regular_index = _page(
             source_path=Path("/content/docs/index.md"),
             _raw_content="Regular index",
             _raw_metadata={"title": "Index", "cascade": {"layout": "doc"}},
@@ -148,7 +148,7 @@ class TestIndexFileCollision:
         assert "cascade" in section.metadata
 
         # Add underscore index with different cascade
-        underscore_index = Page(
+        underscore_index = _page(
             source_path=Path("/content/docs/_index.md"),
             _raw_content="Underscore index",
             _raw_metadata={"title": "Underscore Index", "cascade": {"layout": "guide"}},

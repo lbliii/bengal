@@ -5,10 +5,10 @@ Tests the versioning functionality that filters pages and subsections
 by their version attribute for multi-version documentation sites.
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
-from bengal.core.page import Page
 from bengal.core.section import Section
+from tests._testing.page_records import make_mutable_test_page as _page
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -20,14 +20,14 @@ def make_page(
     version: str | None = None,
     title: str | None = None,
     weight: int | None = None,
-) -> Page:
+) -> Any:
     """Helper to create a test page with optional version."""
     metadata: dict = {"title": title or name.title()}
     if version is not None:
         metadata["version"] = version
     if weight is not None:
         metadata["weight"] = weight
-    return Page(
+    return _page(
         source_path=tmp_path / f"{name}.md",
         _raw_content=f"Content for {name}",
         _raw_metadata=metadata,

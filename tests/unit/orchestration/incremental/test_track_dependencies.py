@@ -7,7 +7,6 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.orchestration.incremental.orchestrator import IncrementalOrchestrator
 
 
@@ -20,7 +19,7 @@ def mock_site_with_tracks():
 
     # Track page: content/getting-started/_index.md
     track_page_path = content_root / "getting-started" / "_index.md"
-    track_page = Mock(spec=Page)
+    track_page = Mock()
     track_page.source_path = track_page_path
     track_page.metadata = {"template": "tracks/single.html", "track_id": "getting-started"}
     track_page.slug = "getting-started"
@@ -28,9 +27,9 @@ def mock_site_with_tracks():
     # Track items: content/getting-started/step1.md, step2.md
     item1_path = content_root / "getting-started" / "step1.md"
     item2_path = content_root / "getting-started" / "step2.md"
-    item1 = Mock(spec=Page)
+    item1 = Mock()
     item1.source_path = item1_path
-    item2 = Mock(spec=Page)
+    item2 = Mock()
     item2.source_path = item2_path
 
     page_by_path = {

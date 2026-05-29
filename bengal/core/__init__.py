@@ -7,7 +7,6 @@ data structures—they do not perform I/O, logging, or side effects.
 
 Public API:
 Site: Top-level site container coordinating pages, sections, and assets
-Page: Individual content page with metadata, content, and rendering state
 Section: Hierarchical content grouping (directories in content tree)
 Asset: Static file (CSS, JS, images, fonts) with processing capabilities
 Theme: Theme configuration accessible as site.theme in templates
@@ -31,9 +30,8 @@ Architecture:
 Core models are passive data structures with computed properties.
 They do not perform I/O, logging, or side effects. Operations on
 models are handled by orchestrators (see bengal/orchestration/).
-Build code creates Page instances from immutable SourcePage records at
-the content discovery boundary; direct Page construction remains a public
-compatibility surface rather than the preferred internal production path.
+Build code consumes immutable SourcePage records and page-like protocol
+surfaces instead of exposing a public mutable Page constructor.
 
 Organization Pattern:
 - Simple models (< 400 lines): Single file (e.g., section.py)
@@ -59,7 +57,6 @@ from bengal.core.asset import Asset
 from bengal.core.build_state import BuildState
 from bengal.core.menu import MenuBuilder, MenuItem
 from bengal.core.nav_tree import NavNode, NavNodeProxy, NavTree, NavTreeCache, NavTreeContext
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.core.theme import Theme
@@ -91,7 +88,6 @@ __all__ = [
     "NavTree",
     "NavTreeCache",
     "NavTreeContext",
-    "Page",
     "Section",
     "Site",
     "Theme",

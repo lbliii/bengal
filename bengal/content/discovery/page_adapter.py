@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.core.page import Page
 
 if TYPE_CHECKING:
     from bengal.core.records import SourcePage
-    from bengal.protocols import SectionLike
+    from bengal.protocols import PageLike, SectionLike
 
 
 def page_from_source_page(
@@ -21,7 +21,7 @@ def page_from_source_page(
     rendered_html: str | None = None,
     template_name: str | None = None,
     from_cache: bool = False,
-) -> Page:
+) -> PageLike:
     """Adapt a ``SourcePage`` into the temporary mutable ``Page`` surface.
 
     ``SourcePage`` remains the discovery boundary record. This helper keeps the
@@ -59,4 +59,4 @@ def page_from_source_page(
     if source_page.translation_key:
         page.translation_key = source_page.translation_key
 
-    return page
+    return cast("PageLike", page)

@@ -2,9 +2,9 @@
 
 from pathlib import Path
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestSectionURLGeneration:
@@ -21,7 +21,7 @@ class TestSectionURLGeneration:
         """Test section URL when index page exists but has no output_path yet."""
         section = Section(name="docs", path=Path("/content/docs"))
 
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/content/docs/index.md"), _raw_metadata={"title": "Documentation"}
         )
         section.add_page(index_page)
@@ -37,7 +37,7 @@ class TestSectionURLGeneration:
         section = Section(name="docs", path=Path("/content/docs"))
         section._site = site
 
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/content/docs/index.md"),
             _raw_metadata={"title": "Documentation"},
             output_path=Path("/site/public/docs/index.html"),
@@ -88,7 +88,7 @@ class TestPageAncestors:
 
     def test_page_with_no_section(self):
         """Test page with no section has empty ancestors."""
-        page = Page(source_path=Path("/content/page.md"), _raw_metadata={"title": "Page"})
+        page = _page(source_path=Path("/content/page.md"), _raw_metadata={"title": "Page"})
 
         assert page.ancestors == []
 
@@ -97,7 +97,7 @@ class TestPageAncestors:
         site = Site(root_path=Path("/site"), config={})
         section = Section(name="docs", path=Path("/content/docs"))
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/intro.md"), _raw_metadata={"title": "Introduction"}
         )
 
@@ -120,7 +120,7 @@ class TestPageAncestors:
         parent = Section(name="docs", path=Path("/content/docs"))
         child = Section(name="guides", path=Path("/content/docs/guides"))
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/guides/intro.md"),
             _raw_metadata={"title": "Guide Introduction"},
         )
@@ -150,7 +150,7 @@ class TestPageAncestors:
         root = Section(name="root", path=Path("/content"))
         section = Section(name="docs", path=Path("/content/docs"))
 
-        page = Page(source_path=Path("/content/docs/page.md"), _raw_metadata={"title": "Page"})
+        page = _page(source_path=Path("/content/docs/page.md"), _raw_metadata={"title": "Page"})
 
         root.add_subsection(section)
         section.add_page(page)
@@ -183,7 +183,7 @@ class TestPageAncestors:
         level2 = Section(name="v2", path=Path("/content/api/v2"))
         level3 = Section(name="auth", path=Path("/content/api/v2/auth"))
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/api/v2/auth/oauth.md"), _raw_metadata={"title": "OAuth"}
         )
 
@@ -219,7 +219,7 @@ class TestBreadcrumbLogic:
         # No root section - docs is top-level
         docs = Section(name="docs", path=Path("/content/docs"))
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/advanced.md"),
             _raw_metadata={"title": "Advanced Topics"},
         )
@@ -252,7 +252,7 @@ class TestBreadcrumbLogic:
         api = Section(name="api", path=Path("/content/api"))
         v2 = Section(name="v2", path=Path("/content/api/v2"))
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/api/v2/users.md"), _raw_metadata={"title": "User Management"}
         )
 
@@ -296,7 +296,7 @@ class TestNavigationEdgeCases:
         """Test that page.parent returns the section."""
         site = Site(root_path=Path("/site"), config={})
         section = Section(name="docs", path=Path("/content/docs"))
-        page = Page(source_path=Path("/content/docs/page.md"), _raw_metadata={"title": "Page"})
+        page = _page(source_path=Path("/content/docs/page.md"), _raw_metadata={"title": "Page"})
 
         section.add_page(page)
         section._site = site

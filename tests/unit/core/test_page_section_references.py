@@ -9,9 +9,14 @@ from pathlib import Path
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
+from tests._testing.page_records import (
+    make_mutable_test_page as _page,
+)
+from tests._testing.page_records import (
+    make_virtual_test_page as _virtual_page,
+)
 
 
 @pytest.fixture
@@ -41,7 +46,7 @@ def test_section_reference_survives_recreation(temp_site):
     )
 
     # Create page with section reference
-    page = Page(
+    page = _page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Content",
         _raw_metadata={"title": "Post 1"},
@@ -87,7 +92,7 @@ def test_page_url_stable_across_rebuilds(temp_site):
         subsections=[],
     )
 
-    page = Page(
+    page = _page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Content",
         _raw_metadata={"title": "Post 1", "slug": "post-1"},
@@ -129,7 +134,7 @@ def test_section_setter_stores_path(temp_site):
         subsections=[],
     )
 
-    page = Page(
+    page = _page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Content",
         _raw_metadata={"title": "Post 1"},
@@ -149,7 +154,7 @@ def test_section_setter_stores_path(temp_site):
 
 def test_missing_section_counter_gated_warnings(temp_site, caplog):
     """Test that missing section warnings are counter-gated."""
-    page = Page(
+    page = _page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Content",
         _raw_metadata={"title": "Post 1"},
@@ -178,7 +183,7 @@ def test_missing_section_counter_gated_warnings(temp_site, caplog):
 
 def test_section_none_handling(temp_site):
     """Test that None sections are handled correctly."""
-    page = Page(
+    page = _page(
         source_path=temp_site.root_path / "content" / "post1.md",
         _raw_content="Content",
         _raw_metadata={"title": "Post 1"},
@@ -203,7 +208,7 @@ def test_page_parent_property_uses_section(temp_site):
         subsections=[],
     )
 
-    page = Page(
+    page = _page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Content",
         _raw_metadata={"title": "Post 1"},
@@ -239,7 +244,7 @@ def test_page_ancestors_uses_section(temp_site):
 
     guides.parent = docs
 
-    page = Page(
+    page = _page(
         source_path=temp_site.root_path / "content" / "docs" / "guides" / "intro.md",
         _raw_content="Content",
         _raw_metadata={"title": "Introduction"},
@@ -282,7 +287,7 @@ def test_virtual_section_reference(temp_site):
     )
 
     # Create virtual page for this section
-    page = Page.create_virtual(
+    page = _virtual_page(
         source_id="api/index.md",
         title="API Index",
         content="API documentation",
@@ -326,7 +331,7 @@ def test_virtual_section_hierarchical_navigation(temp_site):
     api_section.subsections = [core_section]
 
     # Create page in the nested section
-    page = Page.create_virtual(
+    page = _virtual_page(
         source_id="api/core/page_module.md",
         title="Page Module",
         content="Documentation for Page class",
@@ -387,13 +392,13 @@ def test_mixed_regular_and_virtual_sections(temp_site):
     )
 
     # Create pages
-    blog_post = Page(
+    blog_post = _page(
         source_path=temp_site.root_path / "content" / "blog" / "post1.md",
         _raw_content="Blog content",
         _raw_metadata={"title": "Post 1"},
     )
 
-    api_page = Page.create_virtual(
+    api_page = _virtual_page(
         source_id="api/module.md",
         title="Module Docs",
         content="API content",
@@ -418,7 +423,7 @@ def test_mixed_regular_and_virtual_sections(temp_site):
 
 def test_virtual_section_setter_clears_both_references(temp_site):
     """Test that setting _section to None clears both path and URL."""
-    page = Page(
+    page = _page(
         source_path=temp_site.root_path / "content" / "test.md",
         _raw_content="Content",
         _raw_metadata={"title": "Test"},

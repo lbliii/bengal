@@ -7,9 +7,9 @@ especially for deduplication and set operations.
 
 from pathlib import Path
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestPageDeduplicationInBuilds:
@@ -30,11 +30,11 @@ class TestPageDeduplicationInBuilds:
         site = Site(root_path=tmp_path, output_dir=tmp_path / "public")
 
         # Create some regular pages
-        page1 = Page(source_path=tmp_path / "content/post1.md", tags=["python"])
-        page2 = Page(source_path=tmp_path / "content/post2.md", tags=["python"])
+        page1 = _page(source_path=tmp_path / "content/post1.md", tags=["python"])
+        page2 = _page(source_path=tmp_path / "content/post2.md", tags=["python"])
 
         # Create generated tag page
-        tag_page = Page(
+        tag_page = _page(
             source_path=Path("_generated/tags/python.md"),
             _raw_metadata={"_generated": True, "type": "tag", "_tag_slug": "python"},
         )
@@ -95,12 +95,12 @@ class TestSectionTrackingInBuilds:
 
         # Create pages in sections
         pages = [
-            Page(source_path=tmp_path / "blog/post1.md"),
-            Page(source_path=tmp_path / "blog/post2.md"),
-            Page(source_path=tmp_path / "docs/guide1.md"),
-            Page(source_path=tmp_path / "blog/post3.md"),
-            Page(source_path=tmp_path / "tutorials/intro.md"),
-            Page(source_path=tmp_path / "docs/guide2.md"),
+            _page(source_path=tmp_path / "blog/post1.md"),
+            _page(source_path=tmp_path / "blog/post2.md"),
+            _page(source_path=tmp_path / "docs/guide1.md"),
+            _page(source_path=tmp_path / "blog/post3.md"),
+            _page(source_path=tmp_path / "tutorials/intro.md"),
+            _page(source_path=tmp_path / "docs/guide2.md"),
         ]
 
         # Set up pages with site and sections
@@ -135,9 +135,9 @@ class TestSectionTrackingInBuilds:
         section1 = Section(name="blog", path=tmp_path / "blog")
         section2 = Section(name="docs", path=tmp_path / "docs")
 
-        page1 = Page(source_path=tmp_path / "blog/post1.md")
-        page2 = Page(source_path=tmp_path / "blog/post2.md")
-        page3 = Page(source_path=tmp_path / "docs/guide.md")
+        page1 = _page(source_path=tmp_path / "blog/post1.md")
+        page2 = _page(source_path=tmp_path / "blog/post2.md")
+        page3 = _page(source_path=tmp_path / "docs/guide.md")
 
         # Build mapping using sections as keys
         section_pages = {section1: [page1, page2], section2: [page3]}
@@ -151,7 +151,7 @@ class TestSectionTrackingInBuilds:
         # Can update using equivalent section
         section1_copy = Section(name="blog", path=tmp_path / "blog")
         assert section1_copy in section_pages  # Should be found
-        section_pages[section1_copy].append(Page(source_path=tmp_path / "blog/post3.md"))
+        section_pages[section1_copy].append(_page(source_path=tmp_path / "blog/post3.md"))
 
         # Should have updated the original entry
         assert len(section_pages[section1]) == 3
@@ -164,15 +164,15 @@ class TestSetOperationsInPipeline:
         """Test set operations useful for page analysis."""
         # Create pages with different tags
         python_pages = {
-            Page(source_path=tmp_path / "content/python1.md", tags=["python"]),
-            Page(source_path=tmp_path / "content/python2.md", tags=["python"]),
-            Page(source_path=tmp_path / "content/python3.md", tags=["python"]),
+            _page(source_path=tmp_path / "content/python1.md", tags=["python"]),
+            _page(source_path=tmp_path / "content/python2.md", tags=["python"]),
+            _page(source_path=tmp_path / "content/python3.md", tags=["python"]),
         }
 
         web_pages = {
-            Page(source_path=tmp_path / "content/web1.md", tags=["web"]),
-            Page(source_path=tmp_path / "content/web2.md", tags=["web"]),
-            Page(source_path=tmp_path / "content/python2.md", tags=["python", "web"]),  # Overlap
+            _page(source_path=tmp_path / "content/web1.md", tags=["web"]),
+            _page(source_path=tmp_path / "content/web2.md", tags=["web"]),
+            _page(source_path=tmp_path / "content/python2.md", tags=["python", "web"]),  # Overlap
         }
 
         # Find pages in both categories
@@ -189,7 +189,7 @@ class TestSetOperationsInPipeline:
 
     def test_page_deduplication_across_taxonomies(self, tmp_path):
         """Test deduplication when same page appears in multiple taxonomies."""
-        page1 = Page(source_path=tmp_path / "content/post.md", tags=["python", "web", "tutorial"])
+        page1 = _page(source_path=tmp_path / "content/post.md", tags=["python", "web", "tutorial"])
 
         # Simulate page appearing in multiple taxonomy collections
         python_tag_pages = [page1]
@@ -219,7 +219,7 @@ class TestMemoryOptimizations:
         import sys
 
         # Create some pages
-        pages = [Page(source_path=tmp_path / f"content/post{i}.md") for i in range(100)]
+        pages = [_page(source_path=tmp_path / f"content/post{i}.md") for i in range(100)]
 
         # Old approach: ID-based mapping (knowledge_graph.py before refactor)
         page_by_id = {}
@@ -249,11 +249,11 @@ class TestMemoryOptimizations:
         path = tmp_path / "content/post.md"
 
         # Create page in build 1
-        page1 = Page(source_path=path, _raw_content="Original content")
+        page1 = _page(source_path=path, _raw_content="Original content")
         data = {page1: "some cached data"}
 
         # Simulate page reconstruction in build 2 (incremental build)
-        page2 = Page(source_path=path, _raw_content="Updated content")
+        page2 = _page(source_path=path, _raw_content="Updated content")
 
         # Should be able to find cached data using reconstructed page
         assert page2 in data

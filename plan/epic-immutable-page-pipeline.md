@@ -1,13 +1,26 @@
 # Epic: Immutable Page Pipeline — Snapshots All The Way Down
 
-**Status**: Active — Sprints 0-5 Complete, Sprint 6 Pending
+**Status**: Active — Sprints 0-5 Complete, Sprint 6 In Progress
 **Created**: 2026-04-06
-**Updated**: 2026-05-28
+**Updated**: 2026-05-29
 **Target**: v0.4.x
 **Estimated Effort**: 60-80 hours
 **Dependencies**: Root roadmap sequencing; older protocol and architecture audit epics are archived as stale/superseded.
 **Source**: Layered Review (2026-04-06), rfc-bengal-v2-architecture.md (Phase 3-4)
-**2026-05-28 Check**: `bengal/core/page/__init__.py` still defines `class Page`; frozen pipeline records and snapshots exist, so Sprint 6 remains valid.
+**2026-05-29 Check**: `bengal/core/page/__init__.py` still defines `class Page`.
+The SourcePage adapter seam now exists in `bengal/content/discovery/page_adapter.py`,
+autodoc/orchestration virtual producers use `create_virtual_source_page()`, and
+latest tests migrated page behavior fixtures through SourcePage helpers. Sprint
+6 is active. Direct production `from bengal.core.page import Page` imports are
+now isolated to the SourcePage compatibility adapter. The 2026-05-29 public API
+decision retired the lazy `bengal.Page` and `bengal.core.Page` compatibility
+re-exports. Boundary tests now enforce that production `Page` construction and
+direct imports stay isolated to the adapter and that tests do not import the
+concrete `Page` class. The remaining direct import count across `bengal/` +
+`tests/` is 1 import site: the adapter. The adapter's public type boundary now
+returns `PageLike`; mutable construction remains isolated inside the adapter.
+Deletion remains blocked by the adapter boundary and the concrete class itself,
+not by public export compatibility.
 
 ---
 
@@ -78,7 +91,7 @@ Stage 5 — Write
 | **3** | Decompose SitePlan; replace snapshot builder | 8-12h | Medium | ✅ COMPLETE (PR #198) |
 | **4** | Introduce SourcePage; replace Page at discovery | 10-14h | High | ✅ COMPLETE (PR #199) |
 | **5** | Delete PageProxy; cache stores typed records | 6-8h | Medium | ✅ COMPLETE (PR #200) |
-| **6** | Delete Page class; cleanup, final migration | 6-8h | Low | Pending |
+| **6** | Delete Page class; cleanup, final migration | 6-8h | Medium | In progress |
 
 Each sprint is a shippable PR. Later sprints can be deferred if earlier ones prove the model wrong.
 
@@ -328,9 +341,10 @@ populated at discovery time.
 
 ### Task 4.4 — Virtual page creation via factory functions ✅
 
-`create_virtual_source_page()` factory defined in `bengal/core/records.py`. Existing
-`Page.create_virtual()` callers (taxonomy, autodoc, section) unchanged for Sprint 4 —
-they continue producing mutable Pages. Migration to `create_virtual_source_page()` deferred.
+`create_virtual_source_page()` factory defined in `bengal/core/records.py`. Sprint 4
+left existing mutable virtual-page callers unchanged, but Sprint 6 later migrated
+autodoc/orchestration producers to `create_virtual_source_page()` and removed the
+`Page.create_virtual()` compatibility constructor.
 
 ### Task 4.5 — Dev server hot-reload reconstructs records ✅
 
@@ -345,8 +359,8 @@ for backward compatibility.
 - **Eliminate orchestration mutations**: Section finalization, taxonomy, related posts,
   complexity estimation continue mutating mutable Page. Full migration to SourcePage-only
   is Sprint 5-6 scope.
-- **Wire `create_virtual_source_page()` into callers**: Taxonomy, autodoc, and section
-  virtual page creation still uses `Page.create_virtual()`.
+- **Wire `create_virtual_source_page()` into callers**: Completed in Sprint 6 for
+  page producers; section virtual creation remains a separate Section concern.
 - **Remove dual-write**: Eliminate Page construction from `_create_page()` once all
   consumers read from SourcePage.
 
@@ -388,19 +402,78 @@ checks (8 sites) and imports (19 files). Updated `phase_update_site_pages()`,
 
 ### Deferred to later sprint
 
-- **Remove dual-write**: `page.rendered_html = ...` still set for `json_accumulator`
-  and `cache_checker.cache_rendered_output`. Blocked on Sprint 6 (delete Page).
-- **Wire `create_virtual_source_page()` into callers**: Still uses `Page.create_virtual()`.
+- **Remove Page compatibility adapter**: `page_from_source_page()` now isolates
+  mutable `Page` construction at the discovery boundary; it can go only after
+  downstream code consumes records directly.
+- **Finish virtual-page migration**: Autodoc and orchestration producers use
+  `create_virtual_source_page()`, and Sprint 6 removed `Page.create_virtual()`.
 
 ---
 
-## Sprint 6: Delete Page Class
+## Sprint 6 Saga: Delete Page Class
 
-**Goal**: Remove the mutable Page dataclass entirely. Final cleanup.
+**Goal**: Remove the mutable Page dataclass entirely without losing public
+behavior accidentally. This is a saga-scale goal: task commits may migrate one
+domain or test cluster at a time, but the saga is not complete until the class,
+production adapter, obsolete mixins, and non-compatibility test dependencies are
+gone or explicitly retained by a recorded public API decision.
+
+### Completed Sprint 6 slices
+
+- `ee3427abd docs: codify saga planning workflow`
+- `f50073af1 core: isolate page compatibility boundary`
+- `76a8eee30 tests: migrate analysis page fixtures`
+- `tests: migrate health and cache page fixtures`
+- `tests: migrate orchestration page fixtures`
+- `tests: migrate utility and template page fixtures`
+- `tests: migrate nav tree page fixtures`
+- `tests: migrate discovery and redirect page fixtures`
+- `tests: migrate autodoc virtual page fixtures`
+- `tests: migrate section page fixtures`
+- `tests: migrate core page-like behavior fixtures`
+- `tests: migrate page behavior fixtures`
+- `tests: migrate page bundle fixtures`
+- `content: type source page adapter as page-like`
+- `core: retire public page exports`
+- `core: remove page virtual constructor`
+- `content: move i18n discovery state into source records`
+
+### Sprint 6 epics
+
+1. **Production boundary closure:** production construction and direct imports
+   stay isolated to `bengal/content/discovery/page_adapter.py` until that
+   adapter can be deleted.
+2. **Test fixture migration:** migrate non-compatibility tests to
+   SourcePage/page-record helpers and record migrated files in
+   `tests/unit/content/test_page_construction_boundary.py`.
+3. **Protocol/type convergence:** remove concrete `Page` annotations where the
+   contract is page-like or record-like.
+4. **Public compatibility decision:** recorded 2026-05-29; public
+   `bengal.Page` and `bengal.core.Page` compatibility re-exports are retired.
+5. **Class and mixin deletion:** delete the mutable class and obsolete files
+   only once the earlier epics prove the path is clear.
+6. **Collateral closure:** update roadmap, changelog, docs, and verification
+   evidence after each task slice.
 
 ### Task 6.1 — Audit remaining Page references
 
-Search all 71 files that import Page. Convert remaining references to appropriate record types.
+Search all remaining `Page` imports. As of the 2026-05-29 export retirement slice,
+`rg 'from bengal\.core\.page import Page\b' bengal` finds only
+`bengal/content/discovery/page_adapter.py`, the intentional compatibility
+adapter from immutable `SourcePage` records to mutable `Page`. The broader
+`bengal/` + `tests/` sweep now finds 1 import site: the adapter. The public
+`bengal.Page` and `bengal.core.Page` compatibility re-exports are retired and
+`tests/unit/core/test_public_exports.py` proves they stay absent without loading
+`bengal.core.page`. The boundary test now performs an AST import sweep so
+multi-name imports cannot hide concrete `Page` usage. The adapter itself now
+returns `PageLike` instead of concrete `Page`, leaving only the actual
+compatibility construction internally concrete. Next, delete or replace the
+adapter boundary so `bengal/core/page/` can be removed.
+
+Task 6.1 also started retiring post-adapter mutations: discovery now derives
+i18n `lang` and `translation_key` values before creating `SourcePage`, so the
+adapter receives the correct immutable source state instead of setting those
+fields afterward.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

@@ -9,12 +9,27 @@ Also verifies BuildState delegation: per-build state (cascade, template
 caches, features_detected) is structurally fresh via BuildState.
 """
 
+from typing import Any
+
 import pytest
 
-from bengal.core.page import Page
+from bengal.core.menu import MenuBuilder
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.orchestration.build_state import BuildState
+from tests._testing.page_records import make_test_page
+
+
+def _page(source_path, metadata, *, site=None, section_path=None):
+    page: Any = make_test_page(
+        source_path=source_path,
+        metadata=metadata,
+        default_metadata=False,
+        site=site,
+    )
+    if section_path is not None:
+        object.__setattr__(page, "_section_path", section_path)
+    return page
 
 
 @pytest.fixture
@@ -27,14 +42,14 @@ def site_with_cascade(tmp_path):
     site = Site(root_path=tmp_path)
 
     # Create an index page with cascade data
-    index_page = Page(
+    index_page = _page(
         source_path=content_dir / "docs" / "_index.md",
-        _raw_metadata={
+        metadata={
             "title": "Documentation",
             "cascade": {"type": "doc", "layout": "docs-sidebar"},
         },
+        site=site,
     )
-    index_page._site = site
 
     # Create a section with the index page
     section = Section(
@@ -46,12 +61,12 @@ def site_with_cascade(tmp_path):
     )
 
     # Create a child page (no explicit type/layout — relies on cascade)
-    child_page = Page(
+    child_page = _page(
         source_path=content_dir / "docs" / "guide.md",
-        _raw_metadata={"title": "Getting Started Guide"},
+        metadata={"title": "Getting Started Guide"},
+        site=site,
+        section_path=content_dir / "docs",
     )
-    child_page._site = site
-    child_page._section_path = content_dir / "docs"
     section.pages.append(child_page)
 
     site.sections = [section]
@@ -69,7 +84,7 @@ class TestPrepareForRebuild:
     def test_resets_pages_and_sections(self, tmp_path):
         """prepare_for_rebuild clears pages and sections."""
         site = Site(root_path=tmp_path)
-        site.pages = [Page(source_path=tmp_path / "p.md", _raw_metadata={"title": "P"})]
+        site.pages = [_page(tmp_path / "p.md", {"title": "P"})]
         site.sections = [Section(name="s", path=tmp_path / "s")]
 
         site.prepare_for_rebuild()
@@ -96,7 +111,7 @@ class TestPrepareForRebuild:
         site = Site(root_path=tmp_path)
         site.taxonomies = {"tags": {"python": {"pages": []}}}
         site.menu = {"main": []}
-        site.menu_builders = {"main": object()}
+        site.menu_builders = {"main": MenuBuilder()}
         site.xref_index = {"by_path": {}}
 
         site.prepare_for_rebuild()
@@ -123,7 +138,7 @@ class TestPrepareForRebuild:
     def test_invalidates_page_caches(self, tmp_path):
         """prepare_for_rebuild invalidates all page caches."""
         site = Site(root_path=tmp_path)
-        page = Page(source_path=tmp_path / "p.md", _raw_metadata={"title": "P"})
+        page = _page(tmp_path / "p.md", {"title": "P"})
         site.pages = [page]
 
         # Populate caches
@@ -159,14 +174,14 @@ class TestCascadePreservedAcrossRebuild:
         site = Site(root_path=tmp_path)
 
         # --- First build ---
-        index_page = Page(
+        index_page = _page(
             source_path=content_dir / "docs" / "_index.md",
-            _raw_metadata={
+            metadata={
                 "title": "Docs",
                 "cascade": {"type": "doc", "layout": "docs-sidebar"},
             },
+            site=site,
         )
-        index_page._site = site
 
         section = Section(
             name="docs",
@@ -176,12 +191,12 @@ class TestCascadePreservedAcrossRebuild:
             metadata={"title": "Docs"},
         )
 
-        child = Page(
+        child = _page(
             source_path=content_dir / "docs" / "guide.md",
-            _raw_metadata={"title": "Guide"},
+            metadata={"title": "Guide"},
+            site=site,
+            section_path=content_dir / "docs",
         )
-        child._site = site
-        child._section_path = content_dir / "docs"
         section.pages.append(child)
 
         site.sections = [section]
@@ -200,14 +215,14 @@ class TestCascadePreservedAcrossRebuild:
 
         # --- Rediscovery (simulates ContentOrchestrator.discover_content) ---
         # Recreate sections and pages (as discovery would)
-        new_index = Page(
+        new_index = _page(
             source_path=content_dir / "docs" / "_index.md",
-            _raw_metadata={
+            metadata={
                 "title": "Docs",
                 "cascade": {"type": "doc", "layout": "docs-sidebar"},
             },
+            site=site,
         )
-        new_index._site = site
 
         new_section = Section(
             name="docs",
@@ -217,12 +232,12 @@ class TestCascadePreservedAcrossRebuild:
             metadata={"title": "Docs"},
         )
 
-        new_child = Page(
+        new_child = _page(
             source_path=content_dir / "docs" / "guide.md",
-            _raw_metadata={"title": "Guide"},
+            metadata={"title": "Guide"},
+            site=site,
+            section_path=content_dir / "docs",
         )
-        new_child._site = site
-        new_child._section_path = content_dir / "docs"
         new_section.pages.append(new_child)
 
         site.sections = [new_section]
@@ -251,14 +266,14 @@ class TestCascadePreservedAcrossRebuild:
         site = Site(root_path=tmp_path)
 
         # Build with cascade data
-        index_page = Page(
+        index_page = _page(
             source_path=content_dir / "docs" / "_index.md",
-            _raw_metadata={
+            metadata={
                 "title": "Docs",
                 "cascade": {"layout": "special"},
             },
+            site=site,
         )
-        index_page._site = site
 
         section = Section(
             name="docs",
@@ -292,14 +307,14 @@ class TestCascadePreservedAcrossRebuild:
         site = Site(root_path=tmp_path)
 
         # First build with layout=alpha
-        index_page = Page(
+        index_page = _page(
             source_path=content_dir / "blog" / "_index.md",
-            _raw_metadata={
+            metadata={
                 "title": "Blog",
                 "cascade": {"layout": "alpha"},
             },
+            site=site,
         )
-        index_page._site = site
 
         section = Section(
             name="blog",
@@ -308,12 +323,12 @@ class TestCascadePreservedAcrossRebuild:
             index_page=index_page,
         )
 
-        child = Page(
+        child = _page(
             source_path=content_dir / "blog" / "post.md",
-            _raw_metadata={"title": "Post"},
+            metadata={"title": "Post"},
+            site=site,
+            section_path=content_dir / "blog",
         )
-        child._site = site
-        child._section_path = content_dir / "blog"
         section.pages.append(child)
 
         site.sections = [section]
@@ -327,14 +342,14 @@ class TestCascadePreservedAcrossRebuild:
         # Rebuild with layout=beta
         site.prepare_for_rebuild()
 
-        new_index = Page(
+        new_index = _page(
             source_path=content_dir / "blog" / "_index.md",
-            _raw_metadata={
+            metadata={
                 "title": "Blog",
                 "cascade": {"layout": "beta"},
             },
+            site=site,
         )
-        new_index._site = site
 
         new_section = Section(
             name="blog",
@@ -383,14 +398,14 @@ class TestBuildStateDelegation:
         site.set_build_state(bs)
 
         # Build cascade — should write to BuildState
-        index_page = Page(
+        index_page = _page(
             source_path=content_dir / "docs" / "_index.md",
-            _raw_metadata={
+            metadata={
                 "title": "Docs",
                 "cascade": {"type": "doc"},
             },
+            site=site,
         )
-        index_page._site = site
 
         section = Section(
             name="docs",
@@ -425,14 +440,14 @@ class TestBuildStateDelegation:
         # No BuildState set — common in tests
         assert site.build_state is None
 
-        index_page = Page(
+        index_page = _page(
             source_path=content_dir / "docs" / "_index.md",
-            _raw_metadata={
+            metadata={
                 "title": "Docs",
                 "cascade": {"type": "doc"},
             },
+            site=site,
         )
-        index_page._site = site
 
         section = Section(
             name="docs",
@@ -464,14 +479,14 @@ class TestBuildStateDelegation:
         bs1 = BuildState()
         site.set_build_state(bs1)
 
-        index_page = Page(
+        index_page = _page(
             source_path=content_dir / "docs" / "_index.md",
-            _raw_metadata={
+            metadata={
                 "title": "Docs",
                 "cascade": {"layout": "alpha"},
             },
+            site=site,
         )
-        index_page._site = site
         section = Section(
             name="docs",
             path=content_dir / "docs",
@@ -495,14 +510,14 @@ class TestBuildStateDelegation:
         assert bs2.cascade_snapshot is None
 
         # Now rebuild with different cascade data
-        new_index = Page(
+        new_index = _page(
             source_path=content_dir / "docs" / "_index.md",
-            _raw_metadata={
+            metadata={
                 "title": "Docs",
                 "cascade": {"layout": "beta"},
             },
+            site=site,
         )
-        new_index._site = site
         new_section = Section(
             name="docs",
             path=content_dir / "docs",
@@ -557,7 +572,7 @@ class TestBuildStateDelegation:
         bs = BuildState()
 
         # Set caches
-        bs.theme_chain_cache = {"key": ("default", "/tmp"), "chain": ["default"]}
+        bs.theme_chain_cache = ["default"]
         bs.template_dirs_cache = {"key": ("default", "/tmp"), "template_dirs": ["/tmp/templates"]}
         bs.template_metadata_cache = {"key": "x", "metadata": {"engine": "bengal"}}
 

@@ -48,8 +48,8 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.menu import MenuBuilder, MenuItem
-    from bengal.core.page import Page
     from bengal.core.section import Section
+    from bengal.protocols.core import PageLike
 
 
 @dataclass
@@ -89,7 +89,7 @@ class SiteContent:
     """
 
     # Core content
-    pages: list[Page] = field(default_factory=list)
+    pages: list[PageLike] = field(default_factory=list)
     sections: list[Section] = field(default_factory=list)
     assets: list[Asset] = field(default_factory=list)
 
@@ -109,9 +109,9 @@ class SiteContent:
     _frozen: bool = field(default=False, repr=False)
 
     # Cached derived lists (invalidated on changes)
-    _regular_pages_cache: list[Page] | None = field(default=None, repr=False)
-    _generated_pages_cache: list[Page] | None = field(default=None, repr=False)
-    _listable_pages_cache: list[Page] | None = field(default=None, repr=False)
+    _regular_pages_cache: list[PageLike] | None = field(default=None, repr=False)
+    _generated_pages_cache: list[PageLike] | None = field(default=None, repr=False)
+    _listable_pages_cache: list[PageLike] | None = field(default=None, repr=False)
     # Lock for thread-safe lazy initialization of page caches
     _cache_lock: threading.Lock = field(default_factory=threading.Lock, init=False, repr=False)
 
@@ -167,7 +167,7 @@ class SiteContent:
         self._listable_pages_cache = None
 
     @property
-    def regular_pages(self) -> list[Page]:
+    def regular_pages(self) -> list[PageLike]:
         """
         Get non-generated pages (cached).
 
@@ -187,7 +187,7 @@ class SiteContent:
         return self._regular_pages_cache
 
     @property
-    def generated_pages(self) -> list[Page]:
+    def generated_pages(self) -> list[PageLike]:
         """
         Get generated pages (cached).
 
@@ -203,7 +203,7 @@ class SiteContent:
         return self._generated_pages_cache
 
     @property
-    def listable_pages(self) -> list[Page]:
+    def listable_pages(self) -> list[PageLike]:
         """
         Get pages visible in listings (cached).
 

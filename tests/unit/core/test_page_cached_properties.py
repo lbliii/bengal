@@ -13,7 +13,7 @@ plan/rfc-template-object-model.md, specifically:
 
 """
 
-from bengal.core.page import Page
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestPageSource:
@@ -22,7 +22,7 @@ class TestPageSource:
     def test_source_returns_raw_content(self, tmp_path):
         """_source returns raw markdown content."""
         raw_markdown = "# Hello World\n\nThis is **bold** text."
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content=raw_markdown,
             _raw_metadata={},
@@ -32,7 +32,7 @@ class TestPageSource:
 
     def test_source_returns_raw_content_field(self, tmp_path):
         """_source returns the _raw_content field value."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="Some raw markdown",
             _raw_metadata={},
@@ -44,7 +44,7 @@ class TestPageSource:
 
     def test_source_empty_content(self, tmp_path):
         """_source returns empty string for empty content."""
-        page = Page(source_path=tmp_path / "test.md", _raw_content="", _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content="", _raw_metadata={})
 
         assert page._source == ""
 
@@ -54,7 +54,7 @@ class TestPageWordCount:
 
     def test_word_count_basic(self, tmp_path):
         """Word count correctly counts words in source."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="One two three four five",
             _raw_metadata={},
@@ -65,7 +65,7 @@ class TestPageWordCount:
     def test_word_count_with_markdown(self, tmp_path):
         """Word count includes markdown syntax as words."""
         # Note: _source is raw markdown, not rendered HTML
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="# Hello World\n\nThis is **bold** text.",
             _raw_metadata={},
@@ -77,19 +77,19 @@ class TestPageWordCount:
 
     def test_word_count_empty_content(self, tmp_path):
         """Empty content returns 0 words."""
-        page = Page(source_path=tmp_path / "test.md", _raw_content="", _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content="", _raw_metadata={})
 
         assert page.word_count == 0
 
     def test_word_count_whitespace_only(self, tmp_path):
         """Whitespace-only content returns 0 words."""
-        page = Page(source_path=tmp_path / "test.md", _raw_content="   \n\n   ", _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content="   \n\n   ", _raw_metadata={})
 
         assert page.word_count == 0
 
     def test_word_count_caching(self, tmp_path):
         """Result is cached after first access."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="One two three four five",
             _raw_metadata={},
@@ -111,7 +111,7 @@ class TestPageWordCount:
         words = ["word"] * 5000
         content = " ".join(words)
 
-        page = Page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
 
         assert page.word_count == 5000
 
@@ -121,7 +121,7 @@ class TestPageMetaDescription:
 
     def test_meta_description_from_metadata(self, tmp_path):
         """Explicit description in metadata is used."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="Some long content here that would be truncated",
             _raw_metadata={"description": "Custom description"},
@@ -131,7 +131,7 @@ class TestPageMetaDescription:
 
     def test_meta_description_from_content(self, tmp_path):
         """Description generated from content when not in metadata."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="This is the content of the page with some text.",
             _raw_metadata={},
@@ -143,7 +143,7 @@ class TestPageMetaDescription:
 
     def test_meta_description_strips_html(self, tmp_path):
         """HTML tags are stripped from content."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="<p>This is <strong>bold</strong> text.</p>",
             _raw_metadata={},
@@ -154,7 +154,7 @@ class TestPageMetaDescription:
     def test_meta_description_truncates_long_content(self, tmp_path):
         """Long content is truncated to 160 chars."""
         long_content = "This is a very long piece of content. " * 20
-        page = Page(source_path=tmp_path / "test.md", _raw_content=long_content, _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content=long_content, _raw_metadata={})
 
         desc = page.meta_description
         assert len(desc) <= 160
@@ -164,7 +164,7 @@ class TestPageMetaDescription:
     def test_meta_description_sentence_boundary(self, tmp_path):
         """Tries to end at sentence boundary."""
         content = "First sentence. Second sentence. Third sentence. " * 10
-        page = Page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
 
         desc = page.meta_description
         # Should end at a sentence boundary (period)
@@ -172,7 +172,7 @@ class TestPageMetaDescription:
 
     def test_meta_description_caching(self, tmp_path):
         """Result is cached after first access."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md", _raw_content="Original content", _raw_metadata={}
         )
 
@@ -190,13 +190,13 @@ class TestPageMetaDescription:
 
     def test_meta_description_empty_content(self, tmp_path):
         """Empty content returns empty string."""
-        page = Page(source_path=tmp_path / "test.md", _raw_content="", _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content="", _raw_metadata={})
 
         assert page.meta_description == ""
 
     def test_meta_description_whitespace_normalization(self, tmp_path):
         """Multiple spaces are normalized."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="This  has    multiple   spaces",
             _raw_metadata={},
@@ -219,7 +219,7 @@ class TestPageReadingTime:
         words = ["word"] * 400
         content = " ".join(words)
 
-        page = Page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
 
         assert page.reading_time == 2
         # Verify it uses word_count
@@ -227,7 +227,7 @@ class TestPageReadingTime:
 
     def test_reading_time_minimum_one(self, tmp_path):
         """Minimum reading time is 1 minute."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md", _raw_content="Just a few words", _raw_metadata={}
         )
 
@@ -241,7 +241,7 @@ class TestPageReadingTime:
         for representing the author's actual word count.
         """
         # Raw markdown - word count includes markdown syntax tokens
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="This is **bold** text for testing.",
             _raw_metadata={},
@@ -258,7 +258,7 @@ class TestPageReadingTime:
         words = ["word"] * 250
         content = " ".join(words)
 
-        page = Page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
 
         assert page.reading_time == 1
 
@@ -266,13 +266,13 @@ class TestPageReadingTime:
         words = ["word"] * 350
         content = " ".join(words)
 
-        page2 = Page(source_path=tmp_path / "test2.md", _raw_content=content, _raw_metadata={})
+        page2 = _page(source_path=tmp_path / "test2.md", _raw_content=content, _raw_metadata={})
 
         assert page2.reading_time == 2
 
     def test_reading_time_caching(self, tmp_path):
         """Result is cached after first access."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content=" ".join(["word"] * 400),
             _raw_metadata={},
@@ -294,7 +294,7 @@ class TestPageReadingTime:
         words = ["word"] * 600
         content = " ".join(words)
 
-        page = Page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
 
         # word_count should be 600
         assert page.word_count == 600
@@ -303,7 +303,7 @@ class TestPageReadingTime:
 
     def test_reading_time_empty_content(self, tmp_path):
         """Empty content returns 1 minute."""
-        page = Page(source_path=tmp_path / "test.md", _raw_content="", _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content="", _raw_metadata={})
 
         assert page.reading_time == 1
 
@@ -316,7 +316,7 @@ class TestPageExcerpt:
 
     def test_excerpt_short_content(self, tmp_path):
         """Short content is rendered to HTML."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md", _raw_content="Short content here.", _raw_metadata={}
         )
 
@@ -324,7 +324,7 @@ class TestPageExcerpt:
 
     def test_excerpt_strips_leading_h1(self, tmp_path):
         """Leading h1 is stripped, excerpt starts with content after."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="# The Title\n\nFirst paragraph of the post.",
             _raw_metadata={},
@@ -336,7 +336,7 @@ class TestPageExcerpt:
 
     def test_excerpt_renders_markdown(self, tmp_path):
         """Markdown (bold, links) is rendered to HTML."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="This has **bold** text.",
             _raw_metadata={},
@@ -348,7 +348,7 @@ class TestPageExcerpt:
 
     def test_excerpt_caching(self, tmp_path):
         """Result is cached after first access."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md", _raw_content="Original content here", _raw_metadata={}
         )
 
@@ -361,7 +361,7 @@ class TestPageExcerpt:
 
     def test_excerpt_empty_content(self, tmp_path):
         """Empty content returns empty string."""
-        page = Page(source_path=tmp_path / "test.md", _raw_content="", _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content="", _raw_metadata={})
 
         assert page.excerpt == ""
 
@@ -371,10 +371,10 @@ class TestCachedPropertiesIntegration:
 
     def test_multiple_pages_independent_caches(self, tmp_path):
         """Each page has its own independent cache."""
-        page1 = Page(
+        page1 = _page(
             source_path=tmp_path / "page1.md", _raw_content="Content for page one", _raw_metadata={}
         )
-        page2 = Page(
+        page2 = _page(
             source_path=tmp_path / "page2.md", _raw_content="Content for page two", _raw_metadata={}
         )
 
@@ -387,7 +387,9 @@ class TestCachedPropertiesIntegration:
 
     def test_cached_properties_persist_across_accesses(self, tmp_path):
         """Cached properties can be accessed multiple times efficiently."""
-        page = Page(source_path=tmp_path / "test.md", _raw_content="Test content", _raw_metadata={})
+        page = _page(
+            source_path=tmp_path / "test.md", _raw_content="Test content", _raw_metadata={}
+        )
 
         # Access each property multiple times
         for _ in range(5):
@@ -402,7 +404,7 @@ class TestCachedPropertiesIntegration:
     def test_all_cached_properties_together(self, tmp_path):
         """All three cached properties work together."""
         content = "This is test content. " * 50
-        page = Page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
+        page = _page(source_path=tmp_path / "test.md", _raw_content=content, _raw_metadata={})
 
         # All should be computable
         desc = page.meta_description

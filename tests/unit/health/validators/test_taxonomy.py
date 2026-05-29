@@ -12,7 +12,6 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.health.report import CheckStatus
@@ -58,7 +57,7 @@ class TestTaxonomyValidator:
         # Create tag pages
         tag_pages = []
         for tag_slug in ["python", "testing", "docs"]:
-            page = Mock(spec=Page)
+            page = Mock()
             page.source_path = tmp_path / f"tags/{tag_slug}.md"
             page.output_path = tmp_path / "public" / "tags" / tag_slug / "index.html"
             page.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -70,7 +69,7 @@ class TestTaxonomyValidator:
         # Create some regular pages
         regular_pages = []
         for i in range(3):
-            page = Mock(spec=Page)
+            page = Mock()
             page.source_path = tmp_path / f"page{i}.md"
             page.source_path.touch()
             page.output_path = tmp_path / "public" / f"page{i}.html"
@@ -113,7 +112,7 @@ class TestTaxonomyValidator:
     def test_orphaned_tag_page(self, validator, mock_site):
         """Test detection of orphaned tag page."""
         # Create tag page for non-existent tag
-        orphan_page = Mock(spec=Page)
+        orphan_page = Mock()
         orphan_page.metadata = {"_generated": True, "type": "tag", "_tag_slug": "orphan-tag"}
         mock_site.pages.append(orphan_page)
 
@@ -147,7 +146,7 @@ class TestTaxonomyValidator:
         section.children = mock_site.pages[:2]
 
         # Create archive page for section
-        archive_page = Mock(spec=Page)
+        archive_page = Mock()
         archive_page.source_path = tmp_path / "blog/archive.md"
         archive_page.output_path = tmp_path / "public" / "blog" / "archive" / "index.html"
         archive_page.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -172,13 +171,13 @@ class TestTaxonomyValidator:
     def test_pagination_integrity(self, validator, mock_site, tmp_path):
         """Test pagination page integrity checking."""
         # Create paginated tag pages
-        page1 = Mock(spec=Page)
+        page1 = Mock()
         page1.metadata = {"_generated": True, "type": "tag", "_tag_slug": "python", "_page_num": 1}
         page1.output_path = tmp_path / "public" / "tags" / "python" / "page" / "1" / "index.html"
         page1.output_path.parent.mkdir(parents=True, exist_ok=True)
         page1.output_path.touch()
 
-        page2 = Mock(spec=Page)
+        page2 = Mock()
         page2.metadata = {"_generated": True, "type": "tag", "_tag_slug": "python", "_page_num": 2}
         page2.output_path = tmp_path / "public" / "tags" / "python" / "page" / "2" / "index.html"
         page2.output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -224,7 +223,7 @@ class TestTaxonomyValidator:
         """Test validation of category pages."""
         # Create category pages
         for cat_slug in ["tutorials", "guides"]:
-            page = Mock(spec=Page)
+            page = Mock()
             page.metadata = {"_generated": True, "type": "category", "_category_slug": cat_slug}
             page.output_path = tmp_path / "public" / "categories" / cat_slug / "index.html"
             page.output_path.parent.mkdir(parents=True, exist_ok=True)

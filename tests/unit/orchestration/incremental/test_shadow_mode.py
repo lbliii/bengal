@@ -12,9 +12,9 @@ from unittest.mock import Mock, patch
 import pytest
 
 from bengal.cache.paths import BengalPaths
-from bengal.core.page import Page
 from bengal.errors import BengalError
 from bengal.orchestration.incremental import IncrementalOrchestrator
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 @pytest.fixture
@@ -30,12 +30,12 @@ def mock_site(tmp_path):
     site.sections = []
 
     site.pages = [
-        Page(
+        _page(
             source_path=tmp_path / "content/page1.md",
             _raw_content="Content 1",
             _raw_metadata={"title": "Page 1"},
         ),
-        Page(
+        _page(
             source_path=tmp_path / "content/page2.md",
             _raw_content="Content 2",
             _raw_metadata={"title": "Page 2"},

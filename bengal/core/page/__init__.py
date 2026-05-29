@@ -1,12 +1,12 @@
 """
 Page representation for content pages in Bengal SSG.
 
-Provides the main Page class combining metadata, navigation, and passive
-content access. Pages represent markdown
-content files and are the primary content unit in Bengal.
+Provides the remaining internal Page compatibility class combining metadata,
+navigation, and passive content access while the pipeline moves to immutable
+records.
 
-Public API:
-Page: Content page with metadata, content, and rendering capabilities
+Compatibility surface:
+Page: temporary content page object with metadata, content, and rendering state
 
 Package Structure:
 page_core.py: PageCore dataclass (cacheable metadata)
@@ -26,9 +26,8 @@ Compatibility Shims: Page keeps a few thin methods/properties for existing
 Hashability: Pages are hashable by source_path, enabling set operations
     and use as dict keys. Two pages with same path are equal.
 
-Virtual Pages: Pages without disk files (e.g., autodoc). The public
-    compatibility API still includes Page.create_virtual(); internal build code
-    should create SourcePage records and adapt them at the discovery boundary.
+Virtual Pages: Pages without disk files (e.g., autodoc). Internal build code
+    creates SourcePage records and adapts them at the discovery boundary.
 
 PageCore: Cacheable subset of page metadata. Shared between Page
     and cache layer. Enables incremental builds.
@@ -109,8 +108,7 @@ class Page:
     VIRTUAL PAGES:
     ==============
     Virtual pages represent dynamically-generated content (e.g., API docs)
-    that doesn't have a corresponding file on disk. The public compatibility
-    API still exposes Page.create_virtual(); internal producers should prefer
+    that doesn't have a corresponding file on disk. Internal producers create
     SourcePage records and adapt them at the discovery boundary. Virtual pages:
     - Have virtual=True and a synthetic source_path
     - Integrate through the source-page adapter during production builds
@@ -688,78 +686,6 @@ class Page:
                 if self._frontmatter is None:
                     self._frontmatter = Frontmatter.from_dict(dict(self.metadata))
         return self._frontmatter
-
-    @classmethod
-    def create_virtual(
-        cls,
-        source_id: str,
-        title: str,
-        content: str = "",
-        metadata: dict[str, Any] | None = None,
-        rendered_html: str | None = None,
-        template_name: str | None = None,
-        output_path: Path | None = None,
-        section_path: Path | None = None,
-    ) -> Page:
-        """
-        Create a virtual page for dynamically-generated content.
-
-        When to use:
-            Use this for pages that have no corresponding markdown file —
-            typically autodoc (Python/OpenAPI), generated listing indexes,
-            or content imported from external sources at build time. Prefer
-            the regular ``Page(...)`` constructor whenever a real source
-            file exists; virtual pages bypass disk mtime tracking and must
-            register their output path explicitly. Pass ``rendered_html=``
-            to skip markdown parsing when you already have HTML.
-
-        Internal build code should create ``SourcePage`` records and adapt them
-        through ``bengal.content.discovery.page_adapter``. This constructor
-        remains available for public compatibility.
-
-        Virtual pages are not backed by a disk file but integrate with
-        the site's page collection, navigation, and rendering pipeline.
-
-        Args:
-            source_id: Unique identifier for this page (used as source_path)
-            title: Page title
-            content: Raw content (markdown) - optional if rendered_html provided
-            metadata: Page metadata/frontmatter
-            rendered_html: Pre-rendered HTML (bypasses markdown parsing)
-            template_name: Custom template name (optional)
-            output_path: Explicit output path (optional)
-            section_path: Section this page belongs to (optional)
-
-        Returns:
-            A new virtual Page instance
-
-        Example:
-            page = Page.create_virtual(
-                source_id="api/bengal/core/page.md",
-                title="Page Module",
-                metadata={"type": "autodoc/python"},
-                rendered_html="<div class='api-card'>...</div>",
-                template_name="autodoc/python/module",
-            )
-        """
-        page_metadata = metadata or {}
-        page_metadata["title"] = title
-
-        page = cls(
-            source_path=Path(source_id),
-            _raw_content=content,
-            _raw_metadata=page_metadata,
-            rendered_html=rendered_html or "",
-            output_path=output_path,
-            _section_path=section_path,
-        )
-
-        # Set virtual page fields (not in __init__ to preserve dataclass)
-        page.virtual = True
-        page.prerendered_html = rendered_html
-        page.template_name = template_name
-
-        return page
 
     def __hash__(self) -> int:
         """

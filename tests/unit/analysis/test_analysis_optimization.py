@@ -10,10 +10,12 @@ implementations while achieving better time complexity:
 """
 
 from collections import defaultdict
+from typing import Any, cast
 from unittest.mock import Mock
 
 import pytest
 
+from tests._testing.page_records import make_mutable_test_page as _page
 from tests._testing.page_records import seed_parsed_page_state
 
 
@@ -403,18 +405,20 @@ class TestKnowledgeGraphIncomingEdges:
 
     def test_knowledge_graph_exposes_incoming_edges(self, tmp_path):
         """Test that KnowledgeGraph exposes incoming_edges from builder."""
-        from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
-        from bengal.core.page import Page
-        from bengal.core.site import Site
+        from bengal.analysis.graph.knowledge_graph import KnowledgeGraph as _KnowledgeGraph
+        from bengal.core.site import Site as _Site
 
-        site = Site(root_path=tmp_path, config={})
+        KnowledgeGraph: Any = _KnowledgeGraph
+        Site: Any = _Site
+
+        site: Any = Site(root_path=tmp_path, config={})
 
         # Create pages with related posts (simulates links)
-        page_a = Page(
-            source_path=tmp_path / "a.md", _raw_content="# A", _raw_metadata={"title": "Page A"}
+        page_a = _page(
+            source_path=tmp_path / "a.md", raw_content="# A", metadata={"title": "Page A"}
         )
-        page_b = Page(
-            source_path=tmp_path / "b.md", _raw_content="# B", _raw_metadata={"title": "Page B"}
+        page_b = _page(
+            source_path=tmp_path / "b.md", raw_content="# B", metadata={"title": "Page B"}
         )
 
         # A has B as related post (simulates A -> B link)
@@ -422,7 +426,7 @@ class TestKnowledgeGraphIncomingEdges:
 
         site.pages = [page_a, page_b]
 
-        graph = KnowledgeGraph(site, exclude_autodoc=False)
+        graph = KnowledgeGraph(cast("Any", site), exclude_autodoc=False)
         graph.build()
 
         # incoming_edges should be exposed

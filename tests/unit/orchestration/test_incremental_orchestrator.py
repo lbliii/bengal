@@ -9,10 +9,10 @@ from unittest.mock import Mock, patch
 import pytest
 
 from bengal.cache import BuildCache
-from bengal.core.page import Page
 from bengal.errors import BengalError
 from bengal.orchestration.incremental import IncrementalOrchestrator
 from bengal.utils.primitives.hashing import hash_str
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 @pytest.fixture
@@ -32,17 +32,17 @@ def mock_site(tmp_path):
 
     # Create some mock pages
     site.pages = [
-        Page(
+        _page(
             source_path=tmp_path / "content/page1.md",
             _raw_content="Content 1",
             _raw_metadata={"title": "Page 1", "tags": ["python", "testing"]},
         ),
-        Page(
+        _page(
             source_path=tmp_path / "content/page2.md",
             _raw_content="Content 2",
             _raw_metadata={"title": "Page 2", "tags": ["python"]},
         ),
-        Page(
+        _page(
             source_path=tmp_path / "content/_generated/tags.md",
             _raw_content="",
             _raw_metadata={"title": "Tags", "_generated": True, "type": "tag-index"},
@@ -175,14 +175,14 @@ class TestIncrementalOrchestrator:
 
         # Pages with _site reference (needed for _section property lookup)
         metadata = {"title": "Section", "weight": 1}
-        nav_page = Page(
+        nav_page = _page(
             source_path=nav_path,
             _raw_content="Content",
             _raw_metadata=metadata,
             _site=site,
             _section_path=section.path,
         )
-        child_page = Page(
+        child_page = _page(
             source_path=child_path,
             _raw_content="Child",
             _raw_metadata={"title": "Child"},
@@ -248,14 +248,14 @@ class TestIncrementalOrchestrator:
         site.sections = [section]
 
         # Create pages with _site reference (needed for _section property lookup)
-        nav_page = Page(
+        nav_page = _page(
             source_path=nav_path,
             _raw_content="Content",
             _raw_metadata={"title": "Section", "weight": 1},
             _site=site,
             _section_path=section.path,
         )
-        child_page = Page(
+        child_page = _page(
             source_path=child_path,
             _raw_content="Child",
             _raw_metadata={"title": "Child"},
@@ -315,14 +315,14 @@ class TestIncrementalOrchestrator:
         site.sections = [section]
 
         # Create pages with _site reference (needed for _section property lookup)
-        nav_page = Page(
+        nav_page = _page(
             source_path=nav_path,
             _raw_content="Content",
             _raw_metadata={"title": "Section"},
             _site=site,
             _section_path=section.path,
         )
-        child_page = Page(
+        child_page = _page(
             source_path=child_path,
             _raw_content="Child",
             _raw_metadata={"title": "Child"},
@@ -547,7 +547,7 @@ class TestCascadeDependencyTracking:
         section = Section(name="docs", path=Path("/fake/site/content/docs"))
 
         # Create section index with cascade
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/fake/site/content/docs/_index.md"),
             _raw_content="Section index",
             _raw_metadata={"title": "Docs", "cascade": {"type": "doc", "layout": "doc-page"}},
@@ -556,12 +556,12 @@ class TestCascadeDependencyTracking:
         section.pages.append(index_page)
 
         # Create child pages
-        child1 = Page(
+        child1 = _page(
             source_path=Path("/fake/site/content/docs/page1.md"),
             _raw_content="Child 1",
             _raw_metadata={"title": "Page 1"},
         )
-        child2 = Page(
+        child2 = _page(
             source_path=Path("/fake/site/content/docs/page2.md"),
             _raw_content="Child 2",
             _raw_metadata={"title": "Page 2"},
@@ -607,7 +607,7 @@ class TestCascadeDependencyTracking:
 
         # Create parent section
         parent_section = Section(name="docs", path=Path("/fake/site/content/docs"))
-        parent_index = Page(
+        parent_index = _page(
             source_path=Path("/fake/site/content/docs/_index.md"),
             _raw_content="Parent",
             _raw_metadata={"title": "Docs"},
@@ -618,7 +618,7 @@ class TestCascadeDependencyTracking:
         # Create child section with cascade
         child_section = Section(name="advanced", path=Path("/fake/site/content/docs/advanced"))
         child_section.parent = parent_section
-        child_index = Page(
+        child_index = _page(
             source_path=Path("/fake/site/content/docs/advanced/_index.md"),
             _raw_content="Child section",
             _raw_metadata={"title": "Advanced", "cascade": {"difficulty": "hard"}},
@@ -627,7 +627,7 @@ class TestCascadeDependencyTracking:
         child_section.pages.append(child_index)
 
         # Add pages to child section
-        nested_page = Page(
+        nested_page = _page(
             source_path=Path("/fake/site/content/docs/advanced/guide.md"),
             _raw_content="Guide",
             _raw_metadata={"title": "Guide"},
@@ -635,7 +635,7 @@ class TestCascadeDependencyTracking:
         child_section.pages.append(nested_page)
 
         # Add page to parent section (should NOT be affected)
-        parent_page = Page(
+        parent_page = _page(
             source_path=Path("/fake/site/content/docs/intro.md"),
             _raw_content="Intro",
             _raw_metadata={"title": "Intro"},
@@ -675,19 +675,19 @@ class TestCascadeDependencyTracking:
     def test_root_level_cascade_marks_all_pages(self, orchestrator, mock_site):
         """When top-level page with cascade changes, mark all pages."""
         # Create a root-level index page with cascade
-        root_index = Page(
+        root_index = _page(
             source_path=Path("/fake/site/content/index.md"),
             _raw_content="Root",
             _raw_metadata={"title": "Home", "cascade": {"site_wide": "value"}},
         )
 
         # Create other pages
-        page1 = Page(
+        page1 = _page(
             source_path=Path("/fake/site/content/page1.md"),
             _raw_content="Page 1",
             _raw_metadata={"title": "Page 1"},
         )
-        page2 = Page(
+        page2 = _page(
             source_path=Path("/fake/site/content/page2.md"),
             _raw_content="Page 2",
             _raw_metadata={"title": "Page 2"},
@@ -729,7 +729,7 @@ class TestCascadeDependencyTracking:
         section = Section(name="blog", path=Path("/fake/site/content/blog"))
 
         # Create section index WITHOUT cascade
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/fake/site/content/blog/_index.md"),
             _raw_content="Blog index",
             _raw_metadata={"title": "Blog"},  # No cascade!
@@ -738,7 +738,7 @@ class TestCascadeDependencyTracking:
         section.pages.append(index_page)
 
         # Create child page
-        child = Page(
+        child = _page(
             source_path=Path("/fake/site/content/blog/post.md"),
             _raw_content="Post",
             _raw_metadata={"title": "Post"},

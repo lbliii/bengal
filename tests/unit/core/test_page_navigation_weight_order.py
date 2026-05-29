@@ -11,12 +11,13 @@ Regression tests for the navigation fix ensuring:
 
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from typing import Any, cast
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.orchestration.content import ContentOrchestrator
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestWeightBasedNavigation:
@@ -271,7 +272,10 @@ class TestEdgeCases:
             orchestrator = ContentOrchestrator(site)
             orchestrator.discover()
 
-            only_page = next(p for p in site.pages if "only-page" in str(p.source_path))
+            only_page = cast(
+                "Any",
+                next(p for p in site.pages if "only-page" in str(p.source_path)),
+            )
 
             assert only_page.next_in_section is None
             assert only_page.prev_in_section is None
@@ -294,7 +298,7 @@ class TestEdgeCases:
 
     def test_page_without_section(self):
         """Page not in a section should have no section navigation."""
-        page = Page(
+        page = _page(
             source_path=Path("/content/standalone.md"), _raw_metadata={"title": "Standalone"}
         )
         # No _section set
@@ -404,7 +408,7 @@ class TestBackwardCompatibility:
             orchestrator.discover()
 
             # Global navigation should still work
-            pages = [p for p in site.pages if "page-" in str(p.source_path)]
+            pages = [cast("Any", p) for p in site.pages if "page-" in str(p.source_path)]
             assert len(pages) >= 2
 
             # At least some pages should have next/prev (global)

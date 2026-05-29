@@ -11,8 +11,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.orchestration.render import RenderOrchestrator
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 @pytest.fixture
@@ -41,7 +41,9 @@ class TestParallelRendering:
     def test_sequential_when_parallel_false(self, orchestrator, mock_site):
         """Test that parallel=False uses sequential rendering."""
         pages = [
-            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={})
+            _page(
+                source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}
+            )
         ]
 
         with (
@@ -58,7 +60,7 @@ class TestParallelRendering:
     def test_parallel_when_parallel_true(self, orchestrator, mock_site):
         """Test that parallel=True uses parallel rendering."""
         pages = [
-            Page(
+            _page(
                 source_path=Path(f"/fake/site/content/page{i}.md"),
                 _raw_content="",
                 _raw_metadata={},
@@ -85,7 +87,9 @@ class TestParallelRendering:
         RenderOrchestrator directly respects the parallel parameter.
         """
         pages = [
-            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={})
+            _page(
+                source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}
+            )
         ]
 
         with (
@@ -106,10 +110,10 @@ class TestOutputPathOptimization:
     def test_set_output_paths_for_pages(self, orchestrator, mock_site):
         """Test that output paths are set only for specified pages."""
         pages = [
-            Page(
+            _page(
                 source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}
             ),
-            Page(
+            _page(
                 source_path=Path("/fake/site/content/page2.md"), _raw_content="", _raw_metadata={}
             ),
         ]
@@ -129,7 +133,7 @@ class TestOutputPathOptimization:
         """Test that pages with existing output_path are skipped."""
         existing_path = Path("/fake/existing/output.html")
         pages = [
-            Page(
+            _page(
                 source_path=Path("/fake/site/content/page1.md"),
                 _raw_content="",
                 _raw_metadata={},
@@ -146,7 +150,7 @@ class TestOutputPathOptimization:
         """Test that only specified pages get paths, not all site pages."""
         # Add some pages to the site
         mock_site.pages = [
-            Page(
+            _page(
                 source_path=Path(f"/fake/site/content/page{i}.md"),
                 _raw_content="",
                 _raw_metadata={},
@@ -166,7 +170,7 @@ class TestOutputPathOptimization:
 
     def test_output_path_computation(self, orchestrator, mock_site):
         """Test that output paths are computed correctly."""
-        page = Page(
+        page = _page(
             source_path=Path("/fake/site/content/blog/post.md"), _raw_content="", _raw_metadata={}
         )
 
@@ -179,7 +183,7 @@ class TestOutputPathOptimization:
 
     def test_output_path_for_index_file(self, orchestrator, mock_site):
         """Test output path for _index.md files."""
-        page = Page(
+        page = _page(
             source_path=Path("/fake/site/content/blog/_index.md"), _raw_content="", _raw_metadata={}
         )
 
@@ -197,7 +201,9 @@ class TestProcessMethod:
     def test_process_calls_set_output_paths(self, orchestrator, mock_site):
         """Test that process() calls _set_output_paths_for_pages."""
         pages = [
-            Page(source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={})
+            _page(
+                source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}
+            )
         ]
 
         with patch.object(orchestrator, "_set_output_paths_for_pages") as mock_set:
@@ -210,7 +216,7 @@ class TestProcessMethod:
     def test_process_passes_stats_to_parallel(self, orchestrator, mock_site):
         """Test that process passes stats to parallel rendering."""
         pages = [
-            Page(
+            _page(
                 source_path=Path(f"/fake/site/content/page{i}.md"),
                 _raw_content="",
                 _raw_metadata={},
@@ -242,17 +248,17 @@ class TestTrackDependencyOrdering:
         }
         mock_site.config = {"build": {"track_dependency_ordering": True}}
 
-        track_item = Page(
+        track_item = _page(
             source_path=Path("/fake/site/content/docs/getting-started/page1.md"),
             _raw_content="",
             _raw_metadata={},
         )
-        track_page = Page(
+        track_page = _page(
             source_path=Path("/fake/site/content/tracks/getting-started.md"),
             _raw_content="",
             _raw_metadata={"template": "tracks/single.html", "track_id": "getting-started"},
         )
-        other_page = Page(
+        other_page = _page(
             source_path=Path("/fake/site/content/blog/post.md"),
             _raw_content="",
             _raw_metadata={},
@@ -272,7 +278,7 @@ class TestTrackDependencyOrdering:
         mock_site.config = {"build": {"track_dependency_ordering": True}}
 
         pages = [
-            Page(
+            _page(
                 source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}
             ),
         ]
@@ -287,7 +293,7 @@ class TestTrackDependencyOrdering:
         mock_site.config = {"build": {"track_dependency_ordering": True}}
 
         pages = [
-            Page(
+            _page(
                 source_path=Path("/fake/site/content/page1.md"), _raw_content="", _raw_metadata={}
             ),
         ]
@@ -304,12 +310,12 @@ class TestTrackDependencyOrdering:
         }
         mock_site.config = {"build": {"track_dependency_ordering": True}}
 
-        shared_page = Page(
+        shared_page = _page(
             source_path=Path("/fake/site/content/docs/shared.md"),
             _raw_content="",
             _raw_metadata={},
         )
-        track_page = Page(
+        track_page = _page(
             source_path=Path("/fake/site/content/tracks/track-a.md"),
             _raw_content="",
             _raw_metadata={"template": "tracks/single.html", "track_id": "track-a"},
@@ -329,12 +335,12 @@ class TestTrackDependencyOrdering:
         }
         mock_site.config = {"build": {"track_dependency_ordering": True}}
 
-        landing = Page(
+        landing = _page(
             source_path=Path("/fake/site/content/docs/landing.md"),
             _raw_content="",
             _raw_metadata={"template": "tracks/single.html", "track_id": "main"},
         )
-        other = Page(
+        other = _page(
             source_path=Path("/fake/site/content/blog/post.md"),
             _raw_content="",
             _raw_metadata={},
@@ -354,12 +360,12 @@ class TestTrackDependencyOrdering:
         }
         mock_site.config = {"build": {"track_dependency_ordering": False}}
 
-        track_item = Page(
+        track_item = _page(
             source_path=Path("/fake/site/content/docs/page1.md"),
             _raw_content="",
             _raw_metadata={},
         )
-        track_page = Page(
+        track_page = _page(
             source_path=Path("/fake/site/content/tracks/getting-started.md"),
             _raw_content="",
             _raw_metadata={"template": "tracks/single.html"},
@@ -383,14 +389,14 @@ class TestTrackDependencyOrdering:
         item2_path = Path("/fake/site/content/docs/step2.md")
         other_path = Path("/fake/site/content/blog/post.md")
 
-        track_page = Page(
+        track_page = _page(
             source_path=track_page_path,
             _raw_content="",
             _raw_metadata={"template": "tracks/single.html", "track_id": "getting-started"},
         )
-        item1 = Page(source_path=item1_path, _raw_content="", _raw_metadata={})
-        item2 = Page(source_path=item2_path, _raw_content="", _raw_metadata={})
-        other = Page(source_path=other_path, _raw_content="", _raw_metadata={})
+        item1 = _page(source_path=item1_path, _raw_content="", _raw_metadata={})
+        item2 = _page(source_path=item2_path, _raw_content="", _raw_metadata={})
+        other = _page(source_path=other_path, _raw_content="", _raw_metadata={})
 
         pages = [track_page, item1, item2, other]
         changed_sources = {track_page_path.resolve()}
@@ -418,17 +424,17 @@ class TestTrackDependencyOrdering:
         }
 
         # Track page (light), track item (heavy), other - complexity sort would put heavy first
-        track_page = Page(
+        track_page = _page(
             source_path=Path("/fake/site/content/tracks/getting-started.md"),
             _raw_content="short",
             _raw_metadata={"template": "tracks/single.html", "track_id": "getting-started"},
         )
-        track_item = Page(
+        track_item = _page(
             source_path=Path("/fake/site/content/docs/page1.md"),
             _raw_content="x" * 10000,  # Heavier content
             _raw_metadata={},
         )
-        other = Page(
+        other = _page(
             source_path=Path("/fake/site/content/blog/post.md"),
             _raw_content="medium",
             _raw_metadata={},
@@ -450,7 +456,7 @@ class TestPerformanceOptimization:
         """Test that path setting only processes needed pages."""
         # Add 100 pages to site
         mock_site.pages = [
-            Page(
+            _page(
                 source_path=Path(f"/fake/site/content/page{i}.md"),
                 _raw_content="",
                 _raw_metadata={},

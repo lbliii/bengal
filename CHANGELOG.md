@@ -40,8 +40,8 @@
 - Invalidate cached Links health results when rendered URLs, anchors, source paths, or auxiliary outputs change. (`#health-link-cache-registry-fingerprint`)
 - Cache repeated health link-validation results during each run and report cache hit stats in validator output. (`#health-link-result-cache`)
 - Teach the Links health validator to validate only scoped changed pages on incremental runs while preserving cached unchanged-page findings. (`#health-links-incremental-scope`)
-- Health check reports now expose a versioned result envelope for future Milo/Kida
-  validation and audit output. (`#health-report-envelope`)
+- Health check reports now expose a versioned result envelope used by Milo/Kida
+  validation output; artifact audit uses its own versioned envelope. (`#health-report-envelope`)
 - Incremental health checks can now reuse a cached whole-report result when source, configuration, and link-registry inputs are unchanged. (`#health-report-reuse`)
 - Add internal scoped validation plumbing so incremental health checks can pass changed-file context and cached validation results to file-specific validators. (`#health-validation-scope`)
 - Effect tracing now replaces stale records for regenerated outputs and uses dependency indexes for template/data invalidation lookups. (`#incremental-effect-trace-replacement`)

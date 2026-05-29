@@ -15,7 +15,6 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.health.report import CheckStatus
@@ -49,7 +48,7 @@ class TestNavigationValidator:
         # Create some test pages
         pages = []
         for i in range(5):
-            page = Mock(spec=Page)
+            page = Mock()
             page.source_path = tmp_path / f"page{i}.md"
             page.source_path.touch()
             page.output_path = tmp_path / "public" / f"page{i}.html"
@@ -88,7 +87,7 @@ class TestNavigationValidator:
     def test_broken_next_link(self, validator, mock_site):
         """Test detection of broken next link."""
         # Make next point to a page not in site.pages
-        broken_page = Mock(spec=Page)
+        broken_page = Mock()
         broken_page.source_path = Path("/tmp/broken.md")
         mock_site.pages[0].next = broken_page
 
@@ -113,7 +112,7 @@ class TestNavigationValidator:
     def test_broken_prev_link(self, validator, mock_site):
         """Test detection of broken prev link."""
         # Make prev point to a page not in site.pages
-        broken_page = Mock(spec=Page)
+        broken_page = Mock()
         broken_page.source_path = Path("/tmp/broken.md")
         mock_site.pages[2].prev = broken_page
 

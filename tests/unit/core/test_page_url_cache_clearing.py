@@ -9,8 +9,8 @@ of "/releases/0.1.0/").
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from bengal.core.page import Page
 from bengal.core.site import Site
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 def test_url_cache_cleared_after_output_path_set():
@@ -22,7 +22,7 @@ def test_url_cache_cleared_after_output_path_set():
     site.config = {}
 
     # Create a page with numeric filename (the problematic case)
-    page = Page(
+    page = _page(
         source_path=Path("/tmp/content/releases/0.1.0.md"),
         _raw_content="Test content",
         _raw_metadata={"title": "Release 0.1.0"},
@@ -60,7 +60,7 @@ def test_url_correct_when_output_path_set_first():
     site.config = {}
 
     # Create a page
-    page = Page(
+    page = _page(
         source_path=Path("/tmp/content/releases/0.1.0.md"),
         _raw_content="Test content",
         _raw_metadata={"title": "Release 0.1.0"},
@@ -78,7 +78,7 @@ def test_url_correct_when_output_path_set_first():
 def test_url_fallback_without_output_path():
     """Test that URL falls back to slug when output_path not set."""
 
-    page = Page(
+    page = _page(
         source_path=Path("/tmp/content/releases/0.1.0.md"),
         _raw_content="Test content",
         _raw_metadata={"title": "Release 0.1.0"},
@@ -96,7 +96,7 @@ def test_numeric_filename_with_section():
     site.output_dir = Path("/tmp/public")
     site.config = {}
 
-    page = Page(
+    page = _page(
         source_path=Path("/tmp/content/releases/0.1.2.md"),
         _raw_content="Test",
         _raw_metadata={"title": "Release 0.1.2"},

@@ -45,6 +45,40 @@ When plans change, check:
 - **Archival hygiene.** Move complete/superseded plans instead of leaving stale
   root documents.
 - **Actionable follow-ups.** Convert accepted not-now work into narrow backlog items.
+- **Saga continuity.** Keep the roadmap able to answer "what should we work on
+  next?" without a second tracking system.
+
+## Saga Operating Model
+
+A saga is one thematic branch/PR-sized workstream selected from an active root
+plan, usually a sprint, phase, or proof slice. It may span several commits, but
+each commit should remain independently reviewable and match one task or proof
+step.
+
+When a session asks what to work on next:
+
+1. Read root `AGENTS.md`, this file, `plan/README.md`, and `plan/ROADMAP.md`.
+2. Treat `plan/ROADMAP.md` as the authoritative ordering and proof gate.
+3. Select the highest-priority item whose stop-and-ask triggers are cleared.
+4. Consult the scoped stewards for the paths the saga will touch.
+5. Record the saga brief in the thread or PR description: selected plan,
+   affected stewards, accepted findings, not-now items, commit slices, proof
+   commands, collateral, and changelog decision.
+6. If the user explicitly asks to start the saga as a goal, create an active
+   goal whose objective names the plan slice, commit cadence, proof commands,
+   collateral updates, and archive/roadmap closure criteria.
+
+During execution, use the active plan's tasks as commit boundaries where
+possible. A healthy saga ends with a final plan update: mark completed slices,
+refresh roadmap proof/status, move completed or superseded planning material to
+the right status directory, and leave follow-up work as narrow active/stale
+items instead of hidden thread memory.
+
+Goals are runtime state, not durable planning records. Use them to keep long
+Codex sessions focused and resumable, but always close the loop in files:
+commits show task boundaries, `plan/ROADMAP.md` shows the next queue, active
+plans show status/proof, and archive directories preserve completed or replaced
+design memory.
 
 ## Do Not
 

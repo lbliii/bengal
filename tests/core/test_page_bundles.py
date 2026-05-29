@@ -13,7 +13,15 @@ from pathlib import Path
 
 import pytest
 
-from bengal.core.page import BundleType, Page, PageResource, PageResources
+from bengal.core.page.bundle import (
+    BundleType,
+    PageResource,
+    PageResources,
+    get_bundle_type,
+    get_resources,
+    is_branch_bundle,
+    is_leaf_bundle,
+)
 
 
 class TestBundleTypeDetection:
@@ -21,35 +29,34 @@ class TestBundleTypeDetection:
 
     def test_leaf_bundle_index_md(self):
         """index.md is detected as LEAF bundle."""
-        page = Page(source_path=Path("content/posts/my-post/index.md"))
-        assert page.bundle_type == BundleType.LEAF
-        assert page.is_bundle is True
-        assert page.is_branch_bundle is False
+        source_path = Path("content/posts/my-post/index.md")
+        assert get_bundle_type(source_path) == BundleType.LEAF
+        assert is_leaf_bundle(source_path) is True
+        assert is_branch_bundle(source_path) is False
 
     def test_branch_bundle_underscore_index(self):
         """_index.md is detected as BRANCH bundle."""
-        page = Page(source_path=Path("content/posts/_index.md"))
-        assert page.bundle_type == BundleType.BRANCH
-        assert page.is_bundle is False
-        assert page.is_branch_bundle is True
+        source_path = Path("content/posts/_index.md")
+        assert get_bundle_type(source_path) == BundleType.BRANCH
+        assert is_leaf_bundle(source_path) is False
+        assert is_branch_bundle(source_path) is True
 
     def test_regular_page(self):
         """Regular .md file is detected as NONE."""
-        page = Page(source_path=Path("content/posts/my-post.md"))
-        assert page.bundle_type == BundleType.NONE
-        assert page.is_bundle is False
-        assert page.is_branch_bundle is False
+        source_path = Path("content/posts/my-post.md")
+        assert get_bundle_type(source_path) == BundleType.NONE
+        assert is_leaf_bundle(source_path) is False
+        assert is_branch_bundle(source_path) is False
 
     def test_case_insensitive_index(self):
         """Bundle detection is case-insensitive."""
-        page = Page(source_path=Path("content/posts/my-post/INDEX.MD"))
-        assert page.bundle_type == BundleType.LEAF
+        assert get_bundle_type(Path("content/posts/my-post/INDEX.MD")) == BundleType.LEAF
 
     def test_deeply_nested_bundle(self):
         """Bundle detection works for deeply nested paths."""
-        page = Page(source_path=Path("content/docs/guides/advanced/chapter-1/index.md"))
-        assert page.bundle_type == BundleType.LEAF
-        assert page.is_bundle is True
+        source_path = Path("content/docs/guides/advanced/chapter-1/index.md")
+        assert get_bundle_type(source_path) == BundleType.LEAF
+        assert is_leaf_bundle(source_path) is True
 
 
 class TestPageResources:
@@ -79,14 +86,13 @@ class TestPageResources:
 
     def test_non_bundle_returns_empty_resources(self):
         """Non-bundle page has empty resources."""
-        page = Page(source_path=Path("content/posts/my-post.md"))
-        assert len(page.resources) == 0
-        assert bool(page.resources) is False
+        resources = get_resources(Path("content/posts/my-post.md"), "/posts/my-post/")
+        assert len(resources) == 0
+        assert bool(resources) is False
 
     def test_bundle_discovers_resources(self, bundle_with_resources):
         """Leaf bundle discovers co-located resources."""
-        page = Page(source_path=bundle_with_resources)
-        resources = page.resources
+        resources = get_resources(bundle_with_resources, "/posts/my-post/")
 
         # Should find all non-content files
         assert len(resources) >= 5
@@ -95,56 +101,56 @@ class TestPageResources:
 
     def test_get_exact_match(self, bundle_with_resources):
         """get() returns resource by exact name."""
-        page = Page(source_path=bundle_with_resources)
+        resources = get_resources(bundle_with_resources, "/posts/my-post/")
 
-        resource = page.resources.get("data.json")
+        resource = resources.get("data.json")
         assert resource is not None
         assert resource.name == "data.json"
 
-        missing = page.resources.get("nonexistent.txt")
+        missing = resources.get("nonexistent.txt")
         assert missing is None
 
     def test_get_match_glob(self, bundle_with_resources):
         """get_match() returns first matching resource."""
-        page = Page(source_path=bundle_with_resources)
+        resources = get_resources(bundle_with_resources, "/posts/my-post/")
 
-        hero = page.resources.get_match("hero.*")
+        hero = resources.get_match("hero.*")
         assert hero is not None
         assert hero.name.startswith("hero.")
 
-        svg = page.resources.get_match("*.svg")
+        svg = resources.get_match("*.svg")
         assert svg is not None
         assert svg.suffix == ".svg"
 
     def test_match_returns_all(self, bundle_with_resources):
         """match() returns all matching resources."""
-        page = Page(source_path=bundle_with_resources)
+        resources = get_resources(bundle_with_resources, "/posts/my-post/")
 
-        heroes = page.resources.match("hero.*")
+        heroes = resources.match("hero.*")
         assert len(heroes) == 2  # hero.jpg, hero.png
 
-        all_files = page.resources.match("*")
+        all_files = resources.match("*")
         assert len(all_files) >= 5
 
     def test_by_type_image(self, bundle_with_resources):
         """by_type('image') returns image resources."""
-        page = Page(source_path=bundle_with_resources)
+        resources = get_resources(bundle_with_resources, "/posts/my-post/")
 
-        images = page.resources.by_type("image")
+        images = resources.by_type("image")
         assert len(images) == 3  # hero.jpg, hero.png, diagram.svg
 
     def test_by_type_data(self, bundle_with_resources):
         """by_type('data') returns data resources."""
-        page = Page(source_path=bundle_with_resources)
+        resources = get_resources(bundle_with_resources, "/posts/my-post/")
 
-        data = page.resources.by_type("data")
+        data = resources.by_type("data")
         assert len(data) == 2  # data.json, config.yaml
 
     def test_by_type_document(self, bundle_with_resources):
         """by_type('document') returns document resources."""
-        page = Page(source_path=bundle_with_resources)
+        resources = get_resources(bundle_with_resources, "/posts/my-post/")
 
-        docs = page.resources.by_type("document")
+        docs = resources.by_type("document")
         assert len(docs) == 1  # doc.pdf
 
 

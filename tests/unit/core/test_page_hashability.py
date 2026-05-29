@@ -7,7 +7,7 @@ enabling set storage, dictionary keys, and O(1) membership tests.
 
 from pathlib import Path
 
-from bengal.core.page import Page
+from tests._testing.page_records import make_mutable_test_page as _page
 from tests._testing.page_records import seed_parsed_page_state
 
 
@@ -16,22 +16,22 @@ class TestPageHashability:
 
     def test_page_is_hashable(self, tmp_path):
         """Pages can be hashed."""
-        page = Page(source_path=tmp_path / "content/post.md")
+        page = _page(source_path=tmp_path / "content/post.md")
         assert isinstance(hash(page), int)
 
     def test_page_equality_by_source_path(self, tmp_path):
         """Pages with same source_path are equal."""
         path = tmp_path / "content/post.md"
-        page1 = Page(source_path=path)
-        page2 = Page(source_path=path)
+        page1 = _page(source_path=path)
+        page2 = _page(source_path=path)
 
         assert page1 == page2
         assert hash(page1) == hash(page2)
 
     def test_page_inequality_different_paths(self, tmp_path):
         """Pages with different source_paths are not equal."""
-        page1 = Page(source_path=tmp_path / "content/post1.md")
-        page2 = Page(source_path=tmp_path / "content/post2.md")
+        page1 = _page(source_path=tmp_path / "content/post1.md")
+        page2 = _page(source_path=tmp_path / "content/post2.md")
 
         assert page1 != page2
         # Hashes are likely different (not guaranteed but highly probable)
@@ -39,7 +39,7 @@ class TestPageHashability:
 
     def test_page_hash_stable_across_mutations(self, tmp_path):
         """Hash remains stable when mutable fields change."""
-        page = Page(source_path=tmp_path / "content/post.md")
+        page = _page(source_path=tmp_path / "content/post.md")
         initial_hash = hash(page)
 
         # Mutate various fields
@@ -55,9 +55,9 @@ class TestPageHashability:
 
     def test_page_in_set(self, tmp_path):
         """Pages can be stored in sets."""
-        page1 = Page(source_path=tmp_path / "content/post1.md")
-        page2 = Page(source_path=tmp_path / "content/post2.md")
-        page3 = Page(source_path=tmp_path / "content/post1.md")  # Duplicate
+        page1 = _page(source_path=tmp_path / "content/post1.md")
+        page2 = _page(source_path=tmp_path / "content/post2.md")
+        page3 = _page(source_path=tmp_path / "content/post1.md")  # Duplicate
 
         pages = {page1, page2, page3}
 
@@ -69,8 +69,8 @@ class TestPageHashability:
 
     def test_page_as_dict_key(self, tmp_path):
         """Pages can be used as dictionary keys."""
-        page1 = Page(source_path=tmp_path / "content/post1.md")
-        page2 = Page(source_path=tmp_path / "content/post2.md")
+        page1 = _page(source_path=tmp_path / "content/post1.md")
+        page2 = _page(source_path=tmp_path / "content/post2.md")
 
         data = {page1: "data for page 1", page2: "data for page 2"}
 
@@ -78,12 +78,12 @@ class TestPageHashability:
         assert data[page2] == "data for page 2"
 
         # Lookup with equivalent page works
-        page1_copy = Page(source_path=tmp_path / "content/post1.md")
+        page1_copy = _page(source_path=tmp_path / "content/post1.md")
         assert data[page1_copy] == "data for page 1"
 
     def test_page_findable_in_set_after_mutation(self, tmp_path):
         """Page remains findable in set after mutation."""
-        page = Page(source_path=tmp_path / "content/post.md")
+        page = _page(source_path=tmp_path / "content/post.md")
         pages = {page}
 
         # Mutate the page
@@ -97,8 +97,8 @@ class TestPageHashability:
     def test_page_equality_ignores_content(self, tmp_path):
         """Pages are equal based on path, not content."""
         path = tmp_path / "content/post.md"
-        page1 = Page(source_path=path, _raw_content="Content A")
-        page2 = Page(source_path=path, _raw_content="Content B")
+        page1 = _page(source_path=path, _raw_content="Content A")
+        page2 = _page(source_path=path, _raw_content="Content B")
 
         # Equal despite different content
         assert page1 == page2
@@ -107,8 +107,8 @@ class TestPageHashability:
     def test_page_equality_ignores_metadata(self, tmp_path):
         """Pages are equal based on path, not metadata."""
         path = tmp_path / "content/post.md"
-        page1 = Page(source_path=path, _raw_metadata={"title": "First Title", "tags": ["a"]})
-        page2 = Page(source_path=path, _raw_metadata={"title": "Second Title", "tags": ["b", "c"]})
+        page1 = _page(source_path=path, _raw_metadata={"title": "First Title", "tags": ["a"]})
+        page2 = _page(source_path=path, _raw_metadata={"title": "Second Title", "tags": ["b", "c"]})
 
         # Equal despite different metadata
         assert page1 == page2
@@ -116,7 +116,7 @@ class TestPageHashability:
 
     def test_page_not_equal_to_other_types(self, tmp_path):
         """Pages are not equal to non-Page objects."""
-        page = Page(source_path=tmp_path / "content/post.md")
+        page = _page(source_path=tmp_path / "content/post.md")
 
         assert page != str(tmp_path / "content/post.md")
         assert page != tmp_path / "content/post.md"
@@ -130,9 +130,9 @@ class TestPageSetOperations:
 
     def test_set_union(self, tmp_path):
         """Set union works with pages."""
-        page1 = Page(source_path=tmp_path / "content/a.md")
-        page2 = Page(source_path=tmp_path / "content/b.md")
-        page3 = Page(source_path=tmp_path / "content/c.md")
+        page1 = _page(source_path=tmp_path / "content/a.md")
+        page2 = _page(source_path=tmp_path / "content/b.md")
+        page3 = _page(source_path=tmp_path / "content/c.md")
 
         set1 = {page1, page2}
         set2 = {page2, page3}
@@ -145,9 +145,9 @@ class TestPageSetOperations:
 
     def test_set_intersection(self, tmp_path):
         """Set intersection works with pages."""
-        page1 = Page(source_path=tmp_path / "content/a.md")
-        page2 = Page(source_path=tmp_path / "content/b.md")
-        page3 = Page(source_path=tmp_path / "content/c.md")
+        page1 = _page(source_path=tmp_path / "content/a.md")
+        page2 = _page(source_path=tmp_path / "content/b.md")
+        page3 = _page(source_path=tmp_path / "content/c.md")
 
         set1 = {page1, page2}
         set2 = {page2, page3}
@@ -160,9 +160,9 @@ class TestPageSetOperations:
 
     def test_set_difference(self, tmp_path):
         """Set difference works with pages."""
-        page1 = Page(source_path=tmp_path / "content/a.md")
-        page2 = Page(source_path=tmp_path / "content/b.md")
-        page3 = Page(source_path=tmp_path / "content/c.md")
+        page1 = _page(source_path=tmp_path / "content/a.md")
+        page2 = _page(source_path=tmp_path / "content/b.md")
+        page3 = _page(source_path=tmp_path / "content/c.md")
 
         set1 = {page1, page2, page3}
         set2 = {page2}
@@ -175,9 +175,9 @@ class TestPageSetOperations:
 
     def test_set_symmetric_difference(self, tmp_path):
         """Set symmetric difference works with pages."""
-        page1 = Page(source_path=tmp_path / "content/a.md")
-        page2 = Page(source_path=tmp_path / "content/b.md")
-        page3 = Page(source_path=tmp_path / "content/c.md")
+        page1 = _page(source_path=tmp_path / "content/a.md")
+        page2 = _page(source_path=tmp_path / "content/b.md")
+        page3 = _page(source_path=tmp_path / "content/c.md")
 
         set1 = {page1, page2}
         set2 = {page2, page3}
@@ -190,9 +190,9 @@ class TestPageSetOperations:
 
     def test_set_issubset(self, tmp_path):
         """Set subset operations work with pages."""
-        page1 = Page(source_path=tmp_path / "content/a.md")
-        page2 = Page(source_path=tmp_path / "content/b.md")
-        page3 = Page(source_path=tmp_path / "content/c.md")
+        page1 = _page(source_path=tmp_path / "content/a.md")
+        page2 = _page(source_path=tmp_path / "content/b.md")
+        page3 = _page(source_path=tmp_path / "content/c.md")
 
         small_set = {page1, page2}
         large_set = {page1, page2, page3}
@@ -203,9 +203,9 @@ class TestPageSetOperations:
 
     def test_set_issuperset(self, tmp_path):
         """Set superset operations work with pages."""
-        page1 = Page(source_path=tmp_path / "content/a.md")
-        page2 = Page(source_path=tmp_path / "content/b.md")
-        page3 = Page(source_path=tmp_path / "content/c.md")
+        page1 = _page(source_path=tmp_path / "content/a.md")
+        page2 = _page(source_path=tmp_path / "content/b.md")
+        page3 = _page(source_path=tmp_path / "content/c.md")
 
         small_set = {page1, page2}
         large_set = {page1, page2, page3}
@@ -220,7 +220,7 @@ class TestPageDictionaryOperations:
 
     def test_dict_get_and_set(self, tmp_path):
         """Basic dict operations with page keys."""
-        page = Page(source_path=tmp_path / "content/post.md")
+        page = _page(source_path=tmp_path / "content/post.md")
 
         data = {}
         data[page] = "some value"
@@ -230,8 +230,8 @@ class TestPageDictionaryOperations:
 
     def test_dict_update(self, tmp_path):
         """Dict update with equivalent page."""
-        page1 = Page(source_path=tmp_path / "content/post.md")
-        page2 = Page(source_path=tmp_path / "content/post.md")  # Same path
+        page1 = _page(source_path=tmp_path / "content/post.md")
+        page2 = _page(source_path=tmp_path / "content/post.md")  # Same path
 
         data = {page1: "first value"}
         data[page2] = "second value"  # Should update, not add
@@ -242,9 +242,9 @@ class TestPageDictionaryOperations:
 
     def test_dict_keys_contains_check(self, tmp_path):
         """Check if page is in dict keys."""
-        page1 = Page(source_path=tmp_path / "content/a.md")
-        page2 = Page(source_path=tmp_path / "content/b.md")
-        page3 = Page(source_path=tmp_path / "content/c.md")
+        page1 = _page(source_path=tmp_path / "content/a.md")
+        page2 = _page(source_path=tmp_path / "content/b.md")
+        page3 = _page(source_path=tmp_path / "content/c.md")
 
         data = {page1: 1, page2: 2}
 
@@ -254,7 +254,7 @@ class TestPageDictionaryOperations:
 
     def test_dict_with_mutated_page(self, tmp_path):
         """Dict lookup works after page mutation."""
-        page = Page(source_path=tmp_path / "content/post.md")
+        page = _page(source_path=tmp_path / "content/post.md")
         data = {page: "original"}
 
         # Mutate the page
@@ -271,7 +271,7 @@ class TestPageHashStability:
 
     def test_hash_consistent_across_calls(self, tmp_path):
         """Hash value is consistent across multiple calls."""
-        page = Page(source_path=tmp_path / "content/post.md")
+        page = _page(source_path=tmp_path / "content/post.md")
 
         hash1 = hash(page)
         hash2 = hash(page)
@@ -281,7 +281,7 @@ class TestPageHashStability:
 
     def test_hash_stable_with_all_fields_set(self, tmp_path):
         """Hash stable even when all fields are populated."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "content/post.md",
             _raw_content="# Title\n\nContent here",
             _raw_metadata={"title": "Test", "tags": ["a", "b"]},
@@ -305,8 +305,8 @@ class TestPageHashStability:
 
     def test_generated_pages_have_unique_hashes(self, tmp_path):
         """Generated pages with different paths have different hashes."""
-        tag_page1 = Page(source_path=Path("_generated/tags/python.md"))
-        tag_page2 = Page(source_path=Path("_generated/tags/javascript.md"))
+        tag_page1 = _page(source_path=Path("_generated/tags/python.md"))
+        tag_page2 = _page(source_path=Path("_generated/tags/javascript.md"))
 
         assert hash(tag_page1) != hash(tag_page2)
         assert tag_page1 != tag_page2

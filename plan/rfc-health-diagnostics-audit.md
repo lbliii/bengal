@@ -1,9 +1,10 @@
 # Health Diagnostics and Artifact Audit
 
 **Status**: Active implementation
-**Updated**: 2026-05-28
-**2026-05-28 Check**: Kept as active because health, artifact audit, and
-terminal reporting separation still affect current build and release proof.
+**Updated**: 2026-05-29
+**2026-05-29 Check**: Kept as active because `bengal audit` and audit envelopes
+now exist, but health, rendering-owned reference resolution, artifact audit, and
+terminal reporting ownership are still not fully separated.
 
 ## Problem
 
@@ -31,15 +32,17 @@ Split validation into three orthogonal surfaces:
 2. **Rendering registries and resolvers**: immutable, rendering-owned indexes for
    URLs, anchors, resources, and output targets. These are the source of truth
    for internal reference validation.
-3. **Artifact audit**: a post-build scan of the generated output directory. It
-   checks that files exist, generated manifests point at real files, and emitted
-   HTML references resolve inside the artifact tree without re-running content
-   discovery.
+3. **Artifact audit**: a post-build scan of the generated output directory. The
+   shipped audit currently checks generated HTML `href`/`src` references. The
+   broader generated-manifest, sitemap, feed, search-index, and `llms.txt`
+   artifact contracts are intended follow-up work, not current coverage.
 
 `bengal check` remains the author-facing policy command. `bengal health` remains
-a compatibility alias while callers migrate. A future `bengal audit` command is
-the artifact-focused surface; until that command lands, audit data is exposed
-through internal APIs and Kida-ready result envelopes.
+a compatibility alias while callers migrate. `bengal audit` is now the
+artifact-focused surface, backed by `bengal.audit.audit_output_dir()` and a
+`bengal.audit.v1` envelope rendered through Kida/JSON output. Remaining work is
+about ownership and overlap: health should not rediscover rendering truth, and
+audit/check reports should not duplicate noisy findings.
 
 ## Responsibility Map
 
@@ -50,15 +53,18 @@ through internal APIs and Kida-ready result envelopes.
 | Internal links | rendering resolver | Health consumes resolver findings instead of resolving URLs itself. |
 | Anchors | rendering registry | Built from parsed/rendered headings and target directives. |
 | Static/resource URLs | rendering/resource registry | Includes theme assets, project assets, and generated resource references. |
-| Output files | artifact audit | Verify built files and manifests after output exists. |
-| Sitemap/RSS/search/llms.txt | artifact audit | Treat as generated artifact contracts. |
+| Output files | artifact audit | HTML reference audit is shipped; manifest/file-existence coverage beyond HTML refs remains follow-up. |
+| Sitemap/RSS/search/llms.txt | artifact audit | Intended generated artifact contracts; not yet covered by the shipped HTML reference audit. |
 | Connectivity, taxonomy, SEO, accessibility | health policy | Advisory checks; keep separate from hard artifact correctness. |
 | External links | health/check policy | Network work is opt-in or CI-tier, not normal build finalization. |
 | Terminal output | CLI + Kida templates | Result models expose structured context; templates own layout. |
 
 ## Result Envelope
 
-CLI-facing validation and audit reports should converge on a versioned envelope:
+CLI-facing validation and audit reports should use versioned, presentation-neutral
+envelopes. Health and audit currently have separate schemas:
+`bengal.check.v1` for source health and `bengal.audit.v1` for generated artifact
+audits.
 
 ```json
 {
@@ -77,16 +83,20 @@ constructing terminal strings.
 
 ## Implementation Waves
 
-1. Inventory and decision record.
-2. Add a stable diagnostic/result envelope that can adapt existing health
-   `CheckResult` values without breaking callers.
-3. Move link-target discovery and internal URL resolution into rendering-owned
-   registries and resolver helpers.
-4. Migrate the build-time link validator to the rendering resolver and fix
-   directory-style relative URL semantics.
-5. Add artifact audit primitives and Kida-ready audit output.
-6. Keep compatibility aliases and deprecation notes for legacy health surfaces.
-7. Add focused unit/integration tests and changelog coverage.
+1. ✅ Inventory and decision record.
+2. ✅ Add stable diagnostic/result envelopes for health and audit command output.
+3. Pending: move link-target discovery and internal URL resolution into
+   rendering-owned registries and resolver helpers.
+4. Pending: migrate the build-time link validator to the rendering resolver and
+   fix directory-style relative URL semantics.
+5. ✅ Add artifact audit primitives and Kida-ready/JSON audit output for HTML
+   internal references.
+6. Partial: keep compatibility aliases and deprecation notes for legacy health
+   surfaces. `bengal health` is registered as a `check` alias; docs and migration
+   notes still need a focused pass.
+7. Partial: focused audit/check CLI tests and changelog coverage exist; resolver
+   ownership, site-wide generated artifact contracts, and health/audit overlap
+   still need integration proof.
 
 ## Steward Notes
 

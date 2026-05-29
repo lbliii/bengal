@@ -20,7 +20,6 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
     from bengal.analysis.links.types import LinkMetrics, LinkType
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.protocols.core import PageLike
 
@@ -43,11 +42,11 @@ class KnowledgeGraphProtocol(Protocol):
 
     # Core data structures
     site: Site
-    incoming_refs: dict[Page, float]
-    outgoing_refs: dict[Page, set[Page]]
-    link_metrics: dict[Page, LinkMetrics]
-    link_types: dict[tuple[Page | None, Page], LinkType]
-    incoming_edges: dict[Page, list[Page]]
+    incoming_refs: dict[PageLike, float]
+    outgoing_refs: dict[PageLike, set[PageLike]]
+    link_metrics: dict[PageLike, LinkMetrics]
+    link_types: dict[tuple[PageLike | None, PageLike], LinkType]
+    incoming_edges: dict[PageLike, list[PageLike]]
 
     # Configuration
     hub_threshold: int
@@ -62,7 +61,7 @@ class KnowledgeGraphProtocol(Protocol):
         """Build the knowledge graph from site data."""
         ...
 
-    def get_hubs(self, threshold: int | None = None) -> list[Page]:
+    def get_hubs(self, threshold: int | None = None) -> list[PageLike]:
         """Get pages with high incoming references (hubs).
 
         Args:
@@ -73,7 +72,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def get_orphans(self) -> list[Page]:
+    def get_orphans(self) -> list[PageLike]:
         """Get pages with no incoming references.
 
         Returns:
@@ -81,7 +80,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def get_leaves(self, threshold: int | None = None) -> list[Page]:
+    def get_leaves(self, threshold: int | None = None) -> list[PageLike]:
         """Get pages with low connectivity (leaf nodes).
 
         Args:
@@ -92,7 +91,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def get_bridges(self) -> list[Page]:
+    def get_bridges(self) -> list[PageLike]:
         """Get pages that connect different parts of the graph.
 
         Returns:
@@ -111,7 +110,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def get_incoming_links(self, page: PageLike) -> list[Page]:
+    def get_incoming_links(self, page: PageLike) -> list[PageLike]:
         """Get pages that link TO the given page.
 
         Args:
@@ -122,7 +121,7 @@ class KnowledgeGraphProtocol(Protocol):
         """
         ...
 
-    def get_outgoing_links(self, page: PageLike) -> set[Page]:
+    def get_outgoing_links(self, page: PageLike) -> set[PageLike]:
         """Get pages that this page links TO.
 
         Args:
