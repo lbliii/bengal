@@ -25,6 +25,7 @@ from tests._testing.page_records import (
     make_parsed_page,
     make_rendered_page,
     make_source_page,
+    make_test_page,
     seed_parsed_page_state,
 )
 
@@ -228,3 +229,16 @@ def test_seed_parsed_page_state_uses_parsed_adapter():
     assert page.toc == "<nav>TOC</nav>"
     assert page._toc_items_cache == [{"id": "body", "title": "Body"}]
     assert page.links == ["/target/"]
+
+
+def test_make_test_page_uses_source_page_adapter():
+    page = make_test_page(
+        source_path="content/docs/guide.md",
+        raw_content="# Guide",
+        metadata={"title": "Guide"},
+        html_content="<h1>Guide</h1>",
+    )
+
+    assert page.source_path == Path("content/docs/guide.md")
+    assert page.title == "Guide"
+    assert page.content == "<h1>Guide</h1>"

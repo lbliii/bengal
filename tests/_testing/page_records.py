@@ -11,6 +11,7 @@ from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
 from bengal.cache.parsed_output import apply_parsed_page_to_page
+from bengal.content.discovery.page_adapter import page_from_source_page
 from bengal.core.records import (
     ParsedPage,
     RenderedPage,
@@ -22,6 +23,7 @@ from bengal.core.records import (
 )
 
 if TYPE_CHECKING:
+    from bengal.core.page import Page
     from bengal.core.page.page_core import PageCore
 
 
@@ -63,6 +65,21 @@ def make_source_page(**overrides: Any) -> SourcePage:
         is_virtual=overrides.pop("is_virtual", False),
         **overrides,
     )
+
+
+def make_test_page(
+    *,
+    html_content: str | None = None,
+    site: Any | None = None,
+    section: Any | None = None,
+    **overrides: Any,
+) -> Page:
+    """Create a Page compatibility object through the SourcePage adapter."""
+    source_page = make_source_page(**overrides)
+    page = page_from_source_page(source_page, site=site, section=section)
+    if html_content is not None:
+        seed_parsed_page_state(page, html_content=html_content)
+    return page
 
 
 def make_parsed_page(**overrides: Any) -> ParsedPage:
