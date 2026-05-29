@@ -30,6 +30,7 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/unit/rendering/test_section_urls.py",
     "tests/unit/rendering/test_template_url_access.py",
     "tests/unit/rendering/utils/test_rendering_url.py",
+    "tests/unit/template_functions/test_taxonomies_baseurl.py",
 )
 
 
