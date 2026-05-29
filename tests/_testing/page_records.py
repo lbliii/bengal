@@ -70,6 +70,7 @@ def make_source_page(**overrides: Any) -> SourcePage:
 def make_test_page(
     *,
     html_content: str | None = None,
+    output_path: Path | str | None = None,
     site: Any | None = None,
     section: Any | None = None,
     **overrides: Any,
@@ -77,6 +78,8 @@ def make_test_page(
     """Create a Page compatibility object through the SourcePage adapter."""
     source_page = make_source_page(**overrides)
     page = page_from_source_page(source_page, site=site, section=section)
+    if output_path is not None:
+        page.output_path = Path(output_path)
     if html_content is not None:
         apply_parsed_page_to_page(
             page,

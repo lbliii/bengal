@@ -237,8 +237,10 @@ def test_make_test_page_uses_source_page_adapter():
         raw_content="# Guide",
         metadata={"title": "Guide"},
         html_content="<h1>Guide</h1>",
+        output_path="public/docs/guide/index.html",
     )
 
     assert page.source_path == Path("content/docs/guide.md")
+    assert page.output_path == Path("public/docs/guide/index.html")
     assert page.title == "Guide"
     assert page.content == "<h1>Guide</h1>"
