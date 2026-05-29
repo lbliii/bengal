@@ -104,10 +104,13 @@ def make_test_page(
 def make_mutable_test_page(**kwargs: Any) -> Any:
     """Create a Page compatibility object from legacy Page-style keyword names."""
     raw_content = kwargs.pop("raw_content", kwargs.pop("_raw_content", ""))
-    metadata = kwargs.pop("metadata", kwargs.pop("_raw_metadata", {}))
+    metadata = dict(kwargs.pop("metadata", kwargs.pop("_raw_metadata", {})))
     site = kwargs.pop("site", kwargs.pop("_site", None))
     section = kwargs.pop("section", kwargs.pop("_section", None))
     section_path = kwargs.pop("section_path", kwargs.pop("_section_path", None))
+    for metadata_field in ("tags", "slug", "aliases", "type", "weight", "version"):
+        if metadata_field in kwargs and metadata_field not in metadata:
+            metadata[metadata_field] = kwargs.pop(metadata_field)
     if section_path is not None:
         kwargs["section_path"] = section_path
     return make_test_page(

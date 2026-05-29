@@ -1,28 +1,28 @@
 """
-Tests for Section handling of Page types.
+Tests for Section handling of page-like objects.
 
 These tests verify that Section.add_page correctly handles:
-- Regular Page objects
+- Regular page-like objects
 - Multiple pages in a section
 - Filtering and querying pages via Section
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.section import Section
+from tests._testing.page_records import make_mutable_test_page as _page
 
 if TYPE_CHECKING:
     from pathlib import Path
 
 
-def make_page(source_path: Path, title: str = "Test", content: str = "") -> Page:
-    """Helper to create a Page for testing."""
-    return Page(
+def make_page(source_path: Path, title: str = "Test", content: str = "") -> Any:
+    """Helper to create a page-like object for testing."""
+    return _page(
         source_path=source_path,
         _raw_content=content,
         _raw_metadata={"title": title},
@@ -46,7 +46,7 @@ def docs_section(content_dir: Path) -> Section:
 
 
 @pytest.fixture
-def sample_page(content_dir: Path) -> Page:
+def sample_page(content_dir: Path) -> Any:
     """Create a sample page."""
     file_path = content_dir / "docs" / "guide.md"
     file_path.write_text("---\ntitle: Guide\n---\n# Guide")
@@ -56,15 +56,15 @@ def sample_page(content_dir: Path) -> Page:
 class TestSectionAddPage:
     """Test Section.add_page method."""
 
-    def test_add_regular_page(self, docs_section: Section, sample_page: Page) -> None:
-        """Section should accept regular Page objects."""
+    def test_add_regular_page(self, docs_section: Section, sample_page: Any) -> None:
+        """Section should accept regular page-like objects."""
         docs_section.add_page(sample_page)
 
         assert len(docs_section.pages) == 1
         assert docs_section.pages[0] is sample_page
 
     def test_add_multiple_pages(self, docs_section: Section, content_dir: Path) -> None:
-        """Section should handle multiple Page objects."""
+        """Section should handle multiple page-like objects."""
         page1 = make_page(content_dir / "p1.md", "First")
         page2 = make_page(content_dir / "p2.md", "Second")
 
@@ -72,8 +72,7 @@ class TestSectionAddPage:
         docs_section.add_page(page2)
 
         assert len(docs_section.pages) == 2
-        assert isinstance(docs_section.pages[0], Page)
-        assert isinstance(docs_section.pages[1], Page)
+        assert docs_section.pages == [page1, page2]
 
 
 class TestSectionQueries:
@@ -109,17 +108,16 @@ class TestSectionIteration:
     """Test Section iteration methods."""
 
     def test_iterate_pages(self, docs_section: Section, content_dir: Path) -> None:
-        """Iterating section.pages should yield Page objects."""
+        """Iterating section.pages should yield the added page-like objects."""
         page1 = make_page(content_dir / "p1.md", "First")
         page2 = make_page(content_dir / "p2.md", "Second")
 
         docs_section.add_page(page1)
         docs_section.add_page(page2)
 
-        types = [type(p) for p in docs_section.pages]
-        assert all(t is Page for t in types)
+        assert list(docs_section.pages) == [page1, page2]
 
-    def test_pages_len(self, docs_section: Section, sample_page: Page) -> None:
+    def test_pages_len(self, docs_section: Section, sample_page: Any) -> None:
         """len(pages) should count all pages."""
         docs_section.add_page(sample_page)
         assert len(docs_section.pages) == 1
@@ -146,13 +144,13 @@ class TestSectionPageFiltering:
 class TestTypeAnnotationCompatibility:
     """Test that type annotations are consistent."""
 
-    def test_pages_list_type(self, docs_section: Section, sample_page: Page) -> None:
-        """pages list should accept Page via add_page."""
+    def test_pages_list_type(self, docs_section: Section, sample_page: Any) -> None:
+        """pages list should accept page-like objects via add_page."""
         docs_section.add_page(sample_page)
         assert len(docs_section.pages) == 1
 
     def test_section_builder_compatibility(self, content_dir: Path) -> None:
-        """SectionBuilder should work with Page."""
+        """SectionBuilder should work with page-like objects."""
         from bengal.content.discovery.section_builder import SectionBuilder
 
         builder = SectionBuilder(content_dir)

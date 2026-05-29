@@ -12,9 +12,9 @@ Fix: Pre-set output_path for all pages before rendering starts.
 
 from pathlib import Path
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestPageURLsInSections:
@@ -22,7 +22,7 @@ class TestPageURLsInSections:
 
     def test_page_url_in_section_without_output_path(self):
         """Test page URL falls back correctly when output_path not set."""
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/getting-started.md"),
             _raw_metadata={"title": "Getting Started"},
         )
@@ -36,7 +36,7 @@ class TestPageURLsInSections:
         site = Site(root_path=Path("/site"), config={})
         site.output_dir = Path("/site/public")
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/getting-started.md"),
             _raw_metadata={"title": "Getting Started"},
             output_path=Path("/site/public/docs/getting-started/index.html"),
@@ -62,17 +62,17 @@ class TestPageURLsInSections:
 
         # Create multiple pages in the section
         pages = [
-            Page(
+            _page(
                 source_path=Path("/content/docs/intro.md"),
                 _raw_metadata={"title": "Introduction"},
                 output_path=Path("/site/public/docs/intro/index.html"),
             ),
-            Page(
+            _page(
                 source_path=Path("/content/docs/guide.md"),
                 _raw_metadata={"title": "Guide"},
                 output_path=Path("/site/public/docs/guide/index.html"),
             ),
-            Page(
+            _page(
                 source_path=Path("/content/docs/api.md"),
                 _raw_metadata={"title": "API Reference"},
                 output_path=Path("/site/public/docs/api/index.html"),
@@ -105,7 +105,7 @@ class TestPageURLsInSections:
         parent._site = site
         child._site = site
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/api/v2/users.md"),
             _raw_metadata={"title": "Users API"},
             output_path=Path("/site/public/api/v2/users/index.html"),
@@ -124,7 +124,7 @@ class TestPageURLsInSections:
         section = Section(name="docs", path=Path("/content/docs"))
         section._site = site
 
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/content/docs/_index.md"),
             _raw_metadata={"title": "Documentation"},
             output_path=Path("/site/public/docs/index.html"),
@@ -147,7 +147,7 @@ class TestPageURLGenerationDuringRendering:
         site.output_dir = Path("/site/public")
 
         # Test pretty URLs (default)
-        page = Page(
+        page = _page(
             source_path=Path("/content/blog/post.md"),
             _raw_metadata={"title": "Post"},
             output_path=Path("/site/public/blog/post/index.html"),
@@ -157,7 +157,7 @@ class TestPageURLGenerationDuringRendering:
         assert page.href == "/blog/post/"
 
         # Test index pages
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/content/blog/_index.md"),
             _raw_metadata={"title": "Blog"},
             output_path=Path("/site/public/blog/index.html"),
@@ -168,7 +168,7 @@ class TestPageURLGenerationDuringRendering:
 
     def test_url_without_output_path_falls_back(self):
         """Test URL generation falls back to slug when no output_path."""
-        page = Page(source_path=Path("/content/docs/guide.md"), _raw_metadata={"title": "Guide"})
+        page = _page(source_path=Path("/content/docs/guide.md"), _raw_metadata={"title": "Guide"})
 
         # Should fall back to slug-based URL
         fallback_url = page.href
@@ -200,7 +200,7 @@ class TestNavigationLinkGeneration:
         # Use weight to ensure deterministic order (intro, basics, advanced)
         pages = []
         for i, name in enumerate(["intro", "basics", "advanced"]):
-            page = Page(
+            page = _page(
                 source_path=Path(f"/content/guides/{name}.md"),
                 _raw_metadata={"title": name.title(), "weight": i},
                 output_path=Path(f"/site/public/guides/{name}/index.html"),
@@ -234,7 +234,7 @@ class TestEdgeCases:
         site = Site(root_path=Path("/site"), config={})
         site.output_dir = Path("/site/public")
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/about.md"),
             _raw_metadata={"title": "About"},
             output_path=Path("/site/public/about/index.html"),
@@ -248,7 +248,7 @@ class TestEdgeCases:
         site = Site(root_path=Path("/site"), config={})
         site.output_dir = Path("/site/public")
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/index.md"),
             _raw_metadata={"title": "Home"},
             output_path=Path("/site/public/index.html"),
@@ -262,7 +262,7 @@ class TestEdgeCases:
         site = Site(root_path=Path("/site"), config={})
         site.output_dir = Path("/site/public")
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/guides/advanced/optimization.md"),
             _raw_metadata={"title": "Optimization"},
             output_path=Path("/site/public/docs/guides/advanced/optimization/index.html"),
