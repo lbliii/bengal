@@ -341,9 +341,10 @@ populated at discovery time.
 
 ### Task 4.4 — Virtual page creation via factory functions ✅
 
-`create_virtual_source_page()` factory defined in `bengal/core/records.py`. Existing
-`Page.create_virtual()` callers (taxonomy, autodoc, section) unchanged for Sprint 4 —
-they continue producing mutable Pages. Migration to `create_virtual_source_page()` deferred.
+`create_virtual_source_page()` factory defined in `bengal/core/records.py`. Sprint 4
+left existing mutable virtual-page callers unchanged, but Sprint 6 later migrated
+autodoc/orchestration producers to `create_virtual_source_page()` and removed the
+`Page.create_virtual()` compatibility constructor.
 
 ### Task 4.5 — Dev server hot-reload reconstructs records ✅
 
@@ -358,8 +359,8 @@ for backward compatibility.
 - **Eliminate orchestration mutations**: Section finalization, taxonomy, related posts,
   complexity estimation continue mutating mutable Page. Full migration to SourcePage-only
   is Sprint 5-6 scope.
-- **Wire `create_virtual_source_page()` into callers**: Taxonomy, autodoc, and section
-  virtual page creation still uses `Page.create_virtual()`.
+- **Wire `create_virtual_source_page()` into callers**: Completed in Sprint 6 for
+  page producers; section virtual creation remains a separate Section concern.
 - **Remove dual-write**: Eliminate Page construction from `_create_page()` once all
   consumers read from SourcePage.
 
@@ -405,8 +406,7 @@ checks (8 sites) and imports (19 files). Updated `phase_update_site_pages()`,
   mutable `Page` construction at the discovery boundary; it can go only after
   downstream code consumes records directly.
 - **Finish virtual-page migration**: Autodoc and orchestration producers use
-  `create_virtual_source_page()`, but compatibility tests and public
-  `Page.create_virtual()` coverage still exist.
+  `create_virtual_source_page()`, and Sprint 6 removed `Page.create_virtual()`.
 
 ---
 
@@ -435,6 +435,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate page bundle fixtures`
 - `content: type source page adapter as page-like`
 - `core: retire public page exports`
+- `core: remove page virtual constructor`
 
 ### Sprint 6 epics
 

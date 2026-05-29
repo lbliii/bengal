@@ -142,6 +142,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate page bundle fixtures`
 - `content: type source page adapter as page-like`
 - `core: retire public page exports`
+- `core: remove page virtual constructor`
 
 **Proof before saga close:** `rg '^class Page\\b' bengal/core/page` returns no
 hits; `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns no hits;
