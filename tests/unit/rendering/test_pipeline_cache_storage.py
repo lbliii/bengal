@@ -17,6 +17,7 @@ from bengal.cache import BuildCache
 from bengal.core.records import ParsedPage, RenderedPage
 from bengal.rendering.pipeline import RenderingPipeline
 from bengal.rendering.pipeline.cache_checker import CacheChecker
+from tests._testing.page_records import seed_parsed_page_state
 
 
 class DummyParser:
@@ -113,9 +114,12 @@ class TestPipelineCacheStorage:
         pipeline = RenderingPipeline(site, build_context=ctx, build_cache=cache)
 
         # Manually call cache_parsed_content via the cache_checker
-        mock_page.html_content = "<p>Test content</p>"
-        mock_page.toc = "<nav>TOC</nav>"
-        mock_page.links = []
+        seed_parsed_page_state(
+            mock_page,
+            html_content="<p>Test content</p>",
+            toc="<nav>TOC</nav>",
+            links=[],
+        )
 
         # Before caching, parsed_content should be empty
         assert str(mock_page.source_path) not in cache.parsed_content
@@ -510,9 +514,12 @@ class TestPipelineCacheIntegration:
         pipeline = RenderingPipeline(site, build_context=ctx, build_cache=cache)
 
         # Store parsed content
-        mock_page.html_content = "<p>Cached content for persistence test</p>"
-        mock_page.toc = "<nav>TOC</nav>"
-        mock_page.links = []
+        seed_parsed_page_state(
+            mock_page,
+            html_content="<p>Cached content for persistence test</p>",
+            toc="<nav>TOC</nav>",
+            links=[],
+        )
 
         cache.update_file(mock_page.source_path)
         pipeline._cache_checker.cache_parsed_content(mock_page, "default.html", "mistune-3.0-toc1")
