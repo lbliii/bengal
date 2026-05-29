@@ -219,7 +219,7 @@ API templates receive:
 ```python
 {
     "element": DocElement(...),  # The documented element
-    "page": Page(...),           # Virtual page object
+    "page": page_from_source_page(SourcePage(...)),  # Adapted virtual page
     "site": Site(...),           # Site object
     # Plus standard template context
 }
