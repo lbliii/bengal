@@ -12,6 +12,7 @@ ContentParser: Parses content files with frontmatter.
 
 from __future__ import annotations
 
+import re
 from typing import TYPE_CHECKING, Any
 
 import patitas
@@ -131,6 +132,12 @@ class ContentParser:
 
         if "type" not in metadata:
             metadata["type"] = "notebook"
+        title = metadata.get("title")
+        fallback_title = file_path.stem.replace("-", " ").replace("_", " ").title()
+        if (not isinstance(title, str) or title == fallback_title) and (
+            heading_title := _first_markdown_h1(content)
+        ):
+            metadata["title"] = heading_title
 
         return content, metadata
 
@@ -264,3 +271,9 @@ class ContentParser:
                 continue
 
         return None, None
+
+
+def _first_markdown_h1(content: str) -> str:
+    """Return the first markdown H1 text from notebook content."""
+    match = re.search(r"^#\s+(.+?)\s*$", content, flags=re.MULTILINE)
+    return match.group(1).strip() if match else ""
