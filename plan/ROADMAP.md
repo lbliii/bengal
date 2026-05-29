@@ -44,7 +44,7 @@ Machine-checked on 2026-05-29:
   `from bengal.core.page import Page` imports are isolated to
   `bengal/content/discovery/page_adapter.py`, while public `bengal.Page` and
   `bengal.core.Page` exports are lazy compatibility surfaces. The remaining
-  `bengal/` + `tests/` direct import count is 71, all but the adapter in tests.
+  `bengal/` + `tests/` direct import count is 66, all but the adapter in tests.
   `tests/unit/content/test_page_construction_boundary.py` now locks production
   constructor and direct-import isolation to the SourcePage adapter.
 

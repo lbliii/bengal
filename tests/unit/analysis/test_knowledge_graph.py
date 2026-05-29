@@ -1,13 +1,16 @@
-"""
-Tests for KnowledgeGraph analysis module.
-"""
+"""Tests for KnowledgeGraph analysis module."""
+
+from typing import Any
 
 import pytest
 
-from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
+from bengal.analysis.graph.knowledge_graph import KnowledgeGraph as _KnowledgeGraph
 from bengal.analysis.graph.metrics import PageConnectivity
-from bengal.core.page import Page
-from bengal.core.site import Site
+from bengal.core.site import Site as _Site
+from tests._testing.page_records import make_mutable_test_page as _page
+
+KnowledgeGraph: Any = _KnowledgeGraph
+Site: Any = _Site
 
 
 @pytest.fixture
@@ -16,22 +19,22 @@ def simple_site(tmp_path):
     site = Site(root_path=tmp_path, config={})
 
     # Create pages (slug is auto-derived from title)
-    page1 = Page(
+    page1 = _page(
         source_path=tmp_path / "page1.md",
-        _raw_content="# Page 1",
-        _raw_metadata={"title": "Page 1"},
+        raw_content="# Page 1",
+        metadata={"title": "Page 1"},
     )
 
-    page2 = Page(
+    page2 = _page(
         source_path=tmp_path / "page2.md",
-        _raw_content="# Page 2",
-        _raw_metadata={"title": "Page 2", "tags": ["python"]},
+        raw_content="# Page 2",
+        metadata={"title": "Page 2", "tags": ["python"]},
     )
 
-    page3 = Page(
+    page3 = _page(
         source_path=tmp_path / "page3.md",
-        _raw_content="# Page 3",
-        _raw_metadata={"title": "Page 3", "tags": ["python", "tutorial"]},
+        raw_content="# Page 3",
+        metadata={"title": "Page 3", "tags": ["python", "tutorial"]},
     )
 
     site.pages = [page1, page2, page3]
@@ -45,30 +48,30 @@ def site_with_links(tmp_path):
     site = Site(root_path=tmp_path, config={})
 
     # Create hub page (slug is auto-derived from title)
-    hub = Page(
-        source_path=tmp_path / "hub.md", _raw_content="# Hub Page", _raw_metadata={"title": "Hub"}
+    hub = _page(
+        source_path=tmp_path / "hub.md", raw_content="# Hub Page", metadata={"title": "Hub"}
     )
 
     # Create leaf pages that link to hub
-    leaf1 = Page(
+    leaf1 = _page(
         source_path=tmp_path / "leaf1.md",
-        _raw_content="# Leaf 1",
-        _raw_metadata={"title": "Leaf 1"},
+        raw_content="# Leaf 1",
+        metadata={"title": "Leaf 1"},
     )
     leaf1.related_posts = [hub]  # Simulates link
 
-    leaf2 = Page(
+    leaf2 = _page(
         source_path=tmp_path / "leaf2.md",
-        _raw_content="# Leaf 2",
-        _raw_metadata={"title": "Leaf 2"},
+        raw_content="# Leaf 2",
+        metadata={"title": "Leaf 2"},
     )
     leaf2.related_posts = [hub]  # Simulates link
 
     # Create orphan (no connections)
-    orphan = Page(
+    orphan = _page(
         source_path=tmp_path / "orphan.md",
-        _raw_content="# Orphan",
-        _raw_metadata={"title": "Orphan"},
+        raw_content="# Orphan",
+        metadata={"title": "Orphan"},
     )
 
     site.pages = [hub, leaf1, leaf2, orphan]
@@ -309,12 +312,8 @@ class TestFormatStats:
         site = Site(root_path=tmp_path, config={})
 
         # Create pages that all reference each other
-        page1 = Page(
-            source_path=tmp_path / "p1.md", _raw_content="", _raw_metadata={"title": "Page 1"}
-        )
-        page2 = Page(
-            source_path=tmp_path / "p2.md", _raw_content="", _raw_metadata={"title": "Page 2"}
-        )
+        page1 = _page(source_path=tmp_path / "p1.md", raw_content="", metadata={"title": "Page 1"})
+        page2 = _page(source_path=tmp_path / "p2.md", raw_content="", metadata={"title": "Page 2"})
         page1.related_posts = [page2]
         page2.related_posts = [page1]
 
@@ -360,17 +359,17 @@ class TestAutodocFiltering:
         site = Site(root_path=tmp_path, config={})
 
         # Create regular page
-        regular = Page(
+        regular = _page(
             source_path=tmp_path / "regular.md",
-            _raw_content="# Regular",
-            _raw_metadata={"title": "Regular", "type": "doc"},
+            raw_content="# Regular",
+            metadata={"title": "Regular", "type": "doc"},
         )
 
         # Create autodoc page
-        autodoc = Page(
+        autodoc = _page(
             source_path=tmp_path / "api" / "module.md",
-            _raw_content="# API",
-            _raw_metadata={"title": "API", "type": "autodoc-python"},
+            raw_content="# API",
+            metadata={"title": "API", "type": "autodoc-python"},
         )
 
         site.pages = [regular, autodoc]
@@ -387,16 +386,16 @@ class TestAutodocFiltering:
         """Test that autodoc pages are included when filtering is disabled."""
         site = Site(root_path=tmp_path, config={})
 
-        regular = Page(
+        regular = _page(
             source_path=tmp_path / "regular.md",
-            _raw_content="# Regular",
-            _raw_metadata={"title": "Regular"},
+            raw_content="# Regular",
+            metadata={"title": "Regular"},
         )
 
-        autodoc = Page(
+        autodoc = _page(
             source_path=tmp_path / "api" / "module.md",
-            _raw_content="# API",
-            _raw_metadata={"title": "API", "type": "autodoc-python"},
+            raw_content="# API",
+            metadata={"title": "API", "type": "autodoc-python"},
         )
 
         site.pages = [regular, autodoc]
@@ -414,28 +413,28 @@ class TestAutodocFiltering:
         from bengal.utils.autodoc import is_autodoc_page
 
         # Test different autodoc markers
-        api_ref = Page(
+        api_ref = _page(
             source_path=tmp_path / "api.md",
-            _raw_content="",
-            _raw_metadata={"type": "autodoc-python"},
+            raw_content="",
+            metadata={"type": "autodoc-python"},
         )
 
-        python_module = Page(
+        python_module = _page(
             source_path=tmp_path / "module.md",
-            _raw_content="",
-            _raw_metadata={"type": "python-module"},
+            raw_content="",
+            metadata={"type": "python-module"},
         )
 
-        api_path = Page(
+        api_path = _page(
             source_path=tmp_path / "content" / "api" / "test.md",
-            _raw_content="",
-            _raw_metadata={},
+            raw_content="",
+            metadata={},
         )
 
-        regular = Page(
+        regular = _page(
             source_path=tmp_path / "regular.md",
-            _raw_content="",
-            _raw_metadata={"type": "doc"},
+            raw_content="",
+            metadata={"type": "doc"},
         )
 
         # Test the utility function directly
@@ -511,20 +510,20 @@ class TestContentGaps:
         site = Site(root_path=tmp_path, config={})
 
         # Create pages with shared tag but no links
-        page1 = Page(
+        page1 = _page(
             source_path=tmp_path / "p1.md",
-            _raw_content="",
-            _raw_metadata={"title": "Page 1", "tags": ["python"]},
+            raw_content="",
+            metadata={"title": "Page 1", "tags": ["python"]},
         )
-        page2 = Page(
+        page2 = _page(
             source_path=tmp_path / "p2.md",
-            _raw_content="",
-            _raw_metadata={"title": "Page 2", "tags": ["python"]},
+            raw_content="",
+            metadata={"title": "Page 2", "tags": ["python"]},
         )
-        page3 = Page(
+        page3 = _page(
             source_path=tmp_path / "p3.md",
-            _raw_content="",
-            _raw_metadata={"title": "Page 3", "tags": ["python"]},
+            raw_content="",
+            metadata={"title": "Page 3", "tags": ["python"]},
         )
 
         site.pages = [page1, page2, page3]
@@ -557,16 +556,16 @@ class TestLinkExtraction:
         site = Site(root_path=tmp_path, config={})
 
         # Create pages with markdown links
-        page1 = Page(
+        page1 = _page(
             source_path=tmp_path / "page1.md",
-            _raw_content="# Page 1\n\nSee [Page 2](page2.md)",
-            _raw_metadata={"title": "Page 1"},
+            raw_content="# Page 1\n\nSee [Page 2](page2.md)",
+            metadata={"title": "Page 1"},
         )
 
-        page2 = Page(
+        page2 = _page(
             source_path=tmp_path / "page2.md",
-            _raw_content="# Page 2",
-            _raw_metadata={"title": "Page 2"},
+            raw_content="# Page 2",
+            metadata={"title": "Page 2"},
         )
 
         site.pages = [page1, page2]

@@ -8,14 +8,19 @@ ensuring parallel mode produces identical results to sequential mode.
 from __future__ import annotations
 
 import os
+from typing import Any
 from unittest.mock import patch
 
 import pytest
 
-from bengal.analysis.graph.builder import MIN_PAGES_FOR_PARALLEL, GraphBuilder
-from bengal.core.page import Page
-from bengal.core.site import Site
+from bengal.analysis.graph.builder import MIN_PAGES_FOR_PARALLEL
+from bengal.analysis.graph.builder import GraphBuilder as _GraphBuilder
+from bengal.core.site import Site as _Site
+from tests._testing.page_records import make_mutable_test_page as _page
 from tests._testing.page_records import seed_parsed_page_state
+
+GraphBuilder: Any = _GraphBuilder
+Site: Any = _Site
 
 
 @pytest.fixture
@@ -30,10 +35,10 @@ def small_site(tmp_path):
 
     pages = []
     for i in range(4):
-        page = Page(
+        page = _page(
             source_path=tmp_path / f"page{i}.md",
-            _raw_content=f"# Page {i}",
-            _raw_metadata={"title": f"Page {i}"},
+            raw_content=f"# Page {i}",
+            metadata={"title": f"Page {i}"},
         )
         pages.append(page)
 
@@ -54,10 +59,10 @@ def large_site(tmp_path):
 
     pages = []
     for i in range(150):  # Above MIN_PAGES_FOR_PARALLEL (100)
-        page = Page(
+        page = _page(
             source_path=tmp_path / f"page{i}.md",
-            _raw_content=f"# Page {i}",
-            _raw_metadata={"title": f"Page {i}"},
+            raw_content=f"# Page {i}",
+            metadata={"title": f"Page {i}"},
         )
         pages.append(page)
 
@@ -131,10 +136,10 @@ class TestParallelMatchesSequential:
             site = Site(root_path=tmp_path, config={})
             pages = []
             for i in range(10):
-                page = Page(
+                page = _page(
                     source_path=tmp_path / f"page{i}.md",
-                    _raw_content=f"# Page {i}",
-                    _raw_metadata={"title": f"Page {i}"},
+                    raw_content=f"# Page {i}",
+                    metadata={"title": f"Page {i}"},
                 )
                 pages.append(page)
 
@@ -193,10 +198,10 @@ class TestParallelErrorHandling:
         # Create pages without links or related_posts
         pages = []
         for i in range(5):
-            page = Page(
+            page = _page(
                 source_path=tmp_path / f"page{i}.md",
-                _raw_content=f"# Page {i}",
-                _raw_metadata={"title": f"Page {i}"},
+                raw_content=f"# Page {i}",
+                metadata={"title": f"Page {i}"},
             )
             # Ensure attributes don't exist
             if hasattr(page, "links"):

@@ -15,6 +15,11 @@ PAGE_CONSTRUCTION_ADAPTER_FILES = {
 }
 
 MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
+    "tests/unit/analysis/test_analysis_optimization.py",
+    "tests/unit/analysis/test_graph_analysis.py",
+    "tests/unit/analysis/test_graph_builder_parallel.py",
+    "tests/unit/analysis/test_graph_features.py",
+    "tests/unit/analysis/test_knowledge_graph.py",
     "tests/unit/rendering/test_crossref.py",
     "tests/unit/rendering/test_crossref_baseurl.py",
     "tests/unit/rendering/test_i18n_template_functions.py",

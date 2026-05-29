@@ -16,7 +16,7 @@ now isolated to the SourcePage compatibility adapter, while `bengal.Page` and
 `bengal.core.Page` remain lazy public compatibility exports. Boundary tests now
 enforce that production `Page` construction and direct imports stay isolated to
 the adapter. The remaining direct import count across `bengal/` + `tests/` is
-71, all but the adapter in tests. Deletion remains blocked by the adapter
+66, all but the adapter in tests. Deletion remains blocked by the adapter
 boundary, public API retirement decisions, and test factories that still
 construct `Page` directly.
 
@@ -418,7 +418,7 @@ Search all remaining `Page` imports. As of the 2026-05-29 first saga slice,
 `rg 'from bengal\.core\.page import Page\b' bengal` finds only
 `bengal/content/discovery/page_adapter.py`, the intentional compatibility
 adapter from immutable `SourcePage` records to mutable `Page`. The broader
-`bengal/` + `tests/` sweep now finds 71 direct import sites, all but the
+`bengal/` + `tests/` sweep now finds 66 direct import sites, all but the
 adapter in tests. Next, migrate test factories and downstream adapter consumers
 to SourcePage/page-record helpers before deleting the class.
 

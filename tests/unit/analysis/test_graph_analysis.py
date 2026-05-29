@@ -7,11 +7,18 @@ both directly and through KnowledgeGraph delegation.
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
-from bengal.analysis import GraphAnalyzer, KnowledgeGraph
-from bengal.core.page import Page
-from bengal.core.site import Site
+from bengal.analysis import GraphAnalyzer as _GraphAnalyzer
+from bengal.analysis import KnowledgeGraph as _KnowledgeGraph
+from bengal.core.site import Site as _Site
+from tests._testing.page_records import make_mutable_test_page as _page
+
+GraphAnalyzer: Any = _GraphAnalyzer
+KnowledgeGraph: Any = _KnowledgeGraph
+Site: Any = _Site
 
 
 @pytest.fixture
@@ -20,22 +27,22 @@ def simple_site(tmp_path):
     site = Site(root_path=tmp_path, config={})
 
     # Create pages (slug is auto-derived from title)
-    page1 = Page(
+    page1 = _page(
         source_path=tmp_path / "page1.md",
-        _raw_content="# Page 1",
-        _raw_metadata={"title": "Page 1"},
+        raw_content="# Page 1",
+        metadata={"title": "Page 1"},
     )
 
-    page2 = Page(
+    page2 = _page(
         source_path=tmp_path / "page2.md",
-        _raw_content="# Page 2",
-        _raw_metadata={"title": "Page 2"},
+        raw_content="# Page 2",
+        metadata={"title": "Page 2"},
     )
 
-    page3 = Page(
+    page3 = _page(
         source_path=tmp_path / "page3.md",
-        _raw_content="# Page 3",
-        _raw_metadata={"title": "Page 3"},
+        raw_content="# Page 3",
+        metadata={"title": "Page 3"},
     )
 
     site.pages = [page1, page2, page3]
@@ -48,24 +55,24 @@ def site_with_links(tmp_path):
     site = Site(root_path=tmp_path, config={})
 
     # Create hub page (slug is auto-derived from title)
-    hub = Page(
+    hub = _page(
         source_path=tmp_path / "hub.md",
-        _raw_content="# Hub Page",
-        _raw_metadata={"title": "Hub"},
+        raw_content="# Hub Page",
+        metadata={"title": "Hub"},
     )
 
     # Create leaf pages that link to hub
-    leaf1 = Page(
+    leaf1 = _page(
         source_path=tmp_path / "leaf1.md",
-        _raw_content="# Leaf 1",
-        _raw_metadata={"title": "Leaf 1"},
+        raw_content="# Leaf 1",
+        metadata={"title": "Leaf 1"},
     )
     leaf1.related_posts = [hub]  # Simulates link
 
-    leaf2 = Page(
+    leaf2 = _page(
         source_path=tmp_path / "leaf2.md",
-        _raw_content="# Leaf 2",
-        _raw_metadata={"title": "Leaf 2"},
+        raw_content="# Leaf 2",
+        metadata={"title": "Leaf 2"},
     )
     leaf2.related_posts = [hub]  # Simulates link
 

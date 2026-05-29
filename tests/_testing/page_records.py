@@ -100,6 +100,18 @@ def make_test_page(
     return page_like
 
 
+def make_mutable_test_page(**kwargs: Any) -> Any:
+    """Create a Page compatibility object from legacy Page-style keyword names."""
+    raw_content = kwargs.pop("raw_content", kwargs.pop("_raw_content", ""))
+    metadata = kwargs.pop("metadata", kwargs.pop("_raw_metadata", {}))
+    return make_test_page(
+        raw_content=raw_content,
+        metadata=metadata,
+        default_metadata=False,
+        **kwargs,
+    )
+
+
 def make_parsed_page(**overrides: Any) -> ParsedPage:
     """Create a representative ``ParsedPage`` for unit tests."""
     page = SimpleNamespace(
