@@ -25,6 +25,8 @@ from tests._testing.page_records import (
     make_parsed_page,
     make_rendered_page,
     make_source_page,
+    make_test_page,
+    seed_parsed_page_state,
 )
 
 
@@ -201,3 +203,44 @@ def test_testing_record_factories_use_canonical_adapters():
     assert make_source_page().raw_content == "# Hello\n\nWorld"
     assert make_parsed_page().plain_text == "Hello"
     assert make_rendered_page().rendered_html == "<html>Hello</html>"
+
+
+def test_seed_parsed_page_state_uses_parsed_adapter():
+    page = SimpleNamespace(
+        html_content=None,
+        toc="",
+        links=[],
+        _toc_items_cache=[],
+        _excerpt=None,
+        _meta_description=None,
+        _plain_text_cache=None,
+    )
+
+    parsed = seed_parsed_page_state(
+        page,
+        html_content="<p>Body</p>",
+        toc="<nav>TOC</nav>",
+        toc_items=[{"id": "body", "title": "Body"}],
+        links=["/target/"],
+    )
+
+    assert parsed.html_content == "<p>Body</p>"
+    assert page.html_content == "<p>Body</p>"
+    assert page.toc == "<nav>TOC</nav>"
+    assert page._toc_items_cache == [{"id": "body", "title": "Body"}]
+    assert page.links == ["/target/"]
+
+
+def test_make_test_page_uses_source_page_adapter():
+    page = make_test_page(
+        source_path="content/docs/guide.md",
+        raw_content="# Guide",
+        metadata={"title": "Guide"},
+        html_content="<h1>Guide</h1>",
+        output_path="public/docs/guide/index.html",
+    )
+
+    assert page.source_path == Path("content/docs/guide.md")
+    assert page.output_path == Path("public/docs/guide/index.html")
+    assert page.title == "Guide"
+    assert page.content == "<h1>Guide</h1>"

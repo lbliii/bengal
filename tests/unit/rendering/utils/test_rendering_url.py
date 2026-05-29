@@ -5,11 +5,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from unittest.mock import Mock
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.rendering.urls import RenderURLContext, url_for, url_for_path
 from bengal.rendering.utils.url import apply_baseurl, normalize_url_path
+from tests._testing.page_records import make_test_page
 
 
 @dataclass
@@ -155,7 +155,7 @@ class TestRenderURLContext:
 
     def test_url_for_page_applies_baseurl(self, tmp_path):
         site = Site(root_path=tmp_path, config={"baseurl": "/bengal"})
-        page = Page(source_path=tmp_path / "content" / "docs" / "guide.md")
+        page = make_test_page(source_path=tmp_path / "content" / "docs" / "guide.md")
         page.__dict__["_path"] = "/docs/guide/"
 
         assert url_for(page, RenderURLContext.for_page(site, page)) == "/bengal/docs/guide/"

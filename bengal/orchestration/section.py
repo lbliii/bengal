@@ -47,14 +47,13 @@ from typing import TYPE_CHECKING
 
 from bengal.content.discovery.page_factory import PageInitializer
 from bengal.content_types.registry import detect_content_type, get_strategy
-from bengal.orchestration.utils.virtual_pages import claim_url_gracefully
+from bengal.orchestration.utils.virtual_pages import VirtualPageSpec, create_virtual_page
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
 
 logger = get_logger(__name__)
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.site import Site
     from bengal.protocols import PageLike, SectionLike
 
@@ -327,7 +326,7 @@ class SectionOrchestrator:
         # Sort according to content type
         return strategy.sort_pages(filtered_pages)
 
-    def _create_archive_index(self, section: SectionLike) -> Page:
+    def _create_archive_index(self, section: SectionLike) -> PageLike:
         """
         Create an auto-generated index page for a section.
 
@@ -350,11 +349,7 @@ class SectionOrchestrator:
             >>> print(archive_page.template)  # 'archive.html'
             >>> print(archive_page.metadata['type'])  # 'archive'
         """
-        from bengal.core.page import Page
         from bengal.utils.pagination import Paginator
-
-        # Create virtual path for generated archive (delegate to utility)
-        virtual_path = self.url_strategy.make_virtual_path(self.site, "archives", section.name)
 
         # Detect content type
         content_type = self._detect_content_type(section)
@@ -389,24 +384,21 @@ class SectionOrchestrator:
                 }
             )
 
-        # Create archive page
-        archive_page = Page(source_path=virtual_path, _raw_content="", _raw_metadata=metadata)
-
-        # Mark as virtual page (attribute, not just metadata)
-        archive_page.virtual = True
-
-        # Compute output path using centralized logic
-        archive_page.output_path = self.url_strategy.compute_archive_output_path(
-            section=section, page_num=1, site=self.site
-        )
-
-        # Claim URL in registry for ownership enforcement (Priority 50 = section indexes)
-        claim_url_gracefully(
+        archive_page = create_virtual_page(
             site=self.site,
-            page=archive_page,
             url_strategy=self.url_strategy,
-            owner="section_index",
-            priority=50,
+            spec=VirtualPageSpec(
+                title=section.title,
+                template=template,
+                page_type=content_type,
+                metadata=metadata,
+            ),
+            path_segments=("archives", section.name),
+            output_path=self.url_strategy.compute_archive_output_path(
+                section=section, page_num=1, site=self.site
+            ),
+            registry_owner="section_index",
+            registry_priority=50,
         )
 
         # Ensure page is correctly initialized (sets _site, validates)

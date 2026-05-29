@@ -41,6 +41,7 @@ from __future__ import annotations
 import gc
 from typing import TYPE_CHECKING
 
+from bengal.cache.parsed_output import clear_parsed_page_caches
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -406,18 +407,7 @@ class StreamingRenderOrchestrator:
                 # Clear references to page content/metadata to free memory
                 # Page cache attributes are defined in bengal/core/page/__init__.py
                 for page in batch:
-                    # Clear AST cache (parsed markdown structure)
-                    if hasattr(page, "_ast_cache"):
-                        page._ast_cache = None
-                    # Clear rendered HTML cache
-                    if hasattr(page, "_html_cache"):
-                        page._html_cache = None
-                    # Clear plain text cache (used for search indexing)
-                    if hasattr(page, "_plain_text_cache"):
-                        page._plain_text_cache = None
-                    # Clear TOC items cache
-                    if hasattr(page, "_toc_items_cache"):
-                        page._toc_items_cache = None
+                    clear_parsed_page_caches(page)
 
                 # Force garbage collection
                 gc.collect()

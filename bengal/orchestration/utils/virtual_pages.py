@@ -29,13 +29,15 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from bengal.content.discovery.page_adapter import page_from_source_page
+from bengal.core.records import create_virtual_source_page
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols import PageLike
     from bengal.utils.paths.url_strategy import URLStrategy
 
 logger = get_logger(__name__)
@@ -69,7 +71,7 @@ def create_virtual_page(
     output_path: Path,
     registry_owner: str | None = None,
     registry_priority: int = 50,
-) -> Page:
+) -> PageLike:
     """
     Create a virtual/generated page with proper initialization.
 
@@ -107,8 +109,6 @@ def create_virtual_page(
         ...     registry_priority=40,
         ... )
     """
-    from bengal.core.page import Page
-
     # Create virtual path
     virtual_path = url_strategy.make_virtual_path(site, *path_segments)
 
@@ -122,25 +122,19 @@ def create_virtual_page(
         **spec.metadata,
     }
 
-    # Create page
-    page = Page(
-        source_path=virtual_path,
-        _raw_content="",
-        _raw_metadata=metadata,
+    source_page = create_virtual_source_page(
+        source_id=str(virtual_path),
+        title=spec.title,
+        metadata=metadata,
+        lang=spec.lang,
     )
 
-    # Mark as virtual page (attribute, not just metadata)
-    page.virtual = True
-
-    # Set site reference BEFORE output_path for correct URL computation
-    page._site = site
-
-    # Set output path
-    page.output_path = output_path
-
-    # Set language if provided
-    if spec.lang:
-        page.lang = spec.lang
+    page = page_from_source_page(
+        source_page,
+        site=site,
+        output_path=output_path,
+        template_name=spec.template,
+    )
 
     # Claim URL in registry
     if registry_owner:
@@ -157,7 +151,7 @@ def create_virtual_page(
 
 def claim_url_gracefully(
     site: Site,
-    page: Page,
+    page: PageLike,
     url_strategy: URLStrategy,
     owner: str,
     priority: int,

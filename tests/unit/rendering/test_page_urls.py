@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.rendering.page_urls import (
     get_absolute_href,
@@ -12,12 +11,13 @@ from bengal.rendering.page_urls import (
     get_path,
     path_from_output_relative_path,
 )
+from tests._testing.page_records import make_test_page
 
 
-def _page(output_path: Path | None = None) -> Page:
-    return Page(
+def _page(output_path: Path | None = None):
+    return make_test_page(
         source_path=Path("/site/content/docs/page.md"),
-        _raw_metadata={"title": "Page"},
+        metadata={"title": "Page", "slug": "page"},
         output_path=output_path,
     )
 

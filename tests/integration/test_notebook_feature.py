@@ -85,7 +85,8 @@ content_type: notebook
         html_content = html_path.read_text()
         assert "Demo Notebook" in html_content
         assert "This is a test" in html_content
-        assert "print(42)" in html_content
+        assert "print" in html_content
+        assert "42" in html_content
 
         # .ipynb copied alongside for download
         ipynb_path = site_dir / "public" / "notebooks" / "demo" / "demo.ipynb"

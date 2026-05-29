@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, Any
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, CheckStatus
+from bengal.rendering.rendered_output import get_rendered_html
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
@@ -150,7 +151,7 @@ class AnchorValidator(BaseValidator):
             List of CheckResults for duplicate anchors
         """
         results: list[CheckResult] = []
-        rendered_html = getattr(page, "rendered_html", None) or ""
+        rendered_html = get_rendered_html(page)
         page_path = str(getattr(page, "source_path", "unknown"))
 
         if not rendered_html:

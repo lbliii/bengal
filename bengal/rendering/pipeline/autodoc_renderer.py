@@ -21,6 +21,8 @@ from kida.environment.exceptions import (
     TemplateSyntaxError,
 )
 
+from bengal.cache.parsed_output import apply_parsed_page_to_page
+from bengal.core.records import ParsedPage, rendered_page_from_page_state
 from bengal.protocols import SiteConfig, SiteLike
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
@@ -145,13 +147,19 @@ class AutodocRenderer:
             page.metadata.get("autodoc_element") is not None
             or page.metadata.get("is_section_index")
         ):
-            self._render_autodoc_page(page)
+            rendered_html = self._render_autodoc_page(page)
+            rendered_page = rendered_page_from_page_state(
+                page,
+                rendered_html=rendered_html,
+                render_time_ms=0.0,
+            )
             write_output(
                 page,
                 cast("SiteLike", self.site),
                 collector=self.output_collector,
                 write_behind=self.write_behind,
                 build_cache=self.build_cache,
+                rendered_page=rendered_page,
                 compare_existing_output=self.compare_existing_output,
             )
             logger.debug(
@@ -161,8 +169,7 @@ class AutodocRenderer:
             )
             return
 
-        page.html_content = page.prerendered_html
-        page.toc = ""
+        self._apply_virtual_parsed_content(page, page.prerendered_html or "")
 
         # Check if pre-rendered HTML is already a complete page (extends base.html)
         # Complete pages should not be wrapped with another template
@@ -172,13 +179,18 @@ class AutodocRenderer:
 
         if is_complete_page:
             # Use pre-rendered HTML directly (it's already a complete page)
-            page.rendered_html = prerendered
-            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
+            rendered_html = format_html(prerendered, page, cast("SiteLike", self.site))
         else:
             # Wrap content fragment with template
             html_content = self.renderer.render_content(page.html_content or "")
-            page.rendered_html = self.renderer.render_page(page, html_content)
-            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
+            rendered_html = self.renderer.render_page(page, html_content)
+            rendered_html = format_html(rendered_html, page, cast("SiteLike", self.site))
+
+        rendered_page = rendered_page_from_page_state(
+            page,
+            rendered_html=rendered_html,
+            render_time_ms=0.0,
+        )
 
         write_output(
             page,
@@ -186,6 +198,7 @@ class AutodocRenderer:
             collector=self.output_collector,
             write_behind=self.write_behind,
             build_cache=self.build_cache,
+            rendered_page=rendered_page,
             compare_existing_output=self.compare_existing_output,
         )
 
@@ -196,7 +209,7 @@ class AutodocRenderer:
             is_complete_page=is_complete_page,
         )
 
-    def _render_autodoc_page(self, page: PageLike) -> None:
+    def _render_autodoc_page(self, page: PageLike) -> str:
         """
         Render an autodoc page using the site's template engine.
 
@@ -234,11 +247,9 @@ class AutodocRenderer:
             # Fall back to rendering as regular virtual page
             fallback_desc = getattr(element, "description", "") if element else ""
             page.prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            page.html_content = page.prerendered_html
-            page.toc = ""
-            page.rendered_html = self.renderer.render_page(page, page.prerendered_html)
-            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
-            return
+            self._apply_virtual_parsed_content(page, page.prerendered_html)
+            rendered_html = self.renderer.render_page(page, page.prerendered_html)
+            return format_html(rendered_html, page, cast("SiteLike", self.site))
 
         # Render with full site context (same as regular pages)
         # Prefer explicit _section reference set by orchestrators; fall back to page.section
@@ -300,19 +311,34 @@ class AutodocRenderer:
             # Fallback minimal HTML to keep build moving
             fallback_desc = getattr(element, "description", "") if element else ""
             page.prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            page.html_content = page.prerendered_html
-            page.toc = ""
-            page._toc_items_cache = []  # Set private cache, not read-only property
-            page.rendered_html = self.renderer.render_page(page, page.prerendered_html)
-            page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
-            return
+            self._apply_virtual_parsed_content(page, page.prerendered_html)
+            rendered_html = self.renderer.render_page(page, page.prerendered_html)
+            return format_html(rendered_html, page, cast("SiteLike", self.site))
 
         page.prerendered_html = html_content
-        page.html_content = html_content
-        page.toc = ""
-        page._toc_items_cache = []  # Set private cache, not read-only property
-        page.rendered_html = html_content
-        page.rendered_html = format_html(page.rendered_html, page, cast("SiteLike", self.site))
+        self._apply_virtual_parsed_content(page, html_content)
+        return format_html(html_content, page, cast("SiteLike", self.site))
+
+    def _apply_virtual_parsed_content(self, page: PageLike, html_content: str) -> None:
+        """Apply virtual-page HTML through the immutable parsed record adapter."""
+        parsed_page = ParsedPage(
+            html_content=html_content,
+            toc="",
+            toc_items=(),
+            excerpt=getattr(page, "excerpt", "") or "",
+            meta_description=getattr(page, "meta_description", "") or "",
+            plain_text=getattr(page, "plain_text", "") or "",
+            word_count=getattr(page, "word_count", 0) or 0,
+            reading_time=getattr(page, "reading_time", 0) or 0,
+            links=(),
+        )
+        apply_parsed_page_to_page(
+            page,
+            parsed_page,
+            seed_counts=False,
+            seed_links=False,
+            seed_plain_text=False,
+        )
 
     def _load_autodoc_template(self, template_name: str) -> Template:
         """Load autodoc template with proper error handling.

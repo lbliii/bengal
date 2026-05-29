@@ -7,8 +7,8 @@ These tests verify that output files are written correctly.
 
 from types import SimpleNamespace
 
-from bengal.core.page import Page
 from bengal.rendering.pipeline import RenderingPipeline
+from tests._testing.page_records import make_test_page, seed_parsed_page_state
 
 
 class CapturingReporter:
@@ -36,7 +36,11 @@ class CapturingReporter:
 def test_pipeline_writes_output_file(tmp_path):
     """Test that _write_output correctly writes the rendered HTML to disk."""
     site = SimpleNamespace(config={}, root_path=tmp_path, output_dir=tmp_path / "public")
-    page = Page(source_path=tmp_path / "content" / "p.md", _raw_content="# Title", _raw_metadata={})
+    page = make_test_page(
+        source_path=tmp_path / "content" / "p.md",
+        raw_content="# Title",
+        metadata={},
+    )
     page.output_path = site.output_dir / "p" / "index.html"
 
     # Inject a dummy template engine to avoid needing a full Site with theme
@@ -52,7 +56,7 @@ def test_pipeline_writes_output_file(tmp_path):
     page.output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Simulate already-rendered content
-    page.html_content = "<h1>Title</h1>"
+    seed_parsed_page_state(page, html_content="<h1>Title</h1>")
     page.rendered_html = "<html>\n<body>\n<h1>Title</h1>\n</body>\n</html>"
     pipeline.renderer = SimpleNamespace(
         render_content=lambda s: s,

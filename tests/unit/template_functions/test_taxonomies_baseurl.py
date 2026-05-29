@@ -8,6 +8,7 @@ including i18n prefix strategy combined with base URLs.
 from pathlib import Path
 
 from bengal.core.site import Site
+from tests._testing.page_records import make_test_page
 
 
 class TestTagUrlWithBaseUrl:
@@ -126,7 +127,6 @@ output_dir = "public"
 
     def test_tag_url_with_baseurl_and_i18n_prefix(self, tmp_path):
         """Test tag_url with both base URL and i18n prefix strategy."""
-        from bengal.core.page import Page
         from bengal.rendering.template_engine import TemplateEngine
 
         site_dir = tmp_path / "site"
@@ -161,9 +161,11 @@ languages = ["en", "fr"]
         engine = TemplateEngine(site)
 
         # Create a French page to provide language context
-        page = Page(source_path=Path("content/fr/post.md"))
-        page._raw_metadata = {"title": "Post", "lang": "fr"}
-        page.output_path = site_dir / "public" / "fr" / "post" / "index.html"
+        page = make_test_page(
+            source_path=Path("content/fr/post.md"),
+            metadata={"title": "Post", "lang": "fr"},
+            output_path=site_dir / "public" / "fr" / "post" / "index.html",
+        )
         page._site = site
         # Set lang as a direct attribute (used by tag_url_with_site)
         page.lang = "fr"
@@ -177,7 +179,6 @@ languages = ["en", "fr"]
 
     def test_tag_url_with_baseurl_no_i18n_for_default_lang(self, tmp_path):
         """Test tag_url with base URL but no i18n prefix for default language."""
-        from bengal.core.page import Page
         from bengal.rendering.template_engine import TemplateEngine
 
         site_dir = tmp_path / "site"
@@ -212,9 +213,11 @@ languages = ["en", "es"]
         engine = TemplateEngine(site)
 
         # Create an English page (default language, no subdir)
-        page = Page(source_path=Path("content/post.md"))
-        page._raw_metadata = {"title": "Post", "lang": "en"}
-        page.output_path = site_dir / "public" / "post" / "index.html"
+        page = make_test_page(
+            source_path=Path("content/post.md"),
+            metadata={"title": "Post", "lang": "en"},
+            output_path=site_dir / "public" / "post" / "index.html",
+        )
         page._site = site
         # Set lang as a direct attribute (used by tag_url_with_site)
         page.lang = "en"
@@ -266,7 +269,6 @@ class TestTagUrlInAutodocContext:
 
     def test_tag_url_in_api_reference_page(self, tmp_path):
         """Test tag_url works correctly when called from API reference pages."""
-        from bengal.core.page import Page
         from bengal.rendering.template_engine import TemplateEngine
 
         site_dir = tmp_path / "site"
@@ -303,9 +305,11 @@ tags: ["api", "core"]
         engine = TemplateEngine(site)
 
         # Create page object for API reference
-        page = Page(source_path=Path("content/api/module.md"))
-        page._raw_metadata = {"title": "module", "type": "python-module", "tags": ["api", "core"]}
-        page.output_path = site_dir / "public" / "api" / "module" / "index.html"
+        page = make_test_page(
+            source_path=Path("content/api/module.md"),
+            metadata={"title": "module", "type": "python-module", "tags": ["api", "core"]},
+            output_path=site_dir / "public" / "api" / "module" / "index.html",
+        )
         page._site = site
 
         # Test tag_url in API page context
@@ -317,7 +321,6 @@ tags: ["api", "core"]
 
     def test_tag_url_in_cli_reference_page(self, tmp_path):
         """Test tag_url works correctly when called from CLI reference pages."""
-        from bengal.core.page import Page
         from bengal.rendering.template_engine import TemplateEngine
 
         site_dir = tmp_path / "site"
@@ -354,9 +357,11 @@ tags: ["cli", "build"]
         engine = TemplateEngine(site)
 
         # Create page object for CLI reference
-        page = Page(source_path=Path("content/cli/build.md"))
-        page._raw_metadata = {"title": "build", "type": "autodoc/cli", "tags": ["cli", "build"]}
-        page.output_path = site_dir / "public" / "cli" / "build" / "index.html"
+        page = make_test_page(
+            source_path=Path("content/cli/build.md"),
+            metadata={"title": "build", "type": "autodoc/cli", "tags": ["cli", "build"]},
+            output_path=site_dir / "public" / "cli" / "build" / "index.html",
+        )
         page._site = site
 
         # Test tag_url in CLI page context

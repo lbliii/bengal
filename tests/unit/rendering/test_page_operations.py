@@ -4,15 +4,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bengal.core.page import Page
 from bengal.rendering.page_operations import extract_links, has_shortcode
+from tests._testing.page_records import make_test_page
 
 
-def _page(content: str = "", html: str | None = None) -> Page:
-    return Page(
+def _page(content: str = "", html: str | None = None):
+    return make_test_page(
         source_path=Path("content/docs/page.md"),
-        _raw_content=content,
-        _raw_metadata={"title": "Page"},
+        raw_content=content,
+        metadata={"title": "Page"},
         html_content=html,
     )
 

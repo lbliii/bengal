@@ -8,6 +8,7 @@ enabling set storage, dictionary keys, and O(1) membership tests.
 from pathlib import Path
 
 from bengal.core.page import Page
+from tests._testing.page_records import seed_parsed_page_state
 
 
 class TestPageHashability:
@@ -46,7 +47,7 @@ class TestPageHashability:
         page.rendered_html = "<p>Rendered</p>"
         page._raw_metadata = {"title": "New Title", "tags": ["python"]}
         page.tags = ["python", "tutorial"]
-        page.toc = "<nav>TOC</nav>"
+        seed_parsed_page_state(page, toc="<nav>TOC</nav>")
         page.output_path = tmp_path / "public/post/index.html"
 
         # Hash should remain unchanged

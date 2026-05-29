@@ -54,3 +54,49 @@ def test_parse_file_ipynb_falls_back_to_patitas_notebook_module(
     assert content == "# Fallback"
     assert metadata["notebook"] == "fallback"
     assert metadata["type"] == "notebook"
+
+
+def test_parse_file_ipynb_uses_first_markdown_h1_as_title(tmp_path: Path) -> None:
+    """Notebook metadata uses the first markdown H1 as the title."""
+    nb_content = """{
+  "cells": [{"cell_type": "markdown", "metadata": {}, "source": ["# Notebook Title"]}],
+  "metadata": {},
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
+"""
+    nb_path = tmp_path / "notebook-title.ipynb"
+    nb_path.write_text(nb_content, encoding="utf-8")
+
+    parser = ContentParser(tmp_path)
+    _content, metadata = parser.parse_file(nb_path)
+
+    assert metadata["title"] == "Notebook Title"
+
+
+def test_parse_file_ipynb_ignores_h1_inside_code_fence_for_title(
+    tmp_path: Path, monkeypatch
+) -> None:
+    """Code comments inside fenced notebook cells are not inferred as titles."""
+    import patitas
+
+    nb_content = """{
+  "cells": [
+    {"cell_type": "code", "metadata": {}, "source": ["# Not A Title\\n", "print(42)"]},
+    {"cell_type": "markdown", "metadata": {}, "source": ["# Real Title"]}
+  ],
+  "metadata": {},
+  "nbformat": 4,
+  "nbformat_minor": 5
+}
+"""
+    nb_path = tmp_path / "real-title.ipynb"
+    nb_path.write_text(nb_content, encoding="utf-8")
+
+    monkeypatch.delattr(patitas, "parse_notebook", raising=False)
+
+    parser = ContentParser(tmp_path)
+    content, metadata = parser.parse_file(nb_path)
+
+    assert "# Not A Title" in content
+    assert metadata["title"] == "Real Title"

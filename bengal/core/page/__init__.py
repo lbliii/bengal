@@ -26,8 +26,9 @@ Compatibility Shims: Page keeps a few thin methods/properties for existing
 Hashability: Pages are hashable by source_path, enabling set operations
     and use as dict keys. Two pages with same path are equal.
 
-Virtual Pages: Pages without disk files (e.g., autodoc). Created via
-    Page.create_virtual() for dynamically-generated content.
+Virtual Pages: Pages without disk files (e.g., autodoc). The public
+    compatibility API still includes Page.create_virtual(); internal build code
+    should create SourcePage records and adapt them at the discovery boundary.
 
 PageCore: Cacheable subset of page metadata. Shared between Page
     and cache layer. Enables incremental builds.
@@ -108,9 +109,11 @@ class Page:
     VIRTUAL PAGES:
     ==============
     Virtual pages represent dynamically-generated content (e.g., API docs)
-    that doesn't have a corresponding file on disk. Virtual pages:
+    that doesn't have a corresponding file on disk. The public compatibility
+    API still exposes Page.create_virtual(); internal producers should prefer
+    SourcePage records and adapt them at the discovery boundary. Virtual pages:
     - Have virtual=True and a synthetic source_path
-    - Are created via Page.create_virtual() factory
+    - Integrate through the source-page adapter during production builds
     - Don't read from disk (content provided directly)
     - Integrate with site's page collection and navigation
 
@@ -709,6 +712,10 @@ class Page:
             file exists; virtual pages bypass disk mtime tracking and must
             register their output path explicitly. Pass ``rendered_html=``
             to skip markdown parsing when you already have HTML.
+
+        Internal build code should create ``SourcePage`` records and adapt them
+        through ``bengal.content.discovery.page_adapter``. This constructor
+        remains available for public compatibility.
 
         Virtual pages are not backed by a disk file but integrate with
         the site's page collection, navigation, and rendering pipeline.

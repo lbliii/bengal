@@ -29,7 +29,9 @@ from contextlib import suppress
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
+from bengal.cache.parsed_output import apply_parsed_page_to_page
 from bengal.config.utils import coerce_int
+from bengal.core.records import ParsedPage
 from bengal.snapshots.utils import compute_content_hash
 from bengal.utils.observability.logger import get_logger
 
@@ -289,17 +291,23 @@ def apply_cached_parsing(
 
         if current_hash == cached.content_hash:
             # Content unchanged - apply cached data
-            page.html_content = cached.parsed_html
-            page.toc = cached.toc
-            page._toc_items_cache = list(cached.toc_items)
-            if hasattr(page, "_reading_time"):
-                page._reading_time = cached.reading_time
-            if hasattr(page, "_word_count"):
-                page._word_count = cached.word_count
-            if hasattr(page, "_excerpt"):
-                page._excerpt = cached.excerpt
-            if hasattr(page, "_meta_description"):
-                page._meta_description = cached.meta_description
+            parsed_page = ParsedPage(
+                html_content=cached.parsed_html,
+                toc=cached.toc,
+                toc_items=cached.toc_items,
+                excerpt=cached.excerpt,
+                meta_description=cached.meta_description,
+                plain_text="",
+                word_count=cached.word_count,
+                reading_time=cached.reading_time,
+                links=(),
+            )
+            apply_parsed_page_to_page(
+                page,
+                parsed_page,
+                seed_links=False,
+                seed_plain_text=False,
+            )
 
             pages_from_cache.append(page)
             cache_hits += 1

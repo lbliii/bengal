@@ -22,7 +22,9 @@ free-threaded/concurrent behavior.
 - Artifact path:
 - Interpretation:
 
-Use `not applicable` for PRs with no performance-sensitive behavior.
+CI only enforces this section for performance-sensitive behavior paths. Use
+`not applicable` when those paths changed but the PR makes no performance
+claim.
 
 ## Steward Notes
 

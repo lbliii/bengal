@@ -12,9 +12,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.rendering.renderer import Renderer
+from tests._testing.page_records import make_test_page
+
+
+def _page(path: str, metadata: dict[str, object]):
+    return make_test_page(source_path=Path(path), raw_content="", metadata=metadata)
 
 
 @pytest.fixture
@@ -22,7 +26,7 @@ def site():
     """Create a site with a home page."""
     s = Site(Path("."))
     s.config = {"pagination": {"per_page": 10}}
-    s.pages = [Page(Path("content/home.md"), "", _raw_metadata={"title": "Home Page"})]
+    s.pages = [_page("content/home.md", {"title": "Home Page"})]
     return s
 
 
@@ -55,15 +59,14 @@ def test_tag_page_does_not_trigger_root_index_logic(renderer):
 
     """
     # Create a tag page - it has no section, ends in index.md, and is generated
-    tag_page = Page(
-        Path("tags/mytag/index.md"),
-        "",
-        _raw_metadata={
+    tag_page = _page(
+        "tags/mytag/index.md",
+        {
             "type": "tag",
             "_tag": "mytag",
             "_tag_slug": "mytag",
             "_generated": True,
-            "_posts": [Page(Path("content/p1.md"), "", _raw_metadata={"title": "Correct Post"})],
+            "_posts": [_page("content/p1.md", {"title": "Correct Post"})],
         },
     )
 

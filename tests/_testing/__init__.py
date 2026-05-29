@@ -55,6 +55,7 @@ from tests._testing.mocks import (
     MockSite,
     create_mock_xref_index,
 )
+from tests._testing.page_records import make_test_page, seed_parsed_page_state
 from tests._testing.progress import (
     TestProgressReporter,
     create_test_progress,
@@ -86,6 +87,8 @@ __all__ = [
     "assert_unchanged_files_not_rebuilt",
     "create_mock_xref_index",
     "create_test_progress",
+    "make_test_page",
     "progress_status",
+    "seed_parsed_page_state",
     "test_status",  # Deprecated
 ]

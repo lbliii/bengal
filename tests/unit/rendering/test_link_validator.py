@@ -14,6 +14,11 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.health.validators.links import LinkValidator
+from tests._testing.page_records import seed_parsed_page_state
+
+
+def _seed_links(page: MagicMock, links: list[str]) -> None:
+    seed_parsed_page_state(page, links=links)
 
 
 @pytest.fixture
@@ -28,25 +33,25 @@ def mock_site(tmp_path):
     page1.href = "/docs/"
     page1.permalink = None
     page1.source_path = Path("content/docs/_index.md")
-    page1.links = []
+    _seed_links(page1, [])
 
     page2 = MagicMock()
     page2.href = "/docs/getting-started/"
     page2.permalink = None
     page2.source_path = Path("content/docs/getting-started.md")
-    page2.links = []
+    _seed_links(page2, [])
 
     page3 = MagicMock()
     page3.href = "/blog/"
     page3.permalink = None
     page3.source_path = Path("content/blog/_index.md")
-    page3.links = []
+    _seed_links(page3, [])
 
     page4 = MagicMock()
     page4.href = "/about/"
     page4.permalink = "/about/"
     page4.source_path = Path("content/about.md")
-    page4.links = []
+    _seed_links(page4, [])
 
     site.pages = [page1, page2, page3, page4]
     return site
@@ -157,13 +162,13 @@ class TestInternalLinkValidation:
         index.href = "/docs/get-started/"
         index.permalink = None
         index.source_path = Path("/project/content/docs/get-started/_index.md")
-        index.links = ["./quickstart-writer"]
+        _seed_links(index, ["./quickstart-writer"])
 
         child = MagicMock()
         child.href = "/docs/get-started/quickstart-writer/"
         child.permalink = None
         child.source_path = Path("/project/content/docs/get-started/quickstart-writer.md")
-        child.links = []
+        _seed_links(child, [])
 
         site.pages = [index, child]
 
@@ -265,7 +270,7 @@ class TestPageUrlIndex:
         page = MagicMock()
         page.href = "/api/bengal/experimental/"
         page.source_path = Path("content/api/bengal/experimental.md")
-        page.links = ["/api/bengal/experimental/index.txt"]
+        _seed_links(page, ["/api/bengal/experimental/index.txt"])
         site.pages = [page]
 
         validator = LinkValidator()
@@ -280,7 +285,7 @@ class TestValidateSite:
     def test_validate_site_finds_broken_links(self, mock_site):
         """Test that validate_site finds broken links."""
         # Add broken links to a page
-        mock_site.pages[0].links = ["/nonexistent/", "/also-missing/"]
+        _seed_links(mock_site.pages[0], ["/nonexistent/", "/also-missing/"])
 
         validator = LinkValidator()
         broken = validator.validate_site(mock_site)
@@ -291,7 +296,7 @@ class TestValidateSite:
     def test_validate_site_returns_empty_for_valid_links(self, mock_site):
         """Test that validate_site returns empty for valid links."""
         # Add valid links
-        mock_site.pages[0].links = ["/docs/getting-started/", "/blog/"]
+        _seed_links(mock_site.pages[0], ["/docs/getting-started/", "/blog/"])
 
         validator = LinkValidator()
         broken = validator.validate_site(mock_site)
@@ -300,11 +305,14 @@ class TestValidateSite:
 
     def test_validate_site_mixed_links(self, mock_site):
         """Test validation with mix of valid and invalid links."""
-        mock_site.pages[0].links = [
-            "/docs/getting-started/",  # Valid
-            "/missing/",  # Invalid
-            "https://external.com",  # Skipped (external)
-        ]
+        _seed_links(
+            mock_site.pages[0],
+            [
+                "/docs/getting-started/",  # Valid
+                "/missing/",  # Invalid
+                "https://external.com",  # Skipped (external)
+            ],
+        )
 
         validator = LinkValidator()
         broken = validator.validate_site(mock_site)

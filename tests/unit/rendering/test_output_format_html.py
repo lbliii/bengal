@@ -8,9 +8,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.rendering.pipeline.output import format_html
+from tests._testing.page_records import make_test_page
+
+
+def _page():
+    return make_test_page(source_path=Path("/tmp/test/page.md"), metadata={})
 
 
 class TestFormatHtmlFastMode:
@@ -26,7 +30,7 @@ class TestFormatHtmlFastMode:
             output_dir=Path("/tmp/test/output"),
             config={"build": {"fast_mode": True}},
         )
-        page = Page(source_path=Path("/tmp/test/page.md"))
+        page = _page()
 
         result = format_html(html, page, site)
 
@@ -47,7 +51,7 @@ class TestFormatHtmlFastMode:
                 }
             },
         )
-        page = Page(source_path=Path("/tmp/test/page.md"))
+        page = _page()
 
         result = format_html(html, page, site)
 
@@ -68,7 +72,7 @@ class TestFormatHtmlFastMode:
                 "html_output": {"mode": "pretty"},
             },
         )
-        page = Page(source_path=Path("/tmp/test/page.md"))
+        page = _page()
 
         result = format_html(html, page, site)
 
@@ -88,7 +92,7 @@ class TestFormatHtmlFastMode:
                 "html_output": {"mode": "pretty"},
             },
         )
-        page = Page(source_path=Path("/tmp/test/page.md"))
+        page = _page()
         page._raw_metadata["no_format"] = False  # Would normally format
 
         result = format_html(html, page, site)
@@ -108,7 +112,7 @@ class TestFormatHtmlFastMode:
                 "html_output": {"mode": "minify"},  # Would normally minify
             },
         )
-        page = Page(source_path=Path("/tmp/test/page.md"))
+        page = _page()
 
         result = format_html(html, page, site)
 

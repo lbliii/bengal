@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bengal.core.page import Page
 from bengal.rendering.page_content import (
     compute_excerpt,
     compute_meta_description,
@@ -16,13 +15,14 @@ from bengal.rendering.page_content import (
     get_plain_text,
     strip_html_to_text,
 )
+from tests._testing.page_records import make_test_page, seed_parsed_page_state
 
 
-def _page(content: str = "", html: str | None = None) -> Page:
-    return Page(
+def _page(content: str = "", html: str | None = None):
+    return make_test_page(
         source_path=Path("content/docs/page.md"),
-        _raw_content=content,
-        _raw_metadata={"title": "Page"},
+        raw_content=content,
+        metadata={"title": "Page"},
         html_content=html,
     )
 
@@ -50,7 +50,7 @@ def test_plain_text_falls_back_to_raw_source() -> None:
 
 def test_meta_description_prefers_pipeline_value() -> None:
     page = _page("fallback content")
-    page._meta_description = "AST description"
+    seed_parsed_page_state(page, meta_description="AST description")
 
     assert get_meta_description(page, {}) == "AST description"
     assert page.meta_description == "AST description"
@@ -71,7 +71,7 @@ def test_meta_description_derives_from_content() -> None:
 
 def test_excerpt_prefers_pipeline_value() -> None:
     page = _page("fallback content")
-    page._excerpt = "AST excerpt"
+    seed_parsed_page_state(page, excerpt="AST excerpt")
 
     assert get_excerpt(page) == "AST excerpt"
     assert page.excerpt == "AST excerpt"

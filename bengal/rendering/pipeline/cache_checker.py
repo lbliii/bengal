@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.cache.parsed_output import apply_parsed_links_to_page, apply_parsed_page_to_page
 from bengal.core.records import ParsedPage, RenderedPage, rendered_page_from_page_state
 from bengal.rendering.page_operations import extract_links
 from bengal.rendering.pipeline.output import format_html, write_output
@@ -114,9 +115,6 @@ class CacheChecker:
         if not cached_html or is_missing(cached_html):
             return False
 
-        # Dual-write: set page.rendered_html for backward compatibility
-        page.rendered_html = cached_html
-
         if self.build_stats:
             self.build_stats.rendered_cache_hits += 1
 
@@ -191,25 +189,19 @@ class CacheChecker:
         if not html:
             return False
 
-        page.html_content = html
-        page.toc = toc
-        page._toc_items_cache = cached.get("toc_items", [])
-
-        cached_plain_text = cached.get("plain_text")
-        if isinstance(cached_plain_text, str):
-            if hasattr(page, "_plain_text_cache"):
-                cast("Any", page)._plain_text_cache = cached_plain_text
-            plain_text = cached_plain_text
-        else:
-            plain_text = page.plain_text
-
-        if hasattr(page, "_excerpt"):
-            page._excerpt = cached.get("excerpt", "")
-        if hasattr(page, "_meta_description"):
-            page._meta_description = cached.get("meta_description", "")
-
-        if cached.get("ast"):
-            page._ast_cache = cached["ast"]
+        # Build immutable ParsedPage from cached data before applying it to the
+        # temporary Page compatibility object.
+        enriched = dict(cached)
+        enriched["html"] = html
+        enriched["toc"] = toc
+        if not enriched.get("toc_items"):
+            enriched["toc_items"] = extract_toc_structure(toc)
+        if not isinstance(enriched.get("plain_text"), str):
+            enriched["plain_text"] = page.plain_text
+        enriched.setdefault("word_count", getattr(page, "word_count", 0) or 0)
+        enriched.setdefault("reading_time", getattr(page, "reading_time", 0) or 0)
+        parsed_page = ParsedPage.from_cache_dict(enriched)
+        apply_parsed_page_to_page(page, parsed_page, seed_ast=bool(cached.get("ast")))
 
         if self.build_stats:
             self.build_stats.parsed_cache_hits += 1
@@ -229,9 +221,9 @@ class CacheChecker:
         cached_links = cached.get("links")
         if isinstance(cached_links, list):
             try:
-                page.links = [str(x) for x in cached_links]
+                apply_parsed_links_to_page(page, cached_links)
             except Exception:
-                page.links = []
+                apply_parsed_links_to_page(page, [])
         else:
             try:
                 extract_links(page)
@@ -243,14 +235,6 @@ class CacheChecker:
                     error_type=type(e).__name__,
                 )
 
-        # Build immutable ParsedPage from cached data (Sprint 1/5: Immutable Pipeline)
-        # Enrich cache dict with page-derived fields before reconstruction
-        enriched = dict(cached)
-        if not enriched.get("toc_items"):
-            enriched["toc_items"] = extract_toc_structure(toc)
-        enriched.setdefault("plain_text", plain_text)
-        enriched.setdefault("word_count", getattr(page, "word_count", 0) or 0)
-        enriched.setdefault("reading_time", getattr(page, "reading_time", 0) or 0)
         if not enriched.get("links"):
             enriched["links"] = list(getattr(page, "links", None) or ())
         parsed_page = ParsedPage.from_cache_dict(enriched)
@@ -258,9 +242,6 @@ class CacheChecker:
         html_content = self.renderer.render_content(parsed_content)
         final_html = self.renderer.render_page(page, html_content, parsed_page=parsed_page)
         final_html = format_html(final_html, page, cast("SiteLike", self.site))
-
-        # Dual-write: set page.rendered_html for backward compatibility
-        page.rendered_html = final_html
 
         # Validate rendered HTML is not empty
         if not final_html:

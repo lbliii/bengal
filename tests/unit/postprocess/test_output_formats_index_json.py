@@ -14,6 +14,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 from bengal.postprocess.output_formats import OutputFormatsGenerator
+from tests._testing.page_records import seed_parsed_page_state
 
 
 class TestSiteIndexJsonGeneration:
@@ -401,8 +402,8 @@ class TestSiteIndexJsonGeneration:
         page.href = url
         page._path = url  # Site-relative path (used by get_page_relative_url)
         page.content = content
-        page.html_content = content  # Simplified for testing
         page.plain_text = content  # For AST-based extraction
+        seed_parsed_page_state(page, html_content=content, plain_text=content)
         page.output_path = output_path
         page.tags = tags or []
         page.date = None

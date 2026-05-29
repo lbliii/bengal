@@ -131,6 +131,12 @@ class ContentParser:
 
         if "type" not in metadata:
             metadata["type"] = "notebook"
+        title = metadata.get("title")
+        fallback_title = file_path.stem.replace("-", " ").replace("_", " ").title()
+        if (not isinstance(title, str) or title == fallback_title) and (
+            heading_title := _first_markdown_h1(content)
+        ):
+            metadata["title"] = heading_title
 
         return content, metadata
 
@@ -264,3 +270,23 @@ class ContentParser:
                 continue
 
         return None, None
+
+
+def _first_markdown_h1(content: str) -> str:
+    """Return the first markdown H1 text from notebook content."""
+    fence_marker = ""
+    for line in content.splitlines():
+        stripped = line.lstrip()
+        if fence_marker:
+            if stripped.startswith(fence_marker):
+                fence_marker = ""
+            continue
+
+        if stripped.startswith(("```", "~~~")):
+            fence_marker = stripped[:3]
+            continue
+
+        if line.startswith("# "):
+            return line[2:].strip()
+
+    return ""

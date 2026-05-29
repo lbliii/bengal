@@ -56,6 +56,7 @@ from bengal.postprocess.output_formats.utils import (
 )
 from bengal.postprocess.utils import get_section_name
 from bengal.rendering.html_markdown import rendered_html_to_markdown
+from bengal.rendering.rendered_output import get_rendered_html
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -239,7 +240,7 @@ class PageMarkdownGenerator:
 
     def _rendered_markdown(self, page: PageLike) -> str:
         """Convert rendered HTML to Markdown when a caller has decided it is needed."""
-        rendered = getattr(page, "rendered_html", "") or ""
+        rendered = get_rendered_html(page)
         if not isinstance(rendered, str):
             return ""
         return rendered_html_to_markdown(rendered)

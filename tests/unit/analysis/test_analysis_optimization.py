@@ -14,6 +14,12 @@ from unittest.mock import Mock
 
 import pytest
 
+from tests._testing.page_records import seed_parsed_page_state
+
+
+def _seed_links(page: Mock, links: list[str]) -> None:
+    seed_parsed_page_state(page, links=links)
+
 
 class TestIncomingEdgesIndex:
     """Tests for the incoming_edges reverse adjacency list."""
@@ -26,14 +32,14 @@ class TestIncomingEdgesIndex:
         site = Mock()
         page_a = Mock()
         page_a.source_path = Mock(stem="page_a")
-        page_a.links = ["b"]
+        _seed_links(page_a, ["b"])
         page_a.related_posts = []
         page_a.next_in_section = None
         page_a.prev_in_section = None
 
         page_b = Mock()
         page_b.source_path = Mock(stem="page_b")
-        page_b.links = []
+        _seed_links(page_b, [])
         page_b.related_posts = []
         page_b.next_in_section = None
         page_b.prev_in_section = None
@@ -67,16 +73,16 @@ class TestIncomingEdgesIndex:
         for i in range(5):
             page = Mock()
             page.source_path = Mock(stem=f"page_{i}")
-            page.links = []
+            _seed_links(page, [])
             page.related_posts = []
             page.next_in_section = None
             page.prev_in_section = None
             pages.append(page)
 
         # A -> B, A -> C, B -> C, D -> C
-        pages[0].links = ["page-1", "page-2"]
-        pages[1].links = ["page-2"]
-        pages[3].links = ["page-2"]
+        _seed_links(pages[0], ["page-1", "page-2"])
+        _seed_links(pages[1], ["page-2"])
+        _seed_links(pages[3], ["page-2"])
 
         site.pages = pages
         site.config = {}
@@ -437,7 +443,7 @@ class TestParallelBuildIncomingEdges:
         for i in range(5):
             page = Mock()
             page.source_path = Mock(stem=f"page_{i}")
-            page.links = []
+            _seed_links(page, [])
             page.related_posts = []
             page.next_in_section = None
             page.prev_in_section = None
@@ -445,10 +451,10 @@ class TestParallelBuildIncomingEdges:
             pages.append(page)
 
         # Set up links: 0->1, 0->2, 1->3, 2->3, 3->4
-        pages[0].links = ["page-1", "page-2"]
-        pages[1].links = ["page-3"]
-        pages[2].links = ["page-3"]
-        pages[3].links = ["page-4"]
+        _seed_links(pages[0], ["page-1", "page-2"])
+        _seed_links(pages[1], ["page-3"])
+        _seed_links(pages[2], ["page-3"])
+        _seed_links(pages[3], ["page-4"])
 
         site.pages = pages
         site.config = {"parallel_graph": False}  # Force sequential for test

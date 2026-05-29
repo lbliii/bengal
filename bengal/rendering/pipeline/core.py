@@ -31,6 +31,7 @@ import time as _time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.cache.parsed_output import apply_parsed_page_to_page, with_parsed_html
 from bengal.core.records import (
     ParsedPage,
     parsed_page_from_page_state,
@@ -507,28 +508,43 @@ class RenderingPipeline:
         enable_deferred_highlighting(cache=self._highlight_cache)
         try:
             if hasattr(self.parser, "parse_with_toc_and_context"):
-                self._parse_with_context_aware_parser(page, need_toc)
+                parsed_page, directive_links = self._parse_with_context_aware_parser(page, need_toc)
             else:
-                self._parse_with_legacy(page, need_toc)
+                parsed_page = self._parse_with_legacy(page, need_toc)
+                directive_links = []
+            if directive_links:
+                page._directive_links = directive_links
 
             # Flush deferred highlighting: batch process all code blocks in parallel
             # This replaces <!--code:XXX--> placeholders with highlighted HTML
             # Must run BEFORE transformer so highlighter output is also escaped/transformed
             _prof_inner = RenderProfiler.get() if _profiling_enabled() else None
-            if page.html_content:
+            if parsed_page.html_content:
                 if _prof_inner:
                     with _prof_inner.step("flush_highlight"):
-                        page.html_content = flush_deferred_highlighting(page.html_content)
+                        parsed_page = with_parsed_html(
+                            parsed_page,
+                            flush_deferred_highlighting(parsed_page.html_content),
+                        )
                 else:
-                    page.html_content = flush_deferred_highlighting(page.html_content)
+                    parsed_page = with_parsed_html(
+                        parsed_page,
+                        flush_deferred_highlighting(parsed_page.html_content),
+                    )
 
             # PERF: Unified HTML transformation (~27% faster than separate passes)
             # Handles: Jinja block escaping, .md link normalization, baseurl prefixing
             if _prof_inner:
                 with _prof_inner.step("html_transform"):
-                    page.html_content = self._html_transformer.transform(page.html_content or "")
+                    parsed_page = with_parsed_html(
+                        parsed_page,
+                        self._html_transformer.transform(parsed_page.html_content or ""),
+                    )
             else:
-                page.html_content = self._html_transformer.transform(page.html_content or "")
+                parsed_page = with_parsed_html(
+                    parsed_page,
+                    self._html_transformer.transform(parsed_page.html_content or ""),
+                )
 
             # Restore any remaining escape placeholders in code block output
             # This is needed because deferred highlighting captures code BEFORE
@@ -538,10 +554,21 @@ class RenderingPipeline:
             if hasattr(self.parser, "_var_plugin"):
                 rich_parser = cast("RichMarkdownParser", self.parser)
                 if rich_parser._var_plugin and rich_parser._var_plugin.escaped_placeholders:
-                    page.html_content = rich_parser._var_plugin.restore_placeholders(
-                        page.html_content
+                    parsed_page = with_parsed_html(
+                        parsed_page,
+                        rich_parser._var_plugin.restore_placeholders(
+                            parsed_page.html_content
+                        ),
                     )
             # fmt: on
+            apply_parsed_page_to_page(
+                page,
+                parsed_page,
+                seed_counts=False,
+                seed_links=False,
+                seed_plain_text=False,
+                seed_ast=True,
+            )
         finally:
             disable_deferred_highlighting()
 
@@ -566,7 +593,9 @@ class RenderingPipeline:
         likely_has_setext = re.search(r"^.+\n\s{0,3}(?:===+|---+)\s*$", content_text, re.MULTILINE)
         return bool(likely_has_setext)
 
-    def _parse_with_context_aware_parser(self, page: PageLike, need_toc: bool) -> None:
+    def _parse_with_context_aware_parser(
+        self, page: PageLike, need_toc: bool
+    ) -> tuple[ParsedPage, list[str]]:
         """Parse content using a context-aware parser (Mistune, Patitas)."""
 
         def parse_markdown(s: str) -> str:
@@ -587,6 +616,9 @@ class RenderingPipeline:
 
         # Collect directive-generated links during rendering (cards, buttons, etc.)
         directive_links: list[str] = []
+        ast_cache: Any = None
+        parsed_excerpt = ""
+        parsed_meta_description = ""
 
         if page.metadata.get("preprocess") is False:
             # Inject source_path and excerpt_length for cross-version dependency tracking
@@ -604,9 +636,9 @@ class RenderingPipeline:
                 parsed_content, toc = result[0], result[1]
                 result_ext = cast("tuple[str, ...]", result)
                 if len(result_ext) > 2:
-                    page._excerpt = result_ext[2]
+                    parsed_excerpt = result_ext[2]
                 if len(result_ext) > 3:
-                    page._meta_description = result_ext[3]
+                    parsed_meta_description = result_ext[3]
                 parsed_content = escape_template_syntax_in_html(parsed_content)
             else:
                 parsed_content = self.parser.parse(source, metadata_with_source)
@@ -640,9 +672,9 @@ class RenderingPipeline:
                     parsed_content, toc = result[0], result[1]
                     result_ext = cast("tuple[str, ...]", result)
                     if len(result_ext) > 2:
-                        page._excerpt = result_ext[2]
+                        parsed_excerpt = result_ext[2]
                     if len(result_ext) > 3:
-                        page._meta_description = result_ext[3]
+                        parsed_meta_description = result_ext[3]
                 else:
                     parsed_content = rich_parser.parse_with_context(
                         source, metadata_for_parser, context
@@ -673,10 +705,10 @@ class RenderingPipeline:
                             doc = parser_with_document.parse_to_document(
                                 source, metadata_for_parser
                             )
-                        page._ast_cache = patitas.to_dict(doc)
+                        ast_cache = patitas.to_dict(doc)
                     elif hasattr(self.parser, "parse_to_ast"):
                         ast_tokens = self.parser.parse_to_ast(source, metadata_for_parser)
-                        page._ast_cache = ast_tokens
+                        ast_cache = ast_tokens
                 except Exception as e:
                     logger.debug(
                         "ast_extraction_failed",
@@ -684,14 +716,23 @@ class RenderingPipeline:
                         error=str(e),
                     )
 
-        page.html_content = parsed_content
-        page.toc = toc
+        return (
+            ParsedPage(
+                html_content=parsed_content,
+                toc=toc,
+                toc_items=(),
+                excerpt=parsed_excerpt,
+                meta_description=parsed_meta_description,
+                plain_text="",
+                word_count=getattr(page, "word_count", 0) or 0,
+                reading_time=getattr(page, "reading_time", 0) or 0,
+                links=(),
+                ast_cache=ast_cache,
+            ),
+            directive_links,
+        )
 
-        # Store directive-collected links on page for extract_links to use
-        if directive_links:
-            page._directive_links = directive_links
-
-    def _parse_with_legacy(self, page: PageLike, need_toc: bool) -> None:
+    def _parse_with_legacy(self, page: PageLike, need_toc: bool) -> ParsedPage:
         """Parse content using legacy python-markdown parser."""
         content = self._preprocess_content(page)
         if need_toc and hasattr(self.parser, "parse_with_toc"):
@@ -703,15 +744,32 @@ class RenderingPipeline:
         if page.metadata.get("preprocess") is False:
             parsed_content = escape_template_syntax_in_html(parsed_content)
 
-        page.html_content = parsed_content
-        page.toc = toc
+        return ParsedPage(
+            html_content=parsed_content,
+            toc=toc,
+            toc_items=(),
+            excerpt="",
+            meta_description="",
+            plain_text="",
+            word_count=getattr(page, "word_count", 0) or 0,
+            reading_time=getattr(page, "reading_time", 0) or 0,
+            links=(),
+        )
 
     def _enhance_api_docs(self, page: PageLike) -> None:
         """Enhance API documentation with badges."""
         enhancer = self._api_doc_enhancer
         page_type = page.metadata.get("type")
         if enhancer and enhancer.should_enhance(page_type):
-            page.html_content = enhancer.enhance(page.html_content or "", page_type)
+            parsed_page = parsed_page_from_page_state(page)
+            enhanced = enhancer.enhance(parsed_page.html_content, page_type)
+            apply_parsed_page_to_page(
+                page,
+                with_parsed_html(parsed_page, enhanced),
+                seed_counts=False,
+                seed_links=False,
+                seed_plain_text=False,
+            )
 
     def _build_parsed_page(self, page: PageLike) -> ParsedPage:
         """Construct a ParsedPage from current page state after parsing.
@@ -743,13 +801,29 @@ class RenderingPipeline:
         Epic: Immutable Page Pipeline, Sprint 2
         Constructs a RenderedPage record after rendering. Passes it to
         write_output so the write phase reads from the immutable record.
-        Dual-writes page.rendered_html for backward compatibility.
         """
         # Allow empty html_content - pages like home pages, section indexes, and
         # taxonomy pages may have no markdown body but should still render
         # (they're driven by template logic and frontmatter, not content)
-        if page.html_content is None:
-            page.html_content = ""  # Ensure it's a string, not None
+        if page.html_content is None and parsed_page is None:
+            parsed_page = ParsedPage(
+                html_content="",
+                toc="",
+                toc_items=(),
+                excerpt="",
+                meta_description="",
+                plain_text="",
+                word_count=0,
+                reading_time=0,
+                links=(),
+            )
+            apply_parsed_page_to_page(
+                page,
+                parsed_page,
+                seed_counts=False,
+                seed_links=False,
+                seed_plain_text=False,
+            )
 
         # Read source HTML from ParsedPage when available (Sprint 1: Immutable Pipeline)
         source_html = parsed_page.html_content if parsed_page else (page.html_content or "")
@@ -810,10 +884,6 @@ class RenderingPipeline:
                     rendered_html = format_html(rendered_html, page, cast("SiteLike", self.site))
 
         render_time_ms = (_time.perf_counter() - render_start) * 1000
-
-        # Dual-write: set page.rendered_html for backward compatibility
-        # (downstream code like json_accumulator, cache_checker still reads from page)
-        page.rendered_html = rendered_html
 
         # Get tracked assets from render-time tracking
         tracked_assets = tracker.get_assets()

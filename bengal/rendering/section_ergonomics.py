@@ -10,6 +10,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Protocol
 
+from bengal.rendering.rendered_output import get_rendered_html
+
 
 class SectionErgonomicsTarget(Protocol):
     """Structural Section surface needed by template ergonomic helpers."""
@@ -123,5 +125,5 @@ def apply_section_template(section: SectionErgonomicsTarget, template_engine: An
     _ = template_engine
 
     if section.index_page:
-        return section.index_page.rendered_html
+        return get_rendered_html(section.index_page)
     return ""

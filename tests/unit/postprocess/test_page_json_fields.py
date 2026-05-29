@@ -17,6 +17,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from bengal.postprocess.output_formats.json_generator import PageJSONGenerator
+from tests._testing.page_records import seed_parsed_page_state
 
 
 def _make_site(baseurl: str = "") -> MagicMock:
@@ -45,7 +46,12 @@ def _make_page(
     page._path = path
     page.href = path
     page.plain_text = plain_text
-    page.html_content = html_content if html_content is not None else f"<p>{plain_text}</p>"
+    seed_parsed_page_state(
+        page,
+        html_content=html_content if html_content is not None else f"<p>{plain_text}</p>",
+        plain_text=plain_text,
+        toc_items=toc_items if toc_items is not None else [],
+    )
     page.date = None
     page.toc_items = toc_items if toc_items is not None else []
     page.tags = []
@@ -245,11 +251,15 @@ class TestHeadingChunks:
             plain_text="Install Bengal",
             metadata={},
         )
-        page.html_content = (
-            '<h2 id="installation">Installation</h2>'
-            "<p>Install Bengal with pip.</p>"
-            '<h3 id="step-3">Step 3</h3>'
-            "<p>Configure your project.</p>"
+        seed_parsed_page_state(
+            page,
+            html_content=(
+                '<h2 id="installation">Installation</h2>'
+                "<p>Install Bengal with pip.</p>"
+                '<h3 id="step-3">Step 3</h3>'
+                "<p>Configure your project.</p>"
+            ),
+            plain_text=page.plain_text,
         )
         page.toc_items = [
             {"id": "installation", "title": "Installation", "level": 1},

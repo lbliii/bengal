@@ -13,6 +13,7 @@ from bengal.rendering.template_functions.get_page import (
     register,
 )
 from bengal.utils.io.file_io import write_text_file
+from tests._testing.page_records import seed_parsed_page_state
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -244,7 +245,7 @@ class TestGetPageFunction:
 
         # Manually set html_content to a known value to prevent re-parsing
         original_parsed = "<h1>Test</h1><p>Original content</p>"
-        page.html_content = original_parsed
+        seed_parsed_page_state(page, html_content=original_parsed)
 
         # Get the page again - should not reparse
         page2 = get_page("docs/getting-started/installation.md")

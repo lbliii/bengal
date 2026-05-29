@@ -7,6 +7,7 @@ from typing import Any
 
 from bengal.rendering import renderer as renderer_module
 from bengal.rendering.renderer import Renderer
+from tests._testing.page_records import seed_parsed_page_state
 
 
 class _SiteWithExplodingMenuMutation:
@@ -29,7 +30,7 @@ class _TemplateEngine:
 class _Page:
     def __init__(self) -> None:
         self.title = "Page"
-        self.html_content = "<p>body</p>"
+        seed_parsed_page_state(self, html_content="<p>body</p>")
         self.metadata: dict[str, Any] = {}
         self.type = None
         self.source_path = Path("/site/content/page.md")

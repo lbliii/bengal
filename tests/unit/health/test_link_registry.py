@@ -15,6 +15,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.health.link_registry import LinkRegistry, build_link_registry
+from tests._testing.page_records import seed_parsed_page_state
 
 
 @pytest.fixture
@@ -41,7 +42,7 @@ def mock_site(tmp_path):
         {"id": "getting-started", "title": "Getting Started", "level": 1},
         {"id": "advanced-usage", "title": "Advanced Usage", "level": 2},
     ]
-    page1.links = []
+    seed_parsed_page_state(page1, links=[])
 
     page2 = MagicMock()
     page2.href = "/about/"
@@ -51,7 +52,7 @@ def mock_site(tmp_path):
     page2.toc_items = [
         {"id": "team", "title": "Team", "level": 1},
     ]
-    page2.links = []
+    seed_parsed_page_state(page2, links=[])
 
     page3 = MagicMock()
     page3.href = "/empty/"
@@ -59,7 +60,7 @@ def mock_site(tmp_path):
     page3.permalink = None
     page3.source_path = Path("content/empty.md")
     page3.toc_items = []
-    page3.links = []
+    seed_parsed_page_state(page3, links=[])
 
     site.pages = [page1, page2, page3]
     return site

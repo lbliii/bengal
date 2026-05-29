@@ -41,10 +41,12 @@ import contextvars
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.cache.parsed_output import apply_parsed_page_to_page
 from bengal.content.discovery.content_parser import ContentParser
 from bengal.content.discovery.directory_walker import DirectoryWalker
+from bengal.content.discovery.page_adapter import page_from_source_page
 from bengal.content.discovery.section_builder import SectionBuilder
-from bengal.core.page import Page
+from bengal.core.records import build_source_page
 from bengal.utils.concurrency.executor import managed_executor
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 from bengal.utils.observability.logger import get_logger
@@ -435,38 +437,24 @@ class ContentDiscovery:
 
             # _from_cache=True tells __post_init__ to skip _init_core_from_fields()
             # since we assign the cached core directly below.
-            page = Page(
+            source_page = build_source_page(
                 source_path=file_path,
-                _raw_content="",
-                _raw_metadata=raw_metadata,
-                _from_cache=True,
+                raw_content="",
+                metadata=raw_metadata,
+                lang=current_lang or core.lang,
+                section_path=section.path if section is not None else core.section,
+                file_hash=core.file_hash,
+            )
+            page = page_from_source_page(
+                source_page,
+                site=self.site,
+                section=section,
+                from_cache=True,
             )
 
-            # Assign the cached PageCore directly as the single source of truth.
-            page.core = core
-
-            # Populate parsed fields from immutable ParsedPage record.
             # AST is intentionally NOT loaded — it can be large and the rendering
-            # pipeline retrieves it from the build cache if needed.  The
-            # _plain_text_cache short-circuits any AST-based plain_text computation.
-            page.html_content = parsed_page.html_content
-            page.toc = parsed_page.toc
-            page._toc_items_cache = list(parsed_page.toc_items)
-            page.links = list(parsed_page.links)
-            page._excerpt = parsed_page.excerpt
-            page._meta_description = parsed_page.meta_description
-            page._plain_text_cache = parsed_page.plain_text
-
-            # Seed cached_property values from ParsedPage so they don't
-            # recompute from the empty _raw_content placeholder.
-            page.__dict__["word_count"] = parsed_page.word_count
-            page.__dict__["reading_time"] = parsed_page.reading_time
-
-            # Set site and section references
-            if self.site is not None:
-                page._site = self.site
-            if section is not None:
-                page._section_path = section.path
+            # pipeline retrieves it from the build cache if needed.
+            apply_parsed_page_to_page(page, parsed_page, seed_ast=False)
 
             # i18n enrichment from cached core
             if current_lang:
@@ -701,7 +689,7 @@ class ContentDiscovery:
         for fut in futures:
 
             def get_page_result(f: Any = fut) -> PageLike:
-                return cast("Page", f.result(timeout=90))
+                return cast("PageLike", f.result(timeout=90))
 
             page = with_error_recovery(
                 get_page_result,
@@ -732,17 +720,7 @@ class ContentDiscovery:
                 file_path, content, metadata, current_lang, section
             )
 
-            page = Page(
-                source_path=file_path,
-                _raw_content=source_page.raw_content,
-                _raw_metadata=source_page.raw_metadata_dict(),
-            )
-
-            if self.site is not None:
-                page._site = self.site
-
-            if section is not None:
-                page._section = section
+            page = page_from_source_page(source_page, site=self.site, section=section)
 
             # i18n enrichment
             self._enrich_page_i18n(page, file_path, current_lang, metadata)
