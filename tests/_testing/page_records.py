@@ -89,16 +89,15 @@ def make_test_page(
     """Create a Page compatibility object through the SourcePage adapter."""
     source_page = make_source_page(**overrides)
     page = page_from_source_page(source_page, site=site, section=section)
-    page_like = cast("PageLike", page)
     if output_path is not None:
         page.output_path = Path(output_path)
     if html_content is not None:
         apply_parsed_page_to_page(
-            page_like,
+            page,
             make_parsed_page(html_content=html_content),
             seed_plain_text=False,
         )
-    return page_like
+    return page
 
 
 def make_mutable_test_page(**kwargs: Any) -> Any:

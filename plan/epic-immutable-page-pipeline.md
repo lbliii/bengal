@@ -18,8 +18,9 @@ enforce that production `Page` construction and direct imports stay isolated to
 the adapter and that non-compatibility tests do not import the concrete `Page`
 class. The remaining direct import count across `bengal/` + `tests/` is 4
 import sites across 3 files: the adapter plus explicit mixin/type compatibility
-tests. Deletion remains blocked by the adapter boundary and the public API
-retirement decision.
+tests. The adapter's public type boundary now returns `PageLike`; mutable
+construction remains isolated inside the adapter. Deletion remains blocked by
+the adapter boundary and the public API retirement decision.
 
 ---
 
@@ -432,6 +433,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate core page-like behavior fixtures`
 - `tests: migrate page behavior fixtures`
 - `tests: migrate page bundle fixtures`
+- `content: type source page adapter as page-like`
 
 ### Sprint 6 epics
 
@@ -460,8 +462,10 @@ adapter from immutable `SourcePage` records to mutable `Page`. The broader
 adapter plus `tests/core/test_mixin_contracts.py` and
 `tests/core/test_type_safety.py`, which intentionally cover public
 compatibility. The boundary test now performs an AST import sweep so multi-name
-imports cannot hide concrete `Page` usage. Next, record the public API decision
-before deleting or retaining the compatibility export surface.
+imports cannot hide concrete `Page` usage. The adapter itself now returns
+`PageLike` instead of concrete `Page`, leaving only the actual compatibility
+construction internally concrete. Next, record the public API decision before
+deleting or retaining the compatibility export surface.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

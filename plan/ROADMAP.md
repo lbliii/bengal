@@ -48,7 +48,9 @@ Machine-checked on 2026-05-29:
   the adapter plus explicit mixin/type compatibility tests.
   `tests/unit/content/test_page_construction_boundary.py` now locks production
   constructor/direct-import isolation to the SourcePage adapter and blocks
-  concrete `Page` imports in non-compatibility tests.
+  concrete `Page` imports in non-compatibility tests. The SourcePage adapter
+  now returns `PageLike` at its type boundary while keeping the remaining
+  mutable construction isolated inside the adapter.
 
 No full test suite was run for this planning pass.
 
@@ -137,6 +139,7 @@ removal until a human explicitly approves the API decision.
 - `tests: migrate core page-like behavior fixtures`
 - `tests: migrate page behavior fixtures`
 - `tests: migrate page bundle fixtures`
+- `content: type source page adapter as page-like`
 
 **Proof before saga close:** `rg '^class Page\\b' bengal/core/page` returns no
 hits; `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns no hits;

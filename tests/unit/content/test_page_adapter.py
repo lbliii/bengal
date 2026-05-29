@@ -1,5 +1,6 @@
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, cast
 
 from bengal.content.discovery.page_adapter import page_from_source_page
 from bengal.core.records import build_source_page, create_virtual_source_page
@@ -15,7 +16,7 @@ def test_page_from_source_page_preserves_source_record_fields() -> None:
         content_hash="abc123",
     )
 
-    page = page_from_source_page(source_page)
+    page = cast("Any", page_from_source_page(source_page))
 
     assert page.source_path == Path("docs/guide.md")
     assert page._raw_content == "# Guide"
@@ -34,7 +35,7 @@ def test_page_from_source_page_can_seed_cache_core() -> None:
         metadata={"title": "Cached"},
     )
 
-    page = page_from_source_page(source_page, from_cache=True)
+    page = cast("Any", page_from_source_page(source_page, from_cache=True))
 
     assert page.core is source_page.core
     assert page.title == "Cached"
@@ -50,13 +51,16 @@ def test_page_from_source_page_preserves_virtual_rendering_fields(tmp_path) -> N
     section = SimpleNamespace(path=Path("tags"), name="tags")
     output_path = tmp_path / "tags" / "python" / "index.html"
 
-    page = page_from_source_page(
-        source_page,
-        site=site,
-        section=section,
-        output_path=output_path,
-        rendered_html="<main>Python</main>",
-        template_name="tag.html",
+    page = cast(
+        "Any",
+        page_from_source_page(
+            source_page,
+            site=site,
+            section=section,
+            output_path=output_path,
+            rendered_html="<main>Python</main>",
+            template_name="tag.html",
+        ),
     )
 
     assert page.virtual is True
