@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING
 
 import pytest
 
+from tests._testing.page_records import make_virtual_test_page as _virtual_page
+
 if TYPE_CHECKING:
     from bengal.core.site import Site
 
@@ -182,7 +184,6 @@ class TestNavTreeCollisions:
         The root command page was overwriting the section node in NavTree.
         """
         from bengal.core.nav_tree import NavTree
-        from bengal.core.page import Page
         from bengal.core.section import Section
         from bengal.core.site import Site
 
@@ -206,7 +207,7 @@ class TestNavTreeCollisions:
         )
 
         # Create section index page
-        index_page = Page.create_virtual(
+        index_page = _virtual_page(
             source_id="__virtual__/test/section-index.md",
             title="Test Section Index",
             metadata={"type": "test"},
@@ -237,7 +238,6 @@ class TestURLCollisionValidation:
 
     def test_no_collisions_returns_empty_list(self, tmp_path: Path) -> None:
         """When no collisions exist, validation returns empty list."""
-        from bengal.core.page import Page
         from bengal.core.site import Site
 
         # Create minimal site
@@ -252,7 +252,7 @@ class TestURLCollisionValidation:
         site = Site.from_config(tmp_path)
 
         # Add pages with unique URLs
-        page1 = Page.create_virtual(
+        page1 = _virtual_page(
             source_id="test1.md",
             title="Test 1",
             metadata={},
@@ -261,7 +261,7 @@ class TestURLCollisionValidation:
         page1._site = site
         page1._url = "/test1/"
 
-        page2 = Page.create_virtual(
+        page2 = _virtual_page(
             source_id="test2.md",
             title="Test 2",
             metadata={},
@@ -278,7 +278,6 @@ class TestURLCollisionValidation:
 
     def test_collision_detected_returns_message(self, tmp_path: Path) -> None:
         """When collision exists, validation returns descriptive message."""
-        from bengal.core.page import Page
         from bengal.core.site import Site
 
         # Create minimal site
@@ -293,7 +292,7 @@ class TestURLCollisionValidation:
         site = Site.from_config(tmp_path)
 
         # Add pages with SAME URL (collision)
-        page1 = Page.create_virtual(
+        page1 = _virtual_page(
             source_id="page1.md",
             title="Page 1",
             metadata={},
@@ -302,7 +301,7 @@ class TestURLCollisionValidation:
         page1._site = site
         page1._url = "/same/"
 
-        page2 = Page.create_virtual(
+        page2 = _virtual_page(
             source_id="page2.md",
             title="Page 2",
             metadata={},
@@ -321,7 +320,6 @@ class TestURLCollisionValidation:
 
     def test_strict_mode_raises_error(self, tmp_path: Path) -> None:
         """In strict mode, collisions raise ValueError."""
-        from bengal.core.page import Page
         from bengal.core.site import Site
 
         # Create minimal site
@@ -336,7 +334,7 @@ class TestURLCollisionValidation:
         site = Site.from_config(tmp_path)
 
         # Add pages with SAME URL (collision)
-        page1 = Page.create_virtual(
+        page1 = _virtual_page(
             source_id="page1.md",
             title="Page 1",
             metadata={},
@@ -345,7 +343,7 @@ class TestURLCollisionValidation:
         page1._site = site
         page1._url = "/same/"
 
-        page2 = Page.create_virtual(
+        page2 = _virtual_page(
             source_id="page2.md",
             title="Page 2",
             metadata={},
@@ -364,7 +362,6 @@ class TestURLCollisionValidation:
 
     def test_multiple_collisions_all_reported(self, tmp_path: Path) -> None:
         """All collisions are reported, not just the first one."""
-        from bengal.core.page import Page
         from bengal.core.site import Site
 
         # Create minimal site
@@ -381,7 +378,7 @@ class TestURLCollisionValidation:
         # Create multiple collisions at different URLs
         pages = []
         for i, url in enumerate(["/url1/", "/url1/", "/url2/", "/url2/"]):
-            page = Page.create_virtual(
+            page = _virtual_page(
                 source_id=f"page{i}.md",
                 title=f"Page {i}",
                 metadata={},
@@ -406,7 +403,6 @@ class TestURLCollisionHealthCheck:
 
     def test_validator_detects_collisions(self, tmp_path: Path) -> None:
         """URLCollisionValidator should detect page URL collisions."""
-        from bengal.core.page import Page
         from bengal.core.site import Site
         from bengal.health.validators.url_collisions import URLCollisionValidator
 
@@ -422,7 +418,7 @@ class TestURLCollisionHealthCheck:
         site = Site.from_config(tmp_path)
 
         # Add colliding pages
-        page1 = Page.create_virtual(
+        page1 = _virtual_page(
             source_id="page1.md",
             title="Page 1",
             metadata={},
@@ -431,7 +427,7 @@ class TestURLCollisionHealthCheck:
         page1._site = site
         page1._url = "/same/"
 
-        page2 = Page.create_virtual(
+        page2 = _virtual_page(
             source_id="page2.md",
             title="Page 2",
             metadata={},
@@ -453,7 +449,6 @@ class TestURLCollisionHealthCheck:
 
     def test_validator_passes_with_no_collisions(self, tmp_path: Path) -> None:
         """URLCollisionValidator should pass when no collisions exist."""
-        from bengal.core.page import Page
         from bengal.core.site import Site
         from bengal.health.validators.url_collisions import URLCollisionValidator
 
@@ -469,7 +464,7 @@ class TestURLCollisionHealthCheck:
         site = Site.from_config(tmp_path)
 
         # Add pages with unique URLs
-        page1 = Page.create_virtual(
+        page1 = _virtual_page(
             source_id="page1.md",
             title="Page 1",
             metadata={},
@@ -478,7 +473,7 @@ class TestURLCollisionHealthCheck:
         page1._site = site
         page1._url = "/page1/"
 
-        page2 = Page.create_virtual(
+        page2 = _virtual_page(
             source_id="page2.md",
             title="Page 2",
             metadata={},

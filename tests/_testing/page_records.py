@@ -18,6 +18,7 @@ from bengal.core.records import (
     SourcePage,
     build_page_core,
     build_source_page,
+    create_virtual_source_page,
     parsed_page_from_page_state,
     rendered_page_from_page_state,
 )
@@ -116,6 +117,39 @@ def make_mutable_test_page(**kwargs: Any) -> Any:
         site=site,
         section=section,
         **kwargs,
+    )
+
+
+def make_virtual_test_page(
+    *,
+    source_id: str,
+    title: str,
+    content: str = "",
+    metadata: dict[str, Any] | None = None,
+    rendered_html: str | None = None,
+    template_name: str | None = None,
+    output_path: Path | str | None = None,
+    section_path: str | None = None,
+    lang: str | None = None,
+    site: Any | None = None,
+    section: Any | None = None,
+) -> Any:
+    """Create a virtual page compatibility object through ``SourcePage`` records."""
+    source_page = create_virtual_source_page(
+        source_id=source_id,
+        title=title,
+        content=content,
+        metadata=metadata,
+        section_path=section_path,
+        lang=lang,
+    )
+    return page_from_source_page(
+        source_page,
+        site=site,
+        section=section,
+        output_path=Path(output_path) if output_path is not None else None,
+        rendered_html=rendered_html,
+        template_name=template_name,
     )
 
 

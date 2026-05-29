@@ -12,6 +12,7 @@ import pytest
 from bengal.autodoc.base import DocElement
 from bengal.autodoc.orchestration import AutodocRunResult, VirtualAutodocOrchestrator
 from bengal.errors import BengalDiscoveryError
+from tests._testing.page_records import make_virtual_test_page as _virtual_page
 
 # Note: The orchestrator calls module-level functions from these modules:
 # - bengal.autodoc.orchestration.extractors: extract_python, extract_cli, extract_openapi
@@ -340,9 +341,7 @@ class TestFallbackTagging:
 
     def test_fallback_tagged_in_metadata(self):
         """Pages rendered via fallback should be tagged in metadata."""
-        from bengal.core.page import Page
-
-        page = Page.create_virtual(
+        page = _virtual_page(
             source_id="test.md",
             title="Test",
             metadata={
@@ -360,9 +359,7 @@ class TestFallbackTagging:
 
     def test_non_fallback_page_not_tagged(self):
         """Pages not using fallback should not have fallback tag."""
-        from bengal.core.page import Page
-
-        page = Page.create_virtual(
+        page = _virtual_page(
             source_id="test.md",
             title="Test",
             metadata={"is_autodoc": True},

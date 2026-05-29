@@ -8,15 +8,15 @@ including navigation, menus, and full template context.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
 from bengal.autodoc.base import DocElement
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.rendering.pipeline.core import RenderingPipeline
+from tests._testing.page_records import make_virtual_test_page as _virtual_page
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -77,9 +77,9 @@ def mock_doc_element() -> DocElement:
 
 
 @pytest.fixture
-def autodoc_page(mock_site: MagicMock, mock_doc_element: DocElement) -> Page:
+def autodoc_page(mock_site: MagicMock, mock_doc_element: DocElement) -> Any:
     """Create a virtual autodoc page."""
-    page = Page.create_virtual(
+    page = _virtual_page(
         source_id="python/api/test_module.md",
         title="test_module",
         metadata={
@@ -102,9 +102,9 @@ def autodoc_page(mock_site: MagicMock, mock_doc_element: DocElement) -> Page:
 
 
 @pytest.fixture
-def section_index_page(mock_site: MagicMock) -> Page:
+def section_index_page(mock_site: MagicMock) -> Any:
     """Create a virtual section index page."""
-    page = Page.create_virtual(
+    page = _virtual_page(
         source_id="python/api/core/_index.md",
         title="Core",
         metadata={
@@ -124,9 +124,9 @@ def section_index_page(mock_site: MagicMock) -> Page:
 
 
 @pytest.fixture
-def root_index_page(mock_site: MagicMock) -> Page:
+def root_index_page(mock_site: MagicMock) -> Any:
     """Create a virtual root API index page."""
-    page = Page.create_virtual(
+    page = _virtual_page(
         source_id="python/api/_index.md",
         title="API Reference",
         metadata={
@@ -148,28 +148,28 @@ def root_index_page(mock_site: MagicMock) -> Page:
 class TestVirtualPageDetection:
     """Test detection of autodoc virtual pages."""
 
-    def test_autodoc_page_detected_by_metadata(self, autodoc_page: Page) -> None:
+    def test_autodoc_page_detected_by_metadata(self, autodoc_page: Any) -> None:
         """Autodoc pages have is_autodoc=True in metadata."""
         assert autodoc_page.metadata.get("is_autodoc") is True
 
     def test_autodoc_page_has_element(
-        self, autodoc_page: Page, mock_doc_element: DocElement
+        self, autodoc_page: Any, mock_doc_element: DocElement
     ) -> None:
         """Autodoc pages store the DocElement in metadata."""
         assert autodoc_page.metadata.get("autodoc_element") is mock_doc_element
 
-    def test_autodoc_page_has_template_info(self, autodoc_page: Page) -> None:
+    def test_autodoc_page_has_template_info(self, autodoc_page: Any) -> None:
         """Autodoc pages have rendering metadata."""
         assert autodoc_page.metadata.get("_autodoc_template") == "autodoc/python/module"
         assert autodoc_page.metadata.get("_autodoc_url_path") == "api/test_module"
         assert autodoc_page.metadata.get("_autodoc_page_type") == "python-reference"
 
-    def test_section_index_detected(self, section_index_page: Page) -> None:
+    def test_section_index_detected(self, section_index_page: Any) -> None:
         """Section index pages have is_section_index=True."""
         assert section_index_page.metadata.get("is_section_index") is True
         assert section_index_page.metadata.get("is_autodoc") is True
 
-    def test_root_index_detected(self, root_index_page: Page) -> None:
+    def test_root_index_detected(self, root_index_page: Any) -> None:
         """Root index pages are detected correctly."""
         assert root_index_page.metadata.get("is_section_index") is True
         assert root_index_page.metadata.get("is_autodoc") is True
@@ -178,14 +178,14 @@ class TestVirtualPageDetection:
 class TestDeferredRendering:
     """Test that autodoc pages use deferred rendering."""
 
-    def test_autodoc_page_has_no_prerendered_html(self, autodoc_page: Page) -> None:
+    def test_autodoc_page_has_no_prerendered_html(self, autodoc_page: Any) -> None:
         """Autodoc pages should not have pre-rendered HTML during discovery."""
         # rendered_html is empty string during discovery phase (deferred rendering)
-        # Page.create_virtual uses `rendered_html or ""` as default
+        # virtual page adapter uses an empty rendered_html during discovery
         assert autodoc_page.rendered_html == ""
         assert autodoc_page.prerendered_html is None
 
-    def test_section_index_has_no_prerendered_html(self, section_index_page: Page) -> None:
+    def test_section_index_has_no_prerendered_html(self, section_index_page: Any) -> None:
         """Section index pages should not have pre-rendered HTML during discovery."""
         assert section_index_page.rendered_html == ""
         assert section_index_page.prerendered_html is None
@@ -195,7 +195,7 @@ class TestRenderingPipelineIntegration:
     """Test RenderingPipeline handling of autodoc pages."""
 
     def test_process_virtual_page_detects_autodoc(
-        self, autodoc_page: Page, mock_site: MagicMock
+        self, autodoc_page: Any, mock_site: MagicMock
     ) -> None:
         """RenderingPipeline should detect autodoc pages by metadata."""
         # Verify the detection logic
@@ -208,7 +208,7 @@ class TestRenderingPipelineIntegration:
         assert autodoc_page.metadata.get("autodoc_element") is not None
 
     def test_autodoc_page_uses_site_template_engine(
-        self, autodoc_page: Page, mock_site: MagicMock
+        self, autodoc_page: Any, mock_site: MagicMock
     ) -> None:
         """Autodoc pages should use site's template engine, not a separate one."""
         # This is the key fix - we use self.template_engine.env, not a new orchestrator
@@ -217,7 +217,7 @@ class TestRenderingPipelineIntegration:
         assert template_name is not None
 
     def test_process_page_routes_deferred_autodoc(
-        self, autodoc_page: Page, mock_site: MagicMock
+        self, autodoc_page: Any, mock_site: MagicMock
     ) -> None:
         """Deferred autodoc pages should go through virtual page renderer."""
         build_context = MagicMock()
@@ -229,7 +229,7 @@ class TestRenderingPipelineIntegration:
             mock_process.assert_called_once_with(autodoc_page)
 
     def test_render_autodoc_page_uses_section_fallback(
-        self, autodoc_page: Page, mock_site: MagicMock
+        self, autodoc_page: Any, mock_site: MagicMock
     ) -> None:
         """_render_autodoc_page should pass section even when page lacks .section attr."""
         build_context = MagicMock()
@@ -241,7 +241,7 @@ class TestRenderingPipelineIntegration:
 
         pipeline = RenderingPipeline(mock_site, build_context=build_context)
 
-        # Attach only _section; no public section attribute exists on Page
+        # Attach only _section; no public section attribute exists on the page compatibility object
         section = Section.create_virtual(
             name="cli",
             relative_url="/cli/",
@@ -295,7 +295,7 @@ class TestPageTypes:
     ) -> None:
         """Test different Python element page types."""
         mock_doc_element.element_type = page_type
-        page = Page.create_virtual(
+        page = _virtual_page(
             source_id=f"python/api/{page_type}.md",
             title=f"Test{page_type.title()}",
             metadata={
@@ -329,7 +329,7 @@ class TestPageTypes:
             see_also=[],
             deprecated=None,
         )
-        page = Page.create_virtual(
+        page = _virtual_page(
             source_id="cli/cli/build.md",
             title="build",
             metadata={
@@ -363,7 +363,7 @@ class TestPageTypes:
             see_also=[],
             deprecated=None,
         )
-        page = Page.create_virtual(
+        page = _virtual_page(
             source_id="openapi/endpoints/users/list.md",
             title="GET /users",
             metadata={
@@ -386,7 +386,7 @@ class TestVirtualSectionIntegration:
     """Test virtual sections for autodoc."""
 
     def test_autodoc_page_has_section_reference(
-        self, autodoc_page: Page, mock_site: MagicMock
+        self, autodoc_page: Any, mock_site: MagicMock
     ) -> None:
         """Autodoc pages should have section reference."""
         # Create a mock section
@@ -407,7 +407,7 @@ class TestVirtualSectionIntegration:
         assert autodoc_page._section.name == "api"
 
     def test_section_index_page_in_section(
-        self, section_index_page: Page, mock_site: MagicMock
+        self, section_index_page: Any, mock_site: MagicMock
     ) -> None:
         """Section index pages should belong to their section."""
         section = Section.create_virtual(
@@ -429,19 +429,17 @@ class TestVirtualSectionIntegration:
 class TestOutputPaths:
     """Test output path handling for autodoc pages."""
 
-    def test_module_page_output_path(self, autodoc_page: Page, mock_site: MagicMock) -> None:
+    def test_module_page_output_path(self, autodoc_page: Any, mock_site: MagicMock) -> None:
         """Module pages have correct output path."""
         expected = mock_site.output_dir / "api/test_module/index.html"
         assert autodoc_page.output_path == expected
 
-    def test_section_index_output_path(
-        self, section_index_page: Page, mock_site: MagicMock
-    ) -> None:
+    def test_section_index_output_path(self, section_index_page: Any, mock_site: MagicMock) -> None:
         """Section index pages have correct output path."""
         expected = mock_site.output_dir / "api/core/index.html"
         assert section_index_page.output_path == expected
 
-    def test_root_index_output_path(self, root_index_page: Page, mock_site: MagicMock) -> None:
+    def test_root_index_output_path(self, root_index_page: Any, mock_site: MagicMock) -> None:
         """Root index pages have correct output path."""
         expected = mock_site.output_dir / "api/index.html"
         assert root_index_page.output_path == expected
@@ -451,7 +449,7 @@ class TestTemplateContext:
     """Test that template context is correct for autodoc pages."""
 
     def test_autodoc_page_context_has_element(
-        self, autodoc_page: Page, mock_doc_element: DocElement
+        self, autodoc_page: Any, mock_doc_element: DocElement
     ) -> None:
         """Template context should include the DocElement."""
         element = autodoc_page.metadata.get("autodoc_element")
@@ -459,17 +457,17 @@ class TestTemplateContext:
         assert element.name == "test_module"
         assert element.qualified_name == "bengal.test_module"
 
-    def test_autodoc_page_context_has_page(self, autodoc_page: Page) -> None:
+    def test_autodoc_page_context_has_page(self, autodoc_page: Any) -> None:
         """Template context should include the page object."""
         # When rendering, page is passed to template
         assert autodoc_page.title == "test_module"
 
-    def test_autodoc_page_context_has_site(self, autodoc_page: Page, mock_site: MagicMock) -> None:
+    def test_autodoc_page_context_has_site(self, autodoc_page: Any, mock_site: MagicMock) -> None:
         """Template context should include the site object."""
         assert autodoc_page._site is mock_site
 
     def test_autodoc_render_does_not_pass_site_kwarg(
-        self, autodoc_page: Page, mock_site: MagicMock
+        self, autodoc_page: Any, mock_site: MagicMock
     ) -> None:
         """Autodoc render should NOT pass site= kwarg, using env global instead.
 
@@ -504,7 +502,7 @@ class TestEdgeCases:
 
     def test_page_without_autodoc_element(self, mock_site: MagicMock) -> None:
         """Pages without autodoc_element should be handled."""
-        page = Page.create_virtual(
+        page = _virtual_page(
             source_id="test.md",
             title="Test",
             metadata={"is_autodoc": True},  # Missing autodoc_element
@@ -520,7 +518,7 @@ class TestEdgeCases:
     ) -> None:
         """Pages with pre-rendered HTML should use it directly."""
         prerendered = "<html><body>Pre-rendered</body></html>"
-        page = Page.create_virtual(
+        page = _virtual_page(
             source_id="test.md",
             title="Test",
             metadata={
@@ -551,7 +549,7 @@ class TestEdgeCases:
             see_also=[],
             deprecated=None,
         )
-        page = Page.create_virtual(
+        page = _virtual_page(
             source_id="python/api/core/page/mixins/deep_module.md",
             title="deep_module",
             metadata={
