@@ -10,13 +10,13 @@
 **2026-05-29 Check**: `bengal/core/page/__init__.py` still defines `class Page`.
 The SourcePage adapter seam now exists in `bengal/content/discovery/page_adapter.py`,
 autodoc/orchestration virtual producers use `create_virtual_source_page()`, and
-latest tests migrated more orchestration fixtures through SourcePage helpers. Sprint
+latest tests migrated more utility and template fixtures through SourcePage helpers. Sprint
 6 is active. Direct production `from bengal.core.page import Page` imports are
 now isolated to the SourcePage compatibility adapter, while `bengal.Page` and
 `bengal.core.Page` remain lazy public compatibility exports. Boundary tests now
 enforce that production `Page` construction and direct imports stay isolated to
 the adapter. The remaining direct import count across `bengal/` + `tests/` is
-52, all but the adapter in tests. Deletion remains blocked by the adapter
+50, all but the adapter in tests. Deletion remains blocked by the adapter
 boundary, public API retirement decisions, and test factories that still
 construct `Page` directly.
 
@@ -423,6 +423,7 @@ gone or explicitly retained by a recorded public API decision.
 - `76a8eee30 tests: migrate analysis page fixtures`
 - `tests: migrate health and cache page fixtures`
 - `tests: migrate orchestration page fixtures`
+- `tests: migrate utility and template page fixtures`
 
 ### Sprint 6 epics
 
@@ -447,7 +448,7 @@ Search all remaining `Page` imports. As of the 2026-05-29 first saga slice,
 `rg 'from bengal\.core\.page import Page\b' bengal` finds only
 `bengal/content/discovery/page_adapter.py`, the intentional compatibility
 adapter from immutable `SourcePage` records to mutable `Page`. The broader
-`bengal/` + `tests/` sweep now finds 52 direct import sites, all but the
+`bengal/` + `tests/` sweep now finds 50 direct import sites, all but the
 adapter in tests. Next, migrate test factories and downstream adapter consumers
 to SourcePage/page-record helpers before deleting the class.
 

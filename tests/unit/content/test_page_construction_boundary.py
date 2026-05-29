@@ -34,6 +34,7 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/unit/rendering/test_section_ergonomics.py",
     "tests/unit/rendering/test_section_urls.py",
     "tests/unit/rendering/test_template_url_access.py",
+    "tests/unit/rendering/test_type_based_templates.py",
     "tests/unit/rendering/utils/test_rendering_url.py",
     "tests/unit/core/test_site_caching.py",
     "tests/unit/core/test_site_lifecycle.py",
@@ -52,6 +53,7 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/unit/orchestration/test_taxonomy_incremental.py",
     "tests/unit/orchestration/test_taxonomy_orchestrator.py",
     "tests/unit/template_functions/test_taxonomies_baseurl.py",
+    "tests/unit/utils/test_page_initializer.py",
 )
 
 

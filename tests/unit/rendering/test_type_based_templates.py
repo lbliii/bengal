@@ -11,7 +11,6 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.rendering.renderer import Renderer
 
@@ -25,7 +24,7 @@ class TestTypeMappings:
         site = Mock()
         renderer = Renderer(site)
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"type": "python-module"}
         page.type = "python-module"  # Mock the type property
         page.source_path = Path("content/api/module.md")
@@ -50,7 +49,7 @@ class TestTypeMappings:
         site = Mock()
         renderer = Renderer(site)
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"type": "cli-command"}
         page.type = "cli-command"  # Mock the type property
         page.source_path = Path("content/cli/build.md")
@@ -72,7 +71,7 @@ class TestTypeMappings:
         site = Mock()
         renderer = Renderer(site)
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"type": "doc"}
         page.type = "doc"  # Mock the type property
         page.source_path = Path("content/docs/guide.md")
@@ -94,7 +93,7 @@ class TestTypeMappings:
         site = Mock()
         renderer = Renderer(site)
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"type": "tutorial"}
         page.type = "tutorial"  # Mock the type property
         page.source_path = Path("content/tutorials/intro.md")
@@ -116,7 +115,7 @@ class TestTypeMappings:
         site = Mock()
         renderer = Renderer(site)
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"type": "blog"}
         page.type = "blog"  # Mock the type property
         page.source_path = Path("content/blog/post.md")
@@ -138,7 +137,7 @@ class TestTypeMappings:
         site = Mock()
         renderer = Renderer(site)
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"type": "notebook"}
         page.type = "notebook"
         page.source_path = Path("content/notebooks/demo.ipynb")
@@ -164,7 +163,7 @@ class TestTypeForIndexPages:
         site = Mock()
         renderer = Renderer(site)
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"type": "doc"}
         page.type = "doc"  # Mock the type property
         page.source_path = Path("content/docs/_index.md")
@@ -186,7 +185,7 @@ class TestTypeForIndexPages:
         site = Mock()
         renderer = Renderer(site)
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"type": "tutorial"}
         page.type = "tutorial"  # Mock the type property
         page.source_path = Path("content/tutorials/_index.md")
@@ -212,7 +211,7 @@ class TestTemplatePriority:
         site = Mock()
         renderer = Renderer(site)
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"template": "custom.html", "type": "doc"}
         page.type = "doc"  # Mock the type property (should be overridden by template)
         page.source_path = Path("content/page.md")
@@ -232,7 +231,7 @@ class TestTemplatePriority:
         section.name = "guides"  # Section name
         section.metadata = {}
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"type": "tutorial"}  # Different type
         page.type = "tutorial"  # Mock the type property
         page.source_path = Path("content/guides/intro.md")
@@ -260,7 +259,7 @@ class TestTemplatePriority:
         section.name = "docs"
         section.metadata = {}
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"type": "custom-type"}  # Custom type with no template
         page.type = "custom-type"  # Mock the type property
         page.source_path = Path("content/docs/page.md")
@@ -284,7 +283,7 @@ class TestTemplatePriority:
         site = Mock()
         renderer = Renderer(site)
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {}
         page.type = None  # Mock the type property (no type)
         page.source_path = Path("content/page.md")
@@ -313,7 +312,7 @@ class TestContentTypeCascade:
         section.name = "api"
         section.metadata = {"content_type": "autodoc-python"}
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {}  # No type set on page
         page.type = None  # Mock the type property (no type, should use section content_type)
         page.source_path = Path("content/api/module.md")
@@ -340,7 +339,7 @@ class TestContentTypeCascade:
         section.name = "docs"
         section.metadata = {"content_type": "doc"}
 
-        page = Mock(spec=Page)
+        page = Mock()
         page.metadata = {"type": "tutorial"}  # Override
         page.type = "tutorial"  # Mock the type property
         page.source_path = Path("content/docs/tutorial-page.md")
