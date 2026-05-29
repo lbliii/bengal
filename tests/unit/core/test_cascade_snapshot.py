@@ -5,8 +5,8 @@ from pathlib import Path
 import pytest
 
 from bengal.core.cascade_snapshot import CascadeSnapshot
-from bengal.core.page import Page
 from bengal.core.section import Section
+from tests._testing.page_records import make_mutable_test_page as _page
 
 pytestmark = pytest.mark.parallel_unsafe
 
@@ -126,14 +126,14 @@ class TestCascadeSnapshotBuild:
 
         # Create sections with cascade metadata
         section_docs = Section(name="docs", path=Path("/content/docs"))
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/content/docs/_index.md"),
             _raw_metadata={"title": "Docs", "cascade": {"type": "doc"}},
         )
         section_docs.add_page(index_page)
 
         section_blog = Section(name="blog", path=Path("/content/blog"))
-        blog_index = Page(
+        blog_index = _page(
             source_path=Path("/content/blog/_index.md"),
             _raw_metadata={"title": "Blog", "cascade": {"type": "post", "author": "Admin"}},
         )
@@ -162,7 +162,7 @@ class TestCascadeSnapshotBuild:
         content_dir = Path("/content")
 
         section = Section(name="plain", path=Path("/content/plain"))
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/content/plain/_index.md"),
             _raw_metadata={"title": "Plain Section"},  # No cascade
         )
@@ -177,7 +177,7 @@ class TestCascadeSnapshotBuild:
         content_dir = Path("/content")
 
         section = Section(name=".", path=Path("/content"))
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/content/_index.md"),
             _raw_metadata={"cascade": {"site_wide": True}},
         )
@@ -208,7 +208,7 @@ class TestCascadeSnapshotImmutability:
 
         section = Section(name="docs", path=Path("/content/docs"))
         cascade = {"type": "doc"}
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/content/docs/_index.md"),
             _raw_metadata={"cascade": cascade},
         )

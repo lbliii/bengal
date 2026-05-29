@@ -10,8 +10,8 @@ from pathlib import Path
 
 from bengal.core.cascade import CascadeView
 from bengal.core.cascade_snapshot import CascadeSnapshot
-from bengal.core.page import Page
 from bengal.core.section import Section
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestSectionCascadeExtraction:
@@ -22,7 +22,7 @@ class TestSectionCascadeExtraction:
         section = Section(name="products", path=Path("/content/products"))
 
         # Create index page with cascade
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/content/products/_index.md"),
             _raw_metadata={
                 "title": "Products",
@@ -40,7 +40,7 @@ class TestSectionCascadeExtraction:
         """Test that sections work fine without cascade."""
         section = Section(name="blog", path=Path("/content/blog"))
 
-        index_page = Page(
+        index_page = _page(
             source_path=Path("/content/blog/_index.md"),
             _raw_metadata={"title": "Blog"},
         )
@@ -55,7 +55,7 @@ class TestSectionCascadeExtraction:
         """Test that regular pages don't become section index."""
         section = Section(name="blog", path=Path("/content/blog"))
 
-        regular_page = Page(
+        regular_page = _page(
             source_path=Path("/content/blog/post.md"),
             _raw_metadata={
                 "title": "Post",

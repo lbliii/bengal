@@ -6,7 +6,7 @@ boolean properties that gate output format generation and robots.txt signals.
 
 from pathlib import Path
 
-from bengal.core.page import Page
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestContentSignalDefaults:
@@ -14,7 +14,7 @@ class TestContentSignalDefaults:
 
     def test_ai_train_defaults_false(self):
         """ai_train defaults to False (privacy-first)."""
-        page = Page(
+        page = _page(
             source_path=Path("content/test.md"),
             _raw_content="Test",
             _raw_metadata={"title": "Test"},
@@ -23,7 +23,7 @@ class TestContentSignalDefaults:
 
     def test_ai_input_defaults_true(self):
         """ai_input defaults to True (allow RAG/grounding)."""
-        page = Page(
+        page = _page(
             source_path=Path("content/test.md"),
             _raw_content="Test",
             _raw_metadata={"title": "Test"},
@@ -32,7 +32,7 @@ class TestContentSignalDefaults:
 
     def test_in_ai_train_false_by_default(self):
         """in_ai_train is False by default (matches ai_train default)."""
-        page = Page(
+        page = _page(
             source_path=Path("content/test.md"),
             _raw_content="Test",
             _raw_metadata={"title": "Test"},
@@ -41,7 +41,7 @@ class TestContentSignalDefaults:
 
     def test_in_ai_input_true_by_default(self):
         """in_ai_input is True by default."""
-        page = Page(
+        page = _page(
             source_path=Path("content/test.md"),
             _raw_content="Test",
             _raw_metadata={"title": "Test"},
@@ -54,7 +54,7 @@ class TestContentSignalFrontmatterOverride:
 
     def test_ai_train_override_true(self):
         """Can enable ai_train via visibility frontmatter."""
-        page = Page(
+        page = _page(
             source_path=Path("content/open.md"),
             _raw_content="Open content",
             _raw_metadata={
@@ -67,7 +67,7 @@ class TestContentSignalFrontmatterOverride:
 
     def test_ai_input_override_false(self):
         """Can disable ai_input via visibility frontmatter."""
-        page = Page(
+        page = _page(
             source_path=Path("content/restricted.md"),
             _raw_content="Restricted",
             _raw_metadata={
@@ -80,7 +80,7 @@ class TestContentSignalFrontmatterOverride:
 
     def test_both_signals_override(self):
         """Can override both signals at once."""
-        page = Page(
+        page = _page(
             source_path=Path("content/locked.md"),
             _raw_content="Locked",
             _raw_metadata={
@@ -95,7 +95,7 @@ class TestContentSignalFrontmatterOverride:
 
     def test_partial_override_preserves_other_visibility(self):
         """Overriding ai_train doesn't affect other visibility keys."""
-        page = Page(
+        page = _page(
             source_path=Path("content/test.md"),
             _raw_content="Test",
             _raw_metadata={
@@ -115,7 +115,7 @@ class TestContentSignalHiddenInteraction:
 
     def test_hidden_denies_all_signals(self):
         """hidden: true sets both ai_train and ai_input to False."""
-        page = Page(
+        page = _page(
             source_path=Path("content/secret.md"),
             _raw_content="Secret",
             _raw_metadata={"title": "Secret", "hidden": True},
@@ -132,7 +132,7 @@ class TestContentSignalDraftInteraction:
 
     def test_draft_excludes_from_ai_train(self):
         """Draft pages are excluded from AI training regardless of visibility."""
-        page = Page(
+        page = _page(
             source_path=Path("content/draft.md"),
             _raw_content="Draft",
             _raw_metadata={
@@ -145,7 +145,7 @@ class TestContentSignalDraftInteraction:
 
     def test_draft_excludes_from_ai_input(self):
         """Draft pages are excluded from AI input regardless of visibility."""
-        page = Page(
+        page = _page(
             source_path=Path("content/draft.md"),
             _raw_content="Draft",
             _raw_metadata={
@@ -164,7 +164,7 @@ class TestContentSignalWithSiteConfig:
         """Create a page with a mock site that has content_signals config."""
         from unittest.mock import MagicMock
 
-        page = Page(
+        page = _page(
             source_path=Path("content/test.md"),
             _raw_content="Test",
             _raw_metadata=metadata,

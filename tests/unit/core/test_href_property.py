@@ -20,9 +20,9 @@ import pytest
 
 from bengal.core.asset.asset_core import Asset
 from bengal.core.nav_tree import NavNode, NavNodeProxy, NavTree, NavTreeContext
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.core.site import Site
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class TestPageHrefPath:
@@ -45,7 +45,7 @@ class TestPageHrefPath:
         site = Site(root_path=Path("/site"), config={"baseurl": baseurl})
         site.output_dir = Path("/site/public")
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/getting-started.md"),
             _raw_metadata={"title": "Getting Started"},
             output_path=Path("/site/public/docs/getting-started/index.html"),
@@ -60,7 +60,7 @@ class TestPageHrefPath:
         site = Site(root_path=Path("/site"), config={"baseurl": "/bengal"})
         site.output_dir = Path("/site/public")
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/page.md"),
             _raw_metadata={"title": "Page"},
             output_path=Path("/site/public/docs/page/index.html"),
@@ -77,7 +77,7 @@ class TestPageHrefPath:
         site = Site(root_path=Path("/site"), config={"baseurl": "/bengal"})
         site.output_dir = Path("/site/public")
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/page.md"),
             _raw_metadata={"title": "Page"},
             output_path=Path("/site/public/docs/page/index.html"),
@@ -91,7 +91,7 @@ class TestPageHrefPath:
         site2 = Site(root_path=Path("/site"), config={"baseurl": "https://example.com"})
         site2.output_dir = Path("/site/public")
 
-        page2 = Page(
+        page2 = _page(
             source_path=Path("/content/docs/page.md"),
             _raw_metadata={"title": "Page"},
             output_path=Path("/site/public/docs/page/index.html"),
@@ -101,7 +101,7 @@ class TestPageHrefPath:
 
     def test_href_without_output_path(self):
         """Test href falls back correctly when output_path not set."""
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/page.md"),
             _raw_metadata={"title": "Page"},
         )
@@ -175,7 +175,7 @@ class TestNavNodeHrefPath:
         site.baseurl = "/bengal"
 
         # Create a page with site reference
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/page.md"),
             _raw_metadata={"title": "Page"},
         )
@@ -203,7 +203,7 @@ class TestNavNodeHrefPath:
         site.config = {"baseurl": "/bengal"}
         site.baseurl = "/bengal"
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/page.md"),
             _raw_metadata={"title": "Page"},
         )
@@ -232,7 +232,7 @@ class TestNavNodeHrefPath:
         site.config = {"baseurl": "/bengal"}
         site.baseurl = "/bengal"
 
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/page.md"),
             _raw_metadata={"title": "Page"},
         )
@@ -296,7 +296,7 @@ class TestHrefPathConsistency:
         site.output_dir = Path("/site/public")
 
         # Page
-        page = Page(
+        page = _page(
             source_path=Path("/content/docs/page.md"),
             _raw_metadata={"title": "Page"},
             output_path=Path("/site/public/docs/page/index.html"),
@@ -327,7 +327,7 @@ class TestHrefPathConsistency:
         node = NavNode(id="test", title="Test", _path="/test/")
         root = NavNode(id="root", title="Root", _path="/")
         tree = NavTree(root=root, version_id=None)
-        page_mock = Page(
+        page_mock = _page(
             source_path=Path("/content/test.md"),
             _raw_metadata={"title": "Test"},
         )

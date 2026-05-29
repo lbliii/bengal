@@ -10,8 +10,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from bengal.core.page import Page
 from bengal.core.section import Section
+from tests._testing.page_records import make_mutable_test_page as _page
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -24,17 +24,17 @@ class TestSectionRecentPages:
         """Returns pages sorted by date, newest first."""
         section = Section(name="blog", path=tmp_path / "blog")
 
-        old_page = Page(
+        old_page = _page(
             source_path=tmp_path / "blog/old.md",
             _raw_content="Old",
             _raw_metadata={"title": "Old Post", "date": datetime(2025, 1, 1)},
         )
-        new_page = Page(
+        new_page = _page(
             source_path=tmp_path / "blog/new.md",
             _raw_content="New",
             _raw_metadata={"title": "New Post", "date": datetime(2025, 12, 1)},
         )
-        mid_page = Page(
+        mid_page = _page(
             source_path=tmp_path / "blog/mid.md",
             _raw_content="Mid",
             _raw_metadata={"title": "Mid Post", "date": datetime(2025, 6, 1)},
@@ -53,12 +53,12 @@ class TestSectionRecentPages:
         """Excludes pages that don't have a date."""
         section = Section(name="blog", path=tmp_path / "blog")
 
-        dated_page = Page(
+        dated_page = _page(
             source_path=tmp_path / "blog/dated.md",
             _raw_content="Dated",
             _raw_metadata={"title": "Dated Post", "date": datetime(2025, 1, 1)},
         )
-        undated_page = Page(
+        undated_page = _page(
             source_path=tmp_path / "blog/undated.md",
             _raw_content="Undated",
             _raw_metadata={"title": "Undated Post"},
@@ -76,7 +76,7 @@ class TestSectionRecentPages:
         section = Section(name="blog", path=tmp_path / "blog")
 
         pages = [
-            Page(
+            _page(
                 source_path=tmp_path / f"blog/post{i}.md",
                 _raw_content=f"Post {i}",
                 _raw_metadata={"title": f"Post {i}", "date": datetime(2025, 1, i + 1)},
@@ -93,7 +93,7 @@ class TestSectionRecentPages:
         """Returns empty list when no pages have dates."""
         section = Section(name="blog", path=tmp_path / "blog")
 
-        undated_page = Page(
+        undated_page = _page(
             source_path=tmp_path / "blog/undated.md",
             _raw_content="Undated",
             _raw_metadata={"title": "Undated"},
@@ -109,7 +109,7 @@ class TestSectionRecentPages:
         section = Section(name="blog", path=tmp_path / "blog")
 
         pages = [
-            Page(
+            _page(
                 source_path=tmp_path / f"blog/post{i}.md",
                 _raw_content=f"Post {i}",
                 _raw_metadata={"title": f"Post {i}", "date": datetime(2025, 1, i + 1)},
@@ -130,12 +130,12 @@ class TestSectionContentPages:
         """Returns sorted pages (same as sorted_pages)."""
         section = Section(name="docs", path=tmp_path / "docs")
 
-        page1 = Page(
+        page1 = _page(
             source_path=tmp_path / "docs/page1.md",
             _raw_content="Page 1",
             _raw_metadata={"title": "Page 1", "weight": 10},
         )
-        page2 = Page(
+        page2 = _page(
             source_path=tmp_path / "docs/page2.md",
             _raw_content="Page 2",
             _raw_metadata={"title": "Page 2", "weight": 1},
@@ -152,7 +152,7 @@ class TestSectionContentPages:
         """content_pages is a cached property (same object on repeated access)."""
         section = Section(name="docs", path=tmp_path / "docs")
 
-        page = Page(
+        page = _page(
             source_path=tmp_path / "docs/page.md",
             _raw_content="Page",
             _raw_metadata={"title": "Page"},
@@ -173,12 +173,12 @@ class TestSectionPagesWithTag:
         """Returns only pages that have the specified tag."""
         section = Section(name="blog", path=tmp_path / "blog")
 
-        python_page = Page(
+        python_page = _page(
             source_path=tmp_path / "blog/python.md",
             _raw_content="Python post",
             _raw_metadata={"title": "Python Post", "tags": ["python", "tutorial"]},
         )
-        javascript_page = Page(
+        javascript_page = _page(
             source_path=tmp_path / "blog/js.md",
             _raw_content="JS post",
             _raw_metadata={"title": "JS Post", "tags": ["javascript"]},
@@ -194,7 +194,7 @@ class TestSectionPagesWithTag:
         """Tag matching is case-insensitive."""
         section = Section(name="blog", path=tmp_path / "blog")
 
-        page = Page(
+        page = _page(
             source_path=tmp_path / "blog/post.md",
             _raw_content="Post",
             _raw_metadata={"title": "Post", "tags": ["Python"]},  # Capital P
@@ -211,7 +211,7 @@ class TestSectionPagesWithTag:
         """Returns empty list when no pages have the tag."""
         section = Section(name="blog", path=tmp_path / "blog")
 
-        page = Page(
+        page = _page(
             source_path=tmp_path / "blog/post.md",
             _raw_content="Post",
             _raw_metadata={"title": "Post", "tags": ["python"]},
@@ -226,12 +226,12 @@ class TestSectionPagesWithTag:
         """Handles pages that don't have a tags field."""
         section = Section(name="blog", path=tmp_path / "blog")
 
-        page_with_tags = Page(
+        page_with_tags = _page(
             source_path=tmp_path / "blog/tagged.md",
             _raw_content="Tagged",
             _raw_metadata={"title": "Tagged", "tags": ["python"]},
         )
-        page_without_tags = Page(
+        page_without_tags = _page(
             source_path=tmp_path / "blog/untagged.md",
             _raw_content="Untagged",
             _raw_metadata={"title": "Untagged"},  # No tags
