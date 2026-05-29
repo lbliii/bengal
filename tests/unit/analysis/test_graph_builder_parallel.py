@@ -15,6 +15,7 @@ import pytest
 from bengal.analysis.graph.builder import MIN_PAGES_FOR_PARALLEL, GraphBuilder
 from bengal.core.page import Page
 from bengal.core.site import Site
+from tests._testing.page_records import seed_parsed_page_state
 
 
 @pytest.fixture
@@ -67,7 +68,7 @@ def large_site(tmp_path):
 
     # Add some links
     for i in range(50):
-        pages[i].links = [f"page{i + 50}.md"]
+        seed_parsed_page_state(pages[i], links=[f"page{i + 50}.md"])
 
     site.pages = pages
     return site
