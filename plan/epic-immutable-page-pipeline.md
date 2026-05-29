@@ -15,10 +15,11 @@ latest tests migrated page behavior fixtures through SourcePage helpers. Sprint
 now isolated to the SourcePage compatibility adapter, while `bengal.Page` and
 `bengal.core.Page` remain lazy public compatibility exports. Boundary tests now
 enforce that production `Page` construction and direct imports stay isolated to
-the adapter. The remaining direct import count across `bengal/` + `tests/` is
-4 import sites across 3 files: the adapter plus explicit mixin/type
-compatibility tests. Deletion remains blocked by the adapter boundary and the
-public API retirement decision.
+the adapter and that non-compatibility tests do not import the concrete `Page`
+class. The remaining direct import count across `bengal/` + `tests/` is 4
+import sites across 3 files: the adapter plus explicit mixin/type compatibility
+tests. Deletion remains blocked by the adapter boundary and the public API
+retirement decision.
 
 ---
 
@@ -430,6 +431,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate section page fixtures`
 - `tests: migrate core page-like behavior fixtures`
 - `tests: migrate page behavior fixtures`
+- `tests: migrate page bundle fixtures`
 
 ### Sprint 6 epics
 
@@ -457,8 +459,9 @@ adapter from immutable `SourcePage` records to mutable `Page`. The broader
 `bengal/` + `tests/` sweep now finds 4 import sites across 3 files: the
 adapter plus `tests/core/test_mixin_contracts.py` and
 `tests/core/test_type_safety.py`, which intentionally cover public
-compatibility. Next, record the public API decision before deleting or retaining
-the compatibility export surface.
+compatibility. The boundary test now performs an AST import sweep so multi-name
+imports cannot hide concrete `Page` usage. Next, record the public API decision
+before deleting or retaining the compatibility export surface.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

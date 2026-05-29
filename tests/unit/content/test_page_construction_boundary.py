@@ -1,5 +1,6 @@
 import ast
 from pathlib import Path
+from typing import TypeGuard
 
 PRODUCTION_PAGE_BOUNDARY_FILES = (
     "bengal/content/discovery/content_discovery.py",
@@ -14,7 +15,13 @@ PAGE_CONSTRUCTION_ADAPTER_FILES = {
     "bengal/content/discovery/page_adapter.py",
 }
 
+PAGE_COMPATIBILITY_TEST_FILES = {
+    "tests/core/test_mixin_contracts.py",
+    "tests/core/test_type_safety.py",
+}
+
 MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
+    "tests/core/test_page_bundles.py",
     "tests/unit/analysis/test_analysis_optimization.py",
     "tests/unit/analysis/test_graph_analysis.py",
     "tests/unit/analysis/test_graph_builder_parallel.py",
@@ -96,6 +103,12 @@ def _calls_page_constructor(node: ast.Call) -> bool:
     return False
 
 
+def _imports_core_page_class(node: ast.AST) -> TypeGuard[ast.ImportFrom]:
+    if not isinstance(node, ast.ImportFrom) or node.module != "bengal.core.page":
+        return False
+    return any(alias.name == "Page" for alias in node.names)
+
+
 def test_production_page_creation_goes_through_source_adapter() -> None:
     repo_root = Path(__file__).resolve().parents[3]
     violations: list[str] = []
@@ -139,11 +152,11 @@ def test_production_page_imports_stay_in_source_adapter() -> None:
         if relative_path in PAGE_CONSTRUCTION_ADAPTER_FILES:
             continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.ImportFrom) or node.module != "bengal.core.page":
-                continue
-            if any(alias.name == "Page" for alias in node.names):
-                violations.append(f"{relative_path}:{node.lineno}")
+        violations.extend(
+            f"{relative_path}:{node.lineno}"
+            for node in ast.walk(tree)
+            if _imports_core_page_class(node)
+        )
 
     assert violations == []
 
@@ -159,6 +172,24 @@ def test_migrated_tests_build_pages_through_source_adapter() -> None:
             f"{relative_path}:{node.lineno}"
             for node in ast.walk(tree)
             if isinstance(node, ast.Call) and _calls_page_constructor(node)
+        )
+
+    assert violations == []
+
+
+def test_non_compatibility_tests_do_not_import_page_class() -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+    violations: list[str] = []
+
+    for path in sorted((repo_root / "tests").rglob("*.py")):
+        relative_path = path.relative_to(repo_root).as_posix()
+        if relative_path in PAGE_COMPATIBILITY_TEST_FILES:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        violations.extend(
+            f"{relative_path}:{node.lineno}"
+            for node in ast.walk(tree)
+            if _imports_core_page_class(node)
         )
 
     assert violations == []

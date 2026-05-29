@@ -47,7 +47,8 @@ Machine-checked on 2026-05-29:
   `bengal/` + `tests/` direct import count is 4 import sites across 3 files:
   the adapter plus explicit mixin/type compatibility tests.
   `tests/unit/content/test_page_construction_boundary.py` now locks production
-  constructor and direct-import isolation to the SourcePage adapter.
+  constructor/direct-import isolation to the SourcePage adapter and blocks
+  concrete `Page` imports in non-compatibility tests.
 
 No full test suite was run for this planning pass.
 
@@ -135,6 +136,7 @@ removal until a human explicitly approves the API decision.
 - `tests: migrate section page fixtures`
 - `tests: migrate core page-like behavior fixtures`
 - `tests: migrate page behavior fixtures`
+- `tests: migrate page bundle fixtures`
 
 **Proof before saga close:** `rg '^class Page\\b' bengal/core/page` returns no
 hits; `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns no hits;
