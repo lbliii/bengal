@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 from bengal.core.page import Page
 from bengal.rendering.pipeline import RenderingPipeline
+from tests._testing.page_records import seed_parsed_page_state
 
 
 class CapturingReporter:
@@ -52,7 +53,7 @@ def test_pipeline_writes_output_file(tmp_path):
     page.output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Simulate already-rendered content
-    page.html_content = "<h1>Title</h1>"
+    seed_parsed_page_state(page, html_content="<h1>Title</h1>")
     page.rendered_html = "<html>\n<body>\n<h1>Title</h1>\n</body>\n</html>"
     pipeline.renderer = SimpleNamespace(
         render_content=lambda s: s,
