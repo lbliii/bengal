@@ -16,6 +16,11 @@ import pytest
 from bengal.health.report import CheckResult, CheckStatus
 from bengal.health.scope import ScopedValidationContext, ValidationScope
 from bengal.health.validators.links import LinkValidator, LinkValidatorWrapper
+from tests._testing.page_records import seed_parsed_page_state
+
+
+def _seed_links(page: MagicMock, links: list[str]) -> None:
+    seed_parsed_page_state(page, links=links)
 
 
 @pytest.fixture
@@ -37,26 +42,26 @@ def mock_site():
     page1.href = "/docs/"
     page1.url = "/docs/"  # Backward compatibility
     page1.source_path = Path("/project/content/docs/_index.md")
-    page1.links = ["/about/", "/contact/"]  # Links that will resolve to valid pages
+    _seed_links(page1, ["/about/", "/contact/"])
 
     page2 = MagicMock()
     page2.href = "/blog/"
     page2.url = "/blog/"  # Backward compatibility
     page2.source_path = Path("/project/content/blog/_index.md")
-    page2.links = ["/docs/"]
+    _seed_links(page2, ["/docs/"])
 
     # Add pages for the links to resolve to
     about_page = MagicMock()
     about_page.href = "/about/"
     about_page.url = "/about/"  # Backward compatibility
     about_page.source_path = Path("/project/content/about/_index.md")
-    about_page.links = []
+    _seed_links(about_page, [])
 
     contact_page = MagicMock()
     contact_page.href = "/contact/"
     contact_page.url = "/contact/"  # Backward compatibility
     contact_page.source_path = Path("/project/content/contact/_index.md")
-    contact_page.links = []
+    _seed_links(contact_page, [])
 
     site.pages = [page1, page2, about_page, contact_page]
 
@@ -75,7 +80,7 @@ def mock_site_with_broken_links():
     page1 = MagicMock()
     page1.url = "/docs/"
     page1.source_path = Path("/project/content/docs/_index.md")
-    page1.links = ["/nonexistent/", "/missing-page/"]
+    _seed_links(page1, ["/nonexistent/", "/missing-page/"])
 
     site.pages = [page1]
 
@@ -154,7 +159,7 @@ class TestLinkValidatorWrapperBrokenLinks:
         page = MagicMock()
         page.url = "/test/"
         page.source_path = Path("/project/content/test.md")
-        page.links = []  # No links for this test
+        _seed_links(page, [])
         mock_site.pages.append(page)
 
         # External links are skipped by the validator - they're handled separately
@@ -224,7 +229,7 @@ class TestLinkValidatorWrapperStats:
         """Incremental validation scopes link scanning to selected source pages."""
         changed_page = mock_site.pages[0]
         unchanged_page = mock_site.pages[1]
-        unchanged_page.links = ["/missing/"]
+        _seed_links(unchanged_page, ["/missing/"])
         scope = ValidationScope(
             incremental=True,
             files_to_validate=frozenset({changed_page.source_path}),
@@ -268,7 +273,7 @@ class TestLinkValidatorWrapperStats:
     def test_records_cacheable_file_results_for_fresh_broken_links(self, validator, mock_site):
         """Fresh broken links are exposed by source file for validation caching."""
         changed_page = mock_site.pages[0]
-        changed_page.links = ["/missing/"]
+        _seed_links(changed_page, ["/missing/"])
         scope = ValidationScope(
             incremental=True,
             files_to_validate=frozenset({changed_page.source_path}),
@@ -325,7 +330,7 @@ class TestLinkValidatorHealthScopeIntegration:
 
         changed_page = mock_site.pages[0]
         unchanged_page = mock_site.pages[1]
-        changed_page.links = ["/missing-now/"]
+        _seed_links(changed_page, ["/missing-now/"])
 
         cached_result = CheckResult.error(
             "1 broken internal link(s)",
@@ -372,7 +377,7 @@ class TestLinkValidatorRegistryCache:
         page = MagicMock()
         page.href = "/docs/"
         page.source_path = Path("/project/content/docs.md")
-        page.links = ["/new/"]
+        _seed_links(page, ["/new/"])
 
         site_without_target = MagicMock()
         site_without_target.root_path = Path("/project")
@@ -383,7 +388,7 @@ class TestLinkValidatorRegistryCache:
         target = MagicMock()
         target.href = "/new/"
         target.source_path = Path("/project/content/new.md")
-        target.links = []
+        _seed_links(target, [])
 
         site_with_target = MagicMock()
         site_with_target.root_path = Path("/project")
@@ -408,7 +413,7 @@ class TestLinkValidatorResultCache:
         page = MagicMock()
         page.href = "/docs/"
         page.source_path = Path("/project/content/docs.md")
-        page.links = ["/target/", "/target/", "/target/"]
+        _seed_links(page, ["/target/", "/target/", "/target/"])
 
         site = MagicMock()
         site.config = {"validate_links": True}
@@ -439,12 +444,12 @@ class TestLinkValidatorResultCache:
         page_a = MagicMock()
         page_a.href = "/a/"
         page_a.source_path = Path("/project/content/a/page.md")
-        page_a.links = ["sibling.md"]
+        _seed_links(page_a, ["sibling.md"])
 
         page_b = MagicMock()
         page_b.href = "/b/"
         page_b.source_path = Path("/project/content/b/page.md")
-        page_b.links = ["sibling.md"]
+        _seed_links(page_b, ["sibling.md"])
 
         site = MagicMock()
         site.config = {"validate_links": True}
@@ -469,13 +474,13 @@ class TestLinkValidatorResultCache:
         page_docs._path = "/docs/"
         page_docs.href = "/docs/"
         page_docs.source_path = Path("/project/content/docs.md")
-        page_docs.links = ["#intro"]
+        _seed_links(page_docs, ["#intro"])
 
         page_about = MagicMock()
         page_about._path = "/about/"
         page_about.href = "/about/"
         page_about.source_path = Path("/project/content/about.md")
-        page_about.links = ["#intro"]
+        _seed_links(page_about, ["#intro"])
 
         site = MagicMock()
         site.config = {"validate_links": True}
@@ -538,7 +543,7 @@ class TestLinkValidatorAnchorValidation:
         page._path = "/docs/"
         page.href = "/docs/"
         page.source_path = Path("/project/content/docs/_index.md")
-        page.links = ["#introduction"]
+        _seed_links(page, ["#introduction"])
         site_with_registry.pages = [page]
 
         validator = LinkValidator()
@@ -551,7 +556,7 @@ class TestLinkValidatorAnchorValidation:
         page._path = "/docs/"
         page.href = "/docs/"
         page.source_path = Path("/project/content/docs/_index.md")
-        page.links = ["#nonexistent-heading"]
+        _seed_links(page, ["#nonexistent-heading"])
         site_with_registry.pages = [page]
 
         validator = LinkValidator()
@@ -565,7 +570,7 @@ class TestLinkValidatorAnchorValidation:
         page._path = "/about/"
         page.href = "/about/"
         page.source_path = Path("/project/content/about.md")
-        page.links = ["/docs/#introduction"]
+        _seed_links(page, ["/docs/#introduction"])
         site_with_registry.pages = [page]
 
         validator = LinkValidator()
@@ -578,7 +583,7 @@ class TestLinkValidatorAnchorValidation:
         page._path = "/about/"
         page.href = "/about/"
         page.source_path = Path("/project/content/about.md")
-        page.links = ["/docs/#nonexistent-section"]
+        _seed_links(page, ["/docs/#nonexistent-section"])
         site_with_registry.pages = [page]
 
         validator = LinkValidator()
@@ -597,7 +602,7 @@ class TestLinkValidatorAnchorValidation:
         page.href = "/docs/"
         page._path = "/docs/"
         page.source_path = Path("/project/content/docs/_index.md")
-        page.links = ["#any-heading"]
+        _seed_links(page, ["#any-heading"])
         site.pages = [page]
 
         validator = LinkValidator()
