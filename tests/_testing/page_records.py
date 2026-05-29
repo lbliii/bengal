@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.cache.parsed_output import apply_parsed_page_to_page
 from bengal.content.discovery.page_adapter import page_from_source_page
@@ -23,18 +23,23 @@ from bengal.core.records import (
 )
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.page.page_core import PageCore
+    from bengal.protocols.core import PageLike
 
 
 def make_page_core(**overrides: Any) -> PageCore:
     """Create a representative ``PageCore`` for unit tests."""
-    metadata = {
-        "title": "Hello World",
-        "tags": ["python", "web"],
-        "slug": "hello",
-        "type": "post",
-    }
+    include_defaults = overrides.pop("default_metadata", True)
+    metadata = (
+        {
+            "title": "Hello World",
+            "tags": ["python", "web"],
+            "slug": "hello",
+            "type": "post",
+        }
+        if include_defaults
+        else {}
+    )
     metadata.update(overrides.pop("metadata", {}))
     return build_page_core(
         overrides.pop("source_path", "content/posts/hello.md"),
@@ -46,12 +51,17 @@ def make_page_core(**overrides: Any) -> PageCore:
 
 def make_source_page(**overrides: Any) -> SourcePage:
     """Create a representative ``SourcePage`` for unit tests."""
-    metadata = {
-        "title": "Hello World",
-        "tags": ["python", "web"],
-        "slug": "hello",
-        "type": "post",
-    }
+    include_defaults = overrides.pop("default_metadata", True)
+    metadata = (
+        {
+            "title": "Hello World",
+            "tags": ["python", "web"],
+            "slug": "hello",
+            "type": "post",
+        }
+        if include_defaults
+        else {}
+    )
     metadata.update(overrides.pop("metadata", {}))
     translation_key = overrides.pop("translation_key", None)
     if translation_key is not None:
@@ -74,19 +84,20 @@ def make_test_page(
     site: Any | None = None,
     section: Any | None = None,
     **overrides: Any,
-) -> Page:
+) -> PageLike:
     """Create a Page compatibility object through the SourcePage adapter."""
     source_page = make_source_page(**overrides)
     page = page_from_source_page(source_page, site=site, section=section)
+    page_like = cast("PageLike", page)
     if output_path is not None:
         page.output_path = Path(output_path)
     if html_content is not None:
         apply_parsed_page_to_page(
-            page,
+            page_like,
             make_parsed_page(html_content=html_content),
             seed_plain_text=False,
         )
-    return page
+    return page_like
 
 
 def make_parsed_page(**overrides: Any) -> ParsedPage:

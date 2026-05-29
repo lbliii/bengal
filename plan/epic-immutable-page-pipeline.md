@@ -1,13 +1,24 @@
 # Epic: Immutable Page Pipeline — Snapshots All The Way Down
 
-**Status**: Active — Sprints 0-5 Complete, Sprint 6 Pending
+**Status**: Active — Sprints 0-5 Complete, Sprint 6 In Progress
 **Created**: 2026-04-06
-**Updated**: 2026-05-28
+**Updated**: 2026-05-29
 **Target**: v0.4.x
 **Estimated Effort**: 60-80 hours
 **Dependencies**: Root roadmap sequencing; older protocol and architecture audit epics are archived as stale/superseded.
 **Source**: Layered Review (2026-04-06), rfc-bengal-v2-architecture.md (Phase 3-4)
-**2026-05-28 Check**: `bengal/core/page/__init__.py` still defines `class Page`; frozen pipeline records and snapshots exist, so Sprint 6 remains valid.
+**2026-05-29 Check**: `bengal/core/page/__init__.py` still defines `class Page`.
+The SourcePage adapter seam now exists in `bengal/content/discovery/page_adapter.py`,
+autodoc/orchestration virtual producers use `create_virtual_source_page()`, and
+latest tests migrated more rendering fixtures through SourcePage helpers. Sprint
+6 is active. Direct production `from bengal.core.page import Page` imports are
+now isolated to the SourcePage compatibility adapter, while `bengal.Page` and
+`bengal.core.Page` remain lazy public compatibility exports. Boundary tests now
+enforce that production `Page` construction and direct imports stay isolated to
+the adapter. The remaining direct import count across `bengal/` + `tests/` is
+71, all but the adapter in tests. Deletion remains blocked by the adapter
+boundary, public API retirement decisions, and test factories that still
+construct `Page` directly.
 
 ---
 
@@ -78,7 +89,7 @@ Stage 5 — Write
 | **3** | Decompose SitePlan; replace snapshot builder | 8-12h | Medium | ✅ COMPLETE (PR #198) |
 | **4** | Introduce SourcePage; replace Page at discovery | 10-14h | High | ✅ COMPLETE (PR #199) |
 | **5** | Delete PageProxy; cache stores typed records | 6-8h | Medium | ✅ COMPLETE (PR #200) |
-| **6** | Delete Page class; cleanup, final migration | 6-8h | Low | Pending |
+| **6** | Delete Page class; cleanup, final migration | 6-8h | Medium | In progress |
 
 Each sprint is a shippable PR. Later sprints can be deferred if earlier ones prove the model wrong.
 
@@ -388,9 +399,12 @@ checks (8 sites) and imports (19 files). Updated `phase_update_site_pages()`,
 
 ### Deferred to later sprint
 
-- **Remove dual-write**: `page.rendered_html = ...` still set for `json_accumulator`
-  and `cache_checker.cache_rendered_output`. Blocked on Sprint 6 (delete Page).
-- **Wire `create_virtual_source_page()` into callers**: Still uses `Page.create_virtual()`.
+- **Remove Page compatibility adapter**: `page_from_source_page()` now isolates
+  mutable `Page` construction at the discovery boundary; it can go only after
+  downstream code consumes records directly.
+- **Finish virtual-page migration**: Autodoc and orchestration producers use
+  `create_virtual_source_page()`, but compatibility tests and public
+  `Page.create_virtual()` coverage still exist.
 
 ---
 
@@ -400,7 +414,13 @@ checks (8 sites) and imports (19 files). Updated `phase_update_site_pages()`,
 
 ### Task 6.1 — Audit remaining Page references
 
-Search all 71 files that import Page. Convert remaining references to appropriate record types.
+Search all remaining `Page` imports. As of the 2026-05-29 first saga slice,
+`rg 'from bengal\.core\.page import Page\b' bengal` finds only
+`bengal/content/discovery/page_adapter.py`, the intentional compatibility
+adapter from immutable `SourcePage` records to mutable `Page`. The broader
+`bengal/` + `tests/` sweep now finds 71 direct import sites, all but the
+adapter in tests. Next, migrate test factories and downstream adapter consumers
+to SourcePage/page-record helpers before deleting the class.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

@@ -30,6 +30,8 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/unit/rendering/test_section_urls.py",
     "tests/unit/rendering/test_template_url_access.py",
     "tests/unit/rendering/utils/test_rendering_url.py",
+    "tests/unit/core/test_site_caching.py",
+    "tests/unit/core/test_site_lifecycle.py",
     "tests/unit/template_functions/test_taxonomies_baseurl.py",
 )
 
@@ -72,6 +74,24 @@ def test_production_page_construction_stays_in_source_adapter() -> None:
             for node in ast.walk(tree)
             if isinstance(node, ast.Call) and _calls_page_constructor(node)
         )
+
+    assert violations == []
+
+
+def test_production_page_imports_stay_in_source_adapter() -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+    violations: list[str] = []
+
+    for path in sorted((repo_root / "bengal").rglob("*.py")):
+        relative_path = path.relative_to(repo_root).as_posix()
+        if relative_path in PAGE_CONSTRUCTION_ADAPTER_FILES:
+            continue
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ImportFrom) or node.module != "bengal.core.page":
+                continue
+            if any(alias.name == "Page" for alias in node.names):
+                violations.append(f"{relative_path}:{node.lineno}")
 
     assert violations == []
 

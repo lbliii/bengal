@@ -5,8 +5,9 @@ Verifies that expensive properties like regular_pages are cached
 to prevent O(n²) performance issues.
 """
 
-from bengal.core.page import Page
+from bengal.assets.manifest import AssetManifest
 from bengal.core.site import Site
+from tests._testing.page_records import make_test_page
 
 
 def test_regular_pages_caching(tmp_path):
@@ -14,11 +15,11 @@ def test_regular_pages_caching(tmp_path):
     site = Site(root_path=tmp_path)
 
     # Add some pages
-    regular_page_1 = Page(source_path=tmp_path / "page1.md", _raw_metadata={"title": "Page 1"})
-    regular_page_2 = Page(source_path=tmp_path / "page2.md", _raw_metadata={"title": "Page 2"})
-    generated_page = Page(
+    regular_page_1 = make_test_page(source_path=tmp_path / "page1.md", metadata={"title": "Page 1"})
+    regular_page_2 = make_test_page(source_path=tmp_path / "page2.md", metadata={"title": "Page 2"})
+    generated_page = make_test_page(
         source_path=tmp_path / "tags" / "python.md",
-        _raw_metadata={"title": "Python Tag", "_generated": True},
+        metadata={"title": "Python Tag", "_generated": True},
     )
 
     site.pages = [regular_page_1, regular_page_2, generated_page]
@@ -45,7 +46,7 @@ def test_regular_pages_cache_invalidation(tmp_path):
     site = Site(root_path=tmp_path)
 
     # Add initial pages
-    regular_page = Page(source_path=tmp_path / "page1.md", _raw_metadata={"title": "Page 1"})
+    regular_page = make_test_page(source_path=tmp_path / "page1.md", metadata={"title": "Page 1"})
     site.pages = [regular_page]
 
     # Access to populate cache
@@ -58,9 +59,9 @@ def test_regular_pages_cache_invalidation(tmp_path):
     assert site.page_cache._regular is None
 
     # Add a generated page
-    generated_page = Page(
+    generated_page = make_test_page(
         source_path=tmp_path / "tags" / "python.md",
-        _raw_metadata={"title": "Python Tag", "_generated": True},
+        metadata={"title": "Python Tag", "_generated": True},
     )
     site.pages.append(generated_page)
 
@@ -84,13 +85,13 @@ def test_regular_pages_all_generated(tmp_path):
     """Test regular_pages when all pages are generated."""
     site = Site(root_path=tmp_path)
 
-    generated1 = Page(
+    generated1 = make_test_page(
         source_path=tmp_path / "tags" / "python.md",
-        _raw_metadata={"title": "Python Tag", "_generated": True},
+        metadata={"title": "Python Tag", "_generated": True},
     )
-    generated2 = Page(
+    generated2 = make_test_page(
         source_path=tmp_path / "tags" / "django.md",
-        _raw_metadata={"title": "Django Tag", "_generated": True},
+        metadata={"title": "Django Tag", "_generated": True},
     )
 
     site.pages = [generated1, generated2]
@@ -109,9 +110,9 @@ def test_regular_pages_cache_performance(tmp_path):
     # Add many pages
     for i in range(1000):
         is_generated = i % 10 == 0  # Every 10th page is generated
-        page = Page(
+        page = make_test_page(
             source_path=tmp_path / f"page{i}.md",
-            _raw_metadata={"title": f"Page {i}", "_generated": is_generated},
+            metadata={"title": f"Page {i}", "_generated": is_generated},
         )
         site.pages.append(page)
 
@@ -138,7 +139,7 @@ def test_regular_pages_cache_across_multiple_accesses(tmp_path):
 
     # Add pages
     for i in range(100):
-        page = Page(source_path=tmp_path / f"page{i}.md", _raw_metadata={"title": f"Page {i}"})
+        page = make_test_page(source_path=tmp_path / f"page{i}.md", metadata={"title": f"Page {i}"})
         site.pages.append(page)
 
     # Access multiple times
@@ -217,13 +218,13 @@ class TestSiteRuntimeCaches:
         site = Site(root_path=tmp_path)
 
         # Set asset manifest previous (needed for incremental)
-        site._asset_manifest_previous = {"some": "manifest"}
+        site._asset_manifest_previous = AssetManifest()
 
         # Reset
         site.reset_ephemeral_state()
 
         # _asset_manifest_previous should NOT be reset (needed for incremental asset comparison)
-        assert site._asset_manifest_previous == {"some": "manifest"}
+        assert isinstance(site._asset_manifest_previous, AssetManifest)
 
     def test_reset_ephemeral_preserves_lock(self, tmp_path):
         """Verify reset_ephemeral_state preserves the thread lock."""
@@ -244,6 +245,7 @@ class TestSiteRuntimeCaches:
         site = Site(root_path=tmp_path)
 
         # Simulate thread-safe usage pattern
+        assert site._asset_manifest_fallbacks_lock is not None
         with site._asset_manifest_fallbacks_lock:
             site._asset_manifest_fallbacks_global.add("css/style.css")
             site._asset_manifest_fallbacks_global.add("js/main.js")

@@ -4,6 +4,7 @@ Bengal SSG - A pythonic static site generator.
 
 from __future__ import annotations
 
+from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
 from typing import TYPE_CHECKING, Any
 
@@ -23,7 +24,6 @@ if TYPE_CHECKING:
     # Keep type-checker visibility for the public surface while avoiding
     # eager runtime imports of deep modules at `import bengal` time.
     from bengal.core.asset import Asset
-    from bengal.core.page import Page
     from bengal.core.section import Section
     from bengal.core.site import Site
 
@@ -43,9 +43,7 @@ def __getattr__(name: str) -> Any:
 
         return Asset
     if name == "Page":
-        from bengal.core.page import Page
-
-        return Page
+        return import_module("bengal.core.page").Page
     if name == "Section":
         from bengal.core.section import Section
 
