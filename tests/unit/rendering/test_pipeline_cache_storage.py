@@ -14,6 +14,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from bengal.cache import BuildCache
+from bengal.cache.parsed_output import clear_parsed_page_state
 from bengal.core.records import ParsedPage, RenderedPage
 from bengal.rendering.pipeline import RenderingPipeline
 from bengal.rendering.pipeline.cache_checker import CacheChecker
@@ -178,12 +179,8 @@ class TestPipelineCacheStorage:
                 self.source_path = tmp_path / "content" / "cached.md"
                 self.output_path = tmp_path / "public" / "cached" / "index.html"
                 self.metadata = {"title": "Cached"}
-                self.links = []
                 self.rendered_html = ""
-                self._toc_items_cache = []
-                self._plain_text_cache = None
-                self._excerpt = ""
-                self._meta_description = ""
+                clear_parsed_page_state(self)
 
             @property
             def plain_text(self):
@@ -265,12 +262,8 @@ class TestPipelineCacheStorage:
                 self.source_path = tmp_path / "content" / "image-only.md"
                 self.output_path = tmp_path / "public" / "image-only" / "index.html"
                 self.metadata = {"title": "Image"}
-                self.links = []
                 self.rendered_html = ""
-                self._toc_items_cache = []
-                self._plain_text_cache = None
-                self._excerpt = ""
-                self._meta_description = ""
+                clear_parsed_page_state(self)
 
             @property
             def plain_text(self):
@@ -321,12 +314,8 @@ class TestPipelineCacheStorage:
                 self.source_path = tmp_path / "content" / "cached.md"
                 self.output_path = tmp_path / "public" / "cached" / "index.html"
                 self.metadata = {"title": "Cached"}
-                self.links = []
                 self.rendered_html = "<html><body>stale page html</body></html>"
-                self._toc_items_cache = []
-                self._plain_text_cache = None
-                self._excerpt = ""
-                self._meta_description = ""
+                clear_parsed_page_state(self)
 
             @property
             def plain_text(self):
