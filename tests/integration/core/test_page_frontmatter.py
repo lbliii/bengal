@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.core.page import Page
 from bengal.core.page.frontmatter import Frontmatter
+from tests._testing.page_records import make_mutable_test_page as _page
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 def test_page_frontmatter_typed_access(tmp_path: Path) -> None:
     """Page.frontmatter provides typed access to metadata."""
-    page = Page(
+    page = _page(
         source_path=tmp_path / "test.md",
         _raw_content="# Test",
         _raw_metadata={"title": "My Post", "tags": ["python"], "custom": "value"},
@@ -30,7 +30,7 @@ def test_page_frontmatter_typed_access(tmp_path: Path) -> None:
 
 def test_frontmatter_dict_syntax_works(tmp_path: Path) -> None:
     """Templates using dict syntax still work."""
-    page = Page(
+    page = _page(
         source_path=tmp_path / "test.md",
         _raw_content="# Test",
         _raw_metadata={"title": "My Post"},
@@ -44,7 +44,7 @@ def test_frontmatter_dict_syntax_works(tmp_path: Path) -> None:
 def test_page_normalizes_malformed_tags(tmp_path: Path) -> None:
     """Page normalizes malformed tags (string, empty items, null) at construction."""
     # String → single-item list
-    page1 = Page(
+    page1 = _page(
         source_path=tmp_path / "test.md",
         _raw_content="# Test",
         _raw_metadata={"title": "Post", "tags": "single"},
@@ -53,7 +53,7 @@ def test_page_normalizes_malformed_tags(tmp_path: Path) -> None:
     assert page1.frontmatter.tags == ["single"]
 
     # List with empty items → filtered
-    page2 = Page(
+    page2 = _page(
         source_path=tmp_path / "test2.md",
         _raw_content="# Test",
         _raw_metadata={"title": "Post", "tags": ["", "a", "  ", "b"]},
@@ -61,7 +61,7 @@ def test_page_normalizes_malformed_tags(tmp_path: Path) -> None:
     assert page2.tags == ["a", "b"]
 
     # null/missing → []
-    page3 = Page(
+    page3 = _page(
         source_path=tmp_path / "test3.md",
         _raw_content="# Test",
         _raw_metadata={"title": "Post"},
@@ -71,7 +71,7 @@ def test_page_normalizes_malformed_tags(tmp_path: Path) -> None:
 
 def test_frontmatter_cached(tmp_path: Path) -> None:
     """Frontmatter is cached after first access."""
-    page = Page(
+    page = _page(
         source_path=tmp_path / "test.md",
         _raw_content="# Test",
         _raw_metadata={"title": "Test"},

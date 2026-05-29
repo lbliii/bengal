@@ -10,15 +10,15 @@
 **2026-05-29 Check**: `bengal/core/page/__init__.py` still defines `class Page`.
 The SourcePage adapter seam now exists in `bengal/content/discovery/page_adapter.py`,
 autodoc/orchestration virtual producers use `create_virtual_source_page()`, and
-latest tests migrated more core page-like behavior fixtures through SourcePage helpers. Sprint
+latest tests migrated page behavior fixtures through SourcePage helpers. Sprint
 6 is active. Direct production `from bengal.core.page import Page` imports are
 now isolated to the SourcePage compatibility adapter, while `bengal.Page` and
 `bengal.core.Page` remain lazy public compatibility exports. Boundary tests now
 enforce that production `Page` construction and direct imports stay isolated to
 the adapter. The remaining direct import count across `bengal/` + `tests/` is
-22, all but the adapter in tests. Deletion remains blocked by the adapter
-boundary, public API retirement decisions, and test factories that still
-construct `Page` directly.
+4 import sites across 3 files: the adapter plus explicit mixin/type
+compatibility tests. Deletion remains blocked by the adapter boundary and the
+public API retirement decision.
 
 ---
 
@@ -426,6 +426,10 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate utility and template page fixtures`
 - `tests: migrate nav tree page fixtures`
 - `tests: migrate discovery and redirect page fixtures`
+- `tests: migrate autodoc virtual page fixtures`
+- `tests: migrate section page fixtures`
+- `tests: migrate core page-like behavior fixtures`
+- `tests: migrate page behavior fixtures`
 
 ### Sprint 6 epics
 
@@ -450,9 +454,11 @@ Search all remaining `Page` imports. As of the 2026-05-29 first saga slice,
 `rg 'from bengal\.core\.page import Page\b' bengal` finds only
 `bengal/content/discovery/page_adapter.py`, the intentional compatibility
 adapter from immutable `SourcePage` records to mutable `Page`. The broader
-`bengal/` + `tests/` sweep now finds 22 direct import sites, all but the
-adapter in tests. Next, migrate test factories and downstream adapter consumers
-to SourcePage/page-record helpers before deleting the class.
+`bengal/` + `tests/` sweep now finds 4 import sites across 3 files: the
+adapter plus `tests/core/test_mixin_contracts.py` and
+`tests/core/test_type_safety.py`, which intentionally cover public
+compatibility. Next, record the public API decision before deleting or retaining
+the compatibility export surface.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

@@ -6,7 +6,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.core.page import Page, PageCore
+from bengal.core.page import PageCore
+from tests._testing.page_records import make_mutable_test_page as _page
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -56,7 +57,7 @@ class TestPageMetadataComponentModel:
 
     def test_legacy_normalization_layout(self, tmp_path: Path) -> None:
         """Test that layout maps to variant."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md", _raw_metadata={"layout": "grid", "title": "Test"}
         )
         # Should be available via .variant property
@@ -66,7 +67,7 @@ class TestPageMetadataComponentModel:
 
     def test_legacy_normalization_hero_style(self, tmp_path: Path) -> None:
         """Test that hero_style maps to variant."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md", _raw_metadata={"hero_style": "comic", "title": "Test"}
         )
         assert page.variant == "comic"
@@ -74,7 +75,7 @@ class TestPageMetadataComponentModel:
 
     def test_variant_priority(self, tmp_path: Path) -> None:
         """Test that explicit variant beats legacy fields."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_metadata={"variant": "modern", "layout": "old-grid", "title": "Test"},
         )
@@ -83,7 +84,7 @@ class TestPageMetadataComponentModel:
 
     def test_props_access(self, tmp_path: Path) -> None:
         """Test that metadata is accessible via props."""
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md", _raw_metadata={"title": "Test", "custom": "value"}
         )
         assert page.props["custom"] == "value"

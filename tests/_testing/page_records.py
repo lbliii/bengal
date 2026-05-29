@@ -108,19 +108,48 @@ def make_mutable_test_page(**kwargs: Any) -> Any:
     site = kwargs.pop("site", kwargs.pop("_site", None))
     section = kwargs.pop("section", kwargs.pop("_section", None))
     section_path = kwargs.pop("section_path", kwargs.pop("_section_path", None))
+    html_content = kwargs.pop("html_content", None)
+    rendered_html = kwargs.pop("rendered_html", None)
+    template_name = kwargs.pop("template_name", None)
+    legacy_attrs: dict[str, Any] = {}
+    for field in (
+        "toc",
+        "excerpt",
+        "_excerpt",
+        "meta_description",
+        "_meta_description",
+        "plain_text",
+        "word_count",
+        "reading_time",
+    ):
+        if field in kwargs:
+            legacy_attrs[field] = kwargs.pop(field)
     for metadata_field in ("tags", "slug", "aliases", "type", "weight", "version"):
-        if metadata_field in kwargs and metadata_field not in metadata:
-            metadata[metadata_field] = kwargs.pop(metadata_field)
+        if metadata_field in kwargs:
+            value = kwargs.pop(metadata_field)
+            if metadata_field not in metadata:
+                metadata[metadata_field] = value
     if section_path is not None:
         kwargs["section_path"] = section_path
-    return make_test_page(
-        raw_content=raw_content,
-        metadata=metadata,
-        default_metadata=False,
-        site=site,
-        section=section,
-        **kwargs,
+    page = cast(
+        "Any",
+        make_test_page(
+            raw_content=raw_content,
+            metadata=metadata,
+            default_metadata=False,
+            site=site,
+            section=section,
+            html_content=html_content,
+            **kwargs,
+        ),
     )
+    for attr, value in legacy_attrs.items():
+        setattr(page, attr, value)
+    if rendered_html is not None:
+        page.rendered_html = rendered_html
+    if template_name is not None:
+        page.template_name = template_name
+    return page
 
 
 def make_virtual_test_page(

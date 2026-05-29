@@ -5,7 +5,6 @@ from typing import Any
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.page.metadata_helpers import (
     coerce_weight,
     fallback_url,
@@ -19,10 +18,11 @@ from bengal.core.page.metadata_helpers import (
     normalize_visibility,
     should_render_visibility,
 )
+from tests._testing.page_records import make_mutable_test_page as _page
 
 
-def _make_page(metadata: dict[str, Any] | None = None) -> Page:
-    return Page(
+def _make_page(metadata: dict[str, Any] | None = None) -> Any:
+    return _page(
         source_path=Path("content/test.md"),
         _raw_content="Test content",
         _raw_metadata=dict(metadata or {}),

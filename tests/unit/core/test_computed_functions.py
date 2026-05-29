@@ -26,6 +26,7 @@ from bengal.core.page.computed import (
     get_series_info,
     get_series_neighbor,
 )
+from tests._testing.page_records import make_mutable_test_page as _page
 
 # -----------------------------------------------------------------------
 # compute_word_count
@@ -711,10 +712,8 @@ class TestPageAgeDaysProperty:
     """Test Page.age_days property wrapper."""
 
     def test_age_days_with_date(self, tmp_path):
-        from bengal.core.page import Page
-
         past = datetime.now(UTC) - timedelta(days=5)
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="",
             _raw_metadata={"date": past.isoformat()},
@@ -723,9 +722,7 @@ class TestPageAgeDaysProperty:
         assert page.age_days == 5
 
     def test_age_days_no_date(self, tmp_path):
-        from bengal.core.page import Page
-
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="",
             _raw_metadata={},
@@ -738,15 +735,13 @@ class TestPageAgeMonthsProperty:
     """Test Page.age_months property wrapper."""
 
     def test_age_months_with_date(self, tmp_path):
-        from bengal.core.page import Page
-
         now = datetime.now(UTC)
         if now.month <= 2:
             past = now.replace(year=now.year - 1, month=now.month + 10, day=1)
         else:
             past = now.replace(month=now.month - 2, day=1)
 
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="",
             _raw_metadata={"date": past.isoformat()},
@@ -755,9 +750,7 @@ class TestPageAgeMonthsProperty:
         assert page.age_months == 2
 
     def test_age_months_no_date(self, tmp_path):
-        from bengal.core.page import Page
-
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="",
             _raw_metadata={},
@@ -770,9 +763,7 @@ class TestPageAuthorProperty:
     """Test Page.author property wrapper."""
 
     def test_author_from_metadata(self, tmp_path):
-        from bengal.core.page import Page
-
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="",
             _raw_metadata={"author": "Jane Smith"},
@@ -782,9 +773,7 @@ class TestPageAuthorProperty:
         assert page.author.name == "Jane Smith"
 
     def test_no_author(self, tmp_path):
-        from bengal.core.page import Page
-
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="",
             _raw_metadata={},
@@ -797,9 +786,7 @@ class TestPageAuthorsProperty:
     """Test Page.authors property wrapper."""
 
     def test_authors_from_metadata(self, tmp_path):
-        from bengal.core.page import Page
-
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="",
             _raw_metadata={
@@ -819,9 +806,7 @@ class TestPageSeriesProperty:
     """Test Page.series property wrapper."""
 
     def test_series_from_metadata(self, tmp_path):
-        from bengal.core.page import Page
-
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="",
             _raw_metadata={
@@ -834,9 +819,7 @@ class TestPageSeriesProperty:
         assert page.series.part == 2
 
     def test_no_series(self, tmp_path):
-        from bengal.core.page import Page
-
-        page = Page(
+        page = _page(
             source_path=tmp_path / "test.md",
             _raw_content="",
             _raw_metadata={},
