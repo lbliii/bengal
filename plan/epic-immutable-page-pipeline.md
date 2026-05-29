@@ -436,6 +436,7 @@ gone or explicitly retained by a recorded public API decision.
 - `content: type source page adapter as page-like`
 - `core: retire public page exports`
 - `core: remove page virtual constructor`
+- `content: move i18n discovery state into source records`
 
 ### Sprint 6 epics
 
@@ -468,6 +469,11 @@ multi-name imports cannot hide concrete `Page` usage. The adapter itself now
 returns `PageLike` instead of concrete `Page`, leaving only the actual
 compatibility construction internally concrete. Next, delete or replace the
 adapter boundary so `bengal/core/page/` can be removed.
+
+Task 6.1 also started retiring post-adapter mutations: discovery now derives
+i18n `lang` and `translation_key` values before creating `SourcePage`, so the
+adapter receives the correct immutable source state instead of setting those
+fields afterward.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

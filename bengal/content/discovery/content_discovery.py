@@ -456,14 +456,6 @@ class ContentDiscovery:
             # pipeline retrieves it from the build cache if needed.
             apply_parsed_page_to_page(page, parsed_page, seed_ast=False)
 
-            # i18n enrichment from cached core
-            if current_lang:
-                page.lang = current_lang
-            elif core.lang:
-                page.lang = core.lang
-            if hasattr(core, "translation_key") and core.translation_key:
-                page.translation_key = core.translation_key
-
             return page
         except Exception:
             # Any failure during cache reconstruction falls through to full parse.
@@ -713,6 +705,7 @@ class ContentDiscovery:
         try:
             content, metadata = self._parser.parse_file(file_path)
             metadata = self._parser.validate_against_collection(file_path, metadata)
+            metadata = self._metadata_with_i18n(file_path, current_lang, metadata)
 
             # Build the immutable discovery record first, then adapt it into
             # the remaining Page compatibility object for downstream callers.
@@ -721,9 +714,6 @@ class ContentDiscovery:
             )
 
             page = page_from_source_page(source_page, site=self.site, section=section)
-
-            # i18n enrichment
-            self._enrich_page_i18n(page, file_path, current_lang, metadata)
 
             # Versioning enrichment
             self._enrich_page_versioning(page, file_path)
@@ -756,6 +746,46 @@ class ContentDiscovery:
             )
             raise
 
+    def _metadata_with_i18n(
+        self, file_path: Path, current_lang: str | None, metadata: dict[str, Any]
+    ) -> dict[str, Any]:
+        """Return metadata with discovery-derived i18n fields before SourcePage creation."""
+        enriched = dict(metadata)
+
+        if current_lang and not enriched.get("lang"):
+            enriched["lang"] = current_lang
+
+        try:
+            if self.site and isinstance(self.site.config, dict):
+                i18n = self.site.config.get("i18n", {}) or {}
+                strategy = i18n.get("strategy", "none")
+                content_structure = i18n.get("content_structure", "dir")
+                if (
+                    not enriched.get("translation_key")
+                    and strategy == "prefix"
+                    and content_structure == "dir"
+                ):
+                    try:
+                        rel = file_path.relative_to(self.content_dir)
+                    except ValueError:
+                        rel = Path(file_path.name)
+                    parts = list(rel.parts)
+                    if parts:
+                        if current_lang and parts[0] == current_lang:
+                            key_parts = parts[1:]
+                        else:
+                            key_parts = parts
+                        if key_parts:
+                            enriched["translation_key"] = str(Path(*key_parts).with_suffix(""))
+        except Exception as e:
+            logger.debug(
+                "page_i18n_metadata_enrichment_failed",
+                page=str(file_path),
+                error=str(e),
+            )
+
+        return enriched
+
     def _build_source_page(
         self,
         file_path: Path,
@@ -784,51 +814,12 @@ class ContentDiscovery:
             source_path=file_path,
             raw_content=content,
             metadata=metadata,
-            lang=current_lang,
+            lang=str(metadata.get("lang")) if metadata.get("lang") else current_lang,
             section_path=str(section.path) if section and getattr(section, "path", None) else None,
             content_hash=content_hash,
             file_hash=file_hash,
             is_virtual=False,
         )
-
-    def _enrich_page_i18n(
-        self, page: PageLike, file_path: Path, current_lang: str | None, metadata: dict[str, Any]
-    ) -> None:
-        """Enrich page with i18n attributes."""
-        try:
-            if current_lang:
-                page.lang = current_lang
-            if isinstance(metadata, dict):
-                if metadata.get("lang"):
-                    page.lang = str(metadata.get("lang"))
-                if metadata.get("translation_key"):
-                    page.translation_key = str(metadata.get("translation_key"))
-
-            # Derive translation key for dir structure
-            if self.site and isinstance(self.site.config, dict):
-                i18n = self.site.config.get("i18n", {}) or {}
-                strategy = i18n.get("strategy", "none")
-                content_structure = i18n.get("content_structure", "dir")
-                if not page.translation_key and strategy == "prefix" and content_structure == "dir":
-                    try:
-                        rel = file_path.relative_to(self.content_dir)
-                    except ValueError:
-                        rel = Path(file_path.name)
-                    parts = list(rel.parts)
-                    if parts:
-                        if current_lang and parts[0] == current_lang:
-                            key_parts = parts[1:]
-                        else:
-                            key_parts = parts
-                        if key_parts:
-                            key = str(Path(*key_parts).with_suffix(""))
-                            page.translation_key = key
-        except Exception as e:
-            logger.debug(
-                "page_i18n_enrichment_failed",
-                page=str(file_path),
-                error=str(e),
-            )
 
     def _enrich_page_versioning(self, page: PageLike, file_path: Path) -> None:
         """Enrich page with versioning attributes."""
