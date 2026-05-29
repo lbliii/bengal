@@ -12,7 +12,6 @@ ContentParser: Parses content files with frontmatter.
 
 from __future__ import annotations
 
-import re
 from typing import TYPE_CHECKING, Any
 
 import patitas
@@ -275,5 +274,19 @@ class ContentParser:
 
 def _first_markdown_h1(content: str) -> str:
     """Return the first markdown H1 text from notebook content."""
-    match = re.search(r"^#\s+(.+?)\s*$", content, flags=re.MULTILINE)
-    return match.group(1).strip() if match else ""
+    fence_marker = ""
+    for line in content.splitlines():
+        stripped = line.lstrip()
+        if fence_marker:
+            if stripped.startswith(fence_marker):
+                fence_marker = ""
+            continue
+
+        if stripped.startswith(("```", "~~~")):
+            fence_marker = stripped[:3]
+            continue
+
+        if line.startswith("# "):
+            return line[2:].strip()
+
+    return ""
