@@ -5,7 +5,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from bengal.core.page import Page
 from bengal.core.section import Section
 from bengal.rendering.section_ergonomics import (
     aggregate_content,
@@ -15,6 +14,7 @@ from bengal.rendering.section_ergonomics import (
     recent_pages,
     word_count,
 )
+from tests._testing.page_records import make_test_page
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -26,11 +26,11 @@ def _page(
     metadata: dict | None = None,
     content: str = "",
     html: str | None = None,
-) -> Page:
-    return Page(
+):
+    return make_test_page(
         source_path=tmp_path / f"{name}.md",
-        _raw_content=content,
-        _raw_metadata={"title": name, **(metadata or {})},
+        raw_content=content,
+        metadata={"title": name, "slug": name, **(metadata or {})},
         html_content=html,
     )
 
