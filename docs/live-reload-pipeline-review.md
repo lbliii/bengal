@@ -2,13 +2,20 @@
 
 Review of the live reload pipeline for bugs, subtle issues, and architectural improvements.
 
+**Status note (2026-05-29)**: This is a historical audit, not current policy.
+Bengal targets Python 3.14, and PEP 758 multi-catch syntax such as
+`except OSError, ValueError:` is valid in this repository. Do not convert those
+handlers to parenthesized tuples solely for older Python expectations.
+
 ---
 
 ## Bugs Fixed
 
-### Python 2-style exception syntax
+### Historical exception syntax audit
 
-The following used `except A, B` (Python 2) instead of `except (A, B)` (Python 3):
+This section predates Bengal's Python 3.14 floor and is retained only as
+historical context. It should not be used as a current finding. The codebase now
+allows PEP 758 multi-catch syntax.
 
 | File | Line | Fix |
 |------|------|-----|
@@ -19,7 +26,7 @@ The following used `except A, B` (Python 2) instead of `except (A, B)` (Python 3
 | `build_trigger.py` | 862, 870 | `except (OSError, ValueError)` etc. |
 | `pid_manager.py` | 106, 108, 173, 285 | Multiple exception tuples |
 
-**Impact**: In Python 3, `except A, B` is parsed as `except A as B` (catch A, bind to variable B). This would catch only the first exception type and shadow the second as a variable name.
+**Current impact**: superseded by the Python 3.14 policy in root `AGENTS.md`.
 
 ---
 
