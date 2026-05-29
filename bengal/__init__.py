@@ -4,7 +4,6 @@ Bengal SSG - A pythonic static site generator.
 
 from __future__ import annotations
 
-from importlib import import_module
 from importlib.metadata import PackageNotFoundError, version
 from typing import TYPE_CHECKING, Any
 
@@ -27,7 +26,7 @@ if TYPE_CHECKING:
     from bengal.core.section import Section
     from bengal.core.site import Site
 
-__all__ = ["Asset", "Page", "Section", "Site", "__version__"]
+__all__ = ["Asset", "Section", "Site", "__version__"]
 
 
 def __getattr__(name: str) -> Any:
@@ -35,15 +34,13 @@ def __getattr__(name: str) -> Any:
     Lazily resolve top-level re-exports.
 
     This keeps `import bengal` lightweight while preserving the existing
-    `bengal.Asset`, `bengal.Page`, `bengal.Section`, and `bengal.Site` API.
+    `bengal.Asset`, `bengal.Section`, and `bengal.Site` API.
 
     """
     if name == "Asset":
         from bengal.core.asset import Asset
 
         return Asset
-    if name == "Page":
-        return import_module("bengal.core.page").Page
     if name == "Section":
         from bengal.core.section import Section
 
@@ -56,4 +53,4 @@ def __getattr__(name: str) -> Any:
 
 
 def __dir__() -> list[str]:
-    return sorted([*globals().keys(), "Asset", "Page", "Section", "Site"])
+    return sorted([*globals().keys(), "Asset", "Section", "Site"])

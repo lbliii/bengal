@@ -24,7 +24,7 @@ Machine-checked on 2026-05-29:
 - Protocol annotation counts are still mixed: `site: Site` 296 vs
   `site: SiteLike` 274, `page: Page` 120 vs `page: PageLike` 253,
   `section: Section` 82 vs `section: SectionLike` 63.
-- `uv run ty check bengal/` reports 558 diagnostics.
+- `uv run ty check bengal/` reports 545 diagnostics.
 - Bundled themes are `default` and `chirpui`; `bengal theme preview`,
   swizzle commands, library assets, and Chirp UI integration tests exist.
 - Plugin wiring exists for directives, roles, template extensions, and phase
@@ -42,15 +42,15 @@ Machine-checked on 2026-05-29:
   risk for the immutable page pipeline but not deleting the `Page` class.
 - Page deletion proof has started: direct production
   `from bengal.core.page import Page` imports are isolated to
-  `bengal/content/discovery/page_adapter.py`, while public `bengal.Page` and
-  `bengal.core.Page` exports are lazy compatibility surfaces. The remaining
-  `bengal/` + `tests/` direct import count is 4 import sites across 3 files:
-  the adapter plus explicit mixin/type compatibility tests.
+  `bengal/content/discovery/page_adapter.py`. Public `bengal.Page` and
+  `bengal.core.Page` compatibility re-exports are retired, and the remaining
+  `bengal/` + `tests/` direct concrete `Page` import count is 1 import site:
+  the adapter.
   `tests/unit/content/test_page_construction_boundary.py` now locks production
   constructor/direct-import isolation to the SourcePage adapter and blocks
-  concrete `Page` imports in non-compatibility tests. The SourcePage adapter
-  now returns `PageLike` at its type boundary while keeping the remaining
-  mutable construction isolated inside the adapter.
+  concrete `Page` imports in tests. The SourcePage adapter now returns
+  `PageLike` at its type boundary while keeping the remaining mutable
+  construction isolated inside the adapter.
 
 No full test suite was run for this planning pass.
 
@@ -102,8 +102,9 @@ well-scoped.
 
 **Source plan:** `epic-immutable-page-pipeline.md` Sprint 6.
 **Goal:** remove the mutable `Page` compatibility class from Bengal's
-production architecture while preserving behavior and deferring public export
-removal until a human explicitly approves the API decision.
+production architecture while preserving behavior. The public export retirement
+decision was approved on 2026-05-29, so the remaining saga work is adapter and
+class deletion rather than public compatibility preservation.
 
 **Epics inside the saga:**
 
@@ -112,13 +113,13 @@ removal until a human explicitly approves the API decision.
    remove that adapter when downstream consumers no longer need it.
 2. **Test fixture migration:** migrate tests that only need page-like fixtures
    to SourcePage/page-record helpers; keep tests that intentionally prove
-   `Page` compatibility until the public API decision is made.
+   retired `Page` compatibility surfaces absent.
 3. **Protocol/type convergence:** move concrete `Page` annotations and
    fixtures toward `PageLike` or immutable records without widening public
    protocols just to satisfy `ty`.
-4. **Public compatibility decision:** stop and ask before removing or changing
-   `bengal.Page`, `bengal.core.Page`, plugin-facing behavior, or documented
-   public API.
+4. **Public compatibility decision:** recorded 2026-05-29; public
+   `bengal.Page` and `bengal.core.Page` re-exports are retired. Stop and ask
+   only before changing plugin-facing behavior or another documented public API.
 5. **Class deletion:** delete `class Page` and obsolete mixins only after
    production, protocols, and non-compatibility tests no longer depend on them.
 6. **Collateral closure:** keep the roadmap, epic status, changelog, and proof
@@ -140,6 +141,7 @@ removal until a human explicitly approves the API decision.
 - `tests: migrate page behavior fixtures`
 - `tests: migrate page bundle fixtures`
 - `content: type source page adapter as page-like`
+- `core: retire public page exports`
 
 **Proof before saga close:** `rg '^class Page\\b' bengal/core/page` returns no
 hits; `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns no hits;

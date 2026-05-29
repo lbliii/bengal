@@ -134,30 +134,6 @@ class TestCoreAttributeComposition:
         for attr in expected_attrs:
             assert hasattr(Section, attr), f"Section missing expected attribute: {attr}"
 
-    def test_page_attributes_accessible(self) -> None:
-        """Page class has all expected attributes from inline methods and mixins."""
-        from bengal.core.page import Page
-
-        expected_attrs = [
-            "content",
-            "eq",
-            "html",
-            "in_section",
-            "is_ancestor",
-            "is_descendant",
-            "plain_text",
-            "next",
-            "prev",
-            "next_in_section",
-            "prev_in_section",
-            "word_count",
-            "reading_time",
-            "meta_description",
-        ]
-
-        for attr in expected_attrs:
-            assert hasattr(Page, attr), f"Page missing expected attribute: {attr}"
-
     def test_section_can_be_used_in_list_operations(self) -> None:
         """Section instances work with list.index() and similar operations."""
         from pathlib import Path as PathLib
@@ -222,22 +198,3 @@ class TestPILIntegration:
             assert ", 3)" not in non_comment_source, (
                 f"ImageProcessor.{method_name} uses integer 3 instead of Resampling enum"
             )
-
-
-class TestASTTypeConsistency:
-    """Verify AST types are consistent across modules."""
-
-    def test_ast_cache_annotation_exists(self) -> None:
-        """
-        _ast_cache type annotation should exist on Page.
-
-        Note: We can't fully resolve forward references at runtime (ASTNode),
-        so we just verify the annotation exists via __annotations__.
-        """
-        from bengal.core.page import Page
-
-        assert "_ast_cache" in Page.__annotations__, "Page missing _ast_cache annotation"
-
-        page_annotation = str(Page.__annotations__["_ast_cache"])
-
-        assert "ASTNode" in page_annotation or "dict" in page_annotation.lower()

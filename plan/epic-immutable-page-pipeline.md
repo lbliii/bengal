@@ -12,15 +12,15 @@ The SourcePage adapter seam now exists in `bengal/content/discovery/page_adapter
 autodoc/orchestration virtual producers use `create_virtual_source_page()`, and
 latest tests migrated page behavior fixtures through SourcePage helpers. Sprint
 6 is active. Direct production `from bengal.core.page import Page` imports are
-now isolated to the SourcePage compatibility adapter, while `bengal.Page` and
-`bengal.core.Page` remain lazy public compatibility exports. Boundary tests now
-enforce that production `Page` construction and direct imports stay isolated to
-the adapter and that non-compatibility tests do not import the concrete `Page`
-class. The remaining direct import count across `bengal/` + `tests/` is 4
-import sites across 3 files: the adapter plus explicit mixin/type compatibility
-tests. The adapter's public type boundary now returns `PageLike`; mutable
-construction remains isolated inside the adapter. Deletion remains blocked by
-the adapter boundary and the public API retirement decision.
+now isolated to the SourcePage compatibility adapter. The 2026-05-29 public API
+decision retired the lazy `bengal.Page` and `bengal.core.Page` compatibility
+re-exports. Boundary tests now enforce that production `Page` construction and
+direct imports stay isolated to the adapter and that tests do not import the
+concrete `Page` class. The remaining direct import count across `bengal/` +
+`tests/` is 1 import site: the adapter. The adapter's public type boundary now
+returns `PageLike`; mutable construction remains isolated inside the adapter.
+Deletion remains blocked by the adapter boundary and the concrete class itself,
+not by public export compatibility.
 
 ---
 
@@ -434,6 +434,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate page behavior fixtures`
 - `tests: migrate page bundle fixtures`
 - `content: type source page adapter as page-like`
+- `core: retire public page exports`
 
 ### Sprint 6 epics
 
@@ -445,8 +446,8 @@ gone or explicitly retained by a recorded public API decision.
    `tests/unit/content/test_page_construction_boundary.py`.
 3. **Protocol/type convergence:** remove concrete `Page` annotations where the
    contract is page-like or record-like.
-4. **Public compatibility decision:** stop before removing or changing
-   `bengal.Page` and `bengal.core.Page`.
+4. **Public compatibility decision:** recorded 2026-05-29; public
+   `bengal.Page` and `bengal.core.Page` compatibility re-exports are retired.
 5. **Class and mixin deletion:** delete the mutable class and obsolete files
    only once the earlier epics prove the path is clear.
 6. **Collateral closure:** update roadmap, changelog, docs, and verification
@@ -454,18 +455,18 @@ gone or explicitly retained by a recorded public API decision.
 
 ### Task 6.1 — Audit remaining Page references
 
-Search all remaining `Page` imports. As of the 2026-05-29 first saga slice,
+Search all remaining `Page` imports. As of the 2026-05-29 export retirement slice,
 `rg 'from bengal\.core\.page import Page\b' bengal` finds only
 `bengal/content/discovery/page_adapter.py`, the intentional compatibility
 adapter from immutable `SourcePage` records to mutable `Page`. The broader
-`bengal/` + `tests/` sweep now finds 4 import sites across 3 files: the
-adapter plus `tests/core/test_mixin_contracts.py` and
-`tests/core/test_type_safety.py`, which intentionally cover public
-compatibility. The boundary test now performs an AST import sweep so multi-name
-imports cannot hide concrete `Page` usage. The adapter itself now returns
-`PageLike` instead of concrete `Page`, leaving only the actual compatibility
-construction internally concrete. Next, record the public API decision before
-deleting or retaining the compatibility export surface.
+`bengal/` + `tests/` sweep now finds 1 import site: the adapter. The public
+`bengal.Page` and `bengal.core.Page` compatibility re-exports are retired and
+`tests/unit/core/test_public_exports.py` proves they stay absent without loading
+`bengal.core.page`. The boundary test now performs an AST import sweep so
+multi-name imports cannot hide concrete `Page` usage. The adapter itself now
+returns `PageLike` instead of concrete `Page`, leaving only the actual
+compatibility construction internally concrete. Next, delete or replace the
+adapter boundary so `bengal/core/page/` can be removed.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

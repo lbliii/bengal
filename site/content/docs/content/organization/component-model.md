@@ -278,17 +278,15 @@ variant: wide
 
 # API Reference
 
-## `bengal.core.Page`
+## Page context
 
 \`\`\`python
-@dataclass
-class Page:
-    """Represents a single content page."""
-    source_path: Path
-    content: str
-    metadata: dict[str, Any]
-    rendered_html: str = ""
-    # ... many more fields
+from bengal.protocols import PageLike
+
+
+def render_title(page: PageLike) -> str:
+    """Return a template-safe page title."""
+    return page.title
 \`\`\`
 ```
 

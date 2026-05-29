@@ -1,3 +1,3 @@
-Reduce internal concrete `Page` coupling by moving site content and analysis
-protocol annotations to `PageLike` and keeping the `bengal.core.Page` export
-lazy.
+Retire the public `bengal.Page` and `bengal.core.Page` compatibility re-exports
+and reduce internal concrete `Page` coupling by routing page construction
+through page-like records and the remaining SourcePage adapter boundary.

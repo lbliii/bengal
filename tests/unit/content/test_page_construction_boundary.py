@@ -15,11 +15,6 @@ PAGE_CONSTRUCTION_ADAPTER_FILES = {
     "bengal/content/discovery/page_adapter.py",
 }
 
-PAGE_COMPATIBILITY_TEST_FILES = {
-    "tests/core/test_mixin_contracts.py",
-    "tests/core/test_type_safety.py",
-}
-
 MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/core/test_page_bundles.py",
     "tests/unit/analysis/test_analysis_optimization.py",
@@ -183,8 +178,6 @@ def test_non_compatibility_tests_do_not_import_page_class() -> None:
 
     for path in sorted((repo_root / "tests").rglob("*.py")):
         relative_path = path.relative_to(repo_root).as_posix()
-        if relative_path in PAGE_COMPATIBILITY_TEST_FILES:
-            continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         violations.extend(
             f"{relative_path}:{node.lineno}"
