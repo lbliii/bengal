@@ -55,6 +55,7 @@ from tests._testing.mocks import (
     MockSite,
     create_mock_xref_index,
 )
+from tests._testing.page_records import seed_parsed_page_state
 from tests._testing.progress import (
     TestProgressReporter,
     create_test_progress,
@@ -87,5 +88,6 @@ __all__ = [
     "create_mock_xref_index",
     "create_test_progress",
     "progress_status",
+    "seed_parsed_page_state",
     "test_status",  # Deprecated
 ]

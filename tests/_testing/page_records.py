@@ -10,6 +10,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
+from bengal.cache.parsed_output import apply_parsed_page_to_page
 from bengal.core.records import (
     ParsedPage,
     RenderedPage,
@@ -83,6 +84,21 @@ def make_parsed_page(**overrides: Any) -> ParsedPage:
         toc_items=overrides.pop("toc_items", ()),
         **overrides,
     )
+
+
+def seed_parsed_page_state(
+    page: Any,
+    parsed_page: ParsedPage | None = None,
+    **overrides: Any,
+) -> ParsedPage:
+    """Seed a page-like test object through the parsed-record adapter."""
+    if parsed_page is not None and overrides:
+        msg = "pass either parsed_page or parsed page overrides, not both"
+        raise ValueError(msg)
+
+    record = parsed_page or make_parsed_page(**overrides)
+    apply_parsed_page_to_page(page, record)
+    return record
 
 
 def make_rendered_page(**overrides: Any) -> RenderedPage:
