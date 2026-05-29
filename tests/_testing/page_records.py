@@ -78,7 +78,11 @@ def make_test_page(
     source_page = make_source_page(**overrides)
     page = page_from_source_page(source_page, site=site, section=section)
     if html_content is not None:
-        seed_parsed_page_state(page, html_content=html_content)
+        apply_parsed_page_to_page(
+            page,
+            make_parsed_page(html_content=html_content),
+            seed_plain_text=False,
+        )
     return page
 
 
