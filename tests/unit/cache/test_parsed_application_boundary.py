@@ -16,18 +16,6 @@ PARSED_MUTATION_ADAPTER_FILES = {
     "bengal/cache/parsed_output.py",
 }
 
-TEST_PARSED_MUTATION_ALLOWLIST = {
-    "tests/unit/analysis/test_graph_builder_parallel.py",
-    "tests/unit/core/test_page_hashability.py",
-    "tests/unit/health/test_link_registry.py",
-    "tests/unit/rendering/test_link_validator.py",
-    "tests/unit/rendering/test_page_content.py",
-    "tests/unit/rendering/test_pipeline_cache_storage.py",
-    "tests/unit/rendering/test_pipeline_reporter_output.py",
-    "tests/unit/rendering/test_renderer_menu_state.py",
-    "tests/unit/rendering/test_template_functions_get_page.py",
-}
-
 PARSED_FIELD_NAMES = {
     "html_content",
     "toc",
@@ -109,8 +97,6 @@ def test_test_parsed_field_writes_stay_allowlisted() -> None:
 
     for path in sorted((repo_root / "tests").rglob("*.py")):
         relative_path = path.relative_to(repo_root).as_posix()
-        if relative_path in TEST_PARSED_MUTATION_ALLOWLIST:
-            continue
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         violations.extend(
             f"{relative_path}:{lineno}" for lineno in _iter_parsed_field_assignments(tree)
