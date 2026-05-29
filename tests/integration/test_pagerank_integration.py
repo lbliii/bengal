@@ -9,6 +9,11 @@ from unittest.mock import Mock
 import pytest
 
 from bengal.analysis.graph.knowledge_graph import KnowledgeGraph
+from tests._testing.page_records import seed_parsed_page_state
+
+
+def _seed_links(page: Mock, links: list[str]) -> None:
+    seed_parsed_page_state(page, links=links)
 
 
 @pytest.fixture
@@ -19,7 +24,7 @@ def sample_site(tmp_path):
     hub_page.source_path = Path("hub.md")
     hub_page.title = "Hub Page"
     hub_page.metadata = {}
-    hub_page.links = []
+    _seed_links(hub_page, [])
 
     spoke_pages = []
     for i in range(3):
@@ -27,14 +32,14 @@ def sample_site(tmp_path):
         spoke.source_path = Path(f"spoke{i}.md")
         spoke.title = f"Spoke {i}"
         spoke.metadata = {}
-        spoke.links = ["/hub/"]
+        _seed_links(spoke, ["/hub/"])
         spoke_pages.append(spoke)
 
     orphan_page = Mock()
     orphan_page.source_path = Path("orphan.md")
     orphan_page.title = "Orphan Page"
     orphan_page.metadata = {}
-    orphan_page.links = []
+    _seed_links(orphan_page, [])
 
     # Create mock site
     site = Mock()
@@ -224,7 +229,7 @@ class TestPageRankScalability:
             page.source_path = Path(f"page{i}.md")
             page.title = f"Page {i}"
             page.metadata = {}
-            page.links = [f"/page{(i + 1) % 50}/"]
+            _seed_links(page, [f"/page{(i + 1) % 50}/"])
             pages.append(page)
 
         # Create mock site
@@ -269,26 +274,26 @@ class TestPageRankScalability:
         page_a.source_path = Path("a.md")
         page_a.title = "Page A"
         page_a.metadata = {}
-        page_a.links = ["/b/"]
+        _seed_links(page_a, ["/b/"])
 
         page_b = Mock()
         page_b.source_path = Path("b.md")
         page_b.title = "Page B"
         page_b.metadata = {}
-        page_b.links = []
+        _seed_links(page_b, [])
 
         # Component 2: C -> D
         page_c = Mock()
         page_c.source_path = Path("c.md")
         page_c.title = "Page C"
         page_c.metadata = {}
-        page_c.links = ["/d/"]
+        _seed_links(page_c, ["/d/"])
 
         page_d = Mock()
         page_d.source_path = Path("d.md")
         page_d.title = "Page D"
         page_d.metadata = {}
-        page_d.links = []
+        _seed_links(page_d, [])
 
         # Create mock site
         site = Mock()
