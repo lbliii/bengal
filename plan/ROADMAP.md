@@ -44,7 +44,7 @@ Machine-checked on 2026-05-29:
   `from bengal.core.page import Page` imports are isolated to
   `bengal/content/discovery/page_adapter.py`, while public `bengal.Page` and
   `bengal.core.Page` exports are lazy compatibility surfaces. The remaining
-  `bengal/` + `tests/` direct import count is 49, all but the adapter in tests.
+  `bengal/` + `tests/` direct import count is 47, all but the adapter in tests.
   `tests/unit/content/test_page_construction_boundary.py` now locks production
   constructor and direct-import isolation to the SourcePage adapter.
 
@@ -129,6 +129,7 @@ removal until a human explicitly approves the API decision.
 - `tests: migrate orchestration page fixtures`
 - `tests: migrate utility and template page fixtures`
 - `tests: migrate nav tree page fixtures`
+- `tests: migrate discovery and redirect page fixtures`
 
 **Proof before saga close:** `rg '^class Page\\b' bengal/core/page` returns no
 hits; `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns no hits;

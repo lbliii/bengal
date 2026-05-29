@@ -2,7 +2,7 @@
 Tests for surgical discovery cache handling.
 
 These tests verify that surgical discovery (incremental builds with caching):
-- Returns a cache-reconstructed Page on cache hit (with build_cache)
+- Returns a cache-reconstructed page-like object on cache hit (with build_cache)
 - Returns None on cache miss (signaling caller to parse)
 - Doesn't double-parse pages
 - Handles executor vs non-executor paths correctly
@@ -11,13 +11,12 @@ These tests verify that surgical discovery (incremental builds with caching):
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from bengal.content.discovery.content_discovery import ContentDiscovery
-from bengal.core.page import Page
 from bengal.core.page.page_core import PageCore
 
 if TYPE_CHECKING:
@@ -106,7 +105,7 @@ class TestSurgicalDiscoveryCacheHit:
     def test_cache_hit_with_build_cache_returns_page(
         self, content_dir: Path, mock_cache: MagicMock
     ) -> None:
-        """When both metadata and parsed caches hit, should return a Page."""
+        """When both metadata and parsed caches hit, should return a page."""
         file_path = content_dir / "docs" / "getting-started.md"
         mock_cache.get_metadata.return_value = make_page_core(file_path, "Cached Title", weight=1)
         build_cache = make_mock_build_cache({"getting-started": CACHED_PARSED_DATA})
@@ -117,8 +116,9 @@ class TestSurgicalDiscoveryCacheHit:
         result = discovery._create_page_surgical(file_path, mock_cache)
 
         assert result is not None
-        assert isinstance(result, Page)
-        assert result._from_cache is True
+        page = cast("Any", result)
+        assert result.source_path == file_path
+        assert page._from_cache is True
         assert result.html_content == "<p>cached content</p>"
 
     def test_cache_hit_does_not_read_file(self, content_dir: Path, mock_cache: MagicMock) -> None:
@@ -135,7 +135,8 @@ class TestSurgicalDiscoveryCacheHit:
 
             # File should not be opened for reading
             mock_open.assert_not_called()
-            assert isinstance(result, Page)
+            assert result is not None
+            assert result.source_path == file_path
 
     def test_cache_hit_preserves_section_reference(
         self, content_dir: Path, mock_cache: MagicMock
@@ -155,8 +156,8 @@ class TestSurgicalDiscoveryCacheHit:
         result = discovery._create_page_surgical(file_path, mock_cache, section=section)
 
         assert result is not None
-        assert isinstance(result, Page)
-        assert result._section_path is not None
+        page = cast("Any", result)
+        assert page._section_path is not None
 
     def test_cache_hit_without_build_cache_returns_none(
         self, content_dir: Path, mock_cache: MagicMock
@@ -245,7 +246,7 @@ class TestSurgicalDiscoveryNoDoubleParsing:
             file_path: Path,
             current_lang: str | None = None,
             section: Any = None,
-        ) -> Page:
+        ) -> Any:
             create_page_calls.append(file_path)
             return original_create_page(file_path, current_lang, section)
 
@@ -280,7 +281,7 @@ class TestSurgicalDiscoveryNoDoubleParsing:
             file_path: Path,
             current_lang: str | None = None,
             section: Any = None,
-        ) -> Page:
+        ) -> Any:
             parsed_files.append(file_path)
             return original_create_page(file_path, current_lang, section)
 
