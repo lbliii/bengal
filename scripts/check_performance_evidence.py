@@ -26,6 +26,21 @@ REQUIRED_FIELDS = (
 )
 DOC_ONLY_PREFIXES = ("site/", "docs/", "plan/", "skills/", ".context/")
 DOC_ONLY_FILENAMES = frozenset({"LICENSE"})
+PERFORMANCE_SENSITIVE_PREFIXES = (
+    "benchmarks/",
+    "tests/performance/",
+    "bengal/assets/",
+    "bengal/build/provenance/",
+    "bengal/cache/",
+    "bengal/orchestration/build/",
+    "bengal/orchestration/incremental/",
+    "bengal/rendering/engines/",
+    "bengal/rendering/pipeline/",
+    "bengal/server/",
+    "bengal/snapshots/",
+    "bengal/utils/concurrency/",
+)
+PERFORMANCE_SENSITIVE_FILENAMES = frozenset({"bengal/concurrency.py"})
 
 
 def extract_section(body: str, heading: str = PERFORMANCE_SECTION) -> str:
@@ -65,12 +80,24 @@ def is_docs_only_file(path: str) -> bool:
     )
 
 
+def is_performance_sensitive_file(path: str) -> bool:
+    """Return whether a changed file should require performance evidence."""
+    normalized = path.strip().replace("\\", "/")
+    if not normalized:
+        return False
+    if normalized == "FORCE_RUN":
+        return True
+    return normalized in PERFORMANCE_SENSITIVE_FILENAMES or normalized.startswith(
+        PERFORMANCE_SENSITIVE_PREFIXES
+    )
+
+
 def has_performance_sensitive_changes(changed_files: Iterable[str]) -> bool:
     """Return whether changed files require performance evidence."""
     paths = tuple(path for path in changed_files if path.strip())
     if not paths:
         return True
-    return any(not is_docs_only_file(path) for path in paths)
+    return any(is_performance_sensitive_file(path) for path in paths)
 
 
 def changed_files_from_file(path: Path) -> tuple[str, ...]:
@@ -200,6 +227,12 @@ def main(argv: list[str] | None = None) -> int:
         allow_template=args.allow_template,
         changed_files=changed_files,
     )
+    if (
+        not missing
+        and changed_files is not None
+        and not has_performance_sensitive_changes(changed_files)
+    ):
+        print("Performance Evidence not required: no performance-sensitive files changed")
     for field in missing:
         print(f"Missing Performance Evidence field: {field}")
     return 1 if missing else 0

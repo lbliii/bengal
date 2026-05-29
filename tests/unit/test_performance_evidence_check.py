@@ -11,6 +11,7 @@ from scripts.check_performance_evidence import (
     changed_files_from_file,
     changed_files_from_github_event,
     has_performance_sensitive_changes,
+    is_performance_sensitive_file,
     missing_evidence_fields,
 )
 
@@ -63,15 +64,35 @@ def test_performance_evidence_skips_docs_only_changes() -> None:
     )
 
 
-def test_performance_evidence_requires_section_for_code_changes() -> None:
+def test_performance_evidence_skips_non_hot_code_changes() -> None:
+    assert (
+        missing_evidence_fields(
+            "## Summary\n\n- test helper changed",
+            changed_files=("tests/unit/test_performance_evidence_check.py",),
+        )
+        == ()
+    )
+
+
+def test_performance_evidence_requires_section_for_hot_path_changes() -> None:
     assert missing_evidence_fields(
-        "## Summary\n\n- code changed",
-        changed_files=("scripts/check_performance_evidence.py",),
+        "## Summary\n\n- cache changed",
+        changed_files=("bengal/cache/parsed_output.py",),
     ) == ("Performance Evidence",)
 
 
 def test_performance_evidence_treats_unknown_change_set_as_sensitive() -> None:
     assert has_performance_sensitive_changes(()) is True
+
+
+def test_performance_evidence_treats_force_run_as_sensitive() -> None:
+    assert is_performance_sensitive_file("FORCE_RUN") is True
+    assert has_performance_sensitive_changes(("FORCE_RUN",)) is True
+
+
+def test_performance_evidence_marks_benchmarks_sensitive() -> None:
+    assert is_performance_sensitive_file("benchmarks/render.py") is True
+    assert is_performance_sensitive_file("tests/performance/test_build.py") is True
 
 
 def test_changed_files_from_file(tmp_path) -> None:
@@ -94,11 +115,11 @@ def test_changed_files_from_github_event_fetches_paginated_files(tmp_path, monke
     def fake_github_api_json(url: str) -> object:
         if url.endswith("page=1"):
             return [{"filename": f"plan/file-{index}.md"} for index in range(100)]
-        return [{"filename": "scripts/check_performance_evidence.py"}]
+        return [{"filename": "bengal/cache/parsed_output.py"}]
 
     monkeypatch.setattr(performance_evidence, "_github_api_json", fake_github_api_json)
 
     assert changed_files_from_github_event(event_path) == (
         *(f"plan/file-{index}.md" for index in range(100)),
-        "scripts/check_performance_evidence.py",
+        "bengal/cache/parsed_output.py",
     )
