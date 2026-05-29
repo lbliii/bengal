@@ -11,11 +11,21 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.orchestration.content import ContentOrchestrator
 from bengal.rendering.plugins import CrossReferencePlugin
 from bengal.rendering.template_functions import crossref
+from tests._testing.page_records import make_test_page
+
+
+def _page(source_path: str, title: str | None, output_path: Path, site: Site | None = None):
+    metadata = {"title": title} if title is not None else {}
+    metadata["slug"] = Path(source_path).stem
+    page = make_test_page(source_path=Path(source_path), metadata=metadata)
+    page.output_path = output_path
+    if site is not None:
+        page._site = site
+    return page
 
 
 class TestCrossReferenceIndex:
@@ -120,10 +130,12 @@ class TestCrossReferenceTemplateFunctions:
         site.output_dir = tmp_path / "public"
 
         # Mock page
-        page = Page(source_path=Path("docs/install.md"))
-        page._raw_metadata = {"title": "Installation"}
-        page.output_path = tmp_path / "public" / "docs" / "installation" / "index.html"
-        page._site = site
+        page = _page(
+            "docs/install.md",
+            "Installation",
+            tmp_path / "public" / "docs" / "installation" / "index.html",
+            site,
+        )
 
         index = {
             "by_path": {"docs/installation": page},
@@ -159,10 +171,7 @@ class TestCrossReferenceTemplateFunctions:
         site = Site(root_path=tmp_path, config={}, theme="default")
         site.output_dir = tmp_path / "public"
 
-        page = Page(source_path=Path("about.md"))
-        page._raw_metadata = {"title": "About"}
-        page.output_path = tmp_path / "public" / "about" / "index.html"
-        page._site = site
+        page = _page("about.md", "About", tmp_path / "public" / "about" / "index.html", site)
 
         index = {
             "by_path": {"content/about": page},  # Use path with '/' for doc() to work
@@ -181,9 +190,12 @@ class TestCrossReferenceTemplateFunctions:
         site = Site(root_path=tmp_path, config={}, theme="default")
         site.output_dir = tmp_path / "public"
 
-        page = Page(source_path=Path("docs/api.md"))
-        page.output_path = tmp_path / "public" / "docs" / "api" / "index.html"
-        page._site = site
+        page = _page(
+            "docs/api.md",
+            None,
+            tmp_path / "public" / "docs" / "api" / "index.html",
+            site,
+        )
 
         index = {
             "by_path": {"docs/api": page},
@@ -229,10 +241,12 @@ class TestCrossReferenceMistunePlugin:
         site = Site(root_path=tmp_path, config={}, theme="default")
         site.output_dir = tmp_path / "public"
 
-        page = Page(source_path=Path("docs/install.md"))
-        page._raw_metadata = {"title": "Installation"}
-        page.output_path = tmp_path / "public" / "docs" / "installation" / "index.html"
-        page._site = site
+        page = _page(
+            "docs/install.md",
+            "Installation",
+            tmp_path / "public" / "docs" / "installation" / "index.html",
+            site,
+        )
 
         index = {
             "by_path": {"docs/installation": page},
@@ -252,10 +266,12 @@ class TestCrossReferenceMistunePlugin:
         site = Site(root_path=tmp_path, config={}, theme="default")
         site.output_dir = tmp_path / "public"
 
-        page = Page(source_path=Path("docs/install.md"))
-        page._raw_metadata = {"title": "Installation"}
-        page.output_path = tmp_path / "public" / "docs" / "installation" / "index.html"
-        page._site = site
+        page = _page(
+            "docs/install.md",
+            "Installation",
+            tmp_path / "public" / "docs" / "installation" / "index.html",
+            site,
+        )
 
         index = {
             "by_path": {"docs/installation": page},
@@ -286,9 +302,7 @@ class TestCrossReferenceMistunePlugin:
 
     def test_resolve_id(self):
         """Test _resolve_id with custom ID."""
-        page = Page(source_path=Path("about.md"))
-        page._raw_metadata = {"title": "About Us"}
-        page.output_path = Path("/about/index.html")
+        page = _page("about.md", "About Us", Path("/about/index.html"))
 
         index = {
             "by_path": {},
@@ -315,10 +329,12 @@ def test_integration_mistune_parser_with_xref(tmp_path):
     parser = PatitasParser()
 
     # Create mock page for xref_index
-    page = Page(source_path=Path("docs/api.md"))
-    page._raw_metadata = {"title": "API Reference"}
-    page.output_path = tmp_path / "public" / "docs" / "api" / "index.html"
-    page._site = site
+    page = _page(
+        "docs/api.md",
+        "API Reference",
+        tmp_path / "public" / "docs" / "api" / "index.html",
+        site,
+    )
 
     xref_index = {
         "by_path": {"docs/api": page},
