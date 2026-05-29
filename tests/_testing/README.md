@@ -123,11 +123,20 @@ or `page.links` directly.
 ```python
 from types import SimpleNamespace
 
-from tests._testing.page_records import make_source_page, seed_parsed_page_state
+from tests._testing.page_records import (
+    make_source_page,
+    make_test_page,
+    seed_parsed_page_state,
+)
 
 source = make_source_page(metadata={"title": "Guide"})
 page = SimpleNamespace()
 parsed = seed_parsed_page_state(page, html_content="<h1>Guide</h1>")
+
+page = make_test_page(
+    source_path="content/docs/guide.md",
+    output_path="public/docs/guide/index.html",
+)
 ```
 
 ### `fixtures.py`
