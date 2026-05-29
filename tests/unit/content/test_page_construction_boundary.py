@@ -21,9 +21,15 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/unit/rendering/test_output_format_html.py",
     "tests/unit/rendering/test_page_content.py",
     "tests/unit/rendering/test_page_operations.py",
+    "tests/unit/rendering/test_page_urls.py",
     "tests/unit/rendering/test_pipeline_reporter_output.py",
+    "tests/unit/rendering/test_renderer_index_conflict.py",
+    "tests/unit/rendering/test_renderer_template_selection.py",
     "tests/unit/rendering/test_renderer_tag_context.py",
+    "tests/unit/rendering/test_section_ergonomics.py",
     "tests/unit/rendering/test_section_urls.py",
+    "tests/unit/rendering/test_template_url_access.py",
+    "tests/unit/rendering/utils/test_rendering_url.py",
 )
 
 
