@@ -16,6 +16,7 @@ from pathlib import Path
 from unittest.mock import Mock
 
 from bengal.postprocess.output_formats.json_generator import PageJSONGenerator
+from tests._testing.page_records import seed_parsed_page_state
 
 
 class TestGraphDataIsolation:
@@ -277,8 +278,8 @@ class TestGraphDataIsolation:
         page.href = url
         page._path = url
         page.content = content
-        page.html_content = content
         page.plain_text = content
+        seed_parsed_page_state(page, html_content=content, plain_text=content)
         page.output_path = output_path
         page.tags = tags or []
         page.date = None

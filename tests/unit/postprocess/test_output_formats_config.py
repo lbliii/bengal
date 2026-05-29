@@ -21,6 +21,7 @@ from bengal.cache.build_cache import BuildCache
 from bengal.orchestration.build_context import AccumulatedPageData
 from bengal.orchestration.stats import BuildStats
 from bengal.postprocess.output_formats import OutputFormatsGenerator
+from tests._testing.page_records import seed_parsed_page_state
 
 
 class TestConfigNormalizationEdgeCases:
@@ -830,8 +831,8 @@ class TestConfigNormalizationEdgeCases:
         page.href = url
         page._path = url
         page.content = content
-        page.html_content = content
         page.plain_text = content
+        seed_parsed_page_state(page, html_content=content, plain_text=content)
         page.output_path = output_path
         page.tags = tags or []
         page.date = None

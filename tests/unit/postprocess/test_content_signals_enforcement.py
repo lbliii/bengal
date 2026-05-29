@@ -9,6 +9,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from tests._testing.page_records import seed_parsed_page_state
+
 
 def _make_page(
     title="Test",
@@ -28,7 +30,11 @@ def _make_page(
     page.in_search = in_search
     page.draft = False
     page.plain_text = f"Content for {title}"
-    page.html_content = f"<p>Content for {title}</p>"
+    seed_parsed_page_state(
+        page,
+        html_content=f"<p>Content for {title}</p>",
+        plain_text=page.plain_text,
+    )
     page.date = None
     page.tags = []
     page.metadata = {"title": title}
