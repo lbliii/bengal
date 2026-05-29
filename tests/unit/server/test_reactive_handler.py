@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from bengal.server.reactive import ReactiveContentHandler
+from tests._testing.page_records import seed_parsed_page_state
 
 
 class TestReactiveContentHandler:
@@ -40,7 +41,7 @@ class TestReactiveContentHandler:
         page = MagicMock()
         page.source_path = tmp_path / "content" / "page.md"
         page._raw_content = "old"
-        page.html_content = "<p>old</p>"
+        seed_parsed_page_state(page, html_content="<p>old</p>", plain_text="old")
         page.output_path = tmp_path / "public" / "page" / "index.html"
         mock_site.pages = [page]
 
@@ -97,13 +98,16 @@ class TestReactiveContentHandler:
         page = MagicMock()
         page.source_path = md_file
         page._raw_content = "---\ntitle: Test\n---\nBody"
-        page.html_content = "<p>Body</p>"
-        page.toc = "<nav>old</nav>"
-        page._toc_items_cache = [{"id": "old"}]
-        page.links = ["/old/"]
-        page._excerpt = "old"
-        page._meta_description = "old meta"
-        page._plain_text_cache = "old plain"
+        seed_parsed_page_state(
+            page,
+            html_content="<p>Body</p>",
+            toc="<nav>old</nav>",
+            toc_items=[{"id": "old"}],
+            links=["/old/"],
+            excerpt="old",
+            meta_description="old meta",
+            plain_text="old plain",
+        )
         page._ast_cache = {"old": True}
         page.output_path = output_path
         page._section = None
