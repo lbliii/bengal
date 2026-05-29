@@ -114,11 +114,20 @@ Canonical immutable page-record factories for migration tests. Use these when a
 test needs `PageCore`, `SourcePage`, `ParsedPage`, or `RenderedPage` without
 depending on concrete mutable `Page` construction.
 
+Use `SourcePage` helpers for discovery-stage inputs, `ParsedPage` helpers for
+parser output, and `RenderedPage` helpers for render output. When a legacy test
+still needs a page-like object with parsed fields, seed it through
+`seed_parsed_page_state()` instead of assigning `page.html_content`, `page.toc`,
+or `page.links` directly.
+
 ```python
-from tests._testing.page_records import make_source_page, make_parsed_page
+from types import SimpleNamespace
+
+from tests._testing.page_records import make_source_page, seed_parsed_page_state
 
 source = make_source_page(metadata={"title": "Guide"})
-parsed = make_parsed_page(html_content="<h1>Guide</h1>")
+page = SimpleNamespace()
+parsed = seed_parsed_page_state(page, html_content="<h1>Guide</h1>")
 ```
 
 ### `fixtures.py`
