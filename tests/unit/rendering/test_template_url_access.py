@@ -21,9 +21,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from bengal.core.page import Page
 from bengal.core.site import Site
 from bengal.orchestration.content import ContentOrchestrator
+from tests._testing.page_records import make_test_page
 
 
 class TestChildPageTilesMacro:
@@ -229,9 +229,9 @@ class TestPaginationURLs:
         # Create pages with proper output paths
         pages = []
         for i in range(1, 6):
-            page = Page(
+            page = make_test_page(
                 source_path=Path(f"/content/blog/post-{i}.md"),
-                _raw_metadata={"title": f"Post {i}"},
+                metadata={"title": f"Post {i}", "slug": f"post-{i}"},
                 output_path=Path(f"/site/public/blog/post-{i}/index.html"),
             )
             page._site = site
