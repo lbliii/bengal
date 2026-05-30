@@ -1,6 +1,6 @@
 # Epic: Immutable Page Pipeline — Snapshots All The Way Down
 
-**Status**: Active — Sprints 0-5 Complete, Sprint 6 Class Deletion Complete, Stable Full-Suite Proof Pending
+**Status**: Complete — Sprints 0-6 landed and mutable `Page` is deleted
 **Created**: 2026-04-06
 **Updated**: 2026-05-30
 **Target**: v0.4.x
@@ -18,11 +18,12 @@ production code and tests do not import the concrete `Page` class. The adapter's
 public type boundary returns `PageLike`, backed by SourcePage-derived runtime
 state rather than the deleted mutable `Page` class. Focused and broader
 Page/source/rendering gates pass, and `uv run ty check bengal/` now reports 531
-diagnostics, down from the previous 537 floor. A stable full-suite pass remains
-unproven in the current dirty worktree: `uv run pytest -q` exposed failures
-outside the Page deletion scope, including OpenAPI/theme-related tests from
-unrelated modified files and one Hypothesis deadline flake. The recorded
-failures passed immediately under `uv run pytest --last-failed -vv --tb=short`.
+diagnostics, down from the previous 537 floor. Clean proof at `ba37930b3` also
+passed ruff, ruff format, dependency layers, and `git diff --check`. Full-suite
+runs no longer show Page-related failures; the remaining clean-worktree failure
+is an unrelated directive migration parser state leak reproduced with
+`pytest tests/migration/test_directive_edge_cases.py::test_edge_case_parity --randomly-seed=314926607 -n0`
+and recorded in `plan/ROADMAP.md` as follow-up.
 
 ---
 
@@ -715,9 +716,9 @@ depends on it. Older mixin files listed in this task have already been removed
 or folded into helper modules.
 
 **Acceptance**: Page class deleted. Mixin files deleted. Focused and broader
-Page gates pass. Stable full-suite proof is still pending because unrelated
-dirty-worktree/full-suite failures pass under last-failed reruns but prevent a
-clean `uv run pytest -q` result.
+Page gates pass. Clean full-suite runs show only unrelated directive migration
+parser-state failures, recorded as follow-up outside the Page deletion closure
+criteria.
 
 ### Task 6.3 — Update protocols
 

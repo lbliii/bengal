@@ -13,10 +13,11 @@ superseded, stale, and evaluated plans live in their status directories.
 
 ## Verification Snapshot
 
-Machine-checked on 2026-05-29:
+Machine-checked on 2026-05-30:
 
 - `pyproject.toml` reports Bengal `0.3.3`.
-- `bengal/core/page/__init__.py` still defines mutable `class Page`.
+- `bengal/core/page/__init__.py` no longer exports `Page`, and
+  `bengal/core/page/legacy.py` has been deleted.
 - Frozen `SourcePage`, `ParsedPage`, and `RenderedPage` records exist in
   `bengal/core/records.py`.
 - Frozen `SiteSnapshot`, `PageSnapshot`, `SectionSnapshot`, `NavigationPlan`,
@@ -38,86 +39,18 @@ Machine-checked on 2026-05-29:
 - `bengal audit` is registered as a Milo command and returns
   `bengal.audit.v1` envelopes; health/audit ownership is still not fully
   separated.
-- SourcePage adapter tests and notebook-title tests landed, reducing Sprint 6
-  risk for the immutable page pipeline but not deleting the `Page` class.
-- Page deletion proof has started: direct production
-  `from bengal.core.page import Page` imports are gone. Public `bengal.Page`
-  and `bengal.core.Page` compatibility re-exports are retired, and the legacy
-  mutable `Page` class has been deleted.
-  `tests/unit/content/test_page_construction_boundary.py` now locks production
-  constructor/direct-import isolation to the SourcePage adapter and blocks
-  concrete `Page` imports in tests. The SourcePage adapter now returns
-  `PageLike` at its type boundary while keeping the remaining mutable
-  construction isolated inside the adapter. `PageLike` no longer requires the
-  legacy `_source`, `_section`, `_directive_links`, `_ast_cache`,
-  `_toc_items_cache`, `_excerpt`, `_meta_description`, `_posts`,
-  `_subsections`, `_paginator`, `_page_num`, `_autodoc_fallback_template`, or
-  `prerendered_html` slots, and no longer exposes the legacy `_site` slot; raw
-  content, section access, directive-link state, parsed content caches, archive
-  pagination context, autodoc fallback tagging, pre-rendered virtual page HTML,
-  and mutable page site context route through helper functions or metadata.
-  Analysis graph tests now use hashable analysis page mocks instead of creating
-  legacy mutable pages when they only need page-like graph inputs.
-  Cache query-index tests now use page-like cache fixtures instead of the
-  mutable Page adapter for index extraction, persistence, and thread-safety
-  coverage.
-  Content-type, related-posts, and taxonomy-incremental orchestration tests now
-  use hashable page-like mocks instead of constructing legacy mutable pages.
-  Redirect postprocess tests now use local page-like redirect fixtures instead
-  of the mutable Page adapter for alias behavior.
-  Render, taxonomy, section, and incremental orchestration tests now use the
-  shared page-like mock instead of the mutable Page adapter for orchestrator
-  inputs.
-  Nav-tree tests now use the shared page-like mock for navigation nodes,
-  version filtering, active trail, and cache behavior.
-  Section sorting, hashability, index-collision, page-like input, and versioning
-  tests now use shared page-like mocks instead of the mutable Page adapter.
-  Cascade and cascade-snapshot tests now use shared page-like mocks instead of
-  the mutable Page adapter for section cascade extraction and immutable cascade
-  snapshot behavior.
-  Section ergonomic helper tests now use shared page-like mocks instead of the
-  mutable Page adapter for recent-page, content-page, and tag-listing behavior.
-  Page visibility logic now lives in `bengal.core.page_visibility`, so core
-  page caches, content-signal/site-visibility tests, and page visibility tests
-  use page-like metadata helpers instead of depending on legacy Page visibility
-  properties.
-  Href and section page URL tests now use shared URL page mocks backed by
-  `bengal.rendering.page_urls` instead of the mutable Page adapter.
-  Page URL cache-regression tests now assert rendering URL helper cache
-  behavior through the shared URL page mock instead of the mutable Page adapter.
-  The standalone section-navigation edge case now uses page-like mocks and
-  navigation helpers instead of the mutable Page adapter.
-  Navigation breadcrumb and parent tests now use page-like mocks with
-  section/navigation helpers instead of the mutable Page adapter.
-  Component model metadata-normalization tests now exercise `build_page_core()`
-  directly instead of the mutable Page adapter.
-  Computed age, author, and series metadata tests no longer duplicate helper
-  coverage through the mutable Page adapter.
-  Page metadata helper tests now exercise generated/template/content-type and
-  variant behavior through helper functions instead of the mutable Page adapter.
-  Page record migration bridge-retirement coverage now uses the canonical
-  SourcePage-backed test-page adapter instead of direct mutable Page
-  construction.
-  Hashability and deduplication tests now use source-path-hashable page-like
-  mocks instead of the mutable Page adapter for set/dict identity behavior.
-  Legacy Page cached-property tests are removed as obsolete; source/content,
-  computed, and rendering helper tests own the behavior.
-  Legacy Page section-reference tests are removed as obsolete; section helper,
-  registry, and virtual-section tests own the behavior outside the mutable Page
-  descriptor surface.
-  PageInitializer tests now use the canonical SourcePage-backed test-page
-  adapter instead of legacy mutable Page constructor keyword names.
-  Frontmatter integration tests now use the canonical SourcePage-backed
-  test-page adapter, leaving the mutable test-page factory isolated to the
-  shared compatibility helper.
-  The unused legacy mutable test-page factory is removed; test fixtures now
-  route through SourcePage-backed helpers or page-like mocks.
-  Production page adaptation now returns a SourcePage-backed `RuntimePage`
-  from the core page compatibility boundary instead of constructing the legacy
-  mutable `Page` class. `bengal.core.page.legacy` has been removed, and
-  `bengal.core.page` does not export `Page`.
-
-No full test suite was run for this planning pass.
+- The mutable Page deletion saga is complete. Direct production
+  `from bengal.core.page import Page` imports are gone, public `bengal.Page`
+  and `bengal.core.Page` compatibility re-exports are retired, obsolete
+  Page-specific fixtures were removed or migrated to SourcePage/page-like
+  helpers, and `page_from_source_page()` now returns SourcePage-backed
+  `RuntimePage` instances.
+- Clean proof worktree `/private/tmp/bengal-page-proof` at `ba37930b3` passed
+  focused Page gates, broader Page/source/rendering gates, ruff, ruff format,
+  dependency layers, `git diff --check`, and `ty` with the recorded 531
+  diagnostic floor. Full-suite runs now pass all Page-relevant coverage; the
+  only remaining failures are unrelated directive migration parity tests caused
+  by legacy parser state leakage after list directives.
 
 ---
 
@@ -125,18 +58,17 @@ No full test suite was run for this planning pass.
 
 | # | Plan | Status | Why It Stays Root |
 |---|------|--------|-------------------|
-| 1 | `epic-immutable-page-pipeline.md` | Active | Delete mutable `Page`; this is still the largest architecture blocker. |
-| 2 | `epic-delete-forwarding-wrappers.md` | Active | Shrink compatibility wrappers after Page/Site boundaries are clearer. |
-| 3 | `epic-openapi-rest-layout-upgrade.md` | Active | Autodoc/API docs remain a production-readiness gap. |
-| 4 | `epic-ux-sharp-edges.md` | Active | Consolidates user-visible CLI, error, directive, and scaffold polish. |
-| 5 | `rfc-effect-traced-incremental-builds.md` | Active | Long-term warm-build correctness and template HMR direction. |
-| 6 | `rfc-incremental-dependency-indexes.md` | Active / partially implemented | Narrow read-model needed before broader effect-traced rebuild work. |
-| 7 | `rfc-snapshot-build-plan-handoff.md` | Active | Free-threaded handoff from mutable build planning to worker execution. |
-| 8 | `rfc-template-view-model-contracts.md` | Active | Theme and rendering contract for Chirp UI and future themes. |
-| 9 | `rfc-theme-library-assets.md` | Active | Library asset contract for Chirp UI parity in static and dev output. |
-| 10 | `rfc-health-diagnostics-audit.md` | Active implementation | Artifact audit and health diagnostics are still being separated. |
+| 1 | `epic-delete-forwarding-wrappers.md` | Active | Shrink compatibility wrappers after Page/Site boundaries are clearer. |
+| 2 | `epic-openapi-rest-layout-upgrade.md` | Active | Autodoc/API docs remain a production-readiness gap. |
+| 3 | `epic-ux-sharp-edges.md` | Active | Consolidates user-visible CLI, error, directive, and scaffold polish. |
+| 4 | `rfc-effect-traced-incremental-builds.md` | Active | Long-term warm-build correctness and template HMR direction. |
+| 5 | `rfc-incremental-dependency-indexes.md` | Active / partially implemented | Narrow read-model needed before broader effect-traced rebuild work. |
+| 6 | `rfc-snapshot-build-plan-handoff.md` | Active | Free-threaded handoff from mutable build planning to worker execution. |
+| 7 | `rfc-template-view-model-contracts.md` | Active | Theme and rendering contract for Chirp UI and future themes. |
+| 8 | `rfc-theme-library-assets.md` | Active | Library asset contract for Chirp UI parity in static and dev output. |
+| 9 | `rfc-health-diagnostics-audit.md` | Active implementation | Artifact audit and health diagnostics are still being separated. |
 
-This file is the eleventh root planning file and owns sequencing.
+This file is the tenth root planning file and owns sequencing.
 
 ---
 
@@ -144,10 +76,10 @@ This file is the eleventh root planning file and owns sequencing.
 
 | Priority | Work | Proof Before Close |
 |----------|------|--------------------|
-| P1 | Delete mutable `Page` compatibility class | `rg '^class Page\\b' bengal/core/page` returns no hits; focused/broader Page gates pass; stable full-suite proof is still pending because the current dirty-worktree full-suite run has failures outside the Page deletion scope. |
 | P1 | Re-measure and reduce `ty` floor | Current count is 531 diagnostics; close with a lower recorded count and no new suppressions. |
 | P1 | OpenAPI REST autodoc polish | Focused autodoc tests cover Python, CLI, OpenAPI, and layout output. |
 | P1 | Snapshot build-plan handoff | Worker paths consume frozen plans/snapshots instead of live mutable objects. |
+| P1 | Directive migration parser state leak | Reproduce with `pytest tests/migration/test_directive_edge_cases.py::test_edge_case_parity --randomly-seed=314926607 -n0`; close with list edge cases passing in seed/order-sensitive runs. |
 | P2 | Incremental dependency indexes | Warm-build tests prove dependency-to-output invalidation without broad scans. |
 | P2 | Effect-traced template HMR | Template edits rebuild only affected pages and record explainable effects. |
 | P2 | Template view model contracts | Directives, shortcodes, autodoc, indexes, and themes consume stable data contracts. |
@@ -163,119 +95,29 @@ to pick up. A runtime Codex goal should map to a saga-level objective, not a
 single commit. Individual commits are tasks inside that goal and should remain
 well-scoped.
 
-### Active Saga: Mutable Page Deletion
+### Completed Saga: Mutable Page Deletion
 
-**Source plan:** `epic-immutable-page-pipeline.md` Sprint 6.
-**Goal:** remove the mutable `Page` compatibility class from Bengal's
-production architecture while preserving behavior. The public export retirement
-decision was approved on 2026-05-29, so the remaining saga work is adapter and
-class deletion rather than public compatibility preservation.
+**Archived plan:** `complete/epic-immutable-page-pipeline.md`.
+**Outcome:** the mutable `Page` compatibility class is deleted from production
+architecture. Public `bengal.Page` and `bengal.core.Page` re-exports were
+retired after the 2026-05-29 approval, and the discovery adapter now returns
+SourcePage-backed `RuntimePage` instances instead of constructing a legacy
+mutable `Page`.
 
-**Epics inside the saga:**
-
-1. **Production boundary closure:** keep production `Page` construction and
-   direct imports isolated to `bengal/content/discovery/page_adapter.py`, then
-   remove that adapter when downstream consumers no longer need it.
-2. **Test fixture migration:** migrate tests that only need page-like fixtures
-   to SourcePage/page-record helpers; keep tests that intentionally prove
-   retired `Page` compatibility surfaces absent.
-3. **Protocol/type convergence:** move concrete `Page` annotations and
-   fixtures toward `PageLike` or immutable records without widening public
-   protocols just to satisfy `ty`.
-4. **Public compatibility decision:** recorded 2026-05-29; public
-   `bengal.Page` and `bengal.core.Page` re-exports are retired. Stop and ask
-   only before changing plugin-facing behavior or another documented public API.
-5. **Class deletion:** delete `class Page` and obsolete mixins only after
-   production, protocols, and non-compatibility tests no longer depend on them.
-6. **Collateral closure:** keep the roadmap, epic status, changelog, and proof
-   commands current after each task slice.
-
-**Completed slices:**
-
-- `ee3427abd docs: codify saga planning workflow`
-- `f50073af1 core: isolate page compatibility boundary`
-- `76a8eee30 tests: migrate analysis page fixtures`
-- `tests: migrate health and cache page fixtures`
-- `tests: migrate orchestration page fixtures`
-- `tests: migrate utility and template page fixtures`
-- `tests: migrate nav tree page fixtures`
-- `tests: migrate discovery and redirect page fixtures`
-- `tests: migrate autodoc virtual page fixtures`
-- `tests: migrate section page fixtures`
-- `tests: migrate core page-like behavior fixtures`
-- `tests: migrate page behavior fixtures`
-- `tests: migrate page bundle fixtures`
-- `content: type source page adapter as page-like`
-- `core: retire public page exports`
-- `core: remove page virtual constructor`
-- `content: move i18n discovery state into source records`
-- `tests: remove dummy Page constructor noise`
-- `content: lazy-load page compatibility adapter`
-- `tests: remove core page package-root imports`
-- `protocols: remove page raw-source state`
-- `protocols: remove page section state`
-- `protocols: remove page directive-link state`
-- `protocols: remove page parsed-content state`
-- `protocols: remove page archive context state`
-- `protocols: remove page autodoc fallback state`
-- `protocols: remove page prerendered html state`
-- `protocols: remove page site state`
-- `tests: migrate analysis graph page fixtures`
-- `tests: migrate cache query page fixtures`
-- `tests: migrate orchestration taxonomy page fixtures`
-- `tests: migrate redirect page fixtures`
-- `tests: migrate orchestration page fixtures`
-- `tests: migrate section hierarchy page fixtures`
-- `tests: migrate cascade page fixtures`
-- `tests: migrate section ergonomic page fixtures`
-- `core: extract page visibility helpers`
-- `tests: migrate page visibility fixtures`
-- `tests: migrate page url fixtures`
-- `tests: migrate page url cache fixtures`
-- `tests: migrate page navigation edge fixture`
-- `tests: migrate navigation page fixtures`
-- `tests: migrate component model page fixtures`
-- `tests: migrate computed page fixtures`
-- `core: extract page metadata helpers`
-- `tests: migrate page record fixtures`
-- `tests: migrate page hashability fixtures`
-- `tests: remove legacy page cached-property fixtures`
-- `tests: remove legacy page section-reference fixtures`
-- `tests: migrate page initializer fixtures`
-- `tests: migrate page frontmatter fixtures`
-- `tests: remove mutable page test factory`
-- `content: introduce source page runtime adapter`
-- `core: delete legacy page class`
-
-**Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
-no hits; `bengal/content/discovery/page_adapter.py` constructs `RuntimePage`
-from `SourcePage` records through `bengal.core.page.runtime` and does not
-import a legacy Page module. `rg '^class Page\\b' bengal/core/page` returns no
-hits because `bengal/core/page/legacy.py` has been deleted. Focused boundary,
+**Proof:** direct class/import greps return no hits; focused boundary,
 public-export, Page record, core page, content-discovery, autodoc, rendering,
-initializer, and frontmatter gates pass. `uv run ty check bengal/` now reports
-531 diagnostics, down from the prior 537 floor.
-
-**Open proof gap:** `uv run pytest -q` currently fails in this dirty worktree
-with failures outside the Page deletion scope, including OpenAPI/theme-related
-tests from unrelated modified files and one Hypothesis deadline flake. The 10
-recorded failures passed immediately under `uv run pytest --last-failed -vv
---tb=short`. Do not mark the saga complete until a stable full-suite run passes
-or the non-Page full-suite failures are separately resolved/accepted as not
-blocking.
-
-**Proof before saga close:** `rg '^class Page\\b' bengal/core/page` returns no
-hits; public compatibility decision is recorded; boundary tests are either
-removed as obsolete or rewritten for the new invariant; focused page/source
-tests and the appropriate broader suite pass; `uv run ty check bengal/` does
-not regress the recorded floor.
+initializer, and frontmatter gates pass; the broader Page/source/rendering gate
+passes; ruff, ruff format, dependency layers, `git diff --check`, and ty pass at
+the recorded 531 diagnostic floor. Clean full-suite runs at `ba37930b3` now
+expose only an unrelated directive migration parser state leak, recorded above
+as follow-up and accepted as outside the Page saga closure criteria.
 
 | Priority | Saga | Source Plan | Notes |
 |----------|------|-------------|-------|
-| 1 | Mutable Page deletion | `epic-immutable-page-pipeline.md` Sprint 6 | Active. Continue with scoped task commits under the saga goal above. |
-| 2 | Health/audit ownership closure | `rfc-health-diagnostics-audit.md` | `bengal audit` exists; remaining work is separation and duplicate-report control. |
-| 3 | OpenAPI REST polish | `epic-openapi-rest-layout-upgrade.md` | User-facing docs/templates; include visual/output proof and changelog. |
-| 4 | Ty floor reduction | Roadmap P1 | No suppressions or public API widening just to satisfy ty. |
+| 1 | OpenAPI REST polish | `epic-openapi-rest-layout-upgrade.md` | User-facing docs/templates; include visual/output proof and changelog. |
+| 2 | Ty floor reduction | Roadmap P1 | No suppressions or public API widening just to satisfy ty. |
+| 3 | Snapshot build-plan handoff | `rfc-snapshot-build-plan-handoff.md` | Worker-safe execution now follows naturally after mutable Page deletion. |
+| 4 | Directive migration parser state leak | Roadmap P1 / `epic-ux-sharp-edges.md` | Fix the unrelated full-suite parity failure before relying on migration parity as a release gate. |
 
 ---
 
