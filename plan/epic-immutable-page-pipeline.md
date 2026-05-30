@@ -454,6 +454,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate redirect page fixtures`
 - `tests: migrate orchestration page fixtures`
 - `tests: migrate section hierarchy page fixtures`
+- `tests: migrate cascade page fixtures`
 
 ### Sprint 6 epics
 
@@ -581,6 +582,11 @@ Task 6.1/6.2 test fixture migration also moved Section sorting, hashability,
 index-collision, page-like input, and versioning tests to shared page-like
 mocks. The mock now exposes metadata-backed `version` for Section version
 filtering without constructing the legacy mutable Page adapter.
+
+Task 6.1/6.2 test fixture migration also moved cascade and cascade-snapshot
+tests to shared page-like mocks. Section cascade extraction and immutable
+cascade snapshot behavior now run without constructing the legacy mutable Page
+adapter.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

@@ -40,3 +40,5 @@ mutable pages for navigation behavior.
 Section sorting, hashability, index-collision, page-like input, and versioning
 tests now use shared page-like mocks instead of constructing legacy mutable
 pages for hierarchy behavior.
+Cascade and cascade-snapshot tests now use shared page-like mocks instead of
+constructing legacy mutable pages for section cascade behavior.
