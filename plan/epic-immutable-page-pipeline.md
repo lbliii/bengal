@@ -468,6 +468,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate page record fixtures`
 - `tests: migrate page hashability fixtures`
 - `tests: remove legacy page cached-property fixtures`
+- `tests: remove legacy page section-reference fixtures`
 
 ### Sprint 6 epics
 
@@ -670,6 +671,11 @@ Task 6.1/6.2 also removed obsolete legacy Page cached-property tests. Raw source
 access, word-count, reading-time, meta-description, and excerpt behavior is now
 owned by content source, computed-function, and rendering helper tests rather
 than by mutable Page property-wrapper coverage.
+
+Task 6.1/6.2 also removed obsolete legacy Page section-reference tests.
+Section helper, registry, and virtual-section behavior is covered outside the
+mutable Page `_section` descriptor surface, so the deleted tests no longer hold
+the class in place.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

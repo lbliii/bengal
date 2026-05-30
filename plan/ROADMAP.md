@@ -102,6 +102,9 @@ Machine-checked on 2026-05-29:
   mocks instead of the mutable Page adapter for set/dict identity behavior.
   Legacy Page cached-property tests are removed as obsolete; source/content,
   computed, and rendering helper tests own the behavior.
+  Legacy Page section-reference tests are removed as obsolete; section helper,
+  registry, and virtual-section tests own the behavior outside the mutable Page
+  descriptor surface.
 
 No full test suite was run for this planning pass.
 
@@ -226,6 +229,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate page record fixtures`
 - `tests: migrate page hashability fixtures`
 - `tests: remove legacy page cached-property fixtures`
+- `tests: remove legacy page section-reference fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

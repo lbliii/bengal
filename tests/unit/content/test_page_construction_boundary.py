@@ -56,7 +56,6 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/unit/core/test_href_property.py",
     "tests/unit/core/test_navigation.py",
     "tests/unit/core/test_page_navigation_weight_order.py",
-    "tests/unit/core/test_page_section_references.py",
     "tests/unit/core/test_section_hashability.py",
     "tests/unit/core/test_section_index_collision.py",
     "tests/unit/core/test_section_page_types.py",

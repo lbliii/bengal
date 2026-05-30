@@ -77,3 +77,6 @@ identity behavior.
 Obsolete legacy Page cached-property tests were removed; raw source,
 word-count, reading-time, meta-description, and excerpt behavior is covered by
 the content, computed-function, and rendering helper tests.
+Obsolete legacy Page section-reference tests were removed; section helper,
+registry, and virtual-section behavior is covered outside the mutable Page
+descriptor surface.
