@@ -83,7 +83,6 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/integration/test_hashable_page_deduplication.py",
     "tests/unit/core/test_component_model.py",
     "tests/unit/core/test_computed_functions.py",
-    "tests/unit/core/test_page_cached_properties.py",
     "tests/unit/core/test_page_hashability.py",
     "tests/unit/core/test_page_metadata_helpers.py",
     "tests/unit/core/test_page_record_migration.py",

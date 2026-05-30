@@ -467,6 +467,7 @@ gone or explicitly retained by a recorded public API decision.
 - `core: extract page metadata helpers`
 - `tests: migrate page record fixtures`
 - `tests: migrate page hashability fixtures`
+- `tests: remove legacy page cached-property fixtures`
 
 ### Sprint 6 epics
 
@@ -664,6 +665,11 @@ coverage to source-path-hashable page-like mocks. Set operations, dict keys,
 taxonomy deduplication, and reconstruction cache lookups now prove the
 source-path identity contract without constructing the legacy mutable Page
 adapter.
+
+Task 6.1/6.2 also removed obsolete legacy Page cached-property tests. Raw source
+access, word-count, reading-time, meta-description, and excerpt behavior is now
+owned by content source, computed-function, and rendering helper tests rather
+than by mutable Page property-wrapper coverage.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

@@ -100,6 +100,8 @@ Machine-checked on 2026-05-29:
   construction.
   Hashability and deduplication tests now use source-path-hashable page-like
   mocks instead of the mutable Page adapter for set/dict identity behavior.
+  Legacy Page cached-property tests are removed as obsolete; source/content,
+  computed, and rendering helper tests own the behavior.
 
 No full test suite was run for this planning pass.
 
@@ -223,6 +225,7 @@ class deletion rather than public compatibility preservation.
 - `core: extract page metadata helpers`
 - `tests: migrate page record fixtures`
 - `tests: migrate page hashability fixtures`
+- `tests: remove legacy page cached-property fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

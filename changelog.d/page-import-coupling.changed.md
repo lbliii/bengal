@@ -74,3 +74,6 @@ mutable Page adapter directly.
 Hashability and deduplication tests now use source-path-hashable page-like
 mocks instead of constructing the legacy mutable Page adapter for set and dict
 identity behavior.
+Obsolete legacy Page cached-property tests were removed; raw source,
+word-count, reading-time, meta-description, and excerpt behavior is covered by
+the content, computed-function, and rendering helper tests.
