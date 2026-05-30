@@ -10,7 +10,7 @@ import pytest
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.orchestration.section import SectionOrchestrator
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_page as _page
 
 
 class TestContentTypeDetection:
@@ -107,8 +107,8 @@ class TestContentTypeDetection:
         for i in range(3):
             page = _page(
                 source_path=Path(f"/content/docs/module{i}.md"),
-                _raw_content="API docs",
-                _raw_metadata={"type": "python-module"},
+                raw_content="API docs",
+                metadata={"type": "python-module"},
             )
             section.add_page(page)
 
@@ -123,8 +123,8 @@ class TestContentTypeDetection:
         for i in range(3):
             page = _page(
                 source_path=Path(f"/content/commands/cmd{i}.md"),
-                _raw_content="Command docs",
-                _raw_metadata={"type": "command"},
+                raw_content="Command docs",
+                metadata={"type": "command"},
             )
             section.add_page(page)
 
@@ -139,8 +139,8 @@ class TestContentTypeDetection:
         for i in range(5):
             page = _page(
                 source_path=Path(f"/content/articles/post{i}.md"),
-                _raw_content="Post content",
-                _raw_metadata={"title": f"Post {i}", "date": datetime(2025, 1, i + 1)},
+                raw_content="Post content",
+                metadata={"title": f"Post {i}", "date": datetime(2025, 1, i + 1)},
             )
             section.add_page(page)
 
@@ -155,16 +155,16 @@ class TestContentTypeDetection:
         for i in range(2):
             page = _page(
                 source_path=Path(f"/content/docs/dated{i}.md"),
-                _raw_content="Content",
-                _raw_metadata={"date": datetime(2025, 1, i + 1)},
+                raw_content="Content",
+                metadata={"date": datetime(2025, 1, i + 1)},
             )
             section.add_page(page)
 
         for i in range(3):
             page = _page(
                 source_path=Path(f"/content/docs/page{i}.md"),
-                _raw_content="Content",
-                _raw_metadata={},
+                raw_content="Content",
+                metadata={},
             )
             section.add_page(page)
 
@@ -180,8 +180,8 @@ class TestContentTypeDetection:
         for i in range(3):
             page = _page(
                 source_path=Path(f"/content/random/page{i}.md"),
-                _raw_content="Content",
-                _raw_metadata={"title": f"Page {i}"},
+                raw_content="Content",
+                metadata={"title": f"Page {i}"},
             )
             section.add_page(page)
 
@@ -271,8 +271,8 @@ class TestPaginationDecision:
         for i in range(100):
             page = _page(
                 source_path=Path(f"/content/api/page{i}.md"),
-                _raw_content="Content",
-                _raw_metadata={},
+                raw_content="Content",
+                metadata={},
             )
             section.add_page(page)
 
@@ -291,8 +291,8 @@ class TestPaginationDecision:
         for i in range(25):
             page = _page(
                 source_path=Path(f"/content/blog/post{i}.md"),
-                _raw_content="Content",
-                _raw_metadata={"date": datetime(2025, 1, 1)},
+                raw_content="Content",
+                metadata={"date": datetime(2025, 1, 1)},
             )
             section.add_page(page)
 
@@ -306,8 +306,8 @@ class TestPaginationDecision:
         for i in range(10):
             page = _page(
                 source_path=Path(f"/content/blog/post{i}.md"),
-                _raw_content="Content",
-                _raw_metadata={"date": datetime(2025, 1, 1)},
+                raw_content="Content",
+                metadata={"date": datetime(2025, 1, 1)},
             )
             section.add_page(page)
 
@@ -321,8 +321,8 @@ class TestPaginationDecision:
         for i in range(5):
             page = _page(
                 source_path=Path(f"/content/docs/page{i}.md"),
-                _raw_content="Content",
-                _raw_metadata={},
+                raw_content="Content",
+                metadata={},
             )
             section.add_page(page)
 

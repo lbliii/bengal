@@ -28,3 +28,5 @@ Analysis graph tests now use hashable page-like mocks instead of constructing
 legacy mutable pages for graph-only behavior.
 Cache query-index tests now use page-like fixtures instead of constructing
 legacy mutable pages for index-only behavior.
+Content-type, related-posts, and taxonomy-incremental orchestration tests now
+use hashable page-like mocks instead of constructing legacy mutable pages.

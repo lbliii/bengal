@@ -29,12 +29,10 @@ Patterns:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 from unittest.mock import Mock
-
-if TYPE_CHECKING:
-    from datetime import datetime
 
 
 @dataclass
@@ -101,6 +99,41 @@ class MockPage:
             self.metadata["description"] = self.description
         if self.icon and "icon" not in self.metadata:
             self.metadata["icon"] = self.icon
+
+
+class _HashableMockPage(MockPage):
+    __eq__ = object.__eq__
+    __hash__ = object.__hash__
+
+
+def make_mock_page(
+    *,
+    source_path: Path | str,
+    raw_content: str = "",
+    metadata: dict[str, Any] | None = None,
+    **attrs: Any,
+) -> MockPage:
+    """Create a page-like fixture without constructing legacy Page."""
+    page_metadata = dict(metadata or {})
+    date_value = page_metadata.get("date")
+    date = datetime.fromisoformat(date_value) if isinstance(date_value, str) else date_value
+    metadata_tags = page_metadata.get("tags", [])
+    tags = list(metadata_tags) if isinstance(metadata_tags, list) else []
+    slug = str(page_metadata.get("slug") or Path(source_path).stem)
+    page = _HashableMockPage(
+        title=str(page_metadata.get("title", "")),
+        href=f"/{slug}/",
+        _path=f"/{slug}/",
+        source_path=Path(source_path),
+        metadata=page_metadata,
+        tags=tags,
+        date=date if isinstance(date, datetime) else None,
+    )
+    page.raw_content = raw_content
+    page._raw_content = raw_content
+    for attr, value in attrs.items():
+        setattr(page, attr, value)
+    return page
 
 
 @dataclass

@@ -450,6 +450,7 @@ gone or explicitly retained by a recorded public API decision.
 - `protocols: remove page site state`
 - `tests: migrate analysis graph page fixtures`
 - `tests: migrate cache query page fixtures`
+- `tests: migrate orchestration taxonomy page fixtures`
 
 ### Sprint 6 epics
 
@@ -554,6 +555,11 @@ Task 6.1/6.2 test fixture migration also moved cache query-index tests to
 page-like cache fixtures. Index extraction, persistence, incremental update,
 and thread-safety coverage now run without constructing the legacy mutable Page
 adapter.
+
+Task 6.1/6.2 test fixture migration continued through content-type,
+related-posts, and taxonomy-incremental orchestration tests. These now use
+hashable page-like mocks for orchestration inputs instead of constructing the
+legacy mutable Page adapter.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

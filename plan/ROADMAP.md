@@ -61,6 +61,8 @@ Machine-checked on 2026-05-29:
   Cache query-index tests now use page-like cache fixtures instead of the
   mutable Page adapter for index extraction, persistence, and thread-safety
   coverage.
+  Content-type, related-posts, and taxonomy-incremental orchestration tests now
+  use hashable page-like mocks instead of constructing legacy mutable pages.
 
 No full test suite was run for this planning pass.
 
@@ -167,6 +169,7 @@ class deletion rather than public compatibility preservation.
 - `protocols: remove page site state`
 - `tests: migrate analysis graph page fixtures`
 - `tests: migrate cache query page fixtures`
+- `tests: migrate orchestration taxonomy page fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside
