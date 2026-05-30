@@ -10,7 +10,7 @@ template and third-party code that already calls methods such as
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.cache.parsed_output import apply_parsed_links_to_page
 from bengal.content.page_source import get_raw_source
@@ -65,6 +65,28 @@ def extract_links(page: PageLike, plugin_links: list[str] | None = None) -> list
     return page.links
 
 
+def get_directive_links(page: Any) -> list[str]:
+    """Return links collected while rendering directives for a page."""
+    try:
+        links = getattr(page, "_directive_links", None)
+    except Exception:
+        return []
+
+    if not links:
+        return []
+    return [str(link) for link in links]
+
+
+def set_directive_links(page: Any, links: list[str]) -> None:
+    """
+    Store directive-collected links on the legacy mutable page object.
+
+    This keeps the transient parser side channel out of the public PageLike
+    protocol while the rendering pipeline still renders mutable page instances.
+    """
+    page._directive_links = links
+
+
 def has_shortcode(page: PageLike, name: str) -> bool:
     """Return True if page source content uses the named shortcode."""
     from bengal.rendering.shortcodes import has_shortcode as _has_shortcode
@@ -110,7 +132,7 @@ def _strip_code_for_link_extraction(content: str) -> str:
 
 def _merge_directive_links(page: PageLike, *, plugin_links: list[str] | None) -> None:
     """Merge directive-collected links without duplicating existing entries."""
-    collected = getattr(page, "_directive_links", None)
+    collected = get_directive_links(page)
     if collected:
         existing = set(page.links)
         for link in collected:

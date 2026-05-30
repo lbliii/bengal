@@ -49,8 +49,8 @@ Machine-checked on 2026-05-29:
   concrete `Page` imports in tests. The SourcePage adapter now returns
   `PageLike` at its type boundary while keeping the remaining mutable
   construction isolated inside the adapter. `PageLike` no longer requires the
-  legacy `_source` or `_section` slots; raw content and section access route
-  through helper functions.
+  legacy `_source`, `_section`, or `_directive_links` slots; raw content,
+  section access, and directive-link state route through helper functions.
 
 No full test suite was run for this planning pass.
 
@@ -149,6 +149,7 @@ class deletion rather than public compatibility preservation.
 - `tests: remove core page package-root imports`
 - `protocols: remove page raw-source state`
 - `protocols: remove page section state`
+- `protocols: remove page directive-link state`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

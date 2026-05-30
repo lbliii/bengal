@@ -51,7 +51,7 @@ if TYPE_CHECKING:
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
-from bengal.rendering.page_operations import extract_links
+from bengal.rendering.page_operations import extract_links, set_directive_links
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
 from bengal.rendering.pipeline.cache_checker import CacheChecker
 from bengal.rendering.pipeline.json_accumulator import JsonAccumulator
@@ -515,7 +515,7 @@ class RenderingPipeline:
                 parsed_page = self._parse_with_legacy(page, need_toc)
                 directive_links = []
             if directive_links:
-                page._directive_links = directive_links
+                set_directive_links(page, directive_links)
 
             # Flush deferred highlighting: batch process all code blocks in parallel
             # This replaces <!--code:XXX--> placeholders with highlighted HTML

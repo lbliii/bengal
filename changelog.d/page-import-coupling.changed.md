@@ -10,4 +10,5 @@ load `bengal.core.page`. Tests now import Page submodules directly and guard
 against new package-root imports from `bengal.core.page`. Raw source access now
 flows through a content-owned helper instead of requiring `_source` on the
 `PageLike` protocol. Section access now flows through core section helpers
-instead of requiring `_section` on `PageLike`.
+instead of requiring `_section` on `PageLike`, and directive link collection now
+flows through rendering helpers instead of requiring `_directive_links`.

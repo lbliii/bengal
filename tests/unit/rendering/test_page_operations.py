@@ -4,7 +4,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bengal.rendering.page_operations import extract_links, has_shortcode
+from bengal.rendering.page_operations import (
+    extract_links,
+    get_directive_links,
+    has_shortcode,
+    set_directive_links,
+)
 from tests._testing.page_records import make_test_page
 
 
@@ -37,13 +42,23 @@ def test_extract_links_ignores_markdown_inside_code() -> None:
 
 def test_extract_links_uses_plugin_wikilinks_and_merges_directive_links() -> None:
     page = _page("[markdown](/markdown) [[docs/page]]", '<a href="/directive">Directive</a>')
-    page._directive_links = ["/directive", "/markdown"]
+    set_directive_links(page, ["/directive", "/markdown"])
 
     assert extract_links(page, plugin_links=["/resolved-wiki"]) == [
         "/markdown",
         "/resolved-wiki",
         "/directive",
     ]
+
+
+def test_directive_link_helpers_hide_transient_page_slot() -> None:
+    page = _page()
+
+    assert get_directive_links(page) == []
+
+    set_directive_links(page, ["/guide", "/reference"])
+
+    assert get_directive_links(page) == ["/guide", "/reference"]
 
 
 def test_extract_links_falls_back_to_rendered_html() -> None:

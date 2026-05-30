@@ -164,6 +164,10 @@ class TestPageLikeStability:
         """PageLike should not require the legacy mutable Page section slot."""
         assert not hasattr(PageLike, "_section")
 
+    def test_excludes_transient_directive_link_state(self) -> None:
+        """PageLike should not require rendering parser side-channel state."""
+        assert not hasattr(PageLike, "_directive_links")
+
 
 class TestSectionLikeStability:
     """Guard against breaking changes to SectionLike."""

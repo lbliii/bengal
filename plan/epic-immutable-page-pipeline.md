@@ -442,6 +442,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: remove core page package-root imports`
 - `protocols: remove page raw-source state`
 - `protocols: remove page section state`
+- `protocols: remove page directive-link state`
 
 ### Sprint 6 epics
 
@@ -505,6 +506,11 @@ Task 6.3 continued by removing `_section` from `PageLike`. Production section
 read/write call sites now use `bengal.core.section.utils.get_page_section()` and
 `set_page_section()`, leaving the private slot as a legacy compatibility detail
 rather than a required page-like contract.
+
+Task 6.3 also removed `_directive_links` from `PageLike`. Directive-collected
+links are now accessed through rendering-owned helpers in
+`bengal.rendering.page_operations`, so parser side-channel state is not part of
+the structural page contract.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
