@@ -145,13 +145,17 @@ class deletion rather than public compatibility preservation.
 - `core: remove page virtual constructor`
 - `content: move i18n discovery state into source records`
 - `tests: remove dummy Page constructor noise`
+- `content: lazy-load page compatibility adapter`
+
+**Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
+no hits; the remaining mutable class is loaded lazily only inside
+`bengal/content/discovery/page_adapter.py`.
 
 **Proof before saga close:** `rg '^class Page\\b' bengal/core/page` returns no
-hits; `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns no hits;
-public compatibility decision is recorded; boundary tests are either removed as
-obsolete or rewritten for the new invariant; focused page/source tests and the
-appropriate broader suite pass; `uv run ty check bengal/` does not regress the
-recorded floor.
+hits; public compatibility decision is recorded; boundary tests are either
+removed as obsolete or rewritten for the new invariant; focused page/source
+tests and the appropriate broader suite pass; `uv run ty check bengal/` does
+not regress the recorded floor.
 
 | Priority | Saga | Source Plan | Notes |
 |----------|------|-------------|-------|

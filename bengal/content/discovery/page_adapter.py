@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
-
-from bengal.core.page import Page
 
 if TYPE_CHECKING:
     from bengal.core.records import SourcePage
     from bengal.protocols import PageLike, SectionLike
+
+
+def _load_page_class() -> type[Any]:
+    """Load the remaining mutable Page class only at the adapter boundary."""
+    return cast("type[Any]", import_module("bengal.core.page").Page)
 
 
 def page_from_source_page(
@@ -28,7 +32,7 @@ def page_from_source_page(
     remaining ``Page`` construction isolated while downstream code still expects
     the compatibility object.
     """
-    page = Page(
+    page = _load_page_class()(
         source_path=Path(source_page.source_path),
         _raw_content=source_page.raw_content,
         _raw_metadata=source_page.raw_metadata_dict(),
