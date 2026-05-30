@@ -462,6 +462,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate page url cache fixtures`
 - `tests: migrate page navigation edge fixture`
 - `tests: migrate navigation page fixtures`
+- `tests: migrate component model page fixtures`
 
 ### Sprint 6 epics
 
@@ -633,6 +634,11 @@ tests to shared page-like mocks with `bengal.core.page.navigation` and
 `bengal.core.section.utils` helpers. Section URL, hierarchy, root, ancestor,
 breadcrumb, and parent coverage now runs without constructing the legacy
 mutable Page adapter.
+
+Task 6.1/6.2 test fixture migration also moved component model
+metadata-normalization tests to `build_page_core()`. Layout, hero-style,
+explicit variant priority, and custom props coverage now proves the immutable
+PageCore construction path without constructing the legacy mutable Page adapter.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

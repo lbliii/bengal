@@ -7,7 +7,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from bengal.core.page.page_core import PageCore
-from tests._testing.page_records import make_mutable_test_page as _page
+from bengal.core.records import build_page_core
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -52,39 +52,32 @@ class TestPageCoreComponentModel:
         assert restored.description == "Desc"
 
 
-class TestPageMetadataComponentModel:
-    """Test Component Model logic in Page (via mixin)."""
+class TestPageCoreMetadataComponentModel:
+    """Test Component Model metadata normalization into PageCore."""
 
     def test_legacy_normalization_layout(self, tmp_path: Path) -> None:
         """Test that layout maps to variant."""
-        page = _page(
-            source_path=tmp_path / "test.md", _raw_metadata={"layout": "grid", "title": "Test"}
-        )
-        # Should be available via .variant property
-        assert page.variant == "grid"
-        # And populated in core
-        assert page.core.variant == "grid"
+        core = build_page_core(tmp_path / "test.md", {"layout": "grid", "title": "Test"})
+
+        assert core.variant == "grid"
 
     def test_legacy_normalization_hero_style(self, tmp_path: Path) -> None:
         """Test that hero_style maps to variant."""
-        page = _page(
-            source_path=tmp_path / "test.md", _raw_metadata={"hero_style": "comic", "title": "Test"}
-        )
-        assert page.variant == "comic"
-        assert page.core.variant == "comic"
+        core = build_page_core(tmp_path / "test.md", {"hero_style": "comic", "title": "Test"})
+
+        assert core.variant == "comic"
 
     def test_variant_priority(self, tmp_path: Path) -> None:
         """Test that explicit variant beats legacy fields."""
-        page = _page(
-            source_path=tmp_path / "test.md",
-            _raw_metadata={"variant": "modern", "layout": "old-grid", "title": "Test"},
+        core = build_page_core(
+            tmp_path / "test.md",
+            {"variant": "modern", "layout": "old-grid", "title": "Test"},
         )
-        assert page.variant == "modern"
-        assert page.core.variant == "modern"
+
+        assert core.variant == "modern"
 
     def test_props_access(self, tmp_path: Path) -> None:
         """Test that metadata is accessible via props."""
-        page = _page(
-            source_path=tmp_path / "test.md", _raw_metadata={"title": "Test", "custom": "value"}
-        )
-        assert page.props["custom"] == "value"
+        core = build_page_core(tmp_path / "test.md", {"title": "Test", "custom": "value"})
+
+        assert core.props["custom"] == "value"

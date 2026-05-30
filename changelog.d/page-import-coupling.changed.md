@@ -61,3 +61,5 @@ adapter.
 Navigation tests now build breadcrumb and parent assertions through section and
 page navigation helpers with shared page-like mocks instead of constructing the
 legacy mutable Page adapter.
+Component model metadata-normalization tests now exercise `build_page_core()`
+directly instead of constructing the legacy mutable Page adapter.
