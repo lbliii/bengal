@@ -51,6 +51,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar
 
 from bengal.core.diagnostics import emit
+from bengal.core.section.utils import get_page_section
 from bengal.core.utils.sorting import DEFAULT_WEIGHT
 from bengal.utils.cache_registry import InvalidationReason, register_cache
 from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
@@ -442,8 +443,8 @@ class NavTreeContext:
         # Start with current page
         self.active_trail_urls.add(self.current_url)
 
-        # Walk up from current section (use _section - the private attribute)
-        section = getattr(self.page, "_section", None)
+        # Walk up from the current page section.
+        section = get_page_section(self.page)
         while section:
             self.active_trail_urls.add(
                 NavTree._section_path_for_version(section, self.tree.version_id)

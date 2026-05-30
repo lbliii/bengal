@@ -123,7 +123,7 @@ def estimate_complexity(content: str) -> ComplexityScore:
         ComplexityScore with heuristic metrics
 
     Example:
-            >>> score = estimate_complexity(page._source)
+            >>> score = estimate_complexity(page.content)
             >>> print(f"Complexity: {score.score}")
 
     """

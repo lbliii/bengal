@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from pathlib import Path
 
 
@@ -79,47 +79,14 @@ def normalize_edition(value: Any) -> list[str]:
     return []
 
 
-def normalize_visibility(
-    metadata: Mapping[str, Any],
-    content_signal_defaults: Mapping[str, Any],
-) -> dict[str, Any]:
-    """Merge page visibility frontmatter with Bengal defaults."""
-    if metadata.get("hidden", False):
-        return {
-            "menu": False,
-            "listings": False,
-            "sitemap": False,
-            "robots": "noindex, nofollow",
-            "render": "always",
-            "search": False,
-            "rss": False,
-            "ai_train": False,
-            "ai_input": False,
-        }
-
-    vis = metadata.get("visibility", {})
-    if not isinstance(vis, Mapping):
-        vis = {}
-
-    return {
-        "menu": vis.get("menu", True),
-        "listings": vis.get("listings", True),
-        "sitemap": vis.get("sitemap", True),
-        "robots": vis.get("robots", "index, follow"),
-        "render": vis.get("render", "always"),
-        "search": vis.get("search", content_signal_defaults.get("search", True)),
-        "rss": vis.get("rss", True),
-        "ai_train": vis.get("ai_train", content_signal_defaults.get("ai_train", False)),
-        "ai_input": vis.get("ai_input", content_signal_defaults.get("ai_input", True)),
-    }
-
-
-def should_render_visibility(visibility: Mapping[str, Any], is_production: bool) -> bool:
-    """Return whether a visibility object permits rendering in the environment."""
-    render = visibility.get("render", "always")
-    if render == "never":
-        return False
-    return not (render == "local" and is_production)
+def is_in_variant(metadata: Mapping[str, Any], variant: str | None) -> bool:
+    """Return whether page metadata should be included for the build variant."""
+    if variant is None or not str(variant).strip():
+        return True
+    editions = normalize_edition(metadata.get("edition"))
+    if not editions:
+        return True
+    return variant in editions
 
 
 def get_user_metadata(metadata: Mapping[str, Any], key: str, default: Any = None) -> Any:
@@ -134,6 +101,27 @@ def get_internal_metadata(metadata: Mapping[str, Any], key: str, default: Any = 
     if not key.startswith("_"):
         key = f"_{key}"
     return metadata.get(key, default)
+
+
+def is_generated(metadata: Mapping[str, Any]) -> bool:
+    """Return whether metadata marks a page as generated."""
+    return bool(metadata.get("_generated"))
+
+
+def get_assigned_template(metadata: Mapping[str, Any]) -> str | None:
+    """Return the explicitly assigned template from metadata."""
+    template = metadata.get("template")
+    if template is None:
+        return None
+    return str(template)
+
+
+def get_content_type_name(metadata: Mapping[str, Any]) -> str | None:
+    """Return the assigned content type from metadata."""
+    content_type = metadata.get("content_type")
+    if content_type is None:
+        return None
+    return str(content_type)
 
 
 def humanize_stem(value: str, *, replace_underscores: bool) -> str:

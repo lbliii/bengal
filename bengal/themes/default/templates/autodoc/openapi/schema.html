@@ -19,16 +19,28 @@ Kida Features:
 #}
 {% extends 'autodoc/openapi/layouts/reference.html' %}
 
-{% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
-{% let schema_name = element?.name ?? page?.title ?? 'Schema' %}
-{% let schema_type = meta?.schema_type ?? 'object' %}
-{% let properties = meta?.properties ?? {} %}
-{% let required_props = meta?.required ?? () %}
-{% let enum_vals = meta?.enum %}
-{% let example_val = meta?.example %}
-{% let description = element?.description ?? '' %}
+{% let schema = element | schema_view %}
+{% let schema_name = schema?.name ?? page?.title ?? 'Schema' %}
+{% let schema_type = schema?.schema_type ?? 'object' %}
+{% let properties = schema?.properties ?? {} %}
+{% let required_props = schema?.required ?? () %}
+{% let enum_vals = schema?.enum %}
+{% let example_val = schema?.example %}
+{% let description = schema?.description ?? element?.description ?? '' %}
+{% let schema_format = schema?.raw_schema?.format ?? '' %}
 
-{% block header %}
+{% block api_left %}
+<nav class="openapi-nav" aria-label="Schema sections">
+  <a href="{{ section?.href ?? page?.href ?? '#' }}" class="openapi-nav__back">{{ icon('arrow-left', size=14) }} {{ section?.title ?? 'Schemas' }}</a>
+  {% if properties | length > 0 %}<a href="#properties">Properties</a>{% end %}
+  {% if enum_vals | length > 0 %}<a href="#enum">Allowed values</a>{% end %}
+  {% if properties | length == 0 and enum_vals | length == 0 %}<a href="#shape">Shape</a>{% end %}
+  {% if example_val is not none %}<a href="#example">Example</a>{% end %}
+</nav>
+{% end %}
+
+{% block api_header %}
+<span class="openapi-eyebrow">Schema</span>
 <h1 class="api-schema__title">
   <code>{{ schema_name }}</code>
   <span class="badge badge--outline">{{ schema_type }}</span>
@@ -41,16 +53,16 @@ Kida Features:
 {% end %}
 {% end %}
 
-{% block content_main %}
+{% block api_main %}
 <div class="api-schema" id="schema-{{ schema_name | slugify }}" data-autodoc="openapi" data-element="schema">
 
   {# Schema Properties #}
   {% if properties | length > 0 %}
-  <section class="api-schema__section autodoc-section" data-section="properties">
+  <section class="api-schema__section autodoc-section" id="properties" data-section="properties">
     <h2 class="api-schema__section-title">Properties</h2>
 
     {% cache 'openapi-schema-' ~ schema_name %}
-    {% let schema = meta %}
+    {% let schema = schema?.display_schema ?? {} %}
     {% let name = schema_name %}
     {% let depth = 0 %}
     {% include 'autodoc/openapi/partials/schema-viewer.html' %}
@@ -58,10 +70,28 @@ Kida Features:
   </section>
   {% end %}
 
+  {% if properties | length == 0 and enum_vals | length == 0 %}
+  <section class="api-schema__section autodoc-section" id="shape" data-section="shape">
+    <h2 class="api-schema__section-title">Shape</h2>
+    <div class="api-schema-shape">
+      <div>
+        <span>Type</span>
+        <code>{{ schema_type }}</code>
+      </div>
+      {% if schema_format %}
+      <div>
+        <span>Format</span>
+        <code>{{ schema_format }}</code>
+      </div>
+      {% end %}
+    </div>
+  </section>
+  {% end %}
+
   {# Enum Values (for enum types) #}
   {% with enum_vals as enums %}
   {% if enums | length > 0 %}
-  <section class="api-schema__section autodoc-section" data-section="enum">
+  <section class="api-schema__section autodoc-section" id="enum" data-section="enum">
     <h2 class="api-schema__section-title">Allowed Values</h2>
     <div class="api-schema__enum-list">
       {% for val in enums %}
@@ -73,8 +103,9 @@ Kida Features:
   {% end %}
 
   {# Example #}
-  {% with example_val as example %}
-  <section class="api-schema__section autodoc-section" data-section="example">
+  {% if example_val is not none %}
+  {% let example = example_val %}
+  <section class="api-schema__section autodoc-section" id="example" data-section="example">
     <h2 class="api-schema__section-title">Example</h2>
     <div class="api-schema__example">
       <pre><code class="language-json">{{ example | tojson(indent=2) }}</code></pre>
@@ -95,5 +126,19 @@ Kida Features:
   </section>
   {% end %}
   {% end %}
+</div>
+{% end %}
+
+{% block api_right %}
+<div class="openapi-side-panel">
+  <h2>{{ icon('database', size=14) }} Model</h2>
+  <dl class="openapi-side-panel__meta">
+    <div><dt>Name</dt><dd><code>{{ schema_name }}</code></dd></div>
+    <div><dt>Type</dt><dd>{{ schema_type }}</dd></div>
+    {% if schema_format %}<div><dt>Format</dt><dd>{{ schema_format }}</dd></div>{% end %}
+    <div><dt>Properties</dt><dd>{{ properties | length }}</dd></div>
+    <div><dt>Required</dt><dd>{{ required_props | length }}</dd></div>
+    {% if enum_vals | length > 0 %}<div><dt>Values</dt><dd>{{ enum_vals | length }}</dd></div>{% end %}
+  </dl>
 </div>
 {% end %}

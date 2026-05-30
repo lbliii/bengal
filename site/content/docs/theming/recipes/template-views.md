@@ -97,9 +97,19 @@ Normalize OpenAPI endpoints for templates. Automatically handles both consolidat
 | `description` | `str` | Full description |
 | `deprecated` | `bool` | Whether endpoint is deprecated |
 | `href` | `str` | Link to endpoint (anchor `#id` in consolidated mode, page URL in individual mode). Always valid, never `None`. |
+| `anchor_id` | `str` | Stable in-page anchor for consolidated endpoint rendering |
 | `has_page` | `bool` | Whether individual page exists |
 | `operation_id` | `str \| None` | OpenAPI operationId |
 | `tags` | `tuple[str, ...]` | Endpoint tags |
+| `parameters` | `tuple[Any, ...]` | OpenAPI parameters for path, query, header, and cookie sections |
+| `request_body` | `Any` | Typed request body metadata when available |
+| `raw_request_body` | `Any` | Raw OpenAPI `requestBody` object for examples and schema details |
+| `responses` | `tuple[Any, ...]` | Typed response metadata |
+| `raw_responses` | `Any` | Raw OpenAPI `responses` object for examples and schema details |
+| `security` | `tuple[Any, ...]` | Security requirements for the operation |
+| `primary_tag` | `str` | First tag, or `Default` |
+| `success_status` | `str \| None` | First 2xx response code, if present |
+| `response_example` | `Any` | Example object for the success response, if present |
 | `typed_metadata` | `Any` | Full `OpenAPIEndpointMetadata` (advanced) |
 
 ### Examples

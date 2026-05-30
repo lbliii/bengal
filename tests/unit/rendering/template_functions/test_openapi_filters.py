@@ -15,6 +15,9 @@ from bengal.rendering.template_functions.openapi import (
     SchemaView,
     _generate_anchor_id,
     endpoints_filter,
+    generate_code_sample,
+    get_response_example,
+    schema_view_filter,
     schemas_filter,
 )
 
@@ -33,6 +36,10 @@ class MockOpenAPIEndpointMetadata:
     summary: str | None = None
     tags: tuple[str, ...] = ()
     deprecated: bool = False
+    parameters: tuple[Any, ...] = ()
+    request_body: Any = None
+    responses: tuple[Any, ...] = ()
+    security: tuple[str, ...] = ()
 
 
 @dataclass
@@ -53,6 +60,7 @@ class MockDocElement:
     name: str
     description: str = ""
     typed_metadata: Any = None
+    metadata: dict[str, Any] = field(default_factory=dict)
     href: str | None = None
 
 
@@ -132,6 +140,7 @@ class TestEndpointViewFromDocElement:
         view = EndpointView.from_doc_element(element, consolidated=True)
 
         assert view.href == "#getUser"  # Uses operation_id as anchor
+        assert view.anchor_id == "getUser"
         assert view.has_page is False
 
     def test_consolidated_mode_generates_path_based_anchor(self) -> None:
@@ -149,6 +158,7 @@ class TestEndpointViewFromDocElement:
         view = EndpointView.from_doc_element(element, consolidated=True)
 
         assert view.href == "#post-users-user_id-posts"
+        assert view.anchor_id == "post-users-user_id-posts"
         assert view.has_page is False
 
     def test_individual_mode_uses_element_href(self) -> None:
@@ -193,7 +203,62 @@ class TestEndpointViewFromDocElement:
         assert view.deprecated is True
         assert view.operation_id == "deleteItem"
         assert view.tags == ("items", "admin")
+        assert view.primary_tag == "items"
         assert view.typed_metadata is meta
+
+    def test_preserves_operation_details_for_consolidated_templates(self) -> None:
+        """Endpoint views keep details needed by consolidated reference pages."""
+        params = ({"name": "user_id", "in": "path", "schema": {"type": "string"}},)
+        raw_responses = {
+            "201": {
+                "description": "Created",
+                "content": {"application/json": {"example": {"id": "user_123"}}},
+            }
+        }
+        meta = MockOpenAPIEndpointMetadata(
+            method="POST",
+            path="/users/{user_id}",
+            tags=("users",),
+            parameters=params,
+            responses=({"status_code": "201", "description": "Created"},),
+            security=("BearerAuth",),
+        )
+        element = MockDocElement(
+            name="createUser",
+            typed_metadata=meta,
+            metadata={"request_body": {"content": {}}, "responses": raw_responses},
+        )
+
+        view = EndpointView.from_doc_element(element, consolidated=True)
+
+        assert view.parameters == (
+            {
+                "name": "user_id",
+                "location": "path",
+                "in": "path",
+                "required": False,
+                "schema_type": "string",
+                "schema": {"type": "string"},
+                "description": "",
+                "default": None,
+                "enum": None,
+                "example": None,
+            },
+        )
+        assert view.raw_request_body == {"content": {}}
+        assert view.responses == (
+            {
+                "status_code": "201",
+                "description": "Created",
+                "content_type": "application/json",
+                "schema_ref": None,
+                "schema": {},
+                "example": {"id": "user_123"},
+            },
+        )
+        assert view.success_status == "201"
+        assert view.response_example == {"id": "user_123"}
+        assert view.security == ("BearerAuth",)
 
 
 class TestEndpointViewFromPage:
@@ -222,6 +287,7 @@ class TestEndpointViewFromPage:
         assert view.description == "Updates item properties"
         assert view.deprecated is True
         assert view.href == "/api/items/update/"
+        assert view.anchor_id == "updateItem"
         assert view.has_page is True
         assert view.operation_id == "updateItem"
         assert view.tags == ("items",)
@@ -343,6 +409,53 @@ class TestSchemaViewFromDocElement:
         view = SchemaView.from_doc_element(element, consolidated=False)
 
         assert view.schema_type == "object"
+
+    def test_flattens_all_of_schema_properties(self) -> None:
+        """Flattens allOf branches for schema detail rendering."""
+        meta = MockOpenAPISchemaMetadata(schema_type=None)
+        element = MockDocElement(
+            name="Order",
+            typed_metadata=meta,
+            metadata={
+                "raw_schema": {
+                    "allOf": [
+                        {
+                            "type": "object",
+                            "required": ["id"],
+                            "properties": {"id": {"type": "string"}},
+                        },
+                        {
+                            "type": "object",
+                            "required": ["number"],
+                            "properties": {"number": {"type": "string"}},
+                        },
+                    ]
+                }
+            },
+        )
+
+        view = SchemaView.from_doc_element(element)
+
+        assert view.schema_type == "object"
+        assert view.properties == {
+            "id": {"type": "string"},
+            "number": {"type": "string"},
+        }
+        assert view.required == ("id", "number")
+        assert view.display_schema["properties"] == view.properties
+
+    def test_schema_view_filter_handles_single_schema(self) -> None:
+        """schema_view filter returns a normalized view for detail templates."""
+        element = MockDocElement(
+            name="Status",
+            typed_metadata=MockOpenAPISchemaMetadata(schema_type="string", enum=("open", "closed")),
+        )
+
+        view = schema_view_filter(element)
+
+        assert view is not None
+        assert view.name == "Status"
+        assert view.enum == ("open", "closed")
 
 
 # =============================================================================
@@ -612,3 +725,76 @@ class TestFilterIntegration:
         assert objects[0].name == "User"
         assert len(enums) == 1
         assert enums[0].name == "Status"
+
+
+class TestOpenAPICodeSamples:
+    """Tests for request sample generation."""
+
+    def test_replaces_path_params_and_required_query_params(self) -> None:
+        """Samples use concrete request URLs instead of raw placeholders."""
+        sample = generate_code_sample(
+            "curl",
+            "GET",
+            "/users/{user_id}/invoices",
+            base_url="https://api.example.test",
+            parameters=[
+                {
+                    "name": "user_id",
+                    "in": "path",
+                    "schema": {"type": "string"},
+                    "required": True,
+                },
+                {
+                    "name": "limit",
+                    "in": "query",
+                    "schema": {"type": "integer", "default": 25},
+                    "required": True,
+                },
+            ],
+        )
+
+        assert "https://api.example.test/users/id_123/invoices?limit=25" in sample
+        assert "{user_id}" not in sample
+
+    def test_builds_body_from_raw_openapi_request_body(self) -> None:
+        """Request bodies can be generated from raw OpenAPI content maps."""
+        sample = generate_code_sample(
+            "python",
+            "POST",
+            "/users",
+            request_body={
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "email": {"type": "string", "format": "email"},
+                                "active": {"type": "boolean"},
+                            },
+                        }
+                    }
+                }
+            },
+        )
+
+        assert '"email": "user@example.com"' in sample
+        assert '"active": true' in sample
+
+    def test_response_example_supports_raw_response_maps(self) -> None:
+        """Response examples are extracted from raw OpenAPI response maps."""
+        example = get_response_example(
+            {
+                "201": {
+                    "content": {
+                        "application/json": {
+                            "examples": {
+                                "created": {"value": {"id": "user_123"}},
+                            }
+                        }
+                    }
+                }
+            },
+            "201",
+        )
+
+        assert example == {"id": "user_123"}

@@ -102,9 +102,7 @@ def test_regular_pages_all_generated(tmp_path):
 
 
 def test_regular_pages_cache_performance(tmp_path):
-    """Test that caching provides O(1) subsequent access."""
-    import time
-
+    """Test that subsequent regular page access returns the cached collection."""
     site = Site(root_path=tmp_path)
 
     # Add many pages
@@ -116,20 +114,15 @@ def test_regular_pages_cache_performance(tmp_path):
         )
         site.pages.append(page)
 
-    # First access (should filter all pages)
-    start = time.time()
+    assert site.page_cache._regular is None
+
     regular1 = site.regular_pages
-    first_time = time.time() - start
     assert len(regular1) == 900  # 900 regular, 100 generated
+    assert regular1 is site.page_cache._regular
 
-    # Second access (should use cache)
-    start = time.time()
     regular2 = site.regular_pages
-    second_time = time.time() - start
 
-    # Cached access should be faster (at least 3x, relaxed for CI timing variance)
-    # The real test is that regular2 IS the cache - timing is secondary
-    assert second_time < first_time / 3 or first_time < 0.001  # Allow fast first access
+    assert regular2 is regular1
     assert regular2 is site.page_cache._regular
 
 

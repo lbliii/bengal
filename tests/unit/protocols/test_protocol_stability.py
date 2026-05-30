@@ -160,6 +160,40 @@ class TestPageLikeStability:
         for prop in self.REQUIRED_PROPERTIES:
             assert hasattr(PageLike, prop), f"PageLike missing property: {prop}"
 
+    def test_excludes_mutable_page_section_reference(self) -> None:
+        """PageLike should not require the legacy mutable Page section slot."""
+        assert not hasattr(PageLike, "_section")
+
+    def test_excludes_transient_directive_link_state(self) -> None:
+        """PageLike should not require rendering parser side-channel state."""
+        assert not hasattr(PageLike, "_directive_links")
+
+    def test_excludes_parse_cache_content_state(self) -> None:
+        """PageLike should not require parser/cache-derived content slots."""
+        assert not hasattr(PageLike, "_ast_cache")
+        assert not hasattr(PageLike, "_toc_items_cache")
+        assert not hasattr(PageLike, "_excerpt")
+        assert not hasattr(PageLike, "_meta_description")
+
+    def test_excludes_section_archive_context_state(self) -> None:
+        """PageLike should not require section archive/pagination slots."""
+        assert not hasattr(PageLike, "_posts")
+        assert not hasattr(PageLike, "_subsections")
+        assert not hasattr(PageLike, "_paginator")
+        assert not hasattr(PageLike, "_page_num")
+
+    def test_excludes_autodoc_fallback_state(self) -> None:
+        """PageLike should not require autodoc fallback marker slots."""
+        assert not hasattr(PageLike, "_autodoc_fallback_template")
+
+    def test_excludes_prerendered_virtual_page_state(self) -> None:
+        """PageLike should not require pre-rendered virtual page HTML slots."""
+        assert not hasattr(PageLike, "prerendered_html")
+
+    def test_excludes_mutable_page_site_reference(self) -> None:
+        """PageLike should not require the legacy mutable Page site slot."""
+        assert not hasattr(PageLike, "_site")
+
 
 class TestSectionLikeStability:
     """Guard against breaking changes to SectionLike."""

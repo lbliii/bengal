@@ -1,26 +1,29 @@
 # Epic: Immutable Page Pipeline — Snapshots All The Way Down
 
-**Status**: Active — Sprints 0-5 Complete, Sprint 6 In Progress
+**Status**: Complete — Sprints 0-6 landed and mutable `Page` is deleted
 **Created**: 2026-04-06
-**Updated**: 2026-05-29
+**Updated**: 2026-05-30
 **Target**: v0.4.x
 **Estimated Effort**: 60-80 hours
 **Dependencies**: Root roadmap sequencing; older protocol and architecture audit epics are archived as stale/superseded.
 **Source**: Layered Review (2026-04-06), rfc-bengal-v2-architecture.md (Phase 3-4)
-**2026-05-29 Check**: `bengal/core/page/__init__.py` still defines `class Page`.
-The SourcePage adapter seam now exists in `bengal/content/discovery/page_adapter.py`,
+**2026-05-30 Check**: `bengal/core/page/__init__.py` no longer defines or
+exports `class Page`; `bengal/core/page/legacy.py` has been deleted. The
+SourcePage adapter seam exists in `bengal/content/discovery/page_adapter.py`,
 autodoc/orchestration virtual producers use `create_virtual_source_page()`, and
-latest tests migrated page behavior fixtures through SourcePage helpers. Sprint
-6 is active. Direct production `from bengal.core.page import Page` imports are
-now isolated to the SourcePage compatibility adapter. The 2026-05-29 public API
-decision retired the lazy `bengal.Page` and `bengal.core.Page` compatibility
-re-exports. Boundary tests now enforce that production `Page` construction and
-direct imports stay isolated to the adapter and that tests do not import the
-concrete `Page` class. The remaining direct import count across `bengal/` +
-`tests/` is 1 import site: the adapter. The adapter's public type boundary now
-returns `PageLike`; mutable construction remains isolated inside the adapter.
-Deletion remains blocked by the adapter boundary and the concrete class itself,
-not by public export compatibility.
+page behavior fixtures have migrated through SourcePage helpers or page-like
+mocks. The 2026-05-29 public API decision retired the lazy `bengal.Page` and
+`bengal.core.Page` compatibility re-exports. Boundary tests now enforce that
+production code and tests do not import the concrete `Page` class. The adapter's
+public type boundary returns `PageLike`, backed by SourcePage-derived runtime
+state rather than the deleted mutable `Page` class. Focused and broader
+Page/source/rendering gates pass, and `uv run ty check bengal/` now reports 531
+diagnostics, down from the previous 537 floor. Clean proof at `ba37930b3` also
+passed ruff, ruff format, dependency layers, and `git diff --check`. Full-suite
+runs no longer show Page-related failures; the remaining clean-worktree failure
+is an unrelated directive migration parser state leak reproduced with
+`pytest tests/migration/test_directive_edge_cases.py::test_edge_case_parity --randomly-seed=314926607 -n0`
+and recorded in `plan/ROADMAP.md` as follow-up.
 
 ---
 
@@ -437,6 +440,42 @@ gone or explicitly retained by a recorded public API decision.
 - `core: retire public page exports`
 - `core: remove page virtual constructor`
 - `content: move i18n discovery state into source records`
+- `tests: remove dummy Page constructor noise`
+- `content: lazy-load page compatibility adapter`
+- `tests: remove core page package-root imports`
+- `protocols: remove page raw-source state`
+- `protocols: remove page section state`
+- `protocols: remove page directive-link state`
+- `protocols: remove page parsed-content state`
+- `protocols: remove page archive context state`
+- `protocols: remove page autodoc fallback state`
+- `protocols: remove page prerendered html state`
+- `protocols: remove page site state`
+- `tests: migrate analysis graph page fixtures`
+- `tests: migrate cache query page fixtures`
+- `tests: migrate orchestration taxonomy page fixtures`
+- `tests: migrate redirect page fixtures`
+- `tests: migrate orchestration page fixtures`
+- `tests: migrate section hierarchy page fixtures`
+- `tests: migrate cascade page fixtures`
+- `tests: migrate section ergonomic page fixtures`
+- `core: extract page visibility helpers`
+- `tests: migrate page visibility fixtures`
+- `tests: migrate page url fixtures`
+- `tests: migrate page url cache fixtures`
+- `tests: migrate page navigation edge fixture`
+- `tests: migrate navigation page fixtures`
+- `tests: migrate component model page fixtures`
+- `tests: migrate computed page fixtures`
+- `core: extract page metadata helpers`
+- `tests: migrate page record fixtures`
+- `tests: migrate page hashability fixtures`
+- `tests: remove legacy page cached-property fixtures`
+- `tests: remove legacy page section-reference fixtures`
+- `tests: migrate page initializer fixtures`
+- `tests: migrate page frontmatter fixtures`
+- `tests: remove mutable page test factory`
+- `content: introduce source page runtime adapter`
 
 ### Sprint 6 epics
 
@@ -475,13 +514,211 @@ i18n `lang` and `translation_key` values before creating `SourcePage`, so the
 adapter receives the correct immutable source state instead of setting those
 fields afterward.
 
+Task 6.1 also removed misleading local `Page`-named test doubles from
+template-context and safe-access tests. Those tests are now recorded in the
+construction boundary proof, so a broad `Page(` sweep points at the real
+production adapter/class boundary instead of unrelated dummy objects.
+
+Task 6.1 now removes the direct production import from the remaining adapter.
+Importing `bengal.content.discovery.page_adapter` no longer imports
+`bengal.core.page`; the compatibility class is loaded only when
+`page_from_source_page()` is called.
+
+Task 6.1 also removed the last test import from the `bengal.core.page` package
+root and added a boundary guard that rejects any future
+`from bengal.core.page import ...` code import. Page submodules such as
+`page_core`, `frontmatter`, `bundle`, and `utils` remain intentional until their
+own deletion/move slices land.
+
+Task 6.3 started protocol convergence by removing `_source` from `PageLike`.
+Production raw-content readers now use `bengal.content.page_source.get_raw_source()`,
+which prefers immutable SourcePage-backed `_raw_content` and only falls back to
+the legacy `_source` property while the adapter still exists.
+
+Task 6.3 continued by removing `_section` from `PageLike`. Production section
+read/write call sites now use `bengal.core.section.utils.get_page_section()` and
+`set_page_section()`, leaving the private slot as a legacy compatibility detail
+rather than a required page-like contract.
+
+Task 6.3 also removed `_directive_links` from `PageLike`. Directive-collected
+links are now accessed through rendering-owned helpers in
+`bengal.rendering.page_operations`, so parser side-channel state is not part of
+the structural page contract.
+
+Task 6.3 also removed parsed-content cache fields from `PageLike`, including
+`_ast_cache`, `_toc_items_cache`, `_excerpt`, and `_meta_description`.
+Cache adapters now set those remaining mutable slots through compatibility
+helpers, and rendering-owned `page_content` helpers remain the access boundary
+for derived AST, TOC, excerpt, and meta-description state.
+
+Task 6.3 also removed section archive context fields from `PageLike`, including
+`_posts`, `_subsections`, `_paginator`, and `_page_num`. Existing section index
+enrichment now writes archive and pagination context into page metadata, matching
+the renderer's read path and leaving the private fields as legacy class details
+only.
+
+Task 6.3 also removed `_autodoc_fallback_template` from `PageLike`. Autodoc
+fallback rendering now records `_autodoc_fallback_template` and
+`_autodoc_fallback_reason` through page metadata, so generated-reference
+fallback tagging no longer requires mutable page slots.
+
+Task 6.3 also removed `prerendered_html` from `PageLike`. Rendering-owned helper
+functions now read and write pre-rendered virtual page HTML, leaving the legacy
+field as adapter state until the mutable Page class is deleted.
+
+Task 6.3 also removed `_site` from `PageLike`. Content discovery and
+orchestration now use page-site helpers for the remaining mutable compatibility
+object, so site context remains legacy adapter state instead of a protocol
+requirement.
+
+Task 6.1/6.2 test fixture migration continued by moving analysis graph tests to
+hashable `MockAnalysisPage` fixtures. These tests now exercise analysis
+behavior without constructing the legacy mutable Page adapter unless the test is
+specifically proving compatibility.
+
+Task 6.1/6.2 test fixture migration also moved cache query-index tests to
+page-like cache fixtures. Index extraction, persistence, incremental update,
+and thread-safety coverage now run without constructing the legacy mutable Page
+adapter.
+
+Task 6.1/6.2 test fixture migration continued through content-type,
+related-posts, and taxonomy-incremental orchestration tests. These now use
+hashable page-like mocks for orchestration inputs instead of constructing the
+legacy mutable Page adapter.
+
+Task 6.1/6.2 test fixture migration also moved redirect postprocess tests to
+local page-like redirect fixtures for alias behavior, leaving PageCore alias
+serialization covered without constructing the legacy mutable Page adapter.
+
+Task 6.1/6.2 test fixture migration also moved render, taxonomy, section, and
+incremental orchestration tests to the shared page-like mock. The mock now
+accepts legacy raw-content argument names during migration without constructing
+the legacy mutable Page adapter.
+
+Task 6.1/6.2 test fixture migration also moved nav-tree tests to the shared
+page-like mock for navigation nodes, version filtering, active trail overlays,
+baseurl proxy handling, and cache behavior.
+
+Task 6.1/6.2 test fixture migration also moved Section sorting, hashability,
+index-collision, page-like input, and versioning tests to shared page-like
+mocks. The mock now exposes metadata-backed `version` for Section version
+filtering without constructing the legacy mutable Page adapter.
+
+Task 6.1/6.2 test fixture migration also moved cascade and cascade-snapshot
+tests to shared page-like mocks. Section cascade extraction and immutable
+cascade snapshot behavior now run without constructing the legacy mutable Page
+adapter.
+
+Task 6.1/6.2 test fixture migration also moved Section ergonomic helper tests
+to shared page-like mocks. Recent-page, content-page, and tag-listing helper
+coverage now runs without constructing the legacy mutable Page adapter.
+
+Task 6.1/6.2/6.3 also extracted page-like visibility helpers to
+`bengal.core.page_visibility`. Legacy Page visibility properties now delegate to
+the helper module, core page caches use metadata-based helper checks, and
+content-signal/site-visibility tests now exercise visibility behavior through
+page-like mocks instead of constructing the legacy mutable Page adapter.
+
+Task 6.1/6.2 test fixture migration also moved page visibility tests to the
+shared page-like mock and the Page-package-independent visibility helpers.
+Hidden, listings, sitemap, search, RSS, robots, render-environment, and AI
+content-signal coverage now runs without constructing the legacy mutable Page
+adapter.
+
+Task 6.1/6.2 test fixture migration also moved href and section page URL tests
+to shared page-like URL mocks backed by `bengal.rendering.page_urls`. Baseurl,
+absolute URL, output-path-derived URL, fallback URL, section collection URL, and
+navigation link coverage now runs without constructing the legacy mutable Page
+adapter.
+
+Task 6.1/6.2 test fixture migration also moved page URL cache-regression tests
+to the shared page-like URL mock. Fallback non-caching, output-path-derived URL
+recalculation, and numeric filename section URL coverage now assert the current
+rendering URL helper cache names without constructing the legacy mutable Page
+adapter.
+
+Task 6.1/6.2 test fixture migration also moved the standalone no-section page
+navigation edge case to the shared page-like mock and
+`bengal.core.page.navigation` helpers. Weight-order navigation integration
+coverage still uses discovery-built pages to preserve production behavior.
+
+Task 6.1/6.2 test fixture migration also moved navigation breadcrumb and parent
+tests to shared page-like mocks with `bengal.core.page.navigation` and
+`bengal.core.section.utils` helpers. Section URL, hierarchy, root, ancestor,
+breadcrumb, and parent coverage now runs without constructing the legacy
+mutable Page adapter.
+
+Task 6.1/6.2 test fixture migration also moved component model
+metadata-normalization tests to `build_page_core()`. Layout, hero-style,
+explicit variant priority, and custom props coverage now proves the immutable
+PageCore construction path without constructing the legacy mutable Page adapter.
+
+Task 6.1/6.2 test fixture migration also removed computed age, author, and
+series property-wrapper duplicates. The existing direct helper coverage now
+matches the module boundary without constructing the legacy mutable Page
+adapter.
+
+Task 6.1/6.2/6.3 also moved generated, assigned-template, content-type, and
+variant inclusion behavior behind metadata helper functions. Legacy Page
+properties delegate to those helpers while metadata tests exercise the helper
+boundary without constructing the mutable Page adapter.
+
+Task 6.1/6.2 test fixture migration also moved page-record migration
+bridge-retirement coverage to the canonical SourcePage-backed test-page
+adapter. Record migration tests no longer construct the legacy mutable Page
+adapter directly.
+
+Task 6.1/6.2 test fixture migration also moved hashability and deduplication
+coverage to source-path-hashable page-like mocks. Set operations, dict keys,
+taxonomy deduplication, and reconstruction cache lookups now prove the
+source-path identity contract without constructing the legacy mutable Page
+adapter.
+
+Task 6.1/6.2 also removed obsolete legacy Page cached-property tests. Raw source
+access, word-count, reading-time, meta-description, and excerpt behavior is now
+owned by content source, computed-function, and rendering helper tests rather
+than by mutable Page property-wrapper coverage.
+
+Task 6.1/6.2 also removed obsolete legacy Page section-reference tests.
+Section helper, registry, and virtual-section behavior is covered outside the
+mutable Page `_section` descriptor surface, so the deleted tests no longer hold
+the class in place.
+
+Task 6.1/6.2 also moved PageInitializer tests to the canonical
+SourcePage-backed test-page adapter. The tests still cover site and section
+initialization behavior, output-path validation, generated pages, and error
+quality, but no longer use legacy mutable Page constructor keyword names.
+
+Task 6.1/6.2 also moved frontmatter integration tests to the canonical
+SourcePage-backed test-page adapter. Typed frontmatter access, dict-style
+template access, malformed tag normalization, and frontmatter cache behavior
+remain covered without direct use of the legacy mutable test-page factory.
+
+Task 6.1/6.2 then removed the unused legacy mutable test-page factory from the
+shared page-record fixtures. Tests now route through SourcePage-backed helpers
+or purpose-built page-like mocks, leaving no test helper that accepts legacy
+mutable Page constructor keyword names.
+
+Task 6.1/6.2 then replaced the production adapter's legacy Page construction
+with a SourcePage-backed `RuntimePage` owned by the core page compatibility
+boundary. The `bengal.core.page` package root is now a lightweight helper
+package and no longer exports `Page`; `bengal.core.page.legacy` has been
+deleted. Adapter import tests now prove the legacy module is absent and page
+adaptation does not expose `Page`.
+
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
 ### Task 6.2 — Delete Page class and mixins
 
-Remove `bengal/core/page/__init__.py` (Page class), `metadata.py` (PageMetadataMixin), `content.py` (PageContentMixin), `relationships.py` (PageRelationshipsMixin).
+`bengal/core/page/legacy.py` (the isolated legacy Page class) has been removed
+after helper-package imports and behavior tests proved no fallback path still
+depends on it. Older mixin files listed in this task have already been removed
+or folded into helper modules.
 
-**Acceptance**: Page class deleted. Mixin files deleted. All tests pass.
+**Acceptance**: Page class deleted. Mixin files deleted. Focused and broader
+Page gates pass. Clean full-suite runs show only unrelated directive migration
+parser-state failures, recorded as follow-up outside the Page deletion closure
+criteria.
 
 ### Task 6.3 — Update protocols
 

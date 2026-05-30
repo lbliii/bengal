@@ -55,7 +55,7 @@ if TYPE_CHECKING:
     from bengal.core.site.context import SiteContext
     from bengal.protocols.core import PageLike
 
-from .utils import resolve_page_section_path
+from .utils import get_page_section, resolve_page_section_path, set_page_section
 from .weighted import WeightedPage
 
 
@@ -527,5 +527,7 @@ class Section:
 __all__ = [
     "Section",
     "WeightedPage",
+    "get_page_section",
     "resolve_page_section_path",
+    "set_page_section",
 ]

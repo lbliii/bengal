@@ -10,7 +10,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 from bengal.core.site import Site
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_url_page as _page
 
 
 def test_url_cache_cleared_after_output_path_set():
@@ -37,8 +37,8 @@ def test_url_cache_cleared_after_output_path_set():
     # Verify it's NOT cached (fallback values are not cached to prevent stale URLs)
     # This is the new behavior - fallbacks don't get cached to allow proper URL
     # computation once output_path is set
-    assert "_url_cache" not in page.__dict__, "Fallback URL should not be cached"
-    assert "_relative_url_cache" not in page.__dict__, "Fallback relative_url should not be cached"
+    assert "_href_cache" not in page.__dict__, "Fallback href should not be cached"
+    assert "_path_cache" not in page.__dict__, "Fallback path should not be cached"
 
     # Now set the proper output_path
     page.output_path = Path("/tmp/public/releases/0.1.0/index.html")

@@ -7,7 +7,7 @@ import pytest
 from bengal.analysis.graph.knowledge_graph import KnowledgeGraph as _KnowledgeGraph
 from bengal.analysis.graph.metrics import PageConnectivity
 from bengal.core.site import Site as _Site
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_analysis_page as _page
 
 KnowledgeGraph: Any = _KnowledgeGraph
 Site: Any = _Site

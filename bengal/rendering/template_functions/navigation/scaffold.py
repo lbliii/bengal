@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.nav_tree import NavTreeCache
+from bengal.core.section.utils import get_page_section
 from bengal.utils.concurrency.concurrent_locks import PerKeyLockManager
 from bengal.utils.primitives.lru_cache import LRUCache
 
@@ -392,7 +393,7 @@ def get_active_trail(page: PageLike) -> list[str]:
     trail.append(current_url)
 
     # Walk up from current section
-    section = getattr(page, "_section", None)
+    section = get_page_section(page)
     while section:
         section_url = getattr(section, "_path", None) or f"/{section.name}/"
         if section_url not in trail:

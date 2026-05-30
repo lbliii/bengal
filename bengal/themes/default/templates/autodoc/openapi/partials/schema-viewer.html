@@ -23,7 +23,8 @@ Kida Features:
 - Recursive {% include %} for nested objects
 - Optional chaining (?.) and null coalescing (??)
 #}
-{% let schema_type = schema?.schema_type ?? 'object' %}
+{% let schema_name = name | default('') %}
+{% let schema_type = schema?.schema_type ?? schema?.type ?? 'object' %}
 {% let properties = schema?.properties ?? {} %}
 {% let required_props = schema?.required ?? () %}
 {% let enum_vals = schema?.enum ?? none %}
@@ -33,12 +34,12 @@ Kida Features:
 {% let current_depth = depth ?? 0 %}
 {% let max_depth = 4 %}
 
-{% cache 'schema-viewer-' ~ (name ?? 'anon') ~ '-' ~ current_depth %}
+{% cache 'schema-viewer-' ~ (schema_name or 'anon') ~ '-' ~ current_depth %}
 <div class="api-schema-viewer api-schema-viewer--depth-{{ current_depth }}" data-schema-type="{{ schema_type }}">
     {# Schema Header #}
-    {% if name %}
+    {% if schema_name %}
     <div class="api-schema-viewer__header">
-        <code class="api-schema-viewer__name">{{ name }}</code>
+        <code class="api-schema-viewer__name">{{ schema_name }}</code>
         <span class="api-schema-viewer__type">{{ schema_type }}</span>
     </div>
     {% end %}
@@ -75,11 +76,12 @@ Kida Features:
 
             {# Nested object (recursive, with depth limit) #}
             {% if prop_type == 'object' and current_depth < max_depth %} {% let schema=prop_schema %} {% let
-                depth=current_depth + 1 %} {% include 'autodoc/openapi/partials/schema-viewer.html' %} {% end %} {#
+                name=prop_name %} {% let depth=current_depth + 1 %} {% include 'autodoc/openapi/partials/schema-viewer.html' %} {% end %} {#
                 Array items #} {% if prop_type=='array' and prop_schema?.items and current_depth < max_depth %} <div
                 class="api-schema-viewer__array-items">
                 <span class="api-schema-viewer__label">Items:</span>
                 {% let schema = prop_schema.items %}
+                {% let name = prop_name ~ ' items' %}
                 {% let depth = current_depth + 1 %}
                 {% include 'autodoc/openapi/partials/schema-viewer.html' %}
         </div>
@@ -113,7 +115,7 @@ Kida Features:
 {% if schema_type == 'array' and items_schema %}
 <div class="api-schema-viewer__array">
     <span class="api-schema-viewer__label">Array of:</span>
-    {% if current_depth < max_depth %} {% let schema=items_schema %} {% let depth=current_depth + 1 %} {%
+    {% if current_depth < max_depth %} {% let schema=items_schema %} {% let name=schema_name ~ ' items' %} {% let depth=current_depth + 1 %} {%
         include 'autodoc/openapi/partials/schema-viewer.html' %} {% else %} <code>{{ items_schema?.type ??
         items_schema?.schema_type ?? 'any' }}</code>
         {% end %}

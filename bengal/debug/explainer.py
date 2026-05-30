@@ -43,6 +43,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
+from bengal.content.page_source import get_raw_source
+from bengal.core.section.utils import get_page_section
 from bengal.debug.models import (
     CacheInfo,
     DependencyInfo,
@@ -216,13 +218,14 @@ class PageExplainer:
             SourceInfo with file metadata.
         """
         source_path = page.source_path
+        source = get_raw_source(page)
 
         # Handle virtual pages
         if page.virtual:
             return SourceInfo(
                 path=source_path,
-                size_bytes=len(page._source.encode()) if page._source else 0,
-                line_count=page._source.count("\n") + 1 if page._source else 0,
+                size_bytes=len(source.encode()) if source else 0,
+                line_count=source.count("\n") + 1 if source else 0,
                 modified=None,
                 encoding="UTF-8",
             )
@@ -251,8 +254,8 @@ class PageExplainer:
         # Fallback: use content from page object
         return SourceInfo(
             path=source_path,
-            size_bytes=len(page._source.encode()) if page._source else 0,
-            line_count=page._source.count("\n") + 1 if page._source else 0,
+            size_bytes=len(source.encode()) if source else 0,
+            line_count=source.count("\n") + 1 if source else 0,
             modified=None,
             encoding="UTF-8",
         )
@@ -453,10 +456,12 @@ class PageExplainer:
         deps = DependencyInfo()
 
         # Content dependencies
-        if page._section:
-            section = page._section
-            if hasattr(section, "index_page") and section.index_page:
-                deps.content.append(str(section.index_page.source_path))
+        if (
+            (section := get_page_section(page))
+            and hasattr(section, "index_page")
+            and section.index_page
+        ):
+            deps.content.append(str(section.index_page.source_path))
 
         # Template dependencies (from chain)
         for tpl in self._resolve_template_chain(page):
@@ -474,8 +479,9 @@ class PageExplainer:
                 deps.data.extend(data_refs)
 
         # Asset references from content
-        if page._source:
-            deps.assets = self._extract_asset_refs(page._source)
+        source = get_raw_source(page)
+        if source:
+            deps.assets = self._extract_asset_refs(source)
 
         # Include dependencies from shortcodes
         for shortcode in self._get_shortcode_usage(page):
@@ -543,15 +549,16 @@ class PageExplainer:
         Returns:
             List of ShortcodeUsage, sorted by count (descending).
         """
-        if not page._source:
+        source = get_raw_source(page)
+        if not source:
             return []
 
         usages: dict[str, ShortcodeUsage] = {}
 
-        for match in DIRECTIVE_PATTERN.finditer(page._source):
+        for match in DIRECTIVE_PATTERN.finditer(source):
             # Get name from either capture group
             name = match.group(1) or match.group(2)
-            line = page._source[: match.start()].count("\n") + 1
+            line = source[: match.start()].count("\n") + 1
 
             if name not in usages:
                 usages[name] = ShortcodeUsage(name=name, count=0, lines=[])
@@ -699,11 +706,12 @@ class PageExplainer:
                 )
 
         # Check internal links
-        if page._source:
+        source = get_raw_source(page)
+        if source:
             link_pattern = re.compile(r"\[([^\]]+)\]\((/[^)]+)\)")
-            for match in link_pattern.finditer(page._source):
+            for match in link_pattern.finditer(source):
                 link_text, link_target = match.groups()
-                line = page._source[: match.start()].count("\n") + 1
+                line = source[: match.start()].count("\n") + 1
 
                 # Check if target page exists
                 target_exists = any(
@@ -723,8 +731,8 @@ class PageExplainer:
                     )
 
         # Check for missing images
-        if page._source:
-            for asset_ref in self._extract_asset_refs(page._source):
+        if source:
+            for asset_ref in self._extract_asset_refs(source):
                 # Skip external and data URLs
                 if asset_ref.startswith(("http", "data:", "#")):
                     continue

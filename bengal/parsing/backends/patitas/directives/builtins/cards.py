@@ -45,6 +45,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from patitas.nodes import Directive
 
+from bengal.core.section.utils import get_page_section
 from bengal.parsing.backends.patitas.directives.contracts import (
     CARD_CONTRACT,
     CARDS_CONTRACT,
@@ -683,7 +684,7 @@ class ChildCardsDirective:
             return
 
         # Get section from page
-        section = getattr(page_context, "_section", None)
+        section = get_page_section(page_context)
         if not section:
             no_content("Page has no section")
             return
@@ -750,7 +751,7 @@ class ChildCardsDirective:
             context["empty_message"] = "No page context available"
             return context
 
-        section = getattr(page_context, "_section", None)
+        section = get_page_section(page_context)
         if not section:
             context["empty_message"] = "Page has no section"
             return context

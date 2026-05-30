@@ -26,6 +26,8 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, ClassVar
 
+from bengal.content.page_source import get_raw_source
+
 if TYPE_CHECKING:
     from bengal.protocols import PageLike, SiteContent
 
@@ -41,7 +43,7 @@ class FeatureDetector:
 
     Example:
         detector = FeatureDetector()
-        features = detector.detect_features_in_content(page._source)
+        features = detector.detect_features_in_content(get_raw_source(page))
 
     """
 
@@ -114,8 +116,9 @@ class FeatureDetector:
         features: set[str] = set()
 
         # Detect from content
-        if page._source:
-            features.update(self.detect_features_in_content(page._source))
+        source = get_raw_source(page)
+        if source:
+            features.update(self.detect_features_in_content(source))
 
         # Check metadata for explicit feature flags
         if page.metadata:

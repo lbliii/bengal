@@ -22,6 +22,7 @@ Surface area (12 groups, 4 tiers):
 
 from __future__ import annotations
 
+import argparse
 import sys
 from typing import Any
 
@@ -36,6 +37,28 @@ from bengal import __version__
 
 class BengalCLI(CLI):
     """Milo CLI that routes compatibility output through CLIOutput."""
+
+    _ROOT_HELP_OPTIONS = (
+        ("-h, --help", "show this help message and exit"),
+        ("--version", "show program's version number and exit"),
+        ("--llms-txt", "Output llms.txt for AI agent discovery"),
+        ("--mcp", "Run as MCP server (JSON-RPC on stdin/stdout)"),
+        (
+            "--mcp-install",
+            "Register this CLI in the milo gateway for AI agent discovery",
+        ),
+        ("--mcp-uninstall", "Remove this CLI from the milo gateway"),
+        (
+            "--completions SHELL",
+            "Output shell completion script (bash, zsh, fish, powershell)",
+        ),
+        ("-v, --verbose", "Increase verbosity (-v verbose, -vv debug)"),
+        ("-q, --quiet", "Suppress non-error output"),
+        ("--no-color", "Disable color output"),
+        ("-n, --dry-run", "Show what would happen without making changes"),
+        ("-o, --output-file FILE", "Write output to FILE instead of stdout"),
+        ("--force", "Overwrite output file if it exists"),
+    )
 
     _ROOT_HELP_SECTIONS = (
         {
@@ -52,19 +75,229 @@ class BengalCLI(CLI):
     )
 
     def run(self, argv: list[str] | None = None) -> Any:
-        """Run the CLI, rendering root help through Bengal's Kida template."""
+        """Run the CLI, keeping cheap help/version paths off full parser builds."""
         resolved_argv = list(sys.argv[1:] if argv is None else argv)
         if not resolved_argv:
-            self._parser = self.build_parser()
             self._format_root_help()
             return None
+        if "--version" in resolved_argv and not self._extract_command_tokens(resolved_argv):
+            self._write_stdout(f"{self.name} {self.version}")
+            return None
         if "--help" in resolved_argv or "-h" in resolved_argv:
-            self._parser = self.build_parser()
             self._format_help_for_argv(resolved_argv)
             return None
+        tokens = self._extract_command_tokens(resolved_argv)
+        if len(tokens) == 1:
+            group = self._find_group(tokens[0], self._groups)
+            if group is not None:
+                self._format_group_help(group, f"{self.name} {group.name}")
+                return None
+        selected = self._resolve_selected_command(tokens)
+        if selected is not None:
+            return self._run_selected_command(resolved_argv, selected)
         if self._render_unknown_command_if_needed(resolved_argv):
             sys.exit(2)
         return super().run(resolved_argv)
+
+    def _run_selected_command(self, argv: list[str], selected: tuple[list[Any], Any]) -> Any:
+        """Parse and execute one selected command without resolving sibling commands."""
+        groups, command_ref = selected
+        parser = self._build_selected_parser(groups, command_ref)
+        self._parser = parser
+        args = parser.parse_args(argv)
+        ctx = self._build_context(args)
+        execution = self._resolve_command_execution(args)
+        if execution is None:
+            return None
+
+        if execution.confirm_msg and not ctx.dry_run and not ctx.confirm(execution.confirm_msg):
+            self._write_stderr("Aborted.\n")
+            sys.exit(130)
+
+        result = self._execute_command(
+            execution.command,
+            ctx,
+            self._build_run_kwargs(args, ctx, execution.command),
+        )
+        result = self._consume_result(result)
+        self._run_after_command_hooks(ctx, execution.command.name, result)
+        suppress = not execution.command.display_result and not ctx.output_file
+        if not suppress:
+            force = getattr(args, "force", False)
+            self._write_command_output(result, execution.fmt, ctx.output_file, force=force)
+        return result
+
+    def _build_selected_parser(
+        self,
+        groups: list[Any],
+        command_ref: Any,
+    ) -> argparse.ArgumentParser:
+        """Build an argparse parser containing only the selected command path."""
+        parser = argparse.ArgumentParser(prog=self.name, description=self.description)
+        self._add_root_arguments(parser)
+        subparsers = parser.add_subparsers(dest="_command")
+        if not groups:
+            self._add_selected_command_parser(subparsers, command_ref)
+            return parser
+
+        current_subparsers = subparsers
+        for group in groups:
+            group_parser = current_subparsers.add_parser(
+                group.name,
+                help=group.description,
+                aliases=list(group.aliases),
+            )
+            current_subparsers = group_parser.add_subparsers(dest=f"_command_{group.name}")
+        self._add_selected_command_parser(current_subparsers, command_ref)
+        return parser
+
+    def _add_root_arguments(self, parser: argparse.ArgumentParser) -> None:
+        """Add Milo-compatible root arguments without constructing all subcommands."""
+        if self.version:
+            parser.add_argument(
+                "--version", action="version", version=f"{self.name} {self.version}"
+            )
+        parser.add_argument(
+            "--llms-txt",
+            action="store_true",
+            help="Output llms.txt for AI agent discovery",
+        )
+        parser.add_argument(
+            "--mcp",
+            action="store_true",
+            help="Run as MCP server (JSON-RPC on stdin/stdout)",
+        )
+        parser.add_argument(
+            "--mcp-install",
+            action="store_true",
+            help="Register this CLI in the milo gateway for AI agent discovery",
+        )
+        parser.add_argument(
+            "--mcp-uninstall",
+            action="store_true",
+            help="Remove this CLI from the milo gateway",
+        )
+        parser.add_argument(
+            "--completions",
+            choices=["bash", "zsh", "fish", "powershell"],
+            default=None,
+            metavar="SHELL",
+            help="Output shell completion script (bash, zsh, fish, powershell)",
+        )
+        parser.add_argument(
+            "-v",
+            "--verbose",
+            action="count",
+            default=0,
+            help="Increase verbosity (-v verbose, -vv debug)",
+        )
+        parser.add_argument(
+            "-q",
+            "--quiet",
+            action="store_true",
+            default=False,
+            help="Suppress non-error output",
+        )
+        parser.add_argument(
+            "--no-color",
+            action="store_true",
+            default=False,
+            help="Disable color output",
+        )
+        parser.add_argument(
+            "-n",
+            "--dry-run",
+            action="store_true",
+            default=False,
+            help="Show what would happen without making changes",
+        )
+        parser.add_argument(
+            "-o",
+            "--output-file",
+            dest="_output_file",
+            default="",
+            metavar="FILE",
+            help="Write output to FILE instead of stdout",
+        )
+        parser.add_argument(
+            "--force",
+            action="store_true",
+            default=False,
+            help="Overwrite output file if it exists",
+        )
+        for opt in self._global_options:
+            flags = [f"--{opt.name.replace('_', '-')}"]
+            if opt.short:
+                flags.insert(0, opt.short)
+            kwargs: dict[str, Any] = {
+                "dest": opt.name,
+                "help": opt.description,
+                "default": opt.default,
+            }
+            if opt.is_flag:
+                kwargs["action"] = "store_true"
+            else:
+                kwargs["type"] = opt.option_type
+            parser.add_argument(*flags, **kwargs)
+
+    def _add_selected_command_parser(
+        self,
+        subparsers: argparse._SubParsersAction,
+        command_ref: Any,
+    ) -> None:
+        """Add one command parser and resolve only that command's schema."""
+        from milo.commands import LazyImportError
+
+        sub = subparsers.add_parser(
+            command_ref.name,
+            help=command_ref.description,
+            aliases=list(command_ref.aliases),
+        )
+        try:
+            schema = command_ref.schema
+        except LazyImportError as exc:
+            self._write_stderr(f"error: {exc}\n")
+            self._write_stderr(
+                f"  hint: Check that {exc.import_path!r} is installed and importable.\n"
+            )
+            sys.exit(1)
+        self._add_arguments_from_schema(sub, schema, command_ref)
+        sub.add_argument(
+            "--format",
+            choices=["plain", "json", "table"],
+            default="plain",
+            help="Output format",
+        )
+
+    def _resolve_selected_command(self, tokens: list[str]) -> tuple[list[Any], Any] | None:
+        """Resolve command tokens to the selected group path and command reference."""
+        if not tokens or tokens[0].startswith("-"):
+            return None
+
+        command = self._find_command(tokens[0], self._commands)
+        if command is not None:
+            return ([], command)
+
+        group = self._find_group(tokens[0], self._groups)
+        if group is None:
+            return None
+
+        groups = [group]
+        index = 1
+        while index < len(tokens):
+            token = tokens[index]
+            if token.startswith("-"):
+                return None
+            command = self._find_command(token, group.commands)
+            if command is not None:
+                return (groups, command)
+            next_group = self._find_group(token, group.groups)
+            if next_group is None:
+                return None
+            group = next_group
+            groups.append(group)
+            index += 1
+        return None
 
     def _consume_result(self, result: Any, *, emit_progress: bool = True) -> Any:
         """Consume Milo generator progress through Bengal's renderer bridge."""
@@ -169,9 +402,7 @@ class BengalCLI(CLI):
         get_cli_output().raw(message.rstrip("\n"), stream="stderr", level=None)
 
     def _format_root_help(self) -> None:
-        """Render root help from the command registry with Bengal's CLI template."""
-        from bengal.output import get_cli_output
-
+        """Render root help from the command registry without resolving commands."""
         commands = self._root_help_commands()
         sections = []
         included: set[str] = set()
@@ -185,31 +416,34 @@ class BengalCLI(CLI):
         if remaining:
             sections.append({"title": "Other", "commands": remaining})
 
-        get_cli_output().render_write(
-            "cli_root_help.kida",
-            name=self.name,
-            version=self.version,
-            brand_mark=self._brand_mark(),
-            description=self.description,
-            sections=sections,
-            options=self._root_help_options(),
-            examples=[
-                {"command": "bengal build --strict", "description": "Build for CI"},
-                {
-                    "command": "bengal check --templates",
-                    "description": "Validate content and templates",
-                },
-                {
-                    "command": "bengal --llms-txt",
-                    "description": "Show agent-readable CLI reference",
-                },
-            ],
+        lines = [f"{self._brand_mark()} {self.name} {self.version}", "", self.description, ""]
+        for section in sections:
+            lines.append(section["title"])
+            lines.extend(
+                f"  {command['label']}{command['padding']}{command['description']}"
+                for command in section["commands"]
+            )
+            lines.append("")
+
+        lines.extend(["", "Useful flags"])
+        lines.extend(
+            f"  {option['label']}{option['padding']}{option['help']}"
+            for option in self._root_help_options()
         )
 
-    def _format_group_help(self, group: Any, prog: str) -> None:
-        """Render group help from a Milo group using Bengal's CLI template."""
-        from bengal.output import get_cli_output
+        lines.extend(
+            [
+                "",
+                "Examples",
+                "  $ bengal build --strict - Build for CI",
+                "  $ bengal check --templates - Validate content and templates",
+                "  $ bengal --llms-txt - Show agent-readable CLI reference",
+            ]
+        )
+        self._write_stdout("\n".join(lines))
 
+    def _format_group_help(self, group: Any, prog: str) -> None:
+        """Render group help from a Milo group without resolving commands."""
         commands = [
             self._help_entry(cmd.name, cmd.description, cmd.aliases, kind="command")
             for cmd in group.commands.values()
@@ -220,19 +454,16 @@ class BengalCLI(CLI):
             for sub in group.groups.values()
             if not getattr(sub, "hidden", False)
         )
-        get_cli_output().render_write(
-            "cli_group_help.kida",
-            prog=prog,
-            brand_mark=self._brand_mark(),
-            description=group.description,
-            commands=commands,
+        lines = [f"{self._brand_mark()} {prog}", "", group.description, "", "Commands"]
+        lines.extend(
+            f"  {command['label']}{command['padding']}{command['description']}"
+            for command in commands
         )
+        self._write_stdout("\n".join(lines))
 
     def _format_command_help(self, command_ref: Any, prog: str) -> None:
         """Render leaf command help from Milo's command schema."""
         from milo.commands import LazyCommandDef, LazyImportError
-
-        from bengal.output import get_cli_output
 
         try:
             command = (
@@ -245,20 +476,19 @@ class BengalCLI(CLI):
             )
             return
 
-        get_cli_output().render_write(
-            "cli_command_help.kida",
-            prog=prog,
-            brand_mark=self._brand_mark(),
-            description=command.description,
-            options=self._command_help_options(command.schema),
-            examples=[
-                {
-                    "command": example.command,
-                    "description": example.description,
-                }
-                for example in getattr(command, "examples", ()) or ()
-            ],
+        lines = [f"{self._brand_mark()} {prog}", "", command.description, "", "Options"]
+        lines.extend(
+            f"  {option['label']}{option['padding']}{option['help']}"
+            for option in self._command_help_options(command.schema)
         )
+        examples = getattr(command, "examples", ()) or ()
+        if examples:
+            lines.extend(["", "Examples"])
+            for example in examples:
+                command_text = self._example_field(example, "command")
+                description = self._example_field(example, "description")
+                lines.append(f"  $ {command_text} - {description}")
+        self._write_stdout("\n".join(lines))
 
     def _format_help_for_argv(self, argv: list[str]) -> None:
         """Render root, group, or leaf help for a help-bearing invocation."""
@@ -389,18 +619,13 @@ class BengalCLI(CLI):
         suggestion: str,
         commands: list[dict[str, Any]],
     ) -> None:
-        """Render a command error through Bengal's Kida template on stderr."""
-        from bengal.output import get_cli_output
-
-        cli = get_cli_output()
-        rendered = cli.render(
-            "command_error.kida",
-            title=title,
-            message=message,
-            suggestion=suggestion,
-            commands=commands,
+        """Render a command error on stderr without resolving commands."""
+        lines = [f"ᘛ⁐̤ᕐᐷ {title}", "", message, suggestion, "", "Available commands"]
+        lines.extend(
+            f"  {command['label']}{command['padding']}{command['description']}"
+            for command in commands
         )
-        cli.raw(rendered.rstrip("\n"), stream="stderr", level=None)
+        self._write_stderr("\n".join(lines))
 
     @staticmethod
     def _suggest_name(
@@ -465,38 +690,34 @@ class BengalCLI(CLI):
         return commands
 
     def _root_help_options(self) -> list[dict[str, str]]:
-        """Return visible root parser options for help rendering."""
-        import argparse
-
+        """Return visible root options without building the full parser."""
         options = []
-        for action in self._parser._actions:
-            if isinstance(action, argparse._SubParsersAction):
-                continue
-            flags = ", ".join(action.option_strings) if action.option_strings else ""
-            if not flags:
-                continue
+        for label, help_text in self._ROOT_HELP_OPTIONS:
             options.append(
                 {
-                    "flags": flags,
-                    "help": action.help or "",
-                    "metavar": action.metavar or "",
-                    "label": f"{flags} {action.metavar}".strip() if action.metavar else flags,
-                    "label_len": len(f"{flags} {action.metavar}".strip())
-                    if action.metavar
-                    else len(flags),
-                    "padding": " "
-                    * max(
-                        28
-                        - (
-                            len(f"{flags} {action.metavar}".strip())
-                            if action.metavar
-                            else len(flags)
-                        ),
-                        1,
-                    ),
+                    "flags": label,
+                    "help": help_text,
+                    "metavar": "",
+                    "label": label,
+                    "label_len": len(label),
+                    "padding": " " * max(28 - len(label), 1),
                 }
             )
         return options
+
+    @staticmethod
+    def _write_stdout(message: str) -> None:
+        """Write a complete CLI help document to stdout."""
+        from bengal.output import get_cli_output
+
+        get_cli_output().raw(message.rstrip("\n"), stream="stdout", level=None)
+
+    @staticmethod
+    def _example_field(example: Any, name: str) -> str:
+        """Read an example field from Milo example objects or dicts."""
+        if isinstance(example, dict):
+            return str(example.get(name, ""))
+        return str(getattr(example, name, ""))
 
     def _command_help_options(self, schema: dict[str, Any]) -> list[dict[str, Any]]:
         """Return template-friendly option entries from a Milo command schema."""
@@ -542,9 +763,10 @@ class BengalCLI(CLI):
         """Build a template-friendly command entry."""
         alias_text = f" ({', '.join(aliases)})" if aliases else ""
         label = f"{name}{alias_text}"
+        displayed_description = f"{description} [group]" if kind == "group" else description
         return {
             "name": name,
-            "description": description,
+            "description": displayed_description,
             "aliases": tuple(aliases),
             "kind": kind,
             "label": label,

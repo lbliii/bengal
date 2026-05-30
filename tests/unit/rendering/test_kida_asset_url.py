@@ -91,6 +91,23 @@ class TestAssetUrlFingerprinting:
         result = resolve_asset_url("js/unknown.js", site_with_manifest)
         assert result == "/assets/js/unknown.js"
 
+    def test_fallback_finds_fingerprinted_file_when_manifest_missing_entry(
+        self, tmp_path: Path
+    ) -> None:
+        """Missing manifest entries should still resolve emitted fingerprinted files."""
+        output_css = tmp_path / "assets" / "css"
+        output_css.mkdir(parents=True)
+        (output_css / "style.c2739a3c.css").write_text("body{}", encoding="utf-8")
+        (tmp_path / "asset-manifest.json").write_text(
+            '{"version":1,"generated_at":"2026-01-01T00:00:00Z","assets":{}}',
+            encoding="utf-8",
+        )
+        site = MockSite(output_dir=tmp_path)
+
+        result = resolve_asset_url("css/style.css", site)
+
+        assert result == "/assets/css/style.c2739a3c.css"
+
     def test_dev_mode_skips_fingerprinting(self, site_with_manifest: MockSite) -> None:
         """Dev mode should return non-fingerprinted URLs for fast iteration."""
         site_with_manifest.dev_mode = True

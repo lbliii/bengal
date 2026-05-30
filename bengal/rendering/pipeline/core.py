@@ -32,11 +32,13 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.cache.parsed_output import apply_parsed_page_to_page, with_parsed_html
+from bengal.content.page_source import get_raw_source
 from bengal.core.records import (
     ParsedPage,
     parsed_page_from_page_state,
     rendered_page_from_page_state,
 )
+from bengal.core.section.utils import get_page_section
 from bengal.rendering.api_doc_enhancer import set_enhancer_for_render
 
 if TYPE_CHECKING:
@@ -49,7 +51,11 @@ if TYPE_CHECKING:
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
-from bengal.rendering.page_operations import extract_links
+from bengal.rendering.page_operations import (
+    extract_links,
+    get_prerendered_html,
+    set_directive_links,
+)
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
 from bengal.rendering.pipeline.cache_checker import CacheChecker
 from bengal.rendering.pipeline.json_accumulator import JsonAccumulator
@@ -347,7 +353,7 @@ class RenderingPipeline:
         # Handle virtual pages (autodoc, etc.)
         # - Pages with pre-rendered HTML (truthy or empty string)
         # - Autodoc pages that defer rendering until navigation is available
-        prerendered = getattr(page, "prerendered_html", None)
+        prerendered = get_prerendered_html(page)
         is_autodoc = page.metadata.get("is_autodoc")
         if getattr(page, "virtual", False) and (prerendered is not None or is_autodoc):
             if is_autodoc:
@@ -513,7 +519,7 @@ class RenderingPipeline:
                 parsed_page = self._parse_with_legacy(page, need_toc)
                 directive_links = []
             if directive_links:
-                page._directive_links = directive_links
+                set_directive_links(page, directive_links)
 
             # Flush deferred highlighting: batch process all code blocks in parallel
             # This replaces <!--code:XXX--> placeholders with highlighted HTML
@@ -585,7 +591,7 @@ class RenderingPipeline:
         if page.metadata.get("toc") is False:
             return False
 
-        content_text = page._source or ""
+        content_text = get_raw_source(page)
         likely_has_atx = re.search(r"^(?:\s{0,3})(?:##|###|####)\s+.+", content_text, re.MULTILINE)
         if likely_has_atx:
             return True
@@ -601,8 +607,9 @@ class RenderingPipeline:
         def parse_markdown(s: str) -> str:
             return self.parser.parse(s, {})
 
+        raw_source = get_raw_source(page)
         source = expand_shortcodes(
-            page._source,
+            raw_source,
             self.template_engine,
             page,
             self.site,
@@ -1029,7 +1036,7 @@ class RenderingPipeline:
         )
         from bengal.snapshots.types import NO_SECTION, SectionSnapshot
 
-        section = getattr(page, "_section", None)
+        section = get_page_section(page)
         metadata = page.metadata if hasattr(page, "metadata") else {}
 
         # Get snapshot from build_context if available (RFC: rfc-bengal-snapshot-engine)
@@ -1116,8 +1123,9 @@ class RenderingPipeline:
         def parse_markdown(s: str) -> str:
             return self.parser.parse(s, {})
 
+        raw_source = get_raw_source(page)
         source = expand_shortcodes(
-            page._source,
+            raw_source,
             self.template_engine,
             page,
             self.site,

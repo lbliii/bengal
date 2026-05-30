@@ -20,6 +20,8 @@ Kida Features:
 - Optional chaining (?.) and null coalescing (??)
 #}
 
+{% let response_scope = response_scope_id ?? 'response' %}
+
 {# Status code category helper #}
 {% def status_category(code) %}
 {% let code_str = code | string %}
@@ -44,7 +46,7 @@ Kida Features:
 {% end %}
 {% end %}
 
-<section class="api-responses autodoc-section" data-section="responses">
+<section class="api-responses autodoc-section" id="responses" data-section="responses">
   <header class="api-responses__header">
     <h2 class="api-responses__title autodoc-section-title">Responses</h2>
   </header>
@@ -61,7 +63,7 @@ Kida Features:
       class="api-responses__tab badge {{ color_class }}{% if loop.first %} api-responses__tab--active{% end %}"
       role="tab"
       aria-selected="{{ 'true' if loop.first else 'false' }}"
-      aria-controls="response-panel-{{ code }}"
+      aria-controls="{{ response_scope }}-response-panel-{{ code }}"
       data-status-category="{{ category }}"
     >
       {{ code }}
@@ -84,7 +86,7 @@ Kida Features:
 
     <div
       class="api-responses__panel{% if loop.first %} api-responses__panel--active{% end %}"
-      id="response-panel-{{ code }}"
+      id="{{ response_scope }}-response-panel-{{ code }}"
       role="tabpanel"
       data-status-code="{{ code }}"
       data-status-category="{{ category }}"

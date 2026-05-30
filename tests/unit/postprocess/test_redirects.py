@@ -5,7 +5,6 @@ Unit tests for RedirectGenerator (Hugo-style aliases).
 from pathlib import Path
 
 from bengal.postprocess.redirects import RedirectGenerator
-from tests._testing.page_records import make_mutable_test_page as _page
 
 
 class DummyPage:
@@ -296,11 +295,11 @@ def test_page_core_serialization_includes_aliases():
 
 
 def test_page_exposes_aliases():
-    """Test that Page exposes aliases from frontmatter."""
-    page = _page(
-        source_path=Path("content/test.md"),
-        _raw_content="",
-        _raw_metadata={"title": "Test", "aliases": ["/old/path/"]},
+    """Test that redirect page-like inputs expose aliases."""
+    page = DummyPage(
+        source_path="content/test.md",
+        title="Test",
+        aliases=["/old/path/"],
     )
 
     assert page.aliases == ["/old/path/"]

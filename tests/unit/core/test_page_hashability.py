@@ -1,26 +1,51 @@
 """
-Test Page hashability and set operations.
+Test page-like hashability and set operations.
 
-Tests that Page objects are properly hashable based on source_path,
-enabling set storage, dictionary keys, and O(1) membership tests.
+Tests that page-like objects are hashable based on source_path, enabling set
+storage, dictionary keys, and O(1) membership tests without depending on the
+legacy mutable Page adapter.
 """
 
 from pathlib import Path
+from typing import Any
 
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import MockAnalysisPage, make_analysis_page
 from tests._testing.page_records import seed_parsed_page_state
 
 
+def _page(
+    *,
+    source_path: Path | str,
+    raw_content: str = "",
+    metadata: dict[str, Any] | None = None,
+    **attrs: Any,
+) -> MockAnalysisPage:
+    """Create a source-path-hashable page-like test fixture."""
+    legacy_raw_content = attrs.pop("_raw_content", None)
+    legacy_raw_metadata = attrs.pop("_raw_metadata", None)
+    if legacy_raw_content is not None and not raw_content:
+        raw_content = str(legacy_raw_content)
+    if legacy_raw_metadata is not None and metadata is None:
+        metadata = legacy_raw_metadata
+
+    return make_analysis_page(
+        source_path=source_path,
+        raw_content=raw_content,
+        metadata=metadata,
+        **attrs,
+    )
+
+
 class TestPageHashability:
-    """Test that Page objects are properly hashable."""
+    """Test that page-like objects are properly hashable."""
 
     def test_page_is_hashable(self, tmp_path):
-        """Pages can be hashed."""
+        """Page-like fixtures can be hashed."""
         page = _page(source_path=tmp_path / "content/post.md")
         assert isinstance(hash(page), int)
 
     def test_page_equality_by_source_path(self, tmp_path):
-        """Pages with same source_path are equal."""
+        """Page-like fixtures with same source_path are equal."""
         path = tmp_path / "content/post.md"
         page1 = _page(source_path=path)
         page2 = _page(source_path=path)
@@ -29,7 +54,7 @@ class TestPageHashability:
         assert hash(page1) == hash(page2)
 
     def test_page_inequality_different_paths(self, tmp_path):
-        """Pages with different source_paths are not equal."""
+        """Page-like fixtures with different source_paths are not equal."""
         page1 = _page(source_path=tmp_path / "content/post1.md")
         page2 = _page(source_path=tmp_path / "content/post2.md")
 
@@ -82,7 +107,7 @@ class TestPageHashability:
         assert data[page1_copy] == "data for page 1"
 
     def test_page_findable_in_set_after_mutation(self, tmp_path):
-        """Page remains findable in set after mutation."""
+        """Page-like fixture remains findable in set after mutation."""
         page = _page(source_path=tmp_path / "content/post.md")
         pages = {page}
 
@@ -95,7 +120,7 @@ class TestPageHashability:
         assert page in pages
 
     def test_page_equality_ignores_content(self, tmp_path):
-        """Pages are equal based on path, not content."""
+        """Page-like fixtures are equal based on path, not content."""
         path = tmp_path / "content/post.md"
         page1 = _page(source_path=path, _raw_content="Content A")
         page2 = _page(source_path=path, _raw_content="Content B")
@@ -105,7 +130,7 @@ class TestPageHashability:
         assert hash(page1) == hash(page2)
 
     def test_page_equality_ignores_metadata(self, tmp_path):
-        """Pages are equal based on path, not metadata."""
+        """Page-like fixtures are equal based on path, not metadata."""
         path = tmp_path / "content/post.md"
         page1 = _page(source_path=path, _raw_metadata={"title": "First Title", "tags": ["a"]})
         page2 = _page(source_path=path, _raw_metadata={"title": "Second Title", "tags": ["b", "c"]})
@@ -115,7 +140,7 @@ class TestPageHashability:
         assert hash(page1) == hash(page2)
 
     def test_page_not_equal_to_other_types(self, tmp_path):
-        """Pages are not equal to non-Page objects."""
+        """Page-like fixtures are not equal to other object types."""
         page = _page(source_path=tmp_path / "content/post.md")
 
         assert page != str(tmp_path / "content/post.md")
@@ -126,7 +151,7 @@ class TestPageHashability:
 
 
 class TestPageSetOperations:
-    """Test set operations with pages."""
+    """Test set operations with page-like fixtures."""
 
     def test_set_union(self, tmp_path):
         """Set union works with pages."""
@@ -216,7 +241,7 @@ class TestPageSetOperations:
 
 
 class TestPageDictionaryOperations:
-    """Test dictionary operations with pages as keys."""
+    """Test dictionary operations with page-like fixtures as keys."""
 
     def test_dict_get_and_set(self, tmp_path):
         """Basic dict operations with page keys."""

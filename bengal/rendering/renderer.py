@@ -28,6 +28,7 @@ import re
 import threading
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.section.utils import get_page_section
 from bengal.protocols import SiteLike
 from bengal.rendering.context import build_page_context
 from bengal.rendering.errors import TemplateRenderError
@@ -462,7 +463,7 @@ class Renderer:
 
         if (
             is_index_page
-            and page._section is None
+            and get_page_section(page) is None
             and not page.metadata.get("_generated")
             and page_type not in ("tag", "tag-index")
         ):
@@ -770,8 +771,9 @@ class Renderer:
         page_type = page.type
         content_type = None
 
-        if hasattr(page, "_section") and page._section and hasattr(page._section, "metadata"):
-            content_type = page._section.metadata.get("content_type")
+        page_section = get_page_section(page)
+        if page_section and hasattr(page_section, "metadata"):
+            content_type = page_section.metadata.get("content_type")
 
         # Determine which strategy to use
         from bengal.content_types.registry import (
@@ -796,8 +798,8 @@ class Renderer:
 
         # 3. Section-based auto-detection (fallback)
         is_section_index = page.source_path.stem == "_index"
-        if hasattr(page, "_section") and page._section:
-            section_name = page._section.name
+        if page_section:
+            section_name = page_section.name
 
             if is_section_index:
                 # Try section index templates in order of specificity

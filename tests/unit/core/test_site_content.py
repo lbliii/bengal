@@ -183,8 +183,7 @@ class TestDerivedPageLists:
     def hidden_page(self) -> MagicMock:
         """Create a hidden page."""
         page = MagicMock()
-        page.metadata = {}
-        page.in_listings = False
+        page.metadata = {"visibility": {"listings": False}}
         return page
 
     def test_regular_pages(self, regular_page: MagicMock, generated_page: MagicMock) -> None:
@@ -212,7 +211,7 @@ class TestDerivedPageLists:
     def test_listable_pages(
         self, regular_page: MagicMock, generated_page: MagicMock, hidden_page: MagicMock
     ) -> None:
-        """listable_pages returns pages with in_listings=True."""
+        """listable_pages returns pages allowed by visibility metadata."""
         content = SiteContent()
         content.pages = [regular_page, generated_page, hidden_page]
 

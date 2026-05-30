@@ -241,32 +241,6 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
     render_time_ms: float  # Per-page render time, set during rendering
     related_posts: list[PageLike]  # Pre-computed related pages
 
-    _site: Any  # Site reference (set during setup_references)
-    prerendered_html: str | None  # Pre-rendered HTML (autodoc, etc.), set before render
-    _excerpt: str | None  # AST-extracted excerpt (set by pipeline)
-    _meta_description: str | None  # AST-extracted meta description (set by pipeline)
-    _toc_items_cache: list[Any] | None  # Cached TOC items from parsing
-    _ast_cache: Any  # Cached AST from parsing
-    _directive_links: list[str] | None  # Links collected from directives
-    _autodoc_fallback_template: bool  # Whether to use autodoc fallback template
-    _posts: list[Any] | None  # Related posts for section index pages
-    _subsections: list[Any] | None  # Subsections for section index pages
-    _paginator: Any  # Paginator for paginated pages
-    _page_num: int | None  # Page number for paginated pages (None if not paginated)
-
-    @property
-    def _source(self) -> str:
-        """Raw markdown source content."""
-        ...
-
-    @property
-    def _section(self) -> SectionLike | None:
-        """Section this page belongs to (lazy lookup)."""
-        ...
-
-    @_section.setter
-    def _section(self, value: SectionLike | None) -> None: ...
-
     @property
     def _path(self) -> str:
         """Internal site-relative path (no baseurl)."""

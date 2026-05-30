@@ -5,7 +5,7 @@
 Updated: 2026-05-29
 
 Root `plan/` is intentionally small. It contains `AGENTS.md`, this index, the
-current roadmap, and the ten active plans that still describe work Bengal
+current roadmap, and the nine active plans that still describe work Bengal
 intends to do. Everything else belongs in an archive directory and should not
 be treated as the agenda.
 
@@ -20,7 +20,6 @@ session mission; this index and `ROADMAP.md` remain the durable source of truth.
 | File | Status | Notes |
 |------|--------|-------|
 | `ROADMAP.md` | Active | Sequencing and verification snapshot for the current plan set. |
-| `epic-immutable-page-pipeline.md` | Active | Mutable `Page` deletion remains pending. |
 | `epic-delete-forwarding-wrappers.md` | Active | Keep as follow-on architecture cleanup after Page/Site boundaries shrink. |
 | `epic-openapi-rest-layout-upgrade.md` | Active | Autodoc/API docs polish remains a production gap. |
 | `epic-ux-sharp-edges.md` | Active | User-visible CLI/error/directive/scaffold polish bucket. |
@@ -75,6 +74,17 @@ session mission; this index and `ROADMAP.md` remain the durable source of truth.
   exists as a Milo command with artifact audit primitives and Kida/JSON output.
 - `docs/live-reload-pipeline-review.md` was marked as historical where it
   contradicted Bengal's Python 3.14 / PEP 758 exception syntax policy.
+
+## 2026-05-30 Triage Notes
+
+- `epic-immutable-page-pipeline.md` moved to `complete/` after Sprint 6 deleted
+  the mutable `Page` compatibility class, retired the public `bengal.Page` and
+  `bengal.core.Page` re-exports, and updated Page construction to return
+  SourcePage-backed `RuntimePage` instances.
+- Full-suite proof for the Page saga ran in a clean worktree at `ba37930b3`.
+  Page/source/rendering gates, ruff, dependency checks, and ty passed. The only
+  remaining full-suite failures are an unrelated directive migration parity
+  state leak reproducible with `--randomly-seed=314926607`.
 
 ## Current Architecture Snapshot
 

@@ -1,9 +1,35 @@
+import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any, cast
 
 from bengal.content.discovery.page_adapter import page_from_source_page
 from bengal.core.records import build_source_page, create_virtual_source_page
+
+
+def test_page_adapter_import_does_not_expose_page_class() -> None:
+    code = """
+import importlib.util
+import sys
+import bengal.content.discovery.page_adapter
+import bengal.core.page
+print("legacy_module", importlib.util.find_spec("bengal.core.page.legacy"))
+print("legacy_loaded", "bengal.core.page.legacy" in sys.modules)
+print("exports_page", hasattr(bengal.core.page, "Page"))
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", code],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.stdout.splitlines() == [
+        "legacy_module None",
+        "legacy_loaded False",
+        "exports_page False",
+    ]
 
 
 def test_page_from_source_page_preserves_source_record_fields() -> None:

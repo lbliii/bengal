@@ -11,7 +11,43 @@ from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import MagicMock
 
-from bengal.core.section import resolve_page_section_path
+from bengal.core.section import get_page_section, resolve_page_section_path, set_page_section
+
+
+class TestPageSectionAccess:
+    """Tests for page section access helpers."""
+
+    def test_prefers_private_legacy_section(self):
+        page = MagicMock()
+        page._section = "legacy"
+        page.section = "public"
+
+        assert get_page_section(page) == "legacy"
+
+    def test_falls_back_to_public_section(self):
+        page = MagicMock(spec=["section"])
+        page.section = "docs"
+
+        assert get_page_section(page) == "docs"
+
+    def test_returns_none_for_proxy_errors(self):
+        class ProxyPage:
+            @property
+            def _section(self):
+                raise AttributeError("unavailable")
+
+            @property
+            def section(self):
+                raise AttributeError("unavailable")
+
+        assert get_page_section(ProxyPage()) is None
+
+    def test_set_page_section_assigns_legacy_runtime_reference(self):
+        page = MagicMock()
+
+        set_page_section(page, "docs")
+
+        assert page._section == "docs"
 
 
 class TestResolvePageSectionPath:

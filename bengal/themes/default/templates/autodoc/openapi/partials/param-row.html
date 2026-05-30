@@ -22,13 +22,14 @@ Kida Features:
 - Optional chaining (?.) and null coalescing (??)
 #}
 {% let name = param?.name ?? 'unnamed' %}
-{% let type = param?.schema_type ?? 'string' %}
-{% let location = param?.location ?? 'query' %}
+{% let schema = param.get('schema', {}) if param is mapping else {} %}
+{% let type = param?.schema_type ?? schema?.type ?? 'string' %}
+{% let location = param?.location ?? param.get('in', 'query') %}
 {% let is_required = param?.required ?? false %}
 {% let description = param?.description ?? '' %}
-{% let default_val = param?.default %}
-{% let enum_vals = param?.enum %}
-{% let example = param?.example %}
+{% let default_val = param?.default ?? schema?.default %}
+{% let enum_vals = param?.enum ?? schema?.enum %}
+{% let example = param?.example ?? schema?.example %}
 
 <div class="api-param-row{% if is_required %} api-param-row--required{% end %}" data-required="{{ is_required }}">
   {# Parameter Meta: Name, Type, Badges #}

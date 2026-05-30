@@ -103,6 +103,8 @@ Extracts:
 - Endpoint documentation
 - Request/response schemas
 - Authentication requirements
+- Full consolidated endpoint references with parameters, request bodies,
+  responses, and generated request examples
 
 Local OpenAPI `$ref` files are supported relative to the document that declares
 the reference, such as `./schemas.yaml#/User`. Bengal tracks those files as

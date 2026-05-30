@@ -10,7 +10,19 @@ Tests the hidden/visibility frontmatter and related properties:
 
 from pathlib import Path
 
-from tests._testing.page_records import make_mutable_test_page as _page
+from bengal.core.page_visibility import (
+    get_page_visibility,
+    get_robots_meta,
+    is_page_in_ai_input,
+    is_page_in_ai_train,
+    is_page_in_listings,
+    is_page_in_rss,
+    is_page_in_search,
+    is_page_in_sitemap,
+    should_render_page,
+    should_render_page_in_environment,
+)
+from tests._testing.mocks import make_mock_page as _page
 
 
 class TestHiddenShorthand:
@@ -24,7 +36,7 @@ class TestHiddenShorthand:
             _raw_metadata={"title": "Test"},
         )
 
-        assert page.hidden is False
+        assert page.metadata.get("hidden", False) is False
 
     def test_hidden_true_when_set(self):
         """Pages can be marked as hidden."""
@@ -34,7 +46,7 @@ class TestHiddenShorthand:
             _raw_metadata={"title": "Secret", "hidden": True},
         )
 
-        assert page.hidden is True
+        assert page.metadata["hidden"] is True
 
     def test_hidden_expands_to_restrictive_visibility(self):
         """hidden: true expands to restrictive visibility defaults."""
@@ -44,7 +56,7 @@ class TestHiddenShorthand:
             _raw_metadata={"title": "Secret", "hidden": True},
         )
 
-        visibility = page.visibility
+        visibility = get_page_visibility(page)
         assert visibility["menu"] is False
         assert visibility["listings"] is False
         assert visibility["sitemap"] is False
@@ -67,7 +79,7 @@ class TestVisibilityObject:
             _raw_metadata={"title": "Test"},
         )
 
-        visibility = page.visibility
+        visibility = get_page_visibility(page)
         assert visibility["menu"] is True
         assert visibility["listings"] is True
         assert visibility["sitemap"] is True
@@ -92,7 +104,7 @@ class TestVisibilityObject:
             },
         )
 
-        visibility = page.visibility
+        visibility = get_page_visibility(page)
         assert visibility["menu"] is True  # Default
         assert visibility["listings"] is False  # Overridden
         assert visibility["sitemap"] is True  # Explicitly set
@@ -117,7 +129,7 @@ class TestVisibilityObject:
             },
         )
 
-        visibility = page.visibility
+        visibility = get_page_visibility(page)
         assert visibility["menu"] is False
         assert visibility["listings"] is False
         assert visibility["sitemap"] is False
@@ -138,7 +150,7 @@ class TestInListingsProperty:
             _raw_metadata={"title": "Post"},
         )
 
-        assert page.in_listings is True
+        assert is_page_in_listings(page) is True
 
     def test_hidden_page_not_in_listings(self):
         """Hidden pages are not in listings."""
@@ -148,7 +160,7 @@ class TestInListingsProperty:
             _raw_metadata={"title": "Secret", "hidden": True},
         )
 
-        assert page.in_listings is False
+        assert is_page_in_listings(page) is False
 
     def test_draft_page_not_in_listings(self):
         """Draft pages are not in listings."""
@@ -158,7 +170,7 @@ class TestInListingsProperty:
             _raw_metadata={"title": "Draft", "draft": True},
         )
 
-        assert page.in_listings is False
+        assert is_page_in_listings(page) is False
 
     def test_visibility_listings_false_not_in_listings(self):
         """Pages with visibility.listings: false are not in listings."""
@@ -171,7 +183,7 @@ class TestInListingsProperty:
             },
         )
 
-        assert page.in_listings is False
+        assert is_page_in_listings(page) is False
 
 
 class TestInSitemapProperty:
@@ -185,7 +197,7 @@ class TestInSitemapProperty:
             _raw_metadata={"title": "Post"},
         )
 
-        assert page.in_sitemap is True
+        assert is_page_in_sitemap(page) is True
 
     def test_hidden_page_not_in_sitemap(self):
         """Hidden pages are not in sitemap."""
@@ -195,7 +207,7 @@ class TestInSitemapProperty:
             _raw_metadata={"title": "Secret", "hidden": True},
         )
 
-        assert page.in_sitemap is False
+        assert is_page_in_sitemap(page) is False
 
     def test_draft_page_not_in_sitemap(self):
         """Draft pages are not in sitemap."""
@@ -205,7 +217,7 @@ class TestInSitemapProperty:
             _raw_metadata={"title": "Draft", "draft": True},
         )
 
-        assert page.in_sitemap is False
+        assert is_page_in_sitemap(page) is False
 
 
 class TestInSearchProperty:
@@ -219,7 +231,7 @@ class TestInSearchProperty:
             _raw_metadata={"title": "Post"},
         )
 
-        assert page.in_search is True
+        assert is_page_in_search(page) is True
 
     def test_hidden_page_not_in_search(self):
         """Hidden pages are not in search index."""
@@ -229,7 +241,7 @@ class TestInSearchProperty:
             _raw_metadata={"title": "Secret", "hidden": True},
         )
 
-        assert page.in_search is False
+        assert is_page_in_search(page) is False
 
 
 class TestInRssProperty:
@@ -243,7 +255,7 @@ class TestInRssProperty:
             _raw_metadata={"title": "Post"},
         )
 
-        assert page.in_rss is True
+        assert is_page_in_rss(page) is True
 
     def test_hidden_page_not_in_rss(self):
         """Hidden pages are not in RSS feeds."""
@@ -253,7 +265,7 @@ class TestInRssProperty:
             _raw_metadata={"title": "Secret", "hidden": True},
         )
 
-        assert page.in_rss is False
+        assert is_page_in_rss(page) is False
 
 
 class TestRobotsMeta:
@@ -267,7 +279,7 @@ class TestRobotsMeta:
             _raw_metadata={"title": "Post"},
         )
 
-        assert page.robots_meta == "index, follow"
+        assert get_robots_meta(page) == "index, follow"
 
     def test_hidden_page_robots_meta(self):
         """Hidden pages have noindex, nofollow robots meta."""
@@ -277,7 +289,7 @@ class TestRobotsMeta:
             _raw_metadata={"title": "Secret", "hidden": True},
         )
 
-        assert page.robots_meta == "noindex, nofollow"
+        assert get_robots_meta(page) == "noindex, nofollow"
 
     def test_custom_robots_meta(self):
         """Can set custom robots meta."""
@@ -290,7 +302,7 @@ class TestRobotsMeta:
             },
         )
 
-        assert page.robots_meta == "noindex"
+        assert get_robots_meta(page) == "noindex"
 
 
 class TestShouldRenderInEnvironment:
@@ -304,8 +316,8 @@ class TestShouldRenderInEnvironment:
             _raw_metadata={"title": "Post"},
         )
 
-        assert page.should_render_in_environment(is_production=False) is True
-        assert page.should_render_in_environment(is_production=True) is True
+        assert should_render_page_in_environment(page, is_production=False) is True
+        assert should_render_page_in_environment(page, is_production=True) is True
 
     def test_local_only_renders_in_dev(self):
         """render: local only renders in dev server, not production."""
@@ -318,8 +330,8 @@ class TestShouldRenderInEnvironment:
             },
         )
 
-        assert page.should_render_in_environment(is_production=False) is True
-        assert page.should_render_in_environment(is_production=True) is False
+        assert should_render_page_in_environment(page, is_production=False) is True
+        assert should_render_page_in_environment(page, is_production=True) is False
 
     def test_never_renders_nowhere(self):
         """render: never doesn't render in any environment."""
@@ -332,8 +344,8 @@ class TestShouldRenderInEnvironment:
             },
         )
 
-        assert page.should_render_in_environment(is_production=False) is False
-        assert page.should_render_in_environment(is_production=True) is False
+        assert should_render_page_in_environment(page, is_production=False) is False
+        assert should_render_page_in_environment(page, is_production=True) is False
 
 
 class TestShouldRenderProperty:
@@ -347,7 +359,7 @@ class TestShouldRenderProperty:
             _raw_metadata={"title": "Post"},
         )
 
-        assert page.should_render is True
+        assert should_render_page(page) is True
 
     def test_local_should_render(self):
         """render: local should render (environment-agnostic check)."""
@@ -360,7 +372,7 @@ class TestShouldRenderProperty:
             },
         )
 
-        assert page.should_render is True  # Not "never"
+        assert should_render_page(page) is True  # Not "never"
 
     def test_never_should_not_render(self):
         """render: never should not render."""
@@ -373,7 +385,7 @@ class TestShouldRenderProperty:
             },
         )
 
-        assert page.should_render is False
+        assert should_render_page(page) is False
 
 
 class TestVisibilityWithDraft:
@@ -399,9 +411,9 @@ class TestVisibilityWithDraft:
         )
 
         # Draft overrides visibility settings
-        assert page.in_listings is False
-        assert page.in_sitemap is False
-        assert page.in_search is False
-        assert page.in_rss is False
-        assert page.in_ai_input is False
-        assert page.in_ai_train is False
+        assert is_page_in_listings(page) is False
+        assert is_page_in_sitemap(page) is False
+        assert is_page_in_search(page) is False
+        assert is_page_in_rss(page) is False
+        assert is_page_in_ai_input(page) is False
+        assert is_page_in_ai_train(page) is False

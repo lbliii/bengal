@@ -60,6 +60,7 @@ import json
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.section.utils import get_page_section
 from bengal.postprocess.output_formats.utils import (
     extract_heading_chunks,
     generate_excerpt,
@@ -346,7 +347,7 @@ class PageJSONGenerator:
         nav: dict[str, Any] = {}
 
         # Parent section
-        section = getattr(page, "_section", None)
+        section = get_page_section(page)
         if section is not None:
             section_href = getattr(section, "href", None)
             if isinstance(section_href, str) and section_href:

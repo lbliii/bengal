@@ -1,71 +1,8 @@
 {#
-Bengal OpenAPI Reference Layout (Single Column)
-===============================================
+OpenAPI App Layout Alias
+========================
 
-A clean, single-column layout for REST API documentation.
-Use when code examples should appear inline rather than in a separate panel.
-
-Context:
-- element: DocElement (endpoint, schema, or overview)
-- page: Page object
-- section: Section (optional)
-- site: Site instance
-- config: Config instance
-
-Kida Features:
-- {% block %} for content slots
-- {% with %} for nil-resilient access
-- Optional chaining (?.) and null coalescing (??)
+Kept as a compatibility filename for template selection. The implementation is
+the bespoke OpenAPI app shell, not the legacy reference page layout.
 #}
-{% extends "base.html" %}
-
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
-
-{% block content %}
-{% let meta = element?.metadata ?? element?.typed_metadata ?? {} %}
-
-<div class="api-reference" data-autodoc="openapi">
-  {# Left Sidebar: Navigation (Optional via block) #}
-  {% block sidebar %}
-  {% end %}
-
-  <div class="api-reference__content">
-    {# Breadcrumbs #}
-    {{ breadcrumbs(page) }}
-
-    {# Header Section #}
-    <header class="api-reference__header">
-      {% block header %}
-      <h1 class="api-reference__title">{{ element?.name ?? page?.title ?? 'API Reference' }}</h1>
-      {% with element?.description as desc %}
-      {% if desc %}
-      <div class="api-reference__description prose">
-        {{ desc | markdownify | safe }}
-      </div>
-      {% end %}
-      {% end %}
-      {% end %}
-    </header>
-
-    {# Main Content #}
-    <main class="api-reference__body">
-      {% block content_main %}
-      {# Override in child templates #}
-      {% end %}
-    </main>
-
-    {# Inline Code Examples (for single-column layout) #}
-    {% block code_examples %}
-    {% end %}
-
-    {# Footer / Navigation #}
-    <footer class="api-reference__footer">
-      {{ page_navigation(page) }}
-    </footer>
-  </div>
-</div>
-
-{# Mobile sidebar toggle (if sidebar present) #}
-{% block mobile_controls %}
-{% end %}
-{% end %}
+{% extends "autodoc/openapi/layouts/explorer.html" %}

@@ -220,6 +220,84 @@
     }
   }
 
+  /**
+   * Copy a literal value from a data-copy attribute.
+   *
+   * @param {HTMLElement} button - The copy button element
+   */
+  async function handleLiteralCopy(button) {
+    const value = button.getAttribute('data-copy');
+    if (!value) return;
+
+    try {
+      await navigator.clipboard.writeText(value);
+      button.classList.add('copied');
+      setTimeout(() => button.classList.remove('copied'), 1600);
+    } catch (err) {
+      log('[BengalTabs] Literal copy failed:', err);
+    }
+  }
+
+  /**
+   * Switch OpenAPI request sample tabs.
+   *
+   * @param {HTMLElement} button - The clicked language tab
+   */
+  function switchApiCodeSample(button) {
+    const samples = button.closest('.api-code-samples');
+    if (!samples) return;
+
+    const targetId = button.getAttribute('aria-controls');
+    if (!targetId) return;
+
+    samples.querySelectorAll('.api-code-samples__tab').forEach(tab => {
+      tab.classList.toggle('api-code-samples__tab--active', tab === button);
+      tab.setAttribute('aria-selected', tab === button ? 'true' : 'false');
+    });
+
+    samples.querySelectorAll('.api-code-samples__panel').forEach(panel => {
+      panel.classList.toggle('api-code-samples__panel--active', panel.id === targetId);
+    });
+  }
+
+  /**
+   * Switch OpenAPI response panels.
+   *
+   * @param {HTMLElement} button - The clicked response status tab
+   */
+  function switchApiResponse(button) {
+    const responses = button.closest('.api-responses');
+    if (!responses) return;
+
+    const targetId = button.getAttribute('aria-controls');
+    if (!targetId) return;
+
+    responses.querySelectorAll('.api-responses__tab').forEach(tab => {
+      tab.classList.toggle('api-responses__tab--active', tab === button);
+      tab.setAttribute('aria-selected', tab === button ? 'true' : 'false');
+    });
+
+    responses.querySelectorAll('.api-responses__panel').forEach(panel => {
+      panel.classList.toggle('api-responses__panel--active', panel.id === targetId);
+    });
+  }
+
+  /**
+   * Filter OpenAPI sidebar items.
+   *
+   * @param {HTMLInputElement} input - Search input
+   */
+  function filterApiSidebar(input) {
+    const nav = input.closest('.api-sidebar-nav');
+    if (!nav) return;
+
+    const query = input.value.trim().toLowerCase();
+    nav.querySelectorAll('[data-api-search-item]').forEach(item => {
+      const text = item.textContent.toLowerCase();
+      item.hidden = query.length > 0 && !text.includes(query);
+    });
+  }
+
   // ============================================================
   // Event Handlers
   // ============================================================
@@ -229,10 +307,31 @@
    */
   document.addEventListener('click', (e) => {
     // Handle copy button clicks
-    const copyBtn = e.target.closest('.copy-btn');
+    const copyBtn = e.target.closest('.copy-btn, .api-code-samples__copy');
     if (copyBtn) {
       e.preventDefault();
       handleCopyClick(copyBtn);
+      return;
+    }
+
+    const literalCopyBtn = e.target.closest('[data-copy]');
+    if (literalCopyBtn) {
+      e.preventDefault();
+      handleLiteralCopy(literalCopyBtn);
+      return;
+    }
+
+    const apiCodeTab = e.target.closest('.api-code-samples__tab');
+    if (apiCodeTab) {
+      e.preventDefault();
+      switchApiCodeSample(apiCodeTab);
+      return;
+    }
+
+    const apiResponseTab = e.target.closest('.api-responses__tab');
+    if (apiResponseTab) {
+      e.preventDefault();
+      switchApiResponse(apiResponseTab);
       return;
     }
 
@@ -262,6 +361,12 @@
       // Just switch this tab
       switchTab(container, link, targetId);
     }
+  });
+
+  document.addEventListener('input', (e) => {
+    const input = e.target.closest('[data-api-search]');
+    if (!input) return;
+    filterApiSidebar(input);
   });
 
   /**

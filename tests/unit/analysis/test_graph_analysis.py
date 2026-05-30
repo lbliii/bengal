@@ -14,7 +14,7 @@ import pytest
 from bengal.analysis import GraphAnalyzer as _GraphAnalyzer
 from bengal.analysis import KnowledgeGraph as _KnowledgeGraph
 from bengal.core.site import Site as _Site
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_analysis_page as _page
 
 GraphAnalyzer: Any = _GraphAnalyzer
 KnowledgeGraph: Any = _KnowledgeGraph

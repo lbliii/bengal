@@ -40,7 +40,9 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/unit/rendering/test_section_urls.py",
     "tests/unit/rendering/test_template_url_access.py",
     "tests/unit/rendering/test_type_based_templates.py",
+    "tests/unit/rendering/utils/test_rendering_safe_access.py",
     "tests/unit/rendering/utils/test_rendering_url.py",
+    "tests/themes/test_default_theme_kida.py",
     "tests/unit/core/test_site_caching.py",
     "tests/unit/core/test_site_lifecycle.py",
     "tests/unit/discovery/test_surgical_discovery.py",
@@ -54,7 +56,6 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/unit/core/test_href_property.py",
     "tests/unit/core/test_navigation.py",
     "tests/unit/core/test_page_navigation_weight_order.py",
-    "tests/unit/core/test_page_section_references.py",
     "tests/unit/core/test_section_hashability.py",
     "tests/unit/core/test_section_index_collision.py",
     "tests/unit/core/test_section_page_types.py",
@@ -81,7 +82,6 @@ MIGRATED_TEST_PAGE_CONSTRUCTION_FILES = (
     "tests/integration/test_hashable_page_deduplication.py",
     "tests/unit/core/test_component_model.py",
     "tests/unit/core/test_computed_functions.py",
-    "tests/unit/core/test_page_cached_properties.py",
     "tests/unit/core/test_page_hashability.py",
     "tests/unit/core/test_page_metadata_helpers.py",
     "tests/unit/core/test_page_record_migration.py",
@@ -102,6 +102,10 @@ def _imports_core_page_class(node: ast.AST) -> TypeGuard[ast.ImportFrom]:
     if not isinstance(node, ast.ImportFrom) or node.module != "bengal.core.page":
         return False
     return any(alias.name == "Page" for alias in node.names)
+
+
+def _imports_core_page_package_root(node: ast.AST) -> TypeGuard[ast.ImportFrom]:
+    return isinstance(node, ast.ImportFrom) and node.module == "bengal.core.page"
 
 
 def test_production_page_creation_goes_through_source_adapter() -> None:
@@ -184,5 +188,22 @@ def test_non_compatibility_tests_do_not_import_page_class() -> None:
             for node in ast.walk(tree)
             if _imports_core_page_class(node)
         )
+
+    assert violations == []
+
+
+def test_no_code_imports_from_core_page_package_root() -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+    violations: list[str] = []
+
+    for root_name in ("bengal", "tests"):
+        for path in sorted((repo_root / root_name).rglob("*.py")):
+            relative_path = path.relative_to(repo_root).as_posix()
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            violations.extend(
+                f"{relative_path}:{node.lineno}"
+                for node in ast.walk(tree)
+                if _imports_core_page_package_root(node)
+            )
 
     assert violations == []

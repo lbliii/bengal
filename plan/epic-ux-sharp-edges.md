@@ -2,7 +2,7 @@
 
 **Status**: Active
 **Created**: 2026-04-13
-**Updated**: 2026-05-28
+**Updated**: 2026-05-30
 **Target**: v0.4.0 (beta)
 **Estimated Effort**: 24-36 hours
 **Dependencies**: None (all sprints ship independently against current main)
@@ -79,6 +79,7 @@ After this epic, Bengal follows the **loud-by-default** principle:
 | 3 | Build flag grouping and conflict validation | 4-6h | Medium | Yes |
 | 4 | Command return-value standardization | 4-6h | Low | Yes |
 | 5 | Scaffolding and documentation fixes | 3-5h | Low | Yes |
+| 6 | CLI responsiveness and Milo upstreaming | 4-8h | Medium | Yes |
 
 ---
 
@@ -337,6 +338,76 @@ Update descriptions:
 
 ---
 
+## Sprint 6: CLI Responsiveness and Milo Upstreaming
+
+**Status**: In progress
+**Started**: 2026-05-30
+**Goal**: Make common CLI interactions feel instant while preserving Bengal's
+Milo command contract and identifying framework fixes that should move
+upstream.
+
+### Evidence
+
+Initial profiling on 2026-05-30 showed three Bengal-visible costs:
+
+| Path | Finding | Owner |
+|------|---------|-------|
+| `bengal --help`, `bengal new`, `bengal --version` | Bengal called `build_parser()`, which resolved every lazy command schema before rendering metadata output. | Bengal mitigation now, Milo long-term |
+| Branded help and unknown-command output | Kida help/error rendering imported and compiled the output template stack for cheap metadata paths. | Bengal |
+| Ordinary command execution | Milo's parser construction resolved all registered lazy commands before running one selected command. | Bengal mitigation now, Milo long-term |
+
+### Bengal-Owned Work
+
+| Task | Status | Proof |
+|------|--------|-------|
+| Registry-only root/group/leaf help for cheap paths | Done | `tests/unit/cli/test_milo_parser_construction.py::test_fast_cli_metadata_paths_do_not_build_full_parser` |
+| Fast `--version` without parser construction | Done | `tests/integration/test_cli_help.py::test_cli_version_runs` |
+| Selected-command parser that resolves only the invoked command schema | Done | `tests/unit/cli/test_milo_parser_construction.py::test_selected_command_execution_does_not_build_full_parser` and published CLI smoke |
+| Root option parity guard between fast path and Milo parser | Done | `tests/unit/cli/test_milo_parser_construction.py::test_fast_root_help_options_match_milo_parser` |
+| Keep full-tree modes on Milo full registry | Done | `--llms-txt`, completions, and MCP still route through `super().run()` |
+| Changelog fragment | Done | `changelog.d/cli-help-startup.fixed.md` |
+
+### Upstream Milo CLI Candidates
+
+These should move to Milo so Bengal can delete its local selected-parser bridge:
+
+1. **Shallow root/group help**: root and group help should render from registered
+   command metadata without resolving leaf schemas.
+2. **Selected-command parser construction**: execution should parse global
+   options and command path first, then resolve only the selected lazy command's
+   schema.
+3. **Lazy command schema contract**: expose a first-class way to precompute or
+   persist command schemas so `tools/list`, completions, and parser generation
+   can stay lazy by default.
+4. **Public root option metadata API**: expose root built-in options as data so
+   custom renderers do not need to duplicate them.
+5. **Renderer separation**: help/error formatting should allow a text-only fast
+   path and a richer renderer without forcing template-engine imports for
+   metadata commands.
+
+### Not Now
+
+- Do not optimize `bengal cache hash` by narrowing input globs in this sprint.
+  The slow path is mostly real cache-key work reading configured inputs,
+  including autodoc sources; changing it risks cache invalidation semantics.
+- Do not replace `bengal.__version__`'s package-metadata source in this sprint.
+  That touches release metadata assumptions and should be a separate
+  release-risk review if startup still needs more reduction after Milo fixes.
+- Do not remove the full parser conflict test. It remains the installed-wheel
+  drift guard for the v0.3.1 failure mode.
+
+### Acceptance
+
+- `bengal --version`, root help, group help, and leaf help do not call
+  `build_parser()`.
+- Running a selected command does not call `build_parser()` unless it uses a
+  full-tree built-in mode.
+- Published CLI smoke coverage passes.
+- Timing proof records before/after measurements, but no flaky timing assertion
+  is added to the fast suite.
+
+---
+
 ## Risk Register
 
 | Risk | Likelihood | Impact | Mitigation |
@@ -346,19 +417,23 @@ Update descriptions:
 | Return-value changes break existing CLI consumers | Low | Medium | Sprint 4: additive only — commands that returned None now return dict; no existing field removed |
 | milo-cli doesn't support flag grouping in help | Medium | Low | Sprint 3: fall back to docstring-level grouping if framework doesn't support it |
 | Incremental logging adds overhead | Low | Low | Sprint 2: all logging is conditional on level; no computation unless DEBUG/INFO enabled |
+| Local selected parser drifts from Milo built-in root options | Low | Medium | Sprint 6: parity test compares fast-path options to `build_parser()` |
+| Local selected parser drifts from Milo execution semantics | Medium | Medium | Sprint 6: published CLI smoke tests cover advertised command execution |
 
 ---
 
 ## Success Metrics
 
-| Metric | Current | After Sprint 2 | After Sprint 5 |
-|--------|---------|-----------------|-----------------|
-| Silent failure points (unknown directive + options + return None) | 37+ None returns + 0 directive warnings | 37 None returns + directive warnings active | 0 None returns + directive warnings active |
-| Build flag conflicts caught at parse time | 1 (memory + perf) | 1 | 5+ validated pairs |
-| Incremental fallback decisions logged at INFO | 0 | 3+ (template, asset, cascade) | 3+ |
-| Scaffolded site builds with zero warnings | No | No | Yes |
-| Dead documentation links | 4+ (ARCHITECTURE.md x2, template-dev x2) | 4+ | 0 |
-| J10 (Developer Experience/CLI) maturity score | 4.3 | 4.5 | 4.8 |
+| Metric | Current | After Sprint 2 | After Sprint 5 | After Sprint 6 |
+|--------|---------|-----------------|-----------------|----------------|
+| Silent failure points (unknown directive + options + return None) | 37+ None returns + 0 directive warnings | 37 None returns + directive warnings active | 0 None returns + directive warnings active | Unchanged |
+| Build flag conflicts caught at parse time | 1 (memory + perf) | 1 | 5+ validated pairs | Unchanged |
+| Incremental fallback decisions logged at INFO | 0 | 3+ (template, asset, cascade) | 3+ | Unchanged |
+| Scaffolded site builds with zero warnings | No | No | Yes | Unchanged |
+| Dead documentation links | 4+ (ARCHITECTURE.md x2, template-dev x2) | 4+ | 0 | Unchanged |
+| CLI metadata/help paths avoid full parser construction | No | No | No | Yes |
+| Selected command execution avoids full parser construction | No | No | No | Yes |
+| J10 (Developer Experience/CLI) maturity score | 4.3 | 4.5 | 4.8 | 4.8 |
 
 ---
 
@@ -374,3 +449,5 @@ Update descriptions:
 ## Changelog
 
 - 2026-04-13: Initial draft from codebase audit
+- 2026-05-30: Added Sprint 6 for CLI responsiveness, local Bengal mitigations,
+  and Milo upstream candidates.

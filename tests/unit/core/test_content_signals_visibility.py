@@ -6,7 +6,13 @@ boolean properties that gate output format generation and robots.txt signals.
 
 from pathlib import Path
 
-from tests._testing.page_records import make_mutable_test_page as _page
+from bengal.core.page_visibility import (
+    get_page_visibility,
+    is_page_in_ai_input,
+    is_page_in_ai_train,
+    is_page_in_search,
+)
+from tests._testing.mocks import make_mock_page as _page
 
 
 class TestContentSignalDefaults:
@@ -19,7 +25,7 @@ class TestContentSignalDefaults:
             _raw_content="Test",
             _raw_metadata={"title": "Test"},
         )
-        assert page.visibility["ai_train"] is False
+        assert get_page_visibility(page)["ai_train"] is False
 
     def test_ai_input_defaults_true(self):
         """ai_input defaults to True (allow RAG/grounding)."""
@@ -28,7 +34,7 @@ class TestContentSignalDefaults:
             _raw_content="Test",
             _raw_metadata={"title": "Test"},
         )
-        assert page.visibility["ai_input"] is True
+        assert get_page_visibility(page)["ai_input"] is True
 
     def test_in_ai_train_false_by_default(self):
         """in_ai_train is False by default (matches ai_train default)."""
@@ -37,7 +43,7 @@ class TestContentSignalDefaults:
             _raw_content="Test",
             _raw_metadata={"title": "Test"},
         )
-        assert page.in_ai_train is False
+        assert is_page_in_ai_train(page) is False
 
     def test_in_ai_input_true_by_default(self):
         """in_ai_input is True by default."""
@@ -46,7 +52,7 @@ class TestContentSignalDefaults:
             _raw_content="Test",
             _raw_metadata={"title": "Test"},
         )
-        assert page.in_ai_input is True
+        assert is_page_in_ai_input(page) is True
 
 
 class TestContentSignalFrontmatterOverride:
@@ -62,8 +68,8 @@ class TestContentSignalFrontmatterOverride:
                 "visibility": {"ai_train": True},
             },
         )
-        assert page.visibility["ai_train"] is True
-        assert page.in_ai_train is True
+        assert get_page_visibility(page)["ai_train"] is True
+        assert is_page_in_ai_train(page) is True
 
     def test_ai_input_override_false(self):
         """Can disable ai_input via visibility frontmatter."""
@@ -75,8 +81,8 @@ class TestContentSignalFrontmatterOverride:
                 "visibility": {"ai_input": False},
             },
         )
-        assert page.visibility["ai_input"] is False
-        assert page.in_ai_input is False
+        assert get_page_visibility(page)["ai_input"] is False
+        assert is_page_in_ai_input(page) is False
 
     def test_both_signals_override(self):
         """Can override both signals at once."""
@@ -88,10 +94,11 @@ class TestContentSignalFrontmatterOverride:
                 "visibility": {"ai_train": False, "ai_input": False},
             },
         )
-        assert page.visibility["ai_train"] is False
-        assert page.visibility["ai_input"] is False
-        assert page.in_ai_train is False
-        assert page.in_ai_input is False
+        visibility = get_page_visibility(page)
+        assert visibility["ai_train"] is False
+        assert visibility["ai_input"] is False
+        assert is_page_in_ai_train(page) is False
+        assert is_page_in_ai_input(page) is False
 
     def test_partial_override_preserves_other_visibility(self):
         """Overriding ai_train doesn't affect other visibility keys."""
@@ -103,7 +110,7 @@ class TestContentSignalFrontmatterOverride:
                 "visibility": {"ai_train": True, "menu": False},
             },
         )
-        vis = page.visibility
+        vis = get_page_visibility(page)
         assert vis["ai_train"] is True
         assert vis["menu"] is False
         assert vis["sitemap"] is True
@@ -120,11 +127,11 @@ class TestContentSignalHiddenInteraction:
             _raw_content="Secret",
             _raw_metadata={"title": "Secret", "hidden": True},
         )
-        vis = page.visibility
+        vis = get_page_visibility(page)
         assert vis["ai_train"] is False
         assert vis["ai_input"] is False
-        assert page.in_ai_train is False
-        assert page.in_ai_input is False
+        assert is_page_in_ai_train(page) is False
+        assert is_page_in_ai_input(page) is False
 
 
 class TestContentSignalDraftInteraction:
@@ -141,7 +148,7 @@ class TestContentSignalDraftInteraction:
                 "visibility": {"ai_train": True},
             },
         )
-        assert page.in_ai_train is False
+        assert is_page_in_ai_train(page) is False
 
     def test_draft_excludes_from_ai_input(self):
         """Draft pages are excluded from AI input regardless of visibility."""
@@ -154,7 +161,7 @@ class TestContentSignalDraftInteraction:
                 "visibility": {"ai_input": True},
             },
         )
-        assert page.in_ai_input is False
+        assert is_page_in_ai_input(page) is False
 
 
 class TestContentSignalWithSiteConfig:
@@ -183,8 +190,8 @@ class TestContentSignalWithSiteConfig:
             {"title": "Test"},
             {"ai_train": True, "ai_input": True, "search": True},
         )
-        assert page.visibility["ai_train"] is True
-        assert page.in_ai_train is True
+        assert get_page_visibility(page)["ai_train"] is True
+        assert is_page_in_ai_train(page) is True
 
     def test_site_config_ai_input_false(self):
         """Site config can disable ai_input globally."""
@@ -192,8 +199,8 @@ class TestContentSignalWithSiteConfig:
             {"title": "Test"},
             {"ai_train": False, "ai_input": False, "search": True},
         )
-        assert page.visibility["ai_input"] is False
-        assert page.in_ai_input is False
+        assert get_page_visibility(page)["ai_input"] is False
+        assert is_page_in_ai_input(page) is False
 
     def test_frontmatter_overrides_site_config(self):
         """Page frontmatter takes precedence over site config."""
@@ -201,8 +208,8 @@ class TestContentSignalWithSiteConfig:
             {"title": "Override", "visibility": {"ai_train": True}},
             {"ai_train": False, "ai_input": True, "search": True},
         )
-        assert page.visibility["ai_train"] is True
-        assert page.in_ai_train is True
+        assert get_page_visibility(page)["ai_train"] is True
+        assert is_page_in_ai_train(page) is True
 
     def test_site_config_search_default(self):
         """Site config search default flows into visibility."""
@@ -210,5 +217,5 @@ class TestContentSignalWithSiteConfig:
             {"title": "Test"},
             {"search": False, "ai_train": False, "ai_input": True},
         )
-        assert page.visibility["search"] is False
-        assert page.in_search is False
+        assert get_page_visibility(page)["search"] is False
+        assert is_page_in_search(page) is False

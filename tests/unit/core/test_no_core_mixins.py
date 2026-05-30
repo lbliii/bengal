@@ -87,20 +87,14 @@ def test_site_remains_mixin_free() -> None:
 
 
 def test_page_does_not_inherit_rendering_operations() -> None:
-    """Page keeps rendering operations behind shims, not inheritance."""
+    """The legacy Page class is gone, so rendering operations cannot be inherited."""
     page_file = CORE_DIR / "page" / "__init__.py"
     tree = ast.parse(page_file.read_text(encoding="utf-8"))
 
-    page_class = next(
+    page_classes = [
         node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
-    )
-    base_names = {
-        base.id if isinstance(base, ast.Name) else base.attr
-        for base in page_class.bases
-        if isinstance(base, (ast.Name, ast.Attribute))
-    }
-
-    assert "PageOperationsMixin" not in base_names
+    ]
+    assert page_classes == []
 
 
 def test_page_has_no_module_level_rendering_helper_imports() -> None:
@@ -175,54 +169,36 @@ def test_section_has_no_module_level_rendering_helper_imports() -> None:
 
 
 def test_page_does_not_inherit_content_mixin() -> None:
-    """Page content access stays inline and delegates processing outward."""
+    """The legacy Page class is gone, so content mixins cannot be inherited."""
     page_file = CORE_DIR / "page" / "__init__.py"
     tree = ast.parse(page_file.read_text(encoding="utf-8"))
 
-    page_class = next(
+    page_classes = [
         node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
-    )
-    base_names = {
-        base.id if isinstance(base, ast.Name) else base.attr
-        for base in page_class.bases
-        if isinstance(base, (ast.Name, ast.Attribute))
-    }
-
-    assert "PageContentMixin" not in base_names
+    ]
+    assert page_classes == []
 
 
 def test_page_does_not_inherit_metadata_mixin() -> None:
-    """Page metadata access is inline and delegates normalization to helpers."""
+    """The legacy Page class is gone, so metadata mixins cannot be inherited."""
     page_file = CORE_DIR / "page" / "__init__.py"
     tree = ast.parse(page_file.read_text(encoding="utf-8"))
 
-    page_class = next(
+    page_classes = [
         node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
-    )
-    base_names = {
-        base.id if isinstance(base, ast.Name) else base.attr
-        for base in page_class.bases
-        if isinstance(base, (ast.Name, ast.Attribute))
-    }
-
-    assert "PageMetadataMixin" not in base_names
+    ]
+    assert page_classes == []
 
 
 def test_page_does_not_inherit_relationships_mixin() -> None:
-    """Page relationship helpers are inline compatibility methods."""
+    """The legacy Page class is gone, so relationship mixins cannot be inherited."""
     page_file = CORE_DIR / "page" / "__init__.py"
     tree = ast.parse(page_file.read_text(encoding="utf-8"))
 
-    page_class = next(
+    page_classes = [
         node for node in ast.walk(tree) if isinstance(node, ast.ClassDef) and node.name == "Page"
-    )
-    base_names = {
-        base.id if isinstance(base, ast.Name) else base.attr
-        for base in page_class.bases
-        if isinstance(base, (ast.Name, ast.Attribute))
-    }
-
-    assert "PageRelationshipsMixin" not in base_names
+    ]
+    assert page_classes == []
 
 
 def test_page_computed_keeps_content_rendering_out_of_core() -> None:

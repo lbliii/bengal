@@ -29,6 +29,8 @@ from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 from patitas.directives.options import DirectiveOptions
 from patitas.nodes import Directive
 
+from bengal.core.section.utils import get_page_section
+
 if TYPE_CHECKING:
     from patitas.location import SourceLocation
     from patitas.nodes import Block
@@ -279,7 +281,7 @@ class SiblingsDirective:
             sb.append('<div class="siblings"><p><em>No page context</em></p></div>')
             return
 
-        section = getattr(current_page, "_section", None)
+        section = get_page_section(current_page)
         if not section:
             sb.append('<div class="siblings"><p><em>No section</em></p></div>')
             return

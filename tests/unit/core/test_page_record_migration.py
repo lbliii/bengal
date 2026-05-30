@@ -19,7 +19,6 @@ from bengal.core.records import (
     parsed_page_from_page_state,
     rendered_page_from_page_state,
 )
-from tests._testing.page_records import make_mutable_test_page as _page
 from tests._testing.page_records import (
     make_page_core,
     make_parsed_page,
@@ -115,10 +114,10 @@ def test_build_source_page_does_not_compute_hashes_in_core():
 
 
 def test_page_no_longer_retains_source_page_bridge():
-    page = _page(
+    page = make_test_page(
         source_path=Path("content/posts/hello.md"),
-        _raw_content="# Hello",
-        _raw_metadata={"title": "Hello"},
+        raw_content="# Hello",
+        metadata={"title": "Hello"},
     )
 
     assert not hasattr(page, "_source_page")

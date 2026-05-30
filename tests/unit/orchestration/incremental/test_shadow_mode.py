@@ -14,7 +14,7 @@ import pytest
 from bengal.cache.paths import BengalPaths
 from bengal.errors import BengalError
 from bengal.orchestration.incremental import IncrementalOrchestrator
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_page as _page
 
 
 @pytest.fixture

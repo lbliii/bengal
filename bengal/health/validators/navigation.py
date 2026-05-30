@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, override
 
+from bengal.core.section.utils import get_page_section
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult
 from bengal.health.results import compact_successes
@@ -228,7 +229,7 @@ class NavigationValidator(BaseValidator):
             issues.extend(
                 f"Page {page.source_path.name} has wrong section reference"
                 for page in section_pages
-                if hasattr(page, "_section") and page._section != section
+                if get_page_section(page) != section
             )
 
         if issues:
@@ -260,7 +261,7 @@ class NavigationValidator(BaseValidator):
             if (hasattr(p, "next") and p.next) or (hasattr(p, "prev") and p.prev)
         )
         with_breadcrumbs = sum(1 for p in regular_pages if hasattr(p, "ancestors") and p.ancestors)
-        in_sections = sum(1 for p in regular_pages if hasattr(p, "_section") and p._section)
+        in_sections = sum(1 for p in regular_pages if get_page_section(p))
 
         # Calculate coverage
         total = len(regular_pages)

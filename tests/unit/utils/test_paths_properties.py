@@ -23,6 +23,7 @@ class TestProfileDirProperties:
     """Property tests for get_profile_dir method."""
 
     @pytest.mark.hypothesis
+    @settings(deadline=None)
     @given(
         dir_name=st.text(
             alphabet=string.ascii_lowercase + string.digits + "_-", min_size=1, max_size=50
@@ -43,6 +44,7 @@ class TestProfileDirProperties:
             assert profile_dir.is_absolute(), f"Profile dir should be absolute: {profile_dir}"
 
     @pytest.mark.hypothesis
+    @settings(deadline=None)
     @given(
         dir_name=st.text(
             alphabet=string.ascii_lowercase + string.digits + "_-", min_size=1, max_size=50

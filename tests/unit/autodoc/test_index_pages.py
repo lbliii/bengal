@@ -20,6 +20,7 @@ import pytest
 
 from bengal.autodoc.orchestration.index_pages import create_index_pages
 from bengal.core.section import Section
+from bengal.core.section.utils import get_page_section
 from bengal.core.url_ownership import URLRegistry
 
 
@@ -151,6 +152,20 @@ class TestCreateIndexPages:
         page = pages[0]
         assert page.metadata.get("is_autodoc") is True
         assert page.metadata.get("is_section_index") is True
+
+    def test_index_page_keeps_section_context(self, mock_site: MagicMock) -> None:
+        """Created section-index pages should render with their section context."""
+        sections = _make_sections(["api/bengal"])
+        mock_site.get_section_by_path.side_effect = lambda path: sections.get(str(path))
+        mock_site.get_section_by_url.side_effect = lambda url: next(
+            (section for section in sections.values() if getattr(section, "_path", None) == url),
+            None,
+        )
+
+        pages = create_index_pages(sections, mock_site)
+
+        assert len(pages) == 1
+        assert get_page_section(pages[0]) is sections["api/bengal"]
 
     def test_index_page_claims_url_at_priority_90(self, mock_site: MagicMock) -> None:
         """Created index pages should claim their URL at priority 90."""

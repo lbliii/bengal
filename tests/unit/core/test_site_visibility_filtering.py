@@ -9,8 +9,14 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from bengal.core.page_visibility import (
+    is_page_in_listings,
+    is_page_in_rss,
+    is_page_in_search,
+    is_page_in_sitemap,
+)
 from bengal.core.site import Site
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_page as _page
 
 
 @pytest.fixture
@@ -60,7 +66,7 @@ def mock_site():
 
     # Manually filter to simulate site.pages behavior
     site.pages = pages
-    site.listable_pages = [p for p in pages if p.in_listings]
+    site.listable_pages = [p for p in pages if is_page_in_listings(p)]
 
     return site, pages
 
@@ -123,11 +129,11 @@ class TestPageVisibilityInCollections:
             _raw_metadata={"title": "NoMenu", "visibility": {"menu": False}},
         )
 
-        assert regular.in_listings is True
-        assert hidden.in_listings is False
-        assert draft.in_listings is False
-        assert unlisted.in_listings is False
-        assert no_menu.in_listings is True  # menu visibility != listings
+        assert is_page_in_listings(regular) is True
+        assert is_page_in_listings(hidden) is False
+        assert is_page_in_listings(draft) is False
+        assert is_page_in_listings(unlisted) is False
+        assert is_page_in_listings(no_menu) is True  # menu visibility != listings
 
     def test_in_sitemap_for_various_pages(self):
         """Test in_sitemap property for pages with different visibility."""
@@ -147,9 +153,9 @@ class TestPageVisibilityInCollections:
             _raw_metadata={"title": "NoSitemap", "visibility": {"sitemap": False}},
         )
 
-        assert regular.in_sitemap is True
-        assert hidden.in_sitemap is False
-        assert no_sitemap.in_sitemap is False
+        assert is_page_in_sitemap(regular) is True
+        assert is_page_in_sitemap(hidden) is False
+        assert is_page_in_sitemap(no_sitemap) is False
 
     def test_in_search_for_various_pages(self):
         """Test in_search property for pages with different visibility."""
@@ -169,9 +175,9 @@ class TestPageVisibilityInCollections:
             _raw_metadata={"title": "NoSearch", "visibility": {"search": False}},
         )
 
-        assert regular.in_search is True
-        assert hidden.in_search is False
-        assert no_search.in_search is False
+        assert is_page_in_search(regular) is True
+        assert is_page_in_search(hidden) is False
+        assert is_page_in_search(no_search) is False
 
     def test_in_rss_for_various_pages(self):
         """Test in_rss property for pages with different visibility."""
@@ -191,6 +197,6 @@ class TestPageVisibilityInCollections:
             _raw_metadata={"title": "NoRss", "visibility": {"rss": False}},
         )
 
-        assert regular.in_rss is True
-        assert hidden.in_rss is False
-        assert no_rss.in_rss is False
+        assert is_page_in_rss(regular) is True
+        assert is_page_in_rss(hidden) is False
+        assert is_page_in_rss(no_rss) is False

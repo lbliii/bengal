@@ -13,6 +13,7 @@ output "Child cards will be generated at build time" instead of actual cards.
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock
 
@@ -107,7 +108,7 @@ class TestChildCardsWithPageContext:
         current_page._section = section
 
         # Build context with page
-        context = {"page": current_page, "site": Mock()}
+        context = {"page": current_page, "site": SimpleNamespace()}
 
         content = """
 :::{child-cards}
@@ -138,7 +139,7 @@ class TestChildCardsWithPageContext:
         )
         current_page._section = section
 
-        context = {"page": current_page, "site": Mock()}
+        context = {"page": current_page, "site": SimpleNamespace()}
 
         content = """:::{child-cards}
 :::"""
@@ -151,7 +152,7 @@ class TestChildCardsWithPageContext:
     def test_child_cards_no_page_context_shows_message(self, parser: PatitasParser) -> None:
         """Without page context, shows appropriate message."""
         # No page in context
-        context = {"site": Mock()}
+        context = {"site": SimpleNamespace()}
 
         content = """:::{child-cards}
 :::"""
@@ -178,7 +179,7 @@ class TestChildCardsWithPageContext:
         )
         current_page._section = section
 
-        context = {"page": current_page, "site": Mock()}
+        context = {"page": current_page, "site": SimpleNamespace()}
 
         content = """
 :::{child-cards}
@@ -210,7 +211,7 @@ class TestChildCardsWithPageContext:
         )
         current_page._section = section
 
-        context = {"page": current_page, "site": Mock()}
+        context = {"page": current_page, "site": SimpleNamespace()}
 
         content = """
 :::{child-cards}
@@ -256,7 +257,7 @@ class TestParserParityForChildCards:
 :fields: title, description
 :::
 """
-        context = {"page": current_page, "site": Mock()}
+        context = {"page": current_page, "site": SimpleNamespace()}
         result = parser.parse_with_context(content, {}, context)
 
         assert "Child cards will be generated at build time" not in result

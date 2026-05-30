@@ -2,33 +2,11 @@
 Bengal OpenAPI Home Page
 ========================
 
-API landing page showing:
-- API title and description
-- Version and server information
-- Authentication schemes
-- Tag/endpoint category overview
-
-Context:
-- section: Section with metadata containing API overview data
-  - section.metadata.version: API version
-  - section.metadata.servers: Server URLs
-  - section.metadata.security_schemes: Auth schemes
-  - section.metadata.tags: API categories
-- page: Page object
-- site: Site instance
-- config: Config instance
-
-The `endpoints` and `schemas` filters normalize access to endpoint/schema data
-regardless of whether the source is DocElements or Pages.
-
-Note: For section index pages, `element` is None. Use section.metadata instead.
-
-Kida Features:
-- {% with %} for nil-resilient optional sections
-- {% spaceless %} for compact badge output
-- Optional chaining (?.) and null coalescing (??)
+Bespoke REST API catalog shell. This page intentionally does not extend the
+shared OpenAPI reference layout because the API landing experience is an
+application surface, not a prose reference page.
 #}
-{% extends 'autodoc/openapi/layouts/reference.html' %}
+{% extends 'base.html' %}
 
 {# Access metadata from section (set by section_builders.py) #}
 {% let sec_meta = section?.metadata ?? {} %}
@@ -43,226 +21,203 @@ Kida Features:
 {% let eps = section | endpoints %}
 {% let schs = section | schemas %}
 
-{% block header %}
-<h1 class="api-home__title">{{ api_title }}</h1>
+{% block site_footer %}{% end %}
 
-{% if api_version %}
-<div class="api-home__version">
-  <span class="badge badge--outline">v{{ api_version }}</span>
-</div>
-{% end %}
-
-{% if description %}
-<div class="api-home__description prose">
-  {{ description | markdownify | safe }}
-</div>
-{% end %}
-{% end %}
-
-{% block content_main %}
-<div class="api-home" data-autodoc="openapi" data-element="home">
-  {# Quick Stats #}
+{% block content %}
+<div class="api-catalog-app" data-autodoc="openapi" data-element="home">
   {% let endpoint_count = eps | length %}
   {% let schema_count = schs | length %}
   {% let tag_count = tags | length %}
-
-  {% if endpoint_count > 0 or schema_count > 0 %}
-  <div class="api-home__stats">
-    {% if endpoint_count > 0 %}
-    <div class="api-home__stat">
-      <span class="api-home__stat-value">{{ endpoint_count }}</span>
-      <span class="api-home__stat-label">Endpoints</span>
-    </div>
-    {% end %}
-    {% if schema_count > 0 %}
-    <div class="api-home__stat">
-      <span class="api-home__stat-value">{{ schema_count }}</span>
-      <span class="api-home__stat-label">Schemas</span>
-    </div>
-    {% end %}
-    {% if tag_count > 0 %}
-    <div class="api-home__stat">
-      <span class="api-home__stat-value">{{ tag_count }}</span>
-      <span class="api-home__stat-label">Categories</span>
-    </div>
-    {% end %}
-  </div>
-  {% end %}
-
-  {# Base URLs / Servers #}
-  {% if servers | length > 0 %}
-  <section class="api-home__servers autodoc-section">
-    <h2 class="api-home__section-title">{{ icon('server', size=18) }} Base URLs</h2>
-    <div class="api-home__server-list">
-      {% for server in servers %}
-      {% let server_url = server if server is string else server?.url ?? server %}
-      {% let server_desc = '' if server is string else server?.description ?? '' %}
-      <div class="api-home__server card">
-        <code class="api-home__server-url">{{ server_url }}</code>
-        {% if server_desc %}
-        <span class="api-home__server-desc text-muted">{{ server_desc }}</span>
-        {% end %}
-        <button class="api-home__server-copy" data-copy="{{ server_url }}" aria-label="Copy URL">
-          {{ icon('copy', size=14) }}
-        </button>
-      </div>
-      {% end %}
-    </div>
-  </section>
-  {% end %}
-
-  {# Authentication #}
-  {% if security_schemes | length > 0 %}
-  <section class="api-home__auth autodoc-section">
-    <h2 class="api-home__section-title">{{ icon('lock', size=18) }} Authentication</h2>
-    <div class="api-home__auth-schemes">
-      {% for name, scheme in security_schemes |> items %}
-      {% if scheme %}
-      {% let scheme_type = scheme?.type ?? 'apiKey' %}
-      {% let scheme_desc = scheme?.description ?? '' %}
-      {% let scheme_in = scheme.get('in', 'header') %}
-      {% let scheme_name = scheme?.name ?? 'Authorization' %}
-
-      <div class="api-home__auth-scheme card">
-        <header class="api-home__auth-header">
-          <h3 class="api-home__auth-name">
-            {{ icon('key', size=14) }}
-            {{ name }}
-          </h3>
-          <span class="badge badge--outline badge--sm">{{ scheme_type }}</span>
-        </header>
-
-        {% if scheme_desc %}
-        <p class="api-home__auth-description">{{ scheme_desc }}</p>
-        {% end %}
-
-        {% match scheme_type %}
-        {% case 'apiKey' %}
-        <code class="api-home__auth-example">{{ scheme_name }}: YOUR_API_KEY</code>
-        {% case 'http' %}
-        {% if scheme?.scheme == 'bearer' %}
-        <code class="api-home__auth-example">Authorization: Bearer YOUR_TOKEN</code>
-        {% else %}
-        <code class="api-home__auth-example">Authorization: Basic BASE64_CREDENTIALS</code>
-        {% end %}
-        {% case 'oauth2' %}
-        <code class="api-home__auth-example">Authorization: Bearer ACCESS_TOKEN</code>
-        {% case _ %}
-        <code class="api-home__auth-example">{{ scheme_name }}: YOUR_CREDENTIALS</code>
-        {% end %}
-      </div>
-      {% end %}
-      {% end %}
-    </div>
-  </section>
-  {% end %}
-
-  {# Endpoint Categories (Tags) - Quick Jump Navigation #}
   {% let subsections = section?.subsections ?? () %}
-  {% if subsections | length > 0 %}
-  <section class="api-home__tags autodoc-section">
-    <h2 class="api-home__section-title">{{ icon('folder', size=18) }} Categories</h2>
-    <div class="api-home__tag-grid">
-      {% for subsec in subsections %}
-      {% let tag_name = subsec?.title ?? 'Endpoints' %}
-      {% let tag_desc = subsec?.metadata?.description ?? '' %}
-      {% let tag_endpoints = subsec | endpoints %}
 
-      <a href="#{{ tag_name | slugify }}" class="api-home__tag-card card card--hoverable">
-        <header class="api-home__tag-header">
-          <h3 class="api-home__tag-name">{{ tag_name }}</h3>
-          <span class="badge badge--outline badge--sm">{{ tag_endpoints | length }}</span>
-        </header>
-        {% if tag_desc %}
-        <p class="api-home__tag-description">{{ tag_desc | truncate(100) }}</p>
-        {% end %}
-      </a>
+  <header class="api-catalog-app__top">
+    <div class="api-catalog-app__identity">
+      <span class="api-catalog-app__eyebrow">REST API</span>
+      <h1 class="api-catalog-app__title">{{ api_title }}</h1>
+      {% if description %}
+      <div class="api-catalog-app__description">
+        {{ description | markdownify | safe }}
+      </div>
       {% end %}
     </div>
-  </section>
-  {% end %}
 
-  {# Endpoints Grouped by Tag - with anchor IDs matching category tiles #}
-  {% if subsections | length > 0 %}
-  {% for subsec in subsections %}
-  {% let tag_name = subsec?.title ?? 'Endpoints' %}
-  {% let tag_desc = subsec?.metadata?.description ?? '' %}
-  {% let tag_endpoints = subsec | endpoints %}
-
-  {% if tag_endpoints | length > 0 %}
-  <section id="{{ tag_name | slugify }}" class="api-home__tag-section autodoc-section">
-    <header class="api-home__tag-section-header">
-      <h2 class="api-home__section-title">{{ icon('tag', size=18) }} {{ tag_name }}</h2>
-      {% if tag_desc %}
-      <p class="api-home__tag-section-desc text-muted">{{ tag_desc }}</p>
+    <div class="api-catalog-app__summary" aria-label="API summary">
+      {% if api_version %}
+      <span class="api-catalog-app__summary-item">
+        <span>Version</span>
+        <strong>v{{ api_version }}</strong>
+      </span>
       {% end %}
-    </header>
-    <div class="autodoc-cards">
-      {% for ep in tag_endpoints %}
-      <a href="{{ ep.href }}" class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
-        <div class="autodoc-card-header">
-          {% spaceless %}
-          <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
+      {% if endpoint_count > 0 %}
+      <span class="api-catalog-app__summary-item">
+        <span>Endpoints</span>
+        <strong>{{ endpoint_count }}</strong>
+      </span>
+      {% end %}
+      {% if tag_count > 0 %}
+      <span class="api-catalog-app__summary-item">
+        <span>Groups</span>
+        <strong>{{ tag_count }}</strong>
+      </span>
+      {% end %}
+      {% if schema_count > 0 %}
+      <span class="api-catalog-app__summary-item">
+        <span>Schemas</span>
+        <strong>{{ schema_count }}</strong>
+      </span>
+      {% end %}
+    </div>
+  </header>
+
+  <div class="api-catalog-app__workspace">
+    <aside class="api-catalog-app__left-rail" aria-label="REST API navigation">
+      {% if subsections | length > 0 %}
+      <nav class="api-catalog-nav" aria-label="Endpoint groups">
+        <h2 class="api-catalog-nav__title">{{ icon('folder', size=14) }} Resources</h2>
+        {% for subsec in subsections %}
+        {% let tag_name = subsec?.title ?? 'Endpoints' %}
+        {% let tag_endpoints = subsec | endpoints %}
+        {% if tag_endpoints | length > 0 %}
+        <a href="#{{ tag_name | slugify }}" class="api-catalog-nav__link">
+          <span>{{ tag_name }}</span>
+          <span>{{ tag_endpoints | length }}</span>
+        </a>
+        {% end %}
+        {% end %}
+      </nav>
+      {% end %}
+
+      {% if servers | length > 0 %}
+      <section class="api-catalog-nav api-catalog-nav--servers">
+        <h2 class="api-catalog-nav__title">{{ icon('server', size=14) }} Base URLs</h2>
+        {% for server in servers %}
+        {% let server_url = server if server is string else server?.url ?? server %}
+        {% let server_desc = '' if server is string else server?.description ?? '' %}
+        <div class="api-catalog-server">
+          <code>{{ server_url }}</code>
+          {% if server_desc %}
+          <span>{{ server_desc }}</span>
           {% end %}
-          <code class="autodoc-card-name">{{ ep.path }}</code>
+          <button data-copy="{{ server_url }}" aria-label="Copy URL">
+            {{ icon('copy', size=14) }}
+          </button>
         </div>
-        {% if ep.summary %}
-        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
         {% end %}
-        {% if ep.deprecated %}
-        <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
-        {% end %}
-      </a>
+      </section>
       {% end %}
-    </div>
-  </section>
-  {% end %}
-  {% end %}
-  {% end %}
+    </aside>
 
-  {# All Endpoints (only if no subsections/tags exist) #}
-  {% if subsections | length == 0 and eps | length > 0 %}
-  <section class="api-home__endpoints autodoc-section">
-    <h2 class="api-home__section-title">{{ icon('list', size=18) }} Endpoints</h2>
-    <div class="autodoc-cards">
-      {% for ep in eps %}
-      <a href="{{ ep.href }}" class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
-        <div class="autodoc-card-header">
-          {% spaceless %}
+    <section class="api-catalog-main" aria-label="Endpoint catalog">
+      <header class="api-catalog-main__header">
+        <div>
+          <h2>Endpoint catalog</h2>
+          <p>Open an endpoint for parameters, response models, examples, and generated request snippets.</p>
+        </div>
+      </header>
+
+      {% if subsections | length > 0 %}
+      <div class="api-catalog-groups">
+        {% for subsec in subsections %}
+        {% let tag_name = subsec?.title ?? 'Endpoints' %}
+        {% let tag_desc = subsec?.metadata?.description ?? '' %}
+        {% let tag_endpoints = subsec | endpoints %}
+        {% let tag_href = section_href(subsec, page) %}
+
+        {% if tag_endpoints | length > 0 %}
+        <article class="api-catalog-group" id="{{ tag_name | slugify }}">
+          <header class="api-catalog-group__header">
+            <div>
+              <h3><a href="{{ tag_href }}">{{ tag_name }}</a></h3>
+              {% if tag_desc %}
+              <p>{{ tag_desc }}</p>
+              {% end %}
+            </div>
+            <a href="{{ tag_href }}" class="api-catalog-group__open">
+              Reference {{ icon('arrow-right', size=14) }}
+            </a>
+          </header>
+
+          <div class="api-catalog-endpoints">
+            {% for ep in tag_endpoints %}
+            <a href="{{ tag_href }}{{ ep.href }}" class="api-catalog-endpoint{% if ep.deprecated %} api-catalog-endpoint--deprecated{% end %}">
+              <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
+              <code>{{ ep.path | highlight_path_params | safe }}</code>
+              {% if ep.summary %}
+              <span>{{ ep.summary }}</span>
+              {% end %}
+              {{ icon('arrow-right', size=14) }}
+            </a>
+            {% end %}
+          </div>
+        </article>
+        {% end %}
+        {% end %}
+      </div>
+      {% end %}
+
+      {% if subsections | length == 0 and eps | length > 0 %}
+      <div class="api-catalog-endpoints">
+        {% for ep in eps %}
+        <a href="{{ ep.href }}" class="api-catalog-endpoint{% if ep.deprecated %} api-catalog-endpoint--deprecated{% end %}">
           <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
+          <code>{{ ep.path | highlight_path_params | safe }}</code>
+          {% if ep.summary %}
+          <span>{{ ep.summary }}</span>
           {% end %}
-          <code class="autodoc-card-name">{{ ep.path }}</code>
-        </div>
-        {% if ep.summary %}
-        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
+          {{ icon('arrow-right', size=14) }}
+        </a>
         {% end %}
-        {% if ep.deprecated %}
-        <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
-        {% end %}
-      </a>
+      </div>
       {% end %}
-    </div>
-  </section>
-  {% end %}
+    </section>
 
-  {# Schemas #}
-  {% if schs | length > 0 %}
-  <section class="api-home__schemas autodoc-section">
-    <h2 class="api-home__section-title">{{ icon('database', size=18) }} Schemas</h2>
-    <div class="autodoc-cards">
-      {% for schema in schs %}
-      <a href="{{ schema.href }}" class="autodoc-card">
-        <div class="autodoc-card-header">
-          <code class="autodoc-card-name">{{ schema.name }}</code>
-          <span class="badge badge--outline badge--sm">{{ schema.schema_type }}</span>
+    <aside class="api-catalog-app__right-rail" aria-label="Reference metadata">
+      {% if security_schemes | length > 0 %}
+      <section class="api-catalog-panel">
+        <h2>{{ icon('lock', size=14) }} Authentication</h2>
+        <div class="api-catalog-auth-list">
+          {% for name, scheme in security_schemes |> items %}
+          {% if scheme %}
+          {% let scheme_type = scheme?.type ?? 'apiKey' %}
+          {% let scheme_name = scheme?.name ?? 'Authorization' %}
+          <div class="api-catalog-auth">
+            <span>{{ name }}</span>
+            <span class="badge badge--outline badge--sm">{{ scheme_type }}</span>
+            {% match scheme_type %}
+            {% case 'apiKey' %}
+            <code>{{ scheme_name }}: YOUR_API_KEY</code>
+            {% case 'http' %}
+            {% if scheme?.scheme == 'bearer' %}
+            <code>Authorization: Bearer YOUR_TOKEN</code>
+            {% else %}
+            <code>Authorization: Basic BASE64_CREDENTIALS</code>
+            {% end %}
+            {% case 'oauth2' %}
+            <code>Authorization: Bearer ACCESS_TOKEN</code>
+            {% case _ %}
+            <code>{{ scheme_name }}: YOUR_CREDENTIALS</code>
+            {% end %}
+          </div>
+          {% end %}
+          {% end %}
         </div>
-        {% if schema.description %}
-        <p class="autodoc-card-desc">{{ schema.description | truncate(80) }}</p>
-        {% end %}
-      </a>
+      </section>
       {% end %}
-    </div>
-  </section>
-  {% end %}
+
+      {% if schs | length > 0 %}
+      <section class="api-catalog-panel api-catalog-panel--schemas">
+        <h2>{{ icon('database', size=14) }} Schemas</h2>
+        <div class="api-catalog-schema-list">
+          {% for schema in schs %}
+          <a href="{{ schema.href }}" class="api-catalog-schema">
+            <code>{{ schema.name }}</code>
+            <span>{{ schema.schema_type }}</span>
+          </a>
+          {% end %}
+        </div>
+      </section>
+      {% end %}
+    </aside>
+  </div>
 </div>
 {% end %}

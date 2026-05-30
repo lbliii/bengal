@@ -87,7 +87,7 @@ class ContentRegistry:
     _frozen: bool = field(default=False, repr=False)
 
     # Epoch counter for cache invalidation (incremented on clear/re-registration)
-    # Used by Page._section to detect when section cache is stale
+    # Used by legacy Page section lookup to detect when section cache is stale
     _epoch: int = field(default=0, repr=False)
 
     # Memoized page→index map for next/prev navigation. Relocated from
@@ -368,7 +368,7 @@ class ContentRegistry:
         """
         Registry epoch counter for cache invalidation.
 
-        Incremented when clear() is called. Used by Page._section to
+        Incremented when clear() is called. Used by legacy Page section lookup to
         detect when cached section lookups are stale.
         """
         return self._epoch

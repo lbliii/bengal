@@ -2,7 +2,7 @@
 
 # Completed Plan Archive
 
-Updated: 2026-05-28
+Updated: 2026-05-30
 
 Individual completed RFC bodies were removed after this distillation pass. Their
 implementation state is now better verified from source, tests, `CHANGELOG.md`,
@@ -27,6 +27,9 @@ and release notes than from stale implementation sketches.
 - Parsing/content/autodoc: Patitas extraction/performance/CommonMark work,
   container stack parsing, external references, OpenAPI filter unification, and
   REST autodoc layouts.
+- Immutable Page pipeline: SourcePage, ParsedPage, and RenderedPage exist as
+  frozen records; PageProxy and the mutable `Page` compatibility class are
+  deleted; public `bengal.Page` and `bengal.core.Page` re-exports are retired.
 - Utility leaf hygiene: most low-risk `utils/primitives` cleanups shipped,
   including text helper tightening, `DotDict` contract docs, retry cleanup, date
   format reuse, and async/thread-local lazy initialization improvements.
