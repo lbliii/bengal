@@ -68,6 +68,8 @@ Machine-checked on 2026-05-29:
   Render, taxonomy, section, and incremental orchestration tests now use the
   shared page-like mock instead of the mutable Page adapter for orchestrator
   inputs.
+  Nav-tree tests now use the shared page-like mock for navigation nodes,
+  version filtering, active trail, and cache behavior.
 
 No full test suite was run for this planning pass.
 

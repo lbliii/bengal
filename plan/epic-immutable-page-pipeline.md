@@ -572,6 +572,10 @@ incremental orchestration tests to the shared page-like mock. The mock now
 accepts legacy raw-content argument names during migration without constructing
 the legacy mutable Page adapter.
 
+Task 6.1/6.2 test fixture migration also moved nav-tree tests to the shared
+page-like mock for navigation nodes, version filtering, active trail overlays,
+baseurl proxy handling, and cache behavior.
+
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
 ### Task 6.2 — Delete Page class and mixins

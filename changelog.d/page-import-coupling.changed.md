@@ -35,3 +35,5 @@ constructing legacy mutable pages for alias behavior.
 Render, taxonomy, section, and incremental orchestration tests now use the
 shared page-like mock instead of constructing legacy mutable pages for
 orchestrator inputs.
+Nav-tree tests now use the shared page-like mock instead of constructing legacy
+mutable pages for navigation behavior.

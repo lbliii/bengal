@@ -19,7 +19,7 @@ import pytest
 from bengal.core.nav_tree import NavNode, NavTree, NavTreeCache, NavTreeContext
 from bengal.core.section import Section
 from bengal.core.site import Site
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_page as _page
 
 pytestmark = pytest.mark.parallel_unsafe
 
@@ -687,10 +687,9 @@ class TestNavNodeProxy:
         # Create a page in the section
         page_path = docs_path / "getting-started.md"
         page_path.write_text("---\ntitle: Getting Started\n---\n# Getting Started")
-        page = _page(source_path=page_path)
+        page = _page(source_path=page_path, metadata={"title": "Getting Started"})
         page._site = site
         page._section = section
-        page._raw_metadata = {"title": "Getting Started"}
         # Simulate output path being set
         page.output_path = tmp_path / "public" / "docs" / "getting-started" / "index.html"
         site.output_dir = tmp_path / "public"
@@ -753,9 +752,8 @@ class TestNavNodeProxy:
         # Create a page
         page_path = docs_path / "test.md"
         page_path.write_text("---\ntitle: Test\n---\n")
-        page = _page(source_path=page_path)
+        page = _page(source_path=page_path, metadata={"title": "Test"})
         page._site = site
-        page._raw_metadata = {"title": "Test"}
         page.__dict__["_path"] = "/docs/test/"
 
         section.add_page(page)
