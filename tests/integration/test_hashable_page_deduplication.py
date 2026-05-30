@@ -1,15 +1,39 @@
 """
-Integration tests for page and section hashability in real build scenarios.
+Integration tests for page-like and section hashability in build scenarios.
 
 Tests that hashability works correctly in the context of the full build pipeline,
 especially for deduplication and set operations.
 """
 
 from pathlib import Path
+from typing import Any
 
 from bengal.core.section import Section
 from bengal.core.site import Site
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import MockAnalysisPage, make_analysis_page
+
+
+def _page(
+    *,
+    source_path: Path | str,
+    raw_content: str = "",
+    metadata: dict[str, Any] | None = None,
+    **attrs: Any,
+) -> MockAnalysisPage:
+    """Create a source-path-hashable page-like test fixture."""
+    legacy_raw_content = attrs.pop("_raw_content", None)
+    legacy_raw_metadata = attrs.pop("_raw_metadata", None)
+    if legacy_raw_content is not None and not raw_content:
+        raw_content = str(legacy_raw_content)
+    if legacy_raw_metadata is not None and metadata is None:
+        metadata = legacy_raw_metadata
+
+    return make_analysis_page(
+        source_path=source_path,
+        raw_content=raw_content,
+        metadata=metadata,
+        **attrs,
+    )
 
 
 class TestPageDeduplicationInBuilds:

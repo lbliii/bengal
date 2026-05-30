@@ -466,6 +466,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate computed page fixtures`
 - `core: extract page metadata helpers`
 - `tests: migrate page record fixtures`
+- `tests: migrate page hashability fixtures`
 
 ### Sprint 6 epics
 
@@ -657,6 +658,12 @@ Task 6.1/6.2 test fixture migration also moved page-record migration
 bridge-retirement coverage to the canonical SourcePage-backed test-page
 adapter. Record migration tests no longer construct the legacy mutable Page
 adapter directly.
+
+Task 6.1/6.2 test fixture migration also moved hashability and deduplication
+coverage to source-path-hashable page-like mocks. Set operations, dict keys,
+taxonomy deduplication, and reconstruction cache lookups now prove the
+source-path identity contract without constructing the legacy mutable Page
+adapter.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

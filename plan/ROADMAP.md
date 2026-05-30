@@ -98,6 +98,8 @@ Machine-checked on 2026-05-29:
   Page record migration bridge-retirement coverage now uses the canonical
   SourcePage-backed test-page adapter instead of direct mutable Page
   construction.
+  Hashability and deduplication tests now use source-path-hashable page-like
+  mocks instead of the mutable Page adapter for set/dict identity behavior.
 
 No full test suite was run for this planning pass.
 
@@ -220,6 +222,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate computed page fixtures`
 - `core: extract page metadata helpers`
 - `tests: migrate page record fixtures`
+- `tests: migrate page hashability fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

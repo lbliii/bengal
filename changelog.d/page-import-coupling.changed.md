@@ -71,3 +71,6 @@ legacy mutable Page adapter.
 Page record migration tests now use the canonical SourcePage-backed test-page
 adapter for bridge-retirement coverage instead of constructing the legacy
 mutable Page adapter directly.
+Hashability and deduplication tests now use source-path-hashable page-like
+mocks instead of constructing the legacy mutable Page adapter for set and dict
+identity behavior.
