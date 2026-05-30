@@ -168,6 +168,13 @@ class TestPageLikeStability:
         """PageLike should not require rendering parser side-channel state."""
         assert not hasattr(PageLike, "_directive_links")
 
+    def test_excludes_parse_cache_content_state(self) -> None:
+        """PageLike should not require parser/cache-derived content slots."""
+        assert not hasattr(PageLike, "_ast_cache")
+        assert not hasattr(PageLike, "_toc_items_cache")
+        assert not hasattr(PageLike, "_excerpt")
+        assert not hasattr(PageLike, "_meta_description")
+
 
 class TestSectionLikeStability:
     """Guard against breaking changes to SectionLike."""

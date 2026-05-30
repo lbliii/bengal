@@ -10,6 +10,11 @@ if TYPE_CHECKING:
     from bengal.protocols import PageLike
 
 
+def _set_transient_page_state(page: object, name: str, value: object) -> None:
+    """Set a temporary mutable page slot without widening ``PageLike``."""
+    setattr(page, name, value)
+
+
 def apply_parsed_page_to_page(
     page: PageLike,
     parsed_page: ParsedPage,
@@ -22,16 +27,18 @@ def apply_parsed_page_to_page(
     """Apply a ``ParsedPage`` record to the remaining mutable page surface."""
     page.html_content = parsed_page.html_content
     page.toc = parsed_page.toc
-    page._toc_items_cache = [dict(item) for item in parsed_page.toc_items]
-    page._excerpt = parsed_page.excerpt
-    page._meta_description = parsed_page.meta_description
+    _set_transient_page_state(
+        page, "_toc_items_cache", [dict(item) for item in parsed_page.toc_items]
+    )
+    _set_transient_page_state(page, "_excerpt", parsed_page.excerpt)
+    _set_transient_page_state(page, "_meta_description", parsed_page.meta_description)
 
     if seed_links:
         page.links = list(parsed_page.links)
     if seed_plain_text:
         page._plain_text_cache = parsed_page.plain_text
     if seed_ast:
-        page._ast_cache = parsed_page.ast_cache
+        _set_transient_page_state(page, "_ast_cache", parsed_page.ast_cache)
     if seed_counts:
         page.__dict__["word_count"] = parsed_page.word_count
         page.__dict__["reading_time"] = parsed_page.reading_time
@@ -45,12 +52,12 @@ def clear_parsed_page_state(page: PageLike) -> None:
     """Clear parse-derived compatibility fields before reparsing a page."""
     page.html_content = None
     page.toc = ""
-    page._toc_items_cache = []
+    _set_transient_page_state(page, "_toc_items_cache", [])
     page.links = []
-    page._excerpt = None
-    page._meta_description = None
+    _set_transient_page_state(page, "_excerpt", None)
+    _set_transient_page_state(page, "_meta_description", None)
     page._plain_text_cache = None
-    page._ast_cache = None
+    _set_transient_page_state(page, "_ast_cache", None)
 
 
 def clear_parsed_page_caches(page: object, *, clear_html_cache: bool = True) -> None:

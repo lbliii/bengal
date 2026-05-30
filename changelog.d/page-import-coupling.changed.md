@@ -12,3 +12,6 @@ flows through a content-owned helper instead of requiring `_source` on the
 `PageLike` protocol. Section access now flows through core section helpers
 instead of requiring `_section` on `PageLike`, and directive link collection now
 flows through rendering helpers instead of requiring `_directive_links`.
+Parsed content caches now stay out of `PageLike`; AST, TOC, excerpt, and meta
+description state are handled by compatibility/cache helpers while the legacy
+mutable page adapter remains.

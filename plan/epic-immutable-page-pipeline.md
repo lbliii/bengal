@@ -443,6 +443,7 @@ gone or explicitly retained by a recorded public API decision.
 - `protocols: remove page raw-source state`
 - `protocols: remove page section state`
 - `protocols: remove page directive-link state`
+- `protocols: remove page parsed-content state`
 
 ### Sprint 6 epics
 
@@ -511,6 +512,12 @@ Task 6.3 also removed `_directive_links` from `PageLike`. Directive-collected
 links are now accessed through rendering-owned helpers in
 `bengal.rendering.page_operations`, so parser side-channel state is not part of
 the structural page contract.
+
+Task 6.3 also removed parsed-content cache fields from `PageLike`, including
+`_ast_cache`, `_toc_items_cache`, `_excerpt`, and `_meta_description`.
+Cache adapters now set those remaining mutable slots through compatibility
+helpers, and rendering-owned `page_content` helpers remain the access boundary
+for derived AST, TOC, excerpt, and meta-description state.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

@@ -243,10 +243,6 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
 
     _site: Any  # Site reference (set during setup_references)
     prerendered_html: str | None  # Pre-rendered HTML (autodoc, etc.), set before render
-    _excerpt: str | None  # AST-extracted excerpt (set by pipeline)
-    _meta_description: str | None  # AST-extracted meta description (set by pipeline)
-    _toc_items_cache: list[Any] | None  # Cached TOC items from parsing
-    _ast_cache: Any  # Cached AST from parsing
     _autodoc_fallback_template: bool  # Whether to use autodoc fallback template
     _posts: list[Any] | None  # Related posts for section index pages
     _subsections: list[Any] | None  # Subsections for section index pages
