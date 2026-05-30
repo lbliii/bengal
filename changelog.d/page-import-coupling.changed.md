@@ -68,3 +68,6 @@ coverage through the legacy mutable Page adapter.
 Page metadata helper tests now cover generated, assigned-template,
 content-type, and variant behavior through metadata helpers instead of the
 legacy mutable Page adapter.
+Page record migration tests now use the canonical SourcePage-backed test-page
+adapter for bridge-retirement coverage instead of constructing the legacy
+mutable Page adapter directly.

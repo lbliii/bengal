@@ -95,6 +95,9 @@ Machine-checked on 2026-05-29:
   coverage through the mutable Page adapter.
   Page metadata helper tests now exercise generated/template/content-type and
   variant behavior through helper functions instead of the mutable Page adapter.
+  Page record migration bridge-retirement coverage now uses the canonical
+  SourcePage-backed test-page adapter instead of direct mutable Page
+  construction.
 
 No full test suite was run for this planning pass.
 
@@ -216,6 +219,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate component model page fixtures`
 - `tests: migrate computed page fixtures`
 - `core: extract page metadata helpers`
+- `tests: migrate page record fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside
