@@ -24,7 +24,7 @@ Machine-checked on 2026-05-29:
 - Protocol annotation counts are still mixed: `site: Site` 296 vs
   `site: SiteLike` 274, `page: Page` 120 vs `page: PageLike` 253,
   `section: Section` 82 vs `section: SectionLike` 63.
-- `uv run ty check bengal/` reports 537 diagnostics.
+- `uv run ty check bengal/` reports 531 diagnostics.
 - Bundled themes are `default` and `chirpui`; `bengal theme preview`,
   swizzle commands, library assets, and Chirp UI integration tests exist.
 - Plugin wiring exists for directives, roles, template extensions, and phase
@@ -42,8 +42,8 @@ Machine-checked on 2026-05-29:
   risk for the immutable page pipeline but not deleting the `Page` class.
 - Page deletion proof has started: direct production
   `from bengal.core.page import Page` imports are gone. Public `bengal.Page`
-  and `bengal.core.Page` compatibility re-exports are retired, and the
-  remaining mutable class is loaded lazily only inside the SourcePage adapter.
+  and `bengal.core.Page` compatibility re-exports are retired, and the legacy
+  mutable `Page` class has been deleted.
   `tests/unit/content/test_page_construction_boundary.py` now locks production
   constructor/direct-import isolation to the SourcePage adapter and blocks
   concrete `Page` imports in tests. The SourcePage adapter now returns
@@ -114,9 +114,8 @@ Machine-checked on 2026-05-29:
   route through SourcePage-backed helpers or page-like mocks.
   Production page adaptation now returns a SourcePage-backed `RuntimePage`
   from the core page compatibility boundary instead of constructing the legacy
-  mutable `Page` class. The legacy class is isolated in
-  `bengal.core.page.legacy` and no longer exported from the `bengal.core.page`
-  package root.
+  mutable `Page` class. `bengal.core.page.legacy` has been removed, and
+  `bengal.core.page` does not export `Page`.
 
 No full test suite was run for this planning pass.
 
@@ -145,8 +144,8 @@ This file is the eleventh root planning file and owns sequencing.
 
 | Priority | Work | Proof Before Close |
 |----------|------|--------------------|
-| P1 | Delete mutable `Page` compatibility class | `rg '^class Page\\b' bengal/core/page` returns no hits; full tests pass. |
-| P1 | Re-measure and reduce `ty` floor | Current count is 537 diagnostics; close with a lower recorded count and no new suppressions. |
+| P1 | Delete mutable `Page` compatibility class | `rg '^class Page\\b' bengal/core/page` returns no hits; focused/broader Page gates pass; stable full-suite proof is still pending because the current dirty-worktree full-suite run has failures outside the Page deletion scope. |
+| P1 | Re-measure and reduce `ty` floor | Current count is 531 diagnostics; close with a lower recorded count and no new suppressions. |
 | P1 | OpenAPI REST autodoc polish | Focused autodoc tests cover Python, CLI, OpenAPI, and layout output. |
 | P1 | Snapshot build-plan handoff | Worker paths consume frozen plans/snapshots instead of live mutable objects. |
 | P2 | Incremental dependency indexes | Warm-build tests prove dependency-to-output invalidation without broad scans. |
@@ -246,13 +245,24 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate page frontmatter fixtures`
 - `tests: remove mutable page test factory`
 - `content: introduce source page runtime adapter`
+- `core: delete legacy page class`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; `bengal/content/discovery/page_adapter.py` constructs `RuntimePage`
 from `SourcePage` records through `bengal.core.page.runtime` and does not
-import `bengal.core.page.legacy`.
-`rg '^class Page\\b' bengal/core/page` still finds the isolated legacy class in
-`bengal/core/page/legacy.py`, so class deletion remains open.
+import a legacy Page module. `rg '^class Page\\b' bengal/core/page` returns no
+hits because `bengal/core/page/legacy.py` has been deleted. Focused boundary,
+public-export, Page record, core page, content-discovery, autodoc, rendering,
+initializer, and frontmatter gates pass. `uv run ty check bengal/` now reports
+531 diagnostics, down from the prior 537 floor.
+
+**Open proof gap:** `uv run pytest -q` currently fails in this dirty worktree
+with failures outside the Page deletion scope, including OpenAPI/theme-related
+tests from unrelated modified files and one Hypothesis deadline flake. The 10
+recorded failures passed immediately under `uv run pytest --last-failed -vv
+--tb=short`. Do not mark the saga complete until a stable full-suite run passes
+or the non-Page full-suite failures are separately resolved/accepted as not
+blocking.
 
 **Proof before saga close:** `rg '^class Page\\b' bengal/core/page` returns no
 hits; public compatibility decision is recorded; boundary tests are either

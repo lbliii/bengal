@@ -89,6 +89,7 @@ The unused legacy mutable test-page factory was removed; tests now use
 SourcePage-backed helpers or page-like mocks.
 Production `page_from_source_page()` now returns a SourcePage-backed
 `RuntimePage` from the core page compatibility boundary instead of constructing
-the legacy mutable `Page` class; the legacy class is isolated in
-`bengal.core.page.legacy` and is no longer exported from the `bengal.core.page`
-package root.
+the legacy mutable `Page` class.
+The legacy mutable `Page` class module, `bengal.core.page.legacy`, has been
+deleted; `bengal.core.page` remains a helper package and does not export
+`Page`.

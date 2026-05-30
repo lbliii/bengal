@@ -1,26 +1,28 @@
 # Epic: Immutable Page Pipeline — Snapshots All The Way Down
 
-**Status**: Active — Sprints 0-5 Complete, Sprint 6 In Progress
+**Status**: Active — Sprints 0-5 Complete, Sprint 6 Class Deletion Complete, Stable Full-Suite Proof Pending
 **Created**: 2026-04-06
 **Updated**: 2026-05-30
 **Target**: v0.4.x
 **Estimated Effort**: 60-80 hours
 **Dependencies**: Root roadmap sequencing; older protocol and architecture audit epics are archived as stale/superseded.
 **Source**: Layered Review (2026-04-06), rfc-bengal-v2-architecture.md (Phase 3-4)
-**2026-05-29 Check**: `bengal/core/page/__init__.py` still defines `class Page`.
-The SourcePage adapter seam now exists in `bengal/content/discovery/page_adapter.py`,
+**2026-05-30 Check**: `bengal/core/page/__init__.py` no longer defines or
+exports `class Page`; `bengal/core/page/legacy.py` has been deleted. The
+SourcePage adapter seam exists in `bengal/content/discovery/page_adapter.py`,
 autodoc/orchestration virtual producers use `create_virtual_source_page()`, and
-latest tests migrated page behavior fixtures through SourcePage helpers. Sprint
-6 is active. Direct production `from bengal.core.page import Page` imports are
-now isolated to the SourcePage compatibility adapter. The 2026-05-29 public API
-decision retired the lazy `bengal.Page` and `bengal.core.Page` compatibility
-re-exports. Boundary tests now enforce that production `Page` construction and
-direct imports stay isolated to the adapter and that tests do not import the
-concrete `Page` class. The remaining direct import count across `bengal/` +
-`tests/` is 1 import site: the adapter. The adapter's public type boundary now
-returns `PageLike`; mutable construction remains isolated inside the adapter.
-Deletion remains blocked by the adapter boundary and the concrete class itself,
-not by public export compatibility.
+page behavior fixtures have migrated through SourcePage helpers or page-like
+mocks. The 2026-05-29 public API decision retired the lazy `bengal.Page` and
+`bengal.core.Page` compatibility re-exports. Boundary tests now enforce that
+production code and tests do not import the concrete `Page` class. The adapter's
+public type boundary returns `PageLike`, backed by SourcePage-derived runtime
+state rather than the deleted mutable `Page` class. Focused and broader
+Page/source/rendering gates pass, and `uv run ty check bengal/` now reports 531
+diagnostics, down from the previous 537 floor. A stable full-suite pass remains
+unproven in the current dirty worktree: `uv run pytest -q` exposed failures
+outside the Page deletion scope, including OpenAPI/theme-related tests from
+unrelated modified files and one Hypothesis deadline flake. The recorded
+failures passed immediately under `uv run pytest --last-failed -vv --tb=short`.
 
 ---
 
@@ -699,20 +701,23 @@ mutable Page constructor keyword names.
 Task 6.1/6.2 then replaced the production adapter's legacy Page construction
 with a SourcePage-backed `RuntimePage` owned by the core page compatibility
 boundary. The `bengal.core.page` package root is now a lightweight helper
-package and no longer exports `Page`; the old class is isolated in
-`bengal.core.page.legacy` for the final deletion slice. Adapter import tests
-now prove `bengal.core.page.legacy` is not loaded by page adaptation.
+package and no longer exports `Page`; `bengal.core.page.legacy` has been
+deleted. Adapter import tests now prove the legacy module is absent and page
+adaptation does not expose `Page`.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
 ### Task 6.2 — Delete Page class and mixins
 
-Remove `bengal/core/page/legacy.py` (isolated legacy Page class) after the
-remaining helper-package imports and behavior tests prove no fallback path still
+`bengal/core/page/legacy.py` (the isolated legacy Page class) has been removed
+after helper-package imports and behavior tests proved no fallback path still
 depends on it. Older mixin files listed in this task have already been removed
 or folded into helper modules.
 
-**Acceptance**: Page class deleted. Mixin files deleted. All tests pass.
+**Acceptance**: Page class deleted. Mixin files deleted. Focused and broader
+Page gates pass. Stable full-suite proof is still pending because unrelated
+dirty-worktree/full-suite failures pass under last-failed reruns but prevent a
+clean `uv run pytest -q` result.
 
 ### Task 6.3 — Update protocols
 
