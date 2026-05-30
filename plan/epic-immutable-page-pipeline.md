@@ -447,6 +447,7 @@ gone or explicitly retained by a recorded public API decision.
 - `protocols: remove page archive context state`
 - `protocols: remove page autodoc fallback state`
 - `protocols: remove page prerendered html state`
+- `protocols: remove page site state`
 
 ### Sprint 6 epics
 
@@ -536,6 +537,11 @@ fallback tagging no longer requires mutable page slots.
 Task 6.3 also removed `prerendered_html` from `PageLike`. Rendering-owned helper
 functions now read and write pre-rendered virtual page HTML, leaving the legacy
 field as adapter state until the mutable Page class is deleted.
+
+Task 6.3 also removed `_site` from `PageLike`. Content discovery and
+orchestration now use page-site helpers for the remaining mutable compatibility
+object, so site context remains legacy adapter state instead of a protocol
+requirement.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

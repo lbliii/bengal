@@ -22,3 +22,5 @@ Autodoc fallback tagging now stays out of `PageLike`; fallback template markers
 are recorded through metadata instead of mutable page slots.
 Pre-rendered virtual page HTML now stays out of `PageLike`; rendering helpers
 own access to `prerendered_html` while the legacy mutable page adapter remains.
+Legacy mutable page site context now stays out of `PageLike`; content discovery
+and orchestration use page-site helpers while the compatibility adapter remains.

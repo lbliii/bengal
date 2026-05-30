@@ -241,8 +241,6 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
     render_time_ms: float  # Per-page render time, set during rendering
     related_posts: list[PageLike]  # Pre-computed related pages
 
-    _site: Any  # Site reference (set during setup_references)
-
     @property
     def _path(self) -> str:
         """Internal site-relative path (no baseurl)."""

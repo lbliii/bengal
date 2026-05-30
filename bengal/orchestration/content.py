@@ -49,6 +49,7 @@ from typing import TYPE_CHECKING, Any, cast
 from bengal.build.contracts.keys import xref_path_key
 from bengal.content.page_source import get_raw_source
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.core.page_site import set_page_site
 from bengal.core.section.utils import get_page_section, set_page_section
 from bengal.utils.observability.logger import get_logger
 
@@ -952,7 +953,7 @@ class ContentOrchestrator:
         application.
         """
         for page in self.site.pages:
-            page._site = self.site
+            set_page_site(page, self.site)
 
         for section in self.site.sections:
             section._site = self.site

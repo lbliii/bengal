@@ -190,6 +190,10 @@ class TestPageLikeStability:
         """PageLike should not require pre-rendered virtual page HTML slots."""
         assert not hasattr(PageLike, "prerendered_html")
 
+    def test_excludes_mutable_page_site_reference(self) -> None:
+        """PageLike should not require the legacy mutable Page site slot."""
+        assert not hasattr(PageLike, "_site")
+
 
 class TestSectionLikeStability:
     """Guard against breaking changes to SectionLike."""

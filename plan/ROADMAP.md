@@ -52,9 +52,10 @@ Machine-checked on 2026-05-29:
   legacy `_source`, `_section`, `_directive_links`, `_ast_cache`,
   `_toc_items_cache`, `_excerpt`, `_meta_description`, `_posts`,
   `_subsections`, `_paginator`, `_page_num`, `_autodoc_fallback_template`, or
-  `prerendered_html` slots; raw content, section access, directive-link state,
-  parsed content caches, archive pagination context, autodoc fallback tagging,
-  and pre-rendered virtual page HTML route through helper functions or metadata.
+  `prerendered_html` slots, and no longer exposes the legacy `_site` slot; raw
+  content, section access, directive-link state, parsed content caches, archive
+  pagination context, autodoc fallback tagging, pre-rendered virtual page HTML,
+  and mutable page site context route through helper functions or metadata.
 
 No full test suite was run for this planning pass.
 
@@ -158,6 +159,7 @@ class deletion rather than public compatibility preservation.
 - `protocols: remove page archive context state`
 - `protocols: remove page autodoc fallback state`
 - `protocols: remove page prerendered html state`
+- `protocols: remove page site state`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

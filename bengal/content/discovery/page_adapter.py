@@ -6,6 +6,7 @@ from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.core.page_site import set_page_site
 from bengal.core.section.utils import set_page_section
 
 if TYPE_CHECKING:
@@ -54,7 +55,7 @@ def page_from_source_page(
         page.template_name = template_name
 
     if site is not None:
-        page._site = site
+        set_page_site(page, site)
     if section is not None:
         set_page_section(page, section)
     elif source_page.core.section:

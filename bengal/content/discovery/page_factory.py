@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.core.page_site import get_page_site, set_page_site
 from bengal.core.section.utils import get_page_section, set_page_section
 from bengal.utils.observability.logger import get_logger
 
@@ -95,8 +96,8 @@ class PageInitializer:
             ValueError: If page is missing required attributes or URL generation fails
         """
         # Set site reference if missing
-        if not page._site:
-            page._site = self.site
+        if not get_page_site(page):
+            set_page_site(page, self.site)
 
         # Validate output_path is set
         if not page.output_path:
