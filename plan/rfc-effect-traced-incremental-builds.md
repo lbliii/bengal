@@ -760,8 +760,8 @@ from bengal.effects.tracer import trace_effects
 from bengal.effects.types import EffectSet
 
 if TYPE_CHECKING:
-    from bengal.core.page import Page
     from bengal.core.site import Site
+    from bengal.protocols import PageLike
     from bengal.rendering.pipeline import RenderingPipeline
 
 
@@ -806,7 +806,7 @@ class EffectTracedBuilder:
 
     def build(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         pipeline: RenderingPipeline,
         parallel: bool = True,
         max_workers: int = 8,
@@ -843,7 +843,7 @@ class EffectTracedBuilder:
 
     def _build_sequential(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         pipeline: RenderingPipeline,
     ) -> EffectBuildResult:
         """Sequential build with effect tracing."""
@@ -889,7 +889,7 @@ class EffectTracedBuilder:
 
     def _build_parallel(
         self,
-        pages: list[Page],
+        pages: list[PageLike],
         pipeline: RenderingPipeline,
         max_workers: int,
     ) -> EffectBuildResult:
@@ -938,7 +938,7 @@ class EffectTracedBuilder:
 
     def _build_page(
         self,
-        page: Page,
+        page: PageLike,
         pipeline: RenderingPipeline,
     ) -> _PageBuildResult:
         """Build a single page (called from thread pool)."""
@@ -964,7 +964,7 @@ class EffectTracedBuilder:
             effects_count=len(effects.reads) + len(effects.computes),
         )
 
-    def _probe_effects(self, page: Page) -> EffectSet:
+    def _probe_effects(self, page: PageLike) -> EffectSet:
         """
         Quick probe to compute effect fingerprint.
 
@@ -991,7 +991,7 @@ class EffectTracedBuilder:
             ))
 
         # Template effect (if explicitly assigned via frontmatter)
-        # Uses Page.assigned_template property from bengal/core/page/metadata.py
+        # Uses the page-like assigned_template compatibility property.
         if page.assigned_template:
             # Resolve template path through site's template resolution
             # This is a probe hint - actual template may differ at render time
@@ -1140,7 +1140,7 @@ Final Cache Architecture (Phase 4+ - After Migration):
 
 | Model | Impact | Changes Required |
 |-------|--------|------------------|
-| `Page` | **None** | Uses existing `source_path`, `assigned_template` |
+| `PageLike` | **None** | Uses existing `source_path`, `assigned_template` |
 | `Site` | **None** | No changes to Site model |
 | `Section` | **None** | Section relationships unchanged |
 | `BuildCache` | **Deprecated** (Phase 4) | Will be replaced by MerkleDAGCache |
@@ -1152,14 +1152,14 @@ Final Cache Architecture (Phase 4+ - After Migration):
 
 ```python
 # Current flow (explicit tracking)
-def build_page(page: Page, tracker: DependencyTracker) -> None:
+def build_page(page: PageLike, tracker: DependencyTracker) -> None:
     tracker.track_template(template_path)      # Manual
     tracker.track_data_file(page.path, data)   # Manual
     tracker.track_taxonomy(page.path, tags)    # Manual
     render(page)
 
 # Proposed flow (effect tracing)
-def build_page(page: Page) -> None:
+def build_page(page: PageLike) -> None:
     with trace_effects() as effects:
         render(page)  # All dependencies captured automatically
     cache.store_effect_set(page.source_path, effects, output)

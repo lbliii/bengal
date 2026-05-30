@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from bengal.core.page import PageCore
+from bengal.core.page.page_core import PageCore
 from tests._testing.page_records import make_mutable_test_page as _page
 
 if TYPE_CHECKING:

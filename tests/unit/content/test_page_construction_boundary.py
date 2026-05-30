@@ -106,6 +106,10 @@ def _imports_core_page_class(node: ast.AST) -> TypeGuard[ast.ImportFrom]:
     return any(alias.name == "Page" for alias in node.names)
 
 
+def _imports_core_page_package_root(node: ast.AST) -> TypeGuard[ast.ImportFrom]:
+    return isinstance(node, ast.ImportFrom) and node.module == "bengal.core.page"
+
+
 def test_production_page_creation_goes_through_source_adapter() -> None:
     repo_root = Path(__file__).resolve().parents[3]
     violations: list[str] = []
@@ -186,5 +190,22 @@ def test_non_compatibility_tests_do_not_import_page_class() -> None:
             for node in ast.walk(tree)
             if _imports_core_page_class(node)
         )
+
+    assert violations == []
+
+
+def test_no_code_imports_from_core_page_package_root() -> None:
+    repo_root = Path(__file__).resolve().parents[3]
+    violations: list[str] = []
+
+    for root_name in ("bengal", "tests"):
+        for path in sorted((repo_root / root_name).rglob("*.py")):
+            relative_path = path.relative_to(repo_root).as_posix()
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            violations.extend(
+                f"{relative_path}:{node.lineno}"
+                for node in ast.walk(tree)
+                if _imports_core_page_package_root(node)
+            )
 
     assert violations == []

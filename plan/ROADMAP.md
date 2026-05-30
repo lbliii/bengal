@@ -41,11 +41,9 @@ Machine-checked on 2026-05-29:
 - SourcePage adapter tests and notebook-title tests landed, reducing Sprint 6
   risk for the immutable page pipeline but not deleting the `Page` class.
 - Page deletion proof has started: direct production
-  `from bengal.core.page import Page` imports are isolated to
-  `bengal/content/discovery/page_adapter.py`. Public `bengal.Page` and
-  `bengal.core.Page` compatibility re-exports are retired, and the remaining
-  `bengal/` + `tests/` direct concrete `Page` import count is 1 import site:
-  the adapter.
+  `from bengal.core.page import Page` imports are gone. Public `bengal.Page`
+  and `bengal.core.Page` compatibility re-exports are retired, and the
+  remaining mutable class is loaded lazily only inside the SourcePage adapter.
   `tests/unit/content/test_page_construction_boundary.py` now locks production
   constructor/direct-import isolation to the SourcePage adapter and blocks
   concrete `Page` imports in tests. The SourcePage adapter now returns
@@ -146,6 +144,7 @@ class deletion rather than public compatibility preservation.
 - `content: move i18n discovery state into source records`
 - `tests: remove dummy Page constructor noise`
 - `content: lazy-load page compatibility adapter`
+- `tests: remove core page package-root imports`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

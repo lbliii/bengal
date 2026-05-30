@@ -439,6 +439,7 @@ gone or explicitly retained by a recorded public API decision.
 - `content: move i18n discovery state into source records`
 - `tests: remove dummy Page constructor noise`
 - `content: lazy-load page compatibility adapter`
+- `tests: remove core page package-root imports`
 
 ### Sprint 6 epics
 
@@ -486,6 +487,12 @@ Task 6.1 now removes the direct production import from the remaining adapter.
 Importing `bengal.content.discovery.page_adapter` no longer imports
 `bengal.core.page`; the compatibility class is loaded only when
 `page_from_source_page()` is called.
+
+Task 6.1 also removed the last test import from the `bengal.core.page` package
+root and added a boundary guard that rejects any future
+`from bengal.core.page import ...` code import. Page submodules such as
+`page_core`, `frontmatter`, `bundle`, and `utils` remain intentional until their
+own deletion/move slices land.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
