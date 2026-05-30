@@ -10,12 +10,13 @@ template and third-party code that already calls methods such as
 from __future__ import annotations
 
 import re
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, cast
 
 from bengal.cache.parsed_output import apply_parsed_links_to_page
+from bengal.content.page_source import get_raw_source
 
 if TYPE_CHECKING:
-    from pathlib import Path
+    from bengal.protocols import PageLike
 
 # Compiled patterns for link extraction (used per-page in extract_links)
 _FENCE_4PLUS = re.compile(r"`{4,}[^\n]*\n.*?`{4,}", re.DOTALL)
@@ -27,20 +28,7 @@ _WIKILINK = re.compile(r"\[\[([^\]|]+)(?:\|[^\]]*)?\]\]")
 _BROKEN_REF = re.compile(r'<span\s+class="broken-ref"[^>]*data-ref="([^"]+)"')
 
 
-class PageOperationTarget(Protocol):
-    """Structural page surface needed by rendering operations."""
-
-    html_content: str | None
-    links: list[str]
-    source_path: Path
-
-    @property
-    def _source(self) -> str:
-        """Raw markdown source content."""
-        ...
-
-
-def extract_links(page: PageOperationTarget, plugin_links: list[str] | None = None) -> list[str]:
+def extract_links(page: PageLike, plugin_links: list[str] | None = None) -> list[str]:
     """
     Extract all links from page content.
 
@@ -51,29 +39,33 @@ def extract_links(page: PageOperationTarget, plugin_links: list[str] | None = No
     Content inside fenced code blocks and inline code spans is ignored to avoid
     false positives from documentation examples.
     """
-    content_without_code = _strip_code_for_link_extraction(page._source)
+    content_without_code = _strip_code_for_link_extraction(get_raw_source(page))
 
     markdown_links = _MARKDOWN_LINK.findall(content_without_code)
     html_links = _HTML_HREF.findall(content_without_code)
 
     if plugin_links is not None:
         wikilink_urls = plugin_links
-        apply_parsed_links_to_page(
-            page, [url for _, url in markdown_links] + html_links + wikilink_urls
+        collected_links: list[object] = (
+            [url for _, url in markdown_links] + html_links + wikilink_urls
         )
+        apply_parsed_links_to_page(page, collected_links)
     elif page.html_content:
-        apply_parsed_links_to_page(page, extract_all_links_from_html(page.html_content))
+        collected_links = list(extract_all_links_from_html(page.html_content))
+        apply_parsed_links_to_page(page, cast("list[object]", collected_links))
     else:
         wikilink_urls = extract_wikilinks_from_source(content_without_code)
+        collected_links = [url for _, url in markdown_links] + html_links + wikilink_urls
         apply_parsed_links_to_page(
-            page, [url for _, url in markdown_links] + html_links + wikilink_urls
+            page,
+            collected_links,
         )
 
     _merge_directive_links(page, plugin_links=plugin_links)
     return page.links
 
 
-def has_shortcode(page: PageOperationTarget, name: str) -> bool:
+def has_shortcode(page: PageLike, name: str) -> bool:
     """Return True if page source content uses the named shortcode."""
     from bengal.rendering.shortcodes import has_shortcode as _has_shortcode
 
@@ -116,7 +108,7 @@ def _strip_code_for_link_extraction(content: str) -> str:
     return _INLINE_CODE.sub("", content_without_code)
 
 
-def _merge_directive_links(page: PageOperationTarget, *, plugin_links: list[str] | None) -> None:
+def _merge_directive_links(page: PageLike, *, plugin_links: list[str] | None) -> None:
     """Merge directive-collected links without duplicating existing entries."""
     collected = getattr(page, "_directive_links", None)
     if collected:

@@ -440,6 +440,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: remove dummy Page constructor noise`
 - `content: lazy-load page compatibility adapter`
 - `tests: remove core page package-root imports`
+- `protocols: remove page raw-source state`
 
 ### Sprint 6 epics
 
@@ -493,6 +494,11 @@ root and added a boundary guard that rejects any future
 `from bengal.core.page import ...` code import. Page submodules such as
 `page_core`, `frontmatter`, `bundle`, and `utils` remain intentional until their
 own deletion/move slices land.
+
+Task 6.3 started protocol convergence by removing `_source` from `PageLike`.
+Production raw-content readers now use `bengal.content.page_source.get_raw_source()`,
+which prefers immutable SourcePage-backed `_raw_content` and only falls back to
+the legacy `_source` property while the adapter still exists.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

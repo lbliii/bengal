@@ -145,6 +145,7 @@ class deletion rather than public compatibility preservation.
 - `tests: remove dummy Page constructor noise`
 - `content: lazy-load page compatibility adapter`
 - `tests: remove core page package-root imports`
+- `protocols: remove page raw-source state`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

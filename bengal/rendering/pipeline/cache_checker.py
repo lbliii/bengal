@@ -14,6 +14,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.cache.parsed_output import apply_parsed_links_to_page, apply_parsed_page_to_page
+from bengal.content.page_source import get_raw_source
 from bengal.core.records import ParsedPage, RenderedPage, rendered_page_from_page_state
 from bengal.rendering.page_operations import extract_links
 from bengal.rendering.pipeline.output import format_html, write_output
@@ -179,7 +180,7 @@ class CacheChecker:
             ):
                 result = self.parser.render_ast_from_dict(
                     ast_data,
-                    page._source or "",
+                    get_raw_source(page),
                     page=page,
                     site=self.site,
                 )

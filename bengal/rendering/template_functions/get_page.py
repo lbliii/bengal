@@ -28,6 +28,7 @@ from typing import TYPE_CHECKING, Any, cast
 from bengal.build.contracts.keys import content_key
 from bengal.cache.parsed_output import apply_parsed_page_to_page
 from bengal.config.utils import resolve_excerpt_length
+from bengal.content.page_source import get_raw_source
 from bengal.core.records import ParsedPage
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.normalize import to_posix
@@ -168,7 +169,8 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
         return
 
     # Skip if no content
-    if not hasattr(page, "content") or not page._source:
+    source = get_raw_source(page)
+    if not hasattr(page, "content") or not source:
         return
 
     # Lazy-create parser on site object for reuse (double-checked locking)
@@ -196,7 +198,7 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
         need_toc = False
     else:
         # Quick heuristic: only generate TOC if markdown likely contains headings
-        content_text = page._source or ""
+        content_text = source
         likely_has_atx = re.search(r"^(?:\s{0,3})(?:##|###|####)\s+.+", content_text, re.MULTILINE)
         if not likely_has_atx:
             likely_has_setext = re.search(
@@ -225,7 +227,7 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
                 content_cfg = site.config.get("content", {}) or {}
                 metadata_with_excerpt["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
                 if need_toc:
-                    result = parser.parse_with_toc(page._source, metadata_with_excerpt)
+                    result = parser.parse_with_toc(source, metadata_with_excerpt)
                     parsed_content, toc = result[0], result[1]
                     result_ext = cast("tuple[str, ...]", result)
                     if len(result_ext) > 2:
@@ -233,7 +235,7 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
                     if len(result_ext) > 3:
                         parsed_meta_description = result_ext[3]
                 else:
-                    parsed_content = parser.parse(page._source, metadata_with_excerpt)
+                    parsed_content = parser.parse(source, metadata_with_excerpt)
                     toc = ""
                 # Escape template syntax
                 escape_method = getattr(parser, "_escape_template_syntax_in_html", None)
@@ -248,7 +250,7 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
                 if need_toc:
                     parse_method = getattr(parser, "parse_with_toc_and_context", None)
                     if callable(parse_method):
-                        result = parse_method(page._source, metadata_for_parser, context)
+                        result = parse_method(source, metadata_for_parser, context)
                         parsed_content, toc = result[0], result[1]
                         result_ext = cast("tuple[str, ...]", result)
                         if len(result_ext) > 2:
@@ -256,14 +258,14 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
                         if len(result_ext) > 3:
                             parsed_meta_description = result_ext[3]
                     else:
-                        parsed_content = page._source
+                        parsed_content = source
                         toc = ""
                 else:
                     parse_method = getattr(parser, "parse_with_context", None)
                     if callable(parse_method):
-                        parsed_content = parse_method(page._source, metadata_for_parser, context)
+                        parsed_content = parse_method(source, metadata_for_parser, context)
                     else:
-                        parsed_content = page._source
+                        parsed_content = source
                     toc = ""
         elif hasattr(parser, "parse_with_toc"):
             # Fallback parser
@@ -271,7 +273,7 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
             content_cfg = site.config.get("content", {}) or {}
             metadata_with_excerpt["_excerpt_length"] = resolve_excerpt_length(page, content_cfg)
             if need_toc:
-                result = parser.parse_with_toc(page._source, metadata_with_excerpt)
+                result = parser.parse_with_toc(source, metadata_with_excerpt)
                 parsed_content, toc = result[0], result[1]
                 result_ext = cast("tuple[str, ...]", result)
                 if len(result_ext) > 2:
@@ -279,12 +281,12 @@ def _ensure_page_parsed(page: PageLike, site: SiteLike) -> None:
                 if len(result_ext) > 3:
                     parsed_meta_description = result_ext[3]
             else:
-                parsed_content = parser.parse(page._source, metadata_with_excerpt)
+                parsed_content = parser.parse(source, metadata_with_excerpt)
                 toc = ""
         else:
             # Basic parser (CascadeView is immutable - pass mutable copy)
             metadata_for_parser = dict(page.metadata) if page.metadata else {}
-            parsed_content = parser.parse(page._source, metadata_for_parser)
+            parsed_content = parser.parse(source, metadata_for_parser)
             toc = ""
 
         # Escape Jinja blocks

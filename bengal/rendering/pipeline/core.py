@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.cache.parsed_output import apply_parsed_page_to_page, with_parsed_html
+from bengal.content.page_source import get_raw_source
 from bengal.core.records import (
     ParsedPage,
     parsed_page_from_page_state,
@@ -585,7 +586,7 @@ class RenderingPipeline:
         if page.metadata.get("toc") is False:
             return False
 
-        content_text = page._source or ""
+        content_text = get_raw_source(page)
         likely_has_atx = re.search(r"^(?:\s{0,3})(?:##|###|####)\s+.+", content_text, re.MULTILINE)
         if likely_has_atx:
             return True
@@ -601,8 +602,9 @@ class RenderingPipeline:
         def parse_markdown(s: str) -> str:
             return self.parser.parse(s, {})
 
+        raw_source = get_raw_source(page)
         source = expand_shortcodes(
-            page._source,
+            raw_source,
             self.template_engine,
             page,
             self.site,
@@ -1116,8 +1118,9 @@ class RenderingPipeline:
         def parse_markdown(s: str) -> str:
             return self.parser.parse(s, {})
 
+        raw_source = get_raw_source(page)
         source = expand_shortcodes(
-            page._source,
+            raw_source,
             self.template_engine,
             page,
             self.site,

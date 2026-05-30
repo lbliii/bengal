@@ -7,4 +7,6 @@ afterward. Non-compatibility tests no longer use local `Page`-named doubles that
 obscure the remaining production adapter/class boundary. The remaining adapter
 now lazy-loads the legacy class so importing content discovery helpers does not
 load `bengal.core.page`. Tests now import Page submodules directly and guard
-against new package-root imports from `bengal.core.page`.
+against new package-root imports from `bengal.core.page`. Raw source access now
+flows through a content-owned helper instead of requiring `_source` on the
+`PageLike` protocol.

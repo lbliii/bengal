@@ -255,11 +255,6 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
     _page_num: int | None  # Page number for paginated pages (None if not paginated)
 
     @property
-    def _source(self) -> str:
-        """Raw markdown source content."""
-        ...
-
-    @property
     def _section(self) -> SectionLike | None:
         """Section this page belongs to (lazy lookup)."""
         ...

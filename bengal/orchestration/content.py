@@ -47,6 +47,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.build.contracts.keys import xref_path_key
+from bengal.content.page_source import get_raw_source
 from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.utils.observability.logger import get_logger
 
@@ -1208,8 +1209,9 @@ class ContentOrchestrator:
             # Index target directives (:::{target} id)
             # Extract target directives from content for cross-reference indexing
             # NOTE: Target directives take precedence over heading anchors since they're explicit
-            if hasattr(page, "content") and page._source:
-                target_anchors = self._extract_target_directives(page._source)
+            source = get_raw_source(page)
+            if hasattr(page, "content") and source:
+                target_anchors = self._extract_target_directives(source)
                 page_version = getattr(page, "version", None)
                 for anchor_id in target_anchors:
                     anchor_key = anchor_id.lower()
