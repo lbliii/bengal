@@ -84,8 +84,8 @@ def test_openapi_home_uses_full_viewport_catalog_shell() -> None:
     assert "{% extends 'base.html' %}" in home
     assert "{% block site_footer %}{% end %}" in home
     assert 'class="api-catalog-app"' in home
-    assert 'api-catalog-app__left-rail' in home
-    assert 'api-catalog-app__right-rail' in home
+    assert "api-catalog-app__left-rail" in home
+    assert "api-catalog-app__right-rail" in home
     assert 'href="{{ tag_href }}{{ ep.href }}"' in home
     assert "autodoc/openapi/layouts/reference.html" not in home
 
@@ -102,14 +102,14 @@ def test_openapi_templates_use_bespoke_app_shell_not_legacy_reference_layout() -
     list_template = Path("bengal/themes/default/templates/autodoc/openapi/list.html").read_text(
         encoding="utf-8"
     )
-    endpoint_template = Path("bengal/themes/default/templates/autodoc/openapi/endpoint.html").read_text(
-        encoding="utf-8"
-    )
+    endpoint_template = Path(
+        "bengal/themes/default/templates/autodoc/openapi/endpoint.html"
+    ).read_text(encoding="utf-8")
     schema_template = Path("bengal/themes/default/templates/autodoc/openapi/schema.html").read_text(
         encoding="utf-8"
     )
 
-    assert "{% extends \"base.html\" %}" in explorer
+    assert '{% extends "base.html" %}' in explorer
     assert "{% block site_footer %}{% end %}" in explorer
     assert 'class="openapi-app"' in explorer
     assert "breadcrumbs(" not in explorer

@@ -81,7 +81,7 @@ class BengalCLI(CLI):
             self._format_root_help()
             return None
         if "--version" in resolved_argv and not self._extract_command_tokens(resolved_argv):
-            sys.stdout.write(f"{self.name} {self.version}\n")
+            self._write_stdout(f"{self.name} {self.version}")
             return None
         if "--help" in resolved_argv or "-h" in resolved_argv:
             self._format_help_for_argv(resolved_argv)
@@ -625,7 +625,7 @@ class BengalCLI(CLI):
             f"  {command['label']}{command['padding']}{command['description']}"
             for command in commands
         )
-        sys.stderr.write("\n".join(lines).rstrip("\n") + "\n")
+        self._write_stderr("\n".join(lines))
 
     @staticmethod
     def _suggest_name(
@@ -708,7 +708,9 @@ class BengalCLI(CLI):
     @staticmethod
     def _write_stdout(message: str) -> None:
         """Write a complete CLI help document to stdout."""
-        sys.stdout.write(message.rstrip("\n") + "\n")
+        from bengal.output import get_cli_output
+
+        get_cli_output().raw(message.rstrip("\n"), stream="stdout", level=None)
 
     @staticmethod
     def _example_field(example: Any, name: str) -> str:
