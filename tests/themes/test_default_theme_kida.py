@@ -415,16 +415,16 @@ class TestTemplateContext:
         tmpl = env.from_string("{{ page?.title ?? 'Untitled' }}")
 
         # With page object
-        class Page:
+        class TemplatePage:
             def __init__(self, title=None):
                 if title is not None:
                     self.title = title
 
-        page = Page("My Page")
+        page = TemplatePage("My Page")
         assert tmpl.render(page=page) == "My Page"
 
         # With missing title (attribute doesn't exist)
-        page = Page()  # No title attribute
+        page = TemplatePage()  # No title attribute
         assert tmpl.render(page=page) == "Untitled"
 
         # With None page

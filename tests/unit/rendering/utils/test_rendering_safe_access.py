@@ -59,10 +59,10 @@ class TestSafeGet:
     def test_get_from_object_attribute(self):
         """Should get attribute from object."""
 
-        class Page:
+        class AttributeTarget:
             title = "Hello World"
 
-        page = Page()
+        page = AttributeTarget()
         assert safe_get(page, "title") == "Hello World"
 
     def test_get_from_dict(self):
@@ -74,10 +74,10 @@ class TestSafeGet:
     def test_missing_attribute_returns_default(self):
         """Missing attribute should return default."""
 
-        class Page:
+        class AttributeTarget:
             title = "Hello"
 
-        page = Page()
+        page = AttributeTarget()
         assert safe_get(page, "missing") is None
         assert safe_get(page, "missing", "default") == "default"
 
@@ -90,19 +90,19 @@ class TestSafeGet:
     def test_none_attribute_value_returns_default_when_missing(self):
         """Missing attribute should return default (Kida raises immediately for undefined)."""
 
-        class Page:
+        class AttributeTarget:
             pass
 
-        page = Page()
+        page = AttributeTarget()
         assert safe_get(page, "title", "Untitled") == "Untitled"
 
     def test_none_value_returns_none(self):
         """Explicitly set None should be returned (not replaced with default)."""
 
-        class Page:
+        class AttributeTarget:
             title = None
 
-        page = Page()
+        page = AttributeTarget()
         result = safe_get(page, "title", "default")
         assert result is None
 
@@ -127,10 +127,10 @@ class TestSafeGetNested:
     def test_single_level_access(self):
         """Should work for single-level access."""
 
-        class Page:
+        class AttributeTarget:
             title = "Hello"
 
-        page = Page()
+        page = AttributeTarget()
         assert safe_get_nested(page, "title") == "Hello"
 
     def test_nested_access(self):

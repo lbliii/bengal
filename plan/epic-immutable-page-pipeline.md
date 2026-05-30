@@ -437,6 +437,7 @@ gone or explicitly retained by a recorded public API decision.
 - `core: retire public page exports`
 - `core: remove page virtual constructor`
 - `content: move i18n discovery state into source records`
+- `tests: remove dummy Page constructor noise`
 
 ### Sprint 6 epics
 
@@ -474,6 +475,11 @@ Task 6.1 also started retiring post-adapter mutations: discovery now derives
 i18n `lang` and `translation_key` values before creating `SourcePage`, so the
 adapter receives the correct immutable source state instead of setting those
 fields afterward.
+
+Task 6.1 also removed misleading local `Page`-named test doubles from
+template-context and safe-access tests. Those tests are now recorded in the
+construction boundary proof, so a broad `Page(` sweep points at the real
+production adapter/class boundary instead of unrelated dummy objects.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

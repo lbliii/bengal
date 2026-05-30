@@ -144,6 +144,7 @@ class deletion rather than public compatibility preservation.
 - `core: retire public page exports`
 - `core: remove page virtual constructor`
 - `content: move i18n discovery state into source records`
+- `tests: remove dummy Page constructor noise`
 
 **Proof before saga close:** `rg '^class Page\\b' bengal/core/page` returns no
 hits; `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns no hits;

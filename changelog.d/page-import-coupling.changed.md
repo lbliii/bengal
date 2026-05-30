@@ -3,4 +3,5 @@ plus the `Page.create_virtual()` compatibility constructor, and reduce internal
 concrete `Page` coupling by routing page construction through page-like records
 and the remaining SourcePage adapter boundary. Discovery now resolves i18n
 metadata before creating `SourcePage` records instead of mutating adapted pages
-afterward.
+afterward. Non-compatibility tests no longer use local `Page`-named doubles that
+obscure the remaining production adapter/class boundary.
