@@ -58,3 +58,6 @@ Page adapter.
 The standalone section-navigation edge case now exercises navigation helpers
 with a shared page-like mock instead of constructing the legacy mutable Page
 adapter.
+Navigation tests now build breadcrumb and parent assertions through section and
+page navigation helpers with shared page-like mocks instead of constructing the
+legacy mutable Page adapter.

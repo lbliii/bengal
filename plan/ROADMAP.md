@@ -87,6 +87,8 @@ Machine-checked on 2026-05-29:
   behavior through the shared URL page mock instead of the mutable Page adapter.
   The standalone section-navigation edge case now uses page-like mocks and
   navigation helpers instead of the mutable Page adapter.
+  Navigation breadcrumb and parent tests now use page-like mocks with
+  section/navigation helpers instead of the mutable Page adapter.
 
 No full test suite was run for this planning pass.
 
@@ -204,6 +206,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate page url fixtures`
 - `tests: migrate page url cache fixtures`
 - `tests: migrate page navigation edge fixture`
+- `tests: migrate navigation page fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

@@ -2,9 +2,15 @@
 
 from pathlib import Path
 
+from bengal.core.page.navigation import get_ancestors
 from bengal.core.section import Section
+from bengal.core.section.utils import get_page_section, set_page_section
 from bengal.core.site import Site
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_page as _page
+
+
+def _page_ancestors(page):
+    return get_ancestors(get_page_section(page))
 
 
 class TestSectionURLGeneration:
@@ -90,7 +96,7 @@ class TestPageAncestors:
         """Test page with no section has empty ancestors."""
         page = _page(source_path=Path("/content/page.md"), _raw_metadata={"title": "Page"})
 
-        assert page.ancestors == []
+        assert _page_ancestors(page) == []
 
     def test_page_in_single_section(self):
         """Test page in a single section."""
@@ -107,9 +113,9 @@ class TestPageAncestors:
 
         # Register section in site registry for path-based lookup
         site.registry.register_section(section)
-        page._section = section
+        set_page_section(page, section)
 
-        ancestors = page.ancestors
+        ancestors = _page_ancestors(page)
         assert len(ancestors) == 1
         assert ancestors[0] == section
 
@@ -135,9 +141,9 @@ class TestPageAncestors:
         # Register sections in site registry for path-based lookup
         site.registry.register_section(parent)
         site.registry.register_section(child)
-        page._section = child
+        set_page_section(page, child)
 
-        ancestors = page.ancestors
+        ancestors = _page_ancestors(page)
         # Should have immediate parent first, then grandparent
         assert len(ancestors) == 2
         assert ancestors[0] == child  # guides
@@ -162,9 +168,9 @@ class TestPageAncestors:
         # Register sections in site registry for path-based lookup
         site.registry.register_section(root)
         site.registry.register_section(section)
-        page._section = section
+        set_page_section(page, section)
 
-        ancestors = page.ancestors
+        ancestors = _page_ancestors(page)
         # Should include both section and root
         assert len(ancestors) == 2
         assert ancestors[0] == section  # docs
@@ -200,9 +206,9 @@ class TestPageAncestors:
         site.registry.register_section(level1)
         site.registry.register_section(level2)
         site.registry.register_section(level3)
-        page._section = level3
+        set_page_section(page, level3)
 
-        ancestors = page.ancestors
+        ancestors = _page_ancestors(page)
         assert len(ancestors) == 3
         assert ancestors[0] == level3  # auth (immediate parent)
         assert ancestors[1] == level2  # v2
@@ -231,10 +237,10 @@ class TestBreadcrumbLogic:
 
         # Register section in site registry for path-based lookup
         site.registry.register_section(docs)
-        page._section = docs
+        set_page_section(page, docs)
 
         # Get ancestors (no root)
-        ancestors = page.ancestors
+        ancestors = _page_ancestors(page)
         breadcrumb_items = [
             {"title": ancestor.title, "url": ancestor._path} for ancestor in reversed(ancestors)
         ]
@@ -266,10 +272,10 @@ class TestBreadcrumbLogic:
         # Register sections in site registry for path-based lookup
         site.registry.register_section(api)
         site.registry.register_section(v2)
-        page._section = v2
+        set_page_section(page, v2)
 
         # Get ancestors (no root)
-        ancestors = page.ancestors
+        ancestors = _page_ancestors(page)
         breadcrumb_items = [
             {"title": ancestor.title, "url": ancestor._path} for ancestor in reversed(ancestors)
         ]
@@ -304,9 +310,9 @@ class TestNavigationEdgeCases:
 
         # Register section in site registry for path-based lookup
         site.registry.register_section(section)
-        page._section = section
+        set_page_section(page, section)
 
-        assert page.parent == section
+        assert get_page_section(page) == section
 
     def test_section_hierarchy_property(self):
         """Test section.hierarchy returns correct path."""

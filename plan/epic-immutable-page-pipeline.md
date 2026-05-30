@@ -461,6 +461,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate page url fixtures`
 - `tests: migrate page url cache fixtures`
 - `tests: migrate page navigation edge fixture`
+- `tests: migrate navigation page fixtures`
 
 ### Sprint 6 epics
 
@@ -626,6 +627,12 @@ Task 6.1/6.2 test fixture migration also moved the standalone no-section page
 navigation edge case to the shared page-like mock and
 `bengal.core.page.navigation` helpers. Weight-order navigation integration
 coverage still uses discovery-built pages to preserve production behavior.
+
+Task 6.1/6.2 test fixture migration also moved navigation breadcrumb and parent
+tests to shared page-like mocks with `bengal.core.page.navigation` and
+`bengal.core.section.utils` helpers. Section URL, hierarchy, root, ancestor,
+breadcrumb, and parent coverage now runs without constructing the legacy
+mutable Page adapter.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
