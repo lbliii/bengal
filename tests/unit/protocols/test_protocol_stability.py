@@ -175,6 +175,13 @@ class TestPageLikeStability:
         assert not hasattr(PageLike, "_excerpt")
         assert not hasattr(PageLike, "_meta_description")
 
+    def test_excludes_section_archive_context_state(self) -> None:
+        """PageLike should not require section archive/pagination slots."""
+        assert not hasattr(PageLike, "_posts")
+        assert not hasattr(PageLike, "_subsections")
+        assert not hasattr(PageLike, "_paginator")
+        assert not hasattr(PageLike, "_page_num")
+
 
 class TestSectionLikeStability:
     """Guard against breaking changes to SectionLike."""

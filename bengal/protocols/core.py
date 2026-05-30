@@ -244,10 +244,6 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
     _site: Any  # Site reference (set during setup_references)
     prerendered_html: str | None  # Pre-rendered HTML (autodoc, etc.), set before render
     _autodoc_fallback_template: bool  # Whether to use autodoc fallback template
-    _posts: list[Any] | None  # Related posts for section index pages
-    _subsections: list[Any] | None  # Subsections for section index pages
-    _paginator: Any  # Paginator for paginated pages
-    _page_num: int | None  # Page number for paginated pages (None if not paginated)
 
     @property
     def _path(self) -> str:

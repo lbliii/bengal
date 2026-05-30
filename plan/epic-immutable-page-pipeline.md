@@ -444,6 +444,7 @@ gone or explicitly retained by a recorded public API decision.
 - `protocols: remove page section state`
 - `protocols: remove page directive-link state`
 - `protocols: remove page parsed-content state`
+- `protocols: remove page archive context state`
 
 ### Sprint 6 epics
 
@@ -518,6 +519,12 @@ Task 6.3 also removed parsed-content cache fields from `PageLike`, including
 Cache adapters now set those remaining mutable slots through compatibility
 helpers, and rendering-owned `page_content` helpers remain the access boundary
 for derived AST, TOC, excerpt, and meta-description state.
+
+Task 6.3 also removed section archive context fields from `PageLike`, including
+`_posts`, `_subsections`, `_paginator`, and `_page_num`. Existing section index
+enrichment now writes archive and pagination context into page metadata, matching
+the renderer's read path and leaving the private fields as legacy class details
+only.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

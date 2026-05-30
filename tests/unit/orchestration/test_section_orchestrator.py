@@ -72,6 +72,32 @@ class TestSectionOrchestrator:
         assert section.index_page == original_index
         assert len(mock_site.pages) == 0  # No archive pages added
 
+    def test_finalize_blog_index_enriches_metadata_not_private_slots(
+        self, orchestrator, mock_site, tmp_path
+    ):
+        """Existing section indexes receive archive context through metadata."""
+        section = Section(name="blog", path=tmp_path / "content" / "blog")
+        index_page = _page(
+            source_path=tmp_path / "content" / "blog" / "_index.md",
+            _raw_metadata={"title": "Blog", "type": "blog"},
+        )
+        post = _page(
+            source_path=tmp_path / "content" / "blog" / "post.md",
+            _raw_metadata={"title": "Post"},
+        )
+        section.add_page(index_page)
+        section.add_page(post)
+
+        mock_site.sections = [section]
+
+        orchestrator.finalize_sections()
+
+        assert section.index_page == index_page
+        assert index_page.metadata["_posts"] == [post]
+        assert index_page.metadata["_subsections"] == []
+        assert index_page._posts is None
+        assert index_page._subsections is None
+
     def test_finalize_section_without_index(self, orchestrator, mock_site, tmp_path):
         """Test that sections without _index.md get auto-generated archive."""
         # Create section without index page

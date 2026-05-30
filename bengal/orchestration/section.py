@@ -43,7 +43,7 @@ bengal.orchestration.build: Build coordinator calling this orchestrator
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.content.discovery.page_factory import PageInitializer
 from bengal.content_types.registry import detect_content_type, get_strategy
@@ -57,6 +57,19 @@ logger = get_logger(__name__)
 if TYPE_CHECKING:
     from bengal.core.site import Site
     from bengal.protocols import PageLike, SectionLike
+
+
+def _set_page_metadata_fields(page: PageLike, fields: dict[str, object]) -> None:
+    """Set build-owned metadata on the remaining mutable page adapter."""
+    mutable_page = cast("Any", page)
+    raw_metadata = getattr(mutable_page, "_raw_metadata", None)
+    if not isinstance(raw_metadata, dict):
+        raw_metadata = dict(page.metadata)
+        mutable_page._raw_metadata = raw_metadata
+
+    raw_metadata.update(fields)
+    mutable_page._metadata_view_cache = None
+    mutable_page._metadata_view_cache_key = None
 
 
 class SectionOrchestrator:
@@ -436,7 +449,9 @@ class SectionOrchestrator:
             if get_page_section(index_page) is None:
                 set_page_section(index_page, section)
 
-            if index_page._posts is None:
+            metadata_updates: dict[str, object] = {}
+
+            if "_posts" not in index_page.metadata:
                 # Use content type strategy to filter and sort pages
                 from bengal.content_types.registry import get_strategy
 
@@ -451,21 +466,26 @@ class SectionOrchestrator:
                 # Sort according to content type
                 sorted_pages = strategy.sort_pages(filtered_pages)
 
-                index_page._posts = sorted_pages
+                metadata_updates["_posts"] = sorted_pages
 
-            if index_page._subsections is None:
-                index_page._subsections = section.subsections
+            if "_subsections" not in index_page.metadata:
+                metadata_updates["_subsections"] = section.subsections
 
             # Add pagination if appropriate and not already present
-            if index_page._paginator is None and self._should_paginate(section, page_type):
+            if "_paginator" not in index_page.metadata and self._should_paginate(
+                section, page_type
+            ):
                 from bengal.utils.pagination import Paginator
 
                 paginator = Paginator(
                     items=section.pages,
                     per_page=self.site.config.get("pagination", {}).get("per_page", 10),
                 )
-                index_page._paginator = paginator
-                index_page._page_num = 1
+                metadata_updates["_paginator"] = paginator
+                metadata_updates["_page_num"] = 1
+
+            if metadata_updates:
+                _set_page_metadata_fields(index_page, metadata_updates)
 
             logger.debug(
                 "section_index_enriched",

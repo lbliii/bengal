@@ -50,9 +50,10 @@ Machine-checked on 2026-05-29:
   `PageLike` at its type boundary while keeping the remaining mutable
   construction isolated inside the adapter. `PageLike` no longer requires the
   legacy `_source`, `_section`, `_directive_links`, `_ast_cache`,
-  `_toc_items_cache`, `_excerpt`, or `_meta_description` slots; raw content,
-  section access, directive-link state, and parsed content caches route through
-  helper functions.
+  `_toc_items_cache`, `_excerpt`, `_meta_description`, `_posts`,
+  `_subsections`, `_paginator`, or `_page_num` slots; raw content, section
+  access, directive-link state, parsed content caches, and archive pagination
+  context route through helper functions or metadata.
 
 No full test suite was run for this planning pass.
 
@@ -153,6 +154,7 @@ class deletion rather than public compatibility preservation.
 - `protocols: remove page section state`
 - `protocols: remove page directive-link state`
 - `protocols: remove page parsed-content state`
+- `protocols: remove page archive context state`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

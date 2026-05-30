@@ -15,3 +15,6 @@ flows through rendering helpers instead of requiring `_directive_links`.
 Parsed content caches now stay out of `PageLike`; AST, TOC, excerpt, and meta
 description state are handled by compatibility/cache helpers while the legacy
 mutable page adapter remains.
+Section archive context now stays out of `PageLike`; existing section indexes
+receive `_posts`, `_subsections`, `_paginator`, and `_page_num` through metadata
+instead of mutable page slots.
