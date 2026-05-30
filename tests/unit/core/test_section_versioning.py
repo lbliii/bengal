@@ -8,7 +8,7 @@ by their version attribute for multi-version documentation sites.
 from typing import TYPE_CHECKING, Any
 
 from bengal.core.section import Section
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_page as _page
 
 if TYPE_CHECKING:
     from pathlib import Path

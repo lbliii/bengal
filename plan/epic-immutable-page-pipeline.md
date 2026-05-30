@@ -453,6 +453,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate orchestration taxonomy page fixtures`
 - `tests: migrate redirect page fixtures`
 - `tests: migrate orchestration page fixtures`
+- `tests: migrate section hierarchy page fixtures`
 
 ### Sprint 6 epics
 
@@ -575,6 +576,11 @@ the legacy mutable Page adapter.
 Task 6.1/6.2 test fixture migration also moved nav-tree tests to the shared
 page-like mock for navigation nodes, version filtering, active trail overlays,
 baseurl proxy handling, and cache behavior.
+
+Task 6.1/6.2 test fixture migration also moved Section sorting, hashability,
+index-collision, page-like input, and versioning tests to shared page-like
+mocks. The mock now exposes metadata-backed `version` for Section version
+filtering without constructing the legacy mutable Page adapter.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

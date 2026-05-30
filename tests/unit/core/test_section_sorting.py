@@ -11,7 +11,7 @@ import hypothesis.strategies as st
 from hypothesis import HealthCheck, given, settings
 
 from bengal.core.section import Section
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_page as _page
 
 
 class TestSectionSortedPagesProperty:

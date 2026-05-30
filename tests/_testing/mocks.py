@@ -141,6 +141,8 @@ def make_mock_page(
     page.raw_content = raw_content
     page._raw_content = raw_content
     page._raw_metadata = page_metadata
+    if "version" in page_metadata and "version" not in attrs:
+        page.version = page_metadata["version"]
     for attr, value in attrs.items():
         setattr(page, attr, value)
     return page
