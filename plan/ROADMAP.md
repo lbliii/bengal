@@ -24,7 +24,7 @@ Machine-checked on 2026-05-29:
 - Protocol annotation counts are still mixed: `site: Site` 296 vs
   `site: SiteLike` 274, `page: Page` 120 vs `page: PageLike` 253,
   `section: Section` 82 vs `section: SectionLike` 63.
-- `uv run ty check bengal/` reports 538 diagnostics.
+- `uv run ty check bengal/` reports 537 diagnostics.
 - Bundled themes are `default` and `chirpui`; `bengal theme preview`,
   swizzle commands, library assets, and Chirp UI integration tests exist.
 - Plugin wiring exists for directives, roles, template extensions, and phase
@@ -78,8 +78,9 @@ Machine-checked on 2026-05-29:
   Section ergonomic helper tests now use shared page-like mocks instead of the
   mutable Page adapter for recent-page, content-page, and tag-listing behavior.
   Page visibility logic now lives in `bengal.core.page_visibility`, so core
-  page caches and visibility tests use page-like metadata helpers instead of
-  depending on legacy Page visibility properties.
+  page caches, content-signal/site-visibility tests, and page visibility tests
+  use page-like metadata helpers instead of depending on legacy Page visibility
+  properties.
 
 No full test suite was run for this planning pass.
 
@@ -109,7 +110,7 @@ This file is the eleventh root planning file and owns sequencing.
 | Priority | Work | Proof Before Close |
 |----------|------|--------------------|
 | P1 | Delete mutable `Page` compatibility class | `rg '^class Page\\b' bengal/core/page` returns no hits; full tests pass. |
-| P1 | Re-measure and reduce `ty` floor | Current count is 538 diagnostics; close with a lower recorded count and no new suppressions. |
+| P1 | Re-measure and reduce `ty` floor | Current count is 537 diagnostics; close with a lower recorded count and no new suppressions. |
 | P1 | OpenAPI REST autodoc polish | Focused autodoc tests cover Python, CLI, OpenAPI, and layout output. |
 | P1 | Snapshot build-plan handoff | Worker paths consume frozen plans/snapshots instead of live mutable objects. |
 | P2 | Incremental dependency indexes | Warm-build tests prove dependency-to-output invalidation without broad scans. |
@@ -193,6 +194,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate cascade page fixtures`
 - `tests: migrate section ergonomic page fixtures`
 - `core: extract page visibility helpers`
+- `tests: migrate page visibility fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

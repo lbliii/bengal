@@ -48,3 +48,5 @@ tag-listing behavior.
 Page visibility logic now has Page-package-independent helpers used by core
 page caches and visibility tests, reducing dependence on legacy Page visibility
 properties.
+Page visibility tests now use shared page-like mocks and the visibility helper
+API instead of constructing the legacy mutable Page adapter.
