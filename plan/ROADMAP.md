@@ -105,6 +105,8 @@ Machine-checked on 2026-05-29:
   Legacy Page section-reference tests are removed as obsolete; section helper,
   registry, and virtual-section tests own the behavior outside the mutable Page
   descriptor surface.
+  PageInitializer tests now use the canonical SourcePage-backed test-page
+  adapter instead of legacy mutable Page constructor keyword names.
 
 No full test suite was run for this planning pass.
 
@@ -230,6 +232,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate page hashability fixtures`
 - `tests: remove legacy page cached-property fixtures`
 - `tests: remove legacy page section-reference fixtures`
+- `tests: migrate page initializer fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

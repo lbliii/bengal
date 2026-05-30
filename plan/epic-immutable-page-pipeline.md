@@ -469,6 +469,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate page hashability fixtures`
 - `tests: remove legacy page cached-property fixtures`
 - `tests: remove legacy page section-reference fixtures`
+- `tests: migrate page initializer fixtures`
 
 ### Sprint 6 epics
 
@@ -676,6 +677,11 @@ Task 6.1/6.2 also removed obsolete legacy Page section-reference tests.
 Section helper, registry, and virtual-section behavior is covered outside the
 mutable Page `_section` descriptor surface, so the deleted tests no longer hold
 the class in place.
+
+Task 6.1/6.2 also moved PageInitializer tests to the canonical
+SourcePage-backed test-page adapter. The tests still cover site and section
+initialization behavior, output-path validation, generated pages, and error
+quality, but no longer use legacy mutable Page constructor keyword names.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
