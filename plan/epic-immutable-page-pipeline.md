@@ -471,6 +471,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: remove legacy page section-reference fixtures`
 - `tests: migrate page initializer fixtures`
 - `tests: migrate page frontmatter fixtures`
+- `tests: remove mutable page test factory`
 
 ### Sprint 6 epics
 
@@ -688,6 +689,11 @@ Task 6.1/6.2 also moved frontmatter integration tests to the canonical
 SourcePage-backed test-page adapter. Typed frontmatter access, dict-style
 template access, malformed tag normalization, and frontmatter cache behavior
 remain covered without direct use of the legacy mutable test-page factory.
+
+Task 6.1/6.2 then removed the unused legacy mutable test-page factory from the
+shared page-record fixtures. Tests now route through SourcePage-backed helpers
+or purpose-built page-like mocks, leaving no test helper that accepts legacy
+mutable Page constructor keyword names.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

@@ -85,3 +85,5 @@ test-page adapter instead of legacy mutable Page constructor keyword names.
 Frontmatter integration tests now build pages through the canonical
 SourcePage-backed test-page adapter, leaving the legacy mutable test-page
 factory isolated to the shared compatibility helper.
+The unused legacy mutable test-page factory was removed; tests now use
+SourcePage-backed helpers or page-like mocks.

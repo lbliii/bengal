@@ -110,6 +110,8 @@ Machine-checked on 2026-05-29:
   Frontmatter integration tests now use the canonical SourcePage-backed
   test-page adapter, leaving the mutable test-page factory isolated to the
   shared compatibility helper.
+  The unused legacy mutable test-page factory is removed; test fixtures now
+  route through SourcePage-backed helpers or page-like mocks.
 
 No full test suite was run for this planning pass.
 
@@ -237,6 +239,7 @@ class deletion rather than public compatibility preservation.
 - `tests: remove legacy page section-reference fixtures`
 - `tests: migrate page initializer fixtures`
 - `tests: migrate page frontmatter fixtures`
+- `tests: remove mutable page test factory`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside
