@@ -45,6 +45,8 @@ import threading
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.page_visibility import is_page_in_listings
+
 if TYPE_CHECKING:
     from bengal.core.asset import Asset
     from bengal.core.menu import MenuBuilder, MenuItem
@@ -218,7 +220,7 @@ class SiteContent:
         if self._listable_pages_cache is None:
             with self._cache_lock:
                 if self._listable_pages_cache is None:
-                    self._listable_pages_cache = [p for p in self.pages if p.in_listings]
+                    self._listable_pages_cache = [p for p in self.pages if is_page_in_listings(p)]
         return self._listable_pages_cache
 
     @property

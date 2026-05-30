@@ -45,3 +45,6 @@ constructing legacy mutable pages for section cascade behavior.
 Section ergonomic helper tests now use shared page-like mocks instead of
 constructing legacy mutable pages for recent-page, content-page, and
 tag-listing behavior.
+Page visibility logic now has Page-package-independent helpers used by core
+page caches and visibility tests, reducing dependence on legacy Page visibility
+properties.

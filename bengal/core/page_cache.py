@@ -13,6 +13,8 @@ from __future__ import annotations
 import threading
 from typing import TYPE_CHECKING
 
+from bengal.core.page_visibility import is_page_in_listings
+
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
@@ -69,7 +71,7 @@ class PageCacheManager:
 
     def _listable_view_token(self, pages: list[PageLike]) -> tuple[tuple[int, bool], ...]:
         """Return token fields that affect listable page views."""
-        return tuple((id(page), bool(page.in_listings)) for page in pages)
+        return tuple((id(page), is_page_in_listings(page)) for page in pages)
 
     def _path_map_view_token(self, pages: list[PageLike]) -> tuple[tuple[int, Path], ...]:
         """Return token fields that affect source-path lookup maps."""
@@ -113,7 +115,7 @@ class PageCacheManager:
         with self._lock:
             if self._listable is not None and self._listable_token == token:
                 return self._listable
-            self._listable = [p for p in pages if p.in_listings]
+            self._listable = [p for p in pages if is_page_in_listings(p)]
             self._listable_token = token
         return self._listable
 

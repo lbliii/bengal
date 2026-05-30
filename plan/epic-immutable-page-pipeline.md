@@ -456,6 +456,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate section hierarchy page fixtures`
 - `tests: migrate cascade page fixtures`
 - `tests: migrate section ergonomic page fixtures`
+- `core: extract page visibility helpers`
 
 ### Sprint 6 epics
 
@@ -592,6 +593,12 @@ adapter.
 Task 6.1/6.2 test fixture migration also moved Section ergonomic helper tests
 to shared page-like mocks. Recent-page, content-page, and tag-listing helper
 coverage now runs without constructing the legacy mutable Page adapter.
+
+Task 6.1/6.2/6.3 also extracted page-like visibility helpers to
+`bengal.core.page_visibility`. Legacy Page visibility properties now delegate to
+the helper module, core page caches use metadata-based helper checks, and
+content-signal/site-visibility tests now exercise visibility behavior through
+page-like mocks instead of constructing the legacy mutable Page adapter.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
     from pathlib import Path
 
 
@@ -77,49 +77,6 @@ def normalize_edition(value: Any) -> list[str]:
     if isinstance(value, list):
         return [str(v).strip() for v in value if v is not None and str(v).strip()]
     return []
-
-
-def normalize_visibility(
-    metadata: Mapping[str, Any],
-    content_signal_defaults: Mapping[str, Any],
-) -> dict[str, Any]:
-    """Merge page visibility frontmatter with Bengal defaults."""
-    if metadata.get("hidden", False):
-        return {
-            "menu": False,
-            "listings": False,
-            "sitemap": False,
-            "robots": "noindex, nofollow",
-            "render": "always",
-            "search": False,
-            "rss": False,
-            "ai_train": False,
-            "ai_input": False,
-        }
-
-    vis = metadata.get("visibility", {})
-    if not isinstance(vis, Mapping):
-        vis = {}
-
-    return {
-        "menu": vis.get("menu", True),
-        "listings": vis.get("listings", True),
-        "sitemap": vis.get("sitemap", True),
-        "robots": vis.get("robots", "index, follow"),
-        "render": vis.get("render", "always"),
-        "search": vis.get("search", content_signal_defaults.get("search", True)),
-        "rss": vis.get("rss", True),
-        "ai_train": vis.get("ai_train", content_signal_defaults.get("ai_train", False)),
-        "ai_input": vis.get("ai_input", content_signal_defaults.get("ai_input", True)),
-    }
-
-
-def should_render_visibility(visibility: Mapping[str, Any], is_production: bool) -> bool:
-    """Return whether a visibility object permits rendering in the environment."""
-    render = visibility.get("render", "always")
-    if render == "never":
-        return False
-    return not (render == "local" and is_production)
 
 
 def get_user_metadata(metadata: Mapping[str, Any], key: str, default: Any = None) -> Any:

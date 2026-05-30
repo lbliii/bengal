@@ -64,8 +64,19 @@ from bengal.core.page.metadata_helpers import (
     infer_title,
     normalize_edition,
     normalize_keywords,
-    normalize_visibility,
-    should_render_visibility,
+)
+from bengal.core.page_visibility import (
+    get_content_signal_defaults,
+    get_page_visibility,
+    get_robots_meta,
+    is_page_in_ai_input,
+    is_page_in_ai_train,
+    is_page_in_listings,
+    is_page_in_rss,
+    is_page_in_search,
+    is_page_in_sitemap,
+    should_render_page,
+    should_render_page_in_environment,
 )
 from bengal.protocols import SiteLike
 
@@ -499,66 +510,56 @@ class Page:
 
     def _get_content_signal_defaults(self) -> dict[str, Any]:
         """Get site-level content signal defaults from config."""
-        site = getattr(self, "_site", None)
-        if site is None:
-            return {}
-        config = getattr(site, "config", None)
-        if config is None:
-            return {}
-        try:
-            cs = config.get("content_signals", {})
-            return cs if isinstance(cs, dict) else {}
-        except Exception:
-            return {}
+        return get_content_signal_defaults(self)
 
     @property
     def visibility(self) -> dict[str, Any]:
         """Visibility settings merged with Bengal defaults."""
-        return normalize_visibility(self.metadata, self._get_content_signal_defaults())
+        return get_page_visibility(self)
 
     @property
     def in_listings(self) -> bool:
         """True if page should appear in listings/queries."""
-        return self.visibility["listings"] and not self.draft
+        return is_page_in_listings(self)
 
     @property
     def in_sitemap(self) -> bool:
         """True if page should appear in sitemap.xml."""
-        return self.visibility["sitemap"] and not self.draft
+        return is_page_in_sitemap(self)
 
     @property
     def in_search(self) -> bool:
         """True if page should appear in the search index."""
-        return self.visibility["search"] and not self.draft
+        return is_page_in_search(self)
 
     @property
     def in_rss(self) -> bool:
         """True if page should appear in RSS feeds."""
-        return self.visibility["rss"] and not self.draft
+        return is_page_in_rss(self)
 
     @property
     def in_ai_train(self) -> bool:
         """True if page permits AI training use."""
-        return self.visibility["ai_train"] and not self.draft
+        return is_page_in_ai_train(self)
 
     @property
     def in_ai_input(self) -> bool:
         """True if page permits AI input/RAG use."""
-        return self.visibility["ai_input"] and not self.draft
+        return is_page_in_ai_input(self)
 
     @property
     def robots_meta(self) -> str:
         """Robots meta directive for this page."""
-        return str(self.visibility["robots"])
+        return get_robots_meta(self)
 
     @property
     def should_render(self) -> bool:
         """True if visibility.render is not ``never``."""
-        return bool(self.visibility["render"] != "never")
+        return should_render_page(self)
 
     def should_render_in_environment(self, is_production: bool = False) -> bool:
         """True if page should render in the given environment."""
-        return should_render_visibility(self.visibility, is_production)
+        return should_render_page_in_environment(self, is_production)
 
     @property
     def edition(self) -> list[str]:

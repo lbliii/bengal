@@ -24,7 +24,8 @@ def _make_mock_page(
     p = MagicMock()
     p.source_path = Path(source_path) if isinstance(source_path, str) else source_path
     p.metadata = {"_generated": True} if generated else {}
-    p.in_listings = in_listings
+    if not in_listings:
+        p.metadata["visibility"] = {"listings": False}
     return p
 
 
@@ -131,7 +132,7 @@ class TestGetPagePathMapPathKeys:
         assert cache.listable_pages == [page]
 
         page.metadata["_generated"] = True
-        page.in_listings = False
+        page.metadata["visibility"] = {"listings": False}
 
         assert cache.regular_pages == []
         assert cache.generated_pages == [page]

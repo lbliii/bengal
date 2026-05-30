@@ -15,9 +15,8 @@ from bengal.core.page.metadata_helpers import (
     infer_title,
     normalize_edition,
     normalize_keywords,
-    normalize_visibility,
-    should_render_visibility,
 )
+from bengal.core.page_visibility import normalize_visibility, should_render_visibility
 from tests._testing.page_records import make_mutable_test_page as _page
 
 
