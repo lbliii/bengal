@@ -107,6 +107,9 @@ Machine-checked on 2026-05-29:
   descriptor surface.
   PageInitializer tests now use the canonical SourcePage-backed test-page
   adapter instead of legacy mutable Page constructor keyword names.
+  Frontmatter integration tests now use the canonical SourcePage-backed
+  test-page adapter, leaving the mutable test-page factory isolated to the
+  shared compatibility helper.
 
 No full test suite was run for this planning pass.
 
@@ -233,6 +236,7 @@ class deletion rather than public compatibility preservation.
 - `tests: remove legacy page cached-property fixtures`
 - `tests: remove legacy page section-reference fixtures`
 - `tests: migrate page initializer fixtures`
+- `tests: migrate page frontmatter fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

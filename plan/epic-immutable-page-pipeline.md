@@ -470,6 +470,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: remove legacy page cached-property fixtures`
 - `tests: remove legacy page section-reference fixtures`
 - `tests: migrate page initializer fixtures`
+- `tests: migrate page frontmatter fixtures`
 
 ### Sprint 6 epics
 
@@ -682,6 +683,11 @@ Task 6.1/6.2 also moved PageInitializer tests to the canonical
 SourcePage-backed test-page adapter. The tests still cover site and section
 initialization behavior, output-path validation, generated pages, and error
 quality, but no longer use legacy mutable Page constructor keyword names.
+
+Task 6.1/6.2 also moved frontmatter integration tests to the canonical
+SourcePage-backed test-page adapter. Typed frontmatter access, dict-style
+template access, malformed tag normalization, and frontmatter cache behavior
+remain covered without direct use of the legacy mutable test-page factory.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
