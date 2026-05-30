@@ -56,6 +56,8 @@ Machine-checked on 2026-05-29:
   content, section access, directive-link state, parsed content caches, archive
   pagination context, autodoc fallback tagging, pre-rendered virtual page HTML,
   and mutable page site context route through helper functions or metadata.
+  Analysis graph tests now use hashable analysis page mocks instead of creating
+  legacy mutable pages when they only need page-like graph inputs.
 
 No full test suite was run for this planning pass.
 
@@ -160,6 +162,7 @@ class deletion rather than public compatibility preservation.
 - `protocols: remove page autodoc fallback state`
 - `protocols: remove page prerendered html state`
 - `protocols: remove page site state`
+- `tests: migrate analysis graph page fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

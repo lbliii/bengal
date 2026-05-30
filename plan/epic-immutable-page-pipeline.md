@@ -448,6 +448,7 @@ gone or explicitly retained by a recorded public API decision.
 - `protocols: remove page autodoc fallback state`
 - `protocols: remove page prerendered html state`
 - `protocols: remove page site state`
+- `tests: migrate analysis graph page fixtures`
 
 ### Sprint 6 epics
 
@@ -542,6 +543,11 @@ Task 6.3 also removed `_site` from `PageLike`. Content discovery and
 orchestration now use page-site helpers for the remaining mutable compatibility
 object, so site context remains legacy adapter state instead of a protocol
 requirement.
+
+Task 6.1/6.2 test fixture migration continued by moving analysis graph tests to
+hashable `MockAnalysisPage` fixtures. These tests now exercise analysis
+behavior without constructing the legacy mutable Page adapter unless the test is
+specifically proving compatibility.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

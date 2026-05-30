@@ -16,7 +16,7 @@ import pytest
 from bengal.analysis.graph.builder import MIN_PAGES_FOR_PARALLEL
 from bengal.analysis.graph.builder import GraphBuilder as _GraphBuilder
 from bengal.core.site import Site as _Site
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_analysis_page as _page
 from tests._testing.page_records import seed_parsed_page_state
 
 GraphBuilder: Any = _GraphBuilder

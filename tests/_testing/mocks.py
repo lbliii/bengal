@@ -242,6 +242,35 @@ class MockAnalysisPage:
     tags: list[str] = field(default_factory=list)
     category: str | None = None
     metadata: dict[str, Any] = field(default_factory=dict)
+    raw_content: str = ""
+    _raw_content: str = ""
+    content: str = ""
+    html_content: str | None = None
+    links: list[str] = field(default_factory=list)
+    related_posts: list[Any] = field(default_factory=list)
+    next_in_section: Any = None
+    prev_in_section: Any = None
+    href: str = ""
+    slug: str = ""
+    _section: Any = None
+
+    def __post_init__(self) -> None:
+        """Initialize derived analysis fields."""
+        if not self.title:
+            self.title = str(self.metadata.get("title", ""))
+        if not self.tags and isinstance(self.metadata.get("tags"), list):
+            self.tags = list(self.metadata["tags"])
+        if self.category is None:
+            category = self.metadata.get("category")
+            self.category = category if isinstance(category, str) else None
+        if not self.slug:
+            self.slug = self.source_path.stem
+        if not self.href:
+            self.href = f"/{self.slug}/"
+        if not self.content:
+            self.content = self.raw_content
+        if not self._raw_content:
+            self._raw_content = self.raw_content
 
     def __hash__(self) -> int:
         """Hash based on source_path (same as Page)."""
@@ -252,6 +281,36 @@ class MockAnalysisPage:
         if not isinstance(other, MockAnalysisPage):
             return NotImplemented
         return self.source_path == other.source_path
+
+
+def make_analysis_page(
+    *,
+    source_path: Path | str,
+    raw_content: str = "",
+    metadata: dict[str, Any] | None = None,
+    title: str | None = None,
+    tags: list[str] | None = None,
+    category: str | None = None,
+    **attrs: Any,
+) -> MockAnalysisPage:
+    """Create a hashable page-like object for analysis tests."""
+    page_metadata = dict(metadata or {})
+    metadata_tags = page_metadata.get("tags", [])
+    if tags is None:
+        page_tags = list(metadata_tags) if isinstance(metadata_tags, (list, tuple, set)) else []
+    else:
+        page_tags = list(tags)
+    page = MockAnalysisPage(
+        source_path=Path(source_path),
+        title=title or str(page_metadata.get("title", "")),
+        tags=page_tags,
+        category=category,
+        metadata=page_metadata,
+        raw_content=raw_content,
+    )
+    for attr, value in attrs.items():
+        setattr(page, attr, value)
+    return page
 
 
 def create_mock_xref_index(pages: list[MockPage]) -> dict[str, Any]:
