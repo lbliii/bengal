@@ -65,6 +65,9 @@ Machine-checked on 2026-05-29:
   use hashable page-like mocks instead of constructing legacy mutable pages.
   Redirect postprocess tests now use local page-like redirect fixtures instead
   of the mutable Page adapter for alias behavior.
+  Render, taxonomy, section, and incremental orchestration tests now use the
+  shared page-like mock instead of the mutable Page adapter for orchestrator
+  inputs.
 
 No full test suite was run for this planning pass.
 
@@ -173,6 +176,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate cache query page fixtures`
 - `tests: migrate orchestration taxonomy page fixtures`
 - `tests: migrate redirect page fixtures`
+- `tests: migrate orchestration page fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

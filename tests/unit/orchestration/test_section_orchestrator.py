@@ -12,7 +12,7 @@ import pytest
 from bengal.core.section import Section
 from bengal.core.site import Site
 from bengal.orchestration.section import SectionOrchestrator
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_page as _page
 
 
 class TestSectionOrchestrator:
@@ -95,8 +95,8 @@ class TestSectionOrchestrator:
         assert section.index_page == index_page
         assert index_page.metadata["_posts"] == [post]
         assert index_page.metadata["_subsections"] == []
-        assert index_page._posts is None
-        assert index_page._subsections is None
+        assert getattr(index_page, "_posts", None) is None
+        assert getattr(index_page, "_subsections", None) is None
 
     def test_finalize_section_without_index(self, orchestrator, mock_site, tmp_path):
         """Test that sections without _index.md get auto-generated archive."""

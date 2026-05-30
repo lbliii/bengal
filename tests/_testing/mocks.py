@@ -114,7 +114,15 @@ def make_mock_page(
     **attrs: Any,
 ) -> MockPage:
     """Create a page-like fixture without constructing legacy Page."""
+    legacy_raw_content = attrs.pop("_raw_content", None)
+    legacy_raw_metadata = attrs.pop("_raw_metadata", None)
+    if legacy_raw_content is not None and not raw_content:
+        raw_content = str(legacy_raw_content)
+    if legacy_raw_metadata is not None and metadata is None:
+        metadata = legacy_raw_metadata
+
     page_metadata = dict(metadata or {})
+    output_path = attrs.pop("output_path", None)
     date_value = page_metadata.get("date")
     date = datetime.fromisoformat(date_value) if isinstance(date_value, str) else date_value
     metadata_tags = page_metadata.get("tags", [])
@@ -128,9 +136,11 @@ def make_mock_page(
         metadata=page_metadata,
         tags=tags,
         date=date if isinstance(date, datetime) else None,
+        output_path=output_path,
     )
     page.raw_content = raw_content
     page._raw_content = raw_content
+    page._raw_metadata = page_metadata
     for attr, value in attrs.items():
         setattr(page, attr, value)
     return page

@@ -12,7 +12,7 @@ from bengal.cache import BuildCache
 from bengal.errors import BengalError
 from bengal.orchestration.incremental import IncrementalOrchestrator
 from bengal.utils.primitives.hashing import hash_str
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_page as _page
 
 
 @pytest.fixture
