@@ -446,6 +446,7 @@ gone or explicitly retained by a recorded public API decision.
 - `protocols: remove page parsed-content state`
 - `protocols: remove page archive context state`
 - `protocols: remove page autodoc fallback state`
+- `protocols: remove page prerendered html state`
 
 ### Sprint 6 epics
 
@@ -531,6 +532,10 @@ Task 6.3 also removed `_autodoc_fallback_template` from `PageLike`. Autodoc
 fallback rendering now records `_autodoc_fallback_template` and
 `_autodoc_fallback_reason` through page metadata, so generated-reference
 fallback tagging no longer requires mutable page slots.
+
+Task 6.3 also removed `prerendered_html` from `PageLike`. Rendering-owned helper
+functions now read and write pre-rendered virtual page HTML, leaving the legacy
+field as adapter state until the mutable Page class is deleted.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

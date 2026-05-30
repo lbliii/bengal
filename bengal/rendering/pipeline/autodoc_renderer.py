@@ -25,6 +25,7 @@ from bengal.cache.parsed_output import apply_parsed_page_to_page
 from bengal.core.records import ParsedPage, rendered_page_from_page_state
 from bengal.core.section.utils import get_page_section
 from bengal.protocols import SiteConfig, SiteLike
+from bengal.rendering.page_operations import get_prerendered_html, set_prerendered_html
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug
@@ -184,11 +185,11 @@ class AutodocRenderer:
             )
             return
 
-        self._apply_virtual_parsed_content(page, page.prerendered_html or "")
+        prerendered = get_prerendered_html(page) or ""
+        self._apply_virtual_parsed_content(page, prerendered)
 
         # Check if pre-rendered HTML is already a complete page (extends base.html)
         # Complete pages should not be wrapped with another template
-        prerendered = page.prerendered_html or ""
         prerendered_stripped = prerendered.strip()
         is_complete_page = prerendered_stripped.startswith(("<!DOCTYPE", "<html", "<!doctype"))
 
@@ -259,9 +260,10 @@ class AutodocRenderer:
             _tag_autodoc_fallback(page, str(e))
             # Fall back to rendering as regular virtual page
             fallback_desc = getattr(element, "description", "") if element else ""
-            page.prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            self._apply_virtual_parsed_content(page, page.prerendered_html)
-            rendered_html = self.renderer.render_page(page, page.prerendered_html)
+            fallback_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
+            set_prerendered_html(page, fallback_html)
+            self._apply_virtual_parsed_content(page, fallback_html)
+            rendered_html = self.renderer.render_page(page, fallback_html)
             return format_html(rendered_html, page, cast("SiteLike", self.site))
 
         # Render with full site context (same as regular pages)
@@ -322,12 +324,13 @@ class AutodocRenderer:
             )
             # Fallback minimal HTML to keep build moving
             fallback_desc = getattr(element, "description", "") if element else ""
-            page.prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
-            self._apply_virtual_parsed_content(page, page.prerendered_html)
-            rendered_html = self.renderer.render_page(page, page.prerendered_html)
+            fallback_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"
+            set_prerendered_html(page, fallback_html)
+            self._apply_virtual_parsed_content(page, fallback_html)
+            rendered_html = self.renderer.render_page(page, fallback_html)
             return format_html(rendered_html, page, cast("SiteLike", self.site))
 
-        page.prerendered_html = html_content
+        set_prerendered_html(page, html_content)
         self._apply_virtual_parsed_content(page, html_content)
         return format_html(html_content, page, cast("SiteLike", self.site))
 

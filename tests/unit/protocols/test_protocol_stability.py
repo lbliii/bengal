@@ -186,6 +186,10 @@ class TestPageLikeStability:
         """PageLike should not require autodoc fallback marker slots."""
         assert not hasattr(PageLike, "_autodoc_fallback_template")
 
+    def test_excludes_prerendered_virtual_page_state(self) -> None:
+        """PageLike should not require pre-rendered virtual page HTML slots."""
+        assert not hasattr(PageLike, "prerendered_html")
+
 
 class TestSectionLikeStability:
     """Guard against breaking changes to SectionLike."""

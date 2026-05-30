@@ -20,3 +20,5 @@ receive `_posts`, `_subsections`, `_paginator`, and `_page_num` through metadata
 instead of mutable page slots.
 Autodoc fallback tagging now stays out of `PageLike`; fallback template markers
 are recorded through metadata instead of mutable page slots.
+Pre-rendered virtual page HTML now stays out of `PageLike`; rendering helpers
+own access to `prerendered_html` while the legacy mutable page adapter remains.

@@ -51,7 +51,11 @@ if TYPE_CHECKING:
     from bengal.rendering.pipeline.write_behind import WriteBehindCollector
 from bengal.errors import ErrorCode
 from bengal.rendering.engines import create_engine
-from bengal.rendering.page_operations import extract_links, set_directive_links
+from bengal.rendering.page_operations import (
+    extract_links,
+    get_prerendered_html,
+    set_directive_links,
+)
 from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
 from bengal.rendering.pipeline.cache_checker import CacheChecker
 from bengal.rendering.pipeline.json_accumulator import JsonAccumulator
@@ -349,7 +353,7 @@ class RenderingPipeline:
         # Handle virtual pages (autodoc, etc.)
         # - Pages with pre-rendered HTML (truthy or empty string)
         # - Autodoc pages that defer rendering until navigation is available
-        prerendered = getattr(page, "prerendered_html", None)
+        prerendered = get_prerendered_html(page)
         is_autodoc = page.metadata.get("is_autodoc")
         if getattr(page, "virtual", False) and (prerendered is not None or is_autodoc):
             if is_autodoc:

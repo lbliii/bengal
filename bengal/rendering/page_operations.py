@@ -87,6 +87,21 @@ def set_directive_links(page: Any, links: list[str]) -> None:
     page._directive_links = links
 
 
+def get_prerendered_html(page: Any) -> str | None:
+    """Return pre-rendered virtual page HTML when present."""
+    return getattr(page, "prerendered_html", None)
+
+
+def set_prerendered_html(page: Any, html: str | None) -> None:
+    """
+    Store pre-rendered virtual page HTML on the legacy mutable page object.
+
+    This keeps virtual rendering state out of the public ``PageLike`` protocol
+    while the remaining compatibility adapter still carries page instances.
+    """
+    page.prerendered_html = html
+
+
 def has_shortcode(page: PageLike, name: str) -> bool:
     """Return True if page source content uses the named shortcode."""
     from bengal.rendering.shortcodes import has_shortcode as _has_shortcode

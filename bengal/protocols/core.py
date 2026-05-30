@@ -242,7 +242,6 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
     related_posts: list[PageLike]  # Pre-computed related pages
 
     _site: Any  # Site reference (set during setup_references)
-    prerendered_html: str | None  # Pre-rendered HTML (autodoc, etc.), set before render
 
     @property
     def _path(self) -> str:

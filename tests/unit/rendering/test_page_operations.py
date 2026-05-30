@@ -7,8 +7,10 @@ from pathlib import Path
 from bengal.rendering.page_operations import (
     extract_links,
     get_directive_links,
+    get_prerendered_html,
     has_shortcode,
     set_directive_links,
+    set_prerendered_html,
 )
 from tests._testing.page_records import make_test_page
 
@@ -59,6 +61,16 @@ def test_directive_link_helpers_hide_transient_page_slot() -> None:
     set_directive_links(page, ["/guide", "/reference"])
 
     assert get_directive_links(page) == ["/guide", "/reference"]
+
+
+def test_prerendered_html_helpers_hide_virtual_page_slot() -> None:
+    page = _page()
+
+    assert get_prerendered_html(page) is None
+
+    set_prerendered_html(page, "<main>Rendered</main>")
+
+    assert get_prerendered_html(page) == "<main>Rendered</main>"
 
 
 def test_extract_links_falls_back_to_rendered_html() -> None:
