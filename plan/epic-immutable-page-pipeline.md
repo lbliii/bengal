@@ -2,7 +2,7 @@
 
 **Status**: Active — Sprints 0-5 Complete, Sprint 6 In Progress
 **Created**: 2026-04-06
-**Updated**: 2026-05-29
+**Updated**: 2026-05-30
 **Target**: v0.4.x
 **Estimated Effort**: 60-80 hours
 **Dependencies**: Root roadmap sequencing; older protocol and architecture audit epics are archived as stale/superseded.
@@ -441,6 +441,7 @@ gone or explicitly retained by a recorded public API decision.
 - `content: lazy-load page compatibility adapter`
 - `tests: remove core page package-root imports`
 - `protocols: remove page raw-source state`
+- `protocols: remove page section state`
 
 ### Sprint 6 epics
 
@@ -499,6 +500,11 @@ Task 6.3 started protocol convergence by removing `_source` from `PageLike`.
 Production raw-content readers now use `bengal.content.page_source.get_raw_source()`,
 which prefers immutable SourcePage-backed `_raw_content` and only falls back to
 the legacy `_source` property while the adapter still exists.
+
+Task 6.3 continued by removing `_section` from `PageLike`. Production section
+read/write call sites now use `bengal.core.section.utils.get_page_section()` and
+`set_page_section()`, leaving the private slot as a legacy compatibility detail
+rather than a required page-like contract.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

@@ -17,6 +17,8 @@ import time
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.section.utils import get_page_section
+
 if TYPE_CHECKING:
     from pathlib import Path
 
@@ -144,7 +146,7 @@ def create_site_snapshot(site: SiteLike) -> SiteSnapshot:
         if not page_snapshot:
             continue
 
-        section = getattr(mutable_page, "_section", None)
+        section = get_page_section(mutable_page)
         section_snapshot = (section_cache.get(id(section)) if section else NO_SECTION) or NO_SECTION
 
         if page_snapshot.section != section_snapshot:
@@ -304,7 +306,7 @@ def update_snapshot(
     for path in affected_paths:
         if path in site_pages_by_path:
             page = site_pages_by_path[path]
-            section = getattr(page, "_section", None)
+            section = get_page_section(page)
             if section:
                 affected_section_paths.add(section.path)
 
@@ -366,7 +368,7 @@ def update_snapshot(
     for mutable_page in site.pages:
         if id(mutable_page) in new_page_cache:
             page_snapshot = new_page_cache[id(mutable_page)]
-            section = getattr(mutable_page, "_section", None)
+            section = get_page_section(mutable_page)
             section_snapshot = (
                 section_cache.get(id(section)) if section else NO_SECTION
             ) or NO_SECTION

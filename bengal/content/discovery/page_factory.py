@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from bengal.core.section.utils import get_page_section, set_page_section
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -182,5 +183,5 @@ class PageInitializer:
         self.ensure_initialized(page)
 
         # Set section reference
-        if not page._section:
-            page._section = section
+        if not get_page_section(page):
+            set_page_section(page, section)

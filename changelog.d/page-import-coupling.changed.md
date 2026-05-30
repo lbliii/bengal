@@ -9,4 +9,5 @@ now lazy-loads the legacy class so importing content discovery helpers does not
 load `bengal.core.page`. Tests now import Page submodules directly and guard
 against new package-root imports from `bengal.core.page`. Raw source access now
 flows through a content-owned helper instead of requiring `_source` on the
-`PageLike` protocol.
+`PageLike` protocol. Section access now flows through core section helpers
+instead of requiring `_section` on `PageLike`.

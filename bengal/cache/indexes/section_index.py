@@ -40,6 +40,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from bengal.cache.query_index import QueryIndex
+from bengal.core.section.utils import get_page_section
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -67,10 +68,9 @@ class SectionIndex(QueryIndex):
 
     def extract_keys(self, page: PageLike) -> list[tuple[str, dict[str, Any]]]:
         """Extract section name from page."""
-        # Get section from page._section
-        if hasattr(page, "_section") and page._section:
-            section_name = page._section.name
-            section_title = getattr(page._section, "title", section_name)
+        if section := get_page_section(page):
+            section_name = section.name
+            section_title = getattr(section, "title", section_name)
 
             return [(section_name, {"title": section_title})]
 

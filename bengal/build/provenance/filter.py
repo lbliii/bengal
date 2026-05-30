@@ -29,6 +29,7 @@ from bengal.build.provenance.types import (
     hash_dict,
     hash_file,
 )
+from bengal.core.section.utils import get_page_section
 from bengal.utils.io.json_compat import JSONDecodeError
 from bengal.utils.io.json_compat import dump as json_dump
 from bengal.utils.io.json_compat import load as json_load
@@ -416,7 +417,7 @@ class ProvenanceFilter:
                 page_path=str(page_path),
                 input_count=provenance.input_count,
                 is_virtual=getattr(page, "virtual", False),
-                has_section=getattr(page, "_section", None) is not None,
+                has_section=get_page_section(page) is not None,
                 source_path=str(getattr(page, "source_path", None)),
             )
             return None
@@ -479,7 +480,7 @@ class ProvenanceFilter:
         """
         Get all _index.md files that contribute cascade metadata to this page.
 
-        Traverses from page._section up through parent sections, collecting
+        Traverses from the page's section up through parent sections, collecting
         index page source paths. When any cascade source changes, the page's
         provenance hash changes, triggering an incremental rebuild.
 
@@ -490,7 +491,7 @@ class ProvenanceFilter:
             List of _index.md source paths, ordered from immediate parent to root
         """
         sources: list[Path] = []
-        section = getattr(page, "_section", None)
+        section = get_page_section(page)
 
         # Fallback: If _section is None but we have a section path in page.core, look it up
         if section is None:
@@ -562,7 +563,7 @@ class ProvenanceFilter:
             )
         else:
             # Log when NO cascade sources found - this might indicate a problem
-            initial_section = getattr(page, "_section", None)
+            initial_section = get_page_section(page)
             logger.debug(
                 "no_cascade_sources",
                 page_path=str(page_path),
@@ -1118,10 +1119,8 @@ class ProvenanceFilter:
             affected_tags.update(page.tags)
 
         # Collect section
-        if hasattr(page, "_section") and page._section:
-            section = page._section
-            if hasattr(section, "path"):
-                affected_sections.add(str(section.path))
+        if (section := get_page_section(page)) and hasattr(section, "path"):
+            affected_sections.add(str(section.path))
 
     def stats(self) -> dict[str, Any]:
         """Get cache statistics."""

@@ -48,6 +48,8 @@ from typing import TYPE_CHECKING, Any
 
 from kida import Markup
 
+from bengal.core.section.utils import get_page_section
+
 if TYPE_CHECKING:
     from types import SimpleNamespace
 
@@ -337,7 +339,7 @@ def build_page_context(
         page: Page object or SimpleNamespace (synthetic pages)
         site: Site instance
         content: Rendered HTML content
-        section: Optional section override (defaults to page._section)
+        section: Optional section override (defaults to the page's assigned section)
         element: Optional autodoc element (for autodoc pages)
         posts: Override posts list (for generated pages)
         subsections: Override subsections list
@@ -360,10 +362,10 @@ def build_page_context(
     # Get metadata - works for both Page and SimpleNamespace
     metadata = getattr(page, "metadata", {}) or {}
 
-    # Resolve section (from arg, page attribute, or None)
+    # Resolve section (from arg, page helper, or None)
     resolved_section = section
     if resolved_section is None:
-        resolved_section = getattr(page, "_section", None) or getattr(page, "section", None)
+        resolved_section = get_page_section(page)
 
     # Resolve section to SectionSnapshot (no wrapper needed)
     # SectionSnapshot has params property and __bool__ for template compatibility

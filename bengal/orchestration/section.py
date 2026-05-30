@@ -47,6 +47,7 @@ from typing import TYPE_CHECKING
 
 from bengal.content.discovery.page_factory import PageInitializer
 from bengal.content_types.registry import detect_content_type, get_strategy
+from bengal.core.section.utils import get_page_section, set_page_section
 from bengal.orchestration.utils.virtual_pages import VirtualPageSpec, create_virtual_page
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_strategy import URLStrategy
@@ -432,8 +433,8 @@ class SectionOrchestrator:
             "changelog",
         ):
             # Add section context using explicit attributes (metadata is immutable)
-            if index_page._section is None:
-                index_page._section = section
+            if get_page_section(index_page) is None:
+                set_page_section(index_page, section)
 
             if index_page._posts is None:
                 # Use content type strategy to filter and sort pages

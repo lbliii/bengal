@@ -160,6 +160,10 @@ class TestPageLikeStability:
         for prop in self.REQUIRED_PROPERTIES:
             assert hasattr(PageLike, prop), f"PageLike missing property: {prop}"
 
+    def test_excludes_mutable_page_section_reference(self) -> None:
+        """PageLike should not require the legacy mutable Page section slot."""
+        assert not hasattr(PageLike, "_section")
+
 
 class TestSectionLikeStability:
     """Guard against breaking changes to SectionLike."""

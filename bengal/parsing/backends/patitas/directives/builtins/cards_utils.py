@@ -10,6 +10,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.section.utils import get_page_section
 from bengal.rendering.pipeline.thread_local import get_thread_parser
 from bengal.rendering.template_functions.strings import first_sentence
 from bengal.utils.observability.logger import get_logger
@@ -82,7 +83,7 @@ def pull_from_linked_page(renderer: Any, link: str, fields: list[str]) -> dict[s
     if link.startswith("./"):
         current_page = getattr(renderer, "_current_page", None)
         if current_page:
-            section = getattr(current_page, "_section", None)
+            section = get_page_section(current_page)
             if section:
                 child_name = link[2:].rstrip("/").split("/")[0]
 

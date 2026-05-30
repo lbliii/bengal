@@ -150,8 +150,8 @@ class QueryIndex(ABC):
     Example:
         class SectionIndex(QueryIndex):
             def extract_keys(self, page):
-                section = page._section.name if page._section else None
-                return [(section, {})] if section else []
+                section = get_page_section(page)
+                return [(section.name, {})] if section else []
 
     """
 

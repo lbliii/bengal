@@ -14,6 +14,7 @@ from dataclasses import fields as dataclass_fields
 from types import MappingProxyType, SimpleNamespace
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.section.utils import get_page_section, set_page_section
 from bengal.rendering.engines.errors import TemplateError
 from bengal.utils.observability.logger import get_logger
 
@@ -236,11 +237,10 @@ def _build_sample_context(site: SiteLike) -> dict[str, Any]:
             title="Sample",
             _path="/sample/",
             metadata={},
-            _section=None,
             html_content="",
         )
         if hasattr(site, "regular_pages") and site.regular_pages:
-            mock_page._section = getattr(site.regular_pages[0], "_section", None)
+            set_page_section(mock_page, get_page_section(site.regular_pages[0]))
         page_context = build_page_context(
             page=mock_page,
             site=site,

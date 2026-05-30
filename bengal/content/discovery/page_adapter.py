@@ -6,6 +6,8 @@ from importlib import import_module
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.core.section.utils import set_page_section
+
 if TYPE_CHECKING:
     from bengal.core.records import SourcePage
     from bengal.protocols import PageLike, SectionLike
@@ -54,7 +56,7 @@ def page_from_source_page(
     if site is not None:
         page._site = site
     if section is not None:
-        page._section = section
+        set_page_section(page, section)
     elif source_page.core.section:
         page._section_path = Path(source_page.core.section)
 

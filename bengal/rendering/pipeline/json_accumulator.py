@@ -14,6 +14,7 @@ from __future__ import annotations
 import threading
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.section.utils import get_page_section
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import split_url_path
 
@@ -112,6 +113,8 @@ class JsonAccumulator:
             date_str = page_date.strftime("%Y-%m-%d") if page_date else None
             date_iso = page_date.isoformat() if page_date else None
 
+            section = get_page_section(page)
+
             # Build unified data
             data = AccumulatedPageData(
                 source_path=page.source_path,
@@ -126,7 +129,7 @@ class JsonAccumulator:
                 content_preview=content_preview,
                 word_count=word_count,
                 reading_time=max(1, round(word_count / 200)),
-                section=page._section.name if getattr(page, "_section", None) else "",
+                section=section.name if section else "",
                 tags=list(page.tags) if page.tags else [],
                 dir=dir_path,
                 is_autodoc=is_autodoc_page(page),

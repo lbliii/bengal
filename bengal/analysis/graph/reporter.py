@@ -34,6 +34,7 @@ See Also:
 from typing import TYPE_CHECKING
 
 from bengal.analysis.utils.validation import require_built
+from bengal.core.section.utils import get_page_section
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -467,7 +468,7 @@ class GraphReporter:
 
             section_to_pages: dict[str, list[PageLike]] = defaultdict(list)
             for page in analysis_pages:
-                section = getattr(page, "_section", None)
+                section = get_page_section(page)
                 if section:
                     section_name = getattr(section, "name", str(section))
                     section_to_pages[section_name].append(page)

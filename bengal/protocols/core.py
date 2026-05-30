@@ -255,14 +255,6 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
     _page_num: int | None  # Page number for paginated pages (None if not paginated)
 
     @property
-    def _section(self) -> SectionLike | None:
-        """Section this page belongs to (lazy lookup)."""
-        ...
-
-    @_section.setter
-    def _section(self, value: SectionLike | None) -> None: ...
-
-    @property
     def _path(self) -> str:
         """Internal site-relative path (no baseurl)."""
         ...

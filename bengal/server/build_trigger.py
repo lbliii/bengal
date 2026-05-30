@@ -59,6 +59,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import yaml
 
+from bengal.core.section.utils import get_page_section
 from bengal.errors import ErrorCode, create_dev_error, get_dev_server_state
 from bengal.orchestration.stats import (
     ReloadHint,
@@ -936,7 +937,7 @@ class BuildTrigger:
             if page_path != changed:
                 continue
 
-            section = getattr(page, "_section", None)
+            section = get_page_section(page)
             if section is None:
                 return False
             index_page = getattr(section, "index_page", None)

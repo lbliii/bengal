@@ -49,6 +49,7 @@ from typing import TYPE_CHECKING, Any, cast
 from bengal.build.contracts.keys import xref_path_key
 from bengal.content.page_source import get_raw_source
 from bengal.core.diagnostics import emit as emit_diagnostic
+from bengal.core.section.utils import get_page_section, set_page_section
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -315,7 +316,7 @@ class ContentOrchestrator:
         )
 
         # Build section registry for path-based lookups (MUST come before _setup_page_references)
-        # This enables O(1) section lookups via page._section property
+        # This enables O(1) section lookups via the legacy page section reference.
         t0 = time.perf_counter()
         self.site.register_sections()
         breakdown_ms["register_sections"] = (time.perf_counter() - t0) * 1000
@@ -957,10 +958,10 @@ class ContentOrchestrator:
             section._site = self.site
 
             if section.index_page:
-                section.index_page._section = section
+                set_page_section(section.index_page, section)
 
             for page in section.pages:
-                page._section = section
+                set_page_section(page, section)
 
             self._setup_section_references(section)
 
@@ -970,10 +971,10 @@ class ContentOrchestrator:
             subsection._site = self.site
 
             if subsection.index_page:
-                subsection.index_page._section = subsection
+                set_page_section(subsection.index_page, subsection)
 
             for page in subsection.pages:
-                page._section = subsection
+                set_page_section(page, subsection)
 
             self._setup_section_references(subsection)
 
@@ -1053,7 +1054,7 @@ class ContentOrchestrator:
 
         for section in self.site.sections:
             pages_without_section.extend(
-                (page, section) for page in section.pages if page._section is None
+                (page, section) for page in section.pages if get_page_section(page) is None
             )
             self._validate_subsection_references(section, pages_without_section)
 
@@ -1074,7 +1075,7 @@ class ContentOrchestrator:
         """Recursively validate page-section references in subsections."""
         for subsection in section.subsections:
             pages_without_section.extend(
-                (page, subsection) for page in subsection.pages if page._section is None
+                (page, subsection) for page in subsection.pages if get_page_section(page) is None
             )
             self._validate_subsection_references(subsection, pages_without_section)
 

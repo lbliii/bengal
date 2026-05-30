@@ -20,6 +20,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from bengal.core.section.utils import get_page_section
+
 if TYPE_CHECKING:
     from bengal.protocols import PageLike
 
@@ -43,8 +45,8 @@ def get_section_name(page: PageLike) -> str:
         ...     print(f"Page is in section: {section}")
 
     """
-    if hasattr(page, "_section") and page._section:
-        return getattr(page._section, "name", "")
+    if section := get_page_section(page):
+        return getattr(section, "name", "")
     return ""
 
 

@@ -23,6 +23,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, cast
 
 from bengal.analysis.links.types import LinkMetrics, LinkType
+from bengal.core.section.utils import get_page_section
 from bengal.errors import BengalGraphError, ErrorCode, record_error
 from bengal.rendering.page_operations import extract_links
 from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers, should_parallelize
@@ -241,7 +242,7 @@ class GraphBuilder:
                 "index",
             )
             if is_index:
-                section = getattr(page, "_section", None)
+                section = get_page_section(page)
                 if section:
                     section_pages = getattr(section, "pages", [])
                     for child in section_pages:
@@ -541,7 +542,7 @@ class GraphBuilder:
             if not is_index:
                 continue
 
-            section = getattr(page, "_section", None)
+            section = get_page_section(page)
             if not section:
                 continue
 

@@ -44,6 +44,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 from bengal.content.page_source import get_raw_source
+from bengal.core.section.utils import get_page_section
 from bengal.debug.models import (
     CacheInfo,
     DependencyInfo,
@@ -455,10 +456,12 @@ class PageExplainer:
         deps = DependencyInfo()
 
         # Content dependencies
-        if page._section:
-            section = page._section
-            if hasattr(section, "index_page") and section.index_page:
-                deps.content.append(str(section.index_page.source_path))
+        if (
+            (section := get_page_section(page))
+            and hasattr(section, "index_page")
+            and section.index_page
+        ):
+            deps.content.append(str(section.index_page.source_path))
 
         # Template dependencies (from chain)
         for tpl in self._resolve_template_chain(page):

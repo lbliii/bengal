@@ -15,6 +15,7 @@ from patitas import parse_frontmatter
 
 from bengal.cache.parsed_output import clear_parsed_page_state
 from bengal.core.output import BuildOutputCollector
+from bengal.core.section.utils import get_page_section
 from bengal.rendering.pipeline.core import RenderingPipeline
 from bengal.rendering.rendered_output import get_rendered_html
 
@@ -139,7 +140,7 @@ class ReactiveContentHandler:
 
     def _has_rendered_dependents(self, page: PageLike) -> bool:
         """Return True when a single-page render would leave dependent HTML stale."""
-        section = getattr(page, "_section", None)
+        section = get_page_section(page)
         if section is None:
             return False
         index_page = getattr(section, "index_page", None)

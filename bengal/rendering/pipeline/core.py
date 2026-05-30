@@ -38,6 +38,7 @@ from bengal.core.records import (
     parsed_page_from_page_state,
     rendered_page_from_page_state,
 )
+from bengal.core.section.utils import get_page_section
 from bengal.rendering.api_doc_enhancer import set_enhancer_for_render
 
 if TYPE_CHECKING:
@@ -1031,7 +1032,7 @@ class RenderingPipeline:
         )
         from bengal.snapshots.types import NO_SECTION, SectionSnapshot
 
-        section = getattr(page, "_section", None)
+        section = get_page_section(page)
         metadata = page.metadata if hasattr(page, "metadata") else {}
 
         # Get snapshot from build_context if available (RFC: rfc-bengal-snapshot-engine)

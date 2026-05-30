@@ -23,6 +23,7 @@ from kida.environment.exceptions import (
 
 from bengal.cache.parsed_output import apply_parsed_page_to_page
 from bengal.core.records import ParsedPage, rendered_page_from_page_state
+from bengal.core.section.utils import get_page_section
 from bengal.protocols import SiteConfig, SiteLike
 from bengal.rendering.pipeline.output import determine_output_path, format_html, write_output
 from bengal.utils.observability.logger import get_logger
@@ -252,8 +253,7 @@ class AutodocRenderer:
             return format_html(rendered_html, page, cast("SiteLike", self.site))
 
         # Render with full site context (same as regular pages)
-        # Prefer explicit _section reference set by orchestrators; fall back to page.section
-        section = getattr(page, "_section", None) or getattr(page, "section", None)
+        section = get_page_section(page)
 
         try:
             # NOTE: We intentionally do NOT pass site= here. The template environment

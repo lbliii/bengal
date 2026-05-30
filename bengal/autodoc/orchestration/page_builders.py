@@ -20,6 +20,7 @@ from bengal.autodoc.utils import (
 from bengal.content.discovery.page_adapter import page_from_source_page
 from bengal.core.records import create_virtual_source_page
 from bengal.core.section import Section
+from bengal.core.section.utils import set_page_section
 from bengal.rendering.utils.url import apply_baseurl
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.paths.url_normalization import path_to_slug
@@ -333,7 +334,7 @@ def create_pages(
             # This page is the index for target_section
             # Set section reference to the target section (it belongs TO the section
             # as its index).
-            page._section = target_section
+            set_page_section(page, target_section)
 
             # Set as index page manually
             # We don't use add_page() because it relies on filename stem for index detection

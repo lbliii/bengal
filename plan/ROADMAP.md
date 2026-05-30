@@ -3,7 +3,7 @@
 # Bengal Roadmap - Active Plan Set
 
 **Created**: 2026-04-12  
-**Updated**: 2026-05-29
+**Updated**: 2026-05-30
 **Baseline**: current `main` at `ab0f22339` plus source/test checks listed below
 **Version Target**: v0.4.0 beta  
 **Planning Rule**: root `plan/` keeps only the active agenda. Completed,
@@ -24,7 +24,7 @@ Machine-checked on 2026-05-29:
 - Protocol annotation counts are still mixed: `site: Site` 296 vs
   `site: SiteLike` 274, `page: Page` 120 vs `page: PageLike` 253,
   `section: Section` 82 vs `section: SectionLike` 63.
-- `uv run ty check bengal/` reports 545 diagnostics.
+- `uv run ty check bengal/` reports 538 diagnostics.
 - Bundled themes are `default` and `chirpui`; `bengal theme preview`,
   swizzle commands, library assets, and Chirp UI integration tests exist.
 - Plugin wiring exists for directives, roles, template extensions, and phase
@@ -48,7 +48,9 @@ Machine-checked on 2026-05-29:
   constructor/direct-import isolation to the SourcePage adapter and blocks
   concrete `Page` imports in tests. The SourcePage adapter now returns
   `PageLike` at its type boundary while keeping the remaining mutable
-  construction isolated inside the adapter.
+  construction isolated inside the adapter. `PageLike` no longer requires the
+  legacy `_source` or `_section` slots; raw content and section access route
+  through helper functions.
 
 No full test suite was run for this planning pass.
 
@@ -78,7 +80,7 @@ This file is the eleventh root planning file and owns sequencing.
 | Priority | Work | Proof Before Close |
 |----------|------|--------------------|
 | P1 | Delete mutable `Page` compatibility class | `rg '^class Page\\b' bengal/core/page` returns no hits; full tests pass. |
-| P1 | Re-measure and reduce `ty` floor | Current count is 558 diagnostics; close with a lower recorded count and no new suppressions. |
+| P1 | Re-measure and reduce `ty` floor | Current count is 538 diagnostics; close with a lower recorded count and no new suppressions. |
 | P1 | OpenAPI REST autodoc polish | Focused autodoc tests cover Python, CLI, OpenAPI, and layout output. |
 | P1 | Snapshot build-plan handoff | Worker paths consume frozen plans/snapshots instead of live mutable objects. |
 | P2 | Incremental dependency indexes | Warm-build tests prove dependency-to-output invalidation without broad scans. |
@@ -146,6 +148,7 @@ class deletion rather than public compatibility preservation.
 - `content: lazy-load page compatibility adapter`
 - `tests: remove core page package-root imports`
 - `protocols: remove page raw-source state`
+- `protocols: remove page section state`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside
