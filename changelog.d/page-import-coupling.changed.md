@@ -55,3 +55,6 @@ rendering URL helpers instead of constructing the legacy mutable Page adapter.
 Page URL cache-regression tests now assert the rendering URL helper cache names
 through the shared page-like URL mock instead of constructing the legacy mutable
 Page adapter.
+The standalone section-navigation edge case now exercises navigation helpers
+with a shared page-like mock instead of constructing the legacy mutable Page
+adapter.

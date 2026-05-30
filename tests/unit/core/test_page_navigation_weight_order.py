@@ -15,9 +15,10 @@ from typing import Any, cast
 
 import pytest
 
+from bengal.core.page.navigation import get_next_in_section, get_prev_in_section
 from bengal.core.site import Site
 from bengal.orchestration.content import ContentOrchestrator
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_page as _page
 
 
 class TestWeightBasedNavigation:
@@ -303,8 +304,8 @@ class TestEdgeCases:
         )
         # No _section set
 
-        assert page.next_in_section is None
-        assert page.prev_in_section is None
+        assert get_next_in_section(page, None) is None
+        assert get_prev_in_section(page, None) is None
 
 
 class TestRegressionScenarios:

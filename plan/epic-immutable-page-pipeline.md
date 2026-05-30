@@ -460,6 +460,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate page visibility fixtures`
 - `tests: migrate page url fixtures`
 - `tests: migrate page url cache fixtures`
+- `tests: migrate page navigation edge fixture`
 
 ### Sprint 6 epics
 
@@ -620,6 +621,11 @@ to the shared page-like URL mock. Fallback non-caching, output-path-derived URL
 recalculation, and numeric filename section URL coverage now assert the current
 rendering URL helper cache names without constructing the legacy mutable Page
 adapter.
+
+Task 6.1/6.2 test fixture migration also moved the standalone no-section page
+navigation edge case to the shared page-like mock and
+`bengal.core.page.navigation` helpers. Weight-order navigation integration
+coverage still uses discovery-built pages to preserve production behavior.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
