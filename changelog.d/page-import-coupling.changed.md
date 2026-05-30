@@ -42,3 +42,6 @@ tests now use shared page-like mocks instead of constructing legacy mutable
 pages for hierarchy behavior.
 Cascade and cascade-snapshot tests now use shared page-like mocks instead of
 constructing legacy mutable pages for section cascade behavior.
+Section ergonomic helper tests now use shared page-like mocks instead of
+constructing legacy mutable pages for recent-page, content-page, and
+tag-listing behavior.

@@ -75,6 +75,8 @@ Machine-checked on 2026-05-29:
   Cascade and cascade-snapshot tests now use shared page-like mocks instead of
   the mutable Page adapter for section cascade extraction and immutable cascade
   snapshot behavior.
+  Section ergonomic helper tests now use shared page-like mocks instead of the
+  mutable Page adapter for recent-page, content-page, and tag-listing behavior.
 
 No full test suite was run for this planning pass.
 
@@ -186,6 +188,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate orchestration page fixtures`
 - `tests: migrate section hierarchy page fixtures`
 - `tests: migrate cascade page fixtures`
+- `tests: migrate section ergonomic page fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside
