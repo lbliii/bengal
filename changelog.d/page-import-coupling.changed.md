@@ -30,3 +30,5 @@ Cache query-index tests now use page-like fixtures instead of constructing
 legacy mutable pages for index-only behavior.
 Content-type, related-posts, and taxonomy-incremental orchestration tests now
 use hashable page-like mocks instead of constructing legacy mutable pages.
+Redirect postprocess tests now use local page-like fixtures instead of
+constructing legacy mutable pages for alias behavior.

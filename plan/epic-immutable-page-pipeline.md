@@ -451,6 +451,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate analysis graph page fixtures`
 - `tests: migrate cache query page fixtures`
 - `tests: migrate orchestration taxonomy page fixtures`
+- `tests: migrate redirect page fixtures`
 
 ### Sprint 6 epics
 
@@ -560,6 +561,10 @@ Task 6.1/6.2 test fixture migration continued through content-type,
 related-posts, and taxonomy-incremental orchestration tests. These now use
 hashable page-like mocks for orchestration inputs instead of constructing the
 legacy mutable Page adapter.
+
+Task 6.1/6.2 test fixture migration also moved redirect postprocess tests to
+local page-like redirect fixtures for alias behavior, leaving PageCore alias
+serialization covered without constructing the legacy mutable Page adapter.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
