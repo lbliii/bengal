@@ -464,6 +464,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate navigation page fixtures`
 - `tests: migrate component model page fixtures`
 - `tests: migrate computed page fixtures`
+- `core: extract page metadata helpers`
 
 ### Sprint 6 epics
 
@@ -645,6 +646,11 @@ Task 6.1/6.2 test fixture migration also removed computed age, author, and
 series property-wrapper duplicates. The existing direct helper coverage now
 matches the module boundary without constructing the legacy mutable Page
 adapter.
+
+Task 6.1/6.2/6.3 also moved generated, assigned-template, content-type, and
+variant inclusion behavior behind metadata helper functions. Legacy Page
+properties delegate to those helpers while metadata tests exercise the helper
+boundary without constructing the mutable Page adapter.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

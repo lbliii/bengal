@@ -57,11 +57,15 @@ from bengal.core.diagnostics import emit as emit_diagnostic
 from bengal.core.page.metadata_helpers import (
     coerce_weight,
     fallback_url,
+    get_assigned_template,
+    get_content_type_name,
     get_internal_metadata,
     get_user_metadata,
     infer_nav_title,
     infer_slug,
     infer_title,
+    is_generated,
+    is_in_variant,
     normalize_edition,
     normalize_keywords,
 )
@@ -568,12 +572,7 @@ class Page:
 
     def in_variant(self, variant: str | None) -> bool:
         """True if page should be included for the given build variant."""
-        if variant is None or not str(variant).strip():
-            return True
-        editions = self.edition
-        if not editions:
-            return True
-        return variant in editions
+        return is_in_variant(self.metadata, variant)
 
     def get_user_metadata(self, key: str, default: Any = None) -> Any:
         """Get user frontmatter, excluding internal underscore keys."""
@@ -586,17 +585,17 @@ class Page:
     @property
     def is_generated(self) -> bool:
         """True if page was dynamically generated."""
-        return bool(self.metadata.get("_generated"))
+        return is_generated(self.metadata)
 
     @property
     def assigned_template(self) -> str | None:
         """Template explicitly assigned to this page."""
-        return self.metadata.get("template")
+        return get_assigned_template(self.metadata)
 
     @property
     def content_type_name(self) -> str | None:
         """Content type assigned to this page."""
-        return self.metadata.get("content_type")
+        return get_content_type_name(self.metadata)
 
     def _init_core_from_fields(self) -> None:
         """

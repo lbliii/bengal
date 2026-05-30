@@ -65,3 +65,6 @@ Component model metadata-normalization tests now exercise `build_page_core()`
 directly instead of constructing the legacy mutable Page adapter.
 Computed page metadata tests no longer duplicate age, author, and series helper
 coverage through the legacy mutable Page adapter.
+Page metadata helper tests now cover generated, assigned-template,
+content-type, and variant behavior through metadata helpers instead of the
+legacy mutable Page adapter.

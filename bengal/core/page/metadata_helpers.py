@@ -79,6 +79,16 @@ def normalize_edition(value: Any) -> list[str]:
     return []
 
 
+def is_in_variant(metadata: Mapping[str, Any], variant: str | None) -> bool:
+    """Return whether page metadata should be included for the build variant."""
+    if variant is None or not str(variant).strip():
+        return True
+    editions = normalize_edition(metadata.get("edition"))
+    if not editions:
+        return True
+    return variant in editions
+
+
 def get_user_metadata(metadata: Mapping[str, Any], key: str, default: Any = None) -> Any:
     """Return user frontmatter only, excluding internal underscore keys."""
     if key.startswith("_"):
@@ -91,6 +101,27 @@ def get_internal_metadata(metadata: Mapping[str, Any], key: str, default: Any = 
     if not key.startswith("_"):
         key = f"_{key}"
     return metadata.get(key, default)
+
+
+def is_generated(metadata: Mapping[str, Any]) -> bool:
+    """Return whether metadata marks a page as generated."""
+    return bool(metadata.get("_generated"))
+
+
+def get_assigned_template(metadata: Mapping[str, Any]) -> str | None:
+    """Return the explicitly assigned template from metadata."""
+    template = metadata.get("template")
+    if template is None:
+        return None
+    return str(template)
+
+
+def get_content_type_name(metadata: Mapping[str, Any]) -> str | None:
+    """Return the assigned content type from metadata."""
+    content_type = metadata.get("content_type")
+    if content_type is None:
+        return None
+    return str(content_type)
 
 
 def humanize_stem(value: str, *, replace_underscores: bool) -> str:

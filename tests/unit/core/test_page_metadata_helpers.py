@@ -1,31 +1,25 @@
-"""Unit tests for page metadata helpers and compatibility properties."""
+"""Unit tests for page metadata helpers."""
 
 from pathlib import Path
-from typing import Any
 
 import pytest
 
 from bengal.core.page.metadata_helpers import (
     coerce_weight,
     fallback_url,
+    get_assigned_template,
+    get_content_type_name,
     get_internal_metadata,
     get_user_metadata,
     infer_nav_title,
     infer_slug,
     infer_title,
+    is_generated,
+    is_in_variant,
     normalize_edition,
     normalize_keywords,
 )
 from bengal.core.page_visibility import normalize_visibility, should_render_visibility
-from tests._testing.page_records import make_mutable_test_page as _page
-
-
-def _make_page(metadata: dict[str, Any] | None = None) -> Any:
-    return _page(
-        source_path=Path("content/test.md"),
-        _raw_content="Test content",
-        _raw_metadata=dict(metadata or {}),
-    )
 
 
 class TestPureMetadataHelpers:
@@ -195,57 +189,55 @@ class TestPureMetadataHelpers:
 
 
 class TestMetadataHelpers:
-    """Test page metadata helper methods."""
+    """Test metadata accessor helpers."""
 
     @pytest.fixture
-    def mock_page(self):
-        """Create a mock page with metadata."""
-        return _make_page(
-            {
-                "title": "Test Page",
-                "author": "Jane Doe",
-                "date": "2025-01-15",
-                "template": "custom/landing.html",
-                "content_type": "blog",
-                "_generated": True,
-                "_version": "v3",
-                "_internal_id": "abc123",
-            }
-        )
+    def metadata(self):
+        """Create page metadata."""
+        return {
+            "title": "Test Page",
+            "author": "Jane Doe",
+            "date": "2025-01-15",
+            "template": "custom/landing.html",
+            "content_type": "blog",
+            "_generated": True,
+            "_version": "v3",
+            "_internal_id": "abc123",
+        }
 
-    def test_get_user_metadata_returns_value(self, mock_page):
+    def test_get_user_metadata_returns_value(self, metadata):
         """Should return user-defined metadata value."""
-        assert mock_page.get_user_metadata("title") == "Test Page"
-        assert mock_page.get_user_metadata("author") == "Jane Doe"
+        assert get_user_metadata(metadata, "title") == "Test Page"
+        assert get_user_metadata(metadata, "author") == "Jane Doe"
 
-    def test_get_user_metadata_returns_default_for_missing(self, mock_page):
+    def test_get_user_metadata_returns_default_for_missing(self, metadata):
         """Should return default for missing keys."""
-        assert mock_page.get_user_metadata("nonexistent") is None
-        assert mock_page.get_user_metadata("nonexistent", "default") == "default"
+        assert get_user_metadata(metadata, "nonexistent") is None
+        assert get_user_metadata(metadata, "nonexistent", "default") == "default"
 
-    def test_get_user_metadata_blocks_internal_keys(self, mock_page):
+    def test_get_user_metadata_blocks_internal_keys(self, metadata):
         """Should not return internal keys (prefixed with _)."""
-        assert mock_page.get_user_metadata("_generated") is None
-        assert mock_page.get_user_metadata("_version") is None
-        assert mock_page.get_user_metadata("_internal_id", "blocked") == "blocked"
+        assert get_user_metadata(metadata, "_generated") is None
+        assert get_user_metadata(metadata, "_version") is None
+        assert get_user_metadata(metadata, "_internal_id", "blocked") == "blocked"
 
-    def test_get_internal_metadata_returns_value(self, mock_page):
+    def test_get_internal_metadata_returns_value(self, metadata):
         """Should return internal metadata value."""
-        assert mock_page.get_internal_metadata("_generated") is True
-        assert mock_page.get_internal_metadata("_version") == "v3"
+        assert get_internal_metadata(metadata, "_generated") is True
+        assert get_internal_metadata(metadata, "_version") == "v3"
 
-    def test_get_internal_metadata_auto_prefixes(self, mock_page):
+    def test_get_internal_metadata_auto_prefixes(self, metadata):
         """Should auto-prefix key if not already prefixed."""
         # Without prefix
-        assert mock_page.get_internal_metadata("generated") is True
-        assert mock_page.get_internal_metadata("version") == "v3"
+        assert get_internal_metadata(metadata, "generated") is True
+        assert get_internal_metadata(metadata, "version") == "v3"
         # With prefix
-        assert mock_page.get_internal_metadata("_generated") is True
+        assert get_internal_metadata(metadata, "_generated") is True
 
-    def test_get_internal_metadata_returns_default(self, mock_page):
+    def test_get_internal_metadata_returns_default(self, metadata):
         """Should return default for missing internal keys."""
-        assert mock_page.get_internal_metadata("nonexistent") is None
-        assert mock_page.get_internal_metadata("missing", "default") == "default"
+        assert get_internal_metadata(metadata, "nonexistent") is None
+        assert get_internal_metadata(metadata, "missing", "default") == "default"
 
 
 class TestMetadataProperties:
@@ -253,38 +245,31 @@ class TestMetadataProperties:
 
     def test_is_generated_true(self):
         """Should return True when _generated is set."""
-        page = _make_page({"_generated": True})
-        assert page.is_generated is True
+        assert is_generated({"_generated": True}) is True
 
     def test_is_generated_false_when_missing(self):
         """Should return False when _generated is not set."""
-        page = _make_page()
-        assert page.is_generated is False
+        assert is_generated({}) is False
 
     def test_is_generated_false_when_false(self):
         """Should return False when _generated is explicitly False."""
-        page = _make_page({"_generated": False})
-        assert page.is_generated is False
+        assert is_generated({"_generated": False}) is False
 
     def test_assigned_template_returns_value(self):
         """Should return template from metadata."""
-        page = _make_page({"template": "custom/landing.html"})
-        assert page.assigned_template == "custom/landing.html"
+        assert get_assigned_template({"template": "custom/landing.html"}) == "custom/landing.html"
 
     def test_assigned_template_returns_none_when_missing(self):
         """Should return None when template not set."""
-        page = _make_page()
-        assert page.assigned_template is None
+        assert get_assigned_template({}) is None
 
     def test_content_type_name_returns_value(self):
         """Should return content_type from metadata."""
-        page = _make_page({"content_type": "blog"})
-        assert page.content_type_name == "blog"
+        assert get_content_type_name({"content_type": "blog"}) == "blog"
 
     def test_content_type_name_returns_none_when_missing(self):
         """Should return None when content_type not set."""
-        page = _make_page()
-        assert page.content_type_name is None
+        assert get_content_type_name({}) is None
 
 
 class TestEditionVariantFiltering:
@@ -292,43 +277,37 @@ class TestEditionVariantFiltering:
 
     def test_edition_empty_when_missing(self):
         """Should return empty list when edition not set."""
-        page = _make_page()
-        assert page.edition == []
+        assert normalize_edition(None) == []
 
     def test_edition_list_from_frontmatter(self):
         """Should return list when edition is list."""
-        page = _make_page({"edition": ["oss", "enterprise"]})
-        assert page.edition == ["oss", "enterprise"]
+        assert normalize_edition(["oss", "enterprise"]) == ["oss", "enterprise"]
 
     def test_edition_string_normalized_to_list(self):
         """Should normalize single string to list."""
-        page = _make_page({"edition": "enterprise"})
-        assert page.edition == ["enterprise"]
+        assert normalize_edition("enterprise") == ["enterprise"]
 
     def test_in_variant_none_always_included(self):
         """Should include page when variant is None (no filtering)."""
-        page = _make_page({"edition": ["enterprise"]})
-        assert page.in_variant(None) is True
+        assert is_in_variant({"edition": ["enterprise"]}, None) is True
 
     def test_in_variant_empty_string_included(self):
         """Should include page when variant is empty string."""
-        page = _make_page({"edition": ["enterprise"]})
-        assert page.in_variant("") is True
+        assert is_in_variant({"edition": ["enterprise"]}, "") is True
 
     def test_in_variant_no_edition_included(self):
         """Should include page with no edition in any variant."""
-        page = _make_page()
-        assert page.in_variant("oss") is True
-        assert page.in_variant("enterprise") is True
+        assert is_in_variant({}, "oss") is True
+        assert is_in_variant({}, "enterprise") is True
 
     def test_in_variant_match_included(self):
         """Should include page when variant matches edition."""
-        page = _make_page({"edition": ["oss", "enterprise"]})
-        assert page.in_variant("oss") is True
-        assert page.in_variant("enterprise") is True
+        metadata = {"edition": ["oss", "enterprise"]}
+        assert is_in_variant(metadata, "oss") is True
+        assert is_in_variant(metadata, "enterprise") is True
 
     def test_in_variant_no_match_excluded(self):
         """Should exclude page when variant does not match edition."""
-        page = _make_page({"edition": ["enterprise"]})
-        assert page.in_variant("enterprise") is True
-        assert page.in_variant("oss") is False
+        metadata = {"edition": ["enterprise"]}
+        assert is_in_variant(metadata, "enterprise") is True
+        assert is_in_variant(metadata, "oss") is False

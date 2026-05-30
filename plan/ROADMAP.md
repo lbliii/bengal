@@ -93,6 +93,8 @@ Machine-checked on 2026-05-29:
   directly instead of the mutable Page adapter.
   Computed age, author, and series metadata tests no longer duplicate helper
   coverage through the mutable Page adapter.
+  Page metadata helper tests now exercise generated/template/content-type and
+  variant behavior through helper functions instead of the mutable Page adapter.
 
 No full test suite was run for this planning pass.
 
@@ -213,6 +215,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate navigation page fixtures`
 - `tests: migrate component model page fixtures`
 - `tests: migrate computed page fixtures`
+- `core: extract page metadata helpers`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside
