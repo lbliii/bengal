@@ -459,6 +459,7 @@ gone or explicitly retained by a recorded public API decision.
 - `core: extract page visibility helpers`
 - `tests: migrate page visibility fixtures`
 - `tests: migrate page url fixtures`
+- `tests: migrate page url cache fixtures`
 
 ### Sprint 6 epics
 
@@ -612,6 +613,12 @@ Task 6.1/6.2 test fixture migration also moved href and section page URL tests
 to shared page-like URL mocks backed by `bengal.rendering.page_urls`. Baseurl,
 absolute URL, output-path-derived URL, fallback URL, section collection URL, and
 navigation link coverage now runs without constructing the legacy mutable Page
+adapter.
+
+Task 6.1/6.2 test fixture migration also moved page URL cache-regression tests
+to the shared page-like URL mock. Fallback non-caching, output-path-derived URL
+recalculation, and numeric filename section URL coverage now assert the current
+rendering URL helper cache names without constructing the legacy mutable Page
 adapter.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
