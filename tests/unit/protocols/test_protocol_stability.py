@@ -182,6 +182,10 @@ class TestPageLikeStability:
         assert not hasattr(PageLike, "_paginator")
         assert not hasattr(PageLike, "_page_num")
 
+    def test_excludes_autodoc_fallback_state(self) -> None:
+        """PageLike should not require autodoc fallback marker slots."""
+        assert not hasattr(PageLike, "_autodoc_fallback_template")
+
 
 class TestSectionLikeStability:
     """Guard against breaking changes to SectionLike."""

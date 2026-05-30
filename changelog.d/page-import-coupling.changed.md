@@ -18,3 +18,5 @@ mutable page adapter remains.
 Section archive context now stays out of `PageLike`; existing section indexes
 receive `_posts`, `_subsections`, `_paginator`, and `_page_num` through metadata
 instead of mutable page slots.
+Autodoc fallback tagging now stays out of `PageLike`; fallback template markers
+are recorded through metadata instead of mutable page slots.

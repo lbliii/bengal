@@ -445,6 +445,7 @@ gone or explicitly retained by a recorded public API decision.
 - `protocols: remove page directive-link state`
 - `protocols: remove page parsed-content state`
 - `protocols: remove page archive context state`
+- `protocols: remove page autodoc fallback state`
 
 ### Sprint 6 epics
 
@@ -525,6 +526,11 @@ Task 6.3 also removed section archive context fields from `PageLike`, including
 enrichment now writes archive and pagination context into page metadata, matching
 the renderer's read path and leaving the private fields as legacy class details
 only.
+
+Task 6.3 also removed `_autodoc_fallback_template` from `PageLike`. Autodoc
+fallback rendering now records `_autodoc_fallback_template` and
+`_autodoc_fallback_reason` through page metadata, so generated-reference
+fallback tagging no longer requires mutable page slots.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 

@@ -9,7 +9,10 @@ Regression test for: View source links producing 404s when github_repo is
 specified in autodoc.yaml but not at the top level of site config.
 """
 
-from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer
+from pathlib import Path
+
+from bengal.rendering.pipeline.autodoc_renderer import AutodocRenderer, _tag_autodoc_fallback
+from tests._testing.page_records import make_virtual_test_page
 
 
 class TestNormalizeConfigGithubRepo:
@@ -149,3 +152,18 @@ class TestNormalizeConfigGithubRepo:
         # Templates use config.github_repo syntax
         assert result.github_repo == "https://github.com/owner/repo"
         assert result.github_branch == "main"
+
+
+def test_autodoc_fallback_marker_uses_metadata_not_page_slot() -> None:
+    page = make_virtual_test_page(
+        source_id="python/api/module.md",
+        title="module",
+        metadata={"is_autodoc": True},
+        output_path=Path("/site/public/api/module/index.html"),
+    )
+
+    _tag_autodoc_fallback(page, "Template not found")
+
+    assert page.metadata["_autodoc_fallback_template"] is True
+    assert page.metadata["_autodoc_fallback_reason"] == "Template not found"
+    assert page._autodoc_fallback_template is False

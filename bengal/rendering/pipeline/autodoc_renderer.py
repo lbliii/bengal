@@ -41,6 +41,20 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _tag_autodoc_fallback(page: PageLike, reason: str) -> None:
+    """Record autodoc fallback rendering in page metadata."""
+    mutable_page = cast("Any", page)
+    raw_metadata = getattr(mutable_page, "_raw_metadata", None)
+    if not isinstance(raw_metadata, dict):
+        raw_metadata = dict(page.metadata)
+        mutable_page._raw_metadata = raw_metadata
+
+    raw_metadata["_autodoc_fallback_template"] = True
+    raw_metadata["_autodoc_fallback_reason"] = reason
+    mutable_page._metadata_view_cache = None
+    mutable_page._metadata_view_cache_key = None
+
+
 class MetadataView(dict[str, Any]):
     """
     Dict that also supports attribute-style access (dotted) used by templates.
@@ -242,9 +256,7 @@ class AutodocRenderer:
                 template=template_name,
                 error=str(e),
             )
-            # Tag page to indicate fallback was used (explicit attributes, not metadata)
-            page._autodoc_fallback_template = True
-            page._autodoc_fallback_reason = str(e)
+            _tag_autodoc_fallback(page, str(e))
             # Fall back to rendering as regular virtual page
             fallback_desc = getattr(element, "description", "") if element else ""
             page.prerendered_html = f"<h1>{page.title}</h1><p>{fallback_desc}</p>"

@@ -243,7 +243,6 @@ class PageLike(Renderable, Navigable, Summarizable, Protocol):
 
     _site: Any  # Site reference (set during setup_references)
     prerendered_html: str | None  # Pre-rendered HTML (autodoc, etc.), set before render
-    _autodoc_fallback_template: bool  # Whether to use autodoc fallback template
 
     @property
     def _path(self) -> str:
