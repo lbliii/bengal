@@ -91,6 +91,8 @@ Machine-checked on 2026-05-29:
   section/navigation helpers instead of the mutable Page adapter.
   Component model metadata-normalization tests now exercise `build_page_core()`
   directly instead of the mutable Page adapter.
+  Computed age, author, and series metadata tests no longer duplicate helper
+  coverage through the mutable Page adapter.
 
 No full test suite was run for this planning pass.
 
@@ -210,6 +212,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate page navigation edge fixture`
 - `tests: migrate navigation page fixtures`
 - `tests: migrate component model page fixtures`
+- `tests: migrate computed page fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside
