@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import threading
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any, Protocol
 
 from bengal.rendering.utils.contextvar import ContextVarManager
@@ -334,6 +334,8 @@ def resolve_asset_url(
             fingerprinted_path = _resolve_fingerprinted(clean_path, site, manifest_ctx=manifest_ctx)
             if fingerprinted_path:
                 url = apply_baseurl(f"/{fingerprinted_path}", site)
+            elif fingerprinted_fallback := _find_fingerprinted_asset(clean_path, site):
+                url = apply_baseurl(f"/assets/{fingerprinted_fallback}", site)
             else:
                 # Fallback: return direct asset path
                 url = apply_baseurl(f"/assets/{clean_path}", site)
@@ -441,6 +443,27 @@ def _resolve_fingerprinted(
     if entry:
         return entry.output_path
     return None
+
+
+def _find_fingerprinted_asset(logical_path: str, site: AssetSiteLike) -> str | None:
+    """Find a fingerprinted asset file when the manifest is missing or incomplete."""
+    asset_path = PurePosixPath(logical_path)
+    output_asset_dir = site.output_dir / "assets" / asset_path.parent
+    output_asset_name = asset_path.name
+
+    if not output_asset_dir.exists():
+        return None
+
+    if "." in output_asset_name:
+        base_name, ext = output_asset_name.rsplit(".", 1)
+        pattern = f"{base_name}.*.{ext}"
+    else:
+        pattern = f"{output_asset_name}.*"
+
+    match = next(output_asset_dir.glob(pattern), None)
+    if match is None:
+        return None
+    return str(asset_path.parent / match.name)
 
 
 def _resolve_file_protocol(asset_path: str, site: AssetSiteLike, page: Any = None) -> str:

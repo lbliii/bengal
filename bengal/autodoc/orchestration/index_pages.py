@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING
 from bengal.autodoc.utils import get_template_dir_for_type
 from bengal.content.discovery.page_adapter import page_from_source_page
 from bengal.core.records import create_virtual_source_page
+from bengal.core.section.utils import set_page_section
 
 if TYPE_CHECKING:
     from bengal.core.section import Section
@@ -108,6 +109,7 @@ def create_index_pages(
             template_name=template_name,
             output_path=output_path,
         )
+        set_page_section(index_page, section)
 
         # Claim URL in registry for ownership enforcement
         # Priority 90 = autodoc sections (explicitly configured by user)

@@ -17,33 +17,34 @@ Context:
 {% let child_pages = section.pages ?? [] %}
 {# Get subsections for navigation to child sections #}
 {% let child_sections = section.subsections ?? [] %}
+{% let schema_items = section | schemas %}
 
-{% block header %}
-<header class="api-section-index__header">
-  <nav class="api-section-index__breadcrumb" aria-label="API breadcrumb">
-    <ol class="breadcrumb">
-      {% if section.parent %}
-      <li class="breadcrumb__item">
-        <a href="{{ section.parent.href }}">{{ section.parent.title }}</a>
-      </li>
-      {% end %}
-      <li class="breadcrumb__item">
-        <span aria-current="page">{{ title }}</span>
-      </li>
-    </ol>
-  </nav>
+{% block api_left %}
+<nav class="openapi-nav" aria-label="{{ title }} navigation">
+  {% if section.parent %}<a href="{{ section.parent.href }}" class="openapi-nav__back">{{ icon('arrow-left', size=14) }} {{ section.parent.title }}</a>{% end %}
+  {% for child in child_sections %}
+  <a href="{{ child.href }}">{{ child.title }}</a>
+  {% end %}
+  {% for child in child_pages %}
+  {% if child != section.index_page %}
+  <a href="{{ child.href }}">{{ child.title }}</a>
+  {% end %}
+  {% end %}
+</nav>
+{% end %}
 
+{% block api_header %}
+<span class="openapi-eyebrow">Reference section</span>
   <h1 class="api-section-index__title">{{ title }}</h1>
 
   {% if description %}
-  <div class="api-section-index__description prose">
+  <div class="api-section-index__description">
     {{ description | markdownify | safe }}
   </div>
   {% end %}
-</header>
 {% end %}
 
-{% block content %}
+{% block api_main %}
 <article class="api-section-index" data-autodoc="openapi">
   {# Child Sections Grid (e.g., tag groups) #}
   {% if child_sections %}
@@ -66,8 +67,44 @@ Context:
   </section>
   {% end %}
 
-  {# Child Pages Grid (e.g., individual schemas) #}
-  {% if child_pages %}
+  {# Schema Catalog #}
+  {% if schema_items | length > 0 %}
+  <section class="api-section-index__pages">
+    <h2 class="api-section-index__section-title">Schemas</h2>
+    <div class="api-schema-catalog">
+      {% for schema in schema_items %}
+      {% let property_preview = schema.properties |> items |> take(4) %}
+      <a href="{{ schema.href }}" class="api-schema-catalog__tile">
+        <span class="api-schema-catalog__tile-top">
+          <code>{{ schema.name }}</code>
+          <span>{{ schema.schema_type }}</span>
+        </span>
+        {% if schema.description %}
+        <span class="api-schema-catalog__description">{{ schema.description | truncate(120) }}</span>
+        {% end %}
+        {% if property_preview | length > 0 %}
+        <span class="api-schema-catalog__preview" aria-label="Properties">
+          {% for prop_name, prop_schema in property_preview %}
+          <code>{{ prop_name }}</code>
+          {% end %}
+        </span>
+        {% end %}
+        <span class="api-schema-catalog__meta">
+          <span>{{ schema.properties | length }} properties</span>
+          {% if schema.required | length > 0 %}
+          <span>{{ schema.required | length }} required</span>
+          {% end %}
+          {% if schema.enum %}
+          <span>{{ schema.enum | length }} values</span>
+          {% end %}
+        </span>
+      </a>
+      {% end %}
+    </div>
+  </section>
+
+  {# Child Pages Grid (fallback for non-schema sections) #}
+  {% elif child_pages %}
   <section class="api-section-index__pages">
     <h2 class="api-section-index__section-title">Items</h2>
     <div class="api-section-index__grid">
@@ -92,4 +129,15 @@ Context:
   <p class="api-section-index__empty text-muted">No items in this section.</p>
   {% end %}
 </article>
+{% end %}
+
+{% block api_right %}
+<div class="openapi-side-panel">
+  <h2>{{ icon('folder', size=14) }} Section</h2>
+  <dl class="openapi-side-panel__meta">
+    <div><dt>Sections</dt><dd>{{ child_sections | length }}</dd></div>
+    <div><dt>Schemas</dt><dd>{{ schema_items | length }}</dd></div>
+    <div><dt>Items</dt><dd>{{ child_pages | length }}</dd></div>
+  </dl>
+</div>
 {% end %}

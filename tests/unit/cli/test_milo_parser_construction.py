@@ -27,6 +27,28 @@ def test_milo_cli_parser_builds_without_conflicts():
     assert parser is not None
 
 
+def test_fast_root_help_options_match_milo_parser():
+    """Static fast-path root options must stay aligned with Milo's parser contract."""
+    import argparse
+
+    from bengal.cli.milo_app import cli
+
+    parser = cli.build_parser()
+    expected = []
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            continue
+        flags = ", ".join(action.option_strings) if action.option_strings else ""
+        if not flags:
+            continue
+        label = f"{flags} {action.metavar}".strip() if action.metavar else flags
+        expected.append(label)
+
+    actual = [option["label"] for option in cli._root_help_options()]
+
+    assert actual == expected
+
+
 def test_milo_cli_walk_commands_resolves_every_lazy_import():
     """Every lazy-loaded command import_path must resolve.
 
@@ -41,7 +63,7 @@ def test_milo_cli_walk_commands_resolves_every_lazy_import():
     assert resolved, "CLI has no commands registered"
 
 
-def test_root_help_uses_bengal_kida_command_template():
+def test_root_help_uses_bengal_branded_command_template():
     """Root help should advertise grouped commands, not argparse's internal subparser dest."""
     from bengal.cli.milo_app import cli
 
@@ -55,7 +77,7 @@ def test_root_help_uses_bengal_kida_command_template():
     assert "_command" not in result.output
 
 
-def test_no_args_uses_same_milo_command_template():
+def test_no_args_uses_same_root_command_template():
     """No-arg invocation and --help should share the same root command surface."""
     from bengal.cli.milo_app import cli
 
@@ -68,8 +90,8 @@ def test_no_args_uses_same_milo_command_template():
     assert "_command" not in result.output
 
 
-def test_group_help_uses_bengal_kida_command_template():
-    """Group help should render nested commands through Bengal's Kida output path."""
+def test_group_help_uses_bengal_branded_command_template():
+    """Group help should render nested commands through Bengal's branded output path."""
     from bengal.cli.milo_app import cli
 
     result = cli.invoke(["new"])
@@ -82,8 +104,8 @@ def test_group_help_uses_bengal_kida_command_template():
     assert "_command" not in result.output
 
 
-def test_leaf_help_uses_bengal_kida_command_template():
-    """Leaf command help should use Bengal's schema-driven Kida template."""
+def test_leaf_help_uses_bengal_branded_command_template():
+    """Leaf command help should use Bengal's schema-driven branded template."""
     from bengal.cli.milo_app import cli
 
     result = cli.invoke(["new", "page", "--help"])
@@ -106,8 +128,8 @@ def test_check_help_exposes_kida_security_analysis_flag():
     assert "--templates-security" in result.output
 
 
-def test_every_registered_leaf_help_uses_bengal_kida_template():
-    """Every registered command should get branded Kida help."""
+def test_every_registered_leaf_help_uses_bengal_branded_template():
+    """Every registered command should get branded help."""
     from bengal.cli.milo_app import cli
 
     for path, _command in cli.walk_commands():
@@ -128,7 +150,7 @@ def test_every_registered_leaf_help_uses_bengal_kida_template():
         (["plugins", "list", "--help"], "bengal plugin list"),
     ],
 )
-def test_alias_help_uses_canonical_bengal_kida_template(argv, canonical):
+def test_alias_help_uses_canonical_bengal_branded_template(argv, canonical):
     """Command and group aliases should still render the branded canonical help."""
     from bengal.cli.milo_app import cli
 
@@ -140,7 +162,7 @@ def test_alias_help_uses_canonical_bengal_kida_template(argv, canonical):
     assert "options:" not in result.output
 
 
-def test_unknown_root_command_uses_bengal_kida_error_template():
+def test_unknown_root_command_uses_bengal_branded_error_template():
     """Unknown commands should not fall back to raw argparse usage output."""
     from bengal.cli.milo_app import cli
 
@@ -154,7 +176,7 @@ def test_unknown_root_command_uses_bengal_kida_error_template():
     assert "invalid choice" not in result.stderr
 
 
-def test_unknown_group_command_uses_bengal_kida_error_template():
+def test_unknown_group_command_uses_bengal_branded_error_template():
     """Unknown group subcommands should show the group's command list."""
     from bengal.cli.milo_app import cli
 
@@ -180,6 +202,43 @@ def test_root_help_brands_with_bengal_logo():
     assert result.output.startswith("ᓚᘏᗢ bengal")
     assert "\n\nStatic site generator" in result.output
     assert "your cores\n\nCore workflow" in result.output
+
+
+@pytest.mark.parametrize("argv", [[], ["--help"], ["new"], ["new", "--help"], ["--version"]])
+def test_fast_cli_metadata_paths_do_not_build_full_parser(monkeypatch, argv):
+    """Cheap metadata/help paths must not resolve every lazy command schema."""
+    from bengal.cli.milo_app import cli
+
+    def fail_build_parser():
+        pytest.fail("metadata/help path unexpectedly built the full parser")
+
+    monkeypatch.setattr(cli, "build_parser", fail_build_parser)
+
+    result = cli.invoke(argv)
+
+    assert result.exit_code == 0
+
+
+def test_selected_command_execution_does_not_build_full_parser(monkeypatch):
+    """Running one command should not resolve every sibling command schema."""
+    from bengal.cli.milo_app import BengalCLI
+
+    test_cli = BengalCLI(name="test-bengal")
+    tools = test_cli.group("tools", aliases=("t",))
+
+    @tools.command("echo")
+    def echo() -> dict[str, bool]:
+        return {"ok": True}
+
+    def fail_build_parser():
+        pytest.fail("selected command path unexpectedly built the full parser")
+
+    monkeypatch.setattr(test_cli, "build_parser", fail_build_parser)
+
+    result = test_cli.invoke(["t", "echo", "--format", "json"])
+
+    assert result.exit_code == 0
+    assert '"ok": true' in result.output
 
 
 def test_brand_mark_compacts_for_tight_terminals(monkeypatch):

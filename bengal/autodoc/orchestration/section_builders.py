@@ -343,6 +343,7 @@ def create_openapi_sections(
             metadata={
                 "type": "autodoc-rest",
                 "description": "API data schemas and models.",
+                "schemas": all_schemas,
             },
         )
         api_section.add_subsection(schemas_section)

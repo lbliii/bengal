@@ -33,11 +33,24 @@ Kida Features:
 {% let tag_desc = element?.description ?? section?.metadata?.description ?? '' %}
 {% let eps = section | endpoints %}
 
-{% block header %}
+{% block api_left %}
+<nav class="openapi-nav" aria-label="{{ tag_name }} endpoints">
+  <a href="{{ section?.parent?.href ?? '/api/' }}" class="openapi-nav__back">{{ icon('arrow-left', size=14) }} REST API</a>
+  {% for ep in eps %}
+  <a href="#{{ ep.anchor_id }}">
+    <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
+    <span>{{ ep.path }}</span>
+  </a>
+  {% end %}
+</nav>
+{% end %}
+
+{% block api_header %}
+<span class="openapi-eyebrow">Resource group</span>
 <h1 class="api-list__title">{{ tag_name }}</h1>
 
 {% if tag_desc %}
-<div class="api-list__description prose">
+<div class="api-list__description">
   {{ tag_desc | markdownify | safe }}
 </div>
 {% end %}
@@ -47,12 +60,13 @@ Kida Features:
 </div>
 {% end %}
 
-{% block content_main %}
+{% block api_main %}
 <div class="api-list" data-autodoc="openapi" data-element="list">
 
-  {# Endpoint Table #}
+  {# Dense endpoint index #}
   {% if eps | length > 0 %}
-  <section class="api-list__endpoints autodoc-section">
+  <section class="api-list__endpoints autodoc-section" id="catalog">
+    <h2 class="autodoc-section-title">Endpoints</h2>
     <table class="autodoc-table" data-table="endpoints">
       <thead>
         <tr>
@@ -70,13 +84,9 @@ Kida Features:
             {% end %}
           </td>
           <td class="autodoc-cell-name" data-label="Endpoint">
-            {% if ep.has_page %}
             <a href="{{ ep.href }}">
               <code>{{ ep.path | highlight_path_params | safe }}</code>
             </a>
-            {% else %}
-            <code>{{ ep.path | highlight_path_params | safe }}</code>
-            {% end %}
             {% if ep.deprecated %}
             <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
             {% end %}
@@ -89,54 +99,141 @@ Kida Features:
       </tbody>
     </table>
   </section>
+
+  {# Full operation reference, rendered inline in consolidated mode. #}
+  <section class="api-operations autodoc-section" aria-label="Endpoint reference">
+    {% for ep in eps %}
+    {% let operation_id = ep.anchor_id %}
+    {% let path_params = ep.parameters |> where('location', 'path') %}
+    {% let query_params = ep.parameters |> where('location', 'query') %}
+    {% let header_params = ep.parameters |> where('location', 'header') %}
+    {% let cookie_params = ep.parameters |> where('location', 'cookie') %}
+
+    <article class="api-operation{% if ep.deprecated %} api-operation--deprecated{% end %}" id="{{ operation_id }}" data-api-search-item>
+      <header class="api-operation__header">
+        <div class="api-operation__eyebrow">
+          <span class="api-method api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
+          <code class="api-operation__path">{{ ep.path | highlight_path_params | safe }}</code>
+        </div>
+        <div class="api-operation__title-row">
+          <h2 class="api-operation__title">{{ ep.summary or ep.path }}</h2>
+          {% if ep.deprecated %}
+          <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
+          {% end %}
+        </div>
+        {% if ep.description and ep.description != ep.summary %}
+        <div class="api-operation__description prose-sm">
+          {{ ep.description | markdownify | safe }}
+        </div>
+        {% end %}
+      </header>
+
+      <div class="api-operation__grid">
+        <div class="api-operation__details">
+          {% if ep.parameters | length > 0 %}
+          <section class="api-endpoint__section autodoc-section" data-section="parameters">
+            <h3 class="api-endpoint__section-title">Parameters</h3>
+
+            {% if path_params | length > 0 %}
+            <div class="api-endpoint__param-group">
+              <h4 class="api-endpoint__param-group-title">{{ icon('link', size=14) }} Path</h4>
+              <div class="api-endpoint__param-list">
+                {% for p in path_params %}
+                {% let param = p %}
+                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {% end %}
+              </div>
+            </div>
+            {% end %}
+
+            {% if query_params | length > 0 %}
+            <div class="api-endpoint__param-group">
+              <h4 class="api-endpoint__param-group-title">{{ icon('filter', size=14) }} Query</h4>
+              <div class="api-endpoint__param-list">
+                {% for p in query_params %}
+                {% let param = p %}
+                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {% end %}
+              </div>
+            </div>
+            {% end %}
+
+            {% if header_params | length > 0 %}
+            <div class="api-endpoint__param-group">
+              <h4 class="api-endpoint__param-group-title">{{ icon('file-text', size=14) }} Headers</h4>
+              <div class="api-endpoint__param-list">
+                {% for p in header_params %}
+                {% let param = p %}
+                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {% end %}
+              </div>
+            </div>
+            {% end %}
+
+            {% if cookie_params | length > 0 %}
+            <div class="api-endpoint__param-group">
+              <h4 class="api-endpoint__param-group-title">{{ icon('disc', size=14) }} Cookies</h4>
+              <div class="api-endpoint__param-list">
+                {% for p in cookie_params %}
+                {% let param = p %}
+                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {% end %}
+              </div>
+            </div>
+            {% end %}
+          </section>
+          {% end %}
+
+          {% with ep.request_body as req_body %}
+          {% let request_body = req_body %}
+          {% include 'autodoc/openapi/partials/request-body.html' %}
+          {% end %}
+
+          {% if ep.responses | length > 0 %}
+          {% let responses = ep.responses %}
+          {% let response_scope_id = operation_id %}
+          {% include 'autodoc/openapi/partials/responses.html' %}
+          {% end %}
+
+          {% if ep.security | length > 0 %}
+          <section class="api-endpoint__section autodoc-section" data-section="security">
+            <h3 class="api-endpoint__section-title">{{ icon('lock', size=18) }} Authorization</h3>
+            <div class="api-endpoint__security">
+              {% for scheme in ep.security %}
+              <span class="badge badge--outline">{{ icon('key', size=12) }} {{ scheme }}</span>
+              {% end %}
+            </div>
+          </section>
+          {% end %}
+        </div>
+
+        <aside class="api-operation__examples" aria-label="Request examples for {{ ep.path }}">
+          {% let method = ep.method %}
+          {% let path = ep.path %}
+          {% let parameters = ep.parameters %}
+          {% let request_body = ep.raw_request_body ?? ep.request_body %}
+          {% let response_example = ep.response_example %}
+          {% include 'autodoc/openapi/partials/code-samples.html' %}
+        </aside>
+      </div>
+    </article>
+    {% end %}
+  </section>
   {% else %}
   {# Empty State #}
   <div class="autodoc-empty-state">
     {{ icon('inbox', size=48, class='autodoc-empty-state-icon') }}
     <p class="autodoc-empty-state-text">No endpoints in this category</p>
   </div>
-  {% end %}
+{% end %}
 
-  {# Cards View (Alternative) #}
-  {% if eps | length > 0 %}
-  <section class="api-list__cards autodoc-section">
-    <h2 class="autodoc-section-title">Quick Reference</h2>
-    <div class="autodoc-cards">
-      {% for ep in eps %}
-      {% if ep.has_page %}
-      <a href="{{ ep.href }}" class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
-        <div class="autodoc-card-header">
-          {% spaceless %}
-          <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
-          {% end %}
-          <code class="autodoc-card-name">{{ ep.path | highlight_path_params | safe }}</code>
-        </div>
-        {% if ep.summary %}
-        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
-        {% end %}
-        {% if ep.deprecated %}
-        <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
-        {% end %}
-      </a>
-      {% else %}
-      <div class="autodoc-card{% if ep.deprecated %} autodoc-card--deprecated{% end %}">
-        <div class="autodoc-card-header">
-          {% spaceless %}
-          <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
-          {% end %}
-          <code class="autodoc-card-name">{{ ep.path | highlight_path_params | safe }}</code>
-        </div>
-        {% if ep.summary %}
-        <p class="autodoc-card-desc">{{ ep.summary | truncate(80) }}</p>
-        {% end %}
-        {% if ep.deprecated %}
-        <span class="autodoc-badge" data-badge="deprecated">Deprecated</span>
-        {% end %}
-      </div>
-      {% end %}
-      {% end %}
-    </div>
-  </section>
-  {% end %}
+</div>
+{% end %}
+
+{% block api_right %}
+<div class="openapi-side-panel">
+  <h2>{{ icon('list', size=14) }} Catalog</h2>
+  <p>{{ eps | length }} endpoint{% if eps | length != 1 %}s{% end %} in this resource group.</p>
+  <a href="{{ section?.parent?.href ?? '/api/' }}" class="openapi-side-panel__link">Back to API overview</a>
 </div>
 {% end %}

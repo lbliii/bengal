@@ -65,7 +65,7 @@ Kida Features:
         {% let is_deprecated = ep_meta?.deprecated ?? false %}
         {% let is_active = current_page?.href == ep_page?.href %}
 
-        <li class="api-sidebar-nav__endpoint{% if is_active %} api-sidebar-nav__endpoint--active{% end %}{% if is_deprecated %} api-sidebar-nav__endpoint--deprecated{% end %}">
+        <li class="api-sidebar-nav__endpoint{% if is_active %} api-sidebar-nav__endpoint--active{% end %}{% if is_deprecated %} api-sidebar-nav__endpoint--deprecated{% end %}" data-api-search-item>
           <a href="{{ ep_page?.href ?? '#' }}" class="api-sidebar-nav__link">
             {% spaceless %}
             <span class="api-method api-method--xs api-method--{{ ep_method |> lower }}">{{ ep_method }}</span>
@@ -93,7 +93,7 @@ Kida Features:
       {% let is_deprecated = ep_meta?.deprecated ?? false %}
       {% let is_active = current_page?.href == ep_page?.href %}
 
-      <li class="api-sidebar-nav__endpoint{% if is_active %} api-sidebar-nav__endpoint--active{% end %}{% if is_deprecated %} api-sidebar-nav__endpoint--deprecated{% end %}">
+      <li class="api-sidebar-nav__endpoint{% if is_active %} api-sidebar-nav__endpoint--active{% end %}{% if is_deprecated %} api-sidebar-nav__endpoint--deprecated{% end %}" data-api-search-item>
         <a href="{{ ep_page?.href ?? '#' }}" class="api-sidebar-nav__link">
           {% spaceless %}
           <span class="api-method api-method--xs api-method--{{ ep_method |> lower }}">{{ ep_method }}</span>

@@ -1,94 +1,36 @@
 {#
-Bengal OpenAPI Explorer Layout (Three Column - Stripe Style)
-============================================================
+OpenAPI App Layout
+==================
 
-A three-column layout inspired by Stripe/Mintlify API documentation.
-- Left: Navigation sidebar
-- Center: Endpoint documentation
-- Right: Code examples (sticky)
-
-Context:
-- element: DocElement (endpoint, schema, or overview)
-- page: Page object
-- section: Section (optional)
-- site: Site instance
-- config: Config instance
-
-Kida Features:
-- {% block %} for content slots (sidebar, content, examples)
-- {% embed %} compatible via slot system
-- {% with %} for nil-resilient access
-- Optional chaining (?.) and null coalescing (??)
+Shared shell for REST API reference pages. It intentionally imports only the
+global base document/top bar and owns the OpenAPI page structure below it.
 #}
 {% extends "base.html" %}
 
-{% from 'partials/navigation-components.html' import breadcrumbs, page_navigation %}
+{% block site_footer %}{% end %}
 
 {% block content %}
-{% let meta = element?.metadata ?? element?.typed_metadata ?? {} %}
-
-<div class="api-explorer" data-autodoc="openapi" data-layout="explorer">
-  {# Left Sidebar: API Navigation #}
-  <aside class="api-explorer__sidebar" id="api-sidebar" role="navigation" aria-label="API navigation">
-    {% block sidebar %}
-    {% include 'autodoc/openapi/partials/sidebar-nav.html' %}
+<div class="openapi-app" data-autodoc="openapi" data-layout="app">
+  <aside class="openapi-app__rail openapi-app__rail--left" aria-label="API navigation">
+    {% block api_left %}
     {% end %}
   </aside>
 
-  {# Center: Main Documentation #}
-  <main class="api-explorer__main">
-    {# Breadcrumbs #}
-    {{ breadcrumbs(page) }}
-
-    <article data-autodoc data-type="openapi" class="autodoc">
-      {# Header Block #}
-      <header class="api-explorer__header">
-        {% block header %}
-        {# Override in child templates #}
-        {% end %}
-      </header>
-
-      {# Main Content Block #}
-      <div class="api-explorer__content">
-        {% block content_main %}
-        {# Override in child templates #}
-        {% end %}
-      </div>
-
-      {# Footer with Tags #}
-      {% with page?.tags as tags %}
-      {% if tags | length > 0 %}
-      <footer class="docs-footer">
-        <span class="docs-footer-label">Tagged</span>
-        {% from 'partials/components/tags.html' import tag_list %}
-        {{ tag_list(tags) }}
-      </footer>
+  <section class="openapi-app__main" aria-label="API reference">
+    <header class="openapi-app__header">
+      {% block api_header %}
       {% end %}
-      {% end %}
-    </article>
+    </header>
 
-    {# Page Navigation (prev/next) #}
-    {{ page_navigation(page) }}
-  </main>
-
-  {# Right Panel: Code Examples (Sticky) #}
-  <aside class="api-explorer__code-panel" id="api-examples" role="complementary" aria-label="Code examples">
-    {% block code_panel %}
-    <div class="api-code-samples">
-      <header class="api-code-samples__header">
-        <h3 class="api-code-samples__title">{{ icon('code', size=14) }} Examples</h3>
-      </header>
-      {% block code_examples %}
-      {# Override in child templates #}
+    <div class="openapi-app__content">
+      {% block api_main %}
       {% end %}
     </div>
+  </section>
+
+  <aside class="openapi-app__rail openapi-app__rail--right" aria-label="Reference panel">
+    {% block api_right %}
     {% end %}
   </aside>
 </div>
-
-{# Mobile Controls #}
-<button class="docs-sidebar-toggle" aria-label="Toggle navigation sidebar" aria-expanded="false" aria-controls="api-sidebar">
-  {{ icon('list', size=20) }}
-</button>
-<div class="docs-sidebar-overlay" aria-hidden="true"></div>
 {% end %}
