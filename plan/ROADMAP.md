@@ -112,6 +112,11 @@ Machine-checked on 2026-05-29:
   shared compatibility helper.
   The unused legacy mutable test-page factory is removed; test fixtures now
   route through SourcePage-backed helpers or page-like mocks.
+  Production page adaptation now returns a SourcePage-backed `RuntimePage`
+  from the core page compatibility boundary instead of constructing the legacy
+  mutable `Page` class. The legacy class is isolated in
+  `bengal.core.page.legacy` and no longer exported from the `bengal.core.page`
+  package root.
 
 No full test suite was run for this planning pass.
 
@@ -240,10 +245,14 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate page initializer fixtures`
 - `tests: migrate page frontmatter fixtures`
 - `tests: remove mutable page test factory`
+- `content: introduce source page runtime adapter`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
-no hits; the remaining mutable class is loaded lazily only inside
-`bengal/content/discovery/page_adapter.py`.
+no hits; `bengal/content/discovery/page_adapter.py` constructs `RuntimePage`
+from `SourcePage` records through `bengal.core.page.runtime` and does not
+import `bengal.core.page.legacy`.
+`rg '^class Page\\b' bengal/core/page` still finds the isolated legacy class in
+`bengal/core/page/legacy.py`, so class deletion remains open.
 
 **Proof before saga close:** `rg '^class Page\\b' bengal/core/page` returns no
 hits; public compatibility decision is recorded; boundary tests are either

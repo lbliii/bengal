@@ -2,21 +2,17 @@
 
 from __future__ import annotations
 
-from importlib import import_module
-from pathlib import Path
 from typing import TYPE_CHECKING, Any, cast
 
+from bengal.core.page.runtime import RuntimePage
 from bengal.core.page_site import set_page_site
 from bengal.core.section.utils import set_page_section
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from bengal.core.records import SourcePage
     from bengal.protocols import PageLike, SectionLike
-
-
-def _load_page_class() -> type[Any]:
-    """Load the remaining mutable Page class only at the adapter boundary."""
-    return cast("type[Any]", import_module("bengal.core.page").Page)
 
 
 def page_from_source_page(
@@ -35,35 +31,17 @@ def page_from_source_page(
     remaining ``Page`` construction isolated while downstream code still expects
     the compatibility object.
     """
-    page = _load_page_class()(
-        source_path=Path(source_page.source_path),
-        _raw_content=source_page.raw_content,
-        _raw_metadata=source_page.raw_metadata_dict(),
-        rendered_html=rendered_html or "",
+    page = RuntimePage.from_source_page(
+        source_page,
+        rendered_html=rendered_html,
         output_path=output_path,
-        _from_cache=from_cache,
+        template_name=template_name,
+        from_cache=from_cache,
     )
-
-    if from_cache:
-        page.core = source_page.core
-
-    page.virtual = source_page.is_virtual
-
-    if rendered_html is not None:
-        page.prerendered_html = rendered_html
-    if template_name is not None:
-        page.template_name = template_name
 
     if site is not None:
         set_page_site(page, site)
     if section is not None:
         set_page_section(page, section)
-    elif source_page.core.section:
-        page._section_path = Path(source_page.core.section)
-
-    if source_page.lang:
-        page.lang = source_page.lang
-    if source_page.translation_key:
-        page.translation_key = source_page.translation_key
 
     return cast("PageLike", page)

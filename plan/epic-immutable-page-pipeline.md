@@ -472,6 +472,7 @@ gone or explicitly retained by a recorded public API decision.
 - `tests: migrate page initializer fixtures`
 - `tests: migrate page frontmatter fixtures`
 - `tests: remove mutable page test factory`
+- `content: introduce source page runtime adapter`
 
 ### Sprint 6 epics
 
@@ -695,11 +696,21 @@ shared page-record fixtures. Tests now route through SourcePage-backed helpers
 or purpose-built page-like mocks, leaving no test helper that accepts legacy
 mutable Page constructor keyword names.
 
+Task 6.1/6.2 then replaced the production adapter's legacy Page construction
+with a SourcePage-backed `RuntimePage` owned by the core page compatibility
+boundary. The `bengal.core.page` package root is now a lightweight helper
+package and no longer exports `Page`; the old class is isolated in
+`bengal.core.page.legacy` for the final deletion slice. Adapter import tests
+now prove `bengal.core.page.legacy` is not loaded by page adaptation.
+
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
 ### Task 6.2 — Delete Page class and mixins
 
-Remove `bengal/core/page/__init__.py` (Page class), `metadata.py` (PageMetadataMixin), `content.py` (PageContentMixin), `relationships.py` (PageRelationshipsMixin).
+Remove `bengal/core/page/legacy.py` (isolated legacy Page class) after the
+remaining helper-package imports and behavior tests prove no fallback path still
+depends on it. Older mixin files listed in this task have already been removed
+or folded into helper modules.
 
 **Acceptance**: Page class deleted. Mixin files deleted. All tests pass.
 

@@ -8,11 +8,13 @@ from bengal.content.discovery.page_adapter import page_from_source_page
 from bengal.core.records import build_source_page, create_virtual_source_page
 
 
-def test_page_adapter_import_does_not_load_legacy_page_package() -> None:
+def test_page_adapter_import_does_not_load_legacy_page_class() -> None:
     code = """
 import sys
 import bengal.content.discovery.page_adapter
-print("loaded", "bengal.core.page" in sys.modules)
+import bengal.core.page
+print("legacy_loaded", "bengal.core.page.legacy" in sys.modules)
+print("exports_page", hasattr(bengal.core.page, "Page"))
 """
     result = subprocess.run(
         [sys.executable, "-c", code],
@@ -21,7 +23,7 @@ print("loaded", "bengal.core.page" in sys.modules)
         text=True,
     )
 
-    assert result.stdout.strip() == "loaded False"
+    assert result.stdout.splitlines() == ["legacy_loaded False", "exports_page False"]
 
 
 def test_page_from_source_page_preserves_source_record_fields() -> None:
