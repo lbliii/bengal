@@ -31,6 +31,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
+from threading import RLock
 from typing import Any
 from unittest.mock import Mock
 
@@ -104,6 +105,77 @@ class MockPage:
 class _HashableMockPage(MockPage):
     __eq__ = object.__eq__
     __hash__ = object.__hash__
+
+
+@dataclass
+class MockURLPage:
+    """Page-like URL fixture that uses rendering-owned URL helpers."""
+
+    source_path: Path
+    metadata: dict[str, Any] = field(default_factory=dict)
+    output_path: Path | None = None
+    title: str = ""
+    slug: str = ""
+    _site: Any = None
+    _init_lock: Any = field(default_factory=RLock, repr=False)
+
+    def __post_init__(self) -> None:
+        if not self.slug:
+            self.slug = str(self.metadata.get("slug") or self.source_path.stem)
+        if not self.title:
+            self.title = str(self.metadata.get("title", ""))
+        if "version" in self.metadata:
+            self.version = self.metadata["version"]
+
+    @property
+    def href(self) -> str:
+        from bengal.rendering.page_urls import get_href
+
+        return get_href(self)
+
+    @property
+    def _path(self) -> str:
+        from bengal.rendering.page_urls import get_path
+
+        return get_path(self)
+
+    @property
+    def absolute_href(self) -> str:
+        from bengal.rendering.page_urls import get_absolute_href
+
+        return get_absolute_href(self)
+
+
+def make_mock_url_page(
+    *,
+    source_path: Path | str,
+    raw_content: str = "",
+    metadata: dict[str, Any] | None = None,
+    **attrs: Any,
+) -> MockURLPage:
+    """Create a page-like URL fixture without constructing legacy Page."""
+    legacy_raw_content = attrs.pop("_raw_content", None)
+    legacy_raw_metadata = attrs.pop("_raw_metadata", None)
+    if legacy_raw_content is not None and not raw_content:
+        raw_content = str(legacy_raw_content)
+    if legacy_raw_metadata is not None and metadata is None:
+        metadata = legacy_raw_metadata
+
+    page_metadata = dict(metadata or {})
+    output_path = attrs.pop("output_path", None)
+    page = MockURLPage(
+        source_path=Path(source_path),
+        metadata=page_metadata,
+        output_path=output_path,
+        title=str(page_metadata.get("title", "")),
+        slug=str(page_metadata.get("slug") or Path(source_path).stem),
+    )
+    page.raw_content = raw_content
+    page._raw_content = raw_content
+    page._raw_metadata = page_metadata
+    for attr, value in attrs.items():
+        setattr(page, attr, value)
+    return page
 
 
 def make_mock_page(

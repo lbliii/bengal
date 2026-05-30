@@ -81,6 +81,8 @@ Machine-checked on 2026-05-29:
   page caches, content-signal/site-visibility tests, and page visibility tests
   use page-like metadata helpers instead of depending on legacy Page visibility
   properties.
+  Href and section page URL tests now use shared URL page mocks backed by
+  `bengal.rendering.page_urls` instead of the mutable Page adapter.
 
 No full test suite was run for this planning pass.
 
@@ -195,6 +197,7 @@ class deletion rather than public compatibility preservation.
 - `tests: migrate section ergonomic page fixtures`
 - `core: extract page visibility helpers`
 - `tests: migrate page visibility fixtures`
+- `tests: migrate page url fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

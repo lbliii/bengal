@@ -50,3 +50,5 @@ page caches and visibility tests, reducing dependence on legacy Page visibility
 properties.
 Page visibility tests now use shared page-like mocks and the visibility helper
 API instead of constructing the legacy mutable Page adapter.
+Href and section page URL tests now use shared page-like URL mocks backed by
+rendering URL helpers instead of constructing the legacy mutable Page adapter.

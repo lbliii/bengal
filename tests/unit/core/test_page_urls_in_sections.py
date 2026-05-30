@@ -14,7 +14,7 @@ from pathlib import Path
 
 from bengal.core.section import Section
 from bengal.core.site import Site
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import make_mock_url_page as _page
 
 
 class TestPageURLsInSections:
