@@ -26,3 +26,5 @@ Legacy mutable page site context now stays out of `PageLike`; content discovery
 and orchestration use page-site helpers while the compatibility adapter remains.
 Analysis graph tests now use hashable page-like mocks instead of constructing
 legacy mutable pages for graph-only behavior.
+Cache query-index tests now use page-like fixtures instead of constructing
+legacy mutable pages for index-only behavior.

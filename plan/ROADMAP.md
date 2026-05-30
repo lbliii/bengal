@@ -58,6 +58,9 @@ Machine-checked on 2026-05-29:
   and mutable page site context route through helper functions or metadata.
   Analysis graph tests now use hashable analysis page mocks instead of creating
   legacy mutable pages when they only need page-like graph inputs.
+  Cache query-index tests now use page-like cache fixtures instead of the
+  mutable Page adapter for index extraction, persistence, and thread-safety
+  coverage.
 
 No full test suite was run for this planning pass.
 
@@ -163,6 +166,7 @@ class deletion rather than public compatibility preservation.
 - `protocols: remove page prerendered html state`
 - `protocols: remove page site state`
 - `tests: migrate analysis graph page fixtures`
+- `tests: migrate cache query page fixtures`
 
 **Current proof:** `rg 'from bengal\\.core\\.page import Page\\b' bengal` returns
 no hits; the remaining mutable class is loaded lazily only inside

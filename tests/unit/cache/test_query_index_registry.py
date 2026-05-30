@@ -1,5 +1,6 @@
 """Unit tests for QueryIndexRegistry."""
 
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -8,7 +9,34 @@ from bengal.cache.build_cache import BuildCache
 from bengal.cache.query_index_registry import QueryIndexRegistry
 from bengal.core.section import Section
 from bengal.core.site import Site
-from tests._testing.page_records import make_mutable_test_page as _page
+from tests._testing.mocks import MockPage
+
+
+def _page(
+    *,
+    source_path: Path,
+    raw_content: str = "",
+    metadata: dict[str, object] | None = None,
+    **attrs: object,
+) -> MockPage:
+    """Create a page-like cache fixture without constructing legacy Page."""
+    page_metadata = dict(metadata or {})
+    date_value = page_metadata.get("date")
+    date = datetime.fromisoformat(date_value) if isinstance(date_value, str) else None
+    page = MockPage(
+        title=str(page_metadata.get("title", "")),
+        source_path=source_path,
+        metadata=page_metadata,
+        tags=list(page_metadata.get("tags", []))
+        if isinstance(page_metadata.get("tags"), list)
+        else [],
+        date=date,
+    )
+    page.raw_content = raw_content
+    page._raw_content = raw_content
+    for attr, value in attrs.items():
+        setattr(page, attr, value)
+    return page
 
 
 @pytest.fixture
@@ -171,7 +199,7 @@ class TestQueryIndexRegistry:
 
         # Modify one page
         changed_page = sample_pages[0]
-        changed_page._raw_metadata["author"] = "Alice Chen"  # Change author
+        changed_page.metadata["author"] = "Alice Chen"  # Change author
 
         # Incremental update
         affected = registry.update_incremental([changed_page], build_cache)

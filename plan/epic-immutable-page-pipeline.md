@@ -449,6 +449,7 @@ gone or explicitly retained by a recorded public API decision.
 - `protocols: remove page prerendered html state`
 - `protocols: remove page site state`
 - `tests: migrate analysis graph page fixtures`
+- `tests: migrate cache query page fixtures`
 
 ### Sprint 6 epics
 
@@ -548,6 +549,11 @@ Task 6.1/6.2 test fixture migration continued by moving analysis graph tests to
 hashable `MockAnalysisPage` fixtures. These tests now exercise analysis
 behavior without constructing the legacy mutable Page adapter unless the test is
 specifically proving compatibility.
+
+Task 6.1/6.2 test fixture migration also moved cache query-index tests to
+page-like cache fixtures. Index extraction, persistence, incremental update,
+and thread-safety coverage now run without constructing the legacy mutable Page
+adapter.
 
 **Acceptance**: `rg 'from bengal.core.page import Page' bengal/` returns zero hits.
 
