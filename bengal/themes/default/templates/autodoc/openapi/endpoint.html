@@ -21,6 +21,8 @@ Kida Features:
 #}
 {% extends 'autodoc/openapi/layouts/explorer.html' %}
 
+{% from 'autodoc/openapi/_components.html' import endpoint_header, param_row, request_body as request_body_component, responses as responses_component, code_samples %}
+
 {% let meta = element?.typed_metadata ?? element?.metadata ?? {} %}
 {% let raw_meta = element?.metadata ?? {} %}
 {% let http_method = meta?.method ?? 'GET' %}
@@ -43,8 +45,23 @@ Kida Features:
 {% let cookie_params = parameters |> where('location', 'cookie') %}
 
 {% block api_left %}
+{# Cross-endpoint sidebar (epic criterion 4): render the full API navigation
+   grouped by tag with the current endpoint highlighted. sidebar-nav.html reads
+   `section` (for subsection tag groups) and `current_page` (for active state)
+   from context, so capture the endpoint's own tag section first, then shadow
+   `section` with the API root (which carries all tag subsections) for the
+   include. IMPORTANT: Kida {% let %} reassignment at block level leaks across
+   sibling blocks (api_header reuses `section`), so restore `section` to the
+   tag section immediately after the include. #}
+{% let tag_section = section %}
+{% let current_page = page %}
+{% let section = section?.parent ?? section %}
+{% include 'autodoc/openapi/partials/sidebar-nav.html' %}
+{% let section = tag_section %}
+
+{# In-page navigation for the current endpoint's sections. #}
 <nav class="openapi-nav" aria-label="Endpoint sections">
-  <a href="{{ section?.href ?? page?.href ?? '#' }}" class="openapi-nav__back">{{ icon('arrow-left', size=14) }} {{ section?.title ?? 'Endpoints' }}</a>
+  <a href="{{ tag_section?.href ?? page?.href ?? '#' }}" class="openapi-nav__back">{{ icon('arrow-left', size=14) }} {{ tag_section?.title ?? 'Endpoints' }}</a>
   {% if parameters | length > 0 %}<a href="#parameters">Parameters</a>{% end %}
   {% if request_body %}<a href="#request-body">Request body</a>{% end %}
   {% if responses | length > 0 %}<a href="#responses">Responses</a>{% end %}
@@ -57,7 +74,7 @@ Kida Features:
   <span class="api-method api-method--{{ http_method |> lower }}">{{ http_method }}</span>
   <code>{{ endpoint_path | highlight_path_params | safe }}</code>
 </div>
-{% include 'autodoc/openapi/partials/endpoint-header.html' %}
+{{ endpoint_header(element, section) }}
 {% end %}
 
 {% block api_main %}
@@ -77,8 +94,7 @@ Kida Features:
             </h3>
             <div class="api-endpoint__param-list">
                 {% for p in path_params %}
-                {% let param = p %}
-                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {{ param_row(p) }}
                 {% end %}
             </div>
         </div>
@@ -93,8 +109,7 @@ Kida Features:
             </h3>
             <div class="api-endpoint__param-list">
                 {% for p in query_params %}
-                {% let param = p %}
-                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {{ param_row(p) }}
                 {% end %}
             </div>
         </div>
@@ -109,8 +124,7 @@ Kida Features:
             </h3>
             <div class="api-endpoint__param-list">
                 {% for p in header_params %}
-                {% let param = p %}
-                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {{ param_row(p) }}
                 {% end %}
             </div>
         </div>
@@ -125,8 +139,7 @@ Kida Features:
             </h3>
             <div class="api-endpoint__param-list">
                 {% for p in cookie_params %}
-                {% let param = p %}
-                {% include 'autodoc/openapi/partials/param-row.html' %}
+                {{ param_row(p) }}
                 {% end %}
             </div>
         </div>
@@ -136,13 +149,13 @@ Kida Features:
 
     {# Request Body #}
     {% with request_body as req_body %}
-    {% include 'autodoc/openapi/partials/request-body.html' %}
+    {{ request_body_component(req_body) }}
     {% end %}
 
     {# Responses #}
     {% if responses | length > 0 %}
     {% cache 'openapi-responses-' ~ endpoint_path ~ '-' ~ http_method %}
-    {% include 'autodoc/openapi/partials/responses.html' %}
+    {{ responses_component(responses) }}
     {% end %}
     {% end %}
 
@@ -167,10 +180,6 @@ Kida Features:
 {# Code Samples Panel #}
 <div class="openapi-side-panel">
 <h2>{{ icon('code', size=14) }} Examples</h2>
-{% let method = http_method %}
-{% let path = endpoint_path %}
-{% let request_body = sample_request_body %}
-{% let response_example = get_response_example(raw_responses, '200') %}
-{% include 'autodoc/openapi/partials/code-samples.html' %}
+{{ code_samples(http_method, endpoint_path, request_body=sample_request_body, response_example=get_response_example(raw_responses, '200'), parameters=parameters) }}
 </div>
 {% end %}

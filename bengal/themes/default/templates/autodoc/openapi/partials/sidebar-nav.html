@@ -59,6 +59,9 @@ Kida Features:
 
       <ul class="api-sidebar-nav__endpoints">
         {% for ep_page in tag_pages %}
+        {# Skip the tag section's own index page — it is not an endpoint (mirrors
+           the flat-list branch guard). #}
+        {% if ep_page != subsection?.index_page %}
         {% let ep_meta = ep_page?.metadata ?? {} %}
         {% let ep_method = ep_meta?.method ?? 'GET' %}
         {% let ep_path = ep_meta?.path ?? ep_page?.title ?? '' %}
@@ -66,7 +69,7 @@ Kida Features:
         {% let is_active = current_page?.href == ep_page?.href %}
 
         <li class="api-sidebar-nav__endpoint{% if is_active %} api-sidebar-nav__endpoint--active{% end %}{% if is_deprecated %} api-sidebar-nav__endpoint--deprecated{% end %}" data-api-search-item>
-          <a href="{{ ep_page?.href ?? '#' }}" class="api-sidebar-nav__link">
+          <a href="{{ ep_page?.href ?? '#' }}" class="api-sidebar-nav__link"{% if is_active %} aria-current="page"{% end %}>
             {% spaceless %}
             <span class="api-method api-method--xs api-method--{{ ep_method |> lower }}">{{ ep_method }}</span>
             {% end %}
@@ -76,6 +79,7 @@ Kida Features:
             {% end %}
           </a>
         </li>
+        {% end %}
         {% end %}
       </ul>
     </details>
@@ -94,7 +98,7 @@ Kida Features:
       {% let is_active = current_page?.href == ep_page?.href %}
 
       <li class="api-sidebar-nav__endpoint{% if is_active %} api-sidebar-nav__endpoint--active{% end %}{% if is_deprecated %} api-sidebar-nav__endpoint--deprecated{% end %}" data-api-search-item>
-        <a href="{{ ep_page?.href ?? '#' }}" class="api-sidebar-nav__link">
+        <a href="{{ ep_page?.href ?? '#' }}" class="api-sidebar-nav__link"{% if is_active %} aria-current="page"{% end %}>
           {% spaceless %}
           <span class="api-method api-method--xs api-method--{{ ep_method |> lower }}">{{ ep_method }}</span>
           {% end %}
