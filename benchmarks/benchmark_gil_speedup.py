@@ -50,6 +50,7 @@ import random
 import shutil
 import subprocess
 import sys
+import sysconfig
 import tempfile
 import time
 from dataclasses import dataclass, field
@@ -480,11 +481,13 @@ def main() -> int:
             expect_gil=args.expect_gil == "1",
         )
 
-    # Driver role.
-    if sys._is_gil_enabled():
+    # Driver role. Require a free-threaded *build* (one that can toggle the GIL),
+    # not that the GIL is currently off — the per-mode subprocesses set PYTHON_GIL
+    # explicitly, so the driver may itself be started under PYTHON_GIL=1.
+    if not sysconfig.get_config_var("Py_GIL_DISABLED"):
         print(
-            "ERROR: driver interpreter has the GIL enabled. Run with a "
-            "free-threaded build (PYTHON_GIL=0, the default for 3.14t).",
+            "ERROR: this is not a free-threaded CPython build, so PYTHON_GIL "
+            "cannot be toggled. Run with a free-threaded build (e.g. 3.14t).",
             file=sys.stderr,
         )
         return 1
@@ -506,7 +509,7 @@ def main() -> int:
     print(f"  interpreter: {sys.version.split()[0]} (free-threaded, GIL off)")
     print(f"  scales:      {', '.join(f'{s:,}' for s in scales)}")
     print(f"  archetypes:  {', '.join(archetypes)}")
-    print(f"  runs/cell:   {args.runs} (x2 modes x2 = subprocess builds)")
+    print(f"  runs/cell:   {args.runs} (2 GIL modes/cell -> {2 * args.runs} subprocess builds)")
     print()
 
     cells: list[CellResult] = [

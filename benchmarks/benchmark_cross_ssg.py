@@ -64,11 +64,17 @@ def _bengal_python() -> str:
     """Resolve the interpreter used to run Bengal.
 
     Prefer the repo's free-threaded ``.venv`` so the Bengal row reflects the
-    north-star runtime (3.14t, GIL off). Fall back to the current interpreter
-    if the venv is missing.
+    north-star runtime (3.14t, GIL off). Checks both the POSIX
+    (``.venv/bin/python``) and Windows (``.venv/Scripts/python.exe``) layouts,
+    and falls back to the current interpreter if the venv is missing.
     """
-    venv_py = REPO_ROOT / ".venv" / "bin" / "python"
-    return str(venv_py) if venv_py.exists() else sys.executable
+    for candidate in (
+        REPO_ROOT / ".venv" / "bin" / "python",
+        REPO_ROOT / ".venv" / "Scripts" / "python.exe",
+    ):
+        if candidate.exists():
+            return str(candidate)
+    return sys.executable
 
 
 BENGAL_PYTHON = _bengal_python()

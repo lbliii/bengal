@@ -87,7 +87,7 @@ class _RSSSampler:
         return max(self._peak, rss)
 
 
-def measure_cell(archetype: str, num_pages: int, interval: float) -> dict[str, float]:
+def measure_cell(archetype: str, num_pages: int, interval: float) -> dict[str, object]:
     from bengal.core.site import Site
     from bengal.orchestration.build.options import BuildOptions
 
