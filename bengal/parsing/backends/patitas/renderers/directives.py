@@ -277,9 +277,21 @@ class DirectiveRendererMixin:
     def _directive_ast_cache_key(self: HtmlRendererProtocol, node: Directive) -> str:
         """Generate cache key from directive AST structure without rendering.
 
-        Creates a lightweight hash of the directive's structure:
+        Creates a structural fingerprint of the directive that uniquely
+        identifies the rendered output:
+
         - Directive name, title, options
-        - Recursive structure of all child blocks
+        - Every node attribute of every descendant block/inline
+
+        The fingerprint is derived by introspecting each node's ``__slots__``
+        across its MRO, rather than probing a hand-picked list of attribute
+        names. This is deliberately *complete*: omitting a discriminating
+        attribute (``List.ordered``, ``ListItem.checked``, table cells,
+        fenced-code content, ...) causes distinct directives to collide on the
+        same key, so later renders serve an earlier directive's cached HTML.
+        Such collisions are order-dependent and surface as flaky parity tests
+        (see tests/migration/test_directive_cache_key.py). Hashing the full
+        slot set keeps the key faithful as new node types/attributes are added.
 
         This allows cache lookup BEFORE expensive child rendering.
         """
@@ -289,28 +301,62 @@ class DirectiveRendererMixin:
         if node.options:
             parts.append(repr(node.options))
 
-        # Recursive AST structure hash
+        source = getattr(self, "_source", "") or ""
+
+        def is_node(value: object) -> bool:
+            """Heuristic: AST nodes carry a ``location`` slot/attribute."""
+            return hasattr(value, "location") and hasattr(type(value), "__slots__")
+
+        slot_cache: dict[type, list[str]] = {}
+
+        def iter_slots(cls: type) -> list[str]:
+            """All slot names declared across the node's MRO, in MRO order.
+
+            Memoized per class for this key computation: a directive body can
+            contain many nodes of the same type (e.g. list items), so the MRO
+            walk runs once per class rather than once per node.
+            """
+            cached = slot_cache.get(cls)
+            if cached is not None:
+                return cached
+            names: list[str] = []
+            for klass in cls.__mro__:
+                names.extend(getattr(klass, "__slots__", ()) or ())
+            slot_cache[cls] = names
+            return names
+
+        def hash_value(value: object) -> str:
+            """Hash an arbitrary slot value (node, sequence, or scalar)."""
+            if value is None:
+                return ""
+            if is_node(value):
+                return hash_block(value)
+            if isinstance(value, (list, tuple)):
+                return "[" + ",".join(hash_value(item) for item in value) + "]"
+            return str(value)
+
         def hash_block(block: Block) -> str:
-            """Hash a block's structure without rendering."""
+            """Hash a node's full structure without rendering.
+
+            Walks every declared slot (except ``location``) so no
+            discriminating attribute can silently collapse two distinct
+            directives onto one cache key.
+            """
             sig_parts = [type(block).__name__]
 
-            # Add content-bearing attributes
-            if hasattr(block, "content"):
-                sig_parts.append(str(getattr(block, "content", "")))
-            if hasattr(block, "code"):
-                sig_parts.append(str(getattr(block, "code", "")))
-            if hasattr(block, "info"):
-                sig_parts.append(str(getattr(block, "info", "")))
-            if hasattr(block, "level"):
-                sig_parts.append(str(getattr(block, "level", "")))
-            if hasattr(block, "url"):
-                sig_parts.append(str(getattr(block, "url", "")))
+            # Fenced code stores content as source offsets (ZCLH), so the
+            # offsets alone are not stable across documents — resolve the
+            # actual source slice to keep the key content-sensitive.
+            source_start = getattr(block, "source_start", None)
+            source_end = getattr(block, "source_end", None)
+            if isinstance(source_start, int) and isinstance(source_end, int):
+                sig_parts.append(source[source_start:source_end])
 
-            # Recurse into children
-            if hasattr(block, "children"):
-                children = getattr(block, "children", ())
-                if children:
-                    sig_parts.extend(hash_block(child) for child in children)
+            for slot in iter_slots(type(block)):
+                if slot in ("location", "source_start", "source_end"):
+                    continue
+                sig_parts.append(slot)
+                sig_parts.append(hash_value(getattr(block, slot, None)))
 
             return "|".join(sig_parts)
 
