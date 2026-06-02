@@ -256,8 +256,10 @@ class VirtualAutodocOrchestrator:
             )
             all_sections.update(openapi_sections)
 
-            # Consolidate endpoints? Default to True for a "gold standard" experience
-            consolidate = self.openapi_config.get("consolidate", True)
+            # Consolidate endpoints? Default to False so each endpoint gets its
+            # own three-column explorer page. Set `consolidate: true` to fold
+            # endpoints into their tag section index pages instead.
+            consolidate = self.openapi_config.get("consolidate", False)
 
             openapi_pages, _ = create_pages(
                 openapi_elements,
@@ -587,8 +589,11 @@ class VirtualAutodocOrchestrator:
                     )
                     all_sections.update(openapi_sections)
 
-                    # Consolidate endpoints? Default to True for a "gold standard" experience
-                    consolidate = self.openapi_config.get("consolidate", True)
+                    # Consolidate endpoints? Default to False so each endpoint
+                    # gets its own three-column explorer page. Set
+                    # `consolidate: true` to fold endpoints into their tag
+                    # section index pages instead.
+                    consolidate = self.openapi_config.get("consolidate", False)
 
                     openapi_pages, _ = create_pages(
                         openapi_elements,

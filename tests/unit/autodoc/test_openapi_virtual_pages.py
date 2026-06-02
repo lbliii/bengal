@@ -77,23 +77,23 @@ components:
 
     pages, sections, result = orchestrator.generate()
 
-    # Overview doesn't get a separate page - root section index IS the overview
-    # So we expect: one schema, one endpoint (consolidate defaults to True, so endpoints are consolidated)
+    # Overview doesn't get a separate page - root section index IS the overview.
+    # consolidate defaults to False, so each endpoint becomes its own page.
     element_types = {p.metadata.get("element_type") for p in pages}
     url_paths = {p.metadata.get("_autodoc_url_path") for p in pages}
 
     # Overview element exists but doesn't get a page
     assert "openapi_overview" not in element_types
     assert "openapi_schema" in element_types
-    # With consolidate=True (default), endpoints don't get individual pages either
-    assert "openapi_endpoint" not in element_types
+    # With consolidate=False (default), endpoints get their own pages
+    assert "openapi_endpoint" in element_types
 
     # OpenAPI prefix is auto-derived from spec title "Demo API" -> "api/demo"
     # Overview is handled by section index, not a separate page
     assert "api/demo/overview" not in url_paths
     assert "api/demo/schemas/User" in url_paths
-    # Endpoints are consolidated, so no individual endpoint pages
-    assert "api/demo/endpoints/get-users" not in url_paths
+    # Endpoints get individual pages grouped under their tag section
+    assert "api/demo/tags/users/get-users" in url_paths
 
     # Root section should be returned (only root sections are returned by generate())
     # The orchestrator returns aggregating parent sections (e.g., "api") when

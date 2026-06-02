@@ -80,8 +80,10 @@ Kida Features:
     {% let description = response?.description ?? '' %}
     {% let content_type = response?.content_type %}
     {% let schema_ref = response?.schema_ref %}
-    {% let inline_schema = response?.schema %}
-    {% let example = response?.example %}
+    {# `schema`/`example` only exist on raw dict responses, not on the
+       OpenAPIResponseMetadata dataclass, so access them mapping-safely. #}
+    {% let inline_schema = response.get('schema') if response is mapping else none %}
+    {% let example = response.get('example') if response is mapping else none %}
     {% let category = status_category(code) %}
 
     <div

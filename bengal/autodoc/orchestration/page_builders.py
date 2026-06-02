@@ -35,6 +35,28 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _openapi_endpoint_url_path(element: DocElement, prefix: str) -> str:
+    """
+    Compute the site-relative URL path for an OpenAPI endpoint element.
+
+    Endpoints are grouped under their first tag so the URL mirrors the sidebar
+    grouping and the tag section hierarchy created in section_builders.py
+    (``{prefix}/tags/{tag}``). The raw tag value is reused verbatim so the
+    endpoint page nests beneath its parent tag section and ``find_parent_section``
+    resolves the same section by key. Untagged endpoints fall back to
+    ``{prefix}/endpoints/...``.
+
+    This must stay identical to the parent-section lookup so that page URLs and
+    section placement agree.
+    """
+    method = get_openapi_method(element).lower()
+    path = path_to_slug(get_openapi_path(element))
+    tags = get_openapi_tags(element)
+    if tags:
+        return f"{prefix}/tags/{tags[0]}/{method}-{path}"
+    return f"{prefix}/endpoints/{method}-{path}"
+
+
 # ============================================================================
 # PERF: Template-ready normalization at page creation time
 # ============================================================================
@@ -145,9 +167,7 @@ def compute_element_urls(
         url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
     elif doc_type == "openapi":
         if element.element_type == "openapi_endpoint":
-            method = get_openapi_method(element).lower()
-            path = path_to_slug(get_openapi_path(element))
-            url_path = f"{prefix}/endpoints/{method}-{path}"
+            url_path = _openapi_endpoint_url_path(element, prefix)
         elif element.element_type == "openapi_schema":
             url_path = f"{prefix}/schemas/{element.name}"
         else:
@@ -449,11 +469,9 @@ def get_element_metadata(
                 "autodoc-rest",
             )
         if element.element_type == "openapi_endpoint":
-            method = get_openapi_method(element).lower()
-            path = path_to_slug(get_openapi_path(element))
             return (
                 "autodoc/openapi/endpoint",
-                f"{prefix}/endpoints/{method}-{path}",
+                _openapi_endpoint_url_path(element, prefix),
                 "autodoc-rest",
             )
     # Fallback - use python-reference for prose-constrained layout
