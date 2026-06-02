@@ -18,6 +18,7 @@ Example (TagView):
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -119,10 +120,16 @@ def register(env: TemplateEnvironment, site: SiteContent) -> None:
         return popular_tags(tags_with_pages, limit)
 
     def tag_accent_index_filter(tag_name: str, num_colors: int = 8) -> int:
-        """Return 0..num_colors-1 for consistent tag accent color."""
+        """Return 0..num_colors-1 for consistent tag accent color.
+
+        Uses a stable digest rather than the builtin hash(): Python randomizes
+        str hashing per process (PYTHONHASHSEED), so hash() gave a *different*
+        accent each build, making tags/index.html non-reproducible.
+        """
         if not tag_name:
             return 0
-        return hash(str(tag_name)) % num_colors
+        digest = hashlib.md5(str(tag_name).encode("utf-8"), usedforsecurity=False).digest()
+        return digest[0] % num_colors
 
     env.filters.update(
         {
@@ -183,12 +190,15 @@ def tag_views_filter(
         if isinstance(tag_data, dict):
             views.append(TagView.from_taxonomy_entry(slug, tag_data, total_posts))
 
-    # Sort
-    if sort_by == "name":
-        views.sort(key=lambda t: t.name.lower())
-    elif sort_by == "percentage":
+    # Sort. Establish a deterministic base order by name first: raw_tags.items()
+    # above iterates the parallel-built taxonomies dict in thread-dependent order,
+    # so a single-key sort left equal-count (or equal-percentage) tags breaking ties
+    # by that unstable order — making tags/index.html non-reproducible. A stable sort
+    # over a name-ordered base resolves ties by name deterministically.
+    views.sort(key=lambda t: t.name.lower())
+    if sort_by == "percentage":
         views.sort(key=lambda t: t.percentage, reverse=True)
-    else:  # count (default)
+    elif sort_by != "name":  # count (default)
         views.sort(key=lambda t: t.count, reverse=True)
 
     # Apply limit
