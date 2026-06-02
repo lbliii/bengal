@@ -163,6 +163,13 @@ class EndpointView:
     def from_page(cls, page: PageLike) -> EndpointView:
         """Create from Page (individual mode)."""
         meta = page.metadata
+        # Autodoc endpoint pages carry the source DocElement (with typed
+        # metadata and the resolved page href) rather than flattened
+        # method/path/parameter keys. Build the view from that element so the
+        # listing matches the detail page exactly, including ``el.href``.
+        element = meta.get("autodoc_element")
+        if element is not None and getattr(element, "typed_metadata", None) is not None:
+            return cls.from_doc_element(element, consolidated=False)
         raw_parameters = meta.get("parameters", ())
         raw_responses = meta.get("responses", ())
         success_status = _first_success_status(raw_responses)
@@ -495,13 +502,34 @@ def endpoints_filter(section: SectionLike | None) -> list[EndpointView]:
     if section is None:
         return []
 
-    # Detect mode from data structure
+    # Detect mode from data structure.
+    #
+    # Tag sections always carry their endpoint DocElements in
+    # ``metadata["endpoints"]`` (set by section_builders.py), but when endpoints
+    # are generated as individual pages they ALSO appear in ``section.pages``.
+    # Prefer the page-backed view in that case so ``ep.href`` is a real page URL
+    # rather than an in-page ``#anchor``. Fall back to the consolidated anchor
+    # view only when no endpoint pages exist (``consolidate: true``).
     metadata = getattr(section, "metadata", None)
     if metadata is None:
         metadata = {}
 
-    raw_endpoints = metadata.get("endpoints", [])
+    # Individual mode - Pages in section.pages (consolidate=false)
+    pages = getattr(section, "pages", None) or []
+    endpoint_pages = [
+        p
+        for p in pages
+        if hasattr(p, "metadata")
+        and (
+            p.metadata.get("element_type") == "openapi_endpoint"
+            or p.metadata.get("type") == "openapi_endpoint"
+            or "method" in p.metadata
+        )
+    ]
+    if endpoint_pages:
+        return [EndpointView.from_page(p) for p in endpoint_pages]
 
+    raw_endpoints = metadata.get("endpoints", [])
     if raw_endpoints:
         # Consolidated mode - DocElements stored in metadata.endpoints
         return [
@@ -510,14 +538,7 @@ def endpoints_filter(section: SectionLike | None) -> list[EndpointView]:
             if hasattr(el, "typed_metadata") and el.typed_metadata is not None
         ]
 
-    # Individual mode - Pages in section.pages
-    pages = getattr(section, "pages", None) or []
-    return [
-        EndpointView.from_page(p)
-        for p in pages
-        if hasattr(p, "metadata")
-        and (p.metadata.get("type") == "openapi_endpoint" or "method" in p.metadata)
-    ]
+    return []
 
 
 def schemas_filter(section: SectionLike | None) -> list[SchemaView]:

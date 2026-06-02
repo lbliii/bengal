@@ -86,7 +86,11 @@ def test_openapi_home_uses_full_viewport_catalog_shell() -> None:
     assert 'class="api-catalog-app"' in home
     assert "api-catalog-app__left-rail" in home
     assert "api-catalog-app__right-rail" in home
-    assert 'href="{{ tag_href }}{{ ep.href }}"' in home
+    # Endpoint cards link directly to the endpoint page URL. The previous
+    # `{{ tag_href }}{{ ep.href }}` concatenation double-prefixed the URL and
+    # produced broken links; cards must use the resolved `ep.href` alone.
+    assert 'href="{{ ep.href }}"' in home
+    assert 'href="{{ tag_href }}{{ ep.href }}"' not in home
     assert "autodoc/openapi/layouts/reference.html" not in home
 
     assert 'body[data-type="autodoc-rest"] .api-catalog-app' in css

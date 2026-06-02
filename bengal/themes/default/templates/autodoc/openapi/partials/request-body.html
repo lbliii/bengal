@@ -24,7 +24,9 @@ Kida Features:
 {% let is_required = request_body?.required ?? false %}
 {% let description = request_body?.description ?? '' %}
 {% let schema_ref = request_body?.schema_ref %}
-{% let inline_schema = request_body?.schema %}
+{# `schema` only exists on raw dict request bodies, not on the
+   OpenAPIRequestBodyMetadata dataclass, so access it mapping-safely. #}
+{% let inline_schema = request_body.get('schema') if request_body is mapping else none %}
 
 <section class="api-request-body autodoc-section" id="request-body" data-section="request-body">
   <header class="api-request-body__header">

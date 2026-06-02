@@ -24,12 +24,15 @@ Kida Features:
 {% let name = param?.name ?? 'unnamed' %}
 {% let schema = param.get('schema', {}) if param is mapping else {} %}
 {% let type = param?.schema_type ?? schema?.type ?? 'string' %}
-{% let location = param?.location ?? param.get('in', 'query') %}
+{% let location = param?.location ?? (param.get('in', 'query') if param is mapping else 'query') %}
 {% let is_required = param?.required ?? false %}
 {% let description = param?.description ?? '' %}
-{% let default_val = param?.default ?? schema?.default %}
-{% let enum_vals = param?.enum ?? schema?.enum %}
-{% let example = param?.example ?? schema?.example %}
+{# `default`/`enum`/`example` only exist on raw dict parameters, not on the
+   OpenAPIParameterMetadata dataclass, so access them mapping-safely and fall
+   back to the nested schema object. #}
+{% let default_val = (param.get('default') if param is mapping else none) ?? schema?.default %}
+{% let enum_vals = (param.get('enum') if param is mapping else none) ?? schema?.enum %}
+{% let example = (param.get('example') if param is mapping else none) ?? schema?.example %}
 
 <div class="api-param-row{% if is_required %} api-param-row--required{% end %}" data-required="{{ is_required }}">
   {# Parameter Meta: Name, Type, Badges #}

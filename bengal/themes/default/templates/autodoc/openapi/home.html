@@ -139,7 +139,7 @@ application surface, not a prose reference page.
 
           <div class="api-catalog-endpoints">
             {% for ep in tag_endpoints %}
-            <a href="{{ tag_href }}{{ ep.href }}" class="api-catalog-endpoint{% if ep.deprecated %} api-catalog-endpoint--deprecated{% end %}">
+            <a href="{{ ep.href }}" class="api-catalog-endpoint{% if ep.deprecated %} api-catalog-endpoint--deprecated{% end %}">
               <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
               <code>{{ ep.path | highlight_path_params | safe }}</code>
               {% if ep.summary %}

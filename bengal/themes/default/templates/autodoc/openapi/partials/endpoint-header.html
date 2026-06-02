@@ -17,19 +17,25 @@ Context:
 {% let tags = meta?.tags ?? () %}
 {% let security = meta?.security ?? () %}
 
+{# Section context: the endpoint's parent section is its tag section, whose
+   parent is the REST API root. Link from real section hrefs rather than
+   named routes (this engine resolves url_for() string targets as literal
+   paths, not Flask-style endpoints). #}
+{% let tag_section = section %}
+{% let api_home_href = section?.parent?.href ?? section?.href ?? '/' %}
+{% let tag_href = tag_section?.href ?? api_home_href %}
+
 <header class="api-endpoint-header">
     {# Breadcrumb / Tag Path #}
     {% if tags %}
     <nav class="api-endpoint-header__breadcrumb" aria-label="API breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb__item">
-                <a href="{{ url_for('autodoc:openapi:home') }}">API</a>
+                <a href="{{ api_home_href }}">API</a>
             </li>
-            {% for tag in tags %}
             <li class="breadcrumb__item">
-                <a href="{{ url_for('autodoc:openapi:tag', tag=tag) }}">{{ tag }}</a>
+                <a href="{{ tag_href }}">{{ tag_section?.title ?? tags[0] }}</a>
             </li>
-            {% end %}
         </ol>
     </nav>
     {% end %}
@@ -73,7 +79,7 @@ Context:
         {% if tags %}
         <div class="api-endpoint-header__tags">
             {% for tag in tags %}
-            <a href="{{ url_for('autodoc:openapi:tag', tag=tag) }}" class="tag tag--sm">
+            <a href="{{ tag_href }}" class="tag tag--sm">
                 {{ tag }}
             </a>
             {% end %}
