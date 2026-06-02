@@ -307,11 +307,22 @@ class DirectiveRendererMixin:
             """Heuristic: AST nodes carry a ``location`` slot/attribute."""
             return hasattr(value, "location") and hasattr(type(value), "__slots__")
 
+        slot_cache: dict[type, list[str]] = {}
+
         def iter_slots(cls: type) -> list[str]:
-            """All slot names declared across the node's MRO, in MRO order."""
+            """All slot names declared across the node's MRO, in MRO order.
+
+            Memoized per class for this key computation: a directive body can
+            contain many nodes of the same type (e.g. list items), so the MRO
+            walk runs once per class rather than once per node.
+            """
+            cached = slot_cache.get(cls)
+            if cached is not None:
+                return cached
             names: list[str] = []
             for klass in cls.__mro__:
                 names.extend(getattr(klass, "__slots__", ()) or ())
+            slot_cache[cls] = names
             return names
 
         def hash_value(value: object) -> str:
