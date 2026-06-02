@@ -6,9 +6,7 @@ accessing them through mixin self-reference.
 
 Key Functions:
 - compute_word_count: Word count from source markdown
-- compute_meta_description: Compatibility wrapper for rendering-side descriptions
 - compute_reading_time: Estimated reading time in minutes
-- compute_excerpt: Compatibility wrapper for rendering-side excerpts
 - compute_age_days: Days since publication
 - compute_age_months: Months since publication
 - get_primary_author: Primary Author object
@@ -16,10 +14,14 @@ Key Functions:
 - get_series_info: Series object for multi-part content
 - get_series_neighbor: Navigate between pages in a series
 
+Content-derived rendering helpers (excerpts, meta descriptions) live in
+``bengal.rendering.page_content``; ``Page.excerpt`` and ``Page.meta_description``
+delegate there directly.
+
 Performance:
 Page class uses @cached_property wrappers that call these pure functions,
-ensuring expensive operations (HTML stripping, word counting, truncation)
-are only performed once per page.
+ensuring expensive operations (word counting, series resolution) are only
+performed once per page.
 
 Related Modules:
 - bengal.rendering.pipeline: Content rendering that populates page.content
@@ -63,27 +65,6 @@ def compute_word_count(raw_content: str) -> int:
     return len(raw_content.split())
 
 
-def compute_meta_description(metadata: Mapping[str, Any], raw_content: str) -> str:
-    """Generate SEO-friendly meta description.
-
-    .. deprecated::
-        Content-derived descriptions belong in
-        ``bengal.rendering.page_content``. This wrapper remains so older
-        imports of ``bengal.core.page.computed.compute_meta_description`` keep
-        working.
-
-    Args:
-        metadata: Page metadata dict
-        raw_content: Raw markdown source string
-
-    Returns:
-        Meta description text (max 160 chars)
-    """
-    from bengal.rendering.page_content import compute_meta_description as render_description
-
-    return render_description(metadata, raw_content)
-
-
 def compute_reading_time(word_count: int) -> int:
     """Calculate reading time in minutes.
 
@@ -96,25 +77,6 @@ def compute_reading_time(word_count: int) -> int:
         Reading time in minutes (minimum 1)
     """
     return max(1, round(word_count / 200))
-
-
-def compute_excerpt(raw_content: str) -> str:
-    """Extract content excerpt as rendered HTML.
-
-    .. deprecated::
-        Rendering excerpts belongs in ``bengal.rendering.page_content``.
-        This wrapper remains so older imports of
-        ``bengal.core.page.computed.compute_excerpt`` keep working.
-
-    Args:
-        raw_content: Raw markdown source string
-
-    Returns:
-        Excerpt as HTML (safe to render in templates)
-    """
-    from bengal.rendering.page_content import compute_excerpt as render_excerpt
-
-    return render_excerpt(raw_content)
 
 
 def compute_age_days(date: datetime | None) -> int:
