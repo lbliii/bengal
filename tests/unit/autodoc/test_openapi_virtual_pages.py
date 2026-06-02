@@ -150,6 +150,73 @@ paths:
     assert not any(u and u.startswith("api/demo/endpoints/") for u in url_paths)
 
 
+def _find_section(sections: object, name: str):
+    """Depth-first search for a section by name within a section tree."""
+    for section in sections or []:
+        if getattr(section, "name", None) == name:
+            return section
+        found = _find_section(getattr(section, "subsections", []), name)
+        if found is not None:
+            return found
+    return None
+
+
+def test_openapi_multi_tag_endpoint_cross_listed_with_single_page(tmp_path: Path) -> None:
+    """A multi-tag endpoint gets ONE canonical page (under its first tag) but is
+    cross-listed under EVERY tag section — including a secondary tag that also owns
+    its own first-tag endpoint. Regression for the endpoints_filter precedence bug
+    where page-backed and metadata endpoints were mutually exclusive.
+    """
+    from bengal.rendering.template_functions.openapi import endpoints_filter
+
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.1.0
+info:
+  title: Demo API
+  version: "1.0.0"
+paths:
+  /billing/usage:
+    get:
+      tags: [billing]
+      summary: Usage
+      responses:
+        "200":
+          description: ok
+  /users/{id}/billing:
+    get:
+      tags: [users, billing]
+      summary: User billing
+      responses:
+        "200":
+          description: ok
+""",
+        encoding="utf-8",
+    )
+
+    site = _make_mock_site(tmp_path, spec_path)
+    pages, sections, _result = VirtualAutodocOrchestrator(site).generate()
+
+    # Exactly one page per endpoint — the multi-tag endpoint is NOT duplicated, and
+    # its single canonical page lives under its FIRST tag ("users").
+    endpoint_pages = [p for p in pages if p.metadata.get("element_type") == "openapi_endpoint"]
+    assert len(endpoint_pages) == 2
+    multi = [
+        p
+        for p in endpoint_pages
+        if (p.metadata.get("_autodoc_url_path") or "").startswith("api/demo/tags/users/")
+    ]
+    assert len(multi) == 1
+
+    # The "billing" tag section owns /billing/usage (first tag) AND must cross-list
+    # /users/{id}/billing (whose first tag is "users") — the union, not just one.
+    billing = _find_section(sections, "billing")
+    assert billing is not None
+    billing_paths = {ev.path for ev in endpoints_filter(billing)}
+    assert "/billing/usage" in billing_paths
+    assert "/users/{id}/billing" in billing_paths
+
+
 def test_openapi_spec_file_is_resolved_relative_to_site_root(tmp_path: Path, monkeypatch) -> None:
     """
     Ensure spec_file is resolved relative to site.root_path, not the current working directory.

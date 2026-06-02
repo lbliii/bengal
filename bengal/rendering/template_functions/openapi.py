@@ -514,6 +514,12 @@ def endpoints_filter(section: SectionLike | None) -> list[EndpointView]:
     if metadata is None:
         metadata = {}
 
+    # Multi-tag note: secondary tag sections also carry an endpoint in their
+    # metadata["endpoints"] even though each endpoint has a SINGLE canonical page
+    # under its first tag. list.html renders the page URL from
+    # EndpointView.from_page(), which is always that first-tag canonical URL, so
+    # cross-listing an endpoint under multiple tags never duplicates the page.
+
     # Individual mode - Pages in section.pages (consolidate=false)
     pages = getattr(section, "pages", None) or []
     endpoint_pages = [
@@ -526,10 +532,27 @@ def endpoints_filter(section: SectionLike | None) -> list[EndpointView]:
             or "method" in p.metadata
         )
     ]
-    if endpoint_pages:
-        return [EndpointView.from_page(p) for p in endpoint_pages]
-
     raw_endpoints = metadata.get("endpoints", [])
+
+    if endpoint_pages:
+        # Individual mode: start with this tag's canonical (first-tag) pages, then
+        # UNION in endpoints whose first tag is elsewhere but that are cross-listed
+        # under this tag (present only in metadata["endpoints"]). Without this, a
+        # secondary tag that also owns its own endpoint would silently drop the
+        # cross-listed ones, since page-backed and metadata views were previously
+        # mutually exclusive. Dedupe by (method, path); cross-listed views link to
+        # their canonical first-tag page via ``el.href``.
+        views = [EndpointView.from_page(p) for p in endpoint_pages]
+        seen = {(v.method, v.path) for v in views}
+        for el in raw_endpoints:
+            if getattr(el, "typed_metadata", None) is None:
+                continue
+            view = EndpointView.from_doc_element(el, consolidated=False)
+            if (view.method, view.path) not in seen:
+                seen.add((view.method, view.path))
+                views.append(view)
+        return views
+
     if raw_endpoints:
         # Consolidated mode - DocElements stored in metadata.endpoints
         return [

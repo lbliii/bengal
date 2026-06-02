@@ -1,0 +1,501 @@
+{#
+Bengal OpenAPI Component Library (Kida)
+=======================================
+
+Self-contained {% def %} components for the OpenAPI endpoint template. Each
+component receives all data it needs through explicit parameters instead of
+ambient {% let %} context, so they are importable and isolated.
+
+Migrated from (kept as reference/fallback partials):
+- partials/endpoint-header.html  -> endpoint_header(element, section)
+- partials/param-row.html         -> param_row(param)
+- partials/request-body.html      -> request_body(req_body)
+- partials/responses.html         -> responses(responses, response_scope=...)
+- partials/code-samples.html      -> code_samples(method, path, ...)
+
+Usage:
+  {% from 'autodoc/openapi/_components.html' import
+       endpoint_header, param_row, request_body, responses, code_samples %}
+
+Kida Features (confirmed against installed kida-templates 0.6.0):
+- {% def name(param=default) %} with default values
+- {% match %}/{% case %} for status code dispatch
+- {% with %} for nil-safe optional sections
+- {% spaceless %} for compact badge output
+- {% from %} import of the recursive schema_viewer component
+- Optional chaining (?.) and null coalescing (??)
+#}
+{% from 'autodoc/openapi/_schema.html' import schema_viewer %}
+
+{# =============================================================================
+ENDPOINT HEADER
+
+Displays: breadcrumb, title, operation id, description, auth + tag badges.
+Ported from partials/endpoint-header.html.
+============================================================================= #}
+{% def endpoint_header(element, section) %}
+{% let meta = element.typed_metadata %}
+{% let method = meta?.method ?? 'GET' %}
+{% let path = meta?.path ?? '/unknown' %}
+{% let summary = meta?.summary ?? element.name %}
+{% let operation_id = meta?.operation_id %}
+{% let tags = meta?.tags ?? () %}
+{% let security = meta?.security ?? () %}
+
+{# Section context: the endpoint's parent section is its FIRST tag's section,
+   whose parent is the REST API root. The endpoint has a single canonical page
+   (under its first tag), but it may carry secondary tags that each have their
+   own tag section ({root}/tags/{tag}/). Derive every tag's section URL from the
+   API root so secondary-tag chips cross-link to the right section rather than
+   all pointing at the current (first-tag) section. Link from real section hrefs
+   rather than named routes (this engine resolves url_for() string targets as
+   literal paths, not Flask-style endpoints). #}
+{% let tag_section = section %}
+{# The API root href already carries a trailing slash (section snapshot href),
+   so per-tag section URLs join as {root}tags/{tag-slug}/, matching the
+   {prefix}/tags/{tag} sections that section_builders.py creates. #}
+{% let api_home_href = section?.parent?.href ?? section?.href ?? '/' %}
+{% let tag_href = tag_section?.href ?? api_home_href %}
+
+<header class="api-endpoint-header">
+    {# Breadcrumb / Tag Path #}
+    {% if tags %}
+    <nav class="api-endpoint-header__breadcrumb" aria-label="API breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb__item">
+                <a href="{{ api_home_href }}">API</a>
+            </li>
+            <li class="breadcrumb__item">
+                <a href="{{ tag_href }}">{{ tag_section?.title ?? tags[0] }}</a>
+            </li>
+        </ol>
+    </nav>
+    {% end %}
+
+    {# Title: Summary or Operation ID #}
+    <h1 class="api-endpoint-header__title">
+        {{ summary }}
+    </h1>
+
+    {# Operation ID (for developers) #}
+    {% with operation_id as op_id %}
+    <div class="api-endpoint-header__operation-id">
+        <code>{{ op_id }}</code>
+    </div>
+    {% end %}
+
+    {# Description #}
+    {% with element.description as desc %}
+    <div class="api-endpoint-header__description prose">
+        {{ desc | markdownify | safe }}
+    </div>
+    {% end %}
+
+    {# Meta Badges Row #}
+    <div class="api-endpoint-header__meta">
+        {# Authentication Requirements #}
+        {% if security %}
+        <div class="api-endpoint-header__auth">
+            {% for scheme in security %}
+            <span class="badge badge--outline badge--sm">
+                <svg class="icon icon--xs" aria-hidden="true">
+                    <use href="#icon-lock"></use>
+                </svg>
+                {{ scheme }}
+            </span>
+            {% end %}
+        </div>
+        {% end %}
+
+        {# Tags. The endpoint lives under its FIRST tag's section, so the first
+           chip uses that section's href; secondary-tag chips construct their own
+           section URL. The tag is used RAW (not slugified) so the href matches
+           the section directory section_builders.py creates ({root}tags/{tag}/) —
+           slugifying here produced broken links for tags like "Admin Tools". #}
+        {% if tags %}
+        <div class="api-endpoint-header__tags">
+            {% for tag in tags %}
+            {% let chip_href = tag_href if loop.first else (api_home_href ~ 'tags/' ~ tag ~ '/') %}
+            <a href="{{ chip_href }}" class="tag tag--sm">
+                {{ tag }}
+            </a>
+            {% end %}
+        </div>
+        {% end %}
+    </div>
+</header>
+{% end %}
+
+{# =============================================================================
+PARAM ROW
+
+Atomic display unit for a single API parameter.
+Ported from partials/param-row.html.
+============================================================================= #}
+{% def param_row(param) %}
+{% let name = param?.name ?? 'unnamed' %}
+{% let schema = param.get('schema', {}) if param is mapping else {} %}
+{% let type = param?.schema_type ?? schema?.type ?? 'string' %}
+{% let location = param?.location ?? (param.get('in', 'query') if param is mapping else 'query') %}
+{% let is_required = param?.required ?? false %}
+{% let description = param?.description ?? '' %}
+{# `default`/`enum`/`example` only exist on raw dict parameters, not on the
+   OpenAPIParameterMetadata dataclass, so access them mapping-safely and fall
+   back to the nested schema object. #}
+{% let default_val = (param.get('default') if param is mapping else none) ?? schema?.default %}
+{% let enum_vals = (param.get('enum') if param is mapping else none) ?? schema?.enum %}
+{% let example = (param.get('example') if param is mapping else none) ?? schema?.example %}
+
+<div class="api-param-row{% if is_required %} api-param-row--required{% end %}" data-required="{{ is_required }}">
+  {# Parameter Meta: Name, Type, Badges #}
+  <div class="api-param-row__meta">
+    <code class="api-param-row__name">{{ name }}</code>
+    <span class="api-param-row__type">{{ type }}</span>
+
+    {% spaceless %}
+    <div class="api-param-row__badges">
+      {% if is_required %}
+      <span class="badge badge--danger-subtle badge--sm">required</span>
+      {% end %}
+      <span class="badge badge--outline badge--sm">{{ location }}</span>
+    </div>
+    {% end %}
+  </div>
+
+  {# Description #}
+  {% if description %}
+  <div class="api-param-row__description">
+    {{ description | markdownify | safe }}
+  </div>
+  {% end %}
+
+  {# Default Value #}
+  {% with default_val as default %}
+  <div class="api-param-row__default">
+    <span class="api-param-row__label">Default:</span>
+    <code>{{ default }}</code>
+  </div>
+  {% end %}
+
+  {# Enum Values #}
+  {% with enum_vals as enums %}
+  {% if enums | length > 0 %}
+  <div class="api-param-row__enum">
+    <span class="api-param-row__label">Allowed:</span>
+    {% spaceless %}
+    {% for val in enums %}
+    <code class="api-param-row__enum-value">{{ val }}</code>{% if not loop.last %} {% end %}
+    {% end %}
+    {% end %}
+  </div>
+  {% end %}
+  {% end %}
+
+  {# Example #}
+  {% with example as ex %}
+  <div class="api-param-row__example">
+    <span class="api-param-row__label">Example:</span>
+    <code>{{ ex }}</code>
+  </div>
+  {% end %}
+</div>
+{% end %}
+
+{# =============================================================================
+REQUEST BODY
+
+Displays request body content type, description, schema ref + inline schema.
+Ported from partials/request-body.html.
+============================================================================= #}
+{% def request_body(req_body) %}
+{% let content_type = req_body?.content_type ?? 'application/json' %}
+{% let is_required = req_body?.required ?? false %}
+{% let description = req_body?.description ?? '' %}
+{% let schema_ref = req_body?.schema_ref %}
+{# `schema` only exists on raw dict request bodies, not on the
+   OpenAPIRequestBodyMetadata dataclass, so access it mapping-safely. #}
+{% let inline_schema = req_body.get('schema') if req_body is mapping else none %}
+
+<section class="api-request-body autodoc-section" id="request-body" data-section="request-body">
+  <header class="api-request-body__header">
+    <h2 class="api-request-body__title autodoc-section-title">Request Body</h2>
+
+    <div class="api-request-body__meta">
+      {% spaceless %}
+      {% if is_required %}
+      <span class="badge badge--danger-subtle badge--sm">required</span>
+      {% end %}
+      <span class="badge badge--outline badge--sm">{{ content_type }}</span>
+      {% end %}
+    </div>
+  </header>
+
+  {# Description #}
+  {% if description %}
+  <div class="api-request-body__description prose-sm">
+    {{ description | markdownify | safe }}
+  </div>
+  {% end %}
+
+  {# Schema Reference Link #}
+  {% with schema_ref as ref %}
+  {% let schema_name = ref | split('#/components/schemas/') | last %}
+  <div class="api-request-body__schema-ref">
+    <span class="api-request-body__label">Schema:</span>
+    <a href="#schema-{{ schema_name | slugify }}" class="api-request-body__schema-link">
+      <code>{{ schema_name }}</code>
+    </a>
+  </div>
+  {% end %}
+
+  {# Inline Schema Viewer #}
+  {% with inline_schema as s %}
+  {{ schema_viewer(s, name=none, depth=0) }}
+  {% end %}
+</section>
+{% end %}
+
+{# =============================================================================
+RESPONSES
+
+Displays API responses with status code tabs and schema information.
+Ported from partials/responses.html.
+============================================================================= #}
+{% def status_category(code) %}
+{% let code_str = code | string %}
+{% match code_str | first %}
+{% case '2' %}success
+{% case '3' %}redirect
+{% case '4' %}client-error
+{% case '5' %}server-error
+{% case _ %}info
+{% end %}
+{% end %}
+
+{% def status_color_class(code) %}
+{% let code_str = code | string %}
+{% match code_str | first %}
+{% case '2' %}badge--success
+{% case '3' %}badge--info
+{% case '4' %}badge--warning
+{% case '5' %}badge--danger
+{% case _ %}badge--outline
+{% end %}
+{% end %}
+
+{% def responses(responses, response_scope='response') %}
+{% let response_scope = response_scope ?? 'response' %}
+
+<section class="api-responses autodoc-section" id="responses" data-section="responses">
+  <header class="api-responses__header">
+    <h2 class="api-responses__title autodoc-section-title">Responses</h2>
+  </header>
+
+  {# Response Tabs #}
+  {% if responses | length > 1 %}
+  <div class="api-responses__tabs" role="tablist">
+    {% for response in responses %}
+    {% let code = response?.status_code ?? '200' %}
+    {% let category = status_category(code) %}
+    {% let color_class = status_color_class(code) %}
+    {% spaceless %}
+    <button
+      class="api-responses__tab badge {{ color_class }}{% if loop.first %} api-responses__tab--active{% end %}"
+      role="tab"
+      aria-selected="{{ 'true' if loop.first else 'false' }}"
+      aria-controls="{{ response_scope }}-response-panel-{{ code }}"
+      data-status-category="{{ category }}"
+    >
+      {{ code }}
+    </button>
+    {% end %}
+    {% end %}
+  </div>
+  {% end %}
+
+  {# Response Panels #}
+  <div class="api-responses__panels">
+    {% for response in responses %}
+    {% let code = response?.status_code ?? '200' %}
+    {% let description = response?.description ?? '' %}
+    {% let content_type = response?.content_type %}
+    {% let schema_ref = response?.schema_ref %}
+    {# `schema`/`example` only exist on raw dict responses, not on the
+       OpenAPIResponseMetadata dataclass, so access them mapping-safely. #}
+    {% let inline_schema = response.get('schema') if response is mapping else none %}
+    {% let example = response.get('example') if response is mapping else none %}
+    {% let category = status_category(code) %}
+
+    <div
+      class="api-responses__panel{% if loop.first %} api-responses__panel--active{% end %}"
+      id="{{ response_scope }}-response-panel-{{ code }}"
+      role="tabpanel"
+      data-status-code="{{ code }}"
+      data-status-category="{{ category }}"
+    >
+      {# Status + Description Header #}
+      <div class="api-responses__panel-header">
+        <code class="api-responses__status" data-status-category="{{ category }}">{{ code }}</code>
+        {% if description %}
+        <span class="api-responses__description">{{ description }}</span>
+        {% end %}
+      </div>
+
+      {# Content Type #}
+      {% with content_type as ct %}
+      <div class="api-responses__content-type">
+        <span class="api-responses__label">Content-Type:</span>
+        <code>{{ ct }}</code>
+      </div>
+      {% end %}
+
+      {# Schema Reference #}
+      {% with schema_ref as ref %}
+      {% let schema_name = ref | split('#/components/schemas/') | last %}
+      <div class="api-responses__schema-ref">
+        <span class="api-responses__label">Schema:</span>
+        <a href="#schema-{{ schema_name | slugify }}">
+          <code>{{ schema_name }}</code>
+        </a>
+      </div>
+      {% end %}
+
+      {# Inline Schema #}
+      {% with inline_schema as s %}
+      {{ schema_viewer(s, name=none, depth=0) }}
+      {% end %}
+
+      {# Example Response #}
+      {% with example as ex %}
+      <div class="api-responses__example">
+        <span class="api-responses__label">Example Response</span>
+        <pre class="api-responses__example-code"><code class="language-json">{{ ex | tojson(indent=2) }}</code></pre>
+      </div>
+      {% end %}
+    </div>
+    {% end %}
+  </div>
+</section>
+{% end %}
+
+{# =============================================================================
+CODE SAMPLES
+
+Multi-language code sample panel with tab switching.
+Ported from partials/code-samples.html.
+============================================================================= #}
+{% def code_samples(method, path, request_body=none, response_example=none, base_url=none, parameters=none, auth_scheme=none) %}
+{% let method_upper = method |> upper ?? 'GET' %}
+{% let api_base = base_url ?? 'https://api.example.com' %}
+{% let full_url = api_base ~ path %}
+{% let auth = auth_scheme ?? 'Bearer' %}
+{% let sample_id = (method_upper ~ '-' ~ path) | slugify %}
+
+{# Available languages for code samples #}
+{% let languages = [
+  {'id': 'curl', 'name': 'cURL', 'icon': 'terminal'},
+  {'id': 'python', 'name': 'Python', 'icon': 'code'},
+  {'id': 'javascript', 'name': 'JavaScript', 'icon': 'code'},
+  {'id': 'go', 'name': 'Go', 'icon': 'code'},
+  {'id': 'ruby', 'name': 'Ruby', 'icon': 'code'},
+  {'id': 'php', 'name': 'PHP', 'icon': 'code'}
+] %}
+
+<div class="api-code-samples" data-endpoint="{{ path }}">
+  {# Header with Language Tabs #}
+  <header class="api-code-samples__header">
+    <h3 class="api-code-samples__title">Request</h3>
+    <div class="api-code-samples__tabs" role="tablist">
+      {% for lang in languages %}
+      {% spaceless %}
+      <button
+        class="api-code-samples__tab{% if loop.first %} api-code-samples__tab--active{% end %}"
+        role="tab"
+        aria-selected="{{ 'true' if loop.first else 'false' }}"
+        aria-controls="code-panel-{{ sample_id }}-{{ lang.id }}"
+        data-language="{{ lang.id }}"
+      >
+        {{ lang.name }}
+      </button>
+      {% end %}
+      {% end %}
+    </div>
+  </header>
+
+  {# Code Panels #}
+  <div class="api-code-samples__panels">
+    {# cURL Panel #}
+    <div class="api-code-samples__panel api-code-samples__panel--active" id="code-panel-{{ sample_id }}-curl" role="tabpanel">
+      <div class="api-code-samples__code">
+        <button class="api-code-samples__copy" data-copy-target="code-{{ sample_id }}-curl" aria-label="Copy code">
+          {{ icon('copy', size=14) }}
+        </button>
+        <pre id="code-{{ sample_id }}-curl"><code class="language-bash">{{ generate_code_sample('curl', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
+      </div>
+    </div>
+
+    {# Python Panel #}
+    <div class="api-code-samples__panel" id="code-panel-{{ sample_id }}-python" role="tabpanel">
+      <div class="api-code-samples__code">
+        <button class="api-code-samples__copy" data-copy-target="code-{{ sample_id }}-python" aria-label="Copy code">
+          {{ icon('copy', size=14) }}
+        </button>
+        <pre id="code-{{ sample_id }}-python"><code class="language-python">{{ generate_code_sample('python', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
+      </div>
+    </div>
+
+    {# JavaScript Panel #}
+    <div class="api-code-samples__panel" id="code-panel-{{ sample_id }}-javascript" role="tabpanel">
+      <div class="api-code-samples__code">
+        <button class="api-code-samples__copy" data-copy-target="code-{{ sample_id }}-javascript" aria-label="Copy code">
+          {{ icon('copy', size=14) }}
+        </button>
+        <pre id="code-{{ sample_id }}-javascript"><code class="language-javascript">{{ generate_code_sample('javascript', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
+      </div>
+    </div>
+
+    {# Go Panel #}
+    <div class="api-code-samples__panel" id="code-panel-{{ sample_id }}-go" role="tabpanel">
+      <div class="api-code-samples__code">
+        <button class="api-code-samples__copy" data-copy-target="code-{{ sample_id }}-go" aria-label="Copy code">
+          {{ icon('copy', size=14) }}
+        </button>
+        <pre id="code-{{ sample_id }}-go"><code class="language-go">{{ generate_code_sample('go', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
+      </div>
+    </div>
+
+    {# Ruby Panel #}
+    <div class="api-code-samples__panel" id="code-panel-{{ sample_id }}-ruby" role="tabpanel">
+      <div class="api-code-samples__code">
+        <button class="api-code-samples__copy" data-copy-target="code-{{ sample_id }}-ruby" aria-label="Copy code">
+          {{ icon('copy', size=14) }}
+        </button>
+        <pre id="code-{{ sample_id }}-ruby"><code class="language-ruby">{{ generate_code_sample('ruby', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
+      </div>
+    </div>
+
+    {# PHP Panel #}
+    <div class="api-code-samples__panel" id="code-panel-{{ sample_id }}-php" role="tabpanel">
+      <div class="api-code-samples__code">
+        <button class="api-code-samples__copy" data-copy-target="code-{{ sample_id }}-php" aria-label="Copy code">
+          {{ icon('copy', size=14) }}
+        </button>
+        <pre id="code-{{ sample_id }}-php"><code class="language-php">{{ generate_code_sample('php', method, path, base_url=api_base, request_body=request_body, parameters=parameters, auth_scheme=auth) }}</code></pre>
+      </div>
+    </div>
+  </div>
+
+  {# Response Preview (optional) #}
+  {% with response_example as example %}
+  <div class="api-code-samples__response">
+    <header class="api-code-samples__response-header">
+      <h4 class="api-code-samples__title">Response</h4>
+      <span class="badge badge--success badge--sm">200 OK</span>
+    </header>
+    <div class="api-code-samples__code">
+      <pre><code class="language-json">{{ example | tojson(indent=2) }}</code></pre>
+    </div>
+  </div>
+  {% end %}
+</div>
+{% end %}

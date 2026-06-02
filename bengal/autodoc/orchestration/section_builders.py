@@ -319,7 +319,16 @@ def create_openapi_sections(
     )
     sections[prefix] = api_section
 
-    # Group endpoints by tags
+    # Group endpoints by tags.
+    #
+    # Multi-tag handling: an endpoint is added to EVERY one of its tags, so each
+    # tag section (created below for every key in ``tagged_endpoints``) lists the
+    # endpoint in its ``metadata["endpoints"]`` and cross-links to it. The
+    # endpoint still has a SINGLE canonical page under its FIRST tag
+    # (see ``_openapi_endpoint_url_path`` / ``find_parent_section`` in
+    # page_builders.py); secondary tag sections reference that one page rather
+    # than producing duplicates. This also guarantees a section exists for every
+    # tag any endpoint references, so secondary-tag chips never 404.
     tagged_endpoints: dict[str, list[DocElement]] = {}
     untagged_endpoints: list[DocElement] = []
 

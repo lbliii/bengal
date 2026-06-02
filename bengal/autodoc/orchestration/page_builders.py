@@ -428,6 +428,12 @@ def find_parent_section(
             return sections.get(section_path) or sections.get(prefix) or default_section
         return sections.get(prefix) or default_section
     if doc_type == "openapi":
+        # openapi_schema and openapi_endpoint elements are placed in their
+        # primary sections. A multi-tag endpoint has exactly ONE canonical page
+        # (under its FIRST tag, matching _openapi_endpoint_url_path); it is then
+        # listed cross-linked in its secondary tag sections via those sections'
+        # metadata["endpoints"] (see section_builders.create_openapi_sections),
+        # never as duplicate pages.
         # Note: openapi_overview doesn't get a page - root section index handles it
         if element.element_type == "openapi_schema":
             return sections.get(f"{prefix}/schemas") or sections.get(prefix) or default_section
