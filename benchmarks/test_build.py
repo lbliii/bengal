@@ -49,12 +49,37 @@ Recent Optimizations (2025-10-20):
 
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
 import pytest
 
 SCENARIOS = ["small_site", "large_site"]
+
+# Pages per generated scenario (content/posts/post-{i}.md). large_site must have
+# at least 51 pages so post-50.md (referenced by the incremental tests) exists.
+_SCENARIO_PAGES = {"small_site": 20, "large_site": 100}
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _ensure_scenarios():
+    """Generate the benchmark scenario sites on demand.
+
+    benchmarks/scenarios/ is gitignored (auto-generated), so a clean checkout has
+    no fixtures and the copytree-based tests below would otherwise error at setup.
+    The scenario names here predate the generator's current minimal_* names, so we
+    build them directly via the shared generator helper.
+    """
+    sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+    from generate_benchmark_scenarios import create_minimal_site
+
+    base = Path(__file__).parent / "scenarios"
+    for name, pages in _SCENARIO_PAGES.items():
+        scenario_dir = base / name
+        if not (scenario_dir / "bengal.toml").exists():
+            scenario_dir.mkdir(parents=True, exist_ok=True)
+            create_minimal_site(scenario_dir, pages)
 
 
 @pytest.mark.benchmark
@@ -113,7 +138,7 @@ def test_incremental_single_page_change(benchmark, temporary_scenario):
     Expected speedup vs full build: 15-50x (validated at 1K-10K pages).
     Recent optimizations (page list caching, parallel related posts) may affect baseline.
     """
-    page_path = temporary_scenario / "content" / "page50.md"
+    page_path = temporary_scenario / "content" / "posts" / "post-50.md"
     original_content = page_path.read_text()
 
     def build_after_page_change():
@@ -141,7 +166,7 @@ def test_incremental_multi_page_change(benchmark, temporary_scenario):
     Expected: Should be faster than full build but slower than single-page.
     """
     pages_to_modify = [
-        temporary_scenario / "content" / f"page{i:02d}.md" for i in [10, 20, 30, 40, 50]
+        temporary_scenario / "content" / "posts" / f"post-{i}.md" for i in [10, 20, 30, 40, 50]
     ]
     original_contents = [p.read_text() for p in pages_to_modify]
 
@@ -271,7 +296,7 @@ def test_incremental_memory_tracking(benchmark, temporary_scenario):
 
     Helps identify if memory accumulates during incremental builds.
     """
-    page_path = temporary_scenario / "content" / "page50.md"
+    page_path = temporary_scenario / "content" / "posts" / "post-50.md"
     original_content = page_path.read_text()
 
     def benchmark_with_memory_tracking():
@@ -477,7 +502,7 @@ def test_incremental_with_fast_mode(benchmark, temporary_scenario):
     Combines incremental build speedup with fast mode optimizations.
     Expected: Should match or slightly improve on standard incremental builds.
     """
-    page_path = temporary_scenario / "content" / "page50.md"
+    page_path = temporary_scenario / "content" / "posts" / "post-50.md"
     original_content = page_path.read_text()
 
     def incremental_fast_build():
