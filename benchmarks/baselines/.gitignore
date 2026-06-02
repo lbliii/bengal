@@ -1,0 +1,6 @@
+# Committed baselines are the stable top-level files:
+#   gil_speedup.json, cross_ssg.json, SPEEDUP.md
+# The per-run timestamped history written by results_manager (cross_ssg/,
+# gil_speedup/ subdirs) is local-only and not committed.
+*/
+!.gitignore

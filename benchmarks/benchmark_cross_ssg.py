@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
 """
-Cross-SSG Build Benchmark: Bengal vs MkDocs vs Pelican
-======================================================
+Cross-SSG Build Benchmark: Bengal vs Hugo vs MkDocs vs Pelican
+==============================================================
 
-Generates identical content and runs cold builds across all three SSGs
-on the same machine, same content, same measurement methodology.
+Generates identical content and runs cold builds across each available SSG on
+the same machine, same content, same measurement methodology.
 
-Requirements:
-    pip install mkdocs pelican
+Requirements (all optional — unavailable SSGs are skipped, not fatal):
+    Hugo:    brew install hugo   (or any install on PATH)
+    MkDocs:  pip install mkdocs
+    Pelican: pip install pelican
+    Eleventy: npx @11ty/eleventy  (recorded as skipped by default; see --with-eleventy)
 
 Usage:
     # Quick comparison (64, 256, 1024 pages)
@@ -19,15 +22,17 @@ Usage:
     # Specific scale
     python benchmarks/benchmark_cross_ssg.py --pages 500
 
-    # Save results to JSON
+    # Save results to JSON / publish committed baseline
     python benchmarks/benchmark_cross_ssg.py --output results.json
+    python benchmarks/benchmark_cross_ssg.py --publish
 
 Methodology:
     - Minimal markdown: YAML frontmatter + 3 lorem ipsum paragraphs
     - Cold builds only (fresh temp directory per run)
     - No asset processing, syntax highlighting, or optimization
     - 3 runs per scale, median reported (resistant to outliers)
-    - All SSGs use their default themes
+    - SSGs use minimal/default themes; Hugo gets auto-generated minimal layouts
+    - Bengal runs on the free-threaded 3.14t interpreter (PYTHON_GIL=0)
     - Timed via time.perf_counter() around the build command
 """
 
@@ -45,6 +50,34 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from statistics import median
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+
+# Reuse the committed results manager for timestamped JSON + latest.json.
+sys.path.insert(0, str(REPO_ROOT / "tests" / "performance"))
+from results_manager import BenchmarkResults  # noqa: E402
+
+BASELINE_DIR = REPO_ROOT / "benchmarks" / "baselines"
+
+
+def _bengal_python() -> str:
+    """Resolve the interpreter used to run Bengal.
+
+    Prefer the repo's free-threaded ``.venv`` so the Bengal row reflects the
+    north-star runtime (3.14t, GIL off). Checks both the POSIX
+    (``.venv/bin/python``) and Windows (``.venv/Scripts/python.exe``) layouts,
+    and falls back to the current interpreter if the venv is missing.
+    """
+    for candidate in (
+        REPO_ROOT / ".venv" / "bin" / "python",
+        REPO_ROOT / ".venv" / "Scripts" / "python.exe",
+    ):
+        if candidate.exists():
+            return str(candidate)
+    return sys.executable
+
+
+BENGAL_PYTHON = _bengal_python()
 
 PARAGRAPHS = [
     (
@@ -148,7 +181,43 @@ def _setup_bengal(root: Path, num_pages: int) -> list[str]:
             f"---\ntitle: {_random_title(i)}\n---\n\n{_random_body()}\n"
         )
 
-    return [sys.executable, "-m", "bengal", "site", "build", "--fast"]
+    # NOTE: the build group is `bengal build` (not `bengal site build`).
+    # Run on the free-threaded venv interpreter so the Bengal row reflects 3.14t.
+    return [BENGAL_PYTHON, "-m", "bengal", "build", "--fast"]
+
+
+def _setup_hugo(root: Path, num_pages: int) -> list[str]:
+    content = root / "content"
+    content.mkdir()
+    layouts = root / "layouts" / "_default"
+    layouts.mkdir(parents=True)
+
+    (root / "hugo.toml").write_text(
+        'baseURL = "https://example.com"\n'
+        'title = "Benchmark"\n'
+        # Disable extras so the comparison matches Bengal's --fast minimal output.
+        'disableKinds = ["taxonomy", "term", "sitemap", "robotsTXT", "404"]\n'
+    )
+
+    # Minimal layouts — without these Hugo writes 0 HTML files.
+    (layouts / "single.html").write_text(
+        "<html><head><title>{{ .Title }}</title></head><body>{{ .Content }}</body></html>\n"
+    )
+    list_tpl = (
+        "<html><head><title>{{ .Title }}</title></head><body>"
+        '{{ range .Pages }}<a href="{{ .Permalink }}">{{ .Title }}</a>{{ end }}'
+        "</body></html>\n"
+    )
+    (layouts / "list.html").write_text(list_tpl)
+    (root / "layouts" / "index.html").write_text(list_tpl)
+
+    (content / "_index.md").write_text(f"---\ntitle: Home\n---\n\n{_random_body()}\n")
+    for i in range(1, num_pages):
+        (content / f"page-{i:05d}.md").write_text(
+            f"---\ntitle: {_random_title(i)}\n---\n\n{_random_body()}\n"
+        )
+
+    return ["hugo", "--quiet", "--destination", "public"]
 
 
 def _setup_mkdocs(root: Path, num_pages: int) -> list[str]:
@@ -206,13 +275,19 @@ def _setup_pelican(root: Path, num_pages: int) -> list[str]:
     ]
 
 
-DEFAULT_SSGS = ("bengal", "mkdocs", "pelican")
+DEFAULT_SSGS = ("bengal", "hugo", "mkdocs", "pelican")
 
 SSG_SETUP = {
     "bengal": _setup_bengal,
+    "hugo": _setup_hugo,
     "mkdocs": _setup_mkdocs,
     "pelican": _setup_pelican,
 }
+
+# Eleventy is intentionally recorded as "skipped" by default: it requires a
+# Node/npx toolchain and a warm npm cache, which makes cold-build timings
+# noisy and not comparable to native binaries. Pass --with-eleventy to opt in.
+SKIP_SSGS_DEFAULT = {"eleventy": "skipped (Node/npx toolchain; not comparable cold)"}
 
 
 # ---------------------------------------------------------------------------
@@ -239,7 +314,8 @@ class RunResult:
 
 def _check_available(ssg: str) -> bool:
     cmd_map = {
-        "bengal": [sys.executable, "-m", "bengal", "--version"],
+        "bengal": [BENGAL_PYTHON, "-m", "bengal", "--version"],
+        "hugo": ["hugo", "version"],
         "mkdocs": [sys.executable, "-m", "mkdocs", "--version"],
         "pelican": [sys.executable, "-m", "pelican", "--version"],
     }
@@ -279,7 +355,10 @@ def benchmark_ssg(ssg: str, num_pages: int, runs: int = 3) -> RunResult:
         tmp = _bench_temp_dir(ssg)
         try:
             cmd = setup_fn(tmp, num_pages)
-            env = {**os.environ, "PYTHON_GIL": "0"}
+            env = dict(os.environ)
+            # Free-threading mode applies only to the Bengal (Python) row.
+            if ssg == "bengal":
+                env["PYTHON_GIL"] = "0"
 
             start = time.perf_counter()
             proc = subprocess.run(
@@ -374,15 +453,16 @@ def print_comparison(all_results: list[RunResult]) -> None:
     print()
 
 
-def export_json(all_results: list[RunResult], path: str) -> None:
-    data = {
+def build_payload(all_results: list[RunResult], skipped: dict[str, str] | None = None) -> dict:
+    return {
         "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "python": sys.version,
-        "methodology": "cold build, minimal markdown, 3 runs median",
-        "results": [],
-    }
-    for r in all_results:
-        data["results"].append(
+        "methodology": (
+            "cold build, minimal markdown, 3 runs median; Bengal on free-threaded "
+            "3.14t (PYTHON_GIL=0); Hugo uses auto-generated minimal layouts"
+        ),
+        "skipped": skipped or {},
+        "results": [
             {
                 "ssg": r.ssg,
                 "pages": r.pages,
@@ -391,9 +471,30 @@ def export_json(all_results: list[RunResult], path: str) -> None:
                 "all_runs": r.times,
                 "error": r.error,
             }
-        )
-    Path(path).write_text(json.dumps(data, indent=2))
+            for r in all_results
+        ],
+    }
+
+
+def export_json(
+    all_results: list[RunResult], path: str, skipped: dict[str, str] | None = None
+) -> None:
+    Path(path).write_text(json.dumps(build_payload(all_results, skipped), indent=2))
     print(f"Results saved to {path}")
+
+
+def publish(all_results: list[RunResult], skipped: dict[str, str] | None = None) -> Path:
+    BASELINE_DIR.mkdir(parents=True, exist_ok=True)
+    payload = build_payload(all_results, skipped)
+    mgr = BenchmarkResults(results_dir=BASELINE_DIR)
+    mgr.save_result(
+        "cross_ssg",
+        payload,
+        metadata={"python_version": sys.version, "platform": sys.platform},
+    )
+    stable = BASELINE_DIR / "cross_ssg.json"
+    stable.write_text(json.dumps(payload, indent=2) + "\n")
+    return stable
 
 
 # ---------------------------------------------------------------------------
@@ -403,7 +504,7 @@ def export_json(all_results: list[RunResult], path: str) -> None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Cross-SSG build benchmark: Bengal vs MkDocs vs Pelican",
+        description="Cross-SSG build benchmark: Bengal vs Hugo vs MkDocs vs Pelican",
     )
     parser.add_argument(
         "--full",
@@ -433,13 +534,31 @@ def main() -> int:
         "--only",
         type=str,
         default=None,
-        help="Comma-separated SSGs to run (e.g. --only bengal,mkdocs)",
+        help="Comma-separated SSGs to run (e.g. --only bengal,hugo)",
+    )
+    parser.add_argument(
+        "--publish",
+        action="store_true",
+        help="Write committed JSON baseline under benchmarks/baselines/",
+    )
+    parser.add_argument(
+        "--with-eleventy",
+        action="store_true",
+        help="Opt in to the Eleventy (npx) row (recorded as skipped by default)",
+    )
+    parser.add_argument(
+        "--scales",
+        type=str,
+        default=None,
+        help="Comma-separated page counts (e.g. --scales 100,1000)",
     )
     args = parser.parse_args()
 
     random.seed(42)  # Reproducible content for comparable runs
 
-    if args.pages:
+    if args.scales:
+        scales = [int(s) for s in args.scales.split(",")]
+    elif args.pages:
         scales = [args.pages]
     elif args.full:
         scales = [64, 256, 512, 1024, 2048, 4096]
@@ -448,10 +567,18 @@ def main() -> int:
 
     ssgs = [s.strip() for s in args.only.split(",")] if args.only else list(DEFAULT_SSGS)
 
+    # Eleventy is recorded as skipped unless explicitly opted in.
+    skipped: dict[str, str] = dict(SKIP_SSGS_DEFAULT)
+    if args.with_eleventy:
+        skipped.pop("eleventy", None)
+
     # Check availability
     available = {}
     print("Checking SSG availability:")
     for ssg in ssgs:
+        if ssg in skipped:
+            print(f"  {ssg}: SKIPPED ({skipped[ssg]})")
+            continue
         ok = _check_available(ssg)
         available[ssg] = ok
         status = "OK" if ok else "NOT FOUND"
@@ -459,14 +586,15 @@ def main() -> int:
 
     active_ssgs = [s for s in ssgs if available.get(s)]
     if not active_ssgs:
-        print("\nNo SSGs available. Install with:")
+        print("\nNo SSGs available. Install Hugo (brew install hugo) or:")
         print("  pip install mkdocs pelican")
         return 1
 
-    missing = [s for s in ssgs if not available.get(s)]
+    missing = [s for s in ssgs if s not in skipped and not available.get(s)]
     if missing:
         print(f"\nSkipping unavailable: {', '.join(missing)}")
-        print("Install with: pip install " + " ".join(missing))
+        for m in missing:
+            skipped.setdefault(m, "not installed")
 
     print(f"\nBenchmarking: {', '.join(active_ssgs)}")
     print(f"Scales: {', '.join(str(s) for s in scales)} pages")
@@ -491,8 +619,18 @@ def main() -> int:
 
     print_comparison(all_results)
 
+    if skipped:
+        print("Skipped SSGs:")
+        for name, reason in sorted(skipped.items()):
+            print(f"  {name}: {reason}")
+        print()
+
     if args.output:
-        export_json(all_results, args.output)
+        export_json(all_results, args.output, skipped)
+
+    if args.publish:
+        stable = publish(all_results, skipped)
+        print(f"Baseline committed: {stable}")
 
     return 0
 
