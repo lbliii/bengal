@@ -15,10 +15,14 @@ fresh subprocess of *this* interpreter. The worker asserts
 ``sys._is_gil_enabled()`` matches the requested mode before timing anything, so a
 mislabeled run can never pollute the table.
 
-For each (scale x archetype) cell we record total wall time plus per-phase
-timings (discovery / taxonomy / rendering / assets / postprocess) extracted from
-``BuildStats``, take the median of N runs, and emit a speedup ratio
-(GIL=1 time / GIL=0 time). A ratio > 1.0 means free-threading is faster.
+For each (scale x archetype) cell we record total wall time plus the full
+``BuildStats`` phase ledger — the named ``phase_timings_ms`` entries (Discovery,
+Parsing, Snapshot, Content, Rendering, Assets, Post-process, Cache save, Stats,
+Health check), the ``post_render_timings_ms`` finalization timings (asset_audit
+lives here), and the output-format generation breakdown — take the median of N
+runs, and emit a speedup ratio (GIL=1 time / GIL=0 time). A ratio > 1.0 means
+free-threading is faster. ``unattributed_s`` reports any wall not covered by the
+ledger so the accounting can be audited.
 
 Usage:
     # Quick A/B (100, 1000 pages; blog + docs)
@@ -250,18 +254,40 @@ def _run_worker(archetype: str, num_pages: int, runs: int, expect_gil: bool) -> 
             wall = time.perf_counter() - start
 
             sd = stats.to_dict() if hasattr(stats, "to_dict") else {}
-            samples.append(
-                {
-                    "wall_s": wall,
-                    "build_time_s": float(sd.get("build_time_ms", wall * 1000)) / 1000.0,
-                    "discovery_s": float(sd.get("discovery_time_ms", 0)) / 1000.0,
-                    "taxonomy_s": float(sd.get("taxonomy_time_ms", 0)) / 1000.0,
-                    "rendering_s": float(sd.get("rendering_time_ms", 0)) / 1000.0,
-                    "assets_s": float(sd.get("assets_time_ms", 0)) / 1000.0,
-                    "postprocess_s": float(sd.get("postprocess_time_ms", 0)) / 1000.0,
-                    "total_pages": int(sd.get("total_pages", num_pages)),
-                }
-            )
+            sample: dict[str, float] = {
+                # Original keys (kept verbatim for committed-baseline continuity).
+                "wall_s": wall,
+                "build_time_s": float(sd.get("build_time_ms", wall * 1000)) / 1000.0,
+                "discovery_s": float(sd.get("discovery_time_ms", 0)) / 1000.0,
+                "taxonomy_s": float(sd.get("taxonomy_time_ms", 0)) / 1000.0,
+                "rendering_s": float(sd.get("rendering_time_ms", 0)) / 1000.0,
+                "assets_s": float(sd.get("assets_time_ms", 0)) / 1000.0,
+                "postprocess_s": float(sd.get("postprocess_time_ms", 0)) / 1000.0,
+                "total_pages": int(sd.get("total_pages", num_pages)),
+                # Named scalar phases previously dropped on the floor by this harness.
+                "fonts_s": float(sd.get("fonts_time_ms", 0)) / 1000.0,
+                "menu_s": float(sd.get("menu_time_ms", 0)) / 1000.0,
+                "related_posts_s": float(sd.get("related_posts_time_ms", 0)) / 1000.0,
+                "health_check_s": float(sd.get("health_check_time_ms", 0)) / 1000.0,
+            }
+            # Authoritative named-phase ledger recorded by BuildStats.record_phase_timing
+            # (Discovery / Parsing / Snapshot / Content / Rendering / Assets / Post-process /
+            # Cache save / Stats / Health check ...). This is what makes the ~31s that the
+            # five-field extraction missed attributable.
+            phase_ledger = sd.get("phase_timings_ms") or {}
+            for name, ms in phase_ledger.items():
+                sample[f"phase.{name}_s"] = float(ms) / 1000.0
+            # Post-render finalization timings — asset_audit lives HERE, outside the phases.
+            for name, ms in (sd.get("post_render_timings_ms") or {}).items():
+                sample[f"post_render.{name}_s"] = float(ms) / 1000.0
+            # Output-format generation breakdown (page_markdown / page_llm_txt, inside post-process).
+            for name, ms in (sd.get("postprocess_output_timings_ms") or {}).items():
+                sample[f"ppoutput.{name}_s"] = float(ms) / 1000.0
+            # Ledger total and the residual wall not attributed to any ledger entry.
+            ledger_total_s = sum(float(v) for v in phase_ledger.values()) / 1000.0
+            sample["phase_ledger_total_s"] = ledger_total_s
+            sample["unattributed_s"] = max(0.0, sample["build_time_s"] - ledger_total_s)
+            samples.append(sample)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
 
@@ -307,18 +333,20 @@ class CellResult:
 
 
 def _median_phases(samples: list[dict[str, float]]) -> dict[str, float]:
-    keys = [
-        "wall_s",
-        "build_time_s",
-        "discovery_s",
-        "taxonomy_s",
-        "rendering_s",
-        "assets_s",
-        "postprocess_s",
-    ]
+    """Median every numeric key present across samples.
+
+    The original harness medianed only a fixed five-phase list, which silently
+    dropped the parsing/snapshot/content/post-render attribution that BuildStats
+    already records. Medianing the union of keys surfaces the full ledger
+    (``phase.*``, ``post_render.*``, ``ppoutput.*``, ``unattributed_s``) while
+    preserving the original keys verbatim for baseline continuity.
+    """
+    keys: set[str] = set()
+    for s in samples:
+        keys.update(s.keys())
     out: dict[str, float] = {}
-    for k in keys:
-        vals = [s[k] for s in samples if k in s]
+    for k in sorted(keys):
+        vals = [s[k] for s in samples if isinstance(s.get(k), (int, float))]
         if vals:
             out[k] = median(vals)
     return out
@@ -450,6 +478,99 @@ def publish(cells: list[CellResult], runs: int) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# CI speed-regression gate (epic-performance.md Wave 2 / T6)
+# ---------------------------------------------------------------------------
+# A single total-wall tolerance would pass while a regression isolated to one
+# phase (e.g. asset_audit or rendering) sailed through, so the gate checks each
+# protected phase independently against a committed baseline captured on the
+# target hardware. It measures only the GIL=0 (free-threaded) arm — the hot path
+# the project actually ships.
+
+GATE_BASELINE = BASELINE_DIR / "ci_gate.json"
+GATE_KEYS = ("wall_s", "build_time_s", "phase.Rendering_s", "post_render.asset_audit_s")
+
+
+def _measure_gil0(archetype: str, num_pages: int, runs: int) -> tuple[dict[str, float], str | None]:
+    """Median GIL=0 phase ledger for one cell."""
+    return _run_subprocess_mode(archetype, num_pages, runs, gil_on=False)
+
+
+def _gate_metadata(archetype: str, num_pages: int, runs: int) -> dict:
+    return {
+        "python_version": sys.version,
+        "free_threaded": not sys._is_gil_enabled(),
+        "platform": sys.platform,
+        "archetype": archetype,
+        "pages": num_pages,
+        "runs": runs,
+    }
+
+
+def run_gate_update(archetype: str, num_pages: int, runs: int) -> int:
+    """Capture the current cell as the committed gate baseline (run on CI hardware)."""
+    phases, err = _measure_gil0(archetype, num_pages, runs)
+    if err:
+        print(f"ERROR measuring gate baseline: {err}", file=sys.stderr)
+        return 1
+    GATE_BASELINE.parent.mkdir(parents=True, exist_ok=True)
+    GATE_BASELINE.write_text(
+        json.dumps(
+            {"metadata": _gate_metadata(archetype, num_pages, runs), "phases_s": phases}, indent=2
+        )
+        + "\n"
+    )
+    print(f"Gate baseline written: {GATE_BASELINE}")
+    print(f"  cell: {archetype} x {num_pages:,}, GIL=0, median-of-{runs}")
+    for k in GATE_KEYS:
+        if k in phases:
+            print(f"  {k:32} {phases[k]:.3f}s")
+    return 0
+
+
+def run_gate(archetype: str, num_pages: int, runs: int, tolerance: float) -> int:
+    """Fail (exit 1) if any protected phase regresses beyond ``tolerance`` vs the baseline."""
+    if not GATE_BASELINE.exists():
+        print(
+            f"ERROR: no gate baseline at {GATE_BASELINE}. Bootstrap it on the target "
+            "(CI) hardware with --gate-update first, then commit ci_gate.json.",
+            file=sys.stderr,
+        )
+        return 1
+    baseline = json.loads(GATE_BASELINE.read_text()).get("phases_s", {})
+    measured, err = _measure_gil0(archetype, num_pages, runs)
+    if err:
+        print(f"ERROR measuring gate cell: {err}", file=sys.stderr)
+        return 1
+
+    print(
+        f"\nCI speed gate: {archetype} x {num_pages:,}, GIL=0, "
+        f"median-of-{runs}, tolerance +{tolerance:.0%}"
+    )
+    print(f"  {'metric':32} {'baseline':>10} {'measured':>10} {'delta':>8}  status")
+    print("-" * 78)
+    regressed: list[tuple[str, float]] = []
+    for k in GATE_KEYS:
+        b = baseline.get(k)
+        m = measured.get(k)
+        if not b or m is None:
+            continue
+        delta = (m - b) / b
+        status = "OK"
+        if delta > tolerance:
+            status = "REGRESSED"
+            regressed.append((k, delta))
+        print(f"  {k:32} {b:>10.3f} {m:>10.3f} {delta:>+7.1%}  {status}")
+
+    if regressed:
+        print(f"\nFAIL: {len(regressed)} phase(s) regressed beyond +{tolerance:.0%}:")
+        for k, d in regressed:
+            print(f"  - {k}: {d:+.1%}")
+        return 1
+    print("\nPASS: no protected phase regressed beyond tolerance.")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -470,6 +591,20 @@ def main() -> int:
     )
     parser.add_argument("--publish", action="store_true", help="Write committed JSON baseline")
     parser.add_argument("--output", "-o", default=None, help="Also write raw JSON to this path")
+    parser.add_argument(
+        "--gate",
+        action="store_true",
+        help="CI speed gate: compare a cell (GIL=0) vs benchmarks/baselines/ci_gate.json, "
+        "fail on per-phase regression",
+    )
+    parser.add_argument(
+        "--gate-update",
+        action="store_true",
+        help="Capture the current cell as the gate baseline (run on CI hardware, then commit)",
+    )
+    parser.add_argument(
+        "--tolerance", type=float, default=0.25, help="Gate regression tolerance (default 0.25)"
+    )
     args = parser.parse_args()
 
     # Worker role: just measure and emit JSON for the requested mode.
@@ -491,6 +626,12 @@ def main() -> int:
             file=sys.stderr,
         )
         return 1
+
+    # CI speed-regression gate modes (single-cell, GIL=0 only).
+    if args.gate_update:
+        return run_gate_update(args.archetype or "blog", args.pages or 100, args.runs)
+    if args.gate:
+        return run_gate(args.archetype or "blog", args.pages or 100, args.runs, args.tolerance)
 
     if args.scales or args.archetypes:
         scales = [int(s) for s in (args.scales or "100,1000").split(",")]

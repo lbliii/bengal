@@ -183,18 +183,27 @@ class TestOptionalDependencies:
     """Optional dependencies should only load when explicitly used."""
 
     def test_uvloop_not_loaded_by_utils(self):
-        """Importing utils should not trigger uvloop load."""
-        result = measure_import("bengal.utils.hashing")
+        """Importing a pure util should not trigger uvloop load."""
+        result = measure_import("bengal.utils.primitives.hashing")
 
         assert "uvloop" not in result.optional_loaded, (
-            "uvloop loaded by bengal.utils.hashing - should be lazy"
+            "uvloop loaded by bengal.utils.primitives.hashing - should be lazy"
         )
 
     def test_psutil_not_loaded_by_default(self):
-        """psutil should only load when collecting performance metrics."""
-        result = measure_import("bengal.utils.logger")
+        """psutil should only load when collecting performance metrics.
 
-        assert "psutil" not in result.optional_loaded, "psutil loaded by logger - should be lazy"
+        Regression guard: bengal.utils.__init__ eagerly imports the observability
+        subpackage, so a leak in PerformanceCollector's import would pull psutil
+        into every bengal.utils import. psutil is deferred into
+        PerformanceCollector.__init__ to keep this clean.
+        """
+        result = measure_import("bengal.utils.observability.logger")
+
+        assert "psutil" not in result.optional_loaded, (
+            "psutil loaded by observability.logger - should be lazy (deferred into "
+            "PerformanceCollector.__init__)"
+        )
 
     def test_aiohttp_not_loaded_by_content_layer(self):
         """aiohttp should only load when using REST/external sources."""
@@ -401,8 +410,8 @@ if __name__ == "__main__":
             "kida",
             "bengal.rendering.highlighting",
             "bengal.utils",
-            "bengal.utils.hashing",
-            "bengal.utils.logger",
+            "bengal.utils.primitives.hashing",
+            "bengal.utils.observability.logger",
             "bengal.errors",
             "bengal.core.page",
         ]

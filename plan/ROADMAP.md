@@ -67,8 +67,9 @@ Machine-checked on 2026-05-30:
 | 7 | `rfc-template-view-model-contracts.md` | Active | Theme and rendering contract for Chirp UI and future themes. |
 | 8 | `rfc-theme-library-assets.md` | Active | Library asset contract for Chirp UI parity in static and dev output. |
 | 9 | `rfc-health-diagnostics-audit.md` | Active implementation | Artifact audit and health diagnostics are still being separated. |
+| 10 | `epic-performance.md` | Active | Free-threading is the North Star, but published numbers (README `~256/373 pps`) contradict committed baselines (`~18–20 pps`) and there is no benchmark CI gate. Measurement integrity first, then the rendering hot path. |
 
-This file is the tenth root planning file and owns sequencing.
+This file is the eleventh root planning file and owns sequencing.
 
 ---
 
@@ -76,6 +77,8 @@ This file is the tenth root planning file and owns sequencing.
 
 | Priority | Work | Proof Before Close |
 |----------|------|--------------------|
+| P0 ✅ | Performance measurement integrity (`epic-performance.md` Wave 1) — **DONE 2026-06-02** | Shipped: README `256/373 pps` prose replaced with committed baselines; site-doc tables labeled; `gil_speedup` harness now captures the full phase ledger; phase-accounting audit committed (`phase_attribution.json`); dead import guards repaired + psutil pollution fixed. **Clean attribution (idle machine):** rendering 45%→68%, asset_audit ~11%, free-threading 1.78x→**2.50x**. (Self-correction: an earlier asset_audit "41%/22.7s" figure was load-inflated ~14x — re-measured idle; lesson recorded.) |
+| P1 | Performance render hot path + CI gate (`epic-performance.md` Wave 2) | **Rendering is the real lever (~68%).** Diagnosed 2026-06-02: it **plateaus at ~1.7x** — a per-page lock/bandwidth ceiling (FIX C), not the scheduler barrier (one dominant group) or worker count (FT worker-profile tweak investigated + **reverted** as scale-dependent/variance-adding). Shipped: **builds are now byte-reproducible** (fixed non-deterministic related-posts tiebreak, tag ordering, and `hash()`-based tag accent); `asset_audit` exists-memoized (serial; threadpool reverted — bare `ThreadPoolExecutor` banned); **asset_extractor rewritten as a faithful single-pass scanner** (byte-identical, ~4.1x faster extraction, 47-case parity + real-build verified). **Plateau diagnosed 2026-06-02:** cpu/wall=4.29 at 8 workers → cores BUSY, not idle, so it is **NOT lock contention** (FIX C ruled out — not implemented). Parallel burns **2.6x CPU for the same work, per-page** → **free-threading atomic-refcount/coherency overhead** on shared objects. The ~1.7x ceiling is Python 3.14t's coherency tax. Real lever (xl, architectural): minimize cross-thread shared-object access in render (T13/snapshot handoff, immortalize hot shared immutables, cut per-page allocation); next diagnostic is a refcount/coherency profile. Open: kida `inspect.signature` memoization (external pin); 21-opens/page file-I/O lead; docs/autodoc-archetype profile. |
 | P1 | Re-measure and reduce `ty` floor | Current count is 531 diagnostics; close with a lower recorded count and no new suppressions. |
 | P1 | OpenAPI REST autodoc polish | Focused autodoc tests cover Python, CLI, OpenAPI, and layout output. |
 | P1 | Snapshot build-plan handoff | Worker paths consume frozen plans/snapshots instead of live mutable objects. |
@@ -114,10 +117,11 @@ as follow-up and accepted as outside the Page saga closure criteria.
 
 | Priority | Saga | Source Plan | Notes |
 |----------|------|-------------|-------|
-| 1 | OpenAPI REST polish | `epic-openapi-rest-layout-upgrade.md` | User-facing docs/templates; include visual/output proof and changelog. |
-| 2 | Ty floor reduction | Roadmap P1 | No suppressions or public API widening just to satisfy ty. |
-| 3 | Snapshot build-plan handoff | `rfc-snapshot-build-plan-handoff.md` | Worker-safe execution now follows naturally after mutable Page deletion. |
-| 4 | Directive migration parser state leak | Roadmap P1 / `epic-ux-sharp-edges.md` | Fix the unrelated full-suite parity failure before relying on migration parity as a release gate. |
+| 1 | Performance measurement integrity | `epic-performance.md` Wave 1 | Pull ahead of engineering work: it is docs/harness/tests only (low risk) and gates honest scoring of every other perf task. Fixes the README `~256/373 pps` credibility gap, adds phase capture + a phase-accounting audit, repairs the dead import guards. |
+| 2 | OpenAPI REST polish | `epic-openapi-rest-layout-upgrade.md` | User-facing docs/templates; include visual/output proof and changelog. |
+| 3 | Ty floor reduction | Roadmap P1 | No suppressions or public API widening just to satisfy ty. |
+| 4 | Snapshot build-plan handoff | `rfc-snapshot-build-plan-handoff.md` | Worker-safe execution now follows naturally after mutable Page deletion. Also `epic-performance.md` Wave 4 T13 — the free-threading scaling lever beyond 1.94x. |
+| 5 | Directive migration parser state leak | Roadmap P1 / `epic-ux-sharp-edges.md` | Fix the unrelated full-suite parity failure before relying on migration parity as a release gate. |
 
 ---
 

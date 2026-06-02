@@ -22,6 +22,7 @@ session mission; this index and `ROADMAP.md` remain the durable source of truth.
 | `ROADMAP.md` | Active | Sequencing and verification snapshot for the current plan set. |
 | `epic-delete-forwarding-wrappers.md` | Active | Keep as follow-on architecture cleanup after Page/Site boundaries shrink. |
 | `epic-openapi-rest-layout-upgrade.md` | Active | Autodoc/API docs polish remains a production gap. |
+| `epic-performance.md` | Active | Prioritized performance goal/workflow. Measurement integrity first (published numbers contradict committed baselines; no benchmark CI gate), then the free-threading rendering hot path. |
 | `epic-ux-sharp-edges.md` | Active | User-visible CLI/error/directive/scaffold polish bucket. |
 | `rfc-effect-traced-incremental-builds.md` | Active | Long-term effect graph and template HMR direction. |
 | `rfc-health-diagnostics-audit.md` | Active implementation | Health, artifact audit, and reporting separation. |

@@ -51,14 +51,6 @@ def _get_logger():
     return _logger
 
 
-try:
-    import psutil
-
-    HAS_PSUTIL = True
-except ImportError:
-    HAS_PSUTIL = False
-
-
 class PerformanceCollector:
     """
     Collects and persists build performance metrics.
@@ -95,10 +87,15 @@ class PerformanceCollector:
         self.previous: Any = None
         self.regression_pct: float | None = None
 
-        # Initialize psutil if available
-        if HAS_PSUTIL:
+        # Initialize psutil if available. Imported lazily here (not at module
+        # level) so that importing this module — or anything under bengal.utils,
+        # whose package __init__ eagerly pulls observability — does not drag in
+        # psutil. Guarded by test_import_overhead.py.
+        try:
+            import psutil
+
             self.process = psutil.Process()
-        else:
+        except ImportError:
             self.process = None
 
     def start_build(self) -> None:

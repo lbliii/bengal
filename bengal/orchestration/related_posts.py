@@ -384,8 +384,22 @@ class RelatedPostsOrchestrator:
         if not scored_pages:
             return []
 
-        # Sort by score (descending) and return top N
-        # Higher score = more shared tags = more related
-        sorted_pages = sorted(scored_pages.values(), key=lambda x: x[1], reverse=True)
+        # Sort by score (descending), breaking ties by a stable page identifier.
+        # The scoring above iterates a set of tag slugs and parallel-built tag→pages
+        # lists, so scored_pages insertion order is non-deterministic. A score-only
+        # sort then resolved equal-score ties by that unstable order, which made
+        # related-posts — and every page that renders them — differ run-to-run.
+        # Sorting ties by source_path makes the result reproducible regardless of
+        # thread scheduling. Higher score = more shared tags = more related.
+        def _stable_key(entry: list) -> tuple[int, str]:
+            other = entry[0]
+            ident = (
+                getattr(other, "source_path", None)
+                or getattr(other, "_path", None)
+                or getattr(other, "href", "")
+            )
+            return (-entry[1], str(ident))
+
+        sorted_pages = sorted(scored_pages.values(), key=_stable_key)
 
         return [page for page, score in sorted_pages[:limit]]

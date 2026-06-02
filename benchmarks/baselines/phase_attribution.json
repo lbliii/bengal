@@ -1,0 +1,85 @@
+{
+  "title": "Phase-accounting audit (epic-performance.md Wave 1 / T3)",
+  "methodology": "Free-threaded CPython 3.14t (PYTHON_GIL=0), blog archetype with taxonomy, cold build, in-process Site.build via benchmark_gil_speedup.py with the extended phase ledger. Surfaces BuildStats.phase_timings_ms (Discovery/Parsing/Snapshot/Content/Rendering/Assets/Post-process/Cache save/Stats/Health check) PLUS post_render_timings_ms['asset_audit']. asset_audit is now parallelized across a threadpool (byte-identical findings).",
+  "headline": "RENDERING is the dominant cost: 45% of a 100-page build and ~68% of a 1000-page build, and it grows with scale. asset_audit is a much smaller ~12% (NOT the 41-44% an earlier run reported). Free-threading speedup is 1.78x at 100 pages and 2.50x at 1000 pages on a clean machine.",
+  "caveats": "MEASUREMENT-INTEGRITY CORRECTION: a prior version of this artifact reported asset_audit at ~22.7s / 41% of a 1000-page build. That single run was taken while the machine was saturated with concurrent benchmarks and agents; it was load-inflated by ~14x. Re-measured on an idle machine, asset_audit is ~0.36s (100p) / ~3.9s (1000p) \u2014 about 11-12% of the build, with the parallel scanner active. Lesson: never measure perf under concurrent load, even when re-baselining. The 1000-page cell is a single (slow) run; the 100-page cell is median-of-3. gil_speedup.json remains the authoritative timing baseline.",
+  "cells": [
+    {
+      "pages_content": 100,
+      "pages_total_output": 137,
+      "runs": "median-of-3",
+      "note": "100-page blog, idle machine",
+      "gil0_wall_s": 2.949,
+      "gil0_build_time_s": 2.922,
+      "speedup_vs_gil1": 1.778,
+      "attribution_s": {
+        "Rendering": 1.315,
+        "asset_audit (post-render, outside ledger)": 0.357,
+        "Cache save": 0.29,
+        "Post-process": 0.265,
+        "Discovery": 0.133,
+        "Config/filter": 0.121,
+        "Assets": 0.097,
+        "Parsing": 0.045,
+        "Content": 0.043,
+        "Snapshot": 0.029,
+        "Artifact inventory": 0.011,
+        "Health check": 0.01,
+        "Provenance save": 0.006,
+        "Initialization": 0.001,
+        "Stats": 0.001,
+        "Finalize": 0.0
+      },
+      "pct_of_build": {
+        "Rendering": 45.0,
+        "asset_audit (post-render, outside ledger)": 12.2,
+        "Cache save": 9.9,
+        "Post-process": 9.1,
+        "Discovery": 4.6,
+        "Config/filter": 4.1,
+        "Assets": 3.3,
+        "Parsing": 1.5,
+        "Content": 1.5,
+        "Snapshot": 1.0
+      },
+      "accounted_pct": 93.2
+    },
+    {
+      "pages_content": 1000,
+      "pages_total_output": 1313,
+      "runs": "single",
+      "note": "1000-page blog, idle machine, single run",
+      "gil0_wall_s": 35.237,
+      "gil0_build_time_s": 35.215,
+      "speedup_vs_gil1": 2.498,
+      "attribution_s": {
+        "Rendering": 23.867,
+        "asset_audit (post-render, outside ledger)": 3.929,
+        "Post-process": 2.195,
+        "Cache save": 1.878,
+        "Content": 1.673,
+        "Discovery": 0.788,
+        "Health check": 0.179,
+        "Config/filter": 0.167,
+        "Parsing": 0.127,
+        "Assets": 0.102,
+        "Snapshot": 0.09,
+        "Artifact inventory": 0.077,
+        "Provenance save": 0.026,
+        "Stats": 0.016,
+        "Initialization": 0.005,
+        "Finalize": 0.0
+      },
+      "pct_of_build": {
+        "Rendering": 67.8,
+        "asset_audit (post-render, outside ledger)": 11.2,
+        "Post-process": 6.2,
+        "Cache save": 5.3,
+        "Content": 4.8,
+        "Discovery": 2.2,
+        "Health check": 0.5
+      },
+      "accounted_pct": 99.7
+    }
+  ]
+}

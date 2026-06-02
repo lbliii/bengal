@@ -41,6 +41,16 @@ The benchmark suite uses **minimal test pages**:
 
 Cold build times (no cache) for the benchmark test content.
 
+:::{warning} Workload label — render-light best case, not the committed baseline
+The table below is a **render-light, minimal-content best case** (no taxonomy, no
+directives, no syntax highlighting). It is **not** Bengal's committed, reproducible
+baseline. The committed baseline (`benchmarks/baselines/`, `blog` archetype with
+taxonomy, free-threaded 3.14t, median of 3) measures **~18–20 pages/s end-to-end** —
+e.g. 1,000 pages in **56.3 s** (`PYTHON_GIL=0`). Treat the numbers below as an
+upper bound for trivial sites, and see [the committed free-threading table](#free-threaded-python-impact)
+and `benchmarks/baselines/SPEEDUP.md` for what reproduces.
+:::
+
 | Site Size | Build Time | Pages/Second |
 |-----------|------------|--------------|
 | 100 pages | ~0.4s | ~250 pps |
@@ -70,6 +80,12 @@ Incremental builds provide the largest real-world benefit. Even on large sites, 
 ## Memory Usage
 
 Peak RAM during builds with benchmark test content.
+
+:::{note} No committed memory baseline yet
+The figures below are illustrative; there is **no committed peak-RSS baseline**
+(`benchmarks/baselines/peak_rss.json` is not yet generated). Treat them as rough
+guidance until a measured baseline lands.
+:::
 
 | Site Size | Peak Memory | Per-Page Overhead |
 |-----------|-------------|-------------------|
@@ -104,6 +120,14 @@ Comparing Python 3.14 with and without the GIL (1,000 pages).
 |---------------|------------|----------|
 | Python 3.14 (GIL enabled) | ~3.5 s | 1.0x |
 | Python 3.14 (PYTHON_GIL=0) | ~2.0 s | 1.75x |
+
+:::{note} Committed baseline
+The render-light numbers above predate the committed baseline. On the taxonomy-heavy
+`blog` archetype (`benchmarks/baselines/gil_speedup.json`, median of 3), free-threading
+measures **1.24x at 100 pages and 1.94x at 1,000 pages** (56.3 s with `PYTHON_GIL=0`
+vs 109.2 s with the GIL re-enabled). The speedup grows with site size because rendering
+— the dominant phase — scales across threads.
+:::
 
 ```bash
 # Enable free-threading

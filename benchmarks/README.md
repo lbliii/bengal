@@ -117,7 +117,7 @@ python -m pstats benchmarks/.benchmarks/cpu_profile.prof
 - **Fast mode**: Quiet output + guaranteed parallel (`--fast` flag)
 
 ### Incremental Builds
-- **Single page change**: Most common developer workflow (15-50x speedup expected)
+- **Single page change**: Most common developer workflow (rebuilds a fraction of the site; warm-build speedup is workload-dependent and not yet committed as a baseline)
 - **Multi-page change**: Batch edits (5 pages)
 - **Config change**: Should trigger full rebuild
 - **No changes**: Cache validation (<1s expected)
@@ -132,14 +132,33 @@ python -m pstats benchmarks/.benchmarks/cpu_profile.prof
 
 ## Expected Performance
 
-**Python 3.14** (recommended):
-- Full build: ~256 pages/sec
-- Incremental: 15-50x speedup for single-page changes
-- Parallel: 2-4x speedup on multi-core systems
+The numbers below are the **committed baselines** in `benchmarks/baselines/`
+(free-threaded CPython 3.14t, `blog` archetype with taxonomy, cold build, median
+of 3). Regenerate with `python benchmarks/benchmark_gil_speedup.py --publish`;
+see `baselines/SPEEDUP.md`.
 
-**Python 3.14t Free-Threading** (optional):
-- Full build: ~373 pages/sec
-- True parallel rendering without GIL bottlenecks
+| Archetype | Pages | GIL=0 (free-threading) | GIL=1 (GIL re-enabled) | Free-threading speedup |
+|-----------|------:|-----------------------:|-----------------------:|-----------------------:|
+| blog | 100 | 4.86 s (20.6 pages/s) | 6.05 s (16.5 pages/s) | 1.24x |
+| blog | 1,000 | 56.3 s (17.8 pages/s) | 109.2 s (9.2 pages/s) | **1.94x** |
+
+**The headline is the free-threading speedup, not absolute pages/sec.** On the
+same 3.14t interpreter, disabling the GIL (`PYTHON_GIL=0`) is **1.94x faster at
+1,000 pages** because rendering — the dominant (~39%) phase — scales across
+threads. Absolute throughput is workload-dependent: a render-light "minimal
+content" fixture (no taxonomy, no directives, no highlighting) builds far faster
+per page than the taxonomy-heavy `blog` archetype above, so the two are not
+comparable.
+
+> **Accuracy note.** Earlier revisions of this file advertised "~256 pages/sec"
+> (3.14) and "~373 pages/sec" (3.14t). Those render-light best-case figures had
+> no committed benchmark behind them and contradicted the baselines above by
+> ~13x. Use the committed numbers. Warm/incremental speedup is likewise not yet
+> captured as a committed baseline — do not quote a fixed multiplier until it is.
+
+For absolute single-thread throughput, compiled SSGs (e.g. Hugo, written in Go)
+remain ~20x faster per page; Bengal's bet is free-threaded parallel **scaling**,
+not winning the per-page constant factor.
 
 ## Recent Optimizations (2025-10-20)
 
