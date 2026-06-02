@@ -43,8 +43,9 @@ def _openapi_endpoint_url_path(element: DocElement, prefix: str) -> str:
     grouping and the tag section hierarchy created in section_builders.py
     (``{prefix}/tags/{tag}``). The raw tag value is reused verbatim so the
     endpoint page nests beneath its parent tag section and ``find_parent_section``
-    resolves the same section by key. Untagged endpoints fall back to
-    ``{prefix}/endpoints/...``.
+    resolves the same section by key. Untagged endpoints nest under the synthetic
+    ``{prefix}/tags/default`` section that ``section_builders`` creates for them,
+    so their page URL agrees with their section placement.
 
     This must stay identical to the parent-section lookup so that page URLs and
     section placement agree.
@@ -52,9 +53,8 @@ def _openapi_endpoint_url_path(element: DocElement, prefix: str) -> str:
     method = get_openapi_method(element).lower()
     path = path_to_slug(get_openapi_path(element))
     tags = get_openapi_tags(element)
-    if tags:
-        return f"{prefix}/tags/{tags[0]}/{method}-{path}"
-    return f"{prefix}/endpoints/{method}-{path}"
+    tag = tags[0] if tags else "default"
+    return f"{prefix}/tags/{tag}/{method}-{path}"
 
 
 # ============================================================================
@@ -433,10 +433,10 @@ def find_parent_section(
             return sections.get(f"{prefix}/schemas") or sections.get(prefix) or default_section
         if element.element_type == "openapi_endpoint":
             tags = get_openapi_tags(element)
-            if tags:
-                tag_section = sections.get(f"{prefix}/tags/{tags[0]}")
-                if tag_section:
-                    return tag_section
+            tag = tags[0] if tags else "default"
+            tag_section = sections.get(f"{prefix}/tags/{tag}")
+            if tag_section:
+                return tag_section
             return sections.get(prefix) or default_section
     return sections.get(prefix) or default_section
 

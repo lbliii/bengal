@@ -118,6 +118,38 @@ components:
     assert result is not None
 
 
+def test_openapi_untagged_endpoint_nests_under_default_tag(tmp_path: Path) -> None:
+    """An endpoint with no tags must nest under the synthetic ``tags/default``
+    section so its page URL agrees with its section placement (the URL path,
+    ``find_parent_section``, and ``section_builders`` must all use the same key).
+    """
+    spec_path = tmp_path / "openapi.yaml"
+    spec_path.write_text(
+        """openapi: 3.1.0
+info:
+  title: Demo API
+  version: "1.0.0"
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: ok
+""",
+        encoding="utf-8",
+    )
+
+    site = _make_mock_site(tmp_path, spec_path)
+    pages, _sections, _result = VirtualAutodocOrchestrator(site).generate()
+
+    url_paths = {p.metadata.get("_autodoc_url_path") for p in pages}
+    # Untagged endpoint nests under tags/default (NOT the old /endpoints/ scheme),
+    # matching the default tag section section_builders creates for it.
+    assert "api/demo/tags/default/get-health" in url_paths
+    assert not any(u and u.startswith("api/demo/endpoints/") for u in url_paths)
+
+
 def test_openapi_spec_file_is_resolved_relative_to_site_root(tmp_path: Path, monkeypatch) -> None:
     """
     Ensure spec_file is resolved relative to site.root_path, not the current working directory.
