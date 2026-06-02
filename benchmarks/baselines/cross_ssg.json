@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-06-02T16:57:11Z",
+  "python": "3.14.2 free-threading build (main, Dec 17 2025, 21:08:58) [Clang 21.1.4 ]",
+  "methodology": "cold build, minimal markdown, 3 runs median; Bengal on free-threaded 3.14t (PYTHON_GIL=0); Hugo uses auto-generated minimal layouts",
+  "skipped": {
+    "eleventy": "skipped (Node/npx toolchain; not comparable cold)",
+    "mkdocs": "not installed",
+    "pelican": "not installed"
+  },
+  "results": [
+    {
+      "ssg": "bengal",
+      "pages": 100,
+      "median_seconds": 5.2684624579997035,
+      "pages_per_second": 18.980869807311368,
+      "all_runs": [
+        5.2684624579997035,
+        5.342979374996503,
+        5.0141978330066195
+      ],
+      "error": null
+    },
+    {
+      "ssg": "hugo",
+      "pages": 100,
+      "median_seconds": 0.23975154099753127,
+      "pages_per_second": 417.09846612009767,
+      "all_runs": [
+        0.22435837500961497,
+        0.44657408399507403,
+        0.23975154099753127
+      ],
+      "error": null
+    }
+  ]
+}

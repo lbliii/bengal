@@ -1,0 +1,69 @@
+{
+  "metadata": {
+    "python_version": "3.14.2 free-threading build (main, Dec 17 2025, 21:08:58) [Clang 21.1.4 ]",
+    "free_threaded": true,
+    "runs_per_cell": 3,
+    "platform": "darwin"
+  },
+  "data": {
+    "methodology": "Same free-threaded CPython 3.14t interpreter; each build runs in a subprocess with PYTHON_GIL=0 vs PYTHON_GIL=1; in-process Site.build; cold build; median of N runs; worker asserts sys._is_gil_enabled().",
+    "cells": [
+      {
+        "archetype": "blog",
+        "pages": 100,
+        "error": null,
+        "speedup": 1.2443217964484263,
+        "gil0_wall_s": 4.8641703330067685,
+        "gil1_wall_s": 6.052593166998122,
+        "gil0_pages_per_sec": 20.558490586036978,
+        "gil1_pages_per_sec": 16.52184398337755,
+        "gil0_phases_s": {
+          "wall_s": 4.8641703330067685,
+          "build_time_s": 4.826822996139526,
+          "discovery_s": 0.22100305557250977,
+          "taxonomy_s": 0.012703180313110352,
+          "rendering_s": 1.190274953842163,
+          "assets_s": 0.06361889839172363,
+          "postprocess_s": 0.3219289779663086
+        },
+        "gil1_phases_s": {
+          "wall_s": 6.052593166998122,
+          "build_time_s": 6.050901174545288,
+          "discovery_s": 0.19449806213378906,
+          "taxonomy_s": 0.025886058807373047,
+          "rendering_s": 2.0570619106292725,
+          "assets_s": 0.13135099411010742,
+          "postprocess_s": 0.3969898223876953
+        }
+      },
+      {
+        "archetype": "blog",
+        "pages": 1000,
+        "error": null,
+        "speedup": 1.9395531490034705,
+        "gil0_wall_s": 56.30688133300282,
+        "gil1_wall_s": 109.21018899999035,
+        "gil0_pages_per_sec": 17.759818628311702,
+        "gil1_pages_per_sec": 9.156654787952874,
+        "gil0_phases_s": {
+          "wall_s": 56.30688133300282,
+          "build_time_s": 56.274816036224365,
+          "discovery_s": 0.6227309703826904,
+          "taxonomy_s": 0.1555309295654297,
+          "rendering_s": 21.8663067817688,
+          "assets_s": 0.12613797187805176,
+          "postprocess_s": 2.3319668769836426
+        },
+        "gil1_phases_s": {
+          "wall_s": 109.21018899999035,
+          "build_time_s": 109.18586206436157,
+          "discovery_s": 1.0688979625701904,
+          "taxonomy_s": 0.21969103813171387,
+          "rendering_s": 65.36234283447266,
+          "assets_s": 0.2108020782470703,
+          "postprocess_s": 3.6995348930358887
+        }
+      }
+    ]
+  }
+}
