@@ -90,6 +90,8 @@ class RuntimePage:
     _init_lock: threading.RLock = field(default_factory=threading.RLock, init=False, repr=False)
     _metadata_view_cache: CascadeView | None = field(default=None, init=False, repr=False)
     _metadata_view_cache_key: tuple[int, str] | None = field(default=None, init=False, repr=False)
+    _section_path_rel_cache: str | None = field(default=None, init=False, repr=False)
+    _section_path_rel_site: int | None = field(default=None, init=False, repr=False)
     _ast_cache: list[ASTNode] | dict[str, Any] | None = field(default=None, repr=False, init=False)
     _html_cache: str | None = field(default=None, repr=False, init=False)
     _plain_text_cache: str | None = field(default=None, repr=False, init=False)
@@ -159,13 +161,7 @@ class RuntimePage:
         if cascade is None or not isinstance(cascade, CascadeSnapshot):
             return self._raw_metadata
 
-        section_path = ""
-        if self._section_path:
-            try:
-                content_dir = self._site.root_path / "content"
-                section_path = str(self._section_path.relative_to(content_dir))
-            except ValueError, AttributeError:
-                section_path = str(self._section_path)
+        section_path = self._relative_section_path()
 
         cache_key = (id(cascade), section_path)
         if self._metadata_view_cache is not None and self._metadata_view_cache_key == cache_key:
@@ -182,6 +178,29 @@ class RuntimePage:
             self._metadata_view_cache = view
             self._metadata_view_cache_key = cache_key
         return view
+
+    def _relative_section_path(self) -> str:
+        """Return the section path relative to ``content/``, memoized per site.
+
+        ``metadata`` is read hundreds of times per page during rendering and the
+        result depends only on the (effectively immutable) section path and the
+        site root, so the ``relative_to`` resolution is cached instead of redone
+        on every access. The ``_section`` setter clears this cache when the
+        section path changes (#307).
+        """
+        if self._section_path is None or self._site is None:
+            return ""
+        site_id = id(self._site)
+        if self._section_path_rel_cache is not None and self._section_path_rel_site == site_id:
+            return self._section_path_rel_cache
+        try:
+            content_dir = self._site.root_path / "content"
+            rel = str(self._section_path.relative_to(content_dir))
+        except ValueError, AttributeError:
+            rel = str(self._section_path)
+        self._section_path_rel_cache = rel
+        self._section_path_rel_site = site_id
+        return rel
 
     @property
     def title(self) -> str:
@@ -538,6 +557,7 @@ class RuntimePage:
 
         self._section_obj_cache_key = None
         self._section_obj_cache = None
+        self._section_path_rel_cache = None
 
     @property
     def section_path(self) -> str | None:
