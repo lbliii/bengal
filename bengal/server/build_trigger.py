@@ -416,8 +416,14 @@ class BuildTrigger:
             swapped = False
             if self._buffer_manager is not None:
                 if use_incremental and self._last_buffer_delta_paths is not None:
+                    # asset-manifest.json describes the currently-served buffer and is
+                    # not rewritten on content-only rebuilds, so it never lands in the
+                    # delta paths — sync it from active every time so the staging buffer
+                    # (and thus the next active buffer) never serves a stale/divergent
+                    # manifest that blinds the asset output-integrity check (#315).
                     staging = self._buffer_manager.prepare_delta_staging(
-                        self._last_buffer_delta_paths
+                        self._last_buffer_delta_paths,
+                        always_sync=("asset-manifest.json",),
                     )
                 else:
                     staging = self._buffer_manager.prepare_staging()
