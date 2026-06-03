@@ -106,7 +106,12 @@ class BufferManager:
 
         return staging
 
-    def prepare_delta_staging(self, changed_paths: Iterable[Path | str]) -> Path:
+    def prepare_delta_staging(
+        self,
+        changed_paths: Iterable[Path | str],
+        *,
+        always_sync: Iterable[Path | str] = (),
+    ) -> Path:
         """Bring staging up to date by syncing only known changed outputs.
 
         The inactive buffer is usually a complete snapshot from the previous
@@ -115,6 +120,15 @@ class BufferManager:
         enough to make staging a complete base for the next incremental build.
         If staging is empty or a path cannot be made relative safely, this
         falls back to the full hardlink seed.
+
+        ``always_sync`` lists output paths that must be seeded from the active
+        buffer on *every* delta-staging, regardless of ``changed_paths``. These
+        are infrastructure files (notably ``asset-manifest.json``) whose content
+        describes the *currently served* buffer rather than a stable per-file
+        output: a content-only rebuild never rewrites them, so they would never
+        appear in ``changed_paths`` and would otherwise drift a generation behind
+        across swaps — leaving a buffer serving a stale/divergent manifest (#315).
+        Seeding them from active each time keeps both buffers consistent.
         """
         staging = self.staging_dir
         active = self.active_dir
@@ -164,14 +178,57 @@ class BufferManager:
                 shutil.copy2(src_path, dst_path)
             synced += 1
 
+        forced = self._sync_always(always_sync, active, staging)
+
         logger.debug(
             "staging_delta_seeded",
             files=synced,
             removed=removed,
+            forced=forced,
             active=str(active),
             staging=str(staging),
         )
         return staging
+
+    def _sync_always(
+        self,
+        always_sync: Iterable[Path | str],
+        active: Path,
+        staging: Path,
+    ) -> int:
+        """Unconditionally re-seed infrastructure paths from active into staging.
+
+        Mirrors the per-file hardlink/copy used elsewhere. A path absent from the
+        active buffer is removed from staging so the two stay consistent. Unsafe
+        paths are skipped (they cannot escape the buffer root). Returns the number
+        of files synced for logging.
+        """
+        forced = 0
+        for raw_path in always_sync:
+            rel_path = self._normalize_relative_output_path(Path(raw_path), active)
+            if rel_path is None:
+                # Should not happen for the build's own infrastructure paths, but
+                # log it (rather than silently dropping) so an unexpected unsafe
+                # path surfaces instead of manifesting as a mystery stale manifest.
+                logger.debug(
+                    "staging_always_sync_skipped", reason="unsafe_path", path=str(raw_path)
+                )
+                continue
+            src_path = active / rel_path
+            dst_path = staging / rel_path
+            if not src_path.is_file():
+                if dst_path.is_file():
+                    dst_path.unlink()
+                continue
+            dst_path.parent.mkdir(parents=True, exist_ok=True)
+            if dst_path.exists():
+                dst_path.unlink()
+            try:
+                os.link(src_path, dst_path)
+            except OSError:
+                shutil.copy2(src_path, dst_path)
+            forced += 1
+        return forced
 
     def swap(self) -> int:
         """Atomically swap staging to active.
