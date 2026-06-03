@@ -2,18 +2,23 @@
 
 # Bengal Plan & RFC Index
 
-Updated: 2026-05-29
+Updated: 2026-06-03
 
 Root `plan/` is intentionally small. It contains `AGENTS.md`, this index, the
 current roadmap, and the nine active plans that still describe work Bengal
 intends to do. Everything else belongs in an archive directory and should not
 be treated as the agenda.
 
-For "what should we work on next?", read `ROADMAP.md` first. Use the saga
-workflow in `AGENTS.md` to turn one active roadmap slice into a thematic PR with
-scoped commits, steward consultation, proof commands, and an end-of-saga plan
-update. If the user asks to start the saga as a goal, the goal tracks the active
-session mission; this index and `ROADMAP.md` remain the durable source of truth.
+For "what should we work on next?", read `ROADMAP.md` first, then the open
+**GitHub issues** — active, in-flight work is tracked as issues (each saga maps
+to one), while `ROADMAP.md` owns sequencing and the proof gate. Do not rely on
+chat memory to know what is in progress. Use the saga workflow in `AGENTS.md`
+(branch/worktree hygiene, the clean proof workflow, and the end-of-saga
+roadmap-pruning checklist) to turn one active roadmap slice into a thematic PR
+with scoped commits, steward consultation, proof commands, and an end-of-saga
+plan update. If the user asks to start the saga as a goal, the goal tracks the
+active session mission; this index and `ROADMAP.md` remain the durable source of
+truth.
 
 ## Active Root Set
 
@@ -84,8 +89,20 @@ session mission; this index and `ROADMAP.md` remain the durable source of truth.
   SourcePage-backed `RuntimePage` instances.
 - Full-suite proof for the Page saga ran in a clean worktree at `ba37930b3`.
   Page/source/rendering gates, ruff, dependency checks, and ty passed. The only
-  remaining full-suite failures are an unrelated directive migration parity
-  state leak reproducible with `--randomly-seed=314926607`.
+  remaining full-suite failures were an unrelated directive migration parity
+  state leak reproducible with `--randomly-seed=314926607`, since **resolved by
+  #298** (the cause was an incomplete directive render-cache key, not a parser
+  state leak; see `changelog.d/directive-cache-key-collision.fixed.md`).
+
+## 2026-06-03 Triage Notes
+
+- Documented the full saga lifecycle in `AGENTS.md`: branch/dirty-worktree
+  hygiene, the clean proof workflow (widening gate rings + failure
+  classification), and the end-of-saga roadmap-pruning checklist.
+- Applied the pruning checklist: the "directive migration parser state leak"
+  P1/saga rows in `ROADMAP.md` were marked resolved by #298 (it was a
+  render-cache-key bug, not a parser state leak), and the stale "open blocker"
+  prose in this index and the roadmap was corrected.
 
 ## Current Architecture Snapshot
 
