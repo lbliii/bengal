@@ -833,8 +833,38 @@ class AssetOrchestrator:
     def _write_asset_manifest(self, assets: list[Asset]) -> None:
         """
         Persist an asset-manifest.json file mapping logical assets to final outputs.
+
+        On an **incremental** build, ``assets`` holds only the subset reprocessed
+        this run. Rebuilding the manifest from just that subset would drop every
+        unchanged entry, shrinking the manifest and making ``inspect_asset_outputs``
+        report a vacuously "complete" tree — which blinds the incremental reprocess
+        safety net on later builds (#130 / #314). So for incremental builds we
+        *merge*: carry forward prior entries whose output file still exists, then
+        overlay this run's freshly-processed assets below (current entries win on a
+        logical-path collision). Full builds process the complete asset set, so they
+        rebuild from scratch — orphan-free, matching prior full-build semantics.
         """
+        manifest_path = self.site.output_dir / "asset-manifest.json"
         manifest = AssetManifest()
+
+        build_state = self.site.build_state
+        if build_state is not None and build_state.incremental:
+            prior = AssetManifest.load(manifest_path)
+            if prior is not None:
+                for entry in prior.entries.values():
+                    output_abs = self.site.output_dir / entry.output_path
+                    try:
+                        output_exists = output_abs.exists()
+                    except OSError:
+                        output_exists = False
+                    # Only retain entries whose output is still on disk. A deleted
+                    # asset whose output was cleaned drops out here; one whose
+                    # output lingers is retained but still accurately describes a
+                    # real file (harmless to the integrity check; the next full
+                    # build prunes it).
+                    if output_exists:
+                        manifest.add_entry(entry)
+
         for asset in assets:
             final_path = getattr(asset, "output_path", None)
             if not isinstance(final_path, Path):
@@ -863,6 +893,5 @@ class AssetOrchestrator:
                 provenance=asset.manifest_provenance,
             )
 
-        manifest_path = self.site.output_dir / "asset-manifest.json"
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         manifest.write(manifest_path)
