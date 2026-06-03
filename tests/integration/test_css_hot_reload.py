@@ -537,3 +537,133 @@ Content modified after CSS directory was cleaned.
             "CSS should be regenerated when output was cleaned. "
             "This tests the provenance filter's CSS entry check."
         )
+
+
+class TestCSSHotReloadThemeProvidedCSS:
+    """Hot-reload CSS coverage for the dogfood case: CSS comes from the *theme*.
+
+    The other tests in this module put a ``style.css`` in the site's own
+    ``assets/css/`` (in-root). The real dogfood site (and most users) have no
+    own CSS — the entry point is the bundled theme's ``style.css``, which lives
+    inside the installed package, *outside* the site root.
+
+    That distinction matters for Issue #130: the incremental asset-discovery
+    cache keys discovered assets by ``source_path.relative_to(root_path)``, so
+    theme assets (outside root) are handled on a different path than in-root
+    assets. These tests assert the theme CSS survives and recovers across
+    content-only incremental rebuilds.
+    """
+
+    @pytest.fixture
+    def theme_site(self, tmp_path: Path) -> Path:
+        """A site that uses the default theme and has NO own CSS."""
+        site_root = tmp_path / "theme_site"
+        site_root.mkdir()
+        (site_root / "bengal.toml").write_text(
+            """
+title = "Theme CSS Hot Reload"
+baseurl = "https://example.com"
+
+[build]
+theme = "default"
+parallel = false
+minify_assets = false
+optimize_assets = false
+fingerprint_assets = false
+incremental = true
+"""
+        )
+        content_dir = site_root / "content"
+        content_dir.mkdir()
+        (content_dir / "index.md").write_text("---\ntitle: Home\n---\n\n# Home\n\nHello.\n")
+        (content_dir / "about.md").write_text("---\ntitle: About\n---\n\n# About\n\nAbout.\n")
+        return site_root
+
+    @staticmethod
+    def _theme_css(output_dir: Path) -> list[Path]:
+        css_dir = output_dir / "assets" / "css"
+        return list(css_dir.glob("style*.css")) if css_dir.exists() else []
+
+    @staticmethod
+    def _manifest_entry_count(output_dir: Path) -> int:
+        import json
+
+        manifest = output_dir / "asset-manifest.json"
+        if not manifest.exists():
+            return 0
+        data = json.loads(manifest.read_text())
+        entries = data.get("entries", data) if isinstance(data, dict) else data
+        return len(entries)
+
+    def test_theme_css_survives_content_only_incremental(self, theme_site: Path) -> None:
+        """Theme CSS and the asset manifest survive a content-only incremental.
+
+        Regression guard for Issue #130: a content-only edit must not drop the
+        theme's ``style.css`` from the output, nor empty the asset manifest
+        (an empty manifest would make the output-integrity check vacuously
+        "complete" and blind the reprocess safety net on later rebuilds).
+        """
+        about_file = theme_site / "content" / "about.md"
+
+        site1 = Site.from_config(theme_site)
+        output_dir = site1.output_dir
+        site1.build(BuildOptions(force_sequential=True, incremental=False))
+
+        assert self._theme_css(output_dir), "full build should emit the theme style.css"
+        entries_full = self._manifest_entry_count(output_dir)
+        assert entries_full >= 1, "full build should record asset-manifest entries"
+
+        # Content-only edit (no CSS touched).
+        about_file.write_text("---\ntitle: About\n---\n\n# About (edited)\n\nEdited.\n")
+        site2 = Site.from_config(theme_site)
+        site2.build(
+            BuildOptions(
+                force_sequential=True,
+                incremental=True,
+                changed_sources={about_file},
+            )
+        )
+
+        assert self._theme_css(output_dir), (
+            "theme style.css must survive a content-only incremental build (Issue #130)"
+        )
+        assert self._manifest_entry_count(output_dir) == entries_full, (
+            "content-only incremental must not empty/shrink the asset manifest (Issue #130)"
+        )
+
+    def test_theme_css_recovered_when_output_cleaned(self, theme_site: Path) -> None:
+        """If the theme CSS goes missing from output, an incremental recovers it.
+
+        This is the dogfood form of Issue #130's "fixed by restart" symptom:
+        when the served output loses ``style.css``, the next incremental build
+        must detect the gap (via the asset-manifest output-integrity check) and
+        regenerate it, rather than serving an unstyled page until a full rebuild.
+        """
+        about_file = theme_site / "content" / "about.md"
+
+        site1 = Site.from_config(theme_site)
+        output_dir = site1.output_dir
+        site1.build(BuildOptions(force_sequential=True, incremental=False))
+
+        css_v1 = self._theme_css(output_dir)
+        assert css_v1, "full build should emit the theme style.css"
+
+        # Simulate the served output losing its CSS.
+        for css in css_v1:
+            css.unlink()
+        assert not self._theme_css(output_dir)
+
+        # Content-only incremental should detect the missing CSS and regenerate.
+        about_file.write_text("---\ntitle: About\n---\n\n# About (edited)\n\nEdited.\n")
+        site2 = Site.from_config(theme_site)
+        site2.build(
+            BuildOptions(
+                force_sequential=True,
+                incremental=True,
+                changed_sources={about_file},
+            )
+        )
+
+        assert self._theme_css(output_dir), (
+            "theme style.css must be regenerated when missing from output (Issue #130)"
+        )
