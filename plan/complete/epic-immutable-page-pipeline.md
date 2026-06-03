@@ -21,9 +21,11 @@ Page/source/rendering gates pass, and `uv run ty check bengal/` now reports 531
 diagnostics, down from the previous 537 floor. Clean proof at `ba37930b3` also
 passed ruff, ruff format, dependency layers, and `git diff --check`. Full-suite
 runs no longer show Page-related failures; the remaining clean-worktree failure
-is an unrelated directive migration parser state leak reproduced with
+is an unrelated directive migration parity failure reproduced with
 `pytest tests/migration/test_directive_edge_cases.py::test_edge_case_parity --randomly-seed=314926607 -n0`
 and recorded in `plan/ROADMAP.md` as follow-up.
+(Correction: this was later **resolved by #298** — the cause was an incomplete
+directive render-cache key, not the "parser state leak" assumed at saga close.)
 
 ---
 

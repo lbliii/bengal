@@ -3,7 +3,7 @@
 # Bengal Roadmap - Active Plan Set
 
 **Created**: 2026-04-12  
-**Updated**: 2026-05-30
+**Updated**: 2026-06-03  
 **Baseline**: current `main` at `ab0f22339` plus source/test checks listed below
 **Version Target**: v0.4.0 beta  
 **Planning Rule**: root `plan/` keeps only the active agenda. Completed,
@@ -48,9 +48,11 @@ Machine-checked on 2026-05-30:
 - Clean proof worktree `/private/tmp/bengal-page-proof` at `ba37930b3` passed
   focused Page gates, broader Page/source/rendering gates, ruff, ruff format,
   dependency layers, `git diff --check`, and `ty` with the recorded 531
-  diagnostic floor. Full-suite runs now pass all Page-relevant coverage; the
-  only remaining failures are unrelated directive migration parity tests caused
-  by legacy parser state leakage after list directives.
+  diagnostic floor. Full-suite runs now pass all Page-relevant coverage. The
+  unrelated directive migration parity failures (once attributed to "parser
+  state leakage after list directives") were **resolved by #298** (correction
+  recorded 2026-06-03; not part of the 2026-05-30 machine check) — the root
+  cause was an incomplete directive render-cache key, not a parser state leak.
 
 ---
 
@@ -82,7 +84,7 @@ This file is the eleventh root planning file and owns sequencing.
 | P1 | Re-measure and reduce `ty` floor | Current count is 531 diagnostics; close with a lower recorded count and no new suppressions. |
 | P1 | OpenAPI REST autodoc polish | Focused autodoc tests cover Python, CLI, OpenAPI, and layout output. |
 | P1 | Snapshot build-plan handoff | Worker paths consume frozen plans/snapshots instead of live mutable objects. |
-| P1 | Directive migration parser state leak | Reproduce with `pytest tests/migration/test_directive_edge_cases.py::test_edge_case_parity --randomly-seed=314926607 -n0`; close with list edge cases passing in seed/order-sensitive runs. |
+| P1 ✅ | Directive migration parser state leak — **RESOLVED by #298** | Root cause was an incomplete directive render-cache key (lists store items in `.items`, not `.children`), not a parser state leak. `--randomly-seed=314926607` and a seed sweep now pass; regression coverage in `tests/migration/test_directive_cache_key.py`. |
 | P2 | Incremental dependency indexes | Warm-build tests prove dependency-to-output invalidation without broad scans. |
 | P2 | Effect-traced template HMR | Template edits rebuild only affected pages and record explainable effects. |
 | P2 | Template view model contracts | Directives, shortcodes, autodoc, indexes, and themes consume stable data contracts. |
@@ -111,9 +113,9 @@ mutable `Page`.
 public-export, Page record, core page, content-discovery, autodoc, rendering,
 initializer, and frontmatter gates pass; the broader Page/source/rendering gate
 passes; ruff, ruff format, dependency layers, `git diff --check`, and ty pass at
-the recorded 531 diagnostic floor. Clean full-suite runs at `ba37930b3` now
-expose only an unrelated directive migration parser state leak, recorded above
-as follow-up and accepted as outside the Page saga closure criteria.
+the recorded 531 diagnostic floor. The unrelated directive migration parity
+failure exposed by clean full-suite runs at `ba37930b3` — accepted at the time
+as outside the Page saga closure criteria — was **resolved by #298**.
 
 | Priority | Saga | Source Plan | Notes |
 |----------|------|-------------|-------|
@@ -121,7 +123,7 @@ as follow-up and accepted as outside the Page saga closure criteria.
 | 2 | OpenAPI REST polish | `epic-openapi-rest-layout-upgrade.md` | User-facing docs/templates; include visual/output proof and changelog. |
 | 3 | Ty floor reduction | Roadmap P1 | No suppressions or public API widening just to satisfy ty. |
 | 4 | Snapshot build-plan handoff | `rfc-snapshot-build-plan-handoff.md` | Worker-safe execution now follows naturally after mutable Page deletion. Also `epic-performance.md` Wave 4 T13 — the free-threading scaling lever beyond 1.94x. |
-| 5 | Directive migration parser state leak | Roadmap P1 / `epic-ux-sharp-edges.md` | Fix the unrelated full-suite parity failure before relying on migration parity as a release gate. |
+| 5 ✅ | Directive migration parser state leak — **DONE (#298)** | Roadmap P1 / `epic-ux-sharp-edges.md` | Migration parity is now order-stable across seeds; the cache-key fix unblocks treating parity as a release gate. |
 
 ---
 
