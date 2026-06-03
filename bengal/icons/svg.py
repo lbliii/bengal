@@ -187,7 +187,14 @@ ICON_MAP: dict[str, str] = {
     "chevron-left": "chevron-left",
     "chevron-up": "chevron-up",
     "chevron-down": "chevron-down",
-    "external": "arrow-square-out",
+    "external": "external",
+    # Aliases for icons referenced by docs content frontmatter (#288); each
+    # maps a missing name to an existing SVG in the default theme's icon set.
+    "languages": "translate",
+    "python": "file-py",
+    "robot": "sparkle",
+    "stethoscope": "heart",
+    "arrows": "arrow-clockwise",
     "link": "link",
     "search": "magnifying-glass",
     "menu": "list",

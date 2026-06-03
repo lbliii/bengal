@@ -317,6 +317,6 @@ BENGAL_STRICT_INCREMENTAL=error bengal build
 
 ## Related
 
-- [Orchestration](../core/orchestration.md) - How incremental builds work
-- [Cache](../core/cache.md) - Cache system details
-- [CLI](../tooling/cli.md) - Command-line interface
+- [Orchestration](../../core/orchestration/) - How incremental builds work
+- [Cache](../../core/cache/) - Cache system details
+- [CLI](../../tooling/cli/) - Command-line interface

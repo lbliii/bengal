@@ -62,6 +62,7 @@ ADMONITION_TYPES = frozenset(
         "danger",
         "error",
         "info",
+        "important",
         "example",
         "success",
         "caution",
@@ -78,6 +79,7 @@ TYPE_TO_CSS: dict[str, str] = {
     "danger": "danger",
     "error": "error",
     "info": "info",
+    "important": "info",
     "example": "example",
     "success": "success",
     "seealso": "seealso",
@@ -87,6 +89,7 @@ TYPE_TO_CSS: dict[str, str] = {
 TYPE_TO_ICON: dict[str, str] = {
     "note": "note",
     "info": "info",
+    "important": "info",
     "tip": "tip",
     "warning": "warning",
     "caution": "caution",

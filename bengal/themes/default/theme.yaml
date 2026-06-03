@@ -55,7 +55,13 @@ icons:
     chevron-left: chevron-left
     chevron-up: chevron-up
     chevron-down: chevron-down
-    external: arrow-square-out
+    external: external
+    # Aliases for icons referenced by docs content frontmatter (#288)
+    languages: translate
+    python: file-py
+    robot: sparkle
+    stethoscope: heart
+    arrows: arrow-clockwise
     link: link
     search: magnifying-glass
     menu: list

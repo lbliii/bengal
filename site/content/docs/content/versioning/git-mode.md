@@ -462,6 +462,6 @@ it is selected.
 
 ## Next Steps
 
-- [Cross-Version Links](./cross-version-links.md) — Link between versions
-- [Version Directives](./directives.md) — Mark version-specific content
-- [Folder Mode](./folder-mode.md) — Alternative: folder-based versioning
+- [Cross-Version Links](../cross-version-links/) — Link between versions
+- [Version Directives](../directives/) — Mark version-specific content
+- [Folder Mode](../folder-mode/) — Alternative: folder-based versioning

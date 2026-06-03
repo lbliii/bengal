@@ -166,7 +166,7 @@ Links: 428
 Orphans: 3
 ```
 
-Refer to [Graph Analysis](../../../content/analysis/graph.md) for details and [Analyze site connectivity](../../../../tutorials/operations/analyze-site-connectivity/) for a guided walkthrough.
+Refer to [Graph Analysis](/docs/content/analysis/graph/) for details and [Analyze site connectivity](../../../../tutorials/operations/analyze-site-connectivity/) for a guided walkthrough.
 
 **Performance Commands**:
 ```bash

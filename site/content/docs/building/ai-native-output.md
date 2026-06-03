@@ -124,4 +124,4 @@ content_signals:
   ai_train: false
 ```
 
-See [Output Formats](./output-formats.md) for the full configuration reference and [SEO & Discovery](./seo.md) for the broader discovery strategy.
+See [Output Formats](../output-formats/) for the full configuration reference and [SEO & Discovery](../seo/) for the broader discovery strategy.

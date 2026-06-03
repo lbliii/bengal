@@ -312,6 +312,6 @@ def create_markdown_parser(engine='patitas'):
 ## Related Documentation
 
 - [Architecture Overview](./) - High-level architecture
-- [Orchestration](core/orchestration.md) - Build coordination
+- [Orchestration](../core/orchestration/) - Build coordination
 - [Performance](../../../building/performance/) - Benchmarks and hot paths
-- [Testing](meta/testing.md) - Test strategy
+- [Testing](../meta/testing/) - Test strategy
