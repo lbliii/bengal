@@ -14,6 +14,12 @@ if TYPE_CHECKING:
 
 LOCAL_CSS_JS_RE = re.compile(r"""(?:href|src)=["']([^"']+\.(?:css|js)(?:\?[^"']*)?)["']""")
 
+# Below this output-file count the per-file scan runs serially — the pool isn't worth it,
+# and it keeps small sites (and the whole test-suite) on the exact serial path. Larger
+# builds (esp. content-heavy docs/autodoc, where this audit re-reads big rendered HTML and
+# is the dominant phase) parallelize the read+regex across a WorkScope.
+_PARALLEL_FILE_THRESHOLD = 48
+
 
 @dataclass(frozen=True, slots=True)
 class MissingAssetReference:
@@ -47,16 +53,24 @@ def find_missing_local_asset_references(
     base_prefix = _normalized_base_prefix(baseurl)
     from_rglob = html_paths is None
     candidates = html_paths if html_paths is not None else output_dir.rglob("*.html")
-    missing: list[MissingAssetReference] = []
-    exists_cache: dict[str, bool] = {}
+    files: list[Path] = []
     for html_path in candidates:
         if html_path.suffix.lower() != ".html":
             continue
         if not html_path.is_absolute():
             html_path = output_dir / html_path
-        for ref_path, raw_url, resolved in _extract_refs(
-            html_path, output_dir, base_prefix, from_rglob
-        ):
+        files.append(html_path)
+
+    # Phase 1 — extract (html_path, raw_url, resolved) per file. Pure and independent, so
+    # the read+regex parallelizes across a WorkScope on large builds. Document order is
+    # preserved (results re-indexed) so findings are byte-identical to the serial scan.
+    per_file = _scan_files(files, output_dir, base_prefix, from_rglob)
+
+    # Phase 2 — one memoized exists() per UNIQUE resolved path. Serial, tiny, preserves order.
+    missing: list[MissingAssetReference] = []
+    exists_cache: dict[str, bool] = {}
+    for refs in per_file:
+        for ref_path, raw_url, resolved in refs:
             expected = output_dir / resolved.lstrip("/")
             exists = exists_cache.get(resolved)
             if exists is None:
@@ -71,6 +85,41 @@ def find_missing_local_asset_references(
                     )
                 )
     return missing
+
+
+def _scan_files(
+    files: list[Path], output_dir: Path, base_prefix: str, from_rglob: bool
+) -> list[list[tuple[Path, str, str]]]:
+    """Extract refs for each file in document order; parallel for large builds.
+
+    Parallel work goes through WorkScope (never a bare ThreadPoolExecutor) so it inherits
+    shutdown-safety, context propagation, and timeout enforcement. asset extraction is
+    per-file independent (read + regex on a thread-local string), so it scales well and is
+    not gated by the shared-object coherency cost that limits the render phase.
+    """
+    if len(files) < _PARALLEL_FILE_THRESHOLD:
+        return [_extract_refs(f, output_dir, base_prefix, from_rglob) for f in files]
+
+    from bengal.utils.concurrency.work_scope import WorkScope
+    from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
+
+    workers = get_optimal_workers(len(files), workload_type=WorkloadType.IO_BOUND)
+    if workers <= 1:
+        return [_extract_refs(f, output_dir, base_prefix, from_rglob) for f in files]
+
+    # Typed (not a lambda) so the WorkResult value type is inferred and unpacking is sound.
+    def scan_indexed(indexed: tuple[int, Path]) -> tuple[int, list[tuple[Path, str, str]]]:
+        index, path = indexed
+        return index, _extract_refs(path, output_dir, base_prefix, from_rglob)
+
+    out: list[list[tuple[Path, str, str]]] = [[] for _ in files]
+    with WorkScope("asset_audit", max_workers=workers) as scope:
+        results = scope.map(scan_indexed, list(enumerate(files)))
+    for result in results:
+        if result.ok and result.value is not None:
+            idx, refs = result.value
+            out[idx] = refs
+    return out
 
 
 def _extract_refs(
