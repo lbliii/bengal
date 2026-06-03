@@ -109,7 +109,7 @@ unrelated dirty edits themselves), so saga closure runs gates in widening
 rings and classifies any failure before accepting it.
 
 1. **Clean worktree at the candidate commit.** If the main worktree is dirty,
-   prove from a detached clone of the commit under test:
+   prove from a detached worktree at the commit under test:
 
    ```bash
    git worktree add --detach /tmp/bengal-proof <candidate-sha>

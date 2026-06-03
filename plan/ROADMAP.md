@@ -3,7 +3,7 @@
 # Bengal Roadmap - Active Plan Set
 
 **Created**: 2026-04-12  
-**Updated**: 2026-06-03
+**Updated**: 2026-06-03  
 **Baseline**: current `main` at `ab0f22339` plus source/test checks listed below
 **Version Target**: v0.4.0 beta  
 **Planning Rule**: root `plan/` keeps only the active agenda. Completed,
@@ -50,7 +50,8 @@ Machine-checked on 2026-05-30:
   dependency layers, `git diff --check`, and `ty` with the recorded 531
   diagnostic floor. Full-suite runs now pass all Page-relevant coverage. The
   unrelated directive migration parity failures (once attributed to "parser
-  state leakage after list directives") were **resolved by #298** — the root
+  state leakage after list directives") were **resolved by #298** (correction
+  recorded 2026-06-03; not part of the 2026-05-30 machine check) — the root
   cause was an incomplete directive render-cache key, not a parser state leak.
 
 ---

@@ -90,7 +90,7 @@ truth.
 - Full-suite proof for the Page saga ran in a clean worktree at `ba37930b3`.
   Page/source/rendering gates, ruff, dependency checks, and ty passed. The only
   remaining full-suite failures were an unrelated directive migration parity
-  state leak reproducible with `--randomly-seed=314926607`, since **resolved by
+  state leak reproducible with `--randomly-seed=314926607`, now **resolved by
   #298** (the cause was an incomplete directive render-cache key, not a parser
   state leak; see `changelog.d/directive-cache-key-collision.fixed.md`).
 
