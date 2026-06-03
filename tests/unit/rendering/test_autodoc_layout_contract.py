@@ -164,3 +164,60 @@ def test_openapi_code_sample_ids_are_scoped_by_method_and_path() -> None:
     assert "{% let sample_id = (method_upper ~ '-' ~ path) | slugify %}" in partial
     assert "code-panel-{{ sample_id }}-curl" in partial
     assert 'data-copy-target="code-{{ sample_id }}-curl"' in partial
+
+
+def test_autodoc_css_has_no_legacy_rest_layout_selectors() -> None:
+    """Legacy OpenAPI layout CSS must not creep back into ``autodoc.css``.
+
+    The bespoke catalog/app-shell (``.api-catalog-app`` / ``.openapi-app``) now
+    owns every rendered REST page (verified: zero occurrences of these legacy
+    classes across the generated ``bengal-demo-commerce`` site). The pre-shell
+    eras left behind several dead selector layers — the Mintlify explorer, the
+    three-column ``.api-explorer`` grid, the single-column ``.api-reference``
+    layout, the standalone ``.api-home`` landing page, and the ``.api-playground``
+    bar. This guard fails if any of them returns.
+    """
+    css = Path("bengal/themes/default/assets/css/components/autodoc.css").read_text(
+        encoding="utf-8"
+    )
+
+    # Each token below is a *base class* unique to a removed legacy layer. None
+    # is a substring of a live class — note the live shell keeps `.api-param-row`,
+    # `.api-responses`, `.api-code-samples`, so we assert the specific dead names
+    # (`.api-param-field`, `.api-response-header`, `.api-code-group`) instead.
+    legacy_selectors = [
+        ".docs-layout--api-explorer",
+        ".api-explorer",
+        ".api-reference",
+        ".api-home",
+        ".api-playground",
+        ".api-param-field",
+        ".api-param-name",
+        ".api-param-badge",
+        ".api-response-header",
+        ".api-response-status",
+        ".api-code-group",
+        ".api-code-header",
+        ".api-code-title",
+        ".web-endpoint-block",
+        ".web-grid-huge-navs",
+        ".web-side-nav",
+        ".rest-explorer",
+        ".rest-endpoint",
+        ".api-deprecated-banner",
+    ]
+    present = [sel for sel in legacy_selectors if sel in css]
+    assert not present, f"legacy REST layout selectors reappeared in autodoc.css: {present}"
+
+    # Discriminating positive guard: this test must fail if the file is gutted,
+    # not just when the legacy classes are absent. The live shell selectors below
+    # are emitted by the active templates and must remain styled.
+    for live in (
+        ".api-catalog-app",
+        ".openapi-app",
+        ".api-operation",
+        ".api-schema-viewer",
+        ".api-method",
+        ".api-sidebar-nav",
+    ):
+        assert live in css, f"live REST shell selector missing from autodoc.css: {live}"
