@@ -21,18 +21,6 @@ name: Perf Gate
 
 on:
   workflow_dispatch:
-    inputs:
-      archetype:
-        description: "Archetype for the gate cell"
-        type: choice
-        options: [blog, docs, autodoc]
-        default: blog
-      pages:
-        description: "Page count for the gate cell"
-        default: "100"
-      runs:
-        description: "Median-of-N runs"
-        default: "3"
   pull_request:
     branches: [ main ]
 
@@ -42,6 +30,16 @@ concurrency:
 
 permissions:
   contents: read
+
+# The gate is only meaningful if the bootstrapped baseline and the PR-time
+# measurement are the SAME cell. Define that cell ONCE here so the two jobs can
+# never drift apart (a baseline captured for a different archetype/page count
+# would otherwise produce garbage comparisons or a permanently-red gate). The
+# script also hard-checks the baseline's recorded cell against the measured one.
+env:
+  GATE_ARCHETYPE: "blog"
+  GATE_PAGES: "100"
+  GATE_RUNS: "3"
 
 jobs:
   # Manual: capture the committed baseline on CI hardware.
@@ -76,9 +74,9 @@ jobs:
         run: |
           uv run python benchmarks/benchmark_gil_speedup.py \
             --gate-update \
-            --archetype "${{ inputs.archetype }}" \
-            --pages "${{ inputs.pages }}" \
-            --runs "${{ inputs.runs }}"
+            --archetype "${{ env.GATE_ARCHETYPE }}" \
+            --pages "${{ env.GATE_PAGES }}" \
+            --runs "${{ env.GATE_RUNS }}"
 
       - name: Show captured baseline
         run: cat benchmarks/baselines/ci_gate.json
@@ -137,6 +135,6 @@ jobs:
           uv run python benchmarks/benchmark_gil_speedup.py \
             --gate \
             --tolerance 0.30 \
-            --archetype blog \
-            --pages 100 \
-            --runs 3
+            --archetype "${{ env.GATE_ARCHETYPE }}" \
+            --pages "${{ env.GATE_PAGES }}" \
+            --runs "${{ env.GATE_RUNS }}"

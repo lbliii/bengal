@@ -42,8 +42,8 @@ The measurement environment must expose real hardware behavior:
 - **macOS bare metal is partial.** `py-spy --native` works but interpreter/extension
   symbolication fights SIP, and there is no accessible equivalent of Linux `perf stat`
   hardware counters.
-- **Use a real Linux box** — a dedicated cloud CPU instance (the `brev-cli` skill can spin one
-  up) or a bare-metal Linux host. Requirements: ≥8 physical cores, free-threaded CPython
+- **Use a real Linux box** — a dedicated cloud CPU instance (any provider's dedicated/bare-metal
+  CPU instance type) or a bare-metal Linux host. Requirements: ≥8 physical cores, free-threaded CPython
   3.14t, root or `perf_event_paranoid` lowered for counter access, and an **idle** machine
   (no co-tenant noise — the epic already has one load-contaminated number it had to retract).
 
