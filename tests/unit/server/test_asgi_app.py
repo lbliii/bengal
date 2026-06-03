@@ -218,8 +218,17 @@ async def test_static_asset_range_request_returns_partial_content(tmp_path: Path
 
 
 @pytest.mark.asyncio
-async def test_static_asset_uses_protocol_owned_pounce_sendfile(tmp_path: Path) -> None:
-    """Dev static assets use Pounce's h11-accounted sendfile message."""
+async def test_static_asset_opts_out_of_pounce_sendfile(tmp_path: Path) -> None:
+    """Dev static assets stream via chunked body, NOT Pounce's zero-copy sendfile.
+
+    The dev server disables compression (for SSE), which makes Pounce advertise
+    ``pounce.sendfile``. But Pounce 0.7.1's sendfile path runs ``os.sendfile`` in a thread
+    executor without handling ``EAGAIN`` (``BlockingIOError`` errno 35), so a full socket send
+    buffer crashes the worker mid-transfer (observed serving CSS on macOS + free-threaded
+    3.14t). Bengal drops the ``pounce.sendfile`` extension before delegating so ``StaticFiles``
+    falls back to chunked ASGI body writes, which respect async backpressure. The caller's own
+    scope must not be mutated (other handlers may still rely on the extension).
+    """
     assets = tmp_path / "assets"
     assets.mkdir()
     asset_path = assets / "app.js"
@@ -243,15 +252,11 @@ async def test_static_asset_uses_protocol_owned_pounce_sendfile(tmp_path: Path) 
         send=send,
     )
 
+    # Caller scope untouched; the asset served via chunked body, never a sendfile message.
     assert extensions["pounce.sendfile"] == {"version": 1}
     assert sent[0]["status"] == 200
-    assert sent[1] == {
-        "type": "pounce.response.sendfile",
-        "path": asset_path,
-        "offset": 0,
-        "count": asset_path.stat().st_size,
-        "more_body": False,
-    }
+    assert not any(message.get("type") == "pounce.response.sendfile" for message in sent)
+    assert _body(sent) == b"console.log('ok')"
 
 
 @pytest.mark.asyncio

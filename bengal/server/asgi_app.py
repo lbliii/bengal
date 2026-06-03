@@ -228,6 +228,28 @@ def _should_delegate_to_pounce_static(path: str) -> bool:
     return any(raw_path.endswith(ext) for ext in _POUNCE_STATIC_ASSET_EXTENSIONS)
 
 
+def _scope_without_sendfile(scope: dict[str, Any]) -> dict[str, Any]:
+    """Return ``scope`` with Pounce's ``pounce.sendfile`` extension removed.
+
+    Pounce advertises ``pounce.sendfile`` whenever compression is off — and the dev server
+    disables compression so SSE live-reload streams immediately (see
+    ``create_pounce_dev_backend``). But Pounce 0.7.1's zero-copy path (``pounce/_sendfile.py``)
+    runs ``os.sendfile`` in a thread executor and does NOT handle ``EAGAIN``
+    (``BlockingIOError`` errno 35) on the non-blocking socket, so a full send buffer crashes
+    the worker mid-transfer — observed serving CSS on macOS + free-threaded 3.14t. Dropping the
+    extension makes ``StaticFiles`` stream files via chunked ASGI body writes, which respect
+    async backpressure. Local dev asset serving does not need zero-copy.
+
+    Upstream bug: https://github.com/lbliii/pounce/issues/72 — remove this opt-out once Pounce
+    routes file transfers through ``loop.sendfile`` (which handles EAGAIN via the selector).
+    """
+    extensions = scope.get("extensions")
+    if not extensions or "pounce.sendfile" not in extensions:
+        return scope
+    trimmed = {key: value for key, value in extensions.items() if key != "pounce.sendfile"}
+    return {**scope, "extensions": trimmed}
+
+
 async def _serve_pounce_static_asset(
     scope: dict[str, Any],
     receive: Any,
@@ -258,7 +280,7 @@ async def _serve_pounce_static_asset(
         )
         static_asset_handlers[key] = handler
 
-    await handler(scope, receive, send)
+    await handler(_scope_without_sendfile(scope), receive, send)
     return True
 
 
