@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable, Mapping
+    from collections.abc import ItemsView, Iterable, Mapping
 
     from bengal.build.contracts.keys import CacheKey
     from bengal.build.provenance.types import ProvenanceRecord
@@ -73,6 +73,14 @@ class DependencyReadIndex:
         self._entries: dict[tuple[str, str], DependencyIndexEntry] = {}
         for entry in entries or ():
             self._entries[(entry.dependency_kind, entry.dependency_key)] = entry
+
+    def items(self) -> ItemsView[tuple[str, str], DependencyIndexEntry]:
+        """Public read view over ``(dependency_kind, dependency_key) -> entry``.
+
+        Lets callers (e.g. the incremental dependency-index delta in the provenance store)
+        iterate the full reverse map without reaching into the private ``_entries`` field.
+        """
+        return self._entries.items()
 
     def get(self, dependency_kind: str, dependency_key: str) -> DependencyIndexEntry | None:
         """Return the entry for a normalized dependency, if known."""

@@ -13,6 +13,7 @@ Thread Safety:
 
 from __future__ import annotations
 
+import os
 import threading
 import time
 from collections.abc import Mapping
@@ -21,6 +22,7 @@ from pathlib import Path
 from typing import Any
 
 from bengal.build.contracts.dependency_index import (
+    DependencyIndexEntry,
     DependencyReadIndex,
     build_dependency_read_index,
 )
@@ -37,6 +39,18 @@ from bengal.utils.io.json_compat import load as json_load
 from bengal.utils.observability.logger import get_logger
 
 logger = get_logger(__name__)
+
+
+def _delta_save_enabled() -> bool:
+    """Whether save() updates the dependency reverse map incrementally (default on).
+
+    Maintaining the reverse map incrementally avoids rebuilding it from every page's record
+    (which, on a 1-page warm edit, cold-reads ~all record files and dominated the build). The
+    incremental result is byte-identical to a full rebuild (asserted by
+    tests/unit/build/provenance/test_delta_dependency_index.py). Set
+    BENGAL_PROVENANCE_DELTA_SAVE=0 to force the full rebuild (rollback lever).
+    """
+    return os.environ.get("BENGAL_PROVENANCE_DELTA_SAVE", "1").lower() not in ("0", "false", "off")
 
 
 @dataclass
@@ -69,6 +83,9 @@ class ProvenanceCache:
     _dependency_index: DependencyReadIndex = field(default_factory=DependencyReadIndex)
     _records: dict[ContentHash, ProvenanceRecord] = field(default_factory=dict)
     _subvenance: dict[ContentHash, set[CacheKey]] = field(default_factory=dict)
+    # Pages whose records were (re)stored this session — used to update the dependency
+    # reverse map incrementally in save() instead of rebuilding it from all records.
+    _dirty_page_keys: set[CacheKey] = field(default_factory=set)
     _loaded: bool = False
     _dirty: bool = False
     _records_dir_created: bool = False
@@ -298,6 +315,7 @@ class ProvenanceCache:
 
             # Store record in memory
             self._records[record.provenance.combined_hash] = record
+            self._dirty_page_keys.add(record.page_path)
 
             # Update subvenance index
             for inp in record.provenance.inputs:
@@ -348,6 +366,7 @@ class ProvenanceCache:
 
                 # Store record in memory
                 self._records[record.provenance.combined_hash] = record
+                self._dirty_page_keys.add(record.page_path)
 
                 # Update subvenance index
                 for inp in record.provenance.inputs:
@@ -419,13 +438,106 @@ class ProvenanceCache:
     def _build_dependency_index(
         self, index_data: dict[CacheKey, ContentHash]
     ) -> DependencyReadIndex:
-        """Build a dependency read index from the current page index snapshot."""
+        """Build a dependency read index from the current page index snapshot.
+
+        Records are content-addressed by ``combined_hash``, so pages with identical inputs
+        (e.g. empty taxonomy pagination pages) share ONE record whose ``page_path`` is an
+        arbitrary sibling. Iterating page-by-page and re-attributing each page's inputs to its
+        OWN key keeps the reverse map complete (every page that consumes an input is listed,
+        not just the dedup winner) and deterministic — which the per-page delta path also
+        produces, so the two stay byte-identical.
+        """
         records: list[ProvenanceRecord] = []
-        for combined_hash in index_data.values():
-            record = self._get_record(combined_hash)
-            if record is not None:
+        record_by_hash: dict[ContentHash, ProvenanceRecord | None] = {}
+        for page_path, combined_hash in index_data.items():
+            if combined_hash not in record_by_hash:
+                record_by_hash[combined_hash] = self._get_record(combined_hash)
+            record = record_by_hash[combined_hash]
+            if record is None:
+                continue
+            if record.page_path == page_path:
                 records.append(record)
+            else:
+                records.append(
+                    ProvenanceRecord(
+                        page_path=page_path,
+                        provenance=record.provenance,
+                        output_hash=record.output_hash,
+                    )
+                )
         return build_dependency_read_index(records)
+
+    def _incremental_dependency_index(
+        self,
+        index_copy: dict[CacheKey, ContentHash],
+        base: DependencyReadIndex,
+        dirty_pages: set[CacheKey],
+        dirty_records: dict[CacheKey, ProvenanceRecord | None],
+    ) -> DependencyReadIndex:
+        """Update the dependency reverse map for changed pages without re-reading all records.
+
+        Produces a result byte-identical to ``_build_dependency_index`` (asserted by tests):
+        edges for changed (dirty) and deleted pages are recomputed from their current records /
+        purged, while every unchanged page's edges are carried over from the loaded prior index
+        — which reflects ALL pages, so the reverse map stays globally complete. Skips the
+        ``config`` kind to match ``build_dependency_read_index``.
+        """
+        skip_kinds = frozenset({"config"})
+        # (kind, key) -> set of page keys, plus per-edge metadata, seeded from the prior index.
+        edges: dict[tuple[str, str], set[str]] = {}
+        meta: dict[tuple[str, str], tuple[str, str]] = {}
+        base_pages: set[str] = set()
+        for (kind, key), entry in base.items():
+            pages = set(entry.page_keys)
+            edges[(kind, key)] = pages
+            meta[(kind, key)] = (entry.invalidation_reason, entry.producer)
+            base_pages |= pages
+
+        # Pages to clear from every edge: dirty pages (edges recomputed below) and pages that
+        # no longer exist in the page index (deletions). Carrying a deleted page's stale edge
+        # would diverge from a full rebuild and over-rebuild forever.
+        current_pages = {str(page) for page in index_copy}
+        reset_pages = {str(page) for page in dirty_pages} | (base_pages - current_pages)
+        if reset_pages:
+            for edge_key in list(edges):
+                remaining = edges[edge_key] - reset_pages
+                if remaining != edges[edge_key]:
+                    if remaining:
+                        edges[edge_key] = remaining
+                    else:
+                        del edges[edge_key]
+                        meta.pop(edge_key, None)
+
+        # Re-add each dirty page's current edges from its in-memory record.
+        for page in dirty_pages:
+            if page not in index_copy:
+                continue
+            record = dirty_records.get(page)
+            if record is None:
+                continue
+            page_key = str(page)
+            for dependency in record.provenance.inputs:
+                if dependency.input_type in skip_kinds:
+                    continue
+                edge_key = (dependency.input_type, str(dependency.path))
+                edges.setdefault(edge_key, set()).add(page_key)
+                meta.setdefault(
+                    edge_key, (f"{dependency.input_type}_dependency_changed", "provenance")
+                )
+
+        entries = [
+            DependencyIndexEntry(
+                dependency_kind=kind,
+                dependency_key=key,
+                page_keys=tuple(pages),
+                output_keys=(),
+                invalidation_reason=meta[(kind, key)][0],
+                producer=meta[(kind, key)][1],
+            )
+            for (kind, key), pages in edges.items()
+            if pages
+        ]
+        return DependencyReadIndex(entries)
 
     def save(
         self,
@@ -447,8 +559,31 @@ class ProvenanceCache:
             self._last_build_time = saved_time
             self._last_build_time_ns = saved_time_ns
             self._dirty = False
+            # Capture state for an incremental dependency-index update (avoids rebuilding the
+            # reverse map from every page's record — a cold-read of ~all records on warm edits).
+            base_dep_index = self._dependency_index
+            dirty_pages = set(self._dirty_page_keys)
+            dirty_records = {
+                page: self._records.get(index_copy[page])
+                for page in dirty_pages
+                if page in index_copy
+            }
+            self._dirty_page_keys = set()
 
-        dependency_index = self._build_dependency_index(index_copy)
+        # Use the incremental update only with a loaded prior index (warm build) and every
+        # dirty page's record available; otherwise fall back to the full rebuild (cold build,
+        # where all records are already in memory, or any uncertainty — never a silent drop).
+        use_delta = (
+            _delta_save_enabled()
+            and not base_dep_index.is_empty
+            and all(dirty_records.get(p) is not None for p in dirty_pages if p in index_copy)
+        )
+        if use_delta:
+            dependency_index = self._incremental_dependency_index(
+                index_copy, base_dep_index, dirty_pages, dirty_records
+            )
+        else:
+            dependency_index = self._build_dependency_index(index_copy)
         with self._lock:
             self._dependency_index = dependency_index
 
