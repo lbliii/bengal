@@ -1,0 +1,142 @@
+name: Perf Gate
+
+# Free-threading speed-regression gate (epic-performance.md Wave 2 / T6).
+#
+# Two entry points:
+#   * bootstrap (workflow_dispatch) — capture a committed baseline (ci_gate.json)
+#     on CI hardware. A laptop baseline is NOT comparable to a CI run, so the
+#     baseline MUST be captured here. The job uploads ci_gate.json as an
+#     artifact; commit it via a normal PR (the repo's PR-body checks live there).
+#   * gate (pull_request) — compare a single GIL=0 cell against the committed
+#     baseline and fail on a per-phase regression beyond tolerance. No-ops (and
+#     passes) until a baseline has been committed, so it never blocks PRs before
+#     bootstrap. Deliberately NOT wired into branch protection yet — watch it on
+#     ~10 PRs for shared-runner flake before promoting it to a required check.
+#
+# Caveat held honestly: GitHub's shared runners have few cores and noisy
+# scheduling, so this gate detects *relative* regression at a fixed cell. It
+# does NOT reproduce the absolute free-threading headline (1.94x at 1000 pages),
+# which needs real, idle, many-core hardware. The +30% tolerance absorbs runner
+# noise; tighten it only after observing real variance.
+
+on:
+  workflow_dispatch:
+    inputs:
+      archetype:
+        description: "Archetype for the gate cell"
+        type: choice
+        options: [blog, docs, autodoc]
+        default: blog
+      pages:
+        description: "Page count for the gate cell"
+        default: "100"
+      runs:
+        description: "Median-of-N runs"
+        default: "3"
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: perf-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Manual: capture the committed baseline on CI hardware.
+  bootstrap:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.14t"
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: uv sync --no-sources --group dev
+
+      - name: Capture gate baseline (GIL=0, median-of-N)
+        env:
+          CI: "true"
+          OMP_NUM_THREADS: "1"
+          PYTHONUNBUFFERED: "1"
+        run: |
+          uv run python benchmarks/benchmark_gil_speedup.py \
+            --gate-update \
+            --archetype "${{ inputs.archetype }}" \
+            --pages "${{ inputs.pages }}" \
+            --runs "${{ inputs.runs }}"
+
+      - name: Show captured baseline
+        run: cat benchmarks/baselines/ci_gate.json
+
+      - name: Upload ci_gate.json
+        uses: actions/upload-artifact@v7
+        with:
+          name: ci-gate-baseline
+          path: benchmarks/baselines/ci_gate.json
+          if-no-files-found: error
+
+  # On PRs: detect a per-phase speed regression against the committed baseline.
+  gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Skip if no baseline committed yet
+        id: have_baseline
+        run: |
+          if [ -f benchmarks/baselines/ci_gate.json ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No benchmarks/baselines/ci_gate.json yet — run the perf-gate bootstrap job and commit it to enable the gate."
+          fi
+
+      - name: Install uv
+        if: steps.have_baseline.outputs.present == 'true'
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.14t"
+
+      - name: Cache uv dependencies
+        if: steps.have_baseline.outputs.present == 'true'
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-
+
+      - name: Install dependencies
+        if: steps.have_baseline.outputs.present == 'true'
+        run: uv sync --no-sources --group dev
+
+      - name: Run speed gate (GIL=0, +30% tolerance)
+        if: steps.have_baseline.outputs.present == 'true'
+        env:
+          CI: "true"
+          OMP_NUM_THREADS: "1"
+          PYTHONUNBUFFERED: "1"
+        run: |
+          uv run python benchmarks/benchmark_gil_speedup.py \
+            --gate \
+            --tolerance 0.30 \
+            --archetype blog \
+            --pages 100 \
+            --runs 3
