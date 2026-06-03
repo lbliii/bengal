@@ -536,7 +536,23 @@ def run_gate(archetype: str, num_pages: int, runs: int, tolerance: float) -> int
             file=sys.stderr,
         )
         return 1
-    baseline = json.loads(GATE_BASELINE.read_text()).get("phases_s", {})
+    data = json.loads(GATE_BASELINE.read_text())
+    baseline = data.get("phases_s", {})
+    # Guard against comparing against a baseline captured for a different cell:
+    # a blog/100 gate measured against a docs/1000 baseline is meaningless and
+    # would either always pass or always fail. The cell must match exactly.
+    meta = data.get("metadata", {})
+    b_archetype, b_pages = meta.get("archetype"), meta.get("pages")
+    if (b_archetype is not None and b_archetype != archetype) or (
+        b_pages is not None and b_pages != num_pages
+    ):
+        print(
+            f"ERROR: gate baseline cell ({b_archetype} x {b_pages}) does not match the "
+            f"requested gate cell ({archetype} x {num_pages}). Re-bootstrap ci_gate.json "
+            "with --gate-update for this exact cell.",
+            file=sys.stderr,
+        )
+        return 1
     measured, err = _measure_gil0(archetype, num_pages, runs)
     if err:
         print(f"ERROR measuring gate cell: {err}", file=sys.stderr)
