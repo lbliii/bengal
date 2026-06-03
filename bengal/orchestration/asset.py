@@ -220,8 +220,27 @@ class AssetOrchestrator:
             logger.warning("asset_pipeline_failed", error=str(e))
 
         if not assets:
-            self._write_asset_manifest([])
-            logger.info("asset_processing_skipped", reason="no_assets")
+            # Nothing to process this run (e.g. a content-only incremental build).
+            # The asset phase therefore leaves the output tree unchanged, so the
+            # existing manifest still accurately describes it — preserve it.
+            # Overwriting it with an empty manifest would make
+            # ``inspect_asset_outputs`` report a vacuously "complete" tree (a
+            # present manifest with zero entries → zero missing), blinding the
+            # incremental reprocess safety net on later builds and letting missing
+            # CSS/JS go unrecovered until a full rebuild (#130). When the output
+            # genuinely lost files, the integrity check fires *before* this and
+            # makes ``assets`` non-empty, so the manifest is rebuilt there instead.
+            manifest_path = self.site.output_dir / "asset-manifest.json"
+            if AssetManifest.load(manifest_path) is None:
+                # No prior manifest to preserve — write the empty baseline.
+                self._write_asset_manifest([])
+                logger.info("asset_processing_skipped", reason="no_assets")
+            else:
+                logger.info(
+                    "asset_processing_skipped",
+                    reason="no_assets",
+                    manifest="preserved_existing",
+                )
             return
 
         start_time = time.time()
