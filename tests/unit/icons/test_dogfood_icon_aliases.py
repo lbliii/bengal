@@ -29,7 +29,15 @@ def test_dogfood_referenced_icon_resolves_to_existing_svg(name: str) -> None:
     assert svg.exists(), f"icon {name!r} -> {target!r}.svg does not exist in the default theme"
 
 
-def test_external_icon_not_aliased_to_missing_arrow_square_out() -> None:
-    """Regression guard for the specific #288 bug."""
-    assert ICON_MAP.get("external") != "arrow-square-out"
-    assert not (_ICONS_DIR / "arrow-square-out.svg").exists()
+def test_external_icon_resolves_after_alias_fix() -> None:
+    """Regression guard for the specific #288 bug.
+
+    ``external`` was aliased to a non-existent ``arrow-square-out``. Assert the
+    real invariant — its resolved SVG exists — without pinning the target name or
+    asserting any file's absence (which would break if the icon set is later
+    expanded, e.g. an ``arrow-square-out.svg`` is added).
+    """
+    target = ICON_MAP.get("external", "external")
+    assert (_ICONS_DIR / f"{target}.svg").exists(), (
+        f"external -> {target}.svg must exist (regression of the arrow-square-out bug)"
+    )
