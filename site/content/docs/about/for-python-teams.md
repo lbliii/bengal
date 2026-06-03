@@ -92,7 +92,7 @@ uv python install 3.14t
 uv run --python=3.14t bengal build
 ```
 
-This works because every layer — Patitas, Rosettes, Kida — was written from scratch for thread safety. No GIL assumptions, no shared mutable state in the hot path. See [Free-Threading](./free-threading) and [Benchmarks](./benchmarks) for details.
+This works because every layer — Patitas, Rosettes, Kida — was written from scratch for thread safety. No GIL assumptions, no shared mutable state in the hot path. See [Free-Threading](../free-threading/) and [Benchmarks](../benchmarks/) for details.
 
 ## AI-Native by Default
 
@@ -117,8 +117,8 @@ bengal serve
 The docs template creates a ready-to-use structure with getting-started, guides, and reference sections. Add your content, configure autodoc, and deploy.
 
 :::{seealso}
-- [Benchmarks](./benchmarks) — measured build times and scaling curves
-- [Free-Threading](./free-threading) — how Bengal uses Python 3.14t
-- [The Bengal Ecosystem](./ecosystem) — the full b-stack architecture
+- [Benchmarks](../benchmarks/) — measured build times and scaling curves
+- [Free-Threading](../free-threading/) — how Bengal uses Python 3.14t
+- [The Bengal Ecosystem](../ecosystem/) — the full b-stack architecture
 - [AI-Native Output](/docs/building/ai-native-output/) — machine-readable output formats
 :::

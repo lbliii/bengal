@@ -45,7 +45,7 @@ Bengal pages can carry structured front matter such as:
 The default theme uses those fields to render metadata such as descriptions, keyword
 tags, canonical URLs, Open Graph tags, Twitter cards, and robots directives.
 
-See [SEO Functions](../reference/template-functions/seo-image-functions/) for the
+See [SEO Functions](../../reference/template-functions/seo-image-functions/) for the
 template helpers that power these tags.
 
 ### Search Engine Discovery
@@ -104,7 +104,7 @@ Bengal can generate machine-friendly output formats such as:
 - `changelog.json` — per-build diff of added, modified, and removed pages
 - `agent.json` — hierarchical site structure for agent discovery
 
-See [Output Formats](./output-formats.md) for configuration details.
+See [Output Formats](../output-formats/) for configuration details.
 
 `llms.txt` is a short Markdown table of contents that tells AI agents what the site
 is and where to find things. It is auto-generated from the site's section hierarchy
@@ -144,7 +144,7 @@ backend.
 
 Bengal can show a "Connect to IDE" button that opens Cursor and adds your docs as an
 MCP server via a one-click install. Requires a hosted Streamable HTTP MCP server —
-Bengal generates the button; you provide the server. See [Connect to IDE](./connect-to-ide.md) for setup.
+Bengal generates the button; you provide the server. See [Connect to IDE](../connect-to-ide/) for setup.
 
 ### Content Signals
 

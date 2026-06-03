@@ -251,6 +251,6 @@ bengal/utils/
 
 ## Related Documentation
 
-- [Design Principles](../design-principles.md) - Overall design patterns
-- [File Organization](../meta/file-organization.md) - Directory structure
-- [Testing](../meta/testing.md) - Testing strategy
+- [Design Principles](../../design-principles/) - Overall design patterns
+- [File Organization](../../meta/file-organization/) - Directory structure
+- [Testing](../../meta/testing/) - Testing strategy

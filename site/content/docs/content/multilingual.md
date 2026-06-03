@@ -1,6 +1,6 @@
 ---
 title: Multilingual Sites
-nav_title: i18n
+nav_title: Multilingual Sites
 description: Serve your documentation in multiple languages with proper URL routing and translations
 weight: 60
 icon: globe

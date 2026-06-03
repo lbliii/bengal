@@ -196,5 +196,5 @@ For regular content, users expect links to stay within their current version.
 
 ## Next Steps
 
-- [Version Directives](./directives.md) — Mark version-specific content
+- [Version Directives](../directives/) — Mark version-specific content
 - [Versioning Overview](./_index.md) — Full versioning documentation

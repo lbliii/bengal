@@ -308,6 +308,6 @@ Don't annotate every minor change—it creates noise.
 
 ## Next Steps
 
-- [Cross-Version Links](./cross-version-links.md) — Link between versions
-- [Folder Mode](./folder-mode.md) — Set up folder-based versioning
-- [Git Mode](./git-mode.md) — Set up git-based versioning
+- [Cross-Version Links](../cross-version-links/) — Link between versions
+- [Folder Mode](../folder-mode/) — Set up folder-based versioning
+- [Git Mode](../git-mode/) — Set up git-based versioning

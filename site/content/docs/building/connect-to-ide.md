@@ -71,6 +71,6 @@ enabled = false
 
 ## See Also
 
-- [SEO & Discovery](./seo.md) — Machine discovery, content signals, and related features
-- [Output Formats](./output-formats.md) — JSON, LLM text, and other machine-readable outputs
+- [SEO & Discovery](../seo/) — Machine discovery, content signals, and related features
+- [Output Formats](../output-formats/) — JSON, LLM text, and other machine-readable outputs
 - [Cursor MCP Install Links](https://cursor.com/docs/context/mcp/install-links) — Deeplink format reference
