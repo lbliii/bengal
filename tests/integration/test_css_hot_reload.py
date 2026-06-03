@@ -586,14 +586,22 @@ incremental = true
 
     @staticmethod
     def _manifest_entry_count(output_dir: Path) -> int:
+        """Count the asset entries recorded in ``asset-manifest.json``.
+
+        The manifest schema is ``{"version", "generated_at", "assets": {...}}``;
+        the tracked assets live under the ``assets`` key, so we count that mapping
+        (not the top-level keys, which would be a constant 3 and make the
+        "manifest not emptied" assertion vacuous).
+        """
         import json
 
         manifest = output_dir / "asset-manifest.json"
         if not manifest.exists():
             return 0
         data = json.loads(manifest.read_text())
-        entries = data.get("entries", data) if isinstance(data, dict) else data
-        return len(entries)
+        if not isinstance(data, dict):
+            return 0
+        return len(data.get("assets", {}))
 
     def test_theme_css_survives_content_only_incremental(self, theme_site: Path) -> None:
         """Theme CSS and the asset manifest survive a content-only incremental.
