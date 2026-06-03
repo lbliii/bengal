@@ -558,6 +558,7 @@ class RuntimePage:
         self._section_obj_cache_key = None
         self._section_obj_cache = None
         self._section_path_rel_cache = None
+        self._section_path_rel_site = None
 
     @property
     def section_path(self) -> str | None:
