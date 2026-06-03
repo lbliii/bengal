@@ -487,7 +487,7 @@ class ProvenanceCache:
         edges: dict[tuple[str, str], set[str]] = {}
         meta: dict[tuple[str, str], tuple[str, str]] = {}
         base_pages: set[str] = set()
-        for (kind, key), entry in base._entries.items():
+        for (kind, key), entry in base.items():
             pages = set(entry.page_keys)
             edges[(kind, key)] = pages
             meta[(kind, key)] = (entry.invalidation_reason, entry.producer)
