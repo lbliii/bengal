@@ -248,6 +248,20 @@ class AssetManifest:
             provenance=provenance,
         )
 
+    def add_entry(self, entry: AssetManifestEntry) -> None:
+        """
+        Insert a fully-formed entry as-is, keyed by its logical path.
+
+        Unlike :meth:`set_entry`, this preserves the entry's existing metadata
+        (output path, fingerprint, size, timestamp, provenance) without
+        re-deriving it. Used by incremental builds to carry forward prior
+        manifest entries for assets that were not reprocessed this run.
+
+        Args:
+            entry: A previously-built manifest entry to retain verbatim.
+        """
+        self._entries[to_posix(entry.logical_path)] = entry
+
     def get(self, logical_path: str) -> AssetManifestEntry | None:
         """
         Retrieve the entry for a logical path.
