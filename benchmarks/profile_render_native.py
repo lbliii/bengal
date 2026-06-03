@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import os
 import random
+import re
 import shutil
 import sys
 import tempfile
@@ -41,16 +42,35 @@ from bengal.orchestration.build.options import BuildOptions
 
 
 def _pin_workers(root: Path, workers: int) -> None:
-    """Pin the render worker count via ``[build] max_workers`` (flows to the scheduler)."""
+    """Pin the render worker count via ``[build] max_workers`` so the run is deterministic.
+
+    Idempotent: OVERWRITES any existing ``max_workers`` (so reruns and reused ``--reuse-dir``
+    sites honor the current ``--workers`` instead of silently keeping a stale value), inserts it
+    under an existing ``[build]`` table, or appends a ``[build]`` table if none exists. The value
+    flows to the render scheduler as ``config_override``.
+    """
     toml = root / "bengal.toml"
     text = toml.read_text(encoding="utf-8")
-    if "max_workers" not in text:
-        text = text.replace("[build]\n", f"[build]\nmax_workers = {workers}\n", 1)
-        toml.write_text(text, encoding="utf-8")
+    line = f"max_workers = {workers}"
+    if re.search(r"^[ \t]*max_workers[ \t]*=.*$", text, re.MULTILINE):
+        text = re.sub(r"^[ \t]*max_workers[ \t]*=.*$", line, text, count=1, flags=re.MULTILINE)
+    elif "[build]\n" in text:
+        text = text.replace("[build]\n", f"[build]\n{line}\n", 1)
+    else:
+        text = text.rstrip("\n") + f"\n\n[build]\n{line}\n"
+    toml.write_text(text, encoding="utf-8")
 
 
 def _build_once(root: Path, *, sequential: bool) -> dict:
-    """Run one cold build and return its cpu/wall signature + phase ledger."""
+    """Run one non-incremental (full re-render) build; return its cpu/wall + phase ledger.
+
+    Clears the output dir and forces ``incremental=False`` so every page is re-rendered. NOTE:
+    persistent caches under ``.bengal/`` (e.g. the Kida bytecode cache) are intentionally NOT
+    cleared — so the FIRST build of a freshly generated site is a true cold start, while later
+    ``--runs`` iterations and a reused ``--reuse-dir`` keep those caches warm (usually what you
+    want when profiling steady-state render rather than first-touch bytecode compilation).
+    Profile the iteration that matches your question.
+    """
     site = Site.from_config(root)
     if site.output_dir.exists():
         shutil.rmtree(site.output_dir)
@@ -89,6 +109,10 @@ def main(argv: list[str] | None = None) -> int:
         help="generate/keep the fixture site here and reuse it if present (keeps it out of the profile)",
     )
     args = parser.parse_args(argv)
+    # A profiler that pins worker count must reject the auto-detect escape hatch: max_workers=0
+    # re-enables CPU-based auto-tuning and makes results box-dependent.
+    if not args.sequential and args.workers < 1:
+        parser.error("--workers must be >= 1 (or pass --sequential for the 1-worker baseline)")
 
     gil_enabled = sys._is_gil_enabled() if hasattr(sys, "_is_gil_enabled") else True
     random.seed(42)
@@ -102,8 +126,11 @@ def main(argv: list[str] | None = None) -> int:
         if root.exists() and root == reuse:
             shutil.rmtree(root)
         create_site(args.archetype, args.pages, root)
-        _pin_workers(root, args.workers)
         owned = reuse is None
+    # Pin AFTER root selection so --workers is honored on reused dirs too (not just freshly
+    # generated ones). Skipped for --sequential, where force_sequential overrides max_workers.
+    if not args.sequential:
+        _pin_workers(root, args.workers)
 
     print(
         f"# profile_render_native  archetype={args.archetype} pages={args.pages} "
