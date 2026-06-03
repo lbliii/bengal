@@ -174,6 +174,86 @@ class TestBufferManager:
 
         assert (staging / "index.html").read_text() == "<html>seeded</html>"
 
+    def test_delta_staging_does_not_sync_unlisted_files(self, mgr: BufferManager) -> None:
+        """A file neither in changed_paths nor always_sync is left untouched.
+
+        This is the divergence mechanism behind #315: asset-manifest.json is never
+        in the delta paths (a content-only rebuild does not rewrite it), so without
+        always_sync it drifts a generation behind in the staging buffer.
+        """
+        active = mgr.active_dir
+        staging = mgr.staging_dir
+        (active / "asset-manifest.json").write_text('{"gen": 2}')
+        (active / "index.html").write_text("<html>v2</html>")
+        staging.mkdir(parents=True, exist_ok=True)
+        (staging / "asset-manifest.json").write_text('{"gen": 1}')
+        (staging / "index.html").write_text("<html>v1</html>")
+
+        mgr.prepare_delta_staging([Path("index.html")])
+
+        # The manifest was NOT in changed_paths, so plain delta-staging leaves the
+        # staging buffer's stale copy in place — it diverges from active.
+        assert (staging / "asset-manifest.json").read_text() == '{"gen": 1}'
+
+    def test_delta_staging_always_sync_refreshes_manifest(self, mgr: BufferManager) -> None:
+        """always_sync re-seeds the manifest from active even when it is not changed (#315)."""
+        active = mgr.active_dir
+        staging = mgr.staging_dir
+        (active / "asset-manifest.json").write_text('{"gen": 2}')
+        (active / "index.html").write_text("<html>v2</html>")
+        staging.mkdir(parents=True, exist_ok=True)
+        (staging / "asset-manifest.json").write_text('{"gen": 1}')
+        (staging / "index.html").write_text("<html>v1</html>")
+
+        mgr.prepare_delta_staging([Path("index.html")], always_sync=["asset-manifest.json"])
+
+        # Now the staging buffer carries the active buffer's current manifest, so it
+        # will not serve a stale/divergent manifest after the next swap.
+        assert (staging / "asset-manifest.json").read_text() == '{"gen": 2}'
+        # And it shares active's inode (hardlinked, atomic-write-safe).
+        assert (active / "asset-manifest.json").stat().st_ino == (
+            staging / "asset-manifest.json"
+        ).stat().st_ino
+
+    def test_delta_staging_always_sync_removes_when_absent_in_active(
+        self, mgr: BufferManager
+    ) -> None:
+        """If active lacks an always_sync file, it is removed from staging (stay consistent)."""
+        active = mgr.active_dir
+        staging = mgr.staging_dir
+        (active / "index.html").write_text("<html>v2</html>")
+        staging.mkdir(parents=True, exist_ok=True)
+        (staging / "index.html").write_text("<html>v1</html>")
+        (staging / "asset-manifest.json").write_text('{"gen": 1}')
+
+        mgr.prepare_delta_staging([Path("index.html")], always_sync=["asset-manifest.json"])
+
+        assert not (staging / "asset-manifest.json").exists()
+
+    def test_delta_staging_fallback_full_seed_keeps_manifest_consistent(
+        self, mgr: BufferManager
+    ) -> None:
+        """When delta-staging falls back to a full seed, the manifest is still synced.
+
+        ``prepare_delta_staging`` returns early to ``prepare_staging`` when staging is
+        empty (or a path is unsafe), so ``_sync_always`` is not reached. That is safe
+        because the full hardlink seed copies *every* file — including the manifest —
+        so the buffers stay consistent without the explicit always_sync pass.
+        """
+        active = mgr.active_dir
+        (active / "index.html").write_text("<html>v2</html>")
+        (active / "asset-manifest.json").write_text('{"gen": 2}')
+        # Staging is empty -> prepare_delta_staging falls back to a full seed.
+
+        staging = mgr.prepare_delta_staging(
+            [Path("index.html")], always_sync=["asset-manifest.json"]
+        )
+
+        assert (staging / "asset-manifest.json").read_text() == '{"gen": 2}', (
+            "the full-seed fallback must also leave the staging buffer with the "
+            "active buffer's current manifest"
+        )
+
     def test_full_cycle(self, mgr: BufferManager) -> None:
         """Simulate: build to staging, swap, build again to new staging.
 
