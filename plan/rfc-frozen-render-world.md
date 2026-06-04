@@ -11,6 +11,27 @@ platform) confirms the fixable share.
 **Related**: `plan/epic-performance.md`, `plan/rfc-snapshot-build-plan-handoff.md` (this is
 its potential completion), `benchmarks/baselines/phase_attribution.json`.
 
+> **RESOLVED 2026-06-04 (PM) — Step 0 done on the Mac; the central bet is REFUTED for the thread
+> path.** The attribution this RFC gated on is complete (`benchmarks/render-scaling-attribution-findings.md`),
+> and it overturns this RFC's premise. Measured on an M3 Pro: in-process threads render at **2.26x**,
+> process isolation at **4.64x** — the ~2x gap is real and fixable. But it is **NOT recoverable
+> in-thread**: every in-thread lever recovers ≤7% (intern strings −0.1%, per-thread global ctx +0.3%,
+> frozen `PageSnapshot` at `context['page']` +2.3%, immortalize the snapshot +7%, **immortalize the
+> ENTIRE shared world (142K objs, zero refcount) +2%**, GC freeze+disable +3.6%). Immortalizing the
+> whole read-set removes *all* refcount traffic yet captures ~nothing → **the tax is not Python-object
+> refcount coherency** (this RFC's and the epic's core assumption is wrong). It is allocator / GC /
+> interpreter-level contention, fixable only by **separate heaps**. Therefore **Phases 1–2 below
+> (Frozen RenderWorld + owned per-page frames IN THREADS) will not move the number — do not build
+> them.** The lever is the "Isolation" alternative (process / PEP 734 sub-interpreter): **cold-build
+> only**, gated on a page-count crossover. Feasibility scoped: macOS defaults to `spawn` and the
+> `SiteSnapshot` is unpicklable (`mappingproxy`), so the efficient path is **`fork`+COW + an immortalized
+> snapshot** (immortal objects don't write refcounts → COW pages stay shared; `_Py_SetImmortal` works) or
+> `spawn` + a picklable-snapshot serialization layer. Per-worker fixed cost ≈1s (import) + snapshot
+> transport; crossover ≈ a few hundred pages → favorable for large cold builds (dogfood = 1,503 rendered
+> pages). The honest ceiling stands (~4.6x here, P/E-bound) but is reached via heap isolation, not owned
+> frames. Next: an RFC/epic for the process/sub-interpreter cold-build render backend; confirm the
+> allocator attribution with `py-spy --native` (needs root) before funding the XL build.
+>
 > **Status update 2026-06-04 — reframed as achievable epic #343.** The "Hold until a
 > supported-platform Step 0" decision below is no longer the blocker it reads as. Two
 > insights from the 2026-06-04 review reopened this as actionable work tracked under
