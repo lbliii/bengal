@@ -11,6 +11,30 @@ platform) confirms the fixable share.
 **Related**: `plan/epic-performance.md`, `plan/rfc-snapshot-build-plan-handoff.md` (this is
 its potential completion), `benchmarks/baselines/phase_attribution.json`.
 
+> **Status update 2026-06-04 — reframed as achievable epic #343.** The "Hold until a
+> supported-platform Step 0" decision below is no longer the blocker it reads as. Two
+> insights from the 2026-06-04 review reopened this as actionable work tracked under
+> **epic #343 "Render scaling — measure clean, then un-share the world"** (sagas #344–#349,
+> which supersede the parked #308/#309):
+>
+> 1. **The first question needs no native attribution.** Before naming objects, ask whether
+>    the ~1.7x plateau is *fixable at all*. A **process-isolation ceiling probe**
+>    (`benchmarks/probe_render_ceiling.py`, #345) answers that on **any** box, macOS included
+>    — separate heaps mean zero cross-thread refcounting, and because contamination only
+>    biases the process side *down*, a positive (processes ≫ threads) is trustworthy even off
+>    a noisy machine. A contaminated local run already fired a preliminary **GO** signal
+>    (~2.95x processes vs 1.57x threads).
+> 2. **The real blocker for Step 0 was a clean *measurement environment*, not Linux
+>    ownership.** This dev Mac runs Microsoft Defender (~128% CPU real-time file scanning) and
+>    lacks `perf`/`py-spy --native`. An ephemeral idle Linux box (#344, driven by
+>    `benchmarks/run_clean_box.sh`) supplies both the clean numbers *and* the native
+>    attribution that this RFC's Step 0 requires.
+>
+> So: the **Decision** at the bottom still holds (do not migrate before Step 0 names the
+> objects), but Step 0 is now reachable. The attribution fork in §"The hard gate" maps
+> directly onto #345 step 2 and decides which saga gets funded (#347 universal vs cold-build-only,
+> or bank #346/#348 alone). See `benchmarks/COHERENCY_PROFILING.md` for the runbook.
+
 ---
 
 ## Problem (measured, robust)
