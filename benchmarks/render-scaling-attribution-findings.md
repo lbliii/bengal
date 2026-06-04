@@ -45,6 +45,33 @@ Defender's separate CPU use). These are directional Mac numbers, not committed c
 - **#348 (chrome memoization)** remains separately de-scoped (dead BlockCache + nav active-state is
   per-page; see `348-chrome-memoization-findings.md`).
 
+## Prize sizing — the ceiling probe (decisive, on-Mac, 2026-06-04)
+
+`benchmarks/probe_render_ceiling.py --pages 400 --procs 5,8 --runs 3`, M3 Pro, Defender present.
+The probe is contamination-robust: Defender only biases the *process* side **down**, so these are
+**lower bounds**.
+
+| | render | speedup |
+|---|--:|--:|
+| solo single-thread | 10.33s | 1.00x (baseline) |
+| in-process threads | 4.56s | **2.26x** (the plateau) |
+| 5 isolated processes | — | **3.80x** |
+| 8 isolated processes | — | **4.64x** |
+
+**Verdict (the probe's own): FIXABLE coherency tax, not a hardware wall. Ceiling ~4.6x here.**
+Corroborated by the direct seq-vs-parallel measurement: parallel render burns **2.48x the CPU**
+for identical work (cpu/wall 1.21 sequential → 7.72 parallel — cores busy, not blocked).
+
+**Implications:**
+- The prize is **~2x more render throughput** (threads 2.26x → ceiling ~4.6x), much larger than the
+  old "2.5–3.5x, Environment-bound" estimate (no Environment floor — see finding 1).
+- The null container experiments (strings, global contexts) were the **wrong/small** containers. What
+  processes un-share that threads don't is the **`SiteSnapshot` graph** (pages / sections / nav /
+  taxonomy), which every page reads — owned by the main thread, so worker threads hit the
+  biased-refcount atomic slow path on every access. **That is the FrameBuilder's target.**
+- This is all measured **on the Mac, no Linux, no sudo** — the clean-box gate the epic waited on is,
+  for the GO/NO-GO + prize-sizing question, answerable here.
+
 ## Still open — the one definitive step that needs root
 
 `py-spy --native` would name the *exact* contended container (refcount frames under config vs menu
