@@ -101,6 +101,43 @@ snapshot (then the immutable read-set is ownable/immortalizable → full tax rem
 the worker renders from frozen data, never the live graph. That is the build to fund; immortalizing
 the frozen read-set is the cheap complement once render reads it.
 
+## DECISIVE PIVOT — the tax is NOT in-thread-recoverable (2026-06-04)
+
+Tried to recover the 2.26x→4.64x gap *in threads* by un-sharing/immortalizing the shared read-set.
+Every lever (M3 Pro, 400 pages, 3 runs, render CPU-time — the Defender-robust signal):
+
+| in-thread lever | Δ render CPU |
+|---|--:|
+| intern hot strings | −0.1% |
+| per-thread global contexts (6-run) | +0.3% |
+| frozen `PageSnapshot` view at `context['page']` (529 swaps/build) | +2.3% |
+| immortalize the `SiteSnapshot` graph (23K objs) | +7% |
+| **immortalize the ENTIRE shared world (142K objs — site+pages+snapshot+config+menu, via `_Py_SetImmortal`)** | **+2%** |
+| freeze + disable GC during render | +3.6% |
+
+**Every in-thread lever recovers ≤7% (near 3-run noise); process isolation recovers ~105%.** The
+load-bearing one is the whole-world immortalization: immortal objects are *never* refcounted, so
+removing **all** refcount traffic on the shared read-set should capture the entire biased-refcount
+tax — and it captured ~nothing. Therefore:
+
+- **The coherency tax is NOT Python-object refcount coherency.** This *corrects the epic's core
+  diagnosis* (`epic-performance.md` attributed the plateau to "atomic-refcount / cache-coherency
+  overhead on shared objects"). Immortalizing those objects disproves it.
+- The ~2x is dominated by **allocator / GC / interpreter-level contention** (cross-thread malloc/free
+  on shared heap metadata under free-threading, shared write-accumulators, GC) — recoverable only by
+  **separate heaps**. GC is ~3.6% of it; the rest is most likely the allocator (inferred by
+  elimination — see "needs root" below to confirm).
+- **∴ The in-thread owned-per-page-frame FrameBuilder (#347 universal branch) will NOT deliver the
+  prize.** Owned frames only address refcount, and refcount isn't the tax. This *decides the #345
+  step-2 fork* against in-thread frames.
+- **The lever that works is heap isolation** — `ProcessPoolExecutor` / PEP 734 sub-interpreters
+  (separate heaps, no shared allocator/runtime) — i.e. the **cold-build/CI-only** branch, gated on a
+  page-count crossover (per-worker import + Environment-rebuild + serialization cost). #346 (intern)
+  and the in-thread half of #347 are dead; #348 separately de-scoped.
+
+**Confidence:** the prize (ceiling probe) and the refcount-is-not-it result (whole-world
+immortalization) are strong; the *allocator* attribution is by-elimination, not directly observed.
+
 ## Still open — the one definitive step that needs root
 
 `py-spy --native` would name the *exact* contended container (refcount frames under config vs menu
