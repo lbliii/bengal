@@ -1,0 +1,95 @@
+openapi: 3.0.3
+info:
+  title: Catalog Nav Demo
+  version: 1.0.0
+  description: Multi-tag, multi-endpoint spec exercising catalog navigation (#287).
+
+servers:
+  - url: https://api.example.com/v1
+    description: Production
+
+tags:
+  - name: Orders
+    description: Order management
+  - name: Users
+    description: User management
+
+paths:
+  /orders:
+    get:
+      tags: [Orders]
+      summary: List orders
+      operationId: listOrders
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Orders]
+      summary: Create order
+      operationId: createOrder
+      responses:
+        '201': { description: Created }
+  /orders/{id}:
+    get:
+      tags: [Orders]
+      summary: Get order
+      operationId: getOrder
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      operationId: listUsers
+      responses:
+        '200': { description: OK }
+    post:
+      tags: [Users]
+      summary: Create user
+      operationId: createUser
+      responses:
+        '201': { description: Created }
+  /users/{id}:
+    delete:
+      tags: [Users]
+      summary: Delete user
+      operationId: deleteUser
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: No Content }
+
+components:
+  schemas:
+    Order:
+      type: object
+      properties:
+        id: { type: string }
+        total: { type: number }
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+    Address:
+      type: object
+      properties:
+        street: { type: string }
+        city: { type: string }
+    Money:
+      type: object
+      properties:
+        amount: { type: number }
+        currency: { type: string }
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer }
+        total: { type: integer }

@@ -38,7 +38,7 @@ Kida Features:
 {% let has_body = properties | length > 0 or composition is not none or additional is not none %}
 
 {% block api_left %}
-<nav class="openapi-nav" aria-label="Schema sections">
+<nav class="openapi-nav" aria-label="Schema sections" data-api-rail>
   <a href="{{ section?.href ?? page?.href ?? '#' }}" class="openapi-nav__back">{{ icon('arrow-left', size=14) }} {{ section?.title ?? 'Schemas' }}</a>
   {% if has_body %}<a href="#properties">{% if properties | length > 0 %}Properties{% elif composition is not none %}Variants{% else %}Structure{% end %}</a>{% end %}
   {% if enum_vals | length > 0 %}<a href="#enum">Allowed values</a>{% end %}

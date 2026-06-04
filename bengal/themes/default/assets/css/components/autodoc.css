@@ -3297,6 +3297,82 @@ body[data-type="autodoc-rest"] .openapi-app .api-schema:empty {
   letter-spacing: 0;
 }
 
+/* ============================================
+   CATALOG NAVIGATION INTERACTIONS (#287)
+   Filter inputs, no-results, rail active-state,
+   and path-copy buttons. Additive; reuses tokens.
+   ============================================ */
+
+/* Filter input (landing catalog + schema index) — matches sidebar search. */
+.api-catalog-filter {
+  margin-inline-start: auto;
+}
+
+.api-catalog-filter__input {
+  width: 100%;
+  min-width: 12rem;
+  padding: var(--space-2);
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--autodoc-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+}
+
+.api-catalog-filter__empty {
+  padding: var(--space-3);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+/* Filtered-out items collapse (JS toggles the `hidden` attribute only). */
+[data-api-filter-item][hidden],
+[data-api-filter-group][hidden] {
+  display: none;
+}
+
+/* Section header row holding the title + filter side by side. */
+.api-section-index__section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Active rail item from scroll-spy / hash navigation. */
+body[data-type="autodoc-rest"] .openapi-nav a.api-rail__link--active,
+body[data-type="autodoc-rest"] .openapi-nav a[aria-current],
+.api-catalog-nav__link.api-rail__link--active,
+.api-catalog-nav__link[aria-current] {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+/* Inline copy button for operation paths (uses the global [data-copy]
+   handler in tabs.js; `.copied` success feedback is already defined). */
+.api-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-0-5);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.api-copy-btn:hover {
+  background: var(--color-bg-secondary);
+  color: var(--color-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .api-copy-btn {
+    transition: none;
+  }
+}
+
 @media (max-width: 1280px) {
   .api-operation__grid {
     grid-template-columns: 1fr;
