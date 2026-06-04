@@ -72,6 +72,35 @@ for identical work (cpu/wall 1.21 sequential → 7.72 parallel — cores busy, n
 - This is all measured **on the Mac, no Linux, no sudo** — the clean-box gate the epic waited on is,
   for the GO/NO-GO + prize-sizing question, answerable here.
 
+## Pinpoint — render reads the LIVE objects, not the snapshot (2026-06-04)
+
+Immortalizing the entire `SiteSnapshot` graph (23,127 objects, via the exported `_Py_SetImmortal`
+so read-only frozen objects skip refcounting) and measuring at 8 threads, 400 pages, 3 runs:
+
+| | render | cpu |
+|---|--:|--:|
+| baseline (shared snapshot) | 4.43s | 30.81s |
+| immortalized snapshot graph | 4.13s | 28.48s |
+| delta | **+6.8%** | **+7.5%** |
+
+Both metrics agree and it's clearly above the noise floor (strings −0.1%, global-ctx +0.3%) — so it's
+real, but **only ~7%**, a small slice of the ~2x prize. *(3 runs; firm up with 6 before quoting a
+magnitude.)* The interpretation is the key result:
+
+**The render workers barely read the snapshot — they read the live, mutable `Site` and `Page`.**
+`kida.py:774` injects `self.site` (live) into every context; `run_page` passes the live site to the
+pipeline; the scheduler renders live `PageLike`, not the frozen `PageSnapshot` (a known note at
+`epic-performance.md:44`: "maps snapshot pages back to mutable PageLike and passes self.site into the
+pipeline — workers still read mutable Site/Page"). Those live objects are owned by the main thread →
+worker threads hit the biased-refcount atomic slow path on every access. The immutable snapshot is
+used mostly for nav/scheduling, so immortalizing it only grazes the tax.
+
+**∴ The exact lever:** re-point render workers off the live mutable `Site`/`Page` onto the frozen
+snapshot (then the immutable read-set is ownable/immortalizable → full tax removal). This is
+`rfc-snapshot-build-plan-handoff` / T13 — and it is precisely the maintainer's "owned per-page frame":
+the worker renders from frozen data, never the live graph. That is the build to fund; immortalizing
+the frozen read-set is the cheap complement once render reads it.
+
 ## Still open — the one definitive step that needs root
 
 `py-spy --native` would name the *exact* contended container (refcount frames under config vs menu
