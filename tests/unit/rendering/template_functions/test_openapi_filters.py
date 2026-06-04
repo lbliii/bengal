@@ -13,10 +13,18 @@ from typing import Any
 from bengal.rendering.template_functions.openapi import (
     EndpointView,
     SchemaView,
+    _build_example_body,
     _generate_anchor_id,
+    _schema_to_example,
     endpoints_filter,
     generate_code_sample,
     get_response_example,
+    schema_additional_properties,
+    schema_composition,
+    schema_constraints,
+    schema_examples,
+    schema_flags,
+    schema_ref,
     schema_view_filter,
     schemas_filter,
 )
@@ -798,3 +806,328 @@ class TestOpenAPICodeSamples:
         )
 
         assert example == {"id": "user_123"}
+
+
+# =============================================================================
+# Tests for advanced schema normalization (#285)
+# =============================================================================
+
+
+class TestSchemaComposition:
+    """Tests for schema_composition() (oneOf/anyOf/allOf + discriminator)."""
+
+    def test_one_of_with_discriminator(self) -> None:
+        """oneOf polymorphism exposes branches and a normalized discriminator."""
+        raw = {
+            "type": "object",
+            "discriminator": {
+                "propertyName": "type",
+                "mapping": {
+                    "credit_card": "#/components/schemas/CreditCard",
+                    "bank_account": "#/components/schemas/BankAccount",
+                    "paypal": "#/components/schemas/PayPal",
+                },
+            },
+            "oneOf": [
+                {"type": "object", "properties": {"type": {"enum": ["credit_card"]}}},
+                {"type": "object", "properties": {"type": {"enum": ["bank_account"]}}},
+                {"type": "object", "title": "PayPal"},
+            ],
+        }
+
+        composition = schema_composition(raw)
+
+        assert composition is not None
+        assert composition["kind"] == "oneOf"
+        assert len(composition["branches"]) == 3
+        # Branch labels derive from a single-value type enum, else title.
+        assert [b["label"] for b in composition["branches"]] == [
+            "credit_card",
+            "bank_account",
+            "PayPal",
+        ]
+        disc = composition["discriminator"]
+        assert disc is not None
+        assert disc["property_name"] == "type"
+        assert {row["value"] for row in disc["mapping"]} == {
+            "credit_card",
+            "bank_account",
+            "paypal",
+        }
+        # The ref string is shortened to its schema name for display.
+        assert {row["target"] for row in disc["mapping"]} == {
+            "CreditCard",
+            "BankAccount",
+            "PayPal",
+        }
+
+    def test_any_of_without_discriminator(self) -> None:
+        """anyOf is recognized and reports no discriminator when absent."""
+        composition = schema_composition({"anyOf": [{"type": "string"}, {"type": "integer"}]})
+        assert composition is not None
+        assert composition["kind"] == "anyOf"
+        assert composition["discriminator"] is None
+        assert composition["branches"][0]["schema_type"] == "string"
+
+    def test_all_of_is_recognized_as_composition(self) -> None:
+        """allOf is exposed as composition even though properties stay flattened."""
+        composition = schema_composition({"allOf": [{"type": "object"}, {"type": "object"}]})
+        assert composition is not None
+        assert composition["kind"] == "allOf"
+
+    def test_plain_schema_has_no_composition(self) -> None:
+        """A non-composed schema returns None (discriminating, not vacuous)."""
+        assert schema_composition({"type": "object", "properties": {}}) is None
+        assert schema_composition(None) is None
+
+
+class TestSchemaConstraints:
+    """Tests for schema_constraints() validation-constraint extraction."""
+
+    def test_extracts_present_constraints_only(self) -> None:
+        """Only set constraint keys are returned, with their values."""
+        constraints = schema_constraints(
+            {
+                "type": "string",
+                "pattern": "^[a-z]+$",
+                "minLength": 3,
+                "maxLength": 64,
+                "format": "email",
+            }
+        )
+        assert constraints == {
+            "format": "email",
+            "pattern": "^[a-z]+$",
+            "min length": "3",
+            "max length": "64",
+        }
+
+    def test_unique_items_renders_as_label_only(self) -> None:
+        """Boolean uniqueItems maps to an empty value (label-only chip)."""
+        assert schema_constraints({"type": "array", "uniqueItems": True}) == {"unique items": ""}
+        # False boolean constraints are omitted entirely.
+        assert schema_constraints({"type": "array", "uniqueItems": False}) == {}
+
+    def test_exclusive_bounds(self) -> None:
+        """exclusiveMinimum/exclusiveMaximum (3.1 numeric form) are surfaced."""
+        assert schema_constraints(
+            {"type": "number", "exclusiveMinimum": 0, "exclusiveMaximum": 100}
+        ) == {"exclusive min": "0", "exclusive max": "100"}
+
+    def test_no_constraints_yields_empty_dict(self) -> None:
+        """A property with no constraints yields an empty dict, not noise."""
+        assert schema_constraints({"type": "string"}) == {}
+        assert schema_constraints(None) == {}
+
+
+class TestSchemaFlags:
+    """Tests for schema_flags() (nullable/readOnly/writeOnly/deprecated)."""
+
+    def test_surfaces_true_flags_only(self) -> None:
+        """Only flags set to true are returned."""
+        assert schema_flags({"type": "string", "writeOnly": True}) == {"writeOnly": True}
+        assert schema_flags({"type": "string", "readOnly": True, "deprecated": True}) == {
+            "readOnly": True,
+            "deprecated": True,
+        }
+
+    def test_normal_field_has_no_flags(self) -> None:
+        """A plain field reports no flags (the discriminating negative case)."""
+        assert schema_flags({"type": "string"}) == {}
+
+    def test_nullable_via_openapi_30_and_31_forms(self) -> None:
+        """nullable is recognized from 3.0 `nullable` and 3.1 type-array null."""
+        assert schema_flags({"type": "string", "nullable": True}) == {"nullable": True}
+        assert schema_flags({"type": ["string", "null"]}) == {"nullable": True}
+
+
+class TestSchemaAdditionalProperties:
+    """Tests for schema_additional_properties() normalization."""
+
+    def test_boolean_form(self) -> None:
+        assert schema_additional_properties({"type": "object", "additionalProperties": True}) == {
+            "allowed": True
+        }
+
+    def test_schema_form_is_typed_map(self) -> None:
+        result = schema_additional_properties(
+            {"type": "object", "additionalProperties": {"type": "string"}}
+        )
+        assert result is not None
+        assert result["schema_type"] == "string"
+        assert result["value_schema"] == {"type": "string"}
+
+    def test_absent_returns_none(self) -> None:
+        assert schema_additional_properties({"type": "object"}) is None
+
+
+class TestSchemaExamples:
+    """Tests for schema_examples() example normalization."""
+
+    def test_singular_example(self) -> None:
+        examples = schema_examples({"type": "string", "example": "hello"})
+        assert examples == ({"name": "", "summary": "", "value": "hello"},)
+
+    def test_examples_map_with_summary_and_value(self) -> None:
+        examples = schema_examples(
+            {
+                "examples": {
+                    "ok": {"summary": "A success", "value": {"id": 1}},
+                    "bare": "plain",
+                }
+            }
+        )
+        assert examples[0] == {"name": "ok", "summary": "A success", "value": {"id": 1}}
+        assert examples[1] == {"name": "bare", "summary": "", "value": "plain"}
+
+    def test_no_examples_yields_empty_tuple(self) -> None:
+        assert schema_examples({"type": "string"}) == ()
+
+
+class TestSchemaRef:
+    """Tests for schema_ref() (cyclic $ref leaf detection)."""
+
+    def test_bare_ref_returns_schema_name(self) -> None:
+        assert schema_ref({"$ref": "#/components/schemas/TreeNode"}) == "TreeNode"
+
+    def test_resolved_schema_returns_none(self) -> None:
+        assert schema_ref({"type": "object", "properties": {}}) is None
+        assert schema_ref(None) is None
+
+
+class TestSchemaViewExposesAdvancedConstructs:
+    """display_schema must carry advanced keys for advanced schemas only."""
+
+    def test_advanced_keys_surface_for_composed_schema(self) -> None:
+        """A composed schema's display_schema exposes the raw construct keys."""
+        element = MockDocElement(
+            name="PaymentMethod",
+            typed_metadata=MockOpenAPISchemaMetadata(schema_type="object"),
+            metadata={
+                "raw_schema": {
+                    "type": "object",
+                    "discriminator": {"propertyName": "type"},
+                    "oneOf": [{"type": "object"}, {"type": "object"}],
+                }
+            },
+        )
+
+        view = SchemaView.from_doc_element(element)
+
+        assert schema_composition(view.display_schema) is not None
+        assert "oneOf" in view.display_schema
+        assert "discriminator" in view.display_schema
+
+    def test_simple_schema_display_schema_stays_minimal(self) -> None:
+        """A simple schema gains no advanced keys (byte-stable output guard)."""
+        element = MockDocElement(
+            name="Tag",
+            typed_metadata=MockOpenAPISchemaMetadata(schema_type="string"),
+            metadata={"raw_schema": {"type": "string"}},
+        )
+
+        view = SchemaView.from_doc_element(element)
+
+        advanced = {
+            "oneOf",
+            "anyOf",
+            "allOf",
+            "discriminator",
+            "additionalProperties",
+            "examples",
+            "nullable",
+            "readOnly",
+            "writeOnly",
+            "deprecated",
+            "pattern",
+            "format",
+        }
+        assert advanced.isdisjoint(view.display_schema.keys())
+
+
+class TestSchemaExampleBounding:
+    """_schema_to_example / _build_example_body must bound recursion + handle oneOf."""
+
+    def test_self_referential_schema_is_bounded(self) -> None:
+        """A directly circular schema returns within the depth bound, no hang.
+
+        This assertion would stack-overflow / hang forever if the depth guard
+        regressed — that is the point of the test.
+        """
+        node: dict[str, Any] = {"type": "object", "properties": {}}
+        node["properties"]["self"] = node  # direct cycle
+
+        result = _schema_to_example(node)
+
+        # Bounded: the recursion terminates and yields a finite nested dict.
+        assert isinstance(result, dict)
+
+    def test_indirect_cycle_is_bounded(self) -> None:
+        """An A -> B -> A cycle also terminates."""
+        a: dict[str, Any] = {"type": "object", "properties": {}}
+        b: dict[str, Any] = {"type": "object", "properties": {}}
+        a["properties"]["b"] = b
+        b["properties"]["a"] = a
+
+        result = _schema_to_example(a)
+        assert isinstance(result, dict)
+
+    def test_one_of_request_body_uses_first_branch(self) -> None:
+        """A polymorphic (oneOf) request body yields the first branch example."""
+        body = _build_example_body(
+            {
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "oneOf": [
+                                {
+                                    "type": "object",
+                                    "properties": {"kind": {"enum": ["card"]}},
+                                },
+                                {"type": "object", "properties": {"kind": {"enum": ["cash"]}}},
+                            ]
+                        }
+                    }
+                }
+            }
+        )
+        assert body == {"kind": "card"}
+
+    def test_media_type_examples_take_precedence(self) -> None:
+        """An explicit media-type examples map is preferred over schema synthesis."""
+        body = _build_example_body(
+            {
+                "content": {
+                    "application/json": {
+                        "examples": {"sample": {"value": {"id": "abc"}}},
+                        "schema": {"type": "object", "properties": {"id": {"type": "string"}}},
+                    }
+                }
+            }
+        )
+        assert body == {"id": "abc"}
+
+    def test_list_form_examples_do_not_crash(self) -> None:
+        """A JSON-Schema list-form `examples` must not raise (it is not a map).
+
+        Regression for an AttributeError when `examples.values()` was called on
+        a list — at both the top-level and the media-type example sites.
+        """
+        assert _build_example_body({"examples": [{"value": "first"}, {"value": "second"}]}) == (
+            "first"
+        )
+        assert _build_example_body({"examples": ["plain", "other"]}) == "plain"
+        media_body = _build_example_body(
+            {"content": {"application/json": {"examples": [{"value": {"id": 1}}]}}}
+        )
+        assert media_body == {"id": 1}
+
+    def test_malformed_properties_do_not_crash(self) -> None:
+        """A non-Mapping `properties` (malformed spec) degrades, never crashes."""
+        # allOf merge path.
+        assert isinstance(
+            _schema_to_example({"allOf": [{"type": "object"}], "properties": ["a", "b"]}),
+            dict,
+        )
+        # object branch path.
+        assert _schema_to_example({"type": "object", "properties": ["a", "b"]}) == {}

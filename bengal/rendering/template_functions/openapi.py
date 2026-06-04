@@ -257,6 +257,13 @@ class SchemaView:
             "example": example,
             "description": el.description,
         }
+        # Surface advanced constructs (composition, constraints, flags, ...) for
+        # the recursive viewer, but only when actually present so simple-schema
+        # display_schema stays byte-identical and render baselines do not move.
+        if isinstance(raw_schema, Mapping):
+            for key in _ADVANCED_DISPLAY_KEYS:
+                if key in raw_schema and key not in display_schema:
+                    display_schema[key] = raw_schema[key]
 
         # Smart href: anchor if no page, page URL otherwise
         if consolidated or not el.href:
@@ -342,6 +349,255 @@ def _schema_enum(raw_schema: Any) -> tuple[Any, ...] | None:
                 if child_enum:
                     return child_enum
     return None
+
+
+# =============================================================================
+# Advanced schema normalization (composition, constraints, flags, examples)
+# =============================================================================
+#
+# These helpers turn a raw (already $ref-resolved) OpenAPI schema object into
+# small, template-friendly structures. They are registered as filters so the
+# recursive schema viewer can render advanced constructs uniformly on both the
+# top-level normalized schema and nested raw property schemas. Each one returns
+# an empty/None result when its construct is absent so templates can guard with
+# a cheap ``{% if %}`` and emit nothing for simple schemas (keeping their output
+# byte-identical).
+
+
+def _is_sequence(value: Any) -> bool:
+    """True for list/tuple-like sequences, excluding strings and bytes."""
+    return isinstance(value, Sequence) and not isinstance(value, str | bytes)
+
+
+def _branch_label(branch: Any) -> str | None:
+    """Derive a readable label for a composition branch.
+
+    The extractor inlines ``$ref`` targets before this runs, so the original
+    schema name is gone. Recover a stable label from (in order): an explicit
+    ``title``; a discriminator-style ``type`` property whose single ``enum``
+    value names the variant; or a bare ``$ref`` left behind at a cycle.
+    """
+    if not isinstance(branch, Mapping):
+        return None
+    title = branch.get("title")
+    if title:
+        return str(title)
+    props = branch.get("properties")
+    if isinstance(props, Mapping):
+        type_prop = props.get("type")
+        if isinstance(type_prop, Mapping):
+            enum = type_prop.get("enum")
+            if _is_sequence(enum) and len(enum) == 1:
+                return str(enum[0])
+    ref = branch.get("$ref")
+    if isinstance(ref, str):
+        return ref.rsplit("/", 1)[-1]
+    return None
+
+
+def _schema_discriminator(schema: Any) -> dict[str, Any] | None:
+    """Normalize an OpenAPI ``discriminator`` into ``{property_name, mapping}``.
+
+    ``mapping`` is a tuple of ``{value, target, ref}`` rows; ``target`` is the
+    schema name pulled from the ref string (the ref itself is preserved as
+    ``ref``). Returns ``None`` when no usable discriminator is present.
+    """
+    if not isinstance(schema, Mapping):
+        return None
+    disc = schema.get("discriminator")
+    if not isinstance(disc, Mapping):
+        return None
+    property_name = disc.get("propertyName")
+    if not property_name:
+        return None
+    raw_mapping = disc.get("mapping")
+    mapping: tuple[dict[str, str], ...] = ()
+    if isinstance(raw_mapping, Mapping):
+        mapping = tuple(
+            {"value": str(value), "target": str(ref).rsplit("/", 1)[-1], "ref": str(ref)}
+            for value, ref in raw_mapping.items()
+        )
+    return {"property_name": str(property_name), "mapping": mapping}
+
+
+def schema_composition(schema: Any) -> dict[str, Any] | None:
+    """Normalize ``oneOf``/``anyOf``/``allOf`` composition for rendering.
+
+    Returns ``{kind, branches, discriminator}`` or ``None`` when the schema is
+    not composed. ``branches`` is a tuple of ``{label, schema_type, schema}``
+    where ``schema`` is the resolved branch object (templates can recurse into
+    it) and ``label`` is derived via :func:`_branch_label`. ``discriminator`` is
+    populated for ``oneOf``/``anyOf`` polymorphism when present, else ``None``.
+    """
+    if not isinstance(schema, Mapping):
+        return None
+    for kind in ("oneOf", "anyOf", "allOf"):
+        raw_branches = schema.get(kind)
+        if not (_is_sequence(raw_branches) and raw_branches):
+            continue
+        branches = tuple(
+            {
+                "label": _branch_label(branch) or f"Variant {index + 1}",
+                "schema_type": _schema_type(branch),
+                "schema": branch,
+            }
+            for index, branch in enumerate(raw_branches)
+        )
+        return {
+            "kind": kind,
+            "branches": branches,
+            "discriminator": _schema_discriminator(schema),
+        }
+    return None
+
+
+# (schema key, display label) for validation constraints, in render order.
+_CONSTRAINT_SPECS: tuple[tuple[str, str], ...] = (
+    ("format", "format"),
+    ("pattern", "pattern"),
+    ("minimum", "min"),
+    ("maximum", "max"),
+    ("exclusiveMinimum", "exclusive min"),
+    ("exclusiveMaximum", "exclusive max"),
+    ("multipleOf", "multiple of"),
+    ("minLength", "min length"),
+    ("maxLength", "max length"),
+    ("minItems", "min items"),
+    ("maxItems", "max items"),
+    ("uniqueItems", "unique items"),
+    ("minProperties", "min properties"),
+    ("maxProperties", "max properties"),
+)
+
+
+def schema_constraints(schema: Any) -> dict[str, str]:
+    """Return present validation constraints as an ordered ``label -> value`` map.
+
+    Only keys actually set on the schema are included, so a property with no
+    constraints yields an empty dict (cheap ``{% if constraints %}`` guard).
+    Boolean-style constraints (``uniqueItems``) map to an empty string when true
+    and are omitted when false, so templates can render the label alone.
+    """
+    if not isinstance(schema, Mapping):
+        return {}
+    constraints: dict[str, str] = {}
+    for key, label in _CONSTRAINT_SPECS:
+        if key not in schema:
+            continue
+        value = schema[key]
+        if value is None:
+            continue
+        if isinstance(value, bool):
+            if value:
+                constraints[label] = ""
+            continue
+        constraints[label] = str(value)
+    return constraints
+
+
+def schema_flags(schema: Any) -> dict[str, bool]:
+    """Return the boolean schema flags that are set to true.
+
+    Recognized flags: ``nullable`` (OpenAPI 3.0 ``nullable: true`` or 3.1
+    ``type: [..., 'null']``), ``readOnly``, ``writeOnly``, ``deprecated``.
+    Returns only true entries so templates iterate/guard cheaply.
+    """
+    flags: dict[str, bool] = {}
+    if not isinstance(schema, Mapping):
+        return flags
+    schema_type = schema.get("type")
+    nullable = bool(schema.get("nullable")) or (_is_sequence(schema_type) and "null" in schema_type)
+    if nullable:
+        flags["nullable"] = True
+    if schema.get("readOnly"):
+        flags["readOnly"] = True
+    if schema.get("writeOnly"):
+        flags["writeOnly"] = True
+    if schema.get("deprecated"):
+        flags["deprecated"] = True
+    return flags
+
+
+def schema_additional_properties(schema: Any) -> dict[str, Any] | None:
+    """Normalize ``additionalProperties`` for map-type schemas.
+
+    Returns ``{allowed: bool}`` for the boolean form, ``{value_schema,
+    schema_type}`` when it is a schema object (typed map), or ``None`` when the
+    key is absent.
+    """
+    if not isinstance(schema, Mapping) or "additionalProperties" not in schema:
+        return None
+    value = schema["additionalProperties"]
+    if isinstance(value, bool):
+        return {"allowed": value}
+    if isinstance(value, Mapping):
+        return {"value_schema": value, "schema_type": _schema_type(value)}
+    return {"allowed": True}
+
+
+def schema_examples(schema: Any) -> tuple[dict[str, Any], ...]:
+    """Normalize schema examples into a tuple of ``{name, summary, value}``.
+
+    Honors a singular ``example`` and an ``examples`` collection. ``examples``
+    may be an OpenAPI media-type-style map (each value optionally
+    ``{summary, value}``) or a JSON-Schema-style bare list of values. Returns an
+    empty tuple when no example is present.
+    """
+    if not isinstance(schema, Mapping):
+        return ()
+    out: list[dict[str, Any]] = []
+    if schema.get("example") is not None:
+        out.append({"name": "", "summary": "", "value": schema["example"]})
+    examples = schema.get("examples")
+    if isinstance(examples, Mapping):
+        for name, item in examples.items():
+            if isinstance(item, Mapping) and ("value" in item or "summary" in item):
+                out.append(
+                    {
+                        "name": str(name),
+                        "summary": str(item.get("summary", "")),
+                        "value": item.get("value"),
+                    }
+                )
+            else:
+                out.append({"name": str(name), "summary": "", "value": item})
+    elif _is_sequence(examples):
+        out.extend({"name": "", "summary": "", "value": item} for item in examples)
+    return tuple(out)
+
+
+def schema_ref(schema: Any) -> str | None:
+    """Return the schema name from an unresolved ``$ref`` leaf, else ``None``.
+
+    The extractor resolves ``$ref`` targets inline but, on detecting a cycle,
+    leaves a bare ``{"$ref": ...}`` object at the cycle point. Surfacing it lets
+    the viewer render a compact "circular reference" indicator instead of an
+    empty object box.
+    """
+    if isinstance(schema, Mapping):
+        ref = schema.get("$ref")
+        if isinstance(ref, str):
+            return ref.rsplit("/", 1)[-1]
+    return None
+
+
+# Raw schema keys merged into ``display_schema`` (only when present) so the
+# recursive viewer's filters see the same advanced constructs at the top level
+# that nested raw property schemas already carry. Merging only-when-present
+# keeps simple-schema display_schema byte-identical.
+_ADVANCED_DISPLAY_KEYS: tuple[str, ...] = (
+    "oneOf",
+    "anyOf",
+    "allOf",
+    "discriminator",
+    "additionalProperties",
+    "examples",
+    "nullable",
+    "readOnly",
+    "writeOnly",
+    "deprecated",
+    *(key for key, _label in _CONSTRAINT_SPECS),
+)
 
 
 def _generate_anchor_id(method: str, path: str) -> str:
@@ -634,6 +890,12 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
             "endpoints": endpoints_filter,
             "schemas": schemas_filter,
             "schema_view": schema_view_filter,
+            "schema_composition": schema_composition,
+            "schema_constraints": schema_constraints,
+            "schema_flags": schema_flags,
+            "schema_additional_properties": schema_additional_properties,
+            "schema_examples": schema_examples,
+            "schema_ref": schema_ref,
         }
     )
 
@@ -699,6 +961,25 @@ def generate_code_sample(
     )
 
 
+def _first_example_value(examples: Any) -> Any:
+    """Return the first example's value from an examples collection.
+
+    Handles both the OpenAPI media-type form (a map of Example Objects, each
+    ``{summary?, value?, ...}``) and the JSON-Schema 3.1 form (a bare list of
+    values). Returns ``{}`` when there is nothing usable, so a malformed
+    ``examples`` (e.g. a list where a map was expected) never crashes a build.
+    """
+    if isinstance(examples, Mapping):
+        first = next(iter(examples.values()), {})
+    elif _is_sequence(examples) and examples:
+        first = examples[0]
+    else:
+        return {}
+    if isinstance(first, Mapping):
+        return _get_value(first, "value", {})
+    return first
+
+
 def _build_example_body(request_body: Any) -> Any:
     """Build an example request body from schema."""
     if not request_body:
@@ -715,10 +996,7 @@ def _build_example_body(request_body: Any) -> Any:
         return request_body["example"]
     examples = request_body.get("examples")
     if examples:
-        first_example = next(iter(examples.values()), {})
-        if isinstance(first_example, Mapping):
-            return first_example.get("value", {})
-        return first_example
+        return _first_example_value(examples)
 
     if "content" in request_body and isinstance(request_body["content"], Mapping):
         media = _select_json_media(request_body["content"])
@@ -727,10 +1005,7 @@ def _build_example_body(request_body: Any) -> Any:
                 return media["example"]
             examples = media.get("examples")
             if examples:
-                first_example = next(iter(examples.values()), {})
-                if isinstance(first_example, Mapping):
-                    return first_example.get("value", {})
-                return first_example
+                return _first_example_value(examples)
             schema = media.get("schema", {})
             return _schema_to_example(schema) if isinstance(schema, Mapping) else {}
 
@@ -739,26 +1014,60 @@ def _build_example_body(request_body: Any) -> Any:
     return _schema_to_example(schema)
 
 
-def _schema_to_example(schema: Any) -> Any:
-    """Convert a JSON schema to an example value."""
-    if not isinstance(schema, Mapping):
-        return None
+_EXAMPLE_MAX_DEPTH = 6
 
-    schema_type = schema.get("type", schema.get("schema_type", "object"))
+
+def _schema_to_example(schema: Any, _depth: int = 0) -> Any:
+    """Convert a JSON schema to an example value.
+
+    Depth-bounded (``_EXAMPLE_MAX_DEPTH``) so a circular schema — e.g. a node
+    that references itself, which the extractor leaves as a bare ``$ref`` leaf —
+    can never blow the stack or loop forever.
+    """
+    if not isinstance(schema, Mapping) or _depth > _EXAMPLE_MAX_DEPTH:
+        return None
 
     if "example" in schema:
         return schema["example"]
 
+    # An enum constrains the value regardless of the declared type, so the first
+    # allowed value is the most representative example.
+    enum = schema.get("enum")
+    if enum:
+        return enum[0]
+
+    # Composition: a oneOf/anyOf example is the first branch's example; allOf is
+    # the merge of all branch object examples (plus any direct properties).
+    for kind in ("oneOf", "anyOf"):
+        branches = schema.get(kind)
+        if _is_sequence(branches) and branches:
+            return _schema_to_example(branches[0], _depth + 1)
+    all_of = schema.get("allOf")
+    if _is_sequence(all_of) and all_of:
+        merged: dict[str, Any] = {}
+        for branch in all_of:
+            branch_example = _schema_to_example(branch, _depth + 1)
+            if isinstance(branch_example, Mapping):
+                merged.update(branch_example)
+        direct_props = schema.get("properties")
+        if isinstance(direct_props, Mapping):
+            for name, prop in direct_props.items():
+                merged[name] = _schema_to_example(prop, _depth + 1)
+        return merged
+
+    schema_type = schema.get("type", schema.get("schema_type", "object"))
+
     if schema_type == "object":
-        properties = schema.get("properties", {})
+        properties = schema.get("properties")
         result = {}
-        for name, prop in properties.items():
-            result[name] = _schema_to_example(prop)
+        if isinstance(properties, Mapping):
+            for name, prop in properties.items():
+                result[name] = _schema_to_example(prop, _depth + 1)
         return result
 
     if schema_type == "array":
         items = schema.get("items", {})
-        return [_schema_to_example(items)]
+        return [_schema_to_example(items, _depth + 1)]
 
     if schema_type == "string":
         if schema.get("enum"):

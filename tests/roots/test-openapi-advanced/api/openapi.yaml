@@ -1,0 +1,170 @@
+openapi: 3.0.3
+info:
+  title: Advanced Schema Demo
+  version: 1.0.0
+  description: |
+    Fixture exercising advanced OpenAPI schema constructs for #285:
+    oneOf + discriminator, anyOf, allOf inheritance, nullable/readOnly/
+    writeOnly/deprecated flags, numeric/string/array constraints,
+    additionalProperties (boolean + typed map), self-referential schemas,
+    and field-level examples.
+
+paths:
+  /payments:
+    post:
+      summary: Create a payment
+      operationId: createPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentMethod'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+
+components:
+  schemas:
+    # --- Polymorphism: oneOf + discriminator ---
+    PaymentMethod:
+      type: object
+      discriminator:
+        propertyName: kind
+        mapping:
+          card: '#/components/schemas/CardPayment'
+          bank: '#/components/schemas/BankPayment'
+      oneOf:
+        - $ref: '#/components/schemas/CardPayment'
+        - $ref: '#/components/schemas/BankPayment'
+
+    CardPayment:
+      type: object
+      required: [kind, number]
+      properties:
+        kind:
+          type: string
+          enum: [card]
+        number:
+          type: string
+          pattern: '^[0-9]{16}$'
+          minLength: 16
+          maxLength: 16
+        cvv:
+          type: string
+          writeOnly: true
+          description: Card verification value.
+
+    BankPayment:
+      type: object
+      required: [kind, iban]
+      properties:
+        kind:
+          type: string
+          enum: [bank]
+        iban:
+          type: string
+          format: iban
+
+    # --- anyOf without a discriminator ---
+    SearchValue:
+      anyOf:
+        - type: string
+        - type: integer
+        - type: boolean
+
+    # --- allOf inheritance ---
+    Animal:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+    Dog:
+      allOf:
+        - $ref: '#/components/schemas/Animal'
+        - type: object
+          properties:
+            breed:
+              type: string
+
+    # --- constraints + flags ---
+    Account:
+      type: object
+      required: [id, balance]
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        nickname:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 64
+        balance:
+          type: number
+          minimum: 0
+          maximum: 1000000
+          multipleOf: 0.01
+        legacy_token:
+          type: string
+          deprecated: true
+          description: Use access tokens instead.
+        tags:
+          type: array
+          uniqueItems: true
+          minItems: 0
+          maxItems: 20
+          items:
+            type: string
+        status:
+          type: string
+          enum: [active, frozen, closed]
+          example: active
+        labels:
+          type: object
+          additionalProperties:
+            type: string
+        primary_method:
+          oneOf:
+            - $ref: '#/components/schemas/CardPayment'
+            - $ref: '#/components/schemas/BankPayment'
+
+    # --- additionalProperties as a typed map ---
+    Metadata:
+      type: object
+      additionalProperties:
+        type: string
+
+    # --- additionalProperties: true (open map) + schema-level example ---
+    Settings:
+      type: object
+      additionalProperties: true
+      example:
+        theme: dark
+        notifications: true
+
+    # --- primitive schema with constraints (no object body) ---
+    CurrencyCode:
+      type: string
+      description: ISO 4217 currency code.
+      pattern: '^[A-Z]{3}$'
+      minLength: 3
+      maxLength: 3
+      example: USD
+
+    # --- self-referential / circular schema ---
+    TreeNode:
+      type: object
+      properties:
+        label:
+          type: string
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/TreeNode'

@@ -150,7 +150,10 @@ def test_openapi_schema_pages_render_primitive_and_enum_shapes() -> None:
 
     assert "api-schema-shape" in schema_template
     assert "schema?.raw_schema?.format" in schema_template
-    assert "{% if example_val is not none %}" in schema_template
+    # Primitive/enum schemas (no viewer body) render a standalone example section;
+    # body schemas render examples inside the viewer instead (no duplication).
+    assert "{% if example_val is not none and not has_body %}" in schema_template
+    assert 'id="example"' in schema_template
     assert "<div><dt>Required</dt><dd>{{ required_props | length }}</dd></div>" in schema_template
 
 
@@ -221,3 +224,91 @@ def test_autodoc_css_has_no_legacy_rest_layout_selectors() -> None:
         ".api-sidebar-nav",
     ):
         assert live in css, f"live REST shell selector missing from autodoc.css: {live}"
+
+
+def test_openapi_schema_viewer_renders_advanced_constructs() -> None:
+    """The schema viewer macro must render composition, constraints, flags, and
+    a bounded circular-reference indicator (#285).
+
+    File-content contract — the viewer is recursive and depends on the full
+    rendering graph, so we assert the rendering hooks are wired rather than
+    rendering ``base.html`` in a unit test.
+    """
+    viewer = Path("bengal/themes/default/templates/autodoc/openapi/_schema.html").read_text(
+        encoding="utf-8"
+    )
+
+    # Composition (oneOf/anyOf/allOf) + discriminator.
+    assert "schema | schema_composition" in viewer
+    assert 'class="api-schema-composition"' in viewer
+    assert 'data-composition="{{ composition.kind }}"' in viewer
+    assert "Discriminated by" in viewer
+    assert "api-schema-composition__mapping" in viewer
+
+    # Per-property validation constraints + flag badges.
+    assert "prop_schema | schema_constraints" in viewer
+    assert 'class="api-schema-viewer__constraints"' in viewer
+    assert 'data-constraint="{{ clabel }}"' in viewer
+    assert 'data-badge="readonly"' in viewer
+    assert 'data-badge="writeonly"' in viewer
+    assert 'data-badge="nullable"' in viewer
+
+    # Open / typed maps (additionalProperties).
+    assert "schema | schema_additional_properties" in viewer
+    assert 'class="api-schema-viewer__additional"' in viewer
+
+    # Bounded circular references render a readable indicator, not an empty box.
+    assert "schema | schema_ref" in viewer
+    assert "api-schema-viewer__truncated" in viewer
+    assert "circular reference" in viewer
+
+
+def test_openapi_schema_detail_page_surfaces_composition() -> None:
+    """Composed/polymorphic schemas (no direct properties) still get a body and
+    surface composition metadata in the side panel.
+    """
+    schema_template = Path("bengal/themes/default/templates/autodoc/openapi/schema.html").read_text(
+        encoding="utf-8"
+    )
+
+    # A composed schema with no properties must still render a body section.
+    assert "schema?.display_schema | schema_composition" in schema_template
+    assert "has_body" in schema_template
+    # Side panel exposes composition kind + discriminator for polymorphic models.
+    assert "{{ composition.kind }}" in schema_template
+    assert "composition.discriminator.property_name" in schema_template
+    # Deprecated schemas get a header badge.
+    assert 'data-badge="deprecated"' in schema_template
+
+
+def test_openapi_schema_index_tiles_show_composition_chips() -> None:
+    """Schema catalog tiles expose composition/deprecated summary metadata (#285)."""
+    section_template = Path(
+        "bengal/themes/default/templates/autodoc/openapi/section-index.html"
+    ).read_text(encoding="utf-8")
+
+    assert "schema.display_schema | schema_composition" in section_template
+    assert 'class="api-schema-catalog__chip"' in section_template
+    assert 'data-kind="discriminator"' in section_template
+    # Must not regress the existing tile contract.
+    assert "schema.properties |> items |> take(4)" in section_template
+    assert "api-schema-catalog__preview" in section_template
+
+
+def test_autodoc_css_styles_advanced_schema_constructs() -> None:
+    """The new advanced-schema markup must be styled in autodoc.css (#285)."""
+    css = Path("bengal/themes/default/assets/css/components/autodoc.css").read_text(
+        encoding="utf-8"
+    )
+
+    for selector in (
+        ".api-schema-composition",
+        '.api-schema-composition[data-composition="oneOf"]',
+        ".api-schema-viewer__constraint",
+        ".api-schema-viewer__additional",
+        ".api-schema-viewer__truncated",
+        ".api-schema-catalog__chip",
+        '.autodoc-badge[data-badge="readonly"]',
+        '.autodoc-badge[data-badge="writeonly"]',
+    ):
+        assert selector in css, f"advanced-schema selector missing from autodoc.css: {selector}"

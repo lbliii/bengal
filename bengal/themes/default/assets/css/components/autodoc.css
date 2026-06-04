@@ -369,6 +369,23 @@ article[data-autodoc]>p:first-of-type,
   color: var(--color-error-text);
 }
 
+/* Schema property flags (#285): nullable / read-only / write-only.
+   `deprecated` is already styled above and reused as-is. */
+.autodoc-badge[data-badge="nullable"] {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-muted);
+}
+
+.autodoc-badge[data-badge="readonly"] {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
+}
+
+.autodoc-badge[data-badge="writeonly"] {
+  background: var(--color-example-bg);
+  color: var(--color-example-text);
+}
+
 /* ============================================
    TABLES: Parameters, attributes
    ============================================ */
@@ -1736,9 +1753,175 @@ body[data-type="autodoc-rest"] #main-content {
   margin-bottom: var(--space-2);
 }
 
+.api-schema-viewer__example-summary {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--gray-400);
+  margin-bottom: var(--space-2);
+}
+
 .api-schema-viewer__example-code {
   font-size: var(--text-xs);
   color: var(--gray-200);
+}
+
+/* ============================================
+   ADVANCED SCHEMA CONSTRUCTS (#285)
+   Composition, constraints, additional props,
+   and circular-reference indicators. All rules
+   reuse existing design tokens — no new colors.
+   ============================================ */
+
+/* Validation constraint chips (format, pattern, min/max, lengths, ...) */
+.api-schema-viewer__constraints {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3) var(--space-2);
+}
+
+.api-schema-viewer__constraint {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-tertiary);
+  padding: var(--space-0-5) var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+/* Open / typed-map (additionalProperties) section */
+.api-schema-viewer__additional {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--color-border-light);
+}
+
+.api-schema-viewer__note {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* Depth-cutoff / circular-reference indicator */
+.api-schema-viewer__truncated {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.api-schema-viewer--ref {
+  padding: var(--space-2) var(--space-3);
+}
+
+/* Composition: oneOf / anyOf / allOf */
+.api-schema-composition {
+  margin: var(--space-2) var(--space-3) var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-inline-start: 3px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-secondary);
+}
+
+.api-schema-composition[data-composition="oneOf"] {
+  border-inline-start-color: var(--color-info);
+}
+
+.api-schema-composition[data-composition="anyOf"] {
+  border-inline-start-color: var(--color-success);
+}
+
+.api-schema-composition[data-composition="allOf"] {
+  border-inline-start-color: var(--color-warning);
+}
+
+.api-schema-composition__title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.api-schema-composition__discriminator {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.api-schema-composition__discriminator-label {
+  color: var(--color-text-muted);
+}
+
+.api-schema-composition__mapping {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.api-schema-composition__mapping li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+}
+
+.api-schema-composition__mapping-arrow {
+  color: var(--color-text-muted);
+}
+
+.api-schema-composition__branches {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.api-schema-composition__branch {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.api-schema-composition__branch-type {
+  color: var(--color-text-muted);
+}
+
+/* Catalog tile summary chips (composition / deprecated / polymorphic) */
+.api-schema-catalog__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-1);
+}
+
+.api-schema-catalog__chip {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  padding: var(--space-0-5) var(--space-1);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  text-transform: lowercase;
+}
+
+.api-schema-catalog__chip[data-kind="deprecated"] {
+  background: var(--color-warning-bg);
+  color: var(--color-warning-text);
+}
+
+.api-schema-catalog__chip[data-kind="discriminator"] {
+  background: var(--color-info-bg);
+  color: var(--color-info-text);
 }
 
 /* ============================================

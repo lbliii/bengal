@@ -330,12 +330,15 @@ components:
       properties:
         id:
           type: string
+          readOnly: true
         created_at:
           type: string
           format: date-time
+          readOnly: true
         updated_at:
           type: string
           format: date-time
+          readOnly: true
 
     UserBase:
       type: object
@@ -434,8 +437,11 @@ components:
       properties:
         password:
           type: string
+          writeOnly: true
+          minLength: 8
         mfa_code:
           type: string
+          writeOnly: true
 
     SessionToken:
       type: object

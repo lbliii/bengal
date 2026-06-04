@@ -74,11 +74,20 @@ Context:
     <div class="api-schema-catalog">
       {% for schema in schema_items %}
       {% let property_preview = schema.properties |> items |> take(4) %}
+      {% let tile_composition = schema.display_schema | schema_composition %}
+      {% let tile_flags = schema.display_schema | schema_flags %}
       <a href="{{ schema.href }}" class="api-schema-catalog__tile">
         <span class="api-schema-catalog__tile-top">
           <code>{{ schema.name }}</code>
           <span>{{ schema.schema_type }}</span>
         </span>
+        {% if tile_composition is not none or tile_flags?.deprecated %}
+        <span class="api-schema-catalog__chips">
+          {% if tile_composition is not none %}<span class="api-schema-catalog__chip" data-kind="{{ tile_composition.kind }}">{{ tile_composition.kind }}</span>{% end %}
+          {% if tile_composition?.discriminator %}<span class="api-schema-catalog__chip" data-kind="discriminator">polymorphic</span>{% end %}
+          {% if tile_flags?.deprecated %}<span class="api-schema-catalog__chip" data-kind="deprecated">deprecated</span>{% end %}
+        </span>
+        {% end %}
         {% if schema.description %}
         <span class="api-schema-catalog__description">{{ schema.description | truncate(120) }}</span>
         {% end %}
