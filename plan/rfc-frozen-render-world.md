@@ -34,6 +34,21 @@ its potential completion), `benchmarks/baselines/phase_attribution.json`.
 > objects), but Step 0 is now reachable. The attribution fork in §"The hard gate" maps
 > directly onto #345 step 2 and decides which saga gets funded (#347 universal vs cold-build-only,
 > or bank #346/#348 alone). See `benchmarks/COHERENCY_PROFILING.md` for the runbook.
+>
+> **Correction 2026-06-04 — the "shared Kida `Environment` floor" is a myth (verified).** This RFC
+> repeatedly lists the Kida `Environment` among the shared objects taxed cross-thread, and bases its
+> "honest ceiling" partly on an *un-immortalizable Environment floor*. **That is wrong.** Instrumenting
+> `KidaTemplateEngine.render_template` over a live parallel build shows **each worker thread already has
+> its own Environment** (10 threads → 11 distinct engine *and* `_env` objects, 0 shared): rendering goes
+> through `run_page` → a thread-local `RenderingPipeline` (`pipeline_runner.py:76`) that calls
+> `create_engine` per pipeline; the scheduler's single engine (`scheduler.py:204`) is used only for
+> precompile + scout, not for rendering. Kida's bytecode cache is disk-based (per-engine), and
+> `kida.py:773` deliberately passes globals via context rather than mutating shared `env.globals`. So
+> there is **no Environment floor in the thread path** — the coherency tax is the shared **Site/config/
+> menu/snapshot data graph** injected into every render context, which is exactly what owned per-page
+> frames (Phase 2 below) un-share. Consequence: the realistic *thread* ceiling is the process-isolation
+> number (~2.95x on a 5P+6E M3 Pro), not a lower Environment-bound figure, and the §"hard gate" branch
+> "Kida `Environment` dominates → owned frames won't help" is effectively foreclosed for the thread path.
 
 ---
 
