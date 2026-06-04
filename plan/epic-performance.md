@@ -211,6 +211,37 @@ of 395), so the barrier is cheap. Breaking the ~1.7x plateau (thread-local accum
 `BuildContext`/`RenderStats`/`BlockCache` per-page locks; or confirming a bandwidth ceiling) is
 the genuine render lever and the next focused investigation.
 
+## Render-scaling — reframed as actionable epic #343 — 2026-06-04
+
+The 2026-06-02 diagnosis above stands; what changed is the *path to the fix*. The follow-up
+was briefly parked (issues #308/#309 closed "not planned", this epic re-scoped) because its
+decision gate looked Linux-bound — native refcount attribution (`py-spy --native` + `perf`)
+is unsupported on macOS arm64. The 2026-06-04 review reopened it as **epic #343 "Render
+scaling — measure clean, then un-share the world"** (sagas #344–#349, superseding #308/#309)
+on two insights:
+
+1. **The first question needs no attribution.** Before naming objects, ask whether the ~1.7x
+   plateau is fixable at all. A **process-isolation ceiling probe**
+   (`benchmarks/probe_render_ceiling.py`, #345) answers that on *any* box — separate heaps =
+   zero cross-thread refcounting — and because contamination only biases the process side
+   *down*, a positive (processes ≫ threads) is trustworthy even off a noisy machine. A
+   contaminated local run already fired a preliminary **GO** (~2.95x processes vs 1.57x
+   threads): the plateau is very likely the coherency tax, not a hardware ceiling.
+2. **The blocker was a clean measurement environment, not Linux ownership.** This dev Mac runs
+   Microsoft Defender (~128% CPU real-time file scanning) and lacks `perf`/`py-spy --native`.
+   An ephemeral idle Linux box (#344, driven by `benchmarks/run_clean_box.sh`; a directional
+   `workflow_dispatch` probe job also wired into `perf-gate.yml`) supplies both the clean
+   numbers and the native attribution.
+
+The attribution then forks the architecture (this is #345 step 2, and maps onto T13 below):
+**Site/snapshot graph dominates → owned per-page frames in threads (#347) = universal win;
+kida `Environment` dominates → heap isolation only (#347 cold-build/CI), gated on a page-count
+crossover; neither → bank #346 (`sys.intern` the hot read-set) + #348 (render invariant chrome
+once) alone.** Honest ceiling remains ~2.5–3.5x (P-core bound + un-immortalizable `Environment`
+floor + serial FrameBuilder/merge Amdahl tail). See `plan/rfc-frozen-render-world.md` and
+`benchmarks/COHERENCY_PROFILING.md`. **Prime invariant: no magnitude committed under load**
+(this epic already retracted one load-inflated number).
+
 ---
 
 ## Goals (Sagas)

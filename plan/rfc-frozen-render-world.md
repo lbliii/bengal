@@ -11,6 +11,66 @@ platform) confirms the fixable share.
 **Related**: `plan/epic-performance.md`, `plan/rfc-snapshot-build-plan-handoff.md` (this is
 its potential completion), `benchmarks/baselines/phase_attribution.json`.
 
+> **RESOLVED 2026-06-04 (PM) — Step 0 done on the Mac; the central bet is REFUTED for the thread
+> path.** The attribution this RFC gated on is complete (`benchmarks/render-scaling-attribution-findings.md`),
+> and it overturns this RFC's premise. Measured on an M3 Pro: in-process threads render at **2.26x**,
+> process isolation at **4.64x** — the ~2x gap is real and fixable. But it is **NOT recoverable
+> in-thread**: every in-thread lever recovers ≤7% (intern strings −0.1%, per-thread global ctx +0.3%,
+> frozen `PageSnapshot` at `context['page']` +2.3%, immortalize the snapshot +7%, **immortalize the
+> ENTIRE shared world (142K objs, zero refcount) +2%**, GC freeze+disable +3.6%). Immortalizing the
+> whole read-set removes *all* refcount traffic yet captures ~nothing → **the tax is not Python-object
+> refcount coherency** (this RFC's and the epic's core assumption is wrong). It is allocator / GC /
+> interpreter-level contention, fixable only by **separate heaps**. Therefore **Phases 1–2 below
+> (Frozen RenderWorld + owned per-page frames IN THREADS) will not move the number — do not build
+> them.** The lever is the "Isolation" alternative (process / PEP 734 sub-interpreter): **cold-build
+> only**, gated on a page-count crossover. Feasibility scoped: macOS defaults to `spawn` and the
+> `SiteSnapshot` is unpicklable (`mappingproxy`), so the efficient path is **`fork`+COW + an immortalized
+> snapshot** (immortal objects don't write refcounts → COW pages stay shared; `_Py_SetImmortal` works) or
+> `spawn` + a picklable-snapshot serialization layer. Per-worker fixed cost ≈1s (import) + snapshot
+> transport; crossover ≈ a few hundred pages → favorable for large cold builds (dogfood = 1,503 rendered
+> pages). The honest ceiling stands (~4.6x here, P/E-bound) but is reached via heap isolation, not owned
+> frames. Next: an RFC/epic for the process/sub-interpreter cold-build render backend; confirm the
+> allocator attribution with `py-spy --native` (needs root) before funding the XL build.
+>
+> **Status update 2026-06-04 — reframed as achievable epic #343.** The "Hold until a
+> supported-platform Step 0" decision below is no longer the blocker it reads as. Two
+> insights from the 2026-06-04 review reopened this as actionable work tracked under
+> **epic #343 "Render scaling — measure clean, then un-share the world"** (sagas #344–#349,
+> which supersede the parked #308/#309):
+>
+> 1. **The first question needs no native attribution.** Before naming objects, ask whether
+>    the ~1.7x plateau is *fixable at all*. A **process-isolation ceiling probe**
+>    (`benchmarks/probe_render_ceiling.py`, #345) answers that on **any** box, macOS included
+>    — separate heaps mean zero cross-thread refcounting, and because contamination only
+>    biases the process side *down*, a positive (processes ≫ threads) is trustworthy even off
+>    a noisy machine. A contaminated local run already fired a preliminary **GO** signal
+>    (~2.95x processes vs 1.57x threads).
+> 2. **The real blocker for Step 0 was a clean *measurement environment*, not Linux
+>    ownership.** This dev Mac runs Microsoft Defender (~128% CPU real-time file scanning) and
+>    lacks `perf`/`py-spy --native`. An ephemeral idle Linux box (#344, driven by
+>    `benchmarks/run_clean_box.sh`) supplies both the clean numbers *and* the native
+>    attribution that this RFC's Step 0 requires.
+>
+> So: the **Decision** at the bottom still holds (do not migrate before Step 0 names the
+> objects), but Step 0 is now reachable. The attribution fork in §"The hard gate" maps
+> directly onto #345 step 2 and decides which saga gets funded (#347 universal vs cold-build-only,
+> or bank #346/#348 alone). See `benchmarks/COHERENCY_PROFILING.md` for the runbook.
+>
+> **Correction 2026-06-04 — the "shared Kida `Environment` floor" is a myth (verified).** This RFC
+> repeatedly lists the Kida `Environment` among the shared objects taxed cross-thread, and bases its
+> "honest ceiling" partly on an *un-immortalizable Environment floor*. **That is wrong.** Instrumenting
+> `KidaTemplateEngine.render_template` over a live parallel build shows **each worker thread already has
+> its own Environment** (10 threads → 11 distinct engine *and* `_env` objects, 0 shared): rendering goes
+> through `run_page` → a thread-local `RenderingPipeline` (`pipeline_runner.py:76`) that calls
+> `create_engine` per pipeline; the scheduler's single engine (`scheduler.py:204`) is used only for
+> precompile + scout, not for rendering. Kida's bytecode cache is disk-based (per-engine), and
+> `kida.py:773` deliberately passes globals via context rather than mutating shared `env.globals`. So
+> there is **no Environment floor in the thread path** — the coherency tax is the shared **Site/config/
+> menu/snapshot data graph** injected into every render context, which is exactly what owned per-page
+> frames (Phase 2 below) un-share. Consequence: the realistic *thread* ceiling is the process-isolation
+> number (~2.95x on a 5P+6E M3 Pro), not a lower Environment-bound figure, and the §"hard gate" branch
+> "Kida `Environment` dominates → owned frames won't help" is effectively foreclosed for the thread path.
+
 ---
 
 ## Problem (measured, robust)
