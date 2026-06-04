@@ -30,14 +30,22 @@ Kida Features:
 {% let example_val = schema?.example %}
 {% let description = schema?.description ?? element?.description ?? '' %}
 {% let schema_format = schema?.raw_schema?.format ?? '' %}
+{% let composition = schema?.display_schema | schema_composition %}
+{% let additional = schema?.display_schema | schema_additional_properties %}
+{% let flags = schema?.display_schema | schema_flags %}
+{# A schema has a renderable "body" when it has properties, is composed
+   (oneOf/anyOf/allOf), or is an open/typed map (additionalProperties). #}
+{% let has_body = properties | length > 0 or composition is not none or additional is not none %}
 
 {% block api_left %}
 <nav class="openapi-nav" aria-label="Schema sections">
   <a href="{{ section?.href ?? page?.href ?? '#' }}" class="openapi-nav__back">{{ icon('arrow-left', size=14) }} {{ section?.title ?? 'Schemas' }}</a>
-  {% if properties | length > 0 %}<a href="#properties">Properties</a>{% end %}
+  {% if has_body %}<a href="#properties">{% if properties | length > 0 %}Properties{% elif composition is not none %}Variants{% else %}Structure{% end %}</a>{% end %}
   {% if enum_vals | length > 0 %}<a href="#enum">Allowed values</a>{% end %}
-  {% if properties | length == 0 and enum_vals | length == 0 %}<a href="#shape">Shape</a>{% end %}
-  {% if example_val is not none %}<a href="#example">Example</a>{% end %}
+  {% if not has_body and enum_vals | length == 0 %}<a href="#shape">Shape</a>{% end %}
+  {# Body schemas render their example inside the viewer; only link a standalone
+     #example section for primitive/enum schemas that have no viewer body. #}
+  {% if example_val is not none and not has_body %}<a href="#example">Example</a>{% end %}
 </nav>
 {% end %}
 
@@ -46,6 +54,7 @@ Kida Features:
 <h1 class="api-schema__title">
   <code>{{ schema_name }}</code>
   <span class="badge badge--outline">{{ schema_type }}</span>
+  {% if flags?.deprecated %}<span class="autodoc-badge" data-badge="deprecated">deprecated</span>{% end %}
 </h1>
 
 {% if description %}
@@ -58,10 +67,13 @@ Kida Features:
 {% block api_main %}
 <div class="api-schema" id="schema-{{ schema_name | slugify }}" data-autodoc="openapi" data-element="schema">
 
-  {# Schema Properties #}
-  {% if properties | length > 0 %}
+  {# Schema body: properties, composition (oneOf/anyOf/allOf), and/or open maps.
+     Rendered once through the recursive viewer so composed and polymorphic
+     schemas (which often have no direct properties) still get a full detail
+     body, not an empty page. #}
+  {% if has_body %}
   <section class="api-schema__section autodoc-section" id="properties" data-section="properties">
-    <h2 class="api-schema__section-title">Properties</h2>
+    <h2 class="api-schema__section-title">{% if properties | length > 0 %}Properties{% elif composition is not none %}Variants{% else %}Structure{% end %}</h2>
 
     {% cache 'openapi-schema-' ~ schema_name %}
     {{ schema_viewer(schema?.display_schema ?? {}, name=schema_name, depth=0) }}
@@ -69,7 +81,7 @@ Kida Features:
   </section>
   {% end %}
 
-  {% if properties | length == 0 and enum_vals | length == 0 %}
+  {% if not has_body and enum_vals | length == 0 %}
   <section class="api-schema__section autodoc-section" id="shape" data-section="shape">
     <h2 class="api-schema__section-title">Shape</h2>
     <div class="api-schema-shape">
@@ -84,6 +96,23 @@ Kida Features:
       </div>
       {% end %}
     </div>
+    {# Primitive schemas don't go through the viewer, so render their flags and
+       validation constraints here so pattern/min/max/format still surface. #}
+    {% let shape_flags = schema?.display_schema | schema_flags %}
+    {% if shape_flags?.nullable or shape_flags?.deprecated %}
+    <div class="api-schema-viewer__property-header">
+      {% if shape_flags?.nullable %}<span class="autodoc-badge" data-badge="nullable">nullable</span>{% end %}
+      {% if shape_flags?.deprecated %}<span class="autodoc-badge" data-badge="deprecated">deprecated</span>{% end %}
+    </div>
+    {% end %}
+    {% let shape_constraints = schema?.display_schema | schema_constraints %}
+    {% if shape_constraints | length > 0 %}
+    <div class="api-schema-viewer__constraints">
+      {% for clabel, cvalue in shape_constraints |> items %}
+      <code class="api-schema-viewer__constraint" data-constraint="{{ clabel }}">{{ clabel }}{% if cvalue %}: {{ cvalue }}{% end %}</code>
+      {% end %}
+    </div>
+    {% end %}
   </section>
   {% end %}
 
@@ -101,8 +130,9 @@ Kida Features:
   {% end %}
   {% end %}
 
-  {# Example #}
-  {% if example_val is not none %}
+  {# Example — only for primitive/enum schemas without a viewer body; body
+     schemas render their examples inside the viewer above (no duplication). #}
+  {% if example_val is not none and not has_body %}
   {% let example = example_val %}
   <section class="api-schema__section autodoc-section" id="example" data-section="example">
     <h2 class="api-schema__section-title">Example</h2>
@@ -138,6 +168,8 @@ Kida Features:
     <div><dt>Properties</dt><dd>{{ properties | length }}</dd></div>
     <div><dt>Required</dt><dd>{{ required_props | length }}</dd></div>
     {% if enum_vals | length > 0 %}<div><dt>Values</dt><dd>{{ enum_vals | length }}</dd></div>{% end %}
+    {% if composition is not none %}<div><dt>{{ composition.kind }}</dt><dd>{{ composition.branches | length }} variants</dd></div>{% end %}
+    {% if composition?.discriminator %}<div><dt>Discriminator</dt><dd><code>{{ composition.discriminator.property_name }}</code></dd></div>{% end %}
   </dl>
 </div>
 {% end %}

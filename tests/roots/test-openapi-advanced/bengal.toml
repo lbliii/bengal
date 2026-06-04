@@ -1,0 +1,11 @@
+[site]
+title = "OpenAPI Advanced Schemas"
+baseurl = "/"
+
+[build]
+theme = "default"
+
+[autodoc.openapi]
+enabled = true
+spec_file = "api/openapi.yaml"
+output_prefix = "api"
