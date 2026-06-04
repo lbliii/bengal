@@ -24,7 +24,7 @@ application surface, not a prose reference page.
 {% block site_footer %}{% end %}
 
 {% block content %}
-<div class="api-catalog-app" data-autodoc="openapi" data-element="home">
+<div class="api-catalog-app" data-autodoc="openapi" data-element="home" data-bengal="api-catalog">
   {% let endpoint_count = eps | length %}
   {% let schema_count = schs | length %}
   {% let tag_count = tags | length %}
@@ -72,7 +72,7 @@ application surface, not a prose reference page.
   <div class="api-catalog-app__workspace">
     <aside class="api-catalog-app__left-rail" aria-label="REST API navigation">
       {% if subsections | length > 0 %}
-      <nav class="api-catalog-nav" aria-label="Endpoint groups">
+      <nav class="api-catalog-nav" aria-label="Endpoint groups" data-api-rail>
         <h2 class="api-catalog-nav__title">{{ icon('folder', size=14) }} Resources</h2>
         {% for subsec in subsections %}
         {% let tag_name = subsec?.title ?? 'Endpoints' %}
@@ -113,7 +113,14 @@ application surface, not a prose reference page.
           <h2>Endpoint catalog</h2>
           <p>Open an endpoint for parameters, response models, examples, and generated request snippets.</p>
         </div>
+        {% if endpoint_count > 4 %}
+        <div class="api-catalog-filter">
+          <input type="search" class="api-catalog-filter__input" data-api-filter-input
+                 placeholder="Filter endpoints&hellip;" aria-label="Filter endpoints by method, path, or summary">
+        </div>
+        {% end %}
       </header>
+      <p class="api-catalog-filter__empty" data-api-filter-empty hidden aria-live="polite">No endpoints match your filter.</p>
 
       {% if subsections | length > 0 %}
       <div class="api-catalog-groups">
@@ -124,7 +131,7 @@ application surface, not a prose reference page.
         {% let tag_href = section_href(subsec, page) %}
 
         {% if tag_endpoints | length > 0 %}
-        <article class="api-catalog-group" id="{{ tag_name | slugify }}">
+        <article class="api-catalog-group" id="{{ tag_name | slugify }}" data-api-filter-group>
           <header class="api-catalog-group__header">
             <div>
               <h3><a href="{{ tag_href }}">{{ tag_name }}</a></h3>
@@ -139,7 +146,7 @@ application surface, not a prose reference page.
 
           <div class="api-catalog-endpoints">
             {% for ep in tag_endpoints %}
-            <a href="{{ ep.href }}" class="api-catalog-endpoint{% if ep.deprecated %} api-catalog-endpoint--deprecated{% end %}">
+            <a href="{{ ep.href }}" class="api-catalog-endpoint{% if ep.deprecated %} api-catalog-endpoint--deprecated{% end %}" data-api-filter-item data-method="{{ ep.method }}" data-path="{{ ep.path }}">
               <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
               <code>{{ ep.path | highlight_path_params | safe }}</code>
               {% if ep.summary %}
@@ -158,7 +165,7 @@ application surface, not a prose reference page.
       {% if subsections | length == 0 and eps | length > 0 %}
       <div class="api-catalog-endpoints">
         {% for ep in eps %}
-        <a href="{{ ep.href }}" class="api-catalog-endpoint{% if ep.deprecated %} api-catalog-endpoint--deprecated{% end %}">
+        <a href="{{ ep.href }}" class="api-catalog-endpoint{% if ep.deprecated %} api-catalog-endpoint--deprecated{% end %}" data-api-filter-item data-method="{{ ep.method }}" data-path="{{ ep.path }}">
           <span class="api-method api-method--sm api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
           <code>{{ ep.path | highlight_path_params | safe }}</code>
           {% if ep.summary %}

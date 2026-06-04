@@ -60,7 +60,7 @@ Kida Features:
 {% let section = tag_section %}
 
 {# In-page navigation for the current endpoint's sections. #}
-<nav class="openapi-nav" aria-label="Endpoint sections">
+<nav class="openapi-nav" aria-label="Endpoint sections" data-api-rail>
   <a href="{{ tag_section?.href ?? page?.href ?? '#' }}" class="openapi-nav__back">{{ icon('arrow-left', size=14) }} {{ tag_section?.title ?? 'Endpoints' }}</a>
   {% if parameters | length > 0 %}<a href="#parameters">Parameters</a>{% end %}
   {% if request_body %}<a href="#request-body">Request body</a>{% end %}
@@ -73,6 +73,7 @@ Kida Features:
 <div class="openapi-operation-title">
   <span class="api-method api-method--{{ http_method |> lower }}">{{ http_method }}</span>
   <code>{{ endpoint_path | highlight_path_params | safe }}</code>
+  <button type="button" class="api-copy-btn" data-copy="{{ endpoint_path }}" aria-label="Copy path {{ endpoint_path }}">{{ icon('copy', size=14) }}</button>
 </div>
 {{ endpoint_header(element, section) }}
 {% end %}

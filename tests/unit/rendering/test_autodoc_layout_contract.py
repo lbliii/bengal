@@ -312,3 +312,93 @@ def test_autodoc_css_styles_advanced_schema_constructs() -> None:
         '.autodoc-badge[data-badge="writeonly"]',
     ):
         assert selector in css, f"advanced-schema selector missing from autodoc.css: {selector}"
+
+
+# =============================================================================
+# Catalog navigation interactions (#287)
+# =============================================================================
+
+
+def _read_openapi_template(name: str) -> str:
+    return Path(f"bengal/themes/default/templates/autodoc/openapi/{name}").read_text(
+        encoding="utf-8"
+    )
+
+
+def test_openapi_catalog_landing_has_filter_and_rail_hooks() -> None:
+    """The catalog landing must expose filter + scroll-spy + group hooks (#287)."""
+    home = _read_openapi_template("home.html")
+
+    assert 'data-bengal="api-catalog"' in home
+    assert "data-api-rail" in home  # left-rail scroll-spy
+    assert "data-api-filter-input" in home
+    assert "data-api-filter-empty" in home
+    assert "data-api-filter-group" in home
+    # Endpoint cards are filterable and carry structured method/path for search.
+    assert "data-api-filter-item" in home
+    assert 'data-method="{{ ep.method }}"' in home
+    assert 'data-path="{{ ep.path }}"' in home
+
+
+def test_openapi_explorer_shell_and_rails_enable_scroll_spy() -> None:
+    """The shared app shell activates the enhancement; in-page navs are rails."""
+    explorer = _read_openapi_template("layouts/explorer.html")
+    assert 'data-bengal="api-catalog"' in explorer
+
+    for name in ("list.html", "endpoint.html", "schema.html"):
+        template = _read_openapi_template(name)
+        assert 'class="openapi-nav"' in template
+        assert "data-api-rail" in template, f"{name} openapi-nav missing data-api-rail"
+
+
+def test_openapi_schema_index_is_filterable() -> None:
+    """The schema catalog index exposes a filter and filterable tiles (#287)."""
+    section = _read_openapi_template("section-index.html")
+    assert "data-api-filter-input" in section
+    assert "data-api-filter-item" in section
+    assert 'data-schema-name="{{ schema.name }}"' in section
+    assert "data-api-filter-empty" in section
+
+
+def test_openapi_path_copy_buttons_present() -> None:
+    """Operation paths get a copy button riding the global [data-copy] handler."""
+    list_template = _read_openapi_template("list.html")
+    endpoint = _read_openapi_template("endpoint.html")
+
+    assert 'class="api-copy-btn"' in list_template
+    assert 'data-copy="{{ ep.path }}"' in list_template
+    assert 'class="api-copy-btn"' in endpoint
+    assert 'data-copy="{{ endpoint_path }}"' in endpoint
+
+
+def test_base_template_registers_api_catalog_enhancement() -> None:
+    """The enhancement loader must be able to resolve the api-catalog module."""
+    base = Path("bengal/themes/default/templates/base.html").read_text(encoding="utf-8")
+    assert "'api-catalog': '{{ asset_url(\"js/enhancements/api-catalog.js\") }}'" in base
+
+
+def test_api_catalog_enhancement_module_exists_and_registers() -> None:
+    """The vanilla-JS module exists and self-registers (no npm dependency)."""
+    module = Path("bengal/themes/default/assets/js/enhancements/api-catalog.js").read_text(
+        encoding="utf-8"
+    )
+    assert "Bengal.enhance.register('api-catalog'" in module
+    # Reduced-motion is honored (the toc.js scroll-spy gap this module closes).
+    assert "prefers-reduced-motion" in module
+    # Deep links must survive filtering: the module reveals filtered-out targets.
+    assert "hashchange" in module
+
+
+def test_autodoc_css_styles_catalog_navigation() -> None:
+    """The #287 markup (filter, rail active-state, copy button) must be styled."""
+    css = Path("bengal/themes/default/assets/css/components/autodoc.css").read_text(
+        encoding="utf-8"
+    )
+    for selector in (
+        ".api-catalog-filter__input",
+        ".api-catalog-filter__empty",
+        "[data-api-filter-item][hidden]",
+        ".api-rail__link--active",
+        ".api-copy-btn",
+    ):
+        assert selector in css, f"catalog-nav selector missing from autodoc.css: {selector}"

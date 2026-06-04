@@ -70,13 +70,22 @@ Context:
   {# Schema Catalog #}
   {% if schema_items | length > 0 %}
   <section class="api-section-index__pages">
-    <h2 class="api-section-index__section-title">Schemas</h2>
+    <div class="api-section-index__section-head">
+      <h2 class="api-section-index__section-title">Schemas</h2>
+      {% if schema_items | length > 4 %}
+      <div class="api-catalog-filter">
+        <input type="search" class="api-catalog-filter__input" data-api-filter-input
+               placeholder="Filter schemas&hellip;" aria-label="Filter schemas by name or type">
+      </div>
+      {% end %}
+    </div>
+    <p class="api-catalog-filter__empty" data-api-filter-empty hidden aria-live="polite">No schemas match your filter.</p>
     <div class="api-schema-catalog">
       {% for schema in schema_items %}
       {% let property_preview = schema.properties |> items |> take(4) %}
       {% let tile_composition = schema.display_schema | schema_composition %}
       {% let tile_flags = schema.display_schema | schema_flags %}
-      <a href="{{ schema.href }}" class="api-schema-catalog__tile">
+      <a href="{{ schema.href }}" class="api-schema-catalog__tile" data-api-filter-item data-schema-name="{{ schema.name }}" data-schema-type="{{ schema.schema_type }}">
         <span class="api-schema-catalog__tile-top">
           <code>{{ schema.name }}</code>
           <span>{{ schema.schema_type }}</span>

@@ -34,7 +34,7 @@ Kida Features:
 {% let eps = section | endpoints %}
 
 {% block api_left %}
-<nav class="openapi-nav" aria-label="{{ tag_name }} endpoints">
+<nav class="openapi-nav" aria-label="{{ tag_name }} endpoints" data-api-rail>
   <a href="{{ section?.parent?.href ?? '/api/' }}" class="openapi-nav__back">{{ icon('arrow-left', size=14) }} REST API</a>
   {% for ep in eps %}
   <a href="#{{ ep.anchor_id }}">
@@ -114,6 +114,7 @@ Kida Features:
         <div class="api-operation__eyebrow">
           <span class="api-method api-method--{{ ep.method |> lower }}">{{ ep.method }}</span>
           <code class="api-operation__path">{{ ep.path | highlight_path_params | safe }}</code>
+          <button type="button" class="api-copy-btn" data-copy="{{ ep.path }}" aria-label="Copy path {{ ep.path }}">{{ icon('copy', size=14) }}</button>
         </div>
         <div class="api-operation__title-row">
           <h2 class="api-operation__title">{{ ep.summary or ep.path }}</h2>
