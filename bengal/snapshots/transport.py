@@ -28,7 +28,14 @@ import ctypes
 import dataclasses
 import gc
 import sys
-from types import MappingProxyType
+from types import (
+    BuiltinFunctionType,
+    BuiltinMethodType,
+    FunctionType,
+    MappingProxyType,
+    MethodType,
+    ModuleType,
+)
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -55,6 +62,18 @@ _IMMORTAL_REFCNT_THRESHOLD = 1 << 30
 # any object we reach, but only follow referents of these container kinds.
 _RECURSE_CONTAINERS = (tuple, list, set, frozenset, dict, MappingProxyType)
 _RECURSE_DATACLASS_MODULES = frozenset({"bengal.snapshots.types", "bengal.config.snapshot"})
+
+# Code objects we must never immortalize even if one is reachable as a leaf in
+# config/data (immortalizing leaks them for the process lifetime). `type` covers
+# classes; the rest cover modules and callables.
+_NEVER_IMMORTAL = (
+    type,
+    ModuleType,
+    FunctionType,
+    BuiltinFunctionType,
+    MethodType,
+    BuiltinMethodType,
+)
 
 
 def _resolve_set_immortal() -> Any | None:
@@ -152,8 +171,10 @@ def immortalize_snapshot(snapshot: SiteSnapshot) -> int:
                 continue
             seen.add(oid)
 
-            # Never touch types/modules/functions — only data.
-            if isinstance(obj, type) or obj is None:
+            # Never touch types/modules/functions — only data. (Normally
+            # unreachable given the bounded traversal, but a stray callable in
+            # config/data must not be immortalized/leaked.)
+            if obj is None or isinstance(obj, _NEVER_IMMORTAL):
                 continue
 
             if immortalize(obj):

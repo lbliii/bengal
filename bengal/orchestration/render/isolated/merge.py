@@ -105,8 +105,17 @@ def _reconcile_external_refs(build_context: BuildContext, refs: list[Any]) -> No
     list of resolvers, each exposing ``.unresolved``. Separate-heap workers
     accumulate refs on their own (forked) site copies, so we attach a single
     synthetic resolver carrying the union to the parent's site.
+
+    Always overwrite (even with an empty ref set): on a long-lived Site reused
+    across builds, stale resolvers from a previous build would otherwise make the
+    validator report old unresolved refs. We install a non-empty resolver list
+    (with an empty ``unresolved``) so the validator uses it rather than falling
+    back to a stale singular ``site.external_ref_resolver``.
     """
     site = getattr(build_context, "site", None)
-    if site is None or not refs:
+    if site is None:
         return
     site._external_ref_resolvers = [_MergedExternalRefResolver(unresolved=list(refs))]
+    # Drop any stale singular resolver so it can't shadow our reconciled list.
+    if getattr(site, "external_ref_resolver", None) is not None:
+        site.external_ref_resolver = None

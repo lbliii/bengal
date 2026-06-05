@@ -167,6 +167,38 @@ def test_related_posts_no_tags(mock_site):
     assert len(page1.related_posts) == 0, "Pages without tags should have no related posts"
 
 
+def test_related_posts_equal_score_tie_break_is_stable(mock_site):
+    """Equal-score candidates must order by the stable source_path key.
+
+    Regression guard (#350 S9): the candidate-index refactor moved the tie-break
+    into a precomputed sort_keys map. When several candidates share the same
+    number of tags (equal score), their order must be deterministic
+    (source_path-sorted), not dependent on insertion/scheduling order — otherwise
+    related-posts, and every page rendering them, diverge run-to-run.
+    """
+    target = _page(source_path=Path("aaa_target.md"), metadata={"title": "T", "tags": ["x"]})
+    # Each candidate shares exactly one tag ("x") with target -> all score == 1.
+    # Insertion order is deliberately NOT alphabetical.
+    cand_c = _page(source_path=Path("ccc.md"), metadata={"title": "C", "tags": ["x"]})
+    cand_a = _page(source_path=Path("aab.md"), metadata={"title": "A", "tags": ["x"]})
+    cand_b = _page(source_path=Path("bbb.md"), metadata={"title": "B", "tags": ["x"]})
+
+    mock_site.pages = [target, cand_c, cand_a, cand_b]
+    mock_site.taxonomies = {
+        "tags": {"x": {"name": "X", "slug": "x", "pages": [target, cand_c, cand_a, cand_b]}}
+    }
+
+    orchestrator = RelatedPostsOrchestrator(mock_site)
+    orchestrator.build_index(limit=5, parallel=False)
+
+    related_paths = [str(p.source_path) for p in target.related_posts]
+    assert related_paths == ["aab.md", "bbb.md", "ccc.md"], (
+        f"equal-score candidates must be source_path-sorted, got {related_paths}"
+    )
+    # Explicitly: the order is the stable sort, independent of insertion order.
+    assert related_paths == sorted(related_paths)
+
+
 def test_related_posts_no_taxonomies(mock_site):
     """Should handle sites without taxonomies gracefully."""
     page1 = _page(source_path=Path("page1.md"), metadata={"title": "Post 1", "tags": ["python"]})

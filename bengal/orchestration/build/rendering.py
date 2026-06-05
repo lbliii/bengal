@@ -644,10 +644,13 @@ def phase_render(
 
                 # Isolated (separate-heap) render backend for large cold builds
                 # (#350, S3). Renders the whole set across fork workers when the
-                # crossover gate selects it; cold-build / CLI / CI only. On any
-                # failure it returns False and we fall back to the in-process
-                # render paths below — the build is never broken by isolation.
-                isolated_done = _maybe_isolated_render(
+                # crossover gate selects it; cold-build / CLI / CI only. Never
+                # runs under an explicit sequential decision (force_sequential);
+                # its own page-count crossover (render_isolation_threshold) — not
+                # the thread path's auto-parallelize threshold — decides scale.
+                # On any failure it returns False and we fall back to the
+                # in-process render paths below, so isolation never breaks a build.
+                isolated_done = not force_sequential and _maybe_isolated_render(
                     orchestrator, ctx, pages_to_build, quiet_mode, bool(incremental)
                 )
 

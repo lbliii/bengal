@@ -119,6 +119,14 @@ def fork_render_chunk(payload: tuple[int, list[int]]) -> RenderChunkResult:
     clear_thread_local_pipelines()
     ctx.clear_accumulated_page_data()
     ctx.clear_accumulated_assets()
+    # Reset the external-ref accumulator (and its lock) so this worker reports
+    # only refs discovered in this run — not any inherited from the parent's
+    # forked state (e.g. a prior build on a reused Site). The pipeline lazily
+    # re-creates these on first use.
+    import threading
+
+    site._external_ref_resolvers = []
+    site._external_ref_resolvers_lock = threading.Lock()
 
     block_cache, highlight_cache = _ensure_worker_caches(site)
     set_build_context(ctx)
