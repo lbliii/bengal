@@ -163,6 +163,16 @@ def fork_render_chunk(payload: tuple[int, list[int]]) -> RenderChunkResult:
     page_data = tuple(ctx.get_accumulated_page_data())
     assets = tuple((str(src), tuple(sorted(refs))) for src, refs in ctx.get_accumulated_assets())
 
+    # Unresolved external references ([[ext:project:target]]) are accumulated per
+    # rendering thread on site._external_ref_resolvers; collect this worker's so
+    # the parent can reconcile them for the external-ref health validator. The
+    # UnresolvedRef records are plain picklable dataclasses.
+    external_refs: list[Any] = []
+    resolvers = getattr(site, "_external_ref_resolvers", None)
+    if isinstance(resolvers, list):
+        for resolver in resolvers:
+            external_refs.extend(getattr(resolver, "unresolved", ()))
+
     return RenderChunkResult(
         chunk_index=chunk_index,
         pages_rendered=rendered,
@@ -170,6 +180,7 @@ def fork_render_chunk(payload: tuple[int, list[int]]) -> RenderChunkResult:
         errors=tuple(errors),
         page_data=page_data,
         assets=assets,
+        external_refs=tuple(external_refs),
     )
 
 

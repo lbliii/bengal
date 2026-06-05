@@ -111,6 +111,7 @@ class IsolatedRenderBackend:
             pages_rendered=merged.pages_rendered,
             errors=merged.error_count,
             page_data_merged=merged.page_data_count,
+            external_refs_merged=merged.external_ref_count,
         )
 
         if stats is not None:

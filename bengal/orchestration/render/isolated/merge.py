@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -38,8 +38,20 @@ class MergeSummary:
     pages_rendered: int = 0
     page_data_count: int = 0
     asset_pages_count: int = 0
+    external_ref_count: int = 0
     error_count: int = 0
     errors: list[tuple[str, str]] = field(default_factory=list)
+
+
+@dataclass
+class _MergedExternalRefResolver:
+    """Synthetic resolver holding workers' reconciled unresolved external refs.
+
+    Mirrors the ``.unresolved`` attribute the external-ref health validator
+    reads off each entry of ``site._external_ref_resolvers``.
+    """
+
+    unresolved: list[Any] = field(default_factory=list)
 
 
 def merge_chunk_results(
@@ -58,6 +70,7 @@ def merge_chunk_results(
         A :class:`MergeSummary` describing what was merged, for logging/stats.
     """
     summary = MergeSummary()
+    external_refs: list[Any] = []
 
     # Merge in chunk order for deterministic accumulation ordering — postprocess
     # generators sort before serializing, but a stable order keeps logs and any
@@ -73,8 +86,27 @@ def merge_chunk_results(
             build_context.accumulate_page_assets(Path(src_str), set(refs))
             summary.asset_pages_count += 1
 
+        external_refs.extend(result.external_refs)
+
         if result.errors:
             summary.errors.extend(result.errors)
 
+    _reconcile_external_refs(build_context, external_refs)
+
+    summary.external_ref_count = len(external_refs)
     summary.error_count = len(summary.errors)
     return summary
+
+
+def _reconcile_external_refs(build_context: BuildContext, refs: list[Any]) -> None:
+    """Install workers' unresolved external refs on the parent site.
+
+    The external-ref health validator reads ``site._external_ref_resolvers`` — a
+    list of resolvers, each exposing ``.unresolved``. Separate-heap workers
+    accumulate refs on their own (forked) site copies, so we attach a single
+    synthetic resolver carrying the union to the parent's site.
+    """
+    site = getattr(build_context, "site", None)
+    if site is None or not refs:
+        return
+    site._external_ref_resolvers = [_MergedExternalRefResolver(unresolved=list(refs))]
