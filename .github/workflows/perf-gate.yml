@@ -18,9 +18,35 @@ name: Perf Gate
 # does NOT reproduce the absolute free-threading headline (1.94x at 1000 pages),
 # which needs real, idle, many-core hardware. The +30% tolerance absorbs runner
 # noise; tighten it only after observing real variance.
+#
+# A third, manual entry point was added for the render-scaling epic (#343/#345):
+#   * probe (workflow_dispatch, job=probe) — run benchmarks/probe_render_ceiling.py
+#     on CI's free-threaded interpreter. It decides "fixable coherency tax vs
+#     hardware ceiling" from a RELATIVE signal (do K isolated processes scale
+#     while in-process threads plateau?). Same honesty caveat applies and then
+#     some: a 2-4 vCPU shared runner is NOT the idle >=8-physical-core box #344
+#     requires, so this run is a contamination-robust DIRECTIONAL data point, not
+#     the committed ceiling number. Because contamination only biases the PROCESS
+#     side DOWN, a positive (processes >> threads) is still trustworthy. The job
+#     records lscpu/nproc so the produced number is always tied to its hardware.
 
 on:
   workflow_dispatch:
+    inputs:
+      job:
+        description: "Which manual job to run"
+        type: choice
+        options: [probe, bootstrap]
+        default: probe
+      probe_pages:
+        description: "probe: pages per build"
+        default: "500"
+      probe_procs:
+        description: "probe: comma list of process counts (<= nproc)"
+        default: "2,4"
+      probe_runs:
+        description: "probe: median-of-N"
+        default: "3"
   pull_request:
     branches: [ main ]
 
@@ -42,9 +68,63 @@ env:
   GATE_RUNS: "3"
 
 jobs:
+  # Manual: run the render-scaling ceiling probe (#343/#345) on CI's 3.14t.
+  # Directional only — see the header caveat; the committed ceiling number must
+  # come from the idle >=8-physical-core box of #344.
+  probe:
+    if: github.event_name == 'workflow_dispatch' && inputs.job == 'probe'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Record CPU topology (the number is only as honest as its hardware)
+        run: |
+          echo "## nproc"; nproc
+          echo "## lscpu"; lscpu || true
+          echo "## /proc/cpuinfo (model + count)"
+          grep -E 'model name|physical id|core id' /proc/cpuinfo | sort -u || true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.14t"
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: uv sync --no-sources --group dev
+
+      - name: Confirm free-threaded interpreter
+        run: |
+          uv run python -c "import sys; assert not sys._is_gil_enabled(), 'GIL is ON — not a valid probe'; print('OK: GIL disabled')"
+
+      - name: Run ceiling probe (median-of-N)
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: |
+          uv run python benchmarks/probe_render_ceiling.py \
+            --pages "${{ inputs.probe_pages }}" \
+            --procs "${{ inputs.probe_procs }}" \
+            --runs "${{ inputs.probe_runs }}" \
+            --json-out probe_render_ceiling.json
+
+      - name: Upload probe result
+        uses: actions/upload-artifact@v7
+        with:
+          name: render-ceiling-probe
+          path: probe_render_ceiling.json
+          if-no-files-found: error
+
   # Manual: capture the committed baseline on CI hardware.
   bootstrap:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.job == 'bootstrap'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

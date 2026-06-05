@@ -1,0 +1,43 @@
+{
+  "pages": 500,
+  "cpu_count": 4,
+  "p_cores_hint": null,
+  "runs": 3,
+  "solo_sequential_render_s": 26.8927,
+  "solo_threaded_render_s": 13.1815,
+  "in_process_thread_speedup": 2.040185107916398,
+  "process_isolation": {
+    "2": {
+      "per_proc_render_s_median": 26.747150000000005,
+      "slowdown_vs_solo": 0.9945877505791536,
+      "process_speedup": 2.0108834025307365,
+      "samples": [
+        26.606,
+        26.621599999999997,
+        26.8022,
+        26.763900000000003,
+        26.730400000000003,
+        27.1444
+      ]
+    },
+    "4": {
+      "per_proc_render_s_median": 44.9116,
+      "slowdown_vs_solo": 1.6700294131864781,
+      "process_speedup": 2.395167395505838,
+      "samples": [
+        45.5687,
+        44.9245,
+        45.3568,
+        45.213800000000006,
+        44.8987,
+        44.5577,
+        45.3675,
+        44.6644,
+        44.9571,
+        44.8651,
+        44.5522,
+        44.886900000000004
+      ]
+    }
+  }
+}
