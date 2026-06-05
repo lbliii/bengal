@@ -101,6 +101,11 @@ class BuildSection:
     fast_mode: bool = False
     stable_section_references: bool = True
     min_page_size: int = 1000
+    # Isolated (separate-heap) render backend for large cold builds (#350).
+    # off (default) | auto | fork | spawn. Cold CLI/CI builds only.
+    render_isolation: str = "off"
+    render_isolation_threshold: int = 400
+    render_isolation_workers: int | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -75,6 +75,9 @@ class BuildStats:
     incremental: bool = False
     skipped: bool = False
     dry_run: bool = False
+    # True when the render phase ran on the isolated separate-heap backend (#350)
+    # rather than the in-process thread path. Telemetry + parity-test signal.
+    render_isolation_used: bool = False
     completion_policy: str = "complete"
 
     # Directive statistics

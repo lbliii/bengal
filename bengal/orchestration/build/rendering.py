@@ -388,6 +388,90 @@ def _log_template_introspection(orchestrator: BuildOrchestrator, verbose: bool) 
         orchestrator.logger.debug("template_introspection_failed", error=str(e))
 
 
+def _maybe_isolated_render(
+    orchestrator: BuildOrchestrator,
+    ctx: BuildContext,
+    pages_to_build: Sequence[PageLike],
+    quiet: bool,
+    incremental: bool,
+) -> bool:
+    """
+    Render the page set across separate-heap workers when the gate selects it.
+
+    Issue #350, sagas S3–S5. The config-driven crossover gate
+    (``[build] render_isolation``, see ``isolated/gate.py``) decides; this is
+    cold-build / CLI / CI only. Returns True if the isolated backend rendered the
+    whole set (callers then skip the in-process paths), or False to fall back to
+    the thread path — including on any backend failure, so isolation can never
+    break a build.
+    """
+    from bengal.orchestration.render.isolated import (
+        IsolatedRenderBackend,
+        decide_isolation,
+        fork_available,
+        resolve_isolation_settings,
+    )
+    from bengal.utils.observability.logger import get_logger
+
+    settings = resolve_isolation_settings(orchestrator.site.config)
+    decision = decide_isolation(
+        settings,
+        page_count=len(pages_to_build),
+        incremental=incremental,
+        parallel=True,  # only called from the parallel branch
+        has_snapshot=ctx.snapshot is not None,
+        fork_available=fork_available(),
+    )
+    if not decision.enabled:
+        get_logger(__name__).debug("isolated_render_gate", enabled=False, reason=decision.reason)
+        return False
+
+    try:
+        from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
+
+        if decision.workers is not None:
+            max_workers = decision.workers
+        else:
+            config = orchestrator.site.config
+            if hasattr(config, "build"):
+                max_workers_override = getattr(config.build, "max_workers", None)
+            else:
+                build_section = config.get("build", {})
+                max_workers_override = (
+                    build_section.get("max_workers")
+                    if isinstance(build_section, dict)
+                    else config.get("max_workers")
+                )
+            max_workers = get_optimal_workers(
+                len(pages_to_build),
+                workload_type=WorkloadType.MIXED,
+                config_override=max_workers_override,
+            )
+
+        get_logger(__name__).info(
+            "isolated_render_gate",
+            enabled=True,
+            mode=decision.mode,
+            reason=decision.reason,
+            workers=max_workers,
+        )
+        IsolatedRenderBackend(orchestrator.site).render(
+            pages_to_build,
+            build_context=ctx,
+            num_workers=max_workers,
+            quiet=quiet,
+            stats=orchestrator.stats,
+        )
+        return True
+    except Exception as e:  # isolation must never break a build
+        get_logger(__name__).warning(
+            "isolated_render_fell_back",
+            error=str(e),
+            error_type=type(e).__name__,
+        )
+        return False
+
+
 def phase_render(
     orchestrator: BuildOrchestrator,
     cli: CLIOutput,
@@ -558,9 +642,23 @@ def phase_render(
                 # Update stats with actual execution mode
                 orchestrator.stats.parallel = use_parallel
 
+                # Isolated (separate-heap) render backend for large cold builds
+                # (#350, S3). Renders the whole set across fork workers when the
+                # crossover gate selects it; cold-build / CLI / CI only. Never
+                # runs under an explicit sequential decision (force_sequential);
+                # its own page-count crossover (render_isolation_threshold) — not
+                # the thread path's auto-parallelize threshold — decides scale.
+                # On any failure it returns False and we fall back to the
+                # in-process render paths below, so isolation never breaks a build.
+                isolated_done = not force_sequential and _maybe_isolated_render(
+                    orchestrator, ctx, pages_to_build, quiet_mode, bool(incremental)
+                )
+
                 # Use WaveScheduler if snapshot is available and parallel rendering is enabled
                 # (RFC: rfc-bengal-snapshot-engine)
-                if use_parallel and ctx.snapshot:
+                if isolated_done:
+                    pass
+                elif use_parallel and ctx.snapshot:
                     from bengal.orchestration.render.block_cache import create_and_warm_block_cache
                     from bengal.snapshots.scheduler import WaveScheduler
                     from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers

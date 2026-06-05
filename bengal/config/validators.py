@@ -196,7 +196,13 @@ class ConfigValidator:
         "expose_metadata_json",
     }
 
-    INTEGER_FIELDS: ClassVar[set[str]] = {"max_workers", "min_page_size", "port"}
+    INTEGER_FIELDS: ClassVar[set[str]] = {
+        "max_workers",
+        "min_page_size",
+        "port",
+        "render_isolation_threshold",  # #350 isolated render crossover
+        "render_isolation_workers",  # #350 isolated render worker count
+    }
 
     STRING_FIELDS: ClassVar[set[str]] = {
         "title",
@@ -213,6 +219,7 @@ class ConfigValidator:
         "expose_metadata",  # minimal|standard|extended
         "default_appearance",  # light|dark|system
         "default_palette",  # palette key or empty string
+        "render_isolation",  # #350 off|auto|fork|spawn
     }
 
     # Top-level sections and keys that are dicts (not individual fields)

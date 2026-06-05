@@ -153,13 +153,21 @@ class RelatedPostsOrchestrator:
         # Related posts computation is CPU-bound (tag matching, scoring)
         # parallel is now always a boolean (computed from force_sequential in phase_related_posts)
         # so we can use it directly
+        # Pre-compute the valid-candidate index ONCE (#350 S9). The candidate
+        # filters (skip generated / home / section-index pages) and the
+        # tie-break sort key are intrinsic to the candidate, so we apply them a
+        # single time here instead of re-deriving them for every (page, tag,
+        # candidate) in the scoring loop — turning the hot path from O(P·T·N)
+        # string/getattr work into O(P·T·N) integer increments. Output unchanged.
+        candidates_by_tag, sort_keys = self._build_candidate_index(tags_dict)
+
         if parallel:
             pages_with_related = self._build_parallel(
-                pages_to_process, page_tags_map, tags_dict, limit
+                pages_to_process, page_tags_map, candidates_by_tag, sort_keys, limit
             )
         else:
             pages_with_related = self._build_sequential(
-                pages_to_process, page_tags_map, tags_dict, limit
+                pages_to_process, page_tags_map, candidates_by_tag, sort_keys, limit
             )
 
         logger.info(
@@ -174,7 +182,8 @@ class RelatedPostsOrchestrator:
         self,
         pages: Sequence[PageLike],
         page_tags_map: dict[PageLike, set[str]],
-        tags_dict: dict[str, dict[str, Any]],
+        candidates_by_tag: dict[str, list[PageLike]],
+        sort_keys: dict[PageLike, str],
         limit: int,
     ) -> int:
         """
@@ -183,7 +192,8 @@ class RelatedPostsOrchestrator:
         Args:
             pages: List of pages to process
             page_tags_map: Pre-built page -> tags mapping
-            tags_dict: Taxonomy tags dictionary
+            candidates_by_tag: Pre-filtered valid candidates per tag (#350 S9)
+            sort_keys: Pre-computed stable tie-break key per candidate
             limit: Maximum related posts per page
 
         Returns:
@@ -192,7 +202,9 @@ class RelatedPostsOrchestrator:
         pages_with_related = 0
 
         for page in pages:
-            page.related_posts = self._find_related_posts(page, page_tags_map, tags_dict, limit)
+            page.related_posts = self._find_related_posts(
+                page, page_tags_map, candidates_by_tag, sort_keys, limit
+            )
             if page.related_posts:
                 pages_with_related += 1
 
@@ -208,7 +220,8 @@ class RelatedPostsOrchestrator:
         self,
         pages: Sequence[PageLike],
         page_tags_map: dict[PageLike, set[str]],
-        tags_dict: dict[str, dict[str, Any]],
+        candidates_by_tag: dict[str, list[PageLike]],
+        sort_keys: dict[PageLike, str],
         limit: int,
     ) -> int:
         """
@@ -257,7 +270,9 @@ class RelatedPostsOrchestrator:
 
         def _find_related_for_page(page):
             try:
-                related = self._find_related_posts(page, page_tags_map, tags_dict, limit)
+                related = self._find_related_posts(
+                    page, page_tags_map, candidates_by_tag, sort_keys, limit
+                )
             except Exception as e:
                 e.__page_source_path__ = page.source_path  # type: ignore[attr-defined]
                 raise
@@ -315,91 +330,109 @@ class RelatedPostsOrchestrator:
 
         return page_tags
 
+    @staticmethod
+    def _is_valid_related_candidate(cand: PageLike) -> bool:
+        """
+        Whether a page may appear as a related post.
+
+        Candidate-intrinsic filters (no dependency on the page being scored):
+        skip generated pages (tag indexes, archives), the home page, and section
+        index pages. Replicates the per-candidate filter that used to run inside
+        the scoring loop; applied once via :meth:`_build_candidate_index`.
+        """
+        if cand.metadata.get("_generated"):
+            return False
+        path = getattr(cand, "_path", "") or getattr(cand, "href", "") or ""
+        path_str = str(path).rstrip("/") if path else ""
+        if path_str in ("", "/") or str(path) in ("/", "/index.html", ""):
+            return False  # Home page
+        return getattr(cand, "kind", None) != "index"  # Section indices
+
+    def _build_candidate_index(
+        self,
+        tags_dict: dict[str, dict[str, Any]],
+    ) -> tuple[dict[str, list[PageLike]], dict[PageLike, str]]:
+        """
+        Pre-compute valid related-post candidates per tag + stable tie-break keys.
+
+        Built once per build (#350 S9). Returns:
+        - ``candidates_by_tag``: tag slug -> pages with that tag that pass the
+          candidate filter (generated/home/index removed), preserving order.
+        - ``sort_keys``: candidate -> ``str(source_path|_path|href)`` for the
+          deterministic tie-break, computed once instead of per sort.
+
+        Because the filter and the key are candidate-intrinsic, doing this once
+        produces the exact same related-post lists the per-page loop did.
+        """
+        candidates_by_tag: dict[str, list[PageLike]] = {}
+        sort_keys: dict[PageLike, str] = {}
+        validity: dict[PageLike, bool] = {}
+
+        for tag_slug, tag_data in tags_dict.items():
+            valid: list[PageLike] = []
+            for cand in tag_data.get("pages", []):
+                cached = validity.get(cand)
+                if cached is None:
+                    cached = self._is_valid_related_candidate(cand)
+                    validity[cand] = cached
+                    if cached:
+                        ident = (
+                            getattr(cand, "source_path", None)
+                            or getattr(cand, "_path", None)
+                            or getattr(cand, "href", "")
+                        )
+                        sort_keys[cand] = str(ident)
+                if cached:
+                    valid.append(cand)
+            candidates_by_tag[tag_slug] = valid
+
+        return candidates_by_tag, sort_keys
+
     def _find_related_posts(
         self,
         page: PageLike,
         page_tags_map: dict[PageLike, set[str]],
-        tags_dict: dict[str, dict[str, Any]],
+        candidates_by_tag: dict[str, list[PageLike]],
+        sort_keys: dict[PageLike, str],
         limit: int,
     ) -> list[PageLike]:
         """
         Find related posts for a single page using tag overlap scoring.
 
-        Algorithm:
-        1. For each tag on the current page
-        2. Find all other pages with that tag (via taxonomy index)
-        3. Score pages by number of shared tags
-        4. Return top N pages sorted by score
+        Algorithm (#350 S9): for each tag on the page, walk the pre-filtered
+        candidate list for that tag and count shared tags; return the top N by
+        score, ties broken by the pre-computed stable source-path key. The
+        per-candidate filtering and key derivation are hoisted into
+        :meth:`_build_candidate_index`, so this loop is pure integer scoring.
 
         Args:
             page: PageLike to find related posts for
-            page_tags_map: Pre-built page -> tags mapping (now uses pages directly)
-            tags_dict: Taxonomy tags dictionary {slug: {pages: [...]}}
+            page_tags_map: Pre-built page -> tags mapping
+            candidates_by_tag: Pre-filtered valid candidates per tag
+            sort_keys: Pre-computed stable tie-break key per candidate
             limit: Maximum related posts to return
 
         Returns:
             List of related pages sorted by relevance (most shared tags first)
         """
         page_tag_slugs = page_tags_map.get(page, set())
-
         if not page_tag_slugs:
             # Page has no tags - no related posts
             return []
 
-        # Score other pages by number of shared tags
-        # Now using pages directly as keys (hashable!)
-        scored_pages = {}
-
-        # For each tag on current page
+        # Count shared tags against the pre-filtered candidate lists.
+        scored: dict[PageLike, int] = {}
         for tag_slug in page_tag_slugs:
-            if tag_slug not in tags_dict:
-                continue
+            for cand in candidates_by_tag.get(tag_slug, ()):
+                if cand == page:
+                    continue  # skip self
+                scored[cand] = scored.get(cand, 0) + 1
 
-            # Get all pages with this tag from taxonomy index
-            tag_data = tags_dict[tag_slug]
-            pages_with_tag = tag_data.get("pages", [])
-
-            for other_page in pages_with_tag:
-                # Skip self
-                if other_page == page:
-                    continue
-
-                # Skip generated pages (tag indexes, archives, etc.)
-                if other_page.metadata.get("_generated"):
-                    continue
-
-                # Exclude structural/navigation pages (home, section indices)
-                path = getattr(other_page, "_path", "") or getattr(other_page, "href", "") or ""
-                path_str = str(path).rstrip("/") if path else ""
-                if path_str in ("", "/") or str(path) in ("/", "/index.html", ""):
-                    continue  # Home page
-                if getattr(other_page, "kind", None) == "index":
-                    continue  # Section indices (posts hub, etc.)
-
-                # Increment score (counts shared tags)
-                if other_page not in scored_pages:
-                    scored_pages[other_page] = [other_page, 0]
-                scored_pages[other_page][1] += 1
-
-        if not scored_pages:
+        if not scored:
             return []
 
-        # Sort by score (descending), breaking ties by a stable page identifier.
-        # The scoring above iterates a set of tag slugs and parallel-built tag→pages
-        # lists, so scored_pages insertion order is non-deterministic. A score-only
-        # sort then resolved equal-score ties by that unstable order, which made
-        # related-posts — and every page that renders them — differ run-to-run.
-        # Sorting ties by source_path makes the result reproducible regardless of
-        # thread scheduling. Higher score = more shared tags = more related.
-        def _stable_key(entry: list) -> tuple[int, str]:
-            other = entry[0]
-            ident = (
-                getattr(other, "source_path", None)
-                or getattr(other, "_path", None)
-                or getattr(other, "href", "")
-            )
-            return (-entry[1], str(ident))
-
-        sorted_pages = sorted(scored_pages.values(), key=_stable_key)
-
-        return [page for page, score in sorted_pages[:limit]]
+        # Sort by score (descending), ties broken by the stable source-path key
+        # so related posts — and every page that renders them — are reproducible
+        # regardless of thread scheduling.
+        ordered = sorted(scored.items(), key=lambda kv: (-kv[1], sort_keys[kv[0]]))
+        return [related_page for related_page, _ in ordered[:limit]]
