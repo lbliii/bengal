@@ -167,13 +167,102 @@ are *not* blockers under this design.
   - xref edges skip generated pages to match the live index (built pre-taxonomy).
   Map/reduce edges (`taxonomy_terms`, `menu_entries`) are carried in `ShardPageMeta`
   as the S13 contract for when the parent no longer pre-builds the snapshot. *(l)*
-- [ ] **S12 — Content sharder (pre-parse).** Partition discovered content *files*
-  (not parsed pages) into balanced shards by estimated cost; deterministic.
-  Extends `isolated/partition.py`. *(m)*
-- [ ] **S13 — Persistent two-phase shard workers.** `mp.Process` actors forked
-  from a *small* parent: parse-shard → return metadata → barrier → receive
-  RenderPlan → render-shard from own heap → return accumulations. The COW-free
-  core; replaces Phase-1's fork-after-parse worker. *(xl)*
+- [x] **S12 — Content sharder (pre-parse) (DONE).** `isolated/partition.py` now
+  shards *discovered content files* before parse: `discover_content_files` reuses
+  `DirectoryWalker` to enumerate the source files (no parsing) — proven to be the
+  **exact same set** `ContentDiscovery` parses (`test_discover_matches_content_discovery`
+  asserts set-equality vs the real discovery walk = the cover guarantee);
+  `ContentFile` + `estimate_file_cost` (on-disk byte size, the only pre-parse cost
+  signal) + `partition_content_files` LPT-balance the files. The `"balanced"`/
+  `"section"` packing was factored into one shared deterministic core
+  (`_partition_indices`), leaving `partition_pages` (S3) byte-identical. Ordering
+  sorts by **`Path.parts`** (component tuple), not `str(path)`, so the index→shard
+  mapping is independent of filesystem listing order *and* the OS separator (a
+  `str(path)` key interleaves a sibling file into a directory subtree differently
+  on POSIX `/` vs Windows `\`). Adversarial review (2 confirmed findings) +
+  mutation-verified that the ordering tests fail when the sort key regresses.
+  *(m)* — NB the analogous `str(source_path)` tie-break in `render_plan.py`'s
+  reduce (S11, line ~599) has the same latent cross-OS quirk; reconcile in S13/S16.
+- [ ] **S13 — Persistent two-phase shard workers (IN PROGRESS).** `mp.Process`
+  actors forked from a *small* parent: parse-shard → return metadata → barrier →
+  receive RenderPlan → render-shard from own heap → return accumulations. The
+  COW-free core; replaces Phase-1's fork-after-parse worker. *(xl)*
+
+  **Reframing (2026-06-05):** the perf bet is already de-risked. The ceiling probe
+  (`render-scaling-attribution-findings.md`) measured separate processes recovering
+  render from the 2.26× thread plateau to **3.8×–4.6×**, while every *in-thread*
+  lever (intern, full-world immortalize, owned frames) recovered ≤7%. Phase-1
+  regressed only because it forked a *big* parent (all parsed pages) and paid COW;
+  the probe won because its parent heap was tiny (COW-free). S13's small-parent
+  design is engineered to land in that COW-free regime, so the dominant risk is
+  **engineering correctness + new overhead** (barrier serialization, per-worker
+  reconstruction, result merge), not the raw perf hypothesis. ⇒ Build S13 in
+  testable vertical increments gated by **byte-parity** (S11's `from_site` oracle +
+  the subprocess parity-test pattern); take the render-phase A/B at the first
+  representative point (after the render leg works), not as a throwaway pre-probe.
+
+  Increments (dependency order):
+  - [x] **S13.1 — from-live-page map step (DONE).** `page_view_from_live_page` +
+    `shard_meta_from_live_pages` in `snapshots/render_plan.py`: derive
+    PageView/taxonomy/xref edges from a worker's OWN freshly-parsed pages with **no
+    SiteSnapshot** (reuses `_snapshot_page_initial`'s per-page derivations;
+    `section_path` sourced from `page._section_path` since the transient per-page
+    snapshot has no resolved section; `related_pairs` deferred to the barrier —
+    related is global). Proven byte-identical to the snapshot path
+    (`shard_meta_from_pages`) across all 4 fixtures + reduces to the same plan as
+    `from_site` (`tests/unit/snapshots/test_render_plan.py`, 9 new tests).
+  - [x] **S13.2 — parse_shard (DONE).** `isolated/shard_worker.py::parse_shard`
+    parses a `ContentFile` shard (S12) into fully body-filled live pages in the
+    caller's own heap, with no full-site discovery: reconstructs each file's owning
+    Section from its path (immediate parent dir; top-level files → no section),
+    reuses `ContentDiscovery._create_page` UNCHANGED for construction, then
+    `RenderingPipeline._parse_content` (the exact `phase_parse_content` call) for the
+    body-fill, and computes `output_path` worker-side. Proven byte-identical to the
+    in-process parse through the S13.1 PageView lens across all 4 fixtures, bodies
+    confirmed filled, cover holds when partitioned into N shards
+    (`tests/unit/orchestration/render/test_shard_worker.py`, 9 tests).
+    **Deferred to S13.4 (genuine cross-shard hazard):** `_parse_content` resolves
+    `[[xref]]` links via `site.xref_index`, but at parse time the *global* index
+    doesn't exist yet (it's reduced from all shards). The tests pass the fully-built
+    site (complete index) as the parity oracle, validating parse *mechanics*; the
+    real worker needs an xref pre-pass or deferred resolution — S13.4's job.
+  - [x] **S13.3a — render leg (render_shard) (DONE).** `shard_worker.py::render_shard`
+    — the reusable phase-2 render core: renders a shard's own parsed pages →
+    HTML on disk + a picklable `RenderChunkResult`, decoupled from the fork-state
+    global (the persistent actor doesn't fork per chunk). Mirrors the proven
+    `fork_render_chunk` body. Validated: re-rendering the build's own pages against
+    the same site reproduces the in-process HTML byte-for-byte on test-basic +
+    test-product. **Finding:** byte-parity requires `build_context.snapshot` to carry
+    section data ("In This Section" tiles render from it) — a load-bearing input for
+    the WorkerSite. (Nav-heavy parity is deferred to S13.3c's single-render subprocess
+    harness; re-rendering an already-built site double-perturbs per-page nav state.)
+  - [ ] **S13.3b–f — WorkerSite (design DECIDED via Plan agent).** **Verdict: build a
+    real `bengal.core.site.Site` populated from the RenderPlan, NOT a facade** —
+    because `SiteContext.__getattr__` silently returns `""` for a missing attribute
+    (a facade gap → blank HTML that passes the build but fails the diff with no stack
+    trace), and `Site.__post_init__` already rebuilds theme/version_config/
+    config_service/`PageCacheManager`/registries from `config` alone **with no content
+    discovery** — so a worker constructs an empty Site then assigns plan state.
+    Gap fixes: (1) **NavTree** — the parent builds the real nav_trees at the barrier and
+    ships a **page-view-ified NavNode tree** in the RenderPlan; the worker
+    `NavTreeCache.set_precomputed`s it (the lock-free fast path never calls the
+    SectionSnapshot-incompatible `NavTree.build`); relax `assert_picklable` for
+    view-ified NavNodes. (2) **heterogeneous `site.pages`** = live pages (own shard) ∪
+    PageViews (rest) in `plan.pages` order → `PageCacheManager` serves `regular_pages`/
+    `get_page_path_map`/`indexes` uniformly (readers use source_path/metadata only).
+    (3) **theme** — free via `__post_init__`. (4) **`site.indexes`** — `build_all` over
+    the merged list with a **per-worker cache_dir** (the default theme reads
+    `site.indexes.*`; avoid N-worker file races). (5) reset process-globals per worker
+    (`_global_context_cache`, `NavTreeCache`, directive cache, external-ref resolvers).
+    **`get_page().content` cross-shard** is the one true blocker → render-time raise for
+    now; ship-or-fallback is S14. Ladder (fail-fast, byte-parity vs in-process each
+    rung): **b** empty WorkerSite + 1-page render (test-basic); **c** heterogeneous
+    pages at N≥2 shards + NavTree precompute (test-product/test-navigation); **d**
+    indexes + menus; **e** taxonomy/related/xref/generated (test-taxonomy); **f**
+    global-reset hardening + worker-count-invariance sweep.
+  - [ ] **S13.4 — actor protocol + small-parent driver + barrier-owns-globals**
+    (taxonomy/related/menus reduced from shard metas) + generated-page synthesis.
+  - [ ] **S13.5 — render-phase A/B + byte-parity** on a deterministic fixture.
 - [ ] **S14 — Cross-shard correctness: RenderPlan completeness + fallbacks.**
   `get_page().content` cross-shard detection → ship-or-fallback; xref
   reconciliation across shards; generated-page (tag/archive) assignment to
