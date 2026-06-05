@@ -19,11 +19,21 @@ Public API:
 from __future__ import annotations
 
 from .backend import IsolatedRenderBackend, fork_available
+from .gate import (
+    IsolationDecision,
+    IsolationSettings,
+    decide_isolation,
+    resolve_isolation_settings,
+)
 from .partition import estimate_render_cost, partition_pages
 
 __all__ = [
     "IsolatedRenderBackend",
+    "IsolationDecision",
+    "IsolationSettings",
+    "decide_isolation",
     "estimate_render_cost",
     "fork_available",
     "partition_pages",
+    "resolve_isolation_settings",
 ]

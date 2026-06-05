@@ -398,52 +398,64 @@ def _maybe_isolated_render(
     """
     Render the page set across separate-heap workers when the gate selects it.
 
-    Issue #350, saga S3. Cold-build / CLI / CI only. Returns True if the isolated
-    backend rendered the whole set (callers then skip the in-process paths), or
-    False to fall back to the thread path — including on any backend failure, so
-    isolation can never break a build.
-
-    The crossover gate is intentionally minimal here (env-var driven); saga S5
-    replaces it with the config-driven ``[build] render_isolation`` selector.
+    Issue #350, sagas S3–S5. The config-driven crossover gate
+    (``[build] render_isolation``, see ``isolated/gate.py``) decides; this is
+    cold-build / CLI / CI only. Returns True if the isolated backend rendered the
+    whole set (callers then skip the in-process paths), or False to fall back to
+    the thread path — including on any backend failure, so isolation can never
+    break a build.
     """
-    import os
+    from bengal.orchestration.render.isolated import (
+        IsolatedRenderBackend,
+        decide_isolation,
+        fork_available,
+        resolve_isolation_settings,
+    )
+    from bengal.utils.observability.logger import get_logger
 
-    mode = os.environ.get("BENGAL_RENDER_ISOLATION", "off").strip().lower()
-    if mode != "fork" or incremental or ctx.snapshot is None:
+    settings = resolve_isolation_settings(orchestrator.site.config)
+    decision = decide_isolation(
+        settings,
+        page_count=len(pages_to_build),
+        incremental=incremental,
+        parallel=True,  # only called from the parallel branch
+        has_snapshot=ctx.snapshot is not None,
+        fork_available=fork_available(),
+    )
+    if not decision.enabled:
+        get_logger(__name__).debug("isolated_render_gate", enabled=False, reason=decision.reason)
         return False
 
     try:
-        threshold = int(os.environ.get("BENGAL_RENDER_ISOLATION_THRESHOLD", "400"))
-    except ValueError:
-        threshold = 400
-    if len(pages_to_build) < threshold:
-        return False
-
-    try:
-        from bengal.orchestration.render.isolated import IsolatedRenderBackend, fork_available
         from bengal.utils.concurrency.workers import WorkloadType, get_optimal_workers
 
-        if not fork_available():
-            return False
-
-        config = orchestrator.site.config
-        if hasattr(config, "build"):
-            max_workers_override = getattr(config.build, "max_workers", None)
+        if decision.workers is not None:
+            max_workers = decision.workers
         else:
-            build_section = config.get("build", {})
-            max_workers_override = (
-                build_section.get("max_workers")
-                if isinstance(build_section, dict)
-                else config.get("max_workers")
+            config = orchestrator.site.config
+            if hasattr(config, "build"):
+                max_workers_override = getattr(config.build, "max_workers", None)
+            else:
+                build_section = config.get("build", {})
+                max_workers_override = (
+                    build_section.get("max_workers")
+                    if isinstance(build_section, dict)
+                    else config.get("max_workers")
+                )
+            max_workers = get_optimal_workers(
+                len(pages_to_build),
+                workload_type=WorkloadType.MIXED,
+                config_override=max_workers_override,
             )
-        max_workers = get_optimal_workers(
-            len(pages_to_build),
-            workload_type=WorkloadType.MIXED,
-            config_override=max_workers_override,
-        )
 
-        backend = IsolatedRenderBackend(orchestrator.site)
-        backend.render(
+        get_logger(__name__).info(
+            "isolated_render_gate",
+            enabled=True,
+            mode=decision.mode,
+            reason=decision.reason,
+            workers=max_workers,
+        )
+        IsolatedRenderBackend(orchestrator.site).render(
             pages_to_build,
             build_context=ctx,
             num_workers=max_workers,
@@ -452,8 +464,6 @@ def _maybe_isolated_render(
         )
         return True
     except Exception as e:  # isolation must never break a build
-        from bengal.utils.observability.logger import get_logger
-
         get_logger(__name__).warning(
             "isolated_render_fell_back",
             error=str(e),
