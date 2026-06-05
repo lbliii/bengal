@@ -61,7 +61,13 @@ _IMMORTAL_REFCNT_THRESHOLD = 1 << 30
 # into the whole interpreter (and immortalize the mutable world). We immortalize
 # any object we reach, but only follow referents of these container kinds.
 _RECURSE_CONTAINERS = (tuple, list, set, frozenset, dict, MappingProxyType)
-_RECURSE_DATACLASS_MODULES = frozenset({"bengal.snapshots.types", "bengal.config.snapshot"})
+_RECURSE_DATACLASS_MODULES = frozenset(
+    {
+        "bengal.snapshots.types",
+        "bengal.snapshots.render_plan",  # PageView/RenderPlan graph (issue #350, S11)
+        "bengal.config.snapshot",
+    }
+)
 
 # Code objects we must never immortalize even if one is reachable as a leaf in
 # config/data (immortalizing leaks them for the process lifetime). `type` covers

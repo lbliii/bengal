@@ -26,6 +26,14 @@ from bengal.snapshots.builder import (
     create_site_snapshot,
     update_snapshot,
 )
+from bengal.snapshots.render_plan import (
+    PageView,
+    RenderPlan,
+    ShardPageMeta,
+    XRefEntry,
+    assemble_render_plan,
+    shard_meta_from_pages,
+)
 from bengal.snapshots.scheduler import WaveScheduler
 from bengal.snapshots.scout import ScoutThread
 from bengal.snapshots.speculative import (
@@ -57,23 +65,29 @@ __all__ = [
     "NavigationPlan",
     # Snapshot types
     "PageSnapshot",
+    # Shard-parallel render plan (issue #350, S11)
+    "PageView",
+    "RenderPlan",
     "RenderSchedule",
     "ScoutHint",
     "ScoutThread",
     "SectionSnapshot",
     "ShadowModeValidator",
+    "ShardPageMeta",
     "SitePlan",
     "SiteSnapshot",
     # Speculative rendering
     "SpeculativeRenderer",
     "TaxonomyPlan",
     "TemplateSnapshot",
-    # Scheduling
     "WaveScheduler",
+    "XRefEntry",
+    "assemble_render_plan",
     # Snapshot creation
     "create_site_snapshot",
     # Incremental build helpers
     "pages_affected_by_template_change",
     "predict_affected",
+    "shard_meta_from_pages",
     "update_snapshot",
 ]
