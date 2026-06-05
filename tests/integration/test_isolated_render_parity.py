@@ -7,43 +7,77 @@ counts. This complements tests/integration/test_build_snapshot.py (which locks
 the thread path against a committed manifest) by asserting the isolated path
 reproduces the thread path exactly.
 
-Uses a deterministic multi-page root (test-product) copied into a tmp dir so
-builds never touch the repo. The fork backend is forced on via env (threshold 0)
-and confirmed to actually fire — a silent fallback to threads would make the
-comparison vacuous.
+Each build runs in its **own clean subprocess** with its **own copy of the test
+root** (so neither process-level render state nor the on-disk build cache leaks
+between builds). This also means the fork backend forks from a clean,
+single-threaded process — never from the multithreaded pytest-xdist worker,
+whose inherited-locked mutexes broke writes under Linux fork (the original CI
+failure). Builds run as their own process in production, so this is also the
+faithful way to test build parity.
+
+The fork backend is confirmed to actually fire via the ``render_isolation_used``
+build stat (a silent fallback to threads would otherwise make the comparison
+vacuous — the lesson from #130).
 """
 
 from __future__ import annotations
 
 import hashlib
+import json
 import multiprocessing as mp
+import os
 import shutil
+import subprocess
+import sys
 from fnmatch import fnmatch
 from pathlib import Path
 
 import pytest
-
-from bengal.core.site import Site
-from bengal.orchestration.build.options import BuildOptions
 
 pytestmark = pytest.mark.serial
 
 # Mirrors VOLATILE_PATTERNS in test_build_snapshot.py — files with embedded
 # timestamps / build-time ids that are legitimately non-reproducible.
 VOLATILE_PATTERNS: tuple[str, ...] = (
+    # Top-level site index + its hash.
     "index.json",
     "index.json.hash",
+    # Per-page JSON output: embeds a build-time `last_modified` timestamp and
+    # knowledge-graph node ids derived from object identity, both of which differ
+    # across any two build processes (not fork-specific) — same accepted
+    # volatility as graph.json. fnmatch `*` spans `/`, so this covers all depths.
+    "*/index.json",
+    "*/index.json.hash",
     "sitemap.xml",
     "agent.json",
     "changelog.json",
     "asset-manifest.json",
     ".well-known/content-signals.json",
     "**/.bengal-cache/**",
+    "**/.bengal/**",
     "graph.json",
     "graph/*.json",
 )
 
 _ROOT = Path(__file__).parents[1] / "roots" / "test-product"
+
+# Child program: build <root> into <out>, print one STATSJSON line. Runs in a
+# clean subprocess so the isolated backend forks from a single-threaded process.
+_CHILD = """
+import json, sys
+from pathlib import Path
+from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
+
+root, out = Path(sys.argv[1]), Path(sys.argv[2])
+site = Site.from_config(root)
+site.output_dir = out
+stats = site.build(BuildOptions(quiet=True))
+print("STATSJSON " + json.dumps({
+    "pages": int(getattr(stats, "total_pages", 0)),
+    "isolation_used": bool(getattr(stats, "render_isolation_used", False)),
+}))
+"""
 
 
 def _is_volatile(rel: str) -> bool:
@@ -62,10 +96,42 @@ def _manifest(output_dir: Path) -> dict[str, str]:
     return manifest
 
 
-def _build(site_root: Path, output_dir: Path) -> None:
-    site = Site.from_config(site_root)
-    site.output_dir = output_dir
-    site.build(BuildOptions(quiet=True))
+def _build_in_subprocess(
+    src_root: Path, work: Path, tag: str, mode: str, workers: int | None
+) -> tuple[dict[str, str], dict]:
+    """Build a fresh copy of src_root in a clean subprocess. Returns (manifest, stats)."""
+    site_root = work / f"site_{tag}"
+    shutil.copytree(src_root, site_root)
+    out = work / f"out_{tag}"
+
+    env = dict(os.environ)
+    env["PYTHONHASHSEED"] = "0"
+    if mode == "thread":
+        env.pop("BENGAL_RENDER_ISOLATION", None)
+    else:
+        env["BENGAL_RENDER_ISOLATION"] = mode
+        env["BENGAL_RENDER_ISOLATION_THRESHOLD"] = "0"
+        if workers is not None:
+            env["BENGAL_RENDER_ISOLATION_WORKERS"] = str(workers)
+
+    proc = subprocess.run(
+        [sys.executable, "-c", _CHILD, str(site_root), str(out)],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=600,
+        check=False,
+    )
+    stats = None
+    for line in proc.stdout.splitlines():
+        if line.startswith("STATSJSON "):
+            stats = json.loads(line[len("STATSJSON ") :])
+    if stats is None:
+        raise AssertionError(
+            f"build ({tag}) produced no stats; rc={proc.returncode}\n"
+            f"stderr tail:\n{proc.stderr[-2000:]}"
+        )
+    return _manifest(out), stats
 
 
 @pytest.mark.skipif(
@@ -73,57 +139,33 @@ def _build(site_root: Path, output_dir: Path) -> None:
     reason="isolated render backend requires the fork start method",
 )
 def test_isolated_render_matches_thread_path_and_is_worker_count_invariant(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
 ) -> None:
     if not _ROOT.exists():  # pragma: no cover - fixture must exist
         pytest.skip(f"missing test root {_ROOT}")
 
-    # Work on a copy so the build never touches the repo's fixtures.
-    site_root = tmp_path / "site"
-    shutil.copytree(_ROOT, site_root)
-
     # Thread-path baseline (isolation off).
-    monkeypatch.delenv("BENGAL_RENDER_ISOLATION", raising=False)
-    out_thread = tmp_path / "out_thread"
-    _build(site_root, out_thread)
-    thread_manifest = _manifest(out_thread)
+    thread_manifest, thread_stats = _build_in_subprocess(_ROOT, tmp_path, "thread", "thread", None)
     assert thread_manifest, "baseline build produced no comparable output"
+    assert thread_stats["isolation_used"] is False, "thread build should not use isolation"
 
-    # Spy on the backend so we can prove it actually ran (not a silent fallback).
-    import bengal.orchestration.render.isolated.backend as backend_mod
-
-    calls: list[int] = []
-    original_render = backend_mod.IsolatedRenderBackend.render
-
-    def _spy_render(self: object, *args: object, **kwargs: object) -> int:
-        rendered = original_render(self, *args, **kwargs)  # type: ignore[arg-type]
-        calls.append(rendered)
-        return rendered
-
-    monkeypatch.setattr(backend_mod.IsolatedRenderBackend, "render", _spy_render)
-
-    # Fork path, two worker counts — output must match the thread path AND each
-    # other (worker-count invariance).
-    monkeypatch.setenv("BENGAL_RENDER_ISOLATION", "fork")
-    monkeypatch.setenv("BENGAL_RENDER_ISOLATION_THRESHOLD", "0")
-
-    fork_manifests: dict[int, dict[str, str]] = {}
+    # Fork path at two worker counts — output must match the thread path AND each
+    # other (worker-count invariance), and the backend must actually have fired.
     for workers in (2, 8):
-        monkeypatch.setenv("BENGAL_RENDER_ISOLATION_WORKERS", str(workers))
-        out_fork = tmp_path / f"out_fork_{workers}"
-        _build(site_root, out_fork)
-        fork_manifests[workers] = _manifest(out_fork)
+        fork_manifest, fork_stats = _build_in_subprocess(
+            _ROOT, tmp_path, f"fork{workers}", "fork", workers
+        )
+        assert fork_stats["isolation_used"] is True, (
+            f"isolated backend did not fire for workers={workers} (silent fallback?)"
+        )
+        assert fork_stats["pages"] > 0, f"isolated backend rendered no pages: {fork_stats}"
 
-    # The backend fired once per fork build and rendered pages each time.
-    assert len(calls) == 2, "isolated backend did not fire (silent fallback?)"
-    assert all(n > 0 for n in calls), f"isolated backend rendered no pages: {calls}"
-
-    # Byte-parity: thread == fork(2) == fork(8).
-    for workers, manifest in fork_manifests.items():
-        added = sorted(set(manifest) - set(thread_manifest))
-        removed = sorted(set(thread_manifest) - set(manifest))
+        added = sorted(set(fork_manifest) - set(thread_manifest))
+        removed = sorted(set(thread_manifest) - set(fork_manifest))
         changed = sorted(
-            k for k in set(thread_manifest) & set(manifest) if thread_manifest[k] != manifest[k]
+            k
+            for k in set(thread_manifest) & set(fork_manifest)
+            if thread_manifest[k] != fork_manifest[k]
         )
         divergence = added or removed or changed
         assert not divergence, (

@@ -116,6 +116,7 @@ class IsolatedRenderBackend:
 
         if stats is not None:
             stats.pages_rendered = merged.pages_rendered
+            stats.render_isolation_used = True
 
         if merged.pages_rendered == 0 and n > 0:
             raise RuntimeError("isolated render produced no pages (all chunks failed)")
