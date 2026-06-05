@@ -140,11 +140,33 @@ are *not* blockers under this design.
 
 ### Group B — The shard redesign (holistic core, gated off)
 
-- [ ] **S11 — RenderPlan: the serializable global plan.** Define the immutable,
-  picklable `RenderPlan` (nav trees, menus, taxonomy term→pages, related index,
-  page-view map for `get_page`, frozen xref index, config/params) assembled from
-  lightweight per-shard metadata. The map/reduce contract; extends `SiteSnapshot`
-  + S2 transport. *(l)*
+- [x] **S11 — RenderPlan: the serializable global plan (DONE).** `bengal/snapshots/
+  render_plan.py`: immutable, **unconditionally picklable** `RenderPlan` +
+  `PageView` (22-field body-free page view, mirrors PageSnapshot's read surface) +
+  `ShardPageMeta`/`XRefEntry` (map output) + `assemble_render_plan` (the barrier
+  reduce; `RenderPlan.from_site` = the single-shard case). Reuses
+  `SectionSnapshot`/`MenuItemSnapshot`; page-view-ifies the three body-holding
+  places; **excludes `nav_trees`** (NavTree holds live refs → S13 rebuilds them
+  worker-side). Proven by `tests/unit/snapshots/test_render_plan.py` (28 tests):
+  pickle round-trip + no-proxy/no-PageSnapshot/no-NavTree leak guard
+  (`assert_picklable`), shard-order-independence of the reduce (N∈{2,3,5,7}), and
+  data-parity vs the live site (page-view map, taxonomy, xref index, related index,
+  config). Decisions that diverged from the audit spec, with cause:
+  - **Always-picklable, no fork/spawn branch.** Every mapping is flattened to a
+    plain dict via `to_plain_data`, which *also drops injected runtime objects*
+    (live Page refs under metadata keys like `_tags`, plugin callables) — the
+    metadata-picklability hazard the audit flagged turned out to be load-bearing,
+    not theoretical.
+  - **Taxonomy is page-view-ified from the live `site.taxonomies`, not reduced from
+    edges.** Discovered `SiteSnapshot.taxonomy` is silently empty (a pre-existing
+    latent bug: `_snapshot_taxonomies` mis-iterates the `{name,slug,pages}` term
+    dict as a page list). The live render path reads `site.taxonomies` directly so
+    it is unaffected — and so is RenderPlan, which now sources taxonomy there.
+  - **`config_snapshot` not shipped** (it holds a MappingProxyType; the render
+    context already rebuilds it from raw config — the worker does the same).
+  - xref edges skip generated pages to match the live index (built pre-taxonomy).
+  Map/reduce edges (`taxonomy_terms`, `menu_entries`) are carried in `ShardPageMeta`
+  as the S13 contract for when the parent no longer pre-builds the snapshot. *(l)*
 - [ ] **S12 — Content sharder (pre-parse).** Partition discovered content *files*
   (not parsed pages) into balanced shards by estimated cost; deterministic.
   Extends `isolated/partition.py`. *(m)*
