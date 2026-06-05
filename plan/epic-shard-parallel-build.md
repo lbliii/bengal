@@ -27,23 +27,34 @@ On a 4,288-page build (M3 Pro, 3.14t), the Phase-1 fork backend **regressed**:
 - The fixed costs I first suspected are negligible (immortalize 0.2s, block-cache
   ×8 ≈ 0.5s), confirming the problem is the **fork boundary placement**, not setup.
 
-### Phase attribution (the real cost map, 4,288-page build)
+### Phase attribution (the real cost map)
 
-| phase | share | parallelizable? |
-|---|--:|---|
-| rendering | ~37% | yes (but Phase-1 fork regresses it) |
-| parsing | ~28% | yes (today: thread-parallel in parent) |
-| **related_posts** | **~17%** | algorithmic — fork-independent win |
-| unattributed overhead | ~9% | TBD |
-| postprocess | ~5% | partly (global artifacts serial) |
-| discovery/taxonomy/assets/menu/health | ~4% | mostly serial, cheap |
+The first attribution mis-read two phases; the authoritative `phase_timings_ms`
+breakdown (S10) on the 4,288-page fixture, **after S9 landed**, is:
 
-Two conclusions drive the redesign:
-1. **The productive fork boundary is *before* parse**, with workers owning
-   disjoint content shards end-to-end in their own heaps (no shared mutable
-   graph ⇒ no COW), parallelizing **parse + render ≈ 65%** of the build.
-2. **`related_posts` (17%) is a large, certain, fork-independent win** to bank
-   first, so the branch is net-faster *before* the ambitious redesign lands.
+| phase | time | share | note |
+|---|--:|--:|---|
+| **rendering** | 76.8s | **66%** | the prize; Phase-1 fork regressed it (COW) |
+| cache save | 10.2s | 9% | scales with pages; partly optimizable |
+| post-process | 9.3s | 8% | global artifacts, mostly serial |
+| initialization | 8.0s | 7% | |
+| content (taxonomy/menu/related) | 6.4s | 5.5% | related_posts now ~3s after S9 |
+| **parsing** | **0.9s** | **0.8%** | NEGLIGIBLE — corrects the earlier "~28%" |
+
+Corrections from S10 (both earlier guesses were wrong):
+- **Parsing is ~1%, not ~28%.** patitas parsing is genuinely ~0% of the prize;
+  the earlier figure was a residual-arithmetic artifact on a noisy box.
+- **`related_posts` was ~17% and is now banked** by S9 (~8×, 24s → 3s),
+  byte-identical — so the branch is *already* net-faster before the redesign.
+
+Conclusions that drive (and re-scope) the redesign:
+1. **The build is ~66% render-bound.** The entire remaining prize is recovering
+   the free-threading render plateau, COW-free: ~77s → ~38s ≈ **a third off the
+   whole build**. This vindicates #350's original render thesis.
+2. **Parse-parallelization and the parse cache are dead** (parse is ~1%). The
+   fork boundary still moves *before* parse, but only so workers **own their
+   parsed pages** (avoiding the COW tax that sank Phase 1) — not for any
+   parse-speedup. Render isolation done right is the whole game.
 
 ## The design: a 3-phase shard-parallel build
 
@@ -73,10 +84,12 @@ Two conclusions drive the redesign:
 **Why this is COW-free and scales:** the parent never holds all parsed pages
 (the big heap is *distributed* across workers, each holding ~1/N). Workers render
 from their own heap + a freshly-unpickled RenderPlan (their own objects). No
-shared mutable graph is read or written across the boundary, so the tax that
-sank Phase 1 disappears — and **both** parse and render run in separate heaps,
-removing the free-threading allocator/GC plateau from ~65% of the build (the
-holistic version of #350's bet).
+shared mutable graph is read or written across the boundary, so the COW tax that
+sank Phase 1 disappears. Render (~66% of the build) runs in separate heaps,
+recovering the free-threading allocator/GC plateau that the in-thread path
+cannot — the realisation of #350's original render thesis. (Parse moves into the
+workers too, but only to keep the parsed pages worker-local; parse is ~1% of the
+build, so there is no parse-speedup to chase.)
 
 ### The one real blocker, and its fallback
 
@@ -110,19 +123,20 @@ are *not* blockers under this design.
 
 ### Group A — Trustworthy measurement + certain wins (bank gains, fix methodology)
 
-- [ ] **S8 — Trustworthy end-to-end benchmark.** A deterministic large-fixture
+- [x] **S8 — Trustworthy end-to-end benchmark (DONE).** A deterministic large-fixture
   generator (no `random-posts` widget), phase-attributed E2E timing, thread-vs-
   experimental A/B, idle-box protocol with variance reporting. Fixes the
   cycled-heap / random-widget / saturated-box flaws that made Phase-1 numbers
   unreliable. The yardstick for "superior end to end." *(m)*
-- [ ] **S9 — `related_posts` co-occurrence index.** Replace the O(P·T·N) per-page
+- [x] **S9 — `related_posts` candidate index (DONE: ~8x, 24s→3s, byte-identical).** Replace the O(P·T·N) per-page
   rescan with a co-occurrence inverted index built once from the taxonomy
   (`{page: {candidate: shared_tag_count}}`), score in O(K) per page, keep the
   `_stable_key` tie-break. Est. 3–5× (~24s → ~6s). Fork-independent,
   deterministic. *(m)*
-- [ ] **S10 — Attribute & trim the residual.** Pin the ~9% "overhead" and the
-  parse cost; land cheap wins. Scope a **persistent parsed-shard cache** (content-
-  hash keyed) as a stretch that lets warm cold-builds skip parse entirely. *(s)*
+- [x] **S10 — Attribute the residual (DONE).** Dumped the authoritative
+  `phase_timings_ms`: build is ~66% render, parsing ~1% (corrects the earlier
+  ~28% guess). **Parse cache de-scoped** (parse isn't a cost). Next-tier targets
+  if render is exhausted: cache-save (9%), post-process (8%), init (7%). *(s)*
 
 ### Group B — The shard redesign (holistic core, gated off)
 
