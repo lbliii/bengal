@@ -12,7 +12,9 @@ to fall back to the in-process thread path if the isolated backend raises.
 
 Public API:
 - ``IsolatedRenderBackend`` — the driver (partition → fork → render → merge).
-- ``partition_pages`` — deterministic doc-tree/balanced partitioner.
+- ``partition_pages`` — deterministic parsed-page partitioner (S3).
+- ``ContentFile`` / ``discover_content_files`` / ``partition_content_files`` —
+  the pre-parse content sharder for the Phase-2 shard-parallel build (S12).
 - ``fork_available`` — platform capability probe.
 """
 
@@ -25,15 +27,26 @@ from .gate import (
     decide_isolation,
     resolve_isolation_settings,
 )
-from .partition import estimate_render_cost, partition_pages
+from .partition import (
+    ContentFile,
+    discover_content_files,
+    estimate_file_cost,
+    estimate_render_cost,
+    partition_content_files,
+    partition_pages,
+)
 
 __all__ = [
+    "ContentFile",
     "IsolatedRenderBackend",
     "IsolationDecision",
     "IsolationSettings",
     "decide_isolation",
+    "discover_content_files",
+    "estimate_file_cost",
     "estimate_render_cost",
     "fork_available",
+    "partition_content_files",
     "partition_pages",
     "resolve_isolation_settings",
 ]
