@@ -37,6 +37,7 @@ from bengal.snapshots.render_plan import (
     RenderPlan,
     assemble_render_plan,
     assert_picklable,
+    shard_meta_from_live_pages,
     shard_meta_from_pages,
     to_plain_data,
 )
@@ -335,6 +336,80 @@ def test_related_index_parity_vs_live(site_factory):
             assert page.source_path not in plan.related_index
     # Guard against a vacuous test: the fixture must actually exercise related posts.
     assert found_related, "test-taxonomy fixture produced no related posts"
+
+
+# ---------------------------------------------------------------------------
+# S13: the from-live-page map step (worker parses its own shard, no snapshot)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("root", ROOTS)
+def test_shard_meta_from_live_pages_matches_snapshot_path(site_factory, root):
+    """The S13 map step: a worker deriving ShardPageMeta from its OWN freshly-parsed
+    live pages (no SiteSnapshot) must produce the same page-views / taxonomy edges /
+    xref edges / cost as the S11 snapshot path. This is the load-bearing parity
+    claim for the persistent shard worker — if a PageView field can only be derived
+    from a whole-site snapshot, it surfaces here.
+
+    ``related_pairs`` deliberately diverge (live defers to the barrier; the snapshot
+    path inlines them), so they are asserted separately, not via meta equality.
+    """
+    site, snapshot = _built(site_factory, root)
+    pages = list(site.pages)
+
+    live_meta = shard_meta_from_live_pages(pages, site, shard_index=0)
+    snap_meta = shard_meta_from_pages(pages, snapshot, shard_index=0, site=site)
+
+    assert live_meta.page_views == snap_meta.page_views, f"page-views diverged for {root}"
+    assert live_meta.taxonomy_terms == snap_meta.taxonomy_terms, f"taxonomy edges diverged: {root}"
+    assert live_meta.xref_entries == snap_meta.xref_entries, f"xref edges diverged for {root}"
+    assert live_meta.estimated_render_cost == snap_meta.estimated_render_cost
+
+    # The one intentional divergence: related is barrier-only in the live path.
+    assert live_meta.related_pairs == ()
+
+    # Non-vacuous: the fixture really produced page-views.
+    assert live_meta.page_views
+
+
+@pytest.mark.parametrize("root", ROOTS)
+def test_render_plan_from_live_pages_matches_from_site(site_factory, root):
+    """End-to-end: a plan assembled from the from-LIVE map step is byte-equal (on
+    every page-derived field except related, which the live path defers) to the
+    whole-site ``from_site`` oracle. Proves the worker's map output reduces to the
+    same global render world the in-process build produces."""
+    site, snapshot = _built(site_factory, root)
+    oracle = RenderPlan.from_site(site, snapshot)
+
+    live_meta = shard_meta_from_live_pages(list(site.pages), site, shard_index=0)
+    live_plan = assemble_render_plan([live_meta], snapshot=snapshot, site=site)
+
+    fields = _reduced_fields(oracle)
+    live_fields = _reduced_fields(live_plan)
+    # related_index is barrier-computed and not yet folded in from the live map step;
+    # compare every other reduced field. (Folding related at the barrier is a later
+    # S13 increment; this isolates the map-step parity.)
+    del fields["related_index"], live_fields["related_index"]
+    assert live_fields == fields, f"live-derived plan diverged from from_site for {root}"
+    assert live_plan.related_index == {}  # deferred
+
+
+def test_from_live_section_path_sourced_from_page_not_snapshot(site_factory):
+    """``section_path`` is the one PageView field the from-live builder cannot read
+    off a transient per-page snapshot (sections resolve only in the whole-site pass),
+    so it is sourced from ``page._section_path``. On a sectioned fixture, prove the
+    live builder populates section_path AND matches the snapshot path — making the
+    override correct and the parametrized parity above non-vacuous on this field."""
+    site, snapshot = _built(site_factory, "test-product")
+    pages = list(site.pages)
+    live = shard_meta_from_live_pages(pages, site, shard_index=0)
+    snap = shard_meta_from_pages(pages, snapshot, shard_index=0, site=site)
+
+    snap_by = {pv.source_path: pv for pv in snap.page_views}
+    sectioned = [pv for pv in live.page_views if pv.section_path is not None]
+    assert sectioned, "test-product produced no sectioned page — section_path test is vacuous"
+    for pv in sectioned:
+        assert pv.section_path == snap_by[pv.source_path].section_path
 
 
 def test_sections_carry_page_views_not_snapshots(site_factory):

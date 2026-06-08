@@ -161,6 +161,8 @@ __all__ = [
     "XRefEntry",
     "assemble_render_plan",
     "assert_picklable",
+    "page_view_from_live_page",
+    "shard_meta_from_live_pages",
     "shard_meta_from_pages",
 ]
 
@@ -289,6 +291,31 @@ def page_view_from_snapshot(ps: PageSnapshot, *, site_path: str) -> PageView:
     )
 
 
+def page_view_from_live_page(page: PageLike, site: SiteLike) -> PageView:
+    """
+    Build a :class:`PageView` directly from a freshly-parsed *live* page — the S13
+    map step, with no :class:`PageSnapshot`/:class:`SiteSnapshot` in hand.
+
+    A shard worker parses its own ~1/N of the corpus into its own heap; it never
+    builds a whole-site snapshot. This reuses the per-page snapshot field
+    derivations (``_snapshot_page_initial``: ``output_path``, ``template_name``,
+    ``excerpt``, ``content_hash``, ``reading_time``, ...) so the view is
+    byte-identical to :func:`page_view_from_snapshot` — then sources ``section_path``
+    from the live page, because a transient per-page snapshot has no resolved section
+    (sections are resolved only in the whole-site recursive pass, which a worker does
+    not run). ``page._section_path`` is the same value the resolved snapshot section
+    would carry.
+    """
+    from bengal.snapshots.content import _snapshot_page_initial
+
+    ps = _snapshot_page_initial(page, site)
+    pv = page_view_from_snapshot(ps, site_path=_live_path(page, ps))
+    section_path = getattr(page, "_section_path", None)
+    if section_path != pv.section_path:
+        pv = dataclasses.replace(pv, section_path=section_path)
+    return pv
+
+
 def _infer_slug(metadata: Mapping[str, Any], source_path: Path) -> str:
     from bengal.core.page.metadata_helpers import infer_slug
 
@@ -401,6 +428,55 @@ def shard_meta_from_pages(
         taxonomy_terms=tuple(taxonomy_terms),
         xref_entries=tuple(xref_entries),
         related_pairs=tuple(related_pairs),
+        estimated_render_cost=cost,
+    )
+
+
+def shard_meta_from_live_pages(
+    pages: Sequence[PageLike],
+    site: SiteLike,
+    *,
+    shard_index: int,
+) -> ShardPageMeta:
+    """
+    Build a :class:`ShardPageMeta` from a worker's OWN freshly-parsed pages — the
+    real S13 map step (vs :func:`shard_meta_from_pages`, which reads a pre-built
+    parent snapshot and exists only to exercise the contract without the actor
+    protocol).
+
+    A shard worker parses ~1/N of the corpus into its own heap and emits this
+    picklable, body-free metadata; the parsed bodies never leave the worker. The
+    page-derived edges (page-views, taxonomy memberships, xref entries) are all
+    worker-local, derived per page exactly as the snapshot path derives them.
+
+    ``related_pairs`` are DEFERRED: ``related_posts`` is a global computation over
+    the whole-site taxonomy union, so it is resolved at the barrier by the parent (a
+    worker holding only its shard cannot compute it) — never here. This is the one
+    deliberate divergence from :func:`shard_meta_from_pages`.
+    """
+    from bengal.snapshots.scheduling import _estimate_render_time
+
+    page_views: list[PageView] = []
+    taxonomy_terms: list[tuple[str, str, Path]] = []
+    xref_entries: list[XRefEntry] = []
+    cost = 0.0
+
+    for page in pages:
+        pv = page_view_from_live_page(page, site)
+        page_views.append(pv)
+        # Matches PageSnapshot.estimated_render_ms (the snapshot path's cost source).
+        cost += _estimate_render_time(page)
+
+        taxonomy_terms.extend(("tags", tag, pv.source_path) for tag in pv.tags)
+        taxonomy_terms.extend(("categories", cat, pv.source_path) for cat in pv.categories)
+        xref_entries.extend(_xref_entries_for(page, pv, site))
+
+    return ShardPageMeta(
+        shard_index=shard_index,
+        page_views=tuple(page_views),
+        taxonomy_terms=tuple(taxonomy_terms),
+        xref_entries=tuple(xref_entries),
+        related_pairs=(),  # barrier-computed (global); see docstring
         estimated_render_cost=cost,
     )
 
