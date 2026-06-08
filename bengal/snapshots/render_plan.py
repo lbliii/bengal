@@ -621,6 +621,12 @@ class RenderPlan:
     schedule_template_groups: dict[str, tuple[Path, ...]]
     generated_page_assignments: dict[Path, int]
     snapshot_time: float = 0.0
+    # The build's wall-clock timestamp (``Site.build_time``). Shipped because the
+    # default theme footer renders ``site.build_time | dateformat('%Y')`` *directly*
+    # off the live attribute (base.html copyright year) — it is NOT derivable from
+    # config and is not in ``bengal_metadata``'s meta-tag timestamp, so a worker that
+    # left it ``None`` would emit a blank year and diverge byte-for-byte (S13.3b).
+    build_time: datetime | None = None
 
     @classmethod
     def from_site(cls, site: SiteLike, snapshot: SiteSnapshot) -> RenderPlan:
@@ -746,6 +752,7 @@ def assemble_render_plan(
         schedule_template_groups=schedule_template_groups,
         generated_page_assignments={},  # populated by the S12 sharder
         snapshot_time=snapshot.snapshot_time,
+        build_time=getattr(site, "build_time", None),
     )
 
 

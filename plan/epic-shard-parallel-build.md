@@ -260,6 +260,38 @@ are *not* blockers under this design.
     pages at N≥2 shards + NavTree precompute (test-product/test-navigation); **d**
     indexes + menus; **e** taxonomy/related/xref/generated (test-taxonomy); **f**
     global-reset hardening + worker-count-invariance sweep.
+    - [x] **S13.3b — empty WorkerSite + 1-page render (test-basic) (DONE).**
+      `isolated/worker_site.py::build_worker_site(plan, shard_pages=())` builds a real
+      `Site(root_path, config)` (theme/config_service/page_cache/version_config free via
+      `__post_init__`, no discovery) then assigns plan state; `merge_shard_pages` produces
+      the heterogeneous `site.pages` (live shard ∪ PageViews, in plan order). Proven
+      byte-identical to the in-process build on test-basic in a **clean subprocess**
+      (`test_worker_site_renders_page_byte_identical`) that also pickle-round-trips the
+      plan (real heap transport). Findings that diverged from the b-rung spec, each fixed:
+      - **`RenderPlan.build_time` added** — `base.html` renders `site.build_time |
+        dateformat('%Y')` directly (footer copyright); it is NOT config-derivable nor in
+        `bengal_metadata`, so a worker that left it `None` emitted a blank year. Sourced
+        in `assemble_render_plan` / `from_site`.
+      - **`site.sections` = top-level *real* sections, not `plan.sections`.** The snapshot
+        carries a synthetic `root` container (path == content dir) that live `site.sections`
+        never holds; assigning it makes `get_auto_nav` emit a bogus `/root/` item and
+        `base.html:477` crash on its absent `_path`. Reconstructed as
+        `[s for s in plan.navigation.top_level_sections if s.path != content_dir]` —
+        verified to reproduce live `site.sections` across all 4 fixtures.
+      - **URL parity needs `page._site` consistent with `output_path`.** `get_path`
+        relativises `output_path` against `page._site.output_dir`; the worker must parse
+        its shard AGAINST the worker site (two-phase: build → parse → `merge_shard_pages`),
+        not a foreign site, or the home page resolves to `/index/` not `/`.
+      - **Asset fingerprinting** needs the parent's `asset-manifest.json` passed as
+        `render_shard(asset_ctx=...)` (loaded from the shared `output_dir`).
+      - **In-process byte-parity is contaminated** by `id(site)`-keyed global caches +
+        the directive-cache singleton across fixtures → the test runs per-build in a clean
+        subprocess (mirrors `test_isolated_render_parity.py`); a real worker IS a separate
+        process, so this is also the faithful proof.
+      Triaged c–e scope: test-product/navigation/taxonomy still render an error overlay —
+      all hit the same `item._path` / empty-`site.menu` path (`_auto_nav` fires with dicts
+      lacking `_path` because the worker has no menu yet). Unblocking them is rung d (menu
+      reconstruction) + rung c (NavTree precompute / transported section data for tiles).
   - [ ] **S13.4 — actor protocol + small-parent driver + barrier-owns-globals**
     (taxonomy/related/menus reduced from shard metas) + generated-page synthesis.
   - [ ] **S13.5 — render-phase A/B + byte-parity** on a deterministic fixture.
