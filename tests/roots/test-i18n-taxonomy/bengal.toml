@@ -1,0 +1,24 @@
+[site]
+title = "i18n taxonomy test"
+baseurl = "/"
+
+[build]
+content_dir = "content"
+output_dir = "public"
+theme = "default"
+
+[markdown]
+parser = "patitas"
+
+# share_taxonomies defaults to False: each language gets its own tag pages whose
+# membership is narrowed to that language. Regression fixture for #354 — the snapshot
+# tag-page cache is language-blind, so the renderer must defer to per-page _posts here.
+[i18n]
+default_language = "en"
+strategy = "prefix"
+content_structure = "dir"
+share_taxonomies = false
+languages = [
+  { code = "en", name = "English", weight = 1 },
+  { code = "fr", name = "Francais", weight = 2 },
+]

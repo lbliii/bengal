@@ -198,7 +198,11 @@ def _snapshot_taxonomies(
 
     for taxonomy_name, taxonomy_dict in site.taxonomies.items():
         taxonomy_snapshot: dict[str, tuple[PageSnapshot, ...]] = {}
-        for term, pages_list in taxonomy_dict.items():
+        for term, term_data in taxonomy_dict.items():
+            # Each term value is the {name, slug, pages} dict (the real shape);
+            # tolerate a bare page list too, mirroring
+            # render_plan._page_view_ify_taxonomies.
+            pages_list = term_data.get("pages", ()) if isinstance(term_data, dict) else term_data
             taxonomy_snapshot[term] = tuple(
                 page_cache[id(p)] for p in pages_list if id(p) in page_cache
             )
