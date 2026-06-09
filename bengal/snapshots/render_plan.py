@@ -358,14 +358,43 @@ class XRefEntry:
 
 
 @dataclass(frozen=True, slots=True)
+class SectionMeta:
+    """Per-section metadata a worker emits for a section it owns (S13.4c map edge).
+
+    DIRECTORY-keyed and index-page-agnostic: ``path`` is the section's content dir, and a
+    worker emits one of these for each section whose index page (stem ``index``/``_index``)
+    lives in its shard. The barrier rebuilds the ``SectionSnapshot`` tree from the union of
+    these + a content-dir walk (which seeds *virtual* sections — dirs with content but no
+    index page, owned by no worker) + the ``PageView`` union (the per-section page sets).
+
+    Carries only the fields the worker can resolve from the section's OWN ``_index``
+    frontmatter (``metadata`` and the derived ``title``/``nav_title``/``icon``/``weight``).
+    Everything tree-dependent — ``href``/``_path``, ``parent``/``root``, ``hierarchy``/
+    ``depth``, ``subsections``, ``template_name``, ``total_pages`` — is recomputed at the
+    barrier (the worker has no parent chain, so it cannot resolve a baseurl-free URL; this
+    is the load-bearing correction from the S13.4c design critique).
+    """
+
+    path: Path
+    name: str
+    title: str
+    nav_title: str
+    icon: str | None
+    weight: float
+    metadata: dict[str, Any]
+    is_virtual: bool
+    index_source_path: Path | None
+
+
+@dataclass(frozen=True, slots=True)
 class ShardPageMeta:
     """
     Lightweight, picklable metadata a worker returns after parsing ITS shard.
 
     Carries the per-page page-views plus the page-*derived* global edges the parent
     reduces into the RenderPlan. The section/menu structure is, for S11, sourced
-    from the parent's already-built snapshot (see module docstring); S13 will add
-    those fields here when the parent stops pre-building the snapshot.
+    from the parent's already-built snapshot (see module docstring); S13.4c carries the
+    section structure in ``section_metas`` so the barrier can rebuild it without a snapshot.
     """
 
     shard_index: int
@@ -376,7 +405,40 @@ class ShardPageMeta:
     # (page_source_path, ordered related page_source_paths) — related resolved from
     # metadata at the barrier (plan: related is metadata-only, not a body dependency).
     related_pairs: tuple[tuple[Path, tuple[Path, ...]], ...] = ()
+    # Sections this shard owns (the ones whose index page it parsed); reduced into the
+    # SectionSnapshot tree at the barrier (S13.4c). Empty until that rung populates it.
+    section_metas: tuple[SectionMeta, ...] = ()
     estimated_render_cost: float = 0.0
+
+
+def _section_meta_from(section: Any, index_source_path: Path | None) -> SectionMeta:
+    """Build a :class:`SectionMeta` from a live ``Section`` or a ``SectionSnapshot``.
+
+    Captures only the worker-resolvable fields, mirroring the per-section derivations in
+    ``content._snapshot_section_recursive`` (title/nav_title/icon/weight off the section's
+    own metadata); the barrier recomputes everything tree-dependent. Duck-typed so the same
+    helper serves both the snapshot map path and the real live-page map path.
+    """
+    metadata = to_plain_data(section.metadata) if getattr(section, "metadata", None) else {}
+    name = section.name
+    title = getattr(section, "title", None) or name
+    nav_title = getattr(section, "nav_title", None) or title
+    return SectionMeta(
+        path=section.path,
+        name=name,
+        title=title,
+        nav_title=nav_title,
+        icon=metadata.get("icon"),
+        weight=_safe_weight(metadata.get("weight")),
+        metadata=metadata,
+        is_virtual=bool(getattr(section, "is_virtual", False) or section.path is None),
+        index_source_path=index_source_path,
+    )
+
+
+def _is_index_stem(source_path: Path) -> bool:
+    """A section index page (matches queries/discovery: stem ``index`` or ``_index``)."""
+    return source_path.stem in ("index", "_index")
 
 
 def shard_meta_from_pages(
@@ -406,6 +468,7 @@ def shard_meta_from_pages(
     taxonomy_terms: list[tuple[str, str, Path]] = []
     xref_entries: list[XRefEntry] = []
     related_pairs: list[tuple[Path, tuple[Path, ...]]] = []
+    section_metas: dict[Path, SectionMeta] = {}
     cost = 0.0
 
     for page in pages:
@@ -426,12 +489,18 @@ def shard_meta_from_pages(
         if related:
             related_pairs.append((pv.source_path, related))
 
+        # This shard owns the section whose index page it holds (S13.4c).
+        section = getattr(ps, "section", None)
+        if _is_index_stem(page.source_path) and section is not None and section.path is not None:
+            section_metas.setdefault(section.path, _section_meta_from(section, page.source_path))
+
     return ShardPageMeta(
         shard_index=shard_index,
         page_views=tuple(page_views),
         taxonomy_terms=tuple(taxonomy_terms),
         xref_entries=tuple(xref_entries),
         related_pairs=tuple(related_pairs),
+        section_metas=tuple(section_metas.values()),
         estimated_render_cost=cost,
     )
 
@@ -463,6 +532,7 @@ def shard_meta_from_live_pages(
     page_views: list[PageView] = []
     taxonomy_terms: list[tuple[str, str, Path]] = []
     xref_entries: list[XRefEntry] = []
+    section_metas: dict[Path, SectionMeta] = {}
     cost = 0.0
 
     for page in pages:
@@ -475,12 +545,22 @@ def shard_meta_from_live_pages(
         taxonomy_terms.extend(("categories", cat, pv.source_path) for cat in pv.categories)
         xref_entries.extend(_xref_entries_for(page, pv, site))
 
+        # This shard owns the section whose index page it parsed (S13.4c). The live
+        # section resolves via page._section (registry-backed); skip if unresolved.
+        if _is_index_stem(page.source_path):
+            section = getattr(page, "_section", None)
+            if section is not None and getattr(section, "path", None) is not None:
+                section_metas.setdefault(
+                    section.path, _section_meta_from(section, page.source_path)
+                )
+
     return ShardPageMeta(
         shard_index=shard_index,
         page_views=tuple(page_views),
         taxonomy_terms=tuple(taxonomy_terms),
         xref_entries=tuple(xref_entries),
         related_pairs=(),  # barrier-computed (global); see docstring
+        section_metas=tuple(section_metas.values()),
         estimated_render_cost=cost,
     )
 

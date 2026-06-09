@@ -727,6 +727,54 @@ def test_globals_from_parent_params_reduce_is_nonvacuous(site_factory):
     assert plan.params == to_plain_data(snapshot.params)
 
 
+@pytest.mark.parametrize("root", ROOTS)
+def test_section_metas_match_across_map_paths(site_factory, root):
+    """S13.4c map edge: the snapshot map path and the real live-page map path emit
+    BYTE-IDENTICAL SectionMeta for the sections a shard owns (directory-keyed, from each
+    section's _index). This is the section analog of the S13.4a taxonomy/related parity —
+    it lets the barrier rebuild the section tree from worker metadata, snapshot-free."""
+    site, snapshot = _built(site_factory, root)
+    m_snap = shard_meta_from_pages(list(site.pages), snapshot, shard_index=0, site=site)
+    m_live = shard_meta_from_live_pages(list(site.pages), site, shard_index=0)
+
+    def projection(metas):
+        return sorted(
+            (
+                s.path,
+                s.name,
+                s.title,
+                s.nav_title,
+                s.icon,
+                s.weight,
+                s.is_virtual,
+                tuple(sorted(s.metadata)),
+            )
+            for s in metas
+        )
+
+    assert projection(m_snap.section_metas) == projection(m_live.section_metas), (
+        f"{root}: snapshot vs live section_metas diverge"
+    )
+    # The directory-keyed map emits a SectionMeta for exactly the INDEX-BEARING sections
+    # (the worker holds the _index it parsed). Index-less sections — the content-dir root
+    # and any virtual/auto-index dir — carry no _index page and are seeded at the barrier
+    # from the content walk + PageView union, NOT from worker metadata.
+    indexed_dirs = {
+        s.path for s in snapshot.sections if s.index_page is not None and s.path is not None
+    }
+    meta_dirs = {s.path for s in m_snap.section_metas}
+    assert meta_dirs == indexed_dirs, f"{root}: section_metas != index-bearing sections"
+
+
+def test_section_metas_are_picklable(site_factory):
+    """SectionMeta crosses worker->parent, so ShardPageMeta carrying it must pickle."""
+    site, snapshot = _built(site_factory, "test-navigation")
+    meta = shard_meta_from_pages(list(site.pages), snapshot, shard_index=0, site=site)
+    assert meta.section_metas, "test-navigation should yield section_metas (non-vacuous)"
+    restored = pickle.loads(pickle.dumps(meta))
+    assert {s.path for s in restored.section_metas} == {s.path for s in meta.section_metas}
+
+
 def test_walk_order_diverges_from_path_parts(site_factory):
     """REGRESSION FREEZE (S13.4c finding, 2026-06-09): live ``site.pages`` order is the
     discovery-walk append order (a section's subsections, weight-ordered, BEFORE the
