@@ -32,6 +32,18 @@ ROOTS = ["test-basic", "test-taxonomy", "test-product", "test-navigation"]
 
 def _built(site_factory, root: str) -> Site:
     """Build a fixture site once (sequential, quiet) — its parsed pages are the oracle."""
+    from bengal.cache import directive_cache
+    from bengal.utils.cache_registry import clear_all_caches
+
+    # Start from clean process-global caches. The directive-cache is an id(site)-keyed
+    # singleton; a prior in-process test's site (or a recycled id()) can leave entries
+    # that poison this fixture's parse — e.g. child-cards on test-navigation's
+    # docs/_index.md rendering against a stale section, perturbing content_hash and
+    # flaking the parse-parity assertion under xdist ordering. The subprocess harnesses
+    # below already guard against this; the in-process oracle build must too.
+    clear_all_caches()
+    directive_cache.clear_cache()
+
     site = site_factory(root)
     site.build(BuildOptions(quiet=True, force_sequential=True))
     return site
