@@ -103,8 +103,49 @@ def build_worker_site(
     # uniformly), so the element type is open — same rationale as merge_shard_pages.
     top_level: list[Any] = [s for s in plan.navigation.top_level_sections if s.path != content_dir]
     site.sections = top_level
+
+    # Register every section in the ContentRegistry. ``__post_init__`` builds an EMPTY
+    # registry (no discovery runs in a worker), but a live page's ``_section`` resolves
+    # lazily via ``site.get_section_by_path`` → ``registry.get_section`` — so without this,
+    # ``get_page_section(page)`` returns None and the renderer misroutes every section-index
+    # page through its *root-home* branch (top-level tiles instead of the section's own
+    # children). We register the **tree** (top_level → subsections, recursively) because
+    # only those SectionSnapshots carry ``.parent`` links — the flat ``plan.sections`` tuple
+    # is parent-less (the snapshot stores hierarchy via subsections, not the flat list), and
+    # a parent-less ancestor breaks ``page.ancestors`` → breadcrumbs drop intermediate crumbs.
+    # The flat pass first guarantees completeness (any section not reachable from a top-level
+    # root still resolves); the recursive pass then overwrites tree-reachable entries with
+    # their parent-linked versions (registry is keyed by path, last write wins).
+    # SectionSnapshots stand in for live Sections here (same rationale as ``top_level``).
+    all_sections: list[Any] = list(plan.sections)
+    for section in all_sections:
+        site.registry.register_section(section)
+    for section in top_level:
+        site.registry.register_sections_recursive(section)
+
     site.taxonomies = dict(plan.taxonomy.taxonomies)
     site.xref_index = dict(plan.xref_index)
+
+    # Menus (S13.3d). The plan's menus were snapshotted AFTER the in-process menu phase,
+    # so they are the FINAL assembled hierarchy (auto-nav + dev-bundle + dropdowns, or the
+    # config [[menus.main]] menu), already page-view-ified. The render engine builds the
+    # template menu via ``[item.to_dict() for item in site.menu[name]]`` — MenuItemSnapshot
+    # answers ``to_dict()`` byte-identically to the live MenuItem. We assign the snapshots
+    # directly: re-running MenuOrchestrator here would re-derive auto-nav against
+    # SectionSnapshots (which lack ``_site``/``_path``) and diverge. ``_dev_menu_metadata``
+    # is left at its ``__post_init__`` default (None) — these menus already bake in any
+    # dev-bundle decision the parent made, and base.html reads it null-safe.
+    # MenuItemSnapshot stands in for the live MenuItem (both answer ``to_dict()``); the
+    # Any-typed locals keep ty's invariant ``dict[str, list[MenuItem]]`` attribute happy.
+    worker_menu: dict[str, list[Any]] = {
+        name: list(items) for name, items in plan.navigation.menus.items()
+    }
+    site.menu = worker_menu
+    worker_menu_localized: dict[str, dict[str, list[Any]]] = {
+        name: {lang: list(items) for lang, items in langs.items()}
+        for name, langs in plan.menu_localized.items()
+    }
+    site.menu_localized = worker_menu_localized
 
     return site
 

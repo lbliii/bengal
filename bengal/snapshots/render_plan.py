@@ -40,10 +40,12 @@ Design decisions (deliberate, documented):
   is order-independent (deterministic global sort), so a plan assembled from N
   shards is byte-equal to one assembled from a single whole-site shard — which is
   exactly what the S11 parity test proves.
-- **nav_trees are excluded.** ``NavTree`` nodes reference the live mutable
-  Page/Section graph and are not picklable; each worker rebuilds them from the
-  plan's sections+pages at startup (saga S13). The plan carries the *inputs*
-  (sections, pages, versioning) that ``NavTree.build`` needs.
+- **nav_trees are view-ified, not rebuilt (S13.3c).** ``NavTree.build`` calls
+  live-Section-only APIs, so a worker cannot reconstruct trees from snapshots. Instead
+  the parent ships its already-built trees with every ``NavNode.page`` swapped to a
+  ``PageView`` and ``.section`` to a ``SectionSnapshot`` (``_view_ify_nav_trees``) —
+  picklable and live-ref-free — and the worker installs them via
+  ``NavTreeCache.set_precomputed`` so the lock-free fast path never reaches ``build``.
 
 S13 (the worker actor protocol) will extend :class:`ShardPageMeta` with the
 section/menu metadata that today is sourced from the parent's already-built
@@ -67,8 +69,9 @@ raw config today, so the worker does no more than the main process:
   variant).
 - **site.indexes (QueryIndexRegistry)** ← rebuilt from PageView ``metadata``
   (author/date/series/status are plain scalars, carried).
-- **nav_trees** ← rebuilt from ``sections``+``pages`` via ``NavTree.build`` (they
-  hold live refs and are intentionally not shipped).
+- **nav_trees** ← shipped view-ified in ``navigation.nav_trees`` and installed via
+  ``NavTreeCache.set_precomputed`` (the parent builds them; ``NavTree.build`` needs
+  live Sections, so the worker never rebuilds — S13.3c).
 - **Generated-page render objects** (``_paginator``, resolved ``_posts``/``_tags``
   page lists) ← S14 reconstructs from ``taxonomy``/``pages_by_path``. Denormalized
   page references in metadata (``_tags``/``_posts``) are preserved as *source_paths*
@@ -84,7 +87,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from bengal.snapshots.types import (
     NO_SECTION,
@@ -96,7 +99,8 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
     from bengal.config.snapshot import ConfigSnapshot
-    from bengal.protocols import PageLike, SiteLike
+    from bengal.core.nav_tree import NavNode, NavTree
+    from bengal.protocols import PageLike, SectionLike, SiteLike
     from bengal.snapshots.types import PageSnapshot, SiteSnapshot
 
 
@@ -550,15 +554,21 @@ def _related_source_paths(page: PageLike) -> tuple[Path, ...]:
 
 @dataclass(frozen=True, slots=True)
 class RenderPlanNavigation:
-    """Page-view-ified analog of :class:`NavigationPlan` (no nav_trees).
+    """Page-view-ified analog of :class:`NavigationPlan`.
 
-    ``nav_trees`` are intentionally excluded — they hold live Page/Section refs and
-    are rebuilt worker-side from ``sections``+``pages`` (saga S13).
+    ``nav_trees`` carries the parent-built navigation trees, *view-ified* (every
+    ``NavNode.page`` swapped to a :class:`PageView` and ``NavNode.section`` to a
+    :class:`SectionSnapshot`) so they are picklable and free of live refs. A shard
+    worker installs them via ``NavTreeCache.set_precomputed`` so the lock-free fast
+    path serves nav without ever calling ``NavTree.build`` (which needs live Sections).
+    Keyed by version string (``"__default__"`` for the unversioned tree), matching
+    ``builder._build_nav_trees``.
     """
 
     menus: dict[str, tuple[MenuItemSnapshot, ...]]
     top_level_pages: tuple[PageView, ...]
     top_level_sections: tuple[SectionSnapshot, ...]
+    nav_trees: dict[str, NavTree] = dataclasses.field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)
@@ -676,20 +686,24 @@ def assemble_render_plan(
             f"{len(pv_by_path)} unique source_paths (duplicates: {dupes[:5]})"
         )
 
-    # Deterministic global order: (weight, source_path). Independent of how pages
-    # were sharded, so the plan is identical across worker counts.
-    #
-    # KNOWN QUIRK (#354, deferred): str(source_path) embeds os.sep, so this order is
-    # cross-OS-sensitive — AND it already diverges from the live thread build's page
-    # order (site.pages is the discovery walk order; it is never globally re-sorted by
-    # this key). Do NOT swap to Path.parts in isolation: it neither fixes nor regresses
-    # thread-vs-shard byte parity (a blind swap just produces a different order that
-    # still does not match the walk). The real reconcile — align plan.pages with the
-    # live walk order, gated by a cross-OS sitemap byte-diff test — is scheduled for
-    # S16 (see plan/epic-shard-parallel-build.md, the str(source_path)/S13–S16 note).
-    ordered_pages = tuple(
-        sorted(pv_by_path.values(), key=lambda pv: (pv.weight, str(pv.source_path)))
-    )
+    # Global page order. ``site.pages`` is the discovery *walk* order, and the render
+    # path reads it directly (``page.next``/``page.prev`` index into ``site.pages``), so
+    # for byte-parity ``plan.pages`` MUST reproduce it. When the parent holds the full
+    # live page list (the ``from_site`` / S11 whole-site case, and S13.3's single-process
+    # driver) we order by that walk directly. Only when the parent lacks some page (the
+    # future S13.4 multi-shard reduce, where parsed pages live in workers) do we fall back
+    # to the deterministic ``(weight, source_path)`` key — reconciling THAT with the walk
+    # order (it diverges, and str(source_path) embeds os.sep cross-OS) is S16's job, gated
+    # by a cross-OS sitemap byte-diff test (see plan/epic-shard-parallel-build.md).
+    live_order = {p.source_path: i for i, p in enumerate(getattr(site, "pages", []) or [])}
+    if live_order and all(sp in live_order for sp in pv_by_path):
+        ordered_pages = tuple(
+            sorted(pv_by_path.values(), key=lambda pv: live_order[pv.source_path])
+        )
+    else:
+        ordered_pages = tuple(
+            sorted(pv_by_path.values(), key=lambda pv: (pv.weight, str(pv.source_path)))
+        )
 
     regular_pages = tuple(
         pv
@@ -975,10 +989,75 @@ def _relink_navigation(
         or _relink_one_section(s, pv_by_path)
         for s in snapshot.navigation.top_level_sections
     )
+    nav_trees = _view_ify_nav_trees(snapshot.navigation.nav_trees, pv_by_path, sec_by_path)
     return RenderPlanNavigation(
         menus=menus,
         top_level_pages=top_pages,
         top_level_sections=top_sections,
+        nav_trees=nav_trees,
+    )
+
+
+def _view_ify_nav_trees(
+    nav_trees: Mapping[str, NavTree],
+    pv_by_path: dict[Path, PageView],
+    sec_by_path: dict[Path, SectionSnapshot],
+) -> dict[str, NavTree]:
+    """Page-view-ify the parent's live ``NavTree``s for spawn transport.
+
+    The parent builds the real trees against live Sections/Pages
+    (``builder._build_nav_trees``); a worker cannot rebuild them because
+    ``NavTree.build`` calls live-Section-only APIs. So we ship the *structure*:
+    each :class:`NavNode` is rebuilt fresh (never mutated in place — the live tree is
+    shared with the parent's own ``NavTreeCache``) with ``page`` swapped to its
+    :class:`PageView` and ``section`` to its :class:`SectionSnapshot`, preserving
+    ``id/title/_path/icon/weight/is_index`` and the page-vs-section discriminator
+    (``section is not None``). Re-wrapping in a fresh ``NavTree`` rebuilds ``_flat_nodes``.
+    """
+    from bengal.core.nav_tree import NavTree
+
+    out: dict[str, NavTree] = {}
+    for key, tree in (nav_trees or {}).items():
+        new_root = _view_ify_nav_node(tree.root, pv_by_path, sec_by_path)
+        out[key] = NavTree(
+            root=new_root,
+            version_id=tree.version_id,
+            versions=list(tree.versions),
+            current_version=tree.current_version,
+        )
+    return out
+
+
+def _view_ify_nav_node(
+    node: NavNode,
+    pv_by_path: dict[Path, PageView],
+    sec_by_path: dict[Path, SectionSnapshot],
+) -> NavNode:
+    """Rebuild a single ``NavNode`` (and its subtree) with body-free, picklable refs."""
+    from bengal.core.nav_tree import NavNode
+
+    # PageView / SectionSnapshot stand in for the live PageLike / SectionLike NavNode
+    # fields (body-free, picklable) — the cast records that structural substitution ty
+    # can't infer (no body/live ref is ever read off these nodes during render).
+    section_view: SectionSnapshot | None = None
+    if node.section is not None:
+        sec_path = getattr(node.section, "path", None)
+        section_view = sec_by_path.get(sec_path) if sec_path is not None else None
+    page_view = _pv_one(node.page, pv_by_path) if node.page is not None else None
+    return NavNode(
+        id=node.id,
+        title=node.title,
+        _path=node._path,
+        icon=node.icon,
+        weight=node.weight,
+        children=[_view_ify_nav_node(c, pv_by_path, sec_by_path) for c in node.children],
+        page=cast("PageLike | None", page_view),
+        section=cast("SectionLike | None", section_view),
+        is_index=node.is_index,
+        is_current=node.is_current,
+        is_in_trail=node.is_in_trail,
+        is_expanded=node.is_expanded,
+        _depth=node._depth,
     )
 
 
@@ -1069,10 +1148,22 @@ def assert_picklable(plan: RenderPlan) -> None:
             raise AssertionError("RenderPlan contains a MappingProxyType (won't pickle on spawn)")  # noqa: TRY004
         if isinstance(obj, _PageSnapshot):
             raise AssertionError("RenderPlan leaks a PageSnapshot (body not page-view-ified)")  # noqa: TRY004
-        if type(obj).__name__ == "NavTree":
-            raise AssertionError(
-                "RenderPlan contains a NavTree (holds live refs; rebuild worker-side)"
-            )
+        # NavTrees are now CARRIED (view-ified) rather than rejected wholesale — but a
+        # NavNode must hold only body-free refs. Inspect its page/section instead of the
+        # tree's class name so a live-ref tree (the spawn-safety hazard) is still caught.
+        if type(obj).__name__ == "NavNode":
+            node_page = getattr(obj, "page", None)
+            if node_page is not None and not isinstance(node_page, PageView):
+                raise AssertionError(
+                    f"RenderPlan NavNode leaks a live page ref ({type(node_page).__name__}); "
+                    "NavNode.page must be a PageView"
+                )
+            node_section = getattr(obj, "section", None)
+            if node_section is not None and not isinstance(node_section, SectionSnapshot):
+                raise AssertionError(
+                    f"RenderPlan NavNode leaks a live section ref ({type(node_section).__name__}); "
+                    "NavNode.section must be a SectionSnapshot"
+                )
 
         if isinstance(obj, dict):
             stack.extend(obj.keys())

@@ -294,3 +294,219 @@ def test_worker_site_renders_page_byte_identical(tmp_path):
         "WorkerSite render diverged from the in-process build "
         f"(expected {result['expected_len']}B, got {result['actual_len']}B)"
     )
+
+
+# ---------------------------------------------------------------------------
+# S13.3c/d: multi-shard byte-parity — menus + NavTree precompute + section/
+# breadcrumb/index reconstruction across N>=2 disjoint shards.
+# ---------------------------------------------------------------------------
+#
+# Rung b (above) proved the empty-Site recipe on one page of test-basic. Rungs c/d add
+# the full render world: site.menu reconstructed from the plan (so base.html stops
+# crashing on `_auto_nav` dicts lacking `_path`), the parent-built NavTrees shipped
+# view-ified and installed via NavTreeCache.set_precomputed (so the docs sidebar renders
+# without NavTree.build, which needs live Sections), the section registry rebuilt (so
+# `get_page_section` resolves and section-index pages don't misroute to the root-home
+# tile branch), and plan.pages ordered to match the live discovery walk (so page.next/prev
+# are byte-stable). This gate renders EVERY page across N>=2 disjoint shards — where
+# PageViews stand in for the pages other shards own — and diffs each against the
+# in-process oracle.
+#
+# Non-determinism: the `random-posts-widget` (`site.regular_pages | sample(3)`, UNSEEDED)
+# is provably non-reproducible across processes once the candidate pool exceeds the
+# sample size (test-navigation/api.md). Those pages are byte-EXCLUDED (the same reason the
+# fork-path parity test, tests/integration/test_isolated_render_parity.py, uses only the
+# deterministic test-product) but still asserted to render without an error overlay, so a
+# reconstruction crash there cannot hide. Anti-vacuity (#130): we assert the shard backend
+# actually split into >=2 shards, the cover is exact, and a non-trivial number of pages
+# (incl. multi-level ones) were byte-compared — a silent single-shard fallback or an
+# all-widget-skip fails the test.
+
+_MULTISHARD_PARITY_CHILD = """
+import json, pickle, sys
+from pathlib import Path
+
+from bengal.assets.manifest import AssetManifest
+from bengal.cache import directive_cache
+from bengal.core.nav_tree import NavTreeCache
+from bengal.core.site import Site
+from bengal.orchestration.build.options import BuildOptions
+from bengal.orchestration.build_context import BuildContext
+from bengal.orchestration.render.isolated.partition import (
+    discover_content_files,
+    partition_content_files,
+)
+from bengal.orchestration.render.isolated.shard_worker import parse_shard, render_shard
+from bengal.orchestration.render.isolated.worker_site import build_worker_site, merge_shard_pages
+from bengal.rendering.assets import AssetManifestContext
+from bengal.snapshots import create_site_snapshot
+from bengal.snapshots.render_plan import RenderPlan, assert_picklable
+from bengal.utils.cache_registry import clear_all_caches
+
+WIDGET_MARK = b"random-posts-widget"
+
+root, out, wout, nshards = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3]), int(sys.argv[4])
+
+# --- Oracle: a normal in-process cold build writes the canonical HTML ---
+site = Site.from_config(root)
+site.output_dir = out
+site.build(BuildOptions(quiet=True, force_sequential=True))
+oracle = {
+    p.source_path: (p.output_path.read_bytes(), str(p.output_path.relative_to(out)))
+    for p in site.pages
+    if getattr(p, "output_path", None)
+}
+
+# --- Plan, exercised through a real pickle round-trip (heap transport) ---
+snapshot = create_site_snapshot(site)
+plan = RenderPlan.from_site(site, snapshot)
+assert_picklable(plan)
+plan = pickle.loads(pickle.dumps(plan))
+
+content_dir = plan.root_path / "content"
+all_files = discover_content_files(content_dir, site=build_worker_site(plan))
+shards = partition_content_files(all_files, nshards, "balanced")
+
+manifest_path = out / "asset-manifest.json"
+manifest = AssetManifest.load(manifest_path)
+entries = {k: v.output_path for k, v in manifest.entries.items()} if manifest else {}
+
+# --- Each shard reconstructs its own WorkerSite and renders its own parsed pages,
+#     all writing into the shared worker output dir (as parallel workers would). ---
+rendered = {}
+shard_errors = []
+for i, idxs in enumerate(shards):
+    ws = build_worker_site(plan, shard_index=i)
+    ws.output_dir = wout
+    files_i = [all_files[j] for j in idxs]
+    worker_pages = parse_shard(files_i, ws, content_dir=content_dir)
+    ws.pages = merge_shard_pages(plan.pages, worker_pages)
+
+    # Per-worker process-global reset + the precomputed nav-tree install (the caller's
+    # job; a real worker IS a fresh process, here we mirror it per shard in one process).
+    clear_all_caches()
+    directive_cache.clear_cache()
+    directive_cache.configure_for_site(ws)
+    NavTreeCache.invalidate()
+    NavTreeCache.set_precomputed(dict(plan.navigation.nav_trees))
+
+    asset_ctx = AssetManifestContext(
+        entries=entries, mtime=manifest_path.stat().st_mtime if manifest_path.exists() else None
+    )
+    ctx = BuildContext(site=ws, pages=list(worker_pages))
+    ctx.snapshot = snapshot
+    result = render_shard(list(worker_pages), ws, ctx, asset_ctx=asset_ctx)
+    shard_errors.extend([list(e) for e in result.errors])
+    for p in worker_pages:
+        rendered[str(p.source_path)] = p.output_path.read_bytes()
+
+# --- Compare every rendered page to the oracle; widget pages are overlay-checked only. ---
+pages = []
+for sp, (exp, rel) in oracle.items():
+    act = rendered.get(str(sp))
+    has_widget = WIDGET_MARK in exp
+    pages.append({
+        "rel": rel,
+        "rendered": act is not None,
+        "match": (act == exp) if act is not None else None,
+        "overlay": (b"data-bengal-overlay" in act) if act is not None else None,
+        "widget": has_widget,
+        "exp_len": len(exp),
+    })
+
+print("MSREPORT " + json.dumps({
+    "num_shards": len(shards),
+    "cover_ok": set(rendered.keys()) == {str(sp) for sp in oracle},
+    "n_rendered": len(rendered),
+    "n_oracle": len(oracle),
+    "errors": shard_errors,
+    "pages": pages,
+}))
+"""
+
+
+@pytest.mark.serial
+@pytest.mark.parametrize("fixture", ["test-product", "test-navigation"])
+@pytest.mark.parametrize("num_shards", [2, 3])
+def test_shard_build_is_byte_identical_to_in_process(fixture, num_shards, tmp_path):
+    """A cold build split across N>=2 WorkerSite shards is byte-identical to the
+    in-process build, page by page — proving the S13.3c/d reconstruction (menus,
+    precomputed NavTrees, section registry, walk-order page list) is faithful when
+    PageViews stand in for the pages other shards own.
+
+    test-product and test-navigation together cover a 2-level section + tiles and a
+    3-level docs sidebar with a multi-item config menu (children + active trail).
+    The non-deterministic random-posts widget page is overlay-checked, not byte-diffed.
+    """
+    import json
+    import os
+    import shutil
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    src = Path(__file__).parents[3] / "roots" / fixture
+    if not src.exists():  # pragma: no cover - fixture must exist
+        pytest.skip(f"missing test root {src}")
+
+    site_root = tmp_path / "site"
+    shutil.copytree(src, site_root)
+    env = dict(os.environ)
+    env["PYTHONHASHSEED"] = "0"
+
+    proc = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            _MULTISHARD_PARITY_CHILD,
+            str(site_root),
+            str(tmp_path / "out"),
+            str(tmp_path / "worker_out"),
+            str(num_shards),
+        ],
+        env=env,
+        capture_output=True,
+        text=True,
+        timeout=600,
+        check=False,
+    )
+    report = None
+    for line in proc.stdout.splitlines():
+        if line.startswith("MSREPORT "):
+            report = json.loads(line[len("MSREPORT ") :])
+    assert report is not None, (
+        f"multi-shard parity child produced no report; rc={proc.returncode}\n"
+        f"stderr tail:\n{proc.stderr[-4000:]}"
+    )
+
+    # The shard backend must actually have split — a silent single-shard fallback would
+    # make "N-shard parity" vacuous (the #130 lesson). With >=4 source files per fixture
+    # and num_shards in {2,3}, the partitioner always yields >=2 non-empty shards.
+    assert report["num_shards"] >= 2, (
+        f"expected >=2 shards, got {report['num_shards']} (single-shard fallback?)"
+    )
+    assert report["cover_ok"], (
+        f"shard cover incomplete: rendered {report['n_rendered']} of {report['n_oracle']} pages"
+    )
+    assert not report["errors"], f"shard render errors: {report['errors']}"
+
+    compared = [p for p in report["pages"] if not p["widget"]]
+    skipped = [p for p in report["pages"] if p["widget"]]
+
+    # Anti-vacuity: a non-trivial number of real pages must be byte-compared (not all
+    # skipped as widgets), and every oracle page must be non-empty.
+    assert len(compared) >= 2, (
+        f"too few byte-compared pages ({len(compared)}) — gate would be vacuous"
+    )
+    assert all(p["exp_len"] > 0 for p in report["pages"]), "oracle produced an empty page"
+
+    mismatches = [p["rel"] for p in compared if p["match"] is not True]
+    assert not mismatches, (
+        f"{fixture} (N={num_shards}): shard build diverged from in-process on: {mismatches}"
+    )
+
+    # Widget pages are not byte-comparable (unseeded random sample), but a reconstruction
+    # crash there must not hide behind the exclusion.
+    for p in skipped:
+        assert p["rendered"], f"widget page not rendered: {p['rel']}"
+        assert not p["overlay"], f"widget page rendered a build-error overlay: {p['rel']}"

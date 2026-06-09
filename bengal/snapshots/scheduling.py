@@ -186,6 +186,7 @@ def _snapshot_menu_item(
         page=page_snapshot,
         section=section_snapshot,
         is_active=item_is_active,
+        icon=getattr(item, "icon", None),
     )
 
 

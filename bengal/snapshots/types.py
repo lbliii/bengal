@@ -141,6 +141,20 @@ class SectionSnapshot:
         """Alias for metadata (template compatibility)."""
         return self.metadata
 
+    @property
+    def _path(self) -> str:
+        """Site-relative section URL (no baseurl), mirroring ``Section._path``.
+
+        Breadcrumb and nav ancestor-trail rendering reads ``section._path`` off section
+        ancestors. In-process those ancestors are live ``Section``s; in a shard worker
+        (#350) they are ``SectionSnapshot``s standing in for them. ``href`` is already
+        built from the live ``section._path`` (baseurl-free; see ``snapshots/content.py``
+        ``_snapshot_section_recursive``), so this returns that same value — without it,
+        ``get_breadcrumbs`` falls back to a ``/{slug}/`` guess and mis-detects section
+        indexes, emitting a duplicate ancestor crumb.
+        """
+        return self.href
+
     def __bool__(self) -> bool:
         """Always truthy (replaces SectionContext None-safety)."""
         return True
@@ -305,6 +319,23 @@ class MenuItemSnapshot:
     page: PageSnapshot | None = None
     section: SectionSnapshot | None = None
     is_active: bool = False
+    icon: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        """Mirror :meth:`bengal.core.menu.MenuItem.to_dict` byte-for-byte.
+
+        The render engine builds the template menu via ``[item.to_dict() for item in
+        site.menu[name]]`` (``rendering/engines/kida.py``), so a shard worker that
+        assigns these snapshots onto ``site.menu`` must answer ``to_dict()`` with the
+        identical ``{name, href, icon, children}`` shape the live ``MenuItem`` produces
+        (active state is excluded — templates compute it via URL comparison).
+        """
+        return {
+            "name": self.name,
+            "href": self.href,
+            "icon": self.icon,
+            "children": [child.to_dict() for child in self.children],
+        }
 
 
 # Forward-compatible alias: SitePlan is the public name going forward.

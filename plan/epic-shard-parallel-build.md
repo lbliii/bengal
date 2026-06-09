@@ -292,6 +292,57 @@ are *not* blockers under this design.
       all hit the same `item._path` / empty-`site.menu` path (`_auto_nav` fires with dicts
       lacking `_path` because the worker has no menu yet). Unblocking them is rung d (menu
       reconstruction) + rung c (NavTree precompute / transported section data for tiles).
+    - [x] **S13.3c/d — menus + NavTree precompute + section/index reconstruction at N≥2
+      (DONE, shipped as one PR).** c and d were entangled (both gating fixtures crash on the
+      same empty-`site.menu` path and `test-navigation` needs both the menu *and* the docs
+      sidebar to render), so they shipped together. Proven by
+      `test_shard_build_is_byte_identical_to_in_process` — every page of **test-product** and
+      **test-navigation** rendered across **N∈{2,3} disjoint shards** is byte-identical to the
+      in-process build, in a clean subprocess with a pickle-round-tripped plan. Six findings,
+      each a real reconstruction gap the render-level gate caught that the S13.2 PageView-lens
+      parity could not:
+      - **Menus carried, not re-derived.** `plan.navigation.menus` is snapshotted *after* the
+        in-process menu phase, so it is the final assembled hierarchy, page-view-ified.
+        `build_worker_site` assigns it straight onto `site.menu`; the engine builds the
+        template menu via `[item.to_dict() …]`, so `MenuItemSnapshot` gained an `icon` field +
+        a `to_dict()` byte-mirroring `MenuItem.to_dict` (carried through `_snapshot_menu_item`).
+        Re-running `MenuOrchestrator` would re-derive auto-nav against `_site`/`_path`-less
+        SectionSnapshots and diverge.
+      - **NavTrees shipped view-ified, installed via `set_precomputed`.** `NavTree.build` calls
+        live-Section-only APIs, so the parent's already-built trees are carried in a new
+        `RenderPlanNavigation.nav_trees` field with every `NavNode.page`→`PageView`,
+        `.section`→`SectionSnapshot` (`_view_ify_nav_trees`, fresh graph — never mutates the
+        parent's live tree). `assert_picklable` relaxed: allow view-ified NavTrees, still reject
+        live page/section refs by inspecting `NavNode.page`/`.section` types. The worker (test
+        caller / future S13.4 driver) calls `NavTreeCache.invalidate()` +
+        `set_precomputed(plan.navigation.nav_trees)` per shard — the lock-free fast path never
+        reaches `build`.
+      - **Section registry rebuilt.** `__post_init__` builds an empty `ContentRegistry`; a live
+        page's `_section` resolves lazily via `registry.get_section`, so without registration
+        `get_page_section()` returns None and the renderer misroutes every section-index page
+        into its *root-home* tile branch. `build_worker_site` registers `plan.sections` (flat,
+        completeness) then `register_sections_recursive(top_level)` (the tree carries the
+        `.parent` links the flat tuple lacks — needed for `page.ancestors`/breadcrumb depth).
+      - **`SectionSnapshot._path` added** (= `href`, which `snapshots/content.py` already builds
+        baseurl-free). Breadcrumbs read `ancestor._path`; without it `get_breadcrumbs` fell back
+        to a `/{slug}/` guess and emitted a duplicate ancestor crumb (`//`).
+      - **`plan.pages` ordered to the live discovery walk.** `page.next`/`prev` index into
+        `site.pages`; the old `(weight, str(source_path))` sort diverged from the walk, breaking
+        leaf-page prev/next. `assemble_render_plan` now orders by the live `site.pages` when the
+        parent holds the full list (from_site / single-process driver), falling back to the
+        deterministic key only for the future multi-shard reduce — pulling part of S16's
+        ordering reconcile forward; the cross-OS `str(source_path)` reconcile remains S16.
+      - **Indexes deferred, justified.** `site.indexes` lazy-builds correctly over the merged
+        heterogeneous page list at N≥2; the SectionIndex/PageView-`section` gap and the
+        per-worker index `cache_dir` (parallel-worker file race) did **not** surface in the
+        gating fixtures, so they move to S13.4 (where parallel workers actually race).
+      The **random-posts widget** (`site.regular_pages | sample(3)`, unseeded) is provably
+      non-reproducible once the pool exceeds the sample size (test-navigation/api.md); those
+      pages are byte-excluded but overlay-checked (same reason `test_isolated_render_parity.py`
+      uses only deterministic test-product). Gate is non-vacuous (#130): asserts ≥2 shards
+      fired, exact cover, ≥2 real pages byte-compared, no overlay on skipped pages — and a
+      mutation (breaking `SectionSnapshot._path`) was confirmed to fail it. `ty` floor
+      unchanged (539); `render_isolation` stays **off**.
   - [ ] **S13.4 — actor protocol + small-parent driver + barrier-owns-globals**
     (taxonomy/related/menus reduced from shard metas) + generated-page synthesis.
   - [ ] **S13.5 — render-phase A/B + byte-parity** on a deterministic fixture.
