@@ -327,15 +327,6 @@
 }
 
 /* ============================================
-   EXPERIMENTAL COMPONENTS (Optional)
-   ============================================ */
-
-/* Holographic TCG-style card effects */
-@layer components {
-  @import url('experimental/holo-cards-advanced.css');
-}
-
-/* ============================================
    PAGE-SPECIFIC STYLES
    ============================================ */
 
