@@ -141,6 +141,13 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .pagination .active,
+  [data-theme="dark"] .pagination .active {
+    animation: none !important;
+  }
+}
+
 /* Disabled State */
 .pagination .disabled {
   color: var(--color-text-tertiary);

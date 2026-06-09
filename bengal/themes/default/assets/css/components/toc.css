@@ -499,6 +499,13 @@ details.toc-group:not([open]) .toc-subitems {
     }
 }
 
+@media (prefers-reduced-motion: reduce) {
+    .toc-link.active::after,
+    [data-theme="dark"] .toc-link.active::after {
+        animation: none !important;
+    }
+}
+
 /* ============================================================================
    Heading Levels - Enhanced hierarchy
    Note: level 1 = H2, level 2 = H3, level 3 = H4, etc.
