@@ -657,6 +657,7 @@ def assemble_render_plan(
     snapshot: SiteSnapshot,
     site: SiteLike,
     reduce_taxonomy_from_metas: bool = False,
+    reduce_globals_from_parent: bool = False,
 ) -> RenderPlan:
     """
     Reduce per-shard metadata into one immutable :class:`RenderPlan` (the barrier).
@@ -676,6 +677,19 @@ def assemble_render_plan(
     no single shard can do). This is the first step of "barrier-owns-globals": the small
     parent never builds ``site.taxonomies``. Off by default so ``from_site`` (the parity
     oracle) and every existing caller keep the snapshot-sourced path unchanged.
+
+    ``reduce_globals_from_parent`` (S13.4b) sources the config-derived globals -- ``config``,
+    ``params``, ``data``, and ``schedule_template_groups`` -- from the SMALL PARENT (its raw
+    config + ``site.data``) and the PageView union, instead of from the built ``snapshot``.
+    Each is byte-identical to the snapshot path *by construction*: config is
+    ``dict(site.config.raw)`` (the exact expression ``builder`` uses to seed
+    ``snapshot.config``), params is ``config_dict["params"]`` and data is ``dict(site.data)``
+    (likewise), and ``schedule_template_groups`` is the PageView union grouped by
+    ``template_name`` (reproducing ``_compute_template_groups`` -- PageView carries the
+    resolved ``template_name``). ``snapshot_time`` becomes ``0.0``: it is NOT read on the
+    render path (the build's timing stat is the separate ``stats.snapshot_time_ms``), and a
+    snapshot-free parent has nothing to source it from. Off by default so the snapshot-sourced
+    path (and an incremental snapshot's structurally-shared config) is unchanged.
     """
     # --- 1. Global page-view map + deterministic ordering ----------------
     pv_by_path: dict[Path, PageView] = {}
@@ -756,17 +770,27 @@ def assemble_render_plan(
     navigation = _relink_navigation(snapshot, pv_by_path, sections)
 
     # --- 7. Config / i18n / versioning / scalars -------------------------
-    config = to_plain_data(snapshot.config)
-    params = to_plain_data(snapshot.params)
-    data = to_plain_data(snapshot.data)
+    # Default (S11): config/params/data/schedule come from the built snapshot.
+    # S13.4b: source them from the small parent (raw config + site.data) and the PageView
+    # union, so the parent need not build a snapshot for these. Byte-identical by
+    # construction (same source expressions builder uses; see the docstring).
+    if reduce_globals_from_parent:
+        config_dict = _config_dict_from_site(site)
+        config = to_plain_data(config_dict)
+        params = to_plain_data(config_dict.get("params", {}))
+        data = to_plain_data(dict(site.data) if getattr(site, "data", None) else {})
+        schedule_template_groups = _reduce_template_groups(ordered_pages)
+    else:
+        config = to_plain_data(snapshot.config)
+        params = to_plain_data(snapshot.params)
+        data = to_plain_data(snapshot.data)
+        schedule_template_groups = {
+            name: tuple(p.source_path for p in pages)
+            for name, pages in snapshot.schedule.template_groups.items()
+        }
 
     menu_localized = _relink_menu_localized(site, pv_by_path, sections)
     bengal_metadata = _build_bengal_metadata(site)
-
-    schedule_template_groups = {
-        name: tuple(p.source_path for p in pages)
-        for name, pages in snapshot.schedule.template_groups.items()
-    }
 
     return RenderPlan(
         pages=ordered_pages,
@@ -797,7 +821,10 @@ def assemble_render_plan(
         bengal_metadata=bengal_metadata,
         schedule_template_groups=schedule_template_groups,
         generated_page_assignments={},  # populated by the S12 sharder
-        snapshot_time=snapshot.snapshot_time,
+        # snapshot_time is unused on the render path (the build timing stat is the separate
+        # stats.snapshot_time_ms); a snapshot-free parent (S13.4b) has nothing to source it
+        # from, so it is 0.0 there. The snapshot path keeps the real value.
+        snapshot_time=0.0 if reduce_globals_from_parent else snapshot.snapshot_time,
         build_time=getattr(site, "build_time", None),
     )
 
@@ -1280,6 +1307,38 @@ def _relink_menu_localized(
             )
         out[lang] = lang_menus
     return out
+
+
+def _config_dict_from_site(site: SiteLike) -> dict[str, Any]:
+    """The raw config dict the snapshot builder seeds ``snapshot.config`` from.
+
+    Mirrors ``builder._build_site_snapshot`` exactly (``site.config.raw`` when present,
+    else ``site.config`` if a dict, else ``{}``), so ``to_plain_data`` of this is
+    byte-identical to ``to_plain_data(snapshot.config)`` — the S13.4b barrier reduce
+    sources config/params from here without a built snapshot.
+    """
+    cfg = getattr(site, "config", None)
+    raw = cfg.raw if hasattr(cfg, "raw") else cfg
+    return dict(raw) if isinstance(raw, dict) else {}
+
+
+def _reduce_template_groups(
+    ordered_pages: Sequence[PageView],
+) -> dict[str, tuple[Path, ...]]:
+    """Group the global PageView union by ``template_name`` (S13.4b barrier reduce).
+
+    Reproduces ``scheduling._compute_template_groups`` byte-for-byte: iterate pages in the
+    global walk order (``ordered_pages`` mirrors the snapshot's ``page_cache.values()`` ==
+    ``site.pages`` order, including generated pages), bucket by ``template_name`` with
+    first-seen key order, and carry each page's ``source_path`` (matching the snapshot path's
+    ``{name: tuple(p.source_path for p in pages)}``). PageView carries the resolved
+    ``template_name`` (``page_view_from_snapshot`` copies ``ps.template_name``), so no built
+    snapshot is needed.
+    """
+    groups: dict[str, list[Path]] = {}
+    for pv in ordered_pages:
+        groups.setdefault(pv.template_name, []).append(pv.source_path)
+    return {name: tuple(paths) for name, paths in groups.items()}
 
 
 def _build_bengal_metadata(site: SiteLike) -> dict[str, Any]:

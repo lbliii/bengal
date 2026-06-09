@@ -32,6 +32,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from bengal.orchestration.build.options import BuildOptions
+from bengal.orchestration.render.isolated.partition import discover_content_files
 from bengal.snapshots import create_site_snapshot
 from bengal.snapshots.render_plan import (
     PageView,
@@ -548,6 +549,7 @@ def _mk_pv(
     date: datetime | None = None,
     is_generated: bool = False,
     metadata: dict | None = None,
+    template_name: str = "page.html",
 ) -> PageView:
     """Minimal PageView for direct ``_reduce_taxonomies`` unit tests (no fixture build)."""
     return PageView(
@@ -558,7 +560,7 @@ def _mk_pv(
         output_path=Path(source_path),
         slug=source_path,
         ref_id=None,
-        template_name="page.html",
+        template_name=template_name,
         date=date,
         weight=0.0,
         tags=tags,
@@ -611,3 +613,177 @@ def test_reduce_taxonomies_eligibility_and_singular_category():
     # Category from the singular key, slug-normalized, first-writer name preserved.
     assert taxes["categories"]["guides"]["name"] == "Guides"
     assert [pv.source_path for pv in taxes["categories"]["guides"]["pages"]] == [Path("ok.md")]
+
+
+# ---------------------------------------------------------------------------
+# S13.4b: barrier-owns-globals — config/params/data + schedule_template_groups
+# sourced from the small parent (raw config + site.data) + the PageView union, with
+# no built snapshot. Gated against the snapshot-sourced from_site oracle across shard
+# counts AND the real (snapshot-free) live map step.
+# ---------------------------------------------------------------------------
+
+
+def _assemble_globals_from_parent(site: Site, snapshot: SiteSnapshot, n: int) -> RenderPlan:
+    """Round-robin into ``n`` shards, assemble with config/schedule reduced from the parent."""
+    pages = list(site.pages)
+    groups = [pages[i::n] for i in range(n)]
+    metas = [
+        shard_meta_from_pages(g, snapshot, shard_index=i, site=site) for i, g in enumerate(groups)
+    ]
+    return assemble_render_plan(
+        metas, snapshot=snapshot, site=site, reduce_globals_from_parent=True
+    )
+
+
+@pytest.mark.parametrize("root", ROOTS)
+def test_globals_from_parent_match_from_site(site_factory, root):
+    """``reduce_globals_from_parent=True`` produces the SAME config/params/data and
+    schedule_template_groups as the snapshot-sourced ``from_site`` oracle, independent of
+    shard count — so the small parent can stop building a snapshot for the config globals."""
+    site, snapshot = _built(site_factory, root)
+    oracle = RenderPlan.from_site(site, snapshot)
+
+    n_pages = len(site.pages)
+    for n in (1, 2, 3, 5, 7):
+        if n > n_pages:
+            break
+        plan = _assemble_globals_from_parent(site, snapshot, n)
+        assert plan.config == oracle.config, f"{root} N={n} config"
+        assert plan.params == oracle.params, f"{root} N={n} params"
+        # NB: ``plan.data`` is ``{}`` on these fixtures even where ``site.data`` is
+        # non-empty (test-product loads data/products.yaml) — ``to_plain_data`` drops
+        # ``DotDict``-typed data leaves (it is not a ``collections.abc.Mapping``), so the
+        # snapshot path's ``data`` is ALSO ``{}``. This assertion proves the two paths
+        # flatten the SAME ``site.data`` identically; the non-vacuous config/params/schedule
+        # parity below + ``test_globals_from_parent_params_reduce_is_nonvacuous`` carry the
+        # discriminating weight (the #130 lesson).
+        assert plan.data == oracle.data, f"{root} N={n} data"
+        assert plan.schedule_template_groups == oracle.schedule_template_groups, (
+            f"{root} N={n} schedule_template_groups"
+        )
+        # No proxy leaked, and snapshot_time is zeroed (unused on render path).
+        assert not isinstance(plan.config, MappingProxyType)
+        assert all(not isinstance(v, MappingProxyType) for v in plan.config.values())
+        assert plan.snapshot_time == 0.0
+
+
+@pytest.mark.parametrize("root", ROOTS)
+def test_globals_from_parent_match_live_map_step(site_factory, root):
+    """The REAL map step (``shard_meta_from_live_pages``) carries no snapshot, yet the
+    barrier reconstructs config/params/data + schedule_template_groups byte-identically to
+    the oracle — the load-bearing S13.4b proof that a snapshot-free parent + worker map
+    output reduce to the same config world the in-process build produced."""
+    site, snapshot = _built(site_factory, root)
+    oracle = RenderPlan.from_site(site, snapshot)
+
+    live_meta = shard_meta_from_live_pages(list(site.pages), site, shard_index=0)
+    plan = assemble_render_plan(
+        [live_meta], snapshot=snapshot, site=site, reduce_globals_from_parent=True
+    )
+
+    assert plan.config == oracle.config, f"{root} config"
+    assert plan.params == oracle.params, f"{root} params"
+    assert plan.data == oracle.data, f"{root} data"
+    assert plan.schedule_template_groups == oracle.schedule_template_groups, (
+        f"{root} schedule_template_groups"
+    )
+
+
+def test_globals_from_parent_schedule_groups_nonvacuous(site_factory):
+    """The schedule reduce is exercised on a fixture with MULTIPLE template groups
+    (page/section/product), so the parity gate is not vacuously comparing single-key dicts;
+    asserts the reduced groups cover every page exactly once, in walk order."""
+    site, snapshot = _built(site_factory, "test-product")
+    oracle = RenderPlan.from_site(site, snapshot)
+    plan = _assemble_globals_from_parent(site, snapshot, 2)
+
+    assert len(plan.schedule_template_groups) >= 2, "fixture must span multiple template groups"
+    assert plan.schedule_template_groups == oracle.schedule_template_groups
+    # Every page lands in exactly one group (the union is a partition of plan.pages).
+    grouped = [sp for paths in plan.schedule_template_groups.values() for sp in paths]
+    assert sorted(grouped) == sorted(pv.source_path for pv in plan.pages)
+    assert len(grouped) == len(set(grouped)), "a page appears in more than one template group"
+
+
+def test_globals_from_parent_params_reduce_is_nonvacuous(site_factory):
+    """Params parity is NON-VACUOUS (the #130 guard): inject plain ``[params]`` (scalars
+    survive ``to_plain_data``, unlike DotDict-wrapped data) and assert the reduced path
+    carries them byte-identically to the snapshot oracle AND that the values are actually
+    present — so the params half of the gate cannot pass by comparing empty-to-empty."""
+    site = site_factory(
+        "test-basic",
+        confoverrides={"params.tagline": "s134b-probe", "params.launch_year": 2026},
+    )
+    site.build(BuildOptions(quiet=True, force_sequential=True))
+    snapshot = create_site_snapshot(site)
+    oracle = RenderPlan.from_site(site, snapshot)
+    plan = _assemble_globals_from_parent(site, snapshot, 1)
+
+    # Non-vacuous: the injected params actually made it through the parent-sourced reduce.
+    assert plan.params.get("tagline") == "s134b-probe"
+    assert plan.params.get("launch_year") == 2026
+    # ...and byte-identically to both the snapshot oracle and the snapshot path directly.
+    assert plan.params == oracle.params
+    assert plan.params == to_plain_data(snapshot.params)
+
+
+def test_walk_order_diverges_from_path_parts(site_factory):
+    """REGRESSION FREEZE (S13.4c finding, 2026-06-09): live ``site.pages`` order is the
+    discovery-walk append order (a section's subsections, weight-ordered, BEFORE the
+    section's own ``_index``), NOT a flat ``Path.parts`` sort. ``discover_content_files``
+    returns Path.parts order. They DIVERGE on nested-section sites, so the
+    ``(weight, str(source_path))`` fallback in ``assemble_render_plan`` MUST NOT be replaced
+    by Path.parts order — doing so would silently reorder pages and break ``page.next``/
+    ``page.prev`` byte-parity. This test fails loudly if someone "fixes" discovery to match
+    Path.parts (or vice-versa) without reconciling the render-path ordering contract."""
+    site = site_factory("test-navigation")
+    site.build(BuildOptions(quiet=True, force_sequential=True))
+
+    discovered = [cf.source_path for cf in discover_content_files(site.content_dir, site=site)]
+    discover_set = set(discovered)
+    live_filebacked = [p.source_path for p in site.pages if p.source_path in discover_set]
+
+    # Same cover (every discovered file is a page), but a DIFFERENT order.
+    assert set(live_filebacked) == discover_set, "discovery cover guarantee broke"
+    assert live_filebacked != discovered, (
+        "live walk order now EQUALS Path.parts order — the S13.4c ordering assumption may "
+        "have become safe; re-evaluate adopting Path.parts + deleting the fallback (and "
+        "remove this freeze) instead of letting it pass silently"
+    )
+    # The signature divergence: a section's own _index sorts AFTER its subsections' pages
+    # in the live walk, but BEFORE them in Path.parts order (fewer path components first).
+    rp = site.content_dir
+    rel = lambda p: p.relative_to(rp)  # noqa: E731
+    docs_index = next(p for p in live_filebacked if rel(p).as_posix() == "docs/_index.md")
+    gs_index = next(
+        p for p in live_filebacked if rel(p).as_posix() == "docs/getting-started/_index.md"
+    )
+    assert live_filebacked.index(docs_index) > live_filebacked.index(gs_index), (
+        "expected docs/_index.md AFTER docs/getting-started/_index.md in the live walk"
+    )
+    assert discovered.index(docs_index) < discovered.index(gs_index), (
+        "expected docs/_index.md BEFORE docs/getting-started/_index.md in Path.parts order"
+    )
+
+
+def test_reduce_template_groups_first_seen_key_order_and_page_order():
+    """Discriminating unit test for the schedule reduce, independent of fixture data:
+    groups are keyed in first-SEEN order (NOT sorted), and pages keep walk order within a
+    group — exactly reproducing scheduling._compute_template_groups."""
+    from bengal.snapshots.render_plan import _reduce_template_groups
+
+    # Walk order interleaves templates; 'z.html' is seen before 'a.html'.
+    p1 = _mk_pv("p1.md")  # page.html
+    p2 = _mk_pv("p2.md", template_name="z.html")
+    p3 = _mk_pv("p3.md")  # page.html
+    p4 = _mk_pv("p4.md", template_name="a.html")
+    p5 = _mk_pv("p5.md", template_name="z.html")
+
+    groups = _reduce_template_groups([p1, p2, p3, p4, p5])
+
+    # First-seen key order: page.html, z.html, a.html (NOT alphabetical).
+    assert list(groups) == ["page.html", "z.html", "a.html"]
+    # Walk order preserved within each group.
+    assert groups["page.html"] == (Path("p1.md"), Path("p3.md"))
+    assert groups["z.html"] == (Path("p2.md"), Path("p5.md"))
+    assert groups["a.html"] == (Path("p4.md"),)
