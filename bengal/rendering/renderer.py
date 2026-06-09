@@ -106,6 +106,13 @@ class Renderer:
         self._tag_pages_cache: dict[str, list[PageLike]] | None = None
         # Thread-safety: Lock for initializing caches under free-threading (PEP 703)
         self._cache_lock = threading.Lock()
+        # i18n: when taxonomies are per-language (i18n enabled + share_taxonomies=False),
+        # each generated tag page carries its own language-narrowed membership in its
+        # _posts metadata. The snapshot/instance tag-page cache is language-blind, so the
+        # tag-page renderer must defer to that per-page path (#354). Computed lazily on the
+        # first tag-page render (None = not yet computed); the value is a deterministic
+        # bool, so a concurrent recompute under free-threading is benign.
+        self._per_language_taxonomies: bool | None = None
 
     @staticmethod
     def _default_pagination(base_url: str) -> dict[str, Any]:
@@ -239,6 +246,21 @@ class Renderer:
                 result.append(snap)
         return result
 
+    def _compute_per_language_taxonomies(self) -> bool:
+        """Whether taxonomies are per-language (i18n enabled, taxonomies not shared).
+
+        In that mode tag membership is language-narrowed per generated tag page (stored
+        in its ``_posts`` metadata), so the language-blind tag-page cache must not be used.
+        """
+        # Read the two config keys directly (mirrors get_i18n_config's strategy /
+        # share_taxonomies semantics) rather than importing it: rendering (layer 6) must
+        # not depend on orchestration (layer 7). Defensive .get chains also keep this from
+        # raising on the minimal/mock site.config used by some renderer unit tests.
+        i18n = self.site.config.get("i18n", {}) or {}
+        strategy = i18n.get("strategy") or "none"
+        share_taxonomies = bool(i18n.get("share_taxonomies", False))
+        return strategy != "none" and not share_taxonomies
+
     def _get_resolved_tag_pages(self, tag_slug: str) -> list[PageLike]:
         """
         Get resolved and filtered pages for a tag (cached).
@@ -257,10 +279,33 @@ class Renderer:
         Returns:
             List of filtered, resolved Page objects for the tag
         """
-        # Fast path: use pre-computed snapshot data (lock-free)
+        # Per-language taxonomies (i18n enabled + share_taxonomies=False): the snapshot
+        # and instance caches below are language-blind (built from the full cross-language
+        # site.taxonomies), so returning them here would leak other languages' posts into a
+        # per-language tag page. Defer to the per-page _posts path in
+        # _add_tag_generated_page_context, which carries the language-narrowed membership
+        # (#354 — before the snapshot fix, the now-live fast path masked this by returning []).
+        if self._per_language_taxonomies is None:
+            self._per_language_taxonomies = self._compute_per_language_taxonomies()
+        if self._per_language_taxonomies:
+            return []
+
+        # Fast path: use pre-computed snapshot data (lock-free). The snapshot
+        # supplies the filtered, ordered tag membership without taking a lock;
+        # we resolve each PageSnapshot back to its live Page via the path map so
+        # the rendered output (which reads Page.content == parsed HTML, not the
+        # snapshot's raw-markdown .content) is byte-identical to the slow path.
         snapshot = getattr(self.build_context, "snapshot", None) if self.build_context else None
         if snapshot is not None and snapshot.taxonomy.tag_pages:
-            return list(snapshot.taxonomy.tag_pages.get(tag_slug, ()))
+            tag_snapshots = snapshot.taxonomy.tag_pages.get(tag_slug, ())
+            if not tag_snapshots:
+                return []
+            str_page_map = self.site.get_page_path_map()
+            resolved: list[PageLike] = []
+            for tax_page in tag_snapshots:
+                live_page = str_page_map.get(str(tax_page.source_path))
+                resolved.append(live_page if live_page is not None else tax_page)
+            return resolved
 
         # Check instance cache
         if self._tag_pages_cache is not None:

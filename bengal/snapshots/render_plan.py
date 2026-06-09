@@ -567,11 +567,12 @@ class RenderPlanTaxonomy:
 
     ``taxonomies`` is ``{kind: {slug: {"name", "slug", "pages": tuple[PageView]}}}`` —
     the exact structure template functions read off ``site.taxonomies`` (``tag_data
-    ['pages']``/``['name']``/``['slug']``). NB: this is built from the *live*
-    ``site.taxonomies`` (slug-keyed), **not** from ``SiteSnapshot.taxonomy``, whose
-    page lists are silently empty because ``_snapshot_taxonomies`` mis-iterates the
-    ``{name,slug,pages}`` term dict (a pre-existing latent bug; the live render path
-    reads ``site.taxonomies`` directly, so it is unaffected — and so is this).
+    ['pages']``/``['name']``/``['slug']``). This is built from the *live*
+    ``site.taxonomies`` (slug-keyed) for its body-free PageView shape, **not** from
+    ``SiteSnapshot.taxonomy`` (which carries ``PageSnapshot``s). Both now hold the real
+    per-term page sets: ``_snapshot_taxonomies`` formerly mis-iterated the
+    ``{name,slug,pages}`` term dict and left ``SiteSnapshot.taxonomy`` silently empty,
+    fixed in #354.
     ``tag_pages`` is the filtered tag→pages cache (matches builder._compute_tag_pages).
     """
 
@@ -677,6 +678,15 @@ def assemble_render_plan(
 
     # Deterministic global order: (weight, source_path). Independent of how pages
     # were sharded, so the plan is identical across worker counts.
+    #
+    # KNOWN QUIRK (#354, deferred): str(source_path) embeds os.sep, so this order is
+    # cross-OS-sensitive — AND it already diverges from the live thread build's page
+    # order (site.pages is the discovery walk order; it is never globally re-sorted by
+    # this key). Do NOT swap to Path.parts in isolation: it neither fixes nor regresses
+    # thread-vs-shard byte parity (a blind swap just produces a different order that
+    # still does not match the walk). The real reconcile — align plan.pages with the
+    # live walk order, gated by a cross-OS sitemap byte-diff test — is scheduled for
+    # S16 (see plan/epic-shard-parallel-build.md, the str(source_path)/S13–S16 note).
     ordered_pages = tuple(
         sorted(pv_by_path.values(), key=lambda pv: (pv.weight, str(pv.source_path)))
     )
