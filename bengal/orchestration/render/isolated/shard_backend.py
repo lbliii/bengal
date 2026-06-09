@@ -13,20 +13,21 @@ overhead, so the gate is content-cost-aware).
 Cold-build / CLI / CI only; never the dev loop or incremental. On ANY failure the caller
 falls back to the in-process thread path, so the shard backend can never break a build.
 
-What this version does NOT yet do (tracked, why it stays OFF by default):
+Cross-shard rendered-CONTENT access (the plan's "one true blocker") is RESOLVED for fork
+(S14): a worker renders its shard against body-free ``PageView``s for other pages, and a
+template that embeds another page's rendered body (e.g. the related-posts card's
+``post.content`` fallback for an excerpt-less sibling) resolves it via ``PageView.content``,
+which reads the parent's ``{source_path: content}`` registry inherited by the worker through
+fork copy-on-write (the parent already holds every parsed page — a lookup, not extra memory).
+Byte-identical to the thread path on test-product/basic/taxonomy/navigation
+(``tests/integration/test_shard_render_parity.py``). The registry is fork-only; spawn has no
+COW inheritance, so the spawn backend stays deferred.
+
+What this version does NOT yet do (tracked):
 - Generated pages (tags/archives/pagination) are rendered in the *parent* (global aggregations
-  the content-file sharder does not cover); sharding them is S13.4e. So the end-to-end win is
-  the content-render fraction only.
-- **Cross-shard rendered-content access is the one true blocker (S14).** A worker renders its
-  shard against body-free ``PageView``s for every *other* page, so a template that embeds
-  ANOTHER page's rendered body cross-shard diverges. The validated case: the default theme's
-  related-posts card uses ``post.excerpt or post.content`` — for an excerpt-less post it falls
-  back to the sibling's rendered ``.content``, which a PageView cannot supply, so the card body
-  is dropped (byte-divergence vs the thread path; caught by ``tests/integration/
-  test_shard_render_parity.py`` on test-taxonomy). Byte-identical for the body-free uses
-  (title/url/excerpt/metadata listing+linking — test-product/basic/navigation, render-heavy
-  docs). S14 must ship a body-free content preview in the PageView OR detect the access and fall
-  back BEFORE this backend is enabled for general sites. Until then: render_isolation stays off.
+  the content-file sharder does not cover); sharding them is S13.4e. So the parallel-render win
+  is the content-render fraction only (generated pages are ~23% of render on taxonomied sites).
+- render_isolation stays OFF by default until the full S17 idle-box E2E A/B + crossover gate.
 """
 
 from __future__ import annotations
@@ -162,7 +163,11 @@ class ShardRenderBackend:
         if n == 0:
             return 0
 
-        from bengal.snapshots.render_plan import RenderPlan
+        from bengal.snapshots.render_plan import (
+            RenderPlan,
+            clear_worker_page_content,
+            set_worker_page_content,
+        )
         from bengal.snapshots.transport import immortalize_snapshot
 
         plan = RenderPlan.from_site(site, snapshot)
@@ -175,6 +180,11 @@ class ShardRenderBackend:
         generated_pages = [p for p in pages if p.source_path not in content_set]
 
         asset_ctx = getattr(build_context, "asset_manifest_ctx", None)
+
+        # Cross-shard content registry (S14): a worker that embeds another shard's rendered
+        # body (PageView.content) resolves it from here, inherited via fork COW. The parent
+        # already holds every parsed page, so this is a {path: body} lookup, not extra memory.
+        set_worker_page_content({p.source_path: getattr(p, "content", "") or "" for p in pages})
 
         # --- Phase 2 (parallel): content pages across separate-heap workers --------------
         results: list[RenderChunkResult] = []
@@ -197,6 +207,7 @@ class ShardRenderBackend:
                     results.extend(pool.map(_render_shard_worker, range(len(shards))))
             finally:
                 _SHARD_STATE = None
+                clear_worker_page_content()
 
         # --- Generated pages (tags/archives/pagination) rendered in the parent -----------
         # They are global aggregations the content-file sharder does not cover; sharding them

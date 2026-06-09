@@ -68,11 +68,26 @@ def _copy_root(tmp_path: Path, name: str) -> Path:
     return dst
 
 
+# Per-fixture pages excluded from the byte compare: the default theme has an UNSEEDED
+# random-posts widget (sample(3) on the page pool) that is non-deterministic even thread-vs-
+# thread, so it can never be byte-stable and is overlay-checked, not byte-checked (mirrors
+# tests/integration/test_isolated_render_parity.py). Everything else MUST be byte-identical.
+_PARITY_FIXTURES = [
+    ("test-product", frozenset()),
+    ("test-basic", frozenset()),
+    ("test-taxonomy", frozenset()),  # related-posts cross-shard content resolves via S14
+    ("test-navigation", frozenset({"docs/reference/api/index.html"})),  # random-posts widget
+]
+
+
 @pytest.mark.serial
-@pytest.mark.parametrize("root_name", ["test-product", "test-basic"])
-def test_shard_build_byte_identical_to_thread(tmp_path, root_name):
-    """The shard backend renders a cold build byte-identically to the thread path (body-free
-    uses). Non-vacuous: asserts the backend FIRED and that real HTML was produced + compared."""
+@pytest.mark.parametrize(("root_name", "exclude"), _PARITY_FIXTURES)
+def test_shard_build_byte_identical_to_thread(tmp_path, root_name, exclude):
+    """The shard backend renders a cold build byte-identically to the thread path — including
+    nested sections (product), generated pages + related-posts cross-shard CONTENT (taxonomy,
+    via the S14 fork content registry), and menus/nav (navigation). Non-vacuous: asserts the
+    backend FIRED and that real HTML was produced + compared; excludes only the unseeded
+    random-posts widget page (non-deterministic thread-vs-thread)."""
     root = _copy_root(tmp_path, root_name)
     out_t, out_s = tmp_path / "thread", tmp_path / "shard"
 
@@ -88,27 +103,30 @@ def test_shard_build_byte_identical_to_thread(tmp_path, root_name):
         f"page set differs: only-thread={set(t) - set(s)}, only-shard={set(s) - set(t)}"
     )
 
-    diffs = [str(rel) for rel in t if t[rel].read_bytes() != s[rel].read_bytes()]
+    diffs = [
+        str(rel)
+        for rel in t
+        if str(rel) not in exclude and t[rel].read_bytes() != s[rel].read_bytes()
+    ]
     assert not diffs, f"{root_name}: shard render diverged from thread on {diffs}"
 
 
 @pytest.mark.serial
-def test_taxonomy_documents_cross_shard_content_blocker(tmp_path):
-    """Pins the S14 'one true blocker': test-taxonomy's related-posts card embeds an excerpt-less
-    sibling's rendered ``.content`` cross-shard, which body-free PageViews cannot supply, so the
-    shard build diverges on the post pages. This test ASSERTS the divergence (so it cannot be
-    silently 'fixed' into a false byte-parity claim) — when S14 ships the content preview/fallback,
-    flip this to assert byte-parity and fold test-taxonomy into the parametrized test above."""
+def test_shard_resolves_cross_shard_related_content(tmp_path):
+    """Non-vacuous guard for the S14 fix: test-taxonomy's related-posts card embeds an
+    excerpt-less sibling's rendered ``.content`` cross-shard. Assert the related-posts content
+    is actually PRESENT in the shard output (not just absent-in-both) — so a regression that
+    drops the content registry fails here, not silently passes a vacuous byte compare."""
     root = _copy_root(tmp_path, "test-taxonomy")
-    out_t, out_s = tmp_path / "thread", tmp_path / "shard"
-    _build(root, out_t, shard=False)
+    out_s = tmp_path / "shard"
     assert _build(root, out_s, shard=True), "shard backend did not fire"
 
-    t = {p.relative_to(out_t): p for p in out_t.rglob("*.html")}
-    s = {p.relative_to(out_s): p for p in out_s.rglob("*.html")}
-    diffs = {str(rel) for rel in (set(t) & set(s)) if t[rel].read_bytes() != s[rel].read_bytes()}
-    # The known blocker manifests on the post pages (related-posts card content fallback).
-    assert any("post" in d for d in diffs), (
-        "expected the cross-shard-content blocker on post pages; if this fails, S14 may have "
-        "closed it — move test-taxonomy into test_shard_build_byte_identical_to_thread"
+    post1 = out_s / "post1" / "index.html"
+    assert post1.exists(), "expected post1/index.html in the shard build"
+    html = post1.read_text()
+    assert 'class="related-posts"' in html, "related-posts section missing entirely"
+    # The card embeds a sibling post's rendered content body — present only if the cross-shard
+    # content registry resolved it (S14). An excerpt-less sibling would otherwise render blank.
+    assert "blog-card-excerpt" in html, (
+        "related-post card body missing — cross-shard content registry (S14) did not resolve"
     )

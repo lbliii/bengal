@@ -165,10 +165,38 @@ __all__ = [
     "XRefEntry",
     "assemble_render_plan",
     "assert_picklable",
+    "clear_worker_page_content",
     "page_view_from_live_page",
+    "set_worker_page_content",
     "shard_meta_from_live_pages",
     "shard_meta_from_pages",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Cross-shard content registry (S14): the one true blocker's resolution.
+#
+# A template may embed ANOTHER shard's rendered body (``other_page.content`` — e.g. the
+# related-posts card's excerpt-less fallback). Body-free PageViews cannot carry that. Rather
+# than bloat the picklable plan with every body, a fork shard worker inherits this
+# ``{source_path: page.content}`` registry from the parent via copy-on-write (the parent
+# already holds every parsed page, so it is a lookup, not extra memory). ``PageView.content``
+# resolves through it. Empty outside a worker; spawn (no COW) keeps the deferred-backend status.
+# ---------------------------------------------------------------------------
+
+_WORKER_PAGE_CONTENT: dict[Path, str] = {}
+
+
+def set_worker_page_content(content_by_path: dict[Path, str]) -> None:
+    """Install the cross-shard content registry in the parent BEFORE forking shard workers."""
+    global _WORKER_PAGE_CONTENT
+    _WORKER_PAGE_CONTENT = content_by_path
+
+
+def clear_worker_page_content() -> None:
+    """Drop the cross-shard content registry (parent cleanup after the shard render)."""
+    global _WORKER_PAGE_CONTENT
+    _WORKER_PAGE_CONTENT = {}
 
 
 # ---------------------------------------------------------------------------
@@ -241,6 +269,21 @@ class PageView:
     def url(self) -> str:
         """Public URL (href). Convenience for templates that read ``page.url``."""
         return self.href
+
+    @property
+    def content(self) -> str:
+        """Cross-shard rendered body, resolved from the fork-inherited content registry (S14).
+
+        Body-free BY DESIGN: the body is NOT stored on the view (so PageView stays picklable +
+        spawn-safe and the S11 ``"content" not in fields`` invariant holds). A fork shard worker
+        inherits ``{source_path: page.content}`` from the parent via copy-on-write — the parent
+        already holds every parsed page, so this is a lookup, not extra memory — letting a
+        template that embeds ANOTHER shard's page body (the one true blocker, e.g. the
+        related-posts card's ``post.content`` fallback for excerpt-less posts) resolve it
+        byte-identically. Returns ``""`` outside a worker (the parent/thread path renders live
+        Pages, never PageViews) and on spawn (no COW inheritance — deferred backend).
+        """
+        return _WORKER_PAGE_CONTENT.get(self.source_path, "")
 
     def __hash__(self) -> int:
         # Identity hash (cheap, body-free); structural __eq__ still discriminates.
