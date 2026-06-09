@@ -656,6 +656,7 @@ def assemble_render_plan(
     *,
     snapshot: SiteSnapshot,
     site: SiteLike,
+    reduce_taxonomy_from_metas: bool = False,
 ) -> RenderPlan:
     """
     Reduce per-shard metadata into one immutable :class:`RenderPlan` (the barrier).
@@ -664,6 +665,17 @@ def assemble_render_plan(
     from the union of ``shard_metas`` with a single deterministic global ordering, so
     the result is independent of how pages were sharded. The section/menu/config
     structure is page-view-ified from the parent's ``snapshot`` (see module docstring).
+
+    ``reduce_taxonomy_from_metas`` (S13.4a) switches the taxonomy structure + related
+    index from the parent's already-built ``site.taxonomies`` / ``page.related_posts``
+    (which require a fully-built site) to a pure reduce over the global PageView union:
+    taxonomies are re-collected from PageView tags/categories (reproducing
+    ``TaxonomyOrchestrator.collect_taxonomies`` byte-for-byte), and the related index is
+    recomputed at the barrier (reproducing ``RelatedPostsOrchestrator.build_index``,
+    since the real map step emits ``related_pairs=()`` — related is a global computation
+    no single shard can do). This is the first step of "barrier-owns-globals": the small
+    parent never builds ``site.taxonomies``. Off by default so ``from_site`` (the parity
+    oracle) and every existing caller keep the snapshot-sourced path unchanged.
     """
     # --- 1. Global page-view map + deterministic ordering ----------------
     pv_by_path: dict[Path, PageView] = {}
@@ -711,21 +723,31 @@ def assemble_render_plan(
         if not pv.is_generated and pv.source_path.stem not in ("index", "_index")
     )
 
-    # --- 2. Taxonomy (page-view-ified from the live site.taxonomies) -----
-    # The barrier reuses the parent's collected taxonomy (slug-keyed
-    # {name,slug,pages}); we only swap the live Page lists for body-free
-    # PageViews. The per-shard taxonomy_terms edges are the S13 input for when the
-    # parent rebuilds taxonomies from scratch; for S11 the parent already has them.
-    taxonomies = _page_view_ify_taxonomies(getattr(site, "taxonomies", {}) or {}, pv_by_path)
+    # --- 2. Taxonomy -----------------------------------------------------
+    # Default (S11): page-view-ify the parent's already-collected site.taxonomies
+    # (slug-keyed {name,slug,pages}), swapping live Page lists for body-free PageViews.
+    # S13.4a: re-collect from the PageView union instead, so the small parent need not
+    # build site.taxonomies at all. Both produce the identical {kind:{slug:{name,slug,
+    # pages}}} structure — proven field-equal in tests/unit/snapshots/test_render_plan.py.
+    if reduce_taxonomy_from_metas:
+        taxonomies = _reduce_taxonomies(ordered_pages, config=getattr(site, "config", {}) or {})
+    else:
+        taxonomies = _page_view_ify_taxonomies(getattr(site, "taxonomies", {}) or {}, pv_by_path)
     tag_pages = _tag_pages(taxonomies)
 
     # --- 3. Frozen xref index --------------------------------------------
     xref_index = _assemble_xref_index(shard_metas, pv_by_path)
 
     # --- 4. Related index -------------------------------------------------
-    related_index: dict[Path, tuple[Path, ...]] = {
-        sp: related for meta in shard_metas for sp, related in meta.related_pairs
-    }
+    # Default (S11): reduce from per-shard related_pairs (the parent pre-computed
+    # page.related_posts). S13.4a: the real map step emits related_pairs=() because
+    # related is a whole-site computation, so recompute it at the barrier from the
+    # reduced taxonomy + PageView tags — byte-identical to RelatedPostsOrchestrator.
+    related_index: dict[Path, tuple[Path, ...]]
+    if reduce_taxonomy_from_metas:
+        related_index = _reduce_related_index(ordered_pages, taxonomies)
+    else:
+        related_index = {sp: related for meta in shard_metas for sp, related in meta.related_pairs}
 
     # --- 5. Sections (page-view-ified) -----------------------------------
     sections, root_section = _relink_all_sections(snapshot, pv_by_path)
@@ -830,6 +852,162 @@ def _tag_pages(
         )
         out[tag_slug] = filtered
     return out
+
+
+def _reduce_taxonomies(
+    ordered_pages: Sequence[PageView],
+    *,
+    config: Mapping[str, Any],
+) -> dict[str, dict[str, dict[str, Any]]]:
+    """Re-collect ``site.taxonomies`` from the global PageView union (S13.4a barrier reduce).
+
+    Reproduces :meth:`TaxonomyOrchestrator.collect_taxonomies` byte-for-byte without a
+    built site: iterate pages in the global walk order (``ordered_pages`` mirrors
+    ``site.pages``), skip ineligible pages (generated + ``content/api``/``content/cli``),
+    bucket by ``normalize_taxonomy_slug`` with **first-writer-wins** display name, then
+    stable-sort each term's pages **date-DESC** (``date or datetime.min``). The container
+    shape (``{kind:{slug:{name,slug,pages: tuple[PageView]}}}``) matches
+    :func:`_page_view_ify_taxonomies` exactly, so :func:`_tag_pages` consumes it unchanged.
+
+    The PageView objects appended ARE the global-union instances (same identity as
+    ``pv_by_path``), so equality with the snapshot-sourced taxonomy holds field-for-field.
+
+    i18n taxonomy filtering (per-language tag pages) is NOT reproduced yet — it is a later
+    rung. Raise rather than silently emit a non-i18n taxonomy on an i18n site.
+    """
+    from bengal.orchestration.utils.i18n import get_i18n_config
+
+    i18n = get_i18n_config(config)
+    if i18n.is_enabled and not i18n.share_taxonomies:
+        raise NotImplementedError(
+            "barrier taxonomy reduce does not yet reproduce per-language i18n filtering "
+            "(share_taxonomies=False); use the snapshot-sourced path until the i18n rung"
+        )
+
+    from bengal.utils.primitives.text import normalize_taxonomy_slug
+
+    taxonomies: dict[str, dict[str, dict[str, Any]]] = {"tags": {}, "categories": {}}
+
+    def _add(kind: str, raw_term: str, pv: PageView) -> None:
+        term_str = str(raw_term)
+        slug = normalize_taxonomy_slug(term_str)
+        bucket = taxonomies[kind]
+        entry: dict[str, Any] | None = bucket.get(slug)
+        if entry is None:
+            # First-writer-wins display name (taxonomy.py:339-343 / 352-357).
+            entry = {"name": term_str, "slug": slug, "pages": []}
+            bucket[slug] = entry
+        entry["pages"].append(pv)
+
+    for pv in ordered_pages:
+        # _is_eligible_for_taxonomy (taxonomy.py:116-140): drop generated + autodoc.
+        if pv.is_generated:
+            continue
+        source_str = str(pv.source_path)
+        if "content/api" in source_str or "content/cli" in source_str:
+            continue
+
+        for tag in pv.tags:
+            _add("tags", tag, pv)
+        # Categories come from the SINGULAR ``category`` frontmatter key — exactly what
+        # collect_taxonomies reads (taxonomy.py:347-358), NOT PageView.categories.
+        category = pv.metadata.get("category")
+        if category is not None:
+            _add("categories", category, pv)
+
+    # Stable date-DESC sort within each term (taxonomy.py:361-365). Stable → walk-order
+    # tie-break preserved for equal dates, matching the live append-then-sort.
+    for kind_bucket in taxonomies.values():
+        for entry in kind_bucket.values():
+            entry["pages"].sort(key=lambda p: p.date if p.date else datetime.min, reverse=True)
+            entry["pages"] = tuple(entry["pages"])
+
+    return taxonomies
+
+
+def _is_valid_related_candidate_view(pv: PageView) -> bool:
+    """PageView mirror of ``RelatedPostsOrchestrator._is_valid_related_candidate`` (related_posts.py:333-349).
+
+    Candidate-intrinsic filters: skip generated pages, the home page, and section index
+    pages. The ``kind != "index"`` check is reproduced via ``getattr`` for fidelity to the
+    live predicate; ``Page.kind`` only ever yields home/section/page (never "index") for
+    real pages, so it is a no-op here — PageView deliberately carries no ``kind`` field
+    (deferred until a rung actually needs it).
+    """
+    if pv.is_generated:
+        return False
+    path = pv.site_path or pv.href or ""
+    path_str = str(path).rstrip("/") if path else ""
+    if path_str in ("", "/") or str(path) in ("/", "/index.html", ""):
+        return False  # Home page
+    return getattr(pv, "kind", None) != "index"  # Section indices (no-op for PageViews)
+
+
+def _reduce_related_index(
+    ordered_pages: Sequence[PageView],
+    taxonomies: dict[str, dict[str, dict[str, Any]]],
+    *,
+    limit: int = 5,
+) -> dict[Path, tuple[Path, ...]]:
+    """Recompute the related-posts index at the barrier (S13.4a).
+
+    Reproduces :meth:`RelatedPostsOrchestrator.build_index` (limit=5, the live call at
+    build/content.py:328) over PageViews: a page→tag-slug map over ALL non-generated pages,
+    a per-tag pre-filtered candidate list in taxonomy (date-DESC) order with a stable
+    ``str(source_path)`` tie-break key, then per page a shared-tag score sorted by
+    ``(-score, sort_key)`` truncated to ``limit``. Returns ``{source_path: ordered related
+    source_paths}`` for pages WITH related posts only — matching the oracle, whose
+    ``related_index`` is reduced from ``related_pairs`` that are appended only when
+    non-empty (render_plan.py related_pairs / shard_meta_from_pages).
+
+    ``pages_to_process`` is the non-generated set (== live ``site.regular_pages`` =
+    ``page_cache.regular_pages``, which excludes ONLY generated pages — section ``_index``
+    pages stay in and legitimately get related posts), NOT the RenderPlan ``regular_pages``
+    field (which also drops index pages).
+    """
+    if not taxonomies.get("tags"):
+        return {}
+
+    from bengal.utils.primitives.text import normalize_taxonomy_slug
+
+    # page → set of tag slugs, over EVERY page (mirrors _build_page_tags_map over site.pages).
+    page_tag_slugs: dict[Path, set[str]] = {}
+    for pv in ordered_pages:
+        page_tag_slugs[pv.source_path] = (
+            {normalize_taxonomy_slug(t) for t in pv.tags if t is not None} if pv.tags else set()
+        )
+
+    # Pre-filtered candidate lists per tag (preserving taxonomy date-DESC order) + the
+    # stable tie-break key, computed once (_build_candidate_index, related_posts.py:351-389).
+    candidates_by_tag: dict[str, list[PageView]] = {}
+    sort_keys: dict[Path, str] = {}
+    for tag_slug, term_data in taxonomies["tags"].items():
+        valid: list[PageView] = []
+        for cand in term_data.get("pages", ()):  # type: ignore[union-attr]
+            if _is_valid_related_candidate_view(cand):
+                valid.append(cand)
+                sort_keys.setdefault(cand.source_path, str(cand.source_path))
+        candidates_by_tag[tag_slug] = valid
+
+    related_index: dict[Path, tuple[Path, ...]] = {}
+    for pv in ordered_pages:
+        if pv.is_generated:
+            continue  # generated pages get [] related (cleared in the live finalize pass)
+        tag_slugs = page_tag_slugs.get(pv.source_path) or set()
+        if not tag_slugs:
+            continue
+        scored: dict[Path, int] = {}
+        for tag_slug in tag_slugs:
+            for cand in candidates_by_tag.get(tag_slug, ()):
+                if cand.source_path == pv.source_path:
+                    continue  # skip self
+                scored[cand.source_path] = scored.get(cand.source_path, 0) + 1
+        if not scored:
+            continue
+        ordered = sorted(scored.items(), key=lambda kv: (-kv[1], sort_keys[kv[0]]))
+        related_index[pv.source_path] = tuple(sp for sp, _ in ordered[:limit])
+
+    return related_index
 
 
 def _assemble_xref_index(
