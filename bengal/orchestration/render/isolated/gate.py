@@ -37,7 +37,7 @@ __all__ = [
 ]
 
 DEFAULT_THRESHOLD = 400
-_VALID_MODES = ("off", "auto", "fork", "spawn")
+_VALID_MODES = ("off", "auto", "fork", "spawn", "shard")
 
 
 @dataclass(frozen=True, slots=True)
@@ -149,15 +149,17 @@ def decide_isolation(
     if page_count < settings.threshold:
         return off(f"below crossover ({page_count} < {settings.threshold})")
 
-    # spawn backend is not implemented yet; "auto"/"fork" select fork.
+    # spawn backend is not implemented yet; "auto"/"fork" select the Phase-1 fork backend,
+    # "shard" selects the Phase-2 COW-free re-parsing shard backend (#350 S13.4g).
     if settings.mode == "spawn":
         return off("spawn backend not yet implemented")
     if not fork_available:
         return off("fork start method unavailable")
 
+    backend_mode = "shard" if settings.mode == "shard" else "fork"
     return IsolationDecision(
         enabled=True,
-        mode="fork",
+        mode=backend_mode,
         reason=f"cold build, {page_count} >= {settings.threshold} pages",
         threshold=settings.threshold,
         workers=settings.workers,
