@@ -409,3 +409,102 @@ class TestResultReturnValue:
             assert isinstance(sections, list)
             # Verify the orchestrator was called
             mock_orchestrator_instance.generate.assert_called_once()
+
+
+class TestWarmCacheHitDependencyRegistrationResilience:
+    """Regression for #378: warm cache-hit OSError must not crash the build.
+
+    The cache-hit and fresh-extraction paths now share
+    ``ContentOrchestrator._register_autodoc_dependencies``, whose hash/stat
+    calls are guarded by ``except OSError``. A present-but-unreadable autodoc
+    source (``Path.exists()`` returns False only on missing, not on permission
+    errors) therefore degrades to an ``autodoc_source_stat_failed`` warning on
+    BOTH paths instead of escaping the method.
+    """
+
+    def _build_cache_with_tracker(self):
+        build_cache = MagicMock()
+        build_cache.autodoc_tracker = MagicMock()
+        return build_cache
+
+    def test_register_helper_guards_oserror(self, mock_site, tmp_path, caplog):
+        """Directly exercise the shared helper: OSError -> warning, no raise."""
+        from bengal.orchestration.content import ContentOrchestrator
+
+        # A real, present source file so the exists() guard passes.
+        src = tmp_path / "module.py"
+        src.write_text("x = 1\n")
+
+        run_result = AutodocRunResult()
+        run_result.add_dependency(str(src), "api/module.md", content_hash="abc")
+
+        build_cache = self._build_cache_with_tracker()
+        orchestrator = ContentOrchestrator(mock_site)
+
+        with patch(
+            "bengal.utils.primitives.hashing.hash_file",
+            side_effect=PermissionError("Permission denied"),
+        ):
+            # Must not raise.
+            orchestrator._register_autodoc_dependencies(run_result, build_cache)
+
+        # Source could not be hashed -> no dependency registered, warning logged.
+        build_cache.autodoc_tracker.add_autodoc_dependency.assert_not_called()
+
+    def test_warm_cache_hit_oserror_does_not_crash(self, mock_site, tmp_path):
+        """Drive the full warm cache-hit path with a failing hash_file."""
+        from bengal import __version__
+        from bengal.orchestration.content import ContentOrchestrator
+        from bengal.utils.primitives.hashing import hash_dict
+
+        # Present-but-"unreadable" source: exists() passes, hash_file raises.
+        src = tmp_path / "module.py"
+        src.write_text("x = 1\n")
+        mock_site.root_path = tmp_path
+
+        autodoc_cfg = mock_site.config["autodoc"]
+        cfg_hash = hash_dict(autodoc_cfg)
+        cached_payload = {
+            "version": __version__,
+            "autodoc_config_hash": cfg_hash,
+            "elements": {},
+        }
+
+        # Cache object exposing the cache-hit fast-path surface.
+        cache = MagicMock()
+        cache.get_page_cache.return_value = cached_payload
+        cache.is_changed.return_value = False
+        cache.autodoc_tracker.get_autodoc_source_files.return_value = [str(src)]
+
+        build_cache = self._build_cache_with_tracker()
+
+        run_result = AutodocRunResult()
+        run_result.add_dependency(str(src), "api/module.md", content_hash="abc")
+
+        orchestrator = ContentOrchestrator(mock_site)
+
+        with patch(
+            "bengal.autodoc.orchestration.VirtualAutodocOrchestrator", autospec=True
+        ) as mock_orch_cls:
+            inst = MagicMock()
+            inst.is_enabled.return_value = True
+            inst.generate_from_cache_payload.return_value = ([], [], run_result)
+            mock_orch_cls.return_value = inst
+
+            with patch(
+                "bengal.utils.primitives.hashing.hash_file",
+                side_effect=PermissionError("Permission denied"),
+            ):
+                # The crux: warm cache-hit build completes instead of raising.
+                pages, sections = orchestrator._discover_autodoc_content(
+                    cache=cache, build_cache=build_cache
+                )
+
+            # Took the cache-hit branch (no fresh re-extraction).
+            inst.generate_from_cache_payload.assert_called_once()
+            inst.generate.assert_not_called()
+
+        assert pages == []
+        assert sections == []
+        # OSError-guarded -> no dependency registered for the unreadable source.
+        build_cache.autodoc_tracker.add_autodoc_dependency.assert_not_called()
