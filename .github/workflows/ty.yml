@@ -77,6 +77,9 @@ jobs:
       - name: Run ruff (format check)
         run: uv run ruff format . --check
 
+      - name: Run import-linter (architecture contracts)
+        run: uv run lint-imports --config .importlinter
+
       - name: Run ty type checker
         run: |
           set -o pipefail
