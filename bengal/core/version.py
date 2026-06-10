@@ -547,6 +547,16 @@ class VersionConfig:
         """
         path_str = str(content_path)
 
+        # Shared content (_shared/...) is version-agnostic: it belongs to no
+        # single version and is surfaced in every version-specific navigation
+        # tree as-is. Recognise it explicitly and keep its version None so the
+        # versioned-section substring check below cannot misclassify it.
+        for shared in self.shared:
+            if shared and (
+                path_str.startswith(f"{shared}/") or f"/{shared}/" in path_str or path_str == shared
+            ):
+                return None
+
         # Check _versions/<id>/
         if "_versions/" in path_str:
             parts = path_str.split("_versions/")

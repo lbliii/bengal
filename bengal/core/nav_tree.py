@@ -272,6 +272,15 @@ class NavTree:
             ):
                 nav_root.children.append(section_node)
 
+        # Inject shared content (e.g. pages under _shared/) into version-specific
+        # trees. Shared pages have version=None and are not attached to any
+        # versioned section, so the section walk above never reaches them. They
+        # are version-agnostic and appear as-is in every version (no per-version
+        # duplication). For version_id=None they are already covered by the
+        # regular section walk and need no injection.
+        if version_id is not None:
+            cls._inject_shared_pages(site, nav_root)
+
         # Sort top-level by weight, then title
         nav_root.children.sort(key=lambda n: (n.weight, n.title))
 
@@ -284,6 +293,60 @@ class NavTree:
         return cls(
             root=nav_root, version_id=version_id, versions=versions, current_version=version_id
         )
+
+    @classmethod
+    def _inject_shared_pages(cls, site: SiteLike, nav_root: NavNode) -> None:
+        """
+        Add shared (version-agnostic) pages to a version-specific nav root.
+
+        Shared pages live under a configured shared directory (default
+        ``_shared/``) and carry ``version is None``. They are not attached to
+        any versioned section, so :meth:`build` would otherwise omit them from
+        every version-specific tree. They are added once, as-is, without
+        per-version duplication or URL rewriting.
+
+        Args:
+            site: Site whose pages may include shared content.
+            nav_root: Synthetic root node to append shared page nodes to.
+        """
+        version_config = getattr(site, "version_config", None)
+        shared_dirs = list(getattr(version_config, "shared", []) or [])
+        if not shared_dirs:
+            return
+
+        def _is_shared(page: PageLike) -> bool:
+            if getattr(page, "version", None) is not None:
+                return False
+            source = getattr(page, "source_path", None)
+            if source is None:
+                return False
+            source_str = str(source).replace("\\", "/")
+            return any(
+                shared and (f"/{shared}/" in source_str or source_str.startswith(f"{shared}/"))
+                for shared in shared_dirs
+            )
+
+        existing_urls = {node._path for node in nav_root.walk()}
+        for page in getattr(site, "pages", []):
+            if not _is_shared(page):
+                continue
+            if cls._should_exclude_from_nav(page):
+                continue
+            page_url = getattr(page, "_path", None) or getattr(page, "href", "/")
+            if page_url in existing_urls:
+                continue
+            existing_urls.add(page_url)
+            nav_root.children.append(
+                NavNode(
+                    id=f"shared-{page_url}",
+                    title=getattr(page, "nav_title", page.title),
+                    _path=page_url,
+                    icon=getattr(page, "icon", None),
+                    weight=page.metadata.get("weight", DEFAULT_WEIGHT),
+                    page=page,
+                    _depth=1,
+                )
+            )
 
     @classmethod
     def _should_exclude_from_nav(cls, page: PageLike) -> bool:

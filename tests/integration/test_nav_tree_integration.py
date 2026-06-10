@@ -44,9 +44,10 @@ class TestNavTreeVersionedSite:
     def test_shared_content_in_all_versions(self, shared_site):
         """Test that _shared/ pages appear in all version navigation trees.
 
-        NOTE: Currently shared content injection into nav trees is not implemented.
-        This test verifies that shared pages exist in the site and can be found.
-        TODO: Implement _shared/ content injection in NavTree.build() per Phase 1.2.
+        Shared pages (under ``_shared/``) are version-agnostic: they carry
+        ``version is None`` and are injected as-is into every version-specific
+        NavTree. This is the documented contract (see version.py and the theme
+        NavTree docs).
         """
 
         # Verify shared page exists in site
@@ -55,19 +56,20 @@ class TestNavTreeVersionedSite:
 
         changelog_page = next((p for p in shared_pages if "changelog" in str(p.source_path)), None)
         assert changelog_page is not None, "Changelog page should exist"
+        # Shared pages are version-agnostic.
+        assert changelog_page.version is None, "Shared content should have version None"
         # Use _path for comparison (excludes baseurl)
         assert changelog_page._path == "/_shared/changelog/", "Changelog should have correct URL"
 
-        # TODO: Once shared content injection is implemented in NavTree.build(),
-        # uncomment these assertions:
-        # NavTreeCache.invalidate()
-        # tree_v1 = NavTree.build(shared_site, version_id="v1")
-        # tree_v2 = NavTree.build(shared_site, version_id="v2")
-        # tree_v3 = NavTree.build(shared_site, version_id="v3")
-        # changelog_url = "/_shared/changelog/"
-        # assert tree_v1.find(changelog_url) is not None
-        # assert tree_v2.find(changelog_url) is not None
-        # assert tree_v3.find(changelog_url) is not None
+        # Shared content must appear in every version-specific navigation tree.
+        NavTreeCache.invalidate()
+        tree_v1 = NavTree.build(shared_site, version_id="v1")
+        tree_v2 = NavTree.build(shared_site, version_id="v2")
+        tree_v3 = NavTree.build(shared_site, version_id="v3")
+        changelog_url = "/_shared/changelog/"
+        assert tree_v1.find(changelog_url) is not None, "shared changelog missing from v1 tree"
+        assert tree_v2.find(changelog_url) is not None, "shared changelog missing from v2 tree"
+        assert tree_v3.find(changelog_url) is not None, "shared changelog missing from v3 tree"
 
     def test_version_specific_content_filtering(self, shared_site):
         """Test that version-specific content only appears in correct version tree.

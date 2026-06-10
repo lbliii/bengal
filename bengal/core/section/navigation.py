@@ -62,13 +62,15 @@ def pages_for_version(section: Section, version_id: str | None) -> list[PageLike
     """
     Get pages matching the specified version.
 
-    Filters sorted_pages to return only pages whose version attribute
-    matches the given version_id. If version_id is None, returns all
-    sorted pages.
+    Filters sorted_pages to return pages whose version attribute matches the
+    given version_id. Pages with ``version is None`` are shared content
+    (e.g. anything under ``_shared/``) and are version-agnostic, so they are
+    included in every version-specific tree as-is (no per-version
+    duplication). If version_id is None, returns all sorted pages.
     """
     if version_id is None:
         return section.sorted_pages
-    return [p for p in section.sorted_pages if getattr(p, "version", None) == version_id]
+    return [p for p in section.sorted_pages if getattr(p, "version", None) in (version_id, None)]
 
 
 def subsections_for_version(section: Section, version_id: str | None) -> list[Section]:
