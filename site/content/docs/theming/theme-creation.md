@@ -44,7 +44,7 @@ themes/my-theme/
 │   └── partials/
 ├── assets/
 │   └── css/
-│       └── style.css       # Your styles (directive base CSS is automatic)
+│       └── style.css       # Your styles (inherits default theme's directive CSS when you extend it)
 ```
 
 ## Configure Your Site
@@ -94,7 +94,7 @@ Bengal resolves the `extends` to the parent theme's `page.html` automatically.
 
 Your `assets/css/style.css` is loaded after the parent theme's CSS, so your styles override naturally via the cascade.
 
-Bengal automatically includes base CSS for all directives (tabs, dropdowns, admonitions, steps, cards, code blocks). Your theme only needs to provide aesthetic styles — functional show/hide, accessibility, and prose contamination fixes are handled.
+Directive base CSS is **not** bundled by the engine — it lives in the default theme at `bengal/themes/default/assets/css/components/` (`admonitions.css`, `tabs.css`, `dropdowns.css`, `steps.css`, `cards.css`, `checklist.css`, `code.css`). So it is automatic **only when your theme extends `default`** (or is a site-local theme layered over it): in that case you inherit the functional show/hide, accessibility, and prose-contamination fixes for free and only add aesthetic styles. A theme that does **not** extend `default` must supply its own directive CSS. See [What Bengal Provides vs What Your Theme Provides](../capabilities-vs-theme/) for the full capability-vs-presentation boundary.
 
 ```css
 /* assets/css/style.css */
