@@ -20,40 +20,40 @@
   "fixture_matrix": {
     "public_heavy": {
       "metrics": {
-        "total_bytes": 34232,
+        "total_bytes": 34632,
         "details_count": 40,
         "empty_member_name_count": 0,
         "asset_ref_count": 0,
-        "shape_hash": "8d68370addf6cbe60f1be9a6a063711606727bbdf13090e1921e4ac4df308415"
+        "shape_hash": "86038198d229c6d3d9b47b6a819daa74cd578baa9e9980a12cec890c37d510e2"
       },
       "budgets": {
-        "max_total_bytes": 42790,
+        "max_total_bytes": 43290,
         "max_empty_member_name_count": 2
       }
     },
     "internal_heavy": {
       "metrics": {
-        "total_bytes": 39112,
+        "total_bytes": 39562,
         "details_count": 45,
         "empty_member_name_count": 0,
         "asset_ref_count": 0,
-        "shape_hash": "4c4ca114f65e4fa84f3867bfd319a5678bbc9863b2559728746038ee1d85dfb6"
+        "shape_hash": "8ac58c2dcf8e0553b696edafa27c1e86850b625f55648b7f3ad36a7b99d7593a"
       },
       "budgets": {
-        "max_total_bytes": 48890,
+        "max_total_bytes": 49452,
         "max_empty_member_name_count": 2
       }
     },
     "long_signatures": {
       "metrics": {
-        "total_bytes": 31122,
+        "total_bytes": 31422,
         "details_count": 30,
         "empty_member_name_count": 0,
         "asset_ref_count": 0,
-        "shape_hash": "8e9993ed6c83525b7404178a1c36843119ce31b20ef157314f65518748d2fa1b"
+        "shape_hash": "f5836c90a1d0083c8a0544aa75d16ec8589347b22df093c3f2df1ec5ccc52cd3"
       },
       "budgets": {
-        "max_total_bytes": 38902,
+        "max_total_bytes": 39277,
         "max_empty_member_name_count": 2
       }
     }

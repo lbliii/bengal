@@ -278,6 +278,11 @@ class VirtualAutodocOrchestrator:
         if not all_elements:
             return [], [], result
 
+        # Build the symbol cross-reference resolver now that every element has a
+        # computed href (set by create_pages -> compute_element_urls). Attach it
+        # to the site so render-time template xref filters can resolve names.
+        self._attach_symbol_resolver(all_elements)
+
         parent_sections = create_aggregating_parent_sections(all_sections)
         all_sections.update(parent_sections)
 
@@ -286,6 +291,21 @@ class VirtualAutodocOrchestrator:
 
         root_sections = [section for section in all_sections.values() if section.parent is None]
         return all_pages, root_sections, result
+
+    def _attach_symbol_resolver(self, all_elements: list[DocElement]) -> None:
+        """
+        Build the autodoc SymbolResolver and attach it to the site.
+
+        Deferred import avoids autodoc<->rendering import cycles. The resolver is
+        immutable after construction and read-only at render time, which keeps it
+        safe to share across shard/thread-parallel renders (epic #350).
+        """
+        from bengal.autodoc.symbol_resolver import SymbolResolver
+
+        resolver = SymbolResolver.from_elements(all_elements)
+        # Stored on the site as a private attribute; the xref template filters in
+        # bengal/rendering/template_functions/autodoc.py read it via getattr.
+        self.site._autodoc_symbol_resolver = resolver  # type: ignore[attr-defined]
 
     def _derive_python_prefix(self) -> str:
         """
@@ -639,6 +659,11 @@ class VirtualAutodocOrchestrator:
                     code=ErrorCode.O006,
                 )
             return [], [], result
+
+        # Build the symbol cross-reference resolver now that every element has a
+        # computed href (set by create_pages -> compute_element_urls). Attach it
+        # to the site so render-time template xref filters can resolve names.
+        self._attach_symbol_resolver(all_elements)
 
         # 4. Create aggregating parent sections for shared prefixes
         parent_sections = create_aggregating_parent_sections(all_sections)

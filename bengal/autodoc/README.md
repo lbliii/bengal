@@ -8,7 +8,15 @@ Virtual page documentation generation system for Bengal static sites.
 - **OpenAPI/REST Documentation**: Generate docs from OpenAPI specs
 - **CLI Documentation**: Document Click/argparse/typer commands
 - **Virtual Pages**: Documentation rendered directly via theme templates
-- **Cross-References**: Automatic linking between elements
+- **Symbol Cross-References**: Return types, parameter types, base classes,
+  `See Also` targets, and docstring symbol references are linked to their
+  documented page when one exists (deterministic, ambiguity-safe; unresolved
+  names degrade to plain text -- no broken links). See `symbol_resolver.py`.
+- **@overload Grouping**: Multiple `@overload` stubs plus the implementation are
+  collapsed into a single member that lists every signature variant under one
+  stable anchor (no duplicate peers, no anchor collisions).
+- **Inherited-Member Badges**: Members synthesized from base classes (when
+  `include_inherited` is enabled) render an "inherited from X" attribution badge.
 - **Incremental Builds**: Fast regeneration on changes
 
 ## Quick Start

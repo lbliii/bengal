@@ -35,6 +35,7 @@ from bengal.autodoc.extractors.python.module_info import (
     get_relative_source_path,
     infer_module_name,
 )
+from bengal.autodoc.extractors.python.overloads import collapse_overloads
 from bengal.autodoc.extractors.python.signature import (
     annotation_to_string,
     build_signature,
@@ -623,6 +624,26 @@ class PythonExtractor(Extractor):
                         child.metadata["aliases"] = []
                     child.metadata["aliases"].append(alias_name)
 
+        # Collapse @overload stub groups among module-level functions into single
+        # elements. Classes/aliases pass through untouched; relative order of the
+        # function group's first occurrence is preserved.
+        if any(c.element_type == "function" for c in children):
+            func_children = [c for c in children if c.element_type == "function"]
+            collapsed_funcs = collapse_overloads(func_children)
+            if len(collapsed_funcs) != len(func_children):
+                # Splice the collapsed function list back where the first function
+                # appeared, preserving the position of all non-function members.
+                first_func_idx = next(
+                    i for i, c in enumerate(children) if c.element_type == "function"
+                )
+                non_funcs_before = [
+                    c for c in children[:first_func_idx] if c.element_type != "function"
+                ]
+                non_funcs_after = [
+                    c for c in children[first_func_idx:] if c.element_type != "function"
+                ]
+                children = non_funcs_before + collapsed_funcs + non_funcs_after
+
         # Only create module element if it has docstring or children
         if not docstring and not children:
             return None
@@ -659,6 +680,10 @@ class PythonExtractor(Extractor):
             all_exports=tuple(all_exports) if all_exports else (),
         )
 
+        # Parse the module docstring to surface See Also / Examples at module level
+        # (previously dropped). Description stays sanitized for byte-stability.
+        module_parsed = parse_docstring(docstring) if docstring else None
+
         return DocElement(
             name=display_name,
             qualified_name=module_name,
@@ -672,6 +697,8 @@ class PythonExtractor(Extractor):
             },
             typed_metadata=typed_meta,
             children=children,
+            examples=module_parsed.examples if module_parsed else [],
+            see_also=module_parsed.see_also if module_parsed else [],
         )
 
     def _extract_class(
@@ -811,6 +838,11 @@ class PythonExtractor(Extractor):
                         typed_metadata=typed_attr_meta,
                     )
                     class_vars.append(var_elem)
+
+        # Collapse @overload stub groups into a single element carrying all
+        # signature variants. Done BEFORE combining/sorting so member ordering
+        # stays stable and the anchor collision (all stubs share name) is avoided.
+        methods = collapse_overloads(methods)
 
         # Combine children
         children = properties + methods + class_vars

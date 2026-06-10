@@ -39,11 +39,13 @@ KIDA FEATURES SHOWCASED:
     is_dataclass = cls_meta?.is_dataclass ?? false,
     is_abstract = cls_meta?.is_abstract ?? false,
     is_mixin = cls_meta?.is_mixin ?? false,
+    cls_bases = cls_meta?.bases ?? [],
+    cls_see_also = cls?.see_also ?? [],
     cls_name = cls?.name ?? 'Unknown',
     cls_desc = cls?.description ?? ''
 %}
 
-<details class="autodoc-member" data-member="class" {% if is_first %}open{% end %}>
+<details class="autodoc-member" data-member="class" id="{{ cls_name }}" {% if is_first %}open{% end %}>
   <summary class="autodoc-member-header">
     {# Status dot (yellow/amber for classes) #}
     <span class="autodoc-member-dot"></span>
@@ -84,9 +86,19 @@ KIDA FEATURES SHOWCASED:
   </summary>
 
   <div class="autodoc-member-body">
+    {# Base classes - link any that resolve to a documented symbol page (#327) #}
+    {% if cls_bases | length > 0 %}
+    <div class="autodoc-bases" data-section="bases">
+      <span class="autodoc-bases-label">Bases:</span>
+      {% for base in cls_bases %}
+      <code class="autodoc-base">{{ base | xref_type }}</code>{{ ', ' if not loop.last else '' }}
+      {% end %}
+    </div>
+    {% end %}
+
     {% with cls_desc as desc %}
     <div class="autodoc-member-desc prose">
-      {{ desc |> markdownify |> safe }}
+      {{ desc |> markdownify |> xref_docstring |> safe }}
     </div>
     {% end %}
 
@@ -115,7 +127,7 @@ KIDA FEATURES SHOWCASED:
             <td class="autodoc-cell-name"><code>{{ attr_name }}</code></td>
             <td class="autodoc-cell-type">
               {% match attr_type %}
-              {% case type if type %}<code>{{ type }}</code>
+              {% case type if type %}<code>{{ type | xref_type }}</code>
               {% case _ %}—
               {% end %}
             </td>
@@ -141,6 +153,19 @@ KIDA FEATURES SHOWCASED:
       {% let member_type = 'method' %}
       {% let first_open = false %}
       {% include 'autodoc/partials/members.html' %}
+    </div>
+    {% end %}
+
+    {# See Also - cross-references from the class docstring (#327). Linked when
+       resolvable to a documented symbol, plain text otherwise. #}
+    {% if cls_see_also | length > 0 %}
+    <div class="autodoc-section autodoc-see-also" data-section="see-also">
+      <h4 class="autodoc-label">See Also</h4>
+      <ul class="autodoc-see-also-list">
+        {% for ref in cls_see_also %}
+        <li><code>{{ ref | xref_type }}</code></li>
+        {% end %}
+      </ul>
     </div>
     {% end %}
   </div>

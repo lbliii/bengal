@@ -36,7 +36,7 @@ func_raises = func_meta?.raises ?? [],
 return_desc = func_meta?.return_description ?? ''
 %}
 
-<details class="autodoc-member" data-member="function" {% if is_first %}open{% end %}>
+<details class="autodoc-member" data-member="function" id="{{ func_name }}" {% if is_first %}open{% end %}>
   <summary class="autodoc-member-header">
     {# Status dot (green for functions) #}
     <span class="autodoc-member-dot"></span>
@@ -52,7 +52,7 @@ return_desc = func_meta?.return_description ?? ''
         {# Return type with arrow #}
         {% if func_return %}
         <span class="autodoc-member-return" title="Returns {{ func_return }}">
-          <code>{{ func_return | truncate(25, True, '…') }}</code>
+          <code>{{ func_return | truncate(25, True, '…') | xref_type }}</code>
         </span>
         {% end %}
         {# Toggle indicator #}
@@ -84,7 +84,7 @@ return_desc = func_meta?.return_description ?? ''
     {% set desc_stripped = func_desc | striptags | trim if func_desc else '' %}
     {% if func_desc and desc_stripped | length > 77 %}
     <div class="autodoc-member-desc prose">
-      {{ func_desc | markdownify | safe }}
+      {{ func_desc | markdownify | xref_docstring | safe }}
     </div>
     {% end %}
 
@@ -109,7 +109,7 @@ return_desc = func_meta?.return_description ?? ''
           {% set param_default = param?.default %}
           <tr>
             <td class="autodoc-cell-name"><code>{{ param_name }}</code></td>
-            <td class="autodoc-cell-type"><code>{{ param_type if param_type else '—' }}</code></td>
+            <td class="autodoc-cell-type"><code>{{ (param_type | xref_type) if param_type else '—' }}</code></td>
             <td class="autodoc-cell-desc">
               {{ param_desc | markdownify | safe if param_desc else '' }}
               {% if param_default is not none and param_default != '' %}
@@ -129,7 +129,7 @@ return_desc = func_meta?.return_description ?? ''
     {% if return_desc or is_nontrivial_return %}
     <div class="autodoc-returns">
       <h5 class="autodoc-returns-title">Returns</h5>
-      <code class="autodoc-returns-type">{{ func_return }}</code>
+      <code class="autodoc-returns-type">{{ func_return | xref_type }}</code>
       {% if return_desc %}
       <span class="autodoc-returns-desc">{{ return_desc }}</span>
       {% end %}

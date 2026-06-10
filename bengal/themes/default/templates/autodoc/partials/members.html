@@ -66,7 +66,7 @@ all_members = (members ?? []) | selectattr('name') | list
         {# Return type with arrow #}
         {% if m.return_type and m.return_type != 'None' %}
         <span class="autodoc-member-return" title="Returns {{ m.return_type }}">
-          <code>{{ m.return_type | truncate(25, True, '…') }}</code>
+          <code>{{ m.return_type | truncate(25, True, '…') | xref_type }}</code>
         </span>
         {% end %}
         {# Toggle indicator #}
@@ -85,6 +85,7 @@ all_members = (members ?? []) | selectattr('name') | list
     'staticmethod' if m.is_staticmethod,
     'property' if m.is_property,
     'abstract' if m.is_abstract,
+    'overload' if m.is_overloaded,
     'deprecated' if m.is_deprecated,
     ] | compact %}
     {% if member_badges | length > 0 %}
@@ -94,11 +95,24 @@ all_members = (members ?? []) | selectattr('name') | list
       {% end %}
     </span>
     {% end %}
+    {# Inherited-member attribution badge (#329) - distinct from native members #}
+    {% if m.is_inherited and m.inherited_from %}
+    <span class="autodoc-member-badges autodoc-member-inherited">
+      <span class="autodoc-badge" data-badge="inherited" title="Inherited from {{ m.inherited_from }}">inherited from {{ m.inherited_from }}</span>
+    </span>
+    {% end %}
   </summary>
 
   <div class="autodoc-member-body">
-    {# Signature (copy-paste ready) #}
-    {% if m.signature %}
+    {# Signature (copy-paste ready). For @overload members, render every captured
+       signature variant (source order) instead of a single signature. #}
+    {% if m.is_overloaded and (m.signature_variants | length > 0) %}
+    <div class="autodoc-signature-section" data-section="overloads">
+      {% for variant in m.signature_variants %}
+      <code class="autodoc-member-sig autodoc-member-sig--overload">{{ variant }}</code>
+      {% end %}
+    </div>
+    {% elif m.signature %}
     <div class="autodoc-signature-section">
       <code class="autodoc-member-sig">{{ m.signature }}</code>
     </div>
@@ -108,7 +122,7 @@ all_members = (members ?? []) | selectattr('name') | list
     {% let desc_stripped = (m.description | striptags | trim) if m.description else '' %}
     {% if m.description and desc_stripped | length > 77 %}
     <div class="autodoc-member-desc prose">
-      {{ m.description | markdownify | safe }}
+      {{ m.description | markdownify | xref_docstring | safe }}
     </div>
     {% end %}
 
@@ -128,7 +142,7 @@ all_members = (members ?? []) | selectattr('name') | list
           {% for p in m.params %}
           <tr>
             <td class="autodoc-cell-name"><code>{{ p.name }}</code></td>
-            <td class="autodoc-cell-type"><code>{{ p.type if p.type else '—' }}</code></td>
+            <td class="autodoc-cell-type"><code>{{ (p.type | xref_type) if p.type else '—' }}</code></td>
             <td class="autodoc-cell-desc">
               {{ (p.description | markdownify | safe) if p.description else '' }}
               {% if p.default is not none and p.default != '' %}
@@ -147,7 +161,7 @@ all_members = (members ?? []) | selectattr('name') | list
     {% if m.return_description or is_nontrivial_return %}
     <div class="autodoc-returns">
       <h5 class="autodoc-returns-title">Returns</h5>
-      <code class="autodoc-returns-type">{{ m.return_type }}</code>
+      <code class="autodoc-returns-type">{{ m.return_type | xref_type }}</code>
       {% if m.return_description %}
       <span class="autodoc-returns-desc">{{ m.return_description }}</span>
       {% end %}
