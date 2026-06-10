@@ -32,6 +32,140 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+# Maps Patitas node class names (``_type`` in to_dict output) to the
+# mistune-compatible lowercase ``type`` strings used by the dict-AST helpers in
+# ``bengal.parsing.ast`` (types.py type guards, transforms.py, utils.py).
+_PATITAS_TYPE_TO_BENGAL: dict[str, str] = {
+    "Heading": "heading",
+    "Paragraph": "paragraph",
+    "Text": "text",
+    "Strong": "strong",
+    "Emphasis": "emphasis",
+    "Strikethrough": "strikethrough",
+    "CodeSpan": "codespan",
+    "FencedCode": "block_code",
+    "IndentedCode": "block_code",
+    "Link": "link",
+    "Image": "image",
+    "List": "list",
+    "ListItem": "list_item",
+    "BlockQuote": "block_quote",
+    "ThematicBreak": "thematic_break",
+    "SoftBreak": "softbreak",
+    "LineBreak": "linebreak",
+    "HtmlBlock": "raw_html",
+    "HtmlInline": "raw_html",
+}
+
+
+def _annotate_bengal_type(node: Any) -> None:
+    """Add lowercase, mistune-style ``type`` aliases in place.
+
+    Patitas ``to_dict`` keys every node by ``_type`` (e.g. ``"Heading"``). The
+    Bengal dict-AST helpers key by a lowercase ``type`` (e.g. ``"heading"``).
+    Adding the alias keeps the canonical lossless serialization while letting
+    those helpers (and their transforms) operate unchanged. ``SourceLocation``
+    sub-dicts are intentionally left without a ``type`` alias.
+    """
+    if isinstance(node, dict):
+        patitas_type = node.get("_type")
+        if patitas_type and patitas_type != "SourceLocation":
+            bengal_type = _PATITAS_TYPE_TO_BENGAL.get(patitas_type)
+            if bengal_type is not None:
+                node["type"] = bengal_type
+        for value in node.values():
+            _annotate_bengal_type(value)
+    elif isinstance(node, list):
+        for item in node:
+            _annotate_bengal_type(item)
+
+
+# Patitas node class names whose body is read from the source buffer by offset
+# (Zero-Copy Lexer Handoff) rather than stored inline.
+_ZCLH_CODE_TYPES = frozenset({"FencedCode", "IndentedCode"})
+
+
+def _capture_zclh_code(node: Block, node_dict: dict[str, Any], source: str) -> None:
+    """Stash a ZCLH code node's body so the dict-AST stays self-contained.
+
+    Patitas ``to_dict`` records ``source_start``/``source_end`` offsets for code
+    blocks but not their text. When the AST is later rendered via
+    :meth:`PatitasParser.render_ast` (no original source), the body is recovered
+    from ``content_override`` to reconstruct a buffer for offset-based reads.
+    """
+    if type(node).__name__ not in _ZCLH_CODE_TYPES:
+        return
+    if node_dict.get("content_override") is not None:
+        return
+    get_code = getattr(node, "get_code", None)
+    if callable(get_code):
+        node_dict["content_override"] = get_code(source)
+
+
+def _synthesize_source(ast: list[dict[str, Any]]) -> str:
+    """Rebuild a source buffer that satisfies ZCLH offset reads during render.
+
+    Patitas code-block rendering (including syntax highlighting) slices the
+    original source by absolute offset. The detached dict-AST has no source, so
+    this allocates a buffer sized to the maximum offset seen and writes each
+    captured code body (see :func:`_capture_zclh_code`) at its
+    ``source_start``..``source_end`` range. Non-code nodes carry their content
+    inline, so spaces elsewhere are harmless.
+    """
+    max_end = 0
+
+    def scan(node: Any) -> None:
+        nonlocal max_end
+        if isinstance(node, dict):
+            end = node.get("source_end")
+            if isinstance(end, int):
+                max_end = max(max_end, end)
+            location = node.get("location")
+            if isinstance(location, dict):
+                loc_end = location.get("end_offset")
+                if isinstance(loc_end, int):
+                    max_end = max(max_end, loc_end)
+            for value in node.values():
+                scan(value)
+        elif isinstance(node, list):
+            for item in node:
+                scan(item)
+
+    for node in ast:
+        scan(node)
+
+    if max_end <= 0:
+        return ""
+
+    # Patitas offsets are character (not byte) offsets, so operate on a list of
+    # single-character strings to stay correct for non-ASCII source.
+    buffer = [" "] * max_end
+
+    def fill(node: Any) -> None:
+        if isinstance(node, dict):
+            start = node.get("source_start")
+            end = node.get("source_end")
+            code = node.get("content_override")
+            if (
+                isinstance(start, int)
+                and isinstance(end, int)
+                and isinstance(code, str)
+                and 0 <= start <= end <= max_end
+                and end - start == len(code)
+            ):
+                buffer[start:end] = list(code)
+            for value in node.values():
+                fill(value)
+        elif isinstance(node, list):
+            for item in node:
+                fill(item)
+
+    for node in ast:
+        fill(node)
+
+    return "".join(buffer)
+
+
 def _slice_blocks_at_excerpt_break(
     blocks: Sequence[Block] | Document,
 ) -> tuple[Block, ...] | None:
@@ -574,7 +708,7 @@ class PatitasParser(BaseMarkdownParser):
             return []
 
         ast = parse_to_ast(content)
-        return [self._node_to_dict(node) for node in ast]
+        return [self._node_to_dict(node, content) for node in ast]
 
     def parse_to_document(self, content: str, metadata: dict[str, Any]) -> Document:
         """Parse Markdown content to typed Document AST.
@@ -597,8 +731,12 @@ class PatitasParser(BaseMarkdownParser):
     def render_ast(self, ast: list[dict[str, Any]]) -> str:
         """Render AST tokens to HTML.
 
-        Delegates to render_ast_from_dict by wrapping the list in a Document dict.
-        Expects ast items in Patitas dict format (e.g. from to_dict).
+        Wraps the node list in a synthetic ``Document`` dict (including the
+        ``location`` field required by ``patitas.from_dict``) and delegates to
+        :meth:`render_ast_from_dict`. Expects ast items in the canonical Patitas
+        dict format emitted by :meth:`parse_to_ast` (``patitas.to_dict`` shape,
+        optionally carrying lowercase ``type`` aliases and post-parse AST
+        transforms).
 
         Args:
             ast: List of AST token dictionaries (Patitas block dicts)
@@ -608,8 +746,22 @@ class PatitasParser(BaseMarkdownParser):
         """
         if not ast:
             return ""
-        doc_dict: dict[str, Any] = {"_type": "Document", "children": ast}
-        result = self.render_ast_from_dict(doc_dict, "", page=None, site=None)
+        source = _synthesize_source(ast)
+        doc_dict: dict[str, Any] = {
+            "_type": "Document",
+            "location": {
+                "_type": "SourceLocation",
+                "lineno": 1,
+                "col_offset": 1,
+                "offset": 0,
+                "end_offset": len(source),
+                "end_lineno": None,
+                "end_col_offset": None,
+                "source_file": None,
+            },
+            "children": ast,
+        }
+        result = self.render_ast_from_dict(doc_dict, source, page=None, site=None)
         return result[0] if result else ""
 
     def render_ast_from_dict(
@@ -654,19 +806,33 @@ class PatitasParser(BaseMarkdownParser):
         html = self._apply_post_processing(html, metadata)
         return html, toc
 
-    def _node_to_dict(self, node: Block) -> dict[str, Any]:
+    def _node_to_dict(self, node: Block, source: str) -> dict[str, Any]:
         """Convert AST node to dictionary representation.
+
+        Uses the canonical Patitas ``to_dict`` serialization (lossless, keyed by
+        ``_type``) so that :meth:`render_ast` can rebuild typed nodes via
+        ``patitas.from_dict`` and produce identical HTML to the direct parse
+        path. A lowercase, mistune-style ``type`` alias is added to every node
+        so the dict-AST helpers in :mod:`bengal.parsing.ast` (type guards,
+        transforms, TOC/link/text extraction) keep working unchanged.
+
+        Code nodes (FencedCode/IndentedCode) read their body from the source
+        buffer by offset (Zero-Copy Lexer Handoff). The detached dict-AST has no
+        source, so their materialized code is captured here so :meth:`render_ast`
+        can reconstruct a buffer for offset-based rendering.
 
         Args:
             node: Block node
+            source: Original Markdown source (for ZCLH code extraction)
 
         Returns:
             Dictionary representation
         """
-        from bengal.utils.serialization import to_jsonable
+        import patitas
 
-        result = to_jsonable(node)
-        result["type"] = type(node).__name__.lower()
+        result = patitas.to_dict(node)
+        _capture_zclh_code(node, result, source)
+        _annotate_bengal_type(result)
         return result
 
     # =========================================================================
