@@ -331,7 +331,8 @@ class TestWarmBuildAdditionalOutputFormats:
         1. Build with blog section having RSS enabled
         2. Modify blog post title and content
         3. Incremental build
-        4. Assert: blog/index.xml updated with new content
+        4. Assert: rss.xml updated with new content (NOT the per-section
+           blog/index.xml path, which RSSGenerator never writes).
         """
         # Setup test site with RSS
         content_dir = tmp_path / "content"
@@ -381,15 +382,16 @@ generate_rss = true
         site1.build(BuildOptions(incremental=False))
 
         output_dir = tmp_path / "public"
-        rss_path = output_dir / "blog" / "index.xml"
+        # RSSGenerator writes the root feed at public/rss.xml (NOT public/blog/index.xml).
+        rss_path = output_dir / "rss.xml"
 
-        # RSS may or may not be generated depending on config
-        if rss_path.exists():
-            rss_content_v1 = rss_path.read_text()
-            assert "Original Post Title" in rss_content_v1
+        # The feed must exist and contain the original post (discriminating).
+        assert rss_path.exists(), "rss.xml should be generated when generate_rss=true"
+        rss_content_v1 = rss_path.read_text()
+        assert "Original Post Title" in rss_content_v1
 
-            # Modify post
-            post_path.write_text("""---
+        # Modify post
+        post_path.write_text("""---
 title: Updated Post Title
 date: 2026-01-01
 description: Updated description
@@ -398,13 +400,14 @@ description: Updated description
 Updated post content with new information.
 """)
 
-            # Second build (incremental)
-            site2 = Site.from_config(tmp_path)
-            site2.build(BuildOptions(incremental=True))
+        # Second build (incremental)
+        site2 = Site.from_config(tmp_path)
+        site2.build(BuildOptions(incremental=True))
 
-            # RSS should be updated
-            rss_content_v2 = rss_path.read_text()
-            assert "Updated Post Title" in rss_content_v2 or "Updated description" in rss_content_v2
+        # RSS must be updated to reflect the edited post and drop the stale title.
+        rss_content_v2 = rss_path.read_text()
+        assert "Updated Post Title" in rss_content_v2
+        assert "Original Post Title" not in rss_content_v2
 
     def test_rss_feed_new_post_appears(self, tmp_path):
         """
@@ -476,12 +479,16 @@ Third post is new!
         site2.build(BuildOptions(incremental=True))
 
         output_dir = tmp_path / "public"
-        rss_path = output_dir / "blog" / "index.xml"
+        # RSSGenerator writes the root feed at public/rss.xml.
+        rss_path = output_dir / "rss.xml"
 
-        if rss_path.exists():
-            rss_content = rss_path.read_text()
-            # New post should appear in RSS
-            assert "Third Post" in rss_content or "post3" in rss_content.lower()
+        assert rss_path.exists(), "rss.xml should be generated when generate_rss=true"
+        rss_content = rss_path.read_text()
+        # New post must appear in RSS after the incremental build (discriminating).
+        assert "Third Post" in rss_content
+        # The pre-existing posts must still be present.
+        assert "First Post" in rss_content
+        assert "Second Post" in rss_content
 
     def test_sitemap_updated_on_page_add(self, tmp_path):
         """

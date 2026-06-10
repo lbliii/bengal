@@ -194,7 +194,8 @@ class PostprocessOrchestrator:
             tasks.append(("output formats", lambda: self._generate_output_formats(build_context)))
 
         # OPTIMIZATION: For incremental builds, skip expensive post-processing
-        # except for sitemap which must always be regenerated for correctness.
+        # except for the correctness-critical artifacts that must always be
+        # regenerated (sitemap, RSS/Atom, robots.txt).
         #
         # RFC: rfc-incremental-build-dependency-gaps (Phase 3)
         # Sitemap is always regenerated because:
@@ -202,9 +203,16 @@ class PostprocessOrchestrator:
         # - New pages must appear in sitemap for SEO
         # - Correctness matters more than the minimal time savings
         #
+        # RSS/Atom follow the same rule (artifact-repair / warm-build content
+        # parity): a content change or a deleted rss.xml must be reflected in the
+        # feed on the next incremental build, and feed generation is similarly cheap
+        # (~2ms). Previously RSS/Atom were gated behind ``if not incremental`` and so
+        # went stale on every incremental content change and were never repaired on a
+        # warm no-op build. Dev-server / serve-ready builds restrict tasks via
+        # ``enabled_task_names`` (``{"special pages"}``), so this does not slow reloads.
+        #
         # Skip these on incremental:
         # - Social cards: Only needed for production (OG images don't change during dev)
-        # - RSS: Regenerated on content rebuild (not layout changes)
         # - Redirects: Regenerated on full builds (aliases rarely change)
 
         # Sitemap: Always regenerate for correctness (fast: ~10ms for 1K pages)
@@ -215,6 +223,13 @@ class PostprocessOrchestrator:
         cs_config = self.site.config.get("content_signals", {})
         if cs_config.get("enabled", True) and task_enabled("robots.txt"):
             tasks.append(("robots.txt", self._generate_robots_txt))
+
+        # RSS / Atom feeds: always regenerate (like sitemap) so incremental builds
+        # reflect content changes and warm no-op builds repair a deleted feed.
+        if self.site.config.get("generate_rss", True) and task_enabled("rss"):
+            tasks.append(("rss", self._generate_rss))
+        if self.site.config.get("generate_atom", False) and task_enabled("atom"):
+            tasks.append(("atom", self._generate_atom))
 
         social_cards_task = None
 
@@ -234,11 +249,6 @@ class PostprocessOrchestrator:
                 if task_enabled("social cards"):
                     social_cards_task = run_social_cards
 
-            if self.site.config.get("generate_rss", True) and task_enabled("rss"):
-                tasks.append(("rss", self._generate_rss))
-            if self.site.config.get("generate_atom", False) and task_enabled("atom"):
-                tasks.append(("atom", self._generate_atom))
-
             redirects_config = self.site.config.get("redirects", {})
             if redirects_config.get("generate_html", True) and task_enabled("redirects"):
                 tasks.append(("redirects", self._generate_redirects))
@@ -248,11 +258,12 @@ class PostprocessOrchestrator:
                 tasks.append(("xref index", self._generate_xref_index))
         else:
             # Incremental: skip expensive tasks for dev server responsiveness
-            # Note: Output formats and sitemap ARE still generated (above)
+            # Note: Output formats, sitemap, and RSS/Atom ARE still generated (above)
             logger.info(
                 "postprocessing_incremental",
-                reason="skipping_social_cards_rss_for_speed",
+                reason="skipping_social_cards_redirects_for_speed",
                 sitemap="always_generated",
+                feeds="always_generated",
             )
 
         if tasks:

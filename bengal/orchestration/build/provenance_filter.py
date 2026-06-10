@@ -138,6 +138,20 @@ def _missing_postprocess_artifacts(site: SiteLike) -> tuple[Path, ...]:
     if not isinstance(content_signals, dict) or content_signals.get("enabled", True):
         expected.append(site.output_dir / "robots.txt")
 
+    # RSS feed is gated by config (generate_rss, default True). RSSGenerator writes
+    # output_dir/rss.xml (or output_dir/<lang>/rss.xml under the i18n prefix strategy),
+    # so reuse the i18n-aware path helper to match its target exactly.
+    if site.config.get("generate_rss", True):
+        expected.append(_site_output_path(site, "rss.xml", uses_i18n_output_path=True))
+
+    # search-index.json (prebuilt Lunr index) lives alongside index.json. It can only
+    # be regenerated when (a) the search backend is enabled + prebuilt, (b) index_json
+    # is a configured site-wide output format, and (c) the optional `lunr` package is
+    # importable. Without the lunr guard a warm build would perpetually believe an
+    # un-creatable file is missing and never reach the no-op fast path.
+    if _search_index_repairable(site):
+        expected.append(_site_output_path(site, "search-index.json", uses_i18n_output_path=True))
+
     missing: list[Path] = []
     seen: set[Path] = set()
     for path in expected:
@@ -150,6 +164,29 @@ def _missing_postprocess_artifacts(site: SiteLike) -> tuple[Path, ...]:
         except OSError:
             missing.append(path)
     return tuple(missing)
+
+
+def _search_index_repairable(site: SiteLike) -> bool:
+    """Return whether a missing search-index.json could actually be regenerated.
+
+    Mirrors the gates in ``OutputFormatsGenerator``: the search backend must be
+    enabled with prebuilt artifacts, ``index_json`` must be a configured site-wide
+    output format (search-index.json is written alongside index.json), and the
+    optional ``lunr`` package must be importable. Imports are kept function-local
+    to avoid new module-level import cycles (see project memory on circular imports).
+    """
+    if "index_json" not in _configured_site_wide_output_formats(site):
+        return False
+
+    from bengal.postprocess.search_backends import resolve_search_backend_config
+
+    search_config = resolve_search_backend_config(site.config.get("search", {}))
+    if not search_config.enabled or not search_config.prebuilt_enabled:
+        return False
+
+    import importlib.util
+
+    return importlib.util.find_spec("lunr") is not None
 
 
 def _output_dir_empty(output_dir: Path) -> bool:
