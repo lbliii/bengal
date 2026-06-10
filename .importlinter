@@ -20,7 +20,7 @@ root_package = bengal
 #   bengal.core.site -> bengal.server.dev_server.DevServer (L1505)
 #   bengal.core.site -> bengal.rendering.pipeline.thread_local (L1579)
 #   bengal.core.site -> bengal.rendering.assets (L1583)
-#   bengal.core.site -> bengal.rendering.template_functions.version_url (L866)
+#   bengal.core.site -> bengal.rendering.template_functions.version_url (L1127)
 
 [importlinter:contract:core-does-not-import-upward]
 name = bengal.core must not directly import orchestration, server, or rendering.pipeline/assets
@@ -32,6 +32,7 @@ forbidden_modules =
     bengal.server
     bengal.rendering.pipeline
     bengal.rendering.assets
+    bengal.rendering.template_functions
 # Only direct edges; transitive chains are tolerated (other layers will clean those).
 allow_indirect_imports = True
 # Baseline — known direct violations remaining after Sprint B1.1.
@@ -56,6 +57,19 @@ allow_indirect_imports = True
 #                documented circular-import fragility. This edge replaced the old
 #                feature_detector edge (both touched in #245); the S4-followup note
 #                about feature_detector is now resolved (that import is gone).
+#   Live deferred edge: bengal.core.site -> bengal.rendering.template_functions.version_url —
+#                Site.get_version_target_url() (site/__init__.py) imports the
+#                version-aware URL helper function-locally and delegates to it.
+#                This is a load-bearing public template API: the default theme's
+#                partials/version-selector.html calls site.get_version_target_url(page, v)
+#                at render time, so the method cannot be dropped without a template
+#                rewrite + build-time pre-baking (tracked as #383 Finding 33 option a,
+#                deferred as a larger refactor). The import is deferred precisely
+#                because version_url imports back into core.site transitively
+#                (via bengal.protocols.analysis) — a documented circular-import
+#                hazard; do NOT hoist it to module level. forbidden_modules now
+#                lists bengal.rendering.template_functions so this edge is tracked/
+#                ratcheted instead of silent (it was previously in no contract).
 ignore_imports =
     bengal.core.site -> bengal.orchestration.build.inputs
     bengal.core.site -> bengal.orchestration.build.options
@@ -63,6 +77,7 @@ ignore_imports =
     bengal.core.site -> bengal.orchestration.content
     bengal.core.site -> bengal.orchestration.site_runner
     bengal.core.site -> bengal.orchestration.stats.models
+    bengal.core.site -> bengal.rendering.template_functions.version_url
 
 # -----------------------------------------------------------------------------
 # Contract 2: Page/Section use SiteContext, not Site
