@@ -44,6 +44,7 @@ class TestDevServerContentHashCacheSeeding:
             patch.object(DevServer, "_has_cached_output", return_value=False),
             patch.object(DevServer, "_prepare_dev_config", return_value=False),
             patch.object(DevServer, "_create_server") as mock_create,
+            patch.object(DevServer, "_run_serve_probe", return_value=True),
             patch.object(DevServer, "_create_watcher") as mock_create_watcher,
             patch.object(DevServer, "_init_reload_controller"),
             patch.object(DevServer, "_start_background_completion_build") as mock_background,
@@ -134,6 +135,7 @@ class TestDevServerContentHashCacheSeeding:
             patch.object(DevServer, "_prepare_dev_config", return_value=False),
             patch.object(DevServer, "_run_build_via_executor", return_value=stats) as mock_build,
             patch.object(DevServer, "_create_server") as mock_create,
+            patch.object(DevServer, "_run_serve_probe", return_value=True),
             patch.object(DevServer, "_create_watcher") as mock_create_watcher,
             patch.object(DevServer, "_init_reload_controller"),
             patch.object(DevServer, "_start_background_completion_build") as mock_background,
@@ -194,6 +196,7 @@ class TestDevServerServeFirstWatcherOrder:
             patch.object(DevServer, "_has_cached_output", return_value=True),
             patch.object(DevServer, "_prepare_dev_config", return_value=False),
             patch.object(DevServer, "_create_server") as mock_create,
+            patch.object(DevServer, "_run_serve_probe", return_value=True),
             patch.object(DevServer, "_create_watcher") as mock_create_watcher,
             patch.object(DevServer, "_run_validation_build", tracked_validation),
             patch(
@@ -237,6 +240,7 @@ class TestDevServerServeFirstWatcherOrder:
             patch.object(DevServer, "_run_build_via_executor", return_value=stats) as mock_build,
             patch.object(DevServer, "_run_validation_build") as mock_validation,
             patch.object(DevServer, "_create_server") as mock_create,
+            patch.object(DevServer, "_run_serve_probe", return_value=True),
             patch.object(DevServer, "_init_reload_controller"),
             patch(
                 "bengal.server.dev_server.PIDManager.get_pid_file", return_value=tmp_path / "pid"

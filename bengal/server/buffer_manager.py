@@ -38,6 +38,24 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
+def _hidden_path_component(directory: Path) -> str | None:
+    """Return the first hidden (dot-prefixed) component of a resolved path, or None.
+
+    ``.well-known`` is exempt: it is a hidden directory the static handler is
+    expected to serve. Mirrors the detection in ``asgi_app._has_hidden_path_component``
+    so the construction-time guard (#400) and the request-time serving fallback
+    (#392) agree on what "hidden" means.
+    """
+    try:
+        resolved = directory.resolve()
+    except OSError:
+        resolved = directory
+    for part in resolved.parts:
+        if part.startswith(".") and part not in {".", "..", ".well-known"}:
+            return part
+    return None
+
+
 class BufferManager:
     """Thread-safe double-buffer manager with in-process reference swap."""
 
@@ -60,6 +78,42 @@ class BufferManager:
         """Create buffer directories if they don't exist."""
         for d in self._dirs:
             d.mkdir(parents=True, exist_ok=True)
+        self._warn_on_hidden_buffer_paths()
+
+    def _warn_on_hidden_buffer_paths(self) -> None:
+        """Pin the hidden-path serving constraint at the integration boundary (#400).
+
+        Pounce's static handler rejects any path whose resolved absolute path
+        contains a hidden (dot-prefixed) component — see ``pounce/_static.py``
+        ``_resolve_file`` and upstream lbliii/pounce#74. The dev server's default
+        staging buffer lives under ``<root>/.bengal/staging``, a hidden directory,
+        so when that buffer is active Pounce 404s every asset under it. #392 works
+        around this by routing those requests through Bengal's own ``_serve_static``,
+        but the underlying constraint is invisible three layers from the cause.
+
+        This surfaces the constraint loudly at buffer construction so a future
+        change that introduces a *new* hidden serving path fails visibly here
+        rather than as mysterious runtime 404s. We log (not raise) because the
+        #392 mitigation keeps serving working; Part 2 (relocating the staging
+        buffer off ``.bengal/``) is upstream-gated on pounce#74.
+        """
+        for label, directory in (("active", self._dirs[0]), ("staging", self._dirs[1])):
+            hidden = _hidden_path_component(directory)
+            if hidden is not None:
+                logger.warning(
+                    "buffer_path_hidden_component",
+                    buffer=label,
+                    path=str(directory),
+                    hidden_component=hidden,
+                    ref="lbliii/pounce#74",
+                    hint=(
+                        "Buffer path contains a hidden (dot-prefixed) component that "
+                        "Pounce's static handler rejects; asset requests for this buffer "
+                        "fall back to bengal's _serve_static (#392 mitigation) instead of "
+                        "the fast Pounce static path. Relocating off .bengal/ (#400 Part 2) "
+                        "is gated on upstream pounce#74."
+                    ),
+                )
 
     @property
     def active_dir(self) -> Path:

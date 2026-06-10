@@ -277,3 +277,66 @@ class TestBufferManager:
         assert (mgr.active_dir / "index.html").read_text() == "<html>v2</html>"
         # Old buffer still has v1
         assert (mgr.staging_dir / "index.html").read_text() == "<html>v1</html>"
+
+
+class TestHiddenBufferGuard:
+    """Hidden-path constraint guard at the integration boundary (#400)."""
+
+    def test_hidden_path_component_detects_dot_bengal(self, tmp_path: Path) -> None:
+        from bengal.server.buffer_manager import _hidden_path_component
+
+        staging = tmp_path / ".bengal" / "staging"
+        assert _hidden_path_component(staging) == ".bengal"
+
+    def test_hidden_path_component_none_for_plain_path(self, tmp_path: Path) -> None:
+        from bengal.server.buffer_manager import _hidden_path_component
+
+        # tmp_path itself must not be under a hidden dir for this assertion to hold.
+        public = tmp_path / "public"
+        assert _hidden_path_component(public) is None
+
+    def test_hidden_path_component_exempts_well_known(self, tmp_path: Path) -> None:
+        from bengal.server.buffer_manager import _hidden_path_component
+
+        wk = tmp_path / ".well-known"
+        assert _hidden_path_component(wk) is None
+
+    def test_setup_warns_loudly_on_hidden_staging_buffer(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import bengal.server.buffer_manager as bm
+
+        calls: list[tuple[str, dict]] = []
+
+        def _capture_warning(event: str, **kwargs: object) -> None:
+            calls.append((event, kwargs))
+
+        # bm.logger is a LazyLogger proxy; patch the resolved BengalLogger.
+        monkeypatch.setattr(bm.logger._logger, "warning", _capture_warning)
+
+        mgr = BufferManager.for_dev_server(
+            output_dir=tmp_path / "public",
+            staging_dir=tmp_path / ".bengal" / "staging",
+        )
+        mgr.setup()
+
+        hidden_warnings = [c for c in calls if c[0] == "buffer_path_hidden_component"]
+        # Exactly the staging buffer (under .bengal) is hidden; public is not.
+        assert len(hidden_warnings) == 1
+        _event, kwargs = hidden_warnings[0]
+        assert kwargs["buffer"] == "staging"
+        assert kwargs["hidden_component"] == ".bengal"
+        assert kwargs["ref"] == "lbliii/pounce#74"
+
+    def test_setup_no_warning_for_plain_buffers(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import bengal.server.buffer_manager as bm
+
+        calls: list[str] = []
+        monkeypatch.setattr(bm.logger._logger, "warning", lambda event, **_kw: calls.append(event))
+
+        mgr = BufferManager(dir_a=tmp_path / "a", dir_b=tmp_path / "b")
+        mgr.setup()
+
+        assert "buffer_path_hidden_component" not in calls

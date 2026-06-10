@@ -417,3 +417,41 @@ def inspect_asset_outputs(output_dir: Path, *, sample_limit: int = 5) -> AssetOu
         missing_count=missing_count,
         missing_outputs=tuple(missing_outputs),
     )
+
+
+def select_smoke_probe_asset(output_dir: Path) -> str | None:
+    """Pick a known, on-disk asset URL to probe the dev server's serve path.
+
+    Used by the dev-server serve-ability smoke check (#398): we want a request
+    path that *must* return 200 against the real serving setup. Prefers a CSS
+    entry from ``asset-manifest.json`` (the canonical #392 symptom was CSS
+    404ing), then any manifest entry whose output file is present on disk.
+
+    Returns a URL path (leading ``/``, e.g. ``/assets/css/style.css``) suitable
+    for an HTTP GET, or ``None`` when no manifest entry can be resolved to an
+    existing file. Callers fall back to probing ``index.html`` in that case.
+    """
+    manifest = AssetManifest.load(output_dir / "asset-manifest.json")
+    if manifest is None:
+        return None
+
+    css_candidate: str | None = None
+    first_candidate: str | None = None
+    for entry in manifest.entries.values():
+        output_path = entry.output_path
+        if not output_path:
+            continue
+        try:
+            on_disk = (output_dir / output_path).is_file()
+        except OSError:
+            on_disk = False
+        if not on_disk:
+            continue
+        url = "/" + output_path.lstrip("/")
+        if first_candidate is None:
+            first_candidate = url
+        if output_path.lower().endswith(".css"):
+            css_candidate = url
+            break
+
+    return css_candidate or first_candidate

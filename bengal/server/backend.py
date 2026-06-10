@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 
     from pounce.server import Server
 
+    from bengal.server.serve_probe import ProbeResult
+
 
 class ServerBackend(Protocol):
     """Protocol for dev server HTTP backends (Pounce ASGI, legacy: TCPServer)."""
@@ -100,6 +102,33 @@ def create_pounce_backend(
     )
     server = Server(config, app)
     return PounceBackend(server, port)
+
+
+def probe_backend_serve_ability(
+    backend: ServerBackend,
+    *,
+    host: str,
+    serving_dir: Path,
+    attempts: int = 20,
+    retry_interval: float = 0.15,
+) -> ProbeResult:
+    """Run a serve-ability smoke probe against a listening backend (#398).
+
+    Verifies that a known asset is actually reachable over HTTP from the backend's
+    port, against the real serving setup (ASGI app + active buffer). The probe
+    retries connection failures so it can be fired right after the server thread
+    starts (coordinating with backend readiness), but treats any HTTP response
+    other than 200/304 as a hard serve-path failure.
+    """
+    from bengal.server.serve_probe import probe_serve_ability
+
+    return probe_serve_ability(
+        host=host,
+        port=backend.port,
+        serving_dir=serving_dir,
+        attempts=attempts,
+        retry_interval=retry_interval,
+    )
 
 
 def create_pounce_preview_backend(

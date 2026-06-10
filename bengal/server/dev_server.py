@@ -294,6 +294,17 @@ class DevServer:
                 server_thread = threading.Thread(target=_run_server, daemon=True)
                 server_thread.start()
 
+                # Serve-ability smoke check (#398): assert a known asset is actually
+                # reachable over HTTP now that the server is listening, before the
+                # user's first request. Catches the #392 hidden-buffer 404 class.
+                if server_error[0] is None and not self._run_serve_probe(actual_port):
+                    backend.shutdown()
+                    raise BengalServerError(
+                        "Dev server cannot serve assets over HTTP (see diagnostics above)",
+                        code=ErrorCode.S005,
+                        suggestion="See #392 / lbliii/pounce#74 for the hidden-buffer serve-path failure.",
+                    )
+
                 # Run validation build in foreground (shows progress)
                 self._run_validation_build(BuildProfile.WRITER, actual_port)
 
@@ -400,6 +411,19 @@ class DevServer:
                 elif watcher_runner is not None:
                     watcher_runner.start()
                     logger.info("file_watcher_started", watch_dirs=self._get_watched_directories())
+
+                # Serve-ability smoke check (#398). backend.start() blocks below, so
+                # run the probe from a daemon thread; it retries until the server is
+                # listening, then fails loudly + shuts down on a serve-path failure.
+                def _probe_when_ready() -> None:
+                    if not self._run_serve_probe(actual_port):
+                        backend.shutdown()
+
+                threading.Thread(
+                    target=_probe_when_ready,
+                    name="bengal-serve-probe",
+                    daemon=True,
+                ).start()
 
                 # Run until interrupted
                 try:
@@ -1283,6 +1307,71 @@ class DevServer:
             self._request_callback_holder[0] = _log_request
 
         cli.request_log_header()
+
+    def _run_serve_probe(self, port: int) -> bool:
+        """Verify a known asset is reachable over HTTP once the server is listening.
+
+        Serve-ability smoke check (#398): the build can produce perfect output on
+        disk that is nonetheless unreachable over HTTP (the #392 / pounce#74
+        hidden-buffer 404). This probes the *real* serving setup — the ASGI app
+        plus the active buffer — for a known asset (manifest entry, falling back
+        to ``index.html``) and returns whether it returned 200.
+
+        On failure it fails LOUDLY: the buffer path, serving dir, and reason are
+        surfaced via the CLI and the logger instead of leaking out as silent
+        404s. Returns True when the probe passed (or could not be evaluated), and
+        False when a definitive serve-path failure was detected.
+
+        The probe retries connection errors so it coordinates with backend
+        readiness — only a real HTTP response other than 200/304 is treated as a
+        failure.
+        """
+        from bengal.server.serve_probe import format_probe_failure, probe_serve_ability
+
+        serving_dir = self._buffer_manager.active_dir
+        staging_dir = self._buffer_manager.staging_dir
+        result = probe_serve_ability(self.host, port, serving_dir)
+
+        if result.ok:
+            logger.info(
+                "serve_probe_passed",
+                url=result.url,
+                status=result.status,
+                serving_dir=str(serving_dir),
+            )
+            return True
+
+        if result.status is None:
+            # No HTTP response after retries: the server isn't listening (e.g. it
+            # failed to bind, or this is a non-serving test harness). That is a
+            # *startup* failure surfaced by the server thread's own error path, not
+            # a serve-path bug — warn but don't abort on the probe's account.
+            logger.warning(
+                "serve_probe_no_response",
+                url=result.url,
+                reason=result.reason,
+                serving_dir=str(serving_dir),
+            )
+            return True
+
+        message = format_probe_failure(result, serving_dir=serving_dir, staging_dir=staging_dir)
+        logger.error(
+            "serve_probe_failed",
+            error_code=ErrorCode.S005.name,
+            url=result.url,
+            status=result.status,
+            reason=result.reason,
+            serving_dir=str(serving_dir),
+            staging_dir=str(staging_dir),
+            ref="#392",
+        )
+        cli = get_cli_output()
+        cli.blank()
+        first, *rest = message.splitlines()
+        cli.error(first)
+        for line in rest:
+            cli.raw(line, stream="stderr", level=None)
+        return False
 
     def _wait_for_server_ready(self, port: int, timeout_sec: float = 10.0) -> bool:
         """
