@@ -4,12 +4,6 @@ Provenance-based incremental filtering for builds.
 Replaces the old IncrementalFilterEngine with content-addressed provenance.
 Provides 30x faster incremental builds with correct invalidation.
 
-Usage in build orchestrator:
-    from bengal.orchestration.build.provenance_filter import phase_incremental_filter_provenance
-
-    # Replace phase_incremental_filter call with:
-    filter_result = phase_incremental_filter_provenance(orchestrator, cli, incremental, ...)
-
 Dependency Gap Fixes (RFC: rfc-incremental-build-dependency-gaps):
     - Data file changes now trigger dependent page rebuilds
     - Taxonomy term pages rebuild when member post metadata changes

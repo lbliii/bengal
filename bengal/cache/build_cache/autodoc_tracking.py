@@ -142,19 +142,6 @@ class AutodocTracker:
             has_content_hash=content_hash is not None,
         )
 
-    def get_affected_autodoc_pages(self, changed_source: Path | str) -> set[str]:
-        """
-        Get autodoc pages affected by a source file change.
-
-        Args:
-            changed_source: Path to the changed Python/OpenAPI source file
-
-        Returns:
-            Set of autodoc page paths that need to be rebuilt
-        """
-        source_key = str(changed_source)
-        return self.autodoc_dependencies.get(source_key, set())
-
     def get_autodoc_source_files(self) -> set[str]:
         """
         Get all tracked autodoc source files.

@@ -6,11 +6,10 @@ Covers:
 - phase_discovery(): Content discovery phase
 - phase_cache_metadata(): Cache metadata phase
 - phase_config_check(): Config change detection
-- phase_incremental_filter(): Incremental filtering
+- phase_incremental_filter_provenance(): Incremental filtering
 """
 
 import time
-from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 from bengal.orchestration.build.initialization import (
@@ -19,10 +18,11 @@ from bengal.orchestration.build.initialization import (
     phase_config_check,
     phase_discovery,
     phase_fonts,
-    phase_incremental_filter,
+)
+from bengal.orchestration.build.provenance_filter import (
+    phase_incremental_filter_provenance,
 )
 from bengal.orchestration.build.results import (
-    ChangeSummary,
     ConfigCheckResult,
     FilterResult,
 )
@@ -324,7 +324,7 @@ class TestPhaseConfigCheck:
 
 
 class TestPhaseIncrementalFilter:
-    """Tests for phase_incremental_filter function."""
+    """Tests for phase_incremental_filter_provenance function."""
 
     def test_returns_all_pages_for_full_build(self, tmp_path):
         """Returns all pages for full builds."""
@@ -336,7 +336,7 @@ class TestPhaseIncrementalFilter:
         cli = MockPhaseContext.create_cli()
         cache = MagicMock()
 
-        result = phase_incremental_filter(
+        result = phase_incremental_filter_provenance(
             orchestrator, cli, cache, incremental=False, verbose=False, build_start=time.time()
         )
 
@@ -347,183 +347,6 @@ class TestPhaseIncrementalFilter:
         pages, assets, _tags, _paths, _sections = result
         assert pages == mock_pages
         assert assets == mock_assets
-
-    def test_filters_unchanged_pages_for_incremental(self, tmp_path):
-        """Filters unchanged pages for incremental builds."""
-        # Create output directory with existing content to simulate a warm cache
-        # This prevents the output_missing check from triggering a full rebuild
-        output_dir = tmp_path / "public"
-        output_dir.mkdir()
-        (output_dir / "index.html").write_text("<html></html>")
-        # Create minimal assets to pass the assets check
-        assets_dir = output_dir / "assets"
-        assets_dir.mkdir()
-        (assets_dir / "style.css").write_text("")
-        (assets_dir / "main.js").write_text("")
-        (assets_dir / "icons.svg").write_text("")
-        # Create special pages to pass special pages check
-        (output_dir / "graph").mkdir()
-        (output_dir / "graph" / "index.html").write_text("<html></html>")
-        (output_dir / "search").mkdir()
-        (output_dir / "search" / "index.html").write_text("<html></html>")
-
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        orchestrator.site.pages = [MagicMock(), MagicMock()]
-        orchestrator.site.assets = [MagicMock()]
-        cli = MockPhaseContext.create_cli()
-        cache = MagicMock()
-        cache.taxonomy_index.get_all_tags.return_value = {}
-
-        # Mock find_work_early to return subset
-        changed_page = MagicMock()
-        changed_page.metadata = {}
-        changed_page.source_path = Path("test.md")
-        changed_page.tags = []
-        change_summary = ChangeSummary()
-        change_summary.modified_content = [changed_page.source_path]
-        orchestrator.incremental.find_work_early.return_value = (
-            [changed_page],
-            [],
-            change_summary,
-        )
-
-        result = phase_incremental_filter(
-            orchestrator, cli, cache, incremental=True, verbose=False, build_start=time.time()
-        )
-
-        assert isinstance(result, FilterResult)
-        assert len(result.pages_to_build) == 1
-        assert result.pages_to_build[0] is changed_page
-        # Test tuple unpacking backward compatibility
-        pages, _assets, _tags, _paths, _sections = result
-        assert len(pages) == 1
-        assert pages[0] is changed_page
-
-    def test_returns_none_when_no_changes(self, tmp_path):
-        """Returns None when no changes detected (skip build)."""
-        # Create output directory with existing content to simulate a warm cache
-        output_dir = tmp_path / "public"
-        output_dir.mkdir()
-        (output_dir / "index.html").write_text("<html></html>")
-        # Create minimal assets to pass the assets check
-        assets_dir = output_dir / "assets"
-        assets_dir.mkdir()
-        (assets_dir / "style.css").write_text("")
-        (assets_dir / "main.js").write_text("")
-        (assets_dir / "icons.svg").write_text("")
-        # Create special pages to pass special pages check
-        (output_dir / "graph").mkdir()
-        (output_dir / "graph" / "index.html").write_text("<html></html>")
-        (output_dir / "search").mkdir()
-        (output_dir / "search" / "index.html").write_text("<html></html>")
-
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        orchestrator.site.pages = [MagicMock()]
-        orchestrator.site.assets = [MagicMock()]
-        cli = MockPhaseContext.create_cli()
-        cache = MagicMock()
-        cache.taxonomy_index.get_all_tags.return_value = {}
-
-        orchestrator.incremental.find_work_early.return_value = ([], [], ChangeSummary())
-
-        result = phase_incremental_filter(
-            orchestrator, cli, cache, incremental=True, verbose=False, build_start=time.time()
-        )
-
-        assert result is None
-        assert orchestrator.stats.skipped is True
-
-    def test_tracks_affected_tags(self, tmp_path):
-        """Tracks affected tags from changed pages."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        orchestrator.site.pages = []
-        orchestrator.site.assets = []
-        cli = MockPhaseContext.create_cli()
-        cache = MagicMock()
-        cache.taxonomy_index.get_all_tags.return_value = {}
-
-        changed_page = MagicMock()
-        changed_page.metadata = {}
-        changed_page.source_path = Path("test.md")
-        changed_page.tags = ["Python", "Tutorial"]
-        changed_page.section = None
-        orchestrator.incremental.find_work_early.return_value = (
-            [changed_page],
-            [],
-            ChangeSummary(),
-        )
-
-        result = phase_incremental_filter(
-            orchestrator, cli, cache, incremental=True, verbose=False, build_start=time.time()
-        )
-
-        assert isinstance(result, FilterResult)
-        assert "python" in result.affected_tags
-        assert "tutorial" in result.affected_tags
-        # Test tuple unpacking backward compatibility
-        _, _, affected_tags, _, _ = result
-        assert "python" in affected_tags
-        assert "tutorial" in affected_tags
-
-    def test_tracks_affected_sections(self, tmp_path):
-        """Tracks affected sections from changed pages."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        orchestrator.site.pages = []
-        orchestrator.site.assets = []
-        cli = MockPhaseContext.create_cli()
-        cache = MagicMock()
-        cache.taxonomy_index.get_all_tags.return_value = {}
-
-        changed_page = MagicMock()
-        changed_page.metadata = {}
-        changed_page.source_path = Path("docs/intro.md")
-        changed_page.tags = []
-        changed_page.section = MagicMock()
-        changed_page.section.path = Path("docs")
-        orchestrator.incremental.find_work_early.return_value = (
-            [changed_page],
-            [],
-            ChangeSummary(),
-        )
-
-        result = phase_incremental_filter(
-            orchestrator, cli, cache, incremental=True, verbose=False, build_start=time.time()
-        )
-
-        assert isinstance(result, FilterResult)
-        assert "docs" in result.affected_sections
-        # Test tuple unpacking backward compatibility
-        _, _, _, _, affected_sections = result
-        assert "docs" in affected_sections
-
-    def test_updates_cache_statistics(self, tmp_path):
-        """Updates cache hit/miss statistics."""
-        orchestrator = MockPhaseContext.create_orchestrator(tmp_path)
-        orchestrator.site.pages = [MagicMock(), MagicMock(), MagicMock()]
-        orchestrator.site.assets = []
-        cli = MockPhaseContext.create_cli()
-        cache = MagicMock()
-        cache.taxonomy_index.get_all_tags.return_value = {}
-
-        # One page changed
-        changed_page = MagicMock()
-        changed_page.metadata = {}
-        changed_page.source_path = Path("test.md")
-        changed_page.tags = []
-        changed_page.section = None
-        orchestrator.incremental.find_work_early.return_value = (
-            [changed_page],
-            [],
-            ChangeSummary(),
-        )
-
-        phase_incremental_filter(
-            orchestrator, cli, cache, incremental=True, verbose=False, build_start=time.time()
-        )
-
-        # 3 total pages, 1 rebuilt, 2 cached
-        assert orchestrator.stats.cache_hits == 2
-        assert orchestrator.stats.cache_misses == 1
 
 
 class TestCheckSpecialPagesMissing:

@@ -4,12 +4,9 @@ Unit tests for Mobile Navigation (Document Application RFC Phase 4).
 Tests the native dialog-based mobile navigation including:
 - Dialog element presence
 - ARIA attributes
-- Fallback to classic drawer when disabled
 """
 
 from __future__ import annotations
-
-import pytest
 
 
 class TestMobileNavDialog:
@@ -37,82 +34,6 @@ class TestMobileNavDialog:
         html = site.read_output("index.html")
         assert '<dialog id="mobile-nav-dialog"' in html
         assert 'class="mobile-nav-dialog"' in html
-
-    @pytest.mark.skip(
-        reason="Fallback to classic drawer not yet implemented - templates always use native dialog"
-    )
-    def test_fallback_to_classic_when_dialog_disabled(self, site_builder):
-        """Mobile nav should use classic drawer when dialog disabled."""
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "document_application": {
-                    "enabled": True,
-                    "interactivity": {
-                        "modals": "enhanced",  # Not native_dialog
-                    },
-                },
-            },
-            content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
-        )
-        site.build()
-
-        html = site.read_output("index.html")
-        # Should use classic nav element
-        assert 'class="mobile-nav"' in html
-        assert 'data-bengal="mobile-nav"' in html
-        # Should NOT have dialog
-        assert '<dialog id="mobile-nav-dialog"' not in html
-
-    @pytest.mark.skip(
-        reason="Fallback to classic drawer not yet implemented - templates always use native dialog"
-    )
-    def test_fallback_when_doc_app_disabled(self, site_builder):
-        """Mobile nav should use classic drawer when document_application disabled."""
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "document_application": {
-                    "enabled": False,
-                },
-            },
-            content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
-        )
-        site.build()
-
-        html = site.read_output("index.html")
-        # Should use classic nav element
-        assert 'class="mobile-nav"' in html
-        # Should NOT have dialog
-        assert '<dialog id="mobile-nav-dialog"' not in html
-
-    @pytest.mark.skip(
-        reason="Fallback to classic drawer not yet implemented - templates always use native dialog"
-    )
-    def test_fallback_when_native_dialogs_feature_disabled(self, site_builder):
-        """Mobile nav should use classic drawer when native_dialogs feature disabled."""
-        site = site_builder(
-            config={
-                "title": "Test Site",
-                "document_application": {
-                    "enabled": True,
-                    "interactivity": {
-                        "modals": "native_dialog",
-                    },
-                    "features": {
-                        "native_dialogs": False,
-                    },
-                },
-            },
-            content={"_index.md": "---\ntitle: Home\n---\nWelcome"},
-        )
-        site.build()
-
-        html = site.read_output("index.html")
-        # Should use classic nav element
-        assert 'class="mobile-nav"' in html
-        # Should NOT have dialog
-        assert '<dialog id="mobile-nav-dialog"' not in html
 
 
 class TestMobileNavAccessibility:
