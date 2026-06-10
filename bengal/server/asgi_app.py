@@ -21,9 +21,12 @@ from bengal.server.live_reload.sse import (
 )
 from bengal.server.responses import get_rebuilding_badge_script
 from bengal.server.utils import find_html_injection_point, get_content_type
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+logger = get_logger(__name__)
 
 # ASGI app type: async (scope, receive, send) -> None
 type ASGIApp = Callable[..., Any]
@@ -130,7 +133,15 @@ def create_bengal_dev_app(
         # within this request use the same buffer (double-buffer consistency).
         serving_dir = _resolve_dir()
 
-        if method in {"GET", "HEAD"} and _should_delegate_to_pounce_static(path):
+        # Pounce's static handler 404s any path with a hidden (dot-prefixed) component.
+        # The double-buffer serves from <root>/.bengal/staging half the time, so route
+        # asset requests around Pounce to _serve_static whenever the active buffer (or any
+        # ancestor) is hidden — otherwise every asset 404s and pages render unstyled.
+        if (
+            method in {"GET", "HEAD"}
+            and _should_delegate_to_pounce_static(path)
+            and not _has_hidden_path_component(serving_dir)
+        ):
             served = await _serve_pounce_static_asset(
                 scope,
                 receive,
@@ -228,6 +239,26 @@ def _should_delegate_to_pounce_static(path: str) -> bool:
     return any(raw_path.endswith(ext) for ext in _POUNCE_STATIC_ASSET_EXTENSIONS)
 
 
+def _has_hidden_path_component(directory: Path) -> bool:
+    """True when the serving directory's resolved path contains a dot-prefixed component.
+
+    Pounce's static handler rejects any path whose *resolved absolute* path contains a
+    hidden component (a part starting with ``.``, except ``.well-known``) — see
+    ``pounce/_static.py`` ``_resolve_file``. The dev server's double-buffer stages builds
+    in ``<root>/.bengal/staging``; whenever that buffer is the active one after a swap,
+    Pounce would 404 *every* asset under it (CSS/JS/fonts/icons), leaving pages unstyled
+    while HTML — served by ``_serve_static`` — still loads. Detecting a hidden serving dir
+    lets us route around Pounce to ``_serve_static`` (which has no such restriction and
+    serves assets with correct content types), so assets keep serving regardless of which
+    buffer is active. Also covers the rarer case of a project rooted under a dot-directory.
+    """
+    try:
+        resolved = directory.resolve()
+    except OSError:
+        resolved = directory
+    return any(part.startswith(".") and part != ".well-known" for part in resolved.parts)
+
+
 def _scope_without_sendfile(scope: dict[str, Any]) -> dict[str, Any]:
     """Return ``scope`` with Pounce's ``pounce.sendfile`` extension removed.
 
@@ -280,7 +311,36 @@ async def _serve_pounce_static_asset(
         )
         static_asset_handlers[key] = handler
 
-    await handler(_scope_without_sendfile(scope), receive, send)
+    # Capture the response status (transparently forwarding all messages) so we can
+    # emit a diagnostic when an asset 404s. The defining symptom of serve-path bugs
+    # (e.g. the .bengal/staging hidden-path 404) is a 404 for a file that is present
+    # on disk — distinct from a genuinely-missing file. Surface that loudly, and log
+    # which buffer served the request at debug level so swap-related issues are visible.
+    captured_status: dict[str, int | None] = {"status": None}
+
+    async def status_capturing_send(message: dict[str, Any]) -> None:
+        if message.get("type") == "http.response.start":
+            captured_status["status"] = message.get("status")
+        await send(message)
+
+    await handler(_scope_without_sendfile(scope), receive, status_capturing_send)
+
+    status = captured_status["status"]
+    raw_path = scope.get("path", "").split("?", 1)[0]
+    logger.debug("static_asset_served", path=raw_path, status=status, buffer=str(key))
+    if status == 404:
+        file_path = key / raw_path.lstrip("/")
+        if file_path.is_file():
+            logger.warning(
+                "static_asset_404_but_file_present",
+                path=raw_path,
+                buffer=str(key),
+                hint=(
+                    "Asset exists on disk but the static handler returned 404 — a "
+                    "serving-path bug, not a missing file (e.g. a hidden/dot path "
+                    "component the handler rejects). The served buffer is logged above."
+                ),
+            )
     return True
 
 
