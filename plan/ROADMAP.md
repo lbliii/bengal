@@ -26,8 +26,10 @@ Machine-checked on 2026-05-30:
   `site: SiteLike` 274, `page: Page` 120 vs `page: PageLike` 253,
   `section: Section` 82 vs `section: SectionLike` 63.
 - `uv run ty check bengal/` reports 531 diagnostics.
-- Bundled themes are `default` and `chirpui`; `bengal theme preview`,
-  swizzle commands, library assets, and Chirp UI integration tests exist.
+- The only bundled theme is `default`; `bengal theme preview`, swizzle
+  commands, and theme library asset contracts exist. Chirp UI integration is
+  exercised via the external chirp_theme package through the generic
+  library-provider tests, not an in-repo bundled theme.
 - Plugin wiring exists for directives, roles, template extensions, and phase
   hooks; the old "four stubs are never called" claim is obsolete.
 - Search supports the explicit `lunr` backend only. Pagefind and Algolia are

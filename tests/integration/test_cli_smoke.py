@@ -260,12 +260,11 @@ class TestCLICommandSmoke:
         listed = run_cli(["theme", "list", "--source", str(site_root)])
         listed.assert_ok()
         assert "default" in listed.stdout
-        assert "chirpui" in listed.stdout
         assert "Bundled theme" in listed.stdout
         assert "custom" in listed.stdout
         assert "Site-local theme" in listed.stdout
 
-        bundled_info = run_cli(["theme", "info", "--slug", "chirpui", "--source", str(site_root)])
+        bundled_info = run_cli(["theme", "info", "--slug", "default", "--source", str(site_root)])
         bundled_info.assert_ok()
         assert "Source" in bundled_info.stdout
         assert "bundled" in bundled_info.stdout

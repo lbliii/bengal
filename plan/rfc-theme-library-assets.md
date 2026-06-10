@@ -4,9 +4,11 @@
 **Created**: 2026-05-06
 **Updated**: 2026-05-28
 **Scope**: Rendering assets, themes, dev server, static builds, diagnostics
-**2026-05-28 Check**: Kept active because bundled `chirpui` exists and provider
-asset parity is now a concrete static/dev contract, not a generic theme-market
-idea.
+**2026-05-28 Check**: Kept active because provider asset parity is now a
+concrete static/dev contract, not a generic theme-market idea.
+**2026-06-09 Check**: The experimental in-repo `chirpui` bridge theme has been
+removed; component-library integration is exercised through the external
+chirp_theme package and the generic library-provider tests.
 
 ## Problem
 
