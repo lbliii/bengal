@@ -63,7 +63,7 @@ class BengalCLI(CLI):
     _ROOT_HELP_SECTIONS = (
         {
             "title": "Core workflow",
-            "commands": ("build", "serve", "check", "audit", "fix", "clean", "health"),
+            "commands": ("build", "serve", "preview", "check", "audit", "fix", "clean"),
         },
         {"title": "Create", "commands": ("new",)},
         {
@@ -73,6 +73,12 @@ class BengalCLI(CLI):
         {"title": "Inspect and debug", "commands": ("inspect", "debug")},
         {"title": "Infrastructure", "commands": ("cache", "upgrade", "codemod")},
     )
+
+    # Legacy top-level aliases that remain registered (so they keep working and
+    # stay in walk_commands()/--llms-txt/docs inventory) but must not surface in
+    # the curated root --help: they are not distinct commands. Excluding them
+    # here keeps them out of both the sections and the "Other" bucket.
+    _ROOT_HELP_LEGACY_ALIASES = ("health",)
 
     def run(self, argv: list[str] | None = None) -> Any:
         """Run the CLI, keeping cheap help/version paths off full parser builds."""
@@ -678,10 +684,11 @@ class BengalCLI(CLI):
         """Return visible top-level commands and groups keyed by name."""
         commands: dict[str, dict[str, Any]] = {}
         for cmd in self._commands.values():
-            if not getattr(cmd, "hidden", False):
-                commands[cmd.name] = self._help_entry(
-                    cmd.name, cmd.description, cmd.aliases, kind="command"
-                )
+            if getattr(cmd, "hidden", False) or cmd.name in self._ROOT_HELP_LEGACY_ALIASES:
+                continue
+            commands[cmd.name] = self._help_entry(
+                cmd.name, cmd.description, cmd.aliases, kind="command"
+            )
         for group in self._groups.values():
             if not group.hidden:
                 commands[group.name] = self._help_entry(
