@@ -114,6 +114,102 @@ class ContentHashCacheEntry:
     content_hash: str
 
 
+class _DoubleBuffer:
+    """Centralizes the dev-server double-buffer prepare/swap/resync invariant.
+
+    The dev server writes each rebuild into a *staging* buffer so the ASGI app
+    keeps serving the previous, complete snapshot. On success the build calls
+    :meth:`swap` to make staging the active buffer; on failure the context
+    manager resyncs ``site.output_dir`` so it always points at the buffer that
+    is actually being served:
+
+    - If :meth:`swap` already ran, ``output_dir`` follows the new active buffer.
+    - If it has not, ``output_dir`` reverts to the pre-build directory.
+
+    With no :class:`BufferManager` configured this is a no-op shim that simply
+    leaves ``site.output_dir`` untouched.
+    """
+
+    def __init__(
+        self,
+        site: SiteLike,
+        buffer_manager: BufferManager | None,
+        *,
+        use_incremental: bool,
+        last_delta_paths: tuple[Path, ...] | None,
+    ) -> None:
+        self._site = site
+        self._buffer_manager = buffer_manager
+        self._use_incremental = use_incremental
+        self._last_delta_paths = last_delta_paths
+        self._original_output_dir = site.output_dir
+        self.swapped = False
+
+    def __enter__(self) -> _DoubleBuffer:
+        """Redirect ``site.output_dir`` to the prepared staging buffer."""
+        if self._buffer_manager is None:
+            return self
+
+        if self._use_incremental and self._last_delta_paths is not None:
+            # asset-manifest.json describes the currently-served buffer and is
+            # not rewritten on content-only rebuilds, so it never lands in the
+            # delta paths — sync it from active every time so the staging buffer
+            # (and thus the next active buffer) never serves a stale/divergent
+            # manifest that blinds the asset output-integrity check (#315).
+            staging = self._buffer_manager.prepare_delta_staging(
+                self._last_delta_paths,
+                always_sync=("asset-manifest.json",),
+            )
+        else:
+            staging = self._buffer_manager.prepare_staging()
+        self._site.output_dir = staging
+        logger.debug(
+            "build_to_staging",
+            staging=str(staging),
+            active=str(self._buffer_manager.active_dir),
+        )
+        return self
+
+    def swap(self) -> None:
+        """Swap staging to active now the build wrote a consistent snapshot."""
+        if self._buffer_manager is None:
+            return
+        self._buffer_manager.swap()
+        self.swapped = True
+        self._site.output_dir = self._buffer_manager.active_dir
+        logger.debug(
+            "buffer_swapped",
+            active=str(self._buffer_manager.active_dir),
+            generation=self._buffer_manager.generation,
+        )
+
+    def resync_after_failure(self) -> None:
+        """Point ``output_dir`` at the buffer that is actually being served.
+
+        Call this when the build failed but the exception was handled inside
+        the ``with`` block (so it never reaches :meth:`__exit__`). If
+        :meth:`swap` already ran the new active buffer is being served;
+        otherwise serving never moved off the pre-build directory.
+        """
+        if self._buffer_manager is None:
+            return
+        if self.swapped:
+            self._site.output_dir = self._buffer_manager.active_dir
+        else:
+            self._site.output_dir = self._original_output_dir
+
+    def __exit__(self, exc_type: object, exc: object, tb: object) -> Literal[False]:
+        """Backstop: resync if an exception propagates out of the ``with``.
+
+        The warm-build path normally handles its own failure inside the block
+        and calls :meth:`resync_after_failure` directly, so this only fires for
+        an unexpected escape. Never suppresses the exception.
+        """
+        if exc_type is not None:
+            self.resync_after_failure()
+        return False
+
+
 class BuildTrigger:
     """
     Triggers builds when file changes are detected.
@@ -317,6 +413,7 @@ class BuildTrigger:
             raw = getattr(config, "raw", config)
             config_dict: dict[str, Any] = raw if isinstance(raw, dict) else {}
 
+            # Strategy 1: fast asset hot-reload (no rebuild needed)
             if not needs_full_rebuild and self._try_fast_asset_reload(
                 changed_paths, event_types, config_dict
             ):
@@ -328,224 +425,26 @@ class BuildTrigger:
                 logger.error("rebuild_skipped", reason="pre_build_hook_failed")
                 return
 
-            # Reactive path: content-only edit skips full build
-            if not needs_full_rebuild and self._can_use_reactive_path(changed_paths, event_types):
-                path = next(iter(changed_paths))
-                from bengal.core.output import OutputType
-                from bengal.server.reactive import ReactiveContentHandler
-                from bengal.server.reload_types import SerializedOutputRecord
-
-                handler = ReactiveContentHandler(self.site, self.site.output_dir)
-                try:
-                    result = handler.handle_content_change(path)
-                    if result is not None:
-                        output_path = result.output_path
-                        # Use path relative to output_dir (matches full build)
-                        rel_path = output_path
-                        if output_path.is_absolute() and self.site.output_dir:
-                            with suppress(ValueError):
-                                rel_path = output_path.relative_to(self.site.output_dir)
-                        changed_outputs = (
-                            SerializedOutputRecord(
-                                path=str(rel_path),
-                                type_value=OutputType.HTML.value,
-                                phase="render",
-                            ),
-                        )
-
-                        # Fragment path: extract #main-content from in-memory
-                        # rendered HTML (zero-disk — no read-back from disk)
-                        dev_config = config_dict.get("dev", {}) or {}
-                        content_selector = dev_config.get("content_selector", "#main-content")
-                        from bengal.server.live_reload.fragment import extract_main_content
-                        from bengal.server.live_reload.notification import send_fragment_payload
-                        from bengal.utils.paths.url_strategy import URLStrategy
-
-                        fragment = extract_main_content(result.rendered_html, content_selector)
-                        if fragment:
-                            permalink = URLStrategy.url_from_output_path(output_path, self.site)
-                            send_fragment_payload(content_selector, fragment, permalink)
-                        else:
-                            self._handle_reload(
-                                BuildReloadInfo(
-                                    changed_files=tuple(changed_files),
-                                    changed_outputs=changed_outputs,
-                                    reload_hint=None,
-                                )
-                            )
-                        self._clear_html_cache()
-                        return
-                except Exception as e:
-                    logger.warning(
-                        "reactive_path_failed",
-                        error=str(e),
-                        fallback="full_build",
-                    )
-
-            # Create build options for warm build
-            use_incremental = not needs_full_rebuild
-
-            # Warm build: reuse the existing site object instead of creating a new one
-            # This eliminates Site.from_config() overhead (~250ms per rebuild)
-            from bengal.orchestration.build.options import BuildOptions
-            from bengal.utils.observability.profile import BuildProfile
-
-            # Reset all per-build mutable state in one call.
-            # Site.prepare_for_rebuild() is the single source of truth for what
-            # must be reset between warm builds — including cascade snapshot,
-            # content registry, page caches, and URL registry.
-            self.site.prepare_for_rebuild()
-
-            build_opts = BuildOptions(
-                force_sequential=False,  # Auto-detect based on page count
-                incremental=use_incremental,
-                profile=BuildProfile.WRITER,
-                completion_policy=self.completion_policy,
-                changed_sources={Path(p) for p in changed_files} if changed_files else None,
-                nav_changed_sources=nav_changed_files,
-                structural_changed=structural_changed,
-            )
-
-            # Apply version scope if set
-            if self.version_scope:
-                self.site.config["_version_scope"] = self.version_scope
-
-            # Double-buffer: redirect output to staging directory so the ASGI
-            # app continues serving from the active buffer during the build.
-            original_output_dir = self.site.output_dir
-            swapped = False
-            if self._buffer_manager is not None:
-                if use_incremental and self._last_buffer_delta_paths is not None:
-                    # asset-manifest.json describes the currently-served buffer and is
-                    # not rewritten on content-only rebuilds, so it never lands in the
-                    # delta paths — sync it from active every time so the staging buffer
-                    # (and thus the next active buffer) never serves a stale/divergent
-                    # manifest that blinds the asset output-integrity check (#315).
-                    staging = self._buffer_manager.prepare_delta_staging(
-                        self._last_buffer_delta_paths,
-                        always_sync=("asset-manifest.json",),
-                    )
-                else:
-                    staging = self._buffer_manager.prepare_staging()
-                self.site.output_dir = staging
-                logger.debug(
-                    "build_to_staging",
-                    staging=str(staging),
-                    active=str(self._buffer_manager.active_dir),
-                )
-
-            # Execute warm build directly on the existing site
-            build_start = time.time()
-            try:
-                stats = self.site.build(options=build_opts)
-                build_duration = time.time() - build_start
-
-                # Double-buffer: swap staging to active now that the build
-                # wrote a complete, consistent snapshot.
-                if self._buffer_manager is not None:
-                    self._buffer_manager.swap()
-                    swapped = True
-                    self.site.output_dir = self._buffer_manager.active_dir
-                    logger.debug(
-                        "buffer_swapped",
-                        active=str(self._buffer_manager.active_dir),
-                        generation=self._buffer_manager.generation,
-                    )
-
-                # Build succeeded - convert stats to result-like object for display
-                class WarmBuildResult:
-                    def __init__(
-                        self,
-                        stats: Any,
-                        build_time: float,
-                        completion_policy: Any,
-                    ) -> None:
-                        from bengal.server.reload_types import (
-                            SerializedOutputRecord,
-                        )
-
-                        self.success = True
-                        self.pages_built = stats.total_pages
-                        self.build_time_ms = build_time * 1000
-                        self.error_message = None
-                        self.completion_policy = completion_policy
-                        self.changed_outputs = (
-                            tuple(
-                                SerializedOutputRecord(
-                                    path=str(r.path),
-                                    type_value=r.output_type.value,
-                                    phase=r.phase,
-                                )
-                                for r in stats.changed_outputs
-                            )
-                            if hasattr(stats, "changed_outputs")
-                            else ()
-                        )
-                        self.reload_hint = stats.reload_hint
-                        self._stats = stats
-
-                result = WarmBuildResult(stats, build_duration, self.completion_policy)
-                if self._buffer_manager is not None:
-                    self._last_buffer_delta_paths = (
-                        self._buffer_delta_paths(result.changed_outputs)
-                        if use_incremental
-                        else None
-                    )
-
-                # Seed content hash cache so first edit can use reactive path
-                self.seed_content_hash_cache(list(self.site.pages))
-
-            except Exception as e:
-                # Double-buffer: resync output_dir with the active buffer.
-                # If swap already ran, active_dir points to the new buffer;
-                # otherwise fall back to original_output_dir (pre-build).
-                if self._buffer_manager is not None:
-                    if swapped:
-                        self.site.output_dir = self._buffer_manager.active_dir
-                    else:
-                        self.site.output_dir = original_output_dir
-                    self._last_buffer_delta_paths = None
-
-                # Build crashed - log error and reinitialize site for next build
-                build_duration = time.time() - build_start
-                error_msg = str(e)
-
-                show_error(f"Build failed: {error_msg}", show_art=False)
-                cli.request_log_header()
-
-                # Record failure for pattern detection
-                error_sig = f"build_failed:{error_msg[:50] if error_msg else 'unknown'}"
-                is_new = get_dev_server_state().record_failure(error_sig)
-                if not is_new:
-                    logger.warning(
-                        "recurring_error_detected",
-                        error_code=ErrorCode.S003.name,
-                        signature=error_sig,
-                    )
-
-                logger.error(
-                    "rebuild_failed",
-                    error_code=ErrorCode.S003.name,
-                    duration_seconds=round(build_duration, 2),
-                    error=error_msg,
-                    changed_files=[str(p) for p in changed_paths][:5],
-                    is_recurring=not is_new,
-                )
-
-                # Reinitialize site from scratch to recover from corrupted state
-                # This ensures the next build starts clean
-                try:
-                    from bengal.core.site import Site
-
-                    logger.info("warm_build_recovery", action="reinitializing_site")
-                    self.site = Site.from_config(self.site.root_path)
-                    self.site.dev_mode = True
-                except Exception as reinit_error:
-                    logger.error(
-                        "warm_build_recovery_failed",
-                        error=str(reinit_error),
-                    )
+            # Strategy 2: reactive content path (content-only edit skips full build)
+            if not needs_full_rebuild and self._run_reactive_build(
+                changed_paths, event_types, changed_files, config_dict
+            ):
                 return
+
+            # Strategy 3: warm incremental/full build on the existing site
+            use_incremental = not needs_full_rebuild
+            outcome = self._run_warm_build(
+                changed_paths=changed_paths,
+                changed_files=changed_files,
+                nav_changed_files=nav_changed_files,
+                structural_changed=structural_changed,
+                use_incremental=use_incremental,
+                cli=cli,
+            )
+            if outcome is None:
+                # Warm build failed; it logged + recovered the site already.
+                return
+            result, stats, build_duration = outcome
 
             # Display build stats
             self._display_stats(result, use_incremental)
@@ -630,6 +529,226 @@ class BuildTrigger:
                 show_error(f"Build failed: {e}\n\nTry: {context.auto_fix_command}", show_art=False)
         finally:
             self._set_build_in_progress(False)
+
+    def _run_reactive_build(
+        self,
+        changed_paths: set[Path],
+        event_types: set[str],
+        changed_files: list[str],
+        config_dict: dict[str, Any],
+    ) -> bool:
+        """Reactive content path: re-render a single content edit without a build.
+
+        Returns ``True`` when the change was fully handled (the caller should
+        return), ``False`` when the reactive path is not applicable or failed
+        and the caller should fall through to a warm build. This path has its
+        own ``try/except`` and never touches the double-buffer state.
+        """
+        if not self._can_use_reactive_path(changed_paths, event_types):
+            return False
+
+        path = next(iter(changed_paths))
+        from bengal.core.output import OutputType
+        from bengal.server.reactive import ReactiveContentHandler
+        from bengal.server.reload_types import SerializedOutputRecord
+
+        handler = ReactiveContentHandler(self.site, self.site.output_dir)
+        try:
+            result = handler.handle_content_change(path)
+            if result is not None:
+                output_path = result.output_path
+                # Use path relative to output_dir (matches full build)
+                rel_path = output_path
+                if output_path.is_absolute() and self.site.output_dir:
+                    with suppress(ValueError):
+                        rel_path = output_path.relative_to(self.site.output_dir)
+                changed_outputs = (
+                    SerializedOutputRecord(
+                        path=str(rel_path),
+                        type_value=OutputType.HTML.value,
+                        phase="render",
+                    ),
+                )
+
+                # Fragment path: extract #main-content from in-memory
+                # rendered HTML (zero-disk — no read-back from disk)
+                dev_config = config_dict.get("dev", {}) or {}
+                content_selector = dev_config.get("content_selector", "#main-content")
+                from bengal.server.live_reload.fragment import extract_main_content
+                from bengal.server.live_reload.notification import send_fragment_payload
+                from bengal.utils.paths.url_strategy import URLStrategy
+
+                fragment = extract_main_content(result.rendered_html, content_selector)
+                if fragment:
+                    permalink = URLStrategy.url_from_output_path(output_path, self.site)
+                    send_fragment_payload(content_selector, fragment, permalink)
+                else:
+                    self._handle_reload(
+                        BuildReloadInfo(
+                            changed_files=tuple(changed_files),
+                            changed_outputs=changed_outputs,
+                            reload_hint=None,
+                        )
+                    )
+                self._clear_html_cache()
+                return True
+        except Exception as e:
+            logger.warning(
+                "reactive_path_failed",
+                error=str(e),
+                fallback="full_build",
+            )
+        return False
+
+    def _run_warm_build(
+        self,
+        *,
+        changed_paths: set[Path],
+        changed_files: list[str],
+        nav_changed_files: set[Path] | None,
+        structural_changed: bool,
+        use_incremental: bool,
+        cli: Any,
+    ) -> tuple[BuildResult, Any, float] | None:
+        """Warm incremental/full build that reuses the existing site object.
+
+        Builds into the double-buffer staging directory (when configured),
+        swaps on success, and resyncs ``output_dir`` on failure via
+        :class:`_DoubleBuffer`. Returns ``(result, stats, build_duration)`` on
+        success or ``None`` on failure (after logging + recovering the site).
+        """
+        # Warm build: reuse the existing site object instead of creating a new
+        # one. This eliminates Site.from_config() overhead (~250ms per rebuild).
+        from bengal.orchestration.build.options import BuildOptions
+        from bengal.utils.observability.profile import BuildProfile
+
+        # Reset all per-build mutable state in one call.
+        # Site.prepare_for_rebuild() is the single source of truth for what
+        # must be reset between warm builds — including cascade snapshot,
+        # content registry, page caches, and URL registry.
+        self.site.prepare_for_rebuild()
+
+        build_opts = BuildOptions(
+            force_sequential=False,  # Auto-detect based on page count
+            incremental=use_incremental,
+            profile=BuildProfile.WRITER,
+            completion_policy=self.completion_policy,
+            changed_sources={Path(p) for p in changed_files} if changed_files else None,
+            nav_changed_sources=nav_changed_files,
+            structural_changed=structural_changed,
+        )
+
+        # Apply version scope if set
+        if self.version_scope:
+            self.site.config["_version_scope"] = self.version_scope
+
+        # Double-buffer: redirect output to staging directory so the ASGI
+        # app continues serving from the active buffer during the build.
+        build_start = time.time()
+        with _DoubleBuffer(
+            self.site,
+            self._buffer_manager,
+            use_incremental=use_incremental,
+            last_delta_paths=self._last_buffer_delta_paths,
+        ) as buffer:
+            try:
+                stats = self.site.build(options=build_opts)
+                build_duration = time.time() - build_start
+
+                # Double-buffer: swap staging to active now that the build
+                # wrote a complete, consistent snapshot.
+                buffer.swap()
+
+                result = self._make_build_result(stats, build_duration)
+                if self._buffer_manager is not None:
+                    self._last_buffer_delta_paths = (
+                        self._buffer_delta_paths(result.changed_outputs)
+                        if use_incremental
+                        else None
+                    )
+
+                # Seed content hash cache so first edit can use reactive path
+                self.seed_content_hash_cache(list(self.site.pages))
+
+            except Exception as e:
+                # Resync output_dir with the buffer being served (active if the
+                # swap ran, else the pre-build original) before recovering.
+                buffer.resync_after_failure()
+                if self._buffer_manager is not None:
+                    self._last_buffer_delta_paths = None
+
+                # Build crashed - log error and reinitialize site for next build
+                build_duration = time.time() - build_start
+                error_msg = str(e)
+
+                show_error(f"Build failed: {error_msg}", show_art=False)
+                cli.request_log_header()
+
+                # Record failure for pattern detection
+                error_sig = f"build_failed:{error_msg[:50] if error_msg else 'unknown'}"
+                is_new = get_dev_server_state().record_failure(error_sig)
+                if not is_new:
+                    logger.warning(
+                        "recurring_error_detected",
+                        error_code=ErrorCode.S003.name,
+                        signature=error_sig,
+                    )
+
+                logger.error(
+                    "rebuild_failed",
+                    error_code=ErrorCode.S003.name,
+                    duration_seconds=round(build_duration, 2),
+                    error=error_msg,
+                    changed_files=[str(p) for p in changed_paths][:5],
+                    is_recurring=not is_new,
+                )
+
+                # Reinitialize site from scratch to recover from corrupted
+                # state. This ensures the next build starts clean.
+                try:
+                    from bengal.core.site import Site
+
+                    logger.info("warm_build_recovery", action="reinitializing_site")
+                    self.site = Site.from_config(self.site.root_path)
+                    self.site.dev_mode = True
+                except Exception as reinit_error:
+                    logger.error(
+                        "warm_build_recovery_failed",
+                        error=str(reinit_error),
+                    )
+                return None
+
+        return result, stats, build_duration
+
+    def _make_build_result(self, stats: Any, build_duration: float) -> BuildResult:
+        """Adapt warm-build ``stats`` into the module-level :class:`BuildResult`.
+
+        Mirrors the subprocess :class:`BuildResult` so ``_display_stats`` and the
+        reload path see the same type whether the build ran warm or out-of-process.
+        """
+        from bengal.server.reload_types import SerializedOutputRecord
+
+        changed_outputs: tuple[SerializedOutputRecord, ...] = (
+            tuple(
+                SerializedOutputRecord(
+                    path=str(r.path),
+                    type_value=r.output_type.value,
+                    phase=r.phase,
+                )
+                for r in stats.changed_outputs
+            )
+            if hasattr(stats, "changed_outputs")
+            else ()
+        )
+        return BuildResult(
+            success=True,
+            pages_built=stats.total_pages,
+            build_time_ms=build_duration * 1000,
+            error_message=None,
+            changed_outputs=changed_outputs,
+            reload_hint=stats.reload_hint,
+            completion_policy=self.completion_policy,
+        )
 
     def _needs_full_rebuild(
         self,
