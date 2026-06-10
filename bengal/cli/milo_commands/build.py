@@ -440,7 +440,7 @@ def build(
                                 / _prev.build_time_ms
                                 * 100
                             )
-                    except Exception:  # noqa: S110
+                    except Exception:  # noqa: S110 -- stats display is cosmetic; never break the build CLI
                         pass
                 display_simple_build_stats(stats, output_dir=str(site.output_dir))
             elif build_profile == BuildProfile.DEVELOPER:

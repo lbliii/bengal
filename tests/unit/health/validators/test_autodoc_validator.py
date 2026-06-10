@@ -256,3 +256,60 @@ class TestAutodocValidatorDisabled:
         results = autodoc_validator.validate(site)
 
         assert results == []
+
+
+class TestAutodocPageTypeSkipDiagnostics:
+    """Unreadable autodoc pages must surface as skipped (issue #385, G10)."""
+
+    @staticmethod
+    def _debug_events(logger_name: str):
+        from bengal.utils.observability.logger import _loggers
+
+        if logger_name in _loggers:
+            return _loggers[logger_name].get_events()
+        return []
+
+    def test_unreadable_page_surfaces_skipped_count(
+        self, autodoc_validator: AutodocValidator, tmp_path: Path
+    ) -> None:
+        """A page that can't be read must increment a skip count and log a breadcrumb.
+
+        Regression for issue #385 (Finding 10): ``_check_page_types`` used to
+        ``pass`` on read failure, silently shrinking type-check coverage and
+        still reporting a clean result.
+        """
+        from unittest.mock import Mock
+
+        from bengal.health.report import CheckStatus
+        from bengal.utils.observability.logger import (
+            LogLevel,
+            configure_logging,
+            reset_loggers,
+        )
+
+        reset_loggers()
+        configure_logging(level=LogLevel.DEBUG)
+
+        # api/ prefix maps to expected_type "autodoc-python".
+        api_dir = tmp_path / "api" / "core"
+        api_dir.mkdir(parents=True)
+        # A directory named index.html is matched by rglob but read_text raises.
+        (api_dir / "index.html").mkdir()
+
+        site = Mock()
+        site.output_dir = tmp_path
+
+        results = autodoc_validator._check_page_types(site, ["api"])
+
+        # Coverage was reduced -> a warning surfaces the skip count rather than
+        # a clean/empty pass.
+        assert results, "expected a result surfacing the skipped page"
+        result = results[0]
+        assert result.status == CheckStatus.WARNING
+        assert result.metadata.get("skipped") == 1
+        assert "skipped" in result.message
+
+        messages = [e.message for e in self._debug_events("bengal.health.validators.autodoc")]
+        assert "page_type_check_unreadable" in messages
+
+        reset_loggers()

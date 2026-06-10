@@ -925,7 +925,7 @@ def identify_none_callable(error: BaseException, template_path: Path | None = No
             )
 
             suspects.extend(scan_template_for_callables(template_path))
-        except Exception:  # noqa: S110
+        except Exception:  # noqa: S110 -- suggestion scanning is advisory; never break error reporting
             pass
 
     unique_suspects = list(dict.fromkeys(suspects))

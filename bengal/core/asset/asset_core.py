@@ -752,7 +752,7 @@ class Asset:
             ):
                 logical_str = str(self.logical_path) if self.logical_path else self.source_path.name
                 return self._site.template_engine._asset_url(logical_str)
-        except Exception:  # noqa: S110
+        except Exception:  # noqa: S110 -- template-engine asset_url is optional; fall back to baseurl
             pass
 
         # Fallback: simple baseurl application

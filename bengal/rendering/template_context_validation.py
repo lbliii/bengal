@@ -70,7 +70,7 @@ def validate_template_contexts(
     for name in template_names:
         try:
             template = engine.env.get_template(name)
-        except Exception:  # noqa: S112
+        except Exception:  # noqa: S112 -- a template that fails to load is skipped, not validated
             continue
 
         if not hasattr(template, "validate_context"):

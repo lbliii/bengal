@@ -417,7 +417,7 @@ class LiveProgressManager:
         if self._render_fn:
             try:
                 return self._render_fn("build_progress.kida", state=state).strip("\n")
-            except Exception:  # noqa: S110
+            except Exception:  # noqa: S110 -- rich progress render is cosmetic; fall back to plain output
                 pass
 
         import os
