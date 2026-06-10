@@ -679,8 +679,8 @@ class DevServer:
             if default_palette:
                 build_state.set_active_palette(default_palette)
                 logger.debug("rebuilding_page_palette_set", palette=default_palette)
-        except Exception:  # noqa: S110
-            pass
+        except Exception as e:  # palette set is best-effort; styling falls back
+            logger.debug("rebuilding_page_palette_failed", error=str(e))
 
     def _init_reload_controller(self) -> None:
         """Initialize reload controller with configuration."""

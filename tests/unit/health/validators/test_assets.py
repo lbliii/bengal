@@ -464,3 +464,61 @@ class TestEmptyAssetDetection:
             r for r in results if r.status == CheckStatus.WARNING and "empty" in r.message.lower()
         ]
         assert len(warning_results) > 0, "Many empty files should trigger a warning"
+
+
+# ---------------------------------------------------------------------------
+# AssetURLValidator: unreadable-file coverage diagnostics (issue #385, G10)
+# ---------------------------------------------------------------------------
+
+
+def _debug_events(logger_name: str):
+    """Return captured debug events for a BengalLogger by name."""
+    from bengal.utils.observability.logger import _loggers
+
+    if logger_name in _loggers:
+        return _loggers[logger_name].get_events()
+    return []
+
+
+def test_asset_url_validator_surfaces_skipped_unreadable_files(tmp_path):
+    """Unreadable HTML files must be counted as skipped, not silently dropped.
+
+    Regression for issue #385 (Finding 10): the validator used to ``continue``
+    on read failure with no counter, so it reported a clean pass over files it
+    never scanned. The skip count must surface in the CheckResult metadata and
+    a debug breadcrumb must be emitted.
+    """
+    from unittest.mock import Mock
+
+    from bengal.health.report import CheckStatus
+    from bengal.health.validators.asset_urls import AssetURLValidator
+    from bengal.utils.observability.logger import LogLevel, configure_logging, reset_loggers
+
+    reset_loggers()
+    configure_logging(level=LogLevel.DEBUG)
+
+    # A directory named like an HTML file is matched by rglob("*.html") but
+    # read_text() raises IsADirectoryError on it -> exercises the swallow.
+    (tmp_path / "broken.html").mkdir()
+    # A genuinely valid HTML file with no asset refs (clean otherwise).
+    (tmp_path / "ok.html").write_text("<html><body>no assets</body></html>")
+
+    site = Mock()
+    site.output_dir = tmp_path
+    site.baseurl = ""
+
+    validator = AssetURLValidator()
+    results = validator.validate(site)
+
+    # Success result must reflect the skipped count, not a misleading all-clear.
+    success = [r for r in results if r.code == "asset_urls_valid"]
+    assert success, "expected an asset_urls_valid result"
+    assert success[0].metadata.get("skipped") == 1
+    assert "skipped" in success[0].message
+    assert success[0].status == CheckStatus.SUCCESS
+
+    # A debug breadcrumb must have been emitted for the unreadable file.
+    messages = [e.message for e in _debug_events("bengal.health.validators.asset_urls")]
+    assert "asset_url_unreadable" in messages
+
+    reset_loggers()

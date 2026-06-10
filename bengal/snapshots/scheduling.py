@@ -232,7 +232,7 @@ def _compute_attention_score(page: PageLike) -> float:
             if isinstance(date, datetime):
                 days_ago = (datetime.now(UTC) - date).days
                 score += max(0, 10.0 - days_ago / 10.0)
-        except Exception:  # noqa: S110
+        except Exception:  # noqa: S110 -- recency boost is heuristic; bad date just skips the boost
             pass
 
     # Boost for featured pages

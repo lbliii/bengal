@@ -681,8 +681,8 @@ class BuildOrchestrator:
                 from bengal.services.data import DataService
 
                 early_ctx.data_service = DataService.from_root(self.site.root_path)
-            except Exception:  # noqa: S110
-                pass  # data/ dir may not exist; service remains None
+            except Exception:  # noqa: S110 -- data/ dir may not exist; service remains None
+                pass
         run_plugin_phase("post_snapshot")
 
         # === DRY-RUN MODE: Skip output-producing phases ===

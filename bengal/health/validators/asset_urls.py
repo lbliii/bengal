@@ -73,6 +73,7 @@ class AssetURLValidator(BaseValidator):
 
         missing_assets: list[dict[str, Any]] = []
         checked = 0
+        skipped = 0
 
         # Get baseurl for path normalization
         baseurl = (site.baseurl or "").strip("/")
@@ -80,7 +81,11 @@ class AssetURLValidator(BaseValidator):
         for html_file in html_files:
             try:
                 content = html_file.read_text(encoding="utf-8", errors="ignore")
-            except Exception:  # noqa: S112
+            except Exception as e:  # unreadable sampled file is dropped, not fatal
+                # An unreadable file shrinks coverage; surface it instead of
+                # silently reporting a clean pass over a file we never scanned.
+                skipped += 1
+                logger.debug("asset_url_unreadable", html_file=str(html_file), error=str(e))
                 continue
 
             for match in self.ASSET_PATTERN.finditer(content):
@@ -189,11 +194,15 @@ class AssetURLValidator(BaseValidator):
 
         # Success if no issues
         if not unique_missing:
+            message = f"All {checked} asset references resolve to existing files"
+            if skipped:
+                message += f" ({skipped} unreadable file(s) skipped)"
             results.append(
                 CheckResult(
                     status=CheckStatus.SUCCESS,
-                    message=f"All {checked} asset references resolve to existing files",
+                    message=message,
                     code="asset_urls_valid",
+                    metadata={"checked": checked, "skipped": skipped},
                 )
             )
 

@@ -190,7 +190,7 @@ def collect_hints(
                 continue
 
             hints.append(hint)
-        except Exception:  # noqa: S112
+        except Exception:  # noqa: S112 -- a single failing hint rule is skipped, not fatal
             continue
 
     hints.sort(key=lambda h: h.priority)

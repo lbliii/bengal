@@ -11,9 +11,12 @@ from typing import TYPE_CHECKING, Any, ClassVar, override
 
 from bengal.health.base import BaseValidator
 from bengal.health.report import CheckResult, CheckStatus, ValidatorStats
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from bengal.protocols import SiteLike
+
+logger = get_logger(__name__)
 
 
 class AutodocValidator(BaseValidator):
@@ -201,6 +204,7 @@ class AutodocValidator(BaseValidator):
 
             # Check a sample of pages
             type_mismatches: list[str] = []
+            skipped = 0
             sample_pages = list(prefix_dir.rglob("index.html"))[:20]
 
             for page_path in sample_pages:
@@ -214,19 +218,46 @@ class AutodocValidator(BaseValidator):
                         type_mismatches.append(
                             f"{page_path.relative_to(site.output_dir)}: got {actual}"
                         )
-                except Exception:  # noqa: S110
-                    pass
+                except Exception as e:  # unreadable page is skipped, not fatal
+                    # Skipping a page silently shrinks type-check coverage; record
+                    # the skip so the result does not report a misleading all-clear.
+                    skipped += 1
+                    logger.debug("page_type_check_unreadable", page=str(page_path), error=str(e))
 
             if type_mismatches:
+                message = (
+                    f"Autodoc {prefix}: {len(type_mismatches)} pages have wrong type "
+                    f"(expected {expected_type})"
+                )
+                if skipped:
+                    message += f"; {skipped} page(s) skipped (unreadable)"
                 results.append(
                     CheckResult(
                         status=CheckStatus.WARNING,
-                        message=f"Autodoc {prefix}: {len(type_mismatches)} pages have wrong type (expected {expected_type})",
+                        message=message,
                         details=type_mismatches[:5],
                         metadata={
                             "prefix": prefix,
                             "expected_type": expected_type,
                             "mismatch_count": len(type_mismatches),
+                            "skipped": skipped,
+                        },
+                    )
+                )
+            elif skipped:
+                # No mismatches found, but coverage was reduced -- do not let a
+                # clean pass mask the fact that pages were skipped.
+                results.append(
+                    CheckResult(
+                        status=CheckStatus.WARNING,
+                        message=(
+                            f"Autodoc {prefix}: {skipped} page(s) skipped during "
+                            f"type check (unreadable)"
+                        ),
+                        metadata={
+                            "prefix": prefix,
+                            "expected_type": expected_type,
+                            "skipped": skipped,
                         },
                     )
                 )

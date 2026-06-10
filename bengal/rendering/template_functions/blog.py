@@ -19,11 +19,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from bengal.utils.observability.logger import get_logger
+
 if TYPE_CHECKING:
     from collections.abc import Iterable
     from datetime import datetime
 
     from bengal.protocols import SiteLike, TemplateEnvironment
+
+logger = get_logger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -234,8 +238,10 @@ def posts_filter(pages: Iterable[Any]) -> list[PostView]:
     for page in pages:
         try:
             result.append(PostView.from_page(page))
-        except Exception:  # noqa: S112
-            # Skip pages that can't be converted
+        except Exception as e:  # one bad page must not break the listing
+            # Skip pages that can't be converted, but leave a breadcrumb so a
+            # post "mysteriously missing" from the listing is diagnosable.
+            logger.debug("post_view_skipped", error=str(e))
             continue
 
     return result

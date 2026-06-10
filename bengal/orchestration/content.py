@@ -1031,6 +1031,12 @@ class ContentOrchestrator:
             page.output_path = output_path
 
             if getattr(self.site, "url_registry", None):
+                # Pre-bind so the best-effort diagnostic handler can always
+                # reference these, even if url_from_output_path() raises before
+                # they are assigned. Preserves the original silent swallow; we
+                # only add a breadcrumb (no happy-path behavior change).
+                url = None
+                source = None
                 try:
                     url = URLStrategy.url_from_output_path(output_path, cast("SiteLike", self.site))
                     source = str(getattr(page, "source_path", page.title))
@@ -1044,8 +1050,18 @@ class ContentOrchestrator:
                         version=version,
                         lang=lang,
                     )
-                except Exception:  # noqa: S110
-                    pass
+                except Exception as e:  # claim is best-effort; URLCollisionValidator backstops
+                    # Detection is not lost: URLCollisionValidator recomputes
+                    # collisions from site.pages post-hoc. Leave a breadcrumb so
+                    # claim-time failures are diagnosable rather than invisible.
+                    logger.debug(
+                        "url_claim_failed",
+                        url=url,
+                        owner="content",
+                        source=source,
+                        error=str(e),
+                        error_type=type(e).__name__,
+                    )
 
     def _validate_page_section_references(self) -> None:
         """

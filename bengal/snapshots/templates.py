@@ -82,7 +82,7 @@ def _get_template_partials(template_name: str, site: SiteLike) -> list[Path]:
                             if callable(extract_method):
                                 referenced = extract_method(ast)
                                 partials.update(referenced)
-                except Exception:  # noqa: S110
+                except Exception:  # noqa: S110 -- partial extraction is best-effort; engine compiles on demand
                     pass
 
         # Convert template names to Paths
@@ -249,7 +249,7 @@ def _analyze_template(template_name: str, site: SiteLike) -> TemplateSnapshot | 
                             for ref in extract_method(ast) or []:
                                 if isinstance(ref, str):
                                     all_deps.add(ref)
-            except Exception:  # noqa: S110
+            except Exception:  # noqa: S110 -- dependency extraction is best-effort; engine compiles on demand
                 pass
 
         # Get transitive dependencies
@@ -327,12 +327,12 @@ def _get_transitive_deps_for_template(
                                 if isinstance(r, str)
                             ]
                     next_queue.extend(ref for ref in deps if ref not in seen)
-                except Exception:  # noqa: S112
+                except Exception:  # noqa: S112 -- one unparseable template must not abort dep traversal
                     continue
 
             queue = next_queue
 
-    except Exception:  # noqa: S110
+    except Exception:  # noqa: S110 -- transitive-dep scan is best-effort; engine compiles on demand
         pass
 
     return all_deps

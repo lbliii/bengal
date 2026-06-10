@@ -346,3 +346,55 @@ class TestFeaturedPostsFilter:
         result = featured_posts_filter(posts, limit=2)
 
         assert len(result) == 2
+
+
+class TestPostsFilterSkipDiagnostics:
+    """A page that fails PostView.from_page must log, not vanish silently (#385)."""
+
+    def test_failed_conversion_emits_debug_breadcrumb(self) -> None:
+        """posts_filter swallows conversion errors but now leaves a breadcrumb.
+
+        Regression for issue #385 (Finding 11): a post that fails to convert
+        used to be silently omitted from the listing ("mysteriously missing"),
+        with no diagnostic. The skip must now emit a post_view_skipped debug.
+        """
+        from bengal.utils.observability.logger import (
+            LogLevel,
+            configure_logging,
+            reset_loggers,
+        )
+
+        reset_loggers()
+        configure_logging(level=LogLevel.DEBUG)
+
+        class ExplodingPage:
+            @property
+            def metadata(self):
+                raise RuntimeError("synthetic metadata failure")
+
+        good = MagicMock()
+        good.title = "Good Post"
+        good.href = "/blog/good/"
+        good.date = None
+        good.metadata = {}
+        good.params = {}
+        good.excerpt = ""
+        good.reading_time = 3
+        good.word_count = 500
+        good.tags = []
+        good.draft = False
+        good.excerpt_words = None
+
+        result = posts_filter([ExplodingPage(), good])
+
+        # The bad page is dropped; the good one survives.
+        assert len(result) == 1
+        assert result[0].title == "Good Post"
+
+        from bengal.utils.observability.logger import _loggers
+
+        events = _loggers.get("bengal.rendering.template_functions.blog")
+        messages = [e.message for e in events.get_events()] if events else []
+        assert "post_view_skipped" in messages
+
+        reset_loggers()
