@@ -915,8 +915,9 @@ class ContentOrchestrator:
                 # root; only browser-downloadable assets should enter the manifest.
                 if asset.source_path.suffix.lower() == ".html":
                     continue
-                # Provider CSS files such as chirpui.css are standalone static files,
-                # not modules imported by a site/theme style.css entry point.
+                # Provider CSS files (e.g. a component library's bundle) are
+                # standalone static files, not modules imported by a site/theme
+                # style.css entry point.
                 if (
                     asset.source_path.suffix.lower() == ".css"
                     and asset.source_path.name != "style.css"

@@ -62,7 +62,11 @@ Full control. Start from scratch or fork existing.
 | Theme | Use when |
 |-------|----------|
 | `default` | You want Bengal's built-in documentation theme with no extra packages. |
-| `chirpui` | You want a site rendered with Chirp UI components and can install `chirp-ui` in the build environment. |
+
+Bengal bundles a single `default` theme. For component-library themes such as
+the external Chirp UI theme, install the theme package and point `theme` at it;
+the package supplies its own templates and assets through the theme library
+asset contract below.
 
 Theme authors can package reusable component systems with [theme library asset
 contracts](./library-assets/). Bengal will load the package templates, emit the

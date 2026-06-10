@@ -22,16 +22,20 @@ def test_theme_resolver_prefers_site_local_over_bundled(tmp_path):
 def test_theme_resolver_lists_bundled_themes_without_duplicates(tmp_path):
     from bengal.themes.resolver import ThemeResolver
 
-    theme_path = tmp_path / "themes" / "chirpui"
+    # `default` is the bundled slug; a site-local theme with the same slug must
+    # shadow the bundled one and appear exactly once in iter_available so the
+    # dedup assertion fails if same-slug deduplication across the
+    # site-local/bundled layers regresses.
+    theme_path = tmp_path / "themes" / "default"
     (theme_path / "templates").mkdir(parents=True)
-    (theme_path / "theme.toml").write_text('name = "Local Chirp"\n', encoding="utf-8")
+    (theme_path / "theme.toml").write_text('name = "Local Default"\n', encoding="utf-8")
 
     records = ThemeResolver(tmp_path).iter_available()
     by_slug = {record.slug: record for record in records}
 
-    assert by_slug["chirpui"].source == "site-local"
-    assert by_slug["default"].source == "bundled"
-    assert [record.slug for record in records].count("chirpui") == 1
+    assert by_slug["default"].source == "site-local"
+    assert by_slug["default"].name == "Local Default"
+    assert [record.slug for record in records].count("default") == 1
 
 
 def test_theme_resolver_accepts_explicit_theme_path(tmp_path):
