@@ -526,11 +526,8 @@ def reset_bengal_state(request):
     # set_active_registry() (bengal/orchestration/build/__init__.py) but never
     # resets it, so a test that runs a build leaks its FrozenPluginRegistry into
     # the contextvar for every later test sharing the same xdist worker. That
-    # breaks active-registry-scope tests and, because patitas reads
-    # get_active_registry() during parsing, makes in-process parses diverge from
-    # fresh-subprocess shard parses — the source of the intermittent
-    # test_active_plugin_registry_is_context_scoped and
-    # test_parse_shard_matches_in_process_parse failures under random ordering.
+    # intermittently fails test_active_plugin_registry_is_context_scoped (which
+    # expects the ambient registry to be None) under random test ordering.
     try:
         from bengal.plugins import set_active_registry
 
