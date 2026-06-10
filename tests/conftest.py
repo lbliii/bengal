@@ -451,6 +451,15 @@ def reset_bengal_state(request):
 
     # Mistune directives factory removed — Patitas registry is immutable after creation
 
+    # Reset the active plugin registry contextvar before the test, so a leak from
+    # an earlier test (see the teardown note) can't bleed into this one.
+    try:
+        from bengal.plugins import set_active_registry
+
+        set_active_registry(None)
+    except ImportError:
+        logger.debug("Active plugin registry reset skipped: set_active_registry not available")
+
     yield
 
     # Teardown: Reset all stateful components after each test
@@ -512,6 +521,22 @@ def reset_bengal_state(request):
             clear_global_context_cache()
         except ImportError:
             logger.debug("Manual cache cleanup skipped: modules not available")
+
+    # Reset the active plugin registry contextvar. The build sets it via
+    # set_active_registry() (bengal/orchestration/build/__init__.py) but never
+    # resets it, so a test that runs a build leaks its FrozenPluginRegistry into
+    # the contextvar for every later test sharing the same xdist worker. That
+    # breaks active-registry-scope tests and, because patitas reads
+    # get_active_registry() during parsing, makes in-process parses diverge from
+    # fresh-subprocess shard parses — the source of the intermittent
+    # test_active_plugin_registry_is_context_scoped and
+    # test_parse_shard_matches_in_process_parse failures under random ordering.
+    try:
+        from bengal.plugins import set_active_registry
+
+        set_active_registry(None)
+    except ImportError:
+        logger.debug("Active plugin registry reset skipped: set_active_registry not available")
 
 
 @pytest.fixture(scope="class")
