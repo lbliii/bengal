@@ -38,6 +38,7 @@ from bengal.protocols import EngineCapability, TemplateEngineProtocol
 from bengal.protocols.capabilities import has_clear_template_cache
 from bengal.rendering.context.lazy import LazyPageContext
 from bengal.rendering.engines.errors import TemplateError, TemplateNotFoundError
+from bengal.rendering.errors.classifier import ErrorClassifier
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -806,12 +807,13 @@ class KidaTemplateEngine:
                 line_number=getattr(e, "lineno", None),
             ) from e
         except TypeError as e:
-            # Enhanced error messages for common template callable errors
-            error_str = str(e).lower()
-            if (
-                "'nonetype' object is not callable" in error_str
-                or "nonetype object is not callable" in error_str
-            ):
+            # Enhanced error messages for common template callable errors.
+            # Delegate code classification to the canonical ErrorClassifier so
+            # the live render path cannot drift from its tests: NoneType-not-
+            # callable -> R015, macro-resolved-to-Undefined -> R006, otherwise
+            # the generic render-output code.
+            code = ErrorClassifier().classify(e)
+            if code is ErrorCode.R015:
                 # Try to identify what was being called
                 import traceback
 
@@ -832,17 +834,17 @@ class KidaTemplateEngine:
                         f"Call stack:\n{context_str}\n"
                         f"Check that all filters and template functions are properly registered."
                     ),
-                    code=ErrorCode.R008,
+                    code=code,
                     original_error=e,
                 ) from e
-            if "_undefined" in error_str and "not callable" in error_str:
+            if code is ErrorCode.R006:
                 raise BengalRenderingError(
                     message=(
                         f"Template '{name}': A macro from {{% from X import y %}} resolved to "
                         "Undefined. Check that the imported template defines the macro. "
                         "If this occurs during parallel builds, try --no-parallel."
                     ),
-                    code=ErrorCode.R006,
+                    code=code,
                     original_error=e,
                     suggestion="Check that the imported template defines the macro. "
                     "If this occurs during parallel builds, try --no-parallel.",

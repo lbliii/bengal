@@ -55,6 +55,8 @@ class ErrorClassifier:
         error_str = str(exc).lower()
 
         if isinstance(exc, TypeError):
+            if self._is_undefined_macro_call(error_str):
+                return ErrorCode.R006
             if self._is_callable_error(error_str):
                 return ErrorCode.R015
             if self._is_type_comparison(error_str):
@@ -87,6 +89,17 @@ class ErrorClassifier:
             "'nonetype' object is not callable" in error_str
             or "nonetype object is not callable" in error_str
         )
+
+    @staticmethod
+    def _is_undefined_macro_call(error_str: str) -> bool:
+        """True when a macro resolved to Undefined and was then called.
+
+        ``{% from X import y %}`` where ``y`` is missing yields a
+        ``TypeError`` mentioning an ``_undefined`` object that is
+        ``not callable``. This is a macro-resolution error (R006), not the
+        generic NoneType-callable error (R015), so it must be checked first.
+        """
+        return "_undefined" in error_str and "not callable" in error_str
 
     @staticmethod
     def _is_type_comparison(error_str: str) -> bool:
@@ -202,6 +215,7 @@ _LEGACY_CODE_TO_STRING: dict[ErrorCode, str] = {
     ErrorCode.R002: "syntax",
     ErrorCode.R003: "undefined",
     ErrorCode.R004: "filter",
+    ErrorCode.R006: "macro",
     ErrorCode.R010: "other",
     ErrorCode.R014: "runtime",
     ErrorCode.R015: "callable",

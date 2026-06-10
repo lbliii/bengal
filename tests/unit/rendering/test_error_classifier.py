@@ -68,6 +68,20 @@ class TestClassifyByMessage:
     @pytest.mark.parametrize(
         "message",
         [
+            "'_Undefined' object is not callable",
+            "'_undefined' object is not callable",
+        ],
+    )
+    def test_undefined_macro_call_maps_to_r006(
+        self, classifier: ErrorClassifier, message: str
+    ) -> None:
+        # A macro resolved to Undefined and was then called: R006, and it must
+        # win over the generic NoneType-callable (R015) check.
+        assert classifier.classify(TypeError(message)) == ErrorCode.R006
+
+    @pytest.mark.parametrize(
+        "message",
+        [
             "'<' not supported between instances of 'int' and 'str'",
             "'>' not supported between instances of 'NoneType' and 'int'",
         ],
@@ -125,6 +139,7 @@ class TestLegacyShim:
             (UndefinedError("nope"), "undefined"),
             (TemplateRuntimeError("boom"), "runtime"),
             (TypeError("'NoneType' object is not callable"), "callable"),
+            (TypeError("'_Undefined' object is not callable"), "macro"),
             (TypeError("'NoneType' object is not iterable"), "none_access"),
             (
                 TypeError("'<' not supported between instances of 'int' and 'str'"),
