@@ -46,16 +46,21 @@ allow_indirect_imports = True
 # Remaining baseline (each Sprint B task below removes entries):
 #   B1 followup: TYPE_CHECKING imports for BuildOptions/BuildInput/BuildStats/
 #                BuildState are typing-only and will move to forward refs in B3.
-#   S4 followup: bengal.core.site -> bengal.orchestration.feature_detector —
-#                FeatureDetector is pure analysis with only protocols deps; move
-#                to bengal.core.feature_detector in a follow-up to clear this edge.
 #   B1 transient: bengal.core.site -> bengal.orchestration.site_runner —
 #                NEW edge from delegating shims; removed in v0.5.0 when shims drop.
+#   Live deferred edge: bengal.core.site -> bengal.orchestration.content —
+#                ContentOrchestrator is imported function-locally in
+#                _content_orchestrator() (site/__init__.py) to avoid a circular
+#                import. Ignoring (not refactoring) is correct per the baseline
+#                strategy above; the import is deferred precisely because of the
+#                documented circular-import fragility. This edge replaced the old
+#                feature_detector edge (both touched in #245); the S4-followup note
+#                about feature_detector is now resolved (that import is gone).
 ignore_imports =
     bengal.core.site -> bengal.orchestration.build.inputs
     bengal.core.site -> bengal.orchestration.build.options
     bengal.core.site -> bengal.orchestration.build_state
-    bengal.core.site -> bengal.orchestration.feature_detector
+    bengal.core.site -> bengal.orchestration.content
     bengal.core.site -> bengal.orchestration.site_runner
     bengal.core.site -> bengal.orchestration.stats.models
 
@@ -80,8 +85,7 @@ allow_indirect_imports = True
 # Allow only the context submodule. Each importer is listed explicitly because
 # import-linter matches module-pair edges, not subpackage rollups.
 ignore_imports =
-    bengal.core.page -> bengal.core.site.context
     bengal.core.page.computed -> bengal.core.site.context
     bengal.core.page.navigation -> bengal.core.site.context
+    bengal.core.page.runtime -> bengal.core.site.context
     bengal.core.section -> bengal.core.site.context
-    bengal.core.section.navigation -> bengal.core.site.context

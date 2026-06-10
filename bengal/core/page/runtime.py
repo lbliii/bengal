@@ -51,6 +51,7 @@ if TYPE_CHECKING:
     from bengal.core.page.page_core import PageCore
     from bengal.core.records import SourcePage
     from bengal.core.series import Series
+    from bengal.core.site.context import SiteContext
     from bengal.parsing.ast.types import ASTNode
     from bengal.protocols.core import PageLike, SectionLike
 
@@ -76,7 +77,7 @@ class RuntimePage:
     lang: str | None = None
     translation_key: str | None = None
     aliases: list[str] = field(default_factory=list)
-    _site: Any | None = field(default=None, repr=False)
+    _site: SiteContext | None = field(default=None, repr=False)
     _section_path: Path | None = field(default=None, repr=False)
     _section_url: str | None = field(default=None, repr=False)
     _section_obj_cache: SectionLike | object | None = field(default=None, repr=False, init=False)
