@@ -267,13 +267,13 @@ Kida is the built-in template engine. It uses Jinja2-compatible syntax, so exist
 | Parser | Description | Install |
 |--------|-------------|---------|
 | **Patitas** (default) | Bengal's native parser. Typed AST, O(n) parsing, thread-safe | Built-in |
-| **Mistune** | Fast, modern parser | Built-in |
-| **Python-Markdown** | Full-featured, extensive extensions | Built-in |
+| **Python-Markdown** | Full-featured, extensive extensions | `pip install markdown` |
+| **Mistune** | Removed — selecting it emits a `DeprecationWarning` and falls back to Patitas | Deprecated alias |
 
 ```yaml
 # config/_default/content.yaml
 markdown:
-  parser: patitas  # default, or mistune (legacy), python-markdown
+  parser: patitas  # default, or python-markdown (requires: pip install markdown)
 ```
 
 </details>
@@ -312,7 +312,7 @@ Each release represents the best solution we know how to deliver. When existing 
 
 - **Fail loudly** — Breaking changes produce clear errors
 - **User control** — You choose when to upgrade; we choose what changes
-- **No hidden layers** — No compatibility shims or deprecated code paths
+- **Minimal compatibility layers** — Where a shim, config-key migration, or command alias exists, it emits a clear `DeprecationWarning` with a documented removal horizon — never silent behavior
 
 If you need multi-year stability, pin your version.
 

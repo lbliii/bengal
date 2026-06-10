@@ -106,25 +106,31 @@ collections = {
 
 ### Custom Directives
 
-Create new directive blocks by subclassing `BengalDirective`:
+Create new directive blocks by implementing the `DirectiveHandler` protocol:
 
 ```python
-from bengal.directives import BengalDirective, DirectiveToken
+from typing import ClassVar
 
-class AlertDirective(BengalDirective):
-    NAMES = ["alert"]
-    TOKEN_TYPE = "alert"
+from patitas.nodes import Directive
 
-    def parse_directive(self, title, options, content, children, state):
-        return DirectiveToken(
-            type=self.TOKEN_TYPE,
-            attrs={"level": title or "info"},
-            children=children,
+class AlertDirective:
+    names: ClassVar[tuple[str, ...]] = ("alert",)
+    token_type: ClassVar[str] = "alert"
+
+    def parse(self, name, title, options, content, children, location):
+        return Directive(
+            location=location,
+            name=name,
+            title=title or "info",
+            options=options,
+            children=tuple(children),
         )
 
-    def render(self, renderer, text, **attrs):
-        level = attrs.get("level", "info")
-        return f'<div class="alert alert-{level}">{text}</div>'
+    def render(self, node, rendered_children, sb):
+        level = node.title or "info"
+        sb.append(f'<div class="alert alert-{level}">')
+        sb.append(rendered_children)
+        sb.append("</div>")
 ```
 
 ## When to Extend
