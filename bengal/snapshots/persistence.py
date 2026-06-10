@@ -81,9 +81,21 @@ class SnapshotCache:
         self._meta_path = cache_dir / "snapshot_meta.json"
         self._pages_path = cache_dir / "snapshot_pages.json"
 
-    def load_page_cache(self) -> dict[str, CachedPageData] | None:
+    def load_page_cache(
+        self,
+        parser_version: str | None = None,
+        config_hash: str | None = None,
+    ) -> dict[str, CachedPageData] | None:
         """
         Load cached page data from previous build.
+
+        Args:
+            parser_version: Current build's parser version string. When provided,
+                the whole cache is missed if it differs from the persisted value
+                (a parser upgrade would otherwise replay byte-stale parsed HTML).
+            config_hash: Current build's config hash. When provided, the whole
+                cache is missed if it differs from the persisted value (a markdown/
+                directive config change would otherwise replay stale parsed HTML).
 
         Returns:
             Dict mapping source_path -> CachedPageData, or None if no cache
@@ -103,6 +115,28 @@ class SnapshotCache:
                     reason="version_mismatch",
                     cached=meta.get("version"),
                     current=SNAPSHOT_VERSION,
+                )
+                return None
+
+            # Parser-upgrade gate: parser version differs -> full re-parse.
+            # The snapshot cache is not registered with register_cache(), so
+            # this gate must live here rather than relying on CONFIG_CHANGED.
+            if parser_version is not None and meta.get("parser_version") != parser_version:
+                logger.debug(
+                    "snapshot_cache_miss",
+                    reason="parser_version_mismatch",
+                    cached=meta.get("parser_version"),
+                    current=parser_version,
+                )
+                return None
+
+            # Config-change gate: config hash differs -> full re-parse.
+            if config_hash is not None and meta.get("config_hash") != config_hash:
+                logger.debug(
+                    "snapshot_cache_miss",
+                    reason="config_hash_mismatch",
+                    cached=meta.get("config_hash"),
+                    current=config_hash,
                 )
                 return None
 
@@ -139,7 +173,12 @@ class SnapshotCache:
             )
             return None
 
-    def save(self, snapshot: SiteSnapshot) -> None:
+    def save(
+        self,
+        snapshot: SiteSnapshot,
+        parser_version: str | None = None,
+        config_hash: str | None = None,
+    ) -> None:
         """
         Save snapshot to disk for future incremental builds.
 
@@ -147,6 +186,11 @@ class SnapshotCache:
 
         Args:
             snapshot: SiteSnapshot to persist
+            parser_version: Parser version string to persist so a later
+                ``load_page_cache()`` can miss the whole cache after a parser
+                upgrade (see issue #377). Must stay symmetric with the load site.
+            config_hash: Config hash to persist so a later ``load_page_cache()``
+                can miss the whole cache after a config change.
         """
         self._cache_dir.mkdir(parents=True, exist_ok=True)
 
@@ -157,6 +201,8 @@ class SnapshotCache:
                 "timestamp": time.time(),
                 "page_count": snapshot.page_count,
                 "section_count": snapshot.section_count,
+                "parser_version": parser_version,
+                "config_hash": config_hash,
             }
 
             # Build page cache data (only what we need for incremental)

@@ -649,10 +649,26 @@ class BuildOrchestrator:
             configure_for_site(self.site)
 
             # Save snapshot for incremental builds (RFC: rfc-bengal-snapshot-engine)
-            # This enables near-instant parsing on subsequent builds
+            # This enables near-instant parsing on subsequent builds.
+            # Persist parser version + config hash so the next build's
+            # load_page_cache() can reject byte-stale parsed HTML after a parser
+            # upgrade or markdown/directive config change (issue #377). Save/load
+            # meta handling must stay symmetric or the cache silently never hits.
+            from bengal.config.hash import compute_config_hash
+            from bengal.rendering.pipeline import RenderingPipeline
+
             cache_dir = self.site.root_path / ".bengal" / "cache" / "snapshots"
             snapshot_cache = SnapshotCache(cache_dir)
-            snapshot_cache.save(site_snapshot)
+            snapshot_cache.save(
+                site_snapshot,
+                parser_version=RenderingPipeline(
+                    self.site,
+                    quiet=True,
+                    build_stats=None,
+                    build_context=None,
+                )._get_parser_version(),
+                config_hash=compute_config_hash(self.site.config),
+            )
 
             # === SERVICE INSTANTIATION (RFC: bengal-v2-architecture Phase 1) ===
             # Services operate on the frozen snapshot for thread-safe rendering.

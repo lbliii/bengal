@@ -21,12 +21,14 @@ from __future__ import annotations
 import contextlib
 import json
 from datetime import UTC, datetime
-from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
 from bengal.utils.primitives.hashing import hash_str
 from bengal.utils.primitives.sentinel import MISSING
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 logger = get_logger(__name__)
 
@@ -39,6 +41,8 @@ class RenderedOutputCacheMixin:
         - rendered_output: dict[str, dict[str, Any]]
         - is_changed: Callable[[Path], bool]  (from FileTrackingMixin)
         - _cache_key: Callable[[Path], str]  # Canonical path key
+        - site_root: Path | None  # For resolving dep keys to paths
+        - _resolve_dep_path: Callable[[str], Path | None]  (from ParsedContentCacheMixin)
 
     """
 
@@ -182,10 +186,17 @@ class RenderedOutputCacheMixin:
         if cached.get("template") != template:
             return MISSING
 
-        # Validate dependencies haven't changed (templates, partials)
+        # Validate dependencies haven't changed (templates, partials).
+        # Dependency keys are relative CacheKeys (e.g. templates/base.html), so
+        # they must be resolved against site_root, not the process CWD. Mirror
+        # ParsedContentCacheMixin.get_parsed_content: a dep that is unresolvable/
+        # deleted is a miss, and a changed dep is a miss (issue #379).
         for dep_path in cached.get("dependencies", []):
-            dep = Path(dep_path)
-            if dep.exists() and self.is_changed(dep):
+            full_dep = self._resolve_dep_path(dep_path)
+            if full_dep is None:
+                # Unresolvable or deleted dependency - invalidate cache
+                return MISSING
+            if self.is_changed(full_dep):
                 # A dependency changed - invalidate cache
                 return MISSING
 

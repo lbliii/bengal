@@ -70,7 +70,23 @@ def phase_parse_content(
     if use_snapshot_cache:
         cache_dir = orchestrator.site.root_path / ".bengal" / "cache" / "snapshots"
         snapshot_cache = SnapshotCache(cache_dir)
-        cached_pages = snapshot_cache.load_page_cache()
+        # Gate the parse cache on parser version + config hash so a parser
+        # upgrade or markdown/directive config change forces a full re-parse
+        # instead of replaying byte-stale parsed HTML (issue #377). The snapshot
+        # cache is not registered with register_cache(), so the gate lives here.
+        from bengal.config.hash import compute_config_hash
+
+        parser_version = RenderingPipeline(
+            orchestrator.site,
+            quiet=True,
+            build_stats=None,
+            build_context=None,
+        )._get_parser_version()
+        config_hash = compute_config_hash(orchestrator.site.config)
+        cached_pages = snapshot_cache.load_page_cache(
+            parser_version=parser_version,
+            config_hash=config_hash,
+        )
 
         if cached_pages:
             pages_to_parse, _pages_from_cache, cache_hits = apply_cached_parsing(

@@ -641,21 +641,27 @@ class TestRenderedOutputCache:
 
     def test_store_and_get_rendered_output(self, tmp_path):
         """Test storing and retrieving rendered HTML output."""
-        cache = BuildCache()
+        cache = BuildCache(site_root=tmp_path)
 
         # Create a test file
         test_file = tmp_path / "page.md"
         test_file.write_text("# Test Content")
         cache.update_file(test_file)
 
-        # Store rendered output
+        # Create the template dependency so it resolves against site_root
+        template_file = tmp_path / "templates" / "default.html"
+        template_file.parent.mkdir(parents=True, exist_ok=True)
+        template_file.write_text("<html></html>")
+        cache.update_file(template_file)
+
+        # Store rendered output with a relative dependency key
         metadata = {"title": "Test Page", "date": "2025-01-01"}
         cache.store_rendered_output(
             test_file,
             "<html><body>Rendered content</body></html>",
             "default.html",
             metadata,
-            dependencies=[str(tmp_path / "templates" / "default.html")],
+            dependencies=["templates/default.html"],
         )
 
         # Get it back
@@ -736,8 +742,13 @@ class TestRenderedOutputCache:
         assert result is MISSING
 
     def test_rendered_output_invalid_on_dependency_change(self, tmp_path):
-        """Rendered output cache is invalidated when a dependency file changes."""
-        cache = BuildCache()
+        """Rendered output cache is invalidated when a dependency file changes.
+
+        Dependency keys are relative CacheKeys resolved against ``site_root``
+        (issue #379), so the cache must set ``site_root`` and use a relative key
+        to exercise the dependency-validation loop.
+        """
+        cache = BuildCache(site_root=tmp_path)
 
         # Create files
         test_file = tmp_path / "page.md"
@@ -749,14 +760,15 @@ class TestRenderedOutputCache:
         template_file.write_text("<html>{% block content %}{% endblock %}</html>")
         cache.update_file(template_file)
 
-        # Store rendered output with dependency
+        # Store rendered output with a *relative* dependency key (resolved against
+        # site_root), mirroring how store_rendered_output is fed in production.
         metadata = {"title": "Test Page"}
         cache.store_rendered_output(
             test_file,
             "<html>Rendered</html>",
             "default.html",
             metadata,
-            dependencies=[str(template_file)],
+            dependencies=["templates/base.html"],
         )
 
         # Verify cache hit before change
@@ -767,6 +779,40 @@ class TestRenderedOutputCache:
         template_file.write_text("<html>Modified template</html>")
 
         # Cache should be invalid
+        result = cache.get_rendered_output(test_file, "default.html", metadata)
+        assert result is MISSING
+
+    def test_rendered_output_invalid_on_dependency_deletion(self, tmp_path):
+        """Deleting a relative template dependency invalidates the rendered cache.
+
+        Mirrors ParsedContentCacheMixin.get_parsed_content: an unresolvable/deleted
+        dependency is treated as a cache miss, not a silent skip (issue #379).
+        """
+        cache = BuildCache(site_root=tmp_path)
+
+        test_file = tmp_path / "page.md"
+        test_file.write_text("# Test Content")
+        cache.update_file(test_file)
+
+        template_file = tmp_path / "templates" / "base.html"
+        template_file.parent.mkdir(parents=True, exist_ok=True)
+        template_file.write_text("<html>{% block content %}{% endblock %}</html>")
+        cache.update_file(template_file)
+
+        metadata = {"title": "Test Page"}
+        cache.store_rendered_output(
+            test_file,
+            "<html>Rendered</html>",
+            "default.html",
+            metadata,
+            dependencies=["templates/base.html"],
+        )
+
+        # Cache hit before deletion
+        assert cache.get_rendered_output(test_file, "default.html", metadata) is not None
+
+        # Delete the dependency -> unresolvable -> cache miss
+        template_file.unlink()
         result = cache.get_rendered_output(test_file, "default.html", metadata)
         assert result is MISSING
 
