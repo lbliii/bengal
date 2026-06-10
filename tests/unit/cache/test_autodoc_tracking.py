@@ -54,25 +54,6 @@ class TestAutodocTracker:
         assert "python/api/bengal/core/page.md" in deps
         assert "python/api/bengal/core/page/proxy.md" in deps
 
-    def test_get_affected_autodoc_pages(self) -> None:
-        """Test retrieving pages affected by a source file change."""
-        cache = BuildCache()
-
-        add_dep(cache, "bengal/core/page.py", "python/api/page.md")
-        add_dep(cache, "bengal/core/site.py", "python/api/site.md")
-
-        affected = cache.autodoc_tracker.get_affected_autodoc_pages("bengal/core/page.py")
-
-        assert affected == {"python/api/page.md"}
-
-    def test_get_affected_autodoc_pages_empty(self) -> None:
-        """Test getting affected pages for untracked source file."""
-        cache = BuildCache()
-
-        affected = cache.autodoc_tracker.get_affected_autodoc_pages("unknown/file.py")
-
-        assert affected == set()
-
     def test_get_autodoc_source_files(self) -> None:
         """Test getting all tracked source files."""
         cache = BuildCache()
