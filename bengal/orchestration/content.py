@@ -90,6 +90,36 @@ def _library_asset_manifest_provenance(
     return provenance
 
 
+def _is_external_autodoc_source(path: Path) -> bool:
+    """Return True for autodoc sources living in virtualenv / site-packages.
+
+    These paths can vary by interpreter/env and cause spurious incremental
+    rebuilds, so we intentionally ignore them as dependencies.
+    """
+    parts = path.parts
+    return (
+        "site-packages" in parts or "dist-packages" in parts or ".venv" in parts or ".tox" in parts
+    )
+
+
+def _resolve_autodoc_source(path: Path, root_path: Path) -> Path:
+    """Resolve an autodoc source path against the site/repo root.
+
+    Autodoc sources may be stored as repo-relative paths (e.g.
+    "site/../bengal/..."). Resolve relative paths against the site root
+    first, then the repo root.
+    """
+    if path.is_absolute():
+        return path
+    candidate = root_path / path
+    if candidate.exists():
+        return candidate
+    candidate = root_path.parent / path
+    if candidate.exists():
+        return candidate
+    return candidate
+
+
 class ContentOrchestrator:
     """
     Handles content and asset discovery.
@@ -489,30 +519,6 @@ class ContentOrchestrator:
             cache_key = "__autodoc_elements_v1"
             current_cfg_hash = hash_dict(autodoc_cfg) if isinstance(autodoc_cfg, dict) else ""
 
-            def _is_external_autodoc_source(path: Path) -> bool:
-                # We intentionally ignore dependencies that live in virtualenv / site-packages.
-                # These paths can vary by interpreter/env and cause spurious incremental rebuilds.
-                parts = path.parts
-                return (
-                    "site-packages" in parts
-                    or "dist-packages" in parts
-                    or ".venv" in parts
-                    or ".tox" in parts
-                )
-
-            def _resolve_autodoc_source(path: Path) -> Path:
-                # Autodoc sources may be stored as repo-relative paths (e.g. "site/../bengal/...").
-                # Resolve relative paths against the site root first, then repo root.
-                if path.is_absolute():
-                    return path
-                candidate = self.site.root_path / path
-                if candidate.exists():
-                    return candidate
-                candidate = self.site.root_path.parent / path
-                if candidate.exists():
-                    return candidate
-                return candidate
-
             # Incremental fast path: if autodoc sources are unchanged and we have a cached
             # extraction payload, rebuild virtual pages without re-extracting.
             if (
@@ -530,7 +536,9 @@ class ContentOrchestrator:
                     if hasattr(cache, "autodoc_tracker"):
                         try:
                             for source in cache.autodoc_tracker.get_autodoc_source_files():
-                                src_path = _resolve_autodoc_source(Path(source))
+                                src_path = _resolve_autodoc_source(
+                                    Path(source), self.site.root_path
+                                )
                                 if _is_external_autodoc_source(src_path):
                                     continue
                                 if cache.is_changed(src_path):
@@ -547,33 +555,7 @@ class ContentOrchestrator:
                                 cached_payload
                             )
                             # Register autodoc dependencies with build_cache so autodoc_tracker is populated
-                            if build_cache is not None and hasattr(build_cache, "autodoc_tracker"):
-                                from bengal.utils.primitives.hashing import hash_file
-
-                                for (
-                                    source_file,
-                                    page_hashes,
-                                ) in run_result.autodoc_dependencies.items():
-                                    src_path = _resolve_autodoc_source(Path(source_file))
-                                    if _is_external_autodoc_source(src_path):
-                                        continue
-                                    if not src_path.exists():
-                                        logger.warning(
-                                            "autodoc_source_missing",
-                                            source_file=str(source_file),
-                                        )
-                                        continue
-                                    source_hash = hash_file(src_path)
-                                    source_mtime = src_path.stat().st_mtime
-                                    for page_path, content_hash in page_hashes.items():
-                                        build_cache.autodoc_tracker.add_autodoc_dependency(
-                                            source_file,
-                                            page_path,
-                                            site_root=self.site.root_path,
-                                            source_hash=source_hash,
-                                            source_mtime=source_mtime,
-                                            content_hash=content_hash,
-                                        )
+                            self._register_autodoc_dependencies(run_result, build_cache)
 
                             logger.debug(
                                 "autodoc_cache_hit",
@@ -602,38 +584,7 @@ class ContentOrchestrator:
             # Register autodoc dependencies with build_cache for selective rebuilds
             # CRITICAL: Pass source_hash and source_mtime for incremental detection.
             if build_cache is not None and hasattr(build_cache, "autodoc_tracker"):
-                from bengal.utils.primitives.hashing import hash_file
-
-                for source_file, page_hashes in run_result.autodoc_dependencies.items():
-                    src_path = _resolve_autodoc_source(Path(source_file))
-                    if _is_external_autodoc_source(src_path):
-                        continue
-                    if not src_path.exists():
-                        logger.warning(
-                            "autodoc_source_missing",
-                            source_file=str(source_file),
-                        )
-                        continue
-
-                    try:
-                        source_hash = hash_file(src_path)
-                        source_mtime = src_path.stat().st_mtime
-                    except OSError:
-                        logger.warning(
-                            "autodoc_source_stat_failed",
-                            source_file=str(source_file),
-                        )
-                        continue
-
-                    for page_path, content_hash in page_hashes.items():
-                        build_cache.autodoc_tracker.add_autodoc_dependency(
-                            source_file,
-                            page_path,
-                            site_root=self.site.root_path,
-                            source_hash=source_hash,
-                            source_mtime=source_mtime,
-                            content_hash=content_hash,
-                        )
+                self._register_autodoc_dependencies(run_result, build_cache)
 
                 if run_result.autodoc_dependencies:
                     logger.debug(
@@ -691,6 +642,57 @@ class ContentOrchestrator:
             return [], []
         # Note: Other exceptions (e.g., RuntimeError from strict mode) propagate
         # to allow strict mode enforcement. Non-strict failures are logged in summary.
+
+    def _register_autodoc_dependencies(
+        self, run_result: AutodocRunResult, build_cache: Any
+    ) -> None:
+        """
+        Register autodoc source -> page dependencies with the build cache.
+
+        Shared by both the warm cache-hit and cold fresh-extraction paths so
+        their error handling cannot drift. For each source file: resolve the
+        path, skip virtualenv/site-packages sources, skip (and warn on) missing
+        sources, then hash/stat the source under an ``OSError`` guard so a
+        present-but-unreadable source degrades gracefully (warning) instead of
+        crashing the build. ``Path.exists()`` returns False (not raises) on
+        permission errors, so an unreadable source slips past the exists guard
+        into the hash/stat calls; the guard here is what makes both paths safe.
+        """
+        if build_cache is None or not hasattr(build_cache, "autodoc_tracker"):
+            return
+
+        from bengal.utils.primitives.hashing import hash_file
+
+        for source_file, page_hashes in run_result.autodoc_dependencies.items():
+            src_path = _resolve_autodoc_source(Path(source_file), self.site.root_path)
+            if _is_external_autodoc_source(src_path):
+                continue
+            if not src_path.exists():
+                logger.warning(
+                    "autodoc_source_missing",
+                    source_file=str(source_file),
+                )
+                continue
+
+            try:
+                source_hash = hash_file(src_path)
+                source_mtime = src_path.stat().st_mtime
+            except OSError:
+                logger.warning(
+                    "autodoc_source_stat_failed",
+                    source_file=str(source_file),
+                )
+                continue
+
+            for page_path, content_hash in page_hashes.items():
+                build_cache.autodoc_tracker.add_autodoc_dependency(
+                    source_file,
+                    page_path,
+                    site_root=self.site.root_path,
+                    source_hash=source_hash,
+                    source_mtime=source_mtime,
+                    content_hash=content_hash,
+                )
 
     def _log_autodoc_summary(self, result: AutodocRunResult) -> None:
         """
@@ -1127,6 +1129,10 @@ class ContentOrchestrator:
         - by_heading: Reference by heading text for anchor links
         - by_anchor: Reference by explicit anchor ID (e.g., {#install})
 
+        Each index is populated by a focused per-page helper so the five
+        orthogonal concerns can also be re-run for only the changed-page set
+        during incremental discovery (see #332).
+
         Performance: O(n) build time, O(1) lookup time
         Thread-safe: Read-only after building, safe for parallel rendering
         """
@@ -1141,119 +1147,151 @@ class ContentOrchestrator:
         content_dir = self.site.root_path / "content"
 
         for page in self.site.pages:
-            # Index by relative path (without extension)
-            try:
-                page.source_path.relative_to(content_dir)
-            except ValueError:
-                # Page is not relative to content_dir (e.g., generated page)
-                pass
+            self._index_by_path(page, content_dir)
+            self._index_by_slug(page)
+            self._index_by_id(page)
+            self._index_headings(page)
+            self._index_target_directives(page)
+
+    def _index_by_path(self, page: PageLike, content_dir: Path) -> None:
+        """Index a page by its content-relative path (without extension)."""
+        try:
+            page.source_path.relative_to(content_dir)
+        except ValueError:
+            # Page is not relative to content_dir (e.g., generated page)
+            return
+        path_key = xref_path_key(page.source_path, self.site.root_path)
+        self.site.xref_index["by_path"][path_key] = page
+
+    def _index_by_slug(self, page: PageLike) -> None:
+        """Index a page by slug (multiple pages can share a slug)."""
+        if hasattr(page, "slug") and page.slug:
+            self.site.xref_index["by_slug"].setdefault(page.slug, []).append(page)
+
+    def _index_by_id(self, page: PageLike) -> None:
+        """Index a page by its custom frontmatter ``id``."""
+        if "id" in page.metadata:
+            ref_id = page.metadata["id"]
+            self.site.xref_index["by_id"][ref_id] = page
+
+    def _index_headings(self, page: PageLike) -> None:
+        """Index heading anchors from a page's TOC.
+
+        Each heading is added to ``by_heading`` and also to ``by_anchor`` for
+        direct ``[[#anchor]]`` resolution. On a same-version anchor collision
+        the *existing* entry is kept (heading rule); a later target directive
+        may still take precedence.
+
+        NOTE: This accesses toc_items BEFORE parsing (during discovery phase).
+        This is safe because toc_items returns [] when toc is not set and does
+        NOT cache the empty result; after parsing, the real structure is used.
+        """
+        if not (hasattr(page, "toc_items") and page.toc_items):
+            return
+
+        page_version = getattr(page, "version", None)
+        for toc_item in page.toc_items:
+            heading_text = toc_item.get("title", "").lower()
+            anchor_id = toc_item.get("id", "")
+            if not (heading_text and anchor_id):
+                continue
+            self.site.xref_index["by_heading"].setdefault(heading_text, []).append(
+                (page, anchor_id)
+            )
+            anchor_key = anchor_id.lower()
+            existing_entries = self.site.xref_index["by_anchor"].setdefault(anchor_key, [])
+            same_version_entry = next(
+                ((p, a, v) for p, a, v in existing_entries if v == page_version),
+                None,
+            )
+            if same_version_entry:
+                # Collision within same version - warn but keep existing
+                # (target directives will overwrite later).
+                existing_page, existing_anchor, _ = same_version_entry
+                self._warn_anchor_collision(
+                    page=page,
+                    anchor_id=anchor_id,
+                    existing_page=existing_page,
+                    existing_anchor=existing_anchor,
+                    page_version=page_version,
+                    details=(
+                        f"Heading anchor '{anchor_id}' collides within version '{page_version or 'unversioned'}'. "
+                        f"Heading in {page.source_path} conflicts with existing anchor '{existing_anchor}' "
+                        f"in {existing_page.source_path}. Target directives will take precedence if added later."
+                    ),
+                )
+                # Don't add duplicate - keep existing entry
             else:
-                path_key = xref_path_key(page.source_path, self.site.root_path)
-                self.site.xref_index["by_path"][path_key] = page
+                existing_entries.append((page, anchor_id, page_version))
 
-            # Index by slug (multiple pages can have same slug)
-            if hasattr(page, "slug") and page.slug:
-                self.site.xref_index["by_slug"].setdefault(page.slug, []).append(page)
+    def _index_target_directives(self, page: PageLike) -> None:
+        """Index ``:::{target} id`` directives from a page's raw source.
 
-            # Index custom IDs from frontmatter
-            if "id" in page.metadata:
-                ref_id = page.metadata["id"]
-                self.site.xref_index["by_id"][ref_id] = page
+        Target directives are explicit and take precedence over heading
+        anchors: on a same-version anchor collision the existing same-version
+        entries are *evicted* before the directive entry is appended (eviction
+        rule), the opposite of :meth:`_index_headings`.
+        """
+        source = get_raw_source(page)
+        if not (hasattr(page, "content") and source):
+            return
 
-            # Index headings from TOC (for anchor links)
-            # NOTE: This accesses toc_items BEFORE parsing (during discovery phase).
-            # This is safe because toc_items property returns [] when toc is not set,
-            # and importantly does NOT cache the empty result. After parsing, when
-            # toc is set, the property will extract and cache the real structure.
-            if hasattr(page, "toc_items") and page.toc_items:
-                for toc_item in page.toc_items:
-                    heading_text = toc_item.get("title", "").lower()
-                    anchor_id = toc_item.get("id", "")
-                    if heading_text and anchor_id:
-                        self.site.xref_index["by_heading"].setdefault(heading_text, []).append(
-                            (page, anchor_id)
-                        )
-                        # Also index by anchor ID for direct [[#anchor]] resolution
-                        # This enables explicit {#custom-id} heading anchors to be found
-                        anchor_key = anchor_id.lower()
-                        page_version = getattr(page, "version", None)
-                        # Store as list to support multiple versions with same anchor
-                        if anchor_key not in self.site.xref_index["by_anchor"]:
-                            self.site.xref_index["by_anchor"][anchor_key] = []
-                        # Check for collisions within the same version only
-                        existing_entries = self.site.xref_index["by_anchor"][anchor_key]
-                        same_version_entry = next(
-                            ((p, a, v) for p, a, v in existing_entries if v == page_version),
-                            None,
-                        )
-                        if same_version_entry:
-                            # Collision within same version - warn but keep existing (target directives will overwrite later)
-                            existing_page, existing_anchor, _ = same_version_entry
-                            logger.warning(
-                                "anchor_collision",
-                                anchor_id=anchor_id,
-                                target_page=str(getattr(page, "source_path", "unknown")),
-                                existing_page=str(getattr(existing_page, "source_path", "unknown")),
-                                existing_anchor=existing_anchor,
-                                version=page_version or "unversioned",
-                                details=(
-                                    f"Heading anchor '{anchor_id}' collides within version '{page_version or 'unversioned'}'. "
-                                    f"Heading in {page.source_path} conflicts with existing anchor '{existing_anchor}' "
-                                    f"in {existing_page.source_path}. Target directives will take precedence if added later."
-                                ),
-                            )
-                            # Don't add duplicate - keep existing entry
-                        else:
-                            # No collision - add entry
-                            self.site.xref_index["by_anchor"][anchor_key].append(
-                                (page, anchor_id, page_version)
-                            )
+        target_anchors = self._extract_target_directives(source)
+        page_version = getattr(page, "version", None)
+        for anchor_id in target_anchors:
+            anchor_key = anchor_id.lower()
+            existing_entries = self.site.xref_index["by_anchor"].setdefault(anchor_key, [])
+            same_version_entry = next(
+                ((p, a, v) for p, a, v in existing_entries if v == page_version),
+                None,
+            )
+            if same_version_entry:
+                # Collision within same version - target directives take
+                # precedence: evict existing same-version entries first.
+                self.site.xref_index["by_anchor"][anchor_key] = [
+                    (p, a, v) for p, a, v in existing_entries if v != page_version
+                ]
+                existing_page, existing_anchor, _ = same_version_entry
+                self._warn_anchor_collision(
+                    page=page,
+                    anchor_id=anchor_id,
+                    existing_page=existing_page,
+                    existing_anchor=existing_anchor,
+                    page_version=page_version,
+                    details=(
+                        f"Target directive '::{{target}} {anchor_id}' in version '{page_version or 'unversioned'}' "
+                        f"collides with existing anchor '{existing_anchor}' in {existing_page.source_path}. "
+                        f"Target directive takes precedence. Use '[[!{anchor_id}]]' to explicitly reference it."
+                    ),
+                )
+            # Add target directive entry (takes precedence over heading anchors in same version)
+            self.site.xref_index["by_anchor"][anchor_key].append((page, anchor_id, page_version))
 
-            # Index target directives (:::{target} id)
-            # Extract target directives from content for cross-reference indexing
-            # NOTE: Target directives take precedence over heading anchors since they're explicit
-            source = get_raw_source(page)
-            if hasattr(page, "content") and source:
-                target_anchors = self._extract_target_directives(source)
-                page_version = getattr(page, "version", None)
-                for anchor_id in target_anchors:
-                    anchor_key = anchor_id.lower()
-                    # Initialize list if needed
-                    if anchor_key not in self.site.xref_index["by_anchor"]:
-                        self.site.xref_index["by_anchor"][anchor_key] = []
+    def _warn_anchor_collision(
+        self,
+        *,
+        page: PageLike,
+        anchor_id: str,
+        existing_page: PageLike,
+        existing_anchor: str,
+        page_version: Any,
+        details: str,
+    ) -> None:
+        """Emit the single ``anchor_collision`` warning shared by both index helpers.
 
-                    existing_entries = self.site.xref_index["by_anchor"][anchor_key]
-                    # Check for collisions within the same version only
-                    same_version_collision = any(
-                        existing_version == page_version
-                        for _, _, existing_version in existing_entries
-                    )
-                    if same_version_collision:
-                        # Collision within same version - target directives take precedence
-                        # Remove existing same-version entries and add target directive
-                        self.site.xref_index["by_anchor"][anchor_key] = [
-                            (p, a, v) for p, a, v in existing_entries if v != page_version
-                        ]
-                        existing_page, existing_anchor, _ = next(
-                            (p, a, v) for p, a, v in existing_entries if v == page_version
-                        )
-                        logger.warning(
-                            "anchor_collision",
-                            anchor_id=anchor_id,
-                            target_page=str(getattr(page, "source_path", "unknown")),
-                            existing_page=str(getattr(existing_page, "source_path", "unknown")),
-                            existing_anchor=existing_anchor,
-                            version=page_version or "unversioned",
-                            details=(
-                                f"Target directive '::{{target}} {anchor_id}' in version '{page_version or 'unversioned'}' "
-                                f"collides with existing anchor '{existing_anchor}' in {existing_page.source_path}. "
-                                f"Target directive takes precedence. Use '[[!{anchor_id}]]' to explicitly reference it."
-                            ),
-                        )
-                    # Add target directive entry (takes precedence over heading anchors in same version)
-                    self.site.xref_index["by_anchor"][anchor_key].append(
-                        (page, anchor_id, page_version)
-                    )
+        Callers supply the rule-specific ``details`` prose; the warning's event
+        name and field set are identical across the heading (keep-existing) and
+        target-directive (evict) collision rules so they cannot drift.
+        """
+        logger.warning(
+            "anchor_collision",
+            anchor_id=anchor_id,
+            target_page=str(getattr(page, "source_path", "unknown")),
+            existing_page=str(getattr(existing_page, "source_path", "unknown")),
+            existing_anchor=existing_anchor,
+            version=page_version or "unversioned",
+            details=details,
+        )
 
     def _extract_target_directives(self, content: str) -> list[str]:
         """
