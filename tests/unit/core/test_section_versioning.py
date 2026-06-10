@@ -75,17 +75,23 @@ class TestPagesForVersion:
 
         assert result == []
 
-    def test_pages_without_version_not_matched(self, tmp_path):
-        """Pages without version attribute are not matched."""
+    def test_shared_pages_without_version_are_matched(self, tmp_path):
+        """Pages without a version (shared content) appear in every version.
+
+        Shared pages (e.g. under ``_shared/``) carry ``version is None`` and
+        are version-agnostic, so a version-specific filter includes them
+        as-is alongside the version's own pages (issue #395).
+        """
         section = Section(name="docs", path=tmp_path / "docs")
         page_v1 = make_page(tmp_path, "page1", version="v1")
-        page_no_version = make_page(tmp_path, "page2")  # No version
+        page_no_version = make_page(tmp_path, "page2")  # No version = shared
         section.pages = [page_v1, page_no_version]
 
         result = section.pages_for_version("v1")
 
-        assert len(result) == 1
-        assert result[0] == page_v1
+        assert len(result) == 2
+        assert page_v1 in result
+        assert page_no_version in result
 
     def test_preserves_weight_order(self, tmp_path):
         """Filtered pages maintain weight-based sort order."""
