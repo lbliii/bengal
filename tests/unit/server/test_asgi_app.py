@@ -192,6 +192,48 @@ def test_has_hidden_path_component(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_asset_404_with_present_file_emits_diagnostic(tmp_path: Path, monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """A 404 for an asset that exists on disk emits a loud diagnostic (serve-path-bug canary).
+
+    A genuinely-missing file 404 and an existing-file-404 (a serving bug) look identical to a
+    client. This diagnostic distinguishes them — it is what would have made the hidden-buffer
+    bug a one-line signal instead of a multi-theory investigation. Driven directly through the
+    Pounce path with a hidden serving dir (which Pounce rejects) so the file is present yet 404s.
+    """
+    from bengal.server import asgi_app
+
+    hidden = tmp_path / ".bengal" / "staging" / "assets" / "css"
+    hidden.mkdir(parents=True)
+    (hidden / "style.css").write_text("body {}")
+
+    warnings: list[tuple[str, dict]] = []
+
+    class _Recorder:
+        def debug(self, *args: object, **kwargs: object) -> None:
+            pass
+
+        def warning(self, message: str, **context: object) -> None:
+            warnings.append((message, dict(context)))
+
+    monkeypatch.setattr(asgi_app, "logger", _Recorder())
+
+    sent, send = _make_send_capture()
+    served = await asgi_app._serve_pounce_static_asset(
+        {"type": "http", "method": "GET", "path": "/assets/css/style.css", "headers": []},
+        _noop_receive,
+        send,
+        output_dir=tmp_path / ".bengal" / "staging",
+        static_asset_handlers={},
+    )
+
+    assert served is True
+    assert sent[0]["status"] == 404  # Pounce rejects the hidden path even though the file exists
+    assert any("404_but_file_present" in msg for msg, _ in warnings), (
+        "an asset that exists on disk but 404s must emit a diagnostic warning"
+    )
+
+
+@pytest.mark.asyncio
 async def test_static_asset_uses_pounce_etag_and_304(tmp_path: Path) -> None:
     """Static assets use Pounce conditional request handling."""
     assets = tmp_path / "assets"

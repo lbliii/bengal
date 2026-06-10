@@ -21,9 +21,12 @@ from bengal.server.live_reload.sse import (
 )
 from bengal.server.responses import get_rebuilding_badge_script
 from bengal.server.utils import find_html_injection_point, get_content_type
+from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+logger = get_logger(__name__)
 
 # ASGI app type: async (scope, receive, send) -> None
 type ASGIApp = Callable[..., Any]
@@ -308,7 +311,36 @@ async def _serve_pounce_static_asset(
         )
         static_asset_handlers[key] = handler
 
-    await handler(_scope_without_sendfile(scope), receive, send)
+    # Capture the response status (transparently forwarding all messages) so we can
+    # emit a diagnostic when an asset 404s. The defining symptom of serve-path bugs
+    # (e.g. the .bengal/staging hidden-path 404) is a 404 for a file that is present
+    # on disk — distinct from a genuinely-missing file. Surface that loudly, and log
+    # which buffer served the request at debug level so swap-related issues are visible.
+    captured_status: dict[str, int | None] = {"status": None}
+
+    async def status_capturing_send(message: dict[str, Any]) -> None:
+        if message.get("type") == "http.response.start":
+            captured_status["status"] = message.get("status")
+        await send(message)
+
+    await handler(_scope_without_sendfile(scope), receive, status_capturing_send)
+
+    status = captured_status["status"]
+    raw_path = scope.get("path", "").split("?", 1)[0]
+    logger.debug("static_asset_served", path=raw_path, status=status, buffer=str(key))
+    if status == 404:
+        file_path = key / raw_path.lstrip("/")
+        if file_path.is_file():
+            logger.warning(
+                "static_asset_404_but_file_present",
+                path=raw_path,
+                buffer=str(key),
+                hint=(
+                    "Asset exists on disk but the static handler returned 404 — a "
+                    "serving-path bug, not a missing file (e.g. a hidden/dot path "
+                    "component the handler rejects). The served buffer is logged above."
+                ),
+            )
     return True
 
 
