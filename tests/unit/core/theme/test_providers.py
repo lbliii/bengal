@@ -18,6 +18,7 @@ import pytest
 
 from bengal.core.theme.providers import (
     ThemeLibraryProvider,
+    clear_theme_provider_cache,
     get_provider_asset_dirs,
     resolve_provider,
     resolve_theme_providers,
@@ -575,3 +576,147 @@ class TestProviderEnvShim:
 
         assert filter_owners["foo"] == "lib_a"
         assert global_owners["foo"] == "lib_a"
+
+
+class TestResolveThemeProvidersCache:
+    """Resolution is cached per (site_root, theme_chain).
+
+    The asset-discovery path and the Kida engine path both call
+    resolve_theme_providers with the same (site_root, theme_chain); under the
+    #350 shard render backend the engine is built per worker thread. The cache
+    must collapse all of these to a single import_module + hook-probe pass.
+    """
+
+    def _write_theme_toml(self, tmp_path: Path, name: str, content: str) -> None:
+        theme_dir = tmp_path / "themes" / name
+        theme_dir.mkdir(parents=True, exist_ok=True)
+        (theme_dir / "theme.toml").write_text(content)
+
+    def test_second_call_is_cache_hit_no_reimport(self, tmp_path):
+        """A repeat call with the same key does NOT re-import the library."""
+        self._write_theme_toml(tmp_path, "themed", 'name = "themed"\nlibraries = ["cached_ui"]')
+
+        calls: list[str] = []
+
+        def mock_import(name):
+            calls.append(name)
+            return _make_library_module(has_loader=True, loader_value=f"loader_{name}")
+
+        with patch(
+            "bengal.core.theme.providers.importlib.import_module",
+            side_effect=mock_import,
+        ):
+            first = resolve_theme_providers(tmp_path, ["themed"])
+            second = resolve_theme_providers(tmp_path, ["themed"])
+
+        # The library was imported exactly once across both calls (cache hit).
+        assert calls == ["cached_ui"]
+        # Both callers receive the SAME resolved tuple object (shared, read-only).
+        assert first is second
+        assert [p.package for p in first] == ["cached_ui"]
+
+    def test_simulated_dual_caller_paths_share_one_resolution(self, tmp_path):
+        """Asset-discovery + per-shard engine calls collapse to one import.
+
+        Simulates the asset-discovery call plus several worker-thread engine
+        constructions: all hit the same key, so import_module fires once total.
+        """
+        self._write_theme_toml(
+            tmp_path, "themed", 'name = "themed"\nlibraries = ["lib_x", "lib_y"]'
+        )
+
+        import_counts: dict[str, int] = {}
+
+        def mock_import(name):
+            import_counts[name] = import_counts.get(name, 0) + 1
+            return _make_library_module(has_loader=True, loader_value=name)
+
+        with patch(
+            "bengal.core.theme.providers.importlib.import_module",
+            side_effect=mock_import,
+        ):
+            # 1x asset discovery + 4x per-shard engine setup = 5 logical calls.
+            results = [resolve_theme_providers(tmp_path, ["themed"]) for _ in range(5)]
+
+        # Each declared library was imported exactly once, not 5x.
+        assert import_counts == {"lib_x": 1, "lib_y": 1}
+        # Every caller got the identical tuple instance.
+        assert all(r is results[0] for r in results)
+
+    def test_distinct_keys_do_not_share(self, tmp_path):
+        """Different theme chains resolve independently (no false cache hit)."""
+        self._write_theme_toml(tmp_path, "alpha", 'name = "alpha"\nlibraries = ["lib_a"]')
+        self._write_theme_toml(tmp_path, "beta", 'name = "beta"\nlibraries = ["lib_b"]')
+
+        calls: list[str] = []
+
+        def mock_import(name):
+            calls.append(name)
+            return _make_library_module(has_loader=True, loader_value=name)
+
+        with patch(
+            "bengal.core.theme.providers.importlib.import_module",
+            side_effect=mock_import,
+        ):
+            alpha = resolve_theme_providers(tmp_path, ["alpha"])
+            beta = resolve_theme_providers(tmp_path, ["beta"])
+
+        assert [p.package for p in alpha] == ["lib_a"]
+        assert [p.package for p in beta] == ["lib_b"]
+        # Distinct keys → both libraries imported (one each), no cross-pollination.
+        assert sorted(calls) == ["lib_a", "lib_b"]
+
+    def test_clear_cache_forces_reresolve(self, tmp_path):
+        """clear_theme_provider_cache() drops entries so the next call re-imports."""
+        self._write_theme_toml(tmp_path, "themed", 'name = "themed"\nlibraries = ["reload_ui"]')
+
+        calls: list[str] = []
+
+        def mock_import(name):
+            calls.append(name)
+            return _make_library_module(has_loader=True, loader_value=name)
+
+        with patch(
+            "bengal.core.theme.providers.importlib.import_module",
+            side_effect=mock_import,
+        ):
+            resolve_theme_providers(tmp_path, ["themed"])
+            clear_theme_provider_cache()
+            resolve_theme_providers(tmp_path, ["themed"])
+
+        # Cleared between calls → imported twice (once per cache miss).
+        assert calls == ["reload_ui", "reload_ui"]
+
+    def test_clear_all_caches_clears_provider_cache(self, tmp_path):
+        """The cache is wired into the centralized registry (test-cleanup safety)."""
+        from bengal.utils.cache_registry import clear_all_caches
+
+        self._write_theme_toml(tmp_path, "themed", 'name = "themed"\nlibraries = ["reg_ui"]')
+
+        calls: list[str] = []
+
+        def mock_import(name):
+            calls.append(name)
+            return _make_library_module(has_loader=True, loader_value=name)
+
+        with patch(
+            "bengal.core.theme.providers.importlib.import_module",
+            side_effect=mock_import,
+        ):
+            resolve_theme_providers(tmp_path, ["themed"])
+            clear_all_caches()
+            resolve_theme_providers(tmp_path, ["themed"])
+
+        # clear_all_caches() reached the registered provider cache → re-import.
+        assert calls == ["reg_ui", "reg_ui"]
+
+    def test_empty_chain_default_theme_caches_empty_tuple(self, tmp_path):
+        """Default-theme happy path: () is cached and short-circuits identically."""
+        self._write_theme_toml(tmp_path, "default", 'name = "default"')
+
+        first = resolve_theme_providers(tmp_path, ["default"])
+        second = resolve_theme_providers(tmp_path, ["default"])
+
+        assert first == ()
+        # The cached empty tuple is returned on the second call (same object).
+        assert first is second

@@ -57,6 +57,7 @@ from bengal.core.theme.config import Theme
 from bengal.core.theme.providers import (
     LibraryAsset,
     ThemeLibraryProvider,
+    clear_theme_provider_cache,
     get_provider_asset_dirs,
     get_provider_assets,
     resolve_theme_providers,
@@ -83,6 +84,7 @@ __all__ = [
     "_read_theme_extends",
     "check_theme_compatibility",
     "clear_theme_cache",
+    "clear_theme_provider_cache",
     "format_compatibility_warning",
     "get_engine_capabilities",
     "get_installed_themes",

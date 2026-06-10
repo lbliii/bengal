@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from bengal.utils.observability.logger import get_logger
+from bengal.utils.primitives.lru_cache import LRUCache
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -39,6 +40,34 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 _ASSET_MODES = frozenset({"bundle", "link", "none"})
+
+# Thread-safe cache for resolved theme-library providers.
+#
+# resolve_theme_providers() is invoked on two independent build paths with no
+# shared state: asset discovery (orchestration/content.py) and Kida engine
+# loader/filter setup (rendering/engines/kida.py). Under the #350 shard-parallel
+# render path the Kida engine is constructed per-thread-local pipeline, so the
+# providers would otherwise be re-imported (importlib.import_module + hook
+# probing) once per worker thread on top of the asset-discovery pass -- i.e.
+# strictly more than twice per build. Caching by (site_root, theme_chain)
+# collapses all of that into a single resolution that every caller and shard
+# thread shares.
+#
+# RLock-backed and free-threading-safe (CPython 3.14t): LRUCache.get_or_set
+# computes the factory OUTSIDE the lock and resolves the simultaneous-miss race
+# by re-checking under the lock before storing. maxsize=32 is generous; the key
+# space is (site_root, chain), of which a single process sees very few distinct
+# values (one per site in a multi-site build).
+#
+# Cache-key parity assumption: the two callers reach resolve_theme_providers()
+# via two different resolve_theme_chain implementations
+# (bengal.core.theme.resolution vs bengal.rendering.template_engine.environment).
+# They produce the same chain for a given site today, so a single
+# (site_root, theme_chain) key hits across both. If one diverges later the cache
+# would simply miss and recompute -- a perf regression, never a correctness bug.
+_provider_cache: LRUCache[tuple[str, tuple[str, ...]], tuple[ThemeLibraryProvider, ...]] = LRUCache(
+    maxsize=32, name="theme_providers"
+)
 
 
 def _theme_library_debug_payload(
@@ -204,6 +233,14 @@ def resolve_theme_providers(
     resolves each to a ThemeLibraryProvider, and deduplicates by package
     name (earlier theme in chain — i.e. child — wins).
 
+    The resolved tuple is cached by ``(site_root, theme_chain)`` so the two
+    independent build paths (asset discovery and Kida engine setup) — plus
+    every shard worker thread under the #350 render backend — share one
+    resolution instead of re-importing each library package per call. The
+    result is a frozen+slots dataclass tuple, safe to share read-only across
+    threads. The cache is RLock-backed (free-threading-safe under CPython
+    3.14t) and registered for invalidation on full rebuild / config change.
+
     Args:
         site_root: Site root directory.
         theme_chain: Theme names from child to parent.
@@ -212,6 +249,20 @@ def resolve_theme_providers(
         Tuple of deduplicated ThemeLibraryProvider records.
 
     """
+    # str() normalizes the key so Path-vs-str drift between callers cannot
+    # split the cache; tuple() makes the (unhashable) chain list hashable.
+    key = (str(site_root), tuple(theme_chain))
+    return _provider_cache.get_or_set(
+        key,
+        lambda: _resolve_theme_providers_uncached(site_root, theme_chain),
+    )
+
+
+def _resolve_theme_providers_uncached(
+    site_root: Path,
+    theme_chain: list[str],
+) -> tuple[ThemeLibraryProvider, ...]:
+    """Resolve providers from the theme chain without consulting the cache."""
     from bengal.core.theme.resolution import _read_theme_manifest
 
     seen: set[str] = set()
@@ -226,6 +277,32 @@ def resolve_theme_providers(
                 providers.append(provider)
 
     return tuple(providers)
+
+
+def clear_theme_provider_cache() -> None:
+    """Clear the resolved theme-library provider cache."""
+    _provider_cache.clear()
+
+
+# Register cache for centralized invalidation (test cleanup + rebuilds).
+# Mirrors registry.py's theme_cache: default invalidate_on={FULL_REBUILD} is
+# augmented with CONFIG_CHANGED + BUILD_START so a theme.toml `libraries` edit
+# in a long-lived dev-server/incremental process re-resolves providers.
+try:
+    from bengal.utils.cache_registry import InvalidationReason, register_cache
+
+    register_cache(
+        "theme_provider_cache",
+        clear_theme_provider_cache,
+        invalidate_on={
+            InvalidationReason.FULL_REBUILD,
+            InvalidationReason.CONFIG_CHANGED,
+            InvalidationReason.BUILD_START,
+        },
+    )
+except ImportError:
+    # Cache registry not available (shouldn't happen in normal usage).
+    pass
 
 
 def get_provider_asset_dirs(
