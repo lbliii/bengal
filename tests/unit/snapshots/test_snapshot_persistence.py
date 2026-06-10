@@ -279,3 +279,136 @@ class TestPostCardRenderWithPageFromCache:
         )
         assert "reading: 3 min" in html
         assert "excerpt" in html
+
+
+# =============================================================================
+# Parser-version / config-hash gating (issue #377)
+# =============================================================================
+
+
+def _make_snapshot_stub() -> SimpleNamespace:
+    """Minimal SiteSnapshot stand-in for SnapshotCache.save()."""
+    page = SimpleNamespace(
+        source_path=Path("content/post.md"),
+        content_hash="abc",
+        parsed_html="<p>Hello</p>",
+        toc="",
+        toc_items=(),
+        reading_time=5,
+        word_count=250,
+        excerpt="Short",
+        meta_description="",
+    )
+    return SimpleNamespace(page_count=1, section_count=0, pages=[page])
+
+
+class TestSnapshotCacheParserConfigGating:
+    """Verify load_page_cache() rejects the cache on parser/config drift (#377)."""
+
+    def test_save_persists_parser_version_and_config_hash(self, tmp_path: Path) -> None:
+        """save() writes parser_version and config_hash into snapshot_meta.json."""
+        cache_dir = tmp_path / "cache"
+        cache = SnapshotCache(cache_dir)
+        cache.save(
+            _make_snapshot_stub(),
+            parser_version="markdown-3.6-toc2",
+            config_hash="deadbeefcafe0000",
+        )
+
+        meta = json.loads((cache_dir / "snapshot_meta.json").read_text())
+        assert meta["parser_version"] == "markdown-3.6-toc2"
+        assert meta["config_hash"] == "deadbeefcafe0000"
+
+    def test_load_hit_when_parser_and_config_match(self, tmp_path: Path) -> None:
+        """Matching parser_version + config_hash yields a cache hit."""
+        cache_dir = tmp_path / "cache"
+        cache = SnapshotCache(cache_dir)
+        cache.save(
+            _make_snapshot_stub(),
+            parser_version="markdown-3.6-toc2",
+            config_hash="deadbeefcafe0000",
+        )
+
+        result = cache.load_page_cache(
+            parser_version="markdown-3.6-toc2",
+            config_hash="deadbeefcafe0000",
+        )
+        assert result is not None
+        assert "content/post.md" in result
+
+    def test_load_miss_on_parser_version_change(self, tmp_path: Path) -> None:
+        """A changed parser_version is a whole-cache miss (no stale parsed_html)."""
+        cache_dir = tmp_path / "cache"
+        cache = SnapshotCache(cache_dir)
+        cache.save(
+            _make_snapshot_stub(),
+            parser_version="markdown-3.6-toc2",
+            config_hash="deadbeefcafe0000",
+        )
+
+        result = cache.load_page_cache(
+            parser_version="markdown-3.6-toc3",  # bumped TOC_EXTRACTION_VERSION
+            config_hash="deadbeefcafe0000",
+        )
+        assert result is None
+
+    def test_load_miss_on_config_hash_change(self, tmp_path: Path) -> None:
+        """A changed config_hash is a whole-cache miss (no stale parsed_html)."""
+        cache_dir = tmp_path / "cache"
+        cache = SnapshotCache(cache_dir)
+        cache.save(
+            _make_snapshot_stub(),
+            parser_version="markdown-3.6-toc2",
+            config_hash="deadbeefcafe0000",
+        )
+
+        result = cache.load_page_cache(
+            parser_version="markdown-3.6-toc2",
+            config_hash="1111222233334444",  # markdown/directive config changed
+        )
+        assert result is None
+
+    def test_load_miss_when_legacy_meta_lacks_fields(self, tmp_path: Path) -> None:
+        """Old snapshot_meta.json (no parser_version/config_hash) misses under new build."""
+        cache_dir = tmp_path / "cache"
+        cache_dir.mkdir()
+
+        # Legacy meta: only the pre-#377 fields.
+        (cache_dir / "snapshot_meta.json").write_text(
+            json.dumps(
+                {"version": SNAPSHOT_VERSION, "timestamp": 0, "page_count": 1, "section_count": 0}
+            )
+        )
+        (cache_dir / "snapshot_pages.json").write_text(
+            json.dumps(
+                {
+                    "content/post.md": {
+                        "content_hash": "abc",
+                        "parsed_html": "<p>Hello</p>",
+                    }
+                }
+            )
+        )
+
+        cache = SnapshotCache(cache_dir)
+        # A current build supplying values must treat the legacy (None) fields as a miss.
+        result = cache.load_page_cache(
+            parser_version="markdown-3.6-toc2",
+            config_hash="deadbeefcafe0000",
+        )
+        assert result is None
+
+    def test_load_skips_gates_when_args_omitted(self, tmp_path: Path) -> None:
+        """Backward compat: omitting parser_version/config_hash skips the new gates."""
+        cache_dir = tmp_path / "cache"
+        cache = SnapshotCache(cache_dir)
+        cache.save(
+            _make_snapshot_stub(),
+            parser_version="markdown-3.6-toc2",
+            config_hash="deadbeefcafe0000",
+        )
+
+        # No gating args -> falls back to SNAPSHOT_VERSION-only behavior (hit).
+        result = cache.load_page_cache()
+        assert result is not None
+        assert "content/post.md" in result
