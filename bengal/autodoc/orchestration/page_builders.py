@@ -138,11 +138,37 @@ def normalize_element_for_templates(element: DocElement) -> None:
     _normalize(element)
 
 
+#: Element types that are rendered on their OWN page (vs. inline on an
+#: ancestor's page), per doc_type. Only these own a standalone URL; inline
+#: descendants resolve to ``{owner_path}#{anchor}`` so links never 404.
+#: Mirrors SymbolResolver.DEFAULT_PAGE_OWNER_TYPES (page-building reality):
+#: Python modules own pages; classes/functions/methods render inline as cards.
+#: CLI commands and groups each own a page; their options render inline.
+#: OpenAPI schemas and endpoints each own a page (the overview does not -- the
+#: root section index page represents it).
+_PAGE_OWNER_TYPES_BY_DOC: dict[str, frozenset[str]] = {
+    "python": frozenset({"module"}),
+    "cli": frozenset({"command", "command-group"}),
+    "openapi": frozenset({"openapi_schema", "openapi_endpoint"}),
+}
+
+
+def _element_owns_page(element: DocElement, doc_type: str) -> bool:
+    """Return whether ``element`` is materialized as its own page."""
+    owners = _PAGE_OWNER_TYPES_BY_DOC.get(doc_type)
+    if owners is None:
+        # Unknown doc_type: treat top-level fallback elements as page owners.
+        return True
+    return element.element_type in owners
+
+
 def compute_element_urls(
     element: DocElement,
     site: Site,
     doc_type: str,
     resolve_output_prefix: Callable[..., Any],
+    parent_page_path: str | None = None,
+    inline_anchor: str | None = None,
 ) -> None:
     """
     Compute _path and href for an element and all its children.
@@ -150,40 +176,79 @@ def compute_element_urls(
     This sets URL properties on DocElement so templates can use {{ child.href }}
     directly without manual URL building or filters.
 
+    Members that do NOT get their own page (Python classes/functions/methods,
+    CLI options) are never built as standalone pages -- they render as
+    ``id``-anchored cards on their first page-owning ancestor. For those, the
+    href points at that ancestor page plus a ``#anchor`` fragment so
+    ``{{ child.href }}`` resolves to the on-page card instead of a dangling
+    ``/api/<module>/<member>/`` URL (issue #401). The anchor is the HIGHEST
+    inline ancestor's simple name (a stable, page-unique card id), so a method
+    in a class anchors onto its CLASS card -- mirroring the resolution encoded
+    by SymbolResolver and test_symbol_resolver.py.
+
     Args:
         element: DocElement to process
         site: Site instance (for baseurl)
         doc_type: Type of documentation ("python", "cli", "openapi")
         resolve_output_prefix: Function to resolve output prefix
+        parent_page_path: Site-relative ``_path`` of the nearest page-owning
+            ancestor (None at the top of the tree). Threaded through recursion.
+        inline_anchor: The anchor fragment (top-level inline card name) inherited
+            from an ancestor, or None when no inline card has been opened yet.
 
     """
     prefix = resolve_output_prefix(doc_type)
 
-    # Compute URL based on element type
-    if doc_type == "cli":
-        cli_path = resolve_cli_url_path(element.qualified_name)
-        url_path = f"{prefix}/{cli_path}" if cli_path else prefix
-    elif doc_type == "python":
-        url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
-    elif doc_type == "openapi":
-        if element.element_type == "openapi_endpoint":
-            url_path = _openapi_endpoint_url_path(element, prefix)
-        elif element.element_type == "openapi_schema":
-            url_path = f"{prefix}/schemas/{element.name}"
+    if _element_owns_page(element, doc_type):
+        # This element gets its own page: compute its standalone URL path.
+        if doc_type == "cli":
+            cli_path = resolve_cli_url_path(element.qualified_name)
+            url_path = f"{prefix}/{cli_path}" if cli_path else prefix
+        elif doc_type == "python":
+            url_path = f"{prefix}/{element.qualified_name.replace('.', '/')}"
+        elif doc_type == "openapi":
+            if element.element_type == "openapi_endpoint":
+                url_path = _openapi_endpoint_url_path(element, prefix)
+            elif element.element_type == "openapi_schema":
+                url_path = f"{prefix}/schemas/{element.name}"
+            else:
+                url_path = f"{prefix}/{element.name}"
         else:
             url_path = f"{prefix}/{element.name}"
-    else:
-        url_path = f"{prefix}/{element.name}"
 
-    # Set _path (site-relative, no baseurl)
-    element._path = f"/{url_path}/"
+        element._path = f"/{url_path}/"
+        # Descendants anchor onto THIS page; reset the inline-card anchor so the
+        # first inline child becomes the top-level card.
+        child_page_path: str | None = element._path
+        child_anchor: str | None = None
+    elif parent_page_path is not None:
+        # Inline member rendered on a page-owning ancestor. Anchor onto the
+        # highest inline card (its simple name is a unique id on that page),
+        # so a method anchors onto its CLASS card, not the module page.
+        anchor = inline_anchor if inline_anchor is not None else element.name
+        element._path = f"{parent_page_path}#{anchor}"
+        child_page_path = parent_page_path
+        child_anchor = anchor
+    else:
+        # No page-owning ancestor in scope (e.g. an orphan top-level non-owner).
+        # Fall back to the legacy standalone path so href stays non-None.
+        element._path = f"/{prefix}/{element.name}/"
+        child_page_path = None
+        child_anchor = None
 
     # Set href (public URL with baseurl)
     element.href = apply_baseurl(element._path, site)
 
-    # Recursively process children
+    # Recursively process children, threading the page/anchor context.
     for child in element.children:
-        compute_element_urls(child, site, doc_type, resolve_output_prefix)
+        compute_element_urls(
+            child,
+            site,
+            doc_type,
+            resolve_output_prefix,
+            parent_page_path=child_page_path,
+            inline_anchor=child_anchor,
+        )
 
 
 def create_pages(
