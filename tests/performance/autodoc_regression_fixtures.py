@@ -110,6 +110,10 @@ class _MemberViewStub:
     is_private: bool
     href: str
     decorators: tuple[str, ...]
+    is_overloaded: bool = False
+    signature_variants: tuple[str, ...] = ()
+    is_inherited: bool = False
+    inherited_from: str | None = None
 
 
 def build_real_members_template_html(profile: str) -> str:
@@ -124,9 +128,15 @@ def build_real_members_template_html(profile: str) -> str:
     repo_root = Path(__file__).resolve().parents[2]
     template_root = repo_root / "bengal" / "themes" / "default" / "templates"
 
+    from html import escape as _html_escape
+
     env = Environment(loader=FileSystemLoader(str(template_root)))
     env.add_filter("member_view", lambda value: value)
     env.add_filter("markdownify", lambda value: value)
+    # No resolver in this isolated harness: xref_type escapes plain text and
+    # xref_docstring passes through (matches the production no-resolver path).
+    env.add_filter("xref_type", lambda value: _html_escape(value) if value else "")
+    env.add_filter("xref_docstring", lambda value: value if value else "")
 
     def make_member(
         index: int, *, private: bool = False, long_sig: bool = False

@@ -91,6 +91,20 @@ KIDA FEATURES USED:
       </section>
       {% end %}
 
+      {# See Also - cross-references from the module docstring (#327). Each entry
+         is linked when it resolves to a documented symbol, plain text otherwise. #}
+      {% let see_also = element?.see_also ?? [] %}
+      {% if see_also | length > 0 %}
+      <section class="autodoc-section autodoc-see-also" data-section="see-also">
+        <h2 class="autodoc-section-title">See Also</h2>
+        <ul class="autodoc-see-also-list">
+          {% for ref in see_also %}
+          <li><code>{{ ref | xref_type }}</code></li>
+          {% end %}
+        </ul>
+      </section>
+      {% end %}
+
       {# Tags - with null-safe access #}
       {% if page_tags | length > 0 %}
       <footer class="docs-footer">

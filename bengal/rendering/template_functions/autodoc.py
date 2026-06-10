@@ -35,9 +35,13 @@ making them portable across any Python-based template engine.
 
 from __future__ import annotations
 
+import re
 from collections import Counter
 from dataclasses import dataclass
+from html import escape as _html_escape
 from typing import TYPE_CHECKING, Any, Protocol, cast
+
+from kida import Markup
 
 from bengal.autodoc.utils import get_function_parameters, get_function_return_info
 
@@ -154,6 +158,10 @@ class MemberView:
         is_private: Whether name starts with underscore
         href: Link to member page (or anchor)
         decorators: Tuple of decorator names
+        is_overloaded: Whether this member collapses multiple @overload variants
+        signature_variants: Tuple of signature strings for an overloaded member
+        is_inherited: Whether this member was synthesized from a base class
+        inherited_from: Qualified name of the base class it was inherited from
         typed_metadata: Full PythonFunctionMetadata (for advanced use)
 
     """
@@ -173,6 +181,10 @@ class MemberView:
     is_private: bool
     href: str
     decorators: tuple[str, ...]
+    is_overloaded: bool
+    signature_variants: tuple[str, ...]
+    is_inherited: bool
+    inherited_from: str | None
     typed_metadata: Any  # PythonFunctionMetadata or None
 
     @classmethod
@@ -230,6 +242,23 @@ class MemberView:
             "deprecated" in d.lower() for d in decorators
         )
 
+        # Overload + inheritance flags live in the plain metadata dict (set by the
+        # extractor's overload collapse and inherited-member synthesis).
+        member_metadata = el.metadata or {}
+        is_overloaded = bool(member_metadata.get("is_overloaded", False))
+        raw_variants = member_metadata.get("overload_signatures", ()) or ()
+        signature_variants = tuple(str(v) for v in raw_variants)
+        inherited_from = member_metadata.get("inherited_from")
+        is_inherited = bool(member_metadata.get("synthetic", False)) or inherited_from is not None
+
+        # Anchor: a single stable fragment per member. Overload collapse guarantees
+        # exactly one entry per name, so qualified_name (or name) is collision-free.
+        # Prefer the computed page href; otherwise derive a deterministic anchor.
+        anchor = el.href
+        if not anchor:
+            qualified = getattr(el, "qualified_name", "") or ""
+            anchor = f"#{qualified or el.name}"
+
         return cls(
             name=el.name,
             signature=signature,
@@ -244,8 +273,12 @@ class MemberView:
             is_abstract="abstractmethod" in decorators,
             is_deprecated=is_deprecated,
             is_private=el.name.startswith("_"),
-            href=el.href or f"#{el.name}",
+            href=anchor,
             decorators=decorators,
+            is_overloaded=is_overloaded,
+            signature_variants=signature_variants,
+            is_inherited=is_inherited,
+            inherited_from=inherited_from if isinstance(inherited_from, str) else None,
             typed_metadata=meta,
         )
 
@@ -599,10 +632,133 @@ def is_autodoc_page(page: Any) -> bool:
     return _is_autodoc_page(page)
 
 
+# =============================================================================
+# Symbol cross-reference (xref) helpers (#327)
+# =============================================================================
+
+# Token boundaries inside a type/identifier string. We link dotted identifiers
+# (e.g. ``bengal.core.site.Site`` or ``Site``) and leave punctuation/builtins
+# untouched. Splitting on this keeps brackets, commas, pipes and whitespace as
+# literal separators so compound types like ``dict[str, Site | None]`` render
+# with each linkable component linked and the structure preserved.
+_XREF_TOKEN_RE = re.compile(r"[A-Za-z_][A-Za-z0-9_.]*")
+
+
+def _get_symbol_resolver(site: Any) -> Any:
+    """Read the (optional) immutable SymbolResolver attached to the site."""
+    if site is None:
+        return None
+    return getattr(site, "_autodoc_symbol_resolver", None)
+
+
+def xref_type_html(type_str: str | None, resolver: Any) -> Markup:
+    """
+    Render a type string with documented symbol names linked.
+
+    Each dotted-identifier token in ``type_str`` is resolved against ``resolver``.
+    Resolvable tokens become ``<a href=...>name</a>`` (escaped); everything else
+    (builtins, stdlib, unresolved names, punctuation) is emitted as escaped plain
+    text. Output is deterministic and HTML-safe.
+
+    Degrades gracefully: with no resolver (or no type) it returns the escaped
+    plain text, so callers never produce broken links.
+
+    Args:
+        type_str: A type annotation string (may be compound).
+        resolver: A SymbolResolver, or None.
+
+    Returns:
+        Safe HTML (kida ``Markup``).
+    """
+    if not type_str:
+        return Markup("")
+
+    if resolver is None:
+        return Markup(_html_escape(type_str))
+
+    out: list[str] = []
+    last = 0
+    for match in _XREF_TOKEN_RE.finditer(type_str):
+        start, end = match.span()
+        # Emit the literal separator text before this token (escaped).
+        if start > last:
+            out.append(_html_escape(type_str[last:start]))
+        token = match.group(0)
+        href = resolver.resolve(token)
+        if href:
+            # Link only the LAST simple component as the visible text would be
+            # confusing otherwise; keep the full token text but link the whole
+            # dotted span to its page.
+            out.append(f'<a href="{_html_escape(href, quote=True)}">{_html_escape(token)}</a>')
+        else:
+            out.append(_html_escape(token))
+        last = end
+    # Trailing separator text.
+    if last < len(type_str):
+        out.append(_html_escape(type_str[last:]))
+
+    return Markup("".join(out))
+
+
+# Bare `Name` inline-code spans that a render-time pass may re-link. The
+# docstring extractor (text.py:_convert_sphinx_roles) collapses :class:`X` etc.
+# to plain ``X`` inline code BEFORE templates run, so we re-link at render time
+# against the resolver without touching extraction/cache hashing.
+_XREF_CODE_SPAN_RE = re.compile(r"<code>([^<>]+)</code>")
+
+
+def xref_docstring_html(html: str | None, resolver: Any) -> Markup:
+    """
+    Post-process rendered docstring HTML to link bare symbol code spans.
+
+    Scans ``<code>Name</code>`` spans produced from converted Sphinx roles and,
+    when ``Name`` resolves to a documented symbol, wraps it in a link. Unresolved
+    spans are left exactly as-is (no broken links, byte-stable). Code spans that
+    are already inside an anchor are not re-linked.
+
+    Args:
+        html: Rendered docstring HTML.
+        resolver: A SymbolResolver, or None.
+
+    Returns:
+        Safe HTML (kida ``Markup``).
+    """
+    if not html:
+        return Markup("")
+    if resolver is None:
+        return Markup(html)
+
+    def _replace(match: re.Match[str]) -> str:
+        inner = match.group(1)
+        href = resolver.resolve(inner)
+        if not href:
+            return match.group(0)
+        return (
+            f'<a href="{_html_escape(href, quote=True)}" class="autodoc-xref">'
+            f"<code>{inner}</code></a>"
+        )
+
+    return Markup(_XREF_CODE_SPAN_RE.sub(_replace, html))
+
+
 def register(env: TemplateEnvironment, site: SiteLike) -> None:
     """Register functions with template environment."""
+
+    # Symbol cross-reference closures. The resolver is built during autodoc
+    # generation and attached to the site as ``_autodoc_symbol_resolver`` BEFORE
+    # rendering. It is immutable, so reading it here (per render) is thread-safe
+    # under shard/thread-parallel rendering. Resolving against None degrades to
+    # escaped plain text -- no broken links.
+    def _xref_type(type_str: str | None) -> Markup:
+        return xref_type_html(type_str, _get_symbol_resolver(site))
+
+    def _xref_docstring(html: str | None) -> Markup:
+        return xref_docstring_html(html, _get_symbol_resolver(site))
+
     env.filters.update(
         {
+            "xref_type": _xref_type,
+            "xref_docstring": _xref_docstring,
             "get_params": get_params,
             "param_count": param_count,
             "return_type": return_type,
@@ -627,6 +783,8 @@ def register(env: TemplateEnvironment, site: SiteLike) -> None:
 
     env.globals.update(
         {
+            "xref_type": _xref_type,
+            "xref_docstring": _xref_docstring,
             "get_params": get_params,
             "param_count": param_count,
             "return_type": return_type,

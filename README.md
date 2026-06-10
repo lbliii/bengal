@@ -154,7 +154,7 @@ excerpt generation, and pagination so custom content behavior stays in Python.
 | **SEO & Discovery** | Sitemap, RSS, canonical URLs, Open Graph, social cards, search, JSON/LLM output, [llms.txt](https://llmstxt.org/), [Content Signals](https://contentsignals.org/) | [SEO & Discovery →](https://lbliii.github.io/bengal/docs/building/seo/) |
 | **Directives** | Tabs, admonitions, cards, dropdowns, code blocks | [Content →](https://lbliii.github.io/bengal/docs/content/) |
 | **Notebooks** | Native Jupyter `.ipynb` rendering, Binder/Colab links | [Notebooks →](https://lbliii.github.io/bengal/docs/content/authoring/notebooks/) |
-| **Autodoc** | Generate API docs from Python, CLI, OpenAPI | [Autodoc →](https://lbliii.github.io/bengal/docs/content/sources/autodoc/) |
+| **Autodoc** | API docs from Python, CLI, OpenAPI with symbol cross-linking, `@overload` grouping, and inherited-member badges | [Autodoc →](https://lbliii.github.io/bengal/docs/content/sources/autodoc/) |
 | **Remote Sources** | Pull content from GitHub, Notion, REST APIs | [Sources →](https://lbliii.github.io/bengal/docs/content/sources/) |
 | **Image Processing** | Resize, crop, format conversion (WebP/AVIF), srcset generation | [Images →](https://lbliii.github.io/bengal/docs/theming/templating/image-processing/) |
 | **Content Collections** | Type-safe frontmatter with dataclass/Pydantic schemas | [Collections →](https://lbliii.github.io/bengal/docs/content/collections/) |
