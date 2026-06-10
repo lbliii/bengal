@@ -12,6 +12,7 @@ Tests the unified worker auto-tune utility including:
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -558,3 +559,42 @@ class TestIntegration:
                 config_override=12,
             )
             assert workers == 12  # Ignores CI cap
+
+
+class TestGilDetectionConsolidation:
+    """Guard: GIL detection lives only in bengal.utils.concurrency (issue #381)."""
+
+    def test_no_duplicate_gil_detection_outside_concurrency(self) -> None:
+        """
+        Assert no module outside ``bengal/utils/concurrency`` defines its own
+        free-threading / GIL detection.
+
+        Finding 7 of #381 consolidated four drifting copies of GIL detection
+        into the canonical :func:`bengal.utils.concurrency.is_gil_disabled`.
+        Re-introducing a local ``sys._is_gil_enabled()`` probe or a
+        ``Py_GIL_DISABLED`` ``sysconfig`` lookup anywhere else resurrects the
+        drift this consolidation removed, so this test fails if either idiom
+        reappears outside the concurrency package.
+        """
+        import bengal
+
+        package_root = Path(bengal.__file__).resolve().parent
+        canonical_dir = package_root / "utils" / "concurrency"
+
+        # Idioms that constitute a *local* GIL-detection implementation.
+        gil_idioms = ("_is_gil_enabled", "Py_GIL_DISABLED")
+
+        offenders: list[str] = []
+        for path in package_root.rglob("*.py"):
+            if canonical_dir in path.parents or path == canonical_dir:
+                continue
+            text = path.read_text(encoding="utf-8")
+            if any(idiom in text for idiom in gil_idioms):
+                rel = path.relative_to(package_root)
+                offenders.append(str(rel))
+
+        assert not offenders, (
+            "GIL-detection idioms found outside bengal/utils/concurrency; "
+            "import is_gil_disabled() from bengal.utils.concurrency instead. "
+            f"Offending modules: {sorted(offenders)}"
+        )
