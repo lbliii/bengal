@@ -404,7 +404,7 @@ article[data-autodoc]>p:first-of-type,
 /* Inherited-member attribution (#329): visually distinct from native members.
    Lowercase + softer tone signals "this came from a base class". */
 .autodoc-member-inherited {
-  margin-left: 0.25rem;
+  margin-inline-start: 0.25rem;
 }
 
 .autodoc-badge[data-badge="inherited"] {
@@ -424,12 +424,12 @@ article[data-autodoc]>p:first-of-type,
 
 .autodoc-bases-label {
   font-weight: var(--weight-medium);
-  margin-right: 0.375rem;
+  margin-inline-end: 0.375rem;
 }
 
 .autodoc-see-also-list {
   margin: 0.25rem 0 0;
-  padding-left: 1.25rem;
+  padding-inline-start: 1.25rem;
 }
 
 .autodoc-xref {
