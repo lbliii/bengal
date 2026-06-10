@@ -43,7 +43,6 @@ from __future__ import annotations
 
 import multiprocessing
 import os
-import sys
 import time
 from concurrent.futures import Executor, ProcessPoolExecutor, ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -53,6 +52,7 @@ from typing import TYPE_CHECKING
 # Runtime re-export for existing ``bengal.server.build_executor.BuildRequest`` callers.
 from bengal.orchestration.build.requests import BuildRequest  # noqa: TC001
 from bengal.server.reload_types import SerializedOutputRecord
+from bengal.utils.concurrency import is_gil_disabled
 from bengal.utils.observability.logger import get_logger
 
 if TYPE_CHECKING:
@@ -185,13 +185,16 @@ def is_free_threaded() -> bool:
     truly parallel. In this mode, ThreadPoolExecutor is as good as
     ProcessPoolExecutor without the serialization overhead.
 
+    Thin alias over the canonical
+    :func:`bengal.utils.concurrency.is_gil_disabled`. Kept so the
+    ``is_free_threaded`` symbol (patched by server/build tests and used by
+    :func:`get_executor_type`) keeps resolving for existing callers.
+
     Returns:
         True if running on free-threaded Python, False otherwise
 
     """
-    if hasattr(sys, "_is_gil_enabled"):
-        return not sys._is_gil_enabled()
-    return False
+    return is_gil_disabled()
 
 
 def get_executor_type() -> str:

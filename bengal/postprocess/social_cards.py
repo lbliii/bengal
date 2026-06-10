@@ -44,7 +44,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import sys
 from dataclasses import dataclass, replace
 from threading import Lock
 from typing import TYPE_CHECKING, Any
@@ -67,13 +66,6 @@ logger = get_logger(__name__)
 CARD_WIDTH = 1200
 CARD_HEIGHT = 630
 SOCIAL_CARD_FINGERPRINT_PREFIX = "social_card:"
-
-
-# Check if running in free-threading (no-GIL) mode
-# Pillow's C extensions are NOT thread-safe without the GIL
-def _is_free_threading() -> bool:
-    """Check if running in Python's free-threading (no-GIL) mode."""
-    return hasattr(sys, "_is_gil_enabled") and not sys._is_gil_enabled()
 
 
 @dataclass

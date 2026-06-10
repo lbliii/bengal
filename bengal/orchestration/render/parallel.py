@@ -12,9 +12,10 @@ Key Features:
 
 from __future__ import annotations
 
-import sys
 import threading
 from typing import TYPE_CHECKING, Any
+
+from bengal.utils.concurrency import is_gil_disabled
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -32,25 +33,15 @@ def is_free_threaded() -> bool:
     Free-threaded Python (python3.13t+) has the GIL disabled, allowing
     true parallel execution with ThreadPoolExecutor.
 
+    Thin alias over the canonical
+    :func:`bengal.utils.concurrency.is_gil_disabled`. Kept so the
+    ``is_free_threaded`` symbol (re-exported from
+    ``bengal.orchestration.render``) keeps resolving for existing callers.
+
     Returns:
         True if running on free-threaded Python, False otherwise
     """
-    # Check if sys._is_gil_enabled() exists and returns False
-    if hasattr(sys, "_is_gil_enabled"):
-        try:
-            return not sys._is_gil_enabled()
-        except AttributeError, TypeError:
-            pass
-
-    # Fallback: check sysconfig for Py_GIL_DISABLED
-    try:
-        import sysconfig
-
-        return sysconfig.get_config_var("Py_GIL_DISABLED") == 1
-    except ImportError, AttributeError:
-        pass
-
-    return False
+    return is_gil_disabled()
 
 
 def get_or_create_pipeline(
