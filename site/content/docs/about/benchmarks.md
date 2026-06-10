@@ -101,6 +101,16 @@ Memory per page decreases at scale due to shared overhead (theme, templates, con
 
 Build performance with different worker counts (1,000 pages).
 
+:::{warning} Workload label — render-light, illustrative scaling
+These worker-scaling figures are **render-light** (the same minimal-content
+workload as the table above) and are **illustrative of the scaling shape**, not
+a committed baseline. For Bengal's committed, reproducible parallel/serial
+numbers, see [Free-Threaded Python Impact](#free-threaded-python-impact) below
+and `benchmarks/baselines/SPEEDUP.md` — e.g. 1,000 pages (`blog` archetype) goes
+from **109.2 s** (`PYTHON_GIL=1`) to **56.3 s** (`PYTHON_GIL=0`), a 1.94x
+free-threading speedup.
+:::
+
 | Workers | Build Time | Speedup |
 |---------|------------|---------|
 | 1 (serial) | ~9 s | 1.0x |
@@ -164,7 +174,19 @@ Real-world sites build slower than benchmarks. Common factors:
 
 ### Real-World Example: Bengal Documentation Site
 
-The Bengal documentation site itself (the site you're reading) provides a realistic benchmark:
+:::{warning} Workload label — warm-cache, content-specific spot run (not the committed baseline)
+The numbers below are a **warm-cache, incremental+parallel spot run** of this
+specific docs site on one machine — not a committed, reproducible baseline.
+They are *not* comparable to the committed end-to-end baseline of **~18–20
+pages/s** (`benchmarks/baselines/`, `blog` archetype with taxonomy, free-threaded
+3.14t, median of 3; see [Free-Threaded Python Impact](#free-threaded-python-impact)).
+The high pps reflects incremental builds skipping unchanged pages plus a warm
+render cache, not raw end-to-end throughput. Treat it as illustrative of
+incremental-build behavior on a content-specific site.
+:::
+
+The Bengal documentation site itself (the site you're reading) shows how
+incremental builds behave on directive-heavy content:
 
 ```text
 ✓ Built 803 pages in 3.19 s (incremental+parallel) | 252.0 pages/sec  # warm caches
@@ -181,14 +203,27 @@ Even with warm caches, real documentation sites with directive-heavy content sho
 
 ### Realistic Expectations
 
-| Site Size | Benchmark (minimal) | Real Docs (directive-heavy) |
-|-----------|---------------------|----------------------------|
+:::{warning} Workload label — render-light upper bound vs. committed baseline
+The "Benchmark (minimal)" column is the **render-light upper bound** from the
+[Build Performance by Site Size](#build-performance-by-site-size) table (no
+taxonomy, no directives, no syntax highlighting). It is **not** the committed
+end-to-end baseline, which measures **~18–20 pages/s** for the `blog` archetype
+with taxonomy (`benchmarks/baselines/`, free-threaded 3.14t, median of 3 —
+e.g. 1,000 pages in **56.3 s**). The "Real Docs" column is an illustrative
+warm-cache estimate for directive-heavy content; treat both columns as upper
+bounds, not the reproducible baseline.
+:::
+
+| Site Size | Benchmark (minimal, render-light) | Real Docs (directive-heavy, warm cache) |
+|-----------|-----------------------------------|-----------------------------------------|
 | 100 pages | ~0.4 s / 250 pps | ~0.8 s / 125 pps |
 | 500 pages | ~2 s / 250 pps | ~4 s / 125 pps |
 | 800 pages | ~3 s / 265 pps | ~6.5 s / 124 pps |
 | 1,000 pages | ~3.5 s / 285 pps | ~8 s / 125 pps |
 
-Your results depend on content complexity. Directive-heavy documentation sites typically see 40-60% of benchmark speeds.
+These are render-light/warm-cache upper bounds, not the committed ~18–20 pages/s
+end-to-end baseline. Your results depend on content complexity; directive-heavy
+documentation sites typically see 40-60% of these render-light figures.
 
 ---
 
