@@ -601,8 +601,28 @@ features:
         site2 = Site.from_config(site_dir)
         stats2 = site2.build(BuildOptions(incremental=True))
 
-        # Build should succeed
+        # Build should succeed and pick up the added post.
         assert stats2.total_pages >= stats1.total_pages
+
+        output_dir = site_dir / "public"
+
+        # Discriminating: the edited post HTML reflects the new title, not the stale one.
+        post1_html = (output_dir / "blog" / "post1" / "index.html").read_text()
+        assert "Post 1 Updated" in post1_html
+        assert "Post 1." not in post1_html
+
+        # Discriminating: the newly added post was rendered with its own content.
+        post2_html = (output_dir / "blog" / "post2" / "index.html").read_text()
+        assert "Post 2 New" in post2_html
+
+        # Discriminating: RSS and sitemap reflect both the edit and the new post
+        # after the incremental build (the artifact-repair / feed-freshness fix).
+        rss = (output_dir / "rss.xml").read_text()
+        assert "Post 1 Updated" in rss
+        assert "Post 2 New" in rss
+
+        sitemap = (output_dir / "sitemap.xml").read_text()
+        assert "blog/post2/" in sitemap
 
     def test_feature_toggle_mid_build(self, tmp_path: Path) -> None:
         """

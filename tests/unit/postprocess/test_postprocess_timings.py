@@ -12,6 +12,7 @@ def test_postprocess_records_sequential_task_timings(monkeypatch) -> None:
         config={
             "output_formats": {"enabled": False},
             "generate_sitemap": False,
+            "generate_rss": False,
             "content_signals": {"enabled": False},
         },
     )
@@ -30,6 +31,7 @@ def test_postprocess_sequential_failure_emits_failed_line(monkeypatch) -> None:
         config={
             "output_formats": {"enabled": False},
             "generate_sitemap": False,
+            "generate_rss": False,
             "content_signals": {"enabled": False},
         },
     )
@@ -63,6 +65,7 @@ def test_postprocess_records_parallel_task_timings(monkeypatch) -> None:
         config={
             "output_formats": {"enabled": False},
             "generate_sitemap": True,
+            "generate_rss": False,
             "content_signals": {"enabled": False},
         },
     )
@@ -82,6 +85,7 @@ def test_postprocess_parallel_failure_emits_failed_line(monkeypatch) -> None:
         config={
             "output_formats": {"enabled": False},
             "generate_sitemap": True,
+            "generate_rss": False,
             "content_signals": {"enabled": False},
         },
     )
@@ -112,3 +116,81 @@ def test_postprocess_parallel_failure_emits_failed_line(monkeypatch) -> None:
     assert ("finished", "special pages") in emitted_kinds
     assert ("failed", "sitemap") in emitted_kinds
     assert ("finished", "sitemap") not in emitted_kinds
+
+
+def test_postprocess_runs_rss_on_incremental(monkeypatch) -> None:
+    """RSS regenerates on incremental builds (like sitemap), not just full builds.
+
+    This locks in the artifact-repair / warm-build feed-freshness fix: previously
+    RSS was gated behind ``if not incremental`` and was skipped on every incremental
+    build, leaving feeds stale and un-repaired.
+    """
+    site = SimpleNamespace(
+        config={
+            "output_formats": {"enabled": False},
+            "generate_sitemap": False,
+            "generate_rss": True,
+            "content_signals": {"enabled": False},
+        },
+    )
+    stats = BuildStats()
+    ctx = BuildContext(stats=stats)
+    orchestrator = PostprocessOrchestrator(site)
+    ran: list[str] = []
+    monkeypatch.setattr(orchestrator, "_generate_special_pages", lambda _ctx=None: None)
+    monkeypatch.setattr(orchestrator, "_generate_rss", lambda: ran.append("rss"))
+
+    orchestrator.run(parallel=False, build_context=ctx, incremental=True)
+
+    assert ran == ["rss"], "RSS task should run on an incremental build"
+    assert "rss" in stats.postprocess_task_timings_ms
+
+
+def test_postprocess_skips_rss_when_disabled_on_incremental(monkeypatch) -> None:
+    """generate_rss=False must keep RSS off even with the always-on-incremental rule."""
+    site = SimpleNamespace(
+        config={
+            "output_formats": {"enabled": False},
+            "generate_sitemap": False,
+            "generate_rss": False,
+            "content_signals": {"enabled": False},
+        },
+    )
+    stats = BuildStats()
+    ctx = BuildContext(stats=stats)
+    orchestrator = PostprocessOrchestrator(site)
+    ran: list[str] = []
+    monkeypatch.setattr(orchestrator, "_generate_special_pages", lambda _ctx=None: None)
+    monkeypatch.setattr(orchestrator, "_generate_rss", lambda: ran.append("rss"))
+
+    orchestrator.run(parallel=False, build_context=ctx, incremental=True)
+
+    assert ran == []
+    assert "rss" not in stats.postprocess_task_timings_ms
+
+
+def test_postprocess_rss_excluded_by_serve_ready_allowlist(monkeypatch) -> None:
+    """Serve-ready builds restrict tasks via enabled_task_names; RSS stays off there."""
+    site = SimpleNamespace(
+        config={
+            "output_formats": {"enabled": False},
+            "generate_sitemap": False,
+            "generate_rss": True,
+            "content_signals": {"enabled": False},
+        },
+    )
+    stats = BuildStats()
+    ctx = BuildContext(stats=stats)
+    orchestrator = PostprocessOrchestrator(site)
+    ran: list[str] = []
+    monkeypatch.setattr(orchestrator, "_generate_special_pages", lambda _ctx=None: None)
+    monkeypatch.setattr(orchestrator, "_generate_rss", lambda: ran.append("rss"))
+
+    orchestrator.run(
+        parallel=False,
+        build_context=ctx,
+        incremental=True,
+        enabled_task_names={"special pages"},
+    )
+
+    assert ran == []
