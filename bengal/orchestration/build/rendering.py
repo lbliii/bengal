@@ -407,6 +407,7 @@ def _maybe_isolated_render(
     """
     from bengal.orchestration.render.isolated import (
         IsolatedRenderBackend,
+        ShardRenderBackend,
         decide_isolation,
         fork_available,
         resolve_isolation_settings,
@@ -455,7 +456,12 @@ def _maybe_isolated_render(
             reason=decision.reason,
             workers=max_workers,
         )
-        IsolatedRenderBackend(orchestrator.site).render(
+        backend = (
+            ShardRenderBackend(orchestrator.site)
+            if decision.mode == "shard"
+            else IsolatedRenderBackend(orchestrator.site)
+        )
+        backend.render(
             pages_to_build,
             build_context=ctx,
             num_workers=max_workers,

@@ -35,12 +35,14 @@ from .partition import (
     partition_content_files,
     partition_pages,
 )
+from .shard_backend import ShardRenderBackend
 
 __all__ = [
     "ContentFile",
     "IsolatedRenderBackend",
     "IsolationDecision",
     "IsolationSettings",
+    "ShardRenderBackend",
     "decide_isolation",
     "discover_content_files",
     "estimate_file_cost",

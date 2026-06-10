@@ -343,25 +343,87 @@ are *not* blockers under this design.
       fired, exact cover, ≥2 real pages byte-compared, no overlay on skipped pages — and a
       mutation (breaking `SectionSnapshot._path`) was confirmed to fail it. `ty` floor
       unchanged (539); `render_isolation` stays **off**.
-  - [ ] **S13.4 — actor protocol + small-parent driver + barrier-owns-globals**
-    (taxonomy/related/menus reduced from shard metas) + generated-page synthesis.
-  - [ ] **S13.5 — render-phase A/B + byte-parity** on a deterministic fixture.
-- [ ] **S14 — Cross-shard correctness: RenderPlan completeness + fallbacks.**
-  `get_page().content` cross-shard detection → ship-or-fallback; xref
-  reconciliation across shards; generated-page (tag/archive) assignment to
-  shards. Guarantee byte-identical output or a safe thread-path fallback. *(l)*
+  - **S13.4 — barrier-owns-globals ladder (IN PROGRESS).** Make the parent SMALL: every
+    global is reduced from the per-shard meta union + the small parent, NOT from a fully-built
+    `SiteSnapshot`. Each rung is OFF-by-default (a kwarg on `assemble_render_plan`) and
+    byte-parity-gated vs the `from_site` oracle (N∈{1,2,3,5,7}) + live-site ground truth.
+    - [x] **S13.4a — taxonomy + related + tag_pages** reduced from the PageView union
+      (`reduce_taxonomy_from_metas`). `_reduce_taxonomies` reproduces
+      `TaxonomyOrchestrator.collect_taxonomies`; `_reduce_related_index` reproduces
+      `RelatedPostsOrchestrator.build_index`. Closed the `related_index=={}` gap from the real
+      (related-free) live map step.
+    - [x] **S13.4b — config/params/data + schedule_template_groups + snapshot_time** from the
+      small parent (`reduce_globals_from_parent`), 2026-06-09. Byte-identical BY CONSTRUCTION:
+      config = `to_plain_data(dict(site.config.raw))` (the exact expr `builder.py:178-179` uses
+      to seed `snapshot.config` — landmine: `snapshot.config` is `site.config.raw`, NOT
+      `site.config`, which flattens to `{}`); params = `config_dict["params"]`; data =
+      `dict(site.data)`; `schedule_template_groups` = the PageView union grouped by
+      `template_name` (reproduces `scheduling._compute_template_groups`); `snapshot_time → 0.0`
+      (proven unread on the render path — the build stat is the separate `stats.snapshot_time_ms`).
+      Scalars + `bengal_metadata` were ALREADY `getattr(site, …)`. Gated by
+      `test_globals_from_parent_*` incl. a non-vacuous params test (injected `[params]`) — note
+      `plan.data` is `{}` on every fixture because `to_plain_data` drops `DotDict`-typed data
+      leaves (a PRE-EXISTING snapshot-path behaviour, flagged for a separate issue, NOT S13.4b's
+      regression). Design adversarially critiqued (workflow, 7/7 claims held).
+    - [ ] **S13.4c — SectionSnapshot tree from `ShardPageMeta.section_metas` + content walk
+      (DESIGNED, refutation-corrected; NEXT RUNG).** Gate `_relink_all_sections` (section 5)
+      behind `reduce_sections_from_metas`; rebuild the flattened section tree at the barrier from
+      a new `SectionMeta` (carried from each `_index.md` the worker parses) + the parent's
+      `discover_content_files` walk (directory skeleton incl. virtual sections) + `pv_by_path`.
+      **Ordering change DROPPED + frozen:** the plan's "adopt `discover_content_files` Path.parts
+      order, delete the `(weight, str(source_path))` fallback" is **empirically REFUTED** —
+      live `site.pages` is the discovery-walk append order (a section's weight-ordered subsections
+      BEFORE its own `_index`; top-level sections NOT weight-sorted), which equals NEITHER
+      Path.parts NOR the `(weight, str)` fallback on nested-section sites (measured on
+      test-navigation; frozen as `test_walk_order_diverges_from_path_parts`). So the fallback
+      STAYS; the multi-shard walk-order reproduction is coupled to this section-tree rebuild and
+      is its own follow-on. **Refutation-corrected design points (from the critic):** (1) the
+      worker CANNOT pre-resolve section `href` (no parent chain) — recompute `href`/`_path` at the
+      BARRIER top-down after the skeleton tree is built, via parent-name join +
+      `apply_version_path_transform(site)`; (2) `SectionMeta` ownership is DIRECTORY-keyed and
+      index-page-agnostic (stem ∈ {index,_index}), not "`_index.md`-keyed"; (3) seed virtual
+      sections (dir with content files but no index) from the content walk. New dataclass
+      `SectionMeta(path, metadata, weight, …)`; `_rebuild_sections_from_metas` (union by dir path
+      → seed skeleton → group pages by `pv.section_path` → parent/child by path-prefix → post-pass
+      `root`/`hierarchy`); 8 new gate tests. Navigation (menus/nav_trees/top_level_*) stays
+      snapshot-sourced — separate **S13.4d**.
+    - [~] **S13.4d — menus + nav_trees rebuilt at the barrier — OPTIONAL (small-parent only).**
+      NOT required by the shipped backend: it uses `RenderPlan.from_site`, which already carries
+      `menus` + view-ified `nav_trees` (installed via `NavTreeCache.set_precomputed`), byte-identical
+      on test-navigation. Only the small-parent path (avoiding the snapshot build) needs this. xl.
+    - [ ] **S13.4e — shard generated pages — THE MAIN REMAINING PERF ITEM.** tag/archive/pagination
+      currently render SERIALLY in the parent (byte-correct, but ~23% of render un-parallelized) —
+      so the shard build LOSES end-to-end on generated-heavy sites (S17). Sharding them (synthesis +
+      `generated_page_assignments` + worker Paginator rehydration; COW-prone — the generated graph is
+      shared) is what broadens the win beyond render-heavy-low-generated sites. *(l)*
+    - [~] **S13.4f/g — small-parent driver — OPTIONAL OPTIMIZATION.** The shipped `ShardRenderBackend`
+      forks from a `from_site` parent (parent builds the snapshot — cheap, ~10%). The pure
+      snapshot-free small-parent reduce (all barrier flags on, S13.4a/b done; sections=S13.4c-pt2,
+      nav=S13.4d) only shrinks that serial tail; not required for the win.
+  - [x] **S13.5 — render-phase A/B (DONE).** Clean idle-box measurement (`.context/spike_clean.py`):
+    1.75× content render on render-heavy docs (ceiling-consistent), 0.90× cheap content.
+- [x] **S14 — Cross-shard rendered-content (the one true blocker) — DONE (fork).** `PageView.content`
+  property resolves a sibling's rendered body from a fork-COW `{source_path: content}` registry the
+  parent installs pre-fork — body-free + picklable preserved. Handles the related-posts card's
+  `post.content` fallback AND full embeds; byte-identical on test-taxonomy. Spawn (no COW) deferred.
+  Commit `9d3d48846`. (xref reconciliation across shards: not exercised by fixtures; revisit if a
+  cross-shard xref case appears.)
 
 ### Group C — Prove & gate
 
-- [ ] **S15 — Integrate + recalibrate the gate.** Wire the shard build as the
-  cold-build path behind `render_isolation`; recalibrate the crossover on the S8
-  benchmark (the real E2E crossover, not the pure-render one). *(m)*
-- [ ] **S16 — Byte-parity + determinism guard v2.** Extend S6 to the shard path:
-  thread == shard, across worker counts, on a large deterministic fixture; prove
-  the shard backend actually fired. *(m)*
-- [ ] **S17 — Materialization gate (the merge bar).** Idle-box, median-of-N E2E
-  A/B proving the shard build **beats the thread build end-to-end** across sizes.
-  The branch stays non-default / unmerged until this is green. *(s)*
+- [~] **S15 — Integrate + the gate (PARTIAL).** Shard wired as a cold-build path behind
+  `render_isolation=shard` (gate + dispatch, commit `76e6395c3`). The crossover gate is still
+  page-count-based; S17 shows it must become **content-aware** (render-cost + generated-page ratio):
+  shard wins on render-heavy-low-generated, loses on generated-heavy. *(m)*
+- [x] **S16 — Byte-parity guard (DONE, small).** `tests/integration/test_shard_render_parity.py`:
+  full build `shard` == `thread` BYTE-IDENTICAL on test-product/basic/taxonomy/navigation (excluding
+  the unseeded random-posts widget page), backend fires, non-vacuous. Large-fixture + worker-count
+  sweep (S16 v2) still pending. *(m)*
+- [~] **S17 — Materialization gate (MEASURED, conditional).** Idle-box median-of-3 E2E A/B
+  (`bench_build_ab --modes thread,shard`): render-heavy docs (1001 pg, no generated) **1.12× — shard
+  WINS (+12%)**; bench site (1779 pg, 273 generated) **0.88× — shard LOSES** (generated render serial
+  in parent). ⇒ net-positive ONLY for render-heavy-low-generated cold builds; **S13.4e broadens it**.
+  Stays non-default until S13.4e + the content-aware gate. *(s)*
 
 ### Group D — Close
 
