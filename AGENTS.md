@@ -96,9 +96,15 @@ are public contracts.
 
 ## Governance Alignment
 
-- `CODEOWNERS`, `OWNERS`, and `MAINTAINERS` were not found in `.github/` or the
-  repo root during bootstrap. Human approval routing is therefore
-  `manual-confirmation-needed` until ownership is recorded.
+- `.github/CODEOWNERS` records review routing. Bengal is solo-maintained, so a
+  global `*` fallback plus area-specific lines all route to `@lbliii` (the owner
+  who approves changes). Ownership of high-risk surfaces — public API/protocols/
+  plugins, CLI and config, rendering/templates/themes, orchestration/cache/
+  incremental/dev server, docs/site/scaffolds, and release/dependencies/
+  workflows — is recorded explicitly rather than left implicit. Human approval
+  routing is therefore `codeowners-routed` (last-match-wins). Some scoped
+  `AGENTS.md` files in subdirectories may still describe the older
+  `manual-confirmation-needed` state until they are swept separately.
 - Canonical public knowledge lives in `README.md`, `CONTRIBUTING.md`,
   `CHANGELOG.md`, `site/content/`, `tests/README.md`, and `.importlinter`.
 - CI and release governance lives in `.github/workflows/`, `pyproject.toml`,

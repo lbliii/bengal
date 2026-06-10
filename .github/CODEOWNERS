@@ -1,0 +1,52 @@
+# CODEOWNERS — review routing for Bengal
+#
+# Bengal is currently a solo-maintained project. All paths route to @lbliii,
+# who owns and approves changes across every area below. The area-specific
+# lines exist so that ownership of high-risk surfaces (public API, release,
+# dependencies, security-sensitive code) is recorded explicitly rather than
+# left implicit, and so that routing can be split among additional maintainers
+# without rewriting this file from scratch.
+#
+# Later entries take precedence over earlier ones (last match wins), so the
+# global fallback comes first and the area-specific rules follow.
+# Syntax reference: https://docs.github.com/articles/about-code-owners
+
+# Global fallback — anything not matched below.
+*                               @lbliii
+
+# Public API, protocols, plugins, and hook surfaces (public contracts).
+/bengal/__init__.py             @lbliii
+/bengal/protocols/              @lbliii
+/bengal/plugins/                @lbliii
+/bengal/core/                   @lbliii
+
+# CLI and configuration (user-facing contracts: flags, commands, config keys).
+/bengal/cli/                    @lbliii
+/bengal/config/                 @lbliii
+
+# Rendering, templates, and themes (presentation layer).
+/bengal/rendering/              @lbliii
+/bengal/parsing/                @lbliii
+/bengal/themes/                 @lbliii
+
+# Orchestration, cache, incremental builds, and dev server.
+/bengal/orchestration/          @lbliii
+/bengal/cache/                  @lbliii
+/bengal/server/                 @lbliii
+/bengal/snapshots/              @lbliii
+
+# Docs, site content, and scaffolds.
+/docs/                          @lbliii
+/site/                          @lbliii
+/bengal/scaffolds/              @lbliii
+*.md                            @lbliii
+
+# Release, dependencies, and CI workflows (release/security governance).
+/pyproject.toml                 @lbliii
+/uv.lock                        @lbliii
+/requirements.lock              @lbliii
+/renovate.json                  @lbliii
+/.github/                       @lbliii
+/.github/workflows/             @lbliii
+/.github/dependabot.yml         @lbliii
+/.github/CODEOWNERS             @lbliii
