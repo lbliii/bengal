@@ -149,6 +149,49 @@ async def test_get_static_asset_serves_file(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_static_asset_served_from_hidden_buffer_dir(tmp_path: Path) -> None:
+    """Assets under a hidden (dot-prefixed) serving dir must serve, not 404 (regression).
+
+    The dev double-buffer stages builds in ``<root>/.bengal/staging`` and serves from
+    whichever buffer is active. Pounce's static handler rejects any path whose resolved
+    absolute path contains a hidden component (``.bengal``), so when that buffer was
+    active *every* asset 404'd while HTML still loaded — the "theme drops to unstyled
+    for long periods while editing" bug. The app must route around Pounce to
+    ``_serve_static`` for hidden serving dirs so assets keep serving regardless of which
+    buffer is active. Before the fix this returned 404.
+    """
+    staging = tmp_path / ".bengal" / "staging"
+    (staging / "assets" / "css").mkdir(parents=True)
+    (staging / "assets" / "css" / "style.css").write_text("body { color: red; }")
+    app = create_bengal_dev_app(
+        # Active buffer is the hidden staging dir (callable mirrors the BufferManager wiring).
+        output_dir=lambda: staging,
+        build_in_progress=lambda: False,
+    )
+    sent, send = _make_send_capture()
+
+    await app(
+        scope={"type": "http", "method": "GET", "path": "/assets/css/style.css", "headers": []},
+        receive=_noop_receive,
+        send=send,
+    )
+
+    assert sent[0]["status"] == 200, "asset under .bengal/staging must serve, not 404"
+    assert any(h[0] == b"content-type" and b"text/css" in h[1] for h in sent[0]["headers"])
+    assert _body(sent) == b"body { color: red; }"
+
+
+def test_has_hidden_path_component(tmp_path: Path) -> None:
+    """Detects dot-prefixed components anywhere in the resolved path (except .well-known)."""
+    from bengal.server.asgi_app import _has_hidden_path_component
+
+    assert _has_hidden_path_component(tmp_path / ".bengal" / "staging") is True
+    assert _has_hidden_path_component(tmp_path / "public") is False
+    assert _has_hidden_path_component(tmp_path / "public-bengal-staging") is False
+    assert _has_hidden_path_component(tmp_path / ".well-known") is False
+
+
+@pytest.mark.asyncio
 async def test_static_asset_uses_pounce_etag_and_304(tmp_path: Path) -> None:
     """Static assets use Pounce conditional request handling."""
     assets = tmp_path / "assets"

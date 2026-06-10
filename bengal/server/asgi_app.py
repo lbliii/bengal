@@ -130,7 +130,15 @@ def create_bengal_dev_app(
         # within this request use the same buffer (double-buffer consistency).
         serving_dir = _resolve_dir()
 
-        if method in {"GET", "HEAD"} and _should_delegate_to_pounce_static(path):
+        # Pounce's static handler 404s any path with a hidden (dot-prefixed) component.
+        # The double-buffer serves from <root>/.bengal/staging half the time, so route
+        # asset requests around Pounce to _serve_static whenever the active buffer (or any
+        # ancestor) is hidden — otherwise every asset 404s and pages render unstyled.
+        if (
+            method in {"GET", "HEAD"}
+            and _should_delegate_to_pounce_static(path)
+            and not _has_hidden_path_component(serving_dir)
+        ):
             served = await _serve_pounce_static_asset(
                 scope,
                 receive,
@@ -226,6 +234,26 @@ def _should_delegate_to_pounce_static(path: str) -> bool:
     if is_deferred_generated_artifact_path(raw_path) or _is_html_path(raw_path):
         return False
     return any(raw_path.endswith(ext) for ext in _POUNCE_STATIC_ASSET_EXTENSIONS)
+
+
+def _has_hidden_path_component(directory: Path) -> bool:
+    """True when the serving directory's resolved path contains a dot-prefixed component.
+
+    Pounce's static handler rejects any path whose *resolved absolute* path contains a
+    hidden component (a part starting with ``.``, except ``.well-known``) — see
+    ``pounce/_static.py`` ``_resolve_file``. The dev server's double-buffer stages builds
+    in ``<root>/.bengal/staging``; whenever that buffer is the active one after a swap,
+    Pounce would 404 *every* asset under it (CSS/JS/fonts/icons), leaving pages unstyled
+    while HTML — served by ``_serve_static`` — still loads. Detecting a hidden serving dir
+    lets us route around Pounce to ``_serve_static`` (which has no such restriction and
+    serves assets with correct content types), so assets keep serving regardless of which
+    buffer is active. Also covers the rarer case of a project rooted under a dot-directory.
+    """
+    try:
+        resolved = directory.resolve()
+    except OSError:
+        resolved = directory
+    return any(part.startswith(".") and part != ".well-known" for part in resolved.parts)
 
 
 def _scope_without_sendfile(scope: dict[str, Any]) -> dict[str, Any]:
