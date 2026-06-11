@@ -6,7 +6,7 @@ Components in this directory are **experimental** and may change or be removed w
 
 **Purpose**: Holographic TCG-style card effects inspired by [pokemon-cards-css](https://github.com/simeydotme/pokemon-cards-css). Uses mouse-tracking via CSS custom properties for dynamic shine and gradient effects.
 
-**Status**: Loaded by default. To scope to specific pages, add `data-style="holo"` to a parent container and ensure card elements use the `.holo-card` class.
+**Status**: Not loaded by default. This file is included **only when the build's CSS feature detector finds a holographic class in rendered content** — the regex `holo[-_]?card|holographic` in `bengal/orchestration/feature_detector.py`, mapped to this file via `FEATURE_CSS["holo_cards"]` in `bengal/themes/default/css_manifest.py`. It is also listed in `CSS_EXPERIMENTAL` (opt-in) in the same manifest. To use it, apply the `.holo-card` class to card elements (which triggers detection); to scope effects, add `data-style="holo"` to a parent container.
 
 **Browser support**: Modern browsers with CSS custom properties and `filter`. Best in Chrome, Firefox, Safari 15+.
 
@@ -27,4 +27,9 @@ Components in this directory are **experimental** and may change or be removed w
 
 ## Enabling Experimental Styles
 
-Experimental components are loaded unconditionally in `style.css`. To make holo effects opt-in site-wide, add `data-experimental="holo"` to the `<html>` element when the theme supports it (e.g., via `theme.yaml`).
+Experimental components are **not** imported unconditionally by `style.css`. Inclusion is driven by the CSS manifest in `bengal/themes/default/css_manifest.py`:
+
+- **Feature-detected** — files in `FEATURE_CSS` (e.g. `holo_cards` → `experimental/holo-cards-advanced.css`) are added automatically when the build's feature detector matches the corresponding pattern in rendered content.
+- **Opt-in** — files in `CSS_EXPERIMENTAL` are available for explicit inclusion and are never emitted unless requested.
+
+This keeps experimental, may-be-removed CSS out of every site's bundle by default.
