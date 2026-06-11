@@ -137,19 +137,44 @@ def _walk_files(out: Path) -> dict[str, Path]:
     return {str(p.relative_to(out)): p for p in out.rglob("*") if p.is_file()}
 
 
+# Per-fixture sentinel outputs that MUST be present in the shard build, deterministic
+# thread-vs-thread, and therefore in the byte-compared set — so each fixture's compare
+# actually exercises the artifacts it was added to guard (non-vacuous, #130):
+#   - test-taxonomy: the generated tag pages sharded into workers by S13.4e.
+#   - test-blog-paginated: the per-page JSON for a SECTIONED content page + the section index
+#     (#418, dropped under shard when the worker's JSON accumulation crashed on a snapshot
+#     section's nav) AND the enriched authored ``type: blog`` ``_index.md`` HTML + its per-page
+#     JSON (#419, whose archive-card ``<time>`` dates diverged thread-vs-shard).
+_FULL_OUTPUT_FIXTURES = [
+    ("test-taxonomy", ("tags/index.html", "tags/python/index.html", "tags/testing/index.html")),
+    (
+        "test-blog-paginated",
+        (
+            "posts/index.html",
+            "posts/index.json",
+            "posts/post-01/index.json",
+            "posts/post-13/index.json",
+        ),
+    ),
+]
+
+
 @pytest.mark.serial
-def test_shard_full_output_byte_identical_excluding_nondeterminism(tmp_path):
-    """S13.4e + S16-v2: with the GENERATED pages (tag / tag-index / archive) sharded into the
-    workers, a shard build must be byte-identical to the thread path across the WHOLE output
-    tree — not just ``*.html`` — including per-page JSON, the search index, sitemap, RSS, and
-    the markdown output format.
+@pytest.mark.parametrize(("root_name", "sentinels"), _FULL_OUTPUT_FIXTURES)
+def test_shard_full_output_byte_identical_excluding_nondeterminism(tmp_path, root_name, sentinels):
+    """S13.4e + S16-v2: a shard build must be byte-identical to the thread path across the WHOLE
+    output tree — not just ``*.html`` — including per-page JSON, the search index, sitemap, RSS,
+    and the markdown output format. Covers the generated pages S13.4e sharded into workers
+    (test-taxonomy) and the two pre-existing content-shard parity gaps closed alongside this:
+    per-page JSON for SECTIONED pages (#418) and the enriched authored blog-list ``_index.md``
+    (#419), both on test-blog-paginated.
 
     Non-determinism (timestamped JSON sidecars, ``*.hash``, the unseeded random-posts widget) is
     excluded *self-calibratingly*: any file that already differs thread-vs-thread is dropped from
     the compare, so the assertion can only fail on a genuine shard divergence. Non-vacuous: the
-    shard backend must FIRE, the generated tag pages must be PRESENT and in the compared set, and
-    a real set of deterministic files must be compared (#130)."""
-    root = _copy_root(tmp_path, "test-taxonomy")
+    shard backend must FIRE, the per-fixture ``sentinels`` must be PRESENT and in the compared
+    set, and a real set of deterministic files must be compared (#130)."""
+    root = _copy_root(tmp_path, root_name)
     out_t1, out_t2, out_s = tmp_path / "t1", tmp_path / "t2", tmp_path / "shard"
 
     # Two thread builds calibrate which files are non-deterministic run-to-run; one shard build
@@ -171,12 +196,15 @@ def test_shard_full_output_byte_identical_excluding_nondeterminism(tmp_path):
     compared = [rel for rel in t1 if rel not in nondeterministic]
     assert len(compared) > 10, f"too few deterministic files compared ({len(compared)}) — vacuous?"
 
-    # The generated pages S13.4e moved into the workers must be present AND in the deterministic
-    # compared set (so the byte check below actually exercises them, not a vacuous absence).
-    generated_outputs = ["tags/index.html", "tags/python/index.html", "tags/testing/index.html"]
-    for rel in generated_outputs:
-        assert rel in s, f"generated page {rel} missing from shard output"
-        assert rel not in nondeterministic, f"generated page {rel} unexpectedly non-deterministic"
+    # Each sentinel must be present in the shard output AND deterministic, so the byte check
+    # below actually exercises it (not a vacuous absence/exclusion).
+    for rel in sentinels:
+        assert rel in s, f"{root_name}: expected output {rel} missing from shard build"
+        assert rel not in nondeterministic, (
+            f"{root_name}: sentinel {rel} unexpectedly non-deterministic"
+        )
 
     diffs = [rel for rel in compared if t1[rel].read_bytes() != s[rel].read_bytes()]
-    assert not diffs, f"shard diverged from thread on deterministic files: {sorted(diffs)}"
+    assert not diffs, (
+        f"{root_name}: shard diverged from thread on deterministic files: {sorted(diffs)}"
+    )

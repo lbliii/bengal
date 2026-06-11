@@ -420,10 +420,41 @@ are *not* blockers under this design.
       byte-parity gaps the HTML-only S16 gate misses, on `test-blog-paginated`:** (G1) per-page JSON
       output-format files for blog posts are absent under shard; (G2) an enriched authored
       section-index (`content/posts/_index.md`, `type=blog`) renders its post-date `<time>` elements
-      differently thread-vs-shard (the worker re-parses the authored `_index.md` without re-running
-      `SectionOrchestrator._enrich_existing_index`, which injects `_posts`/`_subsections`/`_paginator`
-      in the parent). These do NOT touch the generated bucket (test-taxonomy is fully byte-clean) but
-      they block default-on and are the next S16-v2 blockers.
+      differently thread-vs-shard. These do NOT touch the generated bucket (test-taxonomy is fully
+      byte-clean) but they block default-on and are the next S16-v2 blockers.
+
+    - [x] **S16-v2a — G1 (#418) + G2 (#419) RESOLVED + test-blog-paginated added to the full-output
+      gate (DONE, 2026-06-11).** Both root causes were mis-stated in the filings; the real causes
+      (verified by instrumentation, both SECTIONED-content-page only — which is why test-taxonomy,
+      all top-level content, never caught them):
+      - **G1 was NOT an emission-path / collector-vs-postprocess issue.** A sectioned page's
+        `page._section` resolves to a frozen `SectionSnapshot`; `JsonAccumulator.accumulate_unified_page_data`
+        → `page_to_json` → `_get_navigation` → `page.prev_in_section` → `_get_section_page_index` tries to
+        *cache* `section._sorted_page_index_cache` on the snapshot, which raises **`TypeError`** (the
+        snapshot's frozen `__setattr__` `super()` identity quirk) — only `AttributeError` was suppressed,
+        so it propagated and the broad `except` in the accumulator **silently dropped the whole page**
+        from accumulation. `PageJSONGenerator.generate` then uses the (still-non-empty) `accumulated_json`
+        wholesale and never falls back, so the sectioned posts' JSON is never written. The search index
+        was unaffected (it computes from the parent's live pages). Fix (`core/page/navigation.py`): key
+        `_get_section_page_index` by **`source_path`** (a live worker page is never the snapshot's
+        `PageSnapshot`/`PageView` by object identity → object keying missed every lookup), broaden the
+        cache-set `suppress` to `(AttributeError, TypeError)`, and short-circuit `get_prev/next_in_section`
+        to `None` for an index page itself (the live `Section` excludes `_index` from `sorted_pages`; a
+        snapshot section includes it — the guard keeps the two byte-identical).
+      - **G2 was NOT about skipping `_enrich_existing_index`.** Both paths resolve a `SectionSnapshot`; the
+        divergence is that the parent's snapshot section carries **`PageSnapshot`** regular_pages (no `.date`
+        attribute → no `<time>`) while the worker's `plan.sections` carries **`PageView`** regular_pages
+        (PageView exposes `.date` → the card renders `<time>`). Fix (`build_context.get_section_snapshot`
+        + `rendering/context/build_page_context`): **canonicalise** a passed `SectionSnapshot` to THIS
+        build's snapshot section by path (O(1), the worker inherits the parent snapshot via fork COW), so
+        the worker's listing matches the thread path — which always resolves live sections here. Worker-only
+        (thread's resolved section is always live), thread-neutral (verified: 0 output changes).
+      - Both fixes verified byte-identical on the full `test-blog-paginated` tree (calibrated ND exclusion),
+        thread-neutral, and `test-blog-paginated` is now a parametrized case of the full-output parity gate
+        (`test_shard_full_output_byte_identical_excluding_nondeterminism`) with non-vacuous sentinels
+        (per-page JSON for posts + the enriched section index), mutation-confirmed to fail when either fix
+        is reverted. `render_isolation` stays **off**; ty floor unchanged (the diagnostics in the touched
+        files are pre-existing protocol/structural-matching limitations on unchanged signatures). *(m)*
     - [~] **S13.4f/g — small-parent driver — OPTIONAL OPTIMIZATION.** The shipped `ShardRenderBackend`
       forks from a `from_site` parent (parent builds the snapshot — cheap, ~10%). The pure
       snapshot-free small-parent reduce (all barrier flags on, S13.4a/b done; sections=S13.4c-pt2,
