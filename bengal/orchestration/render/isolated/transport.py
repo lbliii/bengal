@@ -15,9 +15,45 @@ copy-on-write; the spawn worker re-derives them).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import date, datetime
+from pathlib import Path
 from typing import Any
 
-__all__ = ["RenderChunkResult"]
+__all__ = ["RenderChunkResult", "picklable_metadata"]
+
+# Values that pickle cleanly AND that ``PageArtifact._freeze_json`` already treats verbatim
+# (str/int/float/bool/None passthrough; Path → str; date/datetime → isoformat). Anything else
+# is stringified below, exactly as ``_freeze_json`` does, so the transform is a no-op under the
+# page-artifact cache's eventual freeze.
+_FREEZE_TRIVIAL = (str, int, float, bool, type(None), Path, datetime, date)
+
+
+def picklable_metadata(value: Any) -> Any:
+    """Return a picklable copy of a page-metadata value, freeze-identical to the original.
+
+    Generated pages (tag/tag-index/archive) inject live ``Page``/``Section`` refs and
+    ``MappingProxyType`` into ``page.metadata`` (``_tags``/``_posts``/``_paginator``/``_section``)
+    so the page can resolve its listing at render time. Those land in
+    ``AccumulatedPageData.raw_metadata`` (a shallow ``dict(page.metadata)``) and are **unpicklable**
+    across the shard worker → parent boundary — the only thing in the render result that is. The
+    in-process path never pickles them, and when the page-artifact cache *does* serialize
+    ``raw_metadata`` it stringifies every such ref via :func:`PageArtifact._freeze_json`.
+
+    This mirrors that freeze: recurse plain containers, leave freeze-trivial leaves untouched, and
+    stringify anything else (live refs, ``MappingProxyType``, callables). The result pickles, and
+    ``_freeze_json(picklable_metadata(v)) == _freeze_json(v)`` for every ``v`` — so both the rendered
+    output (which reads computed fields, never ``raw_metadata``) and the page-artifact cache stay
+    byte-identical thread-vs-shard. Applied shard-side only; the thread path is untouched.
+    """
+    if isinstance(value, _FREEZE_TRIVIAL):
+        return value
+    # MappingProxyType is NOT a dict subclass, so it falls through to ``str(value)`` below —
+    # matching ``_freeze_json`` (which only descends genuine ``dict``s).
+    if isinstance(value, dict):
+        return {key: picklable_metadata(item) for key, item in value.items()}
+    if isinstance(value, list | tuple | set | frozenset):
+        return [picklable_metadata(item) for item in value]
+    return str(value)
 
 
 @dataclass(frozen=True, slots=True)

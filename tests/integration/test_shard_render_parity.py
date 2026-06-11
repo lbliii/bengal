@@ -130,3 +130,53 @@ def test_shard_resolves_cross_shard_related_content(tmp_path):
     assert "blog-card-excerpt" in html, (
         "related-post card body missing — cross-shard content registry (S14) did not resolve"
     )
+
+
+def _walk_files(out: Path) -> dict[str, Path]:
+    """Every output file (not just HTML), keyed by output-relative POSIX path."""
+    return {str(p.relative_to(out)): p for p in out.rglob("*") if p.is_file()}
+
+
+@pytest.mark.serial
+def test_shard_full_output_byte_identical_excluding_nondeterminism(tmp_path):
+    """S13.4e + S16-v2: with the GENERATED pages (tag / tag-index / archive) sharded into the
+    workers, a shard build must be byte-identical to the thread path across the WHOLE output
+    tree — not just ``*.html`` — including per-page JSON, the search index, sitemap, RSS, and
+    the markdown output format.
+
+    Non-determinism (timestamped JSON sidecars, ``*.hash``, the unseeded random-posts widget) is
+    excluded *self-calibratingly*: any file that already differs thread-vs-thread is dropped from
+    the compare, so the assertion can only fail on a genuine shard divergence. Non-vacuous: the
+    shard backend must FIRE, the generated tag pages must be PRESENT and in the compared set, and
+    a real set of deterministic files must be compared (#130)."""
+    root = _copy_root(tmp_path, "test-taxonomy")
+    out_t1, out_t2, out_s = tmp_path / "t1", tmp_path / "t2", tmp_path / "shard"
+
+    # Two thread builds calibrate which files are non-deterministic run-to-run; one shard build
+    # is the comparand. Same source root → identical source paths in any reprs.
+    assert not _build(root, out_t1, shard=False)
+    assert not _build(root, out_t2, shard=False)
+    assert _build(root, out_s, shard=True), "shard backend did not fire (gate/threshold?)"
+
+    t1, t2, s = _walk_files(out_t1), _walk_files(out_t2), _walk_files(out_s)
+    assert t1, "thread build produced no files — parity would be vacuous (#130)"
+    assert set(t1) == set(s), (
+        f"file set differs: only-thread={sorted(set(t1) - set(s))}, "
+        f"only-shard={sorted(set(s) - set(t1))}"
+    )
+
+    nondeterministic = {
+        rel for rel in t1 if rel in t2 and t1[rel].read_bytes() != t2[rel].read_bytes()
+    }
+    compared = [rel for rel in t1 if rel not in nondeterministic]
+    assert len(compared) > 10, f"too few deterministic files compared ({len(compared)}) — vacuous?"
+
+    # The generated pages S13.4e moved into the workers must be present AND in the deterministic
+    # compared set (so the byte check below actually exercises them, not a vacuous absence).
+    generated_outputs = ["tags/index.html", "tags/python/index.html", "tags/testing/index.html"]
+    for rel in generated_outputs:
+        assert rel in s, f"generated page {rel} missing from shard output"
+        assert rel not in nondeterministic, f"generated page {rel} unexpectedly non-deterministic"
+
+    diffs = [rel for rel in compared if t1[rel].read_bytes() != s[rel].read_bytes()]
+    assert not diffs, f"shard diverged from thread on deterministic files: {sorted(diffs)}"

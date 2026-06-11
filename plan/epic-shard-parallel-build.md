@@ -391,11 +391,39 @@ are *not* blockers under this design.
       NOT required by the shipped backend: it uses `RenderPlan.from_site`, which already carries
       `menus` + view-ified `nav_trees` (installed via `NavTreeCache.set_precomputed`), byte-identical
       on test-navigation. Only the small-parent path (avoiding the snapshot build) needs this. xl.
-    - [ ] **S13.4e — shard generated pages — THE MAIN REMAINING PERF ITEM.** tag/archive/pagination
-      currently render SERIALLY in the parent (byte-correct, but ~23% of render un-parallelized) —
-      so the shard build LOSES end-to-end on generated-heavy sites (S17). Sharding them (synthesis +
-      `generated_page_assignments` + worker Paginator rehydration; COW-prone — the generated graph is
-      shared) is what broadens the win beyond render-heavy-low-generated sites. *(l)*
+    - [x] **S13.4e — shard generated pages (DONE).** tag/tag-index/auto-archive pages used to
+      render SERIALLY in the parent (byte-correct, but ~15–23% of render un-parallelized) — so the
+      shard build LOST end-to-end on generated-heavy sites (S17, 0.88×). They now render IN THE
+      WORKERS: the parent LPT-balances them across the same content shards
+      (`_assign_generated_pages` → the reserved `RenderPlan.generated_page_assignments`, previously
+      empty scaffolding), and each worker renders its assigned slice — live parent objects inherited
+      via **fork COW** — against its **WorkerSite**, not the parent's live site. That was the key
+      COW-avoidance choice: the tag-page render context (`renderer._add_tag_generated_page_context`)
+      already re-resolves its post list from the immortalized snapshot + `site.get_page_path_map()`
+      and rebuilds a fresh `Paginator` from `per_page`, so against the WorkerSite the bulk (tag
+      pages) resolves to the worker's OWN PageViews — the same COW-free path content pages use — and
+      the Paginator "rehydrates" for free via the existing renderer (no separate rehydration step).
+      **The one real engineering blocker was pickling, not COW:** a generated page's metadata holds
+      live `Page`/`Section` refs + a `MappingProxyType` (`_tags`/`_posts`/`_paginator`), which land
+      in `AccumulatedPageData.raw_metadata` and are **unpicklable** across the worker→parent
+      boundary (`cannot pickle 'mappingproxy'`) — invisible before because generated pages rendered
+      in-process. Fixed with `transport.picklable_metadata`, which flattens those refs exactly as
+      `PageArtifact._freeze_json` later would (stringify live refs/proxies, recurse plain
+      containers, leave scalars/Paths/dates) — so the result pickles AND the rendered output +
+      page-artifact cache stay byte-identical (output never reads `raw_metadata`; the cache freeze
+      is provably unchanged). Gated by `test_shard_full_output_byte_identical_excluding_nondeterminism`
+      (FULL output tree, not just `*.html`, self-calibrating non-determinism exclusion, non-vacuous)
+      + 7 unit tests (`test_shard_generated.py`). `render_isolation` stays **off**; ty floor
+      unchanged by this change. *(l)*
+
+      **Discovered (out of S13.4e scope, filed separately) — two pre-existing CONTENT-shard
+      byte-parity gaps the HTML-only S16 gate misses, on `test-blog-paginated`:** (G1) per-page JSON
+      output-format files for blog posts are absent under shard; (G2) an enriched authored
+      section-index (`content/posts/_index.md`, `type=blog`) renders its post-date `<time>` elements
+      differently thread-vs-shard (the worker re-parses the authored `_index.md` without re-running
+      `SectionOrchestrator._enrich_existing_index`, which injects `_posts`/`_subsections`/`_paginator`
+      in the parent). These do NOT touch the generated bucket (test-taxonomy is fully byte-clean) but
+      they block default-on and are the next S16-v2 blockers.
     - [~] **S13.4f/g — small-parent driver — OPTIONAL OPTIMIZATION.** The shipped `ShardRenderBackend`
       forks from a `from_site` parent (parent builds the snapshot — cheap, ~10%). The pure
       snapshot-free small-parent reduce (all barrier flags on, S13.4a/b done; sections=S13.4c-pt2,
