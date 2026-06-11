@@ -33,9 +33,10 @@ restricted to one shard:
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
-from .transport import RenderChunkResult
+from .transport import RenderChunkResult, picklable_metadata
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -220,7 +221,15 @@ def render_shard(
 
     render_time_ms = (time.perf_counter() - start) * 1000
 
-    page_data = tuple(build_context.get_accumulated_page_data())
+    # Generated pages (tags/archives) inject live Page/Section refs + MappingProxyType into their
+    # metadata, which lands in AccumulatedPageData.raw_metadata — the one unpicklable field on the
+    # worker→parent boundary (S13.4e moved their render here). Flatten it to a picklable,
+    # freeze-identical form so the result pickles without changing output or the page-artifact
+    # cache. No-op for content pages (plain frontmatter); the parent fallback path runs it too,
+    # harmlessly (in-process, freeze-identical).
+    page_data = tuple(
+        _picklable_page_data(data) for data in build_context.get_accumulated_page_data()
+    )
     assets = tuple(
         (str(src), tuple(sorted(refs))) for src, refs in build_context.get_accumulated_assets()
     )
@@ -239,6 +248,17 @@ def render_shard(
         assets=assets,
         external_refs=tuple(external_refs),
     )
+
+
+def _picklable_page_data(data: Any) -> Any:
+    """Return ``data`` with a picklable ``raw_metadata`` (the lone unpicklable field on generated
+    pages). ``raw_metadata`` does not feed rendered output — postprocess reads the computed
+    fields + ``full_json_data`` — so flattening only the injected live refs is output-neutral and
+    freeze-identical for the page-artifact cache (see :func:`picklable_metadata`)."""
+    raw = getattr(data, "raw_metadata", None)
+    if not raw:
+        return data
+    return replace(data, raw_metadata=picklable_metadata(raw))
 
 
 def _build_worker_caches(site: SiteLike) -> tuple[Any, Any]:
